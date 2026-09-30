@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # VisibilityRule Class
 
@@ -56,69 +54,143 @@ The `VisibilityRule` class includes this
 
 Constructor to create a VisibilityRule instance with the specified visibility rule details.
 
+  
+
 ### VisibilityRule(stiId, prcId, attributeId, attributePicklistValueId, target, scope, type, productIds, message)
 
+  
+  
+  
 Constructor to create a VisibilityRule instance with the specified visibility rule details.
+
+    
 
 #### Signature
 
+      
+      
+
 `public VisibilityRule(String stiId, String prcId, String attributeId, String attributePicklistValueId, String target, String scope, String type, List<String> productIds, String message)`
+
+      
+    
+
+    
 
 #### Parameters
 
+      
+      
+
 **stiId**
 
-: Type: String
+      
 
-: The ID of the Sales Transaction Item (STI) associated with this visibility rule.
+Type: String
+
+      
+
+The ID of the Sales Transaction Item (STI) associated with this visibility rule.
+
+      
 
 **prcId**
 
-: Type: String
+      
 
-: The ID of the Product Relationship Configuration (PRC) associated with this visibility rule.
+Type: String
+
+      
+
+The ID of the Product Relationship Configuration (PRC) associated with this visibility rule.
+
+      
 
 **attributeId**
 
-: Type: String
+      
 
-: The ID of the attribute associated with this visibility rule.
+Type: String
+
+      
+
+The ID of the attribute associated with this visibility rule.
+
+      
 
 **attributePicklistValueId**
 
-: Type: String
+      
 
-: The ID of the attribute picklist value associated with this visibility rule.
+Type: String
+
+      
+
+The ID of the attribute picklist value associated with this visibility rule.
+
+      
 
 **target**
 
-: Type: String
+      
 
-: The target of the visibility rule (for example, product, attribute, or component).
+Type: String
+
+      
+
+The target of the visibility rule (for example, product, attribute, or component).
+
+      
 
 **scope**
 
-: Type: String
+      
 
-: The scope of the visibility rule.
+Type: String
+
+      
+
+The scope of the visibility rule.
+
+      
 
 **type**
 
-: Type: String
+      
 
-: The type of visibility rule (for example, Show or Hide).
+Type: String
+
+      
+
+The type of visibility rule (for example, Show or Hide).
+
+      
 
 **productIds**
 
-: Type: List<String>
+      
 
-: List of product IDs affected by this visibility rule.
+Type: List<String>
+
+      
+
+List of product IDs affected by this visibility rule.
+
+      
 
 **message**
 
-: Type: String
+      
 
-: The message to display when the visibility rule is applied.
+Type: String
+
+      
+
+The message to display when the visibility rule is applied.
+
+    
+
+  
 
   
 

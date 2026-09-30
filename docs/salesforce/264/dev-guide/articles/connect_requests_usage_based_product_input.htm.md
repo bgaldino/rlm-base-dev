@@ -7,54 +7,42 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Usage-Based Product Input
 
-Understand the sample request structure to specify and manage usage-based products
-    within a sales transaction.
+Understand the sample request structure to specify and manage usage-based products within a sales transaction.
 
     
+
+## JSON Example to Create a Quote Record With Default Rates and Default Grants
+
       
-        
-          
-
-**JSON example to create a quote record with default rates and default grants**
-
-          
-: 
-            
+      
 
 The example shows a sample request to creates these records with these updates.
 
-            
-              
+      
+        
 - 
-`Quote`—Creates the main quote record
-                with default rates and default grants.
+`Quote`—Creates the main quote record with default rates and default grants.
 
-              
+        
 - 
-`Quote Line Item`—Adds a product to the
-                quote.
+`Quote Line Item`—Adds a product to the quote.
 
-              
+        
 - 
-`Rate Card Entry`—Links default pricing
-                from rate card. When `NegotiatedRate` property
-                value is null, the rate card price is used.
+`Rate Card Entry`—Links default pricing from rate card. When `NegotiatedRate` property value is null, the rate card price is used.
 
-              
+        
 - 
-`Usage Grant`—Allocates all default
-                grants.
+`Usage Grant`—Allocates all default grants.
 
-            
+      
 
-            
+      
 
 ```
 {
@@ -119,39 +107,33 @@ The example shows a sample request to creates these records with these updates.
 }
 ```
 
-          
+    
 
+    
+
+## JSON Example to Specify Negotiated Grants
+
+      
+      
+
+This example shows a sample response to create a QuotLineItmUseRsrcGrant record that links a quote line item to a product usage grant for usage-based products. This request performs these updates.
+
+      
         
-        
-        
-          
-
-**JSON example to specify negotiated grants**
-
-          
-: 
-            
-
-This example shows a sample response to create a QuotLineItmUseRsrcGrant record that
-              links a quote line item to a product usage grant for usage-based products. This
-              request performs these updates.
-
-            
-              
 - Associates a usage grant with a quote line item.
 
-              
+        
 - Allocates a quantity of usage resources.
 
-              
+        
 - Applies a usage policy that defines how the resources can be consumed.
 
-              
+        
 - Links to a base product usage grant that defines the grant structure.
 
-            
+      
 
-            
+      
 
 ```
 {
@@ -186,18 +168,11 @@ This example shows a sample response to create a QuotLineItmUseRsrcGrant record 
 }
 ```
 
-          
+      
 
-          
-: 
-            
+This example shows a sample response to update the previously created QuotLineItmUseRsrcGrant record with additional units, which is specified by using the `GrantQuantity` property. The quote line item now has 97 units of usage resource allocation.
 
-This example shows a sample response to update the previously created
-              QuotLineItmUseRsrcGrant record with additional units, which is specified by using the
-                `GrantQuantity` property. The quote line item now
-              has 97 units of usage resource allocation.
-
-            
+      
 
 ```
 {
@@ -230,48 +205,40 @@ This example shows a sample response to update the previously created
 }
 ```
 
-          
+    
+
+    
+
+## JSON Example to Specify Tiered Pricing and Usage Grants
+
+      
+      
+
+This example shows a sample request to update an existing quote with tiered pricing and usage grants. This request sets up a multi-tier rate structure and updates a usage grant quantity along with these additional updates.
+
+      
+        
+- Creates a base rate card entry with a negotiated rate of 10. Sets the base price for the quote line item.
 
         
+- Creates a second rate card entry for tiered pricing without any negotiated rate. The default rate card is used. This rate card entry is the base for tier adjustments.
+
         
-          
+- Creates a tier adjustment for quantities 0 through 50 and adds $5 adjustment to the base rate.
 
-**JSON example to specify tiered pricing and usage grants**
+        
+- Creates a tier adjustment for quantities 50 through 100 and adds an adjustment of $10.
 
-          
-: 
+        
+- Updates an existing usage resource grant record to set grant quantity to 150 units.
 
-This example shows a sample request to update an existing quote with tiered pricing
-              and usage grants. This request sets up a multi-tier rate structure and updates a usage
-              grant quantity along with these additional updates.
+      
 
-              
-- Creates a base rate card entry with a negotiated rate of 10. Sets the base price
-                for the quote line item.
+      
 
-              
-- Creates a second rate card entry for tiered pricing without any negotiated rate.
-                The default rate card is used. This rate card entry is the base for tier
-                adjustments.
+For example, if an order is placed for 75 units, the base rate is $10. As tier 2 is applicable for this order, an adjustment of $10 is applicable. The final price per unit is $20 with a total of $1500 for 75 units.
 
-              
-- Creates a tier adjustment for quantities 0 through 50 and adds $5 adjustment to
-                the base rate.
-
-              
-- Creates a tier adjustment for quantities 50 through 100 and adds an adjustment of
-                $10.
-
-              
-- Updates an existing usage resource grant record to set grant quantity to 150
-                units.
-
-            
-
-For example, if an order is placed for 75 units, the base rate is $10. As tier 2
-              is applicable for this order, an adjustment of $10 is applicable. The final price per
-              unit is $20 with a total of $1500 for 75
-            units.
+      
 
 ```
 {

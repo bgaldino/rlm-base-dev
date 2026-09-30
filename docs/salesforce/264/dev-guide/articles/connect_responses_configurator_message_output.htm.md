@@ -7,23 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Configurator Message
 
 Output representation of the messages of a product configurator.
 
-        
-          
+    
 
-**JSON example**
+## JSON Example
 
-          
-: 
-            
+      
+      
 
 ```
 {
@@ -77,9 +73,9 @@ Output representation of the messages of a product configurator.
 }
 ```
 
-          
+    
 
-        
+    
       
 
           
@@ -111,12 +107,6 @@ Output representation of the messages of a product configurator.
 
               
 
-- 
-- 
-- 
-- 
-- 
-
               
 
               
@@ -155,10 +145,6 @@ Output representation of the messages of a product configurator.
               
 
               
-
-- 
-- 
-- 
 
               
 
@@ -197,9 +183,9 @@ Output representation of the messages of a product configurator.
         
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `category` | String | Category or type of the error message. Valid values are: `ArcResolutionService` `ArcValidationService` `BundleValidation` `ConfigurationRules` `Pricing` | Small, 60.0 | 60.0 |
+| `category` | String | Category or type of the error message. Valid values are `ArcResolutionService`, `ArcValidationService`, `BundleValidation`, `ConfigurationRules`, or `Pricing`. | Small, 60.0 | 60.0 |
 | `group​ByValue` | String | Specifies the value from Constraint Modeling Language rule action details. | Small, 67.0 | 67.0 |
 | `message` | String | Message that contains the error details. | Small, 60.0 | 60.0 |
-| `message​Type` | String | Type of error message. Valid values are: `Error` `Info` `Warning` | Small, 60.0 | 60.0 |
+| `message​Type` | String | Type of error message. Valid values are `Error`, `Info`, or `Warning`. | Small, 60.0 | 60.0 |
 | `primary​RecordId` | String | Primary record ID that contains the error. | Small, 60.0 | 60.0 |
 | `related​RecordId` | String | Related record ID for the error, if any. | Small, 60.0 | 60.0 |

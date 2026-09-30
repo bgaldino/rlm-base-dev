@@ -7,28 +7,26 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Object with Reference Input
 
-Input representation of a list of records to be inserted or updated. To update a
-    record, specify the record ID.
+Input representation of a list of records to be inserted or updated. To update a record, specify the record ID.
 
     
+      
 
 This is a sample request to create a sales transaction for an order line item.
 
-        
-          
+    
 
-**JSON example**
+    
 
-          
-: 
-            
+## JSON Example
+
+      
+      
 
 ```
 {
@@ -46,21 +44,21 @@ This is a sample request to create a sales transaction for an order line item.
 }
 ```
 
-          
+    
 
-        
+    
       
 
 This is a sample request to update an order line item.
 
-        
-          
+    
 
-**JSON example**
+    
 
-          
-: 
-            
+## JSON Example
+
+      
+      
 
 ```
 {
@@ -80,72 +78,68 @@ This is a sample request to update an order line item.
 }
 ```
 
-          
+    
 
-        
+    
+
+## Properties
+
+      
       
 
-        
           
-
-**Properties**
-
           
-: 
+          
+          
+          
+          
             
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
+              
 
               
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `referenceId` | String | Reference ID that maps to the response and can be used as a reference in later subrecords. This property value starts with a letter or number only and can contain letters, numbers, and underscores. It's also case-sensitive when used for referencing. | Required | 60.0 |

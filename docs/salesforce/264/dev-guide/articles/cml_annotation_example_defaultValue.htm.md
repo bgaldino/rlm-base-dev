@@ -7,57 +7,58 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_annotation_examples.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # defaultValue Annotation
 
-The `defaultValue` annotation is used on a variable to
-    define the value it should start with when configuration begins.
+The `defaultValue` annotation is used on a variable to define the value it should start with when configuration begins.
 
     
       
 
-      
-      
-      
+          
+          
+          
+            
+              
 
-      
+              
 
-      
+            
 
-      
+          
 
-      
-      
+          
+            
+              
 
-      
+              
 
-      
+            
 
-      
-      
+            
+              
 
-      
+              
 
-      
+            
 
-      
-      
+            
+              
 
-      
+              
 
-      
+            
 
-      
+          
 
+        
 | Annotation | `defaultValue` |
 | --- | --- |
 | Applicable to | Variable |
 | Value Type/Values | Literal |
-| Description | The configurator uses the default value defined in PCM (Product Attribute Definition). If no PCM default is available, the configurator uses the first value in the variable domain as the initial value. If no default value is defined in PCM and a defaultValue is specified in CML, the configurator uses the value defined in CML as the initial value of the variable. |
+| Description | The configurator uses the default value defined in PCM (Product Attribute Definition). If no PCM default is available, the configurator uses the first value in the variable domain as the initial value. If no default value is defined in PCM and a defaultValue is specified in CML, the configurator uses the value defined in CML as the initial value of the variable. When you create or update an attribute by calling Product Configurator API while a constraint model is active, include `AttributeName` in the payload and set it to the attribute’s developer name. The constraint engine matches that value to the CML variable name. If the payload omits `AttributeName`, the engine applies the default described in this topic instead of the submitted value. See [Configurator API: Include the Attribute Developer Name When Creating or Updating Attributes](./cml_best_practice_attribute_name.htm.md). |
 
     
 
@@ -65,9 +66,12 @@ The `defaultValue` annotation is used on a variable to
 
 ## Example 1
 
-In this example, neither PCM nor CML defines a default value
-        for the Cable Entry
-      variable.
+      
+      
+
+In this example, neither PCM nor CML defines a default value for the Cable Entry variable.
+
+      
 
 ```
 type GeneratorSet {
@@ -80,15 +84,14 @@ type VoltageConnection {
 
     
 
+    
+
 ## Example Description and Configurator Result
 
       
       
 
-The configurator sets `"Top Entry"` as the initial value
-        for `Cable Entry`, because it is the first value in the
-        variable domain `["Top Entry", "Bottom
-          Entry", "Side Entry"`.
+The configurator sets `"Top Entry"` as the initial value for `Cable Entry`, because it is the first value in the variable domain `["Top Entry", "Bottom Entry", "Side Entry"`.
 
     
 
@@ -96,9 +99,12 @@ The configurator sets `"Top Entry"` as the initial value
 
 ## Example 2
 
-In this example, PCM (Product Attribute Definition) defines
-          `"Bottom Entry"` as the default value for `Cable Entry`, and no `defaultValue` annotation is defined for this variable in
-      CML.
+      
+      
+
+In this example, PCM (Product Attribute Definition) defines `"Bottom Entry"` as the default value for `Cable Entry`, and no `defaultValue` annotation is defined for this variable in CML.
+
+      
 
 ```
 type GeneratorSet {
@@ -113,13 +119,14 @@ type VoltageConnection {
 
     
 
+    
+
 ## Example Description and Configurator Result
 
       
       
 
-The configurator sets the `"Bottom Entry"` as
-        the initial value for the `Cable Entry` of the `VoltageConnection` child products.
+The configurator sets the `"Bottom Entry"` as the initial value for the `Cable Entry` of the `VoltageConnection` child products.
 
       
 
@@ -131,9 +138,12 @@ As a best practice, define the default value in PCM and use the Sync function in
 
 ## Example 3
 
-In this example, a `defaultValue` annotation with `"Side Entry"` is defined in CML, and no default value is defined in PCM
-        for the `Cable Entry`
-      variable.
+      
+      
+
+In this example, a `defaultValue` annotation with `"Side Entry"` is defined in CML, and no default value is defined in PCM for the `Cable Entry` variable.
+
+      
 
 ```
 type GeneratorSet {
@@ -148,38 +158,32 @@ type VoltageConnection {
 
     
 
+    
+
 ## Example Description and Configurator Result
 
       
       
 
-The configurator sets the `"Side Entry"`
-        annotation value as the initial value for Cable Entry.
+The configurator sets the `"Side Entry"` annotation value as the initial value for Cable Entry.
 
       
 
 #### Note
 
-We recommend that you define default values in PCM (Product Attribute
-        Definition) whenever possible, as this approach promotes consistency across products and
-        simplifies maintenance.
+We recommend that you define default values in PCM (Product Attribute Definition) whenever possible, as this approach promotes consistency across products and simplifies maintenance.
 
       
 
-The defaultValue annotation in CML should be used only when a default value is not suitable
-        to be defined in PCM due to specific modeling requirements.
+The defaultValue annotation in CML should be used only when a default value is not suitable to be defined in PCM due to specific modeling requirements.
 
       
 
-When a default value is defined in PCM but the CML model has not been synced, the
-        configurator still applies the PCM default. However, the value displayed in the CML model
-        may become inconsistent with PCM.
+When a default value is defined in PCM but the CML model has not been synced, the configurator still applies the PCM default. However, the value displayed in the CML model may become inconsistent with PCM.
 
       
 
-To avoid such inconsistencies, it is recommended to run the Sync action in CML after
-        updating default values in PCM, so that the CML model remains aligned with the latest PCM
-        settings.
+To avoid such inconsistencies, it is recommended to run the Sync action in CML after updating default values in PCM, so that the CML model remains aligned with the latest PCM settings.
 
     
 

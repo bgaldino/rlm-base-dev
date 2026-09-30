@@ -26,6 +26,10 @@
 docs/salesforce/*/help/articles/** linguist-generated=true
 docs/salesforce/*/help/manifest.json linguist-generated=true
 docs/salesforce/*/help/index.md linguist-generated=true
+# Release-note snapshots use the same task (subtree_only) and are equally generated.
+docs/salesforce/*/release-notes/articles/** linguist-generated=true
+docs/salesforce/*/release-notes/manifest.json linguist-generated=true
+docs/salesforce/*/release-notes/index.md linguist-generated=true
 # Salesforce atlas Developer Guide snapshots are produced by
 # tasks/rlm_snapshot_dev_guide.py; review the tooling, not the per-page output.
 docs/salesforce/*/dev-guide/articles/** linguist-generated=true

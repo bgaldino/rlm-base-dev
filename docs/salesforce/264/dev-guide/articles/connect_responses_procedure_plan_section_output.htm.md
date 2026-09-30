@@ -7,23 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Procedure Plan Section
 
 Output representation of the details of a procedure plan section.
 
-        
-          
+    
 
-**JSON example**
+## JSON Example
 
-          
-: 
-            
+      
+      
 
 ```
                 "procedurePlanSections": [
@@ -84,9 +80,9 @@ Output representation of the details of a procedure plan section.
                 ]
 ```
 
-          
+    
 
-        
+    
       
 
           
@@ -196,15 +192,6 @@ Output representation of the details of a procedure plan section.
 
               
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-
               
 
               
@@ -248,6 +235,6 @@ Output representation of the details of a procedure plan section.
 | `procedure​PlanOptions` | [Procedure Plan Option](./connect_responses_procedure_plan_option_output.htm.md)[] | List of procedure plan options. | Small, 62.0 | 62.0 |
 | `recordId` | String | ID of the procedure plan option record. | Small, 62.0 | 62.0 |
 | `resolution​Type` | String | Type of resolution that’s used to filter the procedure. | Small, 62.0 | 62.0 |
-| `section​Type` | String | Type of section. Valid values are: `PricingProcedure` `ProductDiscoveryProcedure` `ProductQualificationProcedure` `PricingDiscoveryProcedure` `DiscountSpreadServiceProcedure` `RatingProcedure` `Custom` `RatingDiscoveryProcedure` | Small, 62.0 | 62.0 |
+| `section​Type` | String | Type of section. Valid values are `PricingProcedure`, `ProductDiscoveryProcedure`, `ProductQualificationProcedure`, `PricingDiscoveryProcedure`, `DiscountSpreadServiceProcedure`, `RatingProcedure`, `Custom`, or `RatingDiscoveryProcedure`. | Small, 62.0 | 62.0 |
 | `sequence` | Integer | Sequence that’s followed for the processing of the procedures. | Small, 62.0 | 62.0 |
 | `subSection​Type` | String | Subsection that’s added to the procedure plan definition. | Small, 62.0 | 62.0 |

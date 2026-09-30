@@ -7,144 +7,133 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Saved Configuration (GET, POST)
 
-Save and reuse a record's configurations, and get a list of the saved configurations
-    for a record.
+Save and reuse a record's configurations, and get a list of the saved configurations for a record.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/cpq/configurator/saved-configuration
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/saved-configuration
 ```
 
+    
+
+    
+
+## Available Version
+
+      
+      
+
+63.0
+
+    
+
+    
+
+## HTTP Methods
+
+      
+      
+
+GET, POST
+
+    
+
+    
+
+## Request Parameters for GET
+
+      
+      
+
           
-
-        
-        
           
-
-**Available version**
-
           
-: 63.0
-
-        
-        
           
-
-**HTTP methods**
-
           
-: GET, POST
-
-        
-        
           
-
-**Request parameters for GET**
-
-          
-: 
             
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
+              
 
               
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `referenceRecordId` | String | ID of the record whose saved configurations must be retrieved. | Required | 63.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for GET**
+## Response Body for GET
 
-          
-: [Configuration
-              List](./connect_responses_favorite_list_output_represenation.htm.md)
+      
+      
 
-        
-        
-          
+[Configuration List](./connect_responses_favorite_list_output_represenation.htm.md)
 
-**Request body for POST**
+    
 
-          
-: 
-            
+    
 
-**JSON example**
+## Request Body for POST
 
-: 
+      
+      
+
+**JSON Example**
+
+      
 
 ```
 {
@@ -155,10 +144,89 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator
 }
 ```
 
+      
+
 **Properties**
 
-: 
+      
 
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `data` | String | JSON object that contains the details of the sales transaction, formatted as a string. | Optional | 63.0 |
@@ -166,20 +234,16 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator
 | `name` | String | Name of the saved configuration. | Optional | 63.0 |
 | `referenceRecord​Id` | String | ID of the record for which the configuration must be saved. | Required | 63.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for POST**
+## Response Body for POST
 
-          
-: [Configuration Record
-            Save](./connect_responses_create_favorite_output.htm.md)
-
-        
       
+      
+
+[Configuration Record Save](./connect_responses_create_favorite_output.htm.md)
 
     
 
