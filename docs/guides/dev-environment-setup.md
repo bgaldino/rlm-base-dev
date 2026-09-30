@@ -29,7 +29,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **Homebrew** | macOS pkg installer (one-time) | Package manager for everything below | latest |
 | **direnv** | `brew install direnv` | Per-project env activation on `cd` | latest |
 | **nvm** | `brew install nvm` | Node version manager | latest |
-| **Node.js** | `nvm install --lts` | JavaScript runtime for `sf` CLI | major LTS line (`lts/*`) |
+| **Node.js** | `nvm install` (reads `.nvmrc`) | JavaScript runtime for `sf` CLI and repo npm tooling | major line in `.nvmrc` (`24`) |
 | **pyenv** | `brew install pyenv` | Python version manager | latest |
 | **Python** | `pyenv install $(pyenv latest -k 3.13)` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
 | **pipx** | `$(pyenv prefix)/bin/python3 -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
@@ -43,7 +43,9 @@ ends up with the same layered structure — not the same exact patch versions.
   a major line (Python 3.13 → 3.14, Node 24 → 26) is a deliberate, tested
   change tracked in `scripts/bash/update-toolchain.sh`.
 - **pyenv and nvm are version managers, not version pickers.** Let them
-  resolve the latest installed patch via `pyenv latest 3.13` and `nvm use 'lts/*'` (quote the glob so zsh doesn't expand it).
+  resolve the latest installed patch via `pyenv latest 3.13` and `nvm use` (which reads the repo's `.nvmrc`). Node is pinned to an explicit
+  major rather than `lts/*`, which would silently jump to the next major the
+  day it becomes LTS.
 
 ---
 
@@ -90,7 +92,7 @@ export PATH="$HOME/.local/bin:$PATH"
 # We skip the full `nvm use default` activation cycle (slow) and just resolve
 # `default` to a concrete vX.Y.Z via nvm's public API, then prepend that bin
 # dir. `nvm version default` handles any alias chain — including glob aliases
-# like `lts/*` (which `update-toolchain.sh` and `nvm install --lts` set) —
+# like `lts/*` as well as the plain `24` that `update-toolchain.sh` sets —
 # without depending on nvm's internal alias-cache file layout.
 export NVM_DIR="$HOME/.nvm"
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
@@ -174,13 +176,13 @@ if command -v pyenv >/dev/null 2>&1; then
   unset _PY_RESOLVED
 fi
 
-# Node via nvm — track active LTS line. brew --prefix nvm resolves to
+# Node via nvm — bare `nvm use` reads the repo's .nvmrc (Node 24). brew --prefix nvm resolves to
 # /opt/homebrew/opt/nvm (Apple Silicon) or /usr/local/opt/nvm (Intel).
 export NVM_DIR="$HOME/.nvm"
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
   . "$_NVM_PREFIX/nvm.sh" --no-use
-  nvm use --silent lts/\* >/dev/null 2>&1 || nvm use --silent default >/dev/null 2>&1
+  nvm use --silent >/dev/null 2>&1 || nvm use --silent default >/dev/null 2>&1
 fi
 unset _NVM_PREFIX
 
@@ -201,7 +203,7 @@ direnv allow              # one-time per workstation per .envrc revision
 ```bash
 python --version          # → Python 3.13.x  (whatever latest installed patch is)
 pyenv version             # → 3.13.x (set by PYENV_VERSION environment variable)
-node --version            # → v24.x (latest LTS)
+node --version            # → v24.x (line pinned in .nvmrc)
 cci --version             # → CumulusCI 4.x
 sf --version              # → @salesforce/cli/2.x
 ```
@@ -227,7 +229,7 @@ The script handles:
 1. `brew update && brew upgrade`
 2. `pyenv install --skip-existing $(pyenv latest -k 3.13)` — installs newest
    patch in the pinned major.minor line, **only if** there's a newer one
-3. `nvm install --lts --reinstall-packages-from=current --latest-npm` —
+3. `nvm install <.nvmrc line> --reinstall-packages-from=current --latest-npm` —
    keeps `sf` and other npm globals carried forward
 4. `sf update` — uses the CLI's built-in updater
 5. `pipx install --force cumulusci` (if Python patch bumped) **or**
@@ -246,11 +248,14 @@ The script handles:
 
 When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
 
-1. Edit `PY_LINE` / `NODE_LINE` at the top of `scripts/bash/update-toolchain.sh`
+1. Edit `PY_LINE` at the top of `scripts/bash/update-toolchain.sh`, and/or the
+   Node line in `.nvmrc` — then match `ARG NODE_MAJOR` in `docker/Dockerfile`,
+   `node-version` in `.github/workflows/prepare-rlm-org.yml`, and `engines.node`
+   in `package.json`
 2. Edit the `pyenv latest <line>` call in `.envrc`
 3. Run the script. It installs the new line, reinstalls CCI under the new
    Python, and verifies via `validate_setup`.
-4. Commit `.envrc` + the script changes.
+4. Commit `.envrc`, `.nvmrc` and the script changes.
 5. Optionally `pyenv uninstall <old.line>.x` and `nvm uninstall <old-node>`.
 
 ---

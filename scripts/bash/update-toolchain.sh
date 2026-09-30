@@ -11,12 +11,15 @@
 #   7. cci task run validate_setup
 #
 # Designed to be idempotent. Re-run after any tool emits a "new version" notice.
-# Major-line pins live in this script (PY_LINE, NODE_LINE) — edit them to bump.
+# Major-line pins: PY_LINE lives in this script; the Node line lives in .nvmrc.
 
 set -euo pipefail
 
 PY_LINE="3.13"
-NODE_LINE="lts/*"
+# Node line comes from the repo's .nvmrc (single source of truth, shared with
+# .envrc, package.json engines, the Dockerfile and CI).
+NODE_LINE="$(tr -d '[:space:]' < "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/.nvmrc")"
+[ -n "$NODE_LINE" ] || { printf '[fail] .nvmrc is empty\n' >&2; exit 1; }
 
 # Ensure pipx-managed bins (cci, snowfakery, etc.) are findable. pipx
 # ensurepath only updates shell rc files for future shells; we need PATH in
@@ -63,8 +66,7 @@ NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 
 OLD_NODE="$(nvm current 2>/dev/null || echo none)"
 log "Node: installing $NODE_LINE (current: $OLD_NODE)"
-# Drive install from NODE_LINE so changes at the top of this script take effect.
-# `lts/*` resolves to the active LTS line; explicit majors (e.g. `24`) also work.
+# Drive install from NODE_LINE (read from .nvmrc) so a bump there takes effect.
 # --reinstall-packages-from=current carries `sf` and other globals forward.
 nvm install "$NODE_LINE" --reinstall-packages-from=current --latest-npm
 nvm alias default "$NODE_LINE" >/dev/null

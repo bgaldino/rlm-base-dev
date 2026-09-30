@@ -15,6 +15,7 @@
 
 FROM python:3.13-slim-bookworm
 
+# Keep in step with the repo's .nvmrc (the pinned Node line).
 ARG NODE_MAJOR=24
 ARG DEBIAN_FRONTEND=noninteractive
 

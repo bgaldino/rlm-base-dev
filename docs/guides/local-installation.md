@@ -67,7 +67,7 @@ gh auth login
 
 > **Why nvm over `brew install node`?** Homebrew installs a single Node version system-wide. nvm lets you pin projects to specific Node versions and keeps global npm packages (like `@salesforce/cli`) tied to the version they were installed with.
 >
-> **Node.js 22 or later required:** The repository npm tooling declares `engines.node: >=22` in `package.json`. Use an LTS release meeting that floor; the build workflow uses Node 24.
+> **Node.js 24 required:** The repo pins Node 24 in `.nvmrc` (`nvm use` inside the repo picks it up) and declares `engines.node: >=24` in `package.json`. The Docker image and the build workflow use the same line.
 
 ```bash
 # Install nvm via Homebrew
@@ -99,14 +99,14 @@ echo 'fi' >> ~/.zshenv
 # Reload your shell
 source ~/.zshrc
 
-# Install the latest LTS version of Node.js
-nvm install --lts
+# Install the Node line the repo pins in .nvmrc (Node 24)
+nvm install 24
 
-# Set LTS as the default for all new shells
-nvm alias default 'lts/*'
+# Make it the default for all new shells
+nvm alias default 24
 
 # Verify
-node --version   # Should show an LTS release >=22 (the build workflow uses Node 24)
+node --version   # Should show v24.x
 npm --version
 ```
 
@@ -227,7 +227,7 @@ Install `@salesforce/cli` via npm using the nvm-managed Node from Step 3. This i
 npm install -g @salesforce/cli
 
 # Verify (must be 2.x or later)
-sf --version   # Check CLI >=2 and Node LTS >=22; platform/architecture and patch versions vary
+sf --version   # Check CLI >=2 and Node 24; platform/architecture and patch versions vary
 ```
 
 > **Why npm instead of Homebrew?** The Homebrew `sf` formula and `--cask sf` cask bundle their own copy of Node.js independently of nvm. This creates redundant Node installations and potential version conflicts. Installing via npm ties sf to your nvm-managed Node version, giving you a single Node installation to manage.
@@ -328,7 +328,7 @@ Node LTS refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
 scripts/bash/update-toolchain.sh
 ```
 
-It walks `brew update && brew upgrade` → latest patch in your pinned Python line → latest LTS Node → `sf update` → CCI reinstall/upgrade → `sf plugins update` → `cci task run validate_setup`. Major-line pins (e.g. Python 3.13, Node `lts/*`) are configured at the top of the script.
+It walks `brew update && brew upgrade` → latest patch in your pinned Python line → latest patch in the `.nvmrc` Node line → `sf update` → CCI reinstall/upgrade → `sf plugins update` → `cci task run validate_setup`. Major-line pins: Python 3.13 at the top of the script, Node 24 in `.nvmrc`.
 
 For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](dev-environment-setup.md).
 
@@ -377,7 +377,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
 7. **Node.js** — required by the `sf` CLI and SFDMU plugin
    - Use an LTS release **22 or later**, matching `package.json`; the build workflow uses Node 24
-   - Installation (macOS): `brew install nvm` then `nvm install --lts` (recommended) — see Step 3 in the macOS setup guide
+   - Installation (macOS): `brew install nvm` then `nvm install 24` (recommended; the line pinned in `.nvmrc`) — see Step 3 in the macOS setup guide
    - Verify: `node --version`
 
 8. **Python** (for custom tasks and the repo's AI/schema-diff scripts)
