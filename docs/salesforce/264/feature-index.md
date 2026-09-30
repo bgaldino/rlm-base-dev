@@ -205,7 +205,7 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 
 - **33 of the 88 feature notes map onto 26 index rows.** The other 55 have no index row, because the corpus diff did not surface them as a feature cluster. Examples are Large Transactions, Promotions, most of Salesforce Contracts and the billing-portal payment notes. Consider them first when the index is extended.
 - **Tier:** no note is labelled Beta or Pilot, so a note's presence is read as GA; confirm on a live org at GA. One note is a Release Update: opt-in now, enforced in Summer '27. Invoice Risk Scoring is Pilot by its Help titles and has no release note. Three other New rows (Billing Start Month and Next Billing Date Override, Exclude From Billing, Custom Dynamic Addition Screen Flow) also have none and rest on Help alone.
-- The mapping was done by hand. The license column summarizes the note's whole `Where:` line, with "Revenue Cloud" and "license" dropped; conditions from later sentences follow a semicolon or `+`.
+- The mapping was done by hand. The license column summarizes the licenses and prerequisites in the note's `Where:` line, with "Revenue Cloud" and "license" dropped. Shared prerequisites follow `+`, alternatives are parenthesized when combined with one, and conditions from later sentences follow a semicolon. Edition and Lightning Experience limits are left out, so read each note for full eligibility.
 
 ### Advanced Approvals (3)
 
@@ -320,10 +320,10 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 | Release note | License or requirement | Index row |
 |---|---|---|
 | [Add Clauses to Quotes from Your Clause Library](release-notes/articles/release-notes.rn_salesforce_contracts_add_clauses_to_quotes.htm.md) | Advanced or Salesforce Contracts | Special Terms on Quotes |
-| [Apply Contract Governance Policies Consistently with Document Playbooks](release-notes/articles/release-notes.rn_sf_contracts_document_playbooks.htm.md) | Advanced or Salesforce Contracts + Data 360 | *not in index* |
+| [Apply Contract Governance Policies Consistently with Document Playbooks](release-notes/articles/release-notes.rn_sf_contracts_document_playbooks.htm.md) | (Advanced or Salesforce Contracts) + Data 360 | *not in index* |
 | [Author Contracts in Government Cloud](release-notes/articles/release-notes.rn_salesforce_contracts_govcloud_support.htm.md) | Advanced or Salesforce Contracts | *not in index* |
 | [Protect Sensitive Setup Data by Removing Elevated Permissions from Runtime Users](release-notes/articles/release-notes.rn_sf_contracts_eliminate_privileges_runtime_users.htm.md) | Advanced or Salesforce Contracts | *not in index* |
-| [Reduce Contract Risks by Analyzing Every Redline with AI](release-notes/articles/release-notes.rn_sf_contracts_risk_analysis.htm.md) | Advanced or Salesforce Contracts + Data 360 + Einstein Foundations | *not in index* |
+| [Reduce Contract Risks by Analyzing Every Redline with AI](release-notes/articles/release-notes.rn_sf_contracts_risk_analysis.htm.md) | (Advanced or Salesforce Contracts) + Data 360 + Einstein Foundations | *not in index* |
 | [Track Recipient Signing Progress for Document Envelopes](release-notes/articles/release-notes.rn_salesforce_contracts_track_recipient_signing_progress.htm.md) | Advanced or Salesforce Contracts | *not in index* |
 | [Use Salesforce Contracts with Lightning Platform Licenses](release-notes/articles/release-notes.rn_sf_contracts_lpp_licenses.htm.md) | Advanced or Salesforce Contracts | *not in index* |
 
@@ -331,9 +331,9 @@ The Winter '27 Revenue release notes ([`release-notes/`](release-notes/), 127 ar
 
 | Release note | License or requirement | Index row |
 |---|---|---|
-| [Eliminate Manual Template Updates When Clause Content Changes](release-notes/articles/release-notes.rn_salesforce_document_generation_clause_tokens_runtime_resolution.htm.md) | Revenue Events Starter Pack + Advanced or Billing | *not in index* |
-| [Generate Documents That Include Tables in Rich Text Fields](release-notes/articles/release-notes.rn_salesforce_document_generation_rich_text_tables.htm.md) | Revenue Events Starter Pack + Advanced or Billing | *not in index* |
-| [Populate Clause Content with Merge and Placeholder Tokens](release-notes/articles/release-notes.rn_salesforce_document_generation_clause_merge_placeholder_tokens.htm.md) | Revenue Events Starter Pack + Advanced or Billing | *not in index* |
+| [Eliminate Manual Template Updates When Clause Content Changes](release-notes/articles/release-notes.rn_salesforce_document_generation_clause_tokens_runtime_resolution.htm.md) | Revenue Events Starter Pack + (Advanced or Billing) | *not in index* |
+| [Generate Documents That Include Tables in Rich Text Fields](release-notes/articles/release-notes.rn_salesforce_document_generation_rich_text_tables.htm.md) | Revenue Events Starter Pack + (Advanced or Billing) | *not in index* |
+| [Populate Clause Content with Merge and Placeholder Tokens](release-notes/articles/release-notes.rn_salesforce_document_generation_clause_merge_placeholder_tokens.htm.md) | Revenue Events Starter Pack + (Advanced or Billing) | *not in index* |
 
 ### Salesforce Pricing (5)
 
