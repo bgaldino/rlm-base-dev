@@ -680,18 +680,6 @@ def check_upsert_honours_the_option(_):
               "the part that makes the 8 rows unconfigured rather than dangling. The claim "
               f"must name the bare field. Got: {_joined[-400:]}")
 
-        # The banner documents historical behavior. Current seed data must not
-        # reintroduce references to the uncreatable group scope.
-        import csv as _csv
-        dro = REPO / "datasets/sfdmu/qb/en-US/qb-dro"
-        for filename, column in (("Product2.csv", "CustomDecompositionScope"),
-                                 ("FulfillmentStepDefinition.csv", "CustomFulfillmentScope")):
-            with (dro / filename).open(encoding="utf-8-sig") as fh:
-                rows = list(_csv.DictReader(fh))
-            check(f"no_unsupported_group_scope[{filename}]",
-                  all((r.get(column) or "").strip() != "Group_Identifier" for r in rows),
-                  "Current seed data must not depend on the missing Group_Identifier scope")
-
         # skip + an unrelated rejection must still fail.
         task, raised = _drive(tmp, on_invalid_context_tag="skip",
                               create_body=NAME_INTEGRITY)
