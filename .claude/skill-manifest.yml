@@ -113,7 +113,7 @@ foundations:
       caveats:
         - "264 is pre-GA — treat a live 264 org as ground truth over the dev-guide-derived references"
         - "The Postman collection JSON under postman/ is still the v66.0 baseline pending regeneration against a live 264 org; cite docs/api/ Markdown, not collection payloads"
-        - "The docs/api/index.html viewer lags the Markdown (149 of 155 endpoints) until regenerated"
+        - "The docs/api/index.html viewer (155 endpoints) is hand-maintained; the docs/api/ Markdown wins on any disagreement"
 
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md
