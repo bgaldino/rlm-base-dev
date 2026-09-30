@@ -1,8 +1,8 @@
 # Release 264 (Winter '27) — Enablement Extracts
 
 **Status: scaffold — no 264 artifacts authored yet.** Created with the `264`
-branch cut so the per-release directory exists; authoring starts once the 264
-feature inventory does.
+branch cut so the per-release directory exists. The Help-derived 264 feature
+inventory exists; authoring starts once its tiers are verified (see below).
 
 Per-release directories hold two different kinds of artifact, and they have
 different prerequisites:
@@ -18,9 +18,11 @@ Extracts are filtered views of the living master catalog in
 canonical exercise shape and follow
 [`.cursor/skills/release-enablement/SKILL.md`](../../../.cursor/skills/release-enablement/SKILL.md).
 
-Blocking dependency: the 264 feature index is itself a scaffold, because 264
-release notes have not published (feature freeze 2026-08-14; GA waves
-2026-09-05 → 2026-10-10). Do not author 264 exercises against 262 content and
+Blocking dependency: tier verification. The
+[264 feature index](../../salesforce/264/feature-index.md) is now populated from
+the 264 Help corpus, with features labelled New or Expanded. It has no tier
+(GA/Beta/Pilot) or demo-URL columns yet, because the 264 release notes are not
+captured in this repo (GA waves 2026-09-05 → 2026-10-10). Do not author 264 exercises against 262 content and
 relabel it — the point of a per-release extract is that it reflects that
 release.
 

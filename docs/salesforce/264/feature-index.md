@@ -140,18 +140,18 @@ Approval Management Agent moved to **New Features in 264**: the 262 corpus has n
 
 ## Material Changes to Shared Articles (Top 10)
 
-Of 830 articles captured in both releases, these had the largest body changes:
+Of 830 articles captured in both releases, these had the largest absolute body changes, ranked by `body_length` delta in the two manifests:
 
 1. **Considerations for Ramp Deals** ([`ind.qocal_considerations_ramp_deals.htm`](help/articles/ind.qocal_considerations_ramp_deals.htm.md)) — +9,220 chars (+505%)
 2. **Best Practices for Apex Pricing Hooks** ([`ind.pricing_apex_hooks_best_practices.htm`](help/articles/ind.pricing_apex_hooks_best_practices.htm.md)) — +8,762 chars (+998%)
 3. **Manage Collections for Accounts** ([`ind.billing_collections.htm`](help/articles/ind.billing_collections.htm.md)) — +3,564 chars (+132%)
 4. **Configure Your Pricing Procedure** ([`ind.pricing_configure_pricing_procedure.htm`](help/articles/ind.pricing_configure_pricing_procedure.htm.md)) — +3,370 chars (+89%)
 5. **Ramp Deal for Groups with Single Ramp Schedule** ([`ind.qocal_ramp_deal_for_groups_create.htm`](help/articles/ind.qocal_ramp_deal_for_groups_create.htm.md)) — -2,574 chars (-67%)
-6. **Ramp Deals in Revenue Management** ([`ind.qocal_ramp_deals_complex_long_term_multiple_products.htm`](help/articles/ind.qocal_ramp_deals_complex_long_term_multiple_products.htm.md)) — -2,570 chars (-50%)
-7. **Create Ramp Deals for Groups with Multiple Ramp Schedules** ([`ind.qocal_ramp_deals_groups_create_multiple_ramp_schedules.htm`](help/articles/ind.qocal_ramp_deals_groups_create_multiple_ramp_schedules.htm.md)) — -2,538 chars (-68%)
-8. **Use the Price Revision Element** ([`ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm`](help/articles/ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm.md)) — +2,379 chars (+39%)
-9. **Honor Precise Time Zones in Asset Lifecycle Dates** ([`ind.qocal_asset_lifecycle_date_time_precision.htm`](help/articles/ind.qocal_asset_lifecycle_date_time_precision.htm.md)) — +2,100 chars (+79%)
-10. **Set Dependencies Between Fulfillment Steps** ([`ind.dro_set_dependencies_between_fulfillment_steps.htm`](help/articles/ind.dro_set_dependencies_between_fulfillment_steps.htm.md)) — +1,967 chars (+80%)
+6. **Create Collection Plans and Collection Plan Items** ([`ind.billing_collection_plans_and_plan_items_create.htm`](help/articles/ind.billing_collection_plans_and_plan_items_create.htm.md)) — +2,574 chars (+248%; tied with #5)
+7. **Ramp Deals in Revenue Management** ([`ind.qocal_ramp_deals_complex_long_term_multiple_products.htm`](help/articles/ind.qocal_ramp_deals_complex_long_term_multiple_products.htm.md)) — -2,570 chars (-50%)
+8. **Create Ramp Deals for Groups with Multiple Ramp Schedules** ([`ind.qocal_ramp_deals_groups_create_multiple_ramp_schedules.htm`](help/articles/ind.qocal_ramp_deals_groups_create_multiple_ramp_schedules.htm.md)) — -2,538 chars (-68%)
+9. **Use the Price Revision Element** ([`ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm`](help/articles/ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm.md)) — +2,379 chars (+39%)
+10. **Honor Precise Time Zones in Asset Lifecycle Dates** ([`ind.qocal_asset_lifecycle_date_time_precision.htm`](help/articles/ind.qocal_asset_lifecycle_date_time_precision.htm.md)) — +2,100 chars (+79%)
 
 ---
 

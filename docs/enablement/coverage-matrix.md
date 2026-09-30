@@ -14,7 +14,7 @@ Working document tracking what enablement artifacts exist across releases, what'
 | `258/` *(label only)* | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
 | `260/` | 260 | Spring '26 | Reference — 10 per-release `.md` drafts complete |
 | `262/` | 262 | Summer '26 | **Prior GA reference** (the `262` maintenance branch) — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
-| `264/` | 264 | Winter '27 | **Current release cycle — now on `main`** (preview / pre-GA) — scaffold only. Blocked on the 264 feature index, which is itself blocked on release notes (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
+| `264/` | 264 | Winter '27 | **Current release cycle — now on `main`** (preview / pre-GA) — scaffold only. The 264 feature index is populated from the Help corpus; authoring is blocked on tier verification against release notes not yet captured in the repo (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
 
 > *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/`, `262/`, and `264/` exist as real per-release directories.
 
@@ -40,7 +40,7 @@ Legend: ✅ have it · ⚠️ partial/draft · ❌ missing · — not in journey
 | Advanced Approvals           | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ❌ in 258 (journey map shows it) | — (overview-only in Su'25) | ✅ Release Overview only | ✅ | — |
 | CLM / Contracts              | — (dropped in W'26 and later) | — (dropped in W'26 and later) | — | — (dropped in W'26) | — | ✅ | ✅ | — |
 
-Every 264 cell is `❌ not started` by design: authoring is gated on the 264 feature index, which is gated on release notes that have not published.
+Every 264 cell is `❌ not started` by design: authoring is gated on tier (GA/Beta/Pilot) verification. The Help-derived 264 feature index has no tier column until the 264 release notes are captured in the repo.
 
 ### Per-release SE/partner artifacts (non-extract)
 

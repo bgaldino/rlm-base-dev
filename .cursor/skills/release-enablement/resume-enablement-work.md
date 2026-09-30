@@ -39,7 +39,7 @@ Read these three files end-to-end before doing anything else:
 Optional (read when you encounter the relevant edge case):
 
 - **[`authoring-patterns.md`](authoring-patterns.md)** — 11 patterns for handling edge cases (upgrade guidance, known issues, sub-features, cross-area features, scenario threading, version-aware section metadata, license-scope split, etc.)
-- **[`docs/salesforce/{260,262,264}/feature-index.md`](../../../docs/salesforce/260/feature-index.md)** — per-release feature inventories (264 is a scaffold; see its header)
+- **[`docs/salesforce/{260,262,264}/feature-index.md`](../../../docs/salesforce/260/feature-index.md)** — per-release feature inventories (264 is Help-derived, New vs Expanded, no tier column yet; see its header)
 
 ### 3. Check what's drafted vs pending
 
