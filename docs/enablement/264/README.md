@@ -21,10 +21,11 @@ canonical exercise shape and follow
 Blocking dependency: tier verification. The
 [264 feature index](../../salesforce/264/feature-index.md) is now populated from
 the 264 Help corpus, with features labelled New or Expanded. It has no tier
-(GA/Beta/Pilot) or demo-URL columns yet. The 264 Revenue release notes are now
-captured (`docs/salesforce/264/release-notes/`, PR #480) but not yet
-cross-referenced, and they label no feature Beta or Pilot, so each tier still
-needs confirming (GA waves 2026-09-05 → 2026-10-10). Do not author 264 exercises against 262 content and
+(GA/Beta/Pilot) or demo-URL columns yet. The 264 Revenue release notes
+(`docs/salesforce/264/release-notes/`, PR #480) are now cross-referenced in its
+**Release-Note Cross-Reference** section and its Release note column. They label
+no feature Beta or Pilot, so tiers read as GA provisionally, and each still
+needs confirming on a live org at GA (GA waves 2026-09-05 → 2026-10-10). Do not author 264 exercises against 262 content and
 relabel it — the point of a per-release extract is that it reflects that
 release.
 
