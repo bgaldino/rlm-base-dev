@@ -40,7 +40,7 @@ Legend: ✅ have it · ⚠️ partial/draft · ❌ missing · — not in journey
 | Advanced Approvals           | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ❌ in 258 (journey map shows it) | — (overview-only in Su'25) | ✅ Release Overview only | ✅ | — |
 | CLM / Contracts              | — (dropped in W'26 and later) | — (dropped in W'26 and later) | — | — (dropped in W'26) | — | ✅ | ✅ | — |
 
-Every 264 cell is `❌ not started` by design: authoring is gated on tier (GA/Beta/Pilot) verification. The Help-derived 264 feature index is cross-referenced against the captured 264 release notes. No note is labelled Beta or Pilot, so rows backed by a release note are provisionally GA. Invoice Risk Scoring is Pilot (Help titles), and three New rows with no note (Billing Start Month and Next Billing Date Override, Exclude From Billing, Custom Dynamic Addition Screen Flow) have no known tier; every tier still needs confirming on a live org at GA.
+Every 264 cell is `❌ not started` by design: authoring is gated on tier (GA/Beta/Pilot) verification. The Help-derived 264 feature index is cross-referenced against the captured 264 release notes. No note is labelled Beta or Pilot, so rows backed by a release note are provisionally GA. Invoice Risk Scoring is Pilot (Help titles), and two New rows with no note (Exclude From Billing, Custom Dynamic Addition Screen Flow) have no known tier. Billing Start Month and Next Billing Date Override is only partly covered: the billing-frequency note mentions setting the billing start month, and no note covers the override; every tier still needs confirming on a live org at GA.
 
 ### Per-release SE/partner artifacts (non-extract)
 
