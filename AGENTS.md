@@ -30,8 +30,10 @@ Release 264 (Winter '27, API v68.0) line**, promoted from the `264` branch (the 
 are in sync). The `262` branch carries any remaining Release 262 (Summer '26, v67.0)
 patches through 262 GA; `release/262` and `release/260` are frozen references.
 
-264 is pre-GA — no release notes or v68.0 Metadata Coverage Report yet — so **a
-live 264 org is ground truth, not documentation**. The dev hub is on API 68.0, so
+264 is pre-GA — the Winter '27 release notes are published on Help (the Revenue
+section is captured under `docs/salesforce/264/release-notes/`), but pre-GA docs
+can still change and the v68.0 Metadata Coverage Report has not been checked — so
+**a live 264 org is ground truth, not documentation**. The dev hub is on API 68.0, so
 every scratch org it creates is a 264 org, and `main` (the 264 line) builds against
 it. Distinguish a *fresh* 264 org from a 262 org *upgraded* to 264: an upgrade
 grandfathers settings and schema, so it is not evidence about fresh builds.
