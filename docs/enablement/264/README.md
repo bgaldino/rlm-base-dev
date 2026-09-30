@@ -9,7 +9,7 @@ different prerequisites:
 
 | Kind | Files | Prerequisite |
 |---|---|---|
-| **Per-area Hands-On extracts** | `264-{area}-hands-on.md` | A populated [`docs/salesforce/264/feature-index.md`](../../salesforce/264/feature-index.md), plus master sign-off in [`../master/`](../master/) |
+| **Per-area Hands-On extracts** | `264-{area}-hands-on.md` | A populated [`docs/salesforce/264/feature-index.md`](../../salesforce/264/feature-index.md) with verified GA/Beta/Pilot tiers, plus master sign-off in [`../master/`](../master/) |
 | **SE/partner artifacts** | `qb-demo-script.md` | Its own authoring skill — [`.cursor/skills/qb-demo-script/SKILL.md`](../../../.cursor/skills/qb-demo-script/SKILL.md) |
 
 Extracts are filtered views of the living master catalog in
@@ -21,8 +21,10 @@ canonical exercise shape and follow
 Blocking dependency: tier verification. The
 [264 feature index](../../salesforce/264/feature-index.md) is now populated from
 the 264 Help corpus, with features labelled New or Expanded. It has no tier
-(GA/Beta/Pilot) or demo-URL columns yet, because the 264 release notes are not
-captured in this repo (GA waves 2026-09-05 → 2026-10-10). Do not author 264 exercises against 262 content and
+(GA/Beta/Pilot) or demo-URL columns yet. The 264 Revenue release notes are now
+captured (`docs/salesforce/264/release-notes/`, PR #480) but not yet
+cross-referenced, and they label no feature Beta or Pilot, so each tier still
+needs confirming (GA waves 2026-09-05 → 2026-10-10). Do not author 264 exercises against 262 content and
 relabel it — the point of a per-release extract is that it reflects that
 release.
 
