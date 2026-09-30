@@ -5506,7 +5506,7 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>1 AND 2</conditionLogic>
+                <conditionLogic>1 AND 2 AND 3</conditionLogic>
                 <criteria>
                     <operator>IsNotNull</operator>
                     <sequenceNumber>1</sequenceNumber>
@@ -5519,9 +5519,14 @@
                     <value>&apos;LastTransaction&apos;</value>
                     <valueType>Literal</valueType>
                 </criteria>
+                <criteria>
+                    <operator>IsNull</operator>
+                    <sequenceNumber>3</sequenceNumber>
+                    <sourceFieldName>NetUnitPrice</sourceFieldName>
+                </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Set Net Unit Price for Last Transaction Pricing</label>
+            <label>Set Net Unit Price for Last Transaction Pricing if missing</label>
             <name>SetNetUnitPriceforLastTransactionPricing</name>
             <parentStep>ListContainer</parentStep>
             <resultIncluded>false</resultIncluded>
