@@ -9,7 +9,7 @@
 | File | Description |
 |---|---|
 | [`help/`](help/) | Salesforce Help snapshot — 1,131 articles captured 2026-09-04 through 2026-09-07 across 10 RC functional areas. Collections not captured — verified still serving 262 content. |
-| `release-notes/` (added by PR #480, which merges before this index change) | Winter '27 (264) Revenue release notes — 127 articles under `release-notes.rn_revenue.htm`, captured by `snapshot_revenue_release_notes_264`. Not yet cross-referenced into this index. The notes label no feature Beta or Pilot, so tiers still come from Help titles (e.g. Invoice Risk Scoring (Pilot) appears in Help but not in the notes). |
+| [`release-notes/`](release-notes/) | Winter '27 (264) Revenue release notes — 127 articles under `release-notes.rn_revenue.htm`, captured by `snapshot_revenue_release_notes_264`. Not yet cross-referenced into this index. The notes label no feature Beta or Pilot, so tiers still come from Help titles (e.g. Invoice Risk Scoring (Pilot) appears in Help but not in the notes). |
 | *(not captured)* | Solution Overview decks, so features without Help or release-note coverage are unverified. |
 
 ## Change Summary
