@@ -34,6 +34,10 @@ fields, and before procedure plans are wired to the procedure:
 4. `prepare_procedureplans` runs afterwards, so the apply does not
    cascade through procedure plans.
 
+Repricing users need `RLM_Approvals`, which grants edit access to both stored
+quote-line approval outputs. Repricing resets and recalculates those values,
+including any manual edits.
+
 ## Applying an overlay
 
 ```bash
@@ -99,7 +103,9 @@ deactivate → Tooling API PATCH → reactivate cycle. A new step gets the `labe
 the overlay gives it; without one it shows its `name`. Turn restoring off with
 `-o preserve_labels false` (CCI) or `--no-preserve-labels` (toolkit).
 
-A label-restore failure is logged as a warning and does not fail the apply.
+In CCI, a label read/write failure is logged as a warning and does not fail the
+apply. Deactivation, reactivation, and procedure-plan restoration failures fail
+the task.
 Fix the labels afterwards with
 `python scripts/expression_sets/relabel_expression_set.py --from-metadata <file>`,
 pointing at the `force-app` `*.expressionSetDefinition-meta.xml`.

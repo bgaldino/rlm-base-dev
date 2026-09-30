@@ -557,9 +557,9 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         deactivate→Tooling PATCH→reactivate cycle. ``extra_labels`` (e.g. an
         overlay's labels for the steps it adds) are layered on top.
 
-        Label restore is best-effort and runs only after the mutation fully
-        succeeded; the ``preserve_labels`` task option (default true) or the
-        ``preserve_labels`` argument turns it off. See
+        Label reads/writes are best-effort; activation failures propagate.
+        Restore runs only after the mutation fully succeeded; the
+        ``preserve_labels`` task option (default true) or argument turns it off. See
         ``_run_activation_cycle`` for the activation guarantees.
         """
         preserve = (
@@ -795,10 +795,9 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         """Write step labels back after a Connect PATCH reset them.
 
         Runs its own deactivate → Tooling PATCH → reactivate cycle (a Tooling
-        Metadata PATCH on an active version does not persist). Non-fatal: the
-        Connect mutation has already succeeded, so a failure is logged and
-        reported as ``False`` rather than raised. Steps the mutation removed or
-        renamed are skipped.
+        Metadata PATCH on an active version does not persist). Label read/write
+        failures are logged and reported as ``False``. Activation and cascade
+        failures propagate. Steps the mutation removed or renamed are skipped.
         """
         if not labels or not version_api_name:
             return True
@@ -824,7 +823,15 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 self.logger.info("Step labels already current; nothing to restore.")
                 return True
 
-            def mutate():
+        except Exception as exc:  # noqa: BLE001 — no activation state changed
+            self.logger.warning("Could not prepare step-label restore (%s).", exc)
+            return False
+
+        label_failure = None
+
+        def mutate():
+            nonlocal label_failure
+            try:
                 metadata = self._get_step_metadata(esdv_id)
                 for step in metadata.get("steps") or []:
                     if isinstance(step, dict) and step.get("name") in planned:
@@ -839,18 +846,21 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 missing = sorted(n for n, l in planned.items() if stored.get(n) != l)
                 if missing:
                     raise TaskOptionsError(f"labels did not persist for {missing}")
+            except Exception as exc:  # noqa: BLE001 — only label work is cosmetic
+                label_failure = exc
 
-            self._run_activation_cycle(
-                es_def_id=es_def_id, esv=esv, mutate=mutate, dry_run=False,
-                activate_after=bool(esv.get("IsActive")), cascade=cascade,
-                verb="Label restore", reactivate_on_failure=True,
-            )
-        except Exception as exc:  # noqa: BLE001 — labels are cosmetic
+        # Do not catch lifecycle errors: a failed activation or cascade can
+        # leave pricing offline even when the label write itself succeeded.
+        self._run_activation_cycle(
+            es_def_id=es_def_id, esv=esv, mutate=mutate, dry_run=False,
+            activate_after=bool(esv.get("IsActive")), cascade=cascade,
+            verb="Label restore", reactivate_on_failure=True,
+        )
+        if label_failure is not None:
             self.logger.warning(
                 "The Connect mutation succeeded, but restoring step labels "
-                "failed (%s). The procedure is live; only its labels show the "
-                "spaceless step names. Re-run scripts/expression_sets/"
-                "relabel_expression_set.py to restore them.", exc,
+                "failed (%s). Re-run scripts/expression_sets/"
+                "relabel_expression_set.py to restore them.", label_failure,
             )
             return False
         self.logger.info("Restored %d step label(s).", len(planned))

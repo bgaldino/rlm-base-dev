@@ -1647,7 +1647,7 @@ class _LabelTask(Connect):
             es_def_id="9QAx", esv={"Id": "9QMx", "ApiName": "V1",
                                    "IsActive": self.active, "VersionNumber": 1},
             mutate=mutate, dry_run=kw.pop("dry_run", False),
-            activate_after=kw.pop("activate_after", True), cascade=False,
+            activate_after=kw.pop("activate_after", True), cascade=kw.pop("cascade", False),
             verb="test", **kw,
         )
 
@@ -1695,6 +1695,53 @@ def test_label_restore_failure_is_nonfatal_and_reactivates():
         raised = True
     check("label-restore failure does not fail the mutation", not raised)
     check("label-restore failure still reactivates the version", task.active is True)
+
+
+def test_label_restore_lifecycle_failures_propagate():
+    class FailingLifecycleTask(_LabelTask):
+        def __init__(self, phase, label_fails):
+            super().__init__({"A": "A Label"}, tooling_patch_fails=label_fails)
+            self.phase = phase
+            self.cycles = 0
+            self.plan_active = True
+
+        def _set_version_active(self, version_id, active, dry_run):
+            if not active:
+                self.cycles += 1
+            if self.cycles == 2 and self.phase == ("activate" if active else "deactivate"):
+                raise RuntimeError(self.phase + " failed")
+            super()._set_version_active(version_id, active, dry_run)
+
+        def _wait_for_version_state(self, version_id, active):
+            if self.cycles == 2 and active and self.phase == "wait":
+                raise RuntimeError("wait failed")
+
+        def _cascade_deactivate_procedure_plans(self, es_def_id, dry_run):
+            self.plan_active = False
+            return ["plan"]
+
+        def _cascade_reactivate_procedure_plans(self, version_ids, dry_run):
+            if self.cycles == 2 and self.phase == "cascade":
+                raise RuntimeError("cascade failed")
+            self.plan_active = True
+
+    for phase in ("deactivate", "activate", "wait", "cascade"):
+        for label_fails in (False, True):
+            task = FailingLifecycleTask(phase, label_fails)
+            try:
+                task.run(lambda: task.connect_patch(), cascade=True)
+            except RuntimeError as exc:
+                propagated = str(exc) == phase + " failed"
+            else:
+                propagated = False
+            check(f"label cycle {phase} failure propagates (label_fails={label_fails})",
+                  propagated)
+            if phase == "activate":
+                check("failed reactivation leaves version inactive and reports failure",
+                      not task.active and propagated)
+            if phase == "cascade":
+                check("failed plan restoration leaves plan inactive and reports failure",
+                      not task.plan_active and propagated)
 
 
 def test_label_restore_keeps_version_inactive_when_requested():

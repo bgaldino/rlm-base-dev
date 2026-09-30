@@ -250,8 +250,8 @@ either a built-in CCI class or a custom class in `tasks/`.
 
 ### 6. Flows (`flows`)
 
-41 flows organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(34 steps), which calls sub-flows:
+Flows are organized as a hierarchy. The main entry point is `prepare_rlm_org`
+(35 steps), which calls sub-flows:
 
 ```
 prepare_rlm_org
@@ -273,22 +273,23 @@ prepare_rlm_org
 ├── 16. prepare_clm
 ├── 17. prepare_rating (delete, insert, activate for rating+rates)
 ├── 18. activate_and_deploy_expression_sets
-├── 19. prepare_tso (TSO-specific PSLs, PSGs, deploy)
-├── 20. prepare_procedureplans
-├── 21. prepare_prm
-├── 22. prepare_agents
-├── 23. prepare_constraints
-├── 24. prepare_guidedselling
-├── 25. prepare_revenue_settings
-├── 26. prepare_pricing_discovery
-├── 27. prepare_large_stx [child steps gated on large_stx]
-├── 28. prepare_personas [child steps gated on personas]
-├── 29. prepare_ux [child steps gated on ux]
-├── 30. prepare_inapp [child steps gated on inapp]
-├── 31. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
-├── 32. refresh_all_decision_tables
-├── 33. rebuild_search_index (PCM catalog search index, async)
-└── 34. stamp_git_commit
+├── 19. prepare_approvals_pricing [child steps gated on quantumbit + approvals]
+├── 20. prepare_tso (TSO-specific PSLs, PSGs, deploy)
+├── 21. prepare_procedureplans
+├── 22. prepare_prm
+├── 23. prepare_agents
+├── 24. prepare_constraints
+├── 25. prepare_guidedselling
+├── 26. prepare_revenue_settings
+├── 27. prepare_pricing_discovery
+├── 28. prepare_large_stx [child steps gated on large_stx]
+├── 29. prepare_personas [child steps gated on personas]
+├── 30. prepare_ux [child steps gated on ux]
+├── 31. prepare_inapp [child steps gated on inapp]
+├── 32. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
+├── 33. refresh_all_decision_tables
+├── 34. rebuild_search_index (PCM catalog search index, async)
+└── 35. stamp_git_commit
 ```
 
 `[child steps gated on <flag>]` means the flag turns that sub-flow's work off, but

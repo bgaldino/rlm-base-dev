@@ -68,7 +68,7 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    `manage_context_definition -o validate_only true` (or `-o dry_run true`), then
    run with `verify` on.
 7. **Plans live in `datasets/context_plans/<Name>/manifest.json`** →
-   `contexts/<plan>.json`. The 6 active plans (`Billing`,
+   `contexts/<plan>.json`. The 7 active plans (`Approvals`, `Billing`,
    `ConstraintEngineNodeStatus`, `DocGen`, `PartnerAccount`, `PrmPricing`,
    `RampMode`) are known-good; `archive/` is legacy — do not apply it.
 8. **Hierarchical DocGen needs an explicit child FK mapping.** A child node
@@ -187,7 +187,7 @@ generated list; all in group *Revenue Lifecycle Management*):
 |------|-------|---------|
 | `extend_context_*` (sales_transaction, product_discovery, cart, billing, asset, fulfillment_asset, collection_plan_segment, rate_management, rating_discovery, contracts, contracts_extraction) | `rlm_extend_stdctx.ExtendStandardContext` | Extend the named standard context; `activate: true` by default |
 | `extend_standard_context` | `rlm_extend_stdctx.ExtendStandardContext` | Generic extend: `name`, `baseReference`, `defaultMapping`, `startDate`, `contextTtl`, optional `plan_file` |
-| `apply_context_ramp_mode` / `_constraint_engine_node_status` / `_prm_pricing` / `_billing_order` / `_docgen` | `rlm_context_service.ManageContextDefinition` | Apply the named additive plan; `deactivate_before: false`, `activate: true` |
+| `apply_context_approvals` / `apply_context_ramp_mode` / `_constraint_engine_node_status` / `_prm_pricing` / `_billing_order` / `_docgen` | `rlm_context_service.ManageContextDefinition` | Apply the named additive plan; `deactivate_before: false`, `activate: true` |
 | `manage_context_definition` | `rlm_context_service.ManageContextDefinition` | Generic apply: `plan_file` (required), `developer_name`/`context_definition_id`, `activate`, `dry_run`, `deactivate_before`, `validate_only`, `verify` |
 | `deploy_context_definitions` | `cumulusci.tasks.salesforce.Deploy` | Deploy `force-app/main/default/contextDefinitions/` |
 
@@ -294,7 +294,7 @@ python scripts/context_service/instance/context_session.py --target-org rlm-base
 ## Validation Checks
 
 - **Offline, always:** `python scripts/context_service/definition/validate_context_plan.py` — must
-  report 0 errors on the 6 active plans before you apply any of them.
+  report 0 errors on the 7 active plans before you apply any of them.
 - **Before mutating an org:** `manage_context_definition -o validate_only true`
   (or `-o dry_run true`), then run with `-o verify true`.
 - **After applying:** `describe_context.py --target-org <alias>
