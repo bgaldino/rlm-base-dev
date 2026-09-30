@@ -1377,7 +1377,7 @@ const DOMAINS = {
       {
         id: 'ctx-node', title: 'Context Node APIs',
         endpoints: [
-          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context', title:'Create Context Nodes', version:'59.0',
+          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context-nodes', title:'Create Context Nodes', version:'59.0',
             desc:'Add one or more nodes to a context definition. Each node represents a logical grouping of attributes within the context schema. Nodes can represent Salesforce objects (e.g., Account), custom data structures, or classification hierarchies. After creating nodes, use Create Context Mappings to bind them to Salesforce object fields.',
             params:[
               {name:'contextDefinitionId', desc:'Salesforce ID of the context definition to add nodes to. Use {{contextDefinitionId}}.'}
@@ -1390,7 +1390,7 @@ const DOMAINS = {
       {
         id: 'ctx-mapping', title: 'Context Mapping APIs',
         endpoints: [
-          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context', title:'Create Context Mappings', version:'59.0',
+          { method:'POST', path:'/connect/context-definitions/{contextDefinitionId}/context-mappings', title:'Create Context Mappings', version:'59.0',
             desc:'Define field-to-context mappings for a context definition. Each mapping specifies which Salesforce object and field provides a value for a given context attribute. Mappings are evaluated at runtime to hydrate the context instance before pricing procedures execute.',
             params:[
               {name:'contextDefinitionId', desc:'Salesforce ID of the context definition to add mappings to. Use {{contextDefinitionId}}.'}
@@ -1406,10 +1406,16 @@ const DOMAINS = {
 
 // ─── BUILD SEARCH INDEX ───────────────────────────────────────────────────────
 
+// DOM id for an endpoint card. Several endpoints share a path (and some a
+// method too), so the index within the section keeps each id unique.
+function epDomId(sectionId, ep, i) {
+  return `ep-${sectionId}-${i}-${ep.method}-${ep.path.replace(/[^a-z0-9]/gi,'-')}`;
+}
+
 const searchIndex = [];
 Object.entries(DOMAINS).forEach(([domainId, domain]) => {
   domain.sections.forEach(section => {
-    section.endpoints.forEach(ep => {
+    section.endpoints.forEach((ep, i) => {
       searchIndex.push({
         domainId,
         domainLabel: domain.title,
@@ -1419,7 +1425,7 @@ Object.entries(DOMAINS).forEach(([domainId, domain]) => {
         method: ep.method,
         path: ep.path,
         desc: ep.desc || '',
-        id: `ep-${section.id}-${ep.path.replace(/[^a-z0-9]/gi,'-')}`,
+        id: epDomId(section.id, ep, i),
       });
     });
   });
@@ -1447,8 +1453,8 @@ function renderTable(rows, cols) {
   return `<table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
-function renderEndpoint(ep, sectionId) {
-  const epId = `ep-${sectionId}-${ep.path.replace(/[^a-z0-9]/gi,'-')}`;
+function renderEndpoint(ep, sectionId, i) {
+  const epId = epDomId(sectionId, ep, i);
   const parts = [];
 
   if (ep.desc) parts.push(`<p class="desc">${ep.desc}</p>`);
@@ -1491,7 +1497,7 @@ function renderEndpoint(ep, sectionId) {
 }
 
 function renderSection(section) {
-  const eps = section.endpoints.map(ep => renderEndpoint(ep, section.id)).join('');
+  const eps = section.endpoints.map((ep, i) => renderEndpoint(ep, section.id, i)).join('');
   return `
   <div id="${section.id}">
     <h2 class="section-heading">${section.title}</h2>
