@@ -10,7 +10,7 @@ Open `index.html` directly in any browser — no build step, no server required.
 
 ## What it contains
 
-Content from the source markdown files in this directory (`docs/api/`). **The viewer is pending regeneration:** it still embeds 149 endpoints and omits the six v68 additions (Pricing Recipe Clone and Valid Elements, Unlock Transaction, Billing Checkout, Composite Collection Plan, Refund Credit Memo). Until it is rebuilt, the Markdown files are authoritative.
+Content from the source markdown files in this directory (`docs/api/`). The viewer embeds all 155 endpoints, including the six v68 additions (Pricing Recipe Clone and Valid Elements, Unlock Transaction, Billing Checkout, Composite Collection Plan, Refund Credit Memo). Its data is hand-maintained, so when the two disagree the Markdown files are authoritative.
 
 | Tab | Source file |
 |-----|-------------|
