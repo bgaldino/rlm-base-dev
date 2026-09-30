@@ -10,7 +10,7 @@ different prerequisites:
 | Kind | Files | Prerequisite |
 |---|---|---|
 | **Per-area Hands-On extracts** | `264-{area}-hands-on.md` | A populated [`docs/salesforce/264/feature-index.md`](../../salesforce/264/feature-index.md) with verified GA/Beta/Pilot tiers, plus master sign-off in [`../master/`](../master/) |
-| **SE/partner artifacts** | `qb-demo-script.md` | Its own authoring skill — [`.cursor/skills/qb-demo-script/SKILL.md`](../../../.cursor/skills/qb-demo-script/SKILL.md) |
+| **SE/partner artifacts** | `qb-demo-script.md` | Its own authoring skill — [`.cursor/skills/qb-demo-script/SKILL.md`](../../../.cursor/skills/qb-demo-script/SKILL.md). That skill extracts GA and Preview/Beta features from the feature index, so it also waits on verified tiers. |
 
 Extracts are filtered views of the living master catalog in
 [`../master/`](../master/) — author there first, then extract. Use

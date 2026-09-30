@@ -9,7 +9,7 @@
 | File | Description |
 |---|---|
 | [`help/`](help/) | Salesforce Help snapshot — 1,131 articles captured 2026-09-04 through 2026-09-07 across 10 RC functional areas. Collections not captured — verified still serving 262 content. |
-| `release-notes/` (PR #480) | Winter '27 (264) Revenue release notes — 127 articles under `release-notes.rn_revenue.htm`, captured by `snapshot_revenue_release_notes_264`. Not yet cross-referenced into this index. The notes label no feature Beta or Pilot, so tiers still come from Help titles (e.g. Invoice Risk Scoring (Pilot) appears in Help but not in the notes). |
+| `release-notes/` (added by PR #480, which merges before this index change) | Winter '27 (264) Revenue release notes — 127 articles under `release-notes.rn_revenue.htm`, captured by `snapshot_revenue_release_notes_264`. Not yet cross-referenced into this index. The notes label no feature Beta or Pilot, so tiers still come from Help titles (e.g. Invoice Risk Scoring (Pilot) appears in Help but not in the notes). |
 | *(not captured)* | Solution Overview decks, so features without Help or release-note coverage are unverified. |
 
 ## Change Summary
@@ -51,8 +51,6 @@
 | **Price Book Filtering** | PCM | Return only the products associated with the selected price book, for large catalogs with little price book overlap. | [`ind.product_catalog_turn_on_price_book_filtering.htm`](help/articles/ind.product_catalog_turn_on_price_book_filtering.htm.md) |
 | **Custom Dynamic Addition Screen Flow** | Configurator | Replace the default add-products experience for a product classification with your own screen flow during bundle configuration. | [`ind.product_configurator_set_up_a_custom_dynamic_addition_screen_flow.htm`](help/articles/ind.product_configurator_set_up_a_custom_dynamic_addition_screen_flow.htm.md) |
 | **Special Terms on Quotes** | Transaction Mgmt | Insert an active Document Clause Library clause as a quote special term and resolve its placeholder tokens. | [`ind.qocal_add_a_special_term_to_a_quote.htm`](help/articles/ind.qocal_add_a_special_term_to_a_quote.htm.md) |
-| **Extract Product Mentions** | Transaction Mgmt | Template that extracts products, quantities and attributes from emails, Slack messages or call summaries into quotes. | 2 articles: [`ind.qocal_extract_product_mentions.htm`](help/articles/ind.qocal_extract_product_mentions.htm.md), [`ind.qocal_example_extract_product_mentions.htm`](help/articles/ind.qocal_example_extract_product_mentions.htm.md) |
-| **Header-Level Action Buttons in STLE** | Transaction Mgmt | Choose which Sales Transaction Line Editor actions appear as standalone buttons, button groups or dropdown items. | 2 articles: [`ind.qocal_configure_placement_of_action_buttons.htm`](help/articles/ind.qocal_configure_placement_of_action_buttons.htm.md), [`ind.qocal_action_button_group_important_considerations.htm`](help/articles/ind.qocal_action_button_group_important_considerations.htm.md) |
 
 **Scope:** this index is selective. It names the major feature clusters, and the tables link 119 of the 301 new article IDs. For the complete list, diff the captured files in [`../262/help/manifest.json`](../262/help/manifest.json) and [`help/manifest.json`](help/manifest.json) (see **How this index was built**). Unlisted new IDs are mostly per-element, per-variable and setup sub-articles of the clusters above (for example the Rating element pages), but some smaller features may remain unclassified.
 
@@ -142,6 +140,8 @@ Approval Management Agent moved to **New Features in 264**: the 262 corpus has n
 | Usage-Based Asset Renewal | **Expanded** | Renew usage-based assets early (new renewal term, renegotiated rates and grants) or after expiry. 262 had one usage-based renewal article and said usage-based assets can't be renewed in ramp contexts. | [`ind.qocal_renew_usage_based_assets_early.htm`](help/articles/ind.qocal_renew_usage_based_assets_early.htm.md), [`ind.qocal_renew_expired_usage_based_assets.htm`](help/articles/ind.qocal_renew_expired_usage_based_assets.htm.md) |
 | Tiered Contract Pricing | **Newly documented** | 262 linked to this setup topic from its contract-pricing articles; 264 captures it as a dedicated article. | [`ind.qocal_use_tiered_volume_and_pricing_in_contract_pricing.htm`](help/articles/ind.qocal_use_tiered_volume_and_pricing_in_contract_pricing.htm.md) |
 | Zero-Quantity Quote Detail Lines | **Newly documented** | Why zero-quantity detail lines appear when a period's effective quantity is zero. 262 only mentioned zero quantity in amendment and renewal prose. | [`ind.qocal_zero_quantity_considerations.htm`](help/articles/ind.qocal_zero_quantity_considerations.htm.md) |
+| Extract Product Mentions | **Newly documented** | Template that extracts products, quantities and attributes from emails, Slack messages or call summaries into quotes. 262 linked to `#qocal_extract_product_mentions` from its foundational setup article; 264 adds dedicated articles. | Template that extracts products, quantities and attributes from emails, Slack messages or call summaries into quotes. |
+| Header-Level Action Buttons in STLE | **Expanded** | Choose which Sales Transaction Line Editor actions appear as standalone buttons, button groups or dropdown items. 262 already said to configure the placement and sequence of line-editor action buttons; 264 adds dedicated setup and considerations articles. | Choose which Sales Transaction Line Editor actions appear as standalone buttons, button groups or dropdown items. |
 | Contract Cotermination | **Expanded** | Coterminate subscription assets with contract end dates. | [`ind.qocal_coterminate_with_contract_end_date.htm`](help/articles/ind.qocal_coterminate_with_contract_end_date.htm.md) |
 | Context Service Extension | **Expanded** | Extend/map sales transactions, context definitions, custom fields. | [`ind.qocal_extend_your_transactions_with_custom_field_support.htm`](help/articles/ind.qocal_extend_your_transactions_with_custom_field_support.htm.md), [`ind.qocal_map_custom_fields.htm`](help/articles/ind.qocal_map_custom_fields.htm.md) |
 | Transaction Summary | **Expanded** | Customize, turn on auto-refresh. | [`ind.qocal_customize_transaction_summary.htm`](help/articles/ind.qocal_customize_transaction_summary.htm.md), [`ind.qocal_auto_refresh_stle_transaction_summary_help.htm`](help/articles/ind.qocal_auto_refresh_stle_transaction_summary_help.htm.md) |
@@ -176,22 +176,22 @@ Of 830 articles captured in both releases, these had the largest absolute body c
 
 This covers removals, renames, 264 capture errors, and the uncaptured Collections area. Absence from the capture alone does not prove an article was removed.
 
-### Billing (5 removed)
+### Billing (5 only in 262: 4 replaced or renamed, 1 with no dedicated replacement)
 
 - **Configure Your Custom Metadata Types** (`ind.billing_custom_metadata_types_configure.htm`) — replaced by [`ind.billing_standard_tax_custom_metadata_types_configure.htm`](help/articles/ind.billing_standard_tax_custom_metadata_types_configure.htm.md) (tax-specific)
 - **Generate Billing Schedules** (`ind.billing_schedules_create.htm`) — replaced by [`ind.billing_schedules_from_orders.htm`](help/articles/ind.billing_schedules_from_orders.htm.md)
-- **Period Boundary and Proration in Billing Cycles** (`ind.billing_understand_period_boundries.htm`) — removed
-- **Tax Interface Extension** (`ind.billing_understand_tax_interface_extension.htm`) — superseded by new tax engine framework
-- **Troubleshoot Invoice Batch Run Errors** (`ind.billing_invoice_batch_runs_troubleshooting.htm`) — removed
+- **Period Boundary and Proration in Billing Cycles** (`ind.billing_understand_period_boundries.htm`) — renamed: the same period-boundary guidance is in [`ind.billing_understand_period_boundaries_and_billing_day_of_month.htm`](help/articles/ind.billing_understand_period_boundaries_and_billing_day_of_month.htm.md)
+- **Tax Interface Extension** (`ind.billing_understand_tax_interface_extension.htm`) — renamed: still documented in [`ind.billing_extend_tax_interface.htm`](help/articles/ind.billing_extend_tax_interface.htm.md)
+- **Troubleshoot Invoice Batch Run Errors** (`ind.billing_invoice_batch_runs_troubleshooting.htm`) — no dedicated replacement found; invoice batch run errors are still covered in [`ind.billing_invoice_batch_run.htm`](help/articles/ind.billing_invoice_batch_run.htm.md)
 
 ### DRO (1 capture error, not a verified removal)
 
 - **Create Custom Context Definition and Map Attribute to Field** (`ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm`). The 264 manifest discovered it but recorded a capture error, so its 264 status is unknown. Two new 264 DRO IDs also errored: `ind.dro_create_a_fulfillment_task_assignment_rule.htm` and `ind.dro_create_a_fulfillment_workspace.htm`. Re-run the DRO snapshot to capture all three.
 
-### Transaction Management (2 removed)
+### Transaction Management (2 only in 262, both reorganized)
 
-- **Divide Subscription Transactions into Segments with Ramp Deals for Lines** (`ind.qocal_ramp_deals.htm`) — superseded by Ramp Deals for Groups
-- **View Rate Cards for Usage-Based Assets** (`ind.qocal_view_asset_usage_rate_cards.htm`) — removed
+- **Divide Subscription Transactions into Segments with Ramp Deals for Lines** (`ind.qocal_ramp_deals.htm`) — reorganized, not removed: 264 still documents Ramp Deals for Lines in [`ind.qocal_ramp_deals_for_groups_transition.htm`](help/articles/ind.qocal_ramp_deals_for_groups_transition.htm.md), which recommends moving to groups but allows both in parallel during migration
+- **View Rate Cards for Usage-Based Assets** (`ind.qocal_view_asset_usage_rate_cards.htm`) — reorganized, not removed: asset rate-card visibility (the Usage Rates tab) is in [`ind.qocal_view_and_manage_assets_in_revenue_cloud.htm`](help/articles/ind.qocal_view_and_manage_assets_in_revenue_cloud.htm.md)
 
 ### Collections (97 not captured — not verified as removed)
 
@@ -204,7 +204,7 @@ All 97 Collections articles present in 262 are absent from 264 because the Colle
 ### How to re-check this index
 
 1. **Cross-reference the captured Winter '27 release notes** (`release-notes/`, refresh with `cci task run snapshot_revenue_release_notes_264 -o mode refresh`). Update tiers (GA/Beta/Pilot). Add features the notes cover that Help does not.
-2. **When v68.0 Metadata Coverage Report publishes:** Verify object/field/API changes match the report.
+2. **Check the v68.0 Metadata Coverage Report** (availability not yet checked): if it is available, verify object/field/API changes match it.
 3. **Refresh Collections snapshot** once 264 content publishes:
    ```bash
    cci task run snapshot_collections_help_264 -o mode discover
