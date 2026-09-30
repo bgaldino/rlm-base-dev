@@ -7,84 +7,75 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Saved Configuration (DELETE, PUT)
 
-Update or delete a record's saved configuration by using the configuration
-    ID.
+Update or delete a record's saved configuration by using the configuration ID.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/cpq/configurator/saved-configuration/id
 ```
 
-          
+      
 
-          
-: The id parameter is the ID of the configuration that you want to
-            update or delete.
+The id parameter is the ID of the configuration that you want to update or delete.
 
-        
-        
-          
+    
 
-**Resource example**
+    
 
-          
-: 
-            
+## Resource Example
+
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/saved-configuration/5KPxx0025063GSmSAX
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 63.0
+      
+      
 
-        
-        
-          
+63.0
 
-**HTTP methods**
+    
 
-          
-: DELETE, PUT
+    
 
-        
-        
-          
+## HTTP Methods
 
-**Request body for PUT**
+      
+      
 
-          
-: 
-            
+DELETE, PUT
 
-**JSON example**
+    
 
-: 
+    
+
+## Request Body for PUT
+
+      
+      
+
+**JSON Example**
+
+      
 
 ```
 {
@@ -95,30 +86,92 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator
 }
 ```
 
+      
+
 **Properties**
 
-: 
+      
 
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `data` | String | JSON object that contains the details of the sales transaction, formatted as a string. | Required | 63.0 |
 | `description` | String | Description of the configuration. | Required | 63.0 |
 | `name` | String | Name of the configuration. | Required | 63.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for PUT**
+## Response Body for PUT
 
-          
-: [Configuration
-              Update](./connect_responses_update_favorite_output.htm.md)
-
-        
       
+      
+
+[Configuration Update](./connect_responses_update_favorite_output.htm.md)
 
     
 

@@ -7,25 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Object Input Map
 
 Input representation of an sObject record in a key-value map format.
 
     
+
+## JSON Example
+
       
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+      
 
 ```
 {
@@ -45,68 +39,55 @@ Input representation of an sObject record in a key-value map format.
 }
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Properties**
+## Properties
+
+      
+      
 
           
-: 
+          
+          
+          
+          
+          
+          
+          
             
-
-                
-                
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-- 
-- 
-- 
-- 
-- 
-  - 
-  - 
-  - 
-  - 
-  - 
-
-                    
-
-                    
-
-                  
-
-                
+              
 
               
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `attributes` | Map <String, String> | Configuration input for the record process. Valid values are: `type`—Type of sales transaction such as Quote or Order. `method`—HTTP methods such as POST, PATCH, and DELETE. `id`—Unique identifier for the record. Required for PATCH and DELETE operations. `criteria`—Criteria to group order or quote line items. For example, group order or quote line items based on a monthly billing frequency. `action`—Action to group order or quote line items. Valid values are: `GroupBy` `Group` `Ungroup` `GroupAll` `DeleteGroup` | Required | 60.0 |
+| `attributes` | Map <String, String> | Configuration input for the record process. Valid values are `type` —Type of sales transaction such as Quote or Order; `method` —HTTP methods such as POST, PATCH, and DELETE; `id` —Unique identifier for the record. Required for PATCH and DELETE operations; `criteria` —Criteria to group order or quote line items. For example, group order or quote line items based on a monthly billing frequency; or `action` —Action to group order or quote line items. Valid values are `GroupBy`, `Group`, `Ungroup`, `GroupAll`, or `DeleteGroup`. | Required | 60.0 |

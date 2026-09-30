@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_api_overview.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Request Bodies
 
@@ -24,7 +22,7 @@ Input representation of the request to get a product configuration instance.
 - 
 **[Configuration Load Instance Input](./connect_requests_load_configuration_instance_input.htm.md)**  
 
-Input representation of the request to load a product configuration             instance.
+Input representation of the request to load a product configuration instance.
 
 - 
 **[Configuration Save Input](./connect_requests_favorite_input.htm.md)**  
@@ -59,7 +57,7 @@ Input representation of the nodes to be added to a product configuration.
 - 
 **[Configurator Delete Nodes Input](./connect_requests_delete_nodes_configurator_input.htm.md)**  
 
-Input representation of the request to delete nodes from a product         configuration.
+Input representation of the request to delete nodes from a product configuration.
 
 - 
 **[Configurator Deleted Node Input](./connect_requests_configurator_deleted_node_input.htm.md)**  
@@ -74,7 +72,7 @@ Input representation of the request to modify the product configuration.
 - 
 **[Configurator Options Input](./connect_requests_configurator_options_input.htm.md)**  
 
-Input representation of the request to get the product configuration options that’s     passed to the configurator.
+Input representation of the request to get the product configuration options that’s passed to the configurator.
 
 - 
 **[Configuration Rule Input](./connect_requests_config_rule_input.htm.md)**  
@@ -84,7 +82,7 @@ Input representation of the details of a configuration rule.
 - 
 **[Configurator Update Nodes Input](./connect_requests_update_nodes_configurator_input.htm.md)**  
 
-Input representation of the request to update the nodes in a product         configuration.
+Input representation of the request to update the nodes in a product configuration.
 
 - 
 **[Configurator Updated Node Input](./connect_requests_configurator_updated_node_input.htm.md)**  
@@ -99,4 +97,4 @@ Input representation of the request to set the quantity of a product.
 - 
 **[User Context Input](./connect_requests_configurator_user_context_input.htm.md)**  
 
-Input representation of the request to get the context details of a user, which are     used for qualification rules.
+Input representation of the request to get the context details of a user, which are used for qualification rules.

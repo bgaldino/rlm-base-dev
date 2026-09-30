@@ -2,17 +2,17 @@
 
 **Deliverable:** `revenue_lifecycle_management_dev_guide`  
 **Release:** Winter '27 (264, doc_version 264.0)  
-**Last updated:** 2026-08-24T20:42:06Z
+**Last updated:** 2026-09-29T23:45:31Z
 
 ## Stats
 
 | Metric | Value |
 |:--|--:|
-| Discovered | 1404 |
-| Captured | 1403 |
+| Discovered | 1465 |
+| Captured | 1464 |
 | Pending | 0 |
 | Errored | 1 |
-| Total body chars | 6,648,463 |
+| Total body chars | 6,776,940 |
 
 ## Advanced Approvals (23)
 
@@ -42,7 +42,7 @@
 | [Preview Approval](./articles/connect_responses_preview_approval_output.htm.md) | `connect_responses_preview_approval_output.htm` | 4,497 |
 | [ApprovalSubmission](./articles/sforce_api_objects_approvalsubmission.htm.md) | `sforce_api_objects_approvalsubmission.htm` | 8,789 |
 
-## Billing (381)
+## Billing (406)
 
 | Page | ID | Chars |
 |:--|:--|--:|
@@ -55,11 +55,13 @@
 | [Update Bill To Contact Action](./articles/actions_obj_blng_svc_update_bill_to_contact.htm.md) | `actions_obj_blng_svc_update_bill_to_contact.htm` | 4,771 |
 | [Create Billing Schedules From Billing Transaction Action](./articles/actions_obj_create_billing_schedule_from_billing_transaction.htm.md) | `actions_obj_create_billing_schedule_from_billing_transaction.htm` | 3,423 |
 | [Create Standalone Billing Schedules Action](./articles/actions_obj_create_billing_schedules_from_transaction.htm.md) | `actions_obj_create_billing_schedules_from_transaction.htm` | 6,022 |
+| [Create Collection Plan Action](./articles/actions_obj_create_collection_plan.htm.md) | `actions_obj_create_collection_plan.htm` | 3,308 |
 | [Generate Invoice Documents Action](./articles/actions_obj_generate_batch_invoice_documents.htm.md) | `actions_obj_generate_batch_invoice_documents.htm` | 3,263 |
 | [Generate Account Statement](./articles/actions_obj_generate_statement_of_account.htm.md) | `actions_obj_generate_statement_of_account.htm` | 8,380 |
 | [Post Draft Credit Memo Action](./articles/actions_obj_post_draft_credit_memo.htm.md) | `actions_obj_post_draft_credit_memo.htm` | 3,978 |
 | [Post Draft Invoice Action](./articles/actions_obj_post_draft_invoice.htm.md) | `actions_obj_post_draft_invoice.htm` | 2,942 |
 | [Post Draft Invoice Batch Run Action](./articles/actions_obj_post_draft_invoice_batch_run.htm.md) | `actions_obj_post_draft_invoice_batch_run.htm` | 2,641 |
+| [Process Refund Credit Memo Action](./articles/actions_obj_process_refund_credit_memo.htm.md) | `actions_obj_process_refund_credit_memo.htm` | 5,091 |
 | [Recover Billing Schedules Action](./articles/actions_obj_recover_billing_schedule.htm.md) | `actions_obj_recover_billing_schedule.htm` | 2,745 |
 | [Apply Credit Action](./articles/actions_obj_run_apply_credit.htm.md) | `actions_obj_run_apply_credit.htm` | 3,427 |
 | [Unapply Credit Action](./articles/actions_obj_run_unapply_credit.htm.md) | `actions_obj_run_unapply_credit.htm` | 3,218 |
@@ -173,10 +175,18 @@
 | [TaxEngineAdapter Interface](./articles/billing_tax_engine_adapter_interface_for_standard_tax.htm.md) | `billing_tax_engine_adapter_interface_for_standard_tax.htm` | 2,396 |
 | [Billing Fields on AccountBillingAccount](./articles/billling_sforce_api_objects_accountbillingaccount.htm.md) | `billling_sforce_api_objects_accountbillingaccount.htm` | 1,976 |
 | [Billing Fields on BillingAccount](./articles/billling_sforce_api_objects_billingaccount.htm.md) | `billling_sforce_api_objects_billingaccount.htm` | 8,906 |
-| [Address Input](./articles/connect_requests_address_input.htm.md) | `connect_requests_address_input.htm` | 1,538 |
+| [Address Input](./articles/connect_requests_address_input.htm.md) | `connect_requests_address_input.htm` | 2,101 |
 | [Addresses Input](./articles/connect_requests_addresses_input.htm.md) | `connect_requests_addresses_input.htm` | 1,884 |
 | [Batch Invoice Filter Criteria Input](./articles/connect_requests_batch_invoice_filter_criteria_input.htm.md) | `connect_requests_batch_invoice_filter_criteria_input.htm` | 3,037 |
 | [Batch Invoice Scheduler Input](./articles/connect_requests_batch_invoice_scheduler_input.htm.md) | `connect_requests_batch_invoice_scheduler_input.htm` | 13,144 |
+| [Billing Contact Input](./articles/connect_requests_billing_checkout_billing_contact_input.htm.md) | `connect_requests_billing_checkout_billing_contact_input.htm` | 1,420 |
+| [Bundle Product Details Input](./articles/connect_requests_billing_checkout_bundle_product_details_input.htm.md) | `connect_requests_billing_checkout_bundle_product_details_input.htm` | 5,158 |
+| [Billing Checkout Customer Details Input](./articles/connect_requests_billing_checkout_customer_details_input.htm.md) | `connect_requests_billing_checkout_customer_details_input.htm` | 1,441 |
+| [Billing Checkout Input](./articles/connect_requests_billing_checkout_input.htm.md) | `connect_requests_billing_checkout_input.htm` | 10,007 |
+| [Billing Checkout Line Item Input](./articles/connect_requests_billing_checkout_line_item_input.htm.md) | `connect_requests_billing_checkout_line_item_input.htm` | 6,537 |
+| [Billing Checkout Payment Details Input](./articles/connect_requests_billing_checkout_payment_details_input.htm.md) | `connect_requests_billing_checkout_payment_details_input.htm` | 1,964 |
+| [Billing Checkout Ramp Input](./articles/connect_requests_billing_checkout_ramp_input.htm.md) | `connect_requests_billing_checkout_ramp_input.htm` | 4,591 |
+| [Saved Payment Method Details Input](./articles/connect_requests_billing_checkout_saved_payment_method_details_input.htm.md) | `connect_requests_billing_checkout_saved_payment_method_details_input.htm` | 1,853 |
 | [Amended Transaction](./articles/connect_requests_billing_schedule_input_for_amendment.htm.md) | `connect_requests_billing_schedule_input_for_amendment.htm` | 25,765 |
 | [New Sale Transaction With Bundled Products](./articles/connect_requests_billing_schedule_input_for_bundled_products_new_sale.htm.md) | `connect_requests_billing_schedule_input_for_bundled_products_new_sale.htm` | 19,959 |
 | [Canceled Transaction](./articles/connect_requests_billing_schedule_input_for_cancellation.htm.md) | `connect_requests_billing_schedule_input_for_cancellation.htm` | 10,634 |
@@ -189,6 +199,9 @@
 | [New Sale Transaction With Usage Products](./articles/connect_requests_billing_schedule_input_for_usage_new_sale.htm.md) | `connect_requests_billing_schedule_input_for_usage_new_sale.htm` | 12,126 |
 | [Billing Schedule Recovery Input](./articles/connect_requests_billing_schedule_recovery_input.htm.md) | `connect_requests_billing_schedule_recovery_input.htm` | 953 |
 | [Tax Calculation Input](./articles/connect_requests_calculate_tax_input.htm.md) | `connect_requests_calculate_tax_input.htm` | 12,999 |
+| [Collection Plan Input](./articles/connect_requests_collection_plan_input.htm.md) | `connect_requests_collection_plan_input.htm` | 3,306 |
+| [Collection Plan Item Input](./articles/connect_requests_collection_plan_item_input.htm.md) | `connect_requests_collection_plan_item_input.htm` | 1,374 |
+| [Composite Collection Plan Input](./articles/connect_requests_composite_collection_plan_input.htm.md) | `connect_requests_composite_collection_plan_input.htm` | 1,452 |
 | [Context-Aware Billing Schedule](./articles/connect_requests_context_aware_billing_schedule_input.htm.md) | `connect_requests_context_aware_billing_schedule_input.htm` | 1,827 |
 | [Standalone Billing Schedule Input](./articles/connect_requests_context_aware_standalone_billing_schedule_input.htm.md) | `connect_requests_context_aware_standalone_billing_schedule_input.htm` | 7,239 |
 | [Standalone Billing Schedule Metadata Input](./articles/connect_requests_context_aware_standalone_billing_schedule_metadata_input.htm.md) | `connect_requests_context_aware_standalone_billing_schedule_metadata_input.htm` | 2,976 |
@@ -220,6 +233,7 @@
 | [Payment Run Batch Filter Criteria Input](./articles/connect_requests_payment_run_batch_filter_criteria_input.htm.md) | `connect_requests_payment_run_batch_filter_criteria_input.htm` | 2,550 |
 | [Payment Batch Scheduler Input](./articles/connect_requests_payment_scheduler_input.htm.md) | `connect_requests_payment_scheduler_input.htm` | 4,930 |
 | [Payment Scheduler Update Input](./articles/connect_requests_payment_scheduler_update_input.htm.md) | `connect_requests_payment_scheduler_update_input.htm` | 1,787 |
+| [Refund Credit Memo Input](./articles/connect_requests_refund_credit_memo_input.htm.md) | `connect_requests_refund_credit_memo_input.htm` | 2,179 |
 | [Refund Line Apply Input](./articles/connect_requests_refund_line_apply_input.htm.md) | `connect_requests_refund_line_apply_input.htm` | 1,358 |
 | [Resume Billing Object Input](./articles/connect_requests_resume_billing_entity_input.htm.md) | `connect_requests_resume_billing_entity_input.htm` | 1,323 |
 | [Resume Billing Input](./articles/connect_requests_resume_billing_input.htm.md) | `connect_requests_resume_billing_input.htm` | 1,120 |
@@ -242,8 +256,10 @@
 | [Posted Invoice List Write-Off Input](./articles/connect_requests_write_off_posted_invoice_list_input.htm.md) | `connect_requests_write_off_posted_invoice_list_input.htm` | 1,237 |
 | [Refund Line Apply (POST)](./articles/connect_resources_apply_refund_to_payment.htm.md) | `connect_resources_apply_refund_to_payment.htm` | 2,664 |
 | [Batch Invoices Draft to Posted Status (POST)](./articles/connect_resources_batch_draft_invoices_to_posted.htm.md) | `connect_resources_batch_draft_invoices_to_posted.htm` | 2,377 |
+| [Billing Checkout (POST)](./articles/connect_resources_billing_checkout.htm.md) | `connect_resources_billing_checkout.htm` | 10,006 |
 | [Invoice Estimated Tax Calculation (POST)](./articles/connect_resources_calculate_estimated_tax.htm.md) | `connect_resources_calculate_estimated_tax.htm` | 2,691 |
 | [Tax Calculation (POST)](./articles/connect_resources_calculate_taxes.htm.md) | `connect_resources_calculate_taxes.htm` | 13,817 |
+| [Composite Collection Plan Creation (POST)](./articles/connect_resources_collections_composite_collection_plan.htm.md) | `connect_resources_collections_composite_collection_plan.htm` | 2,639 |
 | [Negative Invoice Lines to Credit Conversion (POST)](./articles/connect_resources_convert_negative_invoice_lines_to_credit.htm.md) | `connect_resources_convert_negative_invoice_lines_to_credit.htm` | 3,510 |
 | [Standalone Credit Memo (POST)](./articles/connect_resources_create_a_standalone_credit_memo.htm.md) | `connect_resources_create_a_standalone_credit_memo.htm` | 5,022 |
 | [Batch Invoice Scheduler (POST, PUT)](./articles/connect_resources_create_an_invoice_scheduler.htm.md) | `connect_resources_create_an_invoice_scheduler.htm` | 14,674 |
@@ -270,6 +286,7 @@
 | [Invoice Preview (POST)](./articles/connect_resources_preview_invoices.htm.md) | `connect_resources_preview_invoices.htm` | 2,912 |
 | [Billing Schedule Recovery List (POST)](./articles/connect_resources_recover_billing_schedules.htm.md) | `connect_resources_recover_billing_schedules.htm` | 2,537 |
 | [Invoice Run Recovery (POST)](./articles/connect_resources_recover_errored_invoices_batch_run.htm.md) | `connect_resources_recover_errored_invoices_batch_run.htm` | 1,624 |
+| [Refund Credit Memo (POST)](./articles/connect_resources_refund_credit_memo.htm.md) | `connect_resources_refund_credit_memo.htm` | 2,899 |
 | [Resume Billing (POST)](./articles/connect_resources_resume_billing.htm.md) | `connect_resources_resume_billing.htm` | 1,822 |
 | [Rules Application (POST)](./articles/connect_resources_rules_application.htm.md) | `connect_resources_rules_application.htm` | 2,006 |
 | [Send Emails for Posted Invoices (POST)](./articles/connect_resources_send_email_for_invoice_batch_run.htm.md) | `connect_resources_send_email_for_invoice_batch_run.htm` | 2,731 |
@@ -289,9 +306,14 @@
 | [Billing Arrangement Line](./articles/connect_responses_billing_arrangement_line.htm.md) | `connect_responses_billing_arrangement_line.htm` | 2,378 |
 | [Billing Arrangement](./articles/connect_responses_billing_arrangement_output.htm.md) | `connect_responses_billing_arrangement_output.htm` | 4,261 |
 | [Billing Batch Scheduler](./articles/connect_responses_billing_batch_scheduler.htm.md) | `connect_responses_billing_batch_scheduler.htm` | 1,245 |
+| [Billing Checkout Error](./articles/connect_responses_billing_checkout_error.htm.md) | `connect_responses_billing_checkout_error.htm` | 1,069 |
+| [Billing Checkout](./articles/connect_responses_billing_checkout_output.htm.md) | `connect_responses_billing_checkout_output.htm` | 2,772 |
 | [Billing Schedule Recovery List](./articles/connect_responses_billing_schedule_recovery_list_output.htm.md) | `connect_responses_billing_schedule_recovery_list_output.htm` | 1,571 |
 | [Billing Schedule Recovery](./articles/connect_responses_billing_schedule_recovery_output.htm.md) | `connect_responses_billing_schedule_recovery_output.htm` | 1,542 |
 | [Tax Calculation](./articles/connect_responses_calculate_tax_output.htm.md) | `connect_responses_calculate_tax_output.htm` | 7,916 |
+| [Collection Plan Error](./articles/connect_responses_collection_plan_error.htm.md) | `connect_responses_collection_plan_error.htm` | 1,309 |
+| [Collection Plan](./articles/connect_responses_collection_plan_output.htm.md) | `connect_responses_collection_plan_output.htm` | 1,741 |
+| [Composite Collection Plan](./articles/connect_responses_composite_collection_plan_output.htm.md) | `connect_responses_composite_collection_plan_output.htm` | 1,016 |
 | [Context-Aware Billing Schedule Error](./articles/connect_responses_context_aware_billing_schedule_error.htm.md) | `connect_responses_context_aware_billing_schedule_error.htm` | 1,198 |
 | [Context-Aware Billing Schedule](./articles/connect_responses_context_aware_billing_schedule_output.htm.md) | `connect_responses_context_aware_billing_schedule_output.htm` | 2,693 |
 | [Convert Negative Invoice Lines](./articles/connect_responses_convert_negative_invoice_lines_output.htm.md) | `connect_responses_convert_negative_invoice_lines_output.htm` | 1,901 |
@@ -308,7 +330,7 @@
 | [Invoice Batch Run Recovery](./articles/connect_responses_invoice_batch_run_recovery_output.htm.md) | `connect_responses_invoice_batch_run_recovery_output.htm` | 1,356 |
 | [Invoice Ingestion Details](./articles/connect_responses_invoice_ingestion_output.htm.md) | `connect_responses_invoice_ingestion_output.htm` | 2,431 |
 | [Invoice Ingestion Output Error](./articles/connect_responses_invoice_ingestion_output_error.htm.md) | `connect_responses_invoice_ingestion_output_error.htm` | 1,007 |
-| [Invoice Preview Result](./articles/connect_responses_invoice_preview_output.htm.md) | `connect_responses_invoice_preview_output.htm` | 1,638 |
+| [Invoice Preview Result](./articles/connect_responses_invoice_preview_output.htm.md) | `connect_responses_invoice_preview_output.htm` | 1,480 |
 | [Invoice Recovery](./articles/connect_responses_invoice_recovery_output.htm.md) | `connect_responses_invoice_recovery_output.htm` | 2,526 |
 | [Invoice Ingestion](./articles/connect_responses_invoices_ingestion_output.htm.md) | `connect_responses_invoices_ingestion_output.htm` | 1,523 |
 | [Line Item](./articles/connect_responses_line_item_output.htm.md) | `connect_responses_line_item_output.htm` | 3,895 |
@@ -317,9 +339,12 @@
 | [Payment Line Unapply](./articles/connect_responses_payment_line_unapply_output.htm.md) | `connect_responses_payment_line_unapply_output.htm` | 1,142 |
 | [Batch Payment Scheduler](./articles/connect_responses_payment_scheduler_output.htm.md) | `connect_responses_payment_scheduler_output.htm` | 1,324 |
 | [Payment Scheduler Update](./articles/connect_responses_payment_scheduler_update_output.htm.md) | `connect_responses_payment_scheduler_update_output.htm` | 1,389 |
-| [Invoice Line Preview](./articles/connect_responses_prev_inv_line_output.htm.md) | `connect_responses_prev_inv_line_output.htm` | 2,043 |
-| [Invoice Preview](./articles/connect_responses_prev_inv_output.htm.md) | `connect_responses_prev_inv_output.htm` | 2,559 |
+| [Invoice Line Preview](./articles/connect_responses_prev_inv_line_output.htm.md) | `connect_responses_prev_inv_line_output.htm` | 2,634 |
+| [Invoice Preview](./articles/connect_responses_prev_inv_output.htm.md) | `connect_responses_prev_inv_output.htm` | 3,150 |
 | [Reference Line Error](./articles/connect_responses_reference_line_error.htm.md) | `connect_responses_reference_line_error.htm` | 1,881 |
+| [Refund Application](./articles/connect_responses_refund_application_output.htm.md) | `connect_responses_refund_application_output.htm` | 1,110 |
+| [Refund Credit Memo](./articles/connect_responses_refund_credit_memo_output.htm.md) | `connect_responses_refund_credit_memo_output.htm` | 2,152 |
+| [Refund Error](./articles/connect_responses_refund_error_output.htm.md) | `connect_responses_refund_error_output.htm` | 1,101 |
 | [Refund Line Applied Response](./articles/connect_responses_refund_line_apply_output.htm.md) | `connect_responses_refund_line_apply_output.htm` | 1,169 |
 | [Revenue Async Line Level](./articles/connect_responses_revenue_async_line_level.htm.md) | `connect_responses_revenue_async_line_level.htm` | 2,944 |
 | [Revenue Async Response](./articles/connect_responses_revenue_async_output.htm.md) | `connect_responses_revenue_async_output.htm` | 1,852 |
@@ -497,7 +522,7 @@
 |:--|:--|--:|
 | [Get Started with Revenue Management Developer Resources](./articles/rlm_get_started.htm.md) | `rlm_get_started.htm` | 10,051 |
 
-## Product Catalog Management (266)
+## Product Catalog Management (270)
 
 | Page | ID | Chars |
 |:--|:--|--:|
@@ -512,53 +537,57 @@
 | [Get Products Action](./articles/actions_obj_get_products.htm.md) | `actions_obj_get_products.htm` | 51,208 |
 | [Get Product Recommendations Action](./articles/actions_obj_get_recommendation_products.htm.md) | `actions_obj_get_recommendation_products.htm` | 13,140 |
 | [Search Product with Guided Selection Action](./articles/actions_obj_search_products_with_guided_selection.htm.md) | `actions_obj_search_products_with_guided_selection.htm` | 32,116 |
-| [ProductRelatedComponentOutputRepresentation Class](./articles/apex_class_ricpq_ProductRelatedComponentOR.htm.md) | `apex_class_ricpq_ProductRelatedComponentOR.htm` | 9,299 |
-| [ProductSellingModelOptionOutputRepresentation Class](./articles/apex_class_ricpq_ProductSellingModelOptionOR.htm.md) | `apex_class_ricpq_ProductSellingModelOptionOR.htm` | 3,033 |
-| [ProductSpecificationRecordTypeOutputRepresentation Class](./articles/apex_class_ricpq_ProductSpecificationRecordTypeOR.htm.md) | `apex_class_ricpq_ProductSpecificationRecordTypeOR.htm` | 1,753 |
-| [ProductSpecificationTypeOutputRepresentation Class](./articles/apex_class_ricpq_ProductSpecificationTypeOR.htm.md) | `apex_class_ricpq_ProductSpecificationTypeOR.htm` | 2,227 |
-| [AdditionalContextData Class](./articles/apex_class_runtime_industries_cpq_AdditionalContextData.htm.md) | `apex_class_runtime_industries_cpq_AdditionalContextData.htm` | 2,055 |
-| [AdditionalFields Class](./articles/apex_class_runtime_industries_cpq_AdditionalFields.htm.md) | `apex_class_runtime_industries_cpq_AdditionalFields.htm` | 1,988 |
-| [AdditionalFieldsInput Class](./articles/apex_class_runtime_industries_cpq_AdditionalFieldsInput.htm.md) | `apex_class_runtime_industries_cpq_AdditionalFieldsInput.htm` | 1,588 |
-| [ApiStatusRepresentation Class](./articles/apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm` | 2,236 |
-| [AttributeCategoryOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm` | 4,314 |
-| [AttributePickListOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_AttributePickListOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_AttributePickListOutputRepresentation.htm` | 3,524 |
-| [AttributePickListValueOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_AttributePickListValueOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_AttributePickListValueOutputRepresentation.htm` | 4,886 |
-| [BulkProductDetailsInputBody Class](./articles/apex_class_runtime_industries_cpq_BulkProductDetailsInputBody.htm.md) | `apex_class_runtime_industries_cpq_BulkProductDetailsInputBody.htm` | 1,941 |
-| [BulkProductDetailsInputBodyList Class](./articles/apex_class_runtime_industries_cpq_BulkProductDetailsInputBodyList.htm.md) | `apex_class_runtime_industries_cpq_BulkProductDetailsInputBodyList.htm` | 1,799 |
-| [BulkProductDetailsRepresentation Class](./articles/apex_class_runtime_industries_cpq_BulkProductDetailsRepresentation.htm.md) | `apex_class_runtime_industries_cpq_BulkProductDetailsRepresentation.htm` | 18,640 |
-| [CatalogOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm` | 5,182 |
-| [CategoryOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm` | 5,654 |
-| [ConfigRuleResult Class](./articles/apex_class_runtime_industries_cpq_ConfigRuleResult.htm.md) | `apex_class_runtime_industries_cpq_ConfigRuleResult.htm` | 5,463 |
-| [ContextDataInput Class](./articles/apex_class_runtime_industries_cpq_ContextDataInput.htm.md) | `apex_class_runtime_industries_cpq_ContextDataInput.htm` | 1,624 |
-| [FacetValueRepresentation Class](./articles/apex_class_runtime_industries_cpq_FacetValueRepresentation.htm.md) | `apex_class_runtime_industries_cpq_FacetValueRepresentation.htm` | 1,865 |
-| [Filter Class](./articles/apex_class_runtime_industries_cpq_Filter.htm.md) | `apex_class_runtime_industries_cpq_Filter.htm` | 1,594 |
-| [FilterCriteriaInputRepresentation Class](./articles/apex_class_runtime_industries_cpq_FilterCriteriaInputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_FilterCriteriaInputRepresentation.htm` | 4,343 |
-| [FilterInputRepresentation Class](./articles/apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_FilterInputRepresentation.htm` | 2,261 |
-| [GuidedSelectionRepresentation Class](./articles/apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md) | `apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm` | 16,674 |
-| [GuidedSelectionSearchTerm Class](./articles/apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md) | `apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm` | 3,584 |
-| [GuidedSelectionSearchTermList Class](./articles/apex_class_runtime_industries_cpq_GuidedSelectionSearchTermList.htm.md) | `apex_class_runtime_industries_cpq_GuidedSelectionSearchTermList.htm` | 2,831 |
-| [MessageRule Class](./articles/apex_class_runtime_industries_cpq_MessageRule.htm.md) | `apex_class_runtime_industries_cpq_MessageRule.htm` | 3,250 |
-| [PricingModelOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_PricingModelOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_PricingModelOutputRepresentation.htm` | 3,411 |
-| [ProductAttributeOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm` | 12,674 |
-| [ProductClassificationOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm` | 1,590 |
-| [ProductComponentGroupOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation.htm` | 5,740 |
-| [ProductComponentGroupRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm` | 7,123 |
-| [ProductDetailsRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm` | 19,737 |
-| [ProductListRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductListRepresentation.htm` | 18,469 |
-| [ProductOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm` | 16,238 |
-| [ProductPricesOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm` | 5,303 |
-| [ProductQuantityOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation.htm` | 2,196 |
-| [ProductRecommendationRule Class](./articles/apex_class_runtime_industries_cpq_ProductRecommendationRule.htm.md) | `apex_class_runtime_industries_cpq_ProductRecommendationRule.htm` | 4,885 |
-| [ProductSellingModelOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm` | 3,853 |
-| [QocQualificationOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm` | 3,066 |
-| [QualificationContextOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm` | 2,254 |
-| [RelatedObjectFilter Class](./articles/apex_class_runtime_industries_cpq_RelatedObjectFilter.htm.md) | `apex_class_runtime_industries_cpq_RelatedObjectFilter.htm` | 2,112 |
-| [RelatedObjectFilterInputRepresentation Class](./articles/apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm` | 1,813 |
-| [SearchProductsFacetRepresentation Class](./articles/apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md) | `apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm` | 3,704 |
-| [SearchProductsRepresentation Class](./articles/apex_class_runtime_industries_cpq_SearchProductsRepresentation.htm.md) | `apex_class_runtime_industries_cpq_SearchProductsRepresentation.htm` | 16,915 |
-| [UnitOfMeasureOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm` | 4,302 |
-| [VisibilityRule Class](./articles/apex_class_runtime_industries_cpq_VisibilityRule.htm.md) | `apex_class_runtime_industries_cpq_VisibilityRule.htm` | 5,953 |
-| [runtime_industries_cpq Namespace](./articles/apex_namespace_runtime_industries_cpq.htm.md) | `apex_namespace_runtime_industries_cpq.htm` | 14,697 |
+| [ProductRelatedComponentOutputRepresentation Class](./articles/apex_class_ricpq_ProductRelatedComponentOR.htm.md) | `apex_class_ricpq_ProductRelatedComponentOR.htm` | 8,863 |
+| [ProductSellingModelOptionOutputRepresentation Class](./articles/apex_class_ricpq_ProductSellingModelOptionOR.htm.md) | `apex_class_ricpq_ProductSellingModelOptionOR.htm` | 2,597 |
+| [ProductSpecificationRecordTypeOutputRepresentation Class](./articles/apex_class_ricpq_ProductSpecificationRecordTypeOR.htm.md) | `apex_class_ricpq_ProductSpecificationRecordTypeOR.htm` | 1,317 |
+| [ProductSpecificationTypeOutputRepresentation Class](./articles/apex_class_ricpq_ProductSpecificationTypeOR.htm.md) | `apex_class_ricpq_ProductSpecificationTypeOR.htm` | 1,791 |
+| [AdditionalContextData Class](./articles/apex_class_runtime_industries_cpq_AdditionalContextData.htm.md) | `apex_class_runtime_industries_cpq_AdditionalContextData.htm` | 1,619 |
+| [AdditionalFields Class](./articles/apex_class_runtime_industries_cpq_AdditionalFields.htm.md) | `apex_class_runtime_industries_cpq_AdditionalFields.htm` | 1,552 |
+| [AdditionalFieldsInput Class](./articles/apex_class_runtime_industries_cpq_AdditionalFieldsInput.htm.md) | `apex_class_runtime_industries_cpq_AdditionalFieldsInput.htm` | 1,152 |
+| [ApiStatusRepresentation Class](./articles/apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm` | 1,800 |
+| [AttributeCategoryOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm` | 4,251 |
+| [AttributePickListOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_AttributePickListOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_AttributePickListOutputRepresentation.htm` | 3,088 |
+| [AttributePickListValueOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_AttributePickListValueOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_AttributePickListValueOutputRepresentation.htm` | 4,450 |
+| [BulkProductDetailsInputBody Class](./articles/apex_class_runtime_industries_cpq_BulkProductDetailsInputBody.htm.md) | `apex_class_runtime_industries_cpq_BulkProductDetailsInputBody.htm` | 1,505 |
+| [BulkProductDetailsInputBodyList Class](./articles/apex_class_runtime_industries_cpq_BulkProductDetailsInputBodyList.htm.md) | `apex_class_runtime_industries_cpq_BulkProductDetailsInputBodyList.htm` | 1,363 |
+| [BulkProductDetailsRepresentation Class](./articles/apex_class_runtime_industries_cpq_BulkProductDetailsRepresentation.htm.md) | `apex_class_runtime_industries_cpq_BulkProductDetailsRepresentation.htm` | 20,518 |
+| [CatalogOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm` | 4,746 |
+| [CategoryOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm` | 5,218 |
+| [ConfigRuleResult Class](./articles/apex_class_runtime_industries_cpq_ConfigRuleResult.htm.md) | `apex_class_runtime_industries_cpq_ConfigRuleResult.htm` | 5,197 |
+| [ContextDataInput Class](./articles/apex_class_runtime_industries_cpq_ContextDataInput.htm.md) | `apex_class_runtime_industries_cpq_ContextDataInput.htm` | 1,188 |
+| [FacetValueRepresentation Class](./articles/apex_class_runtime_industries_cpq_FacetValueRepresentation.htm.md) | `apex_class_runtime_industries_cpq_FacetValueRepresentation.htm` | 1,429 |
+| [Filter Class](./articles/apex_class_runtime_industries_cpq_Filter.htm.md) | `apex_class_runtime_industries_cpq_Filter.htm` | 1,158 |
+| [FilterCriteriaInputRepresentation Class](./articles/apex_class_runtime_industries_cpq_FilterCriteriaInputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_FilterCriteriaInputRepresentation.htm` | 3,475 |
+| [FilterInputRepresentation Class](./articles/apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_FilterInputRepresentation.htm` | 1,681 |
+| [GuidedSelectionRepresentation Class](./articles/apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md) | `apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm` | 18,825 |
+| [GuidedSelectionSearchTerm Class](./articles/apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md) | `apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm` | 3,238 |
+| [GuidedSelectionSearchTermList Class](./articles/apex_class_runtime_industries_cpq_GuidedSelectionSearchTermList.htm.md) | `apex_class_runtime_industries_cpq_GuidedSelectionSearchTermList.htm` | 2,395 |
+| [MessageRule Class](./articles/apex_class_runtime_industries_cpq_MessageRule.htm.md) | `apex_class_runtime_industries_cpq_MessageRule.htm` | 2,944 |
+| [PricingModelOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_PricingModelOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_PricingModelOutputRepresentation.htm` | 2,975 |
+| [ProductAttributeOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm` | 12,238 |
+| [ProductClassificationOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm` | 1,154 |
+| [ProductComponentGroupOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation.htm` | 5,304 |
+| [ProductComponentGroupRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm` | 6,777 |
+| [ProductDetailsRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm` | 21,493 |
+| [ProductListRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductListRepresentation.htm` | 20,580 |
+| [ProductOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm` | 17,283 |
+| [ProductPricesOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm` | 4,867 |
+| [ProductQuantityOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation.htm` | 1,760 |
+| [ProductRecommendationRule Class](./articles/apex_class_runtime_industries_cpq_ProductRecommendationRule.htm.md) | `apex_class_runtime_industries_cpq_ProductRecommendationRule.htm` | 4,639 |
+| [ProductSellingModelOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm` | 3,417 |
+| [ProductUnitOfMeasureOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm` | 5,104 |
+| [ProductVariantAttributeOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductVariantAttributeOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductVariantAttributeOutputRepresentation.htm` | 3,484 |
+| [ProductVariantAttributeSetOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm` | 4,255 |
+| [ProductVariantAttributeValueOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_ProductVariantAttributeValueOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_ProductVariantAttributeValueOutputRepresentation.htm` | 2,841 |
+| [QocQualificationOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm` | 2,630 |
+| [QualificationContextOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm` | 1,818 |
+| [RelatedObjectFilter Class](./articles/apex_class_runtime_industries_cpq_RelatedObjectFilter.htm.md) | `apex_class_runtime_industries_cpq_RelatedObjectFilter.htm` | 1,676 |
+| [RelatedObjectFilterInputRepresentation Class](./articles/apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm` | 1,377 |
+| [SearchProductsFacetRepresentation Class](./articles/apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md) | `apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm` | 3,268 |
+| [SearchProductsRepresentation Class](./articles/apex_class_runtime_industries_cpq_SearchProductsRepresentation.htm.md) | `apex_class_runtime_industries_cpq_SearchProductsRepresentation.htm` | 19,709 |
+| [UnitOfMeasureOutputRepresentation Class](./articles/apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm.md) | `apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm` | 3,956 |
+| [VisibilityRule Class](./articles/apex_class_runtime_industries_cpq_VisibilityRule.htm.md) | `apex_class_runtime_industries_cpq_VisibilityRule.htm` | 5,767 |
+| [runtime_industries_cpq Namespace](./articles/apex_namespace_runtime_industries_cpq.htm.md) | `apex_namespace_runtime_industries_cpq.htm` | 15,550 |
 | [Additional Fields Input](./articles/connect_requests_additional_fields_input.htm.md) | `connect_requests_additional_fields_input.htm` | 933 |
 | [Bulk Product Details Input](./articles/connect_requests_bulk_product_details_input.htm.md) | `connect_requests_bulk_product_details_input.htm` | 5,377 |
 | [Catalog Details Input](./articles/connect_requests_catalog_details_input.htm.md) | `connect_requests_catalog_details_input.htm` | 1,202 |
@@ -768,7 +797,7 @@
 | [ProductSpecificationRecType](./articles/tooling_api_objects_productspecificationrectype.htm.md) | `tooling_api_objects_productspecificationrectype.htm` | 6,552 |
 | [ProductSpecificationType](./articles/tooling_api_objects_productspecificationtype.htm.md) | `tooling_api_objects_productspecificationtype.htm` | 5,193 |
 
-## Product Configurator (135)
+## Product Configurator (154)
 
 | Page | ID | Chars |
 |:--|:--|--:|
@@ -777,7 +806,7 @@
 | [Action Rule](./articles/cml_action_rule.htm.md) | `cml_action_rule.htm` | 2,063 |
 | [closeRelation Annotation](./articles/cml_annotation_example_closeRelation.htm.md) | `cml_annotation_example_closeRelation.htm` | 9,336 |
 | [configurable Annotation](./articles/cml_annotation_example_configurable.htm.md) | `cml_annotation_example_configurable.htm` | 7,442 |
-| [defaultValue Annotation](./articles/cml_annotation_example_defaultValue.htm.md) | `cml_annotation_example_defaultValue.htm` | 5,936 |
+| [defaultValue Annotation](./articles/cml_annotation_example_defaultValue.htm.md) | `cml_annotation_example_defaultValue.htm` | 6,137 |
 | [domainComputation Annotation](./articles/cml_annotation_example_domainComputation.htm.md) | `cml_annotation_example_domainComputation.htm` | 20,558 |
 | [guardrails Annotation](./articles/cml_annotation_example_guardrails.htm.md) | `cml_annotation_example_guardrails.htm` | 3,007 |
 | [peelable Annotation](./articles/cml_annotation_example_peelable.htm.md) | `cml_annotation_example_peelable.htm` | 13,586 |
@@ -788,10 +817,29 @@
 | [split Annotation](./articles/cml_annotation_example_split.htm.md) | `cml_annotation_example_split.htm` | 7,130 |
 | [Annotation Examples](./articles/cml_annotation_examples.htm.md) | `cml_annotation_examples.htm` | 3,613 |
 | [Model Structure](./articles/cml_appendix_model_structure.htm.md) | `cml_appendix_model_structure.htm` | 22,126 |
+| [Access Quantity in CML: Cardinality and Attribute Constraints](./articles/cml_best_practice_access_quantity.htm.md) | `cml_best_practice_access_quantity.htm` | 1,809 |
+| [Automatically Add a Product: Define as a Separate Constraint](./articles/cml_best_practice_add_product.htm.md) | `cml_best_practice_add_product.htm` | 737 |
+| [Configurator API: Include the Attribute Developer Name When Creating or Updating Attributes](./articles/cml_best_practice_attribute_name.htm.md) | `cml_best_practice_attribute_name.htm` | 3,482 |
+| [Calculating Values: Put Calculations Inside of Constraints](./articles/cml_best_practice_calculations.htm.md) | `cml_best_practice_calculations.htm` | 543 |
+| [Relationship Cardinality: Specify the Smallest Range Required](./articles/cml_best_practice_cardinality.htm.md) | `cml_best_practice_cardinality.htm` | 985 |
+| [Relationships: Combine Relationships to Reduce Performance Impact](./articles/cml_best_practice_combine_relationships.htm.md) | `cml_best_practice_combine_relationships.htm` | 743 |
+| [Consolidate Multiple Default Configurations](./articles/cml_best_practice_consolidate_defaults.htm.md) | `cml_best_practice_consolidate_defaults.htm` | 3,132 |
+| [Dependent Logic: Use Configurable Variable Annotation to Prevent Premature Default Assignment](./articles/cml_best_practice_dependent_logic.htm.md) | `cml_best_practice_dependent_logic.htm` | 3,074 |
+| [Variable Domains: Keep Domains as Small as Possible](./articles/cml_best_practice_domains.htm.md) | `cml_best_practice_domains.htm` | 695 |
+| [Configure Child or Grandchild Products Based on Parent Product](./articles/cml_best_practice_parent_products.htm.md) | `cml_best_practice_parent_products.htm` | 2,944 |
+| [PCG Group Relations: Follow Order in Constraints](./articles/cml_best_practice_pcg_group_relations.htm.md) | `cml_best_practice_pcg_group_relations.htm` | 1,089 |
+| [Pricing Fields Not Supported in CML](./articles/cml_best_practice_pricing_fields.htm.md) | `cml_best_practice_pricing_fields.htm` | 668 |
+| [Relation Aggregates: Stabilize Preferences Using Staged Variables](./articles/cml_best_practice_relation_aggregates.htm.md) | `cml_best_practice_relation_aggregates.htm` | 2,734 |
+| [Relations Without PCG: Follow Order in Constraints](./articles/cml_best_practice_relation_order.htm.md) | `cml_best_practice_relation_order.htm` | 341 |
+| [Decimals and Doubles: Consider the Impact of Scale on Performance](./articles/cml_best_practice_scale.htm.md) | `cml_best_practice_scale.htm` | 858 |
+| [Sequence: Use the Sequence Variable Annotation to Specify the Order of Execution](./articles/cml_best_practice_sequence.htm.md) | `cml_best_practice_sequence.htm` | 2,246 |
+| [Sequence and Configurable](./articles/cml_best_practice_sequence_configurable.htm.md) | `cml_best_practice_sequence_configurable.htm` | 2,526 |
+| [Virtual Quote Root: Model Cross-Bundle Logic Using a Shared Transaction Parent](./articles/cml_best_practice_virtual_quote_root.htm.md) | `cml_best_practice_virtual_quote_root.htm` | 2,657 |
 | [Business-Centric Constraint Modeling Language (CML) Guidelines](./articles/cml_business-centric_cml_guidelines_quantity_and_aggregation_fun.htm.md) | `cml_business-centric_cml_guidelines_quantity_and_aggregation_fun.htm` | 1,915 |
 | [Business-Centric CML Examples](./articles/cml_business_centric_cml_examples.htm.md) | `cml_business_centric_cml_examples.htm` | 6,811 |
 | [Constraint Modeling Language (CML) Best Practices](./articles/cml_cml_best_practices.htm.md) | `cml_cml_best_practices.htm` | 23,857 |
 | [Core Concepts](./articles/cml_cml_core_concepts.htm.md) | `cml_cml_core_concepts.htm` | 2,099 |
+| [How CML Fits in the Product Configure Business API Pipeline](./articles/cml_configure_business_api_pipeline.htm.md) | `cml_configure_business_api_pipeline.htm` | 4,868 |
 | [Modeling a Generator Set](./articles/cml_constraint_model_example_modeling_a_generator_set.htm.md) | `cml_constraint_model_example_modeling_a_generator_set.htm` | 2,012 |
 | [Constraints](./articles/cml_constraints.htm.md) | `cml_constraints.htm` | 6,802 |
 | [Core Concept Examples](./articles/cml_core_concept_examples.htm.md) | `cml_core_concept_examples.htm` | 23,613 |
@@ -799,7 +847,7 @@
 | [Exclude Rule](./articles/cml_exclude_rule.htm.md) | `cml_exclude_rule.htm` | 3,172 |
 | [External Variables](./articles/cml_external_variables.htm.md) | `cml_external_variables.htm` | 3,179 |
 | [Global Properties and Settings](./articles/cml_global_properties_and_settings.htm.md) | `cml_global_properties_and_settings.htm` | 3,331 |
-| [Group Type](./articles/cml_group_type.htm.md) | `cml_group_type.htm` | 10,352 |
+| [Group Type](./articles/cml_group_type.htm.md) | `cml_group_type.htm` | 10,276 |
 | [Hide or Disable Rule](./articles/cml_hide_disable_rule.htm.md) | `cml_hide_disable_rule.htm` | 5,863 |
 | [Logical Constraints](./articles/cml_logical_constraints.htm.md) | `cml_logical_constraints.htm` | 16,799 |
 | [Mathematical Functions (Numerical Derivation)](./articles/cml_mathematical_functions_numerical_derivation.htm.md) | `cml_mathematical_functions_numerical_derivation.htm` | 1,612 |
@@ -826,80 +874,80 @@
 | [Variable Domains and Domain Restrictions](./articles/cml_variable_domains_and_domain_restrictions.htm.md) | `cml_variable_domains_and_domain_restrictions.htm` | 2,217 |
 | [Variables](./articles/cml_variables.htm.md) | `cml_variables.htm` | 1,991 |
 | [Constraint Modeling Language](./articles/cml_what_is_constraint_modeling_language.htm.md) | `cml_what_is_constraint_modeling_language.htm` | 5,770 |
-| [Configurator Add Nodes Input](./articles/connect_requests_add_nodes_configurator_input.htm.md) | `connect_requests_add_nodes_configurator_input.htm` | 3,028 |
-| [Configuration Rule Input](./articles/connect_requests_config_rule_input.htm.md) | `connect_requests_config_rule_input.htm` | 1,482 |
-| [Configuration Rule Options Input](./articles/connect_requests_config_rule_options_input.htm.md) | `connect_requests_config_rule_options_input.htm` | 1,125 |
-| [Configurator Added Node Input](./articles/connect_requests_configurator_added_node_input.htm.md) | `connect_requests_configurator_added_node_input.htm` | 4,427 |
-| [Configurator Deleted Node Input](./articles/connect_requests_configurator_deleted_node_input.htm.md) | `connect_requests_configurator_deleted_node_input.htm` | 900 |
-| [Configurator Input](./articles/connect_requests_configurator_input.htm.md) | `connect_requests_configurator_input.htm` | 6,047 |
-| [Configurator Options Input](./articles/connect_requests_configurator_options_input.htm.md) | `connect_requests_configurator_options_input.htm` | 3,285 |
-| [Configurator Updated Node Input](./articles/connect_requests_configurator_updated_node_input.htm.md) | `connect_requests_configurator_updated_node_input.htm` | 1,250 |
-| [User Context Input](./articles/connect_requests_configurator_user_context_input.htm.md) | `connect_requests_configurator_user_context_input.htm` | 2,007 |
-| [Configurator Delete Nodes Input](./articles/connect_requests_delete_nodes_configurator_input.htm.md) | `connect_requests_delete_nodes_configurator_input.htm` | 1,970 |
-| [Configuration Save Input](./articles/connect_requests_favorite_input.htm.md) | `connect_requests_favorite_input.htm` | 4,327 |
-| [Configuration Get Instance Input](./articles/connect_requests_get_configuration_instance_input.htm.md) | `connect_requests_get_configuration_instance_input.htm` | 1,020 |
-| [Configuration Load Instance Input](./articles/connect_requests_load_configuration_instance_input.htm.md) | `connect_requests_load_configuration_instance_input.htm` | 1,989 |
-| [Configuration Save Instance Input](./articles/connect_requests_save_configuration_instance_input.htm.md) | `connect_requests_save_configuration_instance_input.htm` | 1,020 |
-| [Configuration Set Instance Input](./articles/connect_requests_set_configuration_instance_input.htm.md) | `connect_requests_set_configuration_instance_input.htm` | 2,209 |
-| [Product Quantity Set Configurator Input](./articles/connect_requests_set_product_quantity_configurator_input.htm.md) | `connect_requests_set_product_quantity_configurator_input.htm` | 1,998 |
-| [Configuration Update Input](./articles/connect_requests_update_favorite_input.htm.md) | `connect_requests_update_favorite_input.htm` | 4,205 |
-| [Configurator Update Nodes Input](./articles/connect_requests_update_nodes_configurator_input.htm.md) | `connect_requests_update_nodes_configurator_input.htm` | 2,052 |
-| [Configurator Add Nodes (POST)](./articles/connect_resources_add_nodes.htm.md) | `connect_resources_add_nodes.htm` | 3,809 |
-| [Config Rules (POST)](./articles/connect_resources_config_rules.htm.md) | `connect_resources_config_rules.htm` | 2,074 |
-| [Configurator Delete Nodes (POST)](./articles/connect_resources_delete_nodes.htm.md) | `connect_resources_delete_nodes.htm` | 2,681 |
-| [Configuration Get Instance (POST)](./articles/connect_resources_get_configurator_instance.htm.md) | `connect_resources_get_configurator_instance.htm` | 1,951 |
-| [Configuration Load Instance (POST)](./articles/connect_resources_load_configurator_instance.htm.md) | `connect_resources_load_configurator_instance.htm` | 2,888 |
-| [Configuration (POST)](./articles/connect_resources_product_configurator_configure.htm.md) | `connect_resources_product_configurator_configure.htm` | 6,907 |
-| [Configuration Save Instance (POST)](./articles/connect_resources_save_configuration_instance.htm.md) | `connect_resources_save_configuration_instance.htm` | 2,018 |
-| [Saved Configuration (GET, POST)](./articles/connect_resources_save_product_configurations.htm.md) | `connect_resources_save_product_configurations.htm` | 6,347 |
-| [Saved Configuration (DELETE, PUT)](./articles/connect_resources_saved_configuration.htm.md) | `connect_resources_saved_configuration.htm` | 5,360 |
-| [Configuration Set Instance (POST)](./articles/connect_resources_set_configurator_instance.htm.md) | `connect_resources_set_configurator_instance.htm` | 3,116 |
-| [Product Set Quantity (POST)](./articles/connect_resources_set_product_quantity.htm.md) | `connect_resources_set_product_quantity.htm` | 2,767 |
-| [Configurator Update Nodes (POST)](./articles/connect_resources_update_nodes.htm.md) | `connect_resources_update_nodes.htm` | 2,759 |
-| [Configurator Add Nodes](./articles/connect_responses_add_nodes_configurator_output.htm.md) | `connect_responses_add_nodes_configurator_output.htm` | 2,898 |
-| [Configuration Rule Errors](./articles/connect_responses_config_rule_errors_output.htm.md) | `connect_responses_config_rule_errors_output.htm` | 848 |
-| [Configuration Rule Response](./articles/connect_responses_config_rule_output.htm.md) | `connect_responses_config_rule_output.htm` | 6,129 |
-| [Error Response](./articles/connect_responses_configuration_list_error_response.htm.md) | `connect_responses_configuration_list_error_response.htm` | 1,407 |
-| [Configurator Additional Fields](./articles/connect_responses_configurator_additional_fields_output.htm.md) | `connect_responses_configurator_additional_fields_output.htm` | 869 |
-| [Configurator Attribute Category](./articles/connect_responses_configurator_attribute_category_output.htm.md) | `connect_responses_configurator_attribute_category_output.htm` | 23,929 |
-| [Configurator Attribute](./articles/connect_responses_configurator_attribute_output.htm.md) | `connect_responses_configurator_attribute_output.htm` | 28,108 |
-| [Configurator Attribute Picklist](./articles/connect_responses_configurator_attribute_picklist_output.htm.md) | `connect_responses_configurator_attribute_picklist_output.htm` | 1,166 |
-| [Configurator Attribute Picklist Value](./articles/connect_responses_configurator_attribute_picklist_value_output.htm.md) | `connect_responses_configurator_attribute_picklist_value_output.htm` | 1,525 |
-| [Configurator Message](./articles/connect_responses_configurator_message_output.htm.md) | `connect_responses_configurator_message_output.htm` | 3,812 |
-| [Configuration Details](./articles/connect_responses_configurator_output.htm.md) | `connect_responses_configurator_output.htm` | 26,349 |
-| [Configurator Price](./articles/connect_responses_configurator_price_output.htm.md) | `connect_responses_configurator_price_output.htm` | 1,659 |
-| [Configurator Pricing Model](./articles/connect_responses_configurator_pricing_model_output.htm.md) | `connect_responses_configurator_pricing_model_output.htm` | 1,146 |
-| [Configurator Product Catalog](./articles/connect_responses_configurator_product_catalog_output.htm.md) | `connect_responses_configurator_product_catalog_output.htm` | 20,891 |
-| [Configurator Product Classification](./articles/connect_responses_configurator_product_classification_output.htm.md) | `connect_responses_configurator_product_classification_output.htm` | 1,252 |
-| [Configurator Product Component Group](./articles/connect_responses_configurator_product_component_group_output.htm.md) | `connect_responses_configurator_product_component_group_output.htm` | 11,466 |
-| [Configurator Product Recommendations](./articles/connect_responses_configurator_product_recommendation_output.htm.md) | `connect_responses_configurator_product_recommendation_output.htm` | 1,119 |
-| [Configurator Product Related Component](./articles/connect_responses_configurator_product_related_component_output.htm.md) | `connect_responses_configurator_product_related_component_output.htm` | 6,181 |
-| [Configurator Product Selling Model Option](./articles/connect_responses_configurator_product_selling_model_option_output.htm.md) | `connect_responses_configurator_product_selling_model_option_output.htm` | 3,036 |
-| [Configurator Product Selling Model](./articles/connect_responses_configurator_product_selling_model_output.htm.md) | `connect_responses_configurator_product_selling_model_output.htm` | 2,422 |
-| [Configurator Qualification Context](./articles/connect_responses_configurator_qualification_context_output.htm.md) | `connect_responses_configurator_qualification_context_output.htm` | 888 |
-| [Configurator UI Treatment](./articles/connect_responses_configurator_u_i_treatment_output.htm.md) | `connect_responses_configurator_u_i_treatment_output.htm` | 3,222 |
-| [Configurator Unit Of Measure](./articles/connect_responses_configurator_unit_of_measure_output.htm.md) | `connect_responses_configurator_unit_of_measure_output.htm` | 1,382 |
-| [Configuration Record Save](./articles/connect_responses_create_favorite_output.htm.md) | `connect_responses_create_favorite_output.htm` | 1,845 |
-| [Configurator Delete Nodes](./articles/connect_responses_delete_nodes_configurator_output.htm.md) | `connect_responses_delete_nodes_configurator_output.htm` | 2,914 |
-| [Configuration List](./articles/connect_responses_favorite_list_output_represenation.htm.md) | `connect_responses_favorite_list_output_represenation.htm` | 5,124 |
-| [Configuration Save Details](./articles/connect_responses_favorite_output_represenation.htm.md) | `connect_responses_favorite_output_represenation.htm` | 5,277 |
-| [Configuration Get Instance](./articles/connect_responses_get_configuration_instance_output.htm.md) | `connect_responses_get_configuration_instance_output.htm` | 1,184 |
-| [Configuration Load Instance](./articles/connect_responses_load_configuration_instance_output.htm.md) | `connect_responses_load_configuration_instance_output.htm` | 3,880 |
-| [Message Rules](./articles/connect_responses_message_rules_output.htm.md) | `connect_responses_message_rules_output.htm` | 1,955 |
-| [Product Recommendation Rules](./articles/connect_responses_product_recommendation_rules_output.htm.md) | `connect_responses_product_recommendation_rules_output.htm` | 2,221 |
-| [Configuration Save Instance](./articles/connect_responses_save_configuration_instance_output.htm.md) | `connect_responses_save_configuration_instance_output.htm` | 1,035 |
-| [Configuration Set Instance](./articles/connect_responses_set_configuration_instance_output.htm.md) | `connect_responses_set_configuration_instance_output.htm` | 3,119 |
-| [Product Quantity Set Configurator](./articles/connect_responses_set_product_quantity_configurator_output.htm.md) | `connect_responses_set_product_quantity_configurator_output.htm` | 2,906 |
-| [Configuration Update](./articles/connect_responses_update_favorite_output.htm.md) | `connect_responses_update_favorite_output.htm` | 1,870 |
-| [Configurator Update Nodes](./articles/connect_responses_update_nodes_configurator_output.htm.md) | `connect_responses_update_nodes_configurator_output.htm` | 2,904 |
-| [Visibility Rules](./articles/connect_responses_visibility_rules_output.htm.md) | `connect_responses_visibility_rules_output.htm` | 4,148 |
+| [Configurator Add Nodes Input](./articles/connect_requests_add_nodes_configurator_input.htm.md) | `connect_requests_add_nodes_configurator_input.htm` | 3,275 |
+| [Configuration Rule Input](./articles/connect_requests_config_rule_input.htm.md) | `connect_requests_config_rule_input.htm` | 1,632 |
+| [Configuration Rule Options Input](./articles/connect_requests_config_rule_options_input.htm.md) | `connect_requests_config_rule_options_input.htm` | 1,051 |
+| [Configurator Added Node Input](./articles/connect_requests_configurator_added_node_input.htm.md) | `connect_requests_configurator_added_node_input.htm` | 8,378 |
+| [Configurator Deleted Node Input](./articles/connect_requests_configurator_deleted_node_input.htm.md) | `connect_requests_configurator_deleted_node_input.htm` | 826 |
+| [Configurator Input](./articles/connect_requests_configurator_input.htm.md) | `connect_requests_configurator_input.htm` | 15,596 |
+| [Configurator Options Input](./articles/connect_requests_configurator_options_input.htm.md) | `connect_requests_configurator_options_input.htm` | 3,784 |
+| [Configurator Updated Node Input](./articles/connect_requests_configurator_updated_node_input.htm.md) | `connect_requests_configurator_updated_node_input.htm` | 2,524 |
+| [User Context Input](./articles/connect_requests_configurator_user_context_input.htm.md) | `connect_requests_configurator_user_context_input.htm` | 1,254 |
+| [Configurator Delete Nodes Input](./articles/connect_requests_delete_nodes_configurator_input.htm.md) | `connect_requests_delete_nodes_configurator_input.htm` | 2,209 |
+| [Configuration Save Input](./articles/connect_requests_favorite_input.htm.md) | `connect_requests_favorite_input.htm` | 4,574 |
+| [Configuration Get Instance Input](./articles/connect_requests_get_configuration_instance_input.htm.md) | `connect_requests_get_configuration_instance_input.htm` | 816 |
+| [Configuration Load Instance Input](./articles/connect_requests_load_configuration_instance_input.htm.md) | `connect_requests_load_configuration_instance_input.htm` | 1,976 |
+| [Configuration Save Instance Input](./articles/connect_requests_save_configuration_instance_input.htm.md) | `connect_requests_save_configuration_instance_input.htm` | 816 |
+| [Configuration Set Instance Input](./articles/connect_requests_set_configuration_instance_input.htm.md) | `connect_requests_set_configuration_instance_input.htm` | 2,290 |
+| [Product Quantity Set Configurator Input](./articles/connect_requests_set_product_quantity_configurator_input.htm.md) | `connect_requests_set_product_quantity_configurator_input.htm` | 2,352 |
+| [Configuration Update Input](./articles/connect_requests_update_favorite_input.htm.md) | `connect_requests_update_favorite_input.htm` | 4,345 |
+| [Configurator Update Nodes Input](./articles/connect_requests_update_nodes_configurator_input.htm.md) | `connect_requests_update_nodes_configurator_input.htm` | 2,291 |
+| [Configurator Add Nodes (POST)](./articles/connect_resources_add_nodes.htm.md) | `connect_resources_add_nodes.htm` | 3,822 |
+| [Config Rules (POST)](./articles/connect_resources_config_rules.htm.md) | `connect_resources_config_rules.htm` | 1,994 |
+| [Configurator Delete Nodes (POST)](./articles/connect_resources_delete_nodes.htm.md) | `connect_resources_delete_nodes.htm` | 2,700 |
+| [Configuration Get Instance (POST)](./articles/connect_resources_get_configurator_instance.htm.md) | `connect_resources_get_configurator_instance.htm` | 1,507 |
+| [Configuration Load Instance (POST)](./articles/connect_resources_load_configurator_instance.htm.md) | `connect_resources_load_configurator_instance.htm` | 2,647 |
+| [Configuration (POST)](./articles/connect_resources_product_configurator_configure.htm.md) | `connect_resources_product_configurator_configure.htm` | 16,598 |
+| [Configuration Save Instance (POST)](./articles/connect_resources_save_configuration_instance.htm.md) | `connect_resources_save_configuration_instance.htm` | 1,589 |
+| [Saved Configuration (GET, POST)](./articles/connect_resources_save_product_configurations.htm.md) | `connect_resources_save_product_configurations.htm` | 6,128 |
+| [Saved Configuration (DELETE, PUT)](./articles/connect_resources_saved_configuration.htm.md) | `connect_resources_saved_configuration.htm` | 5,234 |
+| [Configuration Set Instance (POST)](./articles/connect_resources_set_configurator_instance.htm.md) | `connect_resources_set_configurator_instance.htm` | 2,957 |
+| [Product Set Quantity (POST)](./articles/connect_resources_set_product_quantity.htm.md) | `connect_resources_set_product_quantity.htm` | 2,889 |
+| [Configurator Update Nodes (POST)](./articles/connect_resources_update_nodes.htm.md) | `connect_resources_update_nodes.htm` | 2,778 |
+| [Configurator Add Nodes](./articles/connect_responses_add_nodes_configurator_output.htm.md) | `connect_responses_add_nodes_configurator_output.htm` | 3,061 |
+| [Configuration Rule Errors](./articles/connect_responses_config_rule_errors_output.htm.md) | `connect_responses_config_rule_errors_output.htm` | 412 |
+| [Configuration Rule Response](./articles/connect_responses_config_rule_output.htm.md) | `connect_responses_config_rule_output.htm` | 5,664 |
+| [Error Response](./articles/connect_responses_configuration_list_error_response.htm.md) | `connect_responses_configuration_list_error_response.htm` | 926 |
+| [Configurator Additional Fields](./articles/connect_responses_configurator_additional_fields_output.htm.md) | `connect_responses_configurator_additional_fields_output.htm` | 433 |
+| [Configurator Attribute Category](./articles/connect_responses_configurator_attribute_category_output.htm.md) | `connect_responses_configurator_attribute_category_output.htm` | 23,454 |
+| [Configurator Attribute](./articles/connect_responses_configurator_attribute_output.htm.md) | `connect_responses_configurator_attribute_output.htm` | 27,620 |
+| [Configurator Attribute Picklist](./articles/connect_responses_configurator_attribute_picklist_output.htm.md) | `connect_responses_configurator_attribute_picklist_output.htm` | 730 |
+| [Configurator Attribute Picklist Value](./articles/connect_responses_configurator_attribute_picklist_value_output.htm.md) | `connect_responses_configurator_attribute_picklist_value_output.htm` | 1,089 |
+| [Configurator Message](./articles/connect_responses_configurator_message_output.htm.md) | `connect_responses_configurator_message_output.htm` | 3,323 |
+| [Configuration Details](./articles/connect_responses_configurator_output.htm.md) | `connect_responses_configurator_output.htm` | 25,874 |
+| [Configurator Price](./articles/connect_responses_configurator_price_output.htm.md) | `connect_responses_configurator_price_output.htm` | 1,223 |
+| [Configurator Pricing Model](./articles/connect_responses_configurator_pricing_model_output.htm.md) | `connect_responses_configurator_pricing_model_output.htm` | 710 |
+| [Configurator Product Catalog](./articles/connect_responses_configurator_product_catalog_output.htm.md) | `connect_responses_configurator_product_catalog_output.htm` | 20,416 |
+| [Configurator Product Classification](./articles/connect_responses_configurator_product_classification_output.htm.md) | `connect_responses_configurator_product_classification_output.htm` | 773 |
+| [Configurator Product Component Group](./articles/connect_responses_configurator_product_component_group_output.htm.md) | `connect_responses_configurator_product_component_group_output.htm` | 10,987 |
+| [Configurator Product Recommendations](./articles/connect_responses_configurator_product_recommendation_output.htm.md) | `connect_responses_configurator_product_recommendation_output.htm` | 1,068 |
+| [Configurator Product Related Component](./articles/connect_responses_configurator_product_related_component_output.htm.md) | `connect_responses_configurator_product_related_component_output.htm` | 5,689 |
+| [Configurator Product Selling Model Option](./articles/connect_responses_configurator_product_selling_model_option_output.htm.md) | `connect_responses_configurator_product_selling_model_option_output.htm` | 2,557 |
+| [Configurator Product Selling Model](./articles/connect_responses_configurator_product_selling_model_output.htm.md) | `connect_responses_configurator_product_selling_model_output.htm` | 1,943 |
+| [Configurator Qualification Context](./articles/connect_responses_configurator_qualification_context_output.htm.md) | `connect_responses_configurator_qualification_context_output.htm` | 452 |
+| [Configurator UI Treatment](./articles/connect_responses_configurator_u_i_treatment_output.htm.md) | `connect_responses_configurator_u_i_treatment_output.htm` | 2,710 |
+| [Configurator Unit Of Measure](./articles/connect_responses_configurator_unit_of_measure_output.htm.md) | `connect_responses_configurator_unit_of_measure_output.htm` | 1,652 |
+| [Configuration Record Save](./articles/connect_responses_create_favorite_output.htm.md) | `connect_responses_create_favorite_output.htm` | 1,329 |
+| [Configurator Delete Nodes](./articles/connect_responses_delete_nodes_configurator_output.htm.md) | `connect_responses_delete_nodes_configurator_output.htm` | 3,073 |
+| [Configuration List](./articles/connect_responses_favorite_list_output_represenation.htm.md) | `connect_responses_favorite_list_output_represenation.htm` | 4,643 |
+| [Configuration Save Details](./articles/connect_responses_favorite_output_represenation.htm.md) | `connect_responses_favorite_output_represenation.htm` | 4,796 |
+| [Configuration Get Instance](./articles/connect_responses_get_configuration_instance_output.htm.md) | `connect_responses_get_configuration_instance_output.htm` | 740 |
+| [Configuration Load Instance](./articles/connect_responses_load_configuration_instance_output.htm.md) | `connect_responses_load_configuration_instance_output.htm` | 3,386 |
+| [Message Rules](./articles/connect_responses_message_rules_output.htm.md) | `connect_responses_message_rules_output.htm` | 1,475 |
+| [Product Recommendation Rules](./articles/connect_responses_product_recommendation_rules_output.htm.md) | `connect_responses_product_recommendation_rules_output.htm` | 1,746 |
+| [Configuration Save Instance](./articles/connect_responses_save_configuration_instance_output.htm.md) | `connect_responses_save_configuration_instance_output.htm` | 591 |
+| [Configuration Set Instance](./articles/connect_responses_set_configuration_instance_output.htm.md) | `connect_responses_set_configuration_instance_output.htm` | 3,385 |
+| [Product Quantity Set Configurator](./articles/connect_responses_set_product_quantity_configurator_output.htm.md) | `connect_responses_set_product_quantity_configurator_output.htm` | 3,069 |
+| [Configuration Update](./articles/connect_responses_update_favorite_output.htm.md) | `connect_responses_update_favorite_output.htm` | 1,353 |
+| [Configurator Update Nodes](./articles/connect_responses_update_nodes_configurator_output.htm.md) | `connect_responses_update_nodes_configurator_output.htm` | 3,067 |
+| [Visibility Rules](./articles/connect_responses_visibility_rules_output.htm.md) | `connect_responses_visibility_rules_output.htm` | 3,655 |
 | [ProductConfiguratorSettings](./articles/meta_productconfiguratorsettings.htm.md) | `meta_productconfiguratorsettings.htm` | 3,153 |
 | [Product Configurator](./articles/prod_config_overview.htm.md) | `prod_config_overview.htm` | 1,992 |
 | [Product Configurator Standard Objects](./articles/prod_config_std_objects_parent.htm.md) | `prod_config_std_objects_parent.htm` | 2,417 |
-| [Product Configurator Business APIs](./articles/product_configurator_business_api_overview.htm.md) | `product_configurator_business_api_overview.htm` | 5,536 |
-| [Request Bodies](./articles/product_configurator_business_apis_requests.htm.md) | `product_configurator_business_apis_requests.htm` | 3,565 |
-| [Resources](./articles/product_configurator_business_apis_resources.htm.md) | `product_configurator_business_apis_resources.htm` | 3,219 |
-| [Response Bodies](./articles/product_configurator_business_apis_responses.htm.md) | `product_configurator_business_apis_responses.htm` | 6,719 |
+| [Product Configurator Business APIs](./articles/product_configurator_business_api_overview.htm.md) | `product_configurator_business_api_overview.htm` | 5,048 |
+| [Request Bodies](./articles/product_configurator_business_apis_requests.htm.md) | `product_configurator_business_apis_requests.htm` | 3,093 |
+| [Resources](./articles/product_configurator_business_apis_resources.htm.md) | `product_configurator_business_apis_resources.htm` | 2,699 |
+| [Response Bodies](./articles/product_configurator_business_apis_responses.htm.md) | `product_configurator_business_apis_responses.htm` | 6,243 |
 | [Flow for Product Configurator](./articles/product_configurator_flow_metadata_api.htm.md) | `product_configurator_flow_metadata_api.htm` | 1,708 |
 | [Product Configurator Standard Invocable Actions](./articles/product_configurator_invocable_actions_parent.htm.md) | `product_configurator_invocable_actions_parent.htm` | 1,336 |
 | [Product Configurator Metadata API Types](./articles/product_configurator_metadata_api_parent.htm.md) | `product_configurator_metadata_api_parent.htm` | 1,304 |
@@ -1007,7 +1055,7 @@
 |:--|:--|--:|
 | [RevenueManagementSettings](./articles/meta_revenuemanagementsettings.htm.md) | `meta_revenuemanagementsettings.htm` | 10,958 |
 
-## Salesforce Pricing (132)
+## Salesforce Pricing (138)
 
 | Page | ID | Chars |
 |:--|:--|--:|
@@ -1019,85 +1067,91 @@
 | [TransactionStatus Enum](./articles/apex_enum_RevSignaling_TransactionStatus.htm.md) | `apex_enum_RevSignaling_TransactionStatus.htm` | 843 |
 | [SignalingApexProcessor Interface](./articles/apex_interface_RevSignaling_SignalingApexProcessor.htm.md) | `apex_interface_RevSignaling_SignalingApexProcessor.htm` | 4,655 |
 | [RevSignaling Namespace](./articles/apex_namespace_RevSignaling.htm.md) | `apex_namespace_RevSignaling.htm` | 1,950 |
-| [Adjustment Details Input](./articles/connect_requests_adjustment_details_input.htm.md) | `connect_requests_adjustment_details_input.htm` | 1,240 |
-| [Configuration Override Input](./articles/connect_requests_configuration_override_input.htm.md) | `connect_requests_configuration_override_input.htm` | 4,306 |
-| [Pricing Input](./articles/connect_requests_core_pricing_input.htm.md) | `connect_requests_core_pricing_input.htm` | 5,524 |
-| [PBE Derived Pricing Input](./articles/connect_requests_p_b_e_derived_pricing_input.htm.md) | `connect_requests_p_b_e_derived_pricing_input.htm` | 1,247 |
-| [Pricing Recipe Input](./articles/connect_requests_pricing_recipe_input.htm.md) | `connect_requests_pricing_recipe_input.htm` | 1,586 |
-| [Pricing Recipe LookUp Table Input](./articles/connect_requests_pricing_recipe_look_up_table_input.htm.md) | `connect_requests_pricing_recipe_look_up_table_input.htm` | 1,198 |
-| [Pricing Recipe Procedure Input](./articles/connect_requests_pricing_recipe_procedure_input.htm.md) | `connect_requests_pricing_recipe_procedure_input.htm` | 862 |
-| [Pricing Request Input](./articles/connect_requests_pricing_request.htm.md) | `connect_requests_pricing_request.htm` | 1,125 |
-| [Pricing Versioned Revision Details Input](./articles/connect_requests_pricing_versioning_revise_details_input.htm.md) | `connect_requests_pricing_versioning_revise_details_input.htm` | 3,133 |
-| [Pricing Waterfall Input](./articles/connect_requests_pricing_waterfall_input.htm.md) | `connect_requests_pricing_waterfall_input.htm` | 3,266 |
-| [Pricing Waterfall Log Input](./articles/connect_requests_pricing_waterfall_log_input.htm.md) | `connect_requests_pricing_waterfall_log_input.htm` | 4,056 |
-| [Procedure Plan Criterion Input](./articles/connect_requests_procedure_plan_criterion_input.htm.md) | `connect_requests_procedure_plan_criterion_input.htm` | 2,691 |
-| [Procedure Plan Definition Input](./articles/connect_requests_procedure_plan_definition_input.htm.md) | `connect_requests_procedure_plan_definition_input.htm` | 4,907 |
-| [Procedure Plan Definition Version Input](./articles/connect_requests_procedure_plan_definition_version_input.htm.md) | `connect_requests_procedure_plan_definition_version_input.htm` | 5,147 |
-| [Procedure Plan Evaluation Input](./articles/connect_requests_procedure_plan_evaluation_input.htm.md) | `connect_requests_procedure_plan_evaluation_input.htm` | 3,944 |
-| [Procedure Plan Option Input](./articles/connect_requests_procedure_plan_option_input.htm.md) | `connect_requests_procedure_plan_option_input.htm` | 3,502 |
-| [Procedure Plan Section Input](./articles/connect_requests_procedure_plan_section_input.htm.md) | `connect_requests_procedure_plan_section_input.htm` | 3,629 |
-| [Procedure Plan Version (POST)](./articles/connect_resources_create_procedure_plan_version_record.htm.md) | `connect_resources_create_procedure_plan_version_record.htm` | 5,917 |
-| [Procedure Plan Evaluation By Definition Name (POST)](./articles/connect_resources_evaluate_procedure_plan_by_definition_name.htm.md) | `connect_resources_evaluate_procedure_plan_by_definition_name.htm` | 4,587 |
-| [Procedure Plan Evaluation By Object (POST)](./articles/connect_resources_evaluate_procedure_plan_definition_by_object.htm.md) | `connect_resources_evaluate_procedure_plan_definition_by_object.htm` | 4,493 |
-| [API Execution Logs (GET)](./articles/connect_resources_execution_logs.htm.md) | `connect_resources_execution_logs.htm` | 2,003 |
-| [Pricing Simulation Input Variables With Data (GET)](./articles/connect_resources_get_pricing_simulation_data_with_variables.htm.md) | `connect_resources_get_pricing_simulation_data_with_variables.htm` | 2,965 |
-| [Procedure Plan Definition By ID (GET, PATCH, DELETE)](./articles/connect_resources_get_procedure_plan_definition_by_ID.htm.md) | `connect_resources_get_procedure_plan_definition_by_ID.htm` | 5,503 |
-| [Procedure Plan Definitions (GET, POST)](./articles/connect_resources_get_procedure_plan_definition_records.htm.md) | `connect_resources_get_procedure_plan_definition_records.htm` | 6,274 |
-| [Procedure Plan Version Details (GET, PATCH, DELETE)](./articles/connect_resources_get_procedure_plan_version_details.htm.md) | `connect_resources_get_procedure_plan_version_details.htm` | 6,433 |
-| [Pricing (POST)](./articles/connect_resources_headless.htm.md) | `connect_resources_headless.htm` | 6,759 |
-| [PBE Derived Pricing (POST)](./articles/connect_resources_pbe_source_pricing_derived_product.htm.md) | `connect_resources_pbe_source_pricing_derived_product.htm` | 1,957 |
-| [Price Context (POST)](./articles/connect_resources_price_context.htm.md) | `connect_resources_price_context.htm` | 2,226 |
-| [Pricing Recipe Mapping (POST)](./articles/connect_resources_price_recipe_mapping.htm.md) | `connect_resources_price_recipe_mapping.htm` | 2,388 |
-| [Pricing Data Sync (GET)](./articles/connect_resources_pricing_data_sync.htm.md) | `connect_resources_pricing_data_sync.htm` | 2,523 |
-| [Pricing Process Execution (GET)](./articles/connect_resources_pricing_process_execution.htm.md) | `connect_resources_pricing_process_execution.htm` | 3,290 |
-| [Pricing Recipe (GET)](./articles/connect_resources_pricing_recipe.htm.md) | `connect_resources_pricing_recipe.htm` | 1,159 |
-| [Pricing Waterfall (GET)](./articles/connect_resources_pricing_waterfall_fetch.htm.md) | `connect_resources_pricing_waterfall_fetch.htm` | 3,560 |
-| [Pricing Waterfall (POST)](./articles/connect_resources_pricing_waterfall_post.htm.md) | `connect_resources_pricing_waterfall_post.htm` | 4,805 |
-| [Pricing Process Execution for Line Items (GET)](./articles/connect_resources_process_execution_line_item_details.htm.md) | `connect_resources_process_execution_line_item_details.htm` | 2,512 |
-| [Pricing Versioned Revision Details (POST)](./articles/connect_resources_versioned_revise_details.htm.md) | `connect_resources_versioned_revise_details.htm` | 3,933 |
-| [Adjustment Details](./articles/connect_responses_adjustment_detail.htm.md) | `connect_responses_adjustment_detail.htm` | 1,255 |
-| [API Execution Log Response](./articles/connect_responses_api_execution_log.htm.md) | `connect_responses_api_execution_log.htm` | 1,715 |
-| [Pricing Execution Waterfall Response](./articles/connect_responses_api_execution_waterfall_response.htm.md) | `connect_responses_api_execution_waterfall_response.htm` | 4,165 |
-| [Pricing Output](./articles/connect_responses_core_pricing_output.htm.md) | `connect_responses_core_pricing_output.htm` | 3,666 |
-| [Pricing Result](./articles/connect_responses_core_pricing_result.htm.md) | `connect_responses_core_pricing_result.htm` | 2,679 |
-| [Pricing Result Error](./articles/connect_responses_core_pricing_result_error.htm.md) | `connect_responses_core_pricing_result_error.htm` | 1,895 |
-| [Line Item Waterfall Response](./articles/connect_responses_line_item_waterfall_response.htm.md) | `connect_responses_line_item_waterfall_response.htm` | 14,436 |
-| [PBE Derived Pricing](./articles/connect_responses_p_b_e_derived_pricing_out_put.htm.md) | `connect_responses_p_b_e_derived_pricing_out_put.htm` | 1,874 |
-| [Pricing Error Response](./articles/connect_responses_pricing_error_response.htm.md) | `connect_responses_pricing_error_response.htm` | 1,262 |
-| [Pricing Generic Response](./articles/connect_responses_pricing_generic_response.htm.md) | `connect_responses_pricing_generic_response.htm` | 1,468 |
-| [Pricing Process Execution Response](./articles/connect_responses_pricing_process_execution_get_output.htm.md) | `connect_responses_pricing_process_execution_get_output.htm` | 2,845 |
-| [Pricing Process Execution List](./articles/connect_responses_pricing_process_execution_output.htm.md) | `connect_responses_pricing_process_execution_output.htm` | 3,296 |
-| [Pricing Recipe LookUp Table Response](./articles/connect_responses_pricing_recipe_look_up_table_response.htm.md) | `connect_responses_pricing_recipe_look_up_table_response.htm` | 1,607 |
-| [Pricing Recipe](./articles/connect_responses_pricing_recipe_output.htm.md) | `connect_responses_pricing_recipe_output.htm` | 2,606 |
-| [Pricing Recipe Post](./articles/connect_responses_pricing_recipe_post_output.htm.md) | `connect_responses_pricing_recipe_post_output.htm` | 1,493 |
-| [Pricing Recipe Response](./articles/connect_responses_pricing_recipe_response.htm.md) | `connect_responses_pricing_recipe_response.htm` | 1,891 |
-| [Pricing Response](./articles/connect_responses_pricing_response.htm.md) | `connect_responses_pricing_response.htm` | 1,231 |
-| [Pricing Simulation Input Variables With Data](./articles/connect_responses_pricing_simulation_input_variables_with_data_output.htm.md) | `connect_responses_pricing_simulation_input_variables_with_data_output.htm` | 2,186 |
-| [Pricing Versioned Revision Details](./articles/connect_responses_pricing_versioned_revise_details_output.htm.md) | `connect_responses_pricing_versioned_revise_details_output.htm` | 921 |
-| [Pricing Waterfall Response](./articles/connect_responses_pricing_water_fall_response.htm.md) | `connect_responses_pricing_water_fall_response.htm` | 1,934 |
-| [Procedure Plan Criterion](./articles/connect_responses_procedure_plan_criterion_output.htm.md) | `connect_responses_procedure_plan_criterion_output.htm` | 4,603 |
-| [Procedure Plan Definition](./articles/connect_responses_procedure_plan_definition_output.htm.md) | `connect_responses_procedure_plan_definition_output.htm` | 4,140 |
-| [Procedure Plan Definition Version](./articles/connect_responses_procedure_plan_definition_version_output.htm.md) | `connect_responses_procedure_plan_definition_version_output.htm` | 5,161 |
-| [Procedure Plan Definitions](./articles/connect_responses_procedure_plan_definitions_output.htm.md) | `connect_responses_procedure_plan_definitions_output.htm` | 3,845 |
-| [Procedure Plan Evaluation](./articles/connect_responses_procedure_plan_evaluation.htm.md) | `connect_responses_procedure_plan_evaluation.htm` | 2,365 |
-| [Procedure Plan Evaluation Response](./articles/connect_responses_procedure_plan_evaluation_response.htm.md) | `connect_responses_procedure_plan_evaluation_response.htm` | 2,234 |
-| [Procedure Plan Evaluation Result](./articles/connect_responses_procedure_plan_evaluation_result.htm.md) | `connect_responses_procedure_plan_evaluation_result.htm` | 1,649 |
-| [Procedure Plan Generic Error](./articles/connect_responses_procedure_plan_generic_error.htm.md) | `connect_responses_procedure_plan_generic_error.htm` | 855 |
-| [Procedure Plan Generic](./articles/connect_responses_procedure_plan_generic_output.htm.md) | `connect_responses_procedure_plan_generic_output.htm` | 1,970 |
-| [Procedure Plan Option](./articles/connect_responses_procedure_plan_option_output.htm.md) | `connect_responses_procedure_plan_option_output.htm` | 6,084 |
-| [Procedure Plan Section Evaluation Runtime](./articles/connect_responses_procedure_plan_section_evaluation_runtime.htm.md) | `connect_responses_procedure_plan_section_evaluation_runtime.htm` | 4,653 |
-| [Procedure Plan Section](./articles/connect_responses_procedure_plan_section_output.htm.md) | `connect_responses_procedure_plan_section_output.htm` | 5,901 |
-| [Pricing Process Execution Details for Line Items](./articles/connect_responses_process_execution_line_item_details_get_output.htm.md) | `connect_responses_process_execution_line_item_details_get_output.htm` | 2,234 |
-| [Line Item Details Response](./articles/connect_responses_process_execution_line_item_details_response.htm.md) | `connect_responses_process_execution_line_item_details_response.htm` | 1,754 |
+| [Adjustment Details Input](./articles/connect_requests_adjustment_details_input.htm.md) | `connect_requests_adjustment_details_input.htm` | 1,451 |
+| [Configuration Override Input](./articles/connect_requests_configuration_override_input.htm.md) | `connect_requests_configuration_override_input.htm` | 3,301 |
+| [Pricing Input](./articles/connect_requests_core_pricing_input.htm.md) | `connect_requests_core_pricing_input.htm` | 4,813 |
+| [PBE Derived Pricing Input](./articles/connect_requests_p_b_e_derived_pricing_input.htm.md) | `connect_requests_p_b_e_derived_pricing_input.htm` | 1,490 |
+| [Pricing Recipe Clone Input](./articles/connect_requests_pricing_recipe_clone_input.htm.md) | `connect_requests_pricing_recipe_clone_input.htm` | 1,552 |
+| [Pricing Recipe Input](./articles/connect_requests_pricing_recipe_input.htm.md) | `connect_requests_pricing_recipe_input.htm` | 1,726 |
+| [Pricing Recipe LookUp Table Input](./articles/connect_requests_pricing_recipe_look_up_table_input.htm.md) | `connect_requests_pricing_recipe_look_up_table_input.htm` | 1,231 |
+| [Pricing Recipe Procedure Input](./articles/connect_requests_pricing_recipe_procedure_input.htm.md) | `connect_requests_pricing_recipe_procedure_input.htm` | 788 |
+| [Pricing Request Input](./articles/connect_requests_pricing_request.htm.md) | `connect_requests_pricing_request.htm` | 1,158 |
+| [Pricing Versioned Revision Details Input](./articles/connect_requests_pricing_versioning_revise_details_input.htm.md) | `connect_requests_pricing_versioning_revise_details_input.htm` | 3,840 |
+| [Pricing Waterfall Input](./articles/connect_requests_pricing_waterfall_input.htm.md) | `connect_requests_pricing_waterfall_input.htm` | 3,620 |
+| [Pricing Waterfall Log Input](./articles/connect_requests_pricing_waterfall_log_input.htm.md) | `connect_requests_pricing_waterfall_log_input.htm` | 5,054 |
+| [Procedure Plan Criterion Input](./articles/connect_requests_procedure_plan_criterion_input.htm.md) | `connect_requests_procedure_plan_criterion_input.htm` | 3,259 |
+| [Procedure Plan Definition Input](./articles/connect_requests_procedure_plan_definition_input.htm.md) | `connect_requests_procedure_plan_definition_input.htm` | 4,250 |
+| [Procedure Plan Definition Version Input](./articles/connect_requests_procedure_plan_definition_version_input.htm.md) | `connect_requests_procedure_plan_definition_version_input.htm` | 5,978 |
+| [Procedure Plan Evaluation Input](./articles/connect_requests_procedure_plan_evaluation_input.htm.md) | `connect_requests_procedure_plan_evaluation_input.htm` | 3,368 |
+| [Procedure Plan Option Input](./articles/connect_requests_procedure_plan_option_input.htm.md) | `connect_requests_procedure_plan_option_input.htm` | 4,284 |
+| [Procedure Plan Section Input](./articles/connect_requests_procedure_plan_section_input.htm.md) | `connect_requests_procedure_plan_section_input.htm` | 4,182 |
+| [Pricing Recipe Clone (POST)](./articles/connect_resources_clone_pricing_recipe.htm.md) | `connect_resources_clone_pricing_recipe.htm` | 2,110 |
+| [Procedure Plan Version (POST)](./articles/connect_resources_create_procedure_plan_version_record.htm.md) | `connect_resources_create_procedure_plan_version_record.htm` | 6,516 |
+| [Procedure Plan Evaluation By Definition Name (POST)](./articles/connect_resources_evaluate_procedure_plan_by_definition_name.htm.md) | `connect_resources_evaluate_procedure_plan_by_definition_name.htm` | 3,703 |
+| [Procedure Plan Evaluation By Object (POST)](./articles/connect_resources_evaluate_procedure_plan_definition_by_object.htm.md) | `connect_resources_evaluate_procedure_plan_definition_by_object.htm` | 3,609 |
+| [API Execution Logs (GET)](./articles/connect_resources_execution_logs.htm.md) | `connect_resources_execution_logs.htm` | 1,211 |
+| [Pricing Simulation Input Variables With Data (GET)](./articles/connect_resources_get_pricing_simulation_data_with_variables.htm.md) | `connect_resources_get_pricing_simulation_data_with_variables.htm` | 2,047 |
+| [Procedure Plan Definition By ID (GET, PATCH, DELETE)](./articles/connect_resources_get_procedure_plan_definition_by_ID.htm.md) | `connect_resources_get_procedure_plan_definition_by_ID.htm` | 4,481 |
+| [Procedure Plan Definitions (GET, POST)](./articles/connect_resources_get_procedure_plan_definition_records.htm.md) | `connect_resources_get_procedure_plan_definition_records.htm` | 2,279 |
+| [Procedure Plan Version Details (GET, PATCH, DELETE)](./articles/connect_resources_get_procedure_plan_version_details.htm.md) | `connect_resources_get_procedure_plan_version_details.htm` | 7,003 |
+| [Pricing Recipe Valid Elements (GET)](./articles/connect_resources_get_valid_pricing_elements.htm.md) | `connect_resources_get_valid_pricing_elements.htm` | 1,430 |
+| [Pricing (POST)](./articles/connect_resources_headless.htm.md) | `connect_resources_headless.htm` | 5,780 |
+| [PBE Derived Pricing (POST)](./articles/connect_resources_pbe_source_pricing_derived_product.htm.md) | `connect_resources_pbe_source_pricing_derived_product.htm` | 1,984 |
+| [Price Context (POST)](./articles/connect_resources_price_context.htm.md) | `connect_resources_price_context.htm` | 2,028 |
+| [Pricing Recipe Mapping (POST)](./articles/connect_resources_price_recipe_mapping.htm.md) | `connect_resources_price_recipe_mapping.htm` | 2,294 |
+| [Pricing Data Sync (GET)](./articles/connect_resources_pricing_data_sync.htm.md) | `connect_resources_pricing_data_sync.htm` | 1,759 |
+| [Pricing Process Execution (GET)](./articles/connect_resources_pricing_process_execution.htm.md) | `connect_resources_pricing_process_execution.htm` | 2,270 |
+| [Pricing Recipe (GET)](./articles/connect_resources_pricing_recipe.htm.md) | `connect_resources_pricing_recipe.htm` | 555 |
+| [Pricing Waterfall (GET)](./articles/connect_resources_pricing_waterfall_fetch.htm.md) | `connect_resources_pricing_waterfall_fetch.htm` | 2,697 |
+| [Pricing Waterfall (POST)](./articles/connect_resources_pricing_waterfall_post.htm.md) | `connect_resources_pricing_waterfall_post.htm` | 5,572 |
+| [Pricing Process Execution for Line Items (GET)](./articles/connect_resources_process_execution_line_item_details.htm.md) | `connect_resources_process_execution_line_item_details.htm` | 1,645 |
+| [Pricing Versioned Revision Details (POST)](./articles/connect_resources_versioned_revise_details.htm.md) | `connect_resources_versioned_revise_details.htm` | 4,407 |
+| [Adjustment Details](./articles/connect_responses_adjustment_detail.htm.md) | `connect_responses_adjustment_detail.htm` | 1,418 |
+| [API Execution Log Response](./articles/connect_responses_api_execution_log.htm.md) | `connect_responses_api_execution_log.htm` | 1,220 |
+| [Pricing Execution Waterfall Response](./articles/connect_responses_api_execution_waterfall_response.htm.md) | `connect_responses_api_execution_waterfall_response.htm` | 3,666 |
+| [Pricing Output](./articles/connect_responses_core_pricing_output.htm.md) | `connect_responses_core_pricing_output.htm` | 3,183 |
+| [Pricing Result](./articles/connect_responses_core_pricing_result.htm.md) | `connect_responses_core_pricing_result.htm` | 2,203 |
+| [Pricing Result Error](./articles/connect_responses_core_pricing_result_error.htm.md) | `connect_responses_core_pricing_result_error.htm` | 1,420 |
+| [Line Item Waterfall Response](./articles/connect_responses_line_item_waterfall_response.htm.md) | `connect_responses_line_item_waterfall_response.htm` | 15,365 |
+| [PBE Derived Pricing](./articles/connect_responses_p_b_e_derived_pricing_out_put.htm.md) | `connect_responses_p_b_e_derived_pricing_out_put.htm` | 1,395 |
+| [Pricing Error Response](./articles/connect_responses_pricing_error_response.htm.md) | `connect_responses_pricing_error_response.htm` | 826 |
+| [Pricing Generic Response](./articles/connect_responses_pricing_generic_response.htm.md) | `connect_responses_pricing_generic_response.htm` | 993 |
+| [Pricing Process Execution Response](./articles/connect_responses_pricing_process_execution_get_output.htm.md) | `connect_responses_pricing_process_execution_get_output.htm` | 2,370 |
+| [Pricing Process Execution List](./articles/connect_responses_pricing_process_execution_output.htm.md) | `connect_responses_pricing_process_execution_output.htm` | 2,792 |
+| [Pricing Recipe Clone Error](./articles/connect_responses_pricing_recipe_clone_error.htm.md) | `connect_responses_pricing_recipe_clone_error.htm` | 854 |
+| [Pricing Recipe Clone](./articles/connect_responses_pricing_recipe_clone_output.htm.md) | `connect_responses_pricing_recipe_clone_output.htm` | 1,553 |
+| [Pricing Recipe LookUp Table Response](./articles/connect_responses_pricing_recipe_look_up_table_response.htm.md) | `connect_responses_pricing_recipe_look_up_table_response.htm` | 1,663 |
+| [Pricing Recipe](./articles/connect_responses_pricing_recipe_output.htm.md) | `connect_responses_pricing_recipe_output.htm` | 3,518 |
+| [Pricing Recipe Post](./articles/connect_responses_pricing_recipe_post_output.htm.md) | `connect_responses_pricing_recipe_post_output.htm` | 1,018 |
+| [Pricing Recipe Response](./articles/connect_responses_pricing_recipe_response.htm.md) | `connect_responses_pricing_recipe_response.htm` | 1,840 |
+| [Pricing Response](./articles/connect_responses_pricing_response.htm.md) | `connect_responses_pricing_response.htm` | 1,287 |
+| [Pricing Simulation Input Variables With Data](./articles/connect_responses_pricing_simulation_input_variables_with_data_output.htm.md) | `connect_responses_pricing_simulation_input_variables_with_data_output.htm` | 1,711 |
+| [Pricing Recipe Valid Elements](./articles/connect_responses_pricing_valid_elements_output.htm.md) | `connect_responses_pricing_valid_elements_output.htm` | 1,082 |
+| [Pricing Versioned Revision Details](./articles/connect_responses_pricing_versioned_revise_details_output.htm.md) | `connect_responses_pricing_versioned_revise_details_output.htm` | 485 |
+| [Pricing Waterfall Response](./articles/connect_responses_pricing_water_fall_response.htm.md) | `connect_responses_pricing_water_fall_response.htm` | 2,204 |
+| [Procedure Plan Criterion](./articles/connect_responses_procedure_plan_criterion_output.htm.md) | `connect_responses_procedure_plan_criterion_output.htm` | 4,102 |
+| [Procedure Plan Definition](./articles/connect_responses_procedure_plan_definition_output.htm.md) | `connect_responses_procedure_plan_definition_output.htm` | 3,679 |
+| [Procedure Plan Definition Version](./articles/connect_responses_procedure_plan_definition_version_output.htm.md) | `connect_responses_procedure_plan_definition_version_output.htm` | 4,686 |
+| [Procedure Plan Definitions](./articles/connect_responses_procedure_plan_definitions_output.htm.md) | `connect_responses_procedure_plan_definitions_output.htm` | 3,370 |
+| [Procedure Plan Evaluation](./articles/connect_responses_procedure_plan_evaluation.htm.md) | `connect_responses_procedure_plan_evaluation.htm` | 1,886 |
+| [Procedure Plan Evaluation Response](./articles/connect_responses_procedure_plan_evaluation_response.htm.md) | `connect_responses_procedure_plan_evaluation_response.htm` | 1,755 |
+| [Procedure Plan Evaluation Result](./articles/connect_responses_procedure_plan_evaluation_result.htm.md) | `connect_responses_procedure_plan_evaluation_result.htm` | 1,170 |
+| [Procedure Plan Generic Error](./articles/connect_responses_procedure_plan_generic_error.htm.md) | `connect_responses_procedure_plan_generic_error.htm` | 419 |
+| [Procedure Plan Generic](./articles/connect_responses_procedure_plan_generic_output.htm.md) | `connect_responses_procedure_plan_generic_output.htm` | 1,483 |
+| [Procedure Plan Option](./articles/connect_responses_procedure_plan_option_output.htm.md) | `connect_responses_procedure_plan_option_output.htm` | 5,557 |
+| [Procedure Plan Section Evaluation Runtime](./articles/connect_responses_procedure_plan_section_evaluation_runtime.htm.md) | `connect_responses_procedure_plan_section_evaluation_runtime.htm` | 4,163 |
+| [Procedure Plan Section](./articles/connect_responses_procedure_plan_section_output.htm.md) | `connect_responses_procedure_plan_section_output.htm` | 5,411 |
+| [Pricing Process Execution Details for Line Items](./articles/connect_responses_process_execution_line_item_details_get_output.htm.md) | `connect_responses_process_execution_line_item_details_get_output.htm` | 1,735 |
+| [Line Item Details Response](./articles/connect_responses_process_execution_line_item_details_response.htm.md) | `connect_responses_process_execution_line_item_details_response.htm` | 1,272 |
 | [IndustriesPricingSettings](./articles/meta_industriespricingsettings.htm.md) | `meta_industriespricingsettings.htm` | 5,597 |
 | [PricingActionParameters](./articles/meta_pricingactionparameters.htm.md) | `meta_pricingactionparameters.htm` | 4,565 |
 | [PricingRecipe](./articles/meta_pricingrecipe.htm.md) | `meta_pricingrecipe.htm` | 9,244 |
 | [ProcedureOutputResolution](./articles/meta_procedureoutputresolution.htm.md) | `meta_procedureoutputresolution.htm` | 3,510 |
 | [Salesforce Pricing Apex Reference](./articles/pricing_apex_reference.htm.md) | `pricing_apex_reference.htm` | 1,022 |
-| [Request Bodies](./articles/pricing_api_requests.htm.md) | `pricing_api_requests.htm` | 3,331 |
-| [Response Bodies](./articles/pricing_api_responses.htm.md) | `pricing_api_responses.htm` | 6,349 |
-| [Salesforce Pricing Business APIs](./articles/pricing_business_apis.htm.md) | `pricing_business_apis.htm` | 7,205 |
-| [Resources](./articles/pricing_business_apis_rest_references.htm.md) | `pricing_business_apis_rest_references.htm` | 4,486 |
+| [Request Bodies](./articles/pricing_api_requests.htm.md) | `pricing_api_requests.htm` | 3,025 |
+| [Response Bodies](./articles/pricing_api_responses.htm.md) | `pricing_api_responses.htm` | 6,440 |
+| [Salesforce Pricing Business APIs](./articles/pricing_business_apis.htm.md) | `pricing_business_apis.htm` | 7,286 |
+| [Resources](./articles/pricing_business_apis_rest_references.htm.md) | `pricing_business_apis_rest_references.htm` | 4,293 |
 | [Flow for Salesforce Pricing](./articles/pricing_flow_metadata_api.htm.md) | `pricing_flow_metadata_api.htm` | 1,673 |
 | [Salesforce Pricing Standard Invocable Actions](./articles/pricing_invocable_actions_parent.htm.md) | `pricing_invocable_actions_parent.htm` | 1,351 |
 | [Salesforce Pricing Metadata API Types](./articles/pricing_metadata_api_parent.htm.md) | `pricing_metadata_api_parent.htm` | 1,843 |
@@ -1144,7 +1198,7 @@
 | [ProcedurePlanSection](./articles/tooling_api_objects_procedureplansection.htm.md) | `tooling_api_objects_procedureplansection.htm` | 4,116 |
 | [ProcedurePlanVariable](./articles/tooling_api_objects_procedureplanvariable.htm.md) | `tooling_api_objects_procedureplanvariable.htm` | 3,155 |
 
-## Transaction Management (237)
+## Transaction Management (244)
 
 | Page | ID | Chars |
 |:--|:--|--:|
@@ -1160,6 +1214,7 @@
 | [Initiate Rollback on Last Action](./articles/actions_obj_initiate_rollback_last_action.htm.md) | `actions_obj_initiate_rollback_last_action.htm` | 4,184 |
 | [Initiate Transfer Action](./articles/actions_obj_initiate_transfer.htm.md) | `actions_obj_initiate_transfer.htm` | 7,787 |
 | [Initiate Renewal Action](./articles/actions_obj_renew_assets.htm.md) | `actions_obj_renew_assets.htm` | 4,467 |
+| [Sync Quote to Opportunity Action](./articles/actions_obj_sync_quote_opportunity.htm.md) | `actions_obj_sync_quote_opportunity.htm` | 2,825 |
 | [ConfigurationOptionsInput Class](./articles/apex_class_RevSalesTrxn_ConfigurationOptionsInput.htm.md) | `apex_class_RevSalesTrxn_ConfigurationOptionsInput.htm` | 6,886 |
 | [GraphRequest Class](./articles/apex_class_RevSalesTrxn_GraphRequest.htm.md) | `apex_class_RevSalesTrxn_GraphRequest.htm` | 2,619 |
 | [PlaceSalesTransactionException Class](./articles/apex_class_RevSalesTrxn_PlaceSalesTransactionException.htm.md) | `apex_class_RevSalesTrxn_PlaceSalesTransactionException.htm` | 1,563 |
@@ -1232,24 +1287,24 @@
 | [renew_assets_summary Namespace](./articles/apex_namespace_renew_assets_summary.htm.md) | `apex_namespace_renew_assets_summary.htm` | 1,108 |
 | [Amendment Input](./articles/connect_requests_amend_input.htm.md) | `connect_requests_amend_input.htm` | 3,477 |
 | [Cancellation Input](./articles/connect_requests_cancel_input.htm.md) | `connect_requests_cancel_input.htm` | 3,007 |
-| [Clone Options Input](./articles/connect_requests_clone_options_input.htm.md) | `connect_requests_clone_options_input.htm` | 2,278 |
+| [Clone Options Input](./articles/connect_requests_clone_options_input.htm.md) | `connect_requests_clone_options_input.htm` | 1,588 |
 | [Clone Sales Transaction Input](./articles/connect_requests_clone_sales_transaction_input.htm.md) | `connect_requests_clone_sales_transaction_input.htm` | 2,454 |
-| [Configuration Options Input](./articles/connect_requests_configuration_options_input.htm.md) | `connect_requests_configuration_options_input.htm` | 1,538 |
-| [Configurator Preference Input](./articles/connect_requests_configurator_preference_input.htm.md) | `connect_requests_configurator_preference_input.htm` | 1,755 |
-| [Context Input](./articles/connect_requests_context_info_input.htm.md) | `connect_requests_context_info_input.htm` | 1,110 |
+| [Configuration Options Input](./articles/connect_requests_configuration_options_input.htm.md) | `connect_requests_configuration_options_input.htm` | 1,785 |
+| [Configurator Preference Input](./articles/connect_requests_configurator_preference_input.htm.md) | `connect_requests_configurator_preference_input.htm` | 1,647 |
+| [Context Input](./articles/connect_requests_context_info_input.htm.md) | `connect_requests_context_info_input.htm` | 1,033 |
 | [Context Node Input](./articles/connect_requests_context_node_input.htm.md) | `connect_requests_context_node_input.htm` | 1,558 |
 | [Create Ramp Deal Input](./articles/connect_requests_create_ramp_deal_input.htm.md) | `connect_requests_create_ramp_deal_input.htm` | 2,052 |
 | [Delete Ramp Deal Input](./articles/connect_requests_delete_ramp_deal_input.htm.md) | `connect_requests_delete_ramp_deal_input.htm` | 859 |
-| [Execution Settings Input](./articles/connect_requests_execution_settings_input.htm.md) | `connect_requests_execution_settings_input.htm` | 1,086 |
+| [Execution Settings Input](./articles/connect_requests_execution_settings_input.htm.md) | `connect_requests_execution_settings_input.htm` | 1,119 |
 | [Eligible Promotions Input](./articles/connect_requests_get_eligible_promotions_input.htm.md) | `connect_requests_get_eligible_promotions_input.htm` | 2,002 |
 | [Instant Pricing Input](./articles/connect_requests_get_instant_pricing_input.htm.md) | `connect_requests_get_instant_pricing_input.htm` | 8,773 |
-| [Group Ramp Action Input](./articles/connect_requests_group_ramp_action_input.htm.md) | `connect_requests_group_ramp_action_input.htm` | 9,860 |
+| [Group Ramp Action Input](./articles/connect_requests_group_ramp_action_input.htm.md) | `connect_requests_group_ramp_action_input.htm` | 9,039 |
 | [Initiate Downgrade Input](./articles/connect_requests_initiate_downgrade_input.htm.md) | `connect_requests_initiate_downgrade_input.htm` | 3,260 |
 | [Initiate Swap Input](./articles/connect_requests_initiate_swap_input.htm.md) | `connect_requests_initiate_swap_input.htm` | 3,211 |
 | [Initiate Upgrade Input](./articles/connect_requests_initiate_upgrade_input.htm.md) | `connect_requests_initiate_upgrade_input.htm` | 3,298 |
-| [Object Graph Input](./articles/connect_requests_object_graph_input.htm.md) | `connect_requests_object_graph_input.htm` | 1,866 |
-| [Object Input Map](./articles/connect_requests_object_input_representation_map.htm.md) | `connect_requests_object_input_representation_map.htm` | 2,167 |
-| [Object with Reference Input](./articles/connect_requests_object_with_reference_input.htm.md) | `connect_requests_object_with_reference_input.htm` | 2,789 |
+| [Object Graph Input](./articles/connect_requests_object_graph_input.htm.md) | `connect_requests_object_graph_input.htm` | 1,163 |
+| [Object Input Map](./articles/connect_requests_object_input_representation_map.htm.md) | `connect_requests_object_input_representation_map.htm` | 1,464 |
+| [Object with Reference Input](./articles/connect_requests_object_with_reference_input.htm.md) | `connect_requests_object_with_reference_input.htm` | 2,069 |
 | [Place Order Input](./articles/connect_requests_place_order_input.htm.md) | `connect_requests_place_order_input.htm` | 9,467 |
 | [Place Quote Input](./articles/connect_requests_place_quote_input.htm.md) | `connect_requests_place_quote_input.htm` | 10,839 |
 | [Sales Transaction Input](./articles/connect_requests_place_sales_transaction_input.htm.md) | `connect_requests_place_sales_transaction_input.htm` | 17,963 |
@@ -1259,15 +1314,16 @@
 | [Sales Transaction Filter Condition Input](./articles/connect_requests_sales_transaction_filter_condition_input.htm.md) | `connect_requests_sales_transaction_filter_condition_input.htm` | 4,033 |
 | [Sales Transaction Operand Input](./articles/connect_requests_sales_transaction_operand_input.htm.md) | `connect_requests_sales_transaction_operand_input.htm` | 1,776 |
 | [Swap Group Input](./articles/connect_requests_swap_group.htm.md) | `connect_requests_swap_group.htm` | 1,909 |
+| [Unlock Transaction Input](./articles/connect_requests_unlock_transaction_input.htm.md) | `connect_requests_unlock_transaction_input.htm` | 966 |
 | [Update Ramp Deal Input](./articles/connect_requests_update_ramp_deal_input.htm.md) | `connect_requests_update_ramp_deal_input.htm` | 3,426 |
-| [Usage-Based Product Input](./articles/connect_requests_usage_based_product_input.htm.md) | `connect_requests_usage_based_product_input.htm` | 9,489 |
+| [Usage-Based Product Input](./articles/connect_requests_usage_based_product_input.htm.md) | `connect_requests_usage_based_product_input.htm` | 8,473 |
 | [Asset Amendment (POST)](./articles/connect_resources_assets_amend.htm.md) | `connect_resources_assets_amend.htm` | 4,897 |
 | [Asset Cancellation (POST)](./articles/connect_resources_assets_cancel.htm.md) | `connect_resources_assets_cancel.htm` | 3,853 |
 | [Asset Renewal (POST)](./articles/connect_resources_assets_renew.htm.md) | `connect_resources_assets_renew.htm` | 4,187 |
-| [Clone Sales Transaction (POST)](./articles/connect_resources_clone_sales_transaction.htm.md) | `connect_resources_clone_sales_transaction.htm` | 3,714 |
+| [Clone Sales Transaction (POST)](./articles/connect_resources_clone_sales_transaction.htm.md) | `connect_resources_clone_sales_transaction.htm` | 2,745 |
 | [Instant Pricing (POST)](./articles/connect_resources_cpq_instant_pricing.htm.md) | `connect_resources_cpq_instant_pricing.htm` | 9,980 |
 | [Create Promotions (GET, POST, PUT)](./articles/connect_resources_create_promotions.htm.md) | `connect_resources_create_promotions.htm` | 3,427 |
-| [Create Ramp Deal (POST)](./articles/connect_resources_create_ramp_deal.htm.md) | `connect_resources_create_ramp_deal.htm` | 4,607 |
+| [Create Ramp Deal (POST)](./articles/connect_resources_create_ramp_deal.htm.md) | `connect_resources_create_ramp_deal.htm` | 4,836 |
 | [Delete Ramp Deal (POST)](./articles/connect_resources_delete_ramp_deal.htm.md) | `connect_resources_delete_ramp_deal.htm` | 3,068 |
 | [Get Eligible Promotions (POST)](./articles/connect_resources_get_eligible_promotions.htm.md) | `connect_resources_get_eligible_promotions.htm` | 2,899 |
 | [Initiate Downgrade (POST)](./articles/connect_resources_initiate_downgrade.htm.md) | `connect_resources_initiate_downgrade.htm` | 4,592 |
@@ -1275,17 +1331,20 @@
 | [Initiate Upgrade (POST)](./articles/connect_resources_initiate_upgrade.htm.md) | `connect_resources_initiate_upgrade.htm` | 4,493 |
 | [Place Order (POST)](./articles/connect_resources_place_order.htm.md) | `connect_resources_place_order.htm` | 10,892 |
 | [Place Quote (POST)](./articles/connect_resources_place_quote.htm.md) | `connect_resources_place_quote.htm` | 12,202 |
-| [Place Sales Transaction (POST)](./articles/connect_resources_place_sales_transaction.htm.md) | `connect_resources_place_sales_transaction.htm` | 21,026 |
+| [Place Sales Transaction (POST)](./articles/connect_resources_place_sales_transaction.htm.md) | `connect_resources_place_sales_transaction.htm` | 19,843 |
 | [Place Supplemental Transaction (POST)](./articles/connect_resources_place_supplemental_transaction.htm.md) | `connect_resources_place_supplemental_transaction.htm` | 4,175 |
 | [Read Sales Transaction (POST)](./articles/connect_resources_read_sales_transaction.htm.md) | `connect_resources_read_sales_transaction.htm` | 3,467 |
 | [Retrieve Sales Transaction API Errors (GET)](./articles/connect_resources_retrieve_place_sales_transaction_error.htm.md) | `connect_resources_retrieve_place_sales_transaction_error.htm` | 2,756 |
+| [Unlock Transaction (POST)](./articles/connect_resources_unlock_transaction.htm.md) | `connect_resources_unlock_transaction.htm` | 2,496 |
 | [Update Ramp Deal (POST)](./articles/connect_resources_update_ramp_deal.htm.md) | `connect_resources_update_ramp_deal.htm` | 6,251 |
 | [View Ramp Deal (GET)](./articles/connect_resources_view_ramp_deal.htm.md) | `connect_resources_view_ramp_deal.htm` | 3,497 |
 | [Amendment](./articles/connect_responses_amend_output.htm.md) | `connect_responses_amend_output.htm` | 2,465 |
 | [ARC Base Error](./articles/connect_responses_assets_arc_error.htm.md) | `connect_responses_assets_arc_error.htm` | 1,490 |
+| [Batch Metadata](./articles/connect_responses_batch_metadata_output.htm.md) | `connect_responses_batch_metadata_output.htm` | 1,382 |
+| [Batch Records](./articles/connect_responses_batch_records_output.htm.md) | `connect_responses_batch_records_output.htm` | 1,770 |
 | [Cancellation](./articles/connect_responses_cancel_output.htm.md) | `connect_responses_cancel_output.htm` | 2,489 |
-| [Clone Sales Transaction Error Response](./articles/connect_responses_clone_sales_transaction_error_response.htm.md) | `connect_responses_clone_sales_transaction_error_response.htm` | 1,855 |
-| [Clone Sales Transaction](./articles/connect_responses_clone_sales_transaction_output.htm.md) | `connect_responses_clone_sales_transaction_output.htm` | 2,710 |
+| [Clone Sales Transaction Error Response](./articles/connect_responses_clone_sales_transaction_error_response.htm.md) | `connect_responses_clone_sales_transaction_error_response.htm` | 1,132 |
+| [Clone Sales Transaction](./articles/connect_responses_clone_sales_transaction_output.htm.md) | `connect_responses_clone_sales_transaction_output.htm` | 1,982 |
 | [Promotion Coupon](./articles/connect_responses_coupon_details.htm.md) | `connect_responses_coupon_details.htm` | 1,880 |
 | [Eligible Promotions Response](./articles/connect_responses_get_eligible_promotions_output.htm.md) | `connect_responses_get_eligible_promotions_output.htm` | 3,805 |
 | [Instant Pricing](./articles/connect_responses_get_instant_pricing_output.htm.md) | `connect_responses_get_instant_pricing_output.htm` | 3,793 |
@@ -1298,8 +1357,8 @@
 | [Place Quote Error Response](./articles/connect_responses_place_quote_error_response.htm.md) | `connect_responses_place_quote_error_response.htm` | 1,294 |
 | [Place Quote](./articles/connect_responses_place_quote_output.htm.md) | `connect_responses_place_quote_output.htm` | 1,719 |
 | [Sales Transaction Async Error](./articles/connect_responses_place_sales_transaction_async_error_output.htm.md) | `connect_responses_place_sales_transaction_async_error_output.htm` | 4,395 |
-| [Sales Transaction Error Response](./articles/connect_responses_place_sales_transaction_error_response.htm.md) | `connect_responses_place_sales_transaction_error_response.htm` | 1,811 |
-| [Sales Transaction](./articles/connect_responses_place_sales_transaction_output.htm.md) | `connect_responses_place_sales_transaction_output.htm` | 3,420 |
+| [Sales Transaction Error Response](./articles/connect_responses_place_sales_transaction_error_response.htm.md) | `connect_responses_place_sales_transaction_error_response.htm` | 1,317 |
+| [Sales Transaction](./articles/connect_responses_place_sales_transaction_output.htm.md) | `connect_responses_place_sales_transaction_output.htm` | 2,896 |
 | [Supplemental Transaction Error Response](./articles/connect_responses_place_supplemental_transaction_error_response.htm.md) | `connect_responses_place_supplemental_transaction_error_response.htm` | 1,009 |
 | [Supplemental Transaction](./articles/connect_responses_place_supplemental_transaction_output.htm.md) | `connect_responses_place_supplemental_transaction_output.htm` | 2,400 |
 | [Promotion Coupon Availability](./articles/connect_responses_promotion_coupon_availability.htm.md) | `connect_responses_promotion_coupon_availability.htm` | 1,904 |
@@ -1307,18 +1366,20 @@
 | [Promotion Limit](./articles/connect_responses_promotion_limit.htm.md) | `connect_responses_promotion_limit.htm` | 1,225 |
 | [Promotion Reward Details](./articles/connect_responses_promotion_reward_details.htm.md) | `connect_responses_promotion_reward_details.htm` | 1,858 |
 | [Promotion Rules List](./articles/connect_responses_promotion_rules_list.htm.md) | `connect_responses_promotion_rules_list.htm` | 2,123 |
-| [Ramp Deal Service Error Response](./articles/connect_responses_ramp_deal_service_error_response.htm.md) | `connect_responses_ramp_deal_service_error_response.htm` | 1,325 |
-| [Ramp Deal Service](./articles/connect_responses_ramp_deal_service_output.htm.md) | `connect_responses_ramp_deal_service_output.htm` | 9,859 |
+| [Ramp Deal Service Error Response](./articles/connect_responses_ramp_deal_service_error_response.htm.md) | `connect_responses_ramp_deal_service_error_response.htm` | 889 |
+| [Ramp Deal Service](./articles/connect_responses_ramp_deal_service_output.htm.md) | `connect_responses_ramp_deal_service_output.htm` | 10,148 |
 | [Read Sales Transaction](./articles/connect_responses_read_sales_transaction_output.htm.md) | `connect_responses_read_sales_transaction_output.htm` | 2,494 |
-| [Read Sales Transaction Records](./articles/connect_responses_read_sales_transaction_records_output.htm.md) | `connect_responses_read_sales_transaction_records_output.htm` | 1,968 |
+| [Read Sales Transaction Records](./articles/connect_responses_read_sales_transaction_records_output.htm.md) | `connect_responses_read_sales_transaction_records_output.htm` | 1,485 |
 | [Renewal](./articles/connect_responses_renew_output.htm.md) | `connect_responses_renew_output.htm` | 2,458 |
-| [Sales Transaction Context](./articles/connect_responses_sales_transaction_context_output.htm.md) | `connect_responses_sales_transaction_context_output.htm` | 1,724 |
-| [Sales Transaction Record](./articles/connect_responses_sales_transaction_record_output.htm.md) | `connect_responses_sales_transaction_record_output.htm` | 1,759 |
+| [Sales Transaction Context](./articles/connect_responses_sales_transaction_context_output.htm.md) | `connect_responses_sales_transaction_context_output.htm` | 1,231 |
+| [Sales Transaction Record](./articles/connect_responses_sales_transaction_record_output.htm.md) | `connect_responses_sales_transaction_record_output.htm` | 1,284 |
+| [Unlock Transaction](./articles/connect_responses_unlock_transaction_output.htm.md) | `connect_responses_unlock_transaction_output.htm` | 1,500 |
 | [Transaction Management Apex Reference](./articles/qoc_apex_reference.htm.md) | `qoc_apex_reference.htm` | 1,841 |
 | [Request Bodies](./articles/qoc_api_requests.htm.md) | `qoc_api_requests.htm` | 5,727 |
 | [Response Bodies](./articles/qoc_api_responses.htm.md) | `qoc_api_responses.htm` | 6,476 |
 | [Transaction Management Business APIs](./articles/qoc_business_apis.htm.md) | `qoc_business_apis.htm` | 7,510 |
 | [Resources](./articles/qoc_business_apis_rest_references.htm.md) | `qoc_business_apis_rest_references.htm` | 5,308 |
+| [CommerceTax Namespace](./articles/qoc_commercetax_namespace.htm.md) | `qoc_commercetax_namespace.htm` | 4,720 |
 | [Flow for Transaction Management](./articles/qoc_flow_metadata_api.htm.md) | `qoc_flow_metadata_api.htm` | 3,207 |
 | [Transaction Management Standard Invocable Actions](./articles/qoc_invocable_actions_parent.htm.md) | `qoc_invocable_actions_parent.htm` | 3,368 |
 | [Transaction Management Metadata API Types](./articles/qoc_metadata_api_parent.htm.md) | `qoc_metadata_api_parent.htm` | 1,184 |
@@ -1382,7 +1443,7 @@
 | [QuotLineItmUsageRsrcPlcy](./articles/sforce_api_objects_quotlineitmusagersrcplcy.htm.md) | `sforce_api_objects_quotlineitmusagersrcplcy.htm` | 5,797 |
 | [QuotLineItmUseRsrcGrant](./articles/sforce_api_objects_quotlineitmusersrcgrant.htm.md) | `sforce_api_objects_quotlineitmusersrcgrant.htm` | 6,285 |
 | [SalesTransactionType](./articles/sforce_api_objects_salestransactiontype.htm.md) | `sforce_api_objects_salestransactiontype.htm` | 2,229 |
-| [TransactionProcessingType](./articles/tooling_api_objects_transactionprocessingtype.htm.md) | `tooling_api_objects_transactionprocessingtype.htm` | 7,302 |
+| [TransactionProcessingType](./articles/tooling_api_objects_transactionprocessingtype.htm.md) | `tooling_api_objects_transactionprocessingtype.htm` | 6,216 |
 | [ConnectApi Input Classes](./articles/transaction_management_apex_input_classes.htm.md) | `transaction_management_apex_input_classes.htm` | 864 |
 | [ConnectApi Namespace](./articles/transaction_management_connect_api_namespace.htm.md) | `transaction_management_connect_api_namespace.htm` | 891 |
 
@@ -1488,4 +1549,4 @@
 
 ---
 
-*Generated by `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide` on 2026-08-24T20:42:06Z.*
+*Generated by `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide` on 2026-09-29T23:45:31Z.*

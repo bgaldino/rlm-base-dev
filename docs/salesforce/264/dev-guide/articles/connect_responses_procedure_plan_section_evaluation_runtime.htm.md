@@ -7,23 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Procedure Plan Section Evaluation Runtime
 
 Output representation of the results from the procedure plan evaluation.
 
-        
-          
+    
 
-**JSON example**
+## JSON Example
 
-          
-: 
-            
+      
+      
 
 ```
                 "procedurePlanSections": [
@@ -57,9 +53,9 @@ Output representation of the results from the procedure plan evaluation.
                 ]
 ```
 
-          
+    
 
-        
+    
       
 
           
@@ -156,15 +152,6 @@ Output representation of the results from the procedure plan evaluation.
 
               
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-
               
 
               
@@ -220,7 +207,7 @@ Output representation of the results from the procedure plan evaluation.
 | `expression​SetLabel` | String | Label of the expression set. | Small, 62.0 | 62.0 |
 | `readContext​Mapping` | String | Mapping that’s used to read data from the mapped object and populate the context definition. | Small, 62.0 | 62.0 |
 | `saveContext​Mapping` | String | Mapping that’s used to save data from the context definition and populate the mapped object. | Small, 62.0 | 62.0 |
-| `sectionType` | String | Name of the evaluated section. Valid values are: `PricingProcedure` `ProductDiscoveryProcedure` `ProductQualificationProcedure` `PricingDiscoveryProcedure` `DiscountSpreadServiceProcedure` `RatingProcedure` `Custom` `RatingDiscoveryProcedure` | Small, 62.0 | 62.0 |
+| `sectionType` | String | Name of the evaluated section. Valid values are `PricingProcedure`, `ProductDiscoveryProcedure`, `ProductQualificationProcedure`, `PricingDiscoveryProcedure`, `DiscountSpreadServiceProcedure`, `RatingProcedure`, `Custom`, or `RatingDiscoveryProcedure`. | Small, 62.0 | 62.0 |
 | `sequence` | Integer | Sequence that’s followed for the processing of the procedures. | Small, 62.0 | 62.0 |
 | `subSection​Type` | String | Name of the evaluated subsection. | Small, 62.0 | 62.0 |
 | `usageType` | String | Usage type of the procedure. | Small, 62.0 | 62.0 |

@@ -7,21 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Clone Sales Transaction (POST)
 
-Create a clone of a sales transaction, such as a quote or an order.
-      You can also clone a quote line item or an order item record with its related records and
-      configurations.
+Create a clone of a sales transaction, such as a quote or an order. You can also clone a quote line item or an order item record with its related records and configurations.
 
     
+      
 
 This API supports the cloning of records for these objects.
 
+      
         
 - Quote
 
@@ -42,78 +40,74 @@ This API supports the cloning of records for these objects.
 
       
 
-You can clone all items in a quote line group or order item group when the record to
-        clone is a quote line group or an order item group record.
+      
+
+You can clone all items in a quote line group or order item group when the record to clone is a quote line group or an order item group record.
+
+    
+
+    
+
+## Resource
 
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/rev/sales-transaction/actions/clone
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://<varname>yourInstance</varname>.salesforce.com/services/data/v64.0/connect/rev/sales-transaction/actions/clone
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 64.0
+      
+      
 
-        
-        
-          
+64.0
 
-**HTTP methods**
+    
 
-          
-: POST
+    
 
-        
-        
-          
+## HTTP Methods
 
-**Request body for POST**
+      
+      
 
-          
-: 
-            
-        
-          
+POST
 
-**JSON example**
+    
 
-          
-: This is a sample request to clone a record within a sales transaction.
+    
 
-          
-: 
+## Request Body for POST
+
+      
+      
+
+**JSON Example**
+
+      
+
+This is a sample request to clone a record within a sales transaction.
+
+      
 
 ```
 {
@@ -122,8 +116,11 @@ https://<varname>yourInstance</varname>.salesforce.com/services/data/v64.0/conne
 }
 ```
 
-This is a sample request to clone all line items in a ramped group within a
-            sales transaction.
+      
+
+This is a sample request to clone all line items in a ramped group within a sales transaction.
+
+      
 
 ```
 {
@@ -135,100 +132,89 @@ This is a sample request to clone all line items in a ramped group within a
 }
 ```
 
-        
-        
-          
+      
 
 **Properties**
 
+      
+
           
-: 
+          
+          
+          
+          
+          
             
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
+              
 
               
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `recordIds` | String[] | ID of the record to be cloned. You can specify a single record ID only. | Required | 64.0 |
 | `salesTransactionId` | String | ID of the sales transaction related to the record IDs to clone. | Required | 64.0 |
 | `options` | [Clone Options Input](./connect_requests_clone_options_input.htm.md) | Specifies options to clone a ramp segment within a sales transaction. You can clone only the last ramp segment. | Optional | 65.0 |
 
-          
+    
 
-        
+    
+
+## Response Body for POST
+
+      
       
 
-          
-
-        
-        
-          
-
-**Response body for POST**
-
-          
-: 
-            [Clone Sales
-              Transaction](./connect_responses_clone_sales_transaction_output.htm.md)
+[Clone Sales Transaction](./connect_responses_clone_sales_transaction_output.htm.md)

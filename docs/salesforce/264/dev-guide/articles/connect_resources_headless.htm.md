@@ -7,97 +7,89 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Pricing (POST)
 
-Create and hydrate context instance in a single request. Provide a
-      comprehensive response that contains final pricing details per line items and related errors,
-      if any.
-
-    
-
-If price waterfall is disabled from Salesforce Pricing Setup in your org, this API
-        doesn't return the waterfall details. You can use the [Price Waterfall API](./connect_resources_pricing_waterfall_fetch.htm.md) to
-        retrieve the waterfall details if price waterfall persistence is enabled in Salesforce
-        Pricing Setup.
+Create and hydrate context instance in a single request. Provide a comprehensive response that contains final pricing details per line items and related errors, if any.
 
     
       
-        
-          
 
-**Resource**
+If price waterfall is disabled from Salesforce Pricing Setup in your org, this API doesn't return the waterfall details. You can use the [Price Waterfall API](./connect_resources_pricing_waterfall_fetch.htm.md) to retrieve the waterfall details if price waterfall persistence is enabled in Salesforce Pricing Setup.
 
-          
-: 
-            
+    
+
+    
+
+## Resource
+
+      
+      
 
 ```
 /connect/core-pricing/pricing
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/pricing
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 60.0
+      
+      
 
-        
-        
-          
+60.0
 
-**Requires Chatter**
+    
 
-          
-: No
+    
 
-        
-        
-          
+## Requires Chatter
 
-**HTTP methods**
+      
+      
 
-          
-: POST
+No
 
-        
-        
-          
+    
 
-**Request body for POST**
+    
 
-          
-: 
-            
+## HTTP Methods
 
-**JSON example**
+      
+      
 
-: 
+POST
+
+    
+
+    
+
+## Request Body for POST
+
+      
+      
+
+**JSON Example**
+
+      
 
 ```
 {
@@ -188,100 +180,102 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/pri
 }
 ```
 
+      
+
 **Properties**
 
-: 
+      
 
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
+          
+          
+          
+          
+          
+          
+            
+              
 
               
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `configuration​Overrides` | [Configuration Override Input](./connect_requests_configuration_override_input.htm.md) | Parameters to override the pricing configuration. | Optional | 60.0 |
@@ -290,16 +284,13 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/pri
 | `json​Data​String` | String | Data to hydrate the context, which must be in JSON format and passed as String. Pass the JSON data as String by using the stringify() method to convert the object to string. The keys in the jsonDataString property must be in accordance to the contextMappingId property sent in the request. Make sure that the `businessObjectType` value within this property node is set to the sObject used in the context mappings. | Required | 60.0 |
 | `pricing​Procedure​Id` | String | ID or API name of the pricing procedure used for calculating the prices. A pricing procedure is represented as an Expression Set Definition in the system. If you’re an Experience Cloud user, specify the name of the pricing procedure. | Optional | 60.0 |
 
-          
+    
 
-        
+    
+
+## Response Body for POST
+
+      
       
 
-      
-        
-          
-
-**Response body for POST**
-
-          
-: [Pricing Output](./connect_responses_core_pricing_output.htm.md)
+[Pricing Output](./connect_responses_core_pricing_output.htm.md)

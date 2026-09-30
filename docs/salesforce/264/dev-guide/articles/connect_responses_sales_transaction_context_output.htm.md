@@ -7,26 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Sales Transaction Context
 
-Output representation of the context details that are associated with a sales
-    transaction.
+Output representation of the context details that are associated with a sales transaction.
 
     
 
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: 
-            
+      
+      
 
 ```
 {
@@ -37,10 +30,7 @@ Output representation of the context details that are associated with a sales
 }
 ```
 
-          
-
-        
-      
+    
 
     
       
@@ -99,4 +89,4 @@ Output representation of the context details that are associated with a sales
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `contextId` | String | ID of the context that’s created for a session of the sales transaction. | Small, 63.0 | 63.0 |
-| `isBuiltIn​Transaction` | Boolean | Indicates whether a new context ID is created for the sales transaction (`true`) or not (`false`).If the `contextId` property isn’t specified, the Place Sales Transaction API generates it. | Small, 63.0 | 63.0 |
+| `isBuiltIn​Transaction` | Boolean | Indicates whether a new context ID is created for the sales transaction ( `true` ) or not ( `false` ). If the `contextId` property isn’t specified, the Place Sales Transaction API generates it. | Small, 63.0 | 63.0 |
