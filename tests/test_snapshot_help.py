@@ -311,6 +311,46 @@ def main():
               [a["article_id"] for a in t18._merge_discovered(keep, walk, None, moved)["articles"]]
               == ["rn.rev.htm", "rn.rev_billing.htm", "rn.rev_moved.htm"])
 
+    # PR #483 review round 3: parent extraction is best-effort, so only a
+    # complete chain to an ancestor of the root proves an article moved out.
+    # rn.gap's parent is missing from the walk and rn.flat has no parent at
+    # all; both are "unknown" and must never be pruned.
+    t19 = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm", subtree_only=True)
+    gappy = tree + [
+        {"id": "rn.gap.htm", "title": "", "parent_id": "rn.unwalked.htm"},
+        {"id": "rn.flat.htm", "title": "", "parent_id": None},
+    ]
+    where = t19._classify_subtree(gappy)
+    check("classify: a descendant of the root is in",
+          where["rn.rev_billing_forecast.htm"] == "in")
+    check("classify: a sibling-branch article with a complete chain is out",
+          where["rn.sales_x.htm"] == "out")
+    check("classify: a broken or missing parent chain is unknown, not out",
+          where["rn.gap.htm"] == where["rn.flat.htm"] == where["rn.loop_a.htm"] == "unknown")
+    t20 = _task(article_id_prefix="rn.", root_article_id="rn.orphan_root.htm", subtree_only=True)
+    check("classify: without a top-level signal, a parentless end is unknown",
+          "out" not in t20._classify_subtree(
+              tree + [{"id": "rn.orphan_root.htm", "title": "", "parent_id": None}]).values())
+    # The live 264 shape: the Revenue root has no parent, and other sections
+    # chain to a separate aria-level 1 tree root. A complete chain to that
+    # top-level node is out; a chain broken before it stays unknown.
+    live = [
+        {"id": "rn.revenue.htm", "title": "", "parent_id": None},
+        {"id": "rn.revenue_billing.htm", "title": "", "parent_id": "rn.revenue.htm"},
+        {"id": "rn.all.htm", "title": "", "parent_id": None, "top_level": True},
+        {"id": "rn.sales.htm", "title": "", "parent_id": "rn.all.htm"},
+        {"id": "rn.sales_moved.htm", "title": "", "parent_id": "rn.sales.htm"},
+        {"id": "rn.broken.htm", "title": "", "parent_id": "rn.unwalked.htm"},
+    ]
+    t21 = _task(article_id_prefix="rn.", root_article_id="rn.revenue.htm", subtree_only=True)
+    where21 = t21._classify_subtree(live)
+    check("classify: a complete chain to another top-level tree root is out",
+          where21["rn.sales_moved.htm"] == where21["rn.all.htm"] == "out")
+    check("classify: the root's own descendants stay in beside a top-level peer",
+          where21["rn.revenue_billing.htm"] == "in")
+    check("classify: a chain broken before the top-level node stays unknown",
+          where21["rn.broken.htm"] == "unknown")
+
     # --- _capture_one not-found-shell detection (PR #409 review) -----------
     # The Help portal renders a real H1 for a broken/retired article id
     # instead of a 404 status, so the generic "no H1 found" guard alone

@@ -136,7 +136,14 @@ SIDEBAR_WALKER_JS = """
     // identified (flat sidebar, cross-shadow nesting, or top-level
     // articles) — preserves any pre-existing parent_article values via
     // _merge_discovered (Python side), so partial extraction never
-    // regresses manually-curated parents.
+    // regresses manually-curated parents. Because null is ambiguous,
+    // isTopLevel separately reports a positive tree-root signal: the
+    // link's own LI carries aria-level="1".
+    function isTopLevel(link) {
+        const selfLi = link.closest && link.closest('li');
+        return !!(selfLi && selfLi.getAttribute('aria-level') === '1');
+    }
+
     function findParentArticleId(link) {
         if (!link.closest) return null;
         const selfLi = link.closest('li');
@@ -175,6 +182,7 @@ SIDEBAR_WALKER_JS = """
             id: id,
             title: a.innerText.trim().slice(0, 200),
             parent_id: findParentArticleId(a) || null,
+            top_level: isTopLevel(a),
         });
     });
     return result;
@@ -381,7 +389,7 @@ class SnapshotSalesforceHelp(BaseTask):
             "required": False,
         },
         "subtree_only": {
-            "description": "Keep only root_article_id and its sidebar descendants (by parent chain), in addition to the prefix filter. For sidebars whose IDs share one prefix across products, such as release notes. A validated discovery also prunes this area's manifest records and article files that the walk saw elsewhere in the sidebar, outside the root; records merely absent from the walk are kept. Defaults to false.",
+            "description": "Keep only root_article_id and its sidebar descendants (by parent chain), in addition to the prefix filter. For sidebars whose IDs share one prefix across products, such as release notes. A validated discovery also prunes this area's manifest records and article files whose complete parent chain places them in another sidebar branch (reaching a root ancestor or another aria-level 1 tree root); records absent from the walk or with incomplete ancestry are kept. Defaults to false.",
             "required": False,
         },
     }
@@ -597,9 +605,10 @@ class SnapshotSalesforceHelp(BaseTask):
         # With subtree_only, an article that left the root's subtree (pre-GA
         # release notes move between sections) must leave this area's
         # snapshot too, or mode=refresh selects the stale record and
-        # recaptures it. `moved_out` holds only IDs the walk positively saw
-        # outside the subtree: a record merely absent from the walk is kept,
-        # because a partial walk can stabilize above expect_min_articles.
+        # recaptures it. `moved_out` holds only IDs `_classify_subtree` places
+        # conclusively outside the subtree: a record merely absent from the
+        # walk, or one whose ancestry is incomplete, is kept, because a
+        # partial walk can stabilize above expect_min_articles.
         # Other areas' records sharing the manifest are untouched.
         if self.options.get("subtree_only") and moved_out:
             for article_id, record in list(existing_by_id.items()):
@@ -713,8 +722,11 @@ class SnapshotSalesforceHelp(BaseTask):
                 self._last_discover_total = total_before_filter
                 self._save_manifest(manifest_path, manifest)
                 self._validate_discovery(len(kept), total_before_filter, stabilized)
-                kept_ids = {d["id"] for d in kept}
-                moved_out = {d["id"] for d in discovered} - kept_ids
+                moved_out = {
+                    article_id
+                    for article_id, where in self._classify_subtree(discovered).items()
+                    if where == "out"
+                } if self.options.get("subtree_only") else set()
                 manifest = self._merge_discovered(
                     manifest, kept, articles_dir, moved_out
                 )
@@ -820,19 +832,48 @@ class SnapshotSalesforceHelp(BaseTask):
         kept = [d for d in discovered if d["id"].startswith(prefix)]
         if not self.options.get("subtree_only"):
             return kept
+        membership = self._classify_subtree(discovered)
+        return [d for d in kept if membership[d["id"]] == "in"]
+
+    def _classify_subtree(self, discovered: List[Dict[str, str]]) -> Dict[str, str]:
+        """Classify each walked ID as "in", "out" or "unknown" relative to root_article_id.
+
+        "in": the parent chain reaches the root. "out": the chain, with every
+        link present in the walk, reaches an ancestor of the root or ends at
+        a different sidebar tree root (`top_level`, from aria-level="1"), so
+        the article sits in another branch. Anything else (a parent missing
+        from the walk, a null parent on a non-top-level item, a cycle) is
+        "unknown": parent extraction is best-effort, and pruning treats only
+        "out" as moved. On the live 264 release notes the Revenue root has no
+        parent, and the other 1,470 IDs chain to the top-level
+        release-notes.salesforce_release_notes.htm.
+        """
         root = self.options["root_article_id"]
         parent_of = {d["id"]: d.get("parent_id") for d in discovered}
+        top_level = {d["id"] for d in discovered if d.get("top_level")}
+        root_ancestors = set()
+        node, seen = parent_of.get(root), {root}
+        while node and node not in seen:
+            root_ancestors.add(node)
+            seen.add(node)
+            node = parent_of.get(node)
 
-        def under_root(article_id: str) -> bool:
+        def classify(article_id: str) -> str:
             seen = set()
             while article_id and article_id not in seen:
                 if article_id == root:
-                    return True
+                    return "in"
+                if article_id in root_ancestors:
+                    return "out"
+                if article_id not in parent_of:
+                    return "unknown"
                 seen.add(article_id)
-                article_id = parent_of.get(article_id)
-            return False
+                if parent_of[article_id] is None:
+                    return "out" if article_id in top_level else "unknown"
+                article_id = parent_of[article_id]
+            return "unknown"
 
-        return [d for d in kept if under_root(d["id"])]
+        return {d["id"]: classify(d["id"]) for d in discovered}
 
     async def _discover_articles(self, page) -> Tuple[List[Dict[str, str]], bool]:
         """Walk the sidebar, polling until the matching-article count stabilizes.
