@@ -381,7 +381,7 @@ class SnapshotSalesforceHelp(BaseTask):
             "required": False,
         },
         "subtree_only": {
-            "description": "Keep only root_article_id and its sidebar descendants (by parent chain), in addition to the prefix filter. For sidebars whose IDs share one prefix across products, such as release notes. Defaults to false.",
+            "description": "Keep only root_article_id and its sidebar descendants (by parent chain), in addition to the prefix filter. For sidebars whose IDs share one prefix across products, such as release notes. A validated discovery also prunes this area's manifest records and article files that are no longer under the root. Defaults to false.",
             "required": False,
         },
     }
@@ -587,11 +587,28 @@ class SnapshotSalesforceHelp(BaseTask):
         self,
         manifest: Dict[str, Any],
         discovered: List[Dict[str, str]],
+        articles_dir: Optional[Path] = None,
     ) -> Dict[str, Any]:
         existing_by_id: Dict[str, Dict[str, Any]] = {
             a["article_id"]: a for a in manifest.get("articles", [])
         }
         current_area = self.options["area"]
+        # With subtree_only the validated walk is the complete scope, so an
+        # article that left the root's subtree (pre-GA release notes move
+        # between sections) must leave this area's snapshot too. Otherwise
+        # mode=refresh selects the stale record and recaptures it. Other
+        # areas' records sharing the manifest are untouched.
+        if self.options.get("subtree_only"):
+            in_scope = {d["id"] for d in discovered}
+            for article_id, record in list(existing_by_id.items()):
+                if article_id in in_scope:
+                    continue
+                if record.get("area") and record.get("area") != current_area:
+                    continue
+                del existing_by_id[article_id]
+                if articles_dir is not None:
+                    (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
+                self.logger.info(f"Pruned {article_id}: no longer under the root subtree")
         for d in discovered:
             article_id = d["id"]
             title = d.get("title", "")
@@ -694,7 +711,7 @@ class SnapshotSalesforceHelp(BaseTask):
                 self._last_discover_total = total_before_filter
                 self._save_manifest(manifest_path, manifest)
                 self._validate_discovery(len(kept), total_before_filter, stabilized)
-                manifest = self._merge_discovered(manifest, kept)
+                manifest = self._merge_discovered(manifest, kept, articles_dir)
                 self._save_manifest(manifest_path, manifest)
 
             # Phase 2: Capture
