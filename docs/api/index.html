@@ -1118,6 +1118,7 @@ const DOMAINS = {
             ]},
           { method:'POST', path:'/connect/revenue-management/sales-transaction-contexts/{resourceId}/actions/ramp-deal-update', title:'Update Ramp Deal', version:'62.0',
             desc:'Modify a ramp deal when a segment has quantity, discount, or (for a trial or custom segment) a date change. Custom segments can be updated during the initial sale, before assetization. Returns the updated context; call Place Sales Transaction with the context ID to apply the updates.',
+            params:[{name:'resourceId',desc:'Context instance ID of the context data used to build the pricing procedure (get it from the Context Service API). Unlike Create/View Ramp Deal, a quote line or order item ID is not accepted. Required.'}],
             fields:[
               {name:'addedNodes',type:'Context Node Input[]',req:true,desc:'Nodes to add, each keyed by a contextNodePath (context ID -&gt; quote/order ID -&gt; line item ID) with a contextNode payload (e.g. Discount, Quantity, ItemSegmentName, StartDate, EndDate).'},
               {name:'updatedNodes',type:'Context Node Input[]',req:true,desc:'Nodes to update, addressed the same way.'},

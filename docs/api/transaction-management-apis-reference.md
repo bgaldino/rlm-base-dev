@@ -295,7 +295,7 @@ Ramp deals allow structured, multi-period pricing commitments on a single quote/
 - **Description:** Modify a ramp deal when a segment has quantity, discount, or (for a trial or custom segment) a date change. Custom segments can be updated during the initial sale, before assetization. Returns the updated context; call [Place Sales Transaction](#1-place-sales-transaction-post) with the context ID to apply the updates.
 - **Available Version:** 62.0 *(corrected — a prior extraction of this document stated 63.0 and only supported a flat `commitment` update)*
 - **Path Parameters:**
-  - `resourceId` (String, Required): ID of the context data used to build the pricing procedure. Get the context instance ID by invoking the Context Service API.
+  - `resourceId` (String, Required): ID of the context data used to build the pricing procedure. Get the context instance ID by invoking the Context Service API. Unlike Create/View Ramp Deal, a quote line item or order item ID is not accepted here.
 - **Request Body Fields:**
   - `addedNodes` (Context Node Input[], Required): Nodes to add, each keyed by a `contextNodePath` (context ID → quote/order ID → line item ID) with a `contextNode` payload (e.g. `Discount`, `Quantity`, `ItemSegmentName`, `StartDate`, `EndDate`).
   - `updatedNodes` (Context Node Input[], Required): Nodes to update, addressed the same way.
