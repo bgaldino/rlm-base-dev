@@ -247,13 +247,18 @@ substituted:
 - **Matching commit subjects against the base** happens to work on #264-56 but
   breaks on any reworded subject.
 
-Three things that are **not** findings. A parent branch that truly merged (a merge
+Four things that are **not** findings. A parent branch that truly merged (a merge
 commit, not squash or rebase): its commits are literal ancestors of the base, so
 they are not in this branch's diff and there is nothing to strip. An open PR whose
 head is **already contained in the base** — the release integration PR (`264` →
 `main`) has the base branch itself as its head, and treating that as a stack flags
-every branch that is up to date with base, which would reward being stale. And a
-**fork's** PR, whose head is not in this checkout.
+every branch that is up to date with base, which would reward being stale. A join
+**merged in from the other PR's base** — the sync PR (`main` merged into `264`,
+#471) shares main's merged commits with every open PR cut from `main`; those have
+merged there, so they are nobody's unmerged work. This applies only to a join
+reached through a merge, off this head's first-parent line: a branch *built on* an
+unmerged integration branch that another PR targets still carries that work, and
+is still reported. And a **fork's** PR, whose head is not in this checkout.
 
 Rebuild a flagged branch rather than trying to revert on top of it: branch fresh
 from the base and cherry-pick only the commits reported as `own`.
@@ -263,7 +268,7 @@ exits 2 instead of comparing the ref it just failed to refresh, because the stal
 case reports *clean* and a swallowed error would restore that false negative at the
 worst moment. Use `--no-fetch` if you mean to compare a local copy knowingly.
 
-The check's own behavior is pinned by `tests/test_branch_scope.py` (77 checks, no
+The check's own behavior is pinned by `tests/test_branch_scope.py` (78 checks, no
 network) — run it if you change the script, and add a shape to it rather than
 tightening the script by feel. Drive whole invocations, not helpers: an earlier
 version tested `STACKED`'s ancestor helper in isolation, and three mutations that

@@ -513,6 +513,31 @@ def test_stacked_on_unmerged(root):
     rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
     check("unmerged work of a PR on another line is still reported",
           rc == 1 and "STACKED  on open PR #11" in out, f"rc={rc}\n{out}")
+
+    print("\n  ...and so is a branch BUILT ON an unmerged base another PR targets")
+    # The other PR's base is not proof of merged work: it may be an integration
+    # branch P = base-B that has merged nowhere. A child PR C targets P; this branch
+    # F = base-B-F targets base. The join B is inside P, but on F's own first-parent
+    # line -- F carries B as its own history, not through a sync merge -- so it is
+    # still unmerged work F must not ship.
+    git(cwd, "checkout", "--quiet", "-b", "integration", "base")
+    commit(cwd, "integ.txt", "integ\n", "unmerged integration work")
+    git(cwd, "update-ref", "refs/remotes/origin/integration", "integration")
+    git(cwd, "checkout", "--quiet", "-b", "child-of-integ", "integration")
+    commit(cwd, "child.txt", "child\n", "a PR against the integration branch")
+    integ_pr = {"number": 12, "baseRefName": "integration",
+                "headRefName": "child-of-integ",
+                "headRefOid": git(cwd, "rev-parse", "child-of-integ"),
+                "title": "a PR against the integration branch",
+                "isCrossRepository": False}
+    git(cwd, "checkout", "--quiet", "-b", "built-on-integ", "integration")
+    commit(cwd, "built.txt", "built\n", "my change on the integration branch")
+    built_mine = dict(mine, headRefName="built-on-integ",
+                      headRefOid=git(cwd, "rev-parse", "built-on-integ"))
+    bindir = stub_gh(cwd, built_mine, [integ_pr])
+    rc, out = run_check(cwd, "--pr", "1", extra_path=bindir)
+    check("work inherited from an unmerged base is still reported",
+          rc == 1 and "STACKED  on open PR #12" in out, f"rc={rc}\n{out}")
     git(cwd, "checkout", "--quiet", "feature")
 
 
