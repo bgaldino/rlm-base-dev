@@ -380,6 +380,10 @@ class SnapshotSalesforceHelp(BaseTask):
             "description": "Append &release={release_version} to article URLs. Defaults to true.",
             "required": False,
         },
+        "subtree_only": {
+            "description": "Keep only root_article_id and its sidebar descendants (by parent chain), in addition to the prefix filter. For sidebars whose IDs share one prefix across products, such as release notes. Defaults to false.",
+            "required": False,
+        },
     }
 
     BASE_URL = "https://help.salesforce.com/s/articleView"
@@ -410,6 +414,9 @@ class SnapshotSalesforceHelp(BaseTask):
         self.options["expect_min_articles"] = int(expect_min) if expect_min else None
         self.options["include_release_param"] = (
             str(self.options.get("include_release_param", "true")).lower() == "true"
+        )
+        self.options["subtree_only"] = (
+            str(self.options.get("subtree_only", "false")).lower() == "true"
         )
 
         valid_modes = ("discover", "capture", "all", "refresh")
@@ -674,10 +681,7 @@ class SnapshotSalesforceHelp(BaseTask):
                 discovered, stabilized = await self._discover_articles(page)
                 await context.close()
 
-                kept = [
-                    d for d in discovered
-                    if d["id"].startswith(self.options["article_id_prefix"])
-                ]
+                kept = self._filter_discovered(discovered)
                 total_before_filter = len(discovered)
                 self.logger.info(
                     f"Discovered {len(kept)} unique articles "
@@ -785,6 +789,28 @@ class SnapshotSalesforceHelp(BaseTask):
                 "discover_timeout_ms."
             )
 
+    def _filter_discovered(
+        self, discovered: List[Dict[str, str]]
+    ) -> List[Dict[str, str]]:
+        """Apply the prefix filter and, with `subtree_only`, the root-subtree filter."""
+        prefix = self.options["article_id_prefix"]
+        kept = [d for d in discovered if d["id"].startswith(prefix)]
+        if not self.options.get("subtree_only"):
+            return kept
+        root = self.options["root_article_id"]
+        parent_of = {d["id"]: d.get("parent_id") for d in discovered}
+
+        def under_root(article_id: str) -> bool:
+            seen = set()
+            while article_id and article_id not in seen:
+                if article_id == root:
+                    return True
+                seen.add(article_id)
+                article_id = parent_of.get(article_id)
+            return False
+
+        return [d for d in kept if under_root(d["id"])]
+
     async def _discover_articles(self, page) -> Tuple[List[Dict[str, str]], bool]:
         """Walk the sidebar, polling until the matching-article count stabilizes.
 
@@ -809,7 +835,6 @@ class SnapshotSalesforceHelp(BaseTask):
         self.logger.info(f"  GET {url}")
         await page.goto(url, wait_until="domcontentloaded")
 
-        prefix = self.options["article_id_prefix"]
         wait_ms = self.options["wait_ms"]
         timeout_ms = self.options["discover_timeout_ms"]
         expect_min = self.options["expect_min_articles"]
@@ -823,7 +848,7 @@ class SnapshotSalesforceHelp(BaseTask):
             await page.wait_for_timeout(sleep_ms)
             elapsed_ms += sleep_ms
             discovered = await page.evaluate(SIDEBAR_WALKER_JS) or []
-            kept = len([d for d in discovered if d["id"].startswith(prefix)])
+            kept = len(self._filter_discovered(discovered))
             self.logger.info(
                 f"  ...read at {elapsed_ms}ms: {kept} matching articles "
                 f"({len(discovered)} total)"
