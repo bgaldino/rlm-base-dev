@@ -7,84 +7,71 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Pricing Waterfall (POST)
 
-Create a log of price waterfall. Price waterfall provides insights
-      into every step of the pricing process.
+Create a log of price waterfall. Price waterfall provides insights into every step of the pricing process.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/core-pricing/waterfall
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/waterfall
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 60.0
+      
+      
 
-        
-        
-          
+60.0
 
-**HTTP methods**
+    
 
-          
-: POST
+    
 
-        
-        
-          
+## HTTP Methods
 
-**Request body for POST**
+      
+      
 
-          
-: 
-            
-        
-          
+POST
 
-**JSON example**
+    
 
-          
-: 
-            
+    
+
+## Request Body for POST
+
+      
+      
+
+**JSON Example**
+
+      
 
 ```
 
@@ -92,6 +79,7 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/wat
       "currencyCode": "USD",
       "executionEndTimestamp": "2023-07-31T20:11:29.625Z",
       "executionId": "executionId1",
+      "apiExecutionId": "apiExecutionId1",
       "executionStartTimestamp": null,
       "lineItemId": "item1",
       "output": {
@@ -170,14 +158,167 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/wat
 
 ```
 
-          
-
-        
+      
 
 **Properties**
 
-: 
+      
 
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `context​Definition​VersionId` | String | Context definition version ID of the pricing procedure. | Optional | 60.0 |
@@ -185,19 +326,19 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/wat
 | `currency​Code` | String | Currency code such as, USD or INR. | Optional | 60.0 |
 | `executionEnd​Timestamp` | String | End timestamp of procedure execution. | Optional | 60.0 |
 | `execution​Id` | String | Execution ID for a particular execution of a pricing procedure. | Required | 60.0 |
+| `apiExecution​Id` | String | Identifies a pricing procedure execution in the Revenue Cloud Operations Console. | Required | 60.0 |
 | `execution​Start​Timestamp` | String | Start timestamp of procedure execution. | Optional | 60.0 |
 | `lineItem​Id` | String | Line item ID for which the price is being calculated. | Required | 60.0 |
 | `output` | Map<String, Object> | Output of the pricing procedure. | Optional | 60.0 |
 | `waterfall` | [Pricing Waterfall Input](./connect_requests_pricing_waterfall_input.htm.md)[] | Details of the pricing waterfall. | Required | 60.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for POST**
+## Response Body for POST
 
-          
-: [Pricing Generic
-            Response](./connect_responses_pricing_generic_response.htm.md)
+      
+      
+
+[Pricing Generic Response](./connect_responses_pricing_generic_response.htm.md)

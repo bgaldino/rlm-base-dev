@@ -7,27 +7,23 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Address Input
 
 Input representation of the details of an address.
 
-**JSON example**
+    
 
-: 
+## JSON Example
 
-              
-                
+      
+      
 
-**JSON example**
+**JSON Example**
 
-                
-: 
-                  
+      
 
 ```
   "billingAddress": {
@@ -41,15 +37,144 @@ Input representation of the details of an address.
   }
 ```
 
-                
+    
+
+    
+
+## Properties
+
+      
+      
+
+          
+          
+          
+          
+          
+          
+            
+              
 
               
+
+              
+
+              
+
+              
+
             
 
-**Properties**
+          
 
-: 
+          
+            
+              
 
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `city` | String | Address city. | Optional | 62.0 |

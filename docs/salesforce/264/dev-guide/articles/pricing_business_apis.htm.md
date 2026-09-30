@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_overview.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Salesforce Pricing Business APIs
 
@@ -127,6 +125,20 @@ This table lists the available Salesforce Pricing resources.
 
           
 
+          
+            
+
+            
+
+          
+
+          
+            
+
+            
+
+          
+
         
 
       
@@ -136,6 +148,8 @@ This table lists the available Salesforce Pricing resources.
 | [`/connect/core-pricing/pricing`](./connect_resources_headless.htm.md) (POST) | Create and hydrate context instance in a single request. Provide a comprehensive response that contains final pricing details per line items and related errors, if any. |
 | [`/connect/core-pricing/sync/pricingSyncOrigin`](./connect_resources_pricing_data_sync.htm.md) (GET) | Sync pricing data to ensure that the lookup tables contain the latest pricing data. |
 | [`/connect/core-pricing/recipe`](./connect_resources_pricing_recipe.htm.md) (GET) | Get the mapping details of pricing recipes to the associated pricing recipe table. |
+| [`/connect/core-pricing/revenue/pricing-recipe/valid-elements`](./connect_resources_get_valid_pricing_elements.htm.md) (GET) | Get the list of valid pricing element type API names for a given Pricing Usage Sub Type. |
+| [`/connect/core-pricing/revenue/pricing-recipe/clone`](./connect_resources_clone_pricing_recipe.htm.md) (POST) | Clone a pricing recipe with all its associated pricing recipe table mappings. |
 | [`/connect/core-pricing/recipe/mapping`](./connect_resources_price_recipe_mapping.htm.md) (POST) | Create a mapping between the pricing recipe and the Decision Tables. Post recipes with lookup tables or procedures. |
 | [`/connect/core-pricing/versioned-revise-details`](./connect_resources_versioned_revise_details.htm.md) (POST) | Create revisions of a pricing request with versions for adjustment entities. |
 | [`/connect/core-pricing/waterfall/lineItemId/executionId`](./connect_resources_pricing_waterfall_fetch.htm.md) (GET) | Get the persisted price waterfall that stores the process logs. Price waterfall provides insights into every step of the pricing process. |

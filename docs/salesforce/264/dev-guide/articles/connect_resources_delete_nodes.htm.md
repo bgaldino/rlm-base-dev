@@ -7,79 +7,71 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Configurator Delete Nodes (POST)
 
 Delete nodes from a product configuration.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
-            
+      
 
 ```
 /connect/cpq/configurator/actions/delete-nodes
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Resource example**
+## Resource Example
 
-          
-: 
-            
+      
+      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/actions/delete-nodes
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 60.0
+      
+      
 
-        
-        
-          
+60.0
 
-**HTTP methods**
+    
 
-          
-: POST
+    
 
-        
-        
-          
+## HTTP Methods
 
-**Request body for POST**
+      
+      
 
-          
-: 
-            
+POST
 
-**JSON example**
+    
 
-: 
+    
+
+## Request Body for POST
+
+      
+      
+
+**JSON Example**
+
+      
 
 ```
 {
@@ -105,10 +97,89 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator
 }
 ```
 
+      
+
 **Properties**
 
-: 
+      
 
+          
+          
+          
+          
+          
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+          
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `configurator​Options` | [Configurator Options Input](./connect_requests_configurator_options_input.htm.md) | List of the configuration options to execute. | Optional | 60.0 |
@@ -116,14 +187,13 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator
 | `deleted​Nodes` | [Configurator Deleted Node Input](./connect_requests_configurator_deleted_node_input.htm.md)[] | List of the nodes to be deleted. | Required | 60.0 |
 | `qualification​Context` | [User Context Input](./connect_requests_configurator_user_context_input.htm.md) | Context details that are used for the qualification rules. | Optional | 60.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for POST**
+## Response Body for POST
 
-          
-: [Configurator Delete
-              Nodes](./connect_responses_delete_nodes_configurator_output.htm.md)
+      
+      
+
+[Configurator Delete Nodes](./connect_responses_delete_nodes_configurator_output.htm.md)

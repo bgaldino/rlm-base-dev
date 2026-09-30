@@ -225,12 +225,13 @@ signal is blind to one of those cases:
    is invisible to both signals at once.
 
    A shared join is **symmetric**, so it cannot say by itself who inherited from
-   whom. Four exclusions keep the signal off the wrong branch, and every one was a
+   whom. Five exclusions keep the signal off the wrong branch, and every one was a
    false positive first:
 
    | skipped | why |
    |---------|-----|
    | head already in the base | the release integration PR (`264` → `main`) has the base branch *as* its head, which otherwise flags every branch up to date with base — making a stale branch read cleaner than a current one |
+   | a join merged in from the other PR's base | those commits have merged there, so they are not that PR's work. The sync PR (`main` merged into `264`, #471) shares main's merged commits with every open PR cut from `main` and was reported as stacked on all of them. Only a join reached through a merge (off this head's first-parent line) qualifies: the other base may itself be an unmerged integration branch, and a branch *built on* it still carries that work on its first-parent line, so it is still reported |
    | a fork's head | not in this checkout; the `<remote>/<branch>` fallback would resolve a fork PR on a branch named `264` to *our* `264` |
    | a PR that targets **this** branch | that is a declared child stack. History cannot tell it from a parent: a child cut from our `B` while we advance to `C` is the same graph. Without it, a parent PR failed its own gate as soon as it took a review fix |
    | a descendant of this head | the unmoved form of the same case |
@@ -264,7 +265,7 @@ reinstate the exact false negative the fetch exists to prevent, and it would do 
 precisely when something is wrong (offline, dead credential). Skipping the fetch is
 still available, but only by asking for it with `--no-fetch`.
 
-Verified by `tests/test_branch_scope.py` (74 checks, throwaway repos, no network),
+Verified by `tests/test_branch_scope.py` (78 checks, throwaway repos, no network),
 which reproduces the `#264-56` shape (5 inherited + 3 own → "5 of 8"), the rebase
 that fixes it, a reworded inherited commit, a true-merged parent, a stale base
 (which reports clean — so the fetch is load-bearing), a failing fetch (exit 2), a
@@ -273,7 +274,7 @@ remote, and the exit-code contract. Signal 2 is driven end to end through `--pr`
 against a stubbed `gh`; testing only its ancestor helper let three mutations that
 delete the signal outright pass. Emptying the PR loop, inverting the ancestor test
 at either place, dropping `stacked` from the failure condition, disabling the
-containment or fork guard, and either removing the fetch or letting it fail
+containment, other-base or fork guard (or dropping its first-parent scope), and either removing the fetch or letting it fail
 silently each fail the suite.
 
 **Used by:** `AGENTS.md` §"Merges and unintended diffs",

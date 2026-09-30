@@ -7,24 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Configurator Product Related Component
 
-Output representation of the product related component in a product
-    configuration.
+Output representation of the product related component in a product configuration.
 
-        
-          
+    
 
-**JSON example**
+## JSON Example
 
-          
-: 
-            
+      
+      
 
 ```
 
@@ -46,9 +41,9 @@ Output representation of the product related component in a product
          }
 ```
 
-          
+    
 
-        
+    
       
 
           
@@ -275,9 +270,6 @@ Output representation of the product related component in a product
 
               
 
-- 
-- 
-
               
 
               
@@ -290,11 +282,6 @@ Output representation of the product related component in a product
               
 
               
-
-- 
-- 
-- 
-- 
 
               
 
@@ -335,6 +322,6 @@ Output representation of the product related component in a product
 | `product​Component​GroupId` | String | ID of the product component group. | Small, 60.0 | 60.0 |
 | `product​Relationship​TypeId` | String | ID of the product relationship type record. | Small, 60.0 | 60.0 |
 | `quantity` | Double | Quantity of the child products. | Small, 60.0 | 60.0 |
-| `quantity​Scale​Method` | String | Method to scale the quantity of the child product in relation to the quantity of the parent. Valid values are: `Constant` `Proportional` | Small, 60.0 | 60.0 |
-| `quote​Visibility` | String | Specifies whether a quote line item must be shown on the transaction line editor or quote document. Valid values are: `Always` `Transaction Line Editor Only`—Specifies whether to show a quote line item on quote editor only. `Quote Document Only`—Specifies whether to show a quote line item on quote proposal only. `Never` The API returns this property only if the CoreCPQ permission set is available. | Small, 64.0 | 64.0 |
+| `quantity​Scale​Method` | String | Method to scale the quantity of the child product in relation to the quantity of the parent. Valid values are `Constant` or `Proportional`. | Small, 60.0 | 60.0 |
+| `quote​Visibility` | String | Specifies whether a quote line item must be shown on the transaction line editor or quote document. Valid values are `Always`, `Transaction Line Editor Only`—Specifies whether to show a quote line item on quote editor only, `Quote Document Only`—Specifies whether to show a quote line item on quote proposal only, or `Never`. The API returns this property only if the CoreCPQ permission set is available. | Small, 64.0 | 64.0 |
 | `sequence` | Integer | Order in which the child products are displayed. | Small, 60.0 | 60.0 |

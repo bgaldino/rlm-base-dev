@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # ConfigRuleResult Class
 
@@ -56,45 +54,95 @@ The `ConfigRuleResult` class includes this
 
 Constructor to create a ConfigRuleResult instance with configuration rule evaluation results.
 
+  
+
 ### ConfigRuleResult(transactionContextId, messageRules, productRecommendationRules, visibilityRules, errors)
 
+  
+  
+  
 Constructor to create a ConfigRuleResult instance with configuration rule evaluation results.
+
+    
 
 #### Signature
 
+      
+      
+
 `public ConfigRuleResult(String transactionContextId, List<runtime_industries_cpq.MessageRule> messageRules, List<runtime_industries_cpq.ProductRecommendationRule> productRecommendationRules, List<runtime_industries_cpq.VisibilityRule> visibilityRules, List<String> errors)`
+
+      
+    
+
+    
 
 #### Parameters
 
+      
+      
+
 **transactionContextId**
 
-: Type: String
+      
 
-: The ID of the transaction context for this configuration rule evaluation.
+Type: String
+
+      
+
+The ID of the transaction context for this configuration rule evaluation.
+
+      
 
 **messageRules**
 
-: Type: List<runtime_industries_cpq.MessageRule>
+      
 
-: List of message rules that were evaluated during configuration.
+Type: List<runtime_industries_cpq.MessageRule>
+
+      
+
+List of message rules that were evaluated during configuration.
+
+      
 
 **productRecommendationRules**
 
-: Type: List<runtime_industries_cpq.ProductRecommendationRule>
+      
 
-: List of product recommendation rules that were evaluated during configuration.
+Type: List<runtime_industries_cpq.ProductRecommendationRule>
+
+      
+
+List of product recommendation rules that were evaluated during configuration.
+
+      
 
 **visibilityRules**
 
-: Type: List<runtime_industries_cpq.VisibilityRule>
+      
 
-: List of visibility rules that were evaluated during configuration.
+Type: List<runtime_industries_cpq.VisibilityRule>
+
+      
+
+List of visibility rules that were evaluated during configuration.
+
+      
 
 **errors**
 
-: Type: List<String>
+      
 
-: List of error messages from the configuration rule evaluation, if any.
+Type: List<String>
+
+      
+
+List of error messages from the configuration rule evaluation, if any.
+
+    
+
+  
 
   
 

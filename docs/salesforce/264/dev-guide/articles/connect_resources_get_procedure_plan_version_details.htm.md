@@ -7,95 +7,90 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Procedure Plan Version Details (GET, PATCH, DELETE)
 
-Get, update, or delete a procedure plan definition version record by
-      using the record ID.
+Get, update, or delete a procedure plan definition version record by using the record ID.
 
     
+
+## Resource
+
       
-        
-          
-
-**Resource**
-
-          
-: 
+      
 
 ```
 /connect/procedure-plan-definitions/versions/procedurePlanVersionId
 ```
 
-The
-              `procedurePlanVersionId` property value is the ID
-            or name of the procedure plan version record to perform the request for.
+      
 
-        
-        
-          
+The `procedurePlanVersionId` property value is the ID or name of the procedure plan version record to perform the request for.
 
-**Resource example**
+    
 
-          
-: 
-            
+    
+
+## Resource Example
+
+      
+      
 
 ```
 https://yourInstance.salesforce.com​/services/data​/v68.0/connect/​procedure-plan-definitions/​versions/1Cvxx0000004E1ACAU
 ```
 
-          
+    
 
-        
-        
-          
+    
 
-**Available version**
+## Available Version
 
-          
-: 62.0
+      
+      
 
-        
-        
-          
+62.0
 
-**HTTP methods**
+    
 
-          
-: DELETE, GET, PATCH
+    
 
-          
-: You can’t delete a procedure plan version if it’s the only procedure plan version in a
-            procedure plan definition.
+## HTTP Methods
 
-        
-        
-          
+      
+      
 
-**Response body for GET**
+DELETE, GET, PATCH
 
-          
-: [Procedure Plan
-              Definition Version](./connect_responses_procedure_plan_definition_version_output.htm.md)
+      
 
-        
-        
-          
+You can’t delete a procedure plan version if it’s the only procedure plan version in a procedure plan definition.
 
-**Request body for PATCH**
+    
 
-          
-: 
-            
+    
 
-**JSON example**
+## Response Body for GET
 
-: 
+      
+      
+
+[Procedure Plan Definition Version](./connect_responses_procedure_plan_definition_version_output.htm.md)
+
+    
+
+    
+
+## Request Body for PATCH
+
+      
+      
+
+**JSON Example**
+
+      
 
 ```
 {
@@ -155,42 +150,197 @@ https://yourInstance.salesforce.com​/services/data​/v68.0/connect/​procedu
 }
 ```
 
-#### Note
+      
 
-The properties that aren’t specified in the input are deleted when updating the
-              record.
+**Note:** The properties that aren’t specified in the input are deleted when updating the record.
+
+      
 
 **Properties**
 
-: 
+      
 
-                    
+          
+          
+          
+          
+          
+          
+            
+              
 
-                    
+              
 
-                    
+              
 
-                    
+              
 
-                    
+              
 
-                  
+            
 
-                    
+          
 
-                    
+          
+            
+              
 
-                    
+              
 
-                    
+              
 
-                    
+              
 
-                  
+              
 
-- 
-- 
+            
 
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+            
+              
+
+              
+
+              
+
+              
+
+              
+
+            
+
+          
+
+        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `active` | Boolean | Indicates whether this procedure plan definition version is active (`true`) or not (`false`). You can’t edit or delete a procedure plan version that’s in the active state. | Required | 62.0 |
@@ -199,20 +349,20 @@ The properties that aren’t specified in the input are deleted when updating th
 | `effective​From` | String | Date and time from when the procedure plan definition version comes into effect. | Required | 62.0 |
 | `effective​To` | String | Date and time from when the procedure plan definition version is no longer in effect. | Required | 62.0 |
 | `inherited​From` | String | Template this procedure plan definition version is created from. | This property is read-only. | 62.0 |
-| `procedure​PlanSections` | [Procedure Plan Section Input](./connect_requests_procedure_plan_section_input.htm.md)[] | Procedure setup sections for a procedure plan definition. Each section enables the setup of a procedure type by using a rule-based criteria. Keep these considerations in mind when you modify this property. You can edit or delete a procedure plan section if it isn’t associated with an active procedure plan version. You can create a procedure plan section with rule-based resolution type if the primary object isn’t empty in the definition. | Required | 62.0 |
+| `procedure​PlanSections` | [Procedure Plan Section Input](./connect_requests_procedure_plan_section_input.htm.md)[] | Procedure setup sections for a procedure plan definition. Each section enables the setup of a procedure type by using a rule-based criteria. Keep these considerations in mind when you modify this property. You can edit or delete a procedure plan section if it isn’t associated with an active procedure plan version or You can create a procedure plan section with rule-based resolution type if the primary object isn’t empty in the definition. | Required | 62.0 |
 | `rank` | Integer | Current rank of the procedure plan definition version that’s used to decide the sequence of execution of a procedure plan definition version. | Required | 62.0 |
 | `readContext​Mapping` | String | Mapping that’s used to read data from the mapped object and populate the context definition. This property value must be associated with a context definition. | Optional | 62.0 |
 | `recordId` | String | ID of the procedure plan definition version record. | Required | 62.0 |
 | `saveContext​Mapping` | String | Mapping that’s used to save data from the context definition and populate the mapped object. This property value must be associated with a context definition. | Optional | 62.0 |
 | `status` | String | Status of the procedure plan definition version record. | Optional | 62.0 |
 
-          
+    
 
-        
-        
-          
+    
 
-**Response body for PATCH**
+## Response Body for PATCH
 
-          
-: [Procedure Plan Generic](./connect_responses_procedure_plan_generic_output.htm.md)
+      
+      
+
+[Procedure Plan Generic](./connect_responses_procedure_plan_generic_output.htm.md)

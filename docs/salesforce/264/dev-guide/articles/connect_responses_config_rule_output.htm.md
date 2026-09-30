@@ -7,23 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-09-29
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Configuration Rule Response
 
 Output representation of the details of the configuration rule response.
 
-        
-          
+    
 
-**JSON example**
+## JSON Example
 
-          
-: 
-            
+      
+      
 
 ```
 {
@@ -141,9 +137,9 @@ Output representation of the details of the configuration rule response.
 }
 ```
 
-          
+    
 
-        
+    
       
 
           
@@ -257,6 +253,10 @@ Output representation of the details of the configuration rule response.
 | `success` | Boolean | Indicates whether the API request is successful (`true`) or not (`false`). | Small, 67.0 | 67.0 |
 | `transaction​ContextId` | String | ID of the transaction context for this configuration rule evaluation. | Small, 67.0 | 67.0 |
 | `visibility​Rules` | [Visibility Rules](./connect_responses_visibility_rules_output.htm.md)[] | List of visibility rules that were evaluated during configuration. | Small, 67.0 | 67.0 |
+
+    
+
+  
 
 - 
 **[Configuration Rule Errors](./connect_responses_config_rule_errors_output.htm.md)**  
