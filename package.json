@@ -5,11 +5,11 @@
   "description": "Salesforce Revenue Lifecycle Management Base",
   "license": "Apache-2.0",
   "scripts": {
-    "test": "sfdx-lwc-jest",
+    "test": "sfdx-lwc-jest -- --passWithNoTests",
     "test:watch": "sfdx-lwc-jest --watch",
-    "test:coverage": "sfdx-lwc-jest --coverage",
-    "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,yaml,yml}\"",
-    "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,yaml,yml}\"",
+    "test:coverage": "sfdx-lwc-jest --coverage -- --passWithNoTests",
+    "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,page,trigger,yaml,yml}\"",
+    "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,page,trigger,yaml,yml}\"",
     "lint": "eslint \"force-app/**/lwc/**/*.js\" \"unpackaged/**/lwc/**/*.js\"",
     "lint:fix": "eslint \"force-app/**/lwc/**/*.js\" \"unpackaged/**/lwc/**/*.js\" --fix"
   },

@@ -10,7 +10,9 @@ unpackaged/post_ux/
 # Build harness runtime artifacts
 .harness/
 
-# Minified / generated assets
+# Minified / generated / vendored assets (static resources ship third-party
+# bundles such as Babylon.js verbatim — never reformat them)
+**/staticresources/**
 **/*.min.js
 **/*.min.css
 

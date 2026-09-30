@@ -105,8 +105,7 @@ For LWC work, check the files you touched rather than the whole repo:
 ```sh
 npx eslint <changed-lwc-files>
 npx prettier --check <changed-files>
-npm test -- --passWithNoTests                              # Jest — the repo has no LWC suites yet,
-                                                           # so a bare `npm test` exits 1
+npm test                                                   # Jest (passes with no suites; the repo has none yet)
 ```
 
 `prettier --check` formats Apex but never compiles or runs it. **Apex changes
