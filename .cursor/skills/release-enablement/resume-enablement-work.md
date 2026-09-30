@@ -39,7 +39,7 @@ Read these three files end-to-end before doing anything else:
 Optional (read when you encounter the relevant edge case):
 
 - **[`authoring-patterns.md`](authoring-patterns.md)** — 11 patterns for handling edge cases (upgrade guidance, known issues, sub-features, cross-area features, scenario threading, version-aware section metadata, license-scope split, etc.)
-- **[`docs/salesforce/{260,262,264}/feature-index.md`](../../../docs/salesforce/260/feature-index.md)** — per-release feature inventories (264 is a scaffold; see its header)
+- **[`docs/salesforce/{260,262,264}/feature-index.md`](../../../docs/salesforce/260/feature-index.md)** — per-release feature inventories (264 is Help-derived, New vs Expanded, no tier column yet; see its header)
 
 ### 3. Check what's drafted vs pending
 
@@ -80,9 +80,9 @@ Then ask the user what they'd like to do next. **Do not start authoring or editi
 | Capability | Why |
 |---|---|
 | **File system** for the repo | Always required |
-| **Chrome MCP** | If you need to capture content from `help.salesforce.com` (the Help portal is a SPA — `WebFetch` won't work; only Chrome with a recursive shadow-DOM walker) |
+| **Snapshot tasks** | To capture `help.salesforce.com` content, use the `snapshot_*_help_*` and `snapshot_revenue_release_notes_*` CCI tasks (Playwright + shadow-DOM walker; see `revenue-cloud-docs/SKILL.md`). The Help portal is a SPA, so `WebFetch` won't work |
 | **Bash / shell** | For `git`, `pdftotext` extraction from master Help PDFs, etc. |
-| **Web tools** (WebSearch, WebFetch) | For finding URLs and lightly-trafficked pages; the SPA Help portal needs Chrome |
+| **Web tools** (WebSearch, WebFetch) | For finding URLs and lightly-trafficked pages; the SPA Help portal needs the snapshot tasks |
 
 The user may need to re-grant these on the new workstation. If you don't have a tool you expect, ask the user before assuming the tool is unavailable.
 
