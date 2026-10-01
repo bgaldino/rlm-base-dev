@@ -247,6 +247,34 @@ def main():
     except CommandException:
         check("validate_discovery rejects an unstabilized above-floor result", True)
 
+    # PR #485 review: subtree_only prunes from the whole walk, so stability on
+    # the kept count alone is not enough. Here the root subtree is complete from
+    # the first read while an outside branch is still hydrating; the walk must
+    # not stabilize until the full (id, parent) set repeats.
+    root = {"id": "rn.rev.htm", "title": "", "parent_id": None}
+    outside = [{"id": f"rn.out_{n}.htm", "title": "", "parent_id": None} for n in range(3)]
+    t7d = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm",
+                subtree_only=True, wait_ms=1, discover_timeout_ms=10)
+    page7d = _FakePage([[root] + outside[:1], [root] + outside[:2],
+                        [root] + outside, [root] + outside])
+    result7d, stabilized7d = asyncio.run(run_discover(t7d, page7d))
+    check("subtree_only waits for the out-of-subtree walk to stop changing",
+          page7d.evaluate_calls == 4 and len(result7d) == 4)
+    check("subtree_only walk reports stabilized once the full set repeats",
+          stabilized7d is True)
+
+    # PR #487 review: _classify_subtree also reads top_level, so an
+    # aria-level="1" flag that changes between reads whose IDs and parents
+    # already repeat must keep the walk polling (2 reads under the old key).
+    flat = {"id": "rn.out_top.htm", "title": "", "parent_id": None}
+    t7e = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm",
+                subtree_only=True, wait_ms=1, discover_timeout_ms=10)
+    page7e = _FakePage([[root, flat], [root, dict(flat, top_level=True)]])
+    result7e, stabilized7e = asyncio.run(run_discover(t7e, page7e))
+    check("subtree_only waits for a late top_level flag to stop changing",
+          page7e.evaluate_calls == 3 and stabilized7e is True
+          and result7e[1].get("top_level") is True)
+
     # --- _filter_discovered subtree_only ------------------------------------
     # Release notes share one `release-notes.rn_` prefix across every product,
     # so the prefix alone kept all 1,596 sidebar IDs when only the Revenue
@@ -272,6 +300,127 @@ def main():
     check("subtree_only still applies the prefix filter",
           [d["id"] for d in t16._filter_discovered(tree)]
           == ["rn.rev_billing.htm", "rn.rev_billing_forecast.htm"])
+
+    # --- _prune_moved_out subtree_only prune (PR #481/#483/#485 review) ----
+    # A pre-GA note that moves out of the root subtree must leave this area's
+    # manifest and article files, or mode=refresh recaptures it. Only IDs the
+    # walk positively saw outside the subtree are pruned: a record merely
+    # absent from the walk stays, because a partial walk can stabilize above
+    # expect_min_articles. Another area's record in the shared manifest is kept.
+    # The prune only edits the manifest and returns the IDs: _async_run deletes
+    # the files after saving the manifest, so a crash between the two leaves an
+    # orphan file, never a captured record whose file is gone (PR #485 review).
+    manifest = {"articles": [
+        {"article_id": "rn.rev_billing.htm", "status": "captured", "area": "revenue"},
+        {"article_id": "rn.rev_moved.htm", "status": "captured", "area": "revenue"},
+        {"article_id": "rn.legacy_moved.htm", "status": "captured"},
+        {"article_id": "rn.rev_unseen.htm", "status": "captured", "area": "revenue"},
+        {"article_id": "rn.other.htm", "status": "captured", "area": "sales"},
+    ]}
+    walk = [{"id": "rn.rev.htm", "title": "", "parent_id": None},
+            {"id": "rn.rev_billing.htm", "title": "", "parent_id": "rn.rev.htm"}]
+    moved = {"rn.rev_moved.htm", "rn.legacy_moved.htm", "rn.other.htm"}
+    t17 = _task(area="revenue", subtree_only=True)
+    pruned17 = t17._prune_moved_out(manifest, moved)
+    check("subtree_only returns the pruned current-area and untagged IDs",
+          sorted(pruned17) == ["rn.legacy_moved.htm", "rn.rev_moved.htm"])
+    ids = [a["article_id"] for a in t17._merge_discovered(manifest, walk)["articles"]]
+    check("subtree_only prunes current-area and untagged records seen outside the subtree",
+          ids == ["rn.other.htm", "rn.rev.htm", "rn.rev_billing.htm", "rn.rev_unseen.htm"])
+    check("subtree_only keeps a record merely absent from a partial walk",
+          "rn.rev_unseen.htm" in ids)
+    t18 = _task(area="revenue")
+    keep = {"articles": [{"article_id": "rn.rev_moved.htm", "status": "captured", "area": "revenue"}]}
+    check("without subtree_only nothing is pruned",
+          t18._prune_moved_out(keep, moved) == [])
+    check("without subtree_only the merge stays add-only",
+          [a["article_id"] for a in t18._merge_discovered(keep, walk)["articles"]]
+          == ["rn.rev.htm", "rn.rev_billing.htm", "rn.rev_moved.htm"])
+
+    # PR #487 review: the manifest save must happen before the file delete.
+    # A save that fails leaves the pruned file in place; a save that succeeds
+    # is followed by the delete.
+    import pathlib
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        adir = pathlib.Path(tmp)
+        stale = adir / "rn.rev_moved.htm.md"
+        stale.write_text("x")
+        t18b = _task(area="revenue", subtree_only=True)
+        events = []
+
+        def failing_save(path, m):
+            events.append(("save", stale.exists()))
+            raise OSError("disk full")
+        t18b._save_manifest = failing_save
+        try:
+            t18b._save_then_delete(adir / "manifest.json", {}, adir, {"rn.rev_moved.htm"})
+        except OSError:
+            pass
+        check("a failed manifest save leaves the pruned file in place",
+              stale.exists() and events == [("save", True)])
+        t18b._save_manifest = lambda path, m: events.append(("save", stale.exists()))
+        t18b._save_then_delete(adir / "manifest.json", {}, adir, {"rn.rev_moved.htm"})
+        check("the manifest is saved before the pruned file is deleted",
+              events[-1] == ("save", True) and not stale.exists())
+
+        # PR #487 review: a file orphaned after an earlier run's save has no
+        # manifest record left, so the prune cannot return it again. The next
+        # validated walk still deletes it, while a moved-out ID that another
+        # area records keeps its file.
+        orphan = adir / "rn.rev_orphan.htm.md"
+        shared = adir / "rn.other.htm.md"
+        orphan.write_text("x")
+        shared.write_text("x")
+        t18b._save_manifest = lambda path, m: None
+        t18b._save_then_delete(
+            adir / "manifest.json",
+            {"articles": [{"article_id": "rn.other.htm", "area": "sales"}]},
+            adir, {"rn.rev_orphan.htm", "rn.other.htm"})
+        check("a later walk deletes a moved-out file left orphaned by an earlier run",
+              not orphan.exists())
+        check("a moved-out file another area still records is kept",
+              shared.exists())
+
+    # PR #483 review round 3: parent extraction is best-effort, so only a
+    # complete chain to an ancestor of the root proves an article moved out.
+    # rn.gap's parent is missing from the walk and rn.flat has no parent at
+    # all; both are "unknown" and must never be pruned.
+    t19 = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm", subtree_only=True)
+    gappy = tree + [
+        {"id": "rn.gap.htm", "title": "", "parent_id": "rn.unwalked.htm"},
+        {"id": "rn.flat.htm", "title": "", "parent_id": None},
+    ]
+    where = t19._classify_subtree(gappy)
+    check("classify: a descendant of the root is in",
+          where["rn.rev_billing_forecast.htm"] == "in")
+    check("classify: a sibling-branch article with a complete chain is out",
+          where["rn.sales_x.htm"] == "out")
+    check("classify: a broken or missing parent chain is unknown, not out",
+          where["rn.gap.htm"] == where["rn.flat.htm"] == where["rn.loop_a.htm"] == "unknown")
+    t20 = _task(article_id_prefix="rn.", root_article_id="rn.orphan_root.htm", subtree_only=True)
+    check("classify: without a top-level signal, a parentless end is unknown",
+          "out" not in t20._classify_subtree(
+              tree + [{"id": "rn.orphan_root.htm", "title": "", "parent_id": None}]).values())
+    # The live 264 shape: the Revenue root has no parent, and other sections
+    # chain to a separate aria-level 1 tree root. A complete chain to that
+    # top-level node is out; a chain broken before it stays unknown.
+    live = [
+        {"id": "rn.revenue.htm", "title": "", "parent_id": None},
+        {"id": "rn.revenue_billing.htm", "title": "", "parent_id": "rn.revenue.htm"},
+        {"id": "rn.all.htm", "title": "", "parent_id": None, "top_level": True},
+        {"id": "rn.sales.htm", "title": "", "parent_id": "rn.all.htm"},
+        {"id": "rn.sales_moved.htm", "title": "", "parent_id": "rn.sales.htm"},
+        {"id": "rn.broken.htm", "title": "", "parent_id": "rn.unwalked.htm"},
+    ]
+    t21 = _task(article_id_prefix="rn.", root_article_id="rn.revenue.htm", subtree_only=True)
+    where21 = t21._classify_subtree(live)
+    check("classify: a complete chain to another top-level tree root is out",
+          where21["rn.sales_moved.htm"] == where21["rn.all.htm"] == "out")
+    check("classify: the root's own descendants stay in beside a top-level peer",
+          where21["rn.revenue_billing.htm"] == "in")
+    check("classify: a chain broken before the top-level node stays unknown",
+          where21["rn.broken.htm"] == "unknown")
 
     # --- _capture_one not-found-shell detection (PR #409 review) -----------
     # The Help portal renders a real H1 for a broken/retired article id
