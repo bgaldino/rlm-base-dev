@@ -193,6 +193,28 @@ def test_display_failure_names_alias():
     _no_leak("display failure", error, logs)
 
 
+def test_display_bad_output_raises_without_token():
+    # PR #492 review round 3 (class from #493): sf org display's own output.
+    print("test_display_bad_output_raises_without_token")
+    cases = [
+        ("display non-JSON with token", _completed(stdout=f"Access token: {TOKEN}"),
+         ["non-JSON", ALIAS]),
+        ("display top-level list", _completed(stdout="[]"), ["instanceUrl"]),
+        ("display non-object result", _completed(stdout=json.dumps({"result": []})),
+         ["unexpected JSON shape", ALIAS]),
+    ]
+    for label, response, expected in cases:
+        lib, calls, error, logs = _run([response])
+        check(f"{label}: raises AssertionError", isinstance(error, AssertionError), error)
+        for fragment in expected:
+            check(f"{label}: message has {fragment!r}", error is not None and fragment in str(error), error)
+        check(f"{label}: no fallback call", len(calls) == 1, calls)
+        _no_leak(label, error, logs)
+    lib, calls, error, logs = _run([_completed(stdout=f"Access token: {TOKEN}")])
+    check("display non-JSON: decode error not chained",
+          error is not None and error.__cause__ is None and error.__suppress_context__)
+
+
 def test_fallback_failures_raise_without_token():
     print("test_fallback_failures_raise_without_token")
     cases = [
@@ -205,6 +227,8 @@ def test_fallback_failures_raise_without_token():
         ("non-JSON stdout", _completed(stdout=f"Access token: {TOKEN}"), ["non-JSON", ALIAS]),
         ("still redacted", _show(token=REDACTED), ["did not return a usable", ALIAS]),
         ("no result", _completed(stdout=json.dumps({"status": 0})), ["did not return a usable", ALIAS]),
+        ("non-object result", _completed(stdout=json.dumps({"result": "x"})),
+         ["unexpected JSON shape", ALIAS]),
         ("timeout", subprocess.TimeoutExpired(cmd="sf", timeout=30), ["timed out after 30", ALIAS]),
     ]
     for label, response, expected in cases:
@@ -243,6 +267,7 @@ def main():
         test_missing_display_token_falls_back,
         test_missing_instance_url_fails_before_fallback,
         test_display_failure_names_alias,
+        test_display_bad_output_raises_without_token,
         test_fallback_failures_raise_without_token,
         test_already_authenticated_skips_sf,
     ):

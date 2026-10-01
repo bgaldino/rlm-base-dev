@@ -35,6 +35,23 @@ def _looks_like_a_real_token(token):
     return isinstance(token, str) and token.startswith(_REAL_TOKEN_PREFIX)
 
 
+def _result_object(data, command, org_alias):
+    """Return the ``result`` object of an sf ``--json`` response.
+
+    A non-object top level reads as an empty result, so the caller's
+    instanceUrl or usable-token check fails with its own message. A non-object
+    ``result`` raises, rather than an AttributeError from ``.get()``.
+    """
+    result = data.get("result") if isinstance(data, dict) else None
+    if result is None:
+        return {}
+    if not isinstance(result, dict):
+        raise AssertionError(
+            f"{command} returned an unexpected JSON shape for org alias '{org_alias}'."
+        )
+    return result
+
+
 class SalesforceAPI:
     """Keyword library for Salesforce REST API operations in E2E tests."""
 
@@ -85,8 +102,15 @@ class SalesforceAPI:
                 f"sf org display failed for org alias '{org_alias}' "
                 f"(rc={result.returncode}): {result.stderr}"
             )
-        data = json.loads(result.stdout)
-        org_result = data.get("result", {})
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            # `from None`: with SF_TEMP_SHOW_SECRETS on, this stdout holds the
+            # token, and the decode error keeps it in `.doc`.
+            raise AssertionError(
+                f"sf org display returned non-JSON output for org alias '{org_alias}'."
+            ) from None
+        org_result = _result_object(data, "sf org display", org_alias)
         access_token = org_result.get("accessToken")
         instance_url = (org_result.get("instanceUrl") or "").rstrip("/")
         if not instance_url:
@@ -140,7 +164,9 @@ class SalesforceAPI:
                 "sf org auth show-access-token --json returned non-JSON output "
                 f"for org alias '{org_alias}'."
             ) from None
-        token = (data.get("result") or {}).get("accessToken")
+        token = _result_object(
+            data, "sf org auth show-access-token", org_alias
+        ).get("accessToken")
         if not _looks_like_a_real_token(token):
             raise AssertionError(
                 "sf org auth show-access-token did not return a usable access "
