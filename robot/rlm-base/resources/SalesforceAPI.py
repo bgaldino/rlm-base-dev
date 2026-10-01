@@ -91,12 +91,14 @@ class SalesforceAPI:
                 text=True,
                 timeout=self.REQUEST_TIMEOUT,
             )
-        except subprocess.TimeoutExpired as exc:
+        except subprocess.TimeoutExpired:
+            # `from None`: TimeoutExpired keeps the captured stdout, which holds
+            # the token when SF_TEMP_SHOW_SECRETS is on.
             raise AssertionError(
                 f"sf org display timed out after {self.REQUEST_TIMEOUT} seconds "
                 f"for org alias '{org_alias}'. This likely indicates a hung sf CLI "
                 "auth refresh or a stalled network connection."
-            ) from exc
+            ) from None
         if result.returncode != 0:
             raise AssertionError(
                 f"sf org display failed for org alias '{org_alias}' "
@@ -115,7 +117,7 @@ class SalesforceAPI:
         instance_url = (org_result.get("instanceUrl") or "").rstrip("/")
         if not instance_url:
             raise AssertionError(
-                "sf org display did not return instanceUrl. "
+                f"sf org display did not return instanceUrl for org alias '{org_alias}'. "
                 f"Keys present: {list(org_result.keys())}"
             )
         if not _looks_like_a_real_token(access_token):
@@ -142,11 +144,13 @@ class SalesforceAPI:
                 text=True,
                 timeout=self.REQUEST_TIMEOUT,
             )
-        except subprocess.TimeoutExpired as exc:
+        except subprocess.TimeoutExpired:
+            # `from None`: TimeoutExpired keeps the captured stdout, which is the
+            # credential here.
             raise AssertionError(
                 "sf org auth show-access-token timed out after "
                 f"{self.REQUEST_TIMEOUT} seconds for org alias '{org_alias}'."
-            ) from exc
+            ) from None
         if result.returncode != 0:
             # Neither stream goes into the error: this command prints the
             # credential on stdout, and a partial or failed run could too.

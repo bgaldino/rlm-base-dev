@@ -199,7 +199,7 @@ def test_display_bad_output_raises_without_token():
     cases = [
         ("display non-JSON with token", _completed(stdout=f"Access token: {TOKEN}"),
          ["non-JSON", ALIAS]),
-        ("display top-level list", _completed(stdout="[]"), ["instanceUrl"]),
+        ("display top-level list", _completed(stdout="[]"), ["instanceUrl", ALIAS]),
         ("display non-object result", _completed(stdout=json.dumps({"result": []})),
          ["unexpected JSON shape", ALIAS]),
     ]
@@ -229,7 +229,7 @@ def test_fallback_failures_raise_without_token():
         ("no result", _completed(stdout=json.dumps({"status": 0})), ["did not return a usable", ALIAS]),
         ("non-object result", _completed(stdout=json.dumps({"result": "x"})),
          ["unexpected JSON shape", ALIAS]),
-        ("timeout", subprocess.TimeoutExpired(cmd="sf", timeout=30), ["timed out after 30", ALIAS]),
+        ("timeout", subprocess.TimeoutExpired(cmd="sf", timeout=30, output=TOKEN), ["timed out after 30", ALIAS]),
     ]
     for label, response, expected in cases:
         lib, calls, error, logs = _run([_display(), response])
@@ -238,6 +238,16 @@ def test_fallback_failures_raise_without_token():
             check(f"{label}: message has {fragment!r}", error is not None and fragment in str(error), error)
         check(f"{label}: no partial auth state", lib._access_token is None and lib._instance_url is None)
         _no_leak(label, error, logs)
+    # PR #492 review round 4: TimeoutExpired keeps the captured stdout, so it
+    # must not be chained either, for both commands.
+    for label, responses in (
+        ("fallback timeout", [_display(), subprocess.TimeoutExpired(cmd="sf", timeout=30, output=TOKEN)]),
+        ("display timeout", [subprocess.TimeoutExpired(cmd="sf", timeout=30, output=TOKEN)]),
+    ):
+        lib, calls, error, logs = _run(responses)
+        check(f"{label}: TimeoutExpired not chained",
+              error is not None and error.__cause__ is None and error.__suppress_context__, error)
+        check(f"{label}: names the alias", error is not None and ALIAS in str(error), error)
     # The non-JSON case is the one whose stdout holds the token; the decode
     # error (whose `.doc` is that stdout) must not be chained onto ours.
     lib, calls, error, logs = _run([_display(), _completed(stdout=f"Access token: {TOKEN}")])
