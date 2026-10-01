@@ -105,7 +105,10 @@ debugging a run.
    hit the enabled-version guardrail). Handled by `_set_version_active`.
 3. **PATCH is not atomic.** A failed (400) PATCH still commits the parts it
    accepted, so on failure the task **leaves the version deactivated** and raises
-   loudly rather than re-enabling a half-mutated procedure.
+   loudly rather than re-enabling a half-mutated procedure. It reactivates the
+   procedure plans it cascaded off (an inactive plan silently skips its
+   procedures; an active plan over an inactive version fails loudly) and reports
+   every inactive record with its restore command.
 4. **Version `id` handling differs by verb.** A PATCH (replace) body **must keep**
    the version-level `id` (from the `ExpressionSetVersion` sObject) so the server
    matches the version in place. A POST (create) of a new ES **must omit** the

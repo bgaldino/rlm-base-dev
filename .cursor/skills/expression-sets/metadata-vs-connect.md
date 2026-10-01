@@ -34,7 +34,10 @@ runs **deactivate → PATCH/POST → reactivate**, in a guarded `finally`:
 3. HTML-unescape the payload, then PATCH/POST.
 4. On success, reactivate (idempotent — a PATCH body with `enabled:true` already
    reactivates the version). On failure, **leave it deactivated and raise** —
-   PATCH is non-atomic, so a half-applied mutation must not be re-enabled.
+   PATCH is non-atomic, so a half-applied mutation must not be re-enabled. Do
+   reactivate the cascaded procedure plans: an inactive plan is silently skipped
+   (pricing falls back to the Revenue Settings default procedure), while an active
+   plan over the inactive version fails loudly.
 
 Pre-flight ordering is **validate (still-escaped) → strip read-only fields →
 normalize entities → Connect call**. The overlay path runs its

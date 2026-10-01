@@ -1144,9 +1144,116 @@ def test_shipped_fixtures():
         check(f"{name} validates clean", result.passed, result.format_report())
 
 
+class _PlanTransport:
+    """Fake Transport with one ExpressionSetVersion and its procedure plans.
+
+    Enough to drive run_mutation's cascade and failure paths offline. ``plans``
+    maps ProcedurePlanDefinitionVersion Id -> IsActive.
+    """
+
+    def __init__(self, *, plans, esv_active=True):
+        self.plans = dict(plans)
+        self.esv_active = esv_active
+        self.dry_run = False
+        self.logger = lambda *a, **k: None
+
+    def connect(self, method, path, body=None, **kw):
+        return {}
+
+    def get(self, path):
+        return {}
+
+    def sobject(self, method, sobject, record_id=None, body=None, **kw):
+        active = bool((body or {}).get("IsActive"))
+        if sobject == "ExpressionSetVersion":
+            self.esv_active = active
+        elif sobject == "ProcedurePlanDefinitionVersion":
+            self.plans[record_id] = active
+        return {}
+
+    def soql(self, query):
+        if "FROM ProcedurePlanOption" in query:
+            return [{"Id": f"opt{i}",
+                     "ProcedurePlanSection": {"ProcedurePlanVersionId": vid}}
+                    for i, vid in enumerate(sorted(self.plans))]
+        if "FROM ProcedurePlanDefinitionVersion" in query:
+            vid = query.split("Id = '", 1)[1].split("'", 1)[0]
+            return [{"Id": vid, "IsActive": self.plans[vid]}]
+        if "FROM ExpressionSetVersion" in query:
+            return [{"Id": "9QMv", "IsActive": self.esv_active}]
+        return []
+
+
+def test_failed_mutation_keeps_plans_online():
+    """Pack 170: a failed PATCH must not leave the procedure plan deactivated."""
+    print("test_failed_mutation_keeps_plans_online")
+    from scripts.expression_sets._lifecycle import LifecycleEngine
+
+    def boom():
+        raise RuntimeError("PATCH boom")
+
+    def run(t, logs, **kw):
+        engine = LifecycleEngine(t, logger=logs.append, poll_interval_seconds=1)
+        try:
+            engine.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                                mutate=boom, cascade=True, verb="Import", **kw)
+        except RuntimeError as exc:
+            return exc
+        return None
+
+    # Failed PATCH: the version stays off (it may be half-written), but the plan
+    # this run cascaded off is restored, and the failure still raises.
+    logs = []
+    t = _PlanTransport(plans={"1Cv1": True})
+    exc = run(t, logs, activate_after=True)
+    check("failed PATCH still raises", exc is not None and "boom" in str(exc), exc)
+    check("failed PATCH leaves the expression-set version deactivated",
+          t.esv_active is False, t.esv_active)
+    check("failed PATCH reactivates the cascaded procedure plan",
+          t.plans == {"1Cv1": True}, t.plans)
+    check("health report names the inactive version with a restore command",
+          any("ExpressionSetVersion 9QMv" in m and "IsActive=true" in m for m in logs), logs)
+    check("no plan-offline warning when every plan is active",
+          not any("inactive procedure plan is skipped" in m for m in logs), logs)
+
+    # A plan an EARLIER failed run left off is not in this run's cascade, so it
+    # is not reactivated, but the health report must name it (the old message
+    # said "(none)").
+    logs2 = []
+    t2 = _PlanTransport(plans={"1Cv1": True, "1Cv2": False})
+    run(t2, logs2, activate_after=True)
+    check("a plan this run did not deactivate is left as found",
+          t2.plans == {"1Cv1": True, "1Cv2": False}, t2.plans)
+    check("health report names a plan left inactive by an earlier run",
+          any("ProcedurePlanDefinitionVersion 1Cv2" in m for m in logs2), logs2)
+    check("health report warns that an inactive plan prices wrongly",
+          any("inactive procedure plan is skipped" in m for m in logs2), logs2)
+
+    # activate_after=False is an explicit request to leave things off.
+    logs3 = []
+    t3 = _PlanTransport(plans={"1Cv1": True})
+    run(t3, logs3, activate_after=False)
+    check("activate_after=False leaves the cascaded plan off after a failure",
+          t3.plans == {"1Cv1": False}, t3.plans)
+    check("activate_after=False still reports the inactive plan",
+          any("ProcedurePlanDefinitionVersion 1Cv1" in m for m in logs3), logs3)
+
+    # Success path is unchanged and prints no health report.
+    logs4 = []
+    t4 = _PlanTransport(plans={"1Cv1": True})
+    engine4 = LifecycleEngine(t4, logger=logs4.append, poll_interval_seconds=1)
+    engine4.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                         mutate=lambda: None, activate_after=True, cascade=True)
+    check("successful mutation reactivates version and plan",
+          t4.esv_active is True and t4.plans == {"1Cv1": True}, (t4.esv_active, t4.plans))
+    check("successful mutation prints no health report",
+          not any("Procedure health" in m or "WARNING" in m for m in logs4), logs4)
+
+
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
-               test_label_preservation, test_cli_restore_boundary,
+               test_label_preservation, test_failed_mutation_keeps_plans_online,
+               test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
                test_overlay_content_verification, test_shipped_fixtures):
         fn()

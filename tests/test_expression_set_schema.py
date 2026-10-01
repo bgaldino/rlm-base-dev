@@ -648,6 +648,72 @@ def test_cascade_deactivate_dry_run_does_not_patch():
     )
 
 
+class _MutationTask(_CascadeTask):
+    """_CascadeTask plus one ExpressionSetVersion ("ESV") for the lifecycle."""
+
+    def __init__(self, plans, esv_active=True):
+        import logging
+
+        super().__init__(dict(plans, ESV=esv_active))
+        self.plan_ids = sorted(plans)
+        self.logs = []
+
+        class _Capture(logging.Handler):
+            def emit(handler, record):
+                self.logs.append(record.getMessage())
+
+        self.logger = logging.getLogger(f"test_mutation_task_{id(self)}")
+        self.logger.addHandler(_Capture())
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
+        self.org_config = type("Org", (), {"username": "user@example.org"})()
+
+    def _find_referencing_procedure_plans(self, es_def_id):
+        return [{"ProcedurePlanSection": {"ProcedurePlanVersionId": vid}}
+                for vid in self.plan_ids]
+
+    def run(self, activate_after=True):
+        def boom():
+            raise RuntimeError("PATCH boom")
+        try:
+            self._run_connect_mutation(
+                es_def_id="ESD", esv={"Id": "ESV", "IsActive": True}, mutate=boom,
+                dry_run=False, activate_after=activate_after, cascade=True,
+                verb="Import",
+            )
+        except RuntimeError as exc:
+            return exc
+        return None
+
+
+def test_failed_connect_mutation_keeps_procedure_plans_online():
+    # Pack 170: a failed PATCH used to leave the cascaded plan deactivated, which
+    # silently takes pricing offline (plausible numbers, no error).
+    task = _MutationTask({"PPV_A": True})
+    error = task.run()
+    check("failed PATCH still raises", error is not None and "boom" in str(error))
+    check("failed PATCH leaves the expression-set version deactivated",
+          task.states["ESV"] is False)
+    check("failed PATCH reactivates the cascaded procedure plan",
+          task.states["PPV_A"] is True)
+    check("health report names the inactive version with the org's restore command",
+          any("ExpressionSetVersion ESV" in m and "user@example.org" in m
+              for m in task.logs))
+
+    earlier = _MutationTask({"PPV_A": True, "PPV_B": False})
+    earlier.run()
+    check("a plan an earlier run left off is left as found",
+          earlier.states["PPV_B"] is False)
+    check("health report names a plan an earlier run left inactive",
+          any("ProcedurePlanDefinitionVersion PPV_B" in m for m in earlier.logs)
+          and any("inactive procedure plan is skipped" in m for m in earlier.logs))
+
+    kept_off = _MutationTask({"PPV_A": True})
+    kept_off.run(activate_after=False)
+    check("activate_after=False leaves the cascaded plan off after a failure",
+          kept_off.states["PPV_A"] is False)
+
+
 def test_valid_overlay_passes():
     overlay = {
         "expressionSetApiName": "ZZ_Test",

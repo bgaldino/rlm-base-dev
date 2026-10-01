@@ -221,7 +221,12 @@ expected behavior; the outputs are not dead code.
 - **A failed Connect PATCH is not atomic.** The lifecycle engine leaves the
   version DEACTIVATED and re-raises rather than reactivating a half-mutated
   definition. Re-enable it with `activate_expression_set.py --activate` once
-  you've inspected and restored it. **A failed label-only Tooling `Metadata`
+  you've inspected and restored it. It **does** reactivate the procedure plans it
+  cascaded off (unless `--no-activate`): an inactive plan is silently skipped, so
+  pricing falls back to the Revenue Settings default procedure with plausible
+  numbers, while an active plan over the inactive version fails loudly. After any
+  failure it re-reads the version and every referencing plan and prints each
+  inactive record with its restore command. **A failed label-only Tooling `Metadata`
   PATCH (the relabel path) is different** — it never touches the definition
   graph, so the stored Metadata is byte-identical after a failure and only the
   cosmetic labels are stale. That path therefore **reactivates** the version even
