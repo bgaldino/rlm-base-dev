@@ -68,7 +68,7 @@
         </connector>
     </assignments>
     <assignments>
-        <description>Stores the flow fault message in the error output variable.</description>
+        <description>Stores the flow fault message in the error output variable and clears the success outputs.</description>
         <name>SetErrorMessage</name>
         <label>Set Error Message</label>
         <locationX>0</locationX>
@@ -80,6 +80,20 @@
                 <elementReference>$Flow.FaultMessage</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>isSuccess</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>outputContractId</assignToReference>
+            <operator>Assign</operator>
+        </assignmentItems>
+        <connector>
+            <targetReference>ContractCreationErrorScreen</targetReference>
+        </connector>
     </assignments>
     <assignments>
         <description>Sets the success flag and output contract ID after the contract is created.</description>
@@ -364,7 +378,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>UpdateContract</targetReference>
+            <targetReference>UpdateContractShippingAddress</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -378,11 +392,24 @@
         <object>Quote</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <recordRollbacks>
+        <description>Rolls back the contract created in this transaction when it cannot be updated, so a fault leaves no partially populated contract.</description>
+        <name>RollBackContract</name>
+        <label>Roll Back Contract</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>SetErrorMessage</targetReference>
+        </connector>
+    </recordRollbacks>
     <recordUpdates>
         <name>UpdateContract</name>
         <label>UpdateContract</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <faultConnector>
+            <targetReference>RollBackContract</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -440,6 +467,34 @@
             </value>
         </inputAssignments>
         <inputAssignments>
+            <field>SourceQuoteId</field>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Contract</object>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Copies the account shipping address to the contract. Best effort: Contract.ShippingAddress has no field-level security by default, so users without edit access to it fault here and continue to UpdateContract without the shipping address.</description>
+        <name>UpdateContractShippingAddress</name>
+        <label>Update Contract Shipping Address</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>UpdateContract</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>UpdateContract</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>CreateContract.contractId</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
             <field>ShippingCity</field>
             <value>
                 <elementReference>GetContract.Account.ShippingCity</elementReference>
@@ -469,14 +524,25 @@
                 <elementReference>GetContract.Account.ShippingStreet</elementReference>
             </value>
         </inputAssignments>
-        <inputAssignments>
-            <field>SourceQuoteId</field>
-            <value>
-                <elementReference>recordId</elementReference>
-            </value>
-        </inputAssignments>
         <object>Contract</object>
     </recordUpdates>
+    <screens>
+        <description>Shows the fault message when the contract cannot be created.</description>
+        <name>ContractCreationErrorScreen</name>
+        <label>Contract Creation Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>ContractCreationErrorDisplayText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The contract could not be created.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!errorMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
     <screens>
         <description>Confirms creation of contract prices or discounts when matching quote lines exist.</description>
         <name>CreateContractPricesConfirmationScreen</name>
