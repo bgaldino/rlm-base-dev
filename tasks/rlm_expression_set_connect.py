@@ -558,7 +558,8 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             deactivated version. It is NEVER reactivated — re-enabling a
             corrupted pricing procedure is worse than leaving it offline. So
             reactivation happens only when ``activate_after`` AND the mutate body
-            succeeded (or in dry-run, where nothing changed).
+            succeeded, or failed before it started (nothing was written, e.g.
+            the deactivation poll timed out), or in dry-run.
           * A failed PATCH still restores the cascaded procedure plans (when
             ``activate_after``). A deactivated plan is skipped: pricing silently
             falls back to the Revenue Settings default procedure and the plan's
@@ -579,6 +580,10 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         failure: Optional[Exception] = None
         reactivate_error: Optional[Exception] = None
         mutate_succeeded = False
+        # Set before the version PATCH, so a PATCH that lands but whose
+        # confirmation poll fails still counts as taken down.
+        version_off_attempted = False
+        mutate_started = False
 
         try:
             if was_active:
@@ -586,6 +591,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     cascaded_ppvs = self._cascade_deactivate_procedure_plans(
                         es_def_id, dry_run
                     )
+                version_off_attempted = True
                 self._set_version_active(esv_id, False, dry_run)
                 if not dry_run:
                     self._wait_for_version_state(esv_id, False)
@@ -595,17 +601,33 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     "ExpressionSetVersion %s already inactive.", esv_id
                 )
 
+            mutate_started = True
             mutate()
             mutate_succeeded = True
         except Exception as exc:
             failure = exc
         finally:
-            should_activate = activate_after and (mutate_succeeded or dry_run)
+            # A failure before mutate() started wrote nothing, so everything
+            # this run took down is safe to restore.
+            failed_before_mutate = bool(failure) and not mutate_started
+            should_activate = activate_after and (
+                mutate_succeeded
+                or dry_run
+                or (failed_before_mutate and (version_off_attempted or cascaded_ppvs))
+            )
             if should_activate:
+                if failed_before_mutate and not dry_run:
+                    self.logger.warning(
+                        "%s failed before the mutation ran, so nothing was "
+                        "written; restoring ExpressionSetVersion %s and the "
+                        "cascaded procedure plans. The failure is still reported.",
+                        verb, esv_id,
+                    )
                 try:
-                    self._set_version_active(esv_id, True, dry_run)
-                    if not dry_run:
-                        self._wait_for_version_state(esv_id, True)
+                    if was_active or not failed_before_mutate:
+                        self._set_version_active(esv_id, True, dry_run)
+                        if not dry_run:
+                            self._wait_for_version_state(esv_id, True)
                     if cascaded_ppvs:
                         self._cascade_reactivate_procedure_plans(
                             cascaded_ppvs, dry_run
@@ -647,7 +669,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             try:
                 self._report_procedure_health(
                     es_def_id, esv_id,
-                    taken_down=cascaded_ppvs, version_taken_down=deactivated,
+                    taken_down=cascaded_ppvs, version_taken_down=version_off_attempted,
                 )
             except Exception as health_exc:
                 self.logger.error(

@@ -21,8 +21,9 @@ The load-bearing guarantees (verified on 262 / v67.0):
   * **PATCH is not atomic.** A failed PATCH can leave a half-mutated, deactivated
     version. It is NEVER reactivated — re-enabling a corrupted pricing procedure
     is worse than leaving it offline. Reactivation happens only when
-    ``activate_after`` AND the mutate body succeeded (or in dry-run, where
-    nothing changed).
+    ``activate_after`` AND the mutate body succeeded, or failed before it
+    started (nothing was written, e.g. the deactivation poll timed out), or
+    in dry-run, where nothing changed.
   * **A failed PATCH still restores the cascaded procedure plans** (when
     ``activate_after``). A deactivated ``ProcedurePlanDefinitionVersion`` is not
     a safety measure: pricing silently falls back to the Revenue Settings
@@ -305,37 +306,54 @@ class LifecycleEngine:
         failure: Optional[Exception] = None
         reactivate_error: Optional[Exception] = None
         mutate_succeeded = False
+        # Set before the version PATCH, so a PATCH that lands but whose
+        # confirmation poll fails still counts as taken down.
+        version_off_attempted = False
+        mutate_started = False
 
         try:
             if was_active:
                 if cascade:
                     cascaded_ppvs = self.cascade_deactivate_procedure_plans(es_def_id)
+                version_off_attempted = True
                 self.set_version_active(esv_id, False)
                 self.wait_for_version_state(esv_id, False)
                 deactivated = True
             else:
                 self.log(f"ExpressionSetVersion {esv_id} already inactive.")
 
+            mutate_started = True
             mutate()
             mutate_succeeded = True
         except Exception as exc:
             failure = exc
         finally:
+            # A failure before mutate() started wrote nothing, so everything
+            # this run took down is safe to restore.
+            failed_before_mutate = bool(failure) and not mutate_started
             should_activate = activate_after and (
                 mutate_succeeded
                 or self.dry_run
                 or (reactivate_on_failure and deactivated)
+                or (failed_before_mutate and (version_off_attempted or cascaded_ppvs))
             )
             if should_activate:
-                if failure and not (mutate_succeeded or self.dry_run):
+                if failed_before_mutate and not self.dry_run:
+                    self.log(
+                        f"{verb} failed before the mutation ran, so nothing was "
+                        f"written; restoring ExpressionSetVersion {esv_id} and the "
+                        f"cascaded procedure plans. The failure is still reported."
+                    )
+                elif failure and not (mutate_succeeded or self.dry_run):
                     self.log(
                         f"{verb} failed, but it is a non-corrupting (label-only) "
                         f"mutation, so reactivating ExpressionSetVersion {esv_id} "
                         f"rather than leaving it offline. The failure is still reported."
                     )
                 try:
-                    self.set_version_active(esv_id, True)
-                    self.wait_for_version_state(esv_id, True)
+                    if was_active or not failed_before_mutate:
+                        self.set_version_active(esv_id, True)
+                        self.wait_for_version_state(esv_id, True)
                     if cascaded_ppvs:
                         self.cascade_reactivate_procedure_plans(cascaded_ppvs)
                 except Exception as reactivate_exc:
@@ -372,7 +390,7 @@ class LifecycleEngine:
             try:
                 self.report_procedure_health(
                     es_def_id, esv_id,
-                    taken_down=cascaded_ppvs, version_taken_down=deactivated,
+                    taken_down=cascaded_ppvs, version_taken_down=version_off_attempted,
                 )
             except Exception as health_exc:
                 self.log(f"Could not read procedure health after the failure: {health_exc}")

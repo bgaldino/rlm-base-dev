@@ -221,8 +221,9 @@ expected behavior; the outputs are not dead code.
 - **A failed Connect PATCH is not atomic.** The lifecycle engine leaves the
   version DEACTIVATED and re-raises rather than reactivating a half-mutated
   definition. Re-enable it with `activate_expression_set.py --activate` once
-  you've inspected and restored it. It **does** reactivate the procedure plans it
-  cascaded off (unless `--no-activate`): an inactive plan is silently skipped, so
+  you've inspected and restored it. A failure **before** the PATCH (for example the
+  deactivation poll timing out) wrote nothing, so the version is restored too.
+  It **does** reactivate the procedure plans it cascaded off (unless `--no-activate`): an inactive plan is silently skipped, so
   pricing falls back to the Revenue Settings default procedure with plausible
   numbers, while an active plan over the inactive version fails loudly. After any
   failure, including a failed reactivation, it re-reads the version and every

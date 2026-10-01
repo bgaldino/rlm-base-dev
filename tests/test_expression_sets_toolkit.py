@@ -1151,10 +1151,14 @@ class _PlanTransport:
     maps ProcedurePlanDefinitionVersion Id -> IsActive.
     """
 
-    def __init__(self, *, plans, esv_active=True, fail_plan_reactivate=False):
+    def __init__(self, *, plans, esv_active=True, fail_plan_reactivate=False,
+                 esv_reads_active=False):
         self.plans = dict(plans)
         self.esv_active = esv_active
         self.fail_plan_reactivate = fail_plan_reactivate
+        # Simulates a deactivation PATCH that lands while reads still say active,
+        # so wait_for_version_state times out.
+        self.esv_reads_active = esv_reads_active
         self.dry_run = False
         self.logger = lambda *a, **k: None
 
@@ -1183,7 +1187,7 @@ class _PlanTransport:
             vid = query.split("Id = '", 1)[1].split("'", 1)[0]
             return [{"Id": vid, "IsActive": self.plans[vid]}]
         if "FROM ExpressionSetVersion" in query:
-            return [{"Id": "9QMv", "IsActive": self.esv_active}]
+            return [{"Id": "9QMv", "IsActive": self.esv_active or self.esv_reads_active}]
         return []
 
 
@@ -1261,6 +1265,28 @@ def test_failed_mutation_keeps_plans_online():
           raised5 is not None and "plan reactivate boom" in str(raised5), raised5)
     check("a failed plan reactivation still prints the health report",
           any("--record-id 1Cv1" in m for m in logs5), logs5)
+
+    # PR #491 review round 2: the version PATCH lands but its confirmation poll
+    # times out, after the plan was cascaded off. Nothing was written, so the
+    # plan must be restored, and the failure must still raise.
+    logs6 = []
+    t6 = _PlanTransport(plans={"1Cv1": True}, esv_reads_active=True)
+    engine6 = LifecycleEngine(t6, logger=logs6.append, max_wait_seconds=0,
+                              poll_interval_seconds=1)
+    ran = []
+    raised6 = None
+    try:
+        engine6.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                             mutate=lambda: ran.append(1), activate_after=True,
+                             cascade=True)
+    except Exception as exc:
+        raised6 = exc
+    check("an unconfirmed version deactivation raises", raised6 is not None, raised6)
+    check("the mutation never ran", ran == [], ran)
+    check("an unconfirmed version deactivation restores the cascaded plan",
+          t6.plans == {"1Cv1": True}, t6.plans)
+    check("an unconfirmed version deactivation says nothing was written",
+          any("failed before the mutation ran" in m for m in logs6), logs6)
 
     # Success path is unchanged and prints no health report.
     logs4 = []

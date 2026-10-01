@@ -651,11 +651,13 @@ def test_cascade_deactivate_dry_run_does_not_patch():
 class _MutationTask(_CascadeTask):
     """_CascadeTask plus one ExpressionSetVersion ("ESV") for the lifecycle."""
 
-    def __init__(self, plans, esv_active=True, fail_plan_reactivate=False):
+    def __init__(self, plans, esv_active=True, fail_plan_reactivate=False,
+                 fail_version_wait=False):
         import logging
 
         super().__init__(dict(plans, ESV=esv_active))
         self.fail_plan_reactivate = fail_plan_reactivate
+        self.fail_version_wait = fail_version_wait
         self.plan_ids = sorted(plans)
         self.logs = []
 
@@ -678,6 +680,10 @@ class _MutationTask(_CascadeTask):
                 and sobject == "ProcedurePlanDefinitionVersion"):
             raise RuntimeError("plan reactivate boom")
         super()._patch_sobject(sobject, record_id, payload)
+
+    def _wait_for_version_state(self, version_id, active):
+        if self.fail_version_wait and active is False:
+            raise RuntimeError("version state poll timed out")
 
     def run(self, activate_after=True, succeed=False):
         def boom():
@@ -722,6 +728,14 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
           error2 is not None and "plan reactivate boom" in str(error2))
     check("a failed plan reactivation still prints the plan's restore command",
           any("--record-id PPV_A" in m for m in reactivate_fails.logs))
+
+    # PR #491 review round 2: the version PATCH lands but its poll times out.
+    unconfirmed = _MutationTask({"PPV_A": True}, fail_version_wait=True)
+    error3 = unconfirmed.run(succeed=True)
+    check("an unconfirmed version deactivation raises",
+          error3 is not None and "timed out" in str(error3))
+    check("an unconfirmed version deactivation restores the version and the plan",
+          unconfirmed.states["ESV"] is True and unconfirmed.states["PPV_A"] is True)
 
     kept_off = _MutationTask({"PPV_A": True})
     kept_off.run(activate_after=False)
