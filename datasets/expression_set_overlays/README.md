@@ -50,6 +50,11 @@ cci task run apply_expression_set_overlay --org <cci_alias> \
 The standalone toolkit does the same without CCI:
 `python scripts/expression_sets/apply_expression_set_overlay.py --target-org <sf_alias> --overlay <file>`.
 
+Normal CCI logs summarize automatically handled HTML-encoding and server-field
+validation warnings once before PATCH. Per-field details and step/variable
+transformation messages are at DEBUG; actionable warnings and validation errors
+remain visible. HTML-encoding warnings remain warnings when normalization is off.
+
 Every apply:
 
 1. validates the overlay and the merged graph locally, **before** touching the org;

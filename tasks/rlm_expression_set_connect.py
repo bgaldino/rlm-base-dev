@@ -979,9 +979,23 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
     def _skip_validation(self) -> bool:
         return self._bool_option(self.options.get("skip_validation"), False)
 
-    def _raise_on_validation_errors(self, result, what: str) -> None:
+    def _raise_on_validation_errors(self, result, what: str, *, log_summary: bool = True) -> None:
+        handled = 0
+        normalize = self._bool_option(self.options.get("normalize_html_entities"), True)
         for issue in result.warnings:
-            self.logger.warning("Schema %s: %s — %s", what, issue.location, issue.message)
+            automatic = what == "definition" and (
+                issue.code in {"output_only_fields", "version_id"}
+                or (issue.code == "html_entities" and normalize)
+            )
+            log = self.logger.debug if automatic else self.logger.warning
+            log("Schema %s: %s — %s", what, issue.location, issue.message)
+            handled += int(automatic)
+        if handled and log_summary:
+            self.logger.info(
+                "Schema %s: %d transport warning(s) handled automatically by "
+                "payload preparation (HTML decoding and/or server-field handling); "
+                "per-field details at DEBUG.", what, handled,
+            )
         if result.errors:
             detail = "; ".join(f"{i.location}: {i.message}" for i in result.errors)
             raise TaskOptionsError(
@@ -990,11 +1004,13 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 f"skip_validation:true to bypass."
             )
 
-    def _preflight_validate_definition(self, definition: dict) -> None:
+    def _preflight_validate_definition(self, definition: dict, *, log_summary: bool = True) -> None:
         if self._skip_validation():
             self.logger.info("skip_validation=true — skipping definition schema check.")
             return
-        self._raise_on_validation_errors(validate_definition(definition), "definition")
+        self._raise_on_validation_errors(
+            validate_definition(definition), "definition", log_summary=log_summary
+        )
 
     def _preflight_validate_overlay(self, overlay: dict) -> None:
         if self._skip_validation():
@@ -1213,7 +1229,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         # own validation as a last guard against drift between this preflight
         # snapshot and the post-deactivation GET.
         simulated = self._apply_overlay(preflight_definition, overlay)
-        self._preflight_validate_definition(simulated)
+        self._preflight_validate_definition(simulated, log_summary=False)
 
         # Align ResourceInitializationType to the value the PATCH body will
         # carry (GET fabricates "Off" over a stored null), before touching
@@ -1330,7 +1346,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         # count, which would mislabel every name once any one was removed.
         for name in names_to_remove:
             if name in present:
-                self.logger.info("Removed step '%s'.", name)
+                self.logger.debug("Removed step '%s'.", name)
             else:
                 self.logger.warning("Step '%s' not found for removal.", name)
         steps = self._renumber_top_level_steps(steps)
@@ -1348,7 +1364,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                         f"addSteps target '{step_def['name']}' already exists with different "
                         f"content ({', '.join(differences)}); use updateSteps to change it."
                     )
-                self.logger.info(
+                self.logger.debug(
                     "Step '%s' already matches the requested content.", step_def["name"]
                 )
                 continue
@@ -1369,7 +1385,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             # provided sequenceNumber, so just append.
             if step_def.get("parentStep"):
                 steps.append(new_step)
-                self.logger.info(
+                self.logger.debug(
                     "Added child step '%s' (parent '%s') at sequence %s.",
                     new_step["name"], step_def["parentStep"],
                     new_step["sequenceNumber"],
@@ -1417,7 +1433,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                 new_step["sequenceNumber"] = max_seq + 1
 
             steps.append(new_step)
-            self.logger.info(
+            self.logger.debug(
                 "Added step '%s' at sequence %s.",
                 new_step["name"], new_step["sequenceNumber"],
             )
@@ -1438,7 +1454,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                 if key == "name":
                     continue
                 target[key] = value
-            self.logger.info("Updated step '%s'.", name)
+            self.logger.debug("Updated step '%s'.", name)
         return steps
 
     def _reorder_steps(self, steps: list, reorder_defs: list) -> list:
@@ -1450,7 +1466,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                     f"reorderSteps target '{name}' not found in the definition."
                 )
             target["sequenceNumber"] = reorder["sequenceNumber"]
-            self.logger.info(
+            self.logger.debug(
                 "Reordered step '%s' to sequence %s.",
                 name, reorder["sequenceNumber"],
             )
@@ -1515,13 +1531,13 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                 # an overlay with two entries for the same name skips the
                 # second instead of appending a duplicate the Connect API
                 # would then reject after the version was already deactivated.
-                self.logger.info(
+                self.logger.debug(
                     "Variable '%s' already exists, skipping.", name
                 )
                 continue
             variables.append(var_def)
             existing_names.add(name)
-            self.logger.info("Added variable '%s'.", name)
+            self.logger.debug("Added variable '%s'.", name)
         return variables
 
     def _remove_variables(self, variables: list, to_remove: list) -> list:
@@ -1538,7 +1554,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         variables = [v for v in variables if v.get("name") not in names]
         removed = original_count - len(variables)
         if removed:
-            self.logger.info("Removed %d variable(s).", removed)
+            self.logger.debug("Removed %d variable(s).", removed)
         return variables
 
     # -- Verification --------------------------------------------------

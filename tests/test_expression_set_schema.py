@@ -1817,6 +1817,69 @@ def test_every_connect_patch_goes_through_label_preservation():
 
 
 
+def test_build_schema_logging_keeps_actionable_warnings():
+    from unittest.mock import Mock
+    from scripts.expression_sets._schema import validate_definition as standalone
+
+    definition = json.loads(json.dumps(MINIMAL_PRICING_DEF))
+    definition["id"] = "server-id"
+    version = definition["versions"][0]
+    version["id"] = "version-id"
+    version["steps"][1]["formula"] = "&quot;example&quot;"
+    result = validate_definition(definition)
+    check("transport warning codes agree in both validators",
+          [i.code for i in result.warnings] == [i.code for i in standalone(definition).warnings]
+          and {i.code for i in result.warnings} ==
+          {"html_entities", "output_only_fields", "version_id"})
+
+    task = _OverlayApplier()
+    task.logger = Mock()
+    task._preflight_validate_definition(definition, log_summary=False)
+    task._preflight_validate_definition(definition)
+    check("simulation and apply emit one transport summary and no warnings",
+          task.logger.info.call_count == 1 and not task.logger.warning.called)
+    check("per-field transport details remain at DEBUG",
+          task.logger.debug.call_count == 2 * len(result.warnings))
+
+    task.logger.reset_mock()
+    task.options["normalize_html_entities"] = "false"
+    task._preflight_validate_definition(definition)
+    check("disabled normalization keeps HTML warning visible",
+          task.logger.warning.call_count == 1 and
+          "HTML entities" in task.logger.warning.call_args.args[-1])
+
+    task.logger.reset_mock()
+    task.options.clear()
+    result.warn("future", "An actionable warning")
+    task._raise_on_validation_errors(result, "definition")
+    check("uncategorized warnings remain visible",
+          task.logger.warning.call_count == 1 and
+          task.logger.warning.call_args.args[-1] == "An actionable warning")
+    result.error("steps", "A malformed graph")
+    try:
+        task._raise_on_validation_errors(result, "definition")
+    except Exception as exc:
+        raised = "A malformed graph" in str(exc)
+    else:
+        raised = False
+    check("summarized transport warnings never suppress validation errors", raised)
+
+
+def test_overlay_transform_details_are_debug_only():
+    from unittest.mock import Mock
+
+    task = _OverlayApplier()
+    task.logger = Mock()
+    overlay = {"addSteps": [{"name": "NewStep", "stepType": "ListGroup"}],
+               "addVariables": [{"name": "NewVariable"}]}
+    output = task._apply_overlay(MINIMAL_PRICING_DEF, overlay)
+    check("overlay transformation retains step and variable additions",
+          output["versions"][0]["steps"][-1]["name"] == "NewStep" and
+          output["versions"][0]["variables"][-1]["name"] == "NewVariable")
+    check("per-item transformation logs are DEBUG, not INFO",
+          task.logger.debug.call_count == 2 and not task.logger.info.called)
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     print(f"Running {len(tests)} validator test groups...\n")

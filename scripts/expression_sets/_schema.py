@@ -200,6 +200,7 @@ class Issue:
     severity: Severity
     location: str
     message: str
+    code: Optional[str] = None
 
 
 @dataclass
@@ -211,8 +212,8 @@ class ValidationResult:
         self.issues.append(Issue(Severity.ERROR, location, message))
         self.passed = False
 
-    def warn(self, location: str, message: str) -> None:
-        self.issues.append(Issue(Severity.WARNING, location, message))
+    def warn(self, location: str, message: str, *, code: Optional[str] = None) -> None:
+        self.issues.append(Issue(Severity.WARNING, location, message, code))
 
     @property
     def errors(self) -> List[Issue]:
@@ -289,6 +290,7 @@ def _validate_params(
                 "PATCH/POST or the engine's value parser rejects it (\"Syntax "
                 "error. Found '&'\"). The import/overlay tasks do this "
                 "automatically unless normalize_html_entities:false.",
+                code="html_entities",
             )
 
 
@@ -350,6 +352,7 @@ def _validate_step(
                 "contains HTML entities (raw GET output); HTML-unescape before "
                 "PATCH/POST (handled by the import/overlay tasks unless "
                 "normalize_html_entities:false).",
+                code="html_entities",
             )
     adv = step.get("advancedCondition")
     if isinstance(adv, dict):
@@ -360,6 +363,7 @@ def _validate_step(
                     "contains HTML entities (raw GET output); HTML-unescape "
                     "before PATCH/POST (handled by the import/overlay tasks "
                     "unless normalize_html_entities:false).",
+                    code="html_entities",
                 )
 
 
@@ -492,6 +496,7 @@ def validate_definition(defn: dict) -> ValidationResult:
             "emitted by the Connect GET output and don't need to be hand-maintained on "
             "an input payload (tolerated by a PATCH full-graph replace; the import task "
             "doesn't require them).",
+            code="output_only_fields",
         )
 
     versions = defn.get("versions")
@@ -518,6 +523,7 @@ def validate_definition(defn: dict) -> ValidationResult:
                 "version carries an 'id' — required for a Connect PATCH-replace "
                 "but must be omitted on a POST-create (the import task strips it "
                 "automatically when creating a new expression set).",
+                code="version_id",
             )
 
         steps = version.get("steps", [])
