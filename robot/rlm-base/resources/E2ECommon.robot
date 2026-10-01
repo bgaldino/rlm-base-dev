@@ -1748,6 +1748,41 @@ Pause For Recording If Enabled
 
 # ── Verification ─────────────────────────────────────────────────────
 
+Create Contract From Quote
+    [Documentation]    Creates a Contract from ${quote_id} with the standard ``createContract``
+    ...    action, sets its renewal term, activates it and returns its Id. The Order created
+    ...    from the Quote afterwards picks the Contract up and links its Assets to it
+    ...    (AssetContractRelationship).
+    ...
+    ...    The renewal term is set here because ``createContract`` leaves
+    ...    ``RenewalTerm2`` / ``RenewalTermUnit`` blank. With a blank renewal term the Assets
+    ...    get none either, ``getRenewableAssetsSummary`` fails ("All assets in a request must
+    ...    have values for RenewalTermUnit and RenewalTerm") and no renewal Opportunity is
+    ...    created (live-checked on 264). Setting ``Order.ContractId`` directly is not a
+    ...    substitute: it creates no AssetContractRelationship rows and fails the same way.
+    [Arguments]    ${quote_id}
+    SalesforceAPI.Validate Salesforce Id    ${quote_id}
+    ${body}=    Set Variable    {"inputs":[{"sourceId":"${quote_id}"}]}
+    ${api}=    Get Library Instance    SalesforceAPI
+    ${result}=    Run Process    sf    api    request    rest
+    ...    /services/data/${api.API_VERSION}/actions/standard/createContract
+    ...    --method    POST    --body    ${body}    -o    ${ORG_ALIAS}    shell=False
+    Should Be Equal As Integers    ${result.rc}    0
+    ...    msg=createContract failed for Quote ${quote_id}: ${result.stderr}
+    ${response}=    Evaluate    json.loads($result.stdout)    modules=json
+    Should Be True    ${response}[0][isSuccess]
+    ...    msg=createContract failed for Quote ${quote_id}: ${response}[0][errors]
+    ${contract_id}=    Set Variable    ${response}[0][outputValues][contractId]
+    SalesforceAPI.Validate Salesforce Id    ${contract_id}
+    ${result}=    Run Process    sf    data    update    record    -o    ${ORG_ALIAS}
+    ...    --sobject    Contract    --record-id    ${contract_id}
+    ...    --values    RenewalTerm2\=1 RenewalTermUnit\=Annual ContractTerm\=12 Status\=Activated
+    ...    --json    shell=False
+    Should Be Equal As Integers    ${result.rc}    0
+    ...    msg=Could not activate Contract ${contract_id}: ${result.stdout}
+    Log    Created and activated Contract ${contract_id} from Quote ${quote_id}
+    RETURN    ${contract_id}
+
 Verify Assets Exist On Account
     [Documentation]    Checks that at least 1 Asset exists on the Account. Fails if not (for retry).
     [Arguments]    ${account_id}
@@ -1772,17 +1807,39 @@ Verify Renewal Opportunity Includes Product
     ...    The preceding run, whose order had no maintenance line, produced 4 (28,500 vs 33,900 —
     ...    a difference of exactly 5,400).
     ...
-    ...    Scoped to `Opportunity.Name = 'Renewal Forecast Opportunity'` — the constant
-    ...    `RLM_CreateUpdateRenewalOpportunities` sets on the Opportunity it creates (the only
-    ...    field the flow deterministically sets that this test can match on). Without this,
-    ...    the query would also match an OpportunityLineItem synced onto the SOURCE Opportunity
-    ...    from the Quote (standard Quote-Opportunity line sync), which would pass this
-    ...    assertion even if the renewal flow never fired — defeating the point of the check.
-    [Arguments]    ${account_id}    ${product_name}
+    ...    Scoped to `Opportunity.Type = 'Existing Business'` — the `RenewalOpportunityType`
+    ...    constant `RLM_CreateUpdateRenewalOpportunities` sets on the Opportunity it creates (its
+    ...    Name comes from a formula of account name and end date, so it isn't a fixed value to
+    ...    match) — and to Opportunities other than ${source_opportunity_id}, the one the Quote
+    ...    was created from. Without this, the query would also match an OpportunityLineItem
+    ...    synced onto the SOURCE Opportunity from the Quote (standard Quote-Opportunity line
+    ...    sync), which would pass this assertion even if the renewal flow never fired —
+    ...    defeating the point of the check. Callers reset the account first (Reset Test
+    ...    Account), so a renewal Opportunity left over from an earlier run can't satisfy it.
+    ...
+    ...    Then checks the fields the flow copies onto the Opportunity it creates: ContractId and
+    ...    CurrencyIsoCode must equal ${order_id}'s (in the no-contract test both ContractIds are
+    ...    blank; ``Quote To Order With Contract`` gives the order a real one), and the Name must
+    ...    contain ` - Renewal - `, the OpportunityName constant as RenewalOpportunityNameFormula
+    ...    places it.
+    [Arguments]    ${account_id}    ${product_name}    ${source_opportunity_id}    ${order_id}
     SalesforceAPI.Validate Salesforce Id    ${account_id}
+    SalesforceAPI.Validate Salesforce Id    ${source_opportunity_id}
+    SalesforceAPI.Validate Salesforce Id    ${order_id}
     ${product_id}=    SalesforceAPI.Find Product By Name    ${product_name}
     SalesforceAPI.Validate Salesforce Id    ${product_id}
     ${line_id}=    Wait For Related Record Via API
-    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Name = 'Renewal Forecast Opportunity' AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
+    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Type = 'Existing Business' AND OpportunityId != '${source_opportunity_id}' AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
     Log    Renewal opportunity line for ${product_name}: ${line_id}
+    ${line}=    SalesforceAPI.Query Record By Id    OpportunityLineItem    ${line_id}    fields=OpportunityId
+    ${renewal}=    SalesforceAPI.Query Record By Id    Opportunity    ${line}[OpportunityId]
+    ...    fields=Name,ContractId,CurrencyIsoCode
+    ${order}=    SalesforceAPI.Query Record By Id    Order    ${order_id}    fields=ContractId,CurrencyIsoCode
+    Log    Renewal opportunity ${line}[OpportunityId]: ${renewal}[Name], contract ${renewal}[ContractId], currency ${renewal}[CurrencyIsoCode]
+    Should Be Equal    ${renewal}[ContractId]    ${order}[ContractId]
+    ...    msg=Renewal Opportunity.ContractId should be the order's ContractId.
+    Should Be Equal    ${renewal}[CurrencyIsoCode]    ${order}[CurrencyIsoCode]
+    ...    msg=Renewal Opportunity.CurrencyIsoCode should be the order's CurrencyIsoCode.
+    Should Contain    ${renewal}[Name]    ${SPACE}- Renewal -${SPACE}
+    ...    msg=Renewal Opportunity.Name should come from RenewalOpportunityNameFormula.
     RETURN    ${line_id}

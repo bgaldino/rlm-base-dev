@@ -10,6 +10,11 @@
     </externalCredentialPrincipalAccesses>
     <fieldPermissions>
         <editable>false</editable>
+        <field>Opportunity.ContractId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>Order.RLM_FulfillmentPlanIdText__c</field>
         <readable>true</readable>
     </fieldPermissions>
