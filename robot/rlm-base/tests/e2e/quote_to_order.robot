@@ -95,7 +95,7 @@ Quote To Order
     # Order status: the renewal flow is PlatformEvent-triggered, so it fails silently and the
     # Order still reaches Activated. This assertion is the only thing here that can fail when
     # a configured bundle component breaks the renewal flow.
-    Verify Renewal Opportunity Includes Product    ${ACCOUNT_ID}    ${TEST_BUNDLE_OPTION_NAME}    ${OPPORTUNITY_ID}
+    Verify Renewal Opportunity Includes Product    ${ACCOUNT_ID}    ${TEST_BUNDLE_OPTION_NAME}    ${OPPORTUNITY_ID}    ${ORDER_ID}
     Capture Step Screenshot    06_renewal_opportunity_verified
 
     Pause For Recording If Enabled    Assets verified. Quote-to-Order complete.

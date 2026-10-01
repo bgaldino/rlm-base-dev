@@ -1781,12 +1781,30 @@ Verify Renewal Opportunity Includes Product
     ...    sync), which would pass this assertion even if the renewal flow never fired —
     ...    defeating the point of the check. Callers reset the account first (Reset Test
     ...    Account), so a renewal Opportunity left over from an earlier run can't satisfy it.
-    [Arguments]    ${account_id}    ${product_name}    ${source_opportunity_id}
+    ...
+    ...    Then checks the fields the flow copies onto the Opportunity it creates: ContractId and
+    ...    CurrencyIsoCode must equal ${order_id}'s (ContractId is blank when the order has no
+    ...    contract, as in this suite, and the flow then leaves it blank), and the Name must
+    ...    contain ` - Renewal - `, the OpportunityName constant as RenewalOpportunityNameFormula
+    ...    places it.
+    [Arguments]    ${account_id}    ${product_name}    ${source_opportunity_id}    ${order_id}
     SalesforceAPI.Validate Salesforce Id    ${account_id}
     SalesforceAPI.Validate Salesforce Id    ${source_opportunity_id}
+    SalesforceAPI.Validate Salesforce Id    ${order_id}
     ${product_id}=    SalesforceAPI.Find Product By Name    ${product_name}
     SalesforceAPI.Validate Salesforce Id    ${product_id}
     ${line_id}=    Wait For Related Record Via API
     ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Type = 'Existing Business' AND OpportunityId != '${source_opportunity_id}' AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
     Log    Renewal opportunity line for ${product_name}: ${line_id}
+    ${line}=    SalesforceAPI.Query Record By Id    OpportunityLineItem    ${line_id}    fields=OpportunityId
+    ${renewal}=    SalesforceAPI.Query Record By Id    Opportunity    ${line}[OpportunityId]
+    ...    fields=Name,ContractId,CurrencyIsoCode
+    ${order}=    SalesforceAPI.Query Record By Id    Order    ${order_id}    fields=ContractId,CurrencyIsoCode
+    Log    Renewal opportunity ${line}[OpportunityId]: ${renewal}[Name], contract ${renewal}[ContractId], currency ${renewal}[CurrencyIsoCode]
+    Should Be Equal    ${renewal}[ContractId]    ${order}[ContractId]
+    ...    msg=Renewal Opportunity.ContractId should be the order's ContractId.
+    Should Be Equal    ${renewal}[CurrencyIsoCode]    ${order}[CurrencyIsoCode]
+    ...    msg=Renewal Opportunity.CurrencyIsoCode should be the order's CurrencyIsoCode.
+    Should Contain    ${renewal}[Name]    ${SPACE}- Renewal -${SPACE}
+    ...    msg=Renewal Opportunity.Name should come from RenewalOpportunityNameFormula.
     RETURN    ${line_id}

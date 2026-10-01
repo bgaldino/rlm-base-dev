@@ -247,7 +247,7 @@
     </actionCalls>
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-    <description>Cloned from template runtime_revenue_arcflows__RenewalOpp. Customization: TotalPrice assignments removed from all OpportunityLineItem create/update nodes. Salesforce only allows setting UnitPrice OR TotalPrice on OLI, not both. The flow sets UnitPrice (weighted average) and Quantity; Salesforce auto-calculates TotalPrice. Further customizations: new opportunities get a name from RenewalOpportunityNameFormula, Type from RenewalOpportunityType, and ContractId and CurrencyIsoCode from the order. HasRenewalQuantity skips an asset whose renewal price details add up to zero quantity instead of dividing by zero. Error emails go to the account owner and the user who activated the order, include $Flow.FaultMessage, and are sent as rich text. GetOrder and GetContact faults send an error email instead of continuing without an account.</description>
+    <description>Cloned from template runtime_revenue_arcflows__RenewalOpp. Customization: TotalPrice assignments removed from all OpportunityLineItem create/update nodes. Salesforce only allows setting UnitPrice OR TotalPrice on OLI, not both. The flow sets UnitPrice (weighted average) and Quantity; Salesforce auto-calculates TotalPrice. Further customizations: new opportunities get a name from RenewalOpportunityNameFormula, Type from RenewalOpportunityType, and ContractId and CurrencyIsoCode from the order. HasRenewalQuantity skips an asset whose renewal price details add up to zero quantity instead of dividing by zero; the quantity is totaled before the flow decides whether to create an opportunity, so a skipped asset doesn’t leave an opportunity without products. Error emails go to the account owner and the user who activated the order, include $Flow.FaultMessage, and are sent as rich text. GetOrder and GetContact faults send an error email instead of continuing without an account.</description>
     <assignments>
         <description>Adds the asset price and asset quantity  in the loop to the TotalAssetPriceAmount and TotalAssetQuantity variables, respectively.</description>
         <name>AddAssetPriceToTotalAssetPriceAndQuantityToTotalAssetQuantity</name>
@@ -685,8 +685,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <isGoTo>true</isGoTo>
-            <targetReference>ResetVariableValues</targetReference>
+            <targetReference>AddCurrentOpportunityProductAndPriceBookEntryToCollection</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -1103,7 +1102,7 @@
         </rules>
     </decisions>
     <decisions>
-        <description>Determines whether the renewal price details of the current asset add up to a nonzero quantity. An opportunity product needs a nonzero quantity, and the average price divides by the total quantity. If the total is zero, the flow skips the asset instead of failing.</description>
+        <description>Determines whether the renewal price details of the current asset add up to a nonzero quantity. An opportunity product needs a nonzero quantity, and the average price divides by the total quantity. If the total is zero, the flow skips the asset instead of failing. Runs before the flow checks for or creates the asset’s opportunity, so a skipped asset doesn’t create one.</description>
         <name>HasRenewalQuantity</name>
         <label>Has Renewal Quantity?</label>
         <locationX>0</locationX>
@@ -1189,7 +1188,8 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>FilterOpportunitiesToIdentifyWhetherOpportunityExists</targetReference>
+                <isGoTo>true</isGoTo>
+                <targetReference>ResetVariableValues</targetReference>
             </connector>
             <label>Create Opportunity Product</label>
         </rules>
@@ -1317,7 +1317,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>AddCurrentOpportunityProductAndPriceBookEntryToCollection</targetReference>
+                <targetReference>FilterOpportunitiesToIdentifyWhetherOpportunityExists</targetReference>
             </connector>
             <label>Create Opportunity Product</label>
         </rules>
@@ -1329,8 +1329,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <isGoTo>true</isGoTo>
-            <targetReference>ResetVariableValues</targetReference>
+            <targetReference>AddCurrentOpportunityProductAndPriceBookEntryToCollection</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>No (Default)</defaultConnectorLabel>
         <rules>
