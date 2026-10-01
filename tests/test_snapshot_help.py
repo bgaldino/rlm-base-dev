@@ -354,15 +354,33 @@ def main():
             raise OSError("disk full")
         t18b._save_manifest = failing_save
         try:
-            t18b._save_then_delete(adir / "manifest.json", {}, adir, ["rn.rev_moved.htm"])
+            t18b._save_then_delete(adir / "manifest.json", {}, adir, {"rn.rev_moved.htm"})
         except OSError:
             pass
         check("a failed manifest save leaves the pruned file in place",
               stale.exists() and events == [("save", True)])
         t18b._save_manifest = lambda path, m: events.append(("save", stale.exists()))
-        t18b._save_then_delete(adir / "manifest.json", {}, adir, ["rn.rev_moved.htm"])
+        t18b._save_then_delete(adir / "manifest.json", {}, adir, {"rn.rev_moved.htm"})
         check("the manifest is saved before the pruned file is deleted",
               events[-1] == ("save", True) and not stale.exists())
+
+        # PR #487 review: a file orphaned after an earlier run's save has no
+        # manifest record left, so the prune cannot return it again. The next
+        # validated walk still deletes it, while a moved-out ID that another
+        # area records keeps its file.
+        orphan = adir / "rn.rev_orphan.htm.md"
+        shared = adir / "rn.other.htm.md"
+        orphan.write_text("x")
+        shared.write_text("x")
+        t18b._save_manifest = lambda path, m: None
+        t18b._save_then_delete(
+            adir / "manifest.json",
+            {"articles": [{"article_id": "rn.other.htm", "area": "sales"}]},
+            adir, {"rn.rev_orphan.htm", "rn.other.htm"})
+        check("a later walk deletes a moved-out file left orphaned by an earlier run",
+              not orphan.exists())
+        check("a moved-out file another area still records is kept",
+              shared.exists())
 
     # PR #483 review round 3: parent extraction is best-effort, so only a
     # complete chain to an ancestor of the root proves an article moved out.

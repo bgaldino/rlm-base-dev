@@ -603,9 +603,8 @@ class SnapshotSalesforceHelp(BaseTask):
         record merely absent from the walk, or one whose ancestry is
         incomplete, is kept, because a partial walk can stabilize above
         expect_min_articles. Other areas' records sharing the manifest are
-        untouched. Returns the pruned IDs; the caller deletes their files
-        only after the pruned manifest is saved, so an interrupted run leaves
-        an orphan file rather than a captured record with no file.
+        untouched. Returns the pruned IDs; `_save_then_delete` removes the
+        files only after the pruned manifest is saved.
         """
         if not self.options.get("subtree_only") or not moved_out:
             return []
@@ -628,15 +627,20 @@ class SnapshotSalesforceHelp(BaseTask):
         manifest_path: Path,
         manifest: Dict[str, Any],
         articles_dir: Path,
-        pruned: List[str],
+        moved_out: Set[str],
     ) -> None:
-        """Save the pruned manifest, then delete the pruned article files.
+        """Save the pruned manifest, then delete moved-out article files.
 
         In this order an interrupted run leaves an orphan file, never a
-        captured record whose file is gone.
+        captured record whose file is gone. The delete covers every
+        moved-out ID with no manifest record left, not only the IDs pruned
+        this run, so the next validated walk removes a file an earlier run
+        orphaned after its save. A moved-out ID that another area still
+        records keeps its file.
         """
         self._save_manifest(manifest_path, manifest)
-        for article_id in pruned:
+        recorded = {a.get("article_id") for a in manifest.get("articles", [])}
+        for article_id in sorted(moved_out - recorded):
             (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
 
     def _merge_discovered(
@@ -755,9 +759,9 @@ class SnapshotSalesforceHelp(BaseTask):
                     for article_id, where in self._classify_subtree(discovered).items()
                     if where == "out"
                 } if self.options.get("subtree_only") else set()
-                pruned = self._prune_moved_out(manifest, moved_out)
+                self._prune_moved_out(manifest, moved_out)
                 manifest = self._merge_discovered(manifest, kept)
-                self._save_then_delete(manifest_path, manifest, articles_dir, pruned)
+                self._save_then_delete(manifest_path, manifest, articles_dir, moved_out)
 
             # Phase 2: Capture
             if mode in ("capture", "all", "refresh"):
