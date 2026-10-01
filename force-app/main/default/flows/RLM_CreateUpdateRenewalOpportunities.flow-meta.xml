@@ -737,7 +737,7 @@
         </connector>
     </assignments>
     <assignments>
-        <description>Sets ContactEmailAddress to the email address of the owner of the account to which the order belongs. Also stores the account ID, the account name, and the order number, which the opportunity name and the error emails use.</description>
+        <description>Sets ContactEmailAddress to the email address of the owner of the account to which the order belongs, and stores the account name, which the opportunity name and the error emails use. The order-derived values are set earlier by SetOrderContext, so they are present even when the account lookup faults.</description>
         <name>SetContactEmailAddress</name>
         <label>Set Contact Email Address</label>
         <locationX>0</locationX>
@@ -750,24 +750,10 @@
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>AccountId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>GetOrder.AccountId</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
             <assignToReference>AccountName</assignToReference>
             <operator>Assign</operator>
             <value>
                 <elementReference>GetContact.Name</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>OrderNumber</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>GetOrder.OrderNumber</elementReference>
             </value>
         </assignmentItems>
         <connector>
@@ -789,6 +775,30 @@
         </assignmentItems>
         <connector>
             <targetReference>IterateOverOpportunitiesWhenTheyExist</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Stores the account ID and the order number from the order, which the opportunity name and the error emails use. Runs before the account lookup, so an error email sent from that lookup's fault path still names the order.</description>
+        <name>SetOrderContext</name>
+        <label>Set Order Context</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>AccountId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOrder.AccountId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>OrderNumber</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOrder.OrderNumber</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>GetContact</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -1604,7 +1614,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>GetContact</targetReference>
+            <targetReference>SetOrderContext</targetReference>
         </connector>
         <faultConnector>
             <isGoTo>true</isGoTo>
