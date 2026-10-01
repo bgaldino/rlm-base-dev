@@ -368,7 +368,7 @@ Source: `datasets/sfdmu/qb/en-US/qb-billing/`
 - FulfillmentWorkspaces + WorkspaceItems
 - ValueTransform Groups + ValueTransforms
 
-> **Known build-side bug:** 260 has a known issue where `ExecuteOnRuleId` is not generated on `INSERT` of `ProductFulfillmentDecompRule` / `ProductFulfillmentScenario` / `FulfillmentStepDefinition` / `FulfillmentTaskAssignmentRule`. The `update_product_fulfillment_decomp_rules` Apex task is run as Step 4 of `prepare_dro` to trigger ruleset generation by editing-and-resaving each PFDR record. (Confirmed in #rlm-office-hours.)
+> **Known build-side bug:** 260 has a known issue where `ExecuteOnRuleId` is not generated on `INSERT` of `ProductFulfillmentDecompRule` / `ProductFulfillmentScenario` / `FulfillmentStepDefinition` / `FulfillmentTaskAssignmentRule`. The `update_product_fulfillment_decomp_rules` Apex task is run as Step 5 of `prepare_dro` to trigger ruleset generation by editing-and-resaving each PFDR record. (Confirmed in #rlm-office-hours.)
 
 Source: `datasets/sfdmu/qb/en-US/qb-dro/`
 
