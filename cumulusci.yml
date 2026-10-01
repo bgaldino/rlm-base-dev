@@ -653,6 +653,8 @@ tasks:
       sales workflow: Reset Account → Create Opportunity → Create Quote → Browse
       Catalogs → Add Products → Configure Bundle Line → Create Order → Activate
       Order → Verify Assets → Verify Renewal Opportunity Includes Product.
+      A second test runs the flow contract-first (tag contract) and checks the
+      renewal Opportunity's ContractId.
       Requires a provisioned org with qb=true (run prepare_rlm_org first).
     class_path: tasks.rlm_robot_e2e.RunE2ETests
     options:
