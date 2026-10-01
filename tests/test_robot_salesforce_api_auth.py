@@ -184,15 +184,24 @@ def test_missing_instance_url_fails_before_fallback():
     check("not authenticated", lib._access_token is None)
 
 
+def test_display_failure_names_alias():
+    print("test_display_failure_names_alias")
+    lib, calls, error, logs = _run([_completed(returncode=1, stderr="NoOrgFound: no such org")])
+    check("display failure raises", error is not None)
+    check("display failure names the alias", error is not None and ALIAS in str(error), error)
+    check("display failure makes no fallback call", len(calls) == 1, calls)
+    _no_leak("display failure", error, logs)
+
+
 def test_fallback_failures_raise_without_token():
     print("test_fallback_failures_raise_without_token")
     cases = [
         ("non-zero exit", _completed(returncode=1, stderr="NoOrgFound: no such org"),
-         ["rc=1", "NoOrgFound"]),
-        ("non-JSON stdout", _completed(stdout=f"Access token: {TOKEN}"), ["non-JSON"]),
+         ["rc=1", "NoOrgFound", ALIAS]),
+        ("non-JSON stdout", _completed(stdout=f"Access token: {TOKEN}"), ["non-JSON", ALIAS]),
         ("still redacted", _show(token=REDACTED), ["did not return a usable", ALIAS]),
-        ("no result", _completed(stdout=json.dumps({"status": 0})), ["did not return a usable"]),
-        ("timeout", subprocess.TimeoutExpired(cmd="sf", timeout=30), ["timed out after 30"]),
+        ("no result", _completed(stdout=json.dumps({"status": 0})), ["did not return a usable", ALIAS]),
+        ("timeout", subprocess.TimeoutExpired(cmd="sf", timeout=30), ["timed out after 30", ALIAS]),
     ]
     for label, response, expected in cases:
         lib, calls, error, logs = _run([_display(), response])
@@ -229,6 +238,7 @@ def main():
         test_redacted_display_token_falls_back,
         test_missing_display_token_falls_back,
         test_missing_instance_url_fails_before_fallback,
+        test_display_failure_names_alias,
         test_fallback_failures_raise_without_token,
         test_already_authenticated_skips_sf,
     ):

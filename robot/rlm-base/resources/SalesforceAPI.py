@@ -27,9 +27,7 @@ _logger = logging.getLogger(__name__)
 
 # Real Salesforce access tokens are "<Org Id>!<...>", and every Org Id starts
 # with the "00D" key prefix. Matching that, rather than the "[REDACTED]"
-# wording, keeps the check stable if sf changes the placeholder text. Same
-# rule as the CCI tasks' tasks/rlm_token_utils.py, restated here because
-# Robot loads this library outside the tasks/ import path.
+# wording, keeps the check stable if sf changes the placeholder text.
 _REAL_TOKEN_PREFIX = "00D"
 
 
@@ -84,7 +82,8 @@ class SalesforceAPI:
             ) from exc
         if result.returncode != 0:
             raise AssertionError(
-                f"sf org display failed (rc={result.returncode}): {result.stderr}"
+                f"sf org display failed for org alias '{org_alias}' "
+                f"(rc={result.returncode}): {result.stderr}"
             )
         data = json.loads(result.stdout)
         org_result = data.get("result", {})
@@ -130,7 +129,7 @@ class SalesforceAPI:
             # to surface.
             detail = (result.stderr or result.stdout or "").strip()
             raise AssertionError(
-                "sf org auth show-access-token failed "
+                f"sf org auth show-access-token failed for org alias '{org_alias}' "
                 f"(rc={result.returncode}): {detail[:500]}"
             )
         try:
@@ -139,7 +138,8 @@ class SalesforceAPI:
             # `from None`: the decode error holds the raw stdout in `.doc`,
             # which must not ride along in the exception chain.
             raise AssertionError(
-                "sf org auth show-access-token --json returned non-JSON output."
+                "sf org auth show-access-token --json returned non-JSON output "
+                f"for org alias '{org_alias}'."
             ) from None
         token = (data.get("result") or {}).get("accessToken")
         if not _looks_like_a_real_token(token):
