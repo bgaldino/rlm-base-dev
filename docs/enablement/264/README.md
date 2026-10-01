@@ -24,7 +24,7 @@ the 264 Help corpus, with features labelled New or Expanded. It has no tier
 (GA/Beta/Pilot) or demo-URL columns yet. The 264 Revenue release notes
 (`docs/salesforce/264/release-notes/`, PR #480) are now cross-referenced in its
 **Release-Note Cross-Reference** section and its Release note column. They label
-no feature Beta or Pilot, so rows backed by a release note are provisionally GA. Invoice Risk Scoring is Pilot (Help titles), and two New rows with no note (Exclude From Billing, Custom Dynamic Addition Screen Flow) have no known tier. Billing Start Month and Next Billing Date Override is only partly covered: the billing-frequency note mentions setting the billing start month, and no note covers the override. Every tier still
+no feature Beta or Pilot, so rows backed by a release note are provisionally GA. Invoice Risk Scoring is Pilot (Help titles), and three New rows with no note (Billing Start Month and Next Billing Date Override, Exclude From Billing, Custom Dynamic Addition Screen Flow) have no known tier. Every tier still
 needs confirming on a live org at GA (GA waves 2026-09-05 → 2026-10-10). Do not author 264 exercises against 262 content and
 relabel it — the point of a per-release extract is that it reflects that
 release.
