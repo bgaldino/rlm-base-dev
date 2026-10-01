@@ -104,6 +104,21 @@ def test_failures_raise_named_and_without_token():
         ("fallback non-zero exit",
          [_display(token=REDACTED), _completed(returncode=1, stderr="auth expired")],
          ["show-access-token", "rc=1"], 2),
+        # PR #492/#493 review: a failed credential command's stdout may hold
+        # the token, so neither stream may reach the error.
+        ("fallback non-zero exit, token on stdout",
+         [_display(token=REDACTED), _completed(returncode=1, stdout=f"partial {TOKEN}")],
+         ["show-access-token", "rc=1"], 2),
+        ("display non-zero exit, token on stdout",
+         [_completed(returncode=1, stdout=f"partial {TOKEN}", stderr="boom")],
+         ["org display", "rc=1", "boom"], 1),
+        # PR #493 review: valid JSON of the wrong shape must still raise SfTokenError.
+        ("display top-level list", [_completed(stdout="[]")], ["instanceUrl"], 1),
+        ("display non-object result", [_completed(stdout=json.dumps({"result": []}))],
+         ["unexpected JSON shape"], 1),
+        ("fallback non-object result",
+         [_display(token=REDACTED), _completed(stdout=json.dumps({"result": "x"}))],
+         ["unexpected JSON shape"], 2),
         ("fallback non-JSON", [_display(token=REDACTED), _completed(stdout=f"Token: {TOKEN}")],
          ["non-JSON"], 2),
         ("fallback still redacted", [_display(token=REDACTED), _show(token=REDACTED)],

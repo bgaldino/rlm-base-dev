@@ -39,8 +39,12 @@ def looks_like_a_real_token(token) -> bool:
     return isinstance(token, str) and token.startswith(_REAL_TOKEN_PREFIX)
 
 
-def _run_json(args, alias: str, timeout: int) -> dict:
-    """Run ``sf <args> --json`` and return the parsed ``result`` object."""
+def _run_json(args, alias: str, timeout: int, *, credential: bool = False) -> dict:
+    """Run ``sf <args> --json`` and return the parsed ``result`` object.
+
+    With ``credential``, a failure reports only the alias and return code: the
+    command prints the token on stdout, and a failed or partial run could too.
+    """
     label = "sf " + " ".join(args)
     try:
         proc = subprocess.run(
@@ -51,9 +55,15 @@ def _run_json(args, alias: str, timeout: int) -> dict:
             f"{label} timed out after {timeout} seconds for org '{alias}'."
         ) from exc
     if proc.returncode != 0:
-        # A failed call's output is diagnostic (auth or usage errors) and holds
-        # no token, so it is safe to surface.
-        detail = (proc.stderr or proc.stdout or "").strip()
+        if credential:
+            raise SfTokenError(
+                f"{label} failed for org '{alias}' (rc={proc.returncode}). "
+                f"Run `{label} --target-org {alias}` without --json to see why."
+            )
+        # stderr is diagnostic and never carries the token; stdout is left out
+        # because `sf org display` prints the token there when the
+        # SF_TEMP_SHOW_SECRETS shim is on.
+        detail = (proc.stderr or "").strip()
         raise SfTokenError(
             f"{label} failed for org '{alias}' (rc={proc.returncode}): {detail[:500]}"
         )
@@ -62,7 +72,14 @@ def _run_json(args, alias: str, timeout: int) -> dict:
     except json.JSONDecodeError:
         # `from None`: the decode error keeps the raw stdout in `.doc`.
         raise SfTokenError(f"{label} returned non-JSON output for org '{alias}'.") from None
-    return data.get("result") or {}
+    result = data.get("result") if isinstance(data, dict) else None
+    if result is None:
+        return {}
+    if not isinstance(result, dict):
+        raise SfTokenError(
+            f"{label} returned an unexpected JSON shape for org '{alias}'."
+        )
+    return result
 
 
 def org_auth(alias: str, timeout: int = DEFAULT_TIMEOUT) -> Tuple[str, str]:
@@ -76,7 +93,8 @@ def org_auth(alias: str, timeout: int = DEFAULT_TIMEOUT) -> Tuple[str, str]:
     token = info.get("accessToken")
     if not looks_like_a_real_token(token):
         token = _run_json(
-            ["org", "auth", "show-access-token", "--target-org", alias], alias, timeout
+            ["org", "auth", "show-access-token", "--target-org", alias], alias, timeout,
+            credential=True,
         ).get("accessToken")
         if not looks_like_a_real_token(token):
             raise SfTokenError(
