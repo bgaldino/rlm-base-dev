@@ -16,6 +16,13 @@ import csv
 import os
 import json
 import argparse
+import sys
+from pathlib import Path
+
+# sf redacts the token in `sf org display` unless SF_TEMP_SHOW_SECRETS is set;
+# the shared helper falls back to `sf org auth show-access-token`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from sf_token import org_auth  # noqa: E402
 
 # === Parse Arguments ===
 parser = argparse.ArgumentParser(description="Export metadata/data for one Expression Set Definition & Version")
@@ -59,15 +66,7 @@ def export_to_csv(query, filename, fields, alias):
     print("🔍 SOQL Query:", query.strip())
     
     try:
-        result = subprocess.run(
-            ["sf", "org", "display", "--target-org", alias, "--json"],
-            check=True,
-            capture_output=True,
-            text=True
-        )
-        org_info = json.loads(result.stdout)["result"]
-        access_token = org_info["accessToken"]
-        instance_url = org_info["instanceUrl"]
+        instance_url, access_token = org_auth(alias)
     except Exception as e:
         print("❌ Failed to retrieve org info from Salesforce CLI.")
         print(e)
@@ -110,15 +109,7 @@ def download_constraint_model_blobs(alias, input_csv=None):
         return
 
     try:
-        result = subprocess.run(
-            ["sf", "org", "display", "--target-org", alias, "--json"],
-            check=True,
-            capture_output=True,
-            text=True
-        )
-        org_info = json.loads(result.stdout)["result"]
-        access_token = org_info["accessToken"]
-        instance_url = org_info["instanceUrl"]
+        instance_url, access_token = org_auth(alias)
         print(f"🔑 Auth success - instance: {instance_url}")
     except Exception as e:
         print("❌ Failed to get org info")

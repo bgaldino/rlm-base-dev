@@ -160,6 +160,18 @@ acceptable for local scratch-org development, but it means tokens can appear in 
 logs, screen shares, and CI artifacts. Don't commit logs produced with it set, and prefer the
 narrowest scope that solves your case.
 
+### Repo scripts need no flag
+
+Scripts that call Salesforce REST themselves get the token from `scripts/sf_token.py`
+(`org_auth(alias)`). It takes the instance URL from `sf org display`, checks the token
+(a real one starts with the org's `00D` Id prefix), and when it isn't real fetches it with
+`sf org auth show-access-token --json`, which `sf` never redacts. The token is never logged or
+put in an error. `scripts/cml/export_cml.py`, `scripts/cml/import_cml.py` and
+`scripts/docgen/docgen_template_manage.py` use it; `scripts/txn_data_harness/auth.py` already
+used `show-access-token`. New scripts that need a token should use the helper rather than
+parsing `sf org display`. Offline tests: `tests/test_sf_token.py`. This doesn't cover CumulusCI
+itself, which still needs the flag.
+
 ## When can we remove this?
 
 This workaround relies on a flag Salesforce documents as **temporary** (`SF_TEMP_SHOW_SECRETS`
