@@ -143,6 +143,16 @@ launchctl getenv SF_TEMP_SHOW_SECRETS    # -> true
 cci org info CCI_ALIAS                     # -> instance_url, no INVALID_AUTH_HEADER
 ```
 
+### Robot E2E suites need no flag
+
+`robot/rlm-base/resources/SalesforceAPI.py` (the REST library every E2E suite under
+`robot/rlm-base/tests/e2e/` uses) also authenticates by parsing `sf org display --json`, and
+without the flag its suite setup failed with `SOQL query failed: 401 INVALID_AUTH_HEADER`. It now
+checks the token it gets back — a real one starts with the org's `00D` Id prefix — and when it
+doesn't, it fetches one with `sf org auth show-access-token -o <ORG_ALIAS> --json`, which `sf`
+never redacts. The token is never logged. This covers only the library's own REST calls; CCI's
+other tasks still need the fix above. Offline tests: `tests/test_robot_salesforce_api_auth.py`.
+
 ### Security note
 
 `SF_TEMP_SHOW_SECRETS=true` makes `sf org display` print access tokens in **plaintext**. That's
