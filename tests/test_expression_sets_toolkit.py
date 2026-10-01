@@ -314,18 +314,6 @@ def test_build_overlay():
         raised = True
     check("build_overlay missing step raises", raised)
 
-    # --- labels block: {name: label} map, string→string, optional ------------
-    good = {"addSteps": [{"name": "NewStep", "stepType": "BusinessKnowledgeModel"}],
-            "labels": {"NewStep": "New Step"}}
-    check("overlay with valid labels block validates", validate_overlay(good).passed,
-          validate_overlay(good).format_report())
-    check("overlay with no labels block validates", validate_overlay(
-        {"addSteps": [{"name": "S", "stepType": "BusinessKnowledgeModel"}]}).passed)
-    not_a_map = validate_overlay({"addSteps": [], "labels": ["nope"]})
-    check("labels-not-a-map is an error", not not_a_map.passed, not_a_map.format_report())
-    bad_val = validate_overlay({"addSteps": [], "labels": {"S": 123}})
-    check("labels non-string value is an error", not bad_val.passed, bad_val.format_report())
-
     # --- addVariables ↔ step-output collision ---------------------------------
     # A step's OUTPUT variable is materialized implicitly from its section-output
     # param; declaring that same name in addVariables double-registers it and the

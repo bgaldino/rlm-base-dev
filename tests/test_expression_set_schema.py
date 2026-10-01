@@ -1808,6 +1808,18 @@ def test_failed_mutation_skips_label_restore():
           not any(e[0] == "tooling_patch" for e in task.events) and task.active is False)
 
 
+def test_overlay_labels_validation_parity():
+    from scripts.expression_sets._schema import validate_overlay as toolkit_validate
+    for labels, valid in (
+        (None, True), ({}, True), ({"StepA": "Readable label"}, True),
+        (["StepA"], False), ({"StepA": 123}, False),
+    ):
+        for validate in (validate_overlay, toolkit_validate):
+            result = validate({"addSteps": [], "labels": labels})
+            check(f"{validate.__module__}: labels {labels!r} accepted={valid}",
+                  result.passed == valid)
+
+
 def test_overlay_labels_merge_top_level_and_per_step():
     labels = Connect._overlay_labels({
         "labels": {"A": "Top A", "B": "Top B"},
