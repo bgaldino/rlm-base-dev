@@ -124,7 +124,7 @@ def test_failures_raise_named_and_without_token():
         ("fallback still redacted", [_display(token=REDACTED), _show(token=REDACTED)],
          ["did not return a usable"], 2),
         ("fallback timeout",
-         [_display(token=REDACTED), subprocess.TimeoutExpired(cmd="sf", timeout=60)],
+         [_display(token=REDACTED), subprocess.TimeoutExpired(cmd="sf", timeout=60, output=TOKEN)],
          ["timed out after 60"], 2),
     ]
     for label, responses, fragments, n_calls in cases:
@@ -136,6 +136,22 @@ def test_failures_raise_named_and_without_token():
                   error is not None and fragment in str(error), error)
         check(f"{label}: made {n_calls} sf call(s)", len(calls) == n_calls, calls)
         _no_leak(label, error)
+    # PR #493 review: TimeoutExpired keeps the captured stdout, so neither
+    # command's timeout may be chained.
+    for label, responses in (
+        ("fallback timeout", [_display(token=REDACTED),
+                              subprocess.TimeoutExpired(cmd="sf", timeout=60, output=TOKEN)]),
+        ("display timeout", [subprocess.TimeoutExpired(cmd="sf", timeout=60, output=TOKEN)]),
+    ):
+        _, _, error = _run(responses)
+        check(f"{label}: TimeoutExpired not chained",
+              error is not None and error.__cause__ is None and error.__suppress_context__, error)
+    # The recovery hint names the command once (label already has --target-org).
+    _, _, error = _run([_display(token=REDACTED), _completed(returncode=1)])
+    check("recovery hint names the command once, without a doubled --target-org",
+          error is not None
+          and f"Run `sf org auth show-access-token --target-org {ALIAS}` without --json" in str(error)
+          and "--target-org my-scratch --target-org" not in str(error), error)
     # The non-JSON stdout holds the token; its decode error must not be chained.
     _, _, error = _run([_display(token=REDACTED), _completed(stdout=f"Token: {TOKEN}")])
     check("non-JSON: decode error not chained",

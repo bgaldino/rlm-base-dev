@@ -50,15 +50,17 @@ def _run_json(args, alias: str, timeout: int, *, credential: bool = False) -> di
         proc = subprocess.run(
             ["sf", *args, "--json"], capture_output=True, text=True, timeout=timeout
         )
-    except subprocess.TimeoutExpired as exc:
+    except subprocess.TimeoutExpired:
+        # `from None`: TimeoutExpired keeps the captured stdout, which can hold
+        # the token.
         raise SfTokenError(
             f"{label} timed out after {timeout} seconds for org '{alias}'."
-        ) from exc
+        ) from None
     if proc.returncode != 0:
         if credential:
             raise SfTokenError(
                 f"{label} failed for org '{alias}' (rc={proc.returncode}). "
-                f"Run `{label} --target-org {alias}` without --json to see why."
+                f"Run `{label}` without --json to see why."
             )
         # stderr is diagnostic and never carries the token; stdout is left out
         # because `sf org display` prints the token there when the
