@@ -4,7 +4,16 @@ End-to-end functional tests for Revenue Cloud (RLM) using Robot Framework + Sele
 
 ## Test Flow
 
-**Quote-to-Order** (`quote_to_order.robot`) — full end-to-end flow:
+**Quote-to-Order** (`quote_to_order.robot`) — full end-to-end flow, run by two test cases that
+share the `Run Quote To Order Flow` keyword:
+
+- **Quote To Order** — the flow below. The Order has no Contract, so the renewal Opportunity's
+  ContractId stays blank.
+- **Quote To Order With Contract** (tag `contract`) — the same flow, contract-first. Before the
+  order is created, `Create Contract From Quote` calls the standard `createContract` action on
+  the Quote and activates the Contract. It also sets the contract's renewal term, because
+  `createContract` leaves it blank, and with no renewal term no renewal Opportunity is created.
+  The test then checks the Order carries the Contract.
 
 ```
 Revenue Cloud App
@@ -18,6 +27,11 @@ Revenue Cloud App
   -> Verify Assets on Account (async poll)
   -> Verify Renewal Opportunity Includes Product (async poll)   <- the issue #63 detector
 ```
+
+`Verify Renewal Opportunity Includes Product` also checks the fields the flow copies onto the
+renewal Opportunity it creates: ContractId and CurrencyIsoCode must equal the Order's, Type
+must be `Existing Business`, and the Name must contain ` - Renewal - `. Only the contract-first
+test exercises ContractId with a real value.
 
 ⚠ **The last step is not decoration.** The renewal Opportunity is written by
 `RLM_CreateUpdateRenewalOpportunities`, a **PlatformEvent**-triggered flow: when it fails, the
@@ -48,7 +62,7 @@ robot/rlm-base/
   variables/
     E2EVariables.robot        # Test data, timeouts, feature flags
   tests/e2e/
-    quote_to_order.robot      # Full Quote-to-Order E2E test
+    quote_to_order.robot      # Full Quote-to-Order E2E tests (no contract + contract-first)
     setup_quote.robot         # Part 1: Reset Account + Opportunity + Quote
     order_from_quote.robot    # Part 2: Add Products + Order + Activate + Verify
     reset_account.robot       # Account reset utility
@@ -108,8 +122,12 @@ gets `TSO:false`. Only `QB` is consumed by the suites today.
 # Select the target org FIRST — the robot tasks do not take --org
 cci org default beta
 
-# Full Quote-to-Order flow (headless)
+# Full Quote-to-Order flow (headless): both tests, no contract and contract-first
 cci task run robot_e2e
+
+# Only one of them: run or skip the contract-first test by tag
+cci task run robot_e2e -o include_tags contract
+cci task run robot_e2e -o exclude_tags contract
 
 # Full flow — headed with CDP debugging (connect via chrome://inspect)
 cci task run robot_e2e_debug
@@ -134,7 +152,7 @@ robot -v TEST_ACCOUNT_NAME:"Acme Corp" -v ORG_ALIAS:beta robot/rlm-base/tests/e2
 
 | Task | Suite | Browser | Description |
 |------|-------|---------|-------------|
-| `robot_e2e` | `quote_to_order.robot` | Headless | Full Quote-to-Order flow |
+| `robot_e2e` | `quote_to_order.robot` | Headless | Full Quote-to-Order flow: two tests, no contract and contract-first (tag `contract`) |
 | `robot_e2e_debug` | `quote_to_order.robot` | Headed + CDP (port 9222) | Same flow, visible browser for debugging |
 | `robot_setup_quote` | `setup_quote.robot` | Headed | Part 1: Reset Account + Opportunity + Quote |
 | `robot_order_from_quote` | `order_from_quote.robot` | Headed | Part 2: Add Products + Order + Activate + Verify |
