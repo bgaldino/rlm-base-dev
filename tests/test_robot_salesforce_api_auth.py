@@ -197,7 +197,11 @@ def test_fallback_failures_raise_without_token():
     print("test_fallback_failures_raise_without_token")
     cases = [
         ("non-zero exit", _completed(returncode=1, stderr="NoOrgFound: no such org"),
-         ["rc=1", "NoOrgFound", ALIAS]),
+         ["rc=1", ALIAS]),
+        # PR #492 review: a failed run's stdout may hold the token, so neither
+        # stream may reach the error.
+        ("non-zero exit, token on stdout", _completed(returncode=1, stdout=f"partial {TOKEN}"),
+         ["rc=1", ALIAS]),
         ("non-JSON stdout", _completed(stdout=f"Access token: {TOKEN}"), ["non-JSON", ALIAS]),
         ("still redacted", _show(token=REDACTED), ["did not return a usable", ALIAS]),
         ("no result", _completed(stdout=json.dumps({"status": 0})), ["did not return a usable", ALIAS]),

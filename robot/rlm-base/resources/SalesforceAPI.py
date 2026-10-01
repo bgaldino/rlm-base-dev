@@ -124,13 +124,12 @@ class SalesforceAPI:
                 f"{self.REQUEST_TIMEOUT} seconds for org alias '{org_alias}'."
             ) from exc
         if result.returncode != 0:
-            # A failed call's output is diagnostic (auth or usage errors) and
-            # carries no token, unlike the success-path stdout, so it is safe
-            # to surface.
-            detail = (result.stderr or result.stdout or "").strip()
+            # Neither stream goes into the error: this command prints the
+            # credential on stdout, and a partial or failed run could too.
             raise AssertionError(
                 f"sf org auth show-access-token failed for org alias '{org_alias}' "
-                f"(rc={result.returncode}): {detail[:500]}"
+                f"(rc={result.returncode}). Run `sf org auth show-access-token "
+                f"-o {org_alias}` to see why."
             )
         try:
             data = json.loads(result.stdout)
