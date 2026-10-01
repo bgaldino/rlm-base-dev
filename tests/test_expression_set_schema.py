@@ -651,10 +651,11 @@ def test_cascade_deactivate_dry_run_does_not_patch():
 class _MutationTask(_CascadeTask):
     """_CascadeTask plus one ExpressionSetVersion ("ESV") for the lifecycle."""
 
-    def __init__(self, plans, esv_active=True):
+    def __init__(self, plans, esv_active=True, fail_plan_reactivate=False):
         import logging
 
         super().__init__(dict(plans, ESV=esv_active))
+        self.fail_plan_reactivate = fail_plan_reactivate
         self.plan_ids = sorted(plans)
         self.logs = []
 
@@ -672,9 +673,16 @@ class _MutationTask(_CascadeTask):
         return [{"ProcedurePlanSection": {"ProcedurePlanVersionId": vid}}
                 for vid in self.plan_ids]
 
-    def run(self, activate_after=True):
+    def _patch_sobject(self, sobject, record_id, payload):
+        if (self.fail_plan_reactivate and payload.get("IsActive")
+                and sobject == "ProcedurePlanDefinitionVersion"):
+            raise RuntimeError("plan reactivate boom")
+        super()._patch_sobject(sobject, record_id, payload)
+
+    def run(self, activate_after=True, succeed=False):
         def boom():
-            raise RuntimeError("PATCH boom")
+            if not succeed:
+                raise RuntimeError("PATCH boom")
         try:
             self._run_connect_mutation(
                 es_def_id="ESD", esv={"Id": "ESV", "IsActive": True}, mutate=boom,
@@ -702,11 +710,18 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
 
     earlier = _MutationTask({"PPV_A": True, "PPV_B": False})
     earlier.run()
-    check("a plan an earlier run left off is left as found",
+    check("an inactive plan version this run did not take down is left as found",
           earlier.states["PPV_B"] is False)
-    check("health report names a plan an earlier run left inactive",
-          any("ProcedurePlanDefinitionVersion PPV_B" in m for m in earlier.logs)
-          and any("inactive procedure plan is skipped" in m for m in earlier.logs))
+    check("it is listed for inspection without a restore command",
+          any("PPV_B" in m and "check which" in m for m in earlier.logs)
+          and not any("--record-id PPV_B" in m for m in earlier.logs))
+
+    reactivate_fails = _MutationTask({"PPV_A": True}, fail_plan_reactivate=True)
+    error2 = reactivate_fails.run(succeed=True)
+    check("a failed plan reactivation after a successful mutation still raises",
+          error2 is not None and "plan reactivate boom" in str(error2))
+    check("a failed plan reactivation still prints the plan's restore command",
+          any("--record-id PPV_A" in m for m in reactivate_fails.logs))
 
     kept_off = _MutationTask({"PPV_A": True})
     kept_off.run(activate_after=False)

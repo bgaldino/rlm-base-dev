@@ -564,9 +564,10 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             falls back to the Revenue Settings default procedure and the plan's
             other procedures stop running. An active plan over an inactive
             version fails loudly at pricing time instead (both live-checked on
-            264 / v68.0). After any failure the version and every referencing
-            plan are re-read, and each inactive record is reported with its
-            restore command.
+            264 / v68.0). After any failure, including a failed reactivation,
+            the version and every referencing plan are re-read. Records this
+            run deactivated get a restore command; other inactive plan versions
+            are listed for inspection only.
 
         Re-raises the original failure (chaining a reactivation failure onto it
         when both happen) so the caller surfaces it.
@@ -576,6 +577,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         deactivated = False
         cascaded_ppvs: List[str] = []
         failure: Optional[Exception] = None
+        reactivate_error: Optional[Exception] = None
         mutate_succeeded = False
 
         try:
@@ -609,12 +611,9 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                             cascaded_ppvs, dry_run
                         )
                 except Exception as reactivate_exc:
-                    if failure:
-                        raise TaskOptionsError(
-                            f"{verb} failed, and reactivation also failed: "
-                            f"{reactivate_exc}"
-                        ) from failure
-                    raise
+                    # Raised after the health report below, so a failed
+                    # reactivation still names what it left off.
+                    reactivate_error = reactivate_exc
             elif failure and deactivated and not dry_run:
                 self.logger.error(
                     "%s failed and may have partially applied. Leaving "
@@ -644,72 +643,106 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     esv_id, cascaded_ppvs or "(none)",
                 )
 
-        if failure and not dry_run:
+        if (failure or reactivate_error) and not dry_run:
             try:
-                self._report_procedure_health(es_def_id, esv_id)
+                self._report_procedure_health(
+                    es_def_id, esv_id,
+                    taken_down=cascaded_ppvs, version_taken_down=deactivated,
+                )
             except Exception as health_exc:
                 self.logger.error(
                     "Could not read procedure health after the failure: %s",
                     health_exc,
                 )
 
+        if reactivate_error:
+            if failure:
+                raise TaskOptionsError(
+                    f"{verb} failed, and reactivation also failed: "
+                    f"{reactivate_error}"
+                ) from failure
+            raise reactivate_error
         if failure:
             raise failure
 
-    def _report_procedure_health(self, es_def_id: str, esv_id: str) -> List[str]:
+    def _report_procedure_health(
+        self,
+        es_def_id: str,
+        esv_id: str,
+        *,
+        taken_down: List[str],
+        version_taken_down: bool,
+    ) -> List[str]:
         """Re-read activation state after a failure and warn on anything off.
 
-        Covers the version and EVERY procedure-plan version referencing the
-        expression set, not only the ones this run cascaded, so a plan an
-        earlier failed run left inactive is reported too.
+        Only records this run deactivated get a restore command; their prior
+        state is known to be active. Other inactive procedure-plan versions
+        referencing the expression set are listed for inspection only: a plan
+        can keep inactive draft, expired or lower-ranked versions on purpose.
         """
-        inactive: List[str] = []
-        records = self._soql_query(
-            "SELECT Id, IsActive FROM ExpressionSetVersion "
-            f"WHERE Id = '{self._soql_escape(esv_id)}'"
-        )
-        if records and not records[0].get("IsActive"):
-            inactive.append(f"ExpressionSetVersion {esv_id}")
+        left_off: List[str] = []
+        if version_taken_down:
+            records = self._soql_query(
+                "SELECT Id, IsActive FROM ExpressionSetVersion "
+                f"WHERE Id = '{self._soql_escape(esv_id)}'"
+            )
+            if records and not records[0].get("IsActive"):
+                left_off.append(f"ExpressionSetVersion {esv_id}")
         plan_ids = sorted({
             (opt.get("ProcedurePlanSection") or {}).get("ProcedurePlanVersionId")
             for opt in self._find_referencing_procedure_plans(es_def_id)
         } - {None})
+        other_inactive: List[str] = []
         for vid in plan_ids:
             records = self._soql_query(
                 "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
                 f"WHERE Id = '{self._soql_escape(vid)}'"
             )
             if records and not records[0].get("IsActive"):
-                inactive.append(f"ProcedurePlanDefinitionVersion {vid}")
-        if not inactive:
+                if vid in taken_down:
+                    left_off.append(f"ProcedurePlanDefinitionVersion {vid}")
+                else:
+                    other_inactive.append(vid)
+        if not left_off and not other_inactive:
             self.logger.info(
                 "Procedure health after the failure: the version and all "
                 "referencing procedure plans are active."
             )
-            return inactive
+            return left_off
         self.logger.error("!" * 72)
-        self.logger.error("WARNING: records left INACTIVE after the failure.")
-        if any(r.startswith("ProcedurePlanDefinitionVersion") for r in inactive):
+        if left_off:
             self.logger.error(
-                "An inactive procedure plan is skipped: pricing silently falls back "
-                "to the Revenue Settings default procedure and none of the plan's "
-                "other procedures run, so prices look plausible but are wrong. "
-                "Restore the plan before reading any price."
+                "WARNING: records this run deactivated are still INACTIVE."
             )
-        for record in inactive:
-            sobject, record_id = record.split(" ", 1)
+            if any(r.startswith("ProcedurePlanDefinitionVersion") for r in left_off):
+                self.logger.error(
+                    "An inactive procedure plan is skipped: pricing silently falls back "
+                    "to the Revenue Settings default procedure and none of the plan's "
+                    "other procedures run, so prices look plausible but are wrong. "
+                    "Restore the plan before reading any price."
+                )
+            for record in left_off:
+                sobject, record_id = record.split(" ", 1)
+                self.logger.error(
+                    "  %s: sf data update record --target-org %s --sobject %s "
+                    "--record-id %s --values \"IsActive=true\"",
+                    record, self.org_config.username, sobject, record_id,
+                )
+            if f"ExpressionSetVersion {esv_id}" in left_off:
+                self.logger.error(
+                    "Inspect the expression-set version before reactivating it; a "
+                    "failed PATCH can leave it half-written."
+                )
+        if other_inactive:
             self.logger.error(
-                "  %s: sf data update record --target-org %s --sobject %s "
-                "--record-id %s --values \"IsActive=true\"",
-                record, self.org_config.username, sobject, record_id,
-            )
-        if f"ExpressionSetVersion {esv_id}" in inactive:
-            self.logger.error(
-                "Inspect the expression-set version before reactivating it; a "
-                "failed PATCH can leave it half-written."
+                "Other procedure-plan versions referencing this expression set are "
+                "inactive: %s. They may be intentional (draft, expired or "
+                "lower-ranked) or left off by an earlier failed run; check which "
+                "version should be active before changing any.",
+                ", ".join(other_inactive),
             )
         self.logger.error("!" * 72)
-        return inactive
+        return left_off
 
     # -- Payload sanitization -----------------------------------------
     #

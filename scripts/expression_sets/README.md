@@ -225,8 +225,10 @@ expected behavior; the outputs are not dead code.
   cascaded off (unless `--no-activate`): an inactive plan is silently skipped, so
   pricing falls back to the Revenue Settings default procedure with plausible
   numbers, while an active plan over the inactive version fails loudly. After any
-  failure it re-reads the version and every referencing plan and prints each
-  inactive record with its restore command. **A failed label-only Tooling `Metadata`
+  failure, including a failed reactivation, it re-reads the version and every
+  referencing plan. Records the run deactivated get a restore command; other
+  inactive plan versions (which may be intentional drafts) are listed for
+  inspection only. **A failed label-only Tooling `Metadata`
   PATCH (the relabel path) is different** — it never touches the definition
   graph, so the stored Metadata is byte-identical after a failure and only the
   cosmetic labels are stale. That path therefore **reactivates** the version even

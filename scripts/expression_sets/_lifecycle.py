@@ -30,9 +30,10 @@ The load-bearing guarantees (verified on 262 / v67.0):
     look plausible rather than failing. An active plan over an inactive
     expression-set version is accepted and fails loudly at pricing time
     ("Ensure that this procedure has at least one active version."); both
-    live-checked on 264 / v68.0. After any failure the engine
-    re-reads the version and every referencing plan and prints each inactive
-    record with its restore command.
+    live-checked on 264 / v68.0. After any failure, including a failed
+    reactivation, the engine re-reads the version and every referencing plan.
+    Records this run deactivated get a restore command; other inactive plan
+    versions are listed for inspection only.
 
 Dry-run is driven by the injected ``Transport`` (``Transport(dry_run=True)``):
 mutating verbs are logged and skipped at the request layer; reads always run so
@@ -302,6 +303,7 @@ class LifecycleEngine:
         deactivated = False
         cascaded_ppvs: List[str] = []
         failure: Optional[Exception] = None
+        reactivate_error: Optional[Exception] = None
         mutate_succeeded = False
 
         try:
@@ -337,12 +339,9 @@ class LifecycleEngine:
                     if cascaded_ppvs:
                         self.cascade_reactivate_procedure_plans(cascaded_ppvs)
                 except Exception as reactivate_exc:
-                    if failure:
-                        raise LifecycleError(
-                            f"{verb} failed, and reactivation also failed: "
-                            f"{reactivate_exc}"
-                        ) from failure
-                    raise
+                    # Raised after the health report below, so a failed
+                    # reactivation still names what it left off.
+                    reactivate_error = reactivate_exc
             elif failure and deactivated and not self.dry_run:
                 self.log(
                     f"{verb} failed and may have partially applied. Leaving "
@@ -369,67 +368,97 @@ class LifecycleEngine:
                     f"DEACTIVATED as requested."
                 )
 
-        if failure and not self.dry_run:
+        if (failure or reactivate_error) and not self.dry_run:
             try:
-                self.report_procedure_health(es_def_id, esv_id)
+                self.report_procedure_health(
+                    es_def_id, esv_id,
+                    taken_down=cascaded_ppvs, version_taken_down=deactivated,
+                )
             except Exception as health_exc:
                 self.log(f"Could not read procedure health after the failure: {health_exc}")
 
+        if reactivate_error:
+            if failure:
+                raise LifecycleError(
+                    f"{verb} failed, and reactivation also failed: "
+                    f"{reactivate_error}"
+                ) from failure
+            raise reactivate_error
         if failure:
             raise failure
 
-    def report_procedure_health(self, es_def_id: str, esv_id: str) -> List[str]:
+    def report_procedure_health(
+        self,
+        es_def_id: str,
+        esv_id: str,
+        *,
+        taken_down: List[str],
+        version_taken_down: bool,
+    ) -> List[str]:
         """Re-read activation state after a failure and warn on anything off.
 
-        Queries the version and EVERY procedure-plan version that references the
-        expression set, not only the ones this run cascaded, so a plan an
-        earlier failed run left inactive is reported too. Returns one
-        ``"<sObject> <Id>"`` entry per inactive record.
+        Only records this run deactivated (``taken_down`` plans, and the version
+        when ``version_taken_down``) get a restore command; their prior state is
+        known to be active. Other inactive procedure-plan versions referencing the
+        expression set are listed for inspection only: a plan can keep inactive
+        draft, expired or lower-ranked versions on purpose, and activating one
+        could change which version runs. Returns one ``"<sObject> <Id>"`` entry
+        per record this run left inactive.
         """
-        inactive: List[str] = []
-        if self._version_state(esv_id) is False:
-            inactive.append(f"ExpressionSetVersion {esv_id}")
+        left_off: List[str] = []
+        if version_taken_down and self._version_state(esv_id) is False:
+            left_off.append(f"ExpressionSetVersion {esv_id}")
         plan_ids = sorted({
             (opt.get("ProcedurePlanSection") or {}).get("ProcedurePlanVersionId")
             for opt in self.find_referencing_procedure_plans(es_def_id)
         } - {None})
+        other_inactive: List[str] = []
         for vid in plan_ids:
             records = self.t.soql(
                 "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
                 f"WHERE Id = '{soql_literal(vid)}'"
             )
             if records and not records[0].get("IsActive"):
-                inactive.append(f"ProcedurePlanDefinitionVersion {vid}")
-        if not inactive:
+                if vid in taken_down:
+                    left_off.append(f"ProcedurePlanDefinitionVersion {vid}")
+                else:
+                    other_inactive.append(vid)
+        if not left_off and not other_inactive:
             self.log("Procedure health after the failure: the version and all "
                      "referencing procedure plans are active.")
-            return inactive
-        lines = [
-            "!" * 72,
-            "WARNING: records left INACTIVE after the failure.",
-        ]
-        if any(r.startswith("ProcedurePlanDefinitionVersion") for r in inactive):
+            return left_off
+        lines = ["!" * 72]
+        if left_off:
+            lines.append("WARNING: records this run deactivated are still INACTIVE.")
+            if any(r.startswith("ProcedurePlanDefinitionVersion") for r in left_off):
+                lines.append(
+                    "An inactive procedure plan is skipped: pricing silently falls back "
+                    "to the Revenue Settings default procedure and none of the plan's "
+                    "other procedures run, so prices look plausible but are wrong. "
+                    "Restore the plan before reading any price."
+                )
+            for record in left_off:
+                sobject, record_id = record.split(" ", 1)
+                lines.append(
+                    f"  {record}: sf data update record --target-org <org> "
+                    f"--sobject {sobject} --record-id {record_id} --values \"IsActive=true\""
+                )
+            if f"ExpressionSetVersion {esv_id}" in left_off:
+                lines.append(
+                    "Inspect the expression-set version before reactivating it; a "
+                    "failed PATCH can leave it half-written."
+                )
+        if other_inactive:
             lines.append(
-                "An inactive procedure plan is skipped: pricing silently falls back "
-                "to the Revenue Settings default procedure and none of the plan's "
-                "other procedures run, so prices look plausible but are wrong. "
-                "Restore the plan before reading any price."
-            )
-        for record in inactive:
-            sobject, record_id = record.split(" ", 1)
-            lines.append(
-                f"  {record}: sf data update record --target-org <org> "
-                f"--sobject {sobject} --record-id {record_id} --values \"IsActive=true\""
-            )
-        if f"ExpressionSetVersion {esv_id}" in inactive:
-            lines.append(
-                "Inspect the expression-set version before reactivating it; a failed "
-                "PATCH can leave it half-written."
+                "Other procedure-plan versions referencing this expression set are "
+                f"inactive: {', '.join(other_inactive)}. They may be intentional "
+                "(draft, expired or lower-ranked) or left off by an earlier failed "
+                "run; check which version should be active before changing any."
             )
         lines.append("!" * 72)
         for line in lines:
             self.log(line)
-        return inactive
+        return left_off
 
     # -- Delete --------------------------------------------------------
 

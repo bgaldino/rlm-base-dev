@@ -107,8 +107,9 @@ debugging a run.
    accepted, so on failure the task **leaves the version deactivated** and raises
    loudly rather than re-enabling a half-mutated procedure. It reactivates the
    procedure plans it cascaded off (an inactive plan silently skips its
-   procedures; an active plan over an inactive version fails loudly) and reports
-   every inactive record with its restore command.
+   procedures; an active plan over an inactive version fails loudly) and gives a
+   restore command for each record the run left inactive (other inactive plan
+   versions are listed for inspection only).
 4. **Version `id` handling differs by verb.** A PATCH (replace) body **must keep**
    the version-level `id` (from the `ExpressionSetVersion` sObject) so the server
    matches the version in place. A POST (create) of a new ES **must omit** the

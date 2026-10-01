@@ -1151,9 +1151,10 @@ class _PlanTransport:
     maps ProcedurePlanDefinitionVersion Id -> IsActive.
     """
 
-    def __init__(self, *, plans, esv_active=True):
+    def __init__(self, *, plans, esv_active=True, fail_plan_reactivate=False):
         self.plans = dict(plans)
         self.esv_active = esv_active
+        self.fail_plan_reactivate = fail_plan_reactivate
         self.dry_run = False
         self.logger = lambda *a, **k: None
 
@@ -1168,6 +1169,8 @@ class _PlanTransport:
         if sobject == "ExpressionSetVersion":
             self.esv_active = active
         elif sobject == "ProcedurePlanDefinitionVersion":
+            if active and self.fail_plan_reactivate:
+                raise RuntimeError("plan reactivate boom")
             self.plans[record_id] = active
         return {}
 
@@ -1216,18 +1219,20 @@ def test_failed_mutation_keeps_plans_online():
     check("no plan-offline warning when every plan is active",
           not any("inactive procedure plan is skipped" in m for m in logs), logs)
 
-    # A plan an EARLIER failed run left off is not in this run's cascade, so it
-    # is not reactivated, but the health report must name it (the old message
-    # said "(none)").
+    # An inactive plan version this run did not deactivate may be an intentional
+    # draft, or one an earlier failed run left off (the old message said
+    # "(none)"). It is left as found and listed for inspection, with no restore
+    # command, so nobody activates an unintended version (PR #491 review).
     logs2 = []
     t2 = _PlanTransport(plans={"1Cv1": True, "1Cv2": False})
     run(t2, logs2, activate_after=True)
     check("a plan this run did not deactivate is left as found",
           t2.plans == {"1Cv1": True, "1Cv2": False}, t2.plans)
-    check("health report names a plan left inactive by an earlier run",
-          any("ProcedurePlanDefinitionVersion 1Cv2" in m for m in logs2), logs2)
-    check("health report warns that an inactive plan prices wrongly",
-          any("inactive procedure plan is skipped" in m for m in logs2), logs2)
+    check("health report lists another inactive plan version for inspection",
+          any("1Cv2" in m and "check which version should be active" in m
+              for m in logs2), logs2)
+    check("health report gives no restore command for a plan it did not take down",
+          not any("--record-id 1Cv2" in m for m in logs2), logs2)
 
     # activate_after=False is an explicit request to leave things off.
     logs3 = []
@@ -1237,6 +1242,25 @@ def test_failed_mutation_keeps_plans_online():
           t3.plans == {"1Cv1": False}, t3.plans)
     check("activate_after=False still reports the inactive plan",
           any("ProcedurePlanDefinitionVersion 1Cv1" in m for m in logs3), logs3)
+    check("health report warns that an inactive plan prices wrongly",
+          any("inactive procedure plan is skipped" in m for m in logs3), logs3)
+
+    # PR #491 review: a successful mutation whose plan reactivation fails used to
+    # raise from inside `finally`, skipping the health report. It must still
+    # name the plan with a restore command, then raise the reactivation error.
+    logs5 = []
+    t5 = _PlanTransport(plans={"1Cv1": True}, fail_plan_reactivate=True)
+    engine5 = LifecycleEngine(t5, logger=logs5.append, poll_interval_seconds=1)
+    raised5 = None
+    try:
+        engine5.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                             mutate=lambda: None, activate_after=True, cascade=True)
+    except RuntimeError as exc:
+        raised5 = exc
+    check("a failed plan reactivation after a successful mutation still raises",
+          raised5 is not None and "plan reactivate boom" in str(raised5), raised5)
+    check("a failed plan reactivation still prints the health report",
+          any("--record-id 1Cv1" in m for m in logs5), logs5)
 
     # Success path is unchanged and prints no health report.
     logs4 = []
