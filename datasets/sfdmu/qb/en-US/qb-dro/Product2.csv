@@ -53,21 +53,21 @@ CustomDecompositionScope,DecompositionScope,FulfillmentQtyCalcMethod,Name,StockK
 ,,,Data Throughput,QB-DATA-THPT-BLNG
 ,,,QuantumBit Database,QB-DB
 ,,,QuantumBit Database (Token Based),QB-DB-TOKEN
-Group_Identifier,Custom,Aggregate,Additional Flows - Provisioning & Activation Service,QB-DRO-AACR
-Group_Identifier,Custom,Aggregate,Additional API - Provision & Activation Service,QB-DRO-AAPI
-Group_Identifier,Custom,,Additional Automation QB Credits - Provisioning & Activation Service,QB-DRO-AAQBC
-Group_Identifier,Custom,,AEH API - Provisioning & Activation Service,QB-DRO-AEH
-Group_Identifier,Custom,,Additional Flows - QB Starter - Provisioning & Activation Service,QB-DRO-AFBQ
-Group_Identifier,Custom,,Additional Messages QB Starter - Provisioning & Activation Service,QB-DRO-AM
+Ramp_Identifier,Custom,Aggregate,Additional Flows - Provisioning & Activation Service,QB-DRO-AACR
+Ramp_Identifier,Custom,Aggregate,Additional API - Provision & Activation Service,QB-DRO-AAPI
+Ramp_Identifier,Custom,,Additional Automation QB Credits - Provisioning & Activation Service,QB-DRO-AAQBC
+Ramp_Identifier,Custom,,AEH API - Provisioning & Activation Service,QB-DRO-AEH
+Ramp_Identifier,Custom,,Additional Flows - QB Starter - Provisioning & Activation Service,QB-DRO-AFBQ
+Ramp_Identifier,Custom,,Additional Messages QB Starter - Provisioning & Activation Service,QB-DRO-AM
 Ramp_Identifier,Custom,AlwaysOne,API Platform - Provisioning & Activation Service,QB-DRO-APIPLAT
 Ramp_Identifier,Account,AlwaysOne,Finance Service,QB-DRO-BILL
 ,Account,Aggregate,Billing,QB-DRO-BILLING
-Group_Identifier,Custom,AlwaysOne,License Activation,QB-DRO-LICACT
+Ramp_Identifier,Custom,AlwaysOne,License Activation,QB-DRO-LICACT
 Ramp_Identifier,Custom,AlwaysOne,Order Processing,QB-DRO-OR
 Ramp_Identifier,Custom,AlwaysOne,API Management License - Provisioning & Activation Service,QB-DRO-PERMS
 ,Account,,Project Service,QB-DRO-PROJ
 Ramp_Identifier,Custom,AlwaysOne,Provision DB,QB-DRO-PROVISION
-Group_Identifier,Custom,,QuantumBit Database - Provisioning & Activation Service,QB-DRO-QBD
+Ramp_Identifier,Custom,,QuantumBit Database - Provisioning & Activation Service,QB-DRO-QBD
 ,OrderLineItem,,Additional Flows - QB Enterprise,QB-FLO-ENTR
 ,OrderLineItem,,Additional Flows - QB Starter,QB-FLO-STRT
 ,,,QuantumBit Generative AI License,QB-GEN-AI-LIC
