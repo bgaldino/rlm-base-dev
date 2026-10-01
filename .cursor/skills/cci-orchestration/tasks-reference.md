@@ -1212,7 +1212,7 @@
 
 ### `robot_e2e`
 
-**Description:** Run the full Quote-to-Order UI test (headless Chrome). Validates the complete sales workflow: Reset Account → Create Opportunity → Create Quote → Browse Catalogs → Add Products → Configure Bundle Line → Create Order → Activate Order → Verify Assets → Verify Renewal Opportunity Includes Product. Requires a provisioned org with qb=true (run prepare_rlm_org first).
+**Description:** Run the full Quote-to-Order UI test (headless Chrome). Validates the complete sales workflow: Reset Account → Create Opportunity → Create Quote → Browse Catalogs → Add Products → Configure Bundle Line → Create Order → Activate Order → Verify Assets → Verify Renewal Opportunity Includes Product. A second test runs the flow contract-first (tag contract) and checks the renewal Opportunity's ContractId. Requires a provisioned org with qb=true (run prepare_rlm_org first).
 
 **Class:** `tasks.rlm_robot_e2e.RunE2ETests`
 

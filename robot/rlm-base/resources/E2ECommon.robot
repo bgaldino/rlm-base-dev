@@ -1748,6 +1748,41 @@ Pause For Recording If Enabled
 
 # ── Verification ─────────────────────────────────────────────────────
 
+Create Contract From Quote
+    [Documentation]    Creates a Contract from ${quote_id} with the standard ``createContract``
+    ...    action, sets its renewal term, activates it and returns its Id. The Order created
+    ...    from the Quote afterwards picks the Contract up and links its Assets to it
+    ...    (AssetContractRelationship).
+    ...
+    ...    The renewal term is set here because ``createContract`` leaves
+    ...    ``RenewalTerm2`` / ``RenewalTermUnit`` blank. With a blank renewal term the Assets
+    ...    get none either, ``getRenewableAssetsSummary`` fails ("All assets in a request must
+    ...    have values for RenewalTermUnit and RenewalTerm") and no renewal Opportunity is
+    ...    created (live-checked on 264). Setting ``Order.ContractId`` directly is not a
+    ...    substitute: it creates no AssetContractRelationship rows and fails the same way.
+    [Arguments]    ${quote_id}
+    SalesforceAPI.Validate Salesforce Id    ${quote_id}
+    ${body}=    Set Variable    {"inputs":[{"sourceId":"${quote_id}"}]}
+    ${api}=    Get Library Instance    SalesforceAPI
+    ${result}=    Run Process    sf    api    request    rest
+    ...    /services/data/${api.API_VERSION}/actions/standard/createContract
+    ...    --method    POST    --body    ${body}    -o    ${ORG_ALIAS}    shell=False
+    Should Be Equal As Integers    ${result.rc}    0
+    ...    msg=createContract failed for Quote ${quote_id}: ${result.stderr}
+    ${response}=    Evaluate    json.loads($result.stdout)    modules=json
+    Should Be True    ${response}[0][isSuccess]
+    ...    msg=createContract failed for Quote ${quote_id}: ${response}[0][errors]
+    ${contract_id}=    Set Variable    ${response}[0][outputValues][contractId]
+    SalesforceAPI.Validate Salesforce Id    ${contract_id}
+    ${result}=    Run Process    sf    data    update    record    -o    ${ORG_ALIAS}
+    ...    --sobject    Contract    --record-id    ${contract_id}
+    ...    --values    RenewalTerm2\=1 RenewalTermUnit\=Annual ContractTerm\=12 Status\=Activated
+    ...    --json    shell=False
+    Should Be Equal As Integers    ${result.rc}    0
+    ...    msg=Could not activate Contract ${contract_id}: ${result.stdout}
+    Log    Created and activated Contract ${contract_id} from Quote ${quote_id}
+    RETURN    ${contract_id}
+
 Verify Assets Exist On Account
     [Documentation]    Checks that at least 1 Asset exists on the Account. Fails if not (for retry).
     [Arguments]    ${account_id}
@@ -1783,8 +1818,8 @@ Verify Renewal Opportunity Includes Product
     ...    Account), so a renewal Opportunity left over from an earlier run can't satisfy it.
     ...
     ...    Then checks the fields the flow copies onto the Opportunity it creates: ContractId and
-    ...    CurrencyIsoCode must equal ${order_id}'s (ContractId is blank when the order has no
-    ...    contract, as in this suite, and the flow then leaves it blank), and the Name must
+    ...    CurrencyIsoCode must equal ${order_id}'s (in the no-contract test both ContractIds are
+    ...    blank; ``Quote To Order With Contract`` gives the order a real one), and the Name must
     ...    contain ` - Renewal - `, the OpportunityName constant as RenewalOpportunityNameFormula
     ...    places it.
     [Arguments]    ${account_id}    ${product_name}    ${source_opportunity_id}    ${order_id}
