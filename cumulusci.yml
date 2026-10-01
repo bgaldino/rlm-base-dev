@@ -3200,6 +3200,7 @@ tasks:
       verify: true
       skip_validation: false
       normalize_html_entities: true
+      preserve_labels: true
       activate_after_apply: true
       cascade_deactivate_procedure_plan: true
       max_wait_seconds: 45
@@ -3219,6 +3220,7 @@ tasks:
       verify: true
       skip_validation: false
       normalize_html_entities: true
+      preserve_labels: true
       activate_after_apply: true
       cascade_deactivate_procedure_plan: true
       max_wait_seconds: 45
@@ -3233,6 +3235,7 @@ tasks:
       dry_run: false
       skip_validation: false
       normalize_html_entities: true
+      preserve_labels: true
       activate_after_import: true
       cascade_deactivate_procedure_plan: true
       max_wait_seconds: 45

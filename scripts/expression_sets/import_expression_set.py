@@ -278,9 +278,9 @@ def main(argv=None) -> int:
         eprint(f"\nImport complete for '{api_name}'.")
     else:
         eprint(f"\nImport applied for '{api_name}', but step-label RESTORE FAILED "
-               f"({restore_result.get('error')}). The set is live; only the readable "
-               f"labels are stale. Re-run relabel_expression_set.py "
-               f"--expression-set {api_name} to restore them.")
+               f"({restore_result.get('error')}). Check version and procedure-plan "
+               f"activation states, then re-run relabel_expression_set.py "
+               f"--expression-set {api_name} if needed.")
     if args.json:
         print(json.dumps(result, indent=2))
     return 0 if restore_ok else 1

@@ -129,14 +129,14 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
    referenced name into one of three scopes (version variable → `addVariables`;
    custom external dep → `externalDependencies`; standard context → nothing).
 7. **Mutations run deactivate → modify → reactivate**, in a guarded `finally`;
-   the tasks enforce this, including the procedure-plan cascade. **Label
-   preservation runs a second deactivate→relabel→reactivate cycle** after the
-   Connect PATCH, adding 30-60s for large procedures (90+ steps). Both the
-   toolkit CLIs and the CCI tasks do this: in `tasks/rlm_expression_set_connect.py`
-   it lives in `_run_connect_mutation`, so every Connect PATCH gets it, and a
-   guard test fails any PATCH routed around it. Opt out with
+   the tasks enforce this, including the procedure-plan cascade. The CCI task
+   restores labels before reactivation in that same inactive window; its Connect
+   PATCH sends `enabled:false` so the PATCH cannot reactivate first. The
+   standalone toolkit still restores labels in a second lifecycle cycle. In
+   `tasks/rlm_expression_set_connect.py`, preservation lives in
+   `_run_connect_mutation`, so every Connect PATCH gets it. Opt out with
    `--no-preserve-labels` (toolkit) or `-o preserve_labels false` (CCI). Give an
-   overlay's new steps readable labels with a per-step `label` (or a top-level
+   overlay's new or updated steps readable labels with a per-step `label` (or a top-level
    `labels` map); without one they show the spaceless `name`.
 8. **Test Connect CRUD on a disposable clone** (POST-create a renamed copy),
    never the shipped procedure — except for an intentional, approved change.

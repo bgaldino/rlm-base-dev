@@ -1481,6 +1481,7 @@
 - `verify`: `True`
 - `skip_validation`: `False`
 - `normalize_html_entities`: `True`
+- `preserve_labels`: `True`
 - `activate_after_apply`: `True`
 - `cascade_deactivate_procedure_plan`: `True`
 - `max_wait_seconds`: `45`
@@ -1584,6 +1585,7 @@
 - `verify`: `True`
 - `skip_validation`: `False`
 - `normalize_html_entities`: `True`
+- `preserve_labels`: `True`
 - `activate_after_apply`: `True`
 - `cascade_deactivate_procedure_plan`: `True`
 - `max_wait_seconds`: `45`
@@ -2647,6 +2649,7 @@
 - `dry_run`: `False`
 - `skip_validation`: `False`
 - `normalize_html_entities`: `True`
+- `preserve_labels`: `True`
 - `activate_after_import`: `True`
 - `cascade_deactivate_procedure_plan`: `True`
 - `max_wait_seconds`: `45`

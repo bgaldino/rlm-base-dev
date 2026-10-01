@@ -267,9 +267,9 @@ def main(argv=None) -> int:
         eprint(f"\nSuccessfully applied overlay {args.overlay} to {es_api_name}.")
     else:
         eprint(f"\nApplied overlay {args.overlay} to {es_api_name}, but step-label "
-               f"RESTORE FAILED ({restore_result.get('error')}). The overlay is live; "
-               f"only the readable labels are stale. Re-run relabel_expression_set.py "
-               f"--expression-set {es_api_name} to restore them.")
+               f"RESTORE FAILED ({restore_result.get('error')}). Check version and "
+               f"procedure-plan activation states, then re-run "
+               f"relabel_expression_set.py --expression-set {es_api_name} if needed.")
     if args.json:
         print(json.dumps({"action": "apply_overlay", "expressionSet": es_api_name,
                           "expressionSetId": es_id, "dryRun": preview,

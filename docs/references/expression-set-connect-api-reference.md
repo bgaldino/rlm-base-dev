@@ -99,10 +99,10 @@ debugging a run.
 
 1. **An enabled version cannot be modified or deleted.** A mutation runs
    **deactivate → PATCH → reactivate**.
-2. **Reactivation is idempotent.** A full-graph PATCH whose body carries
-   `enabled: true` re-activates the version itself, so the task checks the
-   current `IsActive` and skips a redundant reactivation (which would otherwise
-   hit the enabled-version guardrail). Handled by `_set_version_active`.
+2. **Reactivation is explicit.** The CCI task sends `enabled: false` in the
+   full-graph PATCH, restores readable step labels while the version is inactive,
+   then activates once. `_set_version_active` still checks `IsActive` to avoid
+   a redundant update if another path already activated the version.
 3. **PATCH is not atomic.** A failed (400) PATCH still commits the parts it
    accepted, so on failure the task **leaves the version deactivated** and raises
    loudly rather than re-enabling a half-mutated procedure.

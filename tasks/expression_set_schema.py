@@ -630,6 +630,11 @@ def validate_overlay(overlay: dict) -> ValidationResult:
                         f"{op}[{i}]",
                         "reorderSteps entry requires an integer sequenceNumber.",
                     )
+            if op == "updateSteps" and isinstance(item, dict) and "placement" in item:
+                result.error(
+                    f"{op}[{i}].placement",
+                    "updateSteps cannot use placement; use reorderSteps.",
+                )
 
     add_vars = overlay.get("addVariables", [])
     if not isinstance(add_vars, list):
@@ -830,7 +835,7 @@ def step_content_differences(expected, actual, path="step"):
                 for p in step_content_differences(want, got, f"{path}[{i}]")]
     if isinstance(expected, str) and isinstance(actual, str):
         expected, actual = html.unescape(expected), html.unescape(actual)
-    if expected in ("", None) and actual in ("", None):
+    if path.endswith(".description") and expected in ("", None) and actual in ("", None):
         return []
     return [] if expected == actual else [path]
 

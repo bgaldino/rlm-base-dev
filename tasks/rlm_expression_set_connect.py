@@ -372,7 +372,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         if not resp.ok:
             raise self._connect_error("PATCH", es_id, resp)
         # A full-graph PATCH rebuilds every step label from its spaceless name;
-        # _run_connect_mutation reads this flag to restore them afterwards.
+        # _run_connect_mutation reads this flag to restore them before activation.
         self._labels_clobbered = True
         return resp.json() if resp.content else {}
 
@@ -541,10 +541,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         activate_after: bool,
         cascade: bool,
         verb: str = "mutation",
-        reactivate_on_failure: bool = False,
-        es_id: Optional[str] = None,
         extra_labels: Optional[Dict[str, str]] = None,
-        preserve_labels: bool = True,
     ) -> None:
         """Run a Connect mutation and keep the version's step labels intact.
 
@@ -553,41 +550,33 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         caller: any mutator routed through this method gets it without opting
         in. Labels are snapshotted from the Tooling API before ``mutate``; if
         ``mutate`` PATCHed (``_patch_expression_set_via_connect`` sets
-        ``_labels_clobbered``), they are written back in a second
-        deactivate→Tooling PATCH→reactivate cycle. ``extra_labels`` (e.g. an
-        overlay's labels for the steps it adds) are layered on top.
+        ``_labels_clobbered``), they are written back while the version is
+        still inactive, before the existing activation. ``extra_labels``
+        (e.g. an overlay's labels for new steps) are layered on top.
 
         Label reads/writes are best-effort; activation failures propagate.
         Restore runs only after the mutation fully succeeded; the
-        ``preserve_labels`` task option (default true) or argument turns it off. See
+        ``preserve_labels`` task option (default true) turns it off. See
         ``_run_activation_cycle`` for the activation guarantees.
         """
-        preserve = (
-            preserve_labels
-            and not dry_run
-            and es_id is not None
-            and self._bool_option(self.options.get("preserve_labels"), True)
-        )
+        preserve_requested = self._bool_option(self.options.get("preserve_labels"), True)
         labels: Dict[str, str] = {}
-        if preserve:
+        if preserve_requested and not dry_run:
             labels = self._capture_step_labels(es_def_id, esv)
             labels.update(extra_labels or {})
-        elif dry_run and preserve_labels and es_id is not None:
+        elif dry_run and preserve_requested:
             self.logger.info("[dry-run] Would restore step labels after the PATCH.")
         self._labels_clobbered = False
 
-        self._run_activation_cycle(
-            es_def_id=es_def_id, esv=esv, mutate=mutate, dry_run=dry_run,
-            activate_after=activate_after, cascade=cascade, verb=verb,
-            reactivate_on_failure=reactivate_on_failure,
-        )
+        def mutate_and_restore():
+            mutate()
+            if labels and self._labels_clobbered:
+                self._restore_step_labels(es_def_id=es_def_id, esv=esv, labels=labels)
 
-        if preserve and labels and self._labels_clobbered:
-            self._restore_step_labels(
-                es_id=es_id, es_def_id=es_def_id,
-                version_api_name=esv.get("ApiName"), labels=labels,
-                cascade=cascade,
-            )
+        self._run_activation_cycle(
+            es_def_id=es_def_id, esv=esv, mutate=mutate_and_restore, dry_run=dry_run,
+            activate_after=activate_after, cascade=cascade, verb=verb,
+        )
 
     def _run_activation_cycle(
         self,
@@ -599,7 +588,6 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         activate_after: bool,
         cascade: bool,
         verb: str,
-        reactivate_on_failure: bool,
     ) -> None:
         """Run the safety-critical deactivate→mutate→reactivate lifecycle.
 
@@ -620,10 +608,6 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             corrupted pricing procedure is worse than leaving it offline. So
             reactivation happens only when ``activate_after`` AND the mutate body
             succeeded (or in dry-run, where nothing changed).
-
-        ``reactivate_on_failure`` is for mutations that cannot corrupt the
-        definition (a label-only Tooling PATCH): reactivate even when ``mutate``
-        fails, so a cosmetic error never takes a live procedure offline.
 
         Re-raises the original failure (chaining a reactivation failure onto it
         when both happen) so the caller surfaces it.
@@ -655,9 +639,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         except Exception as exc:
             failure = exc
         finally:
-            should_activate = activate_after and (
-                mutate_succeeded or dry_run or reactivate_on_failure
-            )
+            should_activate = activate_after and (mutate_succeeded or dry_run)
             if should_activate:
                 try:
                     self._set_version_active(esv_id, True, dry_run)
@@ -755,15 +737,15 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
 
     @staticmethod
     def _overlay_labels(overlay: dict) -> Dict[str, str]:
-        """Labels an overlay ships for its steps: a top-level ``labels`` map
-        and/or a ``label`` on an ``addSteps`` entry (the per-step one wins)."""
+        """Labels an overlay ships: a top-level map or per-step labels."""
         out: Dict[str, str] = {}
         top = overlay.get("labels")
         if isinstance(top, dict):
             out.update({k: v for k, v in top.items() if isinstance(v, str)})
-        for step in overlay.get("addSteps") or []:
-            if isinstance(step, dict) and step.get("name") and isinstance(step.get("label"), str):
-                out[step["name"]] = step["label"]
+        for operation in ("addSteps", "updateSteps"):
+            for step in overlay.get(operation) or []:
+                if isinstance(step, dict) and step.get("name") and isinstance(step.get("label"), str):
+                    out[step["name"]] = step["label"]
         return out
 
     def _capture_step_labels(self, es_def_id: str, esv: dict) -> Dict[str, str]:
@@ -786,35 +768,22 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
     def _restore_step_labels(
         self,
         *,
-        es_id: str,
         es_def_id: str,
-        version_api_name: Optional[str],
+        esv: dict,
         labels: Dict[str, str],
-        cascade: bool,
     ) -> bool:
         """Write step labels back after a Connect PATCH reset them.
 
-        Runs its own deactivate → Tooling PATCH → reactivate cycle (a Tooling
-        Metadata PATCH on an active version does not persist). Label read/write
-        failures are logged and reported as ``False``. Activation and cascade
-        failures propagate. Steps the mutation removed or renamed are skipped.
+        Called inside the Connect mutation's inactive window. Label failures
+        are cosmetic and logged; the enclosing lifecycle still reactivates the
+        version. Steps the mutation removed or renamed are skipped.
         """
-        if not labels or not version_api_name:
+        if not labels:
             return True
         try:
-            rows = self._soql_query(
-                "SELECT Id, ApiName, IsActive, VersionNumber "
-                "FROM ExpressionSetVersion "
-                f"WHERE ExpressionSetId = '{self._soql_escape(es_id)}' "
-                f"AND ApiName = '{self._soql_escape(version_api_name)}'"
-            )
-            if not rows:
-                raise TaskOptionsError(
-                    f"version '{version_api_name}' not found after the mutation"
-                )
-            esv = rows[0]
             esdv_id = self._resolve_esdv_id(es_def_id, esv.get("VersionNumber"))
-            current = self._step_labels(self._get_step_metadata(esdv_id))
+            metadata = self._get_step_metadata(esdv_id)
+            current = self._step_labels(metadata)
             planned = {
                 n: l for n, l in labels.items()
                 if l and n in current and current[n] != l
@@ -822,49 +791,41 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             if not planned:
                 self.logger.info("Step labels already current; nothing to restore.")
                 return True
-
-        except Exception as exc:  # noqa: BLE001 — no activation state changed
-            self.logger.warning("Could not prepare step-label restore (%s).", exc)
-            return False
-
-        label_failure = None
-
-        def mutate():
-            nonlocal label_failure
-            try:
-                metadata = self._get_step_metadata(esdv_id)
-                for step in metadata.get("steps") or []:
-                    if isinstance(step, dict) and step.get("name") in planned:
-                        step["label"] = planned[step["name"]]
-                # `urls` is server-emitted and rejected on write.
-                body = {k: v for k, v in metadata.items() if k != "urls"}
-                self._tooling_request(
-                    "PATCH", f"sobjects/{self._ESDV_SOBJECT}/{esdv_id}",
-                    {"Metadata": body},
-                )
-                stored = self._step_labels(self._get_step_metadata(esdv_id))
-                missing = sorted(n for n, l in planned.items() if stored.get(n) != l)
-                if missing:
-                    raise TaskOptionsError(f"labels did not persist for {missing}")
-            except Exception as exc:  # noqa: BLE001 — only label work is cosmetic
-                label_failure = exc
-
-        # Do not catch lifecycle errors: a failed activation or cascade can
-        # leave pricing offline even when the label write itself succeeded.
-        self._run_activation_cycle(
-            es_def_id=es_def_id, esv=esv, mutate=mutate, dry_run=False,
-            activate_after=bool(esv.get("IsActive")), cascade=cascade,
-            verb="Label restore", reactivate_on_failure=True,
-        )
-        if label_failure is not None:
+            for step in metadata.get("steps") or []:
+                if isinstance(step, dict) and step.get("name") in planned:
+                    step["label"] = planned[step["name"]]
+            # `urls` is server-emitted and rejected on write.
+            body = {k: v for k, v in metadata.items() if k != "urls"}
+            self._tooling_request(
+                "PATCH", f"sobjects/{self._ESDV_SOBJECT}/{esdv_id}",
+                {"Metadata": body},
+            )
+            stored = self._step_labels(self._get_step_metadata(esdv_id))
+            missing = sorted(n for n, l in planned.items() if stored.get(n) != l)
+            if missing:
+                raise TaskOptionsError(f"labels did not persist for {missing}")
+        except Exception as exc:  # noqa: BLE001 — only label work is cosmetic
             self.logger.warning(
                 "The Connect mutation succeeded, but restoring step labels "
                 "failed (%s). Re-run scripts/expression_sets/"
-                "relabel_expression_set.py to restore them.", label_failure,
+                "relabel_expression_set.py to restore them.", exc,
             )
             return False
         self.logger.info("Restored %d step label(s).", len(planned))
         return True
+
+    @staticmethod
+    def _keep_patched_version_inactive(payload: dict, version_id: str) -> dict:
+        """Prevent a Connect PATCH from reactivating the version before relabeling."""
+        versions = payload.get("versions") or []
+        target = next(
+            (v for v in versions if isinstance(v, dict) and v.get("id") == version_id),
+            None,
+        )
+        if target is None:
+            raise TaskOptionsError(f"PATCH payload has no version id {version_id}.")
+        target["enabled"] = False
+        return payload
 
     # -- Payload sanitization -----------------------------------------
     #
@@ -987,14 +948,17 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 issue.code in {"output_only_fields", "version_id"}
                 or (issue.code == "html_entities" and normalize)
             )
-            log = self.logger.debug if automatic else self.logger.warning
-            log("Schema %s: %s — %s", what, issue.location, issue.message)
-            handled += int(automatic)
+            if automatic:
+                handled += 1
+            else:
+                self.logger.warning(
+                    "Schema %s: %s — %s", what, issue.location, issue.message
+                )
         if handled and log_summary:
             self.logger.info(
                 "Schema %s: %d transport warning(s) handled automatically by "
-                "payload preparation (HTML decoding and/or server-field handling); "
-                "per-field details at DEBUG.", what, handled,
+                "payload preparation (HTML decoding and/or server-field handling).",
+                what, handled,
             )
         if result.errors:
             detail = "; ".join(f"{i.location}: {i.message}" for i in result.errors)
@@ -1241,6 +1205,10 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         def mutate():
             definition = self._get_expression_set_via_connect(es_id)
             modified = self._apply_overlay(definition, overlay)
+            change_summary = self._overlay_change_summary(
+                self._find_version(definition["versions"], version_api_name),
+                self._find_version(modified["versions"], version_api_name),
+            )
 
             # Pre-flight: validate the merged definition before PATCH so a
             # malformed step graph fails locally with a clear message rather
@@ -1256,6 +1224,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             # on the wire are valid JSON inside the param/criteria value strings.
             patch_payload = self._strip_readonly_fields(modified)
             patch_payload = self._normalize_html_entities(patch_payload)
+            patch_payload = self._keep_patched_version_inactive(patch_payload, esv["Id"])
 
             if dry_run:
                 self.logger.info("[dry-run] Would PATCH expression set %s.", es_id)
@@ -1265,6 +1234,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
 
             if verify and not dry_run:
                 self._verify_overlay(es_id, overlay, patch_payload)
+            self.logger.info("Overlay changes: %s", change_summary)
 
         self._run_connect_mutation(
             es_def_id=es_def_id,
@@ -1274,7 +1244,6 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             activate_after=activate_after,
             cascade=cascade,
             verb="Overlay apply",
-            es_id=es_id,
             extra_labels=self._overlay_labels(overlay),
         )
 
@@ -1335,6 +1304,19 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                 f"Version '{version_api_name}' not found in definition."
             )
         return versions[0]
+
+    @staticmethod
+    def _overlay_change_summary(before: dict, after: dict) -> str:
+        """Count actual graph changes, including steps shifted by placement."""
+        parts = []
+        for key in ("steps", "variables"):
+            old = {item["name"]: item for item in before.get(key, [])}
+            new = {item["name"]: item for item in after.get(key, [])}
+            added = len(new.keys() - old.keys())
+            removed = len(old.keys() - new.keys())
+            changed = sum(old[name] != new[name] for name in old.keys() & new.keys())
+            parts.append(f"{key} +{added}/-{removed}/changed {changed}")
+        return "; ".join(parts)
 
     # -- Step operations -----------------------------------------------
 
@@ -1442,6 +1424,10 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
     def _update_steps(self, steps: list, to_update: list) -> list:
         for update_def in to_update:
             name = update_def["name"]
+            if "placement" in update_def:
+                raise TaskOptionsError(
+                    f"updateSteps target '{name}' cannot use placement; use reorderSteps."
+                )
             target = next((s for s in steps if s.get("name") == name), None)
             if not target:
                 # Raise rather than warn-and-continue: a missing target means the
@@ -1451,7 +1437,7 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
                     f"updateSteps target '{name}' not found in the definition."
                 )
             for key, value in update_def.items():
-                if key == "name":
+                if key in ("name", "label"):
                     continue
                 target[key] = value
             self.logger.debug("Updated step '%s'.", name)
@@ -1739,6 +1725,7 @@ class ImportExpressionSet(ExpressionSetConnectBase):
                 patch_payload = self._strip_readonly_fields(payload)
                 patch_payload = self._rewrite_version_id(patch_payload, esv["Id"])
                 patch_payload = self._normalize_html_entities(patch_payload)
+                patch_payload = self._keep_patched_version_inactive(patch_payload, esv["Id"])
                 self._patch_expression_set_via_connect(es_id, patch_payload)
                 self.logger.info("Imported (updated) expression set %s.", es_id)
 
@@ -1750,7 +1737,6 @@ class ImportExpressionSet(ExpressionSetConnectBase):
                 activate_after=activate_after,
                 cascade=cascade,
                 verb="Import",
-                es_id=es_id,
             )
         else:
             self.logger.info("Expression set '%s' does not exist, creating...", api_name)

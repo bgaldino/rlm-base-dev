@@ -504,9 +504,9 @@ def restore_labels_after_clobber(
         else:
             log("No step labels needed restoring after the Connect PATCH.")
         return {"ok": True, "changed": result["changed"], "error": None}
-    except Exception as exc:  # noqa: BLE001 — restore must never fail the mutation
+    except Exception as exc:  # noqa: BLE001 — report restore and lifecycle failures
         log(f"⚠ Connect mutation succeeded but label RESTORE failed ({exc}). The "
-            f"procedure stays LIVE (a relabel is non-corrupting, so the version was "
-            f"reactivated) — only the readable labels are stale (spaceless names). "
-            f"Re-run relabel_expression_set.py --expression-set <name> to restore them.")
+            f"readable labels may be stale. Check the version and referencing plan "
+            f"activation states; re-run relabel_expression_set.py --expression-set "
+            f"<name> to restore labels if needed.")
         return {"ok": False, "changed": [], "error": str(exc)}
