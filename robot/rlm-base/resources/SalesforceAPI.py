@@ -6,6 +6,12 @@ operations, and verify record state without relying on the UI.
 
 Authentication is obtained via ``sf org display --json`` using the
 ORG_ALIAS variable, which provides an access token and instance URL.
+Since the May 2026 Salesforce CLI security change (forcedotcom/cli#3560,
+sf 2.145+), ``sf org display`` redacts ``result.accessToken`` to a
+placeholder unless ``SF_TEMP_SHOW_SECRETS=true`` is set; when the value it
+returns is not a real token, the library falls back to
+``sf org auth show-access-token --json``, which never redacts. The token is
+never logged or included in an error message.
 """
 
 import json
@@ -18,6 +24,17 @@ from robot.api.deco import keyword
 from robot.libraries.BuiltIn import BuiltIn
 
 _logger = logging.getLogger(__name__)
+
+# Real Salesforce access tokens are "<Org Id>!<...>", and every Org Id starts
+# with the "00D" key prefix. Matching that, rather than the "[REDACTED]"
+# wording, keeps the check stable if sf changes the placeholder text. Same
+# rule as the CCI tasks' tasks/rlm_token_utils.py, restated here because
+# Robot loads this library outside the tasks/ import path.
+_REAL_TOKEN_PREFIX = "00D"
+
+
+def _looks_like_a_real_token(token):
+    return isinstance(token, str) and token.startswith(_REAL_TOKEN_PREFIX)
 
 
 class SalesforceAPI:
@@ -71,14 +88,66 @@ class SalesforceAPI:
             )
         data = json.loads(result.stdout)
         org_result = data.get("result", {})
-        self._access_token = org_result.get("accessToken")
-        self._instance_url = (org_result.get("instanceUrl") or "").rstrip("/")
-        if not self._access_token or not self._instance_url:
+        access_token = org_result.get("accessToken")
+        instance_url = (org_result.get("instanceUrl") or "").rstrip("/")
+        if not instance_url:
             raise AssertionError(
-                "sf org display did not return accessToken or instanceUrl. "
+                "sf org display did not return instanceUrl. "
                 f"Keys present: {list(org_result.keys())}"
             )
+        if not _looks_like_a_real_token(access_token):
+            _logger.info(
+                "sf org display returned a redacted or missing accessToken; "
+                "falling back to sf org auth show-access-token"
+            )
+            access_token = self._fetch_access_token(org_alias)
+        self._access_token = access_token
+        self._instance_url = instance_url
         _logger.info("Authenticated to %s", self._instance_url)
+
+    def _fetch_access_token(self, org_alias):
+        """Return a usable access token via ``sf org auth show-access-token``.
+
+        That command is sf's supported way to request the token deliberately
+        and is never redacted (``--json`` also skips its confirmation prompt).
+        """
+        try:
+            result = subprocess.run(
+                ["sf", "org", "auth", "show-access-token",
+                 "-o", org_alias, "--json"],
+                capture_output=True,
+                text=True,
+                timeout=self.REQUEST_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise AssertionError(
+                "sf org auth show-access-token timed out after "
+                f"{self.REQUEST_TIMEOUT} seconds for org alias '{org_alias}'."
+            ) from exc
+        if result.returncode != 0:
+            # A failed call's output is diagnostic (auth or usage errors) and
+            # carries no token, unlike the success-path stdout, so it is safe
+            # to surface.
+            detail = (result.stderr or result.stdout or "").strip()
+            raise AssertionError(
+                "sf org auth show-access-token failed "
+                f"(rc={result.returncode}): {detail[:500]}"
+            )
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            # `from None`: the decode error holds the raw stdout in `.doc`,
+            # which must not ride along in the exception chain.
+            raise AssertionError(
+                "sf org auth show-access-token --json returned non-JSON output."
+            ) from None
+        token = (data.get("result") or {}).get("accessToken")
+        if not _looks_like_a_real_token(token):
+            raise AssertionError(
+                "sf org auth show-access-token did not return a usable access "
+                f"token for org alias '{org_alias}'."
+            )
+        return token
 
     def _headers(self):
         """Return HTTP headers for REST API calls."""
