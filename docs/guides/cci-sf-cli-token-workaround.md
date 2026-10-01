@@ -153,13 +153,6 @@ doesn't, it fetches one with `sf org auth show-access-token -o <ORG_ALIAS> --jso
 never redacts. The token is never logged. This covers only the library's own REST calls; CCI's
 other tasks still need the fix above. Offline tests: `tests/test_robot_salesforce_api_auth.py`.
 
-### Security note
-
-`SF_TEMP_SHOW_SECRETS=true` makes `sf org display` print access tokens in **plaintext**. That's
-acceptable for local scratch-org development, but it means tokens can appear in `sf` output,
-logs, screen shares, and CI artifacts. Don't commit logs produced with it set, and prefer the
-narrowest scope that solves your case.
-
 ### Repo scripts need no flag
 
 Scripts that call Salesforce REST themselves get the token from `scripts/sf_token.py`
@@ -171,6 +164,13 @@ put in an error. `scripts/cml/export_cml.py`, `scripts/cml/import_cml.py` and
 used `show-access-token`. New scripts that need a token should use the helper rather than
 parsing `sf org display`. Offline tests: `tests/test_sf_token.py`. This doesn't cover CumulusCI
 itself, which still needs the flag.
+
+### Security note
+
+`SF_TEMP_SHOW_SECRETS=true` makes `sf org display` print access tokens in **plaintext**. That's
+acceptable for local scratch-org development, but it means tokens can appear in `sf` output,
+logs, screen shares, and CI artifacts. Don't commit logs produced with it set, and prefer the
+narrowest scope that solves your case.
 
 ## When can we remove this?
 
