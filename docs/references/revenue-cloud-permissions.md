@@ -291,7 +291,7 @@ persona user instead. See the persona rows in the flow inventory below.
 |---|---|---|---|
 | `RLM_QuantumBit` | `quantumbit` | `prepare_quantumbit` step 4 | FLS on custom QB fields (Order, Quote, etc.) |
 | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 7 | SObject access for CALM Delete operations |
-| `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (called from `prepare_quantumbit` step 2) | FLS on approval fields (including edit access to both stored pricing outputs on quote lines and order products) + `RLM_AA_Submit_Approval` Apex class |
+| `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (running user) · `prepare_personas` step 11 (salesrep user, when `personas` is on) | FLS on approval fields (including edit access to both stored pricing outputs on quote lines and order products) + `RLM_AA_Submit_Approval` Apex class |
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
 | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` | `prepare_prm` step 8 | FLS on partner/channel program fields |
@@ -397,6 +397,7 @@ The following table shows the sequence of all permission-related steps across th
 | 29.8 | `prepare_personas` > `assign_permission_sets` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
 | 29.9 | `prepare_personas` > `assign_permission_sets` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \| `tso`) |
 | 29.10 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBitDemoSetup` (salesrep user) | `personas` + `quantumbit` |
+| 29.11 | `prepare_personas` > `assign_permission_sets` | `RLM_Approvals` (salesrep user) | `personas` + `quantumbit` + `approvals` |
 | 31.2 | `prepare_inapp` > `assign_permission_sets` | `RLM_Learning` | `inapp` |
 
 ---
@@ -451,4 +452,4 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 4. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 29 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
 
 5. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
-6. **Persona assignments are not admin assignments** -- steps 29.6-29.9 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 29.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.
+6. **Persona assignments are not admin assignments** -- steps 29.6-29.11 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 29.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.

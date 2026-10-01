@@ -323,6 +323,42 @@ def test_shipped_approval_flags_passes_and_resets_first():
         "approval_flags steps never reference ItemDescription",
         "ItemDescription" not in json.dumps(ov.get("addSteps", [])),
     )
+    steps = {s["name"]: s for s in ov["addSteps"]}
+    reset = steps["RLMApprovalFlagsResetAllLines"]["advancedCondition"]
+    check("approval_flags reset covers blank and set discounts",
+          reset["conditionLogic"] == "1 OR 2" and
+          [c["operator"] for c in reset["criteria"]] == ["IsNull", "IsNotNull"] and
+          all(c["sourceFieldName"] == "ItemDiscountPercentage" for c in reset["criteria"]))
+    variables = {v["name"]: v["value"] for v in ov["addVariables"]}
+    for tier, low, high, level, label in (
+        ("None", None, None, "0", ""),
+        ("Manager", "15", "25", "1", "🟡 Manager"),
+        ("Director", "25", "35", "2", "🟠 Director"),
+        ("VP", "35", "100", "3", "🔴 VP"),
+    ):
+        if low is not None:
+            band = steps[f"RLMApprovalFlags{tier}Band"]["advancedCondition"]
+            check(f"approval_flags {tier} band is [{low}, {high})",
+                  band["conditionLogic"] == "1 AND 2 AND 3" and
+                  [(c["operator"], c.get("value"), c["sourceFieldName"])
+                   for c in band["criteria"]] == [
+                       ("GreaterThanOrEquals", low, "ItemDiscountPercentage"),
+                       ("LessThan", high, "ItemDiscountPercentage"),
+                       ("IsNotNull", None, "ItemDiscountPercentage"),
+                   ])
+        check(f"approval_flags {tier} constants are correct",
+              variables[f"RLMApprovalLevel{tier}"] == level and
+              variables[f"RLMApprovalLabel{tier}"] == label)
+        parameters = {p["name"]: p["value"] for p in
+                      steps[f"RLMApprovalFlagsAssign{tier}"]["customElement"]["parameters"]}
+        check(f"approval_flags {tier} writes both approval outputs",
+              parameters["section-0-input1"] == f"RLMApprovalLevel{tier}" and
+              parameters["section-1-input1"] == f"RLMApprovalLabel{tier}" and
+              parameters["section-0-output"] == "RLM_Approval_Level_Calc__c" and
+              parameters["section-1-output"] == "RLM_Approval__c" and
+              all(json.loads(parameters[f"sectionJsonString{i}"])["whereConditions"][0]
+                  ["value"]["value"] == output for i, output in (
+                      (2, "RLM_Approval_Level_Calc__c"), (3, "RLM_Approval__c"))))
 
 
 def test_reference_facility_quantity_example_passes():

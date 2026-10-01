@@ -51,19 +51,19 @@ The standalone toolkit does the same without CCI:
 `python scripts/expression_sets/apply_expression_set_overlay.py --target-org <sf_alias> --overlay <file>`.
 
 Normal CCI logs summarize automatically handled HTML-encoding and server-field
-validation warnings once before PATCH. Per-field details and step/variable
-transformation messages are at DEBUG; actionable warnings and validation errors
-remain visible. HTML-encoding warnings remain warnings when normalization is off.
+validation warnings once before PATCH. Step/variable transformation messages are
+at DEBUG; actionable warnings and validation errors remain visible.
+HTML-encoding warnings remain warnings when normalization is off.
 
-Every apply:
+The CCI task:
 
 1. validates the overlay and the merged graph locally, **before** touching the org;
 2. deactivates the version (and any referencing procedure plan versions, when
    `cascade_deactivate_procedure_plan` is true);
 3. GETs the live definition, merges the overlay, PATCHes it, and verifies the
    stored graph against what was sent (`verify`);
-4. reactivates the version (`activate_after_apply`, default true);
-5. restores the readable step labels (see *Step labels*).
+4. restores the readable step labels (see *Step labels*) while deactivated;
+5. reactivates the version (`activate_after_apply`, default true).
 
 A failed PATCH leaves the version **deactivated** rather than reactivating a
 possibly half-applied definition.
@@ -93,7 +93,7 @@ possibly half-applied definition.
 |-----|---------|
 | `expressionSetApiName`, `versionApiName` | The set and version to patch. Override with the `expression_set_api_name` / `version_api_name` task options. |
 | `addSteps` | New steps. A **top-level** step needs `placement` (`afterStep`, `beforeStep` or `sequenceNumber`) and no `sequenceNumber`. A **child** step carries `parentStep` and its own `sequenceNumber` (numbered per parent, from 1) and no `placement`. List a parent before its children. Anchors name steps by their spaceless `name`, not their label. |
-| `label` (on an `addSteps` entry) | Readable name shown in the UI. Overlay-only: stripped before the Connect PATCH and written through the Tooling API afterwards. A top-level `labels` map (`{name: label}`) works too; the per-step value wins. |
+| `label` (on an `addSteps` or `updateSteps` entry) | Readable name shown in the UI. Overlay-only: stripped before the Connect PATCH and written through the Tooling API afterwards. A top-level `labels` map (`{name: label}`) works too; the per-step value wins. |
 | `removeSteps`, `updateSteps`, `reorderSteps`, `removeVariables` | Remove, edit, or move existing steps and variables. |
 | `addVariables` | **Input** version variables the new steps consume (constants, scratch variables). Never a step's own output: the platform creates that, and declaring it again fails with `A context variable with the name ... already exists`. |
 | `externalDependencies` | Documentation of what the overlay does **not** create: custom fields, custom context nodes and fields the target must already have. Ignored by the apply; the validator uses it to silence its custom-reference warning. |
@@ -103,17 +103,22 @@ possibly half-applied definition.
 A step has a spaceless `name` (its API identifier and the `parentStep` key) and a
 readable `label`. Connect has no `label` field, so every Connect PATCH resets all
 labels in the version to their names. Both the CCI task and the toolkit
-snapshot labels before the PATCH and restore them afterwards, in a second
-deactivate → Tooling API PATCH → reactivate cycle. A new step gets the `label`
+snapshot labels before the PATCH and restore them afterwards. CCI restores them
+before reactivation; the standalone toolkit uses a second deactivate → Tooling
+API PATCH → reactivate cycle. A new step gets the `label`
 the overlay gives it; without one it shows its `name`. Turn restoring off with
 `-o preserve_labels false` (CCI) or `--no-preserve-labels` (toolkit).
 
 In CCI, a label read/write failure is logged as a warning and does not fail the
 apply. Deactivation, reactivation, and procedure-plan restoration failures fail
 the task.
-Fix the labels afterwards with
-`python scripts/expression_sets/relabel_expression_set.py --from-metadata <file>`,
-pointing at the `force-app` `*.expressionSetDefinition-meta.xml`.
+To recover this overlay's labels, combine the base metadata labels with its
+new step labels (which are absent from the base XML):
+
+```bash
+python -c 'import json; p=json.load(open("datasets/expression_set_overlays/approval_flags.json")); print(json.dumps({s["name"]:s["label"] for s in p["addSteps"] if s.get("label")}, ensure_ascii=False))' > /tmp/approval-step-labels.json
+python scripts/expression_sets/relabel_expression_set.py --target-org <sf_alias> --expression-set RLM_DefaultPricingProcedure --from-metadata force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml --labels-file /tmp/approval-step-labels.json --confirm
+```
 
 ### Existing steps
 

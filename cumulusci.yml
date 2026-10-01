@@ -5194,6 +5194,15 @@ flows:
           api_names: *ps_quantumbit_demo_setup
           user_alias: salesrep
       11:
+        # Repricing writes approval levels and labels back to quote/order lines.
+        # The build-user assignment in prepare_approvals does not reach this
+        # non-admin persona; reuse the feature's existing field-access set.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and project_config.project__custom__quantumbit and project_config.project__custom__approvals
+        options:
+          api_names: *ps_approvals
+          user_alias: salesrep
+      12:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

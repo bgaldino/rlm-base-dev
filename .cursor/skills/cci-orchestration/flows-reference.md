@@ -464,7 +464,10 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 10. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_QuantumBitDemoSetup']`
    - `user_alias`: `salesrep`
-11. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+11. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__quantumbit and project_config.project__custom__approvals`
+   - `api_names`: `['RLM_Approvals']`
+   - `user_alias`: `salesrep`
+12. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
