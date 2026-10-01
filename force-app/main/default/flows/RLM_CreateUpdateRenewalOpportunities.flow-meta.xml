@@ -616,7 +616,7 @@
         </connector>
     </assignments>
     <assignments>
-        <description>Sets the fields of the current opportunity record, including its type, the contract and currency of the order, and the order that it renews, and then adds the record to the Opportunities collection.</description>
+        <description>Sets the fields of the current opportunity record, including its type and the contract and currency of the order, and then adds the record to the Opportunities collection.</description>
         <name>AddOpportunityToCollection</name>
         <label>Add Opportunity to Collection</label>
         <locationX>0</locationX>
