@@ -263,6 +263,18 @@ def main():
     check("subtree_only walk reports stabilized once the full set repeats",
           stabilized7d is True)
 
+    # PR #487 review: _classify_subtree also reads top_level, so an
+    # aria-level="1" flag that changes between reads whose IDs and parents
+    # already repeat must keep the walk polling (2 reads under the old key).
+    flat = {"id": "rn.out_top.htm", "title": "", "parent_id": None}
+    t7e = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm",
+                subtree_only=True, wait_ms=1, discover_timeout_ms=10)
+    page7e = _FakePage([[root, flat], [root, dict(flat, top_level=True)]])
+    result7e, stabilized7e = asyncio.run(run_discover(t7e, page7e))
+    check("subtree_only waits for a late top_level flag to stop changing",
+          page7e.evaluate_calls == 3 and stabilized7e is True
+          and result7e[1].get("top_level") is True)
+
     # --- _filter_discovered subtree_only ------------------------------------
     # Release notes share one `release-notes.rn_` prefix across every product,
     # so the prefix alone kept all 1,596 sidebar IDs when only the Revenue
@@ -324,6 +336,33 @@ def main():
     check("without subtree_only the merge stays add-only",
           [a["article_id"] for a in t18._merge_discovered(keep, walk)["articles"]]
           == ["rn.rev.htm", "rn.rev_billing.htm", "rn.rev_moved.htm"])
+
+    # PR #487 review: the manifest save must happen before the file delete.
+    # A save that fails leaves the pruned file in place; a save that succeeds
+    # is followed by the delete.
+    import pathlib
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        adir = pathlib.Path(tmp)
+        stale = adir / "rn.rev_moved.htm.md"
+        stale.write_text("x")
+        t18b = _task(area="revenue", subtree_only=True)
+        events = []
+
+        def failing_save(path, m):
+            events.append(("save", stale.exists()))
+            raise OSError("disk full")
+        t18b._save_manifest = failing_save
+        try:
+            t18b._save_then_delete(adir / "manifest.json", {}, adir, ["rn.rev_moved.htm"])
+        except OSError:
+            pass
+        check("a failed manifest save leaves the pruned file in place",
+              stale.exists() and events == [("save", True)])
+        t18b._save_manifest = lambda path, m: events.append(("save", stale.exists()))
+        t18b._save_then_delete(adir / "manifest.json", {}, adir, ["rn.rev_moved.htm"])
+        check("the manifest is saved before the pruned file is deleted",
+              events[-1] == ("save", True) and not stale.exists())
 
     # PR #483 review round 3: parent extraction is best-effort, so only a
     # complete chain to an ancestor of the root proves an article moved out.

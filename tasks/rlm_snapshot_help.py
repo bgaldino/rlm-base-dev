@@ -377,7 +377,7 @@ class SnapshotSalesforceHelp(BaseTask):
             "required": False,
         },
         "discover_timeout_ms": {
-            "description": "Max total milliseconds to poll the sidebar during discovery, waiting for the matching-article count to stabilize across two consecutive reads. Defaults to 20000.",
+            "description": "Max total milliseconds to poll the sidebar during discovery, waiting for the matching-article count to stabilize across two consecutive reads (with subtree_only, the whole walk must also repeat). Defaults to 20000.",
             "required": False,
         },
         "expect_min_articles": {
@@ -623,6 +623,22 @@ class SnapshotSalesforceHelp(BaseTask):
         manifest["articles"] = kept_records
         return pruned
 
+    def _save_then_delete(
+        self,
+        manifest_path: Path,
+        manifest: Dict[str, Any],
+        articles_dir: Path,
+        pruned: List[str],
+    ) -> None:
+        """Save the pruned manifest, then delete the pruned article files.
+
+        In this order an interrupted run leaves an orphan file, never a
+        captured record whose file is gone.
+        """
+        self._save_manifest(manifest_path, manifest)
+        for article_id in pruned:
+            (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
+
     def _merge_discovered(
         self,
         manifest: Dict[str, Any],
@@ -741,9 +757,7 @@ class SnapshotSalesforceHelp(BaseTask):
                 } if self.options.get("subtree_only") else set()
                 pruned = self._prune_moved_out(manifest, moved_out)
                 manifest = self._merge_discovered(manifest, kept)
-                self._save_manifest(manifest_path, manifest)
-                for article_id in pruned:
-                    (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
+                self._save_then_delete(manifest_path, manifest, articles_dir, pruned)
 
             # Phase 2: Capture
             if mode in ("capture", "all", "refresh"):
@@ -829,9 +843,10 @@ class SnapshotSalesforceHelp(BaseTask):
         if not stabilized:
             raise CommandException(
                 f"Discovery hit discover_timeout_ms with the matching-article "
-                f"count still changing between reads (last read: {kept_count} "
-                f"matching, {total_before_filter} total before prefix filter) — "
-                "the walk never went two consecutive reads without growing, so "
+                f"count (or, with subtree_only, the whole walk) still changing "
+                f"between reads (last read: {kept_count} matching, "
+                f"{total_before_filter} total before prefix filter) — the walk "
+                "never went two consecutive reads without changing, so "
                 "this count is not reliably the full tree even though it clears "
                 "any configured expect_min_articles floor. Rerun, or raise "
                 "discover_timeout_ms."
@@ -897,7 +912,9 @@ class SnapshotSalesforceHelp(BaseTask):
         catching the tree mid-hydration (1 article instead of ~80). A single
         fixed wait is therefore a race; poll every wait_ms up to
         discover_timeout_ms and stop once the prefix-matching count holds
-        steady across two consecutive reads — unless that count sits below
+        steady across two consecutive reads (with subtree_only, the whole
+        walk's id, parent and top_level signature must also repeat, because
+        the prune reads the whole walk) — unless that count sits below
         expect_min_articles (when set), in which case keep polling: the same
         SPA can plateau at a partial count for a read or two before the rest
         of the tree hydrates, and stopping there would fail a walk that just
@@ -933,9 +950,13 @@ class SnapshotSalesforceHelp(BaseTask):
             )
             # subtree_only prunes from the whole walk, not just the kept
             # subset, so the out-of-subtree branches must also have stopped
-            # hydrating: require the full (id, parent) set to repeat.
+            # hydrating: require every field _classify_subtree reads (id,
+            # parent, top_level) to repeat.
             walk = (
-                frozenset((d["id"], d.get("parent_id")) for d in discovered)
+                frozenset(
+                    (d["id"], d.get("parent_id"), bool(d.get("top_level")))
+                    for d in discovered
+                )
                 if self.options.get("subtree_only") else None
             )
             if (
