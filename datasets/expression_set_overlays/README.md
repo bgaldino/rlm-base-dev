@@ -105,9 +105,11 @@ possibly half-applied definition.
 ### Step labels
 
 A step has a spaceless `name` (its API identifier and the `parentStep` key) and a
-readable `label`. Connect has no `label` field, so every Connect PATCH resets all
-labels in the version to their names. Both the CCI task and the toolkit
-snapshot labels before the PATCH and restore them afterwards. CCI restores them
+readable `label`. Connect has no `label` field, so every full-graph Connect PATCH
+resets the labels on every version of the set to their names, not only the version
+the overlay edits. Both the CCI task and the toolkit snapshot every version's labels
+before the PATCH and restore them afterwards; the overlay's own labels go only to the
+version it edits. CCI restores them
 before reactivation; the standalone toolkit uses a second deactivate → Tooling
 API PATCH → reactivate cycle. A new step gets the `label`
 the overlay gives it; without one it shows its `name`. Turn restoring off with

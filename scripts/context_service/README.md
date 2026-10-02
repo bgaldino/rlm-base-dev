@@ -270,7 +270,7 @@ round-trips: `patch_context.py` → `validate_context_plan.py` →
 # plan is truth → patch brings the org up to the plan (default --apply-to org)
 python scripts/context_service/definition/patch_context.py \
   --plan-file datasets/context_plans/Approvals/manifest.json \
-  --target-org rlm-base__beta --out /tmp/ramp_patch.json
+  --target-org rlm-base__beta --out /tmp/approvals_patch.json
 
 # source org is truth → patch makes the target org match it
 python scripts/context_service/definition/patch_context.py \

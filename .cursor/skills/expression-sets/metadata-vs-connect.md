@@ -198,7 +198,9 @@ to opt out). Two step populations are covered:
 Restore is **non-fatal** (the Connect mutation already succeeded; a restore failure
 is reported with a `relabel_expression_set.py` fix hint, never raised). CCI also
 restores labels when `activate_after:false`; its lifecycle still propagates
-activation failures. The standalone toolkit restores only when reactivating.
+activation failures. The standalone toolkit restores every captured version; under
+`--no-activate` it skips only the version it toggled (relabelling that one needs the
+reactivation you skipped) and still relabels the other versions, inactive ones in place.
 Toolkit shared core: `_tooling.relabel_version`; auto-restore entry:
 `_tooling.restore_labels_after_clobber`. Run a manual `relabel` **last**, after all
 Connect work, if you opted out or a restore failed. For a step that must ship with a
