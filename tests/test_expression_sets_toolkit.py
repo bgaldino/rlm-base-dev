@@ -1538,6 +1538,27 @@ def test_failed_mutation_keeps_plans_online():
     check("a plan this run took down is reported even when no longer referenced",
           any("--record-id 1Cv1" in m for m in logs22), logs22)
 
+    # Round 12: version off before the run, plan active; the failed PATCH
+    # re-enables the version and it can't be turned off. The plan must not keep
+    # routing pricing to it, and gets a restore command.
+    logs23 = []
+    t23 = _PlanTransport(plans={"1Cv1": True}, esv_active=False)
+
+    def reenable_and_stick23():
+        t23.esv_active = True
+        t23.fail_esv_deactivate = True
+        raise RuntimeError("PATCH boom")
+    engine23 = LifecycleEngine(t23, logger=logs23.append, poll_interval_seconds=1)
+    try:
+        engine23.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": False},
+                              mutate=reenable_and_stick23, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("an active plan is taken off when an unconfirmed version can't be turned off",
+          t23.plans == {"1Cv1": False}, t23.plans)
+    check("the plan it took off gets a restore command",
+          any("--record-id 1Cv1" in m for m in logs23), logs23)
+
     # Round 4: a failed version reactivation must not stop the plan restore.
     logs7 = []
     t7 = _PlanTransport(plans={"1Cv1": True}, fail_esv_reactivate=True)

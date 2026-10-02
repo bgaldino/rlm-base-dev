@@ -230,7 +230,8 @@ expected behavior; the outputs are not dead code.
   After a failed PATCH it first confirms the version is off (a failed full-graph
   PATCH can still apply `enabled: true`), then reactivates the procedure plans it
   cascaded off (unless `--no-activate`). If the version can't be confirmed off, the
-  plans stay off, so pricing can't reach a half-written version. Restoring the
+  plans stay off, and (with cascade on) any other active referencing plan is
+  turned off too, so pricing can't reach a half-written version. Restoring the
   plans matters because an inactive plan is silently skipped: pricing falls back to the Revenue Settings default procedure with plausible
   numbers, while an active plan over the inactive version fails loudly. After any
   failure, including a failed reactivation, it re-reads the version and every

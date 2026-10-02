@@ -876,6 +876,25 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
                                     version_taken_down=False)
     check("a plan this run took down is reported even when no longer referenced",
           any("--record-id PPV_A" in m for m in task12.logs))
+    # Round 12: version off before the run, plan active; the failed PATCH
+    # re-enables the version and it can't be turned off. The plan must not keep
+    # routing pricing to it, and gets a restore command.
+    pre_off12 = _MutationTask({"PPV_A": True}, esv_active=False)
+
+    def reenable_and_stick12():
+        pre_off12.states["ESV"] = True
+        pre_off12.fail_on_deactivate = "ESV"
+        raise RuntimeError("PATCH boom")
+    try:
+        pre_off12._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "IsActive": False}, mutate=reenable_and_stick12,
+            dry_run=False, activate_after=True, cascade=True, verb="Import")
+    except Exception:  # noqa: BLE001
+        pass
+    check("an active plan is taken off when an unconfirmed version can't be turned off",
+          pre_off12.states["PPV_A"] is False)
+    check("the plan it took off gets a restore command",
+          any("--record-id PPV_A" in m for m in pre_off12.logs))
     # Round 7: a stale false read must not skip the deactivation.
     stale_off = _MutationTask({"PPV_A": True})
 

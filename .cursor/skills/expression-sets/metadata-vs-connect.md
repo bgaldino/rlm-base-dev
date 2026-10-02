@@ -40,7 +40,9 @@ runs **deactivate → PATCH/POST → reactivate**, in a guarded `finally`:
    plan over the inactive version fails loudly. Two exceptions leave the plans
    off: `activate_after=false`, and a version that can't be confirmed off after
    the failure (a failed full-graph PATCH can still apply `enabled: true`, and an
-   active plan would route pricing to the half-written version).
+   active plan would route pricing to the half-written version). In that case,
+   with cascade on, any referencing plan that was still active is turned off
+   too and reported with a restore command.
 
 Pre-flight ordering is **validate (still-escaped) → strip read-only fields →
 normalize entities → Connect call**. The overlay path runs its

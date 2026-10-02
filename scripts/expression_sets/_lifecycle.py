@@ -447,6 +447,19 @@ class LifecycleEngine:
                         f"active and half-written. Any cascaded procedure plans "
                         f"stay off, because they could route pricing to it."
                     )
+                    if cascade:
+                        # A plan that was active before the run (the version
+                        # started inactive, so nothing cascaded) would route
+                        # pricing to it too; take every active one off.
+                        try:
+                            more = self.cascade_deactivate_procedure_plans(es_def_id)
+                        except Exception as plan_off_exc:
+                            more = list(getattr(plan_off_exc, "left_inactive", ()))
+                            self.log(f"Could not deactivate the referencing "
+                                     f"procedure plans: {plan_off_exc}")
+                        cascaded_ppvs = cascaded_ppvs + [
+                            vid for vid in more if vid not in cascaded_ppvs
+                        ]
                 if activate_after and cascaded_ppvs and version_off:
                     try:
                         self.cascade_reactivate_procedure_plans(cascaded_ppvs)

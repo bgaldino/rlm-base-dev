@@ -727,6 +727,23 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                         "because they could route pricing to it.",
                         esv_id, verb, off_exc,
                     )
+                    if cascade:
+                        # A plan that was active before the run (the version
+                        # started inactive, so nothing cascaded) would route
+                        # pricing to it too; take every active one off.
+                        try:
+                            more = self._cascade_deactivate_procedure_plans(
+                                es_def_id, False
+                            )
+                        except Exception as plan_off_exc:
+                            more = list(getattr(plan_off_exc, "left_inactive", ()))
+                            self.logger.error(
+                                "Could not deactivate the referencing procedure "
+                                "plans: %s", plan_off_exc,
+                            )
+                        cascaded_ppvs = cascaded_ppvs + [
+                            vid for vid in more if vid not in cascaded_ppvs
+                        ]
                 if activate_after and cascaded_ppvs and version_off:
                     try:
                         self._cascade_reactivate_procedure_plans(cascaded_ppvs, False)
