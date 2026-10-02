@@ -1,9 +1,9 @@
 feature: utils
 feature_flag: quantumbit
 # Adds the RLM Create Quote from Renewal Opp flow action to the Opportunity record
-# page highlights panel, next to New Quote.
+# page highlights panel, after Delete (first item in the overflow menu).
 patches:
   - type: insert_action
-    after: "Opportunity.RLM_New_Quote"
+    after: "Delete"
     actions:
       - "Opportunity.RLM_CreateQuoteFromRenewalOpp"

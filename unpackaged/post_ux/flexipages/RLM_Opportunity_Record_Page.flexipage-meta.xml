@@ -13,10 +13,10 @@
                             <value>Opportunity.RLM_New_Quote</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Opportunity.RLM_CreateQuoteFromRenewalOpp</value>
+                            <value>Delete</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Delete</value>
+                            <value>Opportunity.RLM_CreateQuoteFromRenewalOpp</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Clone</value>
