@@ -773,6 +773,27 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
         ok6 = False
     check("a forced PATCH rejected as already enabled is accepted", ok6)
 
+    # Round 6: confirm the version off before restoring plans after a failed PATCH.
+    reenabled = _MutationTask({"PPV_A": True})
+
+    def reenable_then_fail():
+        reenabled.states["ESV"] = True
+        raise RuntimeError("PATCH boom")
+    try:
+        reenabled._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "IsActive": True}, mutate=reenable_then_fail,
+            dry_run=False, activate_after=True, cascade=True, verb="Import")
+    except Exception:  # noqa: BLE001
+        pass
+    check("a version a failed PATCH re-enabled is turned off again",
+          reenabled.states["ESV"] is False)
+    check("the plans are restored once the version is confirmed off",
+          reenabled.states["PPV_A"] is True)
+    plan_fails = _MutationTask({"PPV_A": True}, fail_plan_ids={"PPV_A"})
+    error7 = plan_fails.run()
+    check("a plan restore failure after a failed PATCH is in the raised error",
+          error7 is not None and "recovery also failed" in str(error7) and "PPV_A" in str(error7))
+
     # Round 4: one failing plan must not stop the next.
     multi = _MutationTask({"PPV_A": True, "PPV_B": True}, fail_plan_ids={"PPV_A"})
     error4 = multi.run(succeed=True)

@@ -698,18 +698,35 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     verb, esv_id,
                 )
                 if activate_after and cascaded_ppvs:
+                    # A failed full-graph PATCH may still have applied
+                    # `enabled: true`, leaving a half-written version active.
+                    # Restoring the plans would route pricing to it, so confirm
+                    # the version is off first, and leave the plans off if not.
                     try:
-                        self._cascade_reactivate_procedure_plans(cascaded_ppvs, False)
-                        self.logger.info(
-                            "Reactivated the cascaded procedure plans, so pricing "
-                            "doesn't silently skip the plan: with no other active "
-                            "version of this expression set it fails loudly instead."
-                        )
-                    except Exception as plan_exc:
+                        self._set_version_active(esv_id, False, False)
+                        self._wait_for_version_state(esv_id, False)
+                        version_off = True
+                    except Exception as off_exc:
+                        version_off = False
+                        reactivate_error = off_exc
                         self.logger.error(
-                            "Could not reactivate cascaded procedure plans %s: %s",
-                            cascaded_ppvs, plan_exc,
+                            "Could not confirm ExpressionSetVersion %s is inactive "
+                            "after the failed %s (%s); leaving the cascaded "
+                            "procedure plans off, because they could route pricing "
+                            "to a half-written version.", esv_id, verb, off_exc,
                         )
+                    if version_off:
+                        try:
+                            self._cascade_reactivate_procedure_plans(cascaded_ppvs, False)
+                            self.logger.info(
+                                "Reactivated the cascaded procedure plans, so pricing "
+                                "doesn't silently skip the plan: with no other active "
+                                "version of this expression set it fails loudly instead."
+                            )
+                        except Exception as plan_exc:
+                            # Kept, so the combined error below says a plan is
+                            # still off.
+                            reactivate_error = plan_exc
             elif deactivated and not dry_run:
                 # Success, but activate_after=false: leave the version (and any
                 # cascaded procedure plans) deactivated as the caller requested.
@@ -734,7 +751,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         if reactivate_error:
             if failure:
                 raise TaskOptionsError(
-                    f"{verb} failed, and reactivation also failed: "
+                    f"{verb} failed, and recovery also failed: "
                     f"{reactivate_error}"
                 ) from failure
             raise reactivate_error

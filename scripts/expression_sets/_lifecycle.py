@@ -418,18 +418,35 @@ class LifecycleEngine:
                     f"reactivate it."
                 )
                 if activate_after and cascaded_ppvs:
+                    # A failed full-graph PATCH may still have applied
+                    # `enabled: true`, leaving a half-written version active.
+                    # Restoring the plans would route pricing to it, so confirm
+                    # the version is off first, and leave the plans off if not.
                     try:
-                        self.cascade_reactivate_procedure_plans(cascaded_ppvs)
+                        self.set_version_active(esv_id, False)
+                        self.wait_for_version_state(esv_id, False)
+                        version_off = True
+                    except Exception as off_exc:
+                        version_off = False
+                        reactivate_error = off_exc
                         self.log(
-                            "Reactivated the cascaded procedure plans, so pricing "
-                            "doesn't silently skip the plan: with no other active "
-                            "version of this expression set it fails loudly instead."
+                            f"Could not confirm ExpressionSetVersion {esv_id} is "
+                            f"inactive after the failed {verb} ({off_exc}); leaving "
+                            f"the cascaded procedure plans off, because they could "
+                            f"route pricing to a half-written version."
                         )
-                    except Exception as plan_exc:
-                        self.log(
-                            f"Could not reactivate cascaded procedure plans "
-                            f"{cascaded_ppvs}: {plan_exc}"
-                        )
+                    if version_off:
+                        try:
+                            self.cascade_reactivate_procedure_plans(cascaded_ppvs)
+                            self.log(
+                                "Reactivated the cascaded procedure plans, so pricing "
+                                "doesn't silently skip the plan: with no other active "
+                                "version of this expression set it fails loudly instead."
+                            )
+                        except Exception as plan_exc:
+                            # Kept, so the combined error below says a plan is
+                            # still off.
+                            reactivate_error = plan_exc
             elif deactivated and not self.dry_run:
                 self.log(
                     f"activate_after=false; leaving ExpressionSetVersion {esv_id} "
@@ -449,7 +466,7 @@ class LifecycleEngine:
         if reactivate_error:
             if failure:
                 raise LifecycleError(
-                    f"{verb} failed, and reactivation also failed: "
+                    f"{verb} failed, and recovery also failed: "
                     f"{reactivate_error}"
                 ) from failure
             raise reactivate_error
