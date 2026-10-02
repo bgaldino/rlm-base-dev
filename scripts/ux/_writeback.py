@@ -29,6 +29,7 @@ from scripts.ux._assemble import (
     SF_NS,
     SF_NS_TAG,
     UxAssembler,
+    _action_name,
     _find_elem,
     _findall_elem,
     _load_yaml,
@@ -541,7 +542,9 @@ class UxWriteback:
                 new_xml = self._extract_insert_after_xml(
                     base_text, org_text, patch
                 )
-                if new_xml is not None and new_xml != patch.get("xml", ""):
+                if new_xml is not None and not _same_xml_fragment(
+                    new_xml, patch.get("xml", "")
+                ):
                     patch["xml"] = new_xml
                     updated = True
                 elif new_xml is None:
@@ -702,13 +705,14 @@ class UxWriteback:
         base_root: ET.Element,
         org_root: ET.Element,
         patch: Dict[str, Any],
-    ) -> Optional[List[str]]:
+    ) -> Optional[List[Any]]:
         """Check if patch actions exist in org; return updated list or None."""
         current_actions = patch.get("actions", [])
         org_actions = set(_get_action_names(org_root))
 
-        # Keep only those patch actions that exist in the org
-        surviving = [a for a in current_actions if a in org_actions]
+        # Keep only those patch actions that exist in the org. Entries are a
+        # bare name or a {name, visibility} dict; a survivor keeps its shape.
+        surviving = [a for a in current_actions if _action_name(a) in org_actions]
         if surviving == current_actions:
             return None  # No change needed
         return surviving if surviving else None
@@ -926,9 +930,10 @@ def _reverse_insert_action(root: ET.Element, patch: Dict[str, Any]) -> bool:
         if vlist is None:
             continue
         for action in actions:
+            action_name = _action_name(action)
             for item in _findall_elem(vlist, "valueListItems"):
                 val_el = _find_elem(item, "value")
-                if val_el is not None and val_el.text == action:
+                if val_el is not None and val_el.text == action_name:
                     vlist.remove(item)
                     removed_any = True
                     break
@@ -1154,7 +1159,54 @@ def _reverse_insert_after_xml(
                         vlist.remove(item)
                         removed_any = True
 
+    # Case 4: any other element (e.g. a <visibilityRule> inserted after a
+    # component's <identifier>) — remove a structurally identical sibling of
+    # the anchor element.
+    handled = {"flexiPageRegions", "itemInstances", "valueListItems"}
+    others = [el for el in wrapper if _local_tag(el) not in handled]
+    if others and _remove_anchor_siblings(root, patch.get("anchor", ""), others):
+        removed_any = True
+
     return True if removed_any else None
+
+
+_SIMPLE_ELEMENT_RE = re.compile(r"^\s*<(\w+)>([^<]*)</\1>\s*$")
+
+
+def _local_tag(element: ET.Element) -> str:
+    return element.tag.rsplit("}", 1)[-1]
+
+
+def _remove_anchor_siblings(
+    root: ET.Element, anchor: str, fragment_elements: List[ET.Element]
+) -> bool:
+    """Remove each fragment element from the parent of the anchor element.
+
+    Only anchors that are one complete simple element (``<tag>text</tag>``)
+    can be located in the tree; other anchors are left alone, so nothing is
+    removed on a guess.
+    """
+    match = _SIMPLE_ELEMENT_RE.match(anchor or "")
+    if not match:
+        return False
+    anchor_tag, anchor_text = match.group(1), match.group(2).strip()
+    wanted = [_normalize_xml(el) for el in fragment_elements]
+
+    removed_any = False
+    for parent in root.iter():
+        children = list(parent)
+        if not any(
+            _local_tag(c) == anchor_tag and (c.text or "").strip() == anchor_text
+            for c in children
+        ):
+            continue
+        for target in wanted:
+            for child in children:
+                if child in parent and _normalize_xml(child) == target:
+                    parent.remove(child)
+                    removed_any = True
+                    break
+    return removed_any
 
 
 # ---------------------------------------------------------------------------
@@ -1201,6 +1253,17 @@ def _find_sync_marker(text: str, org_text: str) -> Optional[str]:
                 return chunk
 
     return None
+
+
+def _same_xml_fragment(a: str, b: str) -> bool:
+    """True when two XML fragments differ only in whitespace/indentation."""
+    try:
+        wrapped = [
+            ET.fromstring(f'<wrapper xmlns="{SF_NS}">{x}</wrapper>') for x in (a, b)
+        ]
+    except ET.ParseError:
+        return a.strip() == b.strip()
+    return _normalize_xml(wrapped[0]) == _normalize_xml(wrapped[1])
 
 
 def _normalize_xml(element: ET.Element) -> str:

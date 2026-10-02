@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -303,6 +304,87 @@ def test_sf_missing(monkeypatch, tmp_path):
     monkeypatch.setattr(_sf.subprocess, "run", raise_missing)
     with pytest.raises(UxError, match="sf command not found"):
         deploy(tmp_path, "my-scratch")
+
+
+# ── writeback (against a temp copy of templates/, never the real one) ───────
+
+PERSONA_PATCH = Path("templates/flexipages/patches/personas/RLM_Quote_Record_Page.yml")
+PERSONA_RULE = re.compile(
+    r"\s*<visibilityRule>\s*<criteria>\s*<leftValue>\{!\$User\.Profile\.Name\}</leftValue>"
+    r"\s*<operator>NE</operator>\s*<rightValue>RLM Sales Representative</rightValue>"
+    r"\s*</criteria>\s*</visibilityRule>"
+)
+
+
+def _snapshot(root):
+    return {
+        p.relative_to(root): p.read_bytes()
+        for p in (root / "templates").rglob("*") if p.is_file()
+    }
+
+
+@pytest.fixture
+def repo_copy(tmp_path):
+    root = tmp_path / "repo"
+    root.mkdir()
+    shutil.copytree(REPO_ROOT / "templates", root / "templates")
+    shutil.copy2(REPO_ROOT / "cumulusci.yml", root / "cumulusci.yml")
+    out = root / "out"
+    assert ux_tool.main(["assemble", "--repo-root", str(root), "--output-path", str(out)]) == 0
+    return root, out
+
+
+def _apply_drift(root, out):
+    return ux_tool.main([
+        "apply-drift", "--repo-root", str(root), "--output-path", str(out),
+        "--no-backup", "--fail-on-drift",
+    ])
+
+
+def test_writeback_dry_run_changes_nothing(repo_copy):
+    root, out = repo_copy
+    before = _snapshot(root)
+    assert ux_tool.main(["writeback", "--repo-root", str(root), "--output-path", str(out)]) == 0
+    assert _snapshot(root) == before
+
+
+def test_apply_drift_without_drift_leaves_templates_unchanged(repo_copy):
+    """Regression: a no-op apply used to bake the persona visibilityRule into the
+    base and delete its patch file (insert_after_xml of a bare element)."""
+    root, out = repo_copy
+    before = _snapshot(root)
+    assert _apply_drift(root, out) == 0
+    assert _snapshot(root) == before
+
+
+def test_apply_drift_removes_dropped_insert_after_xml_patch(repo_copy):
+    root, out = repo_copy
+    page = out / "flexipages" / QUOTE_PAGE
+    xml, n = PERSONA_RULE.subn("", page.read_text(), count=1)
+    assert n == 1
+    page.write_text(xml)
+    base = root / "templates" / "flexipages" / "base" / QUOTE_PAGE
+    base_before = base.read_bytes()
+
+    assert _apply_drift(root, out) == 0
+    assert not (root / PERSONA_PATCH).exists()
+    assert base.read_bytes() == base_before
+
+
+def test_insert_action_keeps_dict_entries():
+    from scripts.ux._writeback import UxWriteback
+
+    ns = "http://soap.sforce.com/2006/04/metadata"
+    org = ET.fromstring(
+        f'<FlexiPage xmlns="{ns}"><itemInstances><componentInstance>'
+        "<componentInstanceProperties><name>actionNames</name><valueList>"
+        "<valueListItems><value>Keep</value></valueListItems>"
+        "</valueList></componentInstanceProperties>"
+        "</componentInstance></itemInstances></FlexiPage>"
+    )
+    keep = {"name": "Keep", "visibility": [{"leftValue": "x", "operator": "EQUAL", "rightValue": "y"}]}
+    patch = {"actions": [keep, "Gone"]}
+    assert UxWriteback._extract_insert_actions(None, org, org, patch) == [keep]
 
 
 if __name__ == "__main__":
