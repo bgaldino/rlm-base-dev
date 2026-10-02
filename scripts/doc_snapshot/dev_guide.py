@@ -489,6 +489,22 @@ class DevGuideSnapshot:
             self.options.get("follow_links"), self.options["section_filters"] is None
         )
 
+    def preflight(self) -> None:
+        """Raise the conflicts detectable offline, before any target of a batch runs.
+
+        Only a pinned doc_version can be checked here; an unpinned one is
+        resolved from the guide's meta during the run, which checks it again.
+        """
+        if not self.options.get("doc_version"):
+            return
+        manifest_path = self._manifest_path(resolve_output_dir(self.options["output_dir"]))
+        if not manifest_path.exists():
+            return
+        manifest = self._load_or_init_manifest(manifest_path)
+        self._check_doc_version_change(
+            manifest, manifest.get("doc_version"), self.options["mode"]
+        )
+
     def run(self) -> Dict[str, Any]:
         """Run the snapshot; returns the manifest's stats."""
         require_playwright(self.logger)

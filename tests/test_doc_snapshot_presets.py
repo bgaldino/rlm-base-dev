@@ -207,6 +207,9 @@ def main():
         def __init__(self, options, logger=None):
             captured.update(DevGuideSnapshot(options).options)
 
+        def preflight(self):
+            pass
+
         def run(self):
             return {}
 
@@ -228,6 +231,9 @@ def main():
     class _Recording:
         def __init__(self, options, logger=None):
             self.options = options
+
+        def preflight(self):
+            pass
 
         def run(self):
             ran.append(self.options.get("area"))
@@ -265,6 +271,40 @@ def main():
           rc == cli.EXIT_FAILED and ran == ["dro"] and "Summary" in out.getvalue())
     check("a mid-run OptionsError on a single target stays a usage error",
           rc_one == cli.EXIT_USAGE)
+
+    # preflight: a pinned doc_version that conflicts with an already-captured
+    # manifest is a usage error before any target runs (the real snapshotters).
+    import json
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "manifest.json").write_text(json.dumps(
+            {"doc_version": "262.0", "pages": [{"page_id": "a", "status": "captured"}]}))
+        dg_opts = presets.resolve(releases, "264", "dev_guide", "rlm",
+                                  {"output_dir": tmp, "mode": "all"})
+        check("preflight rejects a pinned doc_version over a captured manifest",
+              raises(OptionsError, DevGuideSnapshot(dg_opts).preflight))
+        check("preflight allows the same conflict under --mode refresh",
+              DevGuideSnapshot(dict(dg_opts, mode="refresh")).preflight() is None)
+        check("preflight allows a discover preview",
+              DevGuideSnapshot(dict(dg_opts, mode="discover")).preflight() is None)
+        class _GuideInTmp(DevGuideSnapshot):
+            def __init__(self, options, logger=None):
+                super().__init__(dict(options, output_dir=tmp), logger=logger)
+
+        ran.clear()
+        cli._snapshot_class = lambda kind: (_GuideInTmp if kind == "dev_guide"
+                                            else _Recording)
+        try:
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                rc = cli.main(["run", "--release", "264", "--only", "pcm,rlm"])
+        finally:
+            cli._snapshot_class = real
+        check("run: a later dev guide's version conflict exits 2 before Help runs",
+              rc == cli.EXIT_USAGE and ran == [])
+    with tempfile.TemporaryDirectory() as tmp:
+        check("preflight with no manifest yet passes",
+              DevGuideSnapshot(presets.resolve(releases, "264", "dev_guide", "rlm",
+                                               {"output_dir": tmp})).preflight() is None)
 
     for raw, want in (("true", True), ("Yes", True), ("1", True), ("off", False),
                       ("FALSE", False), ("", True), (None, True), (False, False)):

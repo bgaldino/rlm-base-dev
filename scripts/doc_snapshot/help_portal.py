@@ -315,6 +315,9 @@ class HelpSnapshot:
         )
         self.options["subtree_only"] = as_bool(self.options.get("subtree_only"), False)
 
+    def preflight(self) -> None:
+        """Nothing to check offline: every Help failure needs a discovery walk."""
+
     def run(self) -> Dict[str, Any]:
         """Run the snapshot; returns the manifest's overall stats."""
         require_playwright(self.logger)
