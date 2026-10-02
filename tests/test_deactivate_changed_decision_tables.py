@@ -166,6 +166,10 @@ def _file(name):
     return f"{name}{mod.DECISION_TABLE_SUFFIX}"
 
 
+check("Deploy's check_only option is not republished (the task deploys for real when it must)",
+      "check_only" not in mod.DeactivateChangedDecisionTables.task_options,
+      sorted(mod.DeactivateChangedDecisionTables.task_options))
+
 sf, deploys, _log, _, task = run(["RLM_A", "RLM_B"], active=[])
 check("nothing Active -> no deploy, no deactivation",
       not deploys and not sf.DecisionTable.updates, (deploys, sf.DecisionTable.updates))
@@ -227,7 +231,7 @@ check("... without the MDAPI wrapper prefix",
 
 sf, deploys, log, _, task = run(["RLM_A"], active=["RLM_A"],
                                 query_error="INVALID_TYPE: sObject type 'DecisionTable' is not supported")
-check("fresh org (INVALID_TYPE) -> no deploy, no deactivation",
+check("DecisionTable not on the data API (INVALID_TYPE) -> no deploy, no deactivation",
       not deploys and not sf.DecisionTable.updates)
 
 sf, deploys, log, tmp, task = run(["RLM_A"], active=["RLM_A"], query_error="Session expired")

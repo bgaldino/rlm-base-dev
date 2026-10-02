@@ -110,8 +110,11 @@ def other_failures(failure_text: str) -> List[str]:
 class DeactivateChangedDecisionTables(Deploy):
     """Deploy pending changes to active repo decision tables that the platform refuses to edit in place."""
 
+    # ⚠ Deploy's check_only is NOT republished: this task's own check-only deploy is
+    # always followed, when needed, by a deactivation and a real deploy, so a
+    # "check_only" option would promise a dry run the task cannot honor.
     task_options = {
-        **getattr(Deploy, "task_options", {}),
+        **{k: v for k, v in getattr(Deploy, "task_options", {}).items() if k != "check_only"},
         "path": {
             "description": "Directory holding the repo's *.decisionTable-meta.xml files",
             "required": True,
@@ -191,8 +194,10 @@ class DeactivateChangedDecisionTables(Deploy):
             records = self._sf.query(soql).get("records", [])
         except Exception as e:
             if "invalid_type" in str(e).lower() or "invalid type" in str(e).lower():
-                # Fresh build: the DecisionTable entity is not queryable until the
-                # first table exists, so nothing can be Active.
+                # Defensive: an org without the DecisionTable entity on the data API
+                # (feature off, or an older release) can have nothing Active. A fresh
+                # 264 build does not hit this — the query succeeds and returns none
+                # (measured 2026-10-02).
                 self.logger.info(f"DecisionTable not queryable yet ({e}); treating the org as having no active tables.")
             else:
                 # ⚠ Do not guess. The retired task excluded every table here, which
