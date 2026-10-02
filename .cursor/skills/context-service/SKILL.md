@@ -69,8 +69,8 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    run with `verify` on.
 7. **Plans live in `datasets/context_plans/<Name>/manifest.json`** →
    `contexts/<plan>.json`. The 7 active plans (`Approvals`, `Billing`,
-   `ConstraintEngineNodeStatus`, `DocGen`, `PartnerAccount`, `PrmPricing`,
-   `RampMode`) are known-good; `archive/` is legacy — do not apply it.
+   `ConstraintEngineNodeStatus`, `DocGen`, `mfg`, `PartnerAccount`,
+   `PrmPricing`) are known-good; `archive/` is legacy — do not apply it.
 8. **Hierarchical DocGen needs an explicit child FK mapping.** A child node
    creates `ParentReference`; map it to the child SObject's lookup to its parent
    (for example, `QuoteLineItem.QuoteId`). For a Context Service DGP, pass the
@@ -187,7 +187,7 @@ generated list; all in group *Revenue Lifecycle Management*):
 |------|-------|---------|
 | `extend_context_*` (sales_transaction, product_discovery, cart, billing, asset, fulfillment_asset, collection_plan_segment, rate_management, rating_discovery, contracts, contracts_extraction) | `rlm_extend_stdctx.ExtendStandardContext` | Extend the named standard context; `activate: true` by default |
 | `extend_standard_context` | `rlm_extend_stdctx.ExtendStandardContext` | Generic extend: `name`, `baseReference`, `defaultMapping`, `startDate`, `contextTtl`, optional `plan_file` |
-| `apply_context_approvals` / `apply_context_ramp_mode` / `_constraint_engine_node_status` / `_prm_pricing` / `_billing_order` / `_docgen` | `rlm_context_service.ManageContextDefinition` | Apply the named additive plan; `deactivate_before: false`, `activate: true` |
+| `apply_context_approvals` / `_constraint_engine_node_status` / `_prm_pricing` / `_billing_order` / `_docgen` | `rlm_context_service.ManageContextDefinition` | Apply the named additive plan; `deactivate_before: false`, `activate: true` |
 | `manage_context_definition` | `rlm_context_service.ManageContextDefinition` | Generic apply: `plan_file` (required), `developer_name`/`context_definition_id`, `activate`, `dry_run`, `deactivate_before`, `validate_only`, `verify` |
 | `deploy_context_definitions` | `cumulusci.tasks.salesforce.Deploy` | Deploy `force-app/main/default/contextDefinitions/` |
 

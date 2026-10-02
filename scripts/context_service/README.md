@@ -221,7 +221,7 @@ python scripts/context_service/definition/diff_context.py \
 # plan-vs-org drift (directional — see caveat)
 python scripts/context_service/definition/diff_context.py \
   --target-org rlm-base__beta \
-  --plan-file datasets/context_plans/RampMode/manifest.json
+  --plan-file datasets/context_plans/Approvals/manifest.json
 
 python scripts/context_service/definition/diff_context.py ... --json   # structured output
 ```
@@ -269,7 +269,7 @@ round-trips: `patch_context.py` → `validate_context_plan.py` →
 ```bash
 # plan is truth → patch brings the org up to the plan (default --apply-to org)
 python scripts/context_service/definition/patch_context.py \
-  --plan-file datasets/context_plans/RampMode/manifest.json \
+  --plan-file datasets/context_plans/Approvals/manifest.json \
   --target-org rlm-base__beta --out /tmp/ramp_patch.json
 
 # source org is truth → patch makes the target org match it
@@ -279,7 +279,7 @@ python scripts/context_service/definition/patch_context.py \
 
 # org is truth → fold the org's *custom* (__c) state back into the repo plan
 python scripts/context_service/definition/patch_context.py \
-  --plan-file datasets/context_plans/RampMode/manifest.json \
+  --plan-file datasets/context_plans/Approvals/manifest.json \
   --target-org rlm-base__beta --apply-to plan > /tmp/plan.json
 #   add --include-inherited to also emit inherited (non-__c) artifacts
 ```

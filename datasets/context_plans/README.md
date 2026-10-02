@@ -4,8 +4,8 @@ Additive **context-plan JSON** consumed by the `manage_context_definition` /
 `apply_context_*` CumulusCI tasks (class `rlm_context_service.ManageContextDefinition`)
 and by `ExtendStandardContext`. Each plan declares the attributes, mappings, and
 tags this repo layers onto a Revenue Cloud **Context Definition** — e.g. adding
-`RampMode__c` to the Sales Transaction context and mapping it to
-`QuoteLineItem.RLM_RampMode__c`.
+`RLM_Approval__c` to the Sales Transaction context and mapping it to
+`QuoteLineItem.RLM_Approval__c`.
 
 ## What this format is (and is not)
 
@@ -68,15 +68,15 @@ of truth:
 ```bash
 # Lint (offline — no org). Must be 0 errors before applying.
 python scripts/context_service/definition/validate_context_plan.py \
-  datasets/context_plans/RampMode/manifest.json
+  datasets/context_plans/Approvals/manifest.json
 
 # Inspect / compare a live definition (read-only)
 python scripts/context_service/definition/describe_context.py --target-org <sf_alias> --developer-name <name>
 python scripts/context_service/definition/diff_context.py --target-org <sf_alias> \
-  --plan-file datasets/context_plans/RampMode/manifest.json
+  --plan-file datasets/context_plans/Approvals/manifest.json
 
 # Apply (mutates the org) — via the CCI task, not a script
-cci task run manage_context_definition -o plan_file datasets/context_plans/RampMode/manifest.json --org <cci_alias>
+cci task run manage_context_definition -o plan_file datasets/context_plans/Approvals/manifest.json --org <cci_alias>
 ```
 
 `diff_context.py` and `patch_context.py` (both read-only) can compare a plan
