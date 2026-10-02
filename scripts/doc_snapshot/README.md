@@ -152,6 +152,8 @@ the walk saw before filtering. Discovery fails (exit 1) when:
   nonzero, the prefix is wrong.
 - **it kept only the root article.** The root id is probably wrong: a
   nonexistent id still renders a page, and the root matches its own prefix.
+  The walk keeps polling until the timeout first, since a sidebar that is still
+  loading can show just the root for a while.
 - **it kept fewer articles than the preset's floor.**
 - **the sidebar never stopped growing** before the timeout.
 
