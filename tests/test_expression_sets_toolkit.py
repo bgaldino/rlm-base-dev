@@ -1162,6 +1162,8 @@ class _PlanTransport:
         self.esv_reactivate_error = esv_reactivate_error
         self.fail_esv_deactivate = False
         self.fail_plan_deactivate_ids = set()
+        # Ids whose state reads return no row.
+        self.missing_ids = set()
         # Plan reactivations to fail before they start succeeding.
         self.plan_reactivate_failures_left = 0
         # Models a stale read of false while the version is really active.
@@ -1209,8 +1211,12 @@ class _PlanTransport:
                     for i, vid in enumerate(sorted(self.plans))]
         if "FROM ProcedurePlanDefinitionVersion" in query:
             vid = query.split("Id = '", 1)[1].split("'", 1)[0]
+            if vid in self.missing_ids:
+                return []
             return [{"Id": vid, "IsActive": self.plans[vid]}]
         if "FROM ExpressionSetVersion" in query:
+            if "9QMv" in self.missing_ids:
+                return []
             if self.esv_reads_inactive:
                 return [{"Id": "9QMv", "IsActive": False}]
             return [{"Id": "9QMv", "IsActive": self.esv_active or self.esv_reads_active}]
@@ -1507,6 +1513,30 @@ def test_failed_mutation_keeps_plans_online():
     check("an unconfirmed version is flagged even with no plans involved",
           any("NOT confirmed inactive" in m for m in logs20)
           and not any("are active" in m for m in logs20), logs20)
+
+    # Round 11: a record whose state read returns no row is reported as
+    # unknown, never as active.
+    for label, missing in (("plan", {"1Cv1"}), ("version", {"9QMv"})):
+        logs21 = []
+        t21 = _PlanTransport(plans={"1Cv1": True})
+        t21.missing_ids = missing
+        engine21 = LifecycleEngine(t21, logger=logs21.append, poll_interval_seconds=1)
+        engine21.report_procedure_health("9QAx", "9QMv", taken_down=["1Cv1"],
+                                         version_taken_down=True)
+        check(f"a {label} with no state row is reported as unknown, not active",
+              any("could not read the state" in m and next(iter(missing)) in m
+                  for m in logs21)
+              and not any("are active" in m for m in logs21), logs21)
+    # A plan this run took down is read even if no option references it any more.
+    logs22 = []
+    t22 = _PlanTransport(plans={"1Cv1": False})
+    engine22 = LifecycleEngine(t22, logger=logs22.append, poll_interval_seconds=1)
+    t22.soql_orig = t22.soql
+    t22.soql = lambda q: [] if "FROM ProcedurePlanOption" in q else t22.soql_orig(q)
+    engine22.report_procedure_health("9QAx", "9QMv", taken_down=["1Cv1"],
+                                     version_taken_down=False)
+    check("a plan this run took down is reported even when no longer referenced",
+          any("--record-id 1Cv1" in m for m in logs22), logs22)
 
     # Round 4: a failed version reactivation must not stop the plan restore.
     logs7 = []

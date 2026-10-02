@@ -797,6 +797,10 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             "SELECT Id, IsActive FROM ExpressionSetVersion "
             f"WHERE Id = '{self._soql_escape(esv_id)}'"
         )
+        # Records whose state couldn't be read; never counted as healthy.
+        unknown: List[str] = []
+        if not records:
+            unknown.append(f"ExpressionSetVersion {esv_id}")
         version_confirmed_off = bool(records) and not records[0].get("IsActive")
         if version_confirmed_off:
             if version_taken_down:
@@ -806,27 +810,35 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         plan_ids = sorted({
             (opt.get("ProcedurePlanSection") or {}).get("ProcedurePlanVersionId")
             for opt in self._find_referencing_procedure_plans(es_def_id)
-        } - {None})
+        } - {None} | set(taken_down))
         other_inactive: List[str] = []
         for vid in plan_ids:
             records = self._soql_query(
                 "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
                 f"WHERE Id = '{self._soql_escape(vid)}'"
             )
-            if records and not records[0].get("IsActive"):
+            if not records:
+                unknown.append(f"ProcedurePlanDefinitionVersion {vid}")
+            elif not records[0].get("IsActive"):
                 if vid in taken_down:
                     left_off.append(f"ProcedurePlanDefinitionVersion {vid}")
                 else:
                     other_inactive.append(vid)
         version_unsafe = version_may_be_half_written and not version_confirmed_off
         if not left_off and not other_inactive and not version_was_off \
-                and not version_unsafe:
+                and not version_unsafe and not unknown:
             self.logger.info(
                 "Procedure health after the failure: the version and all "
                 "referencing procedure plans are active."
             )
             return left_off
         self.logger.error("!" * 72)
+        if unknown:
+            self.logger.error(
+                "WARNING: could not read the state of %s. Check each before "
+                "reading any price; an inactive plan this run deactivated needs "
+                "IsActive=true.", ", ".join(unknown),
+            )
         if version_unsafe:
             self.logger.error(
                 "WARNING: ExpressionSetVersion %s is NOT confirmed inactive after "

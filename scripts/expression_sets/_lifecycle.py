@@ -513,8 +513,12 @@ class LifecycleEngine:
         so the report says to inspect and deactivate the version first.
         """
         left_off: List[str] = []
+        # Records whose state couldn't be read; never counted as healthy.
+        unknown: List[str] = []
         version_was_off = False
         version_state = self._version_state(esv_id)
+        if version_state is None:
+            unknown.append(f"ExpressionSetVersion {esv_id}")
         if version_state is False:
             if version_taken_down:
                 left_off.append(f"ExpressionSetVersion {esv_id}")
@@ -523,25 +527,33 @@ class LifecycleEngine:
         plan_ids = sorted({
             (opt.get("ProcedurePlanSection") or {}).get("ProcedurePlanVersionId")
             for opt in self.find_referencing_procedure_plans(es_def_id)
-        } - {None})
+        } - {None} | set(taken_down))
         other_inactive: List[str] = []
         for vid in plan_ids:
             records = self.t.soql(
                 "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
                 f"WHERE Id = '{soql_literal(vid)}'"
             )
-            if records and not records[0].get("IsActive"):
+            if not records:
+                unknown.append(f"ProcedurePlanDefinitionVersion {vid}")
+            elif not records[0].get("IsActive"):
                 if vid in taken_down:
                     left_off.append(f"ProcedurePlanDefinitionVersion {vid}")
                 else:
                     other_inactive.append(vid)
         version_unsafe = version_may_be_half_written and version_state is not False
         if not left_off and not other_inactive and not version_was_off \
-                and not version_unsafe:
+                and not version_unsafe and not unknown:
             self.log("Procedure health after the failure: the version and all "
                      "referencing procedure plans are active.")
             return left_off
         lines = ["!" * 72]
+        if unknown:
+            lines.append(
+                f"WARNING: could not read the state of {', '.join(unknown)}. "
+                "Check each before reading any price; an inactive plan this run "
+                "deactivated needs IsActive=true."
+            )
         if version_unsafe:
             lines.append(
                 f"WARNING: ExpressionSetVersion {esv_id} is NOT confirmed inactive "

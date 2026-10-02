@@ -683,6 +683,8 @@ class _MutationTask(_CascadeTask):
                 for vid in self.plan_ids]
 
     def _soql_query(self, soql):
+        if any(f"'{rid}'" in soql for rid in getattr(self, "missing_ids", ())):
+            return []
         if self.esv_reads_active and "FROM ExpressionSetVersion" in soql:
             return [{"Id": "ESV", "IsActive": True}]
         if getattr(self, "esv_reads_inactive", False) and "FROM ExpressionSetVersion" in soql:
@@ -855,6 +857,25 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
     check("an unconfirmed version is flagged even with no plans involved",
           any("NOT confirmed inactive" in m for m in stuck10.logs)
           and not any("are active" in m for m in stuck10.logs))
+    # Round 11: a record whose state read returns no row is reported as
+    # unknown, never as active.
+    for label, missing in (("plan", {"PPV_A"}), ("version", {"ESV"})):
+        task11 = _MutationTask({"PPV_A": True})
+        task11.missing_ids = missing
+        task11._report_procedure_health("ESD", "ESV", taken_down=["PPV_A"],
+                                        version_taken_down=True)
+        check(f"a {label} with no state row is reported as unknown, not active",
+              any("could not read the state" in m and next(iter(missing)) in m
+                  for m in task11.logs)
+              and not any("are active" in m for m in task11.logs))
+    # A plan this run took down is read even if no option references it any more.
+    task12 = _MutationTask({"PPV_A": True})
+    task12.states["PPV_A"] = False
+    task12.plan_ids = []
+    task12._report_procedure_health("ESD", "ESV", taken_down=["PPV_A"],
+                                    version_taken_down=False)
+    check("a plan this run took down is reported even when no longer referenced",
+          any("--record-id PPV_A" in m for m in task12.logs))
     # Round 7: a stale false read must not skip the deactivation.
     stale_off = _MutationTask({"PPV_A": True})
 
