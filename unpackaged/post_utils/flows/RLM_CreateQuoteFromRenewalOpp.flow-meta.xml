@@ -79,6 +79,30 @@
         </connector>
     </assignments>
     <assignments>
+        <description>Counts the distinct assets the lines reference and the assets the running user could read, to catch a partial lookup.</description>
+        <name>Count_Line_Assets</name>
+        <label>Count Line Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>LineAssetCount</assignToReference>
+            <operator>AssignCount</operator>
+            <value>
+                <elementReference>LineAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ReadableAssetCount</assignToReference>
+            <operator>AssignCount</operator>
+            <value>
+                <elementReference>Get_Renewal_Assets</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Are_All_Assets_Readable</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>Count_Renew_Assets</name>
         <label>Count Renew Assets</label>
         <locationX>0</locationX>
@@ -94,6 +118,32 @@
             <targetReference>Has_Renewable_Assets</targetReference>
         </connector>
     </assignments>
+    <decisions>
+        <description>The asset lookup runs as the user, so assets they can&apos;t read are silently left out. Renewing only the readable subset would create a renewal quote missing products, so stop instead.</description>
+        <name>Are_All_Assets_Readable</name>
+        <label>Are All Assets Readable</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Assets_Not_Readable</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Some Missing</defaultConnectorLabel>
+        <rules>
+            <name>All_Readable</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>ReadableAssetCount</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>LineAssetCount</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Renewal_Assets</targetReference>
+            </connector>
+            <label>All Readable</label>
+        </rules>
+    </decisions>
     <decisions>
         <name>Has_Renewable_Assets</name>
         <label>Has Renewable Assets</label>
@@ -153,6 +203,32 @@
         </rules>
     </decisions>
     <decisions>
+        <description>Keeps LineAssetIds distinct, so its count can be compared with the assets read.</description>
+        <name>Is_New_Line_Asset</name>
+        <label>Is New Line Asset</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Add_Asset_Id</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>New</defaultConnectorLabel>
+        <rules>
+            <name>Line_Asset_Already_Added</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>LineAssetIds</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <elementReference>Loop_Renewal_Lines.AssetId</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Renewal_Lines</targetReference>
+            </connector>
+            <label>Already Added</label>
+        </rules>
+    </decisions>
+    <decisions>
         <name>Is_New_Root_Asset</name>
         <label>Is New Root Asset</label>
         <locationX>0</locationX>
@@ -179,6 +255,12 @@
     </decisions>
     <description>Quick action on a renewal Opportunity (created by RLM_CreateUpdateRenewalOpportunities). Renews the root assets referenced by the opportunity&apos;s lines (OpportunityLineItem.AssetId, mapped to Asset.RootAssetId so bundle components renew with their bundle) through the standard Initiate Renewal action, linking the resulting quote to the opportunity and, when set, its contract, then opens the quote.</description>
     <environments>Default</environments>
+    <formulas>
+        <name>MissingAssetCount</name>
+        <dataType>Number</dataType>
+        <expression>{!LineAssetCount} - {!ReadableAssetCount}</expression>
+        <scale>0</scale>
+    </formulas>
     <interviewLabel>RLM Create Quote from Renewal Opp {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Create Quote from Renewal Opp</label>
     <loops>
@@ -189,7 +271,7 @@
         <collectionReference>Get_Renewal_Lines</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
-            <targetReference>Add_Asset_Id</targetReference>
+            <targetReference>Is_New_Line_Asset</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
             <targetReference>Get_Renewal_Assets</targetReference>
@@ -235,7 +317,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Loop_Renewal_Assets</targetReference>
+            <targetReference>Count_Line_Assets</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Renewal_Quote_Error</targetReference>
@@ -337,6 +419,22 @@
         <showHeader>true</showHeader>
     </screens>
     <screens>
+        <name>Assets_Not_Readable</name>
+        <label>Assets Not Readable</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>AssetsNotReadableText</name>
+            <fieldText>&lt;p&gt;You don&apos;t have access to {!MissingAssetCount} of the {!LineAssetCount} assets on &lt;strong&gt;{!Get_Renewal_Opportunity.Name}&lt;/strong&gt;, so no renewal quote was created. A quote made without them would leave those products out of the renewal.&lt;/p&gt;&lt;p&gt;Ask your admin for access to the account&apos;s assets, then try again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
         <name>No_Renewable_Assets</name>
         <label>No Renewable Assets</label>
         <locationX>0</locationX>
@@ -432,12 +530,28 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Asset Ids read from the renewal opportunity&apos;s lines; may include bundle components and repeats.</description>
+        <description>Distinct Asset Ids read from the renewal opportunity&apos;s lines; may include bundle components.</description>
         <name>LineAssetIds</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>LineAssetCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+    </variables>
+    <variables>
+        <name>ReadableAssetCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
     </variables>
     <variables>
         <name>RenewAssetCount</name>
