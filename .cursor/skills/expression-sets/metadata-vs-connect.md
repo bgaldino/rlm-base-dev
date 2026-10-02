@@ -182,7 +182,9 @@ Tooling-set labels are therefore mutually exclusive on one version.
 **Auto-preservation (default-on).** The two Connect mutators no longer *lose*
 labels: `import_expression_set` (replace) and `apply_expression_set_overlay`
 **capture** the readable labels before the clobbering PATCH and **restore** them
-afterward. CCI restores them in the same inactive window; the standalone toolkit
+afterward, for **every** version of the set: the full-graph PATCH resets labels on
+all of them, not only the one it edits. Overlay-supplied labels go only to the
+targeted version, and inactive drafts are relabelled in place. CCI restores them in the same inactive window; the standalone toolkit
 uses a second deactivate→Tooling-PATCH→reactivate cycle (`--no-preserve-labels`
 to opt out). Two step populations are covered:
 - **survivors** → restored from the pre-PATCH target-org snapshot (`capture_labels`).

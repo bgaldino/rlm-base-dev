@@ -2101,6 +2101,8 @@ class ImportExpressionSet(ExpressionSetConnectBase):
                 activate_after=activate_after,
                 cascade=cascade,
                 verb="Import",
+                # The PATCH relabels every version of the set, not just esv.
+                label_versions=self._list_versions(es_id),
             )
         else:
             self.logger.info("Expression set '%s' does not exist, creating...", api_name)

@@ -79,8 +79,8 @@ from scripts.expression_sets._schema import (  # noqa: E402
     validate_overlay_against_definition,
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
-    capture_labels,
-    restore_labels_after_clobber,
+    capture_version_labels,
+    restore_version_labels,
 )
 
 
@@ -209,16 +209,10 @@ def main(argv=None) -> int:
                 eprint(f"Note: no ExpressionSetVersion named '{version_api_name}'; "
                        "the overlay's step labels will not be applied.")
         ov_labels = overlay_labels(overlay) if preserve_labels and label_esv else {}
-        restore_maps = []  # (ApiName, Id, {name: label}) per version
-        for version in versions if preserve_labels else []:
-            captured = capture_labels(
-                transport, version.get("ApiName"), eprint,
-                es_def_id=es_def_id, version_number=version.get("VersionNumber"),
-            )
-            if label_esv and version.get("VersionNumber") == label_esv.get("VersionNumber"):
-                captured = {**captured, **ov_labels}
-            if captured:
-                restore_maps.append((version.get("ApiName"), version.get("Id"), captured))
+        restore_maps = capture_version_labels(
+            transport, versions if preserve_labels else [], eprint,
+            es_def_id=es_def_id, extra_labels=ov_labels, extra_version=label_esv,
+        )
         if restore_maps:
             eprint(f"Will restore step labels on {len(restore_maps)} version(s) after "
                    f"the PATCH ({sum(len(m) for _, _, m in restore_maps)} label(s), "
@@ -264,23 +258,11 @@ def main(argv=None) -> int:
         # never reads "Successfully applied" over a version whose labels are stale.
         # Inactive versions (drafts) are relabelled in place, even with
         # --no-activate; the version the lifecycle toggled needs the reactivation.
-        failures, changed = [], []
-        skipped_inactive = False
-        for api_name, version_id, name_to_label in restore_maps:
-            if version_id == esv.get("Id") and not activate_after:
-                skipped_inactive = True
-                continue
-            result = restore_labels_after_clobber(
-                engine, es_id=es_id, es_def_id=es_def_id,
-                version_api_name=api_name,
-                name_to_label=name_to_label, cascade=cascade,
-            )
-            changed += result.get("changed") or []
-            if not result.get("ok", True):
-                failures.append(f"{api_name}: {result.get('error')}")
-        restore_result = {"ok": not failures, "changed": changed,
-                          "error": "; ".join(failures) or None}
-        if skipped_inactive:
+        restore_result = restore_version_labels(
+            engine, restore_maps, es_id=es_id, es_def_id=es_def_id, cascade=cascade,
+            skip_version_id=None if activate_after else esv.get("Id"),
+        )
+        if restore_result.pop("skipped"):
             eprint("Note: --no-activate set — leaving labels un-restored (relabel "
                    "needs to reactivate). Run relabel_expression_set.py when ready.")
 

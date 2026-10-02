@@ -63,11 +63,12 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     resolve_definition_id,
     resolve_expression_set_id,
     resolve_version_by_es_id,
+    list_versions,
 )
 from scripts.expression_sets._schema import validate_definition  # noqa: E402
 from scripts.expression_sets._tooling import (  # noqa: E402
-    capture_labels,
-    restore_labels_after_clobber,
+    capture_version_labels,
+    restore_version_labels,
 )
 
 
@@ -191,21 +192,22 @@ def main(argv=None) -> int:
                     "    Continuing with REPLACE (will attempt to change version apiName, which may fail)...\n"
                 )
             # A replace is a full-graph Connect PATCH — it resets step labels to
-            # their spaceless names (Connect has no label field). Capture the
-            # readable labels it is about to clobber (best-effort, non-fatal) so
-            # they can be re-applied afterwards. (An import definition JSON is
-            # Connect-shaped and carries NO labels, so the target-org snapshot is
-            # the only source; create/POST starts label-less, so nothing to do.)
-            restore_map = (
-                capture_labels(
-                    transport, version_api_name_live, eprint,
-                    es_def_id=es_def_id, version_number=esv.get("VersionNumber"),
-                )
-                if preserve_labels else {}
+            # their spaceless names (Connect has no label field) on EVERY version
+            # of the set. Capture each version's readable labels (best-effort,
+            # non-fatal) so they can be re-applied afterwards. (An import
+            # definition JSON is Connect-shaped and carries NO labels, so the
+            # target-org snapshot is the only source; create/POST starts
+            # label-less, so nothing to do.)
+            versions = list_versions(es_id, target_org=args.target_org,
+                                     api_version=args.api_version) or [esv]
+            restore_maps = capture_version_labels(
+                transport, versions if preserve_labels else [], eprint,
+                es_def_id=es_def_id,
             )
-            if preserve_labels and restore_map:
-                eprint(f"Will restore {len(restore_map)} step label(s) after the "
-                       f"PATCH via a second deactivate→relabel→reactivate cycle. "
+            if restore_maps:
+                eprint(f"Will restore step labels on {len(restore_maps)} version(s) "
+                       f"after the PATCH ({sum(len(m) for _, _, m in restore_maps)} "
+                       f"label(s)) via a relabel cycle per version. "
                        f"--no-preserve-labels to skip.")
             elif not preserve_labels:
                 eprint("--no-preserve-labels: clobbered step labels will NOT be "
@@ -225,17 +227,17 @@ def main(argv=None) -> int:
                 es_def_id=es_def_id, esv=esv, mutate=mutate,
                 activate_after=activate_after, cascade=cascade, verb="Import",
             )
-            # Restore clobbered labels (second lifecycle cycle). Only when the
-            # version was reactivated — a relabel needs its own deactivate window.
-            # A restore failure is non-fatal (the replace already applied) but is
-            # surfaced at the CLI boundary (exit code + JSON) below.
-            if preserve_labels and restore_map and activate_after:
-                restore_result = restore_labels_after_clobber(
-                    engine, es_id=es_id, es_def_id=es_def_id,
-                    version_api_name=version_api_name_live,
-                    name_to_label=restore_map, cascade=cascade,
-                )
-            elif preserve_labels and restore_map and not activate_after:
+            # Restore clobbered labels (a relabel cycle per version). Inactive
+            # versions are relabelled in place; the toggled version is skipped
+            # under --no-activate (its relabel needs the reactivation). A restore
+            # failure is non-fatal (the replace already applied) but is surfaced
+            # at the CLI boundary (exit code + JSON) below.
+            restore_result = restore_version_labels(
+                engine, restore_maps, es_id=es_id, es_def_id=es_def_id,
+                cascade=cascade,
+                skip_version_id=None if activate_after else esv.get("Id"),
+            )
+            if restore_result.pop("skipped"):
                 eprint("Note: --no-activate set — leaving labels un-restored "
                        "(relabel needs to reactivate). Run relabel_expression_set.py "
                        "when ready.")

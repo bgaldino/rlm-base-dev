@@ -2133,6 +2133,35 @@ def test_connect_mutation_labels_follow_requested_version():
                              (2, {"A": "A Label", "New": "New Step"})])
 
 
+def test_import_replace_restores_every_version():
+    # A replace import PATCHes the full graph, which relabels every version of
+    # the set, so the task hands all of them to _run_connect_mutation.
+    import json as _json
+    import logging
+    import tempfile as _tempfile
+    from tasks.rlm_expression_set_connect import ImportExpressionSet
+
+    versions = [{"Id": "9QMa", "ApiName": "V1", "IsActive": True, "VersionNumber": 1},
+                {"Id": "9QMd", "ApiName": "V2", "IsActive": False, "VersionNumber": 2}]
+    seen = {}
+    task = object.__new__(ImportExpressionSet)
+    task.logger = logging.getLogger("test_import_replace")
+    task._preflight_validate_definition = lambda payload: None
+    task._soql_query = lambda q: [{"Id": "9QAx"}]
+    task._get_expression_set_id = lambda name: "9QLx"
+    task._resolve_version_by_es_id = lambda es_id: versions[0]
+    task._ensure_resource_initialization_type = lambda *a: None
+    task._list_versions = lambda es_id: list(versions)
+    task._run_connect_mutation = lambda **kw: seen.update(kw)
+    with _tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        _json.dump({"apiName": "TEST", "versions": [{"apiName": "V1"}]}, fh)
+    task.options = {"input_file": fh.name}
+    task._run_task()
+    os.unlink(fh.name)
+    check("import replace passes every version for label restore",
+          seen.get("label_versions") == versions)
+
+
 def test_resolve_label_version():
     esv = {"Id": "9QMa", "ApiName": "V1", "IsActive": True, "VersionNumber": 1}
     draft = {"Id": "9QMd", "ApiName": "V2", "IsActive": False, "VersionNumber": 2}

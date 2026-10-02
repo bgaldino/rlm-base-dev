@@ -513,3 +513,66 @@ def restore_labels_after_clobber(
             f"activation states; re-run relabel_expression_set.py --expression-set "
             f"<name> to restore labels if needed.")
         return {"ok": False, "changed": [], "error": str(exc)}
+
+
+def capture_version_labels(
+    transport,
+    versions: List[Dict[str, Any]],
+    logger=None,
+    *,
+    es_def_id: str,
+    extra_labels: Optional[Dict[str, str]] = None,
+    extra_version: Optional[Dict[str, Any]] = None,
+) -> List[tuple]:
+    """Snapshot readable labels for EVERY version a Connect PATCH will clobber.
+
+    A full-graph Connect PATCH resets step labels on every version of the set,
+    not just the one it edits, so mutators capture all of them. ``extra_labels``
+    (an overlay's labels for its new steps) are layered onto ``extra_version``
+    only. Returns ``[(ApiName, Id, {name: label}), ...]`` for versions with
+    something to restore; best-effort like :func:`capture_labels`.
+    """
+    maps = []
+    for version in versions:
+        captured = capture_labels(
+            transport, version.get("ApiName"), logger,
+            es_def_id=es_def_id, version_number=version.get("VersionNumber"),
+        )
+        if extra_version and version.get("VersionNumber") == extra_version.get("VersionNumber"):
+            captured = {**captured, **(extra_labels or {})}
+        if captured:
+            maps.append((version.get("ApiName"), version.get("Id"), captured))
+    return maps
+
+
+def restore_version_labels(
+    engine,
+    restore_maps: List[tuple],
+    *,
+    es_id: str,
+    es_def_id: str,
+    cascade: bool = True,
+    skip_version_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Restore every captured version's labels; aggregate the per-version results.
+
+    ``skip_version_id`` leaves one version alone (the toggled version under
+    ``--no-activate``, whose relabel would need the reactivation it was asked
+    to skip); ``skipped`` reports whether that happened. Non-fatal like
+    :func:`restore_labels_after_clobber`. Returns
+    ``{"ok", "changed", "error", "skipped"}``.
+    """
+    failures, changed, skipped = [], [], False
+    for api_name, version_id, name_to_label in restore_maps:
+        if skip_version_id and version_id == skip_version_id:
+            skipped = True
+            continue
+        result = restore_labels_after_clobber(
+            engine, es_id=es_id, es_def_id=es_def_id, version_api_name=api_name,
+            name_to_label=name_to_label, cascade=cascade,
+        )
+        changed += result.get("changed") or []
+        if not result.get("ok", True):
+            failures.append(f"{api_name}: {result.get('error')}")
+    return {"ok": not failures, "changed": changed,
+            "error": "; ".join(failures) or None, "skipped": skipped}

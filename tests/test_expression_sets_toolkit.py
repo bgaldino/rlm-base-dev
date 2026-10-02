@@ -867,6 +867,18 @@ def _patch(module, **names):
     return lambda: [setattr(module, k, v) for k, v in saved.items()]
 
 
+_TOOLING_NAMES = ("capture_labels", "restore_labels_after_clobber")
+
+
+def _patch_cli(module, **names):
+    """_patch for a mutator CLI: label capture/restore are looked up in _tooling
+    (by its capture_version_labels/restore_version_labels), so patch them there."""
+    import scripts.expression_sets._tooling as tooling_mod
+    tooling = {k: names.pop(k) for k in _TOOLING_NAMES if k in names}
+    undo_cli, undo_tooling = _patch(module, **names), _patch(tooling_mod, **tooling)
+    return lambda: (undo_cli(), undo_tooling())
+
+
 def _passing_validation():
     from scripts.expression_sets._schema import ValidationResult
     return ValidationResult()
@@ -904,7 +916,7 @@ def test_cli_restore_boundary():
                                               "variables": []}]}))
 
         # ---- apply_expression_set_overlay -------------------------------
-        undo = _patch(
+        undo = _patch_cli(
             apply_mod,
             LifecycleEngine=_FakeEngine,
             Transport=lambda **k: None,
@@ -923,19 +935,19 @@ def test_cli_restore_boundary():
                 {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1}],
         )
         try:
-            u = _patch(apply_mod, restore_labels_after_clobber=fail_restore)
+            u = _patch_cli(apply_mod, restore_labels_after_clobber=fail_restore)
             rc = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
                                  "--overlay", str(overlay_path), "--confirm"])
             u()
             check("apply: failed restore → exit 1", rc == 1, rc)
 
-            u = _patch(apply_mod, restore_labels_after_clobber=ok_restore)
+            u = _patch_cli(apply_mod, restore_labels_after_clobber=ok_restore)
             rc_ok = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
                                     "--overlay", str(overlay_path), "--confirm"])
             u()
             check("apply: successful restore → exit 0", rc_ok == 0, rc_ok)
 
-            u = _patch(apply_mod, restore_labels_after_clobber=fail_restore)
+            u = _patch_cli(apply_mod, restore_labels_after_clobber=fail_restore)
             rc_np = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
                                     "--overlay", str(overlay_path), "--confirm",
                                     "--no-preserve-labels"])
@@ -955,7 +967,7 @@ def test_cli_restore_boundary():
                 restores.append((kw["version_api_name"], dict(kw["name_to_label"])))
                 return {"ok": True, "changed": sorted(kw["name_to_label"]), "error": None}
 
-            u = _patch(
+            u = _patch_cli(
                 apply_mod, restore_labels_after_clobber=record_restore,
                 list_versions=lambda *a, **k: [
                     {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
@@ -976,7 +988,7 @@ def test_cli_restore_boundary():
             undo()
 
         # ---- import_expression_set (replace path) -----------------------
-        undo = _patch(
+        undo = _patch_cli(
             import_mod,
             LifecycleEngine=_FakeEngine,
             Transport=lambda **k: None,
@@ -989,19 +1001,45 @@ def test_cli_restore_boundary():
             strip_readonly_fields=lambda p, **k: p,
             rewrite_version_id=lambda p, vid: p,
             normalize_html_entities=lambda p, **k: p,
+            list_versions=lambda *a, **k: [
+                {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1}],
         )
         try:
-            u = _patch(import_mod, restore_labels_after_clobber=fail_restore)
+            u = _patch_cli(import_mod, restore_labels_after_clobber=fail_restore)
             rc = import_mod.main(["--target-org", "x", "--input-file",
                                   str(import_path), "--confirm"])
             u()
             check("import: failed restore → exit 1", rc == 1, rc)
 
-            u = _patch(import_mod, restore_labels_after_clobber=ok_restore)
+            u = _patch_cli(import_mod, restore_labels_after_clobber=ok_restore)
             rc_ok = import_mod.main(["--target-org", "x", "--input-file",
                                      str(import_path), "--confirm"])
             u()
             check("import: successful restore → exit 0", rc_ok == 0, rc_ok)
+
+            # A replace PATCH relabels every version of the set, not only the
+            # active-first one: each version's labels are captured and restored.
+            restores = []
+
+            def record_restore(engine, **kw):
+                restores.append((kw["version_api_name"], dict(kw["name_to_label"])))
+                return {"ok": True, "changed": sorted(kw["name_to_label"]), "error": None}
+
+            u = _patch_cli(
+                import_mod, restore_labels_after_clobber=record_restore,
+                list_versions=lambda *a, **k: [
+                    {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
+                    {"Id": "9QMd", "ApiName": "TEST_V2", "IsActive": False, "VersionNumber": 2}],
+                capture_labels=lambda t, api, *a, **k: {"GetPrice": f"Get Price {api}"},
+            )
+            rc_multi = import_mod.main(["--target-org", "x", "--input-file",
+                                        str(import_path), "--confirm"])
+            u()
+            check("import: multi-version exit 0", rc_multi == 0, rc_multi)
+            check("import: every version's labels restored",
+                  restores == [("TEST_V1", {"GetPrice": "Get Price TEST_V1"}),
+                               ("TEST_V2", {"GetPrice": "Get Price TEST_V2"})],
+                  restores)
         finally:
             undo()
 
