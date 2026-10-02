@@ -6,4 +6,10 @@ patches:
   - type: insert_action
     after: "Delete"
     actions:
-      - "Opportunity.RLM_CreateQuoteFromRenewalOpp"
+      # Show only on renewal opportunities (RLM_CreateUpdateRenewalOpportunities
+      # creates them with Type Existing Business).
+      - name: "Opportunity.RLM_CreateQuoteFromRenewalOpp"
+        visibility:
+          - field: "Record.Type"
+            operator: "EQUAL"
+            value: "Existing Business"

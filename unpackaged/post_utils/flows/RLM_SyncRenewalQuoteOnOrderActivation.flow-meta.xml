@@ -8,6 +8,9 @@
         <locationY>0</locationY>
         <actionName>syncQuoteOpportunity</actionName>
         <actionType>syncQuoteOpportunity</actionType>
+        <faultConnector>
+            <targetReference>CreateSyncFailureTask</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>quoteId</name>
@@ -66,7 +69,7 @@
             <label>Quote Not Synced</label>
         </rules>
     </decisions>
-    <description>When an order created from a quote is activated and the quote&apos;s opportunity is an open renewal (Type Existing Business), makes the quote the opportunity&apos;s synced quote and syncs its lines to the opportunity products, so the renewal opportunity shows what was actually renewed. RLM_CloseRenewalOpportunityOnQuoteSync then closes it as Closed Won. Needs Asynchronous Opportunity Sync turned on in Revenue Settings. Runs after commit so a failure here can&apos;t roll back order activation. New-business opportunities aren&apos;t changed.</description>
+    <description>When an order created from a quote is activated and the quote&apos;s opportunity is an open renewal (Type Existing Business), makes the quote the opportunity&apos;s synced quote and syncs its lines to the opportunity products, so the renewal opportunity shows what was actually renewed. RLM_CloseRenewalOpportunityOnQuoteSync then closes it as Closed Won. Needs Asynchronous Opportunity Sync turned on in Revenue Settings. Runs after commit so a failure here can&apos;t roll back order activation. New-business opportunities aren&apos;t changed. If setting the synced quote or the sync fails, creates a high-priority task for the opportunity owner with the error.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Sync Renewal Quote On Order Activation {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Sync Renewal Quote On Order Activation</label>
@@ -83,6 +86,51 @@
         </value>
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
+    <recordCreates>
+        <description>Runs when setting the synced quote or the sync fails. Creates a task for the renewal opportunity&apos;s owner, because a failure in this background path is otherwise visible only in the flow error email.</description>
+        <name>CreateSyncFailureTask</name>
+        <label>Create Sync Failure Task</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <inputAssignments>
+            <field>ActivityDate</field>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Description</field>
+            <value>
+                <elementReference>SyncFailureDescription</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OwnerId</field>
+            <value>
+                <elementReference>GetRenewalOpportunity.OwnerId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Priority</field>
+            <value>
+                <stringValue>High</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Subject</field>
+            <value>
+                <stringValue>Renewal quote sync failed</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>WhatId</field>
+            <value>
+                <elementReference>GetRenewalOpportunity.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Task</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordCreates>
     <recordLookups>
         <description>Gets the quote&apos;s opportunity when it&apos;s an open renewal opportunity.</description>
         <name>GetRenewalOpportunity</name>
@@ -118,6 +166,7 @@
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>Opportunity</object>
         <queriedFields>Id</queriedFields>
+        <queriedFields>OwnerId</queriedFields>
         <queriedFields>SyncedQuoteId</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
@@ -130,6 +179,9 @@
         <connector>
             <targetReference>SyncQuoteToOpportunity</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>CreateSyncFailureTask</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -176,4 +228,14 @@
         <triggerType>RecordAfterSave</triggerType>
     </start>
     <status>Active</status>
+    <textTemplates>
+        <description>Body of the sync failure task.</description>
+        <name>SyncFailureDescription</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>Activated order {!$Record.OrderNumber} couldn&apos;t sync quote {!$Record.QuoteId} to this renewal opportunity, so the opportunity wasn&apos;t closed.
+
+Check that Asynchronous Opportunity Sync is turned on in Revenue Settings, then sync the quote to the opportunity manually. The opportunity closes as Closed Won when the sync succeeds.
+
+Error: {!$Flow.FaultMessage}</text>
+    </textTemplates>
 </Flow>

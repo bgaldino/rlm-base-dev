@@ -17,6 +17,13 @@
                         </valueListItems>
                         <valueListItems>
                             <value>Opportunity.RLM_CreateQuoteFromRenewalOpp</value>
+                            <visibilityRule>
+                                <criteria>
+                                    <leftValue>{!Record.Type}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>Existing Business</rightValue>
+                                </criteria>
+                            </visibilityRule>
                         </valueListItems>
                         <valueListItems>
                             <value>Clone</value>
