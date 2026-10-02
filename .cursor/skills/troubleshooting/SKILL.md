@@ -340,8 +340,8 @@ whose expression-set version is inactive fails loudly: "Ensure that this
 procedure has at least one active version."
 
 **Fix:** query the plan (`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`),
-reactivate it with `sf data update record --sobject ProcedurePlanDefinitionVersion
---record-id <1Cv...> --values "IsActive=true"`, and re-check with a constant
+reactivate it with `sf data update record --target-org <sf_alias_or_username>
+--sobject ProcedurePlanDefinitionVersion --record-id <1Cv...> --values "IsActive=true"`, and re-check with a constant
 control. Do not conclude "pricing works" from a plausible number.
 
 ---

@@ -80,6 +80,9 @@ from tasks.expression_set_schema import (
 
 _REQUEST_TIMEOUT = 120
 
+# The platform's rejection of an update to an enabled version; proves it is active.
+_ALREADY_ENABLED = "An enabled Expression Set Version cannot be updated"
+
 
 def _parse_bool_option(value: Any, default: bool) -> bool:
     """Parse a CCI bool option: None → default, bool → as-is, string → truthy match."""
@@ -399,8 +402,8 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         ``force`` sends the PATCH even when a read already shows the desired
         state. Recovery after an unconfirmed deactivation uses it: the stale read
         that made the deactivation poll time out would otherwise skip the
-        reactivation. If a forced PATCH is rejected and a read then shows the
-        desired state, the version is taken as already there.
+        reactivation. A forced PATCH rejected with the platform's "already
+        enabled" error is taken as active; any other rejection raises.
         """
         if dry_run:
             self.logger.info(
@@ -429,11 +432,14 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             return
         try:
             self._patch_sobject("ExpressionSetVersion", version_id, {"IsActive": active})
-        except Exception:
-            if force and _reads_as(active):
+        except Exception as exc:
+            # Only the platform's own "already enabled" rejection proves the
+            # version is active. A read can't: recovery forces the PATCH because
+            # reads were stale.
+            if force and active and _ALREADY_ENABLED in str(exc):
                 self.logger.warning(
-                    "ExpressionSetVersion %s rejected the forced PATCH but reads "
-                    "IsActive=%s; taking it as already there.", version_id, active,
+                    "ExpressionSetVersion %s rejected the forced PATCH as already "
+                    "enabled; taking it as active.", version_id,
                 )
                 return
             raise
@@ -695,8 +701,9 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     try:
                         self._cascade_reactivate_procedure_plans(cascaded_ppvs, False)
                         self.logger.info(
-                            "Reactivated the cascaded procedure plans so the "
-                            "plan's other procedures keep running."
+                            "Reactivated the cascaded procedure plans, so pricing "
+                            "doesn't silently skip the plan: with no other active "
+                            "version of this expression set it fails loudly instead."
                         )
                     except Exception as plan_exc:
                         self.logger.error(

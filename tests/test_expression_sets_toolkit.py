@@ -1152,12 +1152,14 @@ class _PlanTransport:
     """
 
     def __init__(self, *, plans, esv_active=True, fail_plan_reactivate=False,
-                 esv_reads_active=False, fail_plan_ids=(), fail_esv_reactivate=False):
+                 esv_reads_active=False, fail_plan_ids=(), fail_esv_reactivate=False,
+                 esv_reactivate_error="version reactivate boom"):
         self.plans = dict(plans)
         self.esv_active = esv_active
         self.fail_plan_reactivate = fail_plan_reactivate
         self.fail_plan_ids = set(fail_plan_ids)
         self.fail_esv_reactivate = fail_esv_reactivate
+        self.esv_reactivate_error = esv_reactivate_error
         # Simulates a deactivation PATCH that lands while reads still say active,
         # so wait_for_version_state times out.
         self.esv_reads_active = esv_reads_active
@@ -1174,7 +1176,7 @@ class _PlanTransport:
         active = bool((body or {}).get("IsActive"))
         if sobject == "ExpressionSetVersion":
             if active and self.fail_esv_reactivate:
-                raise RuntimeError("version reactivate boom")
+                raise RuntimeError(self.esv_reactivate_error)
             self.esv_active = active
             if active:
                 # A real transition ends the stale read.
@@ -1298,6 +1300,36 @@ def test_failed_mutation_keeps_plans_online():
     # let the idempotent setter skip the reactivation PATCH.
     check("an unconfirmed version deactivation really reactivates the version",
           t6.esv_active is True, t6.esv_active)
+
+    # Round 5: a rejected forced reactivation must not be "confirmed" by the same
+    # stale read that triggered recovery; it has to propagate.
+    logs10 = []
+    t10 = _PlanTransport(plans={"1Cv1": True}, esv_reads_active=True,
+                         fail_esv_reactivate=True)
+    engine10 = LifecycleEngine(t10, logger=logs10.append, max_wait_seconds=0,
+                               poll_interval_seconds=1)
+    raised10 = None
+    try:
+        engine10.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=lambda: None, activate_after=True, cascade=True)
+    except Exception as exc:
+        raised10 = exc
+    check("a rejected forced reactivation propagates despite a stale active read",
+          raised10 is not None and "version reactivate boom" in str(raised10), raised10)
+    check("a rejected forced reactivation is not logged as taken as active",
+          not any("taking it as active" in m for m in logs10), logs10)
+    check("plans are still restored after a rejected forced reactivation",
+          t10.plans == {"1Cv1": True}, t10.plans)
+    # ...but the platform's own "already enabled" rejection does prove it is active.
+    t11 = _PlanTransport(plans={}, fail_esv_reactivate=True,
+                         esv_reactivate_error="An enabled Expression Set Version cannot be updated/deleted.")
+    engine11 = LifecycleEngine(t11, logger=lambda *a, **k: None)
+    try:
+        engine11.set_version_active("9QMv", True, force=True)
+        ok11 = True
+    except Exception:
+        ok11 = False
+    check("a forced PATCH rejected as already enabled is accepted", ok11)
 
     # Round 4: a failed version reactivation must not stop the plan restore.
     logs7 = []

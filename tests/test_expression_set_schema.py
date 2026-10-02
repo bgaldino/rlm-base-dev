@@ -652,7 +652,8 @@ class _MutationTask(_CascadeTask):
     """_CascadeTask plus one ExpressionSetVersion ("ESV") for the lifecycle."""
 
     def __init__(self, plans, esv_active=True, fail_plan_reactivate=False,
-                 fail_version_wait=False, esv_reads_active=False, fail_plan_ids=()):
+                 fail_version_wait=False, esv_reads_active=False, fail_plan_ids=(),
+                 esv_reactivate_error=None):
         import logging
 
         super().__init__(dict(plans, ESV=esv_active))
@@ -661,6 +662,7 @@ class _MutationTask(_CascadeTask):
         # Models the stale read that made the deactivation poll time out.
         self.esv_reads_active = esv_reads_active
         self.fail_plan_ids = set(fail_plan_ids)
+        self.esv_reactivate_error = esv_reactivate_error
         self.plan_ids = sorted(plans)
         self.logs = []
 
@@ -688,6 +690,8 @@ class _MutationTask(_CascadeTask):
                 and (self.fail_plan_reactivate or record_id in self.fail_plan_ids)):
             raise RuntimeError(f"plan reactivate boom {record_id}")
         if sobject == "ExpressionSetVersion" and payload.get("IsActive"):
+            if self.esv_reactivate_error:
+                raise RuntimeError(self.esv_reactivate_error)
             self.esv_reads_active = False
         super()._patch_sobject(sobject, record_id, payload)
 
@@ -752,6 +756,22 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
     stale.run(succeed=True)
     check("a stale read still gets a real version reactivation",
           stale.states["ESV"] is True)
+
+    # Round 5: a rejected forced reactivation must propagate despite a stale read.
+    rejected = _MutationTask({"PPV_A": True}, fail_version_wait=True,
+                             esv_reads_active=True, esv_reactivate_error="version reactivate boom")
+    error5 = rejected.run(succeed=True)
+    check("a rejected forced reactivation propagates despite a stale active read",
+          error5 is not None and "version reactivate boom" in str(error5))
+    check("plans are still restored after a rejected forced reactivation",
+          rejected.states["PPV_A"] is True)
+    enabled = _MutationTask({}, esv_reactivate_error="An enabled Expression Set Version cannot be updated/deleted.")
+    try:
+        enabled._set_version_active("ESV", True, False, force=True)
+        ok6 = True
+    except Exception:
+        ok6 = False
+    check("a forced PATCH rejected as already enabled is accepted", ok6)
 
     # Round 4: one failing plan must not stop the next.
     multi = _MutationTask({"PPV_A": True, "PPV_B": True}, fail_plan_ids={"PPV_A"})
