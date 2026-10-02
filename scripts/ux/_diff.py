@@ -1,16 +1,11 @@
 """
-DiffUXTemplates — Compares unpackaged/post_ux/ (org state captured by
-retrieve_ux_from_org) against what the assembler would produce from current
-templates/. Reports added, removed, modified, and repositioned flexiPageRegions.
+UX drift diff — compares org state against what current templates assemble to.
 
-Does not modify any files. Run retrieve_ux_from_org first to populate
-unpackaged/post_ux/ with the org's current state.
-
-Usage examples:
-    cci task run diff_ux_templates
-    cci task run diff_ux_templates \\
-        -o metadata_name RLM_Order_Record_Page.flexipage-meta.xml
-    cci task run diff_ux_templates -o report_file /tmp/drift.json
+``org_path`` (default ``unpackaged/post_ux/``) holds the org's flexipages, as
+written by ``ux_tool.py retrieve``. The diff assembles flexipages from
+``templates/`` into a temporary directory and reports added, removed,
+modified and repositioned flexiPageRegions per page. It modifies no files
+other than the report it writes (``drift_report.json`` by default).
 """
 import copy
 import json
@@ -20,111 +15,54 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-try:
-    from cumulusci.core.tasks import BaseTask
-    from cumulusci.core.exceptions import TaskOptionsError
-except ImportError:
-    BaseTask = object
-    TaskOptionsError = Exception
-
-try:
-    from tasks.rlm_ux_assembly import AssembleAndDeployUX
-except ImportError:
-    AssembleAndDeployUX = None  # type: ignore
-
+from scripts.ux._assemble import UxAssembler
+from scripts.ux._context import UxContext, UxOptionError
 
 _SF_NS = "http://soap.sforce.com/2006/04/metadata"
 _NS_TAG = f"{{{_SF_NS}}}"
+FLEXIPAGE_SUFFIX = ".flexipage-meta.xml"
 
 
-class DiffUXTemplates(BaseTask):
-    """
-    Diffs unpackaged/post_ux/ (org state) against the assembler output from
-    current templates, reporting UX drift per flexiPageRegion.
+def drift_count(report: Dict[str, Any]) -> int:
+    """Number of pages that differ (drifted, org-only or templates-only)."""
+    s = report["summary"]
+    return s["drifted"] + s["org_only"] + s["templates_only"]
 
-    Requires retrieve_ux_from_org to have been run first (or post_ux to have
-    been manually updated with org-retrieved files).
-    """
 
-    task_options = {
-        "metadata_name": {
-            "description": (
-                "Specific file to diff, e.g. "
-                "'RLM_Order_Record_Page.flexipage-meta.xml'. "
-                "Diffs all flexipages when omitted."
-            ),
-            "required": False,
-        },
-        "metadata_type": {
-            "description": (
-                "Metadata type to diff. Currently supports 'flexipages'. "
-                "Defaults to 'flexipages'."
-            ),
-            "required": False,
-        },
-        "org_path": {
-            "description": (
-                "Directory containing org-retrieved metadata (output of "
-                "retrieve_ux_from_org). Defaults to 'unpackaged/post_ux'."
-            ),
-            "required": False,
-        },
-        "report_file": {
-            "description": (
-                "Path to write drift_report.json. "
-                "Defaults to 'unpackaged/post_ux/drift_report.json'."
-            ),
-            "required": False,
-        },
-    }
+class UxDiff:
+    """Diffs org flexipages against the assembler output from current templates."""
 
-    def _validate_options(self):
-        super()._validate_options()
-        if AssembleAndDeployUX is None:
-            raise TaskOptionsError(
-                "tasks.rlm_ux_assembly could not be imported — "
-                "ensure it is present in the tasks/ directory."
+    def __init__(self, ctx: UxContext):
+        self.ctx = ctx
+        self.logger = ctx.logger
+
+    def run(
+        self,
+        org_path: Path,
+        metadata_name: Optional[str] = None,
+        report_file: Optional[Path] = None,
+    ) -> Dict[str, Any]:
+        """Diff, log, write the JSON report and return it."""
+        if metadata_name and not metadata_name.endswith(FLEXIPAGE_SUFFIX):
+            raise UxOptionError(
+                f"metadata_name must end in '{FLEXIPAGE_SUFFIX}', got: '{metadata_name}'"
             )
-        mtype = self.options.get("metadata_type", "flexipages")
-        if mtype not in ("flexipages",):
-            raise TaskOptionsError(
-                f"metadata_type must be 'flexipages', got: '{mtype}'"
-            )
-        mname = self.options.get("metadata_name")
-        if mname and not mname.endswith(".flexipage-meta.xml"):
-            raise TaskOptionsError(
-                f"metadata_name must end in '.flexipage-meta.xml', got: '{mname}'"
-            )
-
-    def _run_task(self):
-        repo_root = Path(self.project_config.repo_root)
-        org_path = repo_root / self.options.get("org_path", "unpackaged/post_ux")
-        metadata_name = self.options.get("metadata_name")
-        report_file = self.options.get(
-            "report_file", str(org_path / "drift_report.json")
-        )
-        templates_path = repo_root / "templates"
-
-        features = self._get_features()
+        org_path = Path(org_path)
+        report_path = Path(report_file) if report_file else org_path / "drift_report.json"
+        features = self.ctx.features
         self.logger.info(
             "Active features: "
-            + (
-                ", ".join(k for k, v in features.items() if v)
-                or "none"
-            )
+            + (", ".join(k for k, v in features.items() if v) or "none")
         )
 
         with tempfile.TemporaryDirectory(prefix="rlm_ux_diff_") as tmpdir:
             tmp_path = Path(tmpdir)
-            self.logger.info(
-                "Assembling flexipages from templates for comparison..."
-            )
-            self._assemble_to_temp(templates_path, tmp_path, features, metadata_name)
+            self.logger.info("Assembling flexipages from templates for comparison...")
+            self._assemble_to_temp(tmp_path, metadata_name)
             report = self._diff_flexipages(org_path, tmp_path, metadata_name)
 
         self._log_report(report)
 
-        report_path = Path(report_file)
         report_path.parent.mkdir(parents=True, exist_ok=True)
         # Strip non-serialisable xml field before writing
         _strip_xml_fields(report)
@@ -133,58 +71,25 @@ class DiffUXTemplates(BaseTask):
         )
         self.logger.info(f"Drift report written to: {report_path}")
 
-        n_drifted = (
-            report["summary"]["drifted"]
-            + report["summary"]["org_only"]
-            + report["summary"]["templates_only"]
-        )
+        n_drifted = drift_count(report)
         if n_drifted == 0:
-            self.logger.info(
-                "No drift detected — templates are in sync with org state."
-            )
+            self.logger.info("No drift detected — templates are in sync with org state.")
         else:
             self.logger.warning(
-                f"{n_drifted} page(s) have drift. "
-                "Review templates/ then run assemble_and_deploy_ux."
+                f"{n_drifted} page(s) have drift. Review templates/, run "
+                "`ux_tool.py writeback`, then reassemble and deploy."
             )
+        return report
 
-    # ------------------------------------------------------------------
-    # Feature flags
-    # ------------------------------------------------------------------
-
-    def _get_features(self) -> Dict[str, bool]:
-        """Read feature flags via AssembleAndDeployUX._get_feature_flags."""
-        return AssembleAndDeployUX._get_feature_flags(self)  # type: ignore[arg-type]
-
-    # ------------------------------------------------------------------
-    # Assembly
-    # ------------------------------------------------------------------
-
-    def _assemble_to_temp(
-        self,
-        templates_path: Path,
-        tmp_path: Path,
-        features: Dict[str, bool],
-        filter_name: Optional[str],
-    ) -> None:
+    def _assemble_to_temp(self, tmp_path: Path, filter_name: Optional[str]) -> None:
         """Run the assembler's flexipage logic into tmp_path."""
-        adapter = _AssemblerAdapter(self)
-        result = AssembleAndDeployUX._assemble_flexipages(
-            adapter,  # type: ignore[arg-type]
-            templates_path,
-            tmp_path,
-            features,
-            filter_name,
+        assembled, skipped = UxAssembler(self.ctx)._assemble_flexipages(
+            self.ctx.templates_path, tmp_path, self.ctx.features, filter_name,
         )
-        assembled, skipped = result if isinstance(result, tuple) else (result, [])
         self.logger.info(
             f"  Assembled {len(assembled)} flexipage(s) from templates "
             f"({len(skipped)} skipped as non-deployable)."
         )
-
-    # ------------------------------------------------------------------
-    # Diff
-    # ------------------------------------------------------------------
 
     def _diff_flexipages(
         self,
@@ -288,7 +193,7 @@ class DiffUXTemplates(BaseTask):
             if status == "templates_only":
                 self.logger.info(
                     "               (page in templates but not in org state — "
-                    "run retrieve_ux_from_org first)"
+                    "run `ux_tool.py retrieve` first)"
                 )
                 continue
 
@@ -312,25 +217,6 @@ class DiffUXTemplates(BaseTask):
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
-
-
-class _AssemblerAdapter:
-    """
-    Minimal stand-in that provides the attributes AssembleAndDeployUX instance
-    methods expect, so they can be called as unbound functions without needing
-    a fully-initialised CCI task.
-    """
-
-    def __init__(self, parent_task: Any) -> None:
-        self.project_config = parent_task.project_config
-        self.logger = parent_task.logger
-
-    def _apply_raw_xml_patch(self, root: ET.Element, patch: Dict[str, Any]) -> None:
-        AssembleAndDeployUX._apply_raw_xml_patch(
-            self,  # type: ignore[arg-type]
-            root,
-            patch,
-        )
 
 
 def _diff_flexipage_file(

@@ -1,5 +1,5 @@
 """
-WriteBackUXTemplates — Reverse-applies active feature patches against
+UX template writeback — reverse-applies active feature patches against
 org-retrieved flexipages and writes the result as updated base templates.
 
 The assembler invariant is: base + patches = deployed state.
@@ -8,68 +8,41 @@ Write-back computes:         new_base = org_state - patches.
 This prevents double-application of non-idempotent patches (insert_after_xml)
 on the next assembly run.
 
-Requires retrieve_ux_from_org to have populated unpackaged/post_ux/ with the
-org's current flexipage state.
-
-Usage examples:
-    cci task run writeback_ux_templates --org drotest              # dry-run (default)
-    cci task run writeback_ux_templates -o dry_run false --org drotest
-    cci task run writeback_ux_templates \
-        -o metadata_name RLM_Order_Record_Page.flexipage-meta.xml \
-        -o dry_run false --org drotest
+Requires ``ux_tool.py retrieve`` to have populated ``unpackaged/post_ux/`` with
+the org's current flexipage state. Dry run by default: nothing under
+``templates/`` changes unless ``dry_run=False`` (``ux_tool.py writeback --apply``).
 """
 import copy
-import json
 import re
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-
-try:
-    from cumulusci.core.tasks import BaseTask
-    from cumulusci.core.exceptions import TaskOptionsError
-except ImportError:
-    BaseTask = object
-    TaskOptionsError = Exception
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     import yaml
 except ImportError:
     yaml = None
 
-try:
-    from tasks.rlm_ux_assembly import (
-        AssembleAndDeployUX,
-        SF_NS,
-        SF_NS_TAG,
-        _find_elem,
-        _findall_elem,
-        _load_yaml,
-        _write_xml,
-    )
-except ImportError:
-    AssembleAndDeployUX = None
-    SF_NS = "http://soap.sforce.com/2006/04/metadata"
-    SF_NS_TAG = f"{{{SF_NS}}}"
-try:
-    from tasks.rlm_ux_utils import resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
-except ImportError:
-    try:
-        from rlm_ux_utils import resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
-    except ImportError as _root_utils_err:
-        SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
-        def resolve_flexipage_sources(*args, **kwargs):  # type: ignore[misc]
-            raise ImportError(
-                "Unable to import resolve_flexipage_sources from "
-                "'tasks.rlm_ux_utils' or 'rlm_ux_utils'."
-            ) from _root_utils_err
+from scripts.ux._assemble import (
+    SF_NS,
+    SF_NS_TAG,
+    UxAssembler,
+    _find_elem,
+    _findall_elem,
+    _load_yaml,
+    _write_xml,
+)
+from scripts.ux._context import UxContext, UxOptionError
+from scripts.ux._flags import SALES_TXN_LINE_EDITOR_IDENTIFIER, resolve_flexipage_sources
 
 ET.register_namespace("", SF_NS)
 
+WRITEBACK_TYPES = ("all", "flexipages", "layouts")
 
-class WriteBackUXTemplates(BaseTask):
+
+class UxWriteback:
     """
     Reverse-applies active feature patches against org-retrieved flexipages
     and writes the result as updated base templates.
@@ -77,72 +50,27 @@ class WriteBackUXTemplates(BaseTask):
     new_base = org_state - reverse(patches)
     """
 
-    task_options = {
-        "metadata_name": {
-            "description": (
-                "Specific file to write back, e.g. "
-                "'RLM_Order_Record_Page.flexipage-meta.xml'. "
-                "Processes all flexipages when omitted."
-            ),
-            "required": False,
-        },
-        "metadata_type": {
-            "description": (
-                "Metadata type to process: 'all', 'flexipages', or "
-                "'layouts'. Defaults to 'all'."
-            ),
-            "required": False,
-        },
-        "org_path": {
-            "description": (
-                "Directory containing org-retrieved metadata (output of "
-                "retrieve_ux_from_org). Defaults to 'unpackaged/post_ux'."
-            ),
-            "required": False,
-        },
-        "dry_run": {
-            "description": (
-                "When true (default), logs what would change but does not "
-                "write base templates. Set false to apply."
-            ),
-            "required": False,
-        },
-        "backup": {
-            "description": (
-                "When true (default), copies existing base templates to "
-                "*.bak before overwriting. Only applies when dry_run is false."
-            ),
-            "required": False,
-        },
-    }
+    def __init__(self, ctx: UxContext):
+        self.ctx = ctx
+        self.logger = ctx.logger
 
-    def _validate_options(self):
-        super()._validate_options()
-        if AssembleAndDeployUX is None:
-            raise TaskOptionsError(
-                "tasks.rlm_ux_assembly could not be imported — "
-                "ensure it is present in the tasks/ directory."
-            )
-        mtype = self.options.get("metadata_type", "all")
-        if mtype not in ("all", "flexipages", "layouts"):
-            raise TaskOptionsError(
+    def run(
+        self,
+        org_path: Path,
+        metadata_name: Optional[str] = None,
+        metadata_type: str = "all",
+        dry_run: bool = True,
+        backup: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Write back (or, with ``dry_run``, report) template changes; return per-item results."""
+        if metadata_type not in WRITEBACK_TYPES:
+            raise UxOptionError(
                 f"metadata_type must be 'all', 'flexipages', or 'layouts', "
-                f"got: '{mtype}'"
+                f"got: '{metadata_type}'"
             )
-
-    def _run_task(self):
-        repo_root = Path(self.project_config.repo_root)
-        org_path = repo_root / self.options.get("org_path", "unpackaged/post_ux")
-        templates_path = repo_root / "templates"
-        metadata_name = self.options.get("metadata_name")
-        dry_run = str(self.options.get("dry_run", "true")).lower() in (
-            "true", "1", "yes",
-        )
-        backup = str(self.options.get("backup", "true")).lower() in (
-            "true", "1", "yes",
-        )
-
-        features = self._get_features()
+        org_path = Path(org_path)
+        templates_path = self.ctx.templates_path
+        features = self.ctx.features
         self.logger.info(
             f"Write-back mode: {'DRY RUN' if dry_run else 'LIVE'}"
         )
@@ -151,16 +79,15 @@ class WriteBackUXTemplates(BaseTask):
             + (", ".join(k for k, v in features.items() if v) or "none")
         )
 
-        mtype = self.options.get("metadata_type", "all")
         results = []
 
-        if mtype in ("all", "flexipages"):
+        if metadata_type in ("all", "flexipages"):
             results.extend(self._writeback_flexipages(
                 templates_path, org_path, features, metadata_name,
                 dry_run, backup,
             ))
 
-        if mtype in ("all", "layouts"):
+        if metadata_type in ("all", "layouts"):
             results.extend(self._writeback_layouts(
                 templates_path, org_path, features, metadata_name,
                 dry_run, backup,
@@ -173,6 +100,7 @@ class WriteBackUXTemplates(BaseTask):
             f"\nWrite-back complete: {written} written, {skipped} skipped "
             f"({'dry run' if dry_run else 'live'})"
         )
+        return results
 
     # ------------------------------------------------------------------
     # Flexipages writeback
@@ -195,7 +123,7 @@ class WriteBackUXTemplates(BaseTask):
         if not org_dir.exists():
             self.logger.error(
                 f"Org flexipages directory not found: {org_dir}. "
-                "Run retrieve_ux_from_org first."
+                "Run `ux_tool.py retrieve` first."
             )
             return []
 
@@ -213,7 +141,7 @@ class WriteBackUXTemplates(BaseTask):
             self.logger.warning("No org-retrieved flexipages to process.")
             return []
 
-        # MUST mirror AssembleAndDeployUX._assemble_flexipages feature_patch_order
+        # MUST mirror UxAssembler._assemble_flexipages feature_patch_order
         # exactly (same features, same order): writeback collects these patches in
         # forward order then reverses them, so any feature the assembler applies but
         # this list omits would never be reverse-applied — breaking base + patches =
@@ -884,12 +812,8 @@ class WriteBackUXTemplates(BaseTask):
 
         with tempfile.TemporaryDirectory(prefix="rlm_wb_verify_") as tmpdir:
             tmp_path = Path(tmpdir)
-            adapter = _AssemblerAdapter(self)
-            result = AssembleAndDeployUX._assemble_flexipages(
-                adapter, templates_path, tmp_path, features, filter_name,
-            )
-            assembled, skipped = (
-                result if isinstance(result, tuple) else (result, [])
+            assembled, skipped = UxAssembler(self.ctx)._assemble_flexipages(
+                templates_path, tmp_path, features, filter_name,
             )
 
             org_dir = org_path / "flexipages"
@@ -928,34 +852,6 @@ class WriteBackUXTemplates(BaseTask):
                     f"Verification found {drift_count} page(s) with "
                     "remaining drift. Review templates manually."
                 )
-
-    # ------------------------------------------------------------------
-    # Feature flags
-    # ------------------------------------------------------------------
-
-    def _get_features(self) -> Dict[str, bool]:
-        return AssembleAndDeployUX._get_feature_flags(self)
-
-
-# ---------------------------------------------------------------------------
-# Adapter for calling assembler methods
-# ---------------------------------------------------------------------------
-
-
-class _AssemblerAdapter:
-    """
-    Minimal stand-in providing attributes that AssembleAndDeployUX instance
-    methods expect.
-    """
-
-    def __init__(self, parent_task: Any) -> None:
-        self.project_config = parent_task.project_config
-        self.logger = parent_task.logger
-
-    def _apply_raw_xml_patch(
-        self, root: ET.Element, patch: Dict[str, Any]
-    ) -> None:
-        AssembleAndDeployUX._apply_raw_xml_patch(self, root, patch)
 
 
 # ---------------------------------------------------------------------------

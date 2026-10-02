@@ -57,17 +57,18 @@ capabilities to the rlm-base-dev repository.
 ## Drift Capture and Writeback
 
 When UX changes are made directly in the org, use the drift capture workflow to
-update templates:
+update templates. It runs without CCI and targets the org by its **sf CLI**
+alias or username (see `scripts/ux/README.md`):
 
 ```bash
 # 1. Capture drift (retrieve org state + diff against templates)
-cci flow run capture_ux_drift --org dev-sb0
+python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>
 
 # 2. Review drift_report.json, then apply to templates
-cci flow run apply_ux_drift --org dev-sb0
+python scripts/ux/ux_tool.py apply-drift
 ```
 
-The writeback task computes `new_base = org_state - patches` and also
+The writeback step computes `new_base = org_state - patches` and also
 auto-updates YAML patch files. Profile writeback requires manual oversight.
 
 For full details, see `docs/features/dynamic-ux-assembly.md`.

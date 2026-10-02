@@ -56,7 +56,7 @@ rlm-base-dev/
 ├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
 │   ├── rlm_sfdmu.py            # SFDMU data loading tasks
-│   ├── rlm_ux_assembly.py      # Dynamic UX assembly (AssembleAndDeployUX)
+│   ├── rlm_ux_assembly.py      # CCI wrapper for scripts/ux/ assembly (AssembleAndDeployUX)
 │   ├── rlm_manage_decision_tables.py
 │   ├── rlm_manage_expression_sets.py
 │   ├── rlm_manage_flows.py
@@ -118,6 +118,7 @@ rlm-base-dev/
 ├── scripts/                    # Utility scripts
 │   ├── apex/                   # Anonymous Apex scripts
 │   ├── cml/                    # CML source files (.cml) and deprecated Python scripts
+│   ├── ux/                     # CCI-free UX assembly + drift tooling (ux_tool.py: assemble, retrieve, diff, writeback)
 │   ├── bash/                   # Bash scripts
 │   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into templates/appMenus/base/ (no deploy)
 │   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract

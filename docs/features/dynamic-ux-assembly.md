@@ -1,9 +1,9 @@
 # Dynamic UX Assembly
 
-> Implemented in: `tasks/rlm_ux_assembly.py`, `tasks/rlm_writeback_ux.py`,
-> `tasks/rlm_retrieve_ux.py`, `tasks/rlm_diff_ux.py`
-> Shared utilities: `tasks/rlm_ux_utils.py` (feature flags, standalone order, source resolver)
-> Flows: `prepare_ux`, `capture_ux_drift`, `apply_ux_drift`
+> Implemented in: `scripts/ux/` (CCI-free: assembler, retrieve, diff, writeback,
+> deploy; CLI `scripts/ux/ux_tool.py`, see `scripts/ux/README.md`)
+> Shared utilities: `scripts/ux/_flags.py` (feature flags, standalone order, source resolver)
+> CCI: task `assemble_and_deploy_ux` (thin wrapper, `tasks/rlm_ux_assembly.py`), flow `prepare_ux`
 > Template root: `templates/`
 > Output: `unpackaged/post_ux/` (git-tracked)
 
@@ -139,7 +139,7 @@ templates/
 1. Base pages from `templates/flexipages/base/`
 2. Feature standalone overrides applied in deploy order:
    `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`
-   *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; all three tasks — assembly, retrieve, writeback — use this shared constant)*
+   *(Canonical order defined in `scripts/ux/_flags._STANDALONE_ORDER`; assembly, retrieve, diff and writeback all use this shared constant)*
 
 **Patch application** (additive, in deploy order):
 `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → collections → prm_pricing`
@@ -303,57 +303,68 @@ Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy) then
 
 When UX changes are made directly in the org (e.g. rearranging components on a
 Lightning page), the templates need to be updated to match. The drift capture and
-writeback workflow automates this.
+writeback workflow automates this. It runs without CCI through
+`scripts/ux/ux_tool.py` and addresses the org by its **sf CLI** alias or username
+(`--target-org`), never a CCI alias. Full option reference: `scripts/ux/README.md`.
+
+Feature flags default to `project.custom` in `cumulusci.yml`. If the org was built
+with runtime overrides, pass the same values with `--flag name=value`, or use
+`--flags-from-manifest` to take the flags recorded in
+`unpackaged/post_ux/assembly_manifest.json` by the last assembly.
 
 ### Workflow
 
 ```
-1. capture_ux_drift  — retrieve org state, diff against templates
+1. capture-drift  — retrieve org state, diff against templates
 2. (review drift_report.json)
-3. apply_ux_drift    — writeback to templates, re-assemble, verify zero drift
+3. apply-drift    — writeback to templates, re-assemble, verify zero drift
 ```
 
-### `capture_ux_drift` flow
+### `capture-drift`
 
 ```bash
-cci flow run capture_ux_drift --org dev-sb0
+python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>
 ```
 
 Steps:
-1. `retrieve_ux_from_org` — retrieves live flexipages from the org into `unpackaged/post_ux/`
-2. `diff_ux_templates` — compares retrieved state against assembled output, writes `drift_report.json`
+1. `retrieve` — retrieves live flexipages from the org into `unpackaged/post_ux/`
+2. `diff` — compares retrieved state against assembled output, writes `drift_report.json`
 
-### `apply_ux_drift` flow
+Add `--fail-on-drift` to exit 1 when any page differs.
+
+### `apply-drift`
 
 ```bash
-cci flow run apply_ux_drift --org dev-sb0
+python scripts/ux/ux_tool.py apply-drift
 ```
 
-Steps:
-1. `writeback_ux_templates` (dry_run=false) — reverse-applies patches to compute new base templates
-2. `assemble_and_deploy_ux` (deploy=false) — re-assembles from updated templates
-3. `diff_ux_templates` — verifies zero drift between assembled output and org state
+Needs no org: it works from the state `capture-drift` left in `unpackaged/post_ux/`.
 
-### `writeback_ux_templates` task
+Steps:
+1. `writeback --apply` — reverse-applies patches to compute new base templates
+2. `assemble` (no deploy) — re-assembles from updated templates
+3. `diff` — verifies zero drift between assembled output and org state
+
+### `writeback`
 
 ```bash
 # Dry-run (default) — shows what would change without modifying templates
-cci task run writeback_ux_templates --org dev-sb0
+python scripts/ux/ux_tool.py writeback
 
 # Execute writeback
-cci task run writeback_ux_templates -o dry_run false --org dev-sb0
+python scripts/ux/ux_tool.py writeback --apply
 
 # Single page
-cci task run writeback_ux_templates \
-    -o metadata_name RLM_Order_Record_Page.flexipage-meta.xml \
-    -o dry_run false --org dev-sb0
+python scripts/ux/ux_tool.py writeback \
+    --name RLM_Order_Record_Page.flexipage-meta.xml --apply
 ```
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `-o dry_run` | `true` | Set `false` to actually write back templates |
-| `-o metadata_name` | (none) | Process a single file |
-| `-o metadata_type` | `all` | `all`, `flexipages`, or `layouts` |
+| `--apply` | off (dry run) | Actually write back templates |
+| `--name` | (none) | Process a single file |
+| `--type` | `all` | `all`, `flexipages`, or `layouts` |
+| `--no-backup` | off | Skip the `*.bak` copies of overwritten templates |
 
 ### Writeback Algorithm
 
@@ -600,17 +611,17 @@ rm -rf .sf/orgs/<org-id>/localSourceTracking
 ### Capture and apply org drift
 
 ```bash
-# Step 1: Capture drift (retrieve + diff)
-cci flow run capture_ux_drift --org dev-sb0
+# Step 1: Capture drift (retrieve + diff); sf CLI alias, not a CCI alias
+python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>
 
 # Step 2: Review the drift report
 cat unpackaged/post_ux/drift_report.json | python3 -m json.tool
 
 # Step 3: Apply drift to templates (writeback + reassemble + verify)
-cci flow run apply_ux_drift --org dev-sb0
+python scripts/ux/ux_tool.py apply-drift
 
 # Step 4: Verify zero drift
-# The apply_ux_drift flow re-runs diff_ux_templates as its final step.
+# apply-drift re-runs diff as its final step.
 # If the drift report shows no differences, the writeback succeeded.
 ```
 

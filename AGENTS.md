@@ -169,9 +169,9 @@ cci task run test_qb_pricing_idempotency --org beta
 cci flow run prepare_rlm_org --org beta
 cci task run assemble_and_deploy_ux                                 # deploys to your DEFAULT cci org (no --org flag — set the default org to target one)
 cci task run assemble_and_deploy_ux -o deploy false                 # dry-run: local assembly only, no org needed
-cci flow run capture_ux_drift --org dev-sb0                          # retrieve + diff
-cci flow run apply_ux_drift --org dev-sb0                            # writeback + reassemble + verify
-cci task run writeback_ux_templates --org dev-sb0                    # dry-run writeback
+python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>   # UX drift, no CCI: retrieve + diff
+python scripts/ux/ux_tool.py apply-drift                            # writeback + reassemble + verify
+python scripts/ux/ux_tool.py writeback                              # dry-run writeback
 cci task run validate_setup                                          # no org needed
 cci task run check_decision_table_freshness --org beta               # readiness: is any lookup stale? (-o param1 strict to fail the build)
 python scripts/validate_sfdmu_v5_datasets.py
@@ -359,6 +359,7 @@ reference and worked examples. Read that skill rather than guessing flags:
 | `scripts/context_service/*` — Context Definition inspect/validate/apply, plus the runtime context-instance lifecycle | `context-service/SKILL.md` |
 | `scripts/expression_sets/*` — Expression Set inspect/trace/diff/export and guarded mutators | `expression-sets/SKILL.md` |
 | `scripts/cml/*` — constraint model export/import/validate | `constraint-models/SKILL.md` |
+| `scripts/ux/*` — CCI-free UX assembly, deploy, org retrieve, drift diff and template writeback (`ux_tool.py`; sf CLI alias targeting) | `repo-integration/SKILL.md` (detail: `repo-integration/ux-assembly-retrieve.md`, `scripts/ux/README.md`) |
 | `scripts/renewal_assets/*` — renewal-asset expiry-bucket spread (`build_renewal_buckets.py`, reuses `build_quote_to_asset.py`) + lifecycle event-history augment/reset Apex | `renewal-asset-creation/SKILL.md` |
 | `scripts/df_workshop/*` — capture (`extract_workshop_quotes.py`) and replay (`insert_workshop_quotes.py`) DF workshop org drift | `df-workshop-setup/SKILL.md` |
 | `scripts/ai/query_erd.py` — query the RLM data model offline | `revenue-cloud-data-model/SKILL.md` |

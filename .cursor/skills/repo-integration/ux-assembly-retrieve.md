@@ -1,6 +1,6 @@
 # UX Assembly, Retrieve, and Drift
 
-Read this when changing **`templates/`** UX sources, **`tasks/rlm_ux_assembly.py`**, **`tasks/rlm_retrieve_ux.py`**, drift tasks, or anything under **`unpackaged/post_ux/`** output.
+Read this when changing **`templates/`** UX sources, the **`scripts/ux/`** package (assembler, retrieve, diff, writeback, `ux_tool.py`), its CCI wrapper **`tasks/rlm_ux_assembly.py`**, or anything under **`unpackaged/post_ux/`** output.
 
 ## Source of truth
 
@@ -9,18 +9,19 @@ Read this when changing **`templates/`** UX sources, **`tasks/rlm_ux_assembly.py
 | `templates/` | **Edit here** — flexipage patches, layouts, apps, profiles, object bindings |
 | `unpackaged/post_ux/` | **Generated** — assembled output; **do not hand-edit** (see `AGENTS.md`) |
 | `docs/features/dynamic-ux-assembly.md` | Full drift capture / writeback / assembly behavior |
+| `scripts/ux/README.md` | `ux_tool.py` commands, flag resolution, sf CLI targeting |
 
-## Assembler (`assemble_and_deploy_ux`)
+## Assembler (`scripts/ux/_assemble.py`; CCI task `assemble_and_deploy_ux`)
 
 - **Purpose** — Merges base templates + YAML patches per feature flags, writes to `unpackaged/post_ux/`, optionally deploys.
 - **Options** — Filter by `metadata_type` (e.g. `flexipages`, `profiles`) or single `metadata_name` (full filename including `.flexipage-meta.xml`).
 - **App menus** — AppSwitcher / `appMenus` are **not** assembled here; launcher order is handled by **`reorder_app_launcher`** (Robot). The task **removes a stale `appMenus/`** directory if present from older runs.
-- **Python changes** — Keep `_assemble_*` helpers internally consistent (return types, early exits). Drift flows assume predictable manifest and file layout.
+- **Python changes** — Logic lives in `scripts/ux/` (CCI-free); `tasks/rlm_ux_assembly.py` only maps CCI options, flags and the org onto it. Keep `_assemble_*` helpers internally consistent (return types, early exits): diff and writeback call `UxAssembler._assemble_flexipages` directly and assume a predictable manifest and file layout.
 
-## Retrieve (`retrieve_ux_from_org`)
+## Retrieve (`ux_tool.py retrieve`)
 
-- **Purpose** — Pulls live flexipages from the org into `unpackaged/post_ux/` for **drift comparison** (`capture_ux_drift` → `diff_ux_templates`).
-- **Implementation** — Uses **Metadata API SOAP retrieve** inside CCI (not necessarily `sf` CLI) to avoid PATH/env issues in embedded runs.
+- **Purpose** — Pulls live flexipages from the org into `unpackaged/post_ux/` for **drift comparison** (`capture-drift` = `retrieve` → `diff`).
+- **Implementation** — Runs `sf project retrieve start --metadata FlexiPage:<name> … --target-metadata-dir <tmp> --unzip` and copies each raw `.flexipage` in as `.flexipage-meta.xml`. The sf CLI owns auth and polling; no access token passes through the package. A failed retrieve leaves the existing files untouched.
 - **Scope** — Defaults to the same flexipage set the assembler would deploy (base + standalone for active flags). Narrow with `metadata_name` when testing one page.
 - **XML / namespace** — Retrieved XML must match parser expectations (namespace-aware parsing). If you change retrieve or strip logic, validate with a real org retrieve.
 
@@ -29,11 +30,13 @@ Read this when changing **`templates/`** UX sources, **`tasks/rlm_ux_assembly.py
 ```bash
 cci task run assemble_and_deploy_ux -o deploy false                    # dry-run assembly: local only, no org needed
 cci task run assemble_and_deploy_ux                                    # deploy: targets your DEFAULT cci org (no --org flag)
-cci flow run capture_ux_drift --org <cci_alias>                        # retrieve + diff
-cci flow run apply_ux_drift --org <cci_alias>                          # writeback to templates + verify
+python scripts/ux/ux_tool.py assemble                                  # same assembly without CCI
+python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>     # retrieve + diff
+python scripts/ux/ux_tool.py writeback                                 # dry-run writeback (add --apply to write)
+python scripts/ux/ux_tool.py apply-drift                               # writeback to templates + reassemble + verify
 ```
 
-Use **`--org`** with the **CCI alias** on the *flows* above; for raw `sf` commands use **`--target-org`** with the SF CLI alias (e.g. `rlm-base__beta`). See `AGENTS.md` — Org Identity. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `-o deploy false` runs assembly locally with no org at all.
+`ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. Its flags default to `project.custom` in `cumulusci.yml`; match an org built with overrides via `--flag name=value` or `--flags-from-manifest`. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `-o deploy false` runs assembly locally with no org at all.
 
 ## DO NOT
 
