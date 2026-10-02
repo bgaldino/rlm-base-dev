@@ -656,7 +656,7 @@ def validate_overlay(overlay: dict) -> ValidationResult:
         # fails with INVALID_INPUT "A context variable with the name … already
         # exists." addVariables is for INPUT Constants only.
         step_produced: Set[str] = set()
-        for st in overlay.get("addSteps", []) or []:
+        for st in add_steps:
             _, produced = _step_all_refs(st)
             step_produced |= produced
         for i, var in enumerate(add_vars):
@@ -743,7 +743,10 @@ def _validate_step_labels(overlay: dict, result: "ValidationResult") -> None:
     only. A non-string label is an error rather than a silently dropped label.
     """
     for operation in ("addSteps", "updateSteps"):
-        for i, step in enumerate(overlay.get(operation, []) or []):
+        steps = overlay.get(operation)
+        if not isinstance(steps, list):
+            continue  # a non-list operation is already reported by validate_overlay
+        for i, step in enumerate(steps):
             if isinstance(step, dict) and "label" in step and not isinstance(step["label"], str):
                 result.error(
                     f"{operation}[{i}].label",
@@ -976,7 +979,10 @@ def validate_overlay_against_definition(
     # (e.g. chaining ListGroup blocks one after another). Checking only against
     # the pre-existing steps would reject every chained-placement overlay.
     added_so_far: Set[str] = set()
-    for i, step in enumerate(overlay.get("addSteps", []) or []):
+    add_steps = overlay.get("addSteps", []) or []
+    if not isinstance(add_steps, list):
+        add_steps = []  # reported by validate_overlay
+    for i, step in enumerate(add_steps):
         placement = step.get("placement") if isinstance(step, dict) else None
         if isinstance(placement, dict):
             for key in ("afterStep", "beforeStep"):

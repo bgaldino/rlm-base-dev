@@ -2217,6 +2217,15 @@ def test_overlay_step_label_validation_parity():
                 )
                 check(f"{validate.__module__}: {operation} label {label!r} accepted={valid}",
                       flagged != valid)
+        for scalar in (5, "StepA"):
+            for validate in (validate_overlay, toolkit_validate):
+                try:
+                    result = validate({operation: scalar})
+                    ok = not result.passed
+                except Exception as exc:  # noqa: BLE001 — the regression is a crash
+                    ok = False
+                    print(f"    raised {exc!r}")
+                check(f"{validate.__module__}: non-list {operation}={scalar!r} is reported, not a crash", ok)
 
 
 def test_overlay_labels_merge_top_level_and_per_step():
