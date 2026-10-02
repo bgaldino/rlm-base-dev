@@ -652,12 +652,15 @@ class _MutationTask(_CascadeTask):
     """_CascadeTask plus one ExpressionSetVersion ("ESV") for the lifecycle."""
 
     def __init__(self, plans, esv_active=True, fail_plan_reactivate=False,
-                 fail_version_wait=False):
+                 fail_version_wait=False, esv_reads_active=False, fail_plan_ids=()):
         import logging
 
         super().__init__(dict(plans, ESV=esv_active))
         self.fail_plan_reactivate = fail_plan_reactivate
         self.fail_version_wait = fail_version_wait
+        # Models the stale read that made the deactivation poll time out.
+        self.esv_reads_active = esv_reads_active
+        self.fail_plan_ids = set(fail_plan_ids)
         self.plan_ids = sorted(plans)
         self.logs = []
 
@@ -675,10 +678,17 @@ class _MutationTask(_CascadeTask):
         return [{"ProcedurePlanSection": {"ProcedurePlanVersionId": vid}}
                 for vid in self.plan_ids]
 
+    def _soql_query(self, soql):
+        if self.esv_reads_active and "FROM ExpressionSetVersion" in soql:
+            return [{"Id": "ESV", "IsActive": True}]
+        return super()._soql_query(soql)
+
     def _patch_sobject(self, sobject, record_id, payload):
-        if (self.fail_plan_reactivate and payload.get("IsActive")
-                and sobject == "ProcedurePlanDefinitionVersion"):
-            raise RuntimeError("plan reactivate boom")
+        if (payload.get("IsActive") and sobject == "ProcedurePlanDefinitionVersion"
+                and (self.fail_plan_reactivate or record_id in self.fail_plan_ids)):
+            raise RuntimeError(f"plan reactivate boom {record_id}")
+        if sobject == "ExpressionSetVersion" and payload.get("IsActive"):
+            self.esv_reads_active = False
         super()._patch_sobject(sobject, record_id, payload)
 
     def _wait_for_version_state(self, version_id, active):
@@ -695,7 +705,7 @@ class _MutationTask(_CascadeTask):
                 dry_run=False, activate_after=activate_after, cascade=True,
                 verb="Import",
             )
-        except RuntimeError as exc:
+        except Exception as exc:  # noqa: BLE001 -- the test inspects whatever was raised
             return exc
         return None
 
@@ -736,6 +746,35 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
           error3 is not None and "timed out" in str(error3))
     check("an unconfirmed version deactivation restores the version and the plan",
           unconfirmed.states["ESV"] is True and unconfirmed.states["PPV_A"] is True)
+
+    # PR #491 review round 4: a stale read must not skip the reactivation PATCH.
+    stale = _MutationTask({"PPV_A": True}, fail_version_wait=True, esv_reads_active=True)
+    stale.run(succeed=True)
+    check("a stale read still gets a real version reactivation",
+          stale.states["ESV"] is True)
+
+    # Round 4: one failing plan must not stop the next.
+    multi = _MutationTask({"PPV_A": True, "PPV_B": True}, fail_plan_ids={"PPV_A"})
+    error4 = multi.run(succeed=True)
+    check("one failing plan does not stop the next from being reactivated",
+          multi.states["PPV_B"] is True)
+    check("the failing plan is named in the raised error",
+          error4 is not None and "PPV_A" in str(error4))
+
+    # Round 4: an already-inactive version is reported as such, not as active.
+    pre_off = _MutationTask({"PPV_A": True}, esv_active=False)
+    try:
+        pre_off._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "IsActive": False},
+            mutate=lambda: (_ for _ in ()).throw(RuntimeError("PATCH boom")),
+            dry_run=False, activate_after=True, cascade=True, verb="Import",
+        )
+    except RuntimeError:
+        pass
+    check("an already-inactive version is not reported as active",
+          not any("are active" in m for m in pre_off.logs))
+    check("an already-inactive version is reported as it was before the run",
+          any("as it was before this run" in m for m in pre_off.logs))
 
     kept_off = _MutationTask({"PPV_A": True})
     kept_off.run(activate_after=False)

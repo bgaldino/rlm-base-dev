@@ -222,7 +222,10 @@ expected behavior; the outputs are not dead code.
   version DEACTIVATED and re-raises rather than reactivating a half-mutated
   definition. Re-enable it with `activate_expression_set.py --activate` once
   you've inspected and restored it. A failure **before** the PATCH (for example the
-  deactivation poll timing out) wrote nothing, so the version is restored too.
+  deactivation poll timing out) wrote nothing, so the version is restored too,
+  with a forced PATCH, since the stale read that timed the poll out would make an
+  idempotent one a no-op. The version and the plans are restored independently,
+  and every plan is attempted before any failure is raised.
   It **does** reactivate the procedure plans it cascaded off (unless `--no-activate`): an inactive plan is silently skipped, so
   pricing falls back to the Revenue Settings default procedure with plausible
   numbers, while an active plan over the inactive version fails loudly. After any

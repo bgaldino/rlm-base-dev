@@ -391,7 +391,17 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
 
     # -- Version lifecycle helpers -------------------------------------
 
-    def _set_version_active(self, version_id: str, active: bool, dry_run: bool):
+    def _set_version_active(
+        self, version_id: str, active: bool, dry_run: bool, *, force: bool = False
+    ):
+        """Set ExpressionSetVersion.IsActive, idempotent unless ``force``.
+
+        ``force`` sends the PATCH even when a read already shows the desired
+        state. Recovery after an unconfirmed deactivation uses it: the stale read
+        that made the deactivation poll time out would otherwise skip the
+        reactivation. If a forced PATCH is rejected and a read then shows the
+        desired state, the version is taken as already there.
+        """
         if dry_run:
             self.logger.info(
                 "[dry-run] Would set ExpressionSetVersion %s IsActive=%s",
@@ -404,17 +414,29 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         # explicit reactivation would otherwise hit the "An enabled Expression
         # Set Version cannot be updated/deleted." guardrail and fail a
         # genuinely-successful mutation.
-        records = self._soql_query(
-            "SELECT Id, IsActive FROM ExpressionSetVersion "
-            f"WHERE Id = '{self._soql_escape(version_id)}'"
-        )
-        if records and bool(records[0].get("IsActive")) is active:
+        def _reads_as(state):
+            records = self._soql_query(
+                "SELECT Id, IsActive FROM ExpressionSetVersion "
+                f"WHERE Id = '{self._soql_escape(version_id)}'"
+            )
+            return bool(records) and bool(records[0].get("IsActive")) is state
+
+        if not force and _reads_as(active):
             self.logger.info(
                 "ExpressionSetVersion %s already IsActive=%s; no change needed.",
                 version_id, active,
             )
             return
-        self._patch_sobject("ExpressionSetVersion", version_id, {"IsActive": active})
+        try:
+            self._patch_sobject("ExpressionSetVersion", version_id, {"IsActive": active})
+        except Exception:
+            if force and _reads_as(active):
+                self.logger.warning(
+                    "ExpressionSetVersion %s rejected the forced PATCH but reads "
+                    "IsActive=%s; taking it as already there.", version_id, active,
+                )
+                return
+            raise
         self.logger.info(
             "Set ExpressionSetVersion %s IsActive=%s.", version_id, active
         )
@@ -514,18 +536,29 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
     def _cascade_reactivate_procedure_plans(
         self, version_ids: List[str], dry_run: bool
     ):
+        # Every ID is attempted before raising, so one failed PATCH can't leave
+        # the later plans offline.
+        failures: List[str] = []
         for vid in version_ids:
             if dry_run:
                 self.logger.info(
                     "[dry-run] Would reactivate ProcedurePlanDefinitionVersion %s", vid
                 )
-            else:
+                continue
+            try:
                 self._patch_sobject(
                     "ProcedurePlanDefinitionVersion", vid, {"IsActive": True}
                 )
                 self.logger.info(
                     "Reactivated ProcedurePlanDefinitionVersion %s.", vid
                 )
+            except Exception as exc:
+                failures.append(f"{vid}: {exc}")
+        if failures:
+            raise TaskOptionsError(
+                "Could not reactivate ProcedurePlanDefinitionVersion(s): "
+                + "; ".join(failures)
+            )
 
     # -- Shared mutation lifecycle -------------------------------------
 
@@ -623,19 +656,33 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                         "cascaded procedure plans. The failure is still reported.",
                         verb, esv_id,
                     )
-                try:
-                    if was_active or not failed_before_mutate:
-                        self._set_version_active(esv_id, True, dry_run)
+                # The version and the plans are restored independently, so a
+                # failed version reactivation can't leave the plans offline.
+                # Errors are raised after the health report below.
+                if was_active or not failed_before_mutate:
+                    try:
+                        # After an unconfirmed deactivation, a stale read could
+                        # make the idempotent setter skip the PATCH; force it.
+                        self._set_version_active(
+                            esv_id, True, dry_run,
+                            force=failed_before_mutate and version_off_attempted,
+                        )
                         if not dry_run:
                             self._wait_for_version_state(esv_id, True)
-                    if cascaded_ppvs:
+                    except Exception as reactivate_exc:
+                        reactivate_error = reactivate_exc
+                if cascaded_ppvs:
+                    try:
                         self._cascade_reactivate_procedure_plans(
                             cascaded_ppvs, dry_run
                         )
-                except Exception as reactivate_exc:
-                    # Raised after the health report below, so a failed
-                    # reactivation still names what it left off.
-                    reactivate_error = reactivate_exc
+                    except Exception as plan_exc:
+                        if reactivate_error:
+                            self.logger.error(
+                                "Plan reactivation also failed: %s", plan_exc
+                            )
+                        else:
+                            reactivate_error = plan_exc
             elif failure and deactivated and not dry_run:
                 self.logger.error(
                     "%s failed and may have partially applied. Leaving "
@@ -703,13 +750,16 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         can keep inactive draft, expired or lower-ranked versions on purpose.
         """
         left_off: List[str] = []
-        if version_taken_down:
-            records = self._soql_query(
-                "SELECT Id, IsActive FROM ExpressionSetVersion "
-                f"WHERE Id = '{self._soql_escape(esv_id)}'"
-            )
-            if records and not records[0].get("IsActive"):
+        version_was_off = False
+        records = self._soql_query(
+            "SELECT Id, IsActive FROM ExpressionSetVersion "
+            f"WHERE Id = '{self._soql_escape(esv_id)}'"
+        )
+        if records and not records[0].get("IsActive"):
+            if version_taken_down:
                 left_off.append(f"ExpressionSetVersion {esv_id}")
+            else:
+                version_was_off = True
         plan_ids = sorted({
             (opt.get("ProcedurePlanSection") or {}).get("ProcedurePlanVersionId")
             for opt in self._find_referencing_procedure_plans(es_def_id)
@@ -725,7 +775,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     left_off.append(f"ProcedurePlanDefinitionVersion {vid}")
                 else:
                     other_inactive.append(vid)
-        if not left_off and not other_inactive:
+        if not left_off and not other_inactive and not version_was_off:
             self.logger.info(
                 "Procedure health after the failure: the version and all "
                 "referencing procedure plans are active."
@@ -755,6 +805,11 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     "Inspect the expression-set version before reactivating it; a "
                     "failed PATCH can leave it half-written."
                 )
+        if version_was_off:
+            self.logger.error(
+                "ExpressionSetVersion %s is inactive, as it was before this run; "
+                "it was not reactivated.", esv_id,
+            )
         if other_inactive:
             self.logger.error(
                 "Other procedure-plan versions referencing this expression set are "

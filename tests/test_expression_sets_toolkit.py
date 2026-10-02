@@ -1152,10 +1152,12 @@ class _PlanTransport:
     """
 
     def __init__(self, *, plans, esv_active=True, fail_plan_reactivate=False,
-                 esv_reads_active=False):
+                 esv_reads_active=False, fail_plan_ids=(), fail_esv_reactivate=False):
         self.plans = dict(plans)
         self.esv_active = esv_active
         self.fail_plan_reactivate = fail_plan_reactivate
+        self.fail_plan_ids = set(fail_plan_ids)
+        self.fail_esv_reactivate = fail_esv_reactivate
         # Simulates a deactivation PATCH that lands while reads still say active,
         # so wait_for_version_state times out.
         self.esv_reads_active = esv_reads_active
@@ -1171,10 +1173,15 @@ class _PlanTransport:
     def sobject(self, method, sobject, record_id=None, body=None, **kw):
         active = bool((body or {}).get("IsActive"))
         if sobject == "ExpressionSetVersion":
+            if active and self.fail_esv_reactivate:
+                raise RuntimeError("version reactivate boom")
             self.esv_active = active
+            if active:
+                # A real transition ends the stale read.
+                self.esv_reads_active = False
         elif sobject == "ProcedurePlanDefinitionVersion":
-            if active and self.fail_plan_reactivate:
-                raise RuntimeError("plan reactivate boom")
+            if active and (self.fail_plan_reactivate or record_id in self.fail_plan_ids):
+                raise RuntimeError(f"plan reactivate boom {record_id}")
             self.plans[record_id] = active
         return {}
 
@@ -1287,6 +1294,59 @@ def test_failed_mutation_keeps_plans_online():
           t6.plans == {"1Cv1": True}, t6.plans)
     check("an unconfirmed version deactivation says nothing was written",
           any("failed before the mutation ran" in m for m in logs6), logs6)
+    # PR #491 review round 4: the stale read that timed the poll out must not
+    # let the idempotent setter skip the reactivation PATCH.
+    check("an unconfirmed version deactivation really reactivates the version",
+          t6.esv_active is True, t6.esv_active)
+
+    # Round 4: a failed version reactivation must not stop the plan restore.
+    logs7 = []
+    t7 = _PlanTransport(plans={"1Cv1": True}, fail_esv_reactivate=True)
+    engine7 = LifecycleEngine(t7, logger=logs7.append, poll_interval_seconds=1)
+    raised7 = None
+    try:
+        engine7.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                             mutate=lambda: None, activate_after=True, cascade=True)
+    except Exception as exc:
+        raised7 = exc
+    check("a failed version reactivation still raises",
+          raised7 is not None and "version reactivate boom" in str(raised7), raised7)
+    check("a failed version reactivation still restores the plans",
+          t7.plans == {"1Cv1": True}, t7.plans)
+
+    # Round 4: one failing plan must not stop the later ones.
+    logs8 = []
+    t8 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, fail_plan_ids={"1Cv1"})
+    engine8 = LifecycleEngine(t8, logger=logs8.append, poll_interval_seconds=1)
+    raised8 = None
+    try:
+        engine8.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                             mutate=lambda: None, activate_after=True, cascade=True)
+    except Exception as exc:
+        raised8 = exc
+    check("one failing plan does not stop the next from being reactivated",
+          t8.plans.get("1Cv2") is True, t8.plans)
+    check("the failing plan is named in the raised error",
+          raised8 is not None and "1Cv1" in str(raised8), raised8)
+    check("the failing plan gets a restore command",
+          any("--record-id 1Cv1" in m for m in logs8), logs8)
+
+    # Round 4: a version that was already inactive is reported as such, not as
+    # "all active", and gets no restore command.
+    logs9 = []
+    t9 = _PlanTransport(plans={"1Cv1": True}, esv_active=False)
+    engine9 = LifecycleEngine(t9, logger=logs9.append, poll_interval_seconds=1)
+    try:
+        engine9.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": False},
+                             mutate=boom, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("an already-inactive version is not reported as active",
+          not any("are active" in m for m in logs9), logs9)
+    check("an already-inactive version is reported as it was before the run",
+          any("as it was before this run" in m for m in logs9), logs9)
+    check("an already-inactive version gets no restore command",
+          not any("--record-id 9QMv" in m for m in logs9), logs9)
 
     # Success path is unchanged and prints no health report.
     logs4 = []
