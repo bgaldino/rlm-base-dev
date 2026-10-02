@@ -398,7 +398,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>GetTermQuoteLineItem</targetReference>
+            <targetReference>GetLatestEndingLine</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -413,7 +413,47 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>Finds the term-defined quote line that ends last, so the contract term covers every quoted subscription line.</description>
+        <description>Finds the latest end date among the term-defined quote lines, so the contract term covers every quoted subscription line.</description>
+        <name>GetLatestEndingLine</name>
+        <label>Get Latest Ending Line</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>GetTermQuoteLineItem</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>QuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>SellingModelType</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>TermDefined</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>EndDate</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>QuoteLineItem</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>EndDate</queriedFields>
+        <sortField>EndDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Picks the line whose pricing term sets the renewal term: the first term-defined line, by line number, that ends on the latest end date. Sorting by line number makes the choice deterministic when several lines end on the same date.</description>
         <name>GetTermQuoteLineItem</name>
         <label>Get Term Quote Line Item</label>
         <locationX>0</locationX>
@@ -444,14 +484,21 @@
                 <booleanValue>false</booleanValue>
             </value>
         </filters>
+        <filters>
+            <field>EndDate</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>GetLatestEndingLine.EndDate</elementReference>
+            </value>
+        </filters>
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>QuoteLineItem</object>
         <queriedFields>Id</queriedFields>
         <queriedFields>EndDate</queriedFields>
         <queriedFields>PricingTerm</queriedFields>
         <queriedFields>PricingTermUnit</queriedFields>
-        <sortField>EndDate</sortField>
-        <sortOrder>Desc</sortOrder>
+        <sortField>LineNumber</sortField>
+        <sortOrder>Asc</sortOrder>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordRollbacks>
