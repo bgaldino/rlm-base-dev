@@ -547,8 +547,10 @@ JSON blob** into the element editor — there is no documented API path.
   → referenced `DecisionTable`s. Keyed by **version Id** (`9QM`); the `9QL`
   variant returns `INVALID_ID_FIELD`.
 - **Tooling base:** `{instance}/services/data/v68.0/tooling/sobjects/ExpressionSetDefinitionVersion`
-- **Token for manual API checks:** `yes | sf org auth show-access-token --target-org <sf_alias>`,
-  or pull `instanceUrl`/`accessToken` from `sf org display --json`.
+- **Token for manual API checks:** `yes | sf org auth show-access-token --target-org <sf_alias>`
+  (add `--json` to read `result.accessToken`). Take only `instanceUrl` from
+  `sf org display --json`: since sf 2.145 its `accessToken` is redacted unless
+  `SF_TEMP_SHOW_SECRETS=true`. In Python, `scripts/sf_token.py`'s `org_auth(alias)` returns both.
 - **Validate a payload offline:** `python scripts/ai/validate_expression_set.py <file.json> [--overlay|--definition]`
 
 Endpoints target **264 / v68.0**; the observed behavior was verified on **262 /

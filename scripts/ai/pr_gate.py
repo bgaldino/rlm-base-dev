@@ -497,6 +497,7 @@ STDLIB_SUITES = [
     "tests/test_renewal_bucket_planner.py",
     "tests/test_rlm_apex_file.py",
     "tests/test_robot_salesforce_api_auth.py",
+    "tests/test_sf_token.py",
     "tests/test_snapshot_dev_guide.py",
     "tests/test_snapshot_help.py",
     "tests/test_validate_keys_targets.py",
