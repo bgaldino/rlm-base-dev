@@ -238,6 +238,14 @@ def main():
         run_args = parser.parse_args(["run", "--release", "264", "--only", sel])
         check(f"empty --only {sel!r} rejected, not read as 'run everything'",
               raises(OptionsError, cli.cmd_run, run_args, releases, None))
+    for sel in (",,", [" ", ""]):
+        check(f"separator-only sections {sel!r} rejected, not read as 'whole guide'",
+              raises(OptionsError, DevGuideSnapshot,
+                     presets.resolve(releases, "264", "dev_guide", "rlm", {"sections": sel})))
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        rc = cli.main(["dev-guide", "--release", "264", "--guide", "rlm",
+                       "--sections", ",,", "--mode", "refresh"])
+    check("--sections ',,' is a usage error", rc == cli.EXIT_USAGE)
     check("single-target flag rejected across several presets",
           raises(OptionsError, cli.run_targets, releases,
                  [("264", "help", "pcm"), ("264", "help", "dro")],

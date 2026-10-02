@@ -472,6 +472,10 @@ class DevGuideSnapshot:
                 filters = [str(s).strip() for s in raw_sections if str(s).strip()]
             else:
                 filters = [s.strip() for s in str(raw_sections).split(",") if s.strip()]
+            if not filters:
+                # An empty filter list reads as "whole guide"; a selector of
+                # only separators must not widen a refresh to every page.
+                raise OptionsError(f"sections {raw_sections!r} names no section")
         elif self.options["section"]:
             filters = [self.options["section"]]
         else:
