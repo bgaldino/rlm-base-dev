@@ -31,29 +31,13 @@ OUTPUT (mirrors the help snapshot layout)
     docs/salesforce/{release}/dev-guide/manifest.json           # machine index
     docs/salesforce/{release}/dev-guide/index.md                # human index
 
-USAGE
-
-Run through the CLI; named guides live in ``presets.yaml``:
-
-    python -m scripts.doc_snapshot dev-guide --release 264 --guide rlm
-    python -m scripts.doc_snapshot dev-guide --release 264 --guide rlm \
-        --section "Constraint Modeling Language"
-
-MODES (same semantics as the help snapshot)
-
-    discover   Fetch TOC, write manifest with pages as 'pending'. No body capture.
-    capture    Read manifest, capture 'pending' pages.
-    all        Discover then capture, skipping already-captured pages. (default)
-    refresh    Re-capture every page, overwriting existing files.
-
-``markdownify`` is optional (better markdown for tables / nested lists); without
-it a built-in converter handles headings, paragraphs, lists, links, inline/blocks
-of code, and br. See scripts/doc_snapshot/README.md for install steps.
+Run through the CLI (``python -m scripts.doc_snapshot dev-guide ...``); named
+guides live in ``presets.yaml``. scripts/doc_snapshot/README.md covers install,
+modes and options.
 """
 
 import json
 import re
-from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -65,12 +49,19 @@ from scripts.doc_snapshot._core import (
     as_int,
     compute_stats,
     get_logger,
+    log_done,
     normalize_mode,
     raise_on_capture_errors,
+    read_manifest,
     require_options,
     require_playwright,
     resolve_output_dir,
     run_browser,
+    stats_table,
+    today,
+    utc_timestamp,
+    write_manifest,
+    yaml_escape,
 )
 
 CAPTURE_METHOD = "scripts/doc_snapshot dev-guide (Playwright + atlas content API)"
@@ -350,27 +341,12 @@ class _MinimalMarkdownParser(HTMLParser):
         self.out.append("\n" + "\n".join(lines) + "\n\n")
 
     def handle_data(self, data):
-        if self.in_pre:
-            self._emit(data)
-        else:
-            self._emit(data)
+        self._emit(data)
 
 
 # ---------------------------------------------------------------------------
 # Markdown rendering (article file)
 # ---------------------------------------------------------------------------
-
-_FM_BAD = re.compile(r"[\r\n]+")
-
-
-def _yaml_escape(value: Optional[str]) -> str:
-    if value is None:
-        return ""
-    value = _FM_BAD.sub(" ", value)
-    if '"' in value or ":" in value or value.startswith(("-", "*", "&", "?", "|", ">", "%", "@", "`", "#")):
-        value = '"' + value.replace('"', '\\"') + '"'
-    return value
-
 
 def render_page_markdown(
     *,
@@ -388,17 +364,17 @@ def render_page_markdown(
     fm = [
         "---",
         f"page_id: {page_id}",
-        f"title: {_yaml_escape(title)}",
+        f"title: {yaml_escape(title)}",
         f"source_url: {source_url}",
-        f"release: {_yaml_escape(release_version)}",
-        f"release_name: {_yaml_escape(release_name)}",
-        f"deliverable: {_yaml_escape(deliverable)}",
+        f"release: {yaml_escape(release_version)}",
+        f"release_name: {yaml_escape(release_name)}",
+        f"deliverable: {yaml_escape(deliverable)}",
     ]
     if section:
-        fm.append(f"section: {_yaml_escape(section)}")
+        fm.append(f"section: {yaml_escape(section)}")
     if parent_page_id:
         fm.append(f"parent_page: {parent_page_id}")
-    fm.append(f"fetched_at: {_yaml_escape(fetched_at)}")
+    fm.append(f"fetched_at: {yaml_escape(fetched_at)}")
     fm.append("---")
     # Body already begins with the page's own H1 (from the atlas content
     # fragment), so we don't prepend another title.
@@ -549,31 +525,18 @@ class DevGuideSnapshot:
             "guide_title": None,
             "source_meta_url": self._meta_url(),
             "capture_method": CAPTURE_METHOD,
-            "snapshot_started": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "snapshot_started": today(),
             "pages": [],
         }
-        if manifest_path.exists():
-            try:
-                existing = json.loads(manifest_path.read_text(encoding="utf-8"))
-                for k, v in base.items():
-                    existing.setdefault(k, v)
-                # Label the manifest with the tool that last wrote it.
-                existing["capture_method"] = CAPTURE_METHOD
-                self.logger.info(
-                    f"Loaded existing manifest with {len(existing.get('pages', []))} pages"
-                )
-                return existing
-            except (json.JSONDecodeError, OSError) as e:
-                self.logger.warning(f"Could not load manifest ({e}); starting fresh")
-        return base
+        manifest = read_manifest(manifest_path, base, "pages", self.logger)
+        # Label the manifest with the tool that last wrote it.
+        manifest["capture_method"] = CAPTURE_METHOD
+        return manifest
 
     def _save_manifest(self, manifest_path: Path, manifest: Dict[str, Any]) -> None:
-        manifest["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        manifest["last_updated"] = utc_timestamp()
         manifest["stats"] = self._compute_stats(manifest)
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        manifest_path.write_text(
-            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        write_manifest(manifest_path, manifest)
 
     @staticmethod
     def _compute_stats(manifest: Dict[str, Any]) -> Dict[str, Any]:
@@ -793,12 +756,7 @@ class DevGuideSnapshot:
         self._save_manifest(manifest_path, manifest)
         self._build_index(output_dir / "index.md", manifest)
         stats = manifest.get("stats", {})
-        self.logger.info(
-            f"Done. discovered={stats.get('discovered', 0)} "
-            f"captured={stats.get('captured', 0)} "
-            f"pending={stats.get('pending', 0)} errored={stats.get('errored', 0)}"
-        )
-        self.logger.info(f"Manifest: {manifest_path}")
+        log_done(self.logger, stats, manifest_path)
         raise_on_capture_errors(failed, attempted, "pages")
         return stats
 
@@ -825,15 +783,13 @@ class DevGuideSnapshot:
         would mislabel old-version files as the new one. `discover` never fetches
         page bodies at all, so it's exempt too — it's meant to be a safe preview.
         """
-        requested = self.options["doc_version"]
-        if not previous_doc_version or requested == previous_doc_version:
-            return
-        if mode not in ("capture", "all"):
-            return
-        if not any(p.get("status") == "captured" for p in manifest.get("pages", [])):
+        if mode not in ("capture", "all") or not self._doc_version_conflicts(
+            manifest, previous_doc_version
+        ):
             return
         raise OptionsError(
-            f"doc_version changed ({previous_doc_version!r} -> {requested!r}) but "
+            f"doc_version changed ({previous_doc_version!r} -> "
+            f"{self.options['doc_version']!r}) but "
             f"mode={mode!r} would not recapture already-captured pages, mislabeling "
             "their content as the new version. Use --mode refresh to force a re-fetch."
         )
@@ -850,12 +806,18 @@ class DevGuideSnapshot:
         captured pages that were never refetched. So discover defers the write
         in the same conflict case the guard would otherwise raise on.
         """
-        if mode != "discover":
-            return True
+        return mode != "discover" or not self._doc_version_conflicts(
+            manifest, previous_doc_version
+        )
+
+    def _doc_version_conflicts(
+        self, manifest: Dict[str, Any], previous_doc_version: Optional[str]
+    ) -> bool:
+        """The requested doc_version differs from one pages were already captured at."""
         requested = self.options["doc_version"]
         if not previous_doc_version or requested == previous_doc_version:
-            return True
-        return not any(p.get("status") == "captured" for p in manifest.get("pages", []))
+            return False
+        return any(p.get("status") == "captured" for p in manifest.get("pages", []))
 
     def _select_to_capture(self, manifest: Dict[str, Any], mode: str) -> List[Dict[str, Any]]:
         pages = [p for p in manifest.get("pages", []) if p.get("page_id")]
@@ -901,7 +863,7 @@ class DevGuideSnapshot:
         doc_version = self.options["doc_version"]
         follow = self.options["follow_links"]
         max_pages = self.options["max_pages"]
-        fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        fetched_at = today()
 
         # Per-page metadata (section/parent), seeded from the TOC manifest.
         meta = {
@@ -978,14 +940,21 @@ class DevGuideSnapshot:
         # --- Phase 2: write every fetched page with the full set known ---------
         known_ids = set(fetched)
         by_id = {p["page_id"]: p for p in manifest.get("pages", [])}
+
+        def record(pid: str) -> Dict[str, Any]:
+            """The manifest record for ``pid``, backfilled from crawl metadata."""
+            rec = by_id.setdefault(pid, {"page_id": pid})
+            page_meta = meta.get(pid) or {}
+            rec.setdefault("section", page_meta.get("section"))
+            if page_meta.get("parent") and not rec.get("parent_page"):
+                rec["parent_page"] = page_meta["parent"]
+            return rec
+
         written = 0
         empty: List[str] = []   # fetched, but converted to an empty body
         for pid, data in fetched.items():
             body_md = html_to_markdown(data["html"], deliverable=deliverable, known_ids=known_ids)
-            rec = by_id.get(pid, {"page_id": pid})
-            rec.setdefault("section", (meta.get(pid) or {}).get("section"))
-            if (meta.get(pid) or {}).get("parent") and not rec.get("parent_page"):
-                rec["parent_page"] = meta[pid]["parent"]
+            rec = record(pid)
             if not body_md:
                 rec["status"] = "error"
                 rec["error"] = "empty body"
@@ -1009,24 +978,17 @@ class DevGuideSnapshot:
                            body_length=len(body_md), file=f"articles/{pid}.md")
                 rec.pop("error", None)
                 written += 1
-            by_id[pid] = rec
         for pid, err in errors.items():
-            rec = by_id.get(pid, {"page_id": pid})
-            rec.setdefault("section", (meta.get(pid) or {}).get("section"))
+            rec = record(pid)
             rec["status"] = "error"
             rec["error"] = err
-            by_id[pid] = rec
         # Record discovered-but-unfetched pages as 'pending' so they survive in the
         # manifest and a later mode=capture run can fetch them (don't downgrade a
         # page already captured in a prior run).
         for pid in unfetched:
-            rec = by_id.get(pid, {"page_id": pid})
-            rec.setdefault("section", (meta.get(pid) or {}).get("section"))
-            if (meta.get(pid) or {}).get("parent") and not rec.get("parent_page"):
-                rec["parent_page"] = meta[pid]["parent"]
+            rec = record(pid)
             if rec.get("status") != "captured":
                 rec["status"] = "pending"
-            by_id[pid] = rec
 
         manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
         self._save_manifest(manifest_path, manifest)
@@ -1053,14 +1015,7 @@ class DevGuideSnapshot:
             "",
             "## Stats",
             "",
-            "| Metric | Value |",
-            "|:--|--:|",
-            f"| Discovered | {stats.get('discovered', 0)} |",
-            f"| Captured | {stats.get('captured', 0)} |",
-            f"| Pending | {stats.get('pending', 0)} |",
-            f"| Errored | {stats.get('errored', 0)} |",
-            f"| Total body chars | {stats.get('total_captured_body_chars', 0):,} |",
-            "",
+            *stats_table(stats),
         ]
 
         if captured:

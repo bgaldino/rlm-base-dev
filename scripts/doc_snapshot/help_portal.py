@@ -15,29 +15,12 @@ much better against per-article markdown than against a 124 MB PDF compendium.
 This module produces the markdown snapshot per release-area so the agents have
 fast, surgical grounding material.
 
-USAGE
-
-Run through the CLI; named areas live in `presets.yaml`:
-
-    python -m scripts.doc_snapshot help --release 264 --area billing
-    python -m scripts.doc_snapshot help --release 264 --area billing --mode discover
-
-MODES
-
-    discover   Walk sidebar, emit manifest.json with discovered IDs as 'pending'.
-               No body capture.
-    capture    Read existing manifest, capture each 'pending' article.
-    all        Discover then capture. Skips articles already captured. (default)
-    refresh    Re-capture every article, overwriting existing files.
-
-The browser runs headless by default; pass `--headless false` to watch it.
-See scripts/doc_snapshot/README.md for install steps.
+Run through the CLI (`python -m scripts.doc_snapshot help ...`); named areas
+live in `presets.yaml`. scripts/doc_snapshot/README.md covers install, modes
+and options.
 """
 
 import asyncio
-import json
-import re
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -48,12 +31,19 @@ from scripts.doc_snapshot._core import (
     as_int,
     compute_stats,
     get_logger,
+    log_done,
     normalize_mode,
     raise_on_capture_errors,
+    read_manifest,
     require_options,
     require_playwright,
     resolve_output_dir,
     run_browser,
+    stats_table,
+    today,
+    utc_timestamp,
+    write_manifest,
+    yaml_escape,
 )
 
 CAPTURE_METHOD = "scripts/doc_snapshot help (Playwright + shadow-DOM walker)"
@@ -187,27 +177,13 @@ ARTICLE_BODY_JS = """
 # The Help portal serves this exact H1 for a broken/retired article ID
 # instead of a 404 status — it renders fine (has an H1, extracts a "body")
 # so the generic "no H1 found" guard below never sees it. Caught live on
-# ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm
-# (PR #409 review).
+# ind.dro_create_custom_context_definition_and_map_attribute_to_field.htm.
 NOT_FOUND_TITLE_PREFIX = "We looked high and low"
 
 
 # ---------------------------------------------------------------------------
 # Markdown rendering
 # ---------------------------------------------------------------------------
-
-FORBIDDEN_FRONTMATTER_CHARS = re.compile(r"[\r\n]+")
-
-
-def _yaml_escape(value: str) -> str:
-    """Escape a string for safe inclusion in YAML frontmatter."""
-    if value is None:
-        return ""
-    value = FORBIDDEN_FRONTMATTER_CHARS.sub(" ", value)
-    if '"' in value or ":" in value or value.startswith(("-", "*", "&", "?", "|", ">", "%", "@", "`")):
-        value = '"' + value.replace('"', '\\"') + '"'
-    return value
-
 
 def render_article_markdown(
     article_id: str,
@@ -231,15 +207,15 @@ def render_article_markdown(
     fm_lines = [
         "---",
         f"article_id: {article_id}",
-        f"title: {_yaml_escape(title)}",
+        f"title: {yaml_escape(title)}",
         f"source_url: {source_url}",
-        f"release: {_yaml_escape(release_version)}",
-        f"release_name: {_yaml_escape(release_name)}",
-        f"area: {_yaml_escape(area)}",
+        f"release: {yaml_escape(release_version)}",
+        f"release_name: {yaml_escape(release_name)}",
+        f"area: {yaml_escape(area)}",
     ]
     if parent_article_id:
         fm_lines.append(f"parent_article: {parent_article_id}")
-    fm_lines.append(f"fetched_at: {_yaml_escape(fetched_at)}")
+    fm_lines.append(f"fetched_at: {yaml_escape(fetched_at)}")
     fm_lines.append("---")
 
     parts = ["\n".join(fm_lines), "", f"# {title}", "", body.strip(), ""]
@@ -282,6 +258,9 @@ class HelpSnapshot:
     def __init__(self, options: Dict[str, Any], logger=None):
         self.options = dict(options)
         self.logger = logger or get_logger()
+        # Set by a discovery walk; recorded as the area's last_run_discovered.
+        self._last_discover_kept: Optional[int] = None
+        self._last_discover_total: Optional[int] = None
         self._init_options()
 
     # ------------------------------------------------------------------
@@ -324,17 +303,14 @@ class HelpSnapshot:
 
         output_dir = resolve_output_dir(self.options["output_dir"])
         articles_dir = output_dir / "articles"
-        manifest_path = output_dir / "manifest.json"
-        index_path = output_dir / "index.md"
-
         articles_dir.mkdir(parents=True, exist_ok=True)
 
         return run_browser(
             self._async_run(
                 output_dir=output_dir,
                 articles_dir=articles_dir,
-                manifest_path=manifest_path,
-                index_path=index_path,
+                manifest_path=output_dir / "manifest.json",
+                index_path=output_dir / "index.md",
             )
         )
 
@@ -371,73 +347,48 @@ class HelpSnapshot:
             "source_root_url": self._article_url(self.options["root_article_id"]),
             "root_article_id": self.options["root_article_id"],
             "article_id_prefix": self.options["article_id_prefix"],
-            "snapshot_started": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "snapshot_started": today(),
             "capture_method": CAPTURE_METHOD,
             "areas": [],   # accumulated per-area run metadata (this run + prior runs)
             "articles": [],
         }
-
-        if manifest_path.exists():
-            try:
-                with manifest_path.open() as f:
-                    existing = json.load(f)
-                self.logger.info(
-                    f"Loaded existing manifest with {len(existing.get('articles', []))} articles"
-                )
-                # Backfill any missing required keys without clobbering existing values
-                for key, default in required_defaults.items():
-                    existing.setdefault(key, default)
-                # Refresh the top-level pointers to reflect THIS run. The `areas`
-                # array preserves prior-run metadata; these top-level fields are
-                # just convenience pointers to the most recent run.
-                existing["area"] = self.options["area"]
-                existing["root_article_id"] = self.options["root_article_id"]
-                existing["article_id_prefix"] = self.options["article_id_prefix"]
-                existing["source_root_url"] = self._article_url(self.options["root_article_id"])
-                # Label the manifest with the tool that last wrote it.
-                existing["capture_method"] = CAPTURE_METHOD
-                return existing
-            except (json.JSONDecodeError, OSError) as e:
-                self.logger.warning(f"Could not load existing manifest: {e}. Starting fresh.")
-        return required_defaults
+        manifest = read_manifest(manifest_path, required_defaults, "articles", self.logger)
+        # Refresh the top-level pointers to reflect THIS run. The `areas` array
+        # preserves prior-run metadata; these fields just point at the latest
+        # run, and capture_method labels the tool that last wrote the manifest.
+        for key in ("area", "root_article_id", "article_id_prefix",
+                    "source_root_url", "capture_method"):
+            manifest[key] = required_defaults[key]
+        return manifest
 
     def _save_manifest(self, manifest_path: Path, manifest: Dict[str, Any]) -> None:
-        manifest["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        manifest["last_updated"] = utc_timestamp()
         manifest["stats"] = self._compute_stats(manifest)
         self._update_area_entry(manifest)
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        with manifest_path.open("w") as f:
-            json.dump(manifest, f, indent=2, ensure_ascii=False)
+        write_manifest(manifest_path, manifest)
 
     def _update_area_entry(self, manifest: Dict[str, Any]) -> None:
         """Sync this run's per-area metadata into the manifest['areas'] array."""
         current_area = self.options["area"]
-        articles = manifest.get("articles", [])
         # Per-area stats: only count articles tagged with this area
-        area_articles = [a for a in articles if a.get("area") == current_area]
-        area_captured = [a for a in area_articles if a.get("status") == "captured"]
+        area_articles = [
+            a for a in manifest.get("articles", []) if a.get("area") == current_area
+        ]
         area_entry = {
             "area": current_area,
             "root_article_id": self.options["root_article_id"],
             "article_id_prefix": self.options["article_id_prefix"],
             "source_root_url": self._article_url(self.options["root_article_id"]),
             "last_updated": manifest["last_updated"],
-            "stats": {
-                "discovered": len(area_articles),
-                "captured": len(area_captured),
-                "pending": len([a for a in area_articles if a.get("status") == "pending"]),
-                "errored": len([a for a in area_articles if a.get("status") == "error"]),
-                "total_captured_body_chars": sum(a.get("body_length", 0) for a in area_captured),
-            },
+            "stats": compute_stats({"articles": area_articles}, "articles"),
         }
         # Only set on runs that actually performed discovery this call;
         # capture-only runs fall through to the "preserve existing" branch
         # below so the field survives across a discover-then-capture pair.
-        last_kept = getattr(self, "_last_discover_kept", None)
-        if last_kept is not None:
+        if self._last_discover_kept is not None:
             area_entry["last_run_discovered"] = {
-                "kept": last_kept,
-                "before_prefix_filter": getattr(self, "_last_discover_total", None),
+                "kept": self._last_discover_kept,
+                "before_prefix_filter": self._last_discover_total,
             }
         # Replace existing entry for this area, or append a new one
         areas = manifest.setdefault("areas", [])
@@ -455,7 +406,7 @@ class HelpSnapshot:
                 replaced = True
                 break
         if not replaced:
-            area_entry["snapshot_started"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            area_entry["snapshot_started"] = today()
             areas.append(area_entry)
 
     @staticmethod
@@ -659,14 +610,7 @@ class HelpSnapshot:
         self._save_manifest(manifest_path, manifest)
         self._build_index(index_path, manifest)
         stats = manifest.get("stats", {})
-        self.logger.info(
-            f"Done. "
-            f"discovered={stats.get('discovered', 0)} "
-            f"captured={stats.get('captured', 0)} "
-            f"pending={stats.get('pending', 0)} "
-            f"errored={stats.get('errored', 0)}"
-        )
-        self.logger.info(f"Manifest: {manifest_path}")
+        log_done(self.logger, stats, manifest_path)
         self.logger.info(f"Index:    {index_path}")
         raise_on_capture_errors(failed, len(to_capture), "articles")
         # The manifest's stats sum every area; a caller's summary wants this one.
@@ -920,8 +864,8 @@ class HelpSnapshot:
                     record.setdefault("article_id", article_id)
                     if captured.get("error") or not captured.get("body"):
                         # A refresh can turn a previously-captured article into
-                        # an error (e.g. it's since become a not-found shell —
-                        # PR #409 review round 2). Drop the stale file/metadata
+                        # an error (e.g. it's since become a not-found shell).
+                        # Drop the stale file/metadata
                         # from the prior successful capture rather than leaving
                         # it on disk and in the manifest, still marked
                         # `captured`-looking except for `status`, where a
@@ -952,7 +896,7 @@ class HelpSnapshot:
                                 release_name=self.options["release_name"],
                                 area=self.options["area"],
                                 parent_article_id=record.get("parent_article"),
-                                fetched_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                                fetched_at=today(),
                             ),
                             encoding="utf-8",
                         )
@@ -1047,17 +991,7 @@ class HelpSnapshot:
         # Overall stats (across all areas)
         lines.append("## Overall Stats")
         lines.append("")
-        lines.append("| Metric | Value |")
-        lines.append("|:--|--:|")
-        lines.append(f"| Discovered | {stats.get('discovered', 0)} |")
-        lines.append(f"| Captured | {stats.get('captured', 0)} |")
-        lines.append(f"| Pending | {stats.get('pending', 0)} |")
-        lines.append(f"| Errored | {stats.get('errored', 0)} |")
-        lines.append(
-            f"| Total captured body chars | "
-            f"{stats.get('total_captured_body_chars', 0):,} |"
-        )
-        lines.append("")
+        lines.extend(stats_table(stats))
 
         # Per-area summary table (only renders when manifest covers multiple areas)
         if len(areas) > 1:
@@ -1079,42 +1013,28 @@ class HelpSnapshot:
                 )
             lines.append("")
 
-        # Captured articles — group by area when multiple areas exist
-        if captured:
-            if len(areas) > 1:
-                # Group by area
-                captured_by_area: Dict[str, List[Dict[str, Any]]] = {}
-                for a in captured:
-                    captured_by_area.setdefault(a.get("area", "untagged"), []).append(a)
-                for area_name in sorted(captured_by_area.keys()):
-                    area_articles = captured_by_area[area_name]
-                    lines.append(f"## Captured — {area_name} ({len(area_articles)})")
-                    lines.append("")
-                    lines.append("| Article | ID | Bytes |")
-                    lines.append("|:--|:--|--:|")
-                    for a in sorted(area_articles, key=lambda x: x["article_id"]):
-                        article_id = a["article_id"]
-                        title = a.get("title", article_id)
-                        file_path = a.get("file", f"articles/{article_id}.md")
-                        body_len = a.get("body_length", 0)
-                        lines.append(
-                            f"| [{title}](./{file_path}) | `{article_id}` | {body_len:,} |"
-                        )
-                    lines.append("")
-            else:
-                lines.append("## Captured")
-                lines.append("")
-                lines.append("| Article | ID | Bytes |")
-                lines.append("|:--|:--|--:|")
-                for a in sorted(captured, key=lambda x: x["article_id"]):
-                    article_id = a["article_id"]
-                    title = a.get("title", article_id)
-                    file_path = a.get("file", f"articles/{article_id}.md")
-                    body_len = a.get("body_length", 0)
-                    lines.append(
-                        f"| [{title}](./{file_path}) | `{article_id}` | {body_len:,} |"
-                    )
-                lines.append("")
+        # Captured articles — one table per area when multiple areas exist
+        if len(areas) > 1:
+            captured_by_area: Dict[str, List[Dict[str, Any]]] = {}
+            for a in captured:
+                captured_by_area.setdefault(a.get("area", "untagged"), []).append(a)
+            sections = [
+                (f"## Captured — {name} ({len(group)})", group)
+                for name, group in sorted(captured_by_area.items())
+            ]
+        else:
+            sections = [("## Captured", captured)] if captured else []
+        for heading, group in sections:
+            lines.extend([heading, "", "| Article | ID | Bytes |", "|:--|:--|--:|"])
+            for a in sorted(group, key=lambda x: x["article_id"]):
+                article_id = a["article_id"]
+                title = a.get("title", article_id)
+                file_path = a.get("file", f"articles/{article_id}.md")
+                lines.append(
+                    f"| [{title}](./{file_path}) | `{article_id}` | "
+                    f"{a.get('body_length', 0):,} |"
+                )
+            lines.append("")
 
         if pending:
             lines.append(f"## Pending ({len(pending)})")

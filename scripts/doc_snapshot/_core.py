@@ -6,7 +6,10 @@ nothing in this file may import a third-party package at module load.
 """
 
 import asyncio
+import json
 import logging
+import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -131,6 +134,59 @@ def resolve_output_dir(output_dir: str) -> Path:
     return path if path.is_absolute() else REPO_ROOT / path
 
 
+def today() -> str:
+    """UTC date, as written to frontmatter ``fetched_at`` and ``snapshot_started``."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def utc_timestamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+_FRONTMATTER_LINE_BREAKS = re.compile(r"[\r\n]+")
+# A plain YAML scalar can't start with an indicator character ('#' would make
+# the rest of the line a comment), and can't contain ': '.
+_YAML_INDICATORS = ("-", "*", "&", "?", "|", ">", "%", "@", "`", "#")
+
+
+def yaml_escape(value: Optional[str]) -> str:
+    """Render a string as a single-line YAML frontmatter value."""
+    if value is None:
+        return ""
+    value = _FRONTMATTER_LINE_BREAKS.sub(" ", value)
+    if '"' in value or ":" in value or value.startswith(_YAML_INDICATORS):
+        value = '"' + value.replace('"', '\\"') + '"'
+    return value
+
+
+def read_manifest(
+    path: Path, defaults: Dict[str, Any], records_key: str, logger
+) -> Dict[str, Any]:
+    """Load ``path``, backfilling any missing top-level key from ``defaults``.
+
+    Older or hand-written manifests may lack keys the snapshotters read. An
+    unreadable manifest is logged and replaced by ``defaults``.
+    """
+    if path.exists():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+            for key, default in defaults.items():
+                existing.setdefault(key, default)
+            logger.info(
+                f"Loaded existing manifest with {len(existing.get(records_key, []))} "
+                f"{records_key}"
+            )
+            return existing
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.warning(f"Could not load existing manifest ({exc}); starting fresh")
+    return defaults
+
+
+def write_manifest(path: Path, manifest: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def compute_stats(manifest: Dict[str, Any], key: str) -> Dict[str, Any]:
     """Status counts over ``manifest[key]`` (``articles`` or ``pages``)."""
     records = manifest.get(key, [])
@@ -142,3 +198,26 @@ def compute_stats(manifest: Dict[str, Any], key: str) -> Dict[str, Any]:
         "errored": len([r for r in records if r.get("status") == "error"]),
         "total_captured_body_chars": sum(r.get("body_length", 0) for r in captured),
     }
+
+
+def stats_table(stats: Dict[str, Any]) -> List[str]:
+    """The index.md stats table, followed by a blank line."""
+    return [
+        "| Metric | Value |",
+        "|:--|--:|",
+        f"| Discovered | {stats.get('discovered', 0)} |",
+        f"| Captured | {stats.get('captured', 0)} |",
+        f"| Pending | {stats.get('pending', 0)} |",
+        f"| Errored | {stats.get('errored', 0)} |",
+        f"| Total captured body chars | {stats.get('total_captured_body_chars', 0):,} |",
+        "",
+    ]
+
+
+def log_done(logger, stats: Dict[str, Any], manifest_path: Path) -> None:
+    logger.info(
+        f"Done. discovered={stats.get('discovered', 0)} "
+        f"captured={stats.get('captured', 0)} "
+        f"pending={stats.get('pending', 0)} errored={stats.get('errored', 0)}"
+    )
+    logger.info(f"Manifest: {manifest_path}")

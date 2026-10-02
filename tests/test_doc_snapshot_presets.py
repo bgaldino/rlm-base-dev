@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from scripts.doc_snapshot import cli, presets  # noqa: E402
-from scripts.doc_snapshot._core import OptionsError, as_bool  # noqa: E402
+from scripts.doc_snapshot._core import OptionsError, as_bool, yaml_escape  # noqa: E402
 from scripts.doc_snapshot.dev_guide import DevGuideSnapshot  # noqa: E402
 from scripts.doc_snapshot.help_portal import HelpSnapshot  # noqa: E402
 
@@ -362,6 +362,9 @@ def main():
         check(f"as_bool({raw!r})", as_bool(raw, True) is want)
     check("as_bool rejects a typo instead of reading it as false",
           raises(OptionsError, as_bool, "tru", True))
+    for raw, want in (("# Heading", '"# Heading"'), ("a: b", '"a: b"'),
+                      ("two\nlines", "two lines"), ("plain", "plain"), (None, "")):
+        check(f"yaml_escape({raw!r})", yaml_escape(raw) == want)
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         rc = cli.main(["help", "--release", "264", "--area", "pcm",
                        "--include-release-param", "tru"])
