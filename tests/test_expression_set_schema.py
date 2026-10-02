@@ -818,6 +818,43 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
     check("the report says to deactivate the unconfirmed version first",
           any("NOT confirmed inactive" in m for m in stuck.logs)
           and not any("Restore the plan before reading" in m for m in stuck.logs))
+    # Round 10: a failed PATCH that re-enables the version is turned off even
+    # with no plans to restore, under cascade=False or activate_after=False,
+    # and when the version was off before the run.
+    for label, plans, kw, was_active in (
+        ("with no referencing plans", {}, {"cascade": True, "activate_after": True}, True),
+        ("under cascade=False", {"PPV_A": True}, {"cascade": False, "activate_after": True}, True),
+        ("under activate_after=False", {"PPV_A": True}, {"cascade": True, "activate_after": False}, True),
+        ("when it was off before the run", {}, {"cascade": True, "activate_after": True}, False),
+    ):
+        task10 = _MutationTask(plans, esv_active=was_active)
+
+        def reenable10(task10=task10):
+            task10.states["ESV"] = True
+            raise RuntimeError("PATCH boom")
+        try:
+            task10._run_connect_mutation(
+                es_def_id="ESD", esv={"Id": "ESV", "IsActive": was_active}, mutate=reenable10,
+                dry_run=False, verb="Import", **kw)
+        except Exception:  # noqa: BLE001
+            pass
+        check(f"a version a failed PATCH re-enabled is turned off {label}",
+              task10.states["ESV"] is False)
+    stuck10 = _MutationTask({})
+
+    def reenable_and_stick10():
+        stuck10.states["ESV"] = True
+        stuck10.fail_on_deactivate = "ESV"
+        raise RuntimeError("PATCH boom")
+    try:
+        stuck10._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "IsActive": True}, mutate=reenable_and_stick10,
+            dry_run=False, activate_after=True, cascade=True, verb="Import")
+    except Exception:  # noqa: BLE001
+        pass
+    check("an unconfirmed version is flagged even with no plans involved",
+          any("NOT confirmed inactive" in m for m in stuck10.logs)
+          and not any("are active" in m for m in stuck10.logs))
     # Round 7: a stale false read must not skip the deactivation.
     stale_off = _MutationTask({"PPV_A": True})
 

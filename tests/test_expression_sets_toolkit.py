@@ -1405,7 +1405,7 @@ def test_failed_mutation_keeps_plans_online():
     check("the combined error reports the failed recovery",
           raised13 is not None and "recovery also failed" in str(raised13), raised13)
     check("the log explains why the plans stayed off",
-          any("half-written version" in m for m in logs13), logs13)
+          any("could route pricing to it" in m for m in logs13), logs13)
     # Round 9: the report says to deactivate the unconfirmed version first.
     check("the report says to deactivate the unconfirmed version first",
           any("NOT confirmed inactive" in m for m in logs13)
@@ -1467,6 +1467,46 @@ def test_failed_mutation_keeps_plans_online():
         pass
     check("delete rollback retries a plan the failed cascade left off",
           t18.plans == {"1Cv1": True, "1Cv2": True}, t18.plans)
+
+    # Round 10: a failed PATCH that re-enables the version is turned off even
+    # with no plans to restore, under cascade=False or activate_after=False,
+    # and when the version was off before the run.
+    for label, plans, kw, was_active in (
+        ("with no referencing plans", {}, {"cascade": True, "activate_after": True}, True),
+        ("under cascade=False", {"1Cv1": True}, {"cascade": False, "activate_after": True}, True),
+        ("under activate_after=False", {"1Cv1": True}, {"cascade": True, "activate_after": False}, True),
+        ("when it was off before the run", {}, {"cascade": True, "activate_after": True}, False),
+    ):
+        t19 = _PlanTransport(plans=plans, esv_active=was_active)
+
+        def reenable(t19=t19):
+            t19.esv_active = True
+            raise RuntimeError("PATCH boom")
+        engine19 = LifecycleEngine(t19, logger=lambda *a, **k: None, poll_interval_seconds=1)
+        try:
+            engine19.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": was_active},
+                                  mutate=reenable, **kw)
+        except Exception:
+            pass
+        check(f"a version a failed PATCH re-enabled is turned off {label}",
+              t19.esv_active is False, t19.esv_active)
+    # If it can't be turned off, the report flags it even with no plans involved.
+    logs20 = []
+    t20 = _PlanTransport(plans={})
+
+    def reenable_and_stick20():
+        t20.esv_active = True
+        t20.fail_esv_deactivate = True
+        raise RuntimeError("PATCH boom")
+    engine20 = LifecycleEngine(t20, logger=logs20.append, poll_interval_seconds=1)
+    try:
+        engine20.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=reenable_and_stick20, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("an unconfirmed version is flagged even with no plans involved",
+          any("NOT confirmed inactive" in m for m in logs20)
+          and not any("are active" in m for m in logs20), logs20)
 
     # Round 4: a failed version reactivation must not stop the plan restore.
     logs7 = []

@@ -697,7 +697,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                             )
                         else:
                             reactivate_error = plan_exc
-            elif failure and deactivated and not dry_run:
+            elif failure and mutate_started and not dry_run:
                 self.logger.error(
                     "%s failed and may have partially applied. Leaving "
                     "ExpressionSetVersion %s DEACTIVATED to avoid re-enabling a "
@@ -705,40 +705,40 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     "reactivate it.",
                     verb, esv_id,
                 )
-                if activate_after and cascaded_ppvs:
-                    # A failed full-graph PATCH may still have applied
-                    # `enabled: true`, leaving a half-written version active.
-                    # Restoring the plans would route pricing to it, so confirm
-                    # the version is off first, and leave the plans off if not.
+                # A failed full-graph PATCH may still have applied
+                # `enabled: true`, leaving a half-written version active, even
+                # one that was off before the run. Turn it off and confirm,
+                # whether or not any plans are waiting to be restored.
+                try:
+                    # Forced: a read right after the PATCH can still say false
+                    # (stale) while the version is active. A forced
+                    # IsActive=false on an inactive version is accepted
+                    # (live-checked on 264), so this is safe either way.
+                    self._set_version_active(esv_id, False, False, force=True)
+                    self._wait_for_version_state(esv_id, False)
+                    version_off = True
+                except Exception as off_exc:
+                    version_off = False
+                    reactivate_error = off_exc
+                    self.logger.error(
+                        "Could not confirm ExpressionSetVersion %s is inactive "
+                        "after the failed %s (%s); it may be active and "
+                        "half-written. Any cascaded procedure plans stay off, "
+                        "because they could route pricing to it.",
+                        esv_id, verb, off_exc,
+                    )
+                if activate_after and cascaded_ppvs and version_off:
                     try:
-                        # Forced: a read right after the PATCH can still say
-                        # false (stale) while the version is active. A forced
-                        # IsActive=false on an inactive version is accepted
-                        # (live-checked on 264), so this is safe either way.
-                        self._set_version_active(esv_id, False, False, force=True)
-                        self._wait_for_version_state(esv_id, False)
-                        version_off = True
-                    except Exception as off_exc:
-                        version_off = False
-                        reactivate_error = off_exc
-                        self.logger.error(
-                            "Could not confirm ExpressionSetVersion %s is inactive "
-                            "after the failed %s (%s); leaving the cascaded "
-                            "procedure plans off, because they could route pricing "
-                            "to a half-written version.", esv_id, verb, off_exc,
+                        self._cascade_reactivate_procedure_plans(cascaded_ppvs, False)
+                        self.logger.info(
+                            "Reactivated the cascaded procedure plans, so pricing "
+                            "doesn't silently skip the plan: with no other active "
+                            "version of this expression set it fails loudly instead."
                         )
-                    if version_off:
-                        try:
-                            self._cascade_reactivate_procedure_plans(cascaded_ppvs, False)
-                            self.logger.info(
-                                "Reactivated the cascaded procedure plans, so pricing "
-                                "doesn't silently skip the plan: with no other active "
-                                "version of this expression set it fails loudly instead."
-                            )
-                        except Exception as plan_exc:
-                            # Kept, so the combined error below says a plan is
-                            # still off.
-                            reactivate_error = plan_exc
+                    except Exception as plan_exc:
+                        # Kept, so the combined error below says a plan is
+                        # still off.
+                        reactivate_error = plan_exc
             elif deactivated and not dry_run:
                 # Success, but activate_after=false: leave the version (and any
                 # cascaded procedure plans) deactivated as the caller requested.
@@ -818,13 +818,22 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     left_off.append(f"ProcedurePlanDefinitionVersion {vid}")
                 else:
                     other_inactive.append(vid)
-        if not left_off and not other_inactive and not version_was_off:
+        version_unsafe = version_may_be_half_written and not version_confirmed_off
+        if not left_off and not other_inactive and not version_was_off \
+                and not version_unsafe:
             self.logger.info(
                 "Procedure health after the failure: the version and all "
                 "referencing procedure plans are active."
             )
             return left_off
         self.logger.error("!" * 72)
+        if version_unsafe:
+            self.logger.error(
+                "WARNING: ExpressionSetVersion %s is NOT confirmed inactive after "
+                "the failed PATCH and may be half-written. Inspect it and "
+                "deactivate it before restoring any plan; an active plan would "
+                "route pricing to it.", esv_id,
+            )
         if left_off:
             self.logger.error(
                 "WARNING: records this run deactivated are still INACTIVE."
@@ -835,14 +844,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     "to the Revenue Settings default procedure and none of the plan's "
                     "other procedures run, so prices look plausible but are wrong."
                 )
-                if version_may_be_half_written and not version_confirmed_off:
-                    self.logger.error(
-                        "ExpressionSetVersion %s is NOT confirmed inactive after the "
-                        "failed PATCH and may be half-written. Inspect it and "
-                        "deactivate it before restoring any plan below; an active "
-                        "plan would route pricing to it.", esv_id,
-                    )
-                else:
+                if not version_unsafe:
                     self.logger.error("Restore the plan before reading any price.")
             for record in left_off:
                 sobject, record_id = record.split(" ", 1)

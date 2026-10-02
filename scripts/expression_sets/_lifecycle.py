@@ -418,47 +418,47 @@ class LifecycleEngine:
                             self.log(f"Plan reactivation also failed: {plan_exc}")
                         else:
                             reactivate_error = plan_exc
-            elif failure and deactivated and not self.dry_run:
+            elif (failure and mutate_started and not reactivate_on_failure
+                  and not self.dry_run):
                 self.log(
                     f"{verb} failed and may have partially applied. Leaving "
                     f"ExpressionSetVersion {esv_id} DEACTIVATED to avoid re-enabling "
                     f"a corrupted definition. Inspect/restore it manually, then "
                     f"reactivate it."
                 )
-                if activate_after and cascaded_ppvs:
-                    # A failed full-graph PATCH may still have applied
-                    # `enabled: true`, leaving a half-written version active.
-                    # Restoring the plans would route pricing to it, so confirm
-                    # the version is off first, and leave the plans off if not.
+                # A failed full-graph PATCH may still have applied
+                # `enabled: true`, leaving a half-written version active, even
+                # one that was off before the run. Turn it off and confirm,
+                # whether or not any plans are waiting to be restored.
+                try:
+                    # Forced: a read right after the PATCH can still say false
+                    # (stale) while the version is active. A forced
+                    # IsActive=false on an inactive version is accepted
+                    # (live-checked on 264), so this is safe either way.
+                    self.set_version_active(esv_id, False, force=True)
+                    self.wait_for_version_state(esv_id, False)
+                    version_off = True
+                except Exception as off_exc:
+                    version_off = False
+                    reactivate_error = off_exc
+                    self.log(
+                        f"Could not confirm ExpressionSetVersion {esv_id} is "
+                        f"inactive after the failed {verb} ({off_exc}); it may be "
+                        f"active and half-written. Any cascaded procedure plans "
+                        f"stay off, because they could route pricing to it."
+                    )
+                if activate_after and cascaded_ppvs and version_off:
                     try:
-                        # Forced: a read right after the PATCH can still say
-                        # false (stale) while the version is active. A forced
-                        # IsActive=false on an inactive version is accepted
-                        # (live-checked on 264), so this is safe either way.
-                        self.set_version_active(esv_id, False, force=True)
-                        self.wait_for_version_state(esv_id, False)
-                        version_off = True
-                    except Exception as off_exc:
-                        version_off = False
-                        reactivate_error = off_exc
+                        self.cascade_reactivate_procedure_plans(cascaded_ppvs)
                         self.log(
-                            f"Could not confirm ExpressionSetVersion {esv_id} is "
-                            f"inactive after the failed {verb} ({off_exc}); leaving "
-                            f"the cascaded procedure plans off, because they could "
-                            f"route pricing to a half-written version."
+                            "Reactivated the cascaded procedure plans, so pricing "
+                            "doesn't silently skip the plan: with no other active "
+                            "version of this expression set it fails loudly instead."
                         )
-                    if version_off:
-                        try:
-                            self.cascade_reactivate_procedure_plans(cascaded_ppvs)
-                            self.log(
-                                "Reactivated the cascaded procedure plans, so pricing "
-                                "doesn't silently skip the plan: with no other active "
-                                "version of this expression set it fails loudly instead."
-                            )
-                        except Exception as plan_exc:
-                            # Kept, so the combined error below says a plan is
-                            # still off.
-                            reactivate_error = plan_exc
+                    except Exception as plan_exc:
+                        # Kept, so the combined error below says a plan is
+                        # still off.
+                        reactivate_error = plan_exc
             elif deactivated and not self.dry_run:
                 self.log(
                     f"activate_after=false; leaving ExpressionSetVersion {esv_id} "
@@ -535,11 +535,20 @@ class LifecycleEngine:
                     left_off.append(f"ProcedurePlanDefinitionVersion {vid}")
                 else:
                     other_inactive.append(vid)
-        if not left_off and not other_inactive and not version_was_off:
+        version_unsafe = version_may_be_half_written and version_state is not False
+        if not left_off and not other_inactive and not version_was_off \
+                and not version_unsafe:
             self.log("Procedure health after the failure: the version and all "
                      "referencing procedure plans are active.")
             return left_off
         lines = ["!" * 72]
+        if version_unsafe:
+            lines.append(
+                f"WARNING: ExpressionSetVersion {esv_id} is NOT confirmed inactive "
+                "after the failed PATCH and may be half-written. Inspect it and "
+                "deactivate it before restoring any plan; an active plan would "
+                "route pricing to it."
+            )
         if left_off:
             lines.append("WARNING: records this run deactivated are still INACTIVE.")
             if any(r.startswith("ProcedurePlanDefinitionVersion") for r in left_off):
@@ -548,14 +557,7 @@ class LifecycleEngine:
                     "to the Revenue Settings default procedure and none of the plan's "
                     "other procedures run, so prices look plausible but are wrong."
                 )
-                if version_may_be_half_written and version_state is not False:
-                    lines.append(
-                        f"ExpressionSetVersion {esv_id} is NOT confirmed inactive after "
-                        "the failed PATCH and may be half-written. Inspect it and "
-                        "deactivate it before restoring any plan below; an active plan "
-                        "would route pricing to it."
-                    )
-                else:
+                if not version_unsafe:
                     lines.append("Restore the plan before reading any price.")
             for record in left_off:
                 sobject, record_id = record.split(" ", 1)
