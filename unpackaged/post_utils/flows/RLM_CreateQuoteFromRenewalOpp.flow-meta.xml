@@ -120,6 +120,39 @@
         </rules>
     </decisions>
     <decisions>
+        <description>Same rule as the action&apos;s visibility on the record page: only an open renewal opportunity (Type Existing Business) gets a renewal quote, so a won renewal can&apos;t be renewed twice.</description>
+        <name>Is_Open_Renewal</name>
+        <label>Is Open Renewal</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Not_Open_Renewal</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Open Renewal</defaultConnectorLabel>
+        <rules>
+            <name>Open_Renewal</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Renewal_Opportunity.Type</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Existing Business</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Renewal_Opportunity.IsClosed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Renewal_Lines</targetReference>
+            </connector>
+            <label>Open Renewal</label>
+        </rules>
+    </decisions>
+    <decisions>
         <name>Is_New_Root_Asset</name>
         <label>Is New Root Asset</label>
         <locationX>0</locationX>
@@ -261,7 +294,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Get_Renewal_Lines</targetReference>
+            <targetReference>Is_Open_Renewal</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Renewal_Quote_Error</targetReference>
@@ -279,6 +312,8 @@
         <queriedFields>Id</queriedFields>
         <queriedFields>Name</queriedFields>
         <queriedFields>ContractId</queriedFields>
+        <queriedFields>IsClosed</queriedFields>
+        <queriedFields>Type</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <screens>
@@ -312,6 +347,22 @@
         <fields>
             <name>NoAssetsText</name>
             <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Renewal_Opportunity.Name}&lt;/strong&gt; has no products linked to an asset, so there is nothing to renew.&lt;/p&gt;&lt;p&gt;This action works on renewal opportunities created when an order is activated into assets.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Not_Open_Renewal</name>
+        <label>Not Open Renewal</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>NotOpenRenewalText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Renewal_Opportunity.Name}&lt;/strong&gt; isn&apos;t an open renewal opportunity, so no renewal quote was created.&lt;/p&gt;&lt;p&gt;This action works on open opportunities with Type Existing Business.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>

@@ -23,6 +23,11 @@
                                     <operator>EQUAL</operator>
                                     <rightValue>Existing Business</rightValue>
                                 </criteria>
+                                <criteria>
+                                    <leftValue>{!Record.IsClosed}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>false</rightValue>
+                                </criteria>
                             </visibilityRule>
                         </valueListItems>
                         <valueListItems>

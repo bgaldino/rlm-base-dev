@@ -6,10 +6,14 @@ patches:
   - type: insert_action
     after: "Delete"
     actions:
-      # Show only on renewal opportunities (RLM_CreateUpdateRenewalOpportunities
-      # creates them with Type Existing Business).
+      # Show only on open renewal opportunities (RLM_CreateUpdateRenewalOpportunities
+      # creates them with Type Existing Business). A won renewal keeps its Type, so
+      # IsClosed hides the action once RLM_CloseRenewalOpportunityOnQuoteSync closes it.
       - name: "Opportunity.RLM_CreateQuoteFromRenewalOpp"
         visibility:
           - field: "Record.Type"
             operator: "EQUAL"
             value: "Existing Business"
+          - field: "Record.IsClosed"
+            operator: "EQUAL"
+            value: "false"
