@@ -72,13 +72,30 @@ def raise_on_capture_errors(failed: List[str], attempted: int, noun: str) -> Non
     )
 
 
+_TRUE = ("true", "1", "yes", "on")
+_FALSE = ("false", "0", "no", "off")
+
+
 def as_bool(value: Any, default: bool) -> bool:
-    """Coerce a CLI/YAML value to bool; None means ``default``."""
+    """Coerce a CLI/YAML value to bool; None or "" means ``default``.
+
+    Anything else that isn't a recognised spelling is an error, not false: a
+    typo such as ``tru`` must not silently drop the release pin or run headed.
+    """
     if value is None:
         return default
     if isinstance(value, bool):
         return value
-    return str(value).strip().lower() in ("true", "1", "yes", "on")
+    text = str(value).strip().lower()
+    if text == "":
+        return default
+    if text in _TRUE:
+        return True
+    if text in _FALSE:
+        return False
+    raise OptionsError(
+        f"expected a boolean ({'/'.join(_TRUE + _FALSE)}), got {value!r}"
+    )
 
 
 def as_int(value: Any, default: Optional[int]) -> Optional[int]:

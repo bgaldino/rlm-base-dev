@@ -179,7 +179,7 @@ keeps going. It then prints a summary table and exits 1 if anything failed.
   it tried to capture failed also exits 1, after saving its progress; the
   failed ids are named in the error and recorded in the manifest, and a later
   run retries them.
-- `2`: a usage error, such as an unknown preset or conflicting flags.
+- `2`: a usage error, such as an unknown preset, an empty selector, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, so a usage error never follows a partial run.
 
 `check` always exits 0. Its hits are leads to verify, not failures.
 

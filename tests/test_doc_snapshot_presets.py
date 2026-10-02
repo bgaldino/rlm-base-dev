@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from scripts.doc_snapshot import cli, presets  # noqa: E402
-from scripts.doc_snapshot._core import OptionsError  # noqa: E402
+from scripts.doc_snapshot._core import OptionsError, as_bool  # noqa: E402
 from scripts.doc_snapshot.dev_guide import DevGuideSnapshot  # noqa: E402
 from scripts.doc_snapshot.help_portal import HelpSnapshot  # noqa: E402
 
@@ -220,6 +220,39 @@ def main():
         cli._snapshot_class = real
     check("--section supersedes the preset's sections",
           rc == 0 and captured.get("section_filters") == ["timeline"])
+
+    # Every target is validated before any runs: a typo after a valid key is a
+    # usage error (exit 2), and the valid preset must not have run first.
+    ran = []
+
+    class _Recording:
+        def __init__(self, options, logger=None):
+            self.options = options
+
+        def run(self):
+            ran.append(self.options.get("area"))
+            return {}
+
+    cli._snapshot_class = lambda kind: _Recording
+    try:
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            rc = cli.main(["help", "--release", "264", "--area", "pcm,prcing"])
+            rc2 = cli.main(["help", "--release", "264", "--area", "typo,another_typo"])
+    finally:
+        cli._snapshot_class = real
+    check("a typo after a valid key exits 2 before anything runs",
+          rc == 2 and ran == [])
+    check("several unknown keys still exit 2, not a per-target failure", rc2 == 2)
+
+    for raw, want in (("true", True), ("Yes", True), ("1", True), ("off", False),
+                      ("FALSE", False), ("", True), (None, True), (False, False)):
+        check(f"as_bool({raw!r})", as_bool(raw, True) is want)
+    check("as_bool rejects a typo instead of reading it as false",
+          raises(OptionsError, as_bool, "tru", True))
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        rc = cli.main(["help", "--release", "264", "--area", "pcm",
+                       "--include-release-param", "tru"])
+    check("a malformed boolean flag is a usage error", rc == 2)
 
     with contextlib.redirect_stdout(io.StringIO()) as out:
         rc = cli.main(["list", "--release", "264"])

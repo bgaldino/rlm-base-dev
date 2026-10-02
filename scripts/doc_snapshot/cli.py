@@ -203,14 +203,24 @@ def run_targets(
                 f"{flags} applies to a single preset only; {len(targets)} selected"
             )
 
-    results = []
+    # Resolve and validate every target before running any, so a typo in a
+    # later key is a usage error (exit 2) and can't follow a partial run.
+    # Building a snapshotter only normalizes its options; it does no I/O.
+    planned = []
     for release, kind, key in targets:
-        label = f"{release} {kind}.{key}"
+        options = presets_mod.resolve(releases, release, kind, key, overrides)
+        planned.append(
+            (f"{release} {kind}.{key}", _snapshot_class(kind)(options, logger=logger))
+        )
+
+    results = []
+    for label, snapshot in planned:
         logger.info(f"=== {label} ===")
         try:
-            options = presets_mod.resolve(releases, release, kind, key, overrides)
-            stats = _snapshot_class(kind)(options, logger=logger).run() or {}
+            stats = snapshot.run() or {}
             results.append((label, "ok", stats, ""))
+        except OptionsError:
+            raise
         except (SnapshotError, OSError) as exc:
             if len(targets) == 1:
                 raise
