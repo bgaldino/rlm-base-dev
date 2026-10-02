@@ -265,24 +265,24 @@
             <label>Contract Discount</label>
         </rules>
     </decisions>
-    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for contract term, renewal term, renewal term unit, and price source. The renewal term is copied from the quote&apos;s first term-defined line (pricing term count and unit), because renewal reads Contract.RenewalTerm2 as a count of the selling model&apos;s pricing term and ignores RenewalTermUnit.</description>
+    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for contract term, renewal term, renewal term unit, and price source. The contract term runs from the contract start date to the end of the quote&apos;s last-ending term-defined line, so it covers every line. The renewal term is that contract term expressed in the line&apos;s pricing term unit and rounded to the nearest whole count, because renewal reads Contract.RenewalTerm2 as a count of the selling model&apos;s pricing term and ignores RenewalTermUnit.</description>
     <environments>Default</environments>
     <formulas>
-        <description>Contract term in months, which sets the contract end date: the renewal term converted to months by its unit (weeks round up to whole months), or 12 when the quote has no term-defined line.</description>
+        <description>Contract term in months, which sets the contract end date: whole months from the contract start date to the day after the last-ending term-defined quote line ends (a partial month rounds up), or 12 when the quote has no term-defined line or the contract has no start date.</description>
         <name>ContractTermFormula</name>
         <dataType>Number</dataType>
-        <expression>CEILING({!RenewalTermFormula} * CASE({!RenewalTermUnitFormula}, &apos;Annual&apos;, 12, &apos;Semi-Annual&apos;, 6, &apos;Quarterly&apos;, 3, &apos;Weekly&apos;, 12 / 52, 1))</expression>
+        <expression>IF(OR(ISBLANK({!GetTermQuoteLineItem.Id}), ISBLANK({!GetContract.StartDate})), 12, MAX(1, (YEAR({!GetTermQuoteLineItem.EndDate} + 1) - YEAR({!GetContract.StartDate})) * 12 + MONTH({!GetTermQuoteLineItem.EndDate} + 1) - MONTH({!GetContract.StartDate}) + IF(DAY({!GetTermQuoteLineItem.EndDate} + 1) &gt; DAY({!GetContract.StartDate}), 1, 0)))</expression>
         <scale>0</scale>
     </formulas>
     <formulas>
-        <description>Renewal term for the contract: the pricing term count of the first term-defined quote line, or 1 when the quote has none. Renewal reads this as a count of each line&apos;s selling-model pricing term.</description>
+        <description>Renewal term for the contract: the contract term converted to the renewal term unit and rounded to the nearest whole count (at least 1), so a prorated or co-termed first term doesn&apos;t produce a fractional or extra renewal term. Renewal reads this as a count of each line&apos;s selling-model pricing term.</description>
         <name>RenewalTermFormula</name>
         <dataType>Number</dataType>
-        <expression>IF(ISBLANK({!GetTermQuoteLineItem.Id}), 1, {!GetTermQuoteLineItem.PricingTermCount})</expression>
-        <scale>2</scale>
+        <expression>MAX(1, CASE({!RenewalTermUnitFormula}, &apos;Annual&apos;, ROUND({!ContractTermFormula} / 12, 0), &apos;Semi-Annual&apos;, ROUND({!ContractTermFormula} / 6, 0), &apos;Quarterly&apos;, ROUND({!ContractTermFormula} / 3, 0), &apos;Weekly&apos;, ROUND({!ContractTermFormula} * 52 / 12, 0), {!ContractTermFormula}))</expression>
+        <scale>0</scale>
     </formulas>
     <formulas>
-        <description>Renewal term unit for the contract: the pricing term unit of the first term-defined quote line, or Annual when the quote has none.</description>
+        <description>Renewal term unit for the contract: the pricing term unit of the last-ending term-defined quote line, or Annual when the quote has none.</description>
         <name>RenewalTermUnitFormula</name>
         <dataType>String</dataType>
         <expression>IF(ISBLANK({!GetTermQuoteLineItem.Id}), &apos;Annual&apos;, TEXT({!GetTermQuoteLineItem.PricingTermUnit}))</expression>
@@ -413,7 +413,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>Finds the first term-defined quote line so the contract renewal term matches the quoted subscription term.</description>
+        <description>Finds the term-defined quote line that ends last, so the contract term covers every quoted subscription line.</description>
         <name>GetTermQuoteLineItem</name>
         <label>Get Term Quote Line Item</label>
         <locationX>0</locationX>
@@ -438,7 +438,7 @@
             </value>
         </filters>
         <filters>
-            <field>PricingTermCount</field>
+            <field>EndDate</field>
             <operator>IsNull</operator>
             <value>
                 <booleanValue>false</booleanValue>
@@ -447,10 +447,10 @@
         <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>QuoteLineItem</object>
         <queriedFields>Id</queriedFields>
-        <queriedFields>PricingTermCount</queriedFields>
+        <queriedFields>EndDate</queriedFields>
         <queriedFields>PricingTermUnit</queriedFields>
-        <sortField>CreatedDate</sortField>
-        <sortOrder>Asc</sortOrder>
+        <sortField>EndDate</sortField>
+        <sortOrder>Desc</sortOrder>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordRollbacks>
