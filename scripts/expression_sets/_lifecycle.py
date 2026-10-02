@@ -235,13 +235,18 @@ class LifecycleEngine:
             f"WHERE ExpressionSetDefinitionId = '{soql_literal(es_def_id)}'"
         )
 
-    def cascade_deactivate_procedure_plans(self, es_def_id: str) -> List[str]:
+    def cascade_deactivate_procedure_plans(
+        self, es_def_id: str, *, rollback: bool = True
+    ) -> List[str]:
         """Deactivate active procedure-plan versions referencing this ES.
 
         Returns the version ids that were (or, in dry-run, would be) deactivated.
         On a partial failure, rolls back only the versions this call already
         deactivated, then raises — the pre-mutation cascade must not leave a
-        half-deactivated cluster behind.
+        half-deactivated cluster behind. With ``rollback=False`` (the emergency
+        shutdown after a failed PATCH) every plan is attempted, nothing is
+        turned back on, and the raised error's ``left_inactive`` names the plans
+        it did turn off.
         """
         options = self.find_referencing_procedure_plans(es_def_id)
         if not options:
@@ -253,6 +258,31 @@ class LifecycleEngine:
             if vid:
                 version_ids.add(vid)
         deactivated: List[str] = []
+        if not rollback:
+            failures: List[str] = []
+            for vid in sorted(version_ids):
+                try:
+                    records = self.t.soql(
+                        "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
+                        f"WHERE Id = '{soql_literal(vid)}'"
+                    )
+                    if records and records[0].get("IsActive"):
+                        self.t.sobject(
+                            "PATCH", "ProcedurePlanDefinitionVersion", vid,
+                            {"IsActive": False},
+                        )
+                        self.log(f"Deactivated ProcedurePlanDefinitionVersion {vid}.")
+                        deactivated.append(vid)
+                except Exception as exc:
+                    failures.append(f"{vid}: {exc}")
+            if failures:
+                error = LifecycleError(
+                    "Could not deactivate ProcedurePlanDefinitionVersion(s): "
+                    + "; ".join(failures)
+                )
+                error.left_inactive = list(deactivated)
+                raise error
+            return deactivated
         try:
             for vid in sorted(version_ids):
                 records = self.t.soql(
@@ -452,7 +482,9 @@ class LifecycleEngine:
                         # started inactive, so nothing cascaded) would route
                         # pricing to it too; take every active one off.
                         try:
-                            more = self.cascade_deactivate_procedure_plans(es_def_id)
+                            more = self.cascade_deactivate_procedure_plans(
+                                es_def_id, rollback=False
+                            )
                         except Exception as plan_off_exc:
                             more = list(getattr(plan_off_exc, "left_inactive", ()))
                             self.log(f"Could not deactivate the referencing "
@@ -586,11 +618,19 @@ class LifecycleEngine:
                     lines.append("Restore the plan before reading any price.")
             for record in left_off:
                 sobject, record_id = record.split(" ", 1)
+                if sobject == "ExpressionSetVersion" and version_may_be_half_written:
+                    lines.append(
+                        f"  {record}: no command; the failed PATCH may have left it "
+                        "half-written. Re-import a known-good definition before "
+                        "reactivating it."
+                    )
+                    continue
                 lines.append(
                     f"  {record}: sf data update record --target-org <org> "
                     f"--sobject {sobject} --record-id {record_id} --values \"IsActive=true\""
                 )
-            if f"ExpressionSetVersion {esv_id}" in left_off:
+            if (f"ExpressionSetVersion {esv_id}" in left_off
+                    and not version_may_be_half_written):
                 lines.append(
                     "Inspect the expression-set version before reactivating it; a "
                     "failed PATCH can leave it half-written."

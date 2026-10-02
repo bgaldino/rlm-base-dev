@@ -235,7 +235,8 @@ expected behavior; the outputs are not dead code.
   plans matters because an inactive plan is silently skipped: pricing falls back to the Revenue Settings default procedure with plausible
   numbers, while an active plan over the inactive version fails loudly. After any
   failure, including a failed reactivation, it re-reads the version and every
-  referencing plan. Records the run deactivated get a restore command; other
+  referencing plan. Records the run deactivated get a restore command, except a
+  version a failed PATCH may have half-written (re-import it first); other
   inactive plan versions (which may be intentional drafts) are listed for
   inspection only. **A failed label-only Tooling `Metadata`
   PATCH (the relabel path) is different** — it never touches the definition

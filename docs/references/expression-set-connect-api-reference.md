@@ -111,8 +111,9 @@ debugging a run.
    version fails loudly). The plans stay off when `activate_after` is false, or
    when the version can't be confirmed off (a failed PATCH can re-enable a
    half-written version, and an active plan would route pricing to it). It gives
-   a restore command for each record the run left inactive (other inactive plan
-   versions are listed for inspection only).
+   a restore command for each record the run left inactive, except a version a
+   failed PATCH may have half-written, which must be re-imported first (other
+   inactive plan versions are listed for inspection only).
 4. **Version `id` handling differs by verb.** A PATCH (replace) body **must keep**
    the version-level `id` (from the `ExpressionSetVersion` sObject) so the server
    matches the version in place. A POST (create) of a new ES **must omit** the

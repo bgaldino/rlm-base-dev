@@ -1250,8 +1250,11 @@ def test_failed_mutation_keeps_plans_online():
           t.esv_active is False, t.esv_active)
     check("failed PATCH reactivates the cascaded procedure plan",
           t.plans == {"1Cv1": True}, t.plans)
-    check("health report names the inactive version with a restore command",
-          any("ExpressionSetVersion 9QMv" in m and "IsActive=true" in m for m in logs), logs)
+    # Round 13: no activation command for a version a failed PATCH may have
+    # half-written.
+    check("health report names the inactive version without an activation command",
+          any("ExpressionSetVersion 9QMv: no command" in m for m in logs)
+          and not any("--record-id 9QMv" in m for m in logs), logs)
     check("no plan-offline warning when every plan is active",
           not any("inactive procedure plan is skipped" in m for m in logs), logs)
 
@@ -1558,6 +1561,27 @@ def test_failed_mutation_keeps_plans_online():
           t23.plans == {"1Cv1": False}, t23.plans)
     check("the plan it took off gets a restore command",
           any("--record-id 1Cv1" in m for m in logs23), logs23)
+
+    # Round 13: the emergency shutdown keeps the plans it turned off even when
+    # another plan fails, and names them for restore.
+    logs24 = []
+    t24 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, esv_active=False)
+    t24.fail_plan_deactivate_ids = {"1Cv1"}
+
+    def reenable_and_stick24():
+        t24.esv_active = True
+        t24.fail_esv_deactivate = True
+        raise RuntimeError("PATCH boom")
+    engine24 = LifecycleEngine(t24, logger=logs24.append, poll_interval_seconds=1)
+    try:
+        engine24.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": False},
+                              mutate=reenable_and_stick24, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("the emergency shutdown doesn't roll back a plan it turned off",
+          t24.plans == {"1Cv1": True, "1Cv2": False}, t24.plans)
+    check("the plan it turned off gets a restore command",
+          any("--record-id 1Cv2" in m for m in logs24), logs24)
 
     # Round 4: a failed version reactivation must not stop the plan restore.
     logs7 = []

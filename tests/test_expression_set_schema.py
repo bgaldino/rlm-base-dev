@@ -736,9 +736,11 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
           task.states["ESV"] is False)
     check("failed PATCH reactivates the cascaded procedure plan",
           task.states["PPV_A"] is True)
-    check("health report names the inactive version with the org's restore command",
-          any("ExpressionSetVersion ESV" in m and "user@example.org" in m
-              for m in task.logs))
+    # Round 13: no activation command for a version a failed PATCH may have
+    # half-written.
+    check("health report names the inactive version without an activation command",
+          any("ExpressionSetVersion ESV: no command" in m for m in task.logs)
+          and not any("--record-id ESV" in m for m in task.logs))
 
     earlier = _MutationTask({"PPV_A": True, "PPV_B": False})
     earlier.run()
@@ -750,6 +752,9 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
 
     reactivate_fails = _MutationTask({"PPV_A": True}, fail_plan_reactivate=True)
     error2 = reactivate_fails.run(succeed=True)
+    check("the plan restore command targets the org's username",
+          any("--record-id PPV_A" in m and "user@example.org" in m
+              for m in reactivate_fails.logs))
     check("a failed plan reactivation after a successful mutation still raises",
           error2 is not None and "plan reactivate boom" in str(error2))
     check("a failed plan reactivation still prints the plan's restore command",
@@ -895,6 +900,31 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
           pre_off12.states["PPV_A"] is False)
     check("the plan it took off gets a restore command",
           any("--record-id PPV_A" in m for m in pre_off12.logs))
+    # Round 13: the emergency shutdown keeps the plans it turned off even when
+    # another plan fails, and names them for restore.
+    pre_off13 = _MutationTask({"PPV_A": True, "PPV_B": True}, esv_active=False)
+
+    def reenable_and_stick13():
+        pre_off13.states["ESV"] = True
+        pre_off13.fail_on_deactivate = "ESV"
+        raise RuntimeError("PATCH boom")
+    real_patch = pre_off13._patch_sobject
+
+    def patch13(sobject, record_id, payload):
+        if record_id == "PPV_A" and payload.get("IsActive") is False:
+            raise RuntimeError("plan deactivate boom PPV_A")
+        return real_patch(sobject, record_id, payload)
+    pre_off13._patch_sobject = patch13
+    try:
+        pre_off13._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "IsActive": False}, mutate=reenable_and_stick13,
+            dry_run=False, activate_after=True, cascade=True, verb="Import")
+    except Exception:  # noqa: BLE001
+        pass
+    check("the emergency shutdown doesn't roll back a plan it turned off",
+          pre_off13.states["PPV_A"] is True and pre_off13.states["PPV_B"] is False)
+    check("the plan it turned off gets a restore command",
+          any("--record-id PPV_B" in m for m in pre_off13.logs))
     # Round 7: a stale false read must not skip the deactivation.
     stale_off = _MutationTask({"PPV_A": True})
 

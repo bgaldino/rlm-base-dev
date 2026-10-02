@@ -480,7 +480,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         )
 
     def _cascade_deactivate_procedure_plans(
-        self, es_def_id: str, dry_run: bool
+        self, es_def_id: str, dry_run: bool, *, rollback: bool = True
     ) -> List[str]:
         """Deactivate any active procedure plan versions referencing this ES.
         Returns list of version IDs that were deactivated.
@@ -488,7 +488,10 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         If setup fails partway through, rollback only the procedure-plan
         versions this cascade already deactivated. A later Connect PATCH
         failure also restores them (see _run_connect_mutation); this rollback
-        covers only pre-mutation cascade setup.
+        covers only pre-mutation cascade setup. With ``rollback=False`` (the
+        emergency shutdown after a failed PATCH) every plan is attempted,
+        nothing is turned back on, and the raised error's ``left_inactive``
+        names the plans it did turn off.
         """
         options = self._find_referencing_procedure_plans(es_def_id)
         if not options:
@@ -500,6 +503,32 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             if vid:
                 version_ids.add(vid)
         deactivated = []
+        if not rollback and not dry_run:
+            failures: List[str] = []
+            for vid in sorted(version_ids):
+                try:
+                    records = self._soql_query(
+                        "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
+                        f"WHERE Id = '{self._soql_escape(vid)}'"
+                    )
+                    if records and records[0].get("IsActive"):
+                        self._patch_sobject(
+                            "ProcedurePlanDefinitionVersion", vid, {"IsActive": False}
+                        )
+                        self.logger.info(
+                            "Deactivated ProcedurePlanDefinitionVersion %s.", vid
+                        )
+                        deactivated.append(vid)
+                except Exception as exc:
+                    failures.append(f"{vid}: {exc}")
+            if failures:
+                error = TaskOptionsError(
+                    "Could not deactivate ProcedurePlanDefinitionVersion(s): "
+                    + "; ".join(failures)
+                )
+                error.left_inactive = list(deactivated)
+                raise error
+            return deactivated
         try:
             for vid in sorted(version_ids):
                 records = self._soql_query(
@@ -733,7 +762,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                         # pricing to it too; take every active one off.
                         try:
                             more = self._cascade_deactivate_procedure_plans(
-                                es_def_id, False
+                                es_def_id, False, rollback=False
                             )
                         except Exception as plan_off_exc:
                             more = list(getattr(plan_off_exc, "left_inactive", ()))
@@ -877,12 +906,20 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     self.logger.error("Restore the plan before reading any price.")
             for record in left_off:
                 sobject, record_id = record.split(" ", 1)
+                if sobject == "ExpressionSetVersion" and version_may_be_half_written:
+                    self.logger.error(
+                        "  %s: no command; the failed PATCH may have left it "
+                        "half-written. Re-import a known-good definition before "
+                        "reactivating it.", record,
+                    )
+                    continue
                 self.logger.error(
                     "  %s: sf data update record --target-org %s --sobject %s "
                     "--record-id %s --values \"IsActive=true\"",
                     record, self.org_config.username, sobject, record_id,
                 )
-            if f"ExpressionSetVersion {esv_id}" in left_off:
+            if (f"ExpressionSetVersion {esv_id}" in left_off
+                    and not version_may_be_half_written):
                 self.logger.error(
                     "Inspect the expression-set version before reactivating it; a "
                     "failed PATCH can leave it half-written."
