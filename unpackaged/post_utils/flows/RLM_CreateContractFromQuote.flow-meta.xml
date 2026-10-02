@@ -265,7 +265,7 @@
             <label>Contract Discount</label>
         </rules>
     </decisions>
-    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for contract term, renewal term, renewal term unit, and price source. The contract term runs from the contract start date to the end of the quote&apos;s last-ending term-defined line, so it covers every line. The renewal term is that contract term expressed in the line&apos;s pricing term unit and rounded to the nearest whole count, because renewal reads Contract.RenewalTerm2 as a count of the selling model&apos;s pricing term and ignores RenewalTermUnit.</description>
+    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for contract term, renewal term, renewal term unit, and price source. The contract term runs from the contract start date to the end of the quote&apos;s last-ending term-defined line, so it covers every line. The renewal term is that contract term divided by the pricing term (PricingTerm × PricingTermUnit) of the first such line by line number, rounded to the nearest whole count, because renewal reads Contract.RenewalTerm2 as a count of the selling model&apos;s pricing term and ignores RenewalTermUnit.</description>
     <environments>Default</environments>
     <formulas>
         <description>Contract term in months, which sets the contract end date: whole months from the contract start date to the day after the last-ending term-defined quote line ends (a partial month rounds up), or 12 when the quote has no term-defined line or the contract has no start date.</description>
