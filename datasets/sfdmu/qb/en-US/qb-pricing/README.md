@@ -15,7 +15,7 @@ This plan runs as two steps in the `prepare_pricing_data` flow (when `qb=true`).
 | 1    | `delete_quantumbit_pricing_data`    | Deletes all Insert-operation records (shape-agnostic, reverse plan order) |
 | 2    | `insert_quantumbit_pricing_data`    | Runs this SFDMU plan                                       |
 
-A separate flow, `prepare_price_adjustment_schedules`, activates PriceAdjustmentSchedule records via Apex. In `prepare_rlm_org` it runs as step 9.1, directly after `prepare_pricing_data`, because this plan upserts "Standard Price Adjustment Tier" with `IsActive=false` and would otherwise undo an earlier activation:
+A separate flow, `prepare_price_adjustment_schedules`, activates PriceAdjustmentSchedule records via Apex. In `prepare_rlm_org` it runs as step 9.5, directly after `prepare_pricing_data` (whose own substeps are 9.1 to 9.4), because this plan upserts "Standard Price Adjustment Tier" with `IsActive=false` and would otherwise undo an earlier activation:
 
 | Step | Task                                   | Description                                        |
 |------|----------------------------------------|----------------------------------------------------|

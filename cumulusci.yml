@@ -3980,7 +3980,7 @@ flows:
         flow: prepare_product_data
       9:
         flow: prepare_pricing_data
-      9.1:
+      9.5:
         flow: prepare_price_adjustment_schedules
       10:
         flow: prepare_docgen

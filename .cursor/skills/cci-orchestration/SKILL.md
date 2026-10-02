@@ -263,7 +263,7 @@ prepare_rlm_org
 ├── 7. prepare_quantumbit (utils, approvals, QB metadata)
 ├── 8. prepare_product_data (PCM, Q3, product images)
 ├── 9. prepare_pricing_data (pricing delete + insert)
-├── 9.1. prepare_price_adjustment_schedules (after pricing data, which upserts the volume schedule inactive)
+├── 9.5. prepare_price_adjustment_schedules (after pricing data, which upserts the volume schedule inactive)
 ├── 10. prepare_docgen
 ├── 11. prepare_dro
 ├── 12. prepare_tax
