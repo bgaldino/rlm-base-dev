@@ -166,8 +166,8 @@ Scripts that call Salesforce REST themselves get the token from `scripts/sf_toke
 put in an error. `scripts/cml/export_cml.py`, `scripts/cml/import_cml.py` and
 `scripts/docgen/docgen_template_manage.py` use it; `scripts/txn_data_harness/auth.py` already
 used `show-access-token`. New scripts that need a token should use the helper rather than
-parsing `sf org display`. Offline tests: `tests/test_sf_token.py`. This doesn't cover CumulusCI
-itself, which still needs the flag.
+parsing `sf org display`. Offline tests: `tests/test_sf_token.py`. CumulusCI's own token reads
+are covered by CumulusCI 4.10.1 itself (see the status note at the top).
 
 ### Security note
 
