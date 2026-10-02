@@ -615,12 +615,12 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 
 **Steps:**
 
+9.5. **flow** `prepare_price_adjustment_schedules`
 1. **flow** `prepare_core`
 2. **flow** `prepare_decision_tables`
 3. **flow** `prepare_expression_sets`
 4. **flow** `prepare_payments`
 5. **task** `deploy_full`
-6. **flow** `prepare_price_adjustment_schedules`
 7. **flow** `prepare_quantumbit`
 8. **flow** `prepare_product_data`
 9. **flow** `prepare_pricing_data`
