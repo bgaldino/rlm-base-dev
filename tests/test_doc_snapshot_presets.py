@@ -244,6 +244,28 @@ def main():
           rc == 2 and ran == [])
     check("several unknown keys still exit 2, not a per-target failure", rc2 == 2)
 
+    # An OptionsError raised mid-run (e.g. a doc_version conflict) is a
+    # per-target failure in a batch: later targets still run, exit is 1.
+    class _MidRunOptionsError(_Recording):
+        def run(self):
+            if self.options.get("area") == "pcm":
+                raise OptionsError("doc_version conflict")
+            return super().run()
+
+    ran.clear()
+    cli._snapshot_class = lambda kind: _MidRunOptionsError
+    try:
+        with contextlib.redirect_stdout(io.StringIO()) as out, \
+                contextlib.redirect_stderr(io.StringIO()):
+            rc = cli.main(["help", "--release", "264", "--area", "pcm,dro"])
+            rc_one = cli.main(["help", "--release", "264", "--area", "pcm"])
+    finally:
+        cli._snapshot_class = real
+    check("a mid-run OptionsError is fail-soft in a batch (exit 1, rest still run)",
+          rc == cli.EXIT_FAILED and ran == ["dro"] and "Summary" in out.getvalue())
+    check("a mid-run OptionsError on a single target stays a usage error",
+          rc_one == cli.EXIT_USAGE)
+
     for raw, want in (("true", True), ("Yes", True), ("1", True), ("off", False),
                       ("FALSE", False), ("", True), (None, True), (False, False)):
         check(f"as_bool({raw!r})", as_bool(raw, True) is want)

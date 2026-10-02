@@ -219,9 +219,10 @@ def run_targets(
         try:
             stats = snapshot.run() or {}
             results.append((label, "ok", stats, ""))
-        except OptionsError:
-            raise
         except (SnapshotError, OSError) as exc:
+            # Includes an OptionsError raised mid-run (a doc_version conflict, a
+            # renamed section): earlier targets already ran, so record it and
+            # carry on. Selector errors were raised while planning, above.
             if len(targets) == 1:
                 raise
             logger.error(f"{label} failed: {exc}")
