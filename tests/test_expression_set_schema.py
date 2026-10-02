@@ -799,6 +799,25 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
           reenabled.states["ESV"] is False)
     check("the plans are restored once the version is confirmed off",
           reenabled.states["PPV_A"] is True)
+    # Round 9: if the version can't be confirmed off, the plans stay off and
+    # the report says to deactivate the version before restoring them.
+    stuck = _MutationTask({"PPV_A": True})
+
+    def reenable_and_stick():
+        stuck.states["ESV"] = True
+        stuck.fail_on_deactivate = "ESV"
+        raise RuntimeError("PATCH boom")
+    try:
+        stuck._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "IsActive": True}, mutate=reenable_and_stick,
+            dry_run=False, activate_after=True, cascade=True, verb="Import")
+    except Exception:  # noqa: BLE001
+        pass
+    check("plans stay off when the version can't be confirmed off",
+          stuck.states["PPV_A"] is False)
+    check("the report says to deactivate the unconfirmed version first",
+          any("NOT confirmed inactive" in m for m in stuck.logs)
+          and not any("Restore the plan before reading" in m for m in stuck.logs))
     # Round 7: a stale false read must not skip the deactivation.
     stale_off = _MutationTask({"PPV_A": True})
 
@@ -827,6 +846,9 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
     check("a failed cascade rollback still raises", error8 is not None)
     check("a plan the failed cascade left off gets a restore command",
           any("--record-id PPV_A" in m for m in partial.logs))
+    check("nothing was written, so the report doesn't warn of a half-written version",
+          any("Restore the plan before reading" in m for m in partial.logs)
+          and not any("NOT confirmed inactive" in m for m in partial.logs))
     blip = _MutationTask({"PPV_A": True, "PPV_B": True})
     blip.fail_on_deactivate = "PPV_B"
     blip.plan_reactivate_failures_left = 1
@@ -1411,7 +1433,8 @@ def test_delete_rollback_retries_plans_a_failed_cascade_left_off():
     # returning; the delete rollback must still retry the plans it left off.
     import logging
 
-    from cumulusci.core.exceptions import TaskOptionsError
+    # The module's own symbol, so the suite still runs without CumulusCI.
+    from tasks.rlm_expression_set_connect import TaskOptionsError
 
     class _DeleteTask(DeleteExpressionSet):
         def __init__(self):

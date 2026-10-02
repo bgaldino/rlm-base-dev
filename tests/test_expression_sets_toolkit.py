@@ -1406,6 +1406,10 @@ def test_failed_mutation_keeps_plans_online():
           raised13 is not None and "recovery also failed" in str(raised13), raised13)
     check("the log explains why the plans stayed off",
           any("half-written version" in m for m in logs13), logs13)
+    # Round 9: the report says to deactivate the unconfirmed version first.
+    check("the report says to deactivate the unconfirmed version first",
+          any("NOT confirmed inactive" in m for m in logs13)
+          and not any("Restore the plan before reading" in m for m in logs13), logs13)
     # A plan restore failure after a failed PATCH reaches the raised error.
     t14 = _PlanTransport(plans={"1Cv1": True}, fail_plan_ids={"1Cv1"})
     engine14 = LifecycleEngine(t14, logger=lambda *a, **k: None, poll_interval_seconds=1)
@@ -1435,6 +1439,9 @@ def test_failed_mutation_keeps_plans_online():
     check("a plan the failed cascade left off gets a restore command",
           any("ProcedurePlanDefinitionVersion 1Cv1" in m and "IsActive=true" in m
               for m in logs16), logs16)
+    check("nothing was written, so the report doesn't warn of a half-written version",
+          any("Restore the plan before reading" in m for m in logs16)
+          and not any("NOT confirmed inactive" in m for m in logs16), logs16)
     # A transient rollback failure is retried by recovery, so the plan comes back.
     t17 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True})
     t17.fail_plan_deactivate_ids = {"1Cv2"}

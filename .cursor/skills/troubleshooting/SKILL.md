@@ -339,8 +339,11 @@ used to leave the plan in this state (pack 170). By contrast, an active plan
 whose expression-set version is inactive fails loudly: "Ensure that this
 procedure has at least one active version."
 
-**Fix:** query the plan (`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`),
-reactivate it with `sf data update record --target-org <sf_alias_or_username>
+**Fix:** first read the failure's health report. If it says the
+expression-set version is **not confirmed inactive** after a failed PATCH, the
+version may be half-written: inspect it and deactivate it before touching the
+plan, because an active plan would route pricing to it. Then query the plan
+(`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`) and reactivate it with `sf data update record --target-org <sf_alias_or_username>
 --sobject ProcedurePlanDefinitionVersion --record-id <1Cv...> --values "IsActive=true"`, and re-check with a constant
 control. Do not conclude "pricing works" from a plausible number.
 

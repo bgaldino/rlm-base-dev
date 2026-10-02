@@ -37,7 +37,10 @@ runs **deactivate → PATCH/POST → reactivate**, in a guarded `finally`:
    PATCH is non-atomic, so a half-applied mutation must not be re-enabled. Do
    reactivate the cascaded procedure plans: an inactive plan is silently skipped
    (pricing falls back to the Revenue Settings default procedure), while an active
-   plan over the inactive version fails loudly.
+   plan over the inactive version fails loudly. Two exceptions leave the plans
+   off: `activate_after=false`, and a version that can't be confirmed off after
+   the failure (a failed full-graph PATCH can still apply `enabled: true`, and an
+   active plan would route pricing to the half-written version).
 
 Pre-flight ordering is **validate (still-escaped) → strip read-only fields →
 normalize entities → Connect call**. The overlay path runs its

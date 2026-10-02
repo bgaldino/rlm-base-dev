@@ -753,6 +753,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 self._report_procedure_health(
                     es_def_id, esv_id,
                     taken_down=cascaded_ppvs, version_taken_down=version_off_attempted,
+                    version_may_be_half_written=mutate_started and not mutate_succeeded,
                 )
             except Exception as health_exc:
                 self.logger.error(
@@ -777,6 +778,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         *,
         taken_down: List[str],
         version_taken_down: bool,
+        version_may_be_half_written: bool = False,
     ) -> List[str]:
         """Re-read activation state after a failure and warn on anything off.
 
@@ -784,6 +786,10 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         state is known to be active. Other inactive procedure-plan versions
         referencing the expression set are listed for inspection only: a plan
         can keep inactive draft, expired or lower-ranked versions on purpose.
+
+        ``version_may_be_half_written`` marks a failed definition PATCH: if the
+        version still reads active, restoring a plan would route pricing to it,
+        so the report says to inspect and deactivate the version first.
         """
         left_off: List[str] = []
         version_was_off = False
@@ -791,7 +797,8 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             "SELECT Id, IsActive FROM ExpressionSetVersion "
             f"WHERE Id = '{self._soql_escape(esv_id)}'"
         )
-        if records and not records[0].get("IsActive"):
+        version_confirmed_off = bool(records) and not records[0].get("IsActive")
+        if version_confirmed_off:
             if version_taken_down:
                 left_off.append(f"ExpressionSetVersion {esv_id}")
             else:
@@ -826,9 +833,17 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 self.logger.error(
                     "An inactive procedure plan is skipped: pricing silently falls back "
                     "to the Revenue Settings default procedure and none of the plan's "
-                    "other procedures run, so prices look plausible but are wrong. "
-                    "Restore the plan before reading any price."
+                    "other procedures run, so prices look plausible but are wrong."
                 )
+                if version_may_be_half_written and not version_confirmed_off:
+                    self.logger.error(
+                        "ExpressionSetVersion %s is NOT confirmed inactive after the "
+                        "failed PATCH and may be half-written. Inspect it and "
+                        "deactivate it before restoring any plan below; an active "
+                        "plan would route pricing to it.", esv_id,
+                    )
+                else:
+                    self.logger.error("Restore the plan before reading any price.")
             for record in left_off:
                 sobject, record_id = record.split(" ", 1)
                 self.logger.error(

@@ -303,8 +303,11 @@ Every Connect mutation runs **deactivate → PATCH/POST → reactivate** in a gu
 `finally` (an enabled version can't be modified/deleted), including the
 `ProcedurePlanDefinitionVersion` cascade; a failed PATCH is **left deactivated and
 raised** (non-atomic), but the cascaded procedure plans are **reactivated** — an
-inactive plan silently skips its procedures — and each record the run left
-inactive is reported with its restore command. Verb-specific field rules (version `id` omit-on-create /
+inactive plan silently skips its procedures — once the version is confirmed off.
+They stay off under `activate_after=false`, or when the version can't be
+confirmed off (a failed PATCH can re-enable a half-written version; don't
+restore a plan over it). Each record the run left inactive is reported with its
+restore command. Verb-specific field rules (version `id` omit-on-create /
 keep-on-replace, `contextDefinitions[].id`, immutable `resourceInitializationType`,
 `usageType`), the GET serializer gotchas (alphabetical top-level order,
 per-parent `sequenceNumber`, HTML-escaped string leaves), and the **Metadata API**

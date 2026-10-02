@@ -471,6 +471,10 @@ class LifecycleEngine:
                 self.report_procedure_health(
                     es_def_id, esv_id,
                     taken_down=cascaded_ppvs, version_taken_down=version_off_attempted,
+                    version_may_be_half_written=(
+                        mutate_started and not mutate_succeeded
+                        and not reactivate_on_failure
+                    ),
                 )
             except Exception as health_exc:
                 self.log(f"Could not read procedure health after the failure: {health_exc}")
@@ -492,6 +496,7 @@ class LifecycleEngine:
         *,
         taken_down: List[str],
         version_taken_down: bool,
+        version_may_be_half_written: bool = False,
     ) -> List[str]:
         """Re-read activation state after a failure and warn on anything off.
 
@@ -502,10 +507,15 @@ class LifecycleEngine:
         draft, expired or lower-ranked versions on purpose, and activating one
         could change which version runs. Returns one ``"<sObject> <Id>"`` entry
         per record this run left inactive.
+
+        ``version_may_be_half_written`` marks a failed definition PATCH: if the
+        version still reads active, restoring a plan would route pricing to it,
+        so the report says to inspect and deactivate the version first.
         """
         left_off: List[str] = []
         version_was_off = False
-        if self._version_state(esv_id) is False:
+        version_state = self._version_state(esv_id)
+        if version_state is False:
             if version_taken_down:
                 left_off.append(f"ExpressionSetVersion {esv_id}")
             else:
@@ -536,9 +546,17 @@ class LifecycleEngine:
                 lines.append(
                     "An inactive procedure plan is skipped: pricing silently falls back "
                     "to the Revenue Settings default procedure and none of the plan's "
-                    "other procedures run, so prices look plausible but are wrong. "
-                    "Restore the plan before reading any price."
+                    "other procedures run, so prices look plausible but are wrong."
                 )
+                if version_may_be_half_written and version_state is not False:
+                    lines.append(
+                        f"ExpressionSetVersion {esv_id} is NOT confirmed inactive after "
+                        "the failed PATCH and may be half-written. Inspect it and "
+                        "deactivate it before restoring any plan below; an active plan "
+                        "would route pricing to it."
+                    )
+                else:
+                    lines.append("Restore the plan before reading any price.")
             for record in left_off:
                 sobject, record_id = record.split(" ", 1)
                 lines.append(
