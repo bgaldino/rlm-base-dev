@@ -29,6 +29,17 @@ def drift_count(report: Dict[str, Any]) -> int:
     return s["drifted"] + s["org_only"] + s["templates_only"]
 
 
+def org_flexipage_files(org_path: Path) -> List[str]:
+    """Names of the org-state flexipages under ``org_path``; raise if there are none."""
+    org_dir = Path(org_path) / "flexipages"
+    names = sorted(f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}"))
+    if not names:
+        raise UxOptionError(
+            f"No org flexipages in {org_dir}. Run `ux_tool.py retrieve` first."
+        )
+    return names
+
+
 class UxDiff:
     """Diffs org flexipages against the assembler output from current templates."""
 
@@ -48,6 +59,7 @@ class UxDiff:
                 f"metadata_name must end in '{FLEXIPAGE_SUFFIX}', got: '{metadata_name}'"
             )
         org_path = Path(org_path)
+        org_flexipage_files(org_path)
         report_path = Path(report_file) if report_file else org_path / "drift_report.json"
         features = self.ctx.features
         self.logger.info(

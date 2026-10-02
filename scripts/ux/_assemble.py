@@ -33,6 +33,7 @@ except ImportError:
 from scripts.ux._context import UxContext, UxOptionError
 from scripts.ux._flags import (
     PERSONAS_PROFILES,
+    active_patch_files,
     SALES_TXN_LINE_EDITOR_IDENTIFIER,
     resolve_flexipage_sources,
 )
@@ -123,23 +124,6 @@ def _sub_elem(parent: ET.Element, local_name: str, text: Optional[str] = None) -
 # ---------------------------------------------------------------------------
 # Flexipage XML patching helpers
 # ---------------------------------------------------------------------------
-
-def _get_action_values(root: ET.Element) -> List[str]:
-    """Return all action values from the actionNames componentInstanceProperty."""
-    for ci_props in root.iter(f"{SF_NS_TAG}componentInstanceProperties"):
-        name_el = _find_elem(ci_props, "name")
-        if name_el is None or name_el.text != "actionNames":
-            continue
-        vlist = _find_elem(ci_props, "valueList")
-        if vlist is None:
-            continue
-        return [
-            _find_elem(item, "value").text
-            for item in _findall_elem(vlist, "valueListItems")
-            if _find_elem(item, "value") is not None
-        ]
-    return []
-
 
 def _patch_remove_action(root: ET.Element, action: str) -> bool:
     """Remove an action valueListItem by value. Returns True if removed."""
@@ -560,7 +544,7 @@ def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None)
             return
         ok = _patch_add_display_field(root, field)
         if not ok and logger:
-            logger.warning(f"add_display_field: displayFields valueList not found")
+            logger.warning("add_display_field: displayFields valueList not found")
 
     elif ptype == "add_sales_txn_line_editor_field":
         fields = patch.get("fields")
@@ -798,6 +782,9 @@ class UxAssembler:
             )
             manifest["assembled"].extend(items)
 
+        if metadata_name and not (manifest["assembled"] or manifest["skipped"]):
+            raise UxOptionError(f"'{metadata_name}' not found in templates.")
+
         manifest_path = output_path / "assembly_manifest.json"
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(
@@ -830,40 +817,21 @@ class UxAssembler:
 
         # Build a map of page filename → authoritative source file.
         # Seeds from base/ then overlays active standalone dirs in deploy order.
-        # Order is defined in rlm_ux_utils._STANDALONE_ORDER (last writer wins).
+        # Order is defined in _flags._STANDALONE_ORDER (last writer wins).
         page_sources = resolve_flexipage_sources(base_dir, standalone_dir, features)
 
         # Filter to single item if requested
         if filter_name:
             if filter_name not in page_sources:
-                self.logger.warning(
+                raise UxOptionError(
                     f"Flexipage '{filter_name}' not found in templates "
-                    f"(base or standalone directories)"
+                    "(base or active standalone directories)."
                 )
-                return [], []
             page_sources = {filter_name: page_sources[filter_name]}
 
         # 3. For each resolved source, apply YAML patches and write to output
         assembled = []
         skipped = []
-        # Patch order matches deploy-sequence (approvals before docgen).
-        feature_patch_order = [
-            ("quantumbit",  "quantumbit"),
-            ("quantumbit",  "utils"),
-            ("guidedselling", "guidedselling"),
-            ("billing",     "billing"),
-            ("billing_ui",  "billing_ui"),
-            ("payments",    "payments"),
-            ("quantumbit",  "approvals"),
-            ("docgen",      "docgen"),
-            ("tso",         "tso"),
-            ("constraints", "constraints"),
-            ("large_stx",   "large_stx"),
-            ("collections", "collections"),
-            ("personas",    "personas"),
-            ("prm_pricing", "prm_pricing"),
-        ]
-
         # Flexipage types that cannot be deployed via Metadata API (platform restriction)
         NON_DEPLOYABLE_TYPES = {"EmailTemplatePage"}
 
@@ -884,14 +852,8 @@ class UxAssembler:
                 skipped.append({"file": fname, "reason": "non_deployable_metadata", "type": fp_type})
                 continue
 
-            for flag, patch_feature in feature_patch_order:
-                if not features.get(flag):
-                    continue
-                page_stem = fname.replace(".flexipage-meta.xml", "")
-                patch_file = patches_dir / patch_feature / (page_stem + ".yml")
-                if not patch_file.exists():
-                    continue
-
+            page_stem = fname.replace(".flexipage-meta.xml", "")
+            for patch_feature, patch_file in active_patch_files(patches_dir, page_stem, features):
                 patch_data = _load_yaml(patch_file)
                 for patch in patch_data.get("patches", []):
                     if patch.get("type") == "insert_after_xml":

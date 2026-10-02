@@ -51,6 +51,38 @@ _STANDALONE_ORDER: List[Tuple[str, str]] = [
     ("prm_pricing", "prm_pricing"),
 ]
 
+#: Flexipage patch directories in apply order, as (flag_key, patch_dir). The
+#: assembler applies them in this order and writeback reverses them in the
+#: opposite order, so both must read this one list.
+FLEXIPAGE_PATCH_ORDER: List[Tuple[str, str]] = [
+    ("quantumbit",    "quantumbit"),
+    ("quantumbit",    "utils"),
+    ("guidedselling", "guidedselling"),
+    ("billing",       "billing"),
+    ("billing_ui",    "billing_ui"),
+    ("payments",      "payments"),
+    ("quantumbit",    "approvals"),
+    ("docgen",        "docgen"),
+    ("tso",           "tso"),
+    ("constraints",   "constraints"),
+    ("large_stx",     "large_stx"),
+    ("collections",   "collections"),
+    ("personas",      "personas"),
+    ("prm_pricing",   "prm_pricing"),
+]
+
+
+def active_patch_files(
+    patches_dir: Path, page_stem: str, features: Mapping[str, bool]
+) -> List[Tuple[str, Path]]:
+    """``(patch_dir_name, path)`` of every enabled patch file for one page, in apply order."""
+    found = []
+    for flag, patch_feature in FLEXIPAGE_PATCH_ORDER:
+        path = patches_dir / patch_feature / f"{page_stem}.yml"
+        if features.get(flag) and path.exists():
+            found.append((patch_feature, path))
+    return found
+
 
 def to_bool(val: Any) -> bool:
     """Coerce a flag value the way CumulusCI's process_bool_arg does."""

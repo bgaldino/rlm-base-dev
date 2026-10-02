@@ -15,7 +15,8 @@ Commands:
     diff           org state in unpackaged/post_ux/ vs. templates → drift_report.json
     writeback      reverse-apply patches: org state → templates/ (dry run unless --apply)
     capture-drift  retrieve, then diff
-    apply-drift    writeback --apply, then assemble (no deploy), then diff
+    apply-drift    writeback --apply, diff the org state against the new templates,
+                   then reassemble the output (no deploy)
 
 Feature flags default to ``project.custom`` in cumulusci.yml. Layer on top:
     --flags-from-manifest [PATH]   flags recorded by the last assembly
@@ -130,7 +131,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p = add("writeback", "Reverse-apply patches to write org state back into templates/ (dry run by default).")
     name_arg(p, "One flexipage to write back.")
-    p.add_argument("--type", dest="metadata_type", default="all", choices=list(WRITEBACK_TYPES))
+    p.add_argument(
+        "--type", dest="metadata_type", default="flexipages", choices=list(WRITEBACK_TYPES),
+        help="Default flexipages: retrieve fetches only flexipages, so layout writeback "
+        "needs org layouts placed in <output-path>/layouts by hand.",
+    )
     output_arg(p, "Directory holding the org state")
     p.add_argument("--apply", action="store_true", help="Write templates/ (default is a dry run).")
     p.add_argument("--no-backup", action="store_true", help="Do not keep *.bak copies of overwritten templates.")
@@ -140,7 +145,11 @@ def _build_parser() -> argparse.ArgumentParser:
     org_arg(p, required=True)
     diff_args(p)
 
-    p = add("apply-drift", "Write org state back into templates/, reassemble (no deploy), and re-diff.")
+    p = add(
+        "apply-drift",
+        "Write org state back into templates/, report any drift that remains, "
+        "then reassemble the output (no deploy).",
+    )
     output_arg(p, "Directory holding the org state")
     p.add_argument("--no-backup", action="store_true", help="Do not keep *.bak copies of overwritten templates.")
     diff_args(p)
@@ -222,9 +231,15 @@ def _run(args, logger: logging.Logger) -> int:
         return _run_diff(ctx, args, output_path)
 
     if args.command == "apply-drift":
+        # Flexipages only: retrieve never fetches layouts, so layouts in
+        # output_path are assembled output, and writing them back would overwrite
+        # the feature layout templates with the base versions.
         UxWriteback(ctx).run(output_path, dry_run=False, backup=not args.no_backup)
+        # Diff before reassembling: assembly overwrites the org state in
+        # output_path, after which a diff would only compare templates to themselves.
+        rc = _run_diff(ctx, args, output_path)
         UxAssembler(ctx).run(output_path)
-        return _run_diff(ctx, args, output_path)
+        return rc
 
     raise UxError(f"Unknown command: {args.command}")
 

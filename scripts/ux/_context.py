@@ -35,7 +35,3 @@ class UxContext:
     @property
     def templates_path(self) -> Path:
         return self.repo_root / "templates"
-
-    def resolve(self, path) -> Path:
-        """Resolve a repo-relative path (absolute paths pass through)."""
-        return self.repo_root / path

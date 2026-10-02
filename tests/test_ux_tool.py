@@ -132,6 +132,25 @@ def test_assemble_deploy_needs_target_org(tmp_path):
     assert rc == ux_tool.EXIT_ERROR
 
 
+@pytest.mark.parametrize("command", ["diff", "writeback"])
+def test_missing_org_state_is_an_error(command, tmp_path):
+    (tmp_path / "flexipages").mkdir()
+    assert ux_tool.main([command, "--output-path", str(tmp_path)]) == ux_tool.EXIT_ERROR
+    assert ux_tool.main([command, "--output-path", str(tmp_path / "nope")]) == ux_tool.EXIT_ERROR
+
+
+@pytest.mark.parametrize("name", ["RLM_Nope.flexipage-meta.xml", "RLM_Nope.layout-meta.xml"])
+def test_assemble_unknown_name_is_an_error(name, tmp_path):
+    rc = ux_tool.main(["assemble", "--name", name, "--output-path", str(tmp_path)])
+    assert rc == ux_tool.EXIT_ERROR
+    assert not (tmp_path / "assembly_manifest.json").exists()
+
+
+def test_writeback_unknown_name_is_an_error(org_state):
+    rc = ux_tool.main(["writeback", "--name", "RLM_Nope.flexipage-meta.xml", "--output-path", str(org_state)])
+    assert rc == ux_tool.EXIT_ERROR
+
+
 def test_diff_against_own_assembly_is_clean(org_state):
     rc = ux_tool.main(["diff", "--output-path", str(org_state), "--fail-on-drift"])
     assert rc == 0
@@ -369,6 +388,75 @@ def test_apply_drift_removes_dropped_insert_after_xml_patch(repo_copy):
     assert _apply_drift(root, out) == 0
     assert not (root / PERSONA_PATCH).exists()
     assert base.read_bytes() == base_before
+
+
+def test_apply_drift_reports_drift_writeback_cannot_resolve(repo_copy):
+    """A page the templates produce but the org lacks stays templates_only. The
+    diff must see the org state, not the reassembled output (which has the page)."""
+    root, out = repo_copy
+    (out / "flexipages" / QUOTE_PAGE).unlink()
+
+    assert _apply_drift(root, out) == ux_tool.EXIT_DRIFT
+    report = json.loads((out / "drift_report.json").read_text())
+    assert report["summary"]["templates_only"] == 1
+    assert (out / "flexipages" / QUOTE_PAGE).exists(), "output is reassembled afterwards"
+
+
+def test_apply_drift_leaves_layout_templates_alone(repo_copy):
+    """Regression: retrieve fetches no layouts, so apply-drift used to write the
+    assembled (here constraints=false) layouts over the feature layout templates."""
+    root, out = repo_copy
+    assert ux_tool.main([
+        "assemble", "--repo-root", str(root), "--output-path", str(out),
+        "--flag", "constraints=false",
+    ]) == 0
+    layouts = {p: p.read_bytes() for p in (root / "templates" / "layouts").rglob("*") if p.is_file()}
+    _apply_drift(root, out)
+    assert {p: p.read_bytes() for p in layouts} == layouts
+
+
+def test_apply_drift_drops_insert_action_patch_the_org_lacks(repo_copy):
+    """An org without any of a patch's actions loses that insert_action patch."""
+    root, out = repo_copy
+    patch = root / "templates" / "flexipages" / "patches" / "approvals" / QUOTE_PAGE.replace(".flexipage-meta.xml", ".yml")
+    page = out / "flexipages" / QUOTE_PAGE
+    xml, n = re.subn(
+        r"\s*<valueListItems>\s*<value>Quote\.RLM_Submit_for_Approval</value>\s*</valueListItems>",
+        "", page.read_text(),
+    )
+    assert n == 1
+    page.write_text(xml)
+
+    _apply_drift(root, out)
+    import yaml
+
+    remaining = yaml.safe_load(patch.read_text())["patches"]
+    assert not [p for p in remaining if p["type"] == "insert_action"]
+
+
+def test_reverse_insert_action_keeps_template_actions_and_targets_anchor_list():
+    from scripts.ux._writeback import _reverse_insert_action
+
+    ns = "http://soap.sforce.com/2006/04/metadata"
+
+    def action_list(*names):
+        items = "".join(f"<valueListItems><value>{n}</value></valueListItems>" for n in names)
+        return (
+            "<componentInstanceProperties><name>actionNames</name>"
+            f"<valueList>{items}</valueList></componentInstanceProperties>"
+        )
+
+    org = ET.fromstring(
+        f'<FlexiPage xmlns="{ns}"><a>{action_list("Other", "A")}</a>'
+        f'<b>{action_list("Anchor", "A", "B")}</b></FlexiPage>'
+    )
+    patch = {"after": "Anchor", "actions": ["A", "B"]}
+
+    # The template already has B, so the forward patch never inserted it.
+    assert _reverse_insert_action(org, patch, keep={"B"}) is True
+    values = [v.text for v in org.iter(f"{{{ns}}}value")]
+    assert values == ["Other", "A", "Anchor", "B"]
+    assert _reverse_insert_action(org, patch, keep={"B"}) is False
 
 
 def test_insert_action_keeps_dict_entries():

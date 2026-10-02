@@ -25,9 +25,9 @@ python scripts/ux/ux_tool.py <command> [options]
 | `deploy --target-org X [--output-path P]` | `sf project deploy start` the assembled output | yes |
 | `retrieve --target-org X [--name F]` | Org flexipages → `unpackaged/post_ux/flexipages/` | yes |
 | `diff [--name F] [--report-file P] [--fail-on-drift]` | Org state in `post_ux/` vs. templates → `drift_report.json` | no |
-| `writeback [--name F] [--type all\|flexipages\|layouts] [--apply] [--no-backup]` | Reverse-apply patches: org state → `templates/` | no |
+| `writeback [--name F] [--type flexipages\|layouts\|all] [--apply] [--no-backup]` | Reverse-apply patches: org state → `templates/` (flexipages by default; layouts need org layouts placed in `post_ux/layouts/` by hand, since `retrieve` fetches only flexipages) | no |
 | `capture-drift --target-org X [--fail-on-drift]` | `retrieve`, then `diff` | yes |
-| `apply-drift [--no-backup] [--fail-on-drift]` | `writeback --apply`, then `assemble` (no deploy), then `diff` | no |
+| `apply-drift [--no-backup] [--fail-on-drift]` | `writeback --apply` (flexipages), `diff` against the org state, then `assemble` (no deploy) | no |
 
 `--type` for `assemble` is one of `all`, `flexipages`, `layouts`, `applications`,
 `profiles`, `objects`. `--name` takes the full source filename including its
@@ -43,7 +43,7 @@ a failed step or invalid option.
 python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>   # retrieve + diff
 cat unpackaged/post_ux/drift_report.json | python3 -m json.tool       # review
 python scripts/ux/ux_tool.py writeback                                # dry run: what would change
-python scripts/ux/ux_tool.py apply-drift                              # write templates, reassemble, re-diff
+python scripts/ux/ux_tool.py apply-drift                              # write templates, re-diff, reassemble
 git diff templates/                                                   # review, then commit
 ```
 
@@ -90,12 +90,12 @@ this order:
 |--------|----------|
 | `ux_tool.py` | argparse CLI (`main(argv)` is importable for tests) |
 | `_context.py` | `UxContext`, `UxError`, `UxOptionError` |
-| `_flags.py` | Known flags, `_STANDALONE_ORDER`, flexipage source resolver, flag loading/precedence |
+| `_flags.py` | Known flags, `_STANDALONE_ORDER`, `FLEXIPAGE_PATCH_ORDER`, flexipage source resolver, flag loading/precedence |
 | `_assemble.py` | `UxAssembler` and all patch helpers |
 | `_sf.py` | `run_sf_json`: one `sf … --json` runner shared by retrieve and deploy |
 | `_deploy.py` | `deploy()` via `sf project deploy start` |
 | `_retrieve.py` | `UxRetriever` via `sf project retrieve start` |
 | `_diff.py` | `UxDiff` and the drift report |
-| `_writeback.py` | `UxWriteback` (reverse-patch, patch-file updates, verify) |
+| `_writeback.py` | `UxWriteback` (reverse-patch, patch-file updates) |
 
 Tests: `tests/test_ux_tool.py` (offline; sf calls are stubbed).

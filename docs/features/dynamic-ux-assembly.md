@@ -317,7 +317,7 @@ with runtime overrides, pass the same values with `--flag name=value`, or use
 ```
 1. capture-drift  — retrieve org state, diff against templates
 2. (review drift_report.json)
-3. apply-drift    — writeback to templates, re-assemble, verify zero drift
+3. apply-drift    — writeback to templates, diff against the org state, re-assemble
 ```
 
 ### `capture-drift`
@@ -342,8 +342,13 @@ Needs no org: it works from the state `capture-drift` left in `unpackaged/post_u
 
 Steps:
 1. `writeback --apply` — reverse-applies patches to compute new base templates
-2. `assemble` (no deploy) — re-assembles from updated templates
-3. `diff` — verifies zero drift between assembled output and org state
+   (flexipages only: `capture-drift` retrieves no layouts)
+2. `diff` — compares the updated templates against the org state still in
+   `unpackaged/post_ux/` and reports any drift writeback could not resolve
+   (with `--fail-on-drift`, exit 1)
+3. `assemble` (no deploy) — re-assembles `unpackaged/post_ux/` from the updated templates
+
+The diff runs before re-assembly because assembly overwrites the org state.
 
 ### `writeback`
 
@@ -363,7 +368,7 @@ python scripts/ux/ux_tool.py writeback \
 |--------|---------|-------------|
 | `--apply` | off (dry run) | Actually write back templates |
 | `--name` | (none) | Process a single file |
-| `--type` | `all` | `all`, `flexipages`, or `layouts` |
+| `--type` | `flexipages` | `all`, `flexipages`, or `layouts`. `retrieve` fetches only flexipages, so `layouts`/`all` need org layouts placed in `<output-path>/layouts/` by hand; otherwise the assembled layouts are written back over the feature layout templates |
 | `--no-backup` | off | Skip the `*.bak` copies of overwritten templates |
 
 ### Writeback Algorithm
@@ -617,12 +622,12 @@ python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>
 # Step 2: Review the drift report
 cat unpackaged/post_ux/drift_report.json | python3 -m json.tool
 
-# Step 3: Apply drift to templates (writeback + reassemble + verify)
-python scripts/ux/ux_tool.py apply-drift
+# Step 3: Apply drift to templates (writeback, diff against the org state, reassemble)
+python scripts/ux/ux_tool.py apply-drift --fail-on-drift
 
-# Step 4: Verify zero drift
-# apply-drift re-runs diff as its final step.
-# If the drift report shows no differences, the writeback succeeded.
+# Step 4: Check the result
+# Exit 0 means the updated templates reproduce the org state; exit 1 means some
+# drift remains — see unpackaged/post_ux/drift_report.json.
 ```
 
 ### Adding a new patch type or flexipage

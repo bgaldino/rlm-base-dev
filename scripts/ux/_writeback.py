@@ -15,10 +15,9 @@ the org's current flexipage state. Dry run by default: nothing under
 import copy
 import re
 import shutil
-import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 try:
     import yaml
@@ -28,7 +27,6 @@ except ImportError:
 from scripts.ux._assemble import (
     SF_NS,
     SF_NS_TAG,
-    UxAssembler,
     _action_name,
     _find_elem,
     _findall_elem,
@@ -36,7 +34,12 @@ from scripts.ux._assemble import (
     _write_xml,
 )
 from scripts.ux._context import UxContext, UxOptionError
-from scripts.ux._flags import SALES_TXN_LINE_EDITOR_IDENTIFIER, resolve_flexipage_sources
+from scripts.ux._diff import org_flexipage_files
+from scripts.ux._flags import (
+    SALES_TXN_LINE_EDITOR_IDENTIFIER,
+    active_patch_files,
+    resolve_flexipage_sources,
+)
 
 ET.register_namespace("", SF_NS)
 
@@ -59,7 +62,7 @@ class UxWriteback:
         self,
         org_path: Path,
         metadata_name: Optional[str] = None,
-        metadata_type: str = "all",
+        metadata_type: str = "flexipages",
         dry_run: bool = True,
         backup: bool = True,
     ) -> List[Dict[str, Any]]:
@@ -121,48 +124,13 @@ class UxWriteback:
         standalone_dir = templates_path / "flexipages" / "standalone"
         org_dir = org_path / "flexipages"
 
-        if not org_dir.exists():
-            self.logger.error(
-                f"Org flexipages directory not found: {org_dir}. "
-                "Run `ux_tool.py retrieve` first."
-            )
-            return []
+        page_sources = resolve_flexipage_sources(base_dir, standalone_dir, features)
 
-        page_sources = self._resolve_page_sources(
-            base_dir, standalone_dir, features
-        )
-
-        org_files = sorted(
-            f.name for f in org_dir.glob("*.flexipage-meta.xml")
-        )
+        org_files = org_flexipage_files(org_path)
         if metadata_name and metadata_name.endswith(".flexipage-meta.xml"):
-            org_files = [f for f in org_files if f == metadata_name]
-
-        if not org_files:
-            self.logger.warning("No org-retrieved flexipages to process.")
-            return []
-
-        # MUST mirror UxAssembler._assemble_flexipages feature_patch_order
-        # exactly (same features, same order): writeback collects these patches in
-        # forward order then reverses them, so any feature the assembler applies but
-        # this list omits would never be reverse-applied — breaking base + patches =
-        # deployed and corrupting the regenerated base template for those pages.
-        feature_patch_order = [
-            ("quantumbit", "quantumbit"),
-            ("quantumbit", "utils"),
-            ("guidedselling", "guidedselling"),
-            ("billing", "billing"),
-            ("billing_ui", "billing_ui"),
-            ("payments", "payments"),
-            ("quantumbit", "approvals"),
-            ("docgen", "docgen"),
-            ("tso", "tso"),
-            ("constraints", "constraints"),
-            ("large_stx", "large_stx"),
-            ("collections", "collections"),
-            ("personas", "personas"),
-            ("prm_pricing", "prm_pricing"),
-        ]
+            if metadata_name not in org_files:
+                raise UxOptionError(f"'{metadata_name}' not found in {org_dir}.")
+            org_files = [metadata_name]
 
         results = []
         for fname in org_files:
@@ -172,42 +140,18 @@ class UxWriteback:
                     f"  [new page]  {fname} — exists in org but not in "
                     "templates. Saving as new base template."
                 )
-                result = self._handle_new_page(
-                    fname, org_dir, base_dir, dry_run
-                )
-                results.append(result)
+                results.append(self._handle_new_page(fname, org_dir, base_dir, dry_run))
                 continue
-
-            source_is_standalone = "standalone" in str(source)
-            if source_is_standalone:
-                self.logger.info(
-                    f"  [standalone] {fname} — source is a standalone "
-                    f"override ({source.parent.name}), writing back to "
-                    "standalone source."
-                )
-                result = self._writeback_standalone(
-                    fname, org_dir, source, patches_dir,
-                    feature_patch_order, features, dry_run, backup,
-                )
-                results.append(result)
-                continue
-
-            result = self._writeback_base(
-                fname, org_dir, base_dir, patches_dir,
-                feature_patch_order, features, dry_run, backup,
-            )
-            results.append(result)
+            results.append(self._writeback_page(
+                fname, org_dir, source, patches_dir, features, dry_run, backup,
+                standalone=standalone_dir in source.parents,
+            ))
 
         if not dry_run:
             self._update_all_patches(
-                org_dir, base_dir, patches_dir,
-                feature_patch_order, features, org_files, page_sources,
+                org_dir, patches_dir,
+                features, org_files, page_sources,
                 backup,
-            )
-
-        if not dry_run:
-            self._verify_writeback(
-                templates_path, org_path, features, metadata_name
             )
 
         return results
@@ -293,74 +237,42 @@ class UxWriteback:
     # Page source resolution (mirrors assembler logic)
     # ------------------------------------------------------------------
 
-    def _resolve_page_sources(
-        self,
-        base_dir: Path,
-        standalone_dir: Path,
-        features: Dict[str, bool],
-    ) -> Dict[str, Path]:
-        return resolve_flexipage_sources(base_dir, standalone_dir, features)
-
-    # ------------------------------------------------------------------
-    # Write-back: base templates
-    # ------------------------------------------------------------------
-
-    def _writeback_base(
+    def _writeback_page(
         self,
         fname: str,
         org_dir: Path,
-        base_dir: Path,
+        source: Path,
         patches_dir: Path,
-        feature_patch_order: List[Tuple[str, str]],
         features: Dict[str, bool],
         dry_run: bool,
         backup: bool,
+        standalone: bool,
     ) -> Dict[str, Any]:
-        org_file = org_dir / fname
-        dest_file = base_dir / fname
+        """Reverse the active patches out of the org page and write it over ``source``,
+        the page's template (a base page or an active standalone override)."""
+        kind = "standalone" if standalone else "base"
+        root = ET.parse(str(org_dir / fname)).getroot()
+        template_root = ET.parse(str(source)).getroot()
         page_stem = fname.replace(".flexipage-meta.xml", "")
 
-        # Parse org XML
-        root = ET.parse(str(org_file)).getroot()
-
-        # Collect patches in forward order, then reverse
-        patches_to_reverse: List[Tuple[str, Dict[str, Any]]] = []
-        for flag, patch_feature in feature_patch_order:
-            if not features.get(flag):
-                continue
-            patch_file = patches_dir / patch_feature / (page_stem + ".yml")
-            if not patch_file.exists():
-                continue
-            patch_data = _load_yaml(patch_file)
-            for patch in patch_data.get("patches", []):
-                patches_to_reverse.append((patch_feature, patch))
-
-        if not patches_to_reverse:
-            self.logger.info(
-                f"  [base]     {fname} — no active patches, "
-                "copying org state directly to base."
-            )
-            if not dry_run:
-                if backup and dest_file.exists():
-                    shutil.copy2(str(dest_file), str(dest_file) + ".bak")
-                _write_xml(root, dest_file)
-            return {"file": fname, "written": not dry_run, "patches_reversed": 0}
+        patches_to_reverse: List[Tuple[str, Dict[str, Any]]] = [
+            (patch_feature, patch)
+            for patch_feature, patch_file in active_patch_files(patches_dir, page_stem, features)
+            for patch in _load_yaml(patch_file).get("patches", [])
+        ]
 
         # Reverse patches in reverse order (last-applied reversed first)
         reversed_count = 0
         absent_count = 0
         for feature, patch in reversed(patches_to_reverse):
-            result = _reverse_patch(root, patch, self.logger)
+            result = _reverse_patch(root, patch, self.logger, template_root)
             if result == "removed":
                 reversed_count += 1
-                self.logger.info(
-                    f"    reversed {patch.get('type')} from {feature}"
-                )
+                self.logger.info(f"    reversed {patch.get('type')} from {feature}")
             elif result == "absent":
                 absent_count += 1
                 self.logger.info(
-                    f"    skipped {patch.get('type')} from {feature} "
-                    "(already absent — duplicate fallback)"
+                    f"    skipped {patch.get('type')} from {feature} (already absent)"
                 )
             else:
                 self.logger.warning(
@@ -369,64 +281,13 @@ class UxWriteback:
                 )
 
         self.logger.info(
-            f"  [base]     {fname} — reversed {reversed_count}/"
-            f"{len(patches_to_reverse)} patches"
-            + (f" ({absent_count} duplicate fallback skips)" if absent_count else "")
+            f"  [{kind}] {fname} ({source.parent.name}) — reversed "
+            f"{reversed_count}/{len(patches_to_reverse)} patches"
+            + (f" ({absent_count} already absent)" if absent_count else "")
         )
 
         if not dry_run:
-            if backup and dest_file.exists():
-                shutil.copy2(str(dest_file), str(dest_file) + ".bak")
-            _write_xml(root, dest_file)
-
-        return {
-            "file": fname,
-            "written": not dry_run,
-            "patches_reversed": reversed_count,
-            "patches_total": len(patches_to_reverse),
-        }
-
-    # ------------------------------------------------------------------
-    # Write-back: standalone overrides
-    # ------------------------------------------------------------------
-
-    def _writeback_standalone(
-        self,
-        fname: str,
-        org_dir: Path,
-        source: Path,
-        patches_dir: Path,
-        feature_patch_order: List[Tuple[str, str]],
-        features: Dict[str, bool],
-        dry_run: bool,
-        backup: bool,
-    ) -> Dict[str, Any]:
-        """Write back a standalone override page, reversing any patches."""
-        org_file = org_dir / fname
-        page_stem = fname.replace(".flexipage-meta.xml", "")
-
-        root = ET.parse(str(org_file)).getroot()
-
-        # Standalone pages can also have patches applied on top
-        patches_to_reverse: List[Tuple[str, Dict[str, Any]]] = []
-        for flag, patch_feature in feature_patch_order:
-            if not features.get(flag):
-                continue
-            patch_file = patches_dir / patch_feature / (page_stem + ".yml")
-            if not patch_file.exists():
-                continue
-            patch_data = _load_yaml(patch_file)
-            for patch in patch_data.get("patches", []):
-                patches_to_reverse.append((patch_feature, patch))
-
-        reversed_count = 0
-        for feature, patch in reversed(patches_to_reverse):
-            result = _reverse_patch(root, patch, self.logger)
-            if result in ("removed", "absent"):
-                reversed_count += 1
-
-        if not dry_run:
-            if backup and source.exists():
+            if backup:
                 shutil.copy2(str(source), str(source) + ".bak")
             _write_xml(root, source)
 
@@ -434,7 +295,8 @@ class UxWriteback:
             "file": fname,
             "written": not dry_run,
             "patches_reversed": reversed_count,
-            "standalone": True,
+            "patches_total": len(patches_to_reverse),
+            "standalone": standalone,
         }
 
     # ------------------------------------------------------------------
@@ -462,9 +324,7 @@ class UxWriteback:
     def _update_all_patches(
         self,
         org_dir: Path,
-        base_dir: Path,
         patches_dir: Path,
-        feature_patch_order: List[Tuple[str, str]],
         features: Dict[str, bool],
         org_files: List[str],
         page_sources: Dict[str, Path],
@@ -477,29 +337,16 @@ class UxWriteback:
             source = page_sources.get(fname)
             if source is None:
                 continue
-            source_is_standalone = "standalone" in str(source)
-
             page_stem = fname.replace(".flexipage-meta.xml", "")
             org_file = org_dir / fname
-            # The source file for comparison — either the base or standalone
-            if source_is_standalone:
-                base_file = source
-            else:
-                base_file = base_dir / fname
-
+            # Compare against the page's template (base or standalone), which
+            # writeback has just regenerated.
+            base_file = source
             if not base_file.exists() or not org_file.exists():
                 continue
 
-            # Collect active patch files for this page
-            active_patch_files: List[Tuple[str, str, Path]] = []
-            for flag, patch_feature in feature_patch_order:
-                if not features.get(flag):
-                    continue
-                pf = patches_dir / patch_feature / (page_stem + ".yml")
-                if pf.exists():
-                    active_patch_files.append((flag, patch_feature, pf))
-
-            if not active_patch_files:
+            patch_files = active_patch_files(patches_dir, page_stem, features)
+            if not patch_files:
                 continue
 
             # Serialize base and org for text-level comparison
@@ -511,7 +358,7 @@ class UxWriteback:
             ET.indent(org_root, space="    ")
             org_text = ET.tostring(org_root, encoding="unicode")
 
-            for flag, patch_feature, patch_path in active_patch_files:
+            for patch_feature, patch_path in patch_files:
                 self._update_patch_file(
                     fname, base_text, org_text, base_root, org_root,
                     patch_path, patch_feature, backup,
@@ -562,8 +409,11 @@ class UxWriteback:
                 new_actions = self._extract_insert_actions(
                     base_root, org_root, patch
                 )
-                if new_actions is not None and new_actions != patch.get("actions", []):
-                    patch["actions"] = new_actions
+                if new_actions is not None:
+                    if not new_actions:
+                        patch["_remove"] = True
+                    else:
+                        patch["actions"] = new_actions
                     updated = True
 
             elif ptype == "add_display_field":
@@ -706,7 +556,7 @@ class UxWriteback:
         org_root: ET.Element,
         patch: Dict[str, Any],
     ) -> Optional[List[Any]]:
-        """Check if patch actions exist in org; return updated list or None."""
+        """Patch actions still present in the org; None when all of them are."""
         current_actions = patch.get("actions", [])
         org_actions = set(_get_action_names(org_root))
 
@@ -715,7 +565,7 @@ class UxWriteback:
         surviving = [a for a in current_actions if _action_name(a) in org_actions]
         if surviving == current_actions:
             return None  # No change needed
-        return surviving if surviving else None
+        return surviving
 
     def _extract_facet_fields(
         self,
@@ -800,63 +650,6 @@ class UxWriteback:
             encoding="utf-8",
         )
 
-    # ------------------------------------------------------------------
-    # Verification
-    # ------------------------------------------------------------------
-
-    def _verify_writeback(
-        self,
-        templates_path: Path,
-        org_path: Path,
-        features: Dict[str, bool],
-        filter_name: Optional[str],
-    ) -> None:
-        """Re-assemble from updated templates and diff against org state."""
-        self.logger.info("\nVerifying write-back (re-assemble + diff)...")
-
-        with tempfile.TemporaryDirectory(prefix="rlm_wb_verify_") as tmpdir:
-            tmp_path = Path(tmpdir)
-            assembled, skipped = UxAssembler(self.ctx)._assemble_flexipages(
-                templates_path, tmp_path, features, filter_name,
-            )
-
-            org_dir = org_path / "flexipages"
-            asm_dir = tmp_path / "flexipages"
-            drift_count = 0
-
-            for entry in assembled:
-                fname = entry["name"]
-                asm_file = asm_dir / fname
-                org_file = org_dir / fname
-
-                if not org_file.exists():
-                    continue
-
-                asm_xml = _normalize_xml(
-                    ET.parse(str(asm_file)).getroot()
-                )
-                org_xml = _normalize_xml(
-                    ET.parse(str(org_file)).getroot()
-                )
-
-                if asm_xml != org_xml:
-                    drift_count += 1
-                    self.logger.warning(
-                        f"  [verify] DRIFT REMAINS: {fname}"
-                    )
-                else:
-                    self.logger.info(f"  [verify] OK: {fname}")
-
-            if drift_count == 0:
-                self.logger.info(
-                    "Verification passed — templates reproduce org state."
-                )
-            else:
-                self.logger.warning(
-                    f"Verification found {drift_count} page(s) with "
-                    "remaining drift. Review templates manually."
-                )
-
 
 # ---------------------------------------------------------------------------
 # Reverse-patch operations
@@ -864,9 +657,15 @@ class UxWriteback:
 
 
 def _reverse_patch(
-    root: ET.Element, patch: Dict[str, Any], logger=None
+    root: ET.Element,
+    patch: Dict[str, Any],
+    logger=None,
+    template_root: Optional[ET.Element] = None,
 ) -> str:
     """Apply the inverse of a single patch operation.
+
+    ``template_root`` is the page's current template. An insert_action patch
+    skips actions the template already has, so its reverse must keep them.
 
     Returns:
         "removed" — element found and removed
@@ -877,7 +676,8 @@ def _reverse_patch(
     ptype = patch.get("type")
 
     if ptype == "insert_action":
-        return "removed" if _reverse_insert_action(root, patch) else "absent"
+        keep = set(_get_action_names(template_root)) if template_root is not None else set()
+        return "removed" if _reverse_insert_action(root, patch, keep) else "absent"
 
     if ptype == "remove_action":
         # No-op: if a patch removes an action from the base, the base
@@ -915,13 +715,17 @@ def _reverse_patch(
     return "failed"
 
 
-def _reverse_insert_action(root: ET.Element, patch: Dict[str, Any]) -> bool:
-    """Remove actions that were inserted by an insert_action patch."""
-    actions = patch.get("actions", [])
-    if not actions:
-        return True
+def _reverse_insert_action(
+    root: ET.Element, patch: Dict[str, Any], keep: Iterable[str] = ()
+) -> bool:
+    """Remove the actions an insert_action patch inserted; True if any were removed.
 
-    removed_any = False
+    Mirrors the forward patch: it targets the actionNames list holding the
+    ``after`` anchor and never inserts an action already present, so names in
+    ``keep`` (the template's own actions) are left alone.
+    """
+    names = {_action_name(a) for a in patch.get("actions", [])} - set(keep)
+    anchor = patch.get("after")
     for ci_props in root.iter(f"{SF_NS_TAG}componentInstanceProperties"):
         name_el = _find_elem(ci_props, "name")
         if name_el is None or name_el.text != "actionNames":
@@ -929,16 +733,17 @@ def _reverse_insert_action(root: ET.Element, patch: Dict[str, Any]) -> bool:
         vlist = _find_elem(ci_props, "valueList")
         if vlist is None:
             continue
-        for action in actions:
-            action_name = _action_name(action)
-            for item in _findall_elem(vlist, "valueListItems"):
-                val_el = _find_elem(item, "value")
-                if val_el is not None and val_el.text == action_name:
-                    vlist.remove(item)
-                    removed_any = True
-                    break
-        return True  # found the actionNames list
-    return removed_any
+        items = [
+            (item, _find_elem(item, "value"))
+            for item in _findall_elem(vlist, "valueListItems")
+        ]
+        if anchor and not any(v is not None and v.text == anchor for _, v in items):
+            continue
+        removed = [item for item, v in items if v is not None and v.text in names]
+        for item in removed:
+            vlist.remove(item)
+        return bool(removed)
+    return False
 
 
 def _reverse_add_display_field(

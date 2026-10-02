@@ -33,7 +33,7 @@ cci task run assemble_and_deploy_ux                                    # deploy:
 python scripts/ux/ux_tool.py assemble                                  # same assembly without CCI
 python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>     # retrieve + diff
 python scripts/ux/ux_tool.py writeback                                 # dry-run writeback (add --apply to write)
-python scripts/ux/ux_tool.py apply-drift                               # writeback to templates + reassemble + verify
+python scripts/ux/ux_tool.py apply-drift                               # writeback to templates + verify + reassemble
 ```
 
 `ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. Its flags default to `project.custom` in `cumulusci.yml`; match an org built with overrides via `--flag name=value` or `--flags-from-manifest`. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `-o deploy false` runs assembly locally with no org at all.
