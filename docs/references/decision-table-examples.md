@@ -292,7 +292,8 @@ cci task run manage_decision_tables --operation list --status Active
 # check-only deploys the repo's tables that are Active in the org and deactivates
 # only those the platform refuses to edit in place, then deploys those tables
 # itself: because the XML says <status>Active</status>, that deploy reactivates and
-# syncs them (on failure it reactivates them unchanged and fails).
+# syncs them (on failure it tries to reactivate them and
+# fails, naming any it could not reactivate).
 # deploy_post_prm_pricing does the same for the PRM table.
 cci task run deactivate_changed_decision_tables --org <org>   # standalone, before a manual deploy
 ```

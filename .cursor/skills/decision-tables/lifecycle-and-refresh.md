@@ -42,7 +42,7 @@ manages it three ways:
 |---|---|
 | CCI task | `manage_decision_tables -o operation activate` / `deactivate` (Tooling `Status` update) |
 | Apex | `scripts/apex/deactivateDecisionTables.apex` (`deactivate_decision_tables` task — bulk) |
-| Build (deploy path) | `deactivate_changed_decision_tables` (before `deploy_pre`) and `deactivate_changed_post_prm_pricing_decision_tables` (before the PRM table deploy) check-only deploy the repo's Active tables, deactivate only those the platform rejects, and deploy them at once (which reactivates them; on failure they are reactivated unchanged and the step fails) |
+| Build (deploy path) | `deactivate_changed_decision_tables` (before `deploy_pre`) and `deactivate_changed_post_prm_pricing_decision_tables` (before the PRM table deploy) check-only deploy the repo's Active tables, deactivate only those the platform rejects, and deploy them at once (which reactivates them; on failure it tries to reactivate them, names any left Inactive, and the step fails) |
 
 ### The active-edit restriction — deactivate first
 
@@ -66,7 +66,8 @@ deploys the repo's Active tables, deactivates only the ones rejected for the
 active-edit restriction, and deploys those itself straight away. It does not leave
 the reactivation to `deploy_pre`, which deploys the earlier numbered bundles first —
 a failure there would strand the tables Inactive. If deactivation or its own deploy
-fails, it reactivates the tables it deactivated and fails. The later bundle deploy
+fails, it tries to reactivate the tables it deactivated and fails, logging any it
+could not reactivate with the manual activate command. The later bundle deploy
 then sees unchanged XML on an Active table, which is accepted. Any other check-only
 failure is logged and left for the bundle deploy to report, and while one remains
 the task deactivates nothing. (It replaced `exclude_active_decision_tables` /

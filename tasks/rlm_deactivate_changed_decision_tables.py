@@ -21,9 +21,10 @@ When the only failures are the active-edit restriction, it deactivates exactly t
 tables and deploys their files itself, straight away — the deploy reactivates them. Doing
 that here rather than leaving it to ``deploy_pre`` matters: ``deploy_pre`` deploys the
 earlier numbered bundles first, so a failure there would strand the tables Inactive. If
-deactivation or the deploy fails, every table this task deactivated is reactivated and
-the task fails. The later bundle deploy then sees unchanged XML on an Active table, which
-the platform accepts.
+deactivation or the deploy fails, the task tries to reactivate every table it
+deactivated and fails; any it cannot reactivate is named, with the manual command. The
+later bundle deploy then sees unchanged XML on an Active table, which the platform
+accepts.
 
 Every other check-only failure is left for the bundle deploy to report — this task never
 hides one — and while any remains it changes no lifecycle state.
@@ -242,7 +243,7 @@ class DeactivateChangedDecisionTables(Deploy):
 
     def _deactivate_and_deploy(self, path: Path, active: dict, blocked: Set[str]):
         """
-        Deactivate the blocked tables and deploy them now; on any failure reactivate them and raise.
+        Deactivate the blocked tables and deploy them now; on any failure try to reactivate them and raise.
 
         The deploy reactivates them itself (the XML carries Active). Nothing is left
         Inactive for a later step to fix.
@@ -259,17 +260,25 @@ class DeactivateChangedDecisionTables(Deploy):
             self._reactivate(active, deactivated)
             raise
         if failure_text is not None:
-            self._reactivate(active, deactivated)
+            still_inactive = self._reactivate(active, deactivated)
+            if still_inactive:
+                outcome = (
+                    f"{', '.join(still_inactive)} could NOT be reactivated and remain Inactive — "
+                    "see the errors above"
+                )
+            else:
+                outcome = "they were reactivated unchanged"
             raise MetadataApiError(
                 f"Deploying the deactivated decision table(s) {', '.join(deactivated)} failed; "
-                f"they were reactivated unchanged. {failure_text}",
+                f"{outcome}. {failure_text}",
                 None,
             )
         self.logger.info(f"Deployed and reactivated {len(deactivated)} decision table(s): {', '.join(deactivated)}")
 
-    def _reactivate(self, active: dict, names: List[str]):
-        """Best effort: one table failing to reactivate must not stop the rest."""
+    def _reactivate(self, active: dict, names: List[str]) -> List[str]:
+        """Best effort: one table failing to reactivate must not stop the rest. Returns those left Inactive."""
         sf = self._sf
+        still_inactive: List[str] = []
         for name in names:
             try:
                 sf.DecisionTable.update(active[name], {"Status": "Active"})
@@ -279,6 +288,8 @@ class DeactivateChangedDecisionTables(Deploy):
                     f"Could not reactivate {name} ({e}); it is Inactive. Reactivate it with "
                     f"manage_decision_tables -o operation activate."
                 )
+                still_inactive.append(name)
+        return still_inactive
 
     @property
     def _sf(self):

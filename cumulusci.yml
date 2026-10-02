@@ -2145,7 +2145,7 @@ tasks:
 
   deactivate_changed_decision_tables:
     group: Revenue Lifecycle Management
-    description: "Check-only deploy the repo's decision tables that are Active in the org and deactivate only those the platform refuses to edit in place (structural changes), then deploy those tables itself, which reactivates them (on failure it reactivates them unchanged and fails)"
+    description: "Check-only deploy the repo's decision tables that are Active in the org and deactivate only those the platform refuses to edit in place (structural changes), then deploy those tables itself, which reactivates them (on failure it tries to reactivate them and fails, naming any left Inactive)"
     class_path: tasks.rlm_deactivate_changed_decision_tables.DeactivateChangedDecisionTables
     options:
       path: unpackaged/pre/5_decisiontables

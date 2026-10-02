@@ -1833,7 +1833,7 @@
 
 ### `deactivate_changed_decision_tables`
 
-**Description:** Check-only deploy the repo's decision tables that are Active in the org and deactivate only those the platform refuses to edit in place (structural changes), then deploy those tables itself, which reactivates them (on failure it reactivates them unchanged and fails)
+**Description:** Check-only deploy the repo's decision tables that are Active in the org and deactivate only those the platform refuses to edit in place (structural changes), then deploy those tables itself, which reactivates them (on failure it tries to reactivate them and fails, naming any left Inactive)
 
 **Class:** `tasks.rlm_deactivate_changed_decision_tables.DeactivateChangedDecisionTables`
 

@@ -194,7 +194,8 @@ check("a failed deploy reactivates what was deactivated",
       sf.DecisionTable.updates == [("id_RLM_A", {"Status": "Inactive"}), ("id_RLM_A", {"Status": "Active"})],
       sf.DecisionTable.updates)
 check("... and fails the task with the platform's reason",
-      isinstance(task.raised, mod.MetadataApiError) and "Invalid field Foo__c" in str(task.raised), task.raised)
+      isinstance(task.raised, mod.MetadataApiError) and "Invalid field Foo__c" in str(task.raised)
+      and "reactivated unchanged" in str(task.raised), task.raised)
 
 sf, deploys, log, _, task = run(["RLM_A", "RLM_B"], active=["RLM_A", "RLM_B"],
                                 check_failure="\n\n".join([ACTIVE_EDIT.format("RLM_A"), ACTIVE_EDIT.format("RLM_B")]),
@@ -211,6 +212,9 @@ sf, deploys, log, _, task = run(["RLM_A"], active=["RLM_A"],
                                 update_fail_on=("id_RLM_A", {"Status": "Active"}))
 check("a reactivation that fails is logged as an error naming the recovery command",
       any(lvl == "error" and "manage_decision_tables" in msg for lvl, msg in log.lines), log.lines)
+check("... and the raised error says the table is still Inactive, not that it was reactivated",
+      "could NOT be reactivated" in str(task.raised) and "reactivated unchanged" not in str(task.raised),
+      task.raised)
 
 sf, deploys, log, _, task = run(["RLM_A", "RLM_B"], active=["RLM_A", "RLM_B"],
                                 check_failure="\n\n".join([ACTIVE_EDIT.format("RLM_A"), OTHER.format("RLM_B")]))
