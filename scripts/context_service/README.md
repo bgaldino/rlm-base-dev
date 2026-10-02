@@ -72,7 +72,7 @@ Static check of the plan JSON consumed by `manage_context_definition` /
 `scripts/validate_sfdmu_v5_datasets.py`.
 
 ```bash
-# canonical: validate the 6 active (non-archive) plans
+# canonical: validate the 7 active (non-archive) plans
 python scripts/context_service/definition/validate_context_plan.py
 
 # explicit paths
@@ -85,7 +85,7 @@ python scripts/context_service/definition/validate_context_plan.py --include-arc
 
 Discovery skips `datasets/context_plans/archive/` unless `--include-archive` is
 passed. Exit code is non-zero if any **ERROR** is found (or any warning under
-`--strict`). The 6 active plans are known-good (0 errors, 0 warnings).
+`--strict`). The 7 active plans are known-good (0 errors, 0 warnings).
 
 Checks: JSON well-formedness; manifest → plan-file resolution; canonical
 `dataType`/`fieldType` enums (Core UDD, v67.0); required keys on

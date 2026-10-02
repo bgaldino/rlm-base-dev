@@ -678,6 +678,7 @@ def validate_overlay(overlay: dict) -> ValidationResult:
     _validate_external_dependencies(overlay.get("externalDependencies"), result)
     _warn_undeclared_external_dependencies(overlay, result)
     _validate_labels_block(overlay.get("labels"), result)
+    _validate_step_labels(overlay, result)
 
     return result
 
@@ -704,6 +705,22 @@ def _validate_labels_block(labels, result: "ValidationResult") -> None:
             "labels",
             f"every entry must be a string name → string label; bad entr(ies): {bad}.",
         )
+
+
+def _validate_step_labels(overlay: dict, result: "ValidationResult") -> None:
+    """Validate the optional per-step ``label`` on ``addSteps``/``updateSteps``.
+
+    Like the ``labels`` block, a per-step label is overlay-only (stripped from the
+    Connect payload) and feeds the post-PATCH relabel, which keeps string labels
+    only. A non-string label is an error rather than a silently dropped label.
+    """
+    for operation in ("addSteps", "updateSteps"):
+        for i, step in enumerate(overlay.get(operation, []) or []):
+            if isinstance(step, dict) and "label" in step and not isinstance(step["label"], str):
+                result.error(
+                    f"{operation}[{i}].label",
+                    f"must be a string; got {type(step['label']).__name__}.",
+                )
 
 
 # Suffixes that mark a reference as a CUSTOM, org-specific external dependency

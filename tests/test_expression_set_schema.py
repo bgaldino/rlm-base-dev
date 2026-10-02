@@ -2206,6 +2206,19 @@ def test_overlay_labels_validation_parity():
                   result.passed == valid)
 
 
+def test_overlay_step_label_validation_parity():
+    from scripts.expression_sets._schema import validate_overlay as toolkit_validate
+    for operation in ("addSteps", "updateSteps"):
+        for label, valid in (("Readable label", True), (123, False), (None, False)):
+            for validate in (validate_overlay, toolkit_validate):
+                result = validate({operation: [{"name": "StepA", "label": label}]})
+                flagged = any(
+                    i.location == f"{operation}[0].label" for i in result.errors
+                )
+                check(f"{validate.__module__}: {operation} label {label!r} accepted={valid}",
+                      flagged != valid)
+
+
 def test_overlay_labels_merge_top_level_and_per_step():
     labels = Connect._overlay_labels({
         "labels": {"A": "Top A", "B": "Top B"},

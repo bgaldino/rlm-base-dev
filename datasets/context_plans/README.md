@@ -40,13 +40,13 @@ A `manifest.json` points at each plan file:
 ```json
 { "contexts": [
   { "developerName": "RLM_SalesTransactionContext",
-    "planFile": "contexts/ramp_mode.json" } ] }
+    "planFile": "contexts/approvals.json" } ] }
 ```
 
 Current plans: **Approvals**, **Billing**, **ConstraintEngineNodeStatus**, **DocGen**
-(`create: true` — a net-new custom definition), **PartnerAccount**,
-**PrmPricing**, **RampMode**. Five extend `RLM_SalesTransactionContext`
-(`Approvals`, `ConstraintEngineNodeStatus`, `PartnerAccount`, `PrmPricing`, `RampMode`);
+(`create: true` — a net-new custom definition), **mfg**, **PartnerAccount**,
+**PrmPricing**. Five extend `RLM_SalesTransactionContext`
+(`Approvals`, `ConstraintEngineNodeStatus`, `mfg`, `PartnerAccount`, `PrmPricing`);
 `Billing` and `DocGen` target their own definitions.
 
 ## Schema, enums, limits, `__c` rule — see the skill

@@ -316,6 +316,16 @@ CHECKS = [
         deps=["cumulusci"], gating=True,
     ),
     dict(
+        name="context_node_mapping_merge",
+        cmd=["python", "tests/test_context_service_node_mapping_merge.py"],
+        # tasks/rlm_context_service.py imports cumulusci and requests unconditionally (as
+        # extend_stdctx_recovery's module does), and borrows the sibling-merge helpers from
+        # scripts/context_service/_apply.py, so a change to either side runs this suite.
+        triggers=["tasks/rlm_context_service.py", "scripts/context_service/_apply.py",
+                  "tests/test_context_service_node_mapping_merge.py"],
+        deps=["cumulusci", "requests"], gating=True,
+    ),
+    dict(
         name="cci_reference_drift",
         cmd=None,  # regenerate, then require a clean tree — see run_cci_reference_drift
         # The generated files themselves are triggers: they carry a "do not edit" banner, so a
