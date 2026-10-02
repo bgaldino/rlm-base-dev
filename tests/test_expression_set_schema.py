@@ -683,12 +683,16 @@ class _MutationTask(_CascadeTask):
     def _soql_query(self, soql):
         if self.esv_reads_active and "FROM ExpressionSetVersion" in soql:
             return [{"Id": "ESV", "IsActive": True}]
+        if getattr(self, "esv_reads_inactive", False) and "FROM ExpressionSetVersion" in soql:
+            return [{"Id": "ESV", "IsActive": False}]
         return super()._soql_query(soql)
 
     def _patch_sobject(self, sobject, record_id, payload):
         if (payload.get("IsActive") and sobject == "ProcedurePlanDefinitionVersion"
                 and (self.fail_plan_reactivate or record_id in self.fail_plan_ids)):
             raise RuntimeError(f"plan reactivate boom {record_id}")
+        if sobject == "ExpressionSetVersion" and payload.get("IsActive") is False:
+            self.esv_reads_inactive = False
         if sobject == "ExpressionSetVersion" and payload.get("IsActive"):
             if self.esv_reactivate_error:
                 raise RuntimeError(self.esv_reactivate_error)
@@ -789,6 +793,21 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
           reenabled.states["ESV"] is False)
     check("the plans are restored once the version is confirmed off",
           reenabled.states["PPV_A"] is True)
+    # Round 7: a stale false read must not skip the deactivation.
+    stale_off = _MutationTask({"PPV_A": True})
+
+    def reenable_with_stale_read():
+        stale_off.states["ESV"] = True
+        stale_off.esv_reads_inactive = True
+        raise RuntimeError("PATCH boom")
+    try:
+        stale_off._run_connect_mutation(
+            es_def_id="ESD", esv={"Id": "ESV", "IsActive": True}, mutate=reenable_with_stale_read,
+            dry_run=False, activate_after=True, cascade=True, verb="Import")
+    except Exception:  # noqa: BLE001
+        pass
+    check("a re-enabled version behind a stale false read is really turned off",
+          stale_off.states["ESV"] is False)
     plan_fails = _MutationTask({"PPV_A": True}, fail_plan_ids={"PPV_A"})
     error7 = plan_fails.run()
     check("a plan restore failure after a failed PATCH is in the raised error",

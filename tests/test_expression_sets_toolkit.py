@@ -1161,6 +1161,8 @@ class _PlanTransport:
         self.fail_esv_reactivate = fail_esv_reactivate
         self.esv_reactivate_error = esv_reactivate_error
         self.fail_esv_deactivate = False
+        # Models a stale read of false while the version is really active.
+        self.esv_reads_inactive = False
         # Simulates a deactivation PATCH that lands while reads still say active,
         # so wait_for_version_state times out.
         self.esv_reads_active = esv_reads_active
@@ -1178,6 +1180,8 @@ class _PlanTransport:
         if sobject == "ExpressionSetVersion":
             if not active and self.fail_esv_deactivate:
                 raise RuntimeError("version deactivate boom")
+            if not active:
+                self.esv_reads_inactive = False
             if active and self.fail_esv_reactivate:
                 raise RuntimeError(self.esv_reactivate_error)
             self.esv_active = active
@@ -1199,6 +1203,8 @@ class _PlanTransport:
             vid = query.split("Id = '", 1)[1].split("'", 1)[0]
             return [{"Id": vid, "IsActive": self.plans[vid]}]
         if "FROM ExpressionSetVersion" in query:
+            if self.esv_reads_inactive:
+                return [{"Id": "9QMv", "IsActive": False}]
             return [{"Id": "9QMv", "IsActive": self.esv_active or self.esv_reads_active}]
         return []
 
@@ -1353,6 +1359,23 @@ def test_failed_mutation_keeps_plans_online():
           t12.esv_active is False, t12.esv_active)
     check("the plans are restored once the version is confirmed off",
           t12.plans == {"1Cv1": True}, t12.plans)
+    # Round 7: the read right after the failed PATCH can still say false while
+    # the version is active; the deactivation must be forced, not skipped.
+    t15 = _PlanTransport(plans={"1Cv1": True})
+
+    def patch_reenables_with_stale_read():
+        t15.esv_active = True
+        t15.esv_reads_inactive = True
+        raise RuntimeError("PATCH boom")
+    engine15 = LifecycleEngine(t15, logger=lambda *a, **k: None, poll_interval_seconds=1)
+    try:
+        engine15.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=patch_reenables_with_stale_read, activate_after=True,
+                              cascade=True)
+    except Exception:
+        pass
+    check("a re-enabled version behind a stale false read is really turned off",
+          t15.esv_active is False, t15.esv_active)
     # If it can't be confirmed off, the plans stay off and the error says so.
     logs13 = []
     t13 = _PlanTransport(plans={"1Cv1": True})

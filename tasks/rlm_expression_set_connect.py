@@ -703,7 +703,11 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     # Restoring the plans would route pricing to it, so confirm
                     # the version is off first, and leave the plans off if not.
                     try:
-                        self._set_version_active(esv_id, False, False)
+                        # Forced: a read right after the PATCH can still say
+                        # false (stale) while the version is active. A forced
+                        # IsActive=false on an inactive version is accepted
+                        # (live-checked on 264), so this is safe either way.
+                        self._set_version_active(esv_id, False, False, force=True)
                         self._wait_for_version_state(esv_id, False)
                         version_off = True
                     except Exception as off_exc:
