@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>Continues only when the sync succeeded and has an opportunity.</description>
+        <name>IsSyncSuccessful</name>
+        <label>Is Sync Successful</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Sync Failed</defaultConnectorLabel>
+        <rules>
+            <name>SyncSucceeded</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.HasErrors</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.OpportunityRecordId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>GetActivatedOrder</targetReference>
+            </connector>
+            <label>Sync Succeeded</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Checks whether the synced quote has an activated order, so routine quote syncs don&apos;t close the opportunity.</description>
+        <name>HasActivatedOrder</name>
+        <label>Has Activated Order</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No Activated Order</defaultConnectorLabel>
+        <rules>
+            <name>ActivatedOrderFound</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetActivatedOrder.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>CloseRenewalOpportunity</targetReference>
+            </connector>
+            <label>Activated Order Found</label>
+        </rules>
+    </decisions>
+    <description>When a quote-to-opportunity sync finishes without errors and the quote has an activated order, closes the opportunity as Closed Won if it&apos;s an open renewal (Type Existing Business). RLM_SyncRenewalQuoteOnOrderActivation starts that sync when the renewal order is activated, so the opportunity closes only after its products match the quote. Without this the renewal just won stays open beside the next-term renewal opportunity that RLM_CreateUpdateRenewalOpportunities creates. A failed sync leaves the opportunity open.</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Close Renewal Opportunity On Quote Sync {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Close Renewal Opportunity On Quote Sync</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Gets an activated order created from the synced quote.</description>
+        <name>GetActivatedOrder</name>
+        <label>Get Activated Order</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>HasActivatedOrder</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>QuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.QuoteRecordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Activated</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Order</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <description>Sets the synced opportunity to Closed Won when it&apos;s an open renewal opportunity.</description>
+        <name>CloseRenewalOpportunity</name>
+        <label>Close Renewal Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.OpportunityRecordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Type</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Existing Business</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>IsClosed</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>StageName</field>
+            <value>
+                <stringValue>Closed Won</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Opportunity</object>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>IsSyncSuccessful</targetReference>
+        </connector>
+        <object>QuoteToOpportunitySyncEvent</object>
+        <triggerType>PlatformEvent</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

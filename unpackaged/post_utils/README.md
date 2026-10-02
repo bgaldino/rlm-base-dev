@@ -43,9 +43,11 @@ The reset is designed for convergence: if it hits the DML row budget during the 
 | `RLM_UsageOrchestrationController` + LWC `rlmUsageOrchestration` | Usage event orchestration UI |
 | `RLM_UsageUploaderController` + LWC `rlmUsageUploader` | Bulk usage event upload |
 | `RLM_ARC_AssetValidator` + Flow `RLM_ARC_Assets` | Asset lifecycle validation for ARC (Amend/Renew/Cancel) |
-| Flow `RLM_CreateContractFromQuote` | Quick-action: creates a contract from a quote |
+| Flow `RLM_CreateContractFromQuote` | Quick-action: creates a contract from a quote; copies the contract term and renewal term from the quote's first term-defined line (renewal reads `RenewalTerm2` as a count of the selling model's pricing term) |
 | Flow `RLM_QuickQuote` + QuickAction `Account.RLM_QuickQuote` | Quick-action: creates a quote directly from an account |
 | Flow `RLM_CreateQuoteFromRenewalOpp` + QuickAction `Opportunity.RLM_CreateQuoteFromRenewalOpp` | Quick-action ("Generate Renewal Quote"): renews the root assets of a renewal opportunity's lines (`OpportunityLineItem.AssetId` → `Asset.RootAssetId`, deduped) via the standard Initiate Renewal action and links the quote to the opportunity and, when set, its contract. Placed on `RLM_Opportunity_Record_Page` by the `utils` flexipage patch; reading `OpportunityLineItem.AssetId` needs the `RLM_QuantumBit` read grant |
+| Flow `RLM_SyncRenewalQuoteOnOrderActivation` | Order after-save (async): when an order created from a quote activates and the quote's opportunity is an open renewal (Type Existing Business), sets the quote as the opportunity's synced quote and calls the standard `syncQuoteOpportunity` action. Needs **Asynchronous Opportunity Sync** on in Revenue Settings |
+| Flow `RLM_CloseRenewalOpportunityOnQuoteSync` | `QuoteToOpportunitySyncEvent` subscriber: when a sync succeeds and the quote has an activated order, sets its open renewal opportunity to Closed Won, so the renewal just won doesn't stay open beside the next-term renewal opportunity. A failed sync leaves it open |
 | Flow `RLM_Event_Trigger` | Generic event trigger utility |
 | Flow `RLM_Refresh_Decision_Tables_Bulk` | Bulk decision table refresh |
 | Flow `RLM_Refresh_Decision_Tables_By_Usage_Type` | Decision table refresh filtered by usage type (called by account reset) |

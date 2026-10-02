@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Calls the standard Sync Quote to Opportunity action, which syncs the quote lines to the opportunity products in the background. RLM_CloseRenewalOpportunityOnQuoteSync closes the opportunity when the sync finishes.</description>
+        <name>SyncQuoteToOpportunity</name>
+        <label>Sync Quote to Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>syncQuoteOpportunity</actionName>
+        <actionType>syncQuoteOpportunity</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>quoteId</name>
+            <value>
+                <elementReference>$Record.QuoteId</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>syncQuoteOpportunity</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>68.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>Checks whether the order&apos;s quote has an open renewal opportunity and whether that opportunity already syncs with the quote.</description>
+        <name>IsOpenRenewalOpportunity</name>
+        <label>Is Open Renewal Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No Open Renewal Opportunity</defaultConnectorLabel>
+        <rules>
+            <name>QuoteAlreadySynced</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetRenewalOpportunity.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>GetRenewalOpportunity.SyncedQuoteId</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.QuoteId</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>SyncQuoteToOpportunity</targetReference>
+            </connector>
+            <label>Quote Already Synced</label>
+        </rules>
+        <rules>
+            <name>QuoteNotSynced</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetRenewalOpportunity.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>SetSyncedQuote</targetReference>
+            </connector>
+            <label>Quote Not Synced</label>
+        </rules>
+    </decisions>
+    <description>When an order created from a quote is activated and the quote&apos;s opportunity is an open renewal (Type Existing Business), makes the quote the opportunity&apos;s synced quote and syncs its lines to the opportunity products, so the renewal opportunity shows what was actually renewed. RLM_CloseRenewalOpportunityOnQuoteSync then closes it as Closed Won. Needs Asynchronous Opportunity Sync turned on in Revenue Settings. Runs after commit so a failure here can&apos;t roll back order activation. New-business opportunities aren&apos;t changed.</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Sync Renewal Quote On Order Activation {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Sync Renewal Quote On Order Activation</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Gets the quote&apos;s opportunity when it&apos;s an open renewal opportunity.</description>
+        <name>GetRenewalOpportunity</name>
+        <label>Get Renewal Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>IsOpenRenewalOpportunity</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Quote.OpportunityId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Type</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Existing Business</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>IsClosed</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>SyncedQuoteId</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <description>Makes the order&apos;s quote the renewal opportunity&apos;s synced quote.</description>
+        <name>SetSyncedQuote</name>
+        <label>Set Synced Quote</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>SyncQuoteToOpportunity</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>GetRenewalOpportunity.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>SyncedQuoteId</field>
+            <value>
+                <elementReference>$Record.QuoteId</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Opportunity</object>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Activated</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>QuoteId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <object>Order</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <scheduledPaths>
+            <connector>
+                <targetReference>GetRenewalOpportunity</targetReference>
+            </connector>
+            <pathType>AsyncAfterCommit</pathType>
+        </scheduledPaths>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>
