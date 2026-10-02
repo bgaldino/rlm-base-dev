@@ -441,7 +441,7 @@ URL=$(sf data query --use-tooling-api --target-org <sf_alias_or_username> \
   -q "SELECT ConstraintModel FROM ExpressionSetDefinitionVersion WHERE DeveloperName='QuantumBitBundle_V1'" \
   --json | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['records'][0]['ConstraintModel'])")
 INST=$(sf org display --target-org <sf_alias_or_username> --json | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['instanceUrl'])")
-TOK=$(sf org display --target-org <sf_alias_or_username> --json | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['accessToken'])")
+TOK=$(sf org auth show-access-token --target-org <sf_alias_or_username> --json | python3 -c "import json,sys; print(json.load(sys.stdin)['result']['accessToken'])")  # sf org display redacts it
 curl -s -H "Authorization: Bearer $TOK" "$INST$URL" | grep "TokenCommitBounded"
 ```
 

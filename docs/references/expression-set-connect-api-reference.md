@@ -105,7 +105,15 @@ debugging a run.
    a redundant update if another path already activated the version.
 3. **PATCH is not atomic.** A failed (400) PATCH still commits the parts it
    accepted, so on failure the task **leaves the version deactivated** and raises
-   loudly rather than re-enabling a half-mutated procedure.
+   loudly rather than re-enabling a half-mutated procedure. Once it has confirmed
+   the version is off, it reactivates the procedure plans it cascaded off (an
+   inactive plan silently skips its procedures; an active plan over an inactive
+   version fails loudly). The plans stay off when `activate_after` is false, or
+   when the version can't be confirmed off (a failed PATCH can re-enable a
+   half-written version, and an active plan would route pricing to it). It gives
+   a restore command for each record the run left inactive, except a version a
+   failed PATCH may have half-written, which must be re-imported first (other
+   inactive plan versions are listed for inspection only).
 4. **Version `id` handling differs by verb.** A PATCH (replace) body **must keep**
    the version-level `id` (from the `ExpressionSetVersion` sObject) so the server
    matches the version in place. A POST (create) of a new ES **must omit** the
@@ -550,8 +558,10 @@ JSON blob** into the element editor — there is no documented API path.
   → referenced `DecisionTable`s. Keyed by **version Id** (`9QM`); the `9QL`
   variant returns `INVALID_ID_FIELD`.
 - **Tooling base:** `{instance}/services/data/v68.0/tooling/sobjects/ExpressionSetDefinitionVersion`
-- **Token for manual API checks:** `yes | sf org auth show-access-token --target-org <sf_alias>`,
-  or pull `instanceUrl`/`accessToken` from `sf org display --json`.
+- **Token for manual API checks:** `yes | sf org auth show-access-token --target-org <sf_alias>`
+  (add `--json` to read `result.accessToken`). Take only `instanceUrl` from
+  `sf org display --json`: since sf 2.145 its `accessToken` is redacted unless
+  `SF_TEMP_SHOW_SECRETS=true`. In Python, `scripts/sf_token.py`'s `org_auth(alias)` returns both.
 - **Validate a payload offline:** `python scripts/ai/validate_expression_set.py <file.json> [--overlay|--definition]`
 
 Endpoints target **264 / v68.0**; the observed behavior was verified on **262 /

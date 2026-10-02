@@ -28,7 +28,9 @@ docs/references/expression-set-connect-api-reference.md for the full reference):
     the version itself.
   * PATCH is NOT atomic: a failed (400) PATCH still commits the parts it
     accepted. On failure we DO NOT reactivate — a half-mutated pricing procedure
-    must never be re-enabled silently. We leave it deactivated and raise loudly.
+    must never be re-enabled silently. We leave it deactivated and raise loudly,
+    but restore the cascaded procedure plans: an inactive plan silently skips
+    its procedures, while an active plan over an inactive version fails loudly.
   * Version `id` differs by verb: a PATCH body KEEPS the version-level `id` (the
     server matches it in place); a POST-create body OMITS it. Top-level
     `id`/`error` are always stripped (output-only).
@@ -78,6 +80,9 @@ from tasks.expression_set_schema import (
 
 
 _REQUEST_TIMEOUT = 120
+
+# The platform's rejection of an update to an enabled version; proves it is active.
+_ALREADY_ENABLED = "An enabled Expression Set Version cannot be updated"
 
 
 def _parse_bool_option(value: Any, default: bool) -> bool:
@@ -393,7 +398,17 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
 
     # -- Version lifecycle helpers -------------------------------------
 
-    def _set_version_active(self, version_id: str, active: bool, dry_run: bool):
+    def _set_version_active(
+        self, version_id: str, active: bool, dry_run: bool, *, force: bool = False
+    ):
+        """Set ExpressionSetVersion.IsActive, idempotent unless ``force``.
+
+        ``force`` sends the PATCH even when a read already shows the desired
+        state. Recovery after an unconfirmed deactivation uses it: the stale read
+        that made the deactivation poll time out would otherwise skip the
+        reactivation. A forced PATCH rejected with the platform's "already
+        enabled" error is taken as active; any other rejection raises.
+        """
         if dry_run:
             self.logger.info(
                 "[dry-run] Would set ExpressionSetVersion %s IsActive=%s",
@@ -406,17 +421,32 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         # explicit reactivation would otherwise hit the "An enabled Expression
         # Set Version cannot be updated/deleted." guardrail and fail a
         # genuinely-successful mutation.
-        records = self._soql_query(
-            "SELECT Id, IsActive FROM ExpressionSetVersion "
-            f"WHERE Id = '{self._soql_escape(version_id)}'"
-        )
-        if records and bool(records[0].get("IsActive")) is active:
+        def _reads_as(state):
+            records = self._soql_query(
+                "SELECT Id, IsActive FROM ExpressionSetVersion "
+                f"WHERE Id = '{self._soql_escape(version_id)}'"
+            )
+            return bool(records) and bool(records[0].get("IsActive")) is state
+
+        if not force and _reads_as(active):
             self.logger.info(
                 "ExpressionSetVersion %s already IsActive=%s; no change needed.",
                 version_id, active,
             )
             return
-        self._patch_sobject("ExpressionSetVersion", version_id, {"IsActive": active})
+        try:
+            self._patch_sobject("ExpressionSetVersion", version_id, {"IsActive": active})
+        except Exception as exc:
+            # Only the platform's own "already enabled" rejection proves the
+            # version is active. A read can't: recovery forces the PATCH because
+            # reads were stale.
+            if force and active and _ALREADY_ENABLED in str(exc):
+                self.logger.warning(
+                    "ExpressionSetVersion %s rejected the forced PATCH as already "
+                    "enabled; taking it as active.", version_id,
+                )
+                return
+            raise
         self.logger.info(
             "Set ExpressionSetVersion %s IsActive=%s.", version_id, active
         )
@@ -454,15 +484,18 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         )
 
     def _cascade_deactivate_procedure_plans(
-        self, es_def_id: str, dry_run: bool
+        self, es_def_id: str, dry_run: bool, *, rollback: bool = True
     ) -> List[str]:
         """Deactivate any active procedure plan versions referencing this ES.
         Returns list of version IDs that were deactivated.
 
         If setup fails partway through, rollback only the procedure-plan
-        versions this cascade already deactivated. Connect PATCH failures later
-        in the lifecycle intentionally keep cascaded versions deactivated for
-        inspection; this rollback is only for pre-mutation cascade setup.
+        versions this cascade already deactivated. A later Connect PATCH
+        failure also restores them (see _run_connect_mutation); this rollback
+        covers only pre-mutation cascade setup. With ``rollback=False`` (the
+        emergency shutdown after a failed PATCH) every plan is attempted,
+        nothing is turned back on, and the raised error's ``left_inactive``
+        names the plans it did turn off.
         """
         options = self._find_referencing_procedure_plans(es_def_id)
         if not options:
@@ -474,6 +507,32 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             if vid:
                 version_ids.add(vid)
         deactivated = []
+        if not rollback and not dry_run:
+            failures: List[str] = []
+            for vid in sorted(version_ids):
+                try:
+                    records = self._soql_query(
+                        "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
+                        f"WHERE Id = '{self._soql_escape(vid)}'"
+                    )
+                    if records and records[0].get("IsActive"):
+                        self._patch_sobject(
+                            "ProcedurePlanDefinitionVersion", vid, {"IsActive": False}
+                        )
+                        self.logger.info(
+                            "Deactivated ProcedurePlanDefinitionVersion %s.", vid
+                        )
+                        deactivated.append(vid)
+                except Exception as exc:
+                    failures.append(f"{vid}: {exc}")
+            if failures:
+                error = TaskOptionsError(
+                    "Could not deactivate ProcedurePlanDefinitionVersion(s): "
+                    + "; ".join(failures)
+                )
+                error.left_inactive = list(deactivated)
+                raise error
+            return deactivated
         try:
             for vid in sorted(version_ids):
                 records = self._soql_query(
@@ -500,11 +559,15 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 try:
                     self._cascade_reactivate_procedure_plans(deactivated, False)
                 except Exception as rollback_exc:
-                    raise TaskOptionsError(
+                    error = TaskOptionsError(
                         "Cascade deactivation failed after deactivating "
                         f"ProcedurePlanDefinitionVersion(s) {deactivated}, and "
                         f"rollback also failed: {rollback_exc}"
-                    ) from exc
+                    )
+                    # Callers restore and report these; the return value never
+                    # reaches them on this path.
+                    error.left_inactive = list(deactivated)
+                    raise error from exc
                 raise TaskOptionsError(
                     "Cascade deactivation failed after deactivating "
                     f"ProcedurePlanDefinitionVersion(s) {deactivated}; "
@@ -516,18 +579,29 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
     def _cascade_reactivate_procedure_plans(
         self, version_ids: List[str], dry_run: bool
     ):
+        # Every ID is attempted before raising, so one failed PATCH can't leave
+        # the later plans offline.
+        failures: List[str] = []
         for vid in version_ids:
             if dry_run:
                 self.logger.info(
                     "[dry-run] Would reactivate ProcedurePlanDefinitionVersion %s", vid
                 )
-            else:
+                continue
+            try:
                 self._patch_sobject(
                     "ProcedurePlanDefinitionVersion", vid, {"IsActive": True}
                 )
                 self.logger.info(
                     "Reactivated ProcedurePlanDefinitionVersion %s.", vid
                 )
+            except Exception as exc:
+                failures.append(f"{vid}: {exc}")
+        if failures:
+            raise TaskOptionsError(
+                "Could not reactivate ProcedurePlanDefinitionVersion(s): "
+                + "; ".join(failures)
+            )
 
     # -- Shared mutation lifecycle -------------------------------------
 
@@ -607,7 +681,17 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             deactivated version. It is NEVER reactivated — re-enabling a
             corrupted pricing procedure is worse than leaving it offline. So
             reactivation happens only when ``activate_after`` AND the mutate body
-            succeeded (or in dry-run, where nothing changed).
+            succeeded, or failed before it started (nothing was written, e.g.
+            the deactivation poll timed out), or in dry-run.
+          * A failed PATCH still restores the cascaded procedure plans (when
+            ``activate_after``). A deactivated plan is skipped: pricing silently
+            falls back to the Revenue Settings default procedure and the plan's
+            other procedures stop running. An active plan over an inactive
+            version fails loudly at pricing time instead (both live-checked on
+            264 / v68.0). After any failure, including a failed reactivation,
+            the version and every referencing plan are re-read. Records this
+            run deactivated get a restore command; other inactive plan versions
+            are listed for inspection only.
 
         Re-raises the original failure (chaining a reactivation failure onto it
         when both happen) so the caller surfaces it.
@@ -617,14 +701,24 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         deactivated = False
         cascaded_ppvs: List[str] = []
         failure: Optional[Exception] = None
+        reactivate_error: Optional[Exception] = None
         mutate_succeeded = False
+        # Set before the version PATCH, so a PATCH that lands but whose
+        # confirmation poll fails still counts as taken down.
+        version_off_attempted = False
+        mutate_started = False
 
         try:
             if was_active:
                 if cascade:
-                    cascaded_ppvs = self._cascade_deactivate_procedure_plans(
-                        es_def_id, dry_run
-                    )
+                    try:
+                        cascaded_ppvs = self._cascade_deactivate_procedure_plans(
+                            es_def_id, dry_run
+                        )
+                    except Exception as cascade_exc:
+                        cascaded_ppvs = list(getattr(cascade_exc, "left_inactive", ()))
+                        raise
+                version_off_attempted = True
                 self._set_version_active(esv_id, False, dry_run)
                 if not dry_run:
                     self._wait_for_version_state(esv_id, False)
@@ -634,37 +728,114 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     "ExpressionSetVersion %s already inactive.", esv_id
                 )
 
+            mutate_started = True
             mutate()
             mutate_succeeded = True
         except Exception as exc:
             failure = exc
         finally:
-            should_activate = activate_after and (mutate_succeeded or dry_run)
+            # A failure before mutate() started wrote nothing, so everything
+            # this run took down is safe to restore.
+            failed_before_mutate = bool(failure) and not mutate_started
+            should_activate = activate_after and (
+                mutate_succeeded
+                or dry_run
+                or (failed_before_mutate and (version_off_attempted or cascaded_ppvs))
+            )
             if should_activate:
-                try:
-                    self._set_version_active(esv_id, True, dry_run)
-                    if not dry_run:
-                        self._wait_for_version_state(esv_id, True)
-                    if cascaded_ppvs:
+                if failed_before_mutate and not dry_run:
+                    self.logger.warning(
+                        "%s failed before the mutation ran, so nothing was "
+                        "written; restoring ExpressionSetVersion %s and the "
+                        "cascaded procedure plans. The failure is still reported.",
+                        verb, esv_id,
+                    )
+                # The version and the plans are restored independently, so a
+                # failed version reactivation can't leave the plans offline.
+                # Errors are raised after the health report below.
+                if was_active or not failed_before_mutate:
+                    try:
+                        # After an unconfirmed deactivation, a stale read could
+                        # make the idempotent setter skip the PATCH; force it.
+                        self._set_version_active(
+                            esv_id, True, dry_run,
+                            force=failed_before_mutate and version_off_attempted,
+                        )
+                        if not dry_run:
+                            self._wait_for_version_state(esv_id, True)
+                    except Exception as reactivate_exc:
+                        reactivate_error = reactivate_exc
+                if cascaded_ppvs:
+                    try:
                         self._cascade_reactivate_procedure_plans(
                             cascaded_ppvs, dry_run
                         )
-                except Exception as reactivate_exc:
-                    if failure:
-                        raise TaskOptionsError(
-                            f"{verb} failed, and reactivation also failed: "
-                            f"{reactivate_exc}"
-                        ) from failure
-                    raise
-            elif failure and deactivated and not dry_run:
+                    except Exception as plan_exc:
+                        if reactivate_error:
+                            self.logger.error(
+                                "Plan reactivation also failed: %s", plan_exc
+                            )
+                        else:
+                            reactivate_error = plan_exc
+            elif failure and mutate_started and not dry_run:
                 self.logger.error(
                     "%s failed and may have partially applied. Leaving "
                     "ExpressionSetVersion %s DEACTIVATED to avoid re-enabling a "
                     "corrupted definition. Inspect/restore it manually, then "
-                    "reactivate (cascaded procedure plans %s remain "
-                    "deactivated).",
-                    verb, esv_id, cascaded_ppvs or "(none)",
+                    "reactivate it.",
+                    verb, esv_id,
                 )
+                # A failed full-graph PATCH may still have applied
+                # `enabled: true`, leaving a half-written version active, even
+                # one that was off before the run. Turn it off and confirm,
+                # whether or not any plans are waiting to be restored.
+                try:
+                    # Forced: a read right after the PATCH can still say false
+                    # (stale) while the version is active. A forced
+                    # IsActive=false on an inactive version is accepted
+                    # (live-checked on 264), so this is safe either way.
+                    self._set_version_active(esv_id, False, False, force=True)
+                    self._wait_for_version_state(esv_id, False)
+                    version_off = True
+                except Exception as off_exc:
+                    version_off = False
+                    reactivate_error = off_exc
+                    self.logger.error(
+                        "Could not confirm ExpressionSetVersion %s is inactive "
+                        "after the failed %s (%s); it may be active and "
+                        "half-written. Any cascaded procedure plans stay off, "
+                        "because they could route pricing to it.",
+                        esv_id, verb, off_exc,
+                    )
+                    if cascade:
+                        # A plan that was active before the run (the version
+                        # started inactive, so nothing cascaded) would route
+                        # pricing to it too; take every active one off.
+                        try:
+                            more = self._cascade_deactivate_procedure_plans(
+                                es_def_id, False, rollback=False
+                            )
+                        except Exception as plan_off_exc:
+                            more = list(getattr(plan_off_exc, "left_inactive", ()))
+                            self.logger.error(
+                                "Could not deactivate the referencing procedure "
+                                "plans: %s", plan_off_exc,
+                            )
+                        cascaded_ppvs = cascaded_ppvs + [
+                            vid for vid in more if vid not in cascaded_ppvs
+                        ]
+                if activate_after and cascaded_ppvs and version_off:
+                    try:
+                        self._cascade_reactivate_procedure_plans(cascaded_ppvs, False)
+                        self.logger.info(
+                            "Reactivated the cascaded procedure plans, so pricing "
+                            "doesn't silently skip the plan: with no other active "
+                            "version of this expression set it fails loudly instead."
+                        )
+                    except Exception as plan_exc:
+                        # Kept, so the combined error below says a plan is
+                        # still off.
+                        reactivate_error = plan_exc
             elif deactivated and not dry_run:
                 # Success, but activate_after=false: leave the version (and any
                 # cascaded procedure plans) deactivated as the caller requested.
@@ -674,6 +845,26 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                     esv_id, cascaded_ppvs or "(none)",
                 )
 
+        if (failure or reactivate_error) and not dry_run:
+            try:
+                self._report_procedure_health(
+                    es_def_id, esv_id,
+                    taken_down=cascaded_ppvs, version_taken_down=version_off_attempted,
+                    version_may_be_half_written=mutate_started and not mutate_succeeded,
+                )
+            except Exception as health_exc:
+                self.logger.error(
+                    "Could not read procedure health after the failure: %s",
+                    health_exc,
+                )
+
+        if reactivate_error:
+            if failure:
+                raise TaskOptionsError(
+                    f"{verb} failed, and recovery also failed: "
+                    f"{reactivate_error}"
+                ) from failure
+            raise reactivate_error
         if failure:
             raise failure
 
@@ -826,6 +1017,129 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             raise TaskOptionsError(f"PATCH payload has no version id {version_id}.")
         target["enabled"] = False
         return payload
+
+    def _report_procedure_health(
+        self,
+        es_def_id: str,
+        esv_id: str,
+        *,
+        taken_down: List[str],
+        version_taken_down: bool,
+        version_may_be_half_written: bool = False,
+    ) -> List[str]:
+        """Re-read activation state after a failure and warn on anything off.
+
+        Only records this run deactivated get a restore command; their prior
+        state is known to be active. Other inactive procedure-plan versions
+        referencing the expression set are listed for inspection only: a plan
+        can keep inactive draft, expired or lower-ranked versions on purpose.
+
+        ``version_may_be_half_written`` marks a failed definition PATCH: if the
+        version still reads active, restoring a plan would route pricing to it,
+        so the report says to inspect and deactivate the version first.
+        """
+        left_off: List[str] = []
+        version_was_off = False
+        records = self._soql_query(
+            "SELECT Id, IsActive FROM ExpressionSetVersion "
+            f"WHERE Id = '{self._soql_escape(esv_id)}'"
+        )
+        # Records whose state couldn't be read; never counted as healthy.
+        unknown: List[str] = []
+        if not records:
+            unknown.append(f"ExpressionSetVersion {esv_id}")
+        version_confirmed_off = bool(records) and not records[0].get("IsActive")
+        if version_confirmed_off:
+            if version_taken_down:
+                left_off.append(f"ExpressionSetVersion {esv_id}")
+            else:
+                version_was_off = True
+        plan_ids = sorted({
+            (opt.get("ProcedurePlanSection") or {}).get("ProcedurePlanVersionId")
+            for opt in self._find_referencing_procedure_plans(es_def_id)
+        } - {None} | set(taken_down))
+        other_inactive: List[str] = []
+        for vid in plan_ids:
+            records = self._soql_query(
+                "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
+                f"WHERE Id = '{self._soql_escape(vid)}'"
+            )
+            if not records:
+                unknown.append(f"ProcedurePlanDefinitionVersion {vid}")
+            elif not records[0].get("IsActive"):
+                if vid in taken_down:
+                    left_off.append(f"ProcedurePlanDefinitionVersion {vid}")
+                else:
+                    other_inactive.append(vid)
+        version_unsafe = version_may_be_half_written and not version_confirmed_off
+        if not left_off and not other_inactive and not version_was_off \
+                and not version_unsafe and not unknown:
+            self.logger.info(
+                "Procedure health after the failure: the version and all "
+                "referencing procedure plans are active."
+            )
+            return left_off
+        self.logger.error("!" * 72)
+        if unknown:
+            self.logger.error(
+                "WARNING: could not read the state of %s. Check each before "
+                "reading any price; an inactive plan this run deactivated needs "
+                "IsActive=true.", ", ".join(unknown),
+            )
+        if version_unsafe:
+            self.logger.error(
+                "WARNING: ExpressionSetVersion %s is NOT confirmed inactive after "
+                "the failed PATCH and may be half-written. Inspect it and "
+                "deactivate it before restoring any plan; an active plan would "
+                "route pricing to it.", esv_id,
+            )
+        if left_off:
+            self.logger.error(
+                "WARNING: records this run deactivated are still INACTIVE."
+            )
+            if any(r.startswith("ProcedurePlanDefinitionVersion") for r in left_off):
+                self.logger.error(
+                    "An inactive procedure plan is skipped: pricing silently falls back "
+                    "to the Revenue Settings default procedure and none of the plan's "
+                    "other procedures run, so prices look plausible but are wrong."
+                )
+                if not version_unsafe:
+                    self.logger.error("Restore the plan before reading any price.")
+            for record in left_off:
+                sobject, record_id = record.split(" ", 1)
+                if sobject == "ExpressionSetVersion" and version_may_be_half_written:
+                    self.logger.error(
+                        "  %s: no command; the failed PATCH may have left it "
+                        "half-written. Re-import a known-good definition before "
+                        "reactivating it.", record,
+                    )
+                    continue
+                self.logger.error(
+                    "  %s: sf data update record --target-org %s --sobject %s "
+                    "--record-id %s --values \"IsActive=true\"",
+                    record, self.org_config.username, sobject, record_id,
+                )
+            if (f"ExpressionSetVersion {esv_id}" in left_off
+                    and not version_may_be_half_written):
+                self.logger.error(
+                    "Inspect the expression-set version before reactivating it; a "
+                    "failed PATCH can leave it half-written."
+                )
+        if version_was_off:
+            self.logger.error(
+                "ExpressionSetVersion %s is inactive, as it was before this run; "
+                "it was not reactivated.", esv_id,
+            )
+        if other_inactive:
+            self.logger.error(
+                "Other procedure-plan versions referencing this expression set are "
+                "inactive: %s. They may be intentional (draft, expired or "
+                "lower-ranked) or left off by an earlier failed run; check which "
+                "version should be active before changing any.",
+                ", ".join(other_inactive),
+            )
+        self.logger.error("!" * 72)
+        return left_off
 
     # -- Payload sanitization -----------------------------------------
     #
@@ -1861,9 +2175,13 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
         cascaded_ppvs: List[str] = []
         esv_deactivated_by_us = False
         try:
-            cascaded_ppvs = self._cascade_deactivate_procedure_plans(
-                es_def_id, dry_run
-            )
+            try:
+                cascaded_ppvs = self._cascade_deactivate_procedure_plans(
+                    es_def_id, dry_run
+                )
+            except Exception as cascade_exc:
+                cascaded_ppvs = list(getattr(cascade_exc, "left_inactive", ()))
+                raise
             if esv_was_active:
                 self._set_version_active(esv["Id"], False, dry_run)
                 if not dry_run:

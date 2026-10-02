@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>Routes a successful sync with an opportunity to the close path, and a failed sync to the failure-task path. Both only act when the quote has an activated order, so routine quote syncs are left alone.</description>
+        <name>IsSyncSuccessful</name>
+        <label>Is Sync Successful</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Other</defaultConnectorLabel>
+        <rules>
+            <name>SyncSucceeded</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.HasErrors</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.OpportunityRecordId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>GetActivatedOrder</targetReference>
+            </connector>
+            <label>Sync Succeeded</label>
+        </rules>
+        <rules>
+            <name>SyncFailed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.HasErrors</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.QuoteRecordId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>GetFailedSyncOrder</targetReference>
+            </connector>
+            <label>Sync Failed</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Closes the opportunity only when every order created from the quote is activated. A quote split into several orders syncs on each activation; only the last one closes the renewal.</description>
+        <name>AreAllOrdersActivated</name>
+        <label>Are All Orders Activated</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Draft Order Remains</defaultConnectorLabel>
+        <rules>
+            <name>AllOrdersActivated</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetDraftOrder.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>CloseRenewalOpportunity</targetReference>
+            </connector>
+            <label>All Orders Activated</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Checks whether the synced quote has an activated order, so routine quote syncs don&apos;t close the opportunity.</description>
+        <name>HasActivatedOrder</name>
+        <label>Has Activated Order</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No Activated Order</defaultConnectorLabel>
+        <rules>
+            <name>ActivatedOrderFound</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetActivatedOrder.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>GetDraftOrder</targetReference>
+            </connector>
+            <label>Activated Order Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Checks whether the failed sync is for a quote with an activated order, the sync RLM_SyncRenewalQuoteOnOrderActivation starts.</description>
+        <name>IsRenewalOrderSync</name>
+        <label>Is Renewal Order Sync</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No Activated Order</defaultConnectorLabel>
+        <rules>
+            <name>FailedSyncOrderFound</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetFailedSyncOrder.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>GetFailedSyncQuote</targetReference>
+            </connector>
+            <label>Activated Order Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Checks whether the failed sync&apos;s quote belongs to an open renewal opportunity.</description>
+        <name>IsOpenRenewalOpportunity</name>
+        <label>Is Open Renewal Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No Open Renewal Opportunity</defaultConnectorLabel>
+        <rules>
+            <name>OpenRenewalOpportunityFound</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetFailedSyncOpportunity.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>CreateSyncFailureTask</targetReference>
+            </connector>
+            <label>Open Renewal Opportunity Found</label>
+        </rules>
+    </decisions>
+    <description>When a quote-to-opportunity sync finishes without errors and the quote has an activated order, closes the opportunity as Closed Won if it&apos;s an open renewal (Type Existing Business) and no order from the quote is still a draft, so a quote split into several orders closes the renewal only when the last one activates. RLM_SyncRenewalQuoteOnOrderActivation starts that sync when the renewal order is activated, so the opportunity closes only after its products match the quote. Without this the renewal just won stays open beside the next-term renewal opportunity that RLM_CreateUpdateRenewalOpportunities creates. If that background sync fails, the opportunity stays open and its owner gets a high-priority task with the event&apos;s error.</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Close Renewal Opportunity On Quote Sync {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Close Renewal Opportunity On Quote Sync</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordCreates>
+        <description>Runs when the background sync for a renewal order fails. The order-triggered flow only sees an immediate action fault, so without this a sync that was accepted and then failed would be silent.</description>
+        <name>CreateSyncFailureTask</name>
+        <label>Create Sync Failure Task</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <inputAssignments>
+            <field>ActivityDate</field>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Description</field>
+            <value>
+                <elementReference>SyncFailureDescription</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>OwnerId</field>
+            <value>
+                <elementReference>GetFailedSyncOpportunity.OwnerId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Priority</field>
+            <value>
+                <stringValue>High</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Subject</field>
+            <value>
+                <stringValue>Renewal quote sync failed</stringValue>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>WhatId</field>
+            <value>
+                <elementReference>GetFailedSyncOpportunity.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Task</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordCreates>
+    <recordLookups>
+        <description>Gets an order created from the synced quote that is still a draft, such as a sibling of a split order.</description>
+        <name>GetDraftOrder</name>
+        <label>Get Draft Order</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>AreAllOrdersActivated</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>QuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.QuoteRecordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>StatusCode</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Draft</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Order</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Gets an activated order created from the synced quote.</description>
+        <name>GetActivatedOrder</name>
+        <label>Get Activated Order</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>HasActivatedOrder</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>QuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.QuoteRecordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Activated</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Order</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Gets an activated order created from the quote whose sync failed.</description>
+        <name>GetFailedSyncOrder</name>
+        <label>Get Failed Sync Order</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>IsRenewalOrderSync</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>QuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.QuoteRecordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Activated</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Order</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>OrderNumber</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Gets the failed sync&apos;s quote, for its opportunity; the event&apos;s OpportunityRecordId isn&apos;t guaranteed on a failure.</description>
+        <name>GetFailedSyncQuote</name>
+        <label>Get Failed Sync Quote</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>GetFailedSyncOpportunity</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.QuoteRecordId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Quote</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>OpportunityId</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Gets the quote&apos;s opportunity when it&apos;s an open renewal opportunity.</description>
+        <name>GetFailedSyncOpportunity</name>
+        <label>Get Failed Sync Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>IsOpenRenewalOpportunity</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>GetFailedSyncQuote.OpportunityId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Type</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Existing Business</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>IsClosed</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>OwnerId</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <description>Sets the synced opportunity to Closed Won when it&apos;s an open renewal opportunity.</description>
+        <name>CloseRenewalOpportunity</name>
+        <label>Close Renewal Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.OpportunityRecordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Type</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Existing Business</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>IsClosed</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>StageName</field>
+            <value>
+                <stringValue>Closed Won</stringValue>
+            </value>
+        </inputAssignments>
+        <object>Opportunity</object>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>IsSyncSuccessful</targetReference>
+        </connector>
+        <object>QuoteToOpportunitySyncEvent</object>
+        <triggerType>PlatformEvent</triggerType>
+    </start>
+    <status>Active</status>
+    <textTemplates>
+        <description>Body of the sync failure task.</description>
+        <name>SyncFailureDescription</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>Activated order {!GetFailedSyncOrder.OrderNumber} couldn&apos;t sync quote {!$Record.QuoteRecordId} to this renewal opportunity, so the opportunity wasn&apos;t closed.
+
+Fix the error below, then sync the quote to the opportunity manually. The opportunity closes as Closed Won when the sync succeeds.
+
+Error {!$Record.ErrorCode}: {!$Record.ErrorMessage}</text>
+    </textTemplates>
+</Flow>

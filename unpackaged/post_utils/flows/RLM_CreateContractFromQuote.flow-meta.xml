@@ -12,7 +12,7 @@
             <targetReference>SetOutputVariables</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>SetErrorMessage</targetReference>
+            <targetReference>RollBackContract</targetReference>
         </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -68,7 +68,7 @@
         </connector>
     </assignments>
     <assignments>
-        <description>Stores the flow fault message in the error output variable.</description>
+        <description>Stores the flow fault message in the error output variable and clears the success outputs.</description>
         <name>SetErrorMessage</name>
         <label>Set Error Message</label>
         <locationX>0</locationX>
@@ -80,6 +80,20 @@
                 <elementReference>$Flow.FaultMessage</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>isSuccess</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>outputContractId</assignToReference>
+            <operator>Assign</operator>
+        </assignmentItems>
+        <connector>
+            <targetReference>ContractCreationErrorScreen</targetReference>
+        </connector>
     </assignments>
     <assignments>
         <description>Sets the success flag and output contract ID after the contract is created.</description>
@@ -251,8 +265,28 @@
             <label>Contract Discount</label>
         </rules>
     </decisions>
-    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for renewal term, renewal term unit, and price source.</description>
+    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for contract term, renewal term, renewal term unit, and price source. The contract term runs from the contract start date to the end of the quote&apos;s last-ending term-defined line, so it covers every line. The renewal term is that contract term divided by the pricing term (PricingTerm × PricingTermUnit) of the first such line by line number, rounded to the nearest whole count, because renewal reads Contract.RenewalTerm2 as a count of the selling model&apos;s pricing term and ignores RenewalTermUnit.</description>
     <environments>Default</environments>
+    <formulas>
+        <description>Contract term in months, which sets the contract end date: whole months from the contract start date to the day after the last-ending term-defined quote line ends (a partial month rounds up), or 12 when the quote has no term-defined line or the contract has no start date.</description>
+        <name>ContractTermFormula</name>
+        <dataType>Number</dataType>
+        <expression>IF(OR(ISBLANK({!GetTermQuoteLineItem.Id}), ISBLANK({!GetContract.StartDate})), 12, MAX(1, (YEAR({!GetTermQuoteLineItem.EndDate} + 1) - YEAR({!GetContract.StartDate})) * 12 + MONTH({!GetTermQuoteLineItem.EndDate} + 1) - MONTH({!GetContract.StartDate}) + IF(DAY({!GetTermQuoteLineItem.EndDate} + 1) &gt; DAY({!GetContract.StartDate}), 1, 0)))</expression>
+        <scale>0</scale>
+    </formulas>
+    <formulas>
+        <description>Renewal term for the contract: the contract term divided by the line&apos;s pricing term (PricingTerm × PricingTermUnit, so a 2-year Annual model counts 2-year terms) and rounded to the nearest whole count (at least 1), so a prorated or co-termed first term doesn&apos;t produce a fractional or extra renewal term. Weekly uses the actual day span, not the month-rounded contract term. Renewal reads this as a count of each line&apos;s selling-model pricing term.</description>
+        <name>RenewalTermFormula</name>
+        <dataType>Number</dataType>
+        <expression>MAX(1, ROUND(CASE({!RenewalTermUnitFormula}, &apos;Annual&apos;, {!ContractTermFormula} / 12, &apos;Semi-Annual&apos;, {!ContractTermFormula} / 6, &apos;Quarterly&apos;, {!ContractTermFormula} / 3, &apos;Weekly&apos;, IF(ISBLANK({!GetContract.StartDate}), {!ContractTermFormula} * 52 / 12, ({!GetTermQuoteLineItem.EndDate} + 1 - {!GetContract.StartDate}) / 7), {!ContractTermFormula}) / MAX(1, BLANKVALUE({!GetTermQuoteLineItem.PricingTerm}, 1)), 0))</expression>
+        <scale>0</scale>
+    </formulas>
+    <formulas>
+        <description>Renewal term unit for the contract: the pricing term unit of the last-ending term-defined quote line, or Annual when the quote has none.</description>
+        <name>RenewalTermUnitFormula</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!GetTermQuoteLineItem.Id}), &apos;Annual&apos;, TEXT({!GetTermQuoteLineItem.PricingTermUnit}))</expression>
+    </formulas>
     <interviewLabel>RLM_CreateContractFromQuote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM CreateContractFromQuote</label>
     <overriddenFlow>rev_contracts__CreateCntrFromQuote</overriddenFlow>
@@ -364,7 +398,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>UpdateContract</targetReference>
+            <targetReference>GetLatestEndingLine</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -378,11 +412,113 @@
         <object>Quote</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <recordLookups>
+        <description>Finds the latest end date among the term-defined quote lines, so the contract term covers every quoted subscription line.</description>
+        <name>GetLatestEndingLine</name>
+        <label>Get Latest Ending Line</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>GetTermQuoteLineItem</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>QuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>SellingModelType</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>TermDefined</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>EndDate</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>QuoteLineItem</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>EndDate</queriedFields>
+        <sortField>EndDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Picks the line whose pricing term sets the renewal term: the first term-defined line, by line number, that ends on the latest end date. Sorting by line number makes the choice deterministic when several lines end on the same date.</description>
+        <name>GetTermQuoteLineItem</name>
+        <label>Get Term Quote Line Item</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>UpdateContractShippingAddress</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>QuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>SellingModelType</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>TermDefined</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>EndDate</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>EndDate</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>GetLatestEndingLine.EndDate</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>QuoteLineItem</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>EndDate</queriedFields>
+        <queriedFields>PricingTerm</queriedFields>
+        <queriedFields>PricingTermUnit</queriedFields>
+        <sortField>LineNumber</sortField>
+        <sortOrder>Asc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordRollbacks>
+        <description>Rolls back this transaction when creating or updating the contract faults, so a fault leaves no contract or partially populated contract behind.</description>
+        <name>RollBackContract</name>
+        <label>Roll Back Contract</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>SetErrorMessage</targetReference>
+        </connector>
+    </recordRollbacks>
     <recordUpdates>
         <name>UpdateContract</name>
         <label>UpdateContract</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <faultConnector>
+            <targetReference>RollBackContract</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -422,6 +558,12 @@
             </value>
         </inputAssignments>
         <inputAssignments>
+            <field>ContractTerm</field>
+            <value>
+                <elementReference>ContractTermFormula</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
             <field>PricingSource</field>
             <value>
                 <stringValue>LastTransaction</stringValue>
@@ -430,15 +572,43 @@
         <inputAssignments>
             <field>RenewalTerm2</field>
             <value>
-                <numberValue>12.0</numberValue>
+                <elementReference>RenewalTermFormula</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>RenewalTermUnit</field>
             <value>
-                <stringValue>Months</stringValue>
+                <elementReference>RenewalTermUnitFormula</elementReference>
             </value>
         </inputAssignments>
+        <inputAssignments>
+            <field>SourceQuoteId</field>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Contract</object>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Copies the account shipping address to the contract. Best effort: Contract.ShippingAddress has no field-level security by default, so users without edit access to it fault here and continue to UpdateContract without the shipping address.</description>
+        <name>UpdateContractShippingAddress</name>
+        <label>Update Contract Shipping Address</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>UpdateContract</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>UpdateContract</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>CreateContract.contractId</elementReference>
+            </value>
+        </filters>
         <inputAssignments>
             <field>ShippingCity</field>
             <value>
@@ -469,14 +639,25 @@
                 <elementReference>GetContract.Account.ShippingStreet</elementReference>
             </value>
         </inputAssignments>
-        <inputAssignments>
-            <field>SourceQuoteId</field>
-            <value>
-                <elementReference>recordId</elementReference>
-            </value>
-        </inputAssignments>
         <object>Contract</object>
     </recordUpdates>
+    <screens>
+        <description>Shows the fault message when the contract cannot be created.</description>
+        <name>ContractCreationErrorScreen</name>
+        <label>Contract Creation Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>ContractCreationErrorDisplayText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The contract could not be created.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!errorMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
     <screens>
         <description>Confirms creation of contract prices or discounts when matching quote lines exist.</description>
         <name>CreateContractPricesConfirmationScreen</name>

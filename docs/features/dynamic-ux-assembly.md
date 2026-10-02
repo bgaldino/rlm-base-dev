@@ -88,7 +88,8 @@ templates/
 │       ├── quantumbit/
 │       ├── tso/
 │       ├── utils/
-│       │   └── RLM_Account_Record_Page.yml
+│       │   ├── RLM_Account_Record_Page.yml
+│       │   └── RLM_Opportunity_Record_Page.yml
 │       └── prm_pricing/
 │           ├── RLM_Account_Record_Page.yml
 │           └── RLM_Quote_Record_Page.yml

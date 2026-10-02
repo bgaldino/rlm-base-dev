@@ -24,8 +24,14 @@ import re
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
 from _soql import soql_escape
+
+# sf redacts the token in `sf org display` unless SF_TEMP_SHOW_SECRETS is set;
+# the shared helper falls back to `sf org auth show-access-token`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from sf_token import SfTokenError, org_auth  # noqa: E402
 
 try:
     import requests
@@ -86,24 +92,11 @@ def _sf_update(sobject, record_id, values_str, org):
 
 
 def _get_rest_auth(org):
-    """Get instance_url and access_token from sf org display --json."""
-    result = subprocess.run(
-        ["sf", "org", "display", "--target-org", org, "--json"],
-        capture_output=True, text=True,
-    )
+    """Get instance_url and access_token via the shared sf_token helper."""
     try:
-        data = json.loads(result.stdout)
-        info = data.get("result", {})
-        token = info.get("accessToken")
-        url = info.get("instanceUrl")
-        if not token or not url:
-            print("ERROR: Could not get accessToken/instanceUrl from sf org display. "
-                  "Ensure the org is authenticated and the alias is correct.",
-                  file=sys.stderr)
-            sys.exit(1)
-        return url, token
-    except (json.JSONDecodeError, KeyError):
-        print(f"ERROR: Failed to parse sf org display output: {result.stderr}",
+        return org_auth(org)
+    except SfTokenError as exc:
+        print(f"ERROR: {exc} Ensure the org is authenticated and the alias is correct.",
               file=sys.stderr)
         sys.exit(1)
 

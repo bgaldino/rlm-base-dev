@@ -1151,9 +1151,510 @@ def test_shipped_fixtures():
         check(f"{name} validates clean", result.passed, result.format_report())
 
 
+class _PlanTransport:
+    """Fake Transport with one ExpressionSetVersion and its procedure plans.
+
+    Enough to drive run_mutation's cascade and failure paths offline. ``plans``
+    maps ProcedurePlanDefinitionVersion Id -> IsActive.
+    """
+
+    def __init__(self, *, plans, esv_active=True, fail_plan_reactivate=False,
+                 esv_reads_active=False, fail_plan_ids=(), fail_esv_reactivate=False,
+                 esv_reactivate_error="version reactivate boom"):
+        self.plans = dict(plans)
+        self.esv_active = esv_active
+        self.fail_plan_reactivate = fail_plan_reactivate
+        self.fail_plan_ids = set(fail_plan_ids)
+        self.fail_esv_reactivate = fail_esv_reactivate
+        self.esv_reactivate_error = esv_reactivate_error
+        self.fail_esv_deactivate = False
+        self.fail_plan_deactivate_ids = set()
+        # Ids whose state reads return no row.
+        self.missing_ids = set()
+        # Plan reactivations to fail before they start succeeding.
+        self.plan_reactivate_failures_left = 0
+        # Models a stale read of false while the version is really active.
+        self.esv_reads_inactive = False
+        # Simulates a deactivation PATCH that lands while reads still say active,
+        # so wait_for_version_state times out.
+        self.esv_reads_active = esv_reads_active
+        self.dry_run = False
+        self.logger = lambda *a, **k: None
+
+    def connect(self, method, path, body=None, **kw):
+        return {}
+
+    def get(self, path):
+        return {}
+
+    def sobject(self, method, sobject, record_id=None, body=None, **kw):
+        active = bool((body or {}).get("IsActive"))
+        if sobject == "ExpressionSetVersion":
+            if not active and self.fail_esv_deactivate:
+                raise RuntimeError("version deactivate boom")
+            if not active:
+                self.esv_reads_inactive = False
+            if active and self.fail_esv_reactivate:
+                raise RuntimeError(self.esv_reactivate_error)
+            self.esv_active = active
+            if active:
+                # A real transition ends the stale read.
+                self.esv_reads_active = False
+        elif sobject == "ProcedurePlanDefinitionVersion":
+            if active and (self.fail_plan_reactivate or record_id in self.fail_plan_ids):
+                raise RuntimeError(f"plan reactivate boom {record_id}")
+            if active and self.plan_reactivate_failures_left:
+                self.plan_reactivate_failures_left -= 1
+                raise RuntimeError(f"plan reactivate blip {record_id}")
+            if not active and record_id in self.fail_plan_deactivate_ids:
+                raise RuntimeError(f"plan deactivate boom {record_id}")
+            self.plans[record_id] = active
+        return {}
+
+    def soql(self, query):
+        if "FROM ProcedurePlanOption" in query:
+            return [{"Id": f"opt{i}",
+                     "ProcedurePlanSection": {"ProcedurePlanVersionId": vid}}
+                    for i, vid in enumerate(sorted(self.plans))]
+        if "FROM ProcedurePlanDefinitionVersion" in query:
+            vid = query.split("Id = '", 1)[1].split("'", 1)[0]
+            if vid in self.missing_ids:
+                return []
+            return [{"Id": vid, "IsActive": self.plans[vid]}]
+        if "FROM ExpressionSetVersion" in query:
+            if "9QMv" in self.missing_ids:
+                return []
+            if self.esv_reads_inactive:
+                return [{"Id": "9QMv", "IsActive": False}]
+            return [{"Id": "9QMv", "IsActive": self.esv_active or self.esv_reads_active}]
+        return []
+
+
+def test_failed_mutation_keeps_plans_online():
+    """Pack 170: a failed PATCH must not leave the procedure plan deactivated."""
+    print("test_failed_mutation_keeps_plans_online")
+    from scripts.expression_sets._lifecycle import LifecycleEngine
+
+    def boom():
+        raise RuntimeError("PATCH boom")
+
+    def run(t, logs, **kw):
+        engine = LifecycleEngine(t, logger=logs.append, poll_interval_seconds=1)
+        try:
+            engine.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                                mutate=boom, cascade=True, verb="Import", **kw)
+        except RuntimeError as exc:
+            return exc
+        return None
+
+    # Failed PATCH: the version stays off (it may be half-written), but the plan
+    # this run cascaded off is restored, and the failure still raises.
+    logs = []
+    t = _PlanTransport(plans={"1Cv1": True})
+    exc = run(t, logs, activate_after=True)
+    check("failed PATCH still raises", exc is not None and "boom" in str(exc), exc)
+    check("failed PATCH leaves the expression-set version deactivated",
+          t.esv_active is False, t.esv_active)
+    check("failed PATCH reactivates the cascaded procedure plan",
+          t.plans == {"1Cv1": True}, t.plans)
+    # Round 13: no activation command for a version a failed PATCH may have
+    # half-written.
+    check("health report names the inactive version without an activation command",
+          any("ExpressionSetVersion 9QMv: no command" in m for m in logs)
+          and not any("--record-id 9QMv" in m for m in logs), logs)
+    check("no plan-offline warning when every plan is active",
+          not any("inactive procedure plan is skipped" in m for m in logs), logs)
+
+    # An inactive plan version this run did not deactivate may be an intentional
+    # draft, or one an earlier failed run left off (the old message said
+    # "(none)"). It is left as found and listed for inspection, with no restore
+    # command, so nobody activates an unintended version (PR #491 review).
+    logs2 = []
+    t2 = _PlanTransport(plans={"1Cv1": True, "1Cv2": False})
+    run(t2, logs2, activate_after=True)
+    check("a plan this run did not deactivate is left as found",
+          t2.plans == {"1Cv1": True, "1Cv2": False}, t2.plans)
+    check("health report lists another inactive plan version for inspection",
+          any("1Cv2" in m and "check which version should be active" in m
+              for m in logs2), logs2)
+    check("health report gives no restore command for a plan it did not take down",
+          not any("--record-id 1Cv2" in m for m in logs2), logs2)
+
+    # activate_after=False is an explicit request to leave things off.
+    logs3 = []
+    t3 = _PlanTransport(plans={"1Cv1": True})
+    run(t3, logs3, activate_after=False)
+    check("activate_after=False leaves the cascaded plan off after a failure",
+          t3.plans == {"1Cv1": False}, t3.plans)
+    check("activate_after=False still reports the inactive plan",
+          any("ProcedurePlanDefinitionVersion 1Cv1" in m for m in logs3), logs3)
+    check("health report warns that an inactive plan prices wrongly",
+          any("inactive procedure plan is skipped" in m for m in logs3), logs3)
+
+    # PR #491 review: a successful mutation whose plan reactivation fails used to
+    # raise from inside `finally`, skipping the health report. It must still
+    # name the plan with a restore command, then raise the reactivation error.
+    logs5 = []
+    t5 = _PlanTransport(plans={"1Cv1": True}, fail_plan_reactivate=True)
+    engine5 = LifecycleEngine(t5, logger=logs5.append, poll_interval_seconds=1)
+    raised5 = None
+    try:
+        engine5.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                             mutate=lambda: None, activate_after=True, cascade=True)
+    except RuntimeError as exc:
+        raised5 = exc
+    check("a failed plan reactivation after a successful mutation still raises",
+          raised5 is not None and "plan reactivate boom" in str(raised5), raised5)
+    check("a failed plan reactivation still prints the health report",
+          any("--record-id 1Cv1" in m for m in logs5), logs5)
+
+    # PR #491 review round 2: the version PATCH lands but its confirmation poll
+    # times out, after the plan was cascaded off. Nothing was written, so the
+    # plan must be restored, and the failure must still raise.
+    logs6 = []
+    t6 = _PlanTransport(plans={"1Cv1": True}, esv_reads_active=True)
+    engine6 = LifecycleEngine(t6, logger=logs6.append, max_wait_seconds=0,
+                              poll_interval_seconds=1)
+    ran = []
+    raised6 = None
+    try:
+        engine6.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                             mutate=lambda: ran.append(1), activate_after=True,
+                             cascade=True)
+    except Exception as exc:
+        raised6 = exc
+    check("an unconfirmed version deactivation raises", raised6 is not None, raised6)
+    check("the mutation never ran", ran == [], ran)
+    check("an unconfirmed version deactivation restores the cascaded plan",
+          t6.plans == {"1Cv1": True}, t6.plans)
+    check("an unconfirmed version deactivation says nothing was written",
+          any("failed before the mutation ran" in m for m in logs6), logs6)
+    # PR #491 review round 4: the stale read that timed the poll out must not
+    # let the idempotent setter skip the reactivation PATCH.
+    check("an unconfirmed version deactivation really reactivates the version",
+          t6.esv_active is True, t6.esv_active)
+
+    # Round 5: a rejected forced reactivation must not be "confirmed" by the same
+    # stale read that triggered recovery; it has to propagate.
+    logs10 = []
+    t10 = _PlanTransport(plans={"1Cv1": True}, esv_reads_active=True,
+                         fail_esv_reactivate=True)
+    engine10 = LifecycleEngine(t10, logger=logs10.append, max_wait_seconds=0,
+                               poll_interval_seconds=1)
+    raised10 = None
+    try:
+        engine10.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=lambda: None, activate_after=True, cascade=True)
+    except Exception as exc:
+        raised10 = exc
+    check("a rejected forced reactivation propagates despite a stale active read",
+          raised10 is not None and "version reactivate boom" in str(raised10), raised10)
+    check("a rejected forced reactivation is not logged as taken as active",
+          not any("taking it as active" in m for m in logs10), logs10)
+    check("plans are still restored after a rejected forced reactivation",
+          t10.plans == {"1Cv1": True}, t10.plans)
+    # ...but the platform's own "already enabled" rejection does prove it is active.
+    t11 = _PlanTransport(plans={}, fail_esv_reactivate=True,
+                         esv_reactivate_error="An enabled Expression Set Version cannot be updated/deleted.")
+    engine11 = LifecycleEngine(t11, logger=lambda *a, **k: None)
+    try:
+        engine11.set_version_active("9QMv", True, force=True)
+        ok11 = True
+    except Exception:
+        ok11 = False
+    check("a forced PATCH rejected as already enabled is accepted", ok11)
+
+    # Round 6: a failed PATCH that still applied `enabled: true` leaves a
+    # half-written version active. It must be turned off before the plans come
+    # back, or pricing routes to it.
+    t12 = _PlanTransport(plans={"1Cv1": True})
+
+    def patch_reenables_then_fails():
+        t12.esv_active = True
+        raise RuntimeError("PATCH boom")
+    engine12 = LifecycleEngine(t12, logger=lambda *a, **k: None, poll_interval_seconds=1)
+    try:
+        engine12.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=patch_reenables_then_fails, activate_after=True,
+                              cascade=True)
+    except Exception:
+        pass
+    check("a version a failed PATCH re-enabled is turned off again",
+          t12.esv_active is False, t12.esv_active)
+    check("the plans are restored once the version is confirmed off",
+          t12.plans == {"1Cv1": True}, t12.plans)
+    # Round 7: the read right after the failed PATCH can still say false while
+    # the version is active; the deactivation must be forced, not skipped.
+    t15 = _PlanTransport(plans={"1Cv1": True})
+
+    def patch_reenables_with_stale_read():
+        t15.esv_active = True
+        t15.esv_reads_inactive = True
+        raise RuntimeError("PATCH boom")
+    engine15 = LifecycleEngine(t15, logger=lambda *a, **k: None, poll_interval_seconds=1)
+    try:
+        engine15.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=patch_reenables_with_stale_read, activate_after=True,
+                              cascade=True)
+    except Exception:
+        pass
+    check("a re-enabled version behind a stale false read is really turned off",
+          t15.esv_active is False, t15.esv_active)
+    # If it can't be confirmed off, the plans stay off and the error says so.
+    logs13 = []
+    t13 = _PlanTransport(plans={"1Cv1": True})
+
+    def patch_reenables_and_sticks():
+        t13.esv_active = True
+        t13.fail_esv_deactivate = True
+        raise RuntimeError("PATCH boom")
+    engine13 = LifecycleEngine(t13, logger=logs13.append, poll_interval_seconds=1)
+    raised13 = None
+    try:
+        engine13.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=patch_reenables_and_sticks, activate_after=True,
+                              cascade=True)
+    except Exception as exc:
+        raised13 = exc
+    check("plans stay off when the version can't be confirmed off",
+          t13.plans == {"1Cv1": False}, t13.plans)
+    check("the combined error reports the failed recovery",
+          raised13 is not None and "recovery also failed" in str(raised13), raised13)
+    check("the log explains why the plans stayed off",
+          any("could route pricing to it" in m for m in logs13), logs13)
+    # Round 9: the report says to deactivate the unconfirmed version first.
+    check("the report says to deactivate the unconfirmed version first",
+          any("NOT confirmed inactive" in m for m in logs13)
+          and not any("Restore the plan before reading" in m for m in logs13), logs13)
+    # A plan restore failure after a failed PATCH reaches the raised error.
+    t14 = _PlanTransport(plans={"1Cv1": True}, fail_plan_ids={"1Cv1"})
+    engine14 = LifecycleEngine(t14, logger=lambda *a, **k: None, poll_interval_seconds=1)
+    raised14 = None
+    try:
+        engine14.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=boom, activate_after=True, cascade=True)
+    except Exception as exc:
+        raised14 = exc
+    check("a plan restore failure after a failed PATCH is in the raised error",
+          raised14 is not None and "recovery also failed" in str(raised14)
+          and "1Cv1" in str(raised14), raised14)
+
+    # Round 8: the cascade turns 1Cv1 off, fails on 1Cv2 and can't roll 1Cv1
+    # back. The partial IDs must still reach recovery and the health report.
+    logs16 = []
+    t16 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, fail_plan_ids={"1Cv1"})
+    t16.fail_plan_deactivate_ids = {"1Cv2"}
+    engine16 = LifecycleEngine(t16, logger=logs16.append, poll_interval_seconds=1)
+    raised16 = None
+    try:
+        engine16.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=boom, activate_after=True, cascade=True)
+    except Exception as exc:
+        raised16 = exc
+    check("a failed cascade rollback still raises", raised16 is not None, raised16)
+    check("a plan the failed cascade left off gets a restore command",
+          any("ProcedurePlanDefinitionVersion 1Cv1" in m and "IsActive=true" in m
+              for m in logs16), logs16)
+    check("nothing was written, so the report doesn't warn of a half-written version",
+          any("Restore the plan before reading" in m for m in logs16)
+          and not any("NOT confirmed inactive" in m for m in logs16), logs16)
+    # A transient rollback failure is retried by recovery, so the plan comes back.
+    t17 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True})
+    t17.fail_plan_deactivate_ids = {"1Cv2"}
+    t17.plan_reactivate_failures_left = 1
+    engine17 = LifecycleEngine(t17, logger=lambda *a, **k: None, poll_interval_seconds=1)
+    try:
+        engine17.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=boom, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("recovery retries a plan the failed cascade rollback left off",
+          t17.plans == {"1Cv1": True, "1Cv2": True}, t17.plans)
+    # The delete path retries it the same way.
+    t18 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True})
+    t18.fail_plan_deactivate_ids = {"1Cv2"}
+    t18.plan_reactivate_failures_left = 1
+    engine18 = LifecycleEngine(t18, logger=lambda *a, **k: None, poll_interval_seconds=1)
+    try:
+        engine18.delete_expression_set(es_id="9QAx", es_def_id="9QAx",
+                                       esv={"Id": "9QMv", "IsActive": True},
+                                       api_name="ES")
+    except Exception:
+        pass
+    check("delete rollback retries a plan the failed cascade left off",
+          t18.plans == {"1Cv1": True, "1Cv2": True}, t18.plans)
+
+    # Round 10: a failed PATCH that re-enables the version is turned off even
+    # with no plans to restore, under cascade=False or activate_after=False,
+    # and when the version was off before the run.
+    for label, plans, kw, was_active in (
+        ("with no referencing plans", {}, {"cascade": True, "activate_after": True}, True),
+        ("under cascade=False", {"1Cv1": True}, {"cascade": False, "activate_after": True}, True),
+        ("under activate_after=False", {"1Cv1": True}, {"cascade": True, "activate_after": False}, True),
+        ("when it was off before the run", {}, {"cascade": True, "activate_after": True}, False),
+    ):
+        t19 = _PlanTransport(plans=plans, esv_active=was_active)
+
+        def reenable(t19=t19):
+            t19.esv_active = True
+            raise RuntimeError("PATCH boom")
+        engine19 = LifecycleEngine(t19, logger=lambda *a, **k: None, poll_interval_seconds=1)
+        try:
+            engine19.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": was_active},
+                                  mutate=reenable, **kw)
+        except Exception:
+            pass
+        check(f"a version a failed PATCH re-enabled is turned off {label}",
+              t19.esv_active is False, t19.esv_active)
+    # If it can't be turned off, the report flags it even with no plans involved.
+    logs20 = []
+    t20 = _PlanTransport(plans={})
+
+    def reenable_and_stick20():
+        t20.esv_active = True
+        t20.fail_esv_deactivate = True
+        raise RuntimeError("PATCH boom")
+    engine20 = LifecycleEngine(t20, logger=logs20.append, poll_interval_seconds=1)
+    try:
+        engine20.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=reenable_and_stick20, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("an unconfirmed version is flagged even with no plans involved",
+          any("NOT confirmed inactive" in m for m in logs20)
+          and not any("are active" in m for m in logs20), logs20)
+
+    # Round 11: a record whose state read returns no row is reported as
+    # unknown, never as active.
+    for label, missing in (("plan", {"1Cv1"}), ("version", {"9QMv"})):
+        logs21 = []
+        t21 = _PlanTransport(plans={"1Cv1": True})
+        t21.missing_ids = missing
+        engine21 = LifecycleEngine(t21, logger=logs21.append, poll_interval_seconds=1)
+        engine21.report_procedure_health("9QAx", "9QMv", taken_down=["1Cv1"],
+                                         version_taken_down=True)
+        check(f"a {label} with no state row is reported as unknown, not active",
+              any("could not read the state" in m and next(iter(missing)) in m
+                  for m in logs21)
+              and not any("are active" in m for m in logs21), logs21)
+    # A plan this run took down is read even if no option references it any more.
+    logs22 = []
+    t22 = _PlanTransport(plans={"1Cv1": False})
+    engine22 = LifecycleEngine(t22, logger=logs22.append, poll_interval_seconds=1)
+    t22.soql_orig = t22.soql
+    t22.soql = lambda q: [] if "FROM ProcedurePlanOption" in q else t22.soql_orig(q)
+    engine22.report_procedure_health("9QAx", "9QMv", taken_down=["1Cv1"],
+                                     version_taken_down=False)
+    check("a plan this run took down is reported even when no longer referenced",
+          any("--record-id 1Cv1" in m for m in logs22), logs22)
+
+    # Round 12: version off before the run, plan active; the failed PATCH
+    # re-enables the version and it can't be turned off. The plan must not keep
+    # routing pricing to it, and gets a restore command.
+    logs23 = []
+    t23 = _PlanTransport(plans={"1Cv1": True}, esv_active=False)
+
+    def reenable_and_stick23():
+        t23.esv_active = True
+        t23.fail_esv_deactivate = True
+        raise RuntimeError("PATCH boom")
+    engine23 = LifecycleEngine(t23, logger=logs23.append, poll_interval_seconds=1)
+    try:
+        engine23.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": False},
+                              mutate=reenable_and_stick23, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("an active plan is taken off when an unconfirmed version can't be turned off",
+          t23.plans == {"1Cv1": False}, t23.plans)
+    check("the plan it took off gets a restore command",
+          any("--record-id 1Cv1" in m for m in logs23), logs23)
+
+    # Round 13: the emergency shutdown keeps the plans it turned off even when
+    # another plan fails, and names them for restore.
+    logs24 = []
+    t24 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, esv_active=False)
+    t24.fail_plan_deactivate_ids = {"1Cv1"}
+
+    def reenable_and_stick24():
+        t24.esv_active = True
+        t24.fail_esv_deactivate = True
+        raise RuntimeError("PATCH boom")
+    engine24 = LifecycleEngine(t24, logger=logs24.append, poll_interval_seconds=1)
+    try:
+        engine24.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": False},
+                              mutate=reenable_and_stick24, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("the emergency shutdown doesn't roll back a plan it turned off",
+          t24.plans == {"1Cv1": True, "1Cv2": False}, t24.plans)
+    check("the plan it turned off gets a restore command",
+          any("--record-id 1Cv2" in m for m in logs24), logs24)
+
+    # Round 4: a failed version reactivation must not stop the plan restore.
+    logs7 = []
+    t7 = _PlanTransport(plans={"1Cv1": True}, fail_esv_reactivate=True)
+    engine7 = LifecycleEngine(t7, logger=logs7.append, poll_interval_seconds=1)
+    raised7 = None
+    try:
+        engine7.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                             mutate=lambda: None, activate_after=True, cascade=True)
+    except Exception as exc:
+        raised7 = exc
+    check("a failed version reactivation still raises",
+          raised7 is not None and "version reactivate boom" in str(raised7), raised7)
+    check("a failed version reactivation still restores the plans",
+          t7.plans == {"1Cv1": True}, t7.plans)
+
+    # Round 4: one failing plan must not stop the later ones.
+    logs8 = []
+    t8 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, fail_plan_ids={"1Cv1"})
+    engine8 = LifecycleEngine(t8, logger=logs8.append, poll_interval_seconds=1)
+    raised8 = None
+    try:
+        engine8.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                             mutate=lambda: None, activate_after=True, cascade=True)
+    except Exception as exc:
+        raised8 = exc
+    check("one failing plan does not stop the next from being reactivated",
+          t8.plans.get("1Cv2") is True, t8.plans)
+    check("the failing plan is named in the raised error",
+          raised8 is not None and "1Cv1" in str(raised8), raised8)
+    check("the failing plan gets a restore command",
+          any("--record-id 1Cv1" in m for m in logs8), logs8)
+
+    # Round 4: a version that was already inactive is reported as such, not as
+    # "all active", and gets no restore command.
+    logs9 = []
+    t9 = _PlanTransport(plans={"1Cv1": True}, esv_active=False)
+    engine9 = LifecycleEngine(t9, logger=logs9.append, poll_interval_seconds=1)
+    try:
+        engine9.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": False},
+                             mutate=boom, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("an already-inactive version is not reported as active",
+          not any("are active" in m for m in logs9), logs9)
+    check("an already-inactive version is reported as it was before the run",
+          any("as it was before this run" in m for m in logs9), logs9)
+    check("an already-inactive version gets no restore command",
+          not any("--record-id 9QMv" in m for m in logs9), logs9)
+
+    # Success path is unchanged and prints no health report.
+    logs4 = []
+    t4 = _PlanTransport(plans={"1Cv1": True})
+    engine4 = LifecycleEngine(t4, logger=logs4.append, poll_interval_seconds=1)
+    engine4.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                         mutate=lambda: None, activate_after=True, cascade=True)
+    check("successful mutation reactivates version and plan",
+          t4.esv_active is True and t4.plans == {"1Cv1": True}, (t4.esv_active, t4.plans))
+    check("successful mutation prints no health report",
+          not any("Procedure health" in m or "WARNING" in m for m in logs4), logs4)
+
+
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
-               test_label_preservation, test_cli_restore_boundary,
+               test_label_preservation, test_failed_mutation_keeps_plans_online,
+               test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
                test_overlay_content_verification, test_empty_description_reads_back_null,
                test_shipped_fixtures):

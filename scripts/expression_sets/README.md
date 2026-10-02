@@ -221,7 +221,24 @@ expected behavior; the outputs are not dead code.
 - **A failed Connect PATCH is not atomic.** The lifecycle engine leaves the
   version DEACTIVATED and re-raises rather than reactivating a half-mutated
   definition. Re-enable it with `activate_expression_set.py --activate` once
-  you've inspected and restored it. **A failed label-only Tooling `Metadata`
+  you've inspected and restored it. A failure **during deactivation setup**, before the
+  mutation callback starts (for example the deactivation poll timing out), wrote
+  nothing, so the version is restored too,
+  with a forced PATCH, since the stale read that timed the poll out would make an
+  idempotent one a no-op. The version and the plans are restored independently,
+  and every plan is attempted before any failure is raised.
+  After a failed PATCH it first confirms the version is off (a failed full-graph
+  PATCH can still apply `enabled: true`), then reactivates the procedure plans it
+  cascaded off (unless `--no-activate`). If the version can't be confirmed off, the
+  plans stay off, and (with cascade on) any other active referencing plan is
+  turned off too, so pricing can't reach a half-written version. Restoring the
+  plans matters because an inactive plan is silently skipped: pricing falls back to the Revenue Settings default procedure with plausible
+  numbers, while an active plan over the inactive version fails loudly. After any
+  failure, including a failed reactivation, it re-reads the version and every
+  referencing plan. Records the run deactivated get a restore command, except a
+  version a failed PATCH may have half-written (re-import it first); other
+  inactive plan versions (which may be intentional drafts) are listed for
+  inspection only. **A failed label-only Tooling `Metadata`
   PATCH (the relabel path) is different** — it never touches the definition
   graph, so the stored Metadata is byte-identical after a failure and only the
   cosmetic labels are stale. That path therefore **reactivates** the version even
