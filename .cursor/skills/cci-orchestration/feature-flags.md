@@ -37,9 +37,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 12 flow step(s) |
-| `prm` | `True` | 23 flow step(s) |
+| `prm` | `True` | 24 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
-| `prm_pricing` | `True` | 14 flow step(s) |
+| `prm_pricing` | `True` | 15 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
 | `q3` | `False` | 13 flow step(s) |
@@ -134,8 +134,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `breconfig` (default: `False`)
 
-- `prepare_core` step 15 → `create_rule_library`
-- `prepare_core` step 16 → `create_dro_rule_library`
+- `prepare_core` step 14 → `create_rule_library`
+- `prepare_core` step 15 → `create_dro_rule_library`
 
 ### `calmdelete` (default: `True`)
 
@@ -197,7 +197,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `dro` (default: `True`)
 
-- `prepare_core` step 16 → `create_dro_rule_library`
+- `prepare_core` step 15 → `create_dro_rule_library`
 - `extend_context_definitions` step 6 → `extend_context_fulfillment_asset`
 - `prepare_dro` step 1 → `manage_fulfillment_scope_cnfg`
 - `prepare_dro` step 2 → `insert_qb_dro_data`
@@ -269,12 +269,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 8 → `insert_quantumbit_prm_data`
 - `prepare_prm` step 9 → `manage_context_definition`
 - `deploy_post_prm_pricing` step 1 → `deploy_post_prm_pricing_objects`
-- `deploy_post_prm_pricing` step 2 → `deploy_post_prm_pricing_decision_tables`
-- `deploy_post_prm_pricing` step 3 → `configure_pricing_recipe_table_mappings`
-- `deploy_post_prm_pricing` step 4 → `apply_context_prm_pricing`
-- `deploy_post_prm_pricing` step 5 → `deploy_post_prm_pricing_expression_sets`
-- `deploy_post_prm_pricing` step 6 → `deploy_post_prm_pricing_flows`
-- `deploy_post_prm_pricing` step 7 → `deploy_post_prm_pricing_permissionsets`
+- `deploy_post_prm_pricing` step 2 → `deactivate_changed_post_prm_pricing_decision_tables`
+- `deploy_post_prm_pricing` step 3 → `deploy_post_prm_pricing_decision_tables`
+- `deploy_post_prm_pricing` step 4 → `configure_pricing_recipe_table_mappings`
+- `deploy_post_prm_pricing` step 5 → `apply_context_prm_pricing`
+- `deploy_post_prm_pricing` step 6 → `deploy_post_prm_pricing_expression_sets`
+- `deploy_post_prm_pricing` step 7 → `deploy_post_prm_pricing_flows`
+- `deploy_post_prm_pricing` step 8 → `deploy_post_prm_pricing_permissionsets`
 - `prepare_prm_pricing` step 1 → `deactivate_prm_expression_sets`
 - `prepare_prm_pricing` step 3 → `assign_permission_sets`
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
@@ -294,12 +295,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `prm_pricing` (default: `True`)
 
 - `deploy_post_prm_pricing` step 1 → `deploy_post_prm_pricing_objects`
-- `deploy_post_prm_pricing` step 2 → `deploy_post_prm_pricing_decision_tables`
-- `deploy_post_prm_pricing` step 3 → `configure_pricing_recipe_table_mappings`
-- `deploy_post_prm_pricing` step 4 → `apply_context_prm_pricing`
-- `deploy_post_prm_pricing` step 5 → `deploy_post_prm_pricing_expression_sets`
-- `deploy_post_prm_pricing` step 6 → `deploy_post_prm_pricing_flows`
-- `deploy_post_prm_pricing` step 7 → `deploy_post_prm_pricing_permissionsets`
+- `deploy_post_prm_pricing` step 2 → `deactivate_changed_post_prm_pricing_decision_tables`
+- `deploy_post_prm_pricing` step 3 → `deploy_post_prm_pricing_decision_tables`
+- `deploy_post_prm_pricing` step 4 → `configure_pricing_recipe_table_mappings`
+- `deploy_post_prm_pricing` step 5 → `apply_context_prm_pricing`
+- `deploy_post_prm_pricing` step 6 → `deploy_post_prm_pricing_expression_sets`
+- `deploy_post_prm_pricing` step 7 → `deploy_post_prm_pricing_flows`
+- `deploy_post_prm_pricing` step 8 → `deploy_post_prm_pricing_permissionsets`
 - `prepare_prm_pricing` step 1 → `deactivate_prm_expression_sets`
 - `prepare_prm_pricing` step 3 → `assign_permission_sets`
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
@@ -460,8 +462,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `tso` (default: `False`)
 
-- `prepare_core` step 12 → `recalculate_permission_set_groups`
-- `prepare_core` step 13 → `assign_permission_set_groups_tolerant`
+- `prepare_core` step 11 → `recalculate_permission_set_groups`
+- `prepare_core` step 12 → `assign_permission_set_groups_tolerant`
 - `assign_feature_psls` step 4 → `assign_permission_set_licenses`
 - `prepare_tso` step 1 → `assign_permission_set_groups`
 - `prepare_tso` step 2 → `deploy_post_utils`

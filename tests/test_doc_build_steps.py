@@ -218,8 +218,8 @@ def index_flows(steps):
     """Return (steps inside each flow, which flow sits at each root step number).
 
     Derived from the resolved coordinates rather than re-read from YAML: a step at
-    `1.9.1` with path `prepare_core.assign_feature_psls.<task>` says root step 1 is
-    `prepare_core`, `prepare_core` has a step 9 which is `assign_feature_psls`, and
+    `1.8.1` with path `prepare_core.assign_feature_psls.<task>` says root step 1 is
+    `prepare_core`, `prepare_core` has a step 8 which is `assign_feature_psls`, and
     that has a step 1. Nested flows are flattened by the coordinator, so this is
     the only place their own step numbering can be recovered.
     """
@@ -519,7 +519,7 @@ def self_test(runtime, steps, declared):
         anchor = ("assign_feature_psls", 3)
         check("selftest_inside_task_keys_the_innermost_flow",
               inside_task.get(anchor) == "assign_permission_set_licenses",
-              f"{anchor} -> {inside_task.get(anchor)!r}; build step 1.9.3 is "
+              f"{anchor} -> {inside_task.get(anchor)!r}; build step 1.8.3 is "
               f"prepare_core > assign_feature_psls > assign_permission_set_licenses")
 
         (flow, num), task = next(iter(inside_task.items()))
