@@ -12,7 +12,7 @@
             <targetReference>SetOutputVariables</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>SetErrorMessage</targetReference>
+            <targetReference>RollBackContract</targetReference>
         </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -275,10 +275,10 @@
         <scale>0</scale>
     </formulas>
     <formulas>
-        <description>Renewal term for the contract: the contract term converted to the renewal term unit and rounded to the nearest whole count (at least 1), so a prorated or co-termed first term doesn&apos;t produce a fractional or extra renewal term. Renewal reads this as a count of each line&apos;s selling-model pricing term.</description>
+        <description>Renewal term for the contract: the contract term divided by the line&apos;s pricing term (PricingTerm × PricingTermUnit, so a 2-year Annual model counts 2-year terms) and rounded to the nearest whole count (at least 1), so a prorated or co-termed first term doesn&apos;t produce a fractional or extra renewal term. Weekly uses the actual day span, not the month-rounded contract term. Renewal reads this as a count of each line&apos;s selling-model pricing term.</description>
         <name>RenewalTermFormula</name>
         <dataType>Number</dataType>
-        <expression>MAX(1, CASE({!RenewalTermUnitFormula}, &apos;Annual&apos;, ROUND({!ContractTermFormula} / 12, 0), &apos;Semi-Annual&apos;, ROUND({!ContractTermFormula} / 6, 0), &apos;Quarterly&apos;, ROUND({!ContractTermFormula} / 3, 0), &apos;Weekly&apos;, ROUND({!ContractTermFormula} * 52 / 12, 0), {!ContractTermFormula}))</expression>
+        <expression>MAX(1, ROUND(CASE({!RenewalTermUnitFormula}, &apos;Annual&apos;, {!ContractTermFormula} / 12, &apos;Semi-Annual&apos;, {!ContractTermFormula} / 6, &apos;Quarterly&apos;, {!ContractTermFormula} / 3, &apos;Weekly&apos;, IF(ISBLANK({!GetContract.StartDate}), {!ContractTermFormula} * 52 / 12, ({!GetTermQuoteLineItem.EndDate} + 1 - {!GetContract.StartDate}) / 7), {!ContractTermFormula}) / MAX(1, BLANKVALUE({!GetTermQuoteLineItem.PricingTerm}, 1)), 0))</expression>
         <scale>0</scale>
     </formulas>
     <formulas>
@@ -448,13 +448,14 @@
         <object>QuoteLineItem</object>
         <queriedFields>Id</queriedFields>
         <queriedFields>EndDate</queriedFields>
+        <queriedFields>PricingTerm</queriedFields>
         <queriedFields>PricingTermUnit</queriedFields>
         <sortField>EndDate</sortField>
         <sortOrder>Desc</sortOrder>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordRollbacks>
-        <description>Rolls back the contract created in this transaction when it cannot be updated, so a fault leaves no partially populated contract.</description>
+        <description>Rolls back this transaction when creating or updating the contract faults, so a fault leaves no contract or partially populated contract behind.</description>
         <name>RollBackContract</name>
         <label>Roll Back Contract</label>
         <locationX>0</locationX>

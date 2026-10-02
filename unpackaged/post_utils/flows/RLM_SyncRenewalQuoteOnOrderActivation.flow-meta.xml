@@ -8,8 +8,11 @@
         <locationY>0</locationY>
         <actionName>syncQuoteOpportunity</actionName>
         <actionType>syncQuoteOpportunity</actionType>
+        <connector>
+            <targetReference>WasSyncAccepted</targetReference>
+        </connector>
         <faultConnector>
-            <targetReference>CreateSyncFailureTask</targetReference>
+            <targetReference>SetFaultError</targetReference>
         </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -24,6 +27,63 @@
     </actionCalls>
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Records the fault message when setting the synced quote or calling the sync action faults.</description>
+        <name>SetFaultError</name>
+        <label>Set Fault Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>SyncError</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.FaultMessage</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>CreateSyncFailureTask</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Records the action&apos;s error when it returns without faulting but rejects the sync.</description>
+        <name>SetRejectedError</name>
+        <label>Set Rejected Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>SyncError</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>SyncRejectedError</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>CreateSyncFailureTask</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <description>The action returns isSuccess = false, without faulting, when validation fails or the background job can&apos;t be queued. No QuoteToOpportunitySyncEvent follows, so that case gets the failure task here.</description>
+        <name>WasSyncAccepted</name>
+        <label>Was Sync Accepted</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>SetRejectedError</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Rejected</defaultConnectorLabel>
+        <rules>
+            <name>SyncAccepted</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>SyncQuoteToOpportunity.isSuccess</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <label>Accepted</label>
+        </rules>
+    </decisions>
     <decisions>
         <description>Checks whether the order&apos;s quote has an open renewal opportunity and whether that opportunity already syncs with the quote.</description>
         <name>IsOpenRenewalOpportunity</name>
@@ -69,7 +129,7 @@
             <label>Quote Not Synced</label>
         </rules>
     </decisions>
-    <description>When an order created from a quote is activated and the quote&apos;s opportunity is an open renewal (Type Existing Business), makes the quote the opportunity&apos;s synced quote and syncs its lines to the opportunity products, so the renewal opportunity shows what was actually renewed. RLM_CloseRenewalOpportunityOnQuoteSync then closes it as Closed Won. Needs Asynchronous Opportunity Sync turned on in Revenue Settings. Runs after commit so a failure here can&apos;t roll back order activation. New-business opportunities aren&apos;t changed. If setting the synced quote or the sync fails, creates a high-priority task for the opportunity owner with the error.</description>
+    <description>When an order created from a quote is activated and the quote&apos;s opportunity is an open renewal (Type Existing Business), makes the quote the opportunity&apos;s synced quote and syncs its lines to the opportunity products, so the renewal opportunity shows what was actually renewed. RLM_CloseRenewalOpportunityOnQuoteSync then closes it as Closed Won. Needs Asynchronous Opportunity Sync turned on in Revenue Settings. Runs after commit so a failure here can&apos;t roll back order activation. New-business opportunities aren&apos;t changed. If setting the synced quote faults, or the sync action faults or rejects the request, creates a high-priority task for the opportunity owner with the error. A background sync that fails later is reported by RLM_CloseRenewalOpportunityOnQuoteSync.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Sync Renewal Quote On Order Activation {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Sync Renewal Quote On Order Activation</label>
@@ -87,7 +147,7 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordCreates>
-        <description>Runs when setting the synced quote or the sync fails. Creates a task for the renewal opportunity&apos;s owner, because a failure in this background path is otherwise visible only in the flow error email.</description>
+        <description>Runs when setting the synced quote faults, or the sync action faults or rejects the request. Creates a task for the renewal opportunity&apos;s owner, because a failure in this background path is otherwise visible only in the flow error email.</description>
         <name>CreateSyncFailureTask</name>
         <label>Create Sync Failure Task</label>
         <locationX>0</locationX>
@@ -180,7 +240,7 @@
             <targetReference>SyncQuoteToOpportunity</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>CreateSyncFailureTask</targetReference>
+            <targetReference>SetFaultError</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -229,6 +289,12 @@
     </start>
     <status>Active</status>
     <textTemplates>
+        <description>The sync action&apos;s error code and message when it rejects the request.</description>
+        <name>SyncRejectedError</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>{!SyncQuoteToOpportunity.errorCode}: {!SyncQuoteToOpportunity.errorMessage}</text>
+    </textTemplates>
+    <textTemplates>
         <description>Body of the sync failure task.</description>
         <name>SyncFailureDescription</name>
         <isViewedAsPlainText>true</isViewedAsPlainText>
@@ -236,6 +302,14 @@
 
 Check that Asynchronous Opportunity Sync is turned on in Revenue Settings, then sync the quote to the opportunity manually. The opportunity closes as Closed Won when the sync succeeds.
 
-Error: {!$Flow.FaultMessage}</text>
+Error: {!SyncError}</text>
     </textTemplates>
+    <variables>
+        <description>The error shown in the failure task: the fault message, or the action&apos;s error code and message.</description>
+        <name>SyncError</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
 </Flow>
