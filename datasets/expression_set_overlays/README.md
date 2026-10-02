@@ -34,9 +34,13 @@ fields, and before procedure plans are wired to the procedure:
 4. `prepare_procedureplans` runs afterwards, so the apply does not
    cascade through procedure plans.
 
-Repricing users need `RLM_Approvals`, which grants edit access to both stored
-approval outputs on quote lines and order products. Repricing resets and
-recalculates those values, including any manual edits.
+The pricing engine writes both stored approval outputs on quote lines and order
+products in system context, so repricing users need only read access.
+`RLM_Approvals` and the partner community permission set grant them read-only:
+a user who could edit the level could lower it before submitting and bypass
+discount approval. Verified live on a fresh ent-sb0 build: a sales rep with
+read-only access repriced the outputs up and down, and a direct API edit was
+rejected.
 
 ## Applying an overlay
 

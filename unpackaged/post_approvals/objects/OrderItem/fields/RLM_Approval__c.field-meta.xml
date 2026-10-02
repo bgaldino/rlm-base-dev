@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Approval__c</fullName>
-    <description>Order-side mirror of QuoteLineItem.RLM_Approval__c (🟡 Manager, 🟠 Director, 🔴 VP; blank when no approval is needed). Bound in OrderEntitiesMapping so RLM_DefaultPricingProcedure, including its approval-flags overlay, can price Orders (for example getRenewableAssetsSummary in the renewal flow). Written by the overlay on every reprice; manual edits are overwritten.</description>
+    <description>Order-side mirror of QuoteLineItem.RLM_Approval__c (🟡 Manager, 🟠 Director, 🔴 VP; blank when no approval is needed). Bound in OrderEntitiesMapping so RLM_DefaultPricingProcedure, including its approval-flags overlay, can price Orders (for example getRenewableAssetsSummary in the renewal flow). Written by the overlay on every reprice; read-only for users.</description>
     <externalId>false</externalId>
     <label>Approval</label>
     <length>255</length>

@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Approval_Level_Calc__c</fullName>
     <defaultValue>0</defaultValue>
-    <description>Discount approval level (0 none, 1 Manager, 2 Director, 3 VP). Written by the RLM_DefaultPricingProcedure approval-flags overlay on every reprice; rolled up to Quote.RLM_Approval_Level__c. Manual edits are overwritten on the next reprice.</description>
+    <description>Discount approval level (0 none, 1 Manager, 2 Director, 3 VP). Written by the RLM_DefaultPricingProcedure approval-flags overlay on every reprice; rolled up to Quote.RLM_Approval_Level__c. Read-only for users (the approval roll-up trusts it); the pricing engine writes it in system context.</description>
     <externalId>false</externalId>
     <label>Approval Level Calc</label>
     <precision>18</precision>

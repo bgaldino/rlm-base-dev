@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Approval__c</fullName>
-    <description>Discount approval indicator (🟡 Manager, 🟠 Director, 🔴 VP; blank when no approval is needed). Written by the RLM_DefaultPricingProcedure approval-flags overlay on every reprice. Manual edits are overwritten on the next reprice.</description>
+    <description>Discount approval indicator (🟡 Manager, 🟠 Director, 🔴 VP; blank when no approval is needed). Written by the RLM_DefaultPricingProcedure approval-flags overlay on every reprice. Read-only for users; the pricing engine writes it in system context.</description>
     <externalId>false</externalId>
     <label>Approval</label>
     <length>255</length>
