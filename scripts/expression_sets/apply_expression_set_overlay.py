@@ -71,6 +71,7 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     resolve_definition_id,
     resolve_expression_set_id,
     resolve_version_by_es_id,
+    list_versions,
 )
 from scripts.expression_sets._schema import (  # noqa: E402
     validate_definition,
@@ -196,10 +197,26 @@ def main(argv=None) -> int:
         # clobber (best-effort, non-fatal) so they can be re-applied afterwards,
         # merged with any labels the overlay itself carries (for its new steps).
         # --no-preserve-labels opts out (then this is just informational).
-        version_api_name_live = esv.get("ApiName")
+        # Labels belong to the version the overlay edits. --version can name a
+        # draft while another version is active; esv (active-first) is only the
+        # version the lifecycle toggles, so relabelling it would miss the edited
+        # draft and could write overlay labels onto the live version.
+        label_esv = esv
+        if version_api_name and version_api_name != esv.get("ApiName"):
+            label_esv = next(
+                (v for v in list_versions(es_id, target_org=args.target_org,
+                                          api_version=args.api_version)
+                 if v.get("ApiName") == version_api_name),
+                None,
+            )
+            if label_esv is None and preserve_labels:
+                eprint(f"Note: no ExpressionSetVersion named '{version_api_name}'; "
+                       "step labels will not be preserved for this apply.")
+                preserve_labels = False
+        version_api_name_live = (label_esv or esv).get("ApiName")
         captured = capture_labels(
             transport, version_api_name_live, eprint,
-            es_def_id=es_def_id, version_number=esv.get("VersionNumber"),
+            es_def_id=es_def_id, version_number=label_esv.get("VersionNumber"),
         ) if preserve_labels else {}
         ov_labels = overlay_labels(overlay) if preserve_labels else {}
         restore_map = {**captured, **ov_labels} if preserve_labels else {}
@@ -246,13 +263,16 @@ def main(argv=None) -> int:
         # overlay already applied, so a restore failure is reported, not raised —
         # but it IS surfaced at the CLI boundary (exit code + JSON) so an operator
         # never reads "Successfully applied" over a version whose labels are stale.
-        if preserve_labels and restore_map and activate_after:
+        # A draft target is inactive throughout, so it can be relabelled even
+        # with --no-activate; the active version needs the reactivation.
+        relabel_now = activate_after or label_esv is not esv
+        if preserve_labels and restore_map and relabel_now:
             restore_result = restore_labels_after_clobber(
                 engine, es_id=es_id, es_def_id=es_def_id,
                 version_api_name=version_api_name_live,
                 name_to_label=restore_map, cascade=cascade,
             )
-        elif preserve_labels and restore_map and not activate_after:
+        elif preserve_labels and restore_map:
             eprint("Note: --no-activate set — leaving labels un-restored (relabel "
                    "needs to reactivate). Run relabel_expression_set.py when ready.")
 

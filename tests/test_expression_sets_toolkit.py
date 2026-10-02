@@ -790,6 +790,16 @@ def test_label_preservation():
     check("restore reports ok", r4["ok"] is True, r4)
     check("restore lists changed step", r4["changed"] == ["ApplyHeaderPriceOverride"], r4)
     check("restore leaves version ACTIVE on success", t4.is_active is True, t4.is_active)
+    # A draft (inactive) target — an overlay aimed at --version <draft> — is
+    # relabelled in place and must NOT be activated by the restore cycle.
+    t4d = _StatefulTransport(metadata=_sample_metadata(), is_active=False)
+    engine4d = LifecycleEngine(t4d, logger=lambda *a, **k: None)
+    r4d = restore_labels_after_clobber(
+        engine4d, es_id="9QLx", es_def_id="9QAx", version_api_name="TEST_V1",
+        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+    )
+    check("restore relabels an inactive draft", r4d["changed"] == ["ApplyHeaderPriceOverride"], r4d)
+    check("restore leaves an inactive draft INACTIVE", t4d.is_active is False, t4d.is_active)
     # Empty map / no version → silent success, nothing written.
     t5 = _StatefulTransport()
     engine5 = LifecycleEngine(t5, logger=lambda *a, **k: None)

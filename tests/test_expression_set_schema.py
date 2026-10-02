@@ -2087,6 +2087,54 @@ def test_connect_mutation_restores_clobbered_labels():
           task.events == [("active", False), ("tooling_patch", False), ("active", True)])
 
 
+def test_connect_mutation_labels_follow_requested_version():
+    # An overlay aimed at a draft cycles the active version (esv) but must
+    # capture and restore the DRAFT's labels, resolved by its VersionNumber.
+    class TwoVersionTask(_LabelTask):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            self.esdv_versions = []
+
+        def _resolve_esdv_id(self, es_def_id, version_number=None):
+            self.esdv_versions.append(version_number)
+            return "9QBx"
+
+    task = TwoVersionTask({"A": "A Label"})
+    task.run(lambda: task.connect_patch(),
+             label_esv={"Id": "9QMd", "ApiName": "V2", "IsActive": False,
+                        "VersionNumber": 2})
+    check("labels captured and restored on the requested version",
+          task.esdv_versions == [2, 2] and task.label("A") == "A Label")
+
+    skipped = TwoVersionTask({"A": "A Label"})
+    skipped.run(lambda: skipped.connect_patch(), preserve_labels=False)
+    check("preserve_labels=False skips label work for an unresolved version",
+          skipped.esdv_versions == [] and skipped.label("A") == "A")
+
+
+def test_resolve_label_version():
+    esv = {"Id": "9QMa", "ApiName": "V1", "IsActive": True, "VersionNumber": 1}
+    draft = {"Id": "9QMd", "ApiName": "V2", "IsActive": False, "VersionNumber": 2}
+
+    class Task(_LabelTask):
+        rows = [draft]
+
+        def _soql_query(self, soql):
+            self.soql = soql
+            return [r for r in self.rows if f"ApiName = '{r['ApiName']}'" in soql]
+
+    task = Task({})
+    check("no version_api_name keeps the activation version",
+          task._resolve_label_version("9QLx", esv, None) is esv)
+    check("version_api_name matching esv keeps it",
+          task._resolve_label_version("9QLx", esv, "V1") is esv)
+    check("a draft version_api_name resolves the draft row",
+          task._resolve_label_version("9QLx", esv, "V2") == draft
+          and "ExpressionSetId = '9QLx'" in task.soql)
+    check("an unknown version_api_name returns None (labels skipped)",
+          task._resolve_label_version("9QLx", esv, "V9") is None)
+
+
 def test_connect_mutation_skips_restore_without_patch():
     task = _LabelTask({"A": "A Label"})
     task.run(lambda: None)

@@ -494,9 +494,12 @@ def restore_labels_after_clobber(
             log(f"Note: could not restore labels — version '{version_api_name}' "
                 f"not found after the mutation.")
             return {"ok": False, "changed": [], "error": "version not found"}
+        # Reactivate only a version that is active now: an overlay aimed at a
+        # draft must leave the draft inactive after relabelling it.
         result = relabel_version(
             engine, es_def_id=es_def_id, esv=rows[0],
-            name_to_label=name_to_label, activate_after=True, cascade=cascade,
+            name_to_label=name_to_label,
+            activate_after=bool(rows[0].get("IsActive")), cascade=cascade,
         )
         if result["changed"]:
             log(f"Restored {len(result['changed'])} step label(s) clobbered by the "
