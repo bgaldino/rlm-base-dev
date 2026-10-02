@@ -74,7 +74,7 @@ rlm-base-dev/
 │   ├── rlm_cleanup_settings.py
 │   ├── rlm_assign_permission_set_groups.py
 │   ├── rlm_recalculate_permission_set_groups.py
-│   ├── rlm_exclude_active_decision_tables.py
+│   ├── rlm_deactivate_changed_decision_tables.py
 │   └── rlm_modify_context.py
 ├── robot/                      # Robot Framework tests
 │   └── rlm-base/

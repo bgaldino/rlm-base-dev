@@ -1831,6 +1831,30 @@
 
 ---
 
+### `deactivate_changed_decision_tables`
+
+**Description:** Check-only deploy the repo's decision tables that are Active in the org and deactivate only those the platform refuses to edit in place (structural changes), so the deploy that follows applies the change and reactivates them
+
+**Class:** `tasks.rlm_deactivate_changed_decision_tables.DeactivateChangedDecisionTables`
+
+**Options:**
+
+- `path`: `unpackaged/pre/5_decisiontables`
+
+---
+
+### `deactivate_changed_post_prm_pricing_decision_tables`
+
+**Description:** deactivate_changed_decision_tables for unpackaged/post_prm_pricing/decisionTables (run before deploy_post_prm_pricing_decision_tables)
+
+**Class:** `tasks.rlm_deactivate_changed_decision_tables.DeactivateChangedDecisionTables`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/decisionTables`
+
+---
+
 ### `deactivate_collections_case_matrix`
 
 **Description:** Disable the DetermineCaseReasonAndRelatedAttributes decision-matrix version before (re)deploying the DecisionMatrixDefinition. A metadata deploy can't migrate a matrix version while an active (enabled) version with that name exists, so a second prepare_collections run fails without this. No-op on a first run (matrix not deployed yet). seed_collections_case_matrix re-enables it afterward. Run before deploy_post_collections. See scripts/apex/deactivateCollectionsCaseMatrix.apex.
@@ -2301,18 +2325,6 @@
 
 - `suite`: `robot/rlm-base/tests/setup/enable_timeline.robot`
 - `outputdir`: `robot/rlm-base/results`
-
----
-
-### `exclude_active_decision_tables`
-
-**Description:** Exclude active decision tables from deployment (TODO: implement proper deactivation)
-
-**Class:** `tasks.rlm_exclude_active_decision_tables.ExcludeActiveDecisionTables`
-
-**Options:**
-
-- `path`: `unpackaged/pre/5_decisiontables`
 
 ---
 
@@ -3243,18 +3255,6 @@
 **Options:**
 
 - `developerNames`: `['Binding_Object_Rate_Adjustment_Resolution_Entries', 'Binding_Object_Rate_Card_Entry_Resolution_Entries_v2', 'Priceb...`
-
----
-
-### `restore_decision_tables`
-
-**Description:** Restore skipped decision tables after deploy
-
-**Class:** `tasks.rlm_exclude_active_decision_tables.RestoreDecisionTables`
-
-**Options:**
-
-- `path`: `unpackaged/pre/5_decisiontables`
 
 ---
 

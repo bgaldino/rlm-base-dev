@@ -6,7 +6,7 @@ This document describes the Permission Set Licenses (PSLs), Permission Set Group
 
 ## Permission Set Licenses (PSLs)
 
-PSLs are Salesforce-managed licenses that must be assigned to a user before the corresponding permission sets or PSGs can take effect. They are assigned early in `prepare_core` — step 4, then `assign_feature_psls` (steps 1, 2, 3, 4), i.e. build steps 1.4 and 1.9.1–1.9.4 — before any PSGs or permission sets.
+PSLs are Salesforce-managed licenses that must be assigned to a user before the corresponding permission sets or PSGs can take effect. They are assigned early in `prepare_core` — step 4, then `assign_feature_psls` (steps 1, 2, 3, 4), i.e. build steps 1.4 and 1.8.1–1.8.4 — before any PSGs or permission sets.
 
 ### Core RLM PSLs (`rlm_psl_api_names`) -- Always Assigned
 
@@ -42,13 +42,13 @@ Assigned unconditionally at `prepare_core` step 4 → `assign_permission_set_lic
 
 ### `EinsteinAnalyticsPlusPsl` -- `analytics: true`
 
-Assigned at `assign_feature_psls` step 3 → `assign_permission_set_licenses` — build step 1.9.3 — when `analytics` is on
+Assigned at `assign_feature_psls` step 3 → `assign_permission_set_licenses` — build step 1.8.3 — when `analytics` is on
 (separate from the AI list because it is required for RLM_RMI PSG functionality, and
 `analytics` defaults to true; it is genuinely skipped with `analytics: false`).
 
 ### CLM PSLs (`rlm_clm_psl_api_names`) -- `clm: true`
 
-Assigned at `assign_feature_psls` step 1 → `assign_permission_set_licenses` — build step 1.9.1 (11 licenses). Several overlap with core PSLs; Salesforce deduplicates automatically.
+Assigned at `assign_feature_psls` step 1 → `assign_permission_set_licenses` — build step 1.8.1 (11 licenses). Several overlap with core PSLs; Salesforce deduplicates automatically.
 
 | PSL API Name | Capability Area |
 |---|---|
@@ -66,7 +66,7 @@ Assigned at `assign_feature_psls` step 1 → `assign_permission_set_licenses` �
 
 ### Einstein / AI PSLs (`rlm_ai_psl_api_names`) -- `einstein: true`
 
-Assigned at `assign_feature_psls` step 2 → `assign_permission_set_licenses` — build step 1.9.2 (3 active licenses).
+Assigned at `assign_feature_psls` step 2 → `assign_permission_set_licenses` — build step 1.8.2 (3 active licenses).
 
 | PSL API Name | Capability Area |
 |---|---|
@@ -114,7 +114,7 @@ Defined as a YAML anchor (`TableauEinsteinUserPsl`) but not assigned in any stan
 
 ## Permission Set Groups (PSGs)
 
-PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 10, then assigned to the running user at step 11 (build steps 1.10 and 1.11; `tso` adds a second recalculate/assign pair at 1.12 and 1.13).
+PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 9, then assigned to the running user at step 10 (build steps 1.9 and 1.10; `tso` adds a second recalculate/assign pair at 1.11 and 1.12).
 
 ### Core PSGs (`rlm_psg_api_names`) -- Always Assigned
 
@@ -245,7 +245,7 @@ Placeholder PSG with no permission sets. AI permission sets are assigned separat
 
 ### RLM_TSO -- Trialforce Source Org PSG -- `tso: true`
 
-Assigned in `prepare_core` step 13 via `assign_permission_set_groups_tolerant` (preceded by a `recalculate_permission_set_groups` at step 12). Contains 50 permission sets spanning Sales Cloud Unlimited, Einstein AI, Tableau, CLM AI, Data Cloud, and engagement features. This is the catch-all PSG for trial/demo orgs that bundles permissions unavailable on Enterprise dev scratch orgs.
+Assigned in `prepare_core` step 12 via `assign_permission_set_groups_tolerant` (preceded by a `recalculate_permission_set_groups` at step 11). Contains 50 permission sets spanning Sales Cloud Unlimited, Einstein AI, Tableau, CLM AI, Data Cloud, and engagement features. This is the catch-all PSG for trial/demo orgs that bundles permissions unavailable on Enterprise dev scratch orgs.
 
 <details>
 <summary>Full list (50 permission sets)</summary>
@@ -305,7 +305,7 @@ persona user instead. See the persona rows in the flow inventory below.
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
 
-Assigned by `assign_feature_permission_sets` steps 1–2 — build steps 1.17.1–1.17.2 — when `einstein` is on (`SalesCloudEinsteinAll` additionally requires a non-Developer-Edition org).
+Assigned by `assign_feature_permission_sets` steps 1–2 — build steps 1.16.1–1.16.2 — when `einstein` is on (`SalesCloudEinsteinAll` additionally requires a non-Developer-Edition org).
 
 | Permission Set | Purpose |
 |---|---|
@@ -361,16 +361,16 @@ The following table shows the sequence of all permission-related steps across th
 |---|---|---|---|
 | 1.4 | `prepare_core` > `assign_permission_set_licenses` | Core RLM PSLs (25) | Always |
 | 1.7 | `prepare_core` > `deploy_pre` | Deploy PSG metadata (`deploy_pre`) | Always |
-| 1.9.1 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | CLM PSLs (11) | `clm` |
-| 1.9.2 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | Einstein AI PSLs (3) | `einstein` |
-| 1.9.3 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | `EinsteinAnalyticsPlusPsl` | `analytics` |
-| 1.9.4 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | TSO PSLs (23) | `tso` |
-| 1.10 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate 11 core PSGs | Always |
-| 1.11 | `prepare_core` > `assign_permission_set_groups_tolerant` | Assign 11 core PSGs | Always |
-| 1.12 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate `RLM_TSO` PSG | `tso` |
-| 1.13 | `prepare_core` > `assign_permission_set_groups_tolerant` | `RLM_TSO` PSG | `tso` |
-| 1.17.1 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
-| 1.17.2 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
+| 1.8.1 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | CLM PSLs (11) | `clm` |
+| 1.8.2 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | Einstein AI PSLs (3) | `einstein` |
+| 1.8.3 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | `EinsteinAnalyticsPlusPsl` | `analytics` |
+| 1.8.4 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | TSO PSLs (23) | `tso` |
+| 1.9 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate 11 core PSGs | Always |
+| 1.10 | `prepare_core` > `assign_permission_set_groups_tolerant` | Assign 11 core PSGs | Always |
+| 1.11 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate `RLM_TSO` PSG | `tso` |
+| 1.12 | `prepare_core` > `assign_permission_set_groups_tolerant` | `RLM_TSO` PSG | `tso` |
+| 1.16.1 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
+| 1.16.2 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
 | 4.8 | `prepare_payments` > `assign_permission_sets` | `RLM_Payments` | `payments` |
 | 7.2.3 | `prepare_quantumbit` > `prepare_approvals` > `assign_permission_sets` | `RLM_Approvals` | `quantumbit` + `approvals` |
 | 7.4 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_QuantumBit` | `quantumbit` |
@@ -442,7 +442,7 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 
 ## Implementation Notes
 
-1. **PSLs before PSGs** -- Salesforce requires the underlying license before any PSG containing those permission sets can take effect. The flow enforces this by assigning PSLs at steps 2/7/8/10, then PSGs at step 12.
+1. **PSLs before PSGs** -- Salesforce requires the underlying license before any PSG containing those permission sets can take effect. The flow enforces this by assigning PSLs at `prepare_core` steps 4 and 8, then PSGs at steps 10 and 12.
 
 2. **PSG recalculation** -- After deploying PSG metadata (`deploy_pre`), the `recalculate_permission_set_groups` task waits for Salesforce to finish calculating PSG status (`Outdated` -> `Updating` -> `Updated`) before assignment. Without this wait, assignment can fail silently.
 

@@ -370,6 +370,7 @@ CHECKS = [
     dict(
         name="yaml_offline_suites",
         cmd=["python", "tests/test_decision_table_tasks.py",
+             "tests/test_deactivate_changed_decision_tables.py",
              "tests/test_fulfillment_scope_tolerance.py",
              "tests/test_skill_manifest_audit.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
@@ -379,6 +380,9 @@ CHECKS = [
                   ".claude/skill-manifest.yml",
                   "datasets/sfdmu/qb/en-US/qb-dro/",
                   "tests/test_decision_table_tasks.py",
+                  "tests/test_deactivate_changed_decision_tables.py",
+                  "unpackaged/pre/5_decisiontables/",
+                  "unpackaged/post_prm_pricing/decisionTables/",
                   "tests/test_fulfillment_scope_tolerance.py",
                   "tests/test_skill_manifest_audit.py"],
         deps=["PyYAML"], gating=True,
