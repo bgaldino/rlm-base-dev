@@ -2103,36 +2103,49 @@ def test_connect_mutation_labels_follow_requested_version():
     task.run(lambda: task.connect_patch(),
              label_esv={"Id": "9QMd", "ApiName": "V2", "IsActive": False,
                         "VersionNumber": 2})
-    check("labels captured and restored on the requested version",
-          task.esdv_versions == [2, 2] and task.label("A") == "A Label")
+    # The full-graph PATCH relabels every version, so both are captured and
+    # restored (V1 then V2), not just the edited draft.
+    check("labels captured and restored on every version",
+          task.esdv_versions == [1, 2, 1, 2] and task.label("A") == "A Label")
 
-    skipped = TwoVersionTask({"A": "A Label"})
-    skipped.run(lambda: skipped.connect_patch(), preserve_labels=False)
-    check("preserve_labels=False skips label work for an unresolved version",
-          skipped.esdv_versions == [] and skipped.label("A") == "A")
+    listed = TwoVersionTask({"A": "A Label"})
+    listed.run(lambda: listed.connect_patch(),
+               label_versions=[{"Id": "9QMx", "VersionNumber": 1},
+                               {"Id": "9QMd", "VersionNumber": 2},
+                               {"Id": "9QMe", "VersionNumber": 3}])
+    check("label_versions covers every listed version",
+          listed.esdv_versions == [1, 2, 3, 1, 2, 3])
+
+    class ExtraLabelTask(TwoVersionTask):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            self.restored = []
+
+        def _restore_step_labels(self, *, es_def_id, esv, labels):
+            self.restored.append((esv["VersionNumber"], dict(labels)))
+            return True
+
+    extra = ExtraLabelTask({"A": "A Label"})
+    extra.run(lambda: extra.connect_patch(), extra_labels={"New": "New Step"},
+              label_esv={"Id": "9QMd", "VersionNumber": 2})
+    check("overlay labels go only to the edited version",
+          extra.restored == [(1, {"A": "A Label"}),
+                             (2, {"A": "A Label", "New": "New Step"})])
 
 
 def test_resolve_label_version():
     esv = {"Id": "9QMa", "ApiName": "V1", "IsActive": True, "VersionNumber": 1}
     draft = {"Id": "9QMd", "ApiName": "V2", "IsActive": False, "VersionNumber": 2}
-
-    class Task(_LabelTask):
-        rows = [draft]
-
-        def _soql_query(self, soql):
-            self.soql = soql
-            return [r for r in self.rows if f"ApiName = '{r['ApiName']}'" in soql]
-
-    task = Task({})
+    task = _LabelTask({})
+    versions = [esv, draft]
     check("no version_api_name keeps the activation version",
-          task._resolve_label_version("9QLx", esv, None) is esv)
+          task._resolve_label_version(esv, None, versions) is esv)
     check("version_api_name matching esv keeps it",
-          task._resolve_label_version("9QLx", esv, "V1") is esv)
+          task._resolve_label_version(esv, "V1", versions) is esv)
     check("a draft version_api_name resolves the draft row",
-          task._resolve_label_version("9QLx", esv, "V2") == draft
-          and "ExpressionSetId = '9QLx'" in task.soql)
-    check("an unknown version_api_name returns None (labels skipped)",
-          task._resolve_label_version("9QLx", esv, "V9") is None)
+          task._resolve_label_version(esv, "V2", versions) is draft)
+    check("an unknown version_api_name returns None (overlay labels dropped)",
+          task._resolve_label_version(esv, "V9", versions) is None)
 
 
 def test_connect_mutation_skips_restore_without_patch():

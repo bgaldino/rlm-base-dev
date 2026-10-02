@@ -253,31 +253,33 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             )
         return chosen
 
+    def _list_versions(self, es_id: str) -> List[dict]:
+        """Every ExpressionSetVersion of an ExpressionSet, lowest number first."""
+        return self._soql_query(
+            "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+            f"WHERE ExpressionSetId = '{self._soql_escape(es_id)}' "
+            "ORDER BY VersionNumber"
+        )
+
     def _resolve_label_version(
-        self, es_id: str, esv: dict, version_api_name: Optional[str]
+        self, esv: dict, version_api_name: Optional[str], versions: List[dict]
     ) -> Optional[dict]:
-        """The ExpressionSetVersion whose step labels a mutation must preserve.
+        """The version an overlay edits, which receives the overlay's labels.
 
         ``esv`` is the active-first version the activation cycle toggles; an
-        explicit ``version_api_name`` can select a different (draft) version,
-        and that is the one the Connect PATCH relabels. Returns None when the
-        named version has no sObject row, so the caller skips label work rather
-        than writing labels onto the wrong version.
+        explicit ``version_api_name`` can select a different (draft) version.
+        Returns None when the named version has no sObject row, so the
+        overlay's labels are dropped rather than written to the wrong version.
         """
         if not version_api_name or version_api_name == esv.get("ApiName"):
             return esv
-        records = self._soql_query(
-            "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
-            f"WHERE ExpressionSetId = '{self._soql_escape(es_id)}' "
-            f"AND ApiName = '{self._soql_escape(version_api_name)}'"
-        )
-        if not records:
+        match = next((v for v in versions if v.get("ApiName") == version_api_name), None)
+        if match is None:
             self.logger.warning(
-                "No ExpressionSetVersion named %s; step labels will not be "
-                "preserved for this mutation.", version_api_name,
+                "No ExpressionSetVersion named %s; the overlay's step labels "
+                "will not be applied.", version_api_name,
             )
-            return None
-        return records[0]
+        return match
 
     def _check_version_name_consistency(
         self, es_id: str, esv: dict, definition: Optional[dict] = None
@@ -643,7 +645,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         verb: str = "mutation",
         extra_labels: Optional[Dict[str, str]] = None,
         label_esv: Optional[dict] = None,
-        preserve_labels: bool = True,
+        label_versions: Optional[List[dict]] = None,
     ) -> None:
         """Run a Connect mutation and keep the version's step labels intact.
 
@@ -655,33 +657,41 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         ``_labels_clobbered``), they are written back while the version is
         still inactive, before the existing activation. ``extra_labels``
         (e.g. an overlay's labels for new steps) are layered on top.
-        ``label_esv`` names the version whose labels are preserved when it
-        differs from the activation-cycle ``esv`` (an overlay aimed at a draft);
-        ``preserve_labels=False`` skips label work for this call.
+        The PATCH sends, and so relabels, every version in the definition:
+        ``label_versions`` lists them all (default: just ``esv``), and each is
+        captured and restored. ``extra_labels`` go to ``label_esv`` (default
+        ``esv``), the version the mutation edits, e.g. an overlay's draft.
 
         Label reads/writes are best-effort; activation failures propagate.
         Restore runs only after the mutation fully succeeded; the
         ``preserve_labels`` task option (default true) turns it off. See
         ``_run_activation_cycle`` for the activation guarantees.
         """
-        preserve_requested = preserve_labels and self._bool_option(
-            self.options.get("preserve_labels"), True
-        )
+        preserve_requested = self._bool_option(self.options.get("preserve_labels"), True)
         label_target = label_esv or esv
-        labels: Dict[str, str] = {}
+        versions = list(label_versions or [esv])
+        if not any(v.get("VersionNumber") == label_target.get("VersionNumber")
+                   for v in versions):
+            versions.append(label_target)
+        captured: List[tuple] = []
         if preserve_requested and not dry_run:
-            labels = self._capture_step_labels(es_def_id, label_target)
-            labels.update(extra_labels or {})
+            for version in versions:
+                labels = self._capture_step_labels(es_def_id, version)
+                if version.get("VersionNumber") == label_target.get("VersionNumber"):
+                    labels.update(extra_labels or {})
+                if labels:
+                    captured.append((version, labels))
         elif dry_run and preserve_requested:
             self.logger.info("[dry-run] Would restore step labels after the PATCH.")
         self._labels_clobbered = False
 
         def mutate_and_restore():
             mutate()
-            if labels and self._labels_clobbered:
-                self._restore_step_labels(
-                    es_def_id=es_def_id, esv=label_target, labels=labels
-                )
+            if self._labels_clobbered:
+                for version, labels in captured:
+                    self._restore_step_labels(
+                        es_def_id=es_def_id, esv=version, labels=labels
+                    )
 
         self._run_activation_cycle(
             es_def_id=es_def_id, esv=esv, mutate=mutate_and_restore, dry_run=dry_run,
@@ -1532,7 +1542,8 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             overlay, preflight_definition, version_api_name
         )
         self._check_version_name_consistency(es_id, esv, preflight_definition)
-        label_esv = self._resolve_label_version(es_id, esv, version_api_name)
+        all_versions = self._list_versions(es_id)
+        label_esv = self._resolve_label_version(esv, version_api_name, all_versions)
 
         # Simulate the merge on the preflight snapshot and validate the merged
         # graph BEFORE deactivation. The cross-check only catches typo'd
@@ -1595,9 +1606,9 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             activate_after=activate_after,
             cascade=cascade,
             verb="Overlay apply",
-            extra_labels=self._overlay_labels(overlay),
+            extra_labels=self._overlay_labels(overlay) if label_esv else None,
             label_esv=label_esv,
-            preserve_labels=label_esv is not None,
+            label_versions=all_versions,
         )
 
         self.logger.info(

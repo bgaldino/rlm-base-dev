@@ -919,6 +919,8 @@ def test_cli_restore_boundary():
             normalize_html_entities=lambda p, **k: p,
             strip_readonly_fields=lambda p, **k: p,
             capture_labels=lambda *a, **k: {"GetPrice": "Get Price"},
+            list_versions=lambda *a, **k: [
+                {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1}],
         )
         try:
             u = _patch(apply_mod, restore_labels_after_clobber=fail_restore)
@@ -940,6 +942,36 @@ def test_cli_restore_boundary():
             u()
             check("apply: --no-preserve-labels → exit 0 (no restore attempted)",
                   rc_np == 0, rc_np)
+
+            # --version <draft>: the PATCH relabels BOTH versions, so both are
+            # restored; the overlay's own labels go only to the edited draft.
+            labelled_path = Path(td) / "ov_labels.json"
+            labelled_path.write_text(json.dumps({
+                "addSteps": [{"name": "S", "stepType": "BusinessKnowledgeModel",
+                              "label": "New S"}]}))
+            restores = []
+
+            def record_restore(engine, **kw):
+                restores.append((kw["version_api_name"], dict(kw["name_to_label"])))
+                return {"ok": True, "changed": sorted(kw["name_to_label"]), "error": None}
+
+            u = _patch(
+                apply_mod, restore_labels_after_clobber=record_restore,
+                list_versions=lambda *a, **k: [
+                    {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
+                    {"Id": "9QMd", "ApiName": "TEST_V2", "IsActive": False, "VersionNumber": 2}],
+                capture_labels=lambda t, api, *a, **k: {"GetPrice": f"Get Price {api}"},
+            )
+            rc_draft = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
+                                       "--overlay", str(labelled_path), "--version",
+                                       "TEST_V2", "--confirm"])
+            u()
+            check("apply --version draft: exit 0", rc_draft == 0, rc_draft)
+            check("apply --version draft: every version's labels restored",
+                  restores == [
+                      ("TEST_V1", {"GetPrice": "Get Price TEST_V1"}),
+                      ("TEST_V2", {"GetPrice": "Get Price TEST_V2", "S": "New S"})],
+                  restores)
         finally:
             undo()
 
