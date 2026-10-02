@@ -146,7 +146,7 @@
             <label>Open Opportunity Found</label>
         </rules>
     </decisions>
-    <description>When a quote-to-opportunity sync finishes without errors and the quote has an activated order, closes the opportunity as Closed Won if it&apos;s open, of any type, and no order from the quote is still a draft, so a quote split into several orders closes the opportunity only when the last one activates. RLM_SyncRenewalQuoteOnOrderActivation starts that sync when the order is activated, so the opportunity closes only after its products match the quote. For renewals, this keeps the renewal just won from staying open beside the next-term renewal opportunity that RLM_CreateUpdateRenewalOpportunities creates. A later successful sync of a quote whose orders are all activated also closes its opportunity if it&apos;s been reopened. If that background sync fails, the opportunity stays open and its owner gets a high-priority task with the event&apos;s error.</description>
+    <description>When a quote-to-opportunity sync finishes without errors and the quote has an activated order, closes the opportunity as Closed Won if it&apos;s open, of any type, still syncs with that quote, and no order from the quote is still a draft, so a quote split into several orders closes the opportunity only when the last one activates. RLM_SyncRenewalQuoteOnOrderActivation starts that sync when the order is activated, so the opportunity closes only after its products match the quote. For renewals, this keeps the renewal just won from staying open beside the next-term renewal opportunity that RLM_CreateUpdateRenewalOpportunities creates. A later successful sync of a quote whose orders are all activated also closes its opportunity if it&apos;s been reopened. If that background sync fails, the opportunity stays open and its owner gets a high-priority task with the event&apos;s error.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Close Opportunity On Quote Sync {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Close Opportunity On Quote Sync</label>
@@ -355,7 +355,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordUpdates>
-        <description>Sets the synced opportunity to Closed Won when it&apos;s open.</description>
+        <description>Sets the synced opportunity to Closed Won when it&apos;s open and still syncs with this event&apos;s quote, so a delayed event for a quote that&apos;s no longer selected can&apos;t close it.</description>
         <name>CloseOpportunity</name>
         <label>Close Opportunity</label>
         <locationX>0</locationX>
@@ -373,6 +373,13 @@
             <operator>EqualTo</operator>
             <value>
                 <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>SyncedQuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.QuoteRecordId</elementReference>
             </value>
         </filters>
         <inputAssignments>

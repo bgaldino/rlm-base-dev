@@ -109,7 +109,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>SyncQuoteToOpportunity</targetReference>
+                <targetReference>RecheckSyncedQuote</targetReference>
             </connector>
             <label>Quote Already Synced</label>
         </rules>
@@ -136,7 +136,30 @@
             <label>No Synced Quote</label>
         </rules>
     </decisions>
-    <description>When an order created from a quote is activated and the quote&apos;s opportunity is open, of any type, syncs the quote&apos;s lines to the opportunity products, so the opportunity shows what was actually ordered. An opportunity with no synced quote is first set to sync with this quote. An opportunity that syncs with a different quote is left open and unchanged. RLM_CloseRenewalOpportunityOnQuoteSync then closes it as Closed Won. Needs Asynchronous Opportunity Sync turned on in Revenue Settings. Runs after commit so a failure here can&apos;t roll back order activation. If setting the synced quote faults, or the sync action faults or rejects the request, creates a high-priority task for the opportunity owner with the error. A background sync that fails later is reported by RLM_CloseRenewalOpportunityOnQuoteSync.</description>
+    <decisions>
+        <description>Syncs only if the opportunity still syncs with this quote. Someone may have chosen another quote, or a concurrent activation may have adopted its own quote, after the first lookup. A flow can&apos;t lock the opportunity, so this recheck narrows that window rather than closing it.</description>
+        <name>IsQuoteStillSynced</name>
+        <label>Is Quote Still Synced</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Another Quote Selected</defaultConnectorLabel>
+        <rules>
+            <name>QuoteStillSynced</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>RecheckSyncedQuote.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>SyncQuoteToOpportunity</targetReference>
+            </connector>
+            <label>Quote Still Synced</label>
+        </rules>
+    </decisions>
+    <description>When an order created from a quote is activated and the quote&apos;s opportunity is open, of any type, syncs the quote&apos;s lines to the opportunity products, so the opportunity shows what was actually ordered. An opportunity with no synced quote is first set to sync with this quote. An opportunity that syncs with a different quote, checked again just before the sync, is left open and unchanged. RLM_CloseRenewalOpportunityOnQuoteSync then closes it as Closed Won. Needs Asynchronous Opportunity Sync turned on in Revenue Settings. Runs after commit so a failure here can&apos;t roll back order activation. If setting the synced quote faults, or the sync action faults or rejects the request, creates a high-priority task for the opportunity owner with the error. A background sync that fails later is reported by RLM_CloseRenewalOpportunityOnQuoteSync.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Sync Quote On Order Activation {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Sync Quote On Order Activation</label>
@@ -230,14 +253,51 @@
         <queriedFields>SyncedQuoteId</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <recordLookups>
+        <description>Rereads the opportunity just before syncing, and finds it only if it&apos;s still open and syncs with this quote.</description>
+        <name>RecheckSyncedQuote</name>
+        <label>Recheck Synced Quote</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>IsQuoteStillSynced</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>GetQuoteOpportunity.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>IsClosed</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>SyncedQuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.QuoteId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <recordUpdates>
-        <description>Makes the order&apos;s quote the opportunity&apos;s synced quote.</description>
+        <description>Makes the order&apos;s quote the opportunity&apos;s synced quote, only if the opportunity still has no synced quote when the update runs, so a quote chosen since the first lookup isn&apos;t overwritten.</description>
         <name>SetSyncedQuote</name>
         <label>Set Synced Quote</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>SyncQuoteToOpportunity</targetReference>
+            <targetReference>RecheckSyncedQuote</targetReference>
         </connector>
         <faultConnector>
             <targetReference>SetFaultError</targetReference>
@@ -248,6 +308,13 @@
             <operator>EqualTo</operator>
             <value>
                 <elementReference>GetQuoteOpportunity.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>SyncedQuoteId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>true</booleanValue>
             </value>
         </filters>
         <inputAssignments>
