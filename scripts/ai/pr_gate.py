@@ -306,12 +306,10 @@ CHECKS = [
     dict(
         name="extend_stdctx_recovery",
         cmd=["python", "tests/test_extend_stdctx.py"],
-        # Kept out of stdlib_offline_suites (deps=[]) on purpose: unlike the tasks that suite's
-        # files cover, tasks/rlm_extend_stdctx.py imports cumulusci.tasks.sfdx/cumulusci.core.keychain
-        # unconditionally rather than behind a try/except ImportError fallback (the guard
-        # tests/test_snapshot_help.py's and tests/test_snapshot_dev_guide.py's modules use to stay
-        # importable without cumulusci) — the module was never written to be importable without it, and
-        # adding that guard is a bigger footprint than this pack (126 / #264-64) needs.
+        # Kept out of stdlib_offline_suites (deps=[]) on purpose: tasks/rlm_extend_stdctx.py imports
+        # cumulusci.tasks.sfdx/cumulusci.core.keychain unconditionally rather than behind a
+        # try/except ImportError fallback — the module was never written to be importable without
+        # it, and adding that guard is a bigger footprint than this pack (126 / #264-64) needs.
         triggers=["tasks/rlm_extend_stdctx.py", "tests/test_extend_stdctx.py"],
         deps=["cumulusci"], gating=True,
     ),
@@ -382,7 +380,8 @@ CHECKS = [
         cmd=["python", "tests/test_decision_table_tasks.py",
              "tests/test_deactivate_changed_decision_tables.py",
              "tests/test_fulfillment_scope_tolerance.py",
-             "tests/test_skill_manifest_audit.py"],  # run in sequence
+             "tests/test_skill_manifest_audit.py",
+             "tests/test_doc_snapshot_presets.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
         # usage product to that dataset invalidates the assertion, so it has to select this.
@@ -394,7 +393,10 @@ CHECKS = [
                   "unpackaged/pre/5_decisiontables/",
                   "unpackaged/post_prm_pricing/decisionTables/",
                   "tests/test_fulfillment_scope_tolerance.py",
-                  "tests/test_skill_manifest_audit.py"],
+                  "tests/test_skill_manifest_audit.py",
+                  # The doc snapshot CLI reads presets.yaml through PyYAML; its offline
+                  # suite lives here rather than in STDLIB_SUITES for that reason.
+                  "scripts/doc_snapshot/", "tests/test_doc_snapshot_presets.py"],
         deps=["PyYAML"], gating=True,
     ),
     dict(

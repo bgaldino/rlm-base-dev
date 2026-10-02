@@ -362,7 +362,7 @@ reference and worked examples. Read that skill rather than guessing flags:
 | `scripts/renewal_assets/*` — renewal-asset expiry-bucket spread (`build_renewal_buckets.py`, reuses `build_quote_to_asset.py`) + lifecycle event-history augment/reset Apex | `renewal-asset-creation/SKILL.md` |
 | `scripts/df_workshop/*` — capture (`extract_workshop_quotes.py`) and replay (`insert_workshop_quotes.py`) DF workshop org drift | `df-workshop-setup/SKILL.md` |
 | `scripts/ai/query_erd.py` — query the RLM data model offline | `revenue-cloud-data-model/SKILL.md` |
-| `scripts/ai/check_help_corpus_text_artifacts.py` — non-gating spot-check for glued-link text artifacts in the Help snapshot | `revenue-cloud-docs/SKILL.md` |
+| `scripts/doc_snapshot/*` — standalone CLI that snapshots Help portal areas, release notes and atlas dev guides (presets in `presets.yaml`), plus `check`, a non-gating spot-check for glued-link text artifacts in the Help corpus | `revenue-cloud-docs/SKILL.md` |
 | `scripts/ai/skill_manifest.py` — cross-repo skill manifest resolver | `pmos-integration/SKILL.md` |
 | `scripts/ai/pr_review.py` — automated-PR-review helper | **Responding to Automated PR Reviews**, above |
 | `scripts/ai/check_branch_scope.py` — fail a branch carrying commits it does not own (already upstream, or another open PR's) | `audit-review/SKILL.md` → **Step −1** |

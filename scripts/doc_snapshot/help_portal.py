@@ -12,28 +12,15 @@ WHY THIS EXISTS
 The Salesforce Help portal is an LWC SPA with shadow DOM. Plain `WebFetch`
 or `curl` returns an unrendered shell. AI agents (and grep, glob, Read) work
 much better against per-article markdown than against a 124 MB PDF compendium.
-This task produces the markdown snapshot per release-area so the agents have
+This module produces the markdown snapshot per release-area so the agents have
 fast, surgical grounding material.
 
 USAGE
 
-In `cumulusci.yml`:
+Run through the CLI; named areas live in `presets.yaml`:
 
-    snapshot_billing_help_262:
-        description: Snapshot the 262 Billing area of Salesforce Help.
-        class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-        group: Documentation
-        options:
-            release_version: "262"
-            release_name: "Summer '26"
-            area: billing
-            root_article_id: ind.billing.htm
-            article_id_prefix: ind.billing
-            mode: all
-
-Run with:
-
-    cci task run snapshot_billing_help_262
+    python -m scripts.doc_snapshot help --release 264 --area billing
+    python -m scripts.doc_snapshot help --release 264 --area billing --mode discover
 
 MODES
 
@@ -43,70 +30,31 @@ MODES
     all        Discover then capture. Skips articles already captured. (default)
     refresh    Re-capture every article, overwriting existing files.
 
-REQUIREMENTS
-
-This project uses pyenv + a project-local `.venv` and pipx-installed CumulusCI
-(see docs/guides/local-installation.md, "macOS Environment Setup"). Playwright must be installed into
-whichever Python environment runs the task — CCI's interpreter, not the
-calling shell's.
-
-If CCI is installed via pipx (the local-installation guide's recommended path, which uses
-the standard ~/.local/pipx/venvs/cumulusci/ location):
-
-    pipx inject cumulusci playwright
-    # Playwright isn't exposed as a pipx app by default, so run its CLI via
-    # the cumulusci venv's Python directly:
-    ~/.local/pipx/venvs/cumulusci/bin/python -m playwright install chromium
-
-On Windows the equivalent path is
-%USERPROFILE%\\pipx\\venvs\\cumulusci\\Scripts\\python.exe.
-
-If your pipx install lives somewhere non-standard (custom PIPX_HOME, etc.),
-`pipx environment --value PIPX_LOCAL_VENVS` returns the base directory
-that contains the cumulusci venv; substitute it for `~/.local/pipx/venvs`
-above.
-
-    # Or, if you'd rather have `playwright` on your PATH:
-    #   pipx inject cumulusci playwright --include-apps --force
-    #   playwright install chromium
-
-If CCI is installed via `python -m pip install cumulusci` inside the project
-venv (the alternative path in the local-installation guide):
-
-    source .venv/bin/activate
-    python -m pip install playwright
-    python -m playwright install chromium
-
-The browser runs headless by default. Set headless=false to watch it work.
-
-VERIFY THE INSTALL
-
-    cci task info snapshot_billing_help_262
-
-If the task lists its options without error, registration is good. To verify
-Playwright can be loaded in CCI's environment, dry-run with discover mode:
-
-    cci task run snapshot_billing_help_262 -o mode discover
-
-A successful discover run writes manifest.json with the discovered article IDs
-in 'pending' status and exits cleanly.
+The browser runs headless by default; pass `--headless false` to watch it.
+See scripts/doc_snapshot/README.md for install steps.
 """
 
 import asyncio
 import json
-import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-try:
-    from cumulusci.core.tasks import BaseTask
-    from cumulusci.core.exceptions import TaskOptionsError, CommandException
-except ImportError:
-    BaseTask = object  # type: ignore[misc,assignment]
-    TaskOptionsError = Exception
-    CommandException = Exception
+from scripts.doc_snapshot._core import (
+    OptionsError,
+    SnapshotError,
+    as_bool,
+    as_int,
+    compute_stats,
+    get_logger,
+    normalize_mode,
+    require_options,
+    require_playwright,
+    resolve_output_dir,
+)
+
+CAPTURE_METHOD = "scripts/doc_snapshot help (Playwright + shadow-DOM walker)"
 
 
 # ---------------------------------------------------------------------------
@@ -241,33 +189,6 @@ ARTICLE_BODY_JS = """
 # (PR #409 review).
 NOT_FOUND_TITLE_PREFIX = "We looked high and low"
 
-PLAYWRIGHT_INSTALL_HINT = """
-Playwright is required for this task. Install it into the SAME Python
-environment that runs CCI — a plain `pip install playwright` only works
-if CCI was installed via `pip` in that environment.
-
-For the recommended pipx-installed CCI (per the local-installation guide, which
-uses the standard ~/.local/pipx/venvs/cumulusci/ path):
-
-    pipx inject cumulusci playwright
-    ~/.local/pipx/venvs/cumulusci/bin/python -m playwright install chromium
-
-On Windows the equivalent path is
-%USERPROFILE%\\pipx\\venvs\\cumulusci\\Scripts\\python.exe. If your pipx
-install lives somewhere non-standard, `pipx environment --value
-PIPX_LOCAL_VENVS` prints the actual base directory containing the
-cumulusci venv.
-
-For a pip-installed CCI in the active venv:
-
-    pip install playwright
-    python -m playwright install chromium
-
-See the `snapshot_*_help_*` task comment block in `cumulusci.yml` for the
-canonical, copy-pasteable install instructions kept in lockstep with this
-hint.
-"""
-
 
 # ---------------------------------------------------------------------------
 # Markdown rendering
@@ -324,132 +245,86 @@ def render_article_markdown(
 
 
 # ---------------------------------------------------------------------------
-# Task
+# Snapshotter
 # ---------------------------------------------------------------------------
 
 
-class SnapshotSalesforceHelp(BaseTask):
+class HelpSnapshot:
     """Capture Salesforce Help articles as markdown for AI grounding.
 
-    See module docstring for usage. This task does not require an org
-    connection — it's a pure web scrape against the public Help portal.
+    See module docstring for usage. No org connection is needed: it's a
+    pure web scrape against the public Help portal.
+
+    Options (all keys snake_case; the CLI maps --kebab-case flags onto them):
+
+        release_version       required; URL release param and path component, e.g. '264'
+        release_name          required; e.g. "Winter '27"
+        area                  required; functional area tag, e.g. 'billing'
+        root_article_id       required; area root whose sidebar seeds discovery
+        article_id_prefix     required; only capture IDs with this prefix
+        output_dir            default docs/salesforce/{release_version}/help (repo-relative)
+        mode                  discover | capture | all | refresh (default all)
+        headless              default true
+        concurrency           articles captured in parallel (default 4)
+        wait_ms               ms between sidebar reads, and the per-article settle (default 3000)
+        discover_timeout_ms   max ms to poll the sidebar for a stable count (default 20000)
+        expect_min_articles   fail discovery below this many prefix matches
+        include_release_param append &release= to article URLs (default true)
+        subtree_only          keep only root_article_id's sidebar descendants (default false);
+                              a validated walk also prunes this area's records whose complete
+                              parent chain places them in another sidebar branch
     """
 
-    task_options: Dict[str, Dict[str, Any]] = {
-        "release_version": {
-            "description": "Salesforce release version (used in URL release param and as a path component), e.g. '262'.",
-            "required": True,
-        },
-        "release_name": {
-            "description": "Human-readable release name, e.g. \"Summer '26\".",
-            "required": True,
-        },
-        "area": {
-            "description": "Functional area name for grouping, e.g. 'billing'.",
-            "required": True,
-        },
-        "root_article_id": {
-            "description": "Article ID of the area root, e.g. 'ind.billing.htm'. The sidebar of this article seeds discovery.",
-            "required": True,
-        },
-        "article_id_prefix": {
-            "description": "Only capture articles whose IDs start with this prefix, e.g. 'ind.billing'.",
-            "required": True,
-        },
-        "output_dir": {
-            "description": "Output directory. Defaults to docs/salesforce/{release_version}/help.",
-            "required": False,
-        },
-        "mode": {
-            "description": "discover | capture | all | refresh. Defaults to 'all'.",
-            "required": False,
-        },
-        "headless": {
-            "description": "Run browser headless. Defaults to true. Set 'false' to watch.",
-            "required": False,
-        },
-        "concurrency": {
-            "description": "Number of articles to capture in parallel. Defaults to 4.",
-            "required": False,
-        },
-        "wait_ms": {
-            "description": "Milliseconds to wait between sidebar hydration reads during discovery. Defaults to 3000.",
-            "required": False,
-        },
-        "discover_timeout_ms": {
-            "description": "Max total milliseconds to poll the sidebar during discovery, waiting for the matching-article count to stabilize across two consecutive reads (with subtree_only, the whole walk must also repeat). Defaults to 20000.",
-            "required": False,
-        },
-        "expect_min_articles": {
-            "description": "If set, discovery raises when it finds fewer than this many prefix-matching articles — guards against a partially-hydrated sidebar silently writing a thin manifest.",
-            "required": False,
-        },
-        "include_release_param": {
-            "description": "Append &release={release_version} to article URLs. Defaults to true.",
-            "required": False,
-        },
-        "subtree_only": {
-            "description": "Keep only root_article_id and its sidebar descendants (by parent chain), in addition to the prefix filter. For sidebars whose IDs share one prefix across products, such as release notes. A validated discovery also prunes this area's manifest records and article files whose complete parent chain places them in another sidebar branch (reaching a root ancestor or another aria-level 1 tree root); records absent from the walk or with incomplete ancestry are kept. Defaults to false.",
-            "required": False,
-        },
-    }
-
     BASE_URL = "https://help.salesforce.com/s/articleView"
+
+    def __init__(self, options: Dict[str, Any], logger=None):
+        self.options = dict(options)
+        self.logger = logger or get_logger()
+        self._init_options()
 
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
 
-    def _init_options(self, kwargs):
-        if hasattr(super(), "_init_options"):
-            super()._init_options(kwargs)
-
+    def _init_options(self) -> None:
+        require_options(
+            self.options,
+            "release_version", "release_name", "area",
+            "root_article_id", "article_id_prefix",
+        )
+        self.options["release_version"] = str(self.options["release_version"])
         if not self.options.get("output_dir"):
             self.options["output_dir"] = (
                 f"docs/salesforce/{self.options['release_version']}/help"
             )
-        self.options["mode"] = str(self.options.get("mode", "all")).lower()
-        self.options["headless"] = (
-            str(self.options.get("headless", "true")).lower() == "true"
-        )
-        self.options["concurrency"] = int(self.options.get("concurrency", 4))
-        self.options["wait_ms"] = int(self.options.get("wait_ms", 3000))
-        self.options["discover_timeout_ms"] = int(
-            self.options.get("discover_timeout_ms", 20000)
+        self.options["mode"] = normalize_mode(self.options.get("mode"))
+        self.options["headless"] = as_bool(self.options.get("headless"), True)
+        self.options["concurrency"] = as_int(self.options.get("concurrency"), 4)
+        self.options["wait_ms"] = as_int(self.options.get("wait_ms"), 3000)
+        self.options["discover_timeout_ms"] = as_int(
+            self.options.get("discover_timeout_ms"), 20000
         )
         self._validate_timing_options()
-        expect_min = self.options.get("expect_min_articles")
-        self.options["expect_min_articles"] = int(expect_min) if expect_min else None
-        self.options["include_release_param"] = (
-            str(self.options.get("include_release_param", "true")).lower() == "true"
+        self.options["expect_min_articles"] = (
+            as_int(self.options.get("expect_min_articles"), None) or None
         )
-        self.options["subtree_only"] = (
-            str(self.options.get("subtree_only", "false")).lower() == "true"
+        self.options["include_release_param"] = as_bool(
+            self.options.get("include_release_param"), True
         )
+        self.options["subtree_only"] = as_bool(self.options.get("subtree_only"), False)
 
-        valid_modes = ("discover", "capture", "all", "refresh")
-        if self.options["mode"] not in valid_modes:
-            raise TaskOptionsError(
-                f"mode must be one of {valid_modes}, got {self.options['mode']!r}"
-            )
+    def run(self) -> Dict[str, Any]:
+        """Run the snapshot; returns the manifest's overall stats."""
+        require_playwright(self.logger)
 
-    def _run_task(self):
-        # Lazy-import Playwright so the error message is clearer when it's missing.
-        try:
-            from playwright.async_api import async_playwright  # noqa: F401
-        except ImportError:
-            self.logger.error(PLAYWRIGHT_INSTALL_HINT)
-            raise CommandException("Playwright not installed")
-
-        cwd = os.getcwd()
-        output_dir = Path(cwd) / self.options["output_dir"]
+        output_dir = resolve_output_dir(self.options["output_dir"])
         articles_dir = output_dir / "articles"
         manifest_path = output_dir / "manifest.json"
         index_path = output_dir / "index.md"
 
         articles_dir.mkdir(parents=True, exist_ok=True)
 
-        asyncio.run(
+        return asyncio.run(
             self._async_run(
                 output_dir=output_dir,
                 articles_dir=articles_dir,
@@ -473,7 +348,7 @@ class SnapshotSalesforceHelp(BaseTask):
     # ------------------------------------------------------------------
 
     def _load_or_init_manifest(self, manifest_path: Path) -> Dict[str, Any]:
-        # The required top-level keys this task writes and the index builder reads.
+        # The required top-level keys this module writes and the index builder reads.
         # Older or hand-written manifests may be missing some of these — backfill
         # from the current options so we don't crash later.
         #
@@ -492,7 +367,7 @@ class SnapshotSalesforceHelp(BaseTask):
             "root_article_id": self.options["root_article_id"],
             "article_id_prefix": self.options["article_id_prefix"],
             "snapshot_started": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
+            "capture_method": CAPTURE_METHOD,
             "areas": [],   # accumulated per-area run metadata (this run + prior runs)
             "articles": [],
         }
@@ -514,6 +389,8 @@ class SnapshotSalesforceHelp(BaseTask):
                 existing["root_article_id"] = self.options["root_article_id"]
                 existing["article_id_prefix"] = self.options["article_id_prefix"]
                 existing["source_root_url"] = self._article_url(self.options["root_article_id"])
+                # Label the manifest with the tool that last wrote it.
+                existing["capture_method"] = CAPTURE_METHOD
                 return existing
             except (json.JSONDecodeError, OSError) as e:
                 self.logger.warning(f"Could not load existing manifest: {e}. Starting fresh.")
@@ -578,18 +455,7 @@ class SnapshotSalesforceHelp(BaseTask):
 
     @staticmethod
     def _compute_stats(manifest: Dict[str, Any]) -> Dict[str, Any]:
-        articles = manifest.get("articles", [])
-        captured = [a for a in articles if a.get("status") == "captured"]
-        pending = [a for a in articles if a.get("status") == "pending"]
-        errored = [a for a in articles if a.get("status") == "error"]
-        total_chars = sum(a.get("body_length", 0) for a in captured)
-        return {
-            "discovered": len(articles),
-            "captured": len(captured),
-            "pending": len(pending),
-            "errored": len(errored),
-            "total_captured_body_chars": total_chars,
-        }
+        return compute_stats(manifest, "articles")
 
     def _prune_moved_out(
         self, manifest: Dict[str, Any], moved_out: Set[str]
@@ -694,7 +560,7 @@ class SnapshotSalesforceHelp(BaseTask):
 
         # Per-area scoping: the shared manifest accumulates articles across
         # every area that has ever been run against this release directory.
-        # An area-specific task (e.g. snapshot_pricing_help_262) must only
+        # An area-specific run (e.g. the 262 pricing preset) must only
         # operate on its own area — otherwise mode=refresh would silently
         # re-capture other areas' articles (and re-tag them with the wrong
         # `area` value via render_article_markdown). Articles with no `area`
@@ -792,6 +658,7 @@ class SnapshotSalesforceHelp(BaseTask):
         )
         self.logger.info(f"Manifest: {manifest_path}")
         self.logger.info(f"Index:    {index_path}")
+        return stats
 
     def _validate_timing_options(self) -> None:
         """Reject non-positive wait_ms/discover_timeout_ms before the discovery loop runs.
@@ -802,13 +669,13 @@ class SnapshotSalesforceHelp(BaseTask):
         loudly via `_validate_discovery`. Pure option check, no browser state needed.
         """
         if self.options["wait_ms"] <= 0:
-            raise TaskOptionsError(
+            raise OptionsError(
                 f"wait_ms must be positive, got {self.options['wait_ms']!r} — "
                 "the discovery loop's elapsed-time counter is wait_ms * reads, "
                 "so a non-positive value never reaches discover_timeout_ms."
             )
         if self.options["discover_timeout_ms"] <= 0:
-            raise TaskOptionsError(
+            raise OptionsError(
                 f"discover_timeout_ms must be positive, got "
                 f"{self.options['discover_timeout_ms']!r}"
             )
@@ -825,27 +692,27 @@ class SnapshotSalesforceHelp(BaseTask):
         unit-testable without Playwright.
         """
         if not kept_count:
-            raise CommandException(
+            raise SnapshotError(
                 f"Discovery found 0 articles matching prefix "
                 f"{self.options['article_id_prefix']!r} under root "
                 f"{self.options['root_article_id']!r} "
                 f"({total_before_filter} links seen before prefix filter). "
                 "The sidebar likely didn't finish rendering before "
                 "discover_timeout_ms — rerun, or raise "
-                "discover_timeout_ms/wait_ms."
+                "--discover-timeout-ms / --wait-ms."
             )
         expect_min = self.options["expect_min_articles"]
         if expect_min and kept_count < expect_min:
-            raise CommandException(
+            raise SnapshotError(
                 f"Discovery found only {kept_count} articles matching prefix "
                 f"{self.options['article_id_prefix']!r}, below "
                 f"expect_min_articles={expect_min} "
                 f"({total_before_filter} links seen before prefix filter). "
                 "The sidebar may not have fully rendered — rerun, or raise "
-                "discover_timeout_ms."
+                "--discover-timeout-ms."
             )
         if not stabilized:
-            raise CommandException(
+            raise SnapshotError(
                 f"Discovery hit discover_timeout_ms with the matching-article "
                 f"count (or, with subtree_only, the whole walk) still changing "
                 f"between reads (last read: {kept_count} matching, "
@@ -853,7 +720,7 @@ class SnapshotSalesforceHelp(BaseTask):
                 "never went two consecutive reads without changing, so "
                 "this count is not reliably the full tree even though it clears "
                 "any configured expect_min_articles floor. Rerun, or raise "
-                "discover_timeout_ms."
+                "--discover-timeout-ms."
             )
 
     def _filter_discovered(
@@ -1230,7 +1097,7 @@ class SnapshotSalesforceHelp(BaseTask):
         lines.append("---")
         lines.append("")
         lines.append(
-            f"*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` "
+            f"*Generated by `scripts/doc_snapshot help` "
             f"on {manifest.get('last_updated', 'n/a')}.*"
         )
 

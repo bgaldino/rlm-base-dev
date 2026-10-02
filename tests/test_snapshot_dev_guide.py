@@ -1,10 +1,10 @@
-"""Unit tests for tasks/rlm_snapshot_dev_guide.py — the multi-section TOC walk.
+"""Unit tests for scripts/doc_snapshot/dev_guide.py — the multi-section TOC walk.
 
 Exercises `_flatten_toc` (and indirectly `_find_section`/`_node_page_id`) without
-a browser or CumulusCI runtime: the method takes the TOC + section filters as
-arguments and uses no task state, so an instance built with `__new__` suffices.
+a browser or Playwright install: the method takes the TOC + section filters as
+arguments and uses no instance state, so an instance built with `__new__` suffices.
 
-Run:  <cci-venv-python> tests/test_snapshot_dev_guide.py
+Run:  python3 tests/test_snapshot_dev_guide.py   (stdlib only)
 """
 
 import os
@@ -12,17 +12,10 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from tasks.rlm_snapshot_dev_guide import (  # noqa: E402
-    SnapshotSalesforceDevGuide,
-    TaskOptionsError,
+from scripts.doc_snapshot.dev_guide import (  # noqa: E402
+    DevGuideSnapshot,
+    OptionsError,
 )
-
-# TaskOptionsError comes from the module under test, not from CumulusCI, so the
-# assertion always names the class the code will actually raise. The task binds
-# BaseTask and TaskOptionsError in one try block, so a CumulusCI that imports
-# but whose cumulusci.core.tasks does not (3.12+ without setuptools: fs needs
-# pkg_resources) drops it to the fallback shim while a narrower import here
-# would still resolve the real class — and every raise assertion would miss.
 
 
 _passed = _total = 0
@@ -58,8 +51,9 @@ TOC = [
 
 
 def _task():
-    # _flatten_toc uses no self.options/state, so bypass CumulusCI __init__.
-    return SnapshotSalesforceDevGuide.__new__(SnapshotSalesforceDevGuide)
+    # _flatten_toc uses no self.options/state, so bypass __init__'s option
+    # normalization; checks that need options set them directly.
+    return DevGuideSnapshot.__new__(DevGuideSnapshot)
 
 
 def main():
@@ -96,8 +90,8 @@ def main():
     try:
         t._flatten_toc(TOC, ["does_not_exist"])
         check("unknown section raises", False)
-    except TaskOptionsError:
-        check("unknown section raises TaskOptionsError", True)
+    except OptionsError:
+        check("unknown section raises OptionsError", True)
 
     # _select_to_capture restricts the capture set to the requested sections
     # (parallel multi-section path; filter given as page_id and as title).
@@ -132,13 +126,13 @@ def main():
         try:
             t3._check_doc_version_change(captured_manifest, "262.0", mode)
             check(f"doc_version change raises under mode={mode}", False)
-        except TaskOptionsError:
+        except OptionsError:
             check(f"doc_version change raises under mode={mode}", True)
     for mode in ("refresh", "discover"):
         try:
             t3._check_doc_version_change(captured_manifest, "262.0", mode)
             check(f"doc_version change allowed under mode={mode}", True)
-        except TaskOptionsError:
+        except OptionsError:
             check(f"doc_version change allowed under mode={mode}", False)
     # Same version requested, or nothing captured yet, or no prior version at
     # all (first-ever run): none of these are a "change", so never raise.

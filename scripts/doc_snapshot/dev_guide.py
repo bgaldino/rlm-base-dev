@@ -1,7 +1,7 @@
 """Capture a Salesforce "atlas" Developer Guide as markdown for AI grounding.
 
-Companion to ``tasks/rlm_snapshot_help.py`` (which captures the help.salesforce.com
-LWC portal). The *developer* guide is a different documentation system — the
+Companion to ``help_portal`` (which captures the help.salesforce.com LWC
+portal). The *developer* guide is a different documentation system — the
 "atlas" viewer at ``developer.salesforce.com/docs/atlas.en-us.<deliverable>.meta``
 — so it needs its own capture path.
 
@@ -31,83 +31,51 @@ OUTPUT (mirrors the help snapshot layout)
     docs/salesforce/{release}/dev-guide/manifest.json           # machine index
     docs/salesforce/{release}/dev-guide/index.md                # human index
 
-USAGE (cumulusci.yml)
+USAGE
 
-    snapshot_dev_guide_262:
-        class_path: tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide
-        group: Documentation
-        options:
-            release_version: "262"
-            release_name: "Summer '26"
-            # deliverable defaults to revenue_lifecycle_management_dev_guide
-            # doc_version defaults to the meta's version.doc_version
-            mode: all
+Run through the CLI; named guides live in ``presets.yaml``:
 
-Capture only one section (e.g. just CML) with the ``section`` option:
+    python -m scripts.doc_snapshot dev-guide --release 264 --guide rlm
+    python -m scripts.doc_snapshot dev-guide --release 264 --guide rlm \
+        --section "Constraint Modeling Language"
 
-    cci task run snapshot_dev_guide_262 -o section "Constraint Modeling Language"
-
-MODES (same semantics as snapshot_help)
+MODES (same semantics as the help snapshot)
 
     discover   Fetch TOC, write manifest with pages as 'pending'. No body capture.
     capture    Read manifest, capture 'pending' pages.
     all        Discover then capture, skipping already-captured pages. (default)
     refresh    Re-capture every page, overwriting existing files.
 
-REQUIREMENTS
-
-Playwright must be installed into whichever Python runs the task (CCI's
-interpreter, not the calling shell). This is the same requirement as
-``snapshot_help`` — see that module's docstring / cumulusci.yml comment block:
-
-    pipx inject cumulusci playwright
-    ~/.local/pipx/venvs/cumulusci/bin/python -m playwright install chromium
-
-Optional (better markdown for tables / nested lists):
-
-    pipx inject cumulusci markdownify
-
-Without ``markdownify`` the task falls back to a built-in converter that handles
-headings, paragraphs, lists, links, inline/blocks of code, and br.
+``markdownify`` is optional (better markdown for tables / nested lists); without
+it a built-in converter handles headings, paragraphs, lists, links, inline/blocks
+of code, and br. See scripts/doc_snapshot/README.md for install steps.
 """
 
 import asyncio
 import json
-import os
 import re
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-try:
-    from cumulusci.core.tasks import BaseTask
-    from cumulusci.core.exceptions import TaskOptionsError, CommandException
-except ImportError:
-    BaseTask = object  # type: ignore[misc,assignment]
+from scripts.doc_snapshot._core import (
+    OptionsError,
+    SnapshotError,
+    as_bool,
+    as_int,
+    compute_stats,
+    get_logger,
+    normalize_mode,
+    require_options,
+    require_playwright,
+    resolve_output_dir,
+)
 
-    class TaskOptionsError(Exception):
-        """Fallback when CumulusCI is unavailable (e.g. stdlib-only test runs)."""
-
-    class CommandException(Exception):
-        """Fallback when CumulusCI is unavailable."""
+CAPTURE_METHOD = "scripts/doc_snapshot dev-guide (Playwright + atlas content API)"
 
 
 DOCS_BASE = "https://developer.salesforce.com/docs"
-
-PLAYWRIGHT_INSTALL_HINT = """
-Playwright is required for this task. Install it into the SAME Python
-environment that runs CCI (a plain `pip install playwright` only works if CCI
-was installed via pip in that environment):
-
-    pipx inject cumulusci playwright
-    ~/.local/pipx/venvs/cumulusci/bin/python -m playwright install chromium
-
-On Windows the venv python is
-%USERPROFILE%\\pipx\\venvs\\cumulusci\\Scripts\\python.exe. If your pipx install
-lives elsewhere, `pipx environment --value PIPX_LOCAL_VENVS` prints the base
-directory that contains the cumulusci venv.
-"""
 
 # JS run in the page to fetch the atlas content API with the browser's cookies.
 FETCH_TEXT_JS = """
@@ -437,85 +405,49 @@ def render_page_markdown(
 
 
 # ---------------------------------------------------------------------------
-# Task
+# Snapshotter
 # ---------------------------------------------------------------------------
 
 
-class SnapshotSalesforceDevGuide(BaseTask):
+class DevGuideSnapshot:
     """Capture an atlas developer guide as per-page markdown for AI grounding.
 
     Pure web scrape — no org connection required.
+
+    Options (snake_case; the CLI maps --kebab-case flags onto them):
+
+        release_version  required; path component, e.g. '264'
+        release_name     required; e.g. "Winter '27"
+        deliverable      atlas slug (default revenue_lifecycle_management_dev_guide)
+        doc_version      atlas doc version, e.g. '264.0' (default: the guide meta's value)
+        section          capture only the TOC subtree whose title or page_id matches
+        sections         list (or comma-separated string) of sections; supersedes
+                         'section'. Use page_ids when a title contains commas.
+        output_dir       default docs/salesforce/{release_version}/dev-guide (repo-relative)
+        mode             discover | capture | all | refresh (default all)
+        headless         default true
+        concurrency      pages fetched per batch (default 6)
+        wait_ms          ms to wait after the bootstrap navigation (default 3000)
+        batch_delay_ms   ms between fetch batches (default 400)
+        follow_links     follow intra-guide links beyond the TOC (default true for a
+                         whole-guide run, false when sections are given)
+        max_pages        safety cap on total pages captured (default 5000)
     """
 
-    task_options: Dict[str, Dict[str, Any]] = {
-        "release_version": {
-            "description": "Release version, used as a path component, e.g. '262'.",
-            "required": True,
-        },
-        "release_name": {
-            "description": "Human-readable release name, e.g. \"Summer '26\".",
-            "required": True,
-        },
-        "deliverable": {
-            "description": "Atlas deliverable slug. Defaults to 'revenue_lifecycle_management_dev_guide'.",
-            "required": False,
-        },
-        "doc_version": {
-            "description": "Atlas doc version (e.g. '262.0'). Defaults to the value reported by the guide's metadata.",
-            "required": False,
-        },
-        "section": {
-            "description": "Optional. Capture only the TOC subtree whose title or page_id matches (e.g. 'Constraint Modeling Language'). Default: whole guide.",
-            "required": False,
-        },
-        "sections": {
-            "description": "Optional. Comma-separated list of TOC sections (title or page_id) to capture in one run, e.g. 'business_rules_engine, context_service_overview'. Use page_ids when a section title contains commas. Supersedes 'section'.",
-            "required": False,
-        },
-        "output_dir": {
-            "description": "Output directory. Defaults to docs/salesforce/{release_version}/dev-guide.",
-            "required": False,
-        },
-        "mode": {
-            "description": "discover | capture | all | refresh. Defaults to 'all'.",
-            "required": False,
-        },
-        "headless": {
-            "description": "Run browser headless. Defaults to true. Set 'false' to watch.",
-            "required": False,
-        },
-        "concurrency": {
-            "description": "Pages fetched per batch. Defaults to 6.",
-            "required": False,
-        },
-        "wait_ms": {
-            "description": "Milliseconds to wait after the bootstrap navigation for cookies/hydration. Defaults to 3000.",
-            "required": False,
-        },
-        "batch_delay_ms": {
-            "description": "Milliseconds to pause between fetch batches (politeness/rate-limit). Defaults to 400.",
-            "required": False,
-        },
-        "follow_links": {
-            "description": "Follow intra-guide links beyond the TOC so linked-but-not-listed pages (e.g. per-class Apex reference) are also captured. Defaults to true for a whole-guide run, false when a 'section' is given.",
-            "required": False,
-        },
-        "max_pages": {
-            "description": "Safety cap on total pages captured (prevents runaway crawls). Defaults to 5000.",
-            "required": False,
-        },
-    }
-
     DEFAULT_DELIVERABLE = "revenue_lifecycle_management_dev_guide"
+
+    def __init__(self, options: Dict[str, Any], logger=None):
+        self.options = dict(options)
+        self.logger = logger or get_logger()
+        self._init_options()
 
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
 
-    def _init_options(self, kwargs):
-        if hasattr(super(), "_init_options"):
-            super()._init_options(kwargs)
-
+    def _init_options(self) -> None:
+        require_options(self.options, "release_version", "release_name")
+        self.options["release_version"] = str(self.options["release_version"])
         self.options["deliverable"] = (
             self.options.get("deliverable") or self.DEFAULT_DELIVERABLE
         )
@@ -523,18 +455,16 @@ class SnapshotSalesforceDevGuide(BaseTask):
             self.options["output_dir"] = (
                 f"docs/salesforce/{self.options['release_version']}/dev-guide"
             )
-        self.options["mode"] = str(self.options.get("mode", "all")).lower()
-        self.options["headless"] = (
-            str(self.options.get("headless", "true")).lower() == "true"
-        )
-        self.options["concurrency"] = max(1, int(self.options.get("concurrency", 6)))
-        self.options["wait_ms"] = int(self.options.get("wait_ms", 3000))
-        self.options["batch_delay_ms"] = int(self.options.get("batch_delay_ms", 400))
+        self.options["mode"] = normalize_mode(self.options.get("mode"))
+        self.options["headless"] = as_bool(self.options.get("headless"), True)
+        self.options["concurrency"] = max(1, as_int(self.options.get("concurrency"), 6))
+        self.options["wait_ms"] = as_int(self.options.get("wait_ms"), 3000)
+        self.options["batch_delay_ms"] = as_int(self.options.get("batch_delay_ms"), 400)
         self.options["section"] = self.options.get("section") or None
-        # `sections` (comma-separated) captures several named TOC sections in one
-        # run; `section` (singular) stays supported. A section identifier may be a
-        # TOC title OR a page_id — use page_ids when a title itself contains commas
-        # (e.g. the Data Processing Engine section).
+        # `sections` (list or comma-separated) captures several named TOC
+        # sections in one run; `section` (singular) stays supported. A section
+        # identifier may be a TOC title OR a page_id — use page_ids when a title
+        # itself contains commas (e.g. the Data Processing Engine section).
         raw_sections = self.options.get("sections")
         if raw_sections:
             if isinstance(raw_sections, (list, tuple)):
@@ -546,35 +476,25 @@ class SnapshotSalesforceDevGuide(BaseTask):
         else:
             filters = None
         self.options["section_filters"] = filters
-        self.options["doc_version"] = self.options.get("doc_version") or None
-        self.options["max_pages"] = int(self.options.get("max_pages", 5000))
+        self.options["doc_version"] = (
+            str(self.options["doc_version"]) if self.options.get("doc_version") else None
+        )
+        self.options["max_pages"] = as_int(self.options.get("max_pages"), 5000)
         # Follow links by default for a whole-guide run; default off when specific
         # sections are requested (so a section capture stays scoped). Override with
         # follow_links: true to also pull in in-scope pages linked from a section
         # but absent from its TOC subtree.
-        if self.options.get("follow_links") is None:
-            self.options["follow_links"] = self.options["section_filters"] is None
-        else:
-            self.options["follow_links"] = (
-                str(self.options.get("follow_links")).lower() == "true"
-            )
+        self.options["follow_links"] = as_bool(
+            self.options.get("follow_links"), self.options["section_filters"] is None
+        )
 
-        valid_modes = ("discover", "capture", "all", "refresh")
-        if self.options["mode"] not in valid_modes:
-            raise TaskOptionsError(
-                f"mode must be one of {valid_modes}, got {self.options['mode']!r}"
-            )
+    def run(self) -> Dict[str, Any]:
+        """Run the snapshot; returns the manifest's stats."""
+        require_playwright(self.logger)
 
-    def _run_task(self):
-        try:
-            from playwright.async_api import async_playwright  # noqa: F401
-        except ImportError:
-            self.logger.error(PLAYWRIGHT_INSTALL_HINT)
-            raise CommandException("Playwright not installed")
-
-        output_dir = Path(os.getcwd()) / self.options["output_dir"]
+        output_dir = resolve_output_dir(self.options["output_dir"])
         (output_dir / "articles").mkdir(parents=True, exist_ok=True)
-        asyncio.run(self._async_run(output_dir))
+        return asyncio.run(self._async_run(output_dir))
 
     # ------------------------------------------------------------------
     # URL helpers
@@ -607,7 +527,7 @@ class SnapshotSalesforceDevGuide(BaseTask):
             "doc_version": self.options.get("doc_version"),
             "guide_title": None,
             "source_meta_url": self._meta_url(),
-            "capture_method": "tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide (Playwright + atlas content API)",
+            "capture_method": CAPTURE_METHOD,
             "snapshot_started": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "pages": [],
         }
@@ -616,6 +536,8 @@ class SnapshotSalesforceDevGuide(BaseTask):
                 existing = json.loads(manifest_path.read_text(encoding="utf-8"))
                 for k, v in base.items():
                     existing.setdefault(k, v)
+                # Label the manifest with the tool that last wrote it.
+                existing["capture_method"] = CAPTURE_METHOD
                 self.logger.info(
                     f"Loaded existing manifest with {len(existing.get('pages', []))} pages"
                 )
@@ -634,15 +556,7 @@ class SnapshotSalesforceDevGuide(BaseTask):
 
     @staticmethod
     def _compute_stats(manifest: Dict[str, Any]) -> Dict[str, Any]:
-        pages = manifest.get("pages", [])
-        captured = [p for p in pages if p.get("status") == "captured"]
-        return {
-            "discovered": len(pages),
-            "captured": len(captured),
-            "pending": len([p for p in pages if p.get("status") == "pending"]),
-            "errored": len([p for p in pages if p.get("status") == "error"]),
-            "total_captured_body_chars": sum(p.get("body_length", 0) for p in captured),
-        }
+        return compute_stats(manifest, "pages")
 
     # ------------------------------------------------------------------
     # TOC walk
@@ -706,7 +620,7 @@ class SnapshotSalesforceDevGuide(BaseTask):
             for needle in section_filters:
                 sub = self._find_section(toc, needle)
                 if sub is None:
-                    raise TaskOptionsError(
+                    raise OptionsError(
                         f"section {needle!r} not found in the guide TOC"
                     )
                 # The matched node's own title seeds the section label for its subtree.
@@ -827,16 +741,16 @@ class SnapshotSalesforceDevGuide(BaseTask):
                     self.logger.warning(
                         f"Skipping discovery merge: doc_version would change "
                         f"({previous_doc_version!r} -> {self.options['doc_version']!r}) "
-                        "over already-captured pages. Re-run mode=refresh to force a "
-                        "re-fetch, or pass -o doc_version to confirm the intended version."
+                        "over already-captured pages. Re-run with --mode refresh to force a "
+                        "re-fetch, or pass --doc-version to confirm the intended version."
                     )
 
             if not self.options.get("doc_version"):
                 # capture-only mode relies on a previously-discovered version
                 self.options["doc_version"] = manifest.get("doc_version")
                 if not self.options["doc_version"]:
-                    raise TaskOptionsError(
-                        "doc_version unknown; run mode=discover or pass -o doc_version"
+                    raise OptionsError(
+                        "doc_version unknown; run --mode discover or pass --doc-version"
                     )
             self._check_doc_version_change(manifest, previous_doc_version, mode)
             if self._may_record_doc_version(manifest, previous_doc_version, mode):
@@ -862,19 +776,20 @@ class SnapshotSalesforceDevGuide(BaseTask):
             f"pending={stats.get('pending', 0)} errored={stats.get('errored', 0)}"
         )
         self.logger.info(f"Manifest: {manifest_path}")
+        return stats
 
     async def _fetch_meta(self, page) -> Dict[str, Any]:
         self.logger.info(f"  GET {self._meta_url()}")
         res = await page.evaluate(FETCH_TEXT_JS, self._meta_url())
         if not res.get("ok"):
-            raise CommandException(
+            raise SnapshotError(
                 f"TOC fetch failed (HTTP {res.get('status')}). The atlas API may "
                 "have blocked the session or the deliverable slug is wrong."
             )
         try:
             return json.loads(res.get("text") or "{}")
         except json.JSONDecodeError as e:
-            raise CommandException(f"TOC response was not JSON: {e}")
+            raise SnapshotError(f"TOC response was not JSON: {e}")
 
     def _check_doc_version_change(
         self, manifest: Dict[str, Any], previous_doc_version: Optional[str], mode: str
@@ -893,10 +808,10 @@ class SnapshotSalesforceDevGuide(BaseTask):
             return
         if not any(p.get("status") == "captured" for p in manifest.get("pages", [])):
             return
-        raise TaskOptionsError(
+        raise OptionsError(
             f"doc_version changed ({previous_doc_version!r} -> {requested!r}) but "
             f"mode={mode!r} would not recapture already-captured pages, mislabeling "
-            "their content as the new version. Use mode=refresh to force a re-fetch."
+            "their content as the new version. Use --mode refresh to force a re-fetch."
         )
 
     def _may_record_doc_version(
@@ -1031,8 +946,8 @@ class SnapshotSalesforceDevGuide(BaseTask):
         if unfetched:
             self.logger.warning(
                 f"  Hit max_pages={max_pages}: {len(unfetched)} discovered page(s) "
-                "left uncaptured (recorded as 'pending'). Raise -o max_pages or "
-                "re-run mode=capture to fetch them."
+                "left uncaptured (recorded as 'pending'). Raise --max-pages or "
+                "re-run with --mode capture to fetch them."
             )
 
         # --- Phase 2: write every fetched page with the full set known ---------
@@ -1147,7 +1062,7 @@ class SnapshotSalesforceDevGuide(BaseTask):
         lines.append("---")
         lines.append("")
         lines.append(
-            f"*Generated by `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide` "
+            f"*Generated by `scripts/doc_snapshot dev-guide` "
             f"on {manifest.get('last_updated', 'n/a')}.*"
         )
         index_path.write_text("\n".join(lines), encoding="utf-8")

@@ -1,15 +1,15 @@
-"""Unit tests for tasks/rlm_snapshot_help.py — discovery guard + stabilization loop.
+"""Unit tests for scripts/doc_snapshot/help_portal.py — discovery guard + stabilization loop.
 
 Exercises `_validate_discovery` (pack 146: fail loud on a thin/empty walk) and
 `_discover_articles`'s polling loop (pack 146 companion: the sidebar hydrates
 at variable speed, so a single fixed wait races — live probing showed 3 of 4
 single-read trials at a fixed 3s wait succeeding and one catching the tree
-mid-hydration) against a fake `page` stub. No browser or CumulusCI runtime is
+mid-hydration) against a fake `page` stub. No browser or Playwright install is
 needed: `_validate_discovery` uses only `self.options`, and `_discover_articles`
 only calls `page.goto` / `page.wait_for_timeout` / `page.evaluate`, all of
 which the stub fakes.
 
-Run:  <cci-venv-python> tests/test_snapshot_help.py
+Run:  python3 tests/test_snapshot_help.py   (stdlib only)
 """
 
 import asyncio
@@ -18,10 +18,10 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from tasks.rlm_snapshot_help import (  # noqa: E402
-    SnapshotSalesforceHelp,
-    CommandException,
-    TaskOptionsError,
+from scripts.doc_snapshot.help_portal import (  # noqa: E402
+    HelpSnapshot,
+    OptionsError,
+    SnapshotError,
 )
 
 
@@ -50,10 +50,10 @@ class _NullLogger:
 
 
 def _task(**options):
-    # Neither _validate_discovery nor _discover_articles touch CumulusCI init
-    # state (org_config, project_config, etc.) — only self.options/self.logger —
-    # so bypass BaseTask.__init__ entirely.
-    t = SnapshotSalesforceHelp.__new__(SnapshotSalesforceHelp)
+    # Neither _validate_discovery nor _discover_articles needs the option
+    # normalization __init__ runs — only self.options/self.logger — so bypass
+    # __init__ and set exactly the options each check exercises.
+    t = HelpSnapshot.__new__(HelpSnapshot)
     t.options = {
         "article_id_prefix": "ind.example",
         "root_article_id": "ind.example_introduction.htm",
@@ -105,7 +105,7 @@ def main():
     try:
         t._validate_discovery(0, 3, True)
         check("zero kept raises", False)
-    except CommandException:
+    except SnapshotError:
         check("zero kept raises", True)
 
     check("nonzero kept with no expect_min_articles passes",
@@ -115,7 +115,7 @@ def main():
     try:
         t2._validate_discovery(10, 12, True)
         check("below expect_min_articles raises", False)
-    except CommandException:
+    except SnapshotError:
         check("below expect_min_articles raises", True)
     check("at-or-above expect_min_articles passes",
           t2._validate_discovery(50, 60, True) is None)
@@ -123,7 +123,7 @@ def main():
     try:
         t2._validate_discovery(60, 60, False)
         check("unstabilized-at-timeout raises even above expect_min_articles", False)
-    except CommandException:
+    except SnapshotError:
         check("unstabilized-at-timeout raises even above expect_min_articles", True)
 
     # --- _validate_timing_options -------------------------------------------
@@ -131,21 +131,21 @@ def main():
     try:
         t7._validate_timing_options()
         check("wait_ms=0 raises", False)
-    except TaskOptionsError:
+    except OptionsError:
         check("wait_ms=0 raises", True)
 
     t8 = _task(wait_ms=-100)
     try:
         t8._validate_timing_options()
         check("negative wait_ms raises", False)
-    except TaskOptionsError:
+    except OptionsError:
         check("negative wait_ms raises", True)
 
     t9 = _task(discover_timeout_ms=0)
     try:
         t9._validate_timing_options()
         check("discover_timeout_ms=0 raises", False)
-    except TaskOptionsError:
+    except OptionsError:
         check("discover_timeout_ms=0 raises", True)
 
     t10 = _task()
@@ -244,7 +244,7 @@ def main():
     try:
         t7c._validate_discovery(len(result7c), len(result7c), stabilized7c)
         check("validate_discovery rejects an unstabilized above-floor result", False)
-    except CommandException:
+    except SnapshotError:
         check("validate_discovery rejects an unstabilized above-floor result", True)
 
     # PR #485 review: subtree_only prunes from the whole walk, so stability on
