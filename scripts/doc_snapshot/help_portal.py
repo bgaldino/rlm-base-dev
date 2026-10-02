@@ -809,7 +809,8 @@ class HelpSnapshot:
         catching the tree mid-hydration (1 article instead of ~80). A single
         fixed wait is therefore a race; poll every wait_ms up to
         discover_timeout_ms and stop once the prefix-matching count holds
-        steady across two consecutive reads (with subtree_only, the whole
+        steady across two consecutive reads (a read holding only the root
+        article never counts as steady; with subtree_only, the whole
         walk's id, parent and top_level signature must also repeat, because
         the prune reads the whole walk) — unless that count sits below
         expect_min_articles (when set), in which case keep polling: the same
@@ -840,7 +841,8 @@ class HelpSnapshot:
             await page.wait_for_timeout(sleep_ms)
             elapsed_ms += sleep_ms
             discovered = await page.evaluate(SIDEBAR_WALKER_JS) or []
-            kept = len(self._filter_discovered(discovered))
+            kept_ids = [d["id"] for d in self._filter_discovered(discovered)]
+            kept = len(kept_ids)
             self.logger.info(
                 f"  ...read at {elapsed_ms}ms: {kept} matching articles "
                 f"({len(discovered)} total)"
@@ -856,8 +858,12 @@ class HelpSnapshot:
                 )
                 if self.options.get("subtree_only") else None
             )
+            # A read holding only the root is what a mid-hydration tree looks
+            # like, so it never counts as stable: keep polling, and let
+            # _validate_discovery reject it only if the budget runs out.
+            only_root = kept_ids == [self.options["root_article_id"]]
             if (
-                kept > 0 and kept == prev_kept and walk == prev_walk
+                kept > 0 and not only_root and kept == prev_kept and walk == prev_walk
                 and (not expect_min or kept >= expect_min)
             ):
                 stabilized = True

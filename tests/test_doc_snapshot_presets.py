@@ -189,6 +189,12 @@ def main():
     check("help --area all expands to every help preset",
           cli._expand(releases, "264", "help", "all") == presets.preset_keys(releases, "264", "help"))
     check("comma list expands", cli._expand(releases, "264", "help", "pcm, dro") == ["pcm", "dro"])
+    for sel in ("", " , ,"):
+        check(f"empty --area {sel!r} rejected",
+              raises(OptionsError, cli._expand, releases, "264", "help", sel))
+        run_args = parser.parse_args(["run", "--release", "264", "--only", sel])
+        check(f"empty --only {sel!r} rejected, not read as 'run everything'",
+              raises(OptionsError, cli.cmd_run, run_args, releases, None))
     check("single-target flag rejected across several presets",
           raises(OptionsError, cli.run_targets, releases,
                  [("264", "help", "pcm"), ("264", "help", "dro")],

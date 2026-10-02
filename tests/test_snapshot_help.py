@@ -175,6 +175,20 @@ def main():
           len(result) == 83)
     check("recovered walk reports stabilized", stabilized3 is True)
 
+    # Root-only reads repeated (the SPA lingering mid-hydration) must not count
+    # as stable: the walk keeps polling and recovers the full tree, and only a
+    # budget spent entirely on root-only reads comes back unstabilized.
+    root = ["ind.example_introduction.htm"]
+    t3b = _task(discover_timeout_ms=10)
+    page3b = _FakePage([_articles(root), _articles(root), _articles(root),
+                        _articles([f"ind.example_{n}.htm" for n in range(83)])])
+    result3b, stabilized3b = asyncio.run(run_discover(t3b, page3b))
+    check("repeated root-only reads keep polling until the tree hydrates",
+          len(result3b) == 83 and stabilized3b is True)
+    t3c = _task(discover_timeout_ms=4)
+    _, stabilized3c = asyncio.run(run_discover(t3c, _FakePage([_articles(root)])))
+    check("root-only for the whole budget reports unstabilized", stabilized3c is False)
+
     # Already-stable on the first read: two consecutive equal non-zero reads
     # required, so it takes exactly 2 polls even when the count never moves.
     t4 = _task()
@@ -257,14 +271,16 @@ def main():
     # the first read while an outside branch is still hydrating; the walk must
     # not stabilize until the full (id, parent) set repeats.
     root = {"id": "rn.rev.htm", "title": "", "parent_id": None}
+    # A root-only read never counts as stable, so each walk carries one child.
+    child = {"id": "rn.rev_child.htm", "title": "", "parent_id": "rn.rev.htm"}
     outside = [{"id": f"rn.out_{n}.htm", "title": "", "parent_id": None} for n in range(3)]
     t7d = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm",
                 subtree_only=True, wait_ms=1, discover_timeout_ms=10)
-    page7d = _FakePage([[root] + outside[:1], [root] + outside[:2],
-                        [root] + outside, [root] + outside])
+    page7d = _FakePage([[root, child] + outside[:1], [root, child] + outside[:2],
+                        [root, child] + outside, [root, child] + outside])
     result7d, stabilized7d = asyncio.run(run_discover(t7d, page7d))
     check("subtree_only waits for the out-of-subtree walk to stop changing",
-          page7d.evaluate_calls == 4 and len(result7d) == 4)
+          page7d.evaluate_calls == 4 and len(result7d) == 5)
     check("subtree_only walk reports stabilized once the full set repeats",
           stabilized7d is True)
 
@@ -274,7 +290,7 @@ def main():
     flat = {"id": "rn.out_top.htm", "title": "", "parent_id": None}
     t7e = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm",
                 subtree_only=True, wait_ms=1, discover_timeout_ms=10)
-    page7e = _FakePage([[root, flat], [root, dict(flat, top_level=True)]])
+    page7e = _FakePage([[root, flat, child], [root, dict(flat, top_level=True), child]])
     result7e, stabilized7e = asyncio.run(run_discover(t7e, page7e))
     check("subtree_only waits for a late top_level flag to stop changing",
           page7e.evaluate_calls == 3 and stabilized7e is True

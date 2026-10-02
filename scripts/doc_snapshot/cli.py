@@ -170,13 +170,25 @@ def _pick(args: argparse.Namespace, names) -> Dict[str, Any]:
     return {n: getattr(args, n, None) for n in names}
 
 
+def _split_keys(selector: str, flag: str) -> List[str]:
+    """Split a comma-separated selector; an explicitly empty one is an error.
+
+    An empty value (an unset shell variable, or only commas) must not be read
+    as "no filter": for ``--only`` that would run every preset.
+    """
+    keys = [k.strip() for k in selector.split(",") if k.strip()]
+    if not keys:
+        raise OptionsError(f"{flag} needs at least one preset key (see `list`)")
+    return keys
+
+
 def _expand(releases, release: str, kind: str, selector: str) -> List[str]:
     keys = presets_mod.preset_keys(releases, release, kind)
     if selector == "all":
         if not keys:
             raise OptionsError(f"release {release} has no {kind} presets")
         return keys
-    return [k.strip() for k in selector.split(",") if k.strip()]
+    return _split_keys(selector, "--area" if kind == "help" else "--guide")
 
 
 def run_targets(
@@ -271,7 +283,7 @@ def cmd_dev_guide(args, releases, logger) -> int:
 
 
 def cmd_run(args, releases, logger) -> int:
-    only = {k.strip() for k in (args.only or "").split(",") if k.strip()}
+    only = set(_split_keys(args.only, "--only")) if args.only is not None else set()
     available = [
         (rel, kind, key)
         for rel, kind, key, _ in presets_mod.iter_presets(releases, args.release)
