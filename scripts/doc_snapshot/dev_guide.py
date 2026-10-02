@@ -51,13 +51,12 @@ it a built-in converter handles headings, paragraphs, lists, links, inline/block
 of code, and br. See scripts/doc_snapshot/README.md for install steps.
 """
 
-import asyncio
 import json
 import re
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from scripts.doc_snapshot._core import (
     OptionsError,
@@ -67,9 +66,11 @@ from scripts.doc_snapshot._core import (
     compute_stats,
     get_logger,
     normalize_mode,
+    raise_on_capture_errors,
     require_options,
     require_playwright,
     resolve_output_dir,
+    run_browser,
 )
 
 CAPTURE_METHOD = "scripts/doc_snapshot dev-guide (Playwright + atlas content API)"
@@ -494,7 +495,7 @@ class DevGuideSnapshot:
 
         output_dir = resolve_output_dir(self.options["output_dir"])
         (output_dir / "articles").mkdir(parents=True, exist_ok=True)
-        return asyncio.run(self._async_run(output_dir))
+        return run_browser(self._async_run(output_dir))
 
     # ------------------------------------------------------------------
     # URL helpers
@@ -757,11 +758,13 @@ class DevGuideSnapshot:
                 manifest["doc_version"] = self.options["doc_version"]
 
             # Capture
+            failed: List[str] = []
+            attempted = 0
             if mode in ("capture", "all", "refresh"):
                 to_capture = self._select_to_capture(manifest, mode)
                 self.logger.info(f"Capture: {len(to_capture)} page(s) queued")
                 if to_capture:
-                    await self._capture_pages(
+                    failed, attempted = await self._capture_pages(
                         page, to_capture, articles_dir, manifest, manifest_path
                     )
 
@@ -776,6 +779,7 @@ class DevGuideSnapshot:
             f"pending={stats.get('pending', 0)} errored={stats.get('errored', 0)}"
         )
         self.logger.info(f"Manifest: {manifest_path}")
+        raise_on_capture_errors(failed, attempted, "pages")
         return stats
 
     async def _fetch_meta(self, page) -> Dict[str, Any]:
@@ -870,7 +874,8 @@ class DevGuideSnapshot:
         articles_dir: Path,
         manifest: Dict[str, Any],
         manifest_path: Path,
-    ) -> None:
+    ) -> Tuple[List[str], int]:
+        """Fetch and write ``pages``; returns (page ids that failed, pages attempted)."""
         concurrency = self.options["concurrency"]
         deliverable = self.options["deliverable"]
         doc_version = self.options["doc_version"]
@@ -954,6 +959,7 @@ class DevGuideSnapshot:
         known_ids = set(fetched)
         by_id = {p["page_id"]: p for p in manifest.get("pages", [])}
         written = 0
+        empty: List[str] = []   # fetched, but converted to an empty body
         for pid, data in fetched.items():
             body_md = html_to_markdown(data["html"], deliverable=deliverable, known_ids=known_ids)
             rec = by_id.get(pid, {"page_id": pid})
@@ -963,6 +969,7 @@ class DevGuideSnapshot:
             if not body_md:
                 rec["status"] = "error"
                 rec["error"] = "empty body"
+                empty.append(pid)
             else:
                 title = data["title"] or rec.get("title") or pid
                 (articles_dir / f"{pid}.md").write_text(
@@ -1003,7 +1010,8 @@ class DevGuideSnapshot:
 
         manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
         self._save_manifest(manifest_path, manifest)
-        self.logger.info(f"  wrote {written} page(s); {len(errors)} error(s)")
+        self.logger.info(f"  wrote {written} page(s); {len(errors) + len(empty)} error(s)")
+        return list(errors) + empty, len(fetched) + len(errors)
 
     # ------------------------------------------------------------------
     # Index rendering

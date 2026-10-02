@@ -479,7 +479,7 @@ def main():
     from pathlib import Path
 
     async def run_capture_articles(t, browser, articles, articles_dir, manifest, manifest_path):
-        await t._capture_articles(browser, articles, articles_dir, manifest, manifest_path)
+        return await t._capture_articles(browser, articles, articles_dir, manifest, manifest_path)
 
     class _FakeErrorPage:
         async def goto(self, url, wait_until=None, timeout=None):
@@ -531,7 +531,7 @@ def main():
         t13._save_manifest = lambda path, m: None  # avoid touching disk mid-run
         t13._article_url = lambda aid: f"https://example.test/{aid}"
 
-        asyncio.run(run_capture_articles(
+        failed13 = asyncio.run(run_capture_articles(
             t13,
             _FakeErrorBrowser(),
             manifest["articles"],
@@ -551,6 +551,55 @@ def main():
               refreshed["title"] == "A Previously Real Title")
         check("refresh-to-error marks status error",
               refreshed["status"] == "error")
+        check("_capture_articles returns this run's failed ids",
+              failed13 == [article_id])
+
+    # --- run-level failure reporting ------------------------------------------
+    # A run whose own captures errored must exit non-zero (after saving), and a
+    # Playwright error must surface as SnapshotError so a batch run continues.
+    from scripts.doc_snapshot import _core
+
+    check("no failed captures does not raise",
+          _core.raise_on_capture_errors([], 5, "articles") is None)
+    try:
+        _core.raise_on_capture_errors(["b", "a"], 5, "articles")
+        msg = ""
+    except SnapshotError as exc:
+        msg = str(exc)
+    check("failed captures raise SnapshotError naming the ids",
+          msg.startswith("2 of 5 articles failed to capture: a, b"))
+
+    import types
+    fake_pkg = types.ModuleType("playwright")
+    fake_api = types.ModuleType("playwright.async_api")
+
+    class _FakePlaywrightError(Exception):
+        pass
+
+    fake_api.Error = _FakePlaywrightError
+    saved = {k: sys.modules.get(k) for k in ("playwright", "playwright.async_api")}
+    sys.modules.update({"playwright": fake_pkg, "playwright.async_api": fake_api})
+    try:
+        async def _boom():
+            raise _FakePlaywrightError("Timeout 30000ms exceeded")
+
+        async def _fine():
+            return {"ok": 1}
+
+        try:
+            _core.run_browser(_boom())
+            translated = False
+        except SnapshotError:
+            translated = True
+        check("Playwright error becomes SnapshotError", translated)
+        check("run_browser returns the coroutine's result",
+              _core.run_browser(_fine()) == {"ok": 1})
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                sys.modules.pop(k, None)
+            else:
+                sys.modules[k] = v
 
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1

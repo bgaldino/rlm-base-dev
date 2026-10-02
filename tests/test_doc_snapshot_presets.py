@@ -95,6 +95,11 @@ def main():
                              "release_name": "Spring '27"})
     check("ad hoc help run needs no preset", adhoc["area"] == "foo"
           and HelpSnapshot(adhoc).options["output_dir"] == "docs/salesforce/266/help")
+    check("unknown dev-guide key without --deliverable raises (no silent RLM fallback)",
+          raises(OptionsError, presets.resolve, releases, "264", "dev_guide", "industrie"))
+    check("ad hoc dev-guide run with --deliverable needs no preset",
+          presets.resolve(releases, "264", "dev_guide", "foo",
+                          {"deliverable": "foo_guide"})["deliverable"] == "foo_guide")
     check("ad hoc run without release_name fails in the snapshotter",
           raises(OptionsError, HelpSnapshot,
                  presets.resolve(releases, "266", "help", "foo",

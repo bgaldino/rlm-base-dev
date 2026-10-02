@@ -99,9 +99,10 @@ def resolve(
             options.setdefault("area", key)
     elif key is not None and not overrides_complete(kind, overrides):
         known = ", ".join(presets) or "none"
+        needed = ("--root-article-id and --prefix" if kind == "help" else "--deliverable")
         raise OptionsError(
             f"no {kind} preset {key!r} for release {release} (known: {known}). "
-            "Pass the root/prefix flags for an ad hoc run."
+            f"Pass {needed} for an ad hoc run."
         )
     elif key is not None and kind == "help":
         options["area"] = key
@@ -117,8 +118,9 @@ def overrides_complete(kind: str, overrides: Optional[Dict[str, Any]]) -> bool:
     overrides = overrides or {}
     if kind == "help":
         return bool(overrides.get("root_article_id") and overrides.get("article_id_prefix"))
-    # A dev-guide run needs nothing beyond the release; the deliverable defaults.
-    return True
+    # The deliverable has a default, but an unknown key must not fall back to it:
+    # a mistyped `--guide` would otherwise snapshot (or refresh) the RLM guide.
+    return bool(overrides.get("deliverable"))
 
 
 # ---------------------------------------------------------------------------

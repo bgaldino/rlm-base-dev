@@ -5,9 +5,10 @@ offline test suites import those modules under a bare stdlib interpreter, so
 nothing in this file may import a third-party package at module load.
 """
 
+import asyncio
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 # scripts/doc_snapshot/_core.py -> repo root
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -44,6 +45,31 @@ def require_playwright(logger) -> None:
     except ImportError:
         logger.error(PLAYWRIGHT_INSTALL_HINT)
         raise SnapshotError("Playwright not installed")
+
+
+def run_browser(coro):
+    """Run a snapshot coroutine, turning Playwright failures into SnapshotError.
+
+    A browser launch failure or navigation timeout would otherwise escape the
+    CLI's handling and abort a multi-preset run before its summary.
+    """
+    from playwright.async_api import Error as PlaywrightError
+
+    try:
+        return asyncio.run(coro)
+    except PlaywrightError as exc:
+        raise SnapshotError(f"browser error: {exc}") from exc
+
+
+def raise_on_capture_errors(failed: List[str], attempted: int, noun: str) -> None:
+    """Fail a run whose own captures errored; call after progress is saved."""
+    if not failed:
+        return
+    shown = ", ".join(sorted(failed)[:5]) + (", …" if len(failed) > 5 else "")
+    raise SnapshotError(
+        f"{len(failed)} of {attempted} {noun} failed to capture: {shown} "
+        "(progress saved; errors are recorded in the manifest)"
+    )
 
 
 def as_bool(value: Any, default: bool) -> bool:

@@ -173,7 +173,10 @@ keeps going. It then prints a summary table and exits 1 if anything failed.
 
 - `0`: success.
 - `1`: a snapshot failed, for example because of a short or unstable discovery,
-  an HTTP error, or a missing dependency.
+  a browser error or timeout, or a missing dependency. A run where any article
+  it tried to capture failed also exits 1, after saving its progress; the
+  failed ids are named in the error and recorded in the manifest, and a later
+  run retries them.
 - `2`: a usage error, such as an unknown preset or conflicting flags.
 
 `check` always exits 0. Its hits are leads to verify, not failures.

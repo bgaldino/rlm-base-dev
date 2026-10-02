@@ -49,9 +49,11 @@ from scripts.doc_snapshot._core import (
     compute_stats,
     get_logger,
     normalize_mode,
+    raise_on_capture_errors,
     require_options,
     require_playwright,
     resolve_output_dir,
+    run_browser,
 )
 
 CAPTURE_METHOD = "scripts/doc_snapshot help (Playwright + shadow-DOM walker)"
@@ -324,7 +326,7 @@ class HelpSnapshot:
 
         articles_dir.mkdir(parents=True, exist_ok=True)
 
-        return asyncio.run(
+        return run_browser(
             self._async_run(
                 output_dir=output_dir,
                 articles_dir=articles_dir,
@@ -633,12 +635,14 @@ class HelpSnapshot:
                 self._save_then_delete(manifest_path, manifest, articles_dir, moved_out)
 
             # Phase 2: Capture
+            to_capture: List[Dict[str, Any]] = []
+            failed: List[str] = []
             if mode in ("capture", "all", "refresh"):
                 to_capture = self._select_articles_to_capture(manifest, mode)
                 self.logger.info(f"Capture: {len(to_capture)} articles queued")
 
                 if to_capture:
-                    await self._capture_articles(
+                    failed = await self._capture_articles(
                         browser=browser,
                         articles=to_capture,
                         articles_dir=articles_dir,
@@ -661,6 +665,7 @@ class HelpSnapshot:
         )
         self.logger.info(f"Manifest: {manifest_path}")
         self.logger.info(f"Index:    {index_path}")
+        raise_on_capture_errors(failed, len(to_capture), "articles")
         # The manifest's stats sum every area; a caller's summary wants this one.
         for entry in manifest.get("areas", []):
             if entry.get("area") == self.options["area"]:
@@ -870,11 +875,13 @@ class HelpSnapshot:
         articles_dir: Path,
         manifest: Dict[str, Any],
         manifest_path: Path,
-    ) -> None:
+    ) -> List[str]:
+        """Capture ``articles``; returns the ids that failed this run."""
         concurrency = max(1, int(self.options["concurrency"]))
         semaphore = asyncio.Semaphore(concurrency)
         manifest_lock = asyncio.Lock()
         saved_count = 0
+        failed: List[str] = []
 
         # Index articles by id for in-place updates
         articles_by_id = {a["article_id"]: a for a in manifest["articles"]}
@@ -920,6 +927,7 @@ class HelpSnapshot:
                         if record.pop("file", None):
                             (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
                         record.pop("body_length", None)
+                        failed.append(article_id)
                         self.logger.warning(f"  [skip] {article_id}: {error}")
                     else:
                         body = captured["body"]
@@ -967,6 +975,7 @@ class HelpSnapshot:
             articles_by_id.values(), key=lambda a: a["article_id"]
         )
         self._save_manifest(manifest_path, manifest)
+        return failed
 
     async def _capture_one(self, page, article_id: str) -> Dict[str, Any]:
         url = self._article_url(article_id)
