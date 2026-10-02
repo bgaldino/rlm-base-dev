@@ -1,8 +1,12 @@
 # Workaround: CCI `INVALID_AUTH_HEADER` on healthy scratch orgs (sf CLI token redaction)
 
-> **Status:** temporary workaround. Track the removal conditions in
-> [When can we remove this?](#when-can-we-remove-this) and drop it as soon as an
-> official fix ships.
+> **Status:** resolved in **CumulusCI 4.10.1**. When `sf org display` redacts the token,
+> 4.10.1 falls back to `sf org auth show-access-token`, so `SF_TEMP_SHOW_SECRETS` is no
+> longer needed. The repo no longer sets it: `.envrc`, the Docker image and
+> `prepare-rlm-org.yml` (now pinned to 4.10.1) all dropped it. **Fix: upgrade CumulusCI**
+> (`pipx upgrade cumulusci`), then remove any personal copy of the flag
+> ([Removal steps](#removal-steps-once-the-official-fix-lands)). The rest of this page is
+> kept for anyone still on CumulusCI 4.10.0 or earlier.
 
 ## Symptom
 
@@ -56,8 +60,8 @@ scope that matches how you run CCI.
 
 ### Already handled in-repo via direnv
 
-This repo's tracked **`.envrc`** already exports `SF_TEMP_SHOW_SECRETS=true` (see the
-*Salesforce CLI token redaction opt-out* block, `.envrc:34-47`). If you use **direnv**
+This repo's tracked **`.envrc`** used to export `SF_TEMP_SHOW_SECRETS=true`; it no longer
+does, because CumulusCI 4.10.1 doesn't need it. If you use **direnv**
 (the repo's standard setup — see `docs/guides/dev-environment-setup.md`), the flag is
 applied automatically whenever your shell is inside the repo, and any CCI command you run
 there inherits it. The scopes below are for processes direnv doesn't reach — a shell where
@@ -183,10 +187,8 @@ This workaround relies on a flag Salesforce documents as **temporary** (`SF_TEMP
 2. **The Salesforce CLI removes `SF_TEMP_SHOW_SECRETS`** — this *breaks* the workaround and
    forces option 1. Watch the `sf` release notes.
 
-> **Automated:** the `.github/workflows/check-cci-token-fix.yml` workflow runs this check
-> weekly (and on demand via *Run workflow*) and opens a tracking issue when a newer CumulusCI
-> release appears — so nobody has to remember. It compares versions with PEP 440 semantics
-> (`packaging.Version`). The manual command below just prints the latest for you to eyeball.
+> **Done:** condition 1 was met by CumulusCI 4.10.1. The weekly
+> `check-cci-token-fix.yml` watcher that tracked it has been removed.
 
 ### How to check (run periodically)
 
@@ -213,9 +215,9 @@ launchctl unsetenv SF_TEMP_SHOW_SECRETS
 # remove the `export SF_TEMP_SHOW_SECRETS=true` line from ~/.zshenv (personal scope)
 ```
 
-**Repo scope:** the in-repo `.envrc` export (`.envrc:34-47`) is the shared, committed
-copy — remove that block in the same PR that upgrades CumulusCI (and delete the
-`.github/workflows/check-cci-token-fix.yml` watcher), so it stops applying for everyone.
+**Repo scope:** done. The `.envrc` export, the Docker image's `ENV` and the CI step
+`env:` entries were removed when CI moved to CumulusCI 4.10.1, and the watcher workflow
+was deleted.
 
 Verify `cci org info CCI_ALIAS` still works **without** the flag, then delete this note's entry
 from the troubleshooting skill.

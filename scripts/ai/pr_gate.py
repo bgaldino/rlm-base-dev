@@ -61,8 +61,8 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 # Package -> the import that proves it is USABLE, not merely present. `cumulusci` maps to
 # `cumulusci.core.tasks` because the top-level package imports on a install that cannot run
 # a task: `cumulusci.core.tasks` -> `cumulusci.core.config` -> `fs` -> `pkg_resources`, which
-# Python 3.12+ venvs do not ship unless setuptools is installed (`prepare-rlm-org.yml` pins
-# `setuptools>=75.4,<77` ahead of CumulusCI for exactly this reason). Probed with a real
+# Python 3.12+ venvs do not ship unless setuptools is installed (`prepare-rlm-org.yml` installs
+# `setuptools>=75.4` ahead of CumulusCI for exactly this reason). Probed with a real
 # import rather than `find_spec`, which answers "is there a file to import" and so calls such
 # an install fine — the failure then surfaces as two unrelated-looking suite failures instead
 # of one blocked dependency. `analyze_agent_tooling.py` also needs Python 3.10+
@@ -79,7 +79,7 @@ DEPS = {
 # What `--requirements` emits, so CI installs only what the selection needs. CumulusCI is
 # pinned to the version `prepare-rlm-org.yml` installs: two workflows resolving different
 # CumulusCI versions would let a flow-citation check pass here and fail there.
-PINS = {"cumulusci": "cumulusci==4.8.1"}
+PINS = {"cumulusci": "cumulusci==4.10.1"}
 
 # Installed alongside a package, because installing only the package leaves it unusable.
 # CumulusCI imports `fs`, which imports `pkg_resources`, which Python 3.12+ venvs do not
@@ -87,7 +87,7 @@ PINS = {"cumulusci": "cumulusci==4.8.1"}
 # MISSING-DEP for cumulusci. Emitting this here rather than documenting a manual extra step
 # keeps that knowledge in one place: `prepare-rlm-org.yml` already installs the same pin, and
 # the second workflow author should not have to rediscover why.
-CO_REQUIRES = {"cumulusci": ["setuptools>=75.4,<77"]}
+CO_REQUIRES = {"cumulusci": ["setuptools>=75.4"]}
 
 # Lines of an advisory check's output to keep — the FIRST lines, not the last: the SFDMU
 # validator puts its summary and its Critical counts at the top and then lists every passing

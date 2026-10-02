@@ -102,7 +102,7 @@ jobs:
             python -m pip install --upgrade pip
             # Unquoted on purpose so each printed line becomes its own requirement spec, with
             # globbing off so a spec containing extras (`pkg[extra]`) cannot be eaten by
-            # pathname expansion. --requirements emits `setuptools>=75.4,<77` ahead of the
+            # pathname expansion. --requirements emits `setuptools>=75.4` ahead of the
             # CumulusCI pin itself (CumulusCI imports fs -> pkg_resources, absent from a 3.12+
             # venv), so this workflow never restates a pin and cannot drift from PINS.
             set -f

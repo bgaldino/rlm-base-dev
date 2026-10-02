@@ -46,7 +46,7 @@ flow ordering and feature-flag conditions.
 | [QB Consumption Demo Scenarios](guides/qb-consumption-demo-scenarios.md) | Nine usage/consumption demo scenarios (1–8 historically verified on Release 262; scenario 6 requires re-verification with current grant sizes; 9 platform-blocked), with worked arithmetic and execution-order guidance |
 | [Post-Billing Portal](guides/post-billing-portal.md) | Billing portal module setup and deployment |
 | [Prepare RLM Org Build Guide](guides/prepare-rlm-org-build-guide.md) | Walkthrough of the `prepare_rlm_org` flow steps |
-| [CCI / SF CLI Token Workaround](guides/cci-sf-cli-token-workaround.md) | `INVALID_AUTH_HEADER` on a healthy scratch org — cause and workaround |
+| [CCI / SF CLI Token Workaround](guides/cci-sf-cli-token-workaround.md) | `INVALID_AUTH_HEADER` on a healthy scratch org — fixed in CumulusCI 4.10.1; history and personal cleanup |
 | [Build Harness](guides/build-harness.md) | Build harness profiles, resume, and reporting |
 
 ## Analysis & Planning
