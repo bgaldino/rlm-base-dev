@@ -42,7 +42,7 @@ manages it three ways:
 |---|---|
 | CCI task | `manage_decision_tables -o operation activate` / `deactivate` (Tooling `Status` update) |
 | Apex | `scripts/apex/deactivateDecisionTables.apex` (`deactivate_decision_tables` task — bulk) |
-| Build (deploy path) | `deactivate_changed_decision_tables` (before `deploy_pre`) and `deactivate_changed_post_prm_pricing_decision_tables` (before the PRM table deploy) check-only deploy the repo's Active tables and deactivate only those the platform rejects; the deploy then reactivates them |
+| Build (deploy path) | `deactivate_changed_decision_tables` (before `deploy_pre`) and `deactivate_changed_post_prm_pricing_decision_tables` (before the PRM table deploy) check-only deploy the repo's Active tables, deactivate only those the platform rejects, and deploy them at once (which reactivates them; on failure they are reactivated unchanged and the step fails) |
 
 ### The active-edit restriction — deactivate first
 
@@ -62,10 +62,14 @@ change (e.g. a parameter's `isRequired`) fails. After deactivating, the same
 deploy succeeds and — because the repo XML carries `<status>Active</status>` —
 reactivates the table and syncs it (`LastSyncDate` = deploy time). So the build
 does not exclude Active tables: `deactivate_changed_decision_tables` check-only
-deploys the repo's Active tables and deactivates only the ones rejected for the
-active-edit restriction. Any other check-only failure is logged and left for the
-real deploy to report, and while one remains the task deactivates nothing (that
-deploy would fail and roll back, so it could not reactivate the tables). (It replaced `exclude_active_decision_tables` /
+deploys the repo's Active tables, deactivates only the ones rejected for the
+active-edit restriction, and deploys those itself straight away. It does not leave
+the reactivation to `deploy_pre`, which deploys the earlier numbered bundles first —
+a failure there would strand the tables Inactive. If deactivation or its own deploy
+fails, it reactivates the tables it deactivated and fails. The later bundle deploy
+then sees unchanged XML on an Active table, which is accepted. Any other check-only
+failure is logged and left for the bundle deploy to report, and while one remains
+the task deactivates nothing. (It replaced `exclude_active_decision_tables` /
 `restore_decision_tables`, which parked every Active table in `.skip/` and so
 silently dropped repo changes on an already-prepared org.)
 

@@ -300,8 +300,9 @@ redeploys succeed.
 
 **Fix:** The flow handles this with `deactivate_changed_decision_tables` (before
 `deploy_pre`) and `deactivate_changed_post_prm_pricing_decision_tables` (before the
-PRM table deploy): each check-only deploys the repo's active tables and deactivates
-only those the platform rejects; the deploy then reactivates them. It deactivates
+PRM table deploy): each check-only deploys the repo's active tables, deactivates
+only those the platform rejects, and deploys them at once, which reactivates them. If
+that deploy fails it reactivates them unchanged and fails the step. It deactivates
 nothing while the check-only deploy reports any other failure — read its warnings and
 fix those first. To deactivate by hand:
 ```bash

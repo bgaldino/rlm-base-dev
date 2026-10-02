@@ -16,12 +16,17 @@ Measured on a 264 scratch org (2026-10-02), redeploying over an ACTIVE table:
   XML carries ``<status>Active</status>`` the deploy itself reactivates the table and
   syncs it (LastSyncDate = deploy time)
 
-So this task check-only deploys the repo files of the tables that are Active in the org,
-and deactivates only the tables the platform refuses to edit in place. The real deploy
-that follows (``deploy_pre`` / ``deploy_post_prm_pricing_decision_tables``) reactivates
-them. Every other failure is left for that deploy to report — this task never hides one —
-and while any remains it deactivates nothing, since that deploy would fail and could not
-reactivate the tables.
+So this task check-only deploys the repo files of the tables that are Active in the org.
+When the only failures are the active-edit restriction, it deactivates exactly those
+tables and deploys their files itself, straight away — the deploy reactivates them. Doing
+that here rather than leaving it to ``deploy_pre`` matters: ``deploy_pre`` deploys the
+earlier numbered bundles first, so a failure there would strand the tables Inactive. If
+deactivation or the deploy fails, every table this task deactivated is reactivated and
+the task fails. The later bundle deploy then sees unchanged XML on an Active table, which
+the platform accepts.
+
+Every other check-only failure is left for the bundle deploy to report — this task never
+hides one — and while any remains it changes no lifecycle state.
 
 Only the few tables the repo creates are in scope: the candidates are the
 ``*.decisionTable-meta.xml`` files in ``path``. System-created tables are never touched.
@@ -102,7 +107,7 @@ def other_failures(failure_text: str) -> List[str]:
 
 
 class DeactivateChangedDecisionTables(Deploy):
-    """Deactivate the active repo decision tables whose pending change the platform would refuse."""
+    """Deploy pending changes to active repo decision tables that the platform refuses to edit in place."""
 
     task_options = {
         **getattr(Deploy, "task_options", {}),
@@ -157,7 +162,7 @@ class DeactivateChangedDecisionTables(Deploy):
         blocked = tables_blocked_by_active_edit(failure_text, active)
         if not blocked:
             return
-        self._deactivate(active, blocked)
+        self._deactivate_and_deploy(path, active, blocked)
 
     def _restore_leftover_skipped_files(self, decision_tables_path: Path, skip_dir: Path):
         """
@@ -203,17 +208,26 @@ class DeactivateChangedDecisionTables(Deploy):
 
     def _check_only_deploy(self, path: Path, names: List[str]):
         """Validate the active tables' repo files against the org. Returns failure text, or None on success."""
-        with tempfile.TemporaryDirectory(prefix="rlm_dt_check_") as tmp:
+        self.logger.info(f"Check-only deploy of {len(names)} active decision table(s): {', '.join(names)}")
+        return self._deploy_tables(path, names, check_only=True)
+
+    def _deploy_tables(self, path: Path, names: List[str], check_only: bool):
+        """Deploy just ``names``' files from ``path``. Returns failure text, or None on success."""
+        with tempfile.TemporaryDirectory(prefix="rlm_dt_deploy_") as tmp:
             staged = Path(tmp) / "decisionTables"
             staged.mkdir()
             for name in names:
                 shutil.copy2(path / f"{name}{DECISION_TABLE_SUFFIX}", staged)
-            self.check_only = True
-            api = self._get_api(path=str(staged))
-            if api is None:
-                return None
-            self.logger.info(f"Check-only deploy of {len(names)} active decision table(s): {', '.join(names)}")
+            # ⚠ Point options["path"] at the staging dir rather than passing
+            # _get_api(path=...): not every CumulusCI release accepts the argument,
+            # and every one reads options["path"].
+            original_path = self.options["path"]
+            self.options["path"] = str(staged)
+            self.check_only = check_only
             try:
+                api = self._get_api()
+                if api is None:
+                    return None
                 api()
             except MetadataApiError as e:
                 # ⚠ Not MetadataComponentFailure. ApiDeploy.__call__ re-raises whatever
@@ -221,16 +235,50 @@ class DeactivateChangedDecisionTables(Deploy):
                 # response: <text>"), so the component failure arrives as its base class —
                 # measured on 264. The per-component text survives inside the message.
                 return str(e).replace(MDAPI_WRAPPER_PREFIX, "", 1)
+            finally:
+                self.options["path"] = original_path
+                self.check_only = False
         return None
 
-    def _deactivate(self, active: dict, blocked: Set[str]):
+    def _deactivate_and_deploy(self, path: Path, active: dict, blocked: Set[str]):
+        """
+        Deactivate the blocked tables and deploy them now; on any failure reactivate them and raise.
+
+        The deploy reactivates them itself (the XML carries Active). Nothing is left
+        Inactive for a later step to fix.
+        """
         sf = self._sf
-        for name in sorted(blocked):
-            sf.DecisionTable.update(active[name], {"Status": "Inactive"})
-            self.logger.info(
-                f"Deactivated {name}: its pending change cannot be applied to an Active table. "
-                "The deploy that follows reactivates it."
+        deactivated: List[str] = []
+        try:
+            for name in sorted(blocked):
+                sf.DecisionTable.update(active[name], {"Status": "Inactive"})
+                deactivated.append(name)
+                self.logger.info(f"Deactivated {name}: its pending change cannot be applied to an Active table.")
+            failure_text = self._deploy_tables(path, deactivated, check_only=False)
+        except Exception:
+            self._reactivate(active, deactivated)
+            raise
+        if failure_text is not None:
+            self._reactivate(active, deactivated)
+            raise MetadataApiError(
+                f"Deploying the deactivated decision table(s) {', '.join(deactivated)} failed; "
+                f"they were reactivated unchanged. {failure_text}",
+                None,
             )
+        self.logger.info(f"Deployed and reactivated {len(deactivated)} decision table(s): {', '.join(deactivated)}")
+
+    def _reactivate(self, active: dict, names: List[str]):
+        """Best effort: one table failing to reactivate must not stop the rest."""
+        sf = self._sf
+        for name in names:
+            try:
+                sf.DecisionTable.update(active[name], {"Status": "Active"})
+                self.logger.info(f"Reactivated {name}.")
+            except Exception as e:
+                self.logger.error(
+                    f"Could not reactivate {name} ({e}); it is Inactive. Reactivate it with "
+                    f"manage_decision_tables -o operation activate."
+                )
 
     @property
     def _sf(self):

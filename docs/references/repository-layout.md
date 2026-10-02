@@ -37,7 +37,7 @@ rlm-base-dev/
 │       └── patches/            # Feature-specific profile patches (billing, constraints, prm)
 ├── unpackaged/                 # Conditional metadata (deployed based on flags)
 │   ├── pre/                    # Pre-deployment metadata
-│   │   └── 5_decisiontables/   # Decision tables (active ones auto-excluded)
+│   │   └── 5_decisiontables/   # Decision tables (structural edits to active ones: deactivate_changed_decision_tables)
 │   ├── post_approvals/         # Approvals metadata
 │   ├── post_billing/           # Billing metadata (objects, flows, settings, quickActions)
 │   ├── post_billing_id_settings/ # Billing settings with org-specific record IDs (XPath transforms)

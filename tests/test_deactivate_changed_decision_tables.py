@@ -87,21 +87,27 @@ class _Logger:
     def warning(self, msg, *a):
         self.lines.append(("warning", msg % a if a else msg))
 
+    def error(self, msg, *a):
+        self.lines.append(("error", msg % a if a else msg))
+
 
 class _DecisionTable:
-    def __init__(self):
+    def __init__(self, fail_on=None):
         self.updates = []
+        self.fail_on = fail_on
 
     def update(self, record_id, body):
+        if (record_id, body) == self.fail_on:
+            raise Exception("UNABLE_TO_LOCK_ROW")
         self.updates.append((record_id, body))
 
 
 class _Sf:
-    def __init__(self, active, query_error=None):
+    def __init__(self, active, query_error=None, update_fail_on=None):
         self.active = active
         self.query_error = query_error
         self.queries = []
-        self.DecisionTable = _DecisionTable()
+        self.DecisionTable = _DecisionTable(update_fail_on)
 
     def query(self, soql):
         self.queries.append(soql)
@@ -110,8 +116,12 @@ class _Sf:
         return {"records": [{"Id": f"id_{n}", "DeveloperName": n} for n in self.active]}
 
 
-def run(files, active, check_failure=None, query_error=None, skipped=()):
-    """Run the task over a temp table dir. Returns (sf, staged-file-names or None, logger, dir)."""
+def run(files, active, check_failure=None, deploy_failure=None, query_error=None, skipped=(),
+        update_fail_on=None):
+    """Run the task over a temp table dir. Returns (sf, deploys, logger, dir, task).
+
+    ``deploys`` lists each deploy as {"names", "check_only"}; the check-only one is first.
+    """
     tmp = Path(tempfile.mkdtemp())
     for name in files:
         (tmp / f"{name}{mod.DECISION_TABLE_SUFFIX}").write_text("<DecisionTable/>")
@@ -123,68 +133,110 @@ def run(files, active, check_failure=None, query_error=None, skipped=()):
     task = object.__new__(mod.DeactivateChangedDecisionTables)
     task.options = {"path": str(tmp)}
     task.logger = _Logger()
-    sf = _Sf(active, query_error)
+    sf = _Sf(active, query_error, update_fail_on)
     task._sf_client = sf
-    staged = {}
+    deploys = []
 
-    def fake_get_api(path=None):
-        staged["names"] = sorted(p.name for p in Path(path).iterdir())
-        staged["check_only"] = task.check_only
+    def fake_get_api():
+        # The no-argument signature: the staged dir must arrive through options["path"].
+        deploys.append({
+            "names": sorted(p.name for p in Path(task.options["path"]).iterdir()),
+            "check_only": task.check_only,
+        })
+        failure = check_failure if task.check_only else deploy_failure
 
         def call():
-            if check_failure:
+            if failure:
                 # The shape ApiDeploy.__call__ really raises: the component failure
                 # re-wrapped as MetadataParseError, a MetadataApiError (measured on 264).
-                raise mod.MetadataApiError(mod.MDAPI_WRAPPER_PREFIX + check_failure, None)
+                raise mod.MetadataApiError(mod.MDAPI_WRAPPER_PREFIX + failure, None)
         return call
 
     task._get_api = fake_get_api
-    task._run_task()
-    return sf, staged, task.logger, tmp
+    error = None
+    try:
+        task._run_task()
+    except Exception as e:  # noqa: BLE001 - the caller asserts on it
+        error = e
+    task.raised = error
+    return sf, deploys, task.logger, tmp, task
 
 
-sf, staged, _log, _ = run(["RLM_A", "RLM_B"], active=[])
-check("nothing Active -> no check-only deploy, no deactivation",
-      not staged and not sf.DecisionTable.updates, (staged, sf.DecisionTable.updates))
+def _file(name):
+    return f"{name}{mod.DECISION_TABLE_SUFFIX}"
 
-sf, staged, _log, _ = run(["RLM_A", "RLM_B"], active=["RLM_A", "RLM_B"])
-check("check-only accepts -> tables stay Active (the deploy applies in place)",
-      sf.DecisionTable.updates == [], sf.DecisionTable.updates)
-check("the check-only deploy really is check-only", staged.get("check_only") is True, staged)
 
-sf, staged, log, _ = run(["RLM_A", "RLM_B", "RLM_C"], active=["RLM_A", "RLM_B"],
-                         check_failure=ACTIVE_EDIT.format("RLM_A"))
+sf, deploys, _log, _, task = run(["RLM_A", "RLM_B"], active=[])
+check("nothing Active -> no deploy, no deactivation",
+      not deploys and not sf.DecisionTable.updates, (deploys, sf.DecisionTable.updates))
+
+sf, deploys, _log, tmp, task = run(["RLM_A", "RLM_B"], active=["RLM_A", "RLM_B"])
+check("check-only accepts -> tables stay Active (the bundle deploy applies in place)",
+      sf.DecisionTable.updates == [] and len(deploys) == 1, (sf.DecisionTable.updates, deploys))
+check("the check-only deploy really is check-only", deploys[0]["check_only"] is True, deploys)
+check("options['path'] and check_only are restored afterwards",
+      task.options["path"] == str(tmp) and task.check_only is False, (task.options, task.check_only))
+
+sf, deploys, log, tmp, task = run(["RLM_A", "RLM_B", "RLM_C"], active=["RLM_A", "RLM_B"],
+                                  check_failure=ACTIVE_EDIT.format("RLM_A"))
 check("only the Active tables' files are staged for the check",
-      staged.get("names") == [f"RLM_A{mod.DECISION_TABLE_SUFFIX}", f"RLM_B{mod.DECISION_TABLE_SUFFIX}"],
-      staged)
+      deploys[0]["names"] == [_file("RLM_A"), _file("RLM_B")], deploys)
 check("only the table rejected for the active-edit restriction is deactivated",
       sf.DecisionTable.updates == [("id_RLM_A", {"Status": "Inactive"})], sf.DecisionTable.updates)
+check("... and it is deployed by the task itself, for real, straight after",
+      len(deploys) == 2 and deploys[1] == {"names": [_file("RLM_A")], "check_only": False}, deploys)
+check("... which succeeds without raising", task.raised is None, task.raised)
 
-sf, staged, log, _ = run(["RLM_A", "RLM_B"], active=["RLM_A", "RLM_B"],
-                         check_failure="\n\n".join([ACTIVE_EDIT.format("RLM_A"), OTHER.format("RLM_B")]))
-check("a mixed result deactivates nothing — the deploy would fail and leave tables Inactive",
-      sf.DecisionTable.updates == [], sf.DecisionTable.updates)
+sf, deploys, log, _, task = run(["RLM_A", "RLM_B"], active=["RLM_A", "RLM_B"],
+                                check_failure=ACTIVE_EDIT.format("RLM_A"),
+                                deploy_failure=OTHER.format("RLM_A"))
+check("a failed deploy reactivates what was deactivated",
+      sf.DecisionTable.updates == [("id_RLM_A", {"Status": "Inactive"}), ("id_RLM_A", {"Status": "Active"})],
+      sf.DecisionTable.updates)
+check("... and fails the task with the platform's reason",
+      isinstance(task.raised, mod.MetadataApiError) and "Invalid field Foo__c" in str(task.raised), task.raised)
+
+sf, deploys, log, _, task = run(["RLM_A", "RLM_B"], active=["RLM_A", "RLM_B"],
+                                check_failure="\n\n".join([ACTIVE_EDIT.format("RLM_A"), ACTIVE_EDIT.format("RLM_B")]),
+                                update_fail_on=("id_RLM_B", {"Status": "Inactive"}))
+check("a deactivation failing part-way reactivates the ones already deactivated",
+      sf.DecisionTable.updates == [("id_RLM_A", {"Status": "Inactive"}), ("id_RLM_A", {"Status": "Active"})],
+      sf.DecisionTable.updates)
+check("... deploys nothing for real, and raises", len(deploys) == 1 and task.raised is not None,
+      (deploys, task.raised))
+
+sf, deploys, log, _, task = run(["RLM_A"], active=["RLM_A"],
+                                check_failure=ACTIVE_EDIT.format("RLM_A"),
+                                deploy_failure=OTHER.format("RLM_A"),
+                                update_fail_on=("id_RLM_A", {"Status": "Active"}))
+check("a reactivation that fails is logged as an error naming the recovery command",
+      any(lvl == "error" and "manage_decision_tables" in msg for lvl, msg in log.lines), log.lines)
+
+sf, deploys, log, _, task = run(["RLM_A", "RLM_B"], active=["RLM_A", "RLM_B"],
+                                check_failure="\n\n".join([ACTIVE_EDIT.format("RLM_A"), OTHER.format("RLM_B")]))
+check("a mixed result deactivates nothing — the bundle deploy would fail anyway",
+      sf.DecisionTable.updates == [] and len(deploys) == 1, (sf.DecisionTable.updates, deploys))
 check("the other failure is surfaced as a warning",
       any(lvl == "warning" and "Invalid field Foo__c" in msg for lvl, msg in log.lines), log.lines)
 check("... without the MDAPI wrapper prefix",
       not any(mod.MDAPI_WRAPPER_PREFIX in msg for _lvl, msg in log.lines), log.lines)
 
-sf, staged, log, _ = run(["RLM_A"], active=["RLM_A"], query_error="INVALID_TYPE: sObject type 'DecisionTable' is not supported")
-check("fresh org (INVALID_TYPE) -> no check, no deactivation",
-      not staged and not sf.DecisionTable.updates)
+sf, deploys, log, _, task = run(["RLM_A"], active=["RLM_A"],
+                                query_error="INVALID_TYPE: sObject type 'DecisionTable' is not supported")
+check("fresh org (INVALID_TYPE) -> no deploy, no deactivation",
+      not deploys and not sf.DecisionTable.updates)
 
-sf, staged, log, tmp = run(["RLM_A"], active=["RLM_A"], query_error="Session expired")
+sf, deploys, log, tmp, task = run(["RLM_A"], active=["RLM_A"], query_error="Session expired")
 check("an unknown query error deactivates nothing and excludes nothing",
-      not staged and not sf.DecisionTable.updates
-      and (tmp / f"RLM_A{mod.DECISION_TABLE_SUFFIX}").exists())
+      not deploys and not sf.DecisionTable.updates and (tmp / _file("RLM_A")).exists())
 check("... and says so", any(lvl == "warning" and "deactivating nothing" in msg for lvl, msg in log.lines),
       log.lines)
 
-sf, staged, _log, tmp = run(["RLM_A"], active=[], skipped=["RLM_B"])
+sf, deploys, _log, tmp, task = run(["RLM_A"], active=[], skipped=["RLM_B"])
 check("a table left in .skip/ by an aborted run of the retired task is moved back",
-      (tmp / f"RLM_B{mod.DECISION_TABLE_SUFFIX}").exists()
-      and "RLM_B" in sf.queries[0], sf.queries)
+      (tmp / _file("RLM_B")).exists() and "RLM_B" in sf.queries[0], sf.queries)
 
+sf, deploys, _log, tmp, task = run(["RLM_A", "RLM_B"], active=[])
 check("the query is scoped to the repo's tables and to Active",
       "IN ('RLM_A', 'RLM_B')" in sf.queries[0] and "Status = 'Active'" in sf.queries[0], sf.queries)
 

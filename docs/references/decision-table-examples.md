@@ -290,9 +290,10 @@ cci task run manage_decision_tables --operation list --status Active
 
 # prepare_core runs deactivate_changed_decision_tables before deploy_pre: it
 # check-only deploys the repo's tables that are Active in the org and deactivates
-# only those the platform refuses to edit in place. deploy_pre then applies the
-# change and, because the XML says <status>Active</status>, reactivates and syncs
-# them. deploy_post_prm_pricing does the same for the PRM table.
+# only those the platform refuses to edit in place, then deploys those tables
+# itself: because the XML says <status>Active</status>, that deploy reactivates and
+# syncs them (on failure it reactivates them unchanged and fails).
+# deploy_post_prm_pricing does the same for the PRM table.
 cci task run deactivate_changed_decision_tables --org <org>   # standalone, before a manual deploy
 ```
 
@@ -469,7 +470,7 @@ Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_po
 - **Developer Names**: Use the exact `DeveloperName` of the decision table (e.g., `RLM_CostBookEntries`)
 - **Status Values**: `Active`, `Inactive`
 - **Refresh Limits**: Separate 40 Standard / 60 Advanced full-refresh pools per org/hour
-- **Active Tables**: An Active table rejects a structural change. `deactivate_changed_decision_tables` (in `prepare_core`) deactivates exactly the tables that need it; the deploy that follows reactivates them.
+- **Active Tables**: An Active table rejects a structural change. `deactivate_changed_decision_tables` (in `prepare_core`) deactivates exactly the tables that need it and deploys them at once, which reactivates them.
 - **Refresh Timing**: Refresh operations are asynchronous. Check the `LastSyncDate` field to verify completion.
 - **Incremental vs Full**:
   - Use **full refresh** for initial setup or when you need complete data refresh
@@ -489,9 +490,10 @@ Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_po
 
 ### Error: "Can't edit an active Decision Table"
 **Solution**: Active decision tables cannot be edited. Either:
-1. Run `cci task run deactivate_changed_decision_tables --org <org>` (or
-   `manage_decision_tables -o operation deactivate -o developer_names <name>`), then rerun the deploy.
-   The deploy reactivates the table because its XML carries `<status>Active</status>`.
+1. Run `cci task run deactivate_changed_decision_tables --org <org>`, which deploys the
+   change itself, or deactivate with
+   `manage_decision_tables -o operation deactivate -o developer_names <name>` and rerun the deploy.
+   Either deploy reactivates the table because its XML carries `<status>Active</status>`.
 2. If the error came from `prepare_core`, the pre-deploy check did not attribute it to a
    table — read that task's log for the check-only failure it reported.
 
