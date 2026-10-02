@@ -50,15 +50,15 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>CloseRenewalOpportunity</targetReference>
+                <targetReference>CloseOpportunity</targetReference>
             </connector>
             <label>Activated Order Found</label>
         </rules>
     </decisions>
-    <description>When a quote-to-opportunity sync finishes without errors and the quote has an activated order, closes the opportunity as Closed Won if it&apos;s an open renewal (Type Existing Business). RLM_SyncRenewalQuoteOnOrderActivation starts that sync when the renewal order is activated, so the opportunity closes only after its products match the quote. Without this the renewal just won stays open beside the next-term renewal opportunity that RLM_CreateUpdateRenewalOpportunities creates. A failed sync leaves the opportunity open.</description>
+    <description>When a quote-to-opportunity sync finishes without errors and the quote has an activated order, closes the opportunity as Closed Won if it&apos;s open, whatever its type. RLM_SyncRenewalQuoteOnOrderActivation starts that sync when the order is activated, so the opportunity closes only after its products match the quote. For renewals, this keeps the renewal just won from staying open beside the next-term renewal opportunity that RLM_CreateUpdateRenewalOpportunities creates. A later successful sync of a quote that has an activated order also closes its opportunity if it&apos;s been reopened. A failed sync leaves the opportunity open.</description>
     <environments>Default</environments>
-    <interviewLabel>RLM Close Renewal Opportunity On Quote Sync {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM Close Renewal Opportunity On Quote Sync</label>
+    <interviewLabel>RLM Close Opportunity On Quote Sync {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Close Opportunity On Quote Sync</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -103,9 +103,9 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordUpdates>
-        <description>Sets the synced opportunity to Closed Won when it&apos;s an open renewal opportunity.</description>
-        <name>CloseRenewalOpportunity</name>
-        <label>Close Renewal Opportunity</label>
+        <description>Sets the synced opportunity to Closed Won when it&apos;s open.</description>
+        <name>CloseOpportunity</name>
+        <label>Close Opportunity</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <filterLogic>and</filterLogic>
@@ -114,13 +114,6 @@
             <operator>EqualTo</operator>
             <value>
                 <elementReference>$Record.OpportunityRecordId</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>Type</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Existing Business</stringValue>
             </value>
         </filters>
         <filters>
