@@ -164,13 +164,16 @@ def bootstrap_block(
             continue
         lines.append(f"    {kind}:")
         for key, preset in presets.items():
-            lines.append(f"      {key}:")
+            body = []
             for name, value in preset.items():
                 if name in _BOOTSTRAP_DROP:
                     continue
                 if name == "output_dir":
                     value = _retarget_output_dir(str(value), source, target)
-                lines.extend(_emit(name, value, indent=8))
+                body.extend(_emit(name, value, indent=8))
+            # A bare `key:` would load as null, which load_presets() rejects.
+            lines.append(f"      {key}:" if body else f"      {key}: {{}}")
+            lines.extend(body)
     return "\n".join(lines) + "\n"
 
 

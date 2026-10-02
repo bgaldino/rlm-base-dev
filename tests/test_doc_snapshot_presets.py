@@ -146,6 +146,22 @@ def main():
               presets.resolve(reloaded, "999", "dev_guide", "industries")["sections"]
               == ind262["sections"])
 
+    # A preset left with no options once release-specific ones are dropped
+    # must still load as a mapping, not as null.
+    sparse = {"1": {"release_name": "One", "dev_guide": {
+        "empty": {}, "pinned": {"doc_version": "1.0"}}}}
+    sparse_block = presets.bootstrap_block(sparse, "1", "2", "Two")
+    with tempfile.TemporaryDirectory() as tmp:
+        path = _write(tmp, "releases:\n" + sparse_block)
+        check("bootstrap emits {} for presets with no options left",
+              presets.preset_keys(presets.load_presets(path), "2", "dev_guide")
+              == ["empty", "pinned"])
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "presets.yaml"
+        shutil.copy(presets.PRESETS_PATH, path)
+        presets.append_block(block, path)
+
         # CLI bootstrap writes to --presets, dry-run writes nothing.
         before = path.read_text()
         with contextlib.redirect_stdout(io.StringIO()):
