@@ -45,6 +45,10 @@ Quote quick action
   -> RLM_Quote_Smart_Approval
 ```
 
+`RLM_Quote_Approval_Comments` first runs `RLM_Quote_Approval_Data` as a
+subflow. When it reports `PricingStale`, the screen asks the user to reprice the
+quote and does not submit.
+
 `RLM_Quote_Smart_Approval` has a background stage that calls
 `RLM_Quote_Approval_Data`, then one approval stage with four conditional
 approval steps:
@@ -59,6 +63,13 @@ approval steps:
 The Discount chain is sequential because Director waits on Manager and VP waits
 on Director. The Finance chain can run in parallel with Discount because it uses
 a different `ApprovalChainName`.
+
+`DiscountApprovalLevel` is the Quote roll-up of the line levels the pricing
+procedure stores on each reprice. A line modified after `Quote.LastPricedDate`
+(or any line on a never-priced quote) makes that stored level stale, so
+`RLM_Quote_Approval_Data` sets `PricingStale` and returns level 3 instead. The
+orchestration can be started without the submit screen, so this check sits in the
+step it reads, not only in the screen.
 
 If no approval is required (`DiscountApprovalLevel = 0` AND `PaymentTerms = "Net 30"`),
 the flow takes the `Requires_Approval` decision's default connector directly to

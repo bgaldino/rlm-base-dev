@@ -42,6 +42,14 @@ discount approval. Verified live on a fresh ent-sb0 build: a sales rep with
 read-only access repriced the outputs up and down, and a direct API edit was
 rejected.
 
+The level is a snapshot of the last reprice, so a line edited afterwards (a
+`Discount` changed through the API, say) carries a stale level. Approval treats
+that as unpriced: `RLM_Quote_Approval_Data` reports `PricingStale` when any line
+was modified after `Quote.LastPricedDate` (or the quote has lines and was never
+priced) and then returns level 3, so the full Manager → Director → VP chain is
+required. The submit screen runs the same check first and asks the user to
+reprice instead of submitting.
+
 ## Applying an overlay
 
 ```bash
