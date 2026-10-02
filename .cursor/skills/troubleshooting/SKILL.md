@@ -324,6 +324,29 @@ cci task run manage_decision_tables -o operation deactivate -o developer_names "
 activating. If you hit this manually, use Tooling API to update the version's
 Rank field first.
 
+### Prices look plausible, but a procedure change did not take effect
+
+**Symptom:** quotes price without error and the numbers look reasonable, but a
+step you know is in the procedure (a new formula, a constant control such as
+`777`) does not land.
+
+**Cause:** check `ProcedurePlanDefinitionVersion.IsActive` **first**. An inactive
+procedure plan is skipped: pricing falls back to the Revenue Settings default
+procedure and none of the plan's other procedures run. Measured on 264, a
+discounted quote line still priced correctly with the plan off, but produced 3
+`PricingProcessExecution` rows instead of 9. A failed expression-set import
+used to leave the plan in this state (pack 170). By contrast, an active plan
+whose expression-set version is inactive fails loudly: "Ensure that this
+procedure has at least one active version."
+
+**Fix:** first read the failure's health report. If it says the
+expression-set version is **not confirmed inactive** after a failed PATCH, the
+version may be half-written: inspect it and deactivate it before touching the
+plan, because an active plan would route pricing to it. Then query the plan
+(`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`) and reactivate it with `sf data update record --target-org <sf_alias_or_username>
+--sobject ProcedurePlanDefinitionVersion --record-id <1Cv...> --values "IsActive=true"`, and re-check with a constant
+control. Do not conclude "pricing works" from a plausible number.
+
 ---
 
 ## Rating & Rates Errors
