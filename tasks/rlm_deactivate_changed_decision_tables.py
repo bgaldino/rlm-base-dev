@@ -19,7 +19,9 @@ Measured on a 264 scratch org (2026-10-02), redeploying over an ACTIVE table:
 So this task check-only deploys the repo files of the tables that are Active in the org,
 and deactivates only the tables the platform refuses to edit in place. The real deploy
 that follows (``deploy_pre`` / ``deploy_post_prm_pricing_decision_tables``) reactivates
-them. Every other failure is left for that deploy to report — this task never hides one.
+them. Every other failure is left for that deploy to report — this task never hides one —
+and while any remains it deactivates nothing, since that deploy would fail and could not
+reactivate the tables.
 
 Only the few tables the repo creates are in scope: the candidates are the
 ``*.decisionTable-meta.xml`` files in ``path``. System-created tables are never touched.
@@ -138,8 +140,19 @@ class DeactivateChangedDecisionTables(Deploy):
             )
             return
 
-        for message in other_failures(failure_text):
-            self.logger.warning(f"Check-only deploy reported a failure the deploy will also hit: {message}")
+        others = other_failures(failure_text)
+        if others:
+            # ⚠ Change no lifecycle state. The deploy that follows will fail on these,
+            # and a failed deploy rolls back — so it would not reactivate anything this
+            # task deactivated, leaving those tables Inactive. Fix these first; the rerun
+            # deactivates whatever the active-edit restriction still blocks.
+            for message in others:
+                self.logger.warning(f"Check-only deploy reported a failure the deploy will also hit: {message}")
+            self.logger.warning(
+                "Deactivating nothing while other check-only failures remain: the deploy would fail "
+                "and leave deactivated tables Inactive."
+            )
+            return
 
         blocked = tables_blocked_by_active_edit(failure_text, active)
         if not blocked:

@@ -153,12 +153,17 @@ check("check-only accepts -> tables stay Active (the deploy applies in place)",
 check("the check-only deploy really is check-only", staged.get("check_only") is True, staged)
 
 sf, staged, log, _ = run(["RLM_A", "RLM_B", "RLM_C"], active=["RLM_A", "RLM_B"],
-                         check_failure="\n\n".join([ACTIVE_EDIT.format("RLM_A"), OTHER.format("RLM_B")]))
+                         check_failure=ACTIVE_EDIT.format("RLM_A"))
 check("only the Active tables' files are staged for the check",
       staged.get("names") == [f"RLM_A{mod.DECISION_TABLE_SUFFIX}", f"RLM_B{mod.DECISION_TABLE_SUFFIX}"],
       staged)
 check("only the table rejected for the active-edit restriction is deactivated",
       sf.DecisionTable.updates == [("id_RLM_A", {"Status": "Inactive"})], sf.DecisionTable.updates)
+
+sf, staged, log, _ = run(["RLM_A", "RLM_B"], active=["RLM_A", "RLM_B"],
+                         check_failure="\n\n".join([ACTIVE_EDIT.format("RLM_A"), OTHER.format("RLM_B")]))
+check("a mixed result deactivates nothing — the deploy would fail and leave tables Inactive",
+      sf.DecisionTable.updates == [], sf.DecisionTable.updates)
 check("the other failure is surfaced as a warning",
       any(lvl == "warning" and "Invalid field Foo__c" in msg for lvl, msg in log.lines), log.lines)
 check("... without the MDAPI wrapper prefix",

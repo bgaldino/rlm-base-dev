@@ -64,7 +64,8 @@ reactivates the table and syncs it (`LastSyncDate` = deploy time). So the build
 does not exclude Active tables: `deactivate_changed_decision_tables` check-only
 deploys the repo's Active tables and deactivates only the ones rejected for the
 active-edit restriction. Any other check-only failure is logged and left for the
-real deploy to report. (It replaced `exclude_active_decision_tables` /
+real deploy to report, and while one remains the task deactivates nothing (that
+deploy would fail and roll back, so it could not reactivate the tables). (It replaced `exclude_active_decision_tables` /
 `restore_decision_tables`, which parked every Active table in `.skip/` and so
 silently dropped repo changes on an already-prepared org.)
 
