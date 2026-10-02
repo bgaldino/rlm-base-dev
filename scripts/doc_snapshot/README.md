@@ -179,7 +179,7 @@ keeps going. It then prints a summary table and exits 1 if anything failed.
   it tried to capture failed also exits 1, after saving its progress; the
   failed ids are named in the error and recorded in the manifest, and a later
   run retries them.
-- `2`: a usage error, such as an unknown preset, an empty selector, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
+- `2`: a usage error, such as an unknown preset, an empty selector or flag value, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
 
 `check` always exits 0. Its hits are leads to verify, not failures.
 
@@ -287,7 +287,7 @@ python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spr
 
 Bootstrap appends a new release block to `presets.yaml` as plain text, so
 existing comments survive. It copies every preset's options and changes the
-release number in each `output_dir`. It leaves out the two release-specific
+release number in each `output_dir` (an `output_dir` outside `docs/salesforce/<release>/` is rejected, since the new release would share its corpus). It leaves out unset options and the two release-specific
 options:
 
 - `expect_min_articles`: set new floors once you've seen the new release's counts.

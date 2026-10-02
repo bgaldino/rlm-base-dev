@@ -88,6 +88,14 @@ def main():
     check("CLI override beats the preset", over["expect_min_articles"] == 1)
     check("unset (None) override never masks a preset value", "mode" not in over)
     check("override adds a new option", over["concurrency"] == 2)
+    for name in ("output_dir", "doc_version", "sections"):
+        check(f"empty {name} override rejected, not read as 'use the default'",
+              raises(OptionsError, presets.resolve, releases, "264", "help",
+                     "release_notes", {name: " "}))
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        rc = cli.main(["help", "--release", "264", "--area", "release_notes",
+                       "--output-dir", ""])
+    check("empty --output-dir is a usage error", rc == cli.EXIT_USAGE)
     check("unknown preset without root/prefix raises",
           raises(OptionsError, presets.resolve, releases, "264", "help", "nope"))
     adhoc = presets.resolve(releases, "266", "help", "foo",
@@ -156,6 +164,25 @@ def main():
         check("bootstrap emits {} for presets with no options left",
               presets.preset_keys(presets.load_presets(path), "2", "dev_guide")
               == ["empty", "pinned"])
+
+    # Null/empty options keep their default instead of becoming "None" or "".
+    nulls = {"1": {"release_name": "One", "help": {"a": {
+        "root_article_id": "r.htm", "article_id_prefix": "r", "headless": None,
+        "wait_ms": None, "output_dir": None}, "b": {
+        "root_article_id": "r.htm", "article_id_prefix": "r", "output_dir": ""}}}}
+    with tempfile.TemporaryDirectory() as tmp:
+        path = _write(tmp, "releases:\n" + presets.bootstrap_block(nulls, "1", "2", "Two"))
+        reloaded = presets.load_presets(path)
+        for key in ("a", "b"):
+            opts = presets.resolve(reloaded, "2", "help", key)
+            check(f"bootstrap skips null/empty options ({key})",
+                  not {"headless", "wait_ms", "output_dir"} & set(opts)
+                  and HelpSnapshot(opts).options["output_dir"] == "docs/salesforce/2/help")
+    custom = {"1": {"release_name": "One", "help": {"a": {
+        "root_article_id": "r.htm", "article_id_prefix": "r",
+        "output_dir": "/tmp/doc-snapshots/1/help"}}}}
+    check("bootstrap rejects an output_dir it cannot retarget",
+          raises(OptionsError, presets.bootstrap_block, custom, "1", "2", "Two"))
 
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "presets.yaml"

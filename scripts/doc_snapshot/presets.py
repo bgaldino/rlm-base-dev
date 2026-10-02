@@ -85,7 +85,16 @@ def resolve(
     overrides must then supply whatever the snapshotter requires, and the
     snapshotter's own validation reports anything missing. Overrides whose
     value is None are ignored, so unset CLI flags never mask a preset value.
+    An empty string override is an error: the snapshotters read "" as "use
+    the default", so an unset shell variable would silently discard the
+    preset's value (e.g. send release notes into the Help corpus).
     """
+    blank = [n for n, v in (overrides or {}).items() if isinstance(v, str) and not v.strip()]
+    if blank:
+        raise OptionsError(
+            f"empty value for {', '.join(blank)}; omit the flag to use the preset"
+        )
+
     release = str(release)
     block = releases.get(release) or {}
     presets = block.get(kind) or {}
@@ -166,10 +175,19 @@ def bootstrap_block(
         for key, preset in presets.items():
             body = []
             for name, value in preset.items():
-                if name in _BOOTSTRAP_DROP:
+                # A null or empty option means "use the default"; copying it
+                # would write the string "None" or an empty path instead.
+                if name in _BOOTSTRAP_DROP or value is None or value == "":
                     continue
                 if name == "output_dir":
                     value = _retarget_output_dir(str(value), source, target)
+                    if value is None:
+                        raise OptionsError(
+                            f"{source} {kind}.{key}: output_dir {preset[name]!r} has no "
+                            f"salesforce/{source}/ segment to retarget, so {target} would "
+                            "share its corpus. Use a docs/salesforce/<release>/ path, or "
+                            "omit output_dir for the default."
+                        )
                 body.extend(_emit(name, value, indent=8))
             # A bare `key:` would load as null, which load_presets() rejects.
             lines.append(f"      {key}:" if body else f"      {key}: {{}}")
@@ -184,12 +202,14 @@ def append_block(text: str, path: Optional[Path] = None) -> Path:
     return path
 
 
-def _retarget_output_dir(output_dir: str, source: str, target: str) -> str:
-    return re.sub(
+def _retarget_output_dir(output_dir: str, source: str, target: str) -> Optional[str]:
+    """Swap the release in ``salesforce/{source}/``; None when there is none."""
+    new, count = re.subn(
         rf"(^|/)salesforce/{re.escape(source)}(/|$)",
         rf"\g<1>salesforce/{target}\g<2>",
         output_dir,
     )
+    return new if count else None
 
 
 def _scalar(value: Any) -> str:
