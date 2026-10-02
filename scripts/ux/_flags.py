@@ -84,13 +84,17 @@ def active_patch_files(
     return found
 
 
+_TRUE_VALUES = ("true", "1", "yes", "y", "on")
+_FALSE_VALUES = ("false", "0", "no", "n", "off")
+
+
 def to_bool(val: Any) -> bool:
     """Coerce a flag value the way CumulusCI's process_bool_arg does."""
     if isinstance(val, bool):
         return val
     if val is None:
         return False
-    return str(val).strip().lower() in ("true", "1", "yes", "y", "on")
+    return str(val).strip().lower() in _TRUE_VALUES
 
 
 def features_from_custom(custom: Optional[Mapping[str, Any]]) -> Dict[str, bool]:
@@ -129,7 +133,10 @@ def parse_flag_overrides(values: Iterable[str]) -> Dict[str, bool]:
             raise UxOptionError(
                 f"Unknown UX feature flag '{name}'. Known flags: {', '.join(UX_KNOWN_FLAGS)}"
             )
-        overrides[name] = to_bool(value)
+        value = value.strip().lower()
+        if value not in _TRUE_VALUES + _FALSE_VALUES:
+            raise UxOptionError(f"--flag {name} expects true or false, got: '{raw}'")
+        overrides[name] = value in _TRUE_VALUES
     return overrides
 
 

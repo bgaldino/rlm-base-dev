@@ -84,7 +84,7 @@ def test_parse_flag_overrides_accepts_known_flags():
     assert parse_flag_overrides([f"{name}=TRUE"]) == {name: True}
 
 
-@pytest.mark.parametrize("bad", ["not_a_flag=true", "billing_ui", "=true"])
+@pytest.mark.parametrize("bad", ["not_a_flag=true", "billing_ui", "=true", "billing_ui=treu", "billing_ui="])
 def test_parse_flag_overrides_rejects_bad_input(bad):
     with pytest.raises(UxOptionError):
         parse_flag_overrides([bad])
@@ -225,6 +225,16 @@ def test_retrieve_single_page_keeps_other_files(monkeypatch, tmp_path):
     assert other.read_text() == "<keep/>"
     cmd = fake.calls[0][0]
     assert [c for c in cmd if c.startswith("FlexiPage:")] == ["FlexiPage:RLM_Quote_Record_Page"]
+
+
+def test_single_page_retrieve_the_org_lacks_clears_the_stale_copy(monkeypatch, tmp_path):
+    (tmp_path / "flexipages").mkdir()
+    stale = tmp_path / "flexipages" / QUOTE_PAGE
+    stale.write_text("<old/>")
+    monkeypatch.setattr(_sf.subprocess, "run", FakeSf(_retrieve_payload(), on_call=_write_retrieved([])))
+
+    assert UxRetriever(_ctx(), "my-scratch").run(tmp_path, QUOTE_PAGE) == 0
+    assert not stale.exists()
 
 
 def test_failed_retrieve_leaves_existing_files(monkeypatch, tmp_path):

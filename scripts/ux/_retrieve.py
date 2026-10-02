@@ -84,10 +84,11 @@ class UxRetriever:
             self._sf_retrieve(api_names, Path(tmp))
             dest_dir.mkdir(parents=True, exist_ok=True)
 
-            # Full retrieve: clear existing files to prevent stale leftovers
-            if not filter_name:
-                for old_file in dest_dir.glob(f"*{FLEXIPAGE_SUFFIX}"):
-                    old_file.unlink()
+            # Clear what this retrieve replaces (every page, or just the requested
+            # one), so a page the org lacks cannot survive as a stale copy.
+            stale = [dest_dir / filter_name] if filter_name else dest_dir.glob(f"*{FLEXIPAGE_SUFFIX}")
+            for old_file in stale:
+                old_file.unlink(missing_ok=True)
 
             retrieved = self._copy_flexipages(Path(tmp), dest_dir)
 
