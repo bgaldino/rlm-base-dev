@@ -619,7 +619,10 @@ class HelpSnapshot:
                 self._last_discover_kept = len(kept)
                 self._last_discover_total = total_before_filter
                 self._save_manifest(manifest_path, manifest)
-                self._validate_discovery(len(kept), total_before_filter, stabilized)
+                self._validate_discovery(
+                    len(kept), total_before_filter, stabilized,
+                    only_root=[d["id"] for d in kept] == [self.options["root_article_id"]],
+                )
                 moved_out = {
                     article_id
                     for article_id, where in self._classify_subtree(discovered).items()
@@ -658,6 +661,10 @@ class HelpSnapshot:
         )
         self.logger.info(f"Manifest: {manifest_path}")
         self.logger.info(f"Index:    {index_path}")
+        # The manifest's stats sum every area; a caller's summary wants this one.
+        for entry in manifest.get("areas", []):
+            if entry.get("area") == self.options["area"]:
+                return entry.get("stats", stats)
         return stats
 
     def _validate_timing_options(self) -> None:
@@ -681,7 +688,11 @@ class HelpSnapshot:
             )
 
     def _validate_discovery(
-        self, kept_count: int, total_before_filter: int, stabilized: bool
+        self,
+        kept_count: int,
+        total_before_filter: int,
+        stabilized: bool,
+        only_root: bool = False,
     ) -> None:
         """Fail loud on a thin or unstable walk instead of silently writing a partial manifest.
 
@@ -700,6 +711,16 @@ class HelpSnapshot:
                 "The sidebar likely didn't finish rendering before "
                 "discover_timeout_ms — rerun, or raise "
                 "--discover-timeout-ms / --wait-ms."
+            )
+        if only_root:
+            # A nonexistent id still renders the portal shell, and the root
+            # matches its own prefix, so a wrong root "discovers" one article.
+            raise SnapshotError(
+                f"Discovery found only the root article "
+                f"{self.options['root_article_id']!r} itself, with no child "
+                f"articles matching prefix {self.options['article_id_prefix']!r} "
+                f"({total_before_filter} links seen before prefix filter). "
+                "Check that the root id exists and is a section landing page."
             )
         expect_min = self.options["expect_min_articles"]
         if expect_min and kept_count < expect_min:

@@ -62,7 +62,7 @@ Each release has up to four primary sources. Drop them into `docs/salesforce/{ve
 
 **Capturing release notes from Salesforce Help:**
 
-Use the snapshot tool, not a manual browser capture. `scripts/doc_snapshot/` renders the Help portal SPA with Playwright and walks the shadow DOM itself. The `release_notes` preset sets `subtree_only: true`, so it keeps only the release-notes root and its sidebar descendants:
+Use the snapshot tool (`scripts/doc_snapshot/`), not a manual browser capture. The `release_notes` preset sets `subtree_only: true`, so it keeps only the release-notes root and its sidebar descendants:
 
 ```bash
 python -m scripts.doc_snapshot help --release 264 --area release_notes              # captures docs/salesforce/264/release-notes/
@@ -75,7 +75,7 @@ For a new release, add it to `scripts/doc_snapshot/presets.yaml` with `bootstrap
 python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spring '27" --discover
 ```
 
-Bootstrap rewrites each `output_dir` and drops the `expect_min_articles` floors. Re-set the `release_notes` floor from the new release's discovered count (264 captured 127 against a floor of 60) so a partial capture still fails. Options, output layout and refresh rules are in [`revenue-cloud-docs/SKILL.md`](../revenue-cloud-docs/SKILL.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the tool existed.
+Bootstrap rewrites each `output_dir` and drops the `expect_min_articles` floors. Re-set the `release_notes` floor once you have seen the new release's discovered count, so a partial capture still fails. Options, output layout and refresh rules are in the [snapshot tool README](../../../scripts/doc_snapshot/README.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the tool existed.
 
 ## Workflow
 

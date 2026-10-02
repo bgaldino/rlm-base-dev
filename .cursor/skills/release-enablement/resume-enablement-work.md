@@ -80,7 +80,7 @@ Then ask the user what they'd like to do next. **Do not start authoring or editi
 | Capability | Why |
 |---|---|
 | **File system** for the repo | Always required |
-| **Snapshot tasks** | To capture `help.salesforce.com` content, use `python -m scripts.doc_snapshot help --release {version} --area <area|release_notes>` (Playwright + shadow-DOM walker; see `revenue-cloud-docs/SKILL.md`). The Help portal is a SPA, so `WebFetch` won't work |
+| **Snapshot tool** | To capture `help.salesforce.com` content, use `python -m scripts.doc_snapshot help --release {version} --area <area|release_notes>` (see `scripts/doc_snapshot/README.md`). The Help portal is a SPA, so `WebFetch` won't work |
 | **Bash / shell** | For `git`, `pdftotext` extraction from master Help PDFs, etc. |
 | **Web tools** (WebSearch, WebFetch) | For finding URLs and lightly-trafficked pages; the SPA Help portal needs the snapshot tool |
 

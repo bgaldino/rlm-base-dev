@@ -110,6 +110,11 @@ def main():
 
     check("nonzero kept with no expect_min_articles passes",
           t._validate_discovery(1, 3, True) is None)
+    try:
+        t._validate_discovery(1, 3, True, only_root=True)
+        check("root-only walk raises (wrong root id)", False)
+    except SnapshotError:
+        check("root-only walk raises (wrong root id)", True)
 
     t2 = _task(expect_min_articles=50)
     try:

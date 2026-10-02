@@ -83,7 +83,8 @@ def _snapshot_class(kind: str):
 def _add_common_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--mode", choices=VALID_MODES,
                    help="discover | capture | all | refresh (default all)")
-    p.add_argument("--headless", metavar="BOOL", help="run Chromium headless (default true)")
+    p.add_argument("--headless", metavar="BOOL",
+                   help="true|false: run Chromium without a window (default true)")
     p.add_argument("--concurrency", type=int, help="parallel fetches")
     p.add_argument("--wait-ms", dest="wait_ms", type=int,
                    help="ms to wait after each navigation")
@@ -93,7 +94,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m scripts.doc_snapshot",
         description=__doc__.split("\n\n")[0],
-        epilog="Run `<subcommand> --help` for its flags.",
+        epilog="Output goes to docs/salesforce/{release}/ by default; presets live in "
+               "scripts/doc_snapshot/presets.yaml. Run `<subcommand> --help` for its "
+               "flags, and see scripts/doc_snapshot/README.md.",
     )
     parser.add_argument("--presets", type=Path, help="alternate presets.yaml (testing)")
     sub = parser.add_subparsers(dest="command", required=True, metavar="SUBCOMMAND")
@@ -105,7 +108,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--release", required=True, help="release version, e.g. 264")
     p.add_argument("--area", required=True,
                    help="preset key, comma-separated keys, or 'all'; any name for an "
-                        "ad hoc run with --root-article-id/--prefix")
+                        "ad hoc run with --root-article-id and --prefix (plus "
+                        "--release-name for a release not in presets.yaml)")
     p.add_argument("--release-name", dest="release_name",
                    help="e.g. \"Winter '27\" (default: from presets)")
     p.add_argument("--root-article-id", dest="root_article_id")
@@ -126,7 +130,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "ad hoc run with --deliverable")
     p.add_argument("--release-name", dest="release_name")
     p.add_argument("--deliverable", help="atlas deliverable slug")
-    p.add_argument("--doc-version", dest="doc_version", help="atlas doc version, e.g. 264.0")
+    p.add_argument("--doc-version", dest="doc_version",
+                   help="atlas doc version, e.g. 264.0; without it the unversioned "
+                        "endpoint may still serve the previous release")
     p.add_argument("--section", help="one TOC section (title or page_id)")
     p.add_argument("--sections", help="comma-separated TOC sections (titles or page_ids)")
     p.add_argument("--output-dir", dest="output_dir",
@@ -138,7 +144,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("run", help="snapshot every preset of a release")
     p.add_argument("--release", required=True)
-    p.add_argument("--only", help="comma-separated preset keys to include")
+    p.add_argument("--only", help="comma-separated preset keys to include "
+                                  "(matched across help and dev_guide presets)")
     _add_common_run_flags(p)
 
     p = sub.add_parser("check", help="lint the Help corpus for glued-link artifacts")
@@ -181,7 +188,7 @@ def run_targets(
         if conflicting:
             flags = ", ".join("--" + f.replace("_", "-") for f in conflicting)
             raise OptionsError(
-                f"{flags} only make sense for a single preset; {len(targets)} selected"
+                f"{flags} applies to a single preset only; {len(targets)} selected"
             )
 
     results = []
@@ -265,16 +272,19 @@ def cmd_dev_guide(args, releases, logger) -> int:
 
 def cmd_run(args, releases, logger) -> int:
     only = {k.strip() for k in (args.only or "").split(",") if k.strip()}
-    targets = [
+    available = [
         (rel, kind, key)
         for rel, kind, key, _ in presets_mod.iter_presets(releases, args.release)
-        if not only or key in only
     ]
-    if not targets:
-        raise OptionsError(f"no presets matched for release {args.release}")
-    unknown = only - {t[2] for t in targets}
+    if not available:
+        raise OptionsError(f"release {args.release} has no presets")
+    unknown = only - {t[2] for t in available}
     if unknown:
-        raise OptionsError(f"unknown preset(s): {', '.join(sorted(unknown))}")
+        raise OptionsError(
+            f"unknown preset(s) for release {args.release}: {', '.join(sorted(unknown))}"
+            " (see `list`)"
+        )
+    targets = [t for t in available if not only or t[2] in only]
     return run_targets(releases, targets, _pick(args, RUN_FLAGS), logger)
 
 
@@ -293,8 +303,11 @@ def cmd_bootstrap(args, releases, logger) -> int:
         return 0
     presets_mod.append_block(block, path)
     print(f"Added release {args.target} to {path}")
+    print("Before capturing dev guides, set `doc_version` on the new release's dev_guide presets: "
+          "without it the unversioned endpoint serves the previous release.")
     if not args.discover:
-        print("Next: run `help --area all --mode discover` for it and set floors.")
+        print(f"Next: `help --release {args.target} --area all --mode discover`, "
+              "then set expect_min_articles floors from the counts.")
         return 0
     releases = presets_mod.load_presets(path)
     keys = presets_mod.preset_keys(releases, args.target, "help")

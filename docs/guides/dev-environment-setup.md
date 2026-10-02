@@ -37,7 +37,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
 | **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5.6.4+ required (enforced by `cci task run validate_setup`) |
 | **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
-| **Doc snapshot tooling** *(optional)* | `pip install -r scripts/doc_snapshot/requirements.txt && python -m playwright install chromium` (in any venv) | Refresh the Salesforce Help / Dev Guide corpus under `docs/salesforce/` (`python -m scripts.doc_snapshot`) | latest; only needed to re-snapshot docs |
+| **Doc snapshot tooling** *(optional)* | `pip install -r scripts/doc_snapshot/requirements.txt && python -m playwright install chromium` (in any venv) | Refresh the Salesforce Help / Dev Guide corpus under `docs/salesforce/` (`python -m scripts.doc_snapshot`; see its [README](../../scripts/doc_snapshot/README.md)) | versions in `requirements.txt`; only needed to re-snapshot docs |
 
 **Pin philosophy:**
 - **Major line, not minor.** Patch versions move forward automatically. Bumping

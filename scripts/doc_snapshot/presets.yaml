@@ -21,17 +21,17 @@
 #         <preset>:
 #           deliverable / doc_version / sections / output_dir / ...       (optional)
 #
-# Any option the snapshotter accepts may appear on a preset; a CLI flag of the
-# same name (kebab-case, e.g. --expect-min-articles) overrides it for one run.
+# Any option the tool accepts may appear on a preset; a CLI flag of the same
+# name (kebab-case, e.g. --expect-min-articles) overrides it for one run.
 # Add a release with `python -m scripts.doc_snapshot bootstrap --from <r> --to <new>`.
+# Options, floors and the add-an-area recipe: scripts/doc_snapshot/README.md.
 #
 # FINDING A ROOT ARTICLE ID
 #
-# Help-portal article IDs are not stable across release reorgs. During 262
-# capture, the candidates ind.usage_management.htm and ind.usage.htm both 404'd
-# before ind.um_usage_management.htm / ind.rm_rate_management.htm were confirmed
-# as the real roots. If a discover run fails (or finds suspiciously few
-# articles), start from the Revenue Lifecycle Management parent
+# Help-portal article IDs are not stable across release reorgs, and the obvious
+# guess is often wrong (Usage Management's root is ind.um_usage_management.htm,
+# not ind.usage_management.htm). If a discover run fails (or finds suspiciously
+# few articles), start from the Revenue Lifecycle Management parent
 # (ind.revenue_lifecycle_management.htm), walk its sidebar, and copy the id=
 # param of the area's link into root_article_id / article_id_prefix. Validate a
 # root without a full capture with `--mode discover`.
@@ -43,12 +43,9 @@
 #
 # READING THE RESULT
 #
-# A zero post-prefix result always fails. A nonzero-but-thin result (e.g. a
-# reorganized prefix still matching a handful of stale links) only fails when the
-# preset sets expect_min_articles, so read the "Discovered N unique articles"
-# line the tool logs. Read it from the tool's own output — piping to grep reports
-# grep's exit status and hides a later failure — and not from the manifest's
-# stats.discovered, which sums every area and retains prior runs.
+# A thin-but-nonzero discovery only fails when the preset sets
+# expect_min_articles, so on a preset without one, read the "Discovered N unique
+# articles" line yourself. See "Reading the result" in the README.
 
 releases:
 
@@ -64,11 +61,7 @@ releases:
 
   # -------------------------------------------------------------------------
   # Summer '26 (262) — frozen corpus; presets kept so it stays reproducible.
-  #
-  # All 11 Revenue Cloud areas captured 2026-05-11 / 2026-05-12 (collections
-  # added 2026-06-21): 935 articles captured / 935 discovered, 0 errored (the
-  # last 3 collections articles were recaptured 2026-08-04; see
-  # docs/salesforce/262/help/index.md). Counts as of capture are noted per area.
+  # Coverage and counts: docs/salesforce/262/help/index.md.
   # Ordered to mirror the data-model domain flow: Catalog → Pricing → Rating →
   # Configuration → Transaction lifecycle → Fulfillment → Usage → Billing →
   # Agents → Approvals → Collections.
@@ -76,10 +69,10 @@ releases:
   "262":
     release_name: "Summer '26"
     help:
-      pcm:                    # 107 articles
+      pcm:
         root_article_id: ind.product_catalog_introduction.htm
         article_id_prefix: ind.product_catalog
-      pricing:                # 110 articles
+      pricing:
         root_article_id: ind.pricing_salesforce_pricing.htm
         article_id_prefix: ind.pricing
       # Rating and usage are separate areas because the data model treats Rate
@@ -92,35 +85,35 @@ releases:
       #     ProductUsageResource, ProductUsageGrant, UsageResource,
       #     UsageSummary, TransactionJournal, Usage Agent, Drawdown Policies,
       #     Digital Wallets.
-      rating:                 # 35 articles
+      rating:
         root_article_id: ind.rm_rate_management.htm
         article_id_prefix: ind.rm
-      configurator:           # 76 articles
+      configurator:
         root_article_id: ind.product_configurator_introduction.htm
         article_id_prefix: ind.product_configurator
-      transaction_mgmt:       # 170 articles (Quote/Order/Contract/Asset/Lifecycle)
+      transaction_mgmt:
         root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
         article_id_prefix: ind.qocal
-      dro:                    # 70 articles
+      dro:
         root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
         article_id_prefix: ind.dro
-      usage:                  # 52 articles
+      usage:
         root_article_id: ind.um_usage_management.htm
         article_id_prefix: ind.um
-      billing:                # 171 articles (~10-15 min headless)
+      billing:
         root_article_id: ind.billing.htm
         article_id_prefix: ind.billing
-      # Agentforce for Revenue Management — topic-reference articles for the 7
-      # subagents (2026-05-11 sidebar walk): Product Selection and Product
+      # Agentforce for Revenue Management — topic-reference articles for the
+      # subagents: Product Selection and Product
       # Description Generation (PCM), Quote Management (Transaction Mgmt),
       # Consumption Management (Usage — the "Usage/Consumption Agent" lives
       # here, not in the usage area), Invoice Line Explanation, Billing
       # Collections Management and Billing Inquiries (Billing). Area-specific
       # agent how-to articles live under each area's own prefix.
-      agents:                 # 13 articles
+      agents:
         root_article_id: ind.rev_agent_overview.htm
         article_id_prefix: ind.rev_agent
-      approvals:              # 34 articles
+      approvals:
         root_article_id: ind.approvals_advanced_approvals.htm
         article_id_prefix: ind.approvals
       # Collections and Recovery — Collection Plans and Reasons, dunning /
@@ -128,7 +121,7 @@ releases:
       # Create-Case-for-Collection automation. The Create Case flow
       # (unpackaged/post_collections) invokes a BRE Decision Matrix
       # (DetermineCaseReasonAndRelatedAttributes) authored per this area.
-      collections:            # 97 articles
+      collections:
         root_article_id: ind.collections.htm
         article_id_prefix: ind.collections
     dev_guide:
@@ -137,9 +130,8 @@ releases:
       rlm:
         deliverable: revenue_lifecycle_management_dev_guide
       # RC-relevant sections of the Industries Common Resources Developer Guide.
-      # The full guide is ~1435 pages across 37 sections, mostly for other
-      # Industries clouds; these ~571 pages go to a separate corpus so they never
-      # clobber the RLM dev guide. follow_links stays off (its default when
+      # Most of the full guide covers other Industries clouds; these sections go
+      # to a separate corpus so they never clobber the RLM dev guide. follow_links stays off (its default when
       # `sections` is set) so an out-of-scope link can't pull other sections in.
       # Use page_ids for sections whose titles contain commas (batch).
       industries:
@@ -159,13 +151,10 @@ releases:
   # -------------------------------------------------------------------------
   # Winter '27 (264) — the active line.
   #
-  # Root IDs inherited from 262. Ten areas were verified and captured to
-  # docs/salesforce/264/help/ and carry an expect_min_articles floor set at
-  # ~50% of the 262 twin's count, so real content growth or shrinkage between
-  # releases doesn't re-flag them. collections is unverified (checked but not
-  # ready — its discover count matched the 262 twin with no net-new content;
-  # see the revenue-cloud-docs SKILL.md branch note), so it has no floor:
-  # counts are recorded after a capture, not predicted before one.
+  # A help preset with expect_min_articles has been verified for this release
+  # and captured; one without a floor has not been verified yet, so check its
+  # discovery count and compare a few articles against 262 before capturing.
+  # The dev guides need doc_version set (see the README).
   # -------------------------------------------------------------------------
   "264":
     release_name: "Winter '27"
@@ -210,12 +199,12 @@ releases:
         root_article_id: ind.approvals_advanced_approvals.htm
         article_id_prefix: ind.approvals
         expect_min_articles: 17
-      collections:            # unverified for 264 — no floor (see header)
+      collections:            # no floor yet: not verified for 264 (see header)
         root_article_id: ind.collections.htm
         article_id_prefix: ind.collections
       # Revenue Management section of the release notes. Every release-notes
       # article shares the release-notes.rn_ prefix, so subtree_only keeps just
-      # the Revenue section under its root (~127 of ~1599 discovered).
+      # the Revenue section under its root.
       release_notes:
         area: revenue
         root_article_id: release-notes.rn_revenue.htm
