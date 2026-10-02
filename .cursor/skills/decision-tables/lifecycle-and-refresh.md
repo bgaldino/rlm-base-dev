@@ -42,22 +42,39 @@ manages it three ways:
 |---|---|
 | CCI task | `manage_decision_tables -o operation activate` / `deactivate` (Tooling `Status` update) |
 | Apex | `scripts/apex/deactivateDecisionTables.apex` (`deactivate_decision_tables` task — bulk) |
-| Deploy workaround | `exclude_active_decision_tables` moves active tables' XML into `.skip/` before a deploy, then `restore_decision_tables` restores it — the deactivate-then-redeploy pattern for the active-edit restriction |
+| Build (deploy path) | `deactivate_changed_decision_tables` (before `deploy_pre`) and `deactivate_changed_post_prm_pricing_decision_tables` (before the PRM table deploy) check-only deploy the repo's Active tables, deactivate only those the platform rejects, and deploy them at once (which reactivates them; on failure it tries to reactivate them, names any left Inactive, and the step fails) |
 
 ### The active-edit restriction — deactivate first
 
-**An Active table's definition cannot be modified in place.** An update is
-platform-blocked with `FIELD_NOT_UPDATABLE` / "Can't edit an active Decision
-Table". An active delete can instead return `INVALID_OPERATION` plus
+**An Active table's definition cannot be structurally modified in place.** An
+update is platform-blocked with `FIELD_NOT_UPDATABLE` / "Can't edit an active
+Decision Table". An active delete can instead return `INVALID_OPERATION` plus
 `DEPENDENCY_EXISTS`. To edit:
 
 ```
 deactivate  →  edit/redeploy the definition  →  reactivate  →  refresh
 ```
 
-This is why `exclude_active_decision_tables`/`.skip/` exists: a redeploy over an
-active table would otherwise fail. The toolkit does not reproduce this platform
-guard or compose lifecycle transitions. `update_decision_table.py` sends one
+**Metadata deploy is narrower than that** — measured on a 264 org, 2026-10-02.
+Redeploying over an Active table succeeds when the XML is unchanged or the change
+is non-structural (a description), and the change applies. Only a structural
+change (e.g. a parameter's `isRequired`) fails. After deactivating, the same
+deploy succeeds and — because the repo XML carries `<status>Active</status>` —
+reactivates the table and syncs it (`LastSyncDate` = deploy time). So the build
+does not exclude Active tables: `deactivate_changed_decision_tables` check-only
+deploys the repo's Active tables, deactivates only the ones rejected for the
+active-edit restriction, and deploys those itself straight away. It does not leave
+the reactivation to `deploy_pre`, which deploys the earlier numbered bundles first —
+a failure there would strand the tables Inactive. If deactivation or its own deploy
+fails, it tries to reactivate the tables it deactivated and fails, logging any it
+could not reactivate with the manual activate command. The later bundle deploy
+then sees unchanged XML on an Active table, which is accepted. Any other check-only
+failure is logged and left for the bundle deploy to report, and while one remains
+the task deactivates nothing. (It replaced `exclude_active_decision_tables` /
+`restore_decision_tables`, which parked every Active table in `.skip/` and so
+silently dropped repo changes on an already-prepared org.)
+
+The toolkit does not reproduce this platform guard or compose lifecycle transitions. `update_decision_table.py` sends one
 Tooling PATCH and `delete_decision_table.py` sends one Tooling DELETE; Salesforce
 returns its own lifecycle/dependency errors when the table is Active. Run
 `deactivate_decision_table.py`, the requested mutation, and
@@ -216,5 +233,5 @@ note. The expression sets that consume a table's output are covered in
 - Pricing layering: `.cursor/skills/pricing-wiring/SKILL.md`.
 - CCI tasks: `tasks/rlm_manage_decision_tables.py`,
   `tasks/rlm_refresh_decision_table.py`,
-  `tasks/rlm_exclude_active_decision_tables.py`,
+  `tasks/rlm_deactivate_changed_decision_tables.py`,
   `tasks/rlm_configure_pricing_recipe_table_mappings.py`.

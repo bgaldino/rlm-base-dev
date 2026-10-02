@@ -62,7 +62,7 @@ cci org scratch <config-name> <org-alias> --default --days 30
 cci flow run prepare_rlm_org --org <org-alias>
 ```
 
-Decision tables under `unpackaged/pre/5_decisiontables` are deployed by this flow. Active decision tables are excluded per run by moving them into a `.skip` subdirectory before deploy (no `.forceignore` changes). Permission set groups are recalculated only when they are in **Outdated** state; if all are already **Updated**, the recalc step exits without waiting.
+Decision tables under `unpackaged/pre/5_decisiontables` are deployed by this flow. When a table is already Active and the repo carries a structural change to it, `deactivate_changed_decision_tables` (run just before `deploy_pre`) deactivates that table and deploys the change, which reactivates it; unchanged and non-structural redeploys apply in place. Permission set groups are recalculated only when they are in **Outdated** state; if all are already **Updated**, the recalc step exits without waiting.
 
 ### List Available Flows and Tasks
 

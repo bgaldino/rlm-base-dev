@@ -2143,19 +2143,19 @@ tasks:
     options:
       path: scripts/apex/deactivateDecisionTables.apex
 
-  exclude_active_decision_tables:
+  deactivate_changed_decision_tables:
     group: Revenue Lifecycle Management
-    description: "Exclude active decision tables from deployment (TODO: implement proper deactivation)"
-    class_path: tasks.rlm_exclude_active_decision_tables.ExcludeActiveDecisionTables
+    description: "Check-only deploy the repo's decision tables that are Active in the org and deactivate only those the platform refuses to edit in place (structural changes), then deploy those tables itself, which reactivates them (on failure it tries to reactivate them and fails, naming any left Inactive)"
+    class_path: tasks.rlm_deactivate_changed_decision_tables.DeactivateChangedDecisionTables
     options:
       path: unpackaged/pre/5_decisiontables
 
-  restore_decision_tables:
+  deactivate_changed_post_prm_pricing_decision_tables:
     group: Revenue Lifecycle Management
-    description: "Restore skipped decision tables after deploy"
-    class_path: tasks.rlm_exclude_active_decision_tables.RestoreDecisionTables
+    description: "deactivate_changed_decision_tables for unpackaged/post_prm_pricing/decisionTables (run before deploy_post_prm_pricing_decision_tables)"
+    class_path: tasks.rlm_deactivate_changed_decision_tables.DeactivateChangedDecisionTables
     options:
-      path: unpackaged/pre/5_decisiontables
+      path: unpackaged/post_prm_pricing/decisionTables
 
   assign_permission_set_groups_tolerant:
     group: Revenue Lifecycle Management
@@ -4017,42 +4017,38 @@ flows:
         task: cleanup_settings_for_dev
         #when: org_config.scratch
       6:
-        task: exclude_active_decision_tables
-        #when: org_config.scratch
+        task: deactivate_changed_decision_tables
       7:
         task: deploy_pre
       8:
-        task: restore_decision_tables
-        #when: org_config.scratch
-      9:
         flow: assign_feature_psls
-      10:
+      9:
         task: recalculate_permission_set_groups
         options:
           api_names: *rlm_psg_api_names
-      11:
+      10:
         task: assign_permission_set_groups_tolerant
         options:
           api_names: *rlm_psg_api_names
-      12:
+      11:
         task: recalculate_permission_set_groups
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
+      12:
+        task: assign_permission_set_groups_tolerant
         when: project_config.project__custom__tso
         options:
           api_names: *psg_tso
       13:
-        task: assign_permission_set_groups_tolerant
-        when: project_config.project__custom__tso
-        options:
-          api_names: *psg_tso
-      14:
         flow: extend_context_definitions
-      15:
+      14:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      16:
+      15:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      17:
+      16:
         flow: assign_feature_permission_sets
 
   assign_feature_psls:
@@ -4480,21 +4476,24 @@ flows:
         task: deploy_post_prm_pricing_objects
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       2:
-        task: deploy_post_prm_pricing_decision_tables
+        task: deactivate_changed_post_prm_pricing_decision_tables
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       3:
-        task: configure_pricing_recipe_table_mappings
+        task: deploy_post_prm_pricing_decision_tables
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       4:
-        task: apply_context_prm_pricing
+        task: configure_pricing_recipe_table_mappings
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       5:
-        task: deploy_post_prm_pricing_expression_sets
+        task: apply_context_prm_pricing
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       6:
-        task: deploy_post_prm_pricing_flows
+        task: deploy_post_prm_pricing_expression_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       7:
+        task: deploy_post_prm_pricing_flows
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
+      8:
         task: deploy_post_prm_pricing_permissionsets
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 

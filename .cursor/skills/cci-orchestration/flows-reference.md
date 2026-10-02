@@ -119,12 +119,13 @@ Deploy and configure the PRM pricing bundle in dependency order so context resou
 **Steps:**
 
 1. **task** `deploy_post_prm_pricing_objects`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-2. **task** `deploy_post_prm_pricing_decision_tables`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-3. **task** `configure_pricing_recipe_table_mappings`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-4. **task** `apply_context_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-5. **task** `deploy_post_prm_pricing_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-6. **task** `deploy_post_prm_pricing_flows`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-7. **task** `deploy_post_prm_pricing_permissionsets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+2. **task** `deactivate_changed_post_prm_pricing_decision_tables`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+3. **task** `deploy_post_prm_pricing_decision_tables`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+4. **task** `configure_pricing_recipe_table_mappings`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+5. **task** `apply_context_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+6. **task** `deploy_post_prm_pricing_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+7. **task** `deploy_post_prm_pricing_flows`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+8. **task** `deploy_post_prm_pricing_permissionsets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
 
 ---
 
@@ -302,22 +303,21 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 4. **task** `assign_permission_set_licenses`
    - `api_names`: `['BREDesigner', 'BRERuntime', 'CorePricingDesignTime', 'DataProcessingEnginePsl', 'DecimalQuantit...`
 5. **task** `cleanup_settings_for_dev`
-6. **task** `exclude_active_decision_tables`
+6. **task** `deactivate_changed_decision_tables`
 7. **task** `deploy_pre`
-8. **task** `restore_decision_tables`
-9. **flow** `assign_feature_psls`
-10. **task** `recalculate_permission_set_groups`
+8. **flow** `assign_feature_psls`
+9. **task** `recalculate_permission_set_groups`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-11. **task** `assign_permission_set_groups_tolerant`
+10. **task** `assign_permission_set_groups_tolerant`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-12. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
+11. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-13. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
+12. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-14. **flow** `extend_context_definitions`
-15. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
-16. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
-17. **flow** `assign_feature_permission_sets`
+13. **flow** `extend_context_definitions`
+14. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
+15. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
+16. **flow** `assign_feature_permission_sets`
 
 ---
 

@@ -294,11 +294,18 @@ cci task run manage_decision_tables -o operation refresh -o developer_names "Tab
 
 ### Active decision tables block deploy
 
-**Cause:** Metadata API can't overwrite active decision tables.
+**Cause:** Metadata API can't apply a *structural* change to an active decision
+table ("Can't edit an active Decision Table"). Unchanged and non-structural
+redeploys succeed.
 
-**Fix:** The flow handles this via `exclude_active_decision_tables` before
-deploy and `restore_decision_tables` after. If the exclusion step fails,
-manually deactivate the blocking tables:
+**Fix:** The flow handles this with `deactivate_changed_decision_tables` (before
+`deploy_pre`) and `deactivate_changed_post_prm_pricing_decision_tables` (before the
+PRM table deploy): each check-only deploys the repo's active tables, deactivates
+only those the platform rejects, and deploys them at once, which reactivates them. If
+that deploy fails it tries to reactivate them and fails the step; a table it could not
+reactivate is logged as an error with the `manage_decision_tables` activate command. It deactivates
+nothing while the check-only deploy reports any other failure — read its warnings and
+fix those first. To deactivate by hand:
 ```bash
 cci task run manage_decision_tables -o operation deactivate -o developer_names "Table_Name" --org beta
 ```
