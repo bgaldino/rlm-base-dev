@@ -1750,7 +1750,7 @@ Pause For Recording If Enabled
 
 Create Contract From Quote
     [Documentation]    Creates a Contract from ${quote_id} the way a rep does: the Quote's
-    ...    ``Create Contract`` action, which Revenue Settings routes to the
+    ...    ``New Contract`` action, which Revenue Settings routes to the
     ...    ``RLM_CreateContractFromQuote`` flow. Checks the renewal term the flow set,
     ...    activates the Contract and returns its Id. The Order created from the Quote
     ...    afterwards picks the Contract up and links its Assets to it
