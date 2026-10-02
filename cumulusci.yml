@@ -803,6 +803,24 @@ tasks:
       activate: true
       verify: true
 
+  apply_context_approvals:
+    group: Revenue Lifecycle Management
+    description: >
+      Adds the line approval flag attributes (RLM_Approval_Level_Calc__c and
+      RLM_Approval__c) to RLM_SalesTransactionContext with QuoteLineItem mappings
+      and matching OrderItem mappings in OrderEntitiesMapping, using an additive
+      Context Service plan, so the approval-flags overlay on
+      RLM_DefaultPricingProcedure can write them when pricing Quotes or Orders
+      (Orders are priced by getRenewableAssetsSummary in the renewal flow).
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: *sales_transaction_context_name
+      plan_file: datasets/context_plans/Approvals/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
   apply_context_billing_order:
     group: Revenue Lifecycle Management
     description: >
@@ -1295,7 +1313,7 @@ tasks:
 
   deploy_post_approvals:
     description: >
-      Deploy Advanced Approvals metadata: Quote/QuoteLineItem fields, RLM_Payment_Terms GVS,
+      Deploy Advanced Approvals metadata: Quote/QuoteLineItem/OrderItem fields, RLM_Payment_Terms GVS,
       PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data),
       Apex class, and permission set. EmailTemplatePage FlexiPages (including
       RLM_Quote_Record_Page) are excluded via .forceignore — EmailTemplatePage type cannot be
@@ -3184,6 +3202,27 @@ tasks:
       verify: true
       skip_validation: false
       normalize_html_entities: true
+      preserve_labels: true
+      activate_after_apply: true
+      cascade_deactivate_procedure_plan: true
+      max_wait_seconds: 45
+      poll_interval_seconds: 3
+
+  apply_approval_flags_overlay:
+    group: Revenue Lifecycle Management
+    description: >
+      Apply the approval-flags overlay to RLM_DefaultPricingProcedure: every reprice
+      resets each quote or order line to level 0 / blank, then bands the line
+      Discount into Manager (15-<25), Director (25-<35) or VP (35-<100) and writes
+      RLM_Approval_Level_Calc__c and RLM_Approval__c.
+    class_path: tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay
+    options:
+      overlay_file: datasets/expression_set_overlays/approval_flags.json
+      dry_run: false
+      verify: true
+      skip_validation: false
+      normalize_html_entities: true
+      preserve_labels: true
       activate_after_apply: true
       cascade_deactivate_procedure_plan: true
       max_wait_seconds: 45
@@ -3198,6 +3237,7 @@ tasks:
       dry_run: false
       skip_validation: false
       normalize_html_entities: true
+      preserve_labels: true
       activate_after_import: true
       cascade_deactivate_procedure_plan: true
       max_wait_seconds: 45
@@ -3961,36 +4001,38 @@ flows:
       18:
         task: activate_and_deploy_expression_sets
       19:
-        flow: prepare_tso
+        flow: prepare_approvals_pricing
       20:
-        flow: prepare_procedureplans
+        flow: prepare_tso
       21:
-        flow: prepare_prm
+        flow: prepare_procedureplans
       22:
-        flow: prepare_agents
+        flow: prepare_prm
       23:
-        flow: prepare_constraints
+        flow: prepare_agents
       24:
-        flow: prepare_guidedselling
+        flow: prepare_constraints
       25:
-        flow: prepare_revenue_settings
+        flow: prepare_guidedselling
       26:
-        flow: prepare_pricing_discovery
+        flow: prepare_revenue_settings
       27:
-        flow: prepare_large_stx
+        flow: prepare_pricing_discovery
       28:
-        flow: prepare_personas
+        flow: prepare_large_stx
       29:
-        flow: prepare_ux
+        flow: prepare_personas
       30:
-        flow: prepare_inapp
+        flow: prepare_ux
       31:
-        flow: prepare_scratch
+        flow: prepare_inapp
       32:
-        flow: refresh_all_decision_tables
+        flow: prepare_scratch
       33:
-        task: rebuild_search_index
+        flow: refresh_all_decision_tables
       34:
+        task: rebuild_search_index
+      35:
         flow: stamp_git_commit
 
   prepare_core:
@@ -4234,7 +4276,7 @@ flows:
       10:
         # Ship the QuantumBit Demo Setup guide (Visualforce page). It is
         # referenced by pageName on the RLM_Home_Page_Default flexipage, which is
-        # assembled/deployed later by assemble_and_deploy_ux (prepare_ux, step 29
+        # assembled/deployed later by assemble_and_deploy_ux (prepare_ux, step 30
         # of prepare_rlm_org) — so the page must exist first. This whole flow runs
         # at step 7, well before UX assembly.
         task: deploy_post_setup_guide
@@ -4833,6 +4875,16 @@ flows:
         task: insert_qb_approvals_data
         when: project_config.project__custom__qb and project_config.project__custom__approvals
 
+  prepare_approvals_pricing:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: apply_context_approvals
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+      2:
+        task: apply_approval_flags_overlay
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+
   prepare_guidedselling:
     group: Revenue Lifecycle Management
     steps:
@@ -4921,7 +4973,7 @@ flows:
         when: project_config.project__custom__collections
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
     # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant
-    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 29), gated on
+    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on
     # the same collections flag. The native CollectionsAndRecoveryPsl is always assigned via
     # rlm_psl_api_names in prepare_core.
 
@@ -4954,8 +5006,8 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 29 of
-      prepare_rlm_org, after all feature provisioning (including personas at step 28)
+      applications, profiles) from feature-conditional templates. Runs at step 30 of
+      prepare_rlm_org, after all feature provisioning (including personas at step 29)
       is complete, ensuring all referenced objects, fields, and components exist before
       UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
     steps:
@@ -5004,9 +5056,9 @@ flows:
     description: >
       Deploy persona metadata (profiles, permission set groups, permission sets) from
       unpackaged/post_personas and create the Sales Rep persona user (scratch and
-      non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of
+      non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of
       prepare_rlm_org, before prepare_ux
-      (step 29), so that persona profile templates are assembled and deployed by
+      (step 30), so that persona profile templates are assembled and deployed by
       the UX assembler in the same pass.
     steps:
       1:
@@ -5082,8 +5134,8 @@ flows:
         # deployed — but quantumbit/tso are on — will fail here. That is the same
         # exposure step 7 above carries for RLM_LargeSalesTransaction, and it is safe in
         # a full build: prepare_rlm_org runs prepare_quantumbit at step 7 and prepare_tso
-        # at step 19, both of which deploy_post_utils, well before prepare_personas at
-        # step 28. If you run this flow on its own, deploy post_utils first.
+        # at step 20, both of which deploy_post_utils, well before prepare_personas at
+        # step 29. If you run this flow on its own, deploy post_utils first.
         task: assign_permission_sets
         when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
         options:
@@ -5143,6 +5195,15 @@ flows:
           api_names: *ps_quantumbit_demo_setup
           user_alias: salesrep
       11:
+        # Repricing writes approval levels and labels back to quote/order lines.
+        # The build-user assignment in prepare_approvals does not reach this
+        # non-admin persona; reuse the feature's existing field-access set.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and project_config.project__custom__quantumbit and project_config.project__custom__approvals
+        options:
+          api_names: *ps_approvals
+          user_alias: salesrep
+      12:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

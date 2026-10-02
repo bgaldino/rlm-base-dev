@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Approval_Level_Calc__c</fullName>
     <defaultValue>0</defaultValue>
-    <description>Discount approval level (0 none, 1 Manager, 2 Director, 3 VP). Written by the RLM_DefaultPricingProcedure approval-flags overlay on every reprice; rolled up to Quote.RLM_Approval_Level__c. Read-only for users (the approval roll-up trusts it); the pricing engine writes it in system context.</description>
+    <description>Order-side mirror of QuoteLineItem.RLM_Approval_Level_Calc__c (0 none, 1 Manager, 2 Director, 3 VP). Bound in OrderEntitiesMapping so RLM_DefaultPricingProcedure, including its approval-flags overlay, can price Orders (for example getRenewableAssetsSummary in the renewal flow). Written by the overlay on every reprice; read-only for users.</description>
     <externalId>false</externalId>
     <label>Approval Level Calc</label>
     <precision>18</precision>

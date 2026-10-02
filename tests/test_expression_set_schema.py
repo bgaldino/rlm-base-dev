@@ -303,6 +303,64 @@ def test_shipped_discount_distribution_ships_constants():
     )
 
 
+def test_shipped_approval_flags_passes_and_resets_first():
+    # The approval-flags overlay must validate clean, run its reset step before
+    # the three band steps (so a reprice that lowers the discount clears the old
+    # flag), and never write the line Description.
+    path = "datasets/expression_set_overlays/approval_flags.json"
+    if not os.path.exists(path):
+        print("  [SKIP] approval_flags.json not present")
+        return
+    ov = json.load(open(path))
+    r = validate_overlay(ov)
+    check("shipped approval_flags.json validates clean", r.passed and not r.errors)
+    top = [s["name"] for s in ov.get("addSteps", []) if not s.get("parentStep")]
+    check(
+        "approval_flags reset step is the first top-level step",
+        bool(top) and top[0] == "RLMApprovalFlagsReset" and len(top) == 4,
+    )
+    check(
+        "approval_flags steps never reference ItemDescription",
+        "ItemDescription" not in json.dumps(ov.get("addSteps", [])),
+    )
+    steps = {s["name"]: s for s in ov["addSteps"]}
+    reset = steps["RLMApprovalFlagsResetAllLines"]["advancedCondition"]
+    check("approval_flags reset covers blank and set discounts",
+          reset["conditionLogic"] == "1 OR 2" and
+          [c["operator"] for c in reset["criteria"]] == ["IsNull", "IsNotNull"] and
+          all(c["sourceFieldName"] == "ItemDiscountPercentage" for c in reset["criteria"]))
+    variables = {v["name"]: v["value"] for v in ov["addVariables"]}
+    for tier, low, high, level, label in (
+        ("None", None, None, "0", ""),
+        ("Manager", "15", "25", "1", "🟡 Manager"),
+        ("Director", "25", "35", "2", "🟠 Director"),
+        ("VP", "35", "100", "3", "🔴 VP"),
+    ):
+        if low is not None:
+            band = steps[f"RLMApprovalFlags{tier}Band"]["advancedCondition"]
+            check(f"approval_flags {tier} band is [{low}, {high})",
+                  band["conditionLogic"] == "1 AND 2 AND 3" and
+                  [(c["operator"], c.get("value"), c["sourceFieldName"])
+                   for c in band["criteria"]] == [
+                       ("GreaterThanOrEquals", low, "ItemDiscountPercentage"),
+                       ("LessThan", high, "ItemDiscountPercentage"),
+                       ("IsNotNull", None, "ItemDiscountPercentage"),
+                   ])
+        check(f"approval_flags {tier} constants are correct",
+              variables[f"RLMApprovalLevel{tier}"] == level and
+              variables[f"RLMApprovalLabel{tier}"] == label)
+        parameters = {p["name"]: p["value"] for p in
+                      steps[f"RLMApprovalFlagsAssign{tier}"]["customElement"]["parameters"]}
+        check(f"approval_flags {tier} writes both approval outputs",
+              parameters["section-0-input1"] == f"RLMApprovalLevel{tier}" and
+              parameters["section-1-input1"] == f"RLMApprovalLabel{tier}" and
+              parameters["section-0-output"] == "RLM_Approval_Level_Calc__c" and
+              parameters["section-1-output"] == "RLM_Approval__c" and
+              all(json.loads(parameters[f"sectionJsonString{i}"])["whereConditions"][0]
+                  ["value"]["value"] == output for i, output in (
+                      (2, "RLM_Approval_Level_Calc__c"), (3, "RLM_Approval__c"))))
+
+
 def test_reference_facility_quantity_example_passes():
     # Environment-specific example retained outside the shipped overlay folder:
     # validates all-three-scope dependency capture without implying broad
@@ -1938,6 +1996,487 @@ def test_overlay_content_conflict_and_readback():
     except Exception as exc:
         check("CCI retains placement verification", "sequenceNumber" in str(exc))
 
+
+
+class _LabelTask(Connect):
+    """Bare instance with an in-memory ESV/ESDV for label-preservation tests.
+
+    Only HTTP is faked: the real ``_patch_expression_set_via_connect`` runs
+    (against a stubbed ``requests``) so the tests exercise the same
+    clobber-flag path production does.
+    """
+
+    def __init__(self, labels, active=True, tooling_patch_fails=False, options=None):
+        import logging
+
+        self.logger = logging.getLogger("test_label_task")
+        self.logger.addHandler(logging.NullHandler())
+        self.options = dict(options or {})
+        self.active = active
+        self.tooling_patch_fails = tooling_patch_fails
+        self.steps = [{"name": n, "label": l} for n, l in labels.items()]
+        self.events = []
+
+    # activation
+    def _set_version_active(self, version_id, active, dry_run, *, force=False):
+        self.events.append(("active", active))
+        self.active = active
+
+    def _wait_for_version_state(self, version_id, active):
+        pass
+
+    def _soql_query(self, soql):
+        return [{"Id": "9QMx", "ApiName": "V1", "IsActive": self.active, "VersionNumber": 1}]
+
+    # Tooling
+    def _tooling_request(self, method, path, payload=None):
+        if method == "GET" and path.startswith("query"):
+            return {"records": [{"Id": "9QBx"}]}
+        if method == "GET":
+            return {"Metadata": {"steps": [dict(s) for s in self.steps],
+                                 "urls": {"x": "y"}}}
+        self.events.append(("tooling_patch", self.active))
+        if self.tooling_patch_fails:
+            raise RuntimeError("simulated Tooling failure")
+        if "urls" in payload["Metadata"]:
+            raise RuntimeError("urls must be stripped")
+        self.steps = [dict(s) for s in payload["Metadata"]["steps"]]
+        return {}
+
+    # Connect PATCH: the real helper, with requests stubbed to "succeed" and
+    # the platform side effect of resetting every label to its name.
+    def connect_patch(self, add=()):
+        import tasks.rlm_expression_set_connect as mod
+
+        class _Resp:
+            ok = True
+            content = b""
+
+        real = mod.requests.patch
+        mod.requests.patch = lambda *a, **k: _Resp()
+        try:
+            type(self)._base_url = "https://x/services/data/v68.0"
+            type(self)._headers = {}
+            self._patch_expression_set_via_connect("9QLx", {})
+        finally:
+            mod.requests.patch = real
+        self.steps = [{"name": s["name"], "label": s["name"]} for s in self.steps]
+        self.steps += [{"name": n, "label": n} for n in add]
+
+    def run(self, mutate, **kw):
+        self._run_connect_mutation(
+            es_def_id="9QAx", esv={"Id": "9QMx", "ApiName": "V1",
+                                   "IsActive": self.active, "VersionNumber": 1},
+            mutate=mutate, dry_run=kw.pop("dry_run", False),
+            activate_after=kw.pop("activate_after", True), cascade=kw.pop("cascade", False),
+            verb="test", **kw,
+        )
+
+    def label(self, name):
+        return next(s["label"] for s in self.steps if s["name"] == name)
+
+
+def test_connect_mutation_restores_clobbered_labels():
+    task = _LabelTask({"GetPrices": "Get Prices", "Map": "Map Line Item"})
+    task.run(lambda: task.connect_patch(add=["NewStep"]),
+             extra_labels={"NewStep": "New Step"})
+    check("labels restored after Connect PATCH",
+          task.label("GetPrices") == "Get Prices" and task.label("Map") == "Map Line Item")
+    check("overlay labels applied to added steps", task.label("NewStep") == "New Step")
+    check("one deactivate/relabel/reactivate cycle",
+          task.events == [("active", False), ("tooling_patch", False), ("active", True)])
+
+
+def test_connect_mutation_labels_follow_requested_version():
+    # An overlay aimed at a draft cycles the active version (esv) but must
+    # capture and restore the DRAFT's labels, resolved by its VersionNumber.
+    class TwoVersionTask(_LabelTask):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            self.esdv_versions = []
+
+        def _resolve_esdv_id(self, es_def_id, version_number=None):
+            self.esdv_versions.append(version_number)
+            return "9QBx"
+
+    task = TwoVersionTask({"A": "A Label"})
+    task.run(lambda: task.connect_patch(),
+             label_esv={"Id": "9QMd", "ApiName": "V2", "IsActive": False,
+                        "VersionNumber": 2})
+    # The full-graph PATCH relabels every version, so both are captured and
+    # restored (V1 then V2), not just the edited draft.
+    check("labels captured and restored on every version",
+          task.esdv_versions == [1, 2, 1, 2] and task.label("A") == "A Label")
+
+    listed = TwoVersionTask({"A": "A Label"})
+    listed.run(lambda: listed.connect_patch(),
+               label_versions=[{"Id": "9QMx", "VersionNumber": 1},
+                               {"Id": "9QMd", "VersionNumber": 2},
+                               {"Id": "9QMe", "VersionNumber": 3}])
+    check("label_versions covers every listed version",
+          listed.esdv_versions == [1, 2, 3, 1, 2, 3])
+
+    class ExtraLabelTask(TwoVersionTask):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            self.restored = []
+
+        def _restore_step_labels(self, *, es_def_id, esv, labels):
+            self.restored.append((esv["VersionNumber"], dict(labels)))
+            return True
+
+    extra = ExtraLabelTask({"A": "A Label"})
+    extra.run(lambda: extra.connect_patch(), extra_labels={"New": "New Step"},
+              label_esv={"Id": "9QMd", "VersionNumber": 2})
+    check("overlay labels go only to the edited version",
+          extra.restored == [(1, {"A": "A Label"}),
+                             (2, {"A": "A Label", "New": "New Step"})])
+
+
+def test_import_replace_restores_every_version():
+    # A replace import PATCHes the full graph, which relabels every version of
+    # the set, so the task hands all of them to _run_connect_mutation.
+    import json as _json
+    import logging
+    import tempfile as _tempfile
+    from tasks.rlm_expression_set_connect import ImportExpressionSet
+
+    versions = [{"Id": "9QMa", "ApiName": "V1", "IsActive": True, "VersionNumber": 1},
+                {"Id": "9QMd", "ApiName": "V2", "IsActive": False, "VersionNumber": 2}]
+    seen = {}
+    task = object.__new__(ImportExpressionSet)
+    task.logger = logging.getLogger("test_import_replace")
+    task._preflight_validate_definition = lambda payload: None
+    task._soql_query = lambda q: [{"Id": "9QAx"}]
+    task._get_expression_set_id = lambda name: "9QLx"
+    task._resolve_version_by_es_id = lambda es_id: versions[0]
+    task._ensure_resource_initialization_type = lambda *a: None
+    task._list_versions = lambda es_id: list(versions)
+    task._run_connect_mutation = lambda **kw: seen.update(kw)
+    with _tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        _json.dump({"apiName": "TEST", "versions": [{"apiName": "V1"}]}, fh)
+    task.options = {"input_file": fh.name}
+    task._run_task()
+    os.unlink(fh.name)
+    check("import replace passes every version for label restore",
+          seen.get("label_versions") == versions)
+
+
+def test_resolve_label_version():
+    esv = {"Id": "9QMa", "ApiName": "V1", "IsActive": True, "VersionNumber": 1}
+    draft = {"Id": "9QMd", "ApiName": "V2", "IsActive": False, "VersionNumber": 2}
+    task = _LabelTask({})
+    versions = [esv, draft]
+    check("no version_api_name keeps the activation version",
+          task._resolve_label_version(esv, None, versions) is esv)
+    check("version_api_name matching esv keeps it",
+          task._resolve_label_version(esv, "V1", versions) is esv)
+    check("a draft version_api_name resolves the draft row",
+          task._resolve_label_version(esv, "V2", versions) is draft)
+    check("an unknown version_api_name returns None (overlay labels dropped)",
+          task._resolve_label_version(esv, "V9", versions) is None)
+
+
+def test_connect_mutation_skips_restore_without_patch():
+    task = _LabelTask({"A": "A Label"})
+    task.run(lambda: None)
+    check("no Tooling PATCH when nothing was PATCHed",
+          not any(e[0] == "tooling_patch" for e in task.events))
+
+
+def test_connect_mutation_label_restore_opt_out():
+    task = _LabelTask({"A": "A Label"}, options={"preserve_labels": "false"})
+    task.run(lambda: task.connect_patch())
+    check("preserve_labels=false leaves labels clobbered", task.label("A") == "A")
+
+
+def test_connect_mutation_dry_run_does_not_relabel():
+    task = _LabelTask({"A": "A Label"})
+    task.run(lambda: None, dry_run=True)
+    check("dry-run makes no Tooling PATCH",
+          not any(e[0] == "tooling_patch" for e in task.events))
+    from unittest.mock import Mock
+    disabled = _LabelTask({"A": "A Label"}, options={"preserve_labels": "false"})
+    disabled.logger = Mock()
+    disabled.run(lambda: None, dry_run=True)
+    check("dry-run with preservation disabled omits restoration claim",
+          not any("restore step labels" in str(call).lower()
+                  for call in disabled.logger.info.call_args_list))
+
+
+def test_label_restore_failure_is_nonfatal_and_reactivates():
+    task = _LabelTask({"A": "A Label"}, tooling_patch_fails=True)
+    try:
+        task.run(lambda: task.connect_patch())
+        raised = False
+    except Exception:
+        raised = True
+    check("label-restore failure does not fail the mutation", not raised)
+    check("label-restore failure still reactivates the version", task.active is True)
+
+
+def test_label_restore_lifecycle_failures_propagate():
+    class FailingLifecycleTask(_LabelTask):
+        def __init__(self, phase, label_fails):
+            super().__init__({"A": "A Label"}, tooling_patch_fails=label_fails)
+            self.phase = phase
+            self.cycles = 0
+            self.plan_active = True
+
+        def _set_version_active(self, version_id, active, dry_run, *, force=False):
+            if not active:
+                self.cycles += 1
+            if self.cycles == 1 and self.phase == ("activate" if active else "deactivate"):
+                raise RuntimeError(self.phase + " failed")
+            super()._set_version_active(version_id, active, dry_run, force=force)
+
+        def _wait_for_version_state(self, version_id, active):
+            if self.cycles == 1 and active and self.phase == "wait":
+                raise RuntimeError("wait failed")
+
+        def _cascade_deactivate_procedure_plans(self, es_def_id, dry_run, *, rollback=True):
+            self.plan_active = False
+            return ["plan"]
+
+        def _cascade_reactivate_procedure_plans(self, version_ids, dry_run):
+            if self.cycles == 1 and self.phase == "cascade":
+                raise RuntimeError("cascade failed")
+            self.plan_active = True
+
+    for phase in ("deactivate", "activate", "wait", "cascade"):
+        for label_fails in (False, True):
+            task = FailingLifecycleTask(phase, label_fails)
+            try:
+                task.run(lambda: task.connect_patch(), cascade=True)
+            except RuntimeError as exc:
+                propagated = str(exc) == phase + " failed"
+            else:
+                propagated = False
+            check(f"mutation cycle {phase} failure propagates (label_fails={label_fails})",
+                  propagated)
+            if phase == "activate":
+                check("failed reactivation leaves version inactive and reports failure",
+                      not task.active and propagated)
+            if phase == "cascade":
+                check("failed plan restoration leaves plan inactive and reports failure",
+                      not task.plan_active and propagated)
+
+
+def test_label_restore_keeps_version_inactive_when_requested():
+    task = _LabelTask({"A": "A Label"})
+    task.run(lambda: task.connect_patch(), activate_after=False)
+    check("labels restored with activate_after=false",
+          task.label("A") == "A Label" and task.active is False)
+
+
+def test_failed_mutation_skips_label_restore():
+    task = _LabelTask({"A": "A Label"})
+
+    def mutate():
+        task.connect_patch()
+        raise RuntimeError("verify failed")
+
+    try:
+        task.run(mutate)
+    except RuntimeError:
+        pass
+    check("failed mutation is not relabelled or reactivated",
+          not any(e[0] == "tooling_patch" for e in task.events) and task.active is False)
+
+
+def test_overlay_labels_validation_parity():
+    from scripts.expression_sets._schema import validate_overlay as toolkit_validate
+    for labels, valid in (
+        (None, True), ({}, True), ({"StepA": "Readable label"}, True),
+        (["StepA"], False), ({"StepA": 123}, False),
+    ):
+        for validate in (validate_overlay, toolkit_validate):
+            result = validate({"addSteps": [], "labels": labels})
+            check(f"{validate.__module__}: labels {labels!r} accepted={valid}",
+                  result.passed == valid)
+
+
+def test_overlay_step_label_validation_parity():
+    from scripts.expression_sets._schema import validate_overlay as toolkit_validate
+    for operation in ("addSteps", "updateSteps"):
+        for label, valid in (("Readable label", True), (123, False), (None, False)):
+            for validate in (validate_overlay, toolkit_validate):
+                result = validate({operation: [{"name": "StepA", "label": label}]})
+                flagged = any(
+                    i.location == f"{operation}[0].label" for i in result.errors
+                )
+                check(f"{validate.__module__}: {operation} label {label!r} accepted={valid}",
+                      flagged != valid)
+        for scalar in (5, "StepA"):
+            for validate in (validate_overlay, toolkit_validate):
+                try:
+                    result = validate({operation: scalar})
+                    ok = not result.passed
+                except Exception as exc:  # noqa: BLE001 — the regression is a crash
+                    ok = False
+                    print(f"    raised {exc!r}")
+                check(f"{validate.__module__}: non-list {operation}={scalar!r} is reported, not a crash", ok)
+
+
+def test_overlay_labels_merge_top_level_and_per_step():
+    labels = Connect._overlay_labels({
+        "labels": {"A": "Top A", "B": "Top B"},
+        "addSteps": [{"name": "B", "label": "Step B"}, {"name": "C"}],
+        "updateSteps": [{"name": "A", "label": "Updated A"}],
+    })
+    check("overlay labels: per-step wins over top-level",
+          labels == {"A": "Updated A", "B": "Step B"})
+
+
+def test_update_step_overlay_metadata_and_change_counts():
+    from scripts.expression_sets._overlay import overlay_labels, update_steps
+    from scripts.expression_sets._schema import validate_overlay as toolkit_validate
+    task = _OverlayApplier()
+    update = {"name": "A", "label": "Readable A", "formula": "2"}
+    for apply in (task._update_steps, lambda steps, changes: update_steps(steps, changes)):
+        result = apply([{"name": "A", "formula": "1"}], [update])
+        check("updateSteps strips Tooling-only label from Connect content",
+              result == [{"name": "A", "formula": "2"}])
+    check("both overlay paths collect updated step labels",
+          task._overlay_labels({"updateSteps": [update]}) == {"A": "Readable A"}
+          and overlay_labels({"updateSteps": [update]}) == {"A": "Readable A"})
+    for validate in (validate_overlay, toolkit_validate):
+        result = validate({"updateSteps": [{"name": "A", "placement": {"afterStep": "B"}}]})
+        check("updateSteps placement is rejected before deactivation",
+              not result.passed and any("reorderSteps" in issue.message for issue in result.errors))
+    before = {"steps": [{"name": "A", "formula": "1"}], "variables": []}
+    after = {"steps": [{"name": "A", "formula": "2"}, {"name": "B"}],
+             "variables": [{"name": "V"}]}
+    check("summary counts actual graph changes",
+          task._overlay_change_summary(before, after)
+          == "steps +1/-0/changed 1; variables +1/-0/changed 0")
+
+
+def test_empty_value_comparison_is_description_only():
+    from tasks.expression_set_schema import step_content_differences as task_differences
+    from scripts.expression_sets._schema import step_content_differences as toolkit_differences
+    for compare in (task_differences, toolkit_differences):
+        check("empty description may read back as null",
+              not compare({"description": ""}, {"description": None}))
+        check("empty formula cannot verify against absent field",
+              compare({"formula": ""}, {}) == ["step.formula"])
+        check("empty parameter value cannot verify against null",
+              compare({"value": ""}, {"value": None}) == ["step.value"])
+
+
+def test_connect_patch_keeps_version_inactive_until_labels_restored():
+    payload = {"versions": [{"id": "target", "enabled": True}]}
+    result = Connect._keep_patched_version_inactive(payload, "target")
+    check("Connect PATCH cannot reactivate before Tooling label restore",
+          result["versions"][0]["enabled"] is False)
+    try:
+        Connect._keep_patched_version_inactive(payload, "missing")
+    except Exception:
+        missing_rejected = True
+    else:
+        missing_rejected = False
+    check("wrong version ID fails before PATCH", missing_rejected)
+
+
+def test_overlay_step_label_not_sent_to_connect():
+    check("label is an overlay-only step key",
+          "label" in ApplyExpressionSetOverlay._OVERLAY_ONLY_STEP_KEYS)
+
+
+def test_every_connect_patch_goes_through_label_preservation():
+    """Guard: a Connect full-graph PATCH resets every step label, so each one
+    must run inside a mutate body handed to _run_connect_mutation(es_id=...)."""
+    import ast
+
+    path = os.path.join(REPO_ROOT, "tasks", "rlm_expression_set_connect.py")
+    tree = ast.parse(open(path, encoding="utf-8").read())
+    bad = []
+
+    def calls(fn):
+        # Direct calls only: nested defs are visited as their own ``fn``.
+        stack = list(fn.body)
+        while stack:
+            node = stack.pop()
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                continue
+            if isinstance(node, ast.Call):
+                yield node
+            stack.extend(ast.iter_child_nodes(node))
+
+    for fn in ast.walk(tree):
+        if not isinstance(fn, ast.FunctionDef):
+            continue
+        for node in calls(fn):
+            if not isinstance(node.func, ast.Attribute):
+                continue
+            attr = node.func.attr
+            if attr == "_patch_expression_set_via_connect" and fn.name != "mutate":
+                bad.append(f"{fn.name}: PATCH outside a mutate body")
+    check("every Connect PATCH is label-preserving " + (str(bad) if bad else ""), not bad)
+
+
+
+def test_build_schema_logging_keeps_actionable_warnings():
+    from unittest.mock import Mock
+    from scripts.expression_sets._schema import validate_definition as standalone
+
+    definition = json.loads(json.dumps(MINIMAL_PRICING_DEF))
+    definition["id"] = "server-id"
+    version = definition["versions"][0]
+    version["id"] = "version-id"
+    version["steps"][1]["formula"] = "&quot;example&quot;"
+    result = validate_definition(definition)
+    check("transport warning codes agree in both validators",
+          [i.code for i in result.warnings] == [i.code for i in standalone(definition).warnings]
+          and {i.code for i in result.warnings} ==
+          {"html_entities", "output_only_fields", "version_id"})
+
+    task = _OverlayApplier()
+    task.logger = Mock()
+    task._preflight_validate_definition(definition, log_summary=False)
+    task._preflight_validate_definition(definition)
+    check("simulation and apply emit one transport summary and no warnings",
+          task.logger.info.call_count == 1 and not task.logger.warning.called)
+    check("handled transport warnings emit no per-field noise",
+          not task.logger.debug.called)
+
+    task.logger.reset_mock()
+    task.options["normalize_html_entities"] = "false"
+    task._preflight_validate_definition(definition)
+    check("disabled normalization keeps HTML warning visible",
+          task.logger.warning.call_count == 1 and
+          "HTML entities" in task.logger.warning.call_args.args[-1])
+
+    task.logger.reset_mock()
+    task.options.clear()
+    result.warn("future", "An actionable warning")
+    task._raise_on_validation_errors(result, "definition")
+    check("uncategorized warnings remain visible",
+          task.logger.warning.call_count == 1 and
+          task.logger.warning.call_args.args[-1] == "An actionable warning")
+    result.error("steps", "A malformed graph")
+    try:
+        task._raise_on_validation_errors(result, "definition")
+    except Exception as exc:
+        raised = "A malformed graph" in str(exc)
+    else:
+        raised = False
+    check("summarized transport warnings never suppress validation errors", raised)
+
+
+def test_overlay_transform_details_are_debug_only():
+    from unittest.mock import Mock
+
+    task = _OverlayApplier()
+    task.logger = Mock()
+    overlay = {"addSteps": [{"name": "NewStep", "stepType": "ListGroup"}],
+               "addVariables": [{"name": "NewVariable"}]}
+    output = task._apply_overlay(MINIMAL_PRICING_DEF, overlay)
+    check("overlay transformation retains step and variable additions",
+          output["versions"][0]["steps"][-1]["name"] == "NewStep" and
+          output["versions"][0]["variables"][-1]["name"] == "NewVariable")
+    check("per-item transformation logs are DEBUG, not INFO",
+          task.logger.debug.call_count == 2 and not task.logger.info.called)
 
 
 def main():

@@ -43,6 +43,31 @@
             <stringValue>{&quot;location&quot;:&quot;top&quot;,&quot;type&quot;:&quot;simple&quot;}</stringValue>
         </value>
     </customProperties>
+    <decisions>
+        <name>Is_Pricing_Current</name>
+        <label>Is Pricing Current</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Approval_Comments</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Current</defaultConnectorLabel>
+        <rules>
+            <name>Stale</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>PricingStale</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Reprice_Required</targetReference>
+            </connector>
+            <label>Stale</label>
+        </rules>
+    </decisions>
     <environments>Default</environments>
     <interviewLabel>RLM Quote Approval Comments {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Quote Approval Comments</label>
@@ -108,14 +133,62 @@
         <showFooter>true</showFooter>
         <showHeader>false</showHeader>
     </screens>
+    <screens>
+        <name>Reprice_Required</name>
+        <label>Reprice Required</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>dspRepriceRequired</name>
+            <fieldText>&lt;p&gt;A quote line changed after the quote was last priced, so its approval level is out of date. Reprice the quote, then submit it for approval.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <nextOrFinishButtonLabel>Close</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Approval_Comments</targetReference>
+            <targetReference>Check_Pricing</targetReference>
         </connector>
     </start>
     <status>Active</status>
+    <subflows>
+        <description>Reuses the approval-data check the orchestration runs, so the screen and the orchestration agree on whether the stored approval level is current.</description>
+        <name>Check_Pricing</name>
+        <label>Check Pricing</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Is_Pricing_Current</targetReference>
+        </connector>
+        <flowName>RLM_Quote_Approval_Data</flowName>
+        <inputAssignments>
+            <name>QuoteId</name>
+            <value>
+                <elementReference>recordId.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <outputAssignments>
+            <assignToReference>PricingStale</assignToReference>
+            <name>PricingStale</name>
+        </outputAssignments>
+    </subflows>
+    <variables>
+        <name>PricingStale</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
     <variables>
         <name>recordId</name>
         <dataType>SObject</dataType>

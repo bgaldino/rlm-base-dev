@@ -314,18 +314,6 @@ def test_build_overlay():
         raised = True
     check("build_overlay missing step raises", raised)
 
-    # --- labels block: {name: label} map, string→string, optional ------------
-    good = {"addSteps": [{"name": "NewStep", "stepType": "BusinessKnowledgeModel"}],
-            "labels": {"NewStep": "New Step"}}
-    check("overlay with valid labels block validates", validate_overlay(good).passed,
-          validate_overlay(good).format_report())
-    check("overlay with no labels block validates", validate_overlay(
-        {"addSteps": [{"name": "S", "stepType": "BusinessKnowledgeModel"}]}).passed)
-    not_a_map = validate_overlay({"addSteps": [], "labels": ["nope"]})
-    check("labels-not-a-map is an error", not not_a_map.passed, not_a_map.format_report())
-    bad_val = validate_overlay({"addSteps": [], "labels": {"S": 123}})
-    check("labels non-string value is an error", not bad_val.passed, bad_val.format_report())
-
     # --- addVariables ↔ step-output collision ---------------------------------
     # A step's OUTPUT variable is materialized implicitly from its section-output
     # param; declaring that same name in addVariables double-registers it and the
@@ -802,6 +790,16 @@ def test_label_preservation():
     check("restore reports ok", r4["ok"] is True, r4)
     check("restore lists changed step", r4["changed"] == ["ApplyHeaderPriceOverride"], r4)
     check("restore leaves version ACTIVE on success", t4.is_active is True, t4.is_active)
+    # A draft (inactive) target — an overlay aimed at --version <draft> — is
+    # relabelled in place and must NOT be activated by the restore cycle.
+    t4d = _StatefulTransport(metadata=_sample_metadata(), is_active=False)
+    engine4d = LifecycleEngine(t4d, logger=lambda *a, **k: None)
+    r4d = restore_labels_after_clobber(
+        engine4d, es_id="9QLx", es_def_id="9QAx", version_api_name="TEST_V1",
+        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+    )
+    check("restore relabels an inactive draft", r4d["changed"] == ["ApplyHeaderPriceOverride"], r4d)
+    check("restore leaves an inactive draft INACTIVE", t4d.is_active is False, t4d.is_active)
     # Empty map / no version → silent success, nothing written.
     t5 = _StatefulTransport()
     engine5 = LifecycleEngine(t5, logger=lambda *a, **k: None)
@@ -869,6 +867,18 @@ def _patch(module, **names):
     return lambda: [setattr(module, k, v) for k, v in saved.items()]
 
 
+_TOOLING_NAMES = ("capture_labels", "restore_labels_after_clobber")
+
+
+def _patch_cli(module, **names):
+    """_patch for a mutator CLI: label capture/restore are looked up in _tooling
+    (by its capture_version_labels/restore_version_labels), so patch them there."""
+    import scripts.expression_sets._tooling as tooling_mod
+    tooling = {k: names.pop(k) for k in _TOOLING_NAMES if k in names}
+    undo_cli, undo_tooling = _patch(module, **names), _patch(tooling_mod, **tooling)
+    return lambda: (undo_cli(), undo_tooling())
+
+
 def _passing_validation():
     from scripts.expression_sets._schema import ValidationResult
     return ValidationResult()
@@ -906,7 +916,7 @@ def test_cli_restore_boundary():
                                               "variables": []}]}))
 
         # ---- apply_expression_set_overlay -------------------------------
-        undo = _patch(
+        undo = _patch_cli(
             apply_mod,
             LifecycleEngine=_FakeEngine,
             Transport=lambda **k: None,
@@ -921,32 +931,64 @@ def test_cli_restore_boundary():
             normalize_html_entities=lambda p, **k: p,
             strip_readonly_fields=lambda p, **k: p,
             capture_labels=lambda *a, **k: {"GetPrice": "Get Price"},
+            list_versions=lambda *a, **k: [
+                {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1}],
         )
         try:
-            u = _patch(apply_mod, restore_labels_after_clobber=fail_restore)
+            u = _patch_cli(apply_mod, restore_labels_after_clobber=fail_restore)
             rc = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
                                  "--overlay", str(overlay_path), "--confirm"])
             u()
             check("apply: failed restore → exit 1", rc == 1, rc)
 
-            u = _patch(apply_mod, restore_labels_after_clobber=ok_restore)
+            u = _patch_cli(apply_mod, restore_labels_after_clobber=ok_restore)
             rc_ok = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
                                     "--overlay", str(overlay_path), "--confirm"])
             u()
             check("apply: successful restore → exit 0", rc_ok == 0, rc_ok)
 
-            u = _patch(apply_mod, restore_labels_after_clobber=fail_restore)
+            u = _patch_cli(apply_mod, restore_labels_after_clobber=fail_restore)
             rc_np = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
                                     "--overlay", str(overlay_path), "--confirm",
                                     "--no-preserve-labels"])
             u()
             check("apply: --no-preserve-labels → exit 0 (no restore attempted)",
                   rc_np == 0, rc_np)
+
+            # --version <draft>: the PATCH relabels BOTH versions, so both are
+            # restored; the overlay's own labels go only to the edited draft.
+            labelled_path = Path(td) / "ov_labels.json"
+            labelled_path.write_text(json.dumps({
+                "addSteps": [{"name": "S", "stepType": "BusinessKnowledgeModel",
+                              "label": "New S"}]}))
+            restores = []
+
+            def record_restore(engine, **kw):
+                restores.append((kw["version_api_name"], dict(kw["name_to_label"])))
+                return {"ok": True, "changed": sorted(kw["name_to_label"]), "error": None}
+
+            u = _patch_cli(
+                apply_mod, restore_labels_after_clobber=record_restore,
+                list_versions=lambda *a, **k: [
+                    {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
+                    {"Id": "9QMd", "ApiName": "TEST_V2", "IsActive": False, "VersionNumber": 2}],
+                capture_labels=lambda t, api, *a, **k: {"GetPrice": f"Get Price {api}"},
+            )
+            rc_draft = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
+                                       "--overlay", str(labelled_path), "--version",
+                                       "TEST_V2", "--confirm"])
+            u()
+            check("apply --version draft: exit 0", rc_draft == 0, rc_draft)
+            check("apply --version draft: every version's labels restored",
+                  restores == [
+                      ("TEST_V1", {"GetPrice": "Get Price TEST_V1"}),
+                      ("TEST_V2", {"GetPrice": "Get Price TEST_V2", "S": "New S"})],
+                  restores)
         finally:
             undo()
 
         # ---- import_expression_set (replace path) -----------------------
-        undo = _patch(
+        undo = _patch_cli(
             import_mod,
             LifecycleEngine=_FakeEngine,
             Transport=lambda **k: None,
@@ -959,19 +1001,45 @@ def test_cli_restore_boundary():
             strip_readonly_fields=lambda p, **k: p,
             rewrite_version_id=lambda p, vid: p,
             normalize_html_entities=lambda p, **k: p,
+            list_versions=lambda *a, **k: [
+                {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1}],
         )
         try:
-            u = _patch(import_mod, restore_labels_after_clobber=fail_restore)
+            u = _patch_cli(import_mod, restore_labels_after_clobber=fail_restore)
             rc = import_mod.main(["--target-org", "x", "--input-file",
                                   str(import_path), "--confirm"])
             u()
             check("import: failed restore → exit 1", rc == 1, rc)
 
-            u = _patch(import_mod, restore_labels_after_clobber=ok_restore)
+            u = _patch_cli(import_mod, restore_labels_after_clobber=ok_restore)
             rc_ok = import_mod.main(["--target-org", "x", "--input-file",
                                      str(import_path), "--confirm"])
             u()
             check("import: successful restore → exit 0", rc_ok == 0, rc_ok)
+
+            # A replace PATCH relabels every version of the set, not only the
+            # active-first one: each version's labels are captured and restored.
+            restores = []
+
+            def record_restore(engine, **kw):
+                restores.append((kw["version_api_name"], dict(kw["name_to_label"])))
+                return {"ok": True, "changed": sorted(kw["name_to_label"]), "error": None}
+
+            u = _patch_cli(
+                import_mod, restore_labels_after_clobber=record_restore,
+                list_versions=lambda *a, **k: [
+                    {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
+                    {"Id": "9QMd", "ApiName": "TEST_V2", "IsActive": False, "VersionNumber": 2}],
+                capture_labels=lambda t, api, *a, **k: {"GetPrice": f"Get Price {api}"},
+            )
+            rc_multi = import_mod.main(["--target-org", "x", "--input-file",
+                                        str(import_path), "--confirm"])
+            u()
+            check("import: multi-version exit 0", rc_multi == 0, rc_multi)
+            check("import: every version's labels restored",
+                  restores == [("TEST_V1", {"GetPrice": "Get Price TEST_V1"}),
+                               ("TEST_V2", {"GetPrice": "Get Price TEST_V2"})],
+                  restores)
         finally:
             undo()
 
@@ -1130,6 +1198,25 @@ def test_overlay_content_verification():
         finally:
             undo()
         check("conflicting CLI add fails before mutation or lifecycle writes", rc == 1 and not calls)
+
+
+def test_empty_description_reads_back_null():
+    # build_step fills description "" on an added step; the Connect GET returns
+    # null for it. Both verifier copies must treat that as a match, while a
+    # real description that reads back null still fails.
+    from scripts.expression_sets._overlay import build_step
+    from scripts.expression_sets._schema import overlay_step_content_errors as toolkit
+    from tasks.expression_set_schema import overlay_step_content_errors as frozen
+    sent = build_step({"name": "Added", "stepType": "ListGroup"})
+    stored = dict(sent, description=None)
+    described = dict(sent, description="Real description")
+    for label, verify in (("toolkit", toolkit), ("tasks", frozen)):
+        check(f"{label}: empty description read back as null verifies",
+              not verify({}, {"steps": [sent]}, {"steps": [stored]}))
+        check(f"{label}: explicit empty description read back as null verifies",
+              not verify({}, {"steps": [dict(sent, description="")]}, {"steps": [stored]}))
+        check(f"{label}: real description read back as null still fails",
+              bool(verify({}, {"steps": [described]}, {"steps": [stored]})))
 
 
 def test_shipped_fixtures():
@@ -1649,7 +1736,8 @@ def main():
                test_label_preservation, test_failed_mutation_keeps_plans_online,
                test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
-               test_overlay_content_verification, test_shipped_fixtures):
+               test_overlay_content_verification, test_empty_description_reads_back_null,
+               test_shipped_fixtures):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

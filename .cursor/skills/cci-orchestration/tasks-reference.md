@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**287 tasks** across **10 groups**.
+**289 tasks** across **10 groups**.
 
 ---
 
@@ -1301,7 +1301,7 @@
 
 ## Revenue Lifecycle Management
 
-*164 task(s)*
+*166 task(s)*
 
 ### `activate_agents`
 
@@ -1468,6 +1468,44 @@
 
 ---
 
+### `apply_approval_flags_overlay`
+
+**Description:** Apply the approval-flags overlay to RLM_DefaultPricingProcedure: every reprice resets each quote or order line to level 0 / blank, then bands the line Discount into Manager (15-<25), Director (25-<35) or VP (35-<100) and writes RLM_Approval_Level_Calc__c and RLM_Approval__c.
+
+**Class:** `tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay`
+
+**Options:**
+
+- `overlay_file`: `datasets/expression_set_overlays/approval_flags.json`
+- `dry_run`: `False`
+- `verify`: `True`
+- `skip_validation`: `False`
+- `normalize_html_entities`: `True`
+- `preserve_labels`: `True`
+- `activate_after_apply`: `True`
+- `cascade_deactivate_procedure_plan`: `True`
+- `max_wait_seconds`: `45`
+- `poll_interval_seconds`: `3`
+
+---
+
+### `apply_context_approvals`
+
+**Description:** Adds the line approval flag attributes (RLM_Approval_Level_Calc__c and RLM_Approval__c) to RLM_SalesTransactionContext with QuoteLineItem mappings and matching OrderItem mappings in OrderEntitiesMapping, using an additive Context Service plan, so the approval-flags overlay on RLM_DefaultPricingProcedure can write them when pricing Quotes or Orders (Orders are priced by getRenewableAssetsSummary in the renewal flow).
+
+**Class:** `tasks.rlm_context_service.ManageContextDefinition`
+
+**Options:**
+
+- `developer_name`: `RLM_SalesTransactionContext`
+- `plan_file`: `datasets/context_plans/Approvals/manifest.json`
+- `translate_plan`: `True`
+- `deactivate_before`: `False`
+- `activate`: `True`
+- `verify`: `True`
+
+---
+
 ### `apply_context_billing_order`
 
 **Description:** Adds BillingArrangement__std and BillingProfile__std Order field mappings to the RLM_BillingContext context definition (OrderEntitiesMapping / BillingTransaction node). Maps to Order.RLM_Billing_Arrangement__c and Order.RLM_Billing_Profile__c. SavedPaymentMethod__std is excluded due to inherited mapping conflicts.
@@ -1547,6 +1585,7 @@
 - `verify`: `True`
 - `skip_validation`: `False`
 - `normalize_html_entities`: `True`
+- `preserve_labels`: `True`
 - `activate_after_apply`: `True`
 - `cascade_deactivate_procedure_plan`: `True`
 - `max_wait_seconds`: `45`
@@ -2622,6 +2661,7 @@
 - `dry_run`: `False`
 - `skip_validation`: `False`
 - `normalize_html_entities`: `True`
+- `preserve_labels`: `True`
 - `activate_after_import`: `True`
 - `cascade_deactivate_procedure_plan`: `True`
 - `max_wait_seconds`: `45`
@@ -3565,7 +3605,7 @@
 
 ### `deploy_post_approvals`
 
-**Description:** Deploy Advanced Approvals metadata: Quote/QuoteLineItem fields, RLM_Payment_Terms GVS, PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data), Apex class, and permission set. EmailTemplatePage FlexiPages (including RLM_Quote_Record_Page) are excluded via .forceignore — EmailTemplatePage type cannot be deployed via Metadata API (platform restriction); Lightning Email Templates are created separately by create_approval_email_templates.
+**Description:** Deploy Advanced Approvals metadata: Quote/QuoteLineItem/OrderItem fields, RLM_Payment_Terms GVS, PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data), Apex class, and permission set. EmailTemplatePage FlexiPages (including RLM_Quote_Record_Page) are excluded via .forceignore — EmailTemplatePage type cannot be deployed via Metadata API (platform restriction); Lightning Email Templates are created separately by create_approval_email_templates.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

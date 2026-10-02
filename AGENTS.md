@@ -53,7 +53,7 @@ Key technology stack:
 `cumulusci.yml` defines tasks/flows/flags; `tasks/` implements Python CCI tasks.
 `force-app/` holds core metadata (step 5); `unpackaged/pre/` precedes it and
 `unpackaged/post_*/` holds feature bundles. `templates/` is the UX source
-(step 29); `unpackaged/post_ux/` is generated output.
+(step 30); `unpackaged/post_ux/` is generated output.
 
 Data lives under `datasets/`; utility scripts under `scripts/`; offline tests
 under `tests/`; Robot suites under `robot/rlm-base/`. `datasets/bre/` and

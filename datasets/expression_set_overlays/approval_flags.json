@@ -1,0 +1,633 @@
+{
+  "expressionSetApiName": "RLM_DefaultPricingProcedure",
+  "versionApiName": "RLM_DefaultPricingProcedure_V1",
+  "description": "Discount approval flags: after line cost/margin (pre header discount), reset every line to level 0 / blank, then assign 1 Manager (15 to <25%), 2 Director (25 to <35%) or 3 VP (35 to <100%) from ItemDiscountPercentage. 100% or more stays 0 / blank. Writes RLM_Approval_Level_Calc__c and RLM_Approval__c on QuoteLineItem (or OrderItem when an Order is priced) via the Approvals context plan; never touches ItemDescription.",
+  "externalDependencies": {
+    "customFields": [
+      "QuoteLineItem.RLM_Approval_Level_Calc__c (Number 18,0; tag RLM_Approval_Level_Calc__c on SalesTransactionItem)",
+      "QuoteLineItem.RLM_Approval__c (Text 255; tag RLM_Approval__c on SalesTransactionItem)",
+      "OrderItem.RLM_Approval_Level_Calc__c (Number 18,0; same tag, OrderEntitiesMapping)",
+      "OrderItem.RLM_Approval__c (Text 255; same tag, OrderEntitiesMapping)"
+    ],
+    "note": "All four fields ship in unpackaged/post_approvals and are mapped into RLM_SalesTransactionContext by datasets/context_plans/Approvals (apply_context_approvals) before this overlay is applied."
+  },
+  "addVariables": [
+    {
+      "collection": false,
+      "dataType": "Numeric",
+      "decimalPlaces": 0,
+      "description": "Approval level when no discount approval is needed",
+      "input": false,
+      "name": "RLMApprovalLevelNone",
+      "output": false,
+      "type": "Constant",
+      "value": "0"
+    },
+    {
+      "collection": false,
+      "dataType": "Text",
+      "decimalPlaces": 2,
+      "description": "Blank approval indicator",
+      "input": false,
+      "name": "RLMApprovalLabelNone",
+      "output": false,
+      "type": "Constant",
+      "value": ""
+    },
+    {
+      "collection": false,
+      "dataType": "Numeric",
+      "decimalPlaces": 0,
+      "description": "Approval level 1 (Manager)",
+      "input": false,
+      "name": "RLMApprovalLevelManager",
+      "output": false,
+      "type": "Constant",
+      "value": "1"
+    },
+    {
+      "collection": false,
+      "dataType": "Text",
+      "decimalPlaces": 2,
+      "description": "Manager approval indicator",
+      "input": false,
+      "name": "RLMApprovalLabelManager",
+      "output": false,
+      "type": "Constant",
+      "value": "🟡 Manager"
+    },
+    {
+      "collection": false,
+      "dataType": "Numeric",
+      "decimalPlaces": 0,
+      "description": "Approval level 2 (Director)",
+      "input": false,
+      "name": "RLMApprovalLevelDirector",
+      "output": false,
+      "type": "Constant",
+      "value": "2"
+    },
+    {
+      "collection": false,
+      "dataType": "Text",
+      "decimalPlaces": 2,
+      "description": "Director approval indicator",
+      "input": false,
+      "name": "RLMApprovalLabelDirector",
+      "output": false,
+      "type": "Constant",
+      "value": "🟠 Director"
+    },
+    {
+      "collection": false,
+      "dataType": "Numeric",
+      "decimalPlaces": 0,
+      "description": "Approval level 3 (VP)",
+      "input": false,
+      "name": "RLMApprovalLevelVP",
+      "output": false,
+      "type": "Constant",
+      "value": "3"
+    },
+    {
+      "collection": false,
+      "dataType": "Text",
+      "decimalPlaces": 2,
+      "description": "VP approval indicator",
+      "input": false,
+      "name": "RLMApprovalLabelVP",
+      "output": false,
+      "type": "Constant",
+      "value": "🔴 VP"
+    }
+  ],
+  "addSteps": [
+    {
+      "name": "RLMApprovalFlagsReset",
+      "label": "Reset Approval Flags",
+      "stepType": "ListGroup",
+      "description": "Reset every line to approval level 0 and a blank indicator",
+      "placement": {
+        "afterStep": "Calculatecostandmarginforpricedlines"
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsResetAllLines",
+      "label": "All Lines",
+      "stepType": "AdvancedListFilter",
+      "description": "All lines (discount blank or set)",
+      "parentStep": "RLMApprovalFlagsReset",
+      "sequenceNumber": 1,
+      "advancedCondition": {
+        "conditionLogic": "1 OR 2",
+        "criteria": [
+          {
+            "operator": "IsNull",
+            "sequenceNumber": 1,
+            "sourceFieldName": "ItemDiscountPercentage"
+          },
+          {
+            "operator": "IsNotNull",
+            "sequenceNumber": 2,
+            "sourceFieldName": "ItemDiscountPercentage"
+          }
+        ]
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsAssignNone",
+      "label": "Assign No Approval",
+      "stepType": "BusinessKnowledgeModel",
+      "description": "Assign level 0 and blank indicator",
+      "actionType": "AssignmentElement",
+      "parentStep": "RLMApprovalFlagsReset",
+      "sequenceNumber": 2,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "RLMApprovalLevelNone"
+          },
+          {
+            "input": true,
+            "name": "section-1-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "RLMApprovalLabelNone"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "2"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Numeric\",\"name\":\"section-0-input1\",\"value\":\"RLMApprovalLevelNone\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-0-output\",\"value\":\"RLM_Approval_Level_Calc__c\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString3",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-1-input1\",\"value\":\"RLMApprovalLabelNone\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-1-output\",\"value\":\"RLM_Approval__c\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "RLM_Approval_Level_Calc__c"
+          },
+          {
+            "input": false,
+            "name": "section-1-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "RLM_Approval__c"
+          }
+        ]
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsManager",
+      "label": "Manager Approval",
+      "stepType": "ListGroup",
+      "description": "Manager approval: discount 15% to under 25%",
+      "placement": {
+        "afterStep": "RLMApprovalFlagsReset"
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsManagerBand",
+      "label": "Discount 15% to Under 25%",
+      "stepType": "AdvancedListFilter",
+      "description": "Discount 15% to under 25%",
+      "parentStep": "RLMApprovalFlagsManager",
+      "sequenceNumber": 1,
+      "advancedCondition": {
+        "conditionLogic": "1 AND 2 AND 3",
+        "criteria": [
+          {
+            "operator": "GreaterThanOrEquals",
+            "sequenceNumber": 1,
+            "sourceFieldName": "ItemDiscountPercentage",
+            "value": "15",
+            "valueType": "Literal"
+          },
+          {
+            "operator": "LessThan",
+            "sequenceNumber": 2,
+            "sourceFieldName": "ItemDiscountPercentage",
+            "value": "25",
+            "valueType": "Literal"
+          },
+          {
+            "operator": "IsNotNull",
+            "sequenceNumber": 3,
+            "sourceFieldName": "ItemDiscountPercentage"
+          }
+        ]
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsAssignManager",
+      "label": "Assign Manager Approval",
+      "stepType": "BusinessKnowledgeModel",
+      "description": "Assign level 1 and Manager indicator",
+      "actionType": "AssignmentElement",
+      "parentStep": "RLMApprovalFlagsManager",
+      "sequenceNumber": 2,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "RLMApprovalLevelManager"
+          },
+          {
+            "input": true,
+            "name": "section-1-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "RLMApprovalLabelManager"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "2"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Numeric\",\"name\":\"section-0-input1\",\"value\":\"RLMApprovalLevelManager\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-0-output\",\"value\":\"RLM_Approval_Level_Calc__c\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString3",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-1-input1\",\"value\":\"RLMApprovalLabelManager\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-1-output\",\"value\":\"RLM_Approval__c\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "RLM_Approval_Level_Calc__c"
+          },
+          {
+            "input": false,
+            "name": "section-1-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "RLM_Approval__c"
+          }
+        ]
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsDirector",
+      "label": "Director Approval",
+      "stepType": "ListGroup",
+      "description": "Director approval: discount 25% to under 35%",
+      "placement": {
+        "afterStep": "RLMApprovalFlagsManager"
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsDirectorBand",
+      "label": "Discount 25% to Under 35%",
+      "stepType": "AdvancedListFilter",
+      "description": "Discount 25% to under 35%",
+      "parentStep": "RLMApprovalFlagsDirector",
+      "sequenceNumber": 1,
+      "advancedCondition": {
+        "conditionLogic": "1 AND 2 AND 3",
+        "criteria": [
+          {
+            "operator": "GreaterThanOrEquals",
+            "sequenceNumber": 1,
+            "sourceFieldName": "ItemDiscountPercentage",
+            "value": "25",
+            "valueType": "Literal"
+          },
+          {
+            "operator": "LessThan",
+            "sequenceNumber": 2,
+            "sourceFieldName": "ItemDiscountPercentage",
+            "value": "35",
+            "valueType": "Literal"
+          },
+          {
+            "operator": "IsNotNull",
+            "sequenceNumber": 3,
+            "sourceFieldName": "ItemDiscountPercentage"
+          }
+        ]
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsAssignDirector",
+      "label": "Assign Director Approval",
+      "stepType": "BusinessKnowledgeModel",
+      "description": "Assign level 2 and Director indicator",
+      "actionType": "AssignmentElement",
+      "parentStep": "RLMApprovalFlagsDirector",
+      "sequenceNumber": 2,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "RLMApprovalLevelDirector"
+          },
+          {
+            "input": true,
+            "name": "section-1-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "RLMApprovalLabelDirector"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "2"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Numeric\",\"name\":\"section-0-input1\",\"value\":\"RLMApprovalLevelDirector\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-0-output\",\"value\":\"RLM_Approval_Level_Calc__c\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString3",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-1-input1\",\"value\":\"RLMApprovalLabelDirector\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-1-output\",\"value\":\"RLM_Approval__c\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "RLM_Approval_Level_Calc__c"
+          },
+          {
+            "input": false,
+            "name": "section-1-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "RLM_Approval__c"
+          }
+        ]
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsVP",
+      "label": "VP Approval",
+      "stepType": "ListGroup",
+      "description": "VP approval: discount 35% to under 100%",
+      "placement": {
+        "afterStep": "RLMApprovalFlagsDirector"
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsVPBand",
+      "label": "Discount 35% to Under 100%",
+      "stepType": "AdvancedListFilter",
+      "description": "Discount 35% to under 100%",
+      "parentStep": "RLMApprovalFlagsVP",
+      "sequenceNumber": 1,
+      "advancedCondition": {
+        "conditionLogic": "1 AND 2 AND 3",
+        "criteria": [
+          {
+            "operator": "GreaterThanOrEquals",
+            "sequenceNumber": 1,
+            "sourceFieldName": "ItemDiscountPercentage",
+            "value": "35",
+            "valueType": "Literal"
+          },
+          {
+            "operator": "LessThan",
+            "sequenceNumber": 2,
+            "sourceFieldName": "ItemDiscountPercentage",
+            "value": "100",
+            "valueType": "Literal"
+          },
+          {
+            "operator": "IsNotNull",
+            "sequenceNumber": 3,
+            "sourceFieldName": "ItemDiscountPercentage"
+          }
+        ]
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    },
+    {
+      "name": "RLMApprovalFlagsAssignVP",
+      "label": "Assign VP Approval",
+      "stepType": "BusinessKnowledgeModel",
+      "description": "Assign level 3 and VP indicator",
+      "actionType": "AssignmentElement",
+      "parentStep": "RLMApprovalFlagsVP",
+      "sequenceNumber": 2,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "RLMApprovalLevelVP"
+          },
+          {
+            "input": true,
+            "name": "section-1-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "RLMApprovalLabelVP"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "2"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Numeric\",\"name\":\"section-0-input1\",\"value\":\"RLMApprovalLevelVP\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-0-output\",\"value\":\"RLM_Approval_Level_Calc__c\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString3",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-1-input1\",\"value\":\"RLMApprovalLabelVP\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-1-output\",\"value\":\"RLM_Approval__c\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "RLM_Approval_Level_Calc__c"
+          },
+          {
+            "input": false,
+            "name": "section-1-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "RLM_Approval__c"
+          }
+        ]
+      },
+      "failedMessageTokenMappings": [],
+      "hasNestedExplainability": false,
+      "noResultMessageTokenMappings": [],
+      "passedMessageTokenMappings": [],
+      "resultIncluded": false,
+      "shouldExposeConditionDetails": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldShowExplExternally": false
+    }
+  ]
+}

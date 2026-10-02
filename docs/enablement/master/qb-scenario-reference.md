@@ -431,15 +431,15 @@ Source: `datasets/sfdmu/scratch_data/Account.csv` + `Contact.csv` + `BillingAcco
 
 ## 16. `prepare_rlm_org` Build Flow Summary
 
-The full 34-step build process is documented at `docs/guides/prepare-rlm-org-build-guide.md`. Phases:
+The full 35-step build process is documented at `docs/guides/prepare-rlm-org-build-guide.md`. Phases:
 
 1. **Foundation (1–3):** PSL/PSG assignment, context definition extension, decision tables, expression sets (deactivate)
 2. **Metadata Deployment (4–7):** Payments site, deploy_full, price adjustment schedule activation, QuantumBit metadata
 3. **Product Catalog & Pricing (8–9):** PCM data + product images + pricing data
 4. **Business Process Configuration (10–17):** DocGen, DRO, Tax, Billing, Collections, Analytics, CLM, Rating
-5. **Expression Sets & Permissions (18–22):** Expression set activation (active), TSO permissions, procedure plans, PRM, Agentforce
-6. **Constraints & Guided Selling (23–24):** `prepare_constraints` (metadata + CML imports), guided selling
-7. **Final Configuration & Personalization (25–32):** Revenue settings, pricing discovery, ramp builder, large STX, personas, UX assembly, In-App Learning, scratch seed data
+5. **Expression Sets & Permissions (18–23):** Expression set activation (active), approval context mappings and pricing overlay, TSO permissions, procedure plans, PRM, Agentforce
+6. **Constraints & Guided Selling (24–25):** `prepare_constraints` (metadata + CML imports), guided selling
+7. **Final Configuration & Personalization (26–32):** Revenue settings, pricing discovery, large STX, personas, UX assembly, In-App Learning, scratch seed data
 8. **Finalization (33–35):** Decision table refresh, search index rebuild, git commit stamp
 
 Critical feature flags driving the flow:

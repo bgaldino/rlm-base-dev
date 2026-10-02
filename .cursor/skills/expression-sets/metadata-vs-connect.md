@@ -32,14 +32,15 @@ runs **deactivate → PATCH/POST → reactivate**, in a guarded `finally`:
    (the cascade) — an active plan version locks the ES version.
 2. Deactivate the `ExpressionSetVersion`.
 3. HTML-unescape the payload, then PATCH/POST.
-4. On success, reactivate (idempotent — a PATCH body with `enabled:true` already
-   reactivates the version). On failure, **leave it deactivated and raise** —
+4. On success, reactivate. The CCI task sends `enabled:false` in the PATCH and
+   restores labels before activation; the standalone toolkit still uses a
+   second relabel cycle. On failure, **leave it deactivated and raise** —
    PATCH is non-atomic, so a half-applied mutation must not be re-enabled. Do
    reactivate the cascaded procedure plans: an inactive plan is silently skipped
    (pricing falls back to the Revenue Settings default procedure), while an active
    plan over the inactive version fails loudly. Two exceptions leave the plans
    off: `activate_after=false`, and a version that can't be confirmed off after
-   the failure (a failed full-graph PATCH can still apply `enabled: true`, and an
+   the failure (a failed full-graph PATCH can still leave it active, and an
    active plan would route pricing to the half-written version). In that case,
    with cascade on, any referencing plan that was still active is turned off
    too and reported with a restore command.
@@ -181,19 +182,26 @@ Tooling-set labels are therefore mutually exclusive on one version.
 **Auto-preservation (default-on).** The two Connect mutators no longer *lose*
 labels: `import_expression_set` (replace) and `apply_expression_set_overlay`
 **capture** the readable labels before the clobbering PATCH and **restore** them
-after, in a second deactivate→Tooling-PATCH→reactivate cycle (`--no-preserve-labels`
+afterward, for **every** version of the set: the full-graph PATCH resets labels on
+all of them, not only the one it edits. Overlay-supplied labels go only to the
+targeted version, and inactive drafts are relabelled in place. CCI restores them in the same inactive window; the standalone toolkit
+uses a second deactivate→Tooling-PATCH→reactivate cycle (`--no-preserve-labels`
 to opt out). Two step populations are covered:
 - **survivors** → restored from the pre-PATCH target-org snapshot (`capture_labels`).
   A step renamed/added on the clone won't match the snapshot by `name` — correct,
   since the snapshot only knows pre-PATCH names.
-- **new steps** → labeled from the overlay's own `labels` block or per-`addSteps`
-  `label` (`overlay_labels`); `export_expression_set_overlay.py --with-labels` writes
+- **new or updated steps** → labeled from the overlay's own `labels` block or
+  per-step `label` in `addSteps` or `updateSteps` (`overlay_labels`);
+  `export_expression_set_overlay.py --with-labels` writes
   that block so a sliced step travels self-describing.
 
 Restore is **non-fatal** (the Connect mutation already succeeded; a restore failure
-is reported with a `relabel_expression_set.py` fix hint, never raised) and runs only
-when the version is reactivated (`activate_after`) — a relabel needs its own
-deactivate window. Shared core: `_tooling.relabel_version`; auto-restore entry:
+is reported with a `relabel_expression_set.py` fix hint, never raised). CCI also
+restores labels when `activate_after:false`; its lifecycle still propagates
+activation failures. The standalone toolkit restores every captured version; under
+`--no-activate` it skips only the version it toggled (relabelling that one needs the
+reactivation you skipped) and still relabels the other versions, inactive ones in place.
+Toolkit shared core: `_tooling.relabel_version`; auto-restore entry:
 `_tooling.restore_labels_after_clobber`. Run a manual `relabel` **last**, after all
 Connect work, if you opted out or a restore failed. For a step that must ship with a
 label in the build, author it in the Metadata XML `<label>` and deploy — that path

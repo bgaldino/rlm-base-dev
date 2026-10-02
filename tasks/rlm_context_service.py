@@ -7,6 +7,7 @@ aligned with the Context Service Tooling API contracts.
 """
 import json
 import os
+import sys
 from abc import abstractmethod
 from typing import Any, Dict, List, Optional
 
@@ -15,6 +16,15 @@ import requests
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.sfdx import SFDXBaseTask
 from cumulusci.core.exceptions import TaskOptionsError
+
+# Bootstrap the repo's scripts/ dir onto sys.path so the toolkit's sibling-merge
+# helpers resolve when this task module is imported by CCI. Sharing them keeps
+# the two context-node-mappings PATCH paths from drifting.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+from context_service._apply import (  # noqa: E402  (after the path bootstrap above)
+    _existing_node_mapping_children,
+    _merge_existing_attribute_mappings,
+)
 
 _REQUEST_TIMEOUT = 30  # seconds — prevents hangs on slow networks or CI
 
@@ -218,7 +228,7 @@ class ManageContextDefinition(SFDXBaseTask):
                     if translated:
                         resolved_updates = self._resolve_context_mapping_ids(detail, translated)
                         if resolved_updates:
-                            self._apply_context_mapping_updates(context_id, resolved_updates, dry_run)
+                            self._apply_context_mapping_updates(context_id, resolved_updates, dry_run, detail=detail)
                             detail = self._fetch_context_definition(context_id)
                 if traversal_rules:
                     self._apply_traversal_hydration(traversal_rules, detail, dry_run)
@@ -228,7 +238,7 @@ class ManageContextDefinition(SFDXBaseTask):
                 if translated:
                     resolved_updates = self._resolve_context_mapping_ids(detail, translated)
                     if resolved_updates:
-                        self._apply_context_mapping_updates(context_id, resolved_updates, dry_run)
+                        self._apply_context_mapping_updates(context_id, resolved_updates, dry_run, detail=detail)
                         detail = self._fetch_context_definition(context_id)
 
         if plan.get("contextMappingUpdates"):
@@ -241,7 +251,7 @@ class ManageContextDefinition(SFDXBaseTask):
         # contextMappings already handled above (before attributes) to ensure
         # mapping IDs are available for translate_plan mapping rules; skip here.
         if plan.get("contextMappingUpdates"):
-            self._apply_context_mapping_updates(context_id, plan["contextMappingUpdates"], dry_run)
+            self._apply_context_mapping_updates(context_id, plan["contextMappingUpdates"], dry_run, detail=detail)
         if plan.get("contextTagsByName"):
             resolved = self._resolve_tags_by_name(context_id, plan["contextTagsByName"])
             if resolved:
@@ -344,21 +354,21 @@ class ManageContextDefinition(SFDXBaseTask):
                 if translated:
                     resolved = self._resolve_context_mapping_ids(detail, translated)
                     if resolved:
-                        self._apply_context_mapping_updates(context_id, resolved, dry_run)
+                        self._apply_context_mapping_updates(context_id, resolved, dry_run, detail=detail)
                         detail = self._fetch_context_definition(context_id)
             if context_rules:
                 translated = self._translate_mapping_rules(context_rules, detail, developer_name=developer_name)
                 if translated:
                     resolved = self._resolve_context_mapping_ids(detail, translated)
                     if resolved:
-                        self._apply_context_mapping_updates(context_id, resolved, dry_run)
+                        self._apply_context_mapping_updates(context_id, resolved, dry_run, detail=detail)
                         detail = self._fetch_context_definition(context_id)
 
         # Also handle explicit contextMappingUpdates if specified.
         if plan.get("contextMappingUpdates"):
             resolved_updates = self._resolve_context_mapping_ids(detail, plan["contextMappingUpdates"])
             if resolved_updates:
-                self._apply_context_mapping_updates(context_id, resolved_updates, dry_run)
+                self._apply_context_mapping_updates(context_id, resolved_updates, dry_run, detail=detail)
 
         # 6. Post tags.
         if plan.get("contextTagsByName"):
@@ -641,12 +651,29 @@ class ManageContextDefinition(SFDXBaseTask):
             node_map = {**node_map, "attributeMappings": {"contextAttributeMappings": attribute_mappings}}
         return node_map
 
-    def _apply_context_mapping_updates(self, context_id: str, payload: Dict[str, Any], dry_run: bool):
+    def _apply_context_mapping_updates(
+        self,
+        context_id: str,
+        payload: Dict[str, Any],
+        dry_run: bool,
+        detail: Optional[Dict[str, Any]] = None,
+    ):
+        """Apply mapping updates; node mappings go to the context-node-mappings endpoint.
+
+        That endpoint's PATCH replaces a node mapping's whole
+        ``contextAttributeMappings`` list, so a sibling row the payload omits is
+        silently deleted (live-verified on v67.0; see
+        ``scripts/context_service/_apply.py``). Plans that share a node mapping
+        (e.g. PrmPricing, ConstraintEngineNodeStatus and Approvals on
+        SalesTransactionItem) would clobber each other. With ``detail`` supplied,
+        existing custom siblings not re-emitted are merged back into the PATCH.
+        """
         if not isinstance(payload, dict):
             return
         mappings = payload.get("contextMappings")
         if not isinstance(mappings, list):
             return
+        existing_children = _existing_node_mapping_children(detail)
 
         # Split mapping updates: node mappings handled via context-node-mappings endpoint.
         remaining = []
@@ -663,6 +690,9 @@ class ManageContextDefinition(SFDXBaseTask):
                     node_map = self._normalize_attribute_mappings(node_map)
                     if not isinstance(node_map, dict):
                         continue
+                    node_map = _merge_existing_attribute_mappings(
+                        node_map, existing_children, logger=self.logger.info
+                    )
                     normalized.append(node_map)
                 if normalized:
                     self.logger.info(

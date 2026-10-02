@@ -148,7 +148,7 @@ cci flow run prepare_rlm_org -o ux false
 ### Assemble and Deploy UX Metadata
 
 ```bash
-# Assemble all UX metadata and deploy (same as step 29)
+# Assemble all UX metadata and deploy (same as step 30)
 cci flow run prepare_ux
 
 # Dry-run only — inspect unpackaged/post_ux/ without deploying
