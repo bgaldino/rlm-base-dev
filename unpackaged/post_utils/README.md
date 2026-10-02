@@ -45,6 +45,7 @@ The reset is designed for convergence: if it hits the DML row budget during the 
 | `RLM_ARC_AssetValidator` + Flow `RLM_ARC_Assets` | Asset lifecycle validation for ARC (Amend/Renew/Cancel) |
 | Flow `RLM_CreateContractFromQuote` | Quick-action: creates a contract from a quote |
 | Flow `RLM_QuickQuote` + QuickAction `Account.RLM_QuickQuote` | Quick-action: creates a quote directly from an account |
+| Flow `RLM_CreateQuoteFromRenewalOpp` + QuickAction `Opportunity.RLM_CreateQuoteFromRenewalOpp` | Quick-action ("Create Renewal Quote"): renews the root assets of a renewal opportunity's lines (`OpportunityLineItem.AssetId` → `Asset.RootAssetId`, deduped) via the standard Initiate Renewal action and links the quote to the opportunity and, when set, its contract. Placed on `RLM_Opportunity_Record_Page` by the `utils` flexipage patch; reading `OpportunityLineItem.AssetId` needs the `RLM_QuantumBit` read grant |
 | Flow `RLM_Event_Trigger` | Generic event trigger utility |
 | Flow `RLM_Refresh_Decision_Tables_Bulk` | Bulk decision table refresh |
 | Flow `RLM_Refresh_Decision_Tables_By_Usage_Type` | Decision table refresh filtered by usage type (called by account reset) |

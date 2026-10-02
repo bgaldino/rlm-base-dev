@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-09-30T18:29:22.549929Z",
+  "assembled_at": "2026-10-01T21:52:04.573064Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -330,7 +330,13 @@
       "name": "RLM_Opportunity_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Opportunity_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Opportunity_Record_Page.flexipage-meta.xml",
-      "patches": []
+      "patches": [
+        {
+          "feature": "utils",
+          "patch_type": "insert_action",
+          "description": "insert actions: Opportunity.RLM_CreateQuoteFromRenewalOpp"
+        }
+      ]
     },
     {
       "type": "flexipage",
