@@ -664,6 +664,8 @@ class _MutationTask(_CascadeTask):
         self.fail_plan_ids = set(fail_plan_ids)
         self.esv_reactivate_error = esv_reactivate_error
         self.plan_ids = sorted(plans)
+        # Plan reactivations to fail before they start succeeding.
+        self.plan_reactivate_failures_left = 0
         self.logs = []
 
         class _Capture(logging.Handler):
@@ -691,6 +693,10 @@ class _MutationTask(_CascadeTask):
         if (payload.get("IsActive") and sobject == "ProcedurePlanDefinitionVersion"
                 and (self.fail_plan_reactivate or record_id in self.fail_plan_ids)):
             raise RuntimeError(f"plan reactivate boom {record_id}")
+        if (payload.get("IsActive") and sobject == "ProcedurePlanDefinitionVersion"
+                and self.plan_reactivate_failures_left):
+            self.plan_reactivate_failures_left -= 1
+            raise RuntimeError(f"plan reactivate blip {record_id}")
         if sobject == "ExpressionSetVersion" and payload.get("IsActive") is False:
             self.esv_reads_inactive = False
         if sobject == "ExpressionSetVersion" and payload.get("IsActive"):
@@ -812,6 +818,21 @@ def test_failed_connect_mutation_keeps_procedure_plans_online():
     error7 = plan_fails.run()
     check("a plan restore failure after a failed PATCH is in the raised error",
           error7 is not None and "recovery also failed" in str(error7) and "PPV_A" in str(error7))
+
+    # Round 8: the cascade turns PPV_A off, fails on PPV_B and can't roll PPV_A
+    # back. The partial IDs must still reach recovery and the health report.
+    partial = _MutationTask({"PPV_A": True, "PPV_B": True}, fail_plan_ids={"PPV_A"})
+    partial.fail_on_deactivate = "PPV_B"
+    error8 = partial.run()
+    check("a failed cascade rollback still raises", error8 is not None)
+    check("a plan the failed cascade left off gets a restore command",
+          any("--record-id PPV_A" in m for m in partial.logs))
+    blip = _MutationTask({"PPV_A": True, "PPV_B": True})
+    blip.fail_on_deactivate = "PPV_B"
+    blip.plan_reactivate_failures_left = 1
+    blip.run()
+    check("recovery retries a plan the failed cascade rollback left off",
+          blip.states["PPV_A"] is True)
 
     # Round 4: one failing plan must not stop the next.
     multi = _MutationTask({"PPV_A": True, "PPV_B": True}, fail_plan_ids={"PPV_A"})
@@ -1383,6 +1404,47 @@ def test_delete_rollback_restores_es_version_when_delete_fails():
         "rollback reactivates the same cascaded plans that were deactivated",
         task.calls[6] == ("cascade_reactivate", ("PPDV_1",)),
     )
+
+
+def test_delete_rollback_retries_plans_a_failed_cascade_left_off():
+    # Round 8: when the cascade's own rollback fails, it raises before
+    # returning; the delete rollback must still retry the plans it left off.
+    import logging
+
+    from cumulusci.core.exceptions import TaskOptionsError
+
+    class _DeleteTask(DeleteExpressionSet):
+        def __init__(self):
+            self.logger = logging.getLogger("test_delete_partial_cascade")
+            self.logger.addHandler(logging.NullHandler())
+            self.options = {"expression_set_api_name": "ESX", "confirm": True,
+                            "dry_run": False}
+            self.calls = []
+
+        def _get_expression_set_id(self, api_name):
+            return "ES_ID"
+
+        def _get_expression_set_definition_id(self, api_name):
+            return "ESD_ID"
+
+        def _resolve_version_by_es_id(self, es_id):
+            return {"Id": "ESV_ID", "IsActive": True}
+
+        def _cascade_deactivate_procedure_plans(self, es_def_id, dry_run):
+            error = TaskOptionsError("cascade and rollback failed")
+            error.left_inactive = ["PPDV_1"]
+            raise error
+
+        def _cascade_reactivate_procedure_plans(self, vids, dry_run):
+            self.calls.append(("cascade_reactivate", tuple(vids)))
+
+    task = _DeleteTask()
+    try:
+        task._run_task()
+    except TaskOptionsError:
+        pass
+    check("delete rollback retries a plan the failed cascade left off",
+          task.calls == [("cascade_reactivate", ("PPDV_1",))])
 
 
 def test_delete_rollback_skips_es_reactivation_when_already_inactive():

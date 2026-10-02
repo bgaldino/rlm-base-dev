@@ -273,11 +273,15 @@ class LifecycleEngine:
                 try:
                     self.cascade_reactivate_procedure_plans(deactivated)
                 except Exception as rollback_exc:
-                    raise LifecycleError(
+                    error = LifecycleError(
                         "Cascade deactivation failed after deactivating "
                         f"ProcedurePlanDefinitionVersion(s) {deactivated}, and "
                         f"rollback also failed: {rollback_exc}"
-                    ) from exc
+                    )
+                    # Callers restore and report these; the return value never
+                    # reaches them on this path.
+                    error.left_inactive = list(deactivated)
+                    raise error from exc
                 raise LifecycleError(
                     "Cascade deactivation failed after deactivating "
                     f"ProcedurePlanDefinitionVersion(s) {deactivated}; rolled them "
@@ -352,7 +356,11 @@ class LifecycleEngine:
         try:
             if was_active:
                 if cascade:
-                    cascaded_ppvs = self.cascade_deactivate_procedure_plans(es_def_id)
+                    try:
+                        cascaded_ppvs = self.cascade_deactivate_procedure_plans(es_def_id)
+                    except Exception as cascade_exc:
+                        cascaded_ppvs = list(getattr(cascade_exc, "left_inactive", ()))
+                        raise
                 version_off_attempted = True
                 self.set_version_active(esv_id, False)
                 self.wait_for_version_state(esv_id, False)
@@ -614,7 +622,11 @@ class LifecycleEngine:
         cascaded_ppvs: List[str] = []
         esv_deactivated_by_us = False
         try:
-            cascaded_ppvs = self.cascade_deactivate_procedure_plans(es_def_id)
+            try:
+                cascaded_ppvs = self.cascade_deactivate_procedure_plans(es_def_id)
+            except Exception as cascade_exc:
+                cascaded_ppvs = list(getattr(cascade_exc, "left_inactive", ()))
+                raise
             if esv_was_active:
                 self.set_version_active(esv["Id"], False)
                 self.wait_for_version_state(esv["Id"], False)

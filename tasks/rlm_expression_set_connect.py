@@ -526,11 +526,15 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 try:
                     self._cascade_reactivate_procedure_plans(deactivated, False)
                 except Exception as rollback_exc:
-                    raise TaskOptionsError(
+                    error = TaskOptionsError(
                         "Cascade deactivation failed after deactivating "
                         f"ProcedurePlanDefinitionVersion(s) {deactivated}, and "
                         f"rollback also failed: {rollback_exc}"
-                    ) from exc
+                    )
+                    # Callers restore and report these; the return value never
+                    # reaches them on this path.
+                    error.left_inactive = list(deactivated)
+                    raise error from exc
                 raise TaskOptionsError(
                     "Cascade deactivation failed after deactivating "
                     f"ProcedurePlanDefinitionVersion(s) {deactivated}; "
@@ -627,9 +631,13 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         try:
             if was_active:
                 if cascade:
-                    cascaded_ppvs = self._cascade_deactivate_procedure_plans(
-                        es_def_id, dry_run
-                    )
+                    try:
+                        cascaded_ppvs = self._cascade_deactivate_procedure_plans(
+                            es_def_id, dry_run
+                        )
+                    except Exception as cascade_exc:
+                        cascaded_ppvs = list(getattr(cascade_exc, "left_inactive", ()))
+                        raise
                 version_off_attempted = True
                 self._set_version_active(esv_id, False, dry_run)
                 if not dry_run:
@@ -1825,9 +1833,13 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
         cascaded_ppvs: List[str] = []
         esv_deactivated_by_us = False
         try:
-            cascaded_ppvs = self._cascade_deactivate_procedure_plans(
-                es_def_id, dry_run
-            )
+            try:
+                cascaded_ppvs = self._cascade_deactivate_procedure_plans(
+                    es_def_id, dry_run
+                )
+            except Exception as cascade_exc:
+                cascaded_ppvs = list(getattr(cascade_exc, "left_inactive", ()))
+                raise
             if esv_was_active:
                 self._set_version_active(esv["Id"], False, dry_run)
                 if not dry_run:

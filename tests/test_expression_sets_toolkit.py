@@ -1161,6 +1161,9 @@ class _PlanTransport:
         self.fail_esv_reactivate = fail_esv_reactivate
         self.esv_reactivate_error = esv_reactivate_error
         self.fail_esv_deactivate = False
+        self.fail_plan_deactivate_ids = set()
+        # Plan reactivations to fail before they start succeeding.
+        self.plan_reactivate_failures_left = 0
         # Models a stale read of false while the version is really active.
         self.esv_reads_inactive = False
         # Simulates a deactivation PATCH that lands while reads still say active,
@@ -1191,6 +1194,11 @@ class _PlanTransport:
         elif sobject == "ProcedurePlanDefinitionVersion":
             if active and (self.fail_plan_reactivate or record_id in self.fail_plan_ids):
                 raise RuntimeError(f"plan reactivate boom {record_id}")
+            if active and self.plan_reactivate_failures_left:
+                self.plan_reactivate_failures_left -= 1
+                raise RuntimeError(f"plan reactivate blip {record_id}")
+            if not active and record_id in self.fail_plan_deactivate_ids:
+                raise RuntimeError(f"plan deactivate boom {record_id}")
             self.plans[record_id] = active
         return {}
 
@@ -1410,6 +1418,48 @@ def test_failed_mutation_keeps_plans_online():
     check("a plan restore failure after a failed PATCH is in the raised error",
           raised14 is not None and "recovery also failed" in str(raised14)
           and "1Cv1" in str(raised14), raised14)
+
+    # Round 8: the cascade turns 1Cv1 off, fails on 1Cv2 and can't roll 1Cv1
+    # back. The partial IDs must still reach recovery and the health report.
+    logs16 = []
+    t16 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True}, fail_plan_ids={"1Cv1"})
+    t16.fail_plan_deactivate_ids = {"1Cv2"}
+    engine16 = LifecycleEngine(t16, logger=logs16.append, poll_interval_seconds=1)
+    raised16 = None
+    try:
+        engine16.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=boom, activate_after=True, cascade=True)
+    except Exception as exc:
+        raised16 = exc
+    check("a failed cascade rollback still raises", raised16 is not None, raised16)
+    check("a plan the failed cascade left off gets a restore command",
+          any("ProcedurePlanDefinitionVersion 1Cv1" in m and "IsActive=true" in m
+              for m in logs16), logs16)
+    # A transient rollback failure is retried by recovery, so the plan comes back.
+    t17 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True})
+    t17.fail_plan_deactivate_ids = {"1Cv2"}
+    t17.plan_reactivate_failures_left = 1
+    engine17 = LifecycleEngine(t17, logger=lambda *a, **k: None, poll_interval_seconds=1)
+    try:
+        engine17.run_mutation(es_def_id="9QAx", esv={"Id": "9QMv", "IsActive": True},
+                              mutate=boom, activate_after=True, cascade=True)
+    except Exception:
+        pass
+    check("recovery retries a plan the failed cascade rollback left off",
+          t17.plans == {"1Cv1": True, "1Cv2": True}, t17.plans)
+    # The delete path retries it the same way.
+    t18 = _PlanTransport(plans={"1Cv1": True, "1Cv2": True})
+    t18.fail_plan_deactivate_ids = {"1Cv2"}
+    t18.plan_reactivate_failures_left = 1
+    engine18 = LifecycleEngine(t18, logger=lambda *a, **k: None, poll_interval_seconds=1)
+    try:
+        engine18.delete_expression_set(es_id="9QAx", es_def_id="9QAx",
+                                       esv={"Id": "9QMv", "IsActive": True},
+                                       api_name="ES")
+    except Exception:
+        pass
+    check("delete rollback retries a plan the failed cascade left off",
+          t18.plans == {"1Cv1": True, "1Cv2": True}, t18.plans)
 
     # Round 4: a failed version reactivation must not stop the plan restore.
     logs7 = []
