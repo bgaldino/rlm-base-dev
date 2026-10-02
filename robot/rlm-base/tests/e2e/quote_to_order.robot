@@ -42,7 +42,8 @@ Quote To Order
 
 Quote To Order With Contract
     [Documentation]    The same flow, contract-first: the Contract is created from the
-    ...    Quote (standard createContract action) and activated before the Order is
+    ...    Quote (its New Contract action, the RLM_CreateContractFromQuote flow) and
+    ...    activated before the Order is
     ...    created, so the Order carries it. Verifies the renewal Opportunity's
     ...    ContractId equals the Order's, which the no-contract test can't, since
     ...    there both are blank.

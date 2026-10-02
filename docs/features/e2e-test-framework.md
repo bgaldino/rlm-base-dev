@@ -10,10 +10,12 @@ share the `Run Quote To Order Flow` keyword:
 - **Quote To Order** — the flow below. The Order has no Contract, so the renewal Opportunity's
   ContractId stays blank.
 - **Quote To Order With Contract** (tag `contract`) — the same flow, contract-first. Before the
-  order is created, `Create Contract From Quote` calls the standard `createContract` action on
-  the Quote and activates the Contract. It also sets the contract's renewal term, because
-  `createContract` leaves it blank, and with no renewal term no renewal Opportunity is created.
-  The test then checks the Order carries the Contract.
+  order is created, `Create Contract From Quote` clicks the Quote's **New Contract** action,
+  which runs the `RLM_CreateContractFromQuote` flow. It checks the contract and renewal terms
+  the flow set (12 months, 1 Annual term) and activates the Contract. It doesn't set the
+  renewal term itself: the standard `createContract` action leaves it blank, and with no
+  renewal term no renewal Opportunity is created, so patching it would hide a flow
+  regression. The test then checks the Order carries the Contract.
 
 ```
 Revenue Cloud App

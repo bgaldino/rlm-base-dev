@@ -1749,39 +1749,67 @@ Pause For Recording If Enabled
 # ── Verification ─────────────────────────────────────────────────────
 
 Create Contract From Quote
-    [Documentation]    Creates a Contract from ${quote_id} with the standard ``createContract``
-    ...    action, sets its renewal term, activates it and returns its Id. The Order created
-    ...    from the Quote afterwards picks the Contract up and links its Assets to it
+    [Documentation]    Creates a Contract from ${quote_id} the way a rep does: the Quote's
+    ...    ``New Contract`` action, which Revenue Settings routes to the
+    ...    ``RLM_CreateContractFromQuote`` flow. Checks the renewal term the flow set,
+    ...    activates the Contract and returns its Id. The Order created from the Quote
+    ...    afterwards picks the Contract up and links its Assets to it
     ...    (AssetContractRelationship).
     ...
-    ...    The renewal term is set here because ``createContract`` leaves
-    ...    ``RenewalTerm2`` / ``RenewalTermUnit`` blank. With a blank renewal term the Assets
-    ...    get none either, ``getRenewableAssetsSummary`` fails ("All assets in a request must
-    ...    have values for RenewalTermUnit and RenewalTerm") and no renewal Opportunity is
-    ...    created (live-checked on 264). Setting ``Order.ContractId`` directly is not a
-    ...    substitute: it creates no AssetContractRelationship rows and fails the same way.
+    ...    The flow is what makes contract-first renewals work. The standard
+    ...    ``createContract`` action on its own leaves ``RenewalTerm2`` / ``RenewalTermUnit``
+    ...    blank, so the Assets get no renewal term, ``getRenewableAssetsSummary`` fails ("All
+    ...    assets in a request must have values for RenewalTermUnit and RenewalTerm") and no
+    ...    renewal Opportunity is created (live-checked on 264). So this keyword must not set
+    ...    the renewal term itself: that would hide a regression in the flow. Setting
+    ...    ``Order.ContractId`` directly is not a substitute either: it creates no
+    ...    AssetContractRelationship rows and fails the same way.
     [Arguments]    ${quote_id}
     SalesforceAPI.Validate Salesforce Id    ${quote_id}
-    ${body}=    Set Variable    {"inputs":[{"sourceId":"${quote_id}"}]}
-    ${api}=    Get Library Instance    SalesforceAPI
-    ${result}=    Run Process    sf    api    request    rest
-    ...    /services/data/${api.API_VERSION}/actions/standard/createContract
-    ...    --method    POST    --body    ${body}    -o    ${ORG_ALIAS}    shell=False
-    Should Be Equal As Integers    ${result.rc}    0
-    ...    msg=createContract failed for Quote ${quote_id}: ${result.stderr}
-    ${response}=    Evaluate    json.loads($result.stdout)    modules=json
-    Should Be True    ${response}[0][isSuccess]
-    ...    msg=createContract failed for Quote ${quote_id}: ${response}[0][errors]
-    ${contract_id}=    Set Variable    ${response}[0][outputValues][contractId]
-    SalesforceAPI.Validate Salesforce Id    ${contract_id}
+    Navigate To Quote    ${quote_id}
+    Click Highlights Panel Action    New Contract
+    Sleep    5s    reason=Allow RLM_CreateContractFromQuote flow to initialize
+    Wait Until Keyword Succeeds    30s    3s    _Click Flow Navigation Button    Create
+    Capture Step Screenshot    contract_flow_submitted
+    ${contract_id}=    Wait For Related Record Via API
+    ...    SELECT Id FROM Contract WHERE SourceQuoteId = '${quote_id}' ORDER BY CreatedDate DESC LIMIT 1
+    # The test bundle is a 12-month Annual subscription: 12 months, renewed as 1 Annual term.
+    SalesforceAPI.Verify Field Value Via API    Contract    ${contract_id}    ContractTerm    12
+    ${renewal_term}=    SalesforceAPI.Query Field Value    Contract    ${contract_id}    RenewalTerm2
+    Should Be Equal As Numbers    ${renewal_term}    1
+    ...    msg=Contract ${contract_id} RenewalTerm2 is ${renewal_term}, expected 1
+    SalesforceAPI.Verify Field Value Via API    Contract    ${contract_id}    RenewalTermUnit    Annual
     ${result}=    Run Process    sf    data    update    record    -o    ${ORG_ALIAS}
     ...    --sobject    Contract    --record-id    ${contract_id}
-    ...    --values    RenewalTerm2\=1 RenewalTermUnit\=Annual ContractTerm\=12 Status\=Activated
-    ...    --json    shell=False
+    ...    --values    Status\=Activated    --json    shell=False
     Should Be Equal As Integers    ${result.rc}    0
     ...    msg=Could not activate Contract ${contract_id}: ${result.stdout}
     Log    Created and activated Contract ${contract_id} from Quote ${quote_id}
     RETURN    ${contract_id}
+
+_Click Flow Navigation Button
+    [Documentation]    Internal keyword. Clicks the button labelled ${label} inside the
+    ...    running screen flow, searching through shadow roots. ``Advance Through Flow Screens`` only
+    ...    knows the generic labels (Next, Finish, ...), not a flow's custom one such as Create.
+    [Arguments]    ${label}
+    ${result}=    Execute JavaScript
+    ...    return (function(label){
+    ...        function find(root){
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var i = 0; i < all.length; i++) {
+    ...                if (all[i].tagName === 'BUTTON' && all[i].textContent.trim() === label) {
+    ...                    all[i].click(); return 'clicked';
+    ...                }
+    ...                if (all[i].shadowRoot) { var r = find(all[i].shadowRoot); if (r) return r; }
+    ...            }
+    ...            return null;
+    ...        }
+    ...        var flow = document.querySelector('flowruntime-flow');
+    ...        return find(flow ? (flow.shadowRoot || flow) : document) || 'not found';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${label}
+    Should Be Equal    ${result}    clicked    msg=Flow button "${label}" not found
+    Sleep    3s    reason=Allow flow to process
 
 Verify Assets Exist On Account
     [Documentation]    Checks that at least 1 Asset exists on the Account. Fails if not (for retry).
