@@ -85,24 +85,24 @@
         </rules>
     </decisions>
     <decisions>
-        <description>Checks whether the order&apos;s quote has an open renewal opportunity and whether that opportunity already syncs with the quote.</description>
-        <name>IsOpenRenewalOpportunity</name>
-        <label>Is Open Renewal Opportunity</label>
+        <description>Checks whether the order&apos;s quote has an open opportunity, of any type, that syncs with the quote or has no synced quote yet. An opportunity that syncs with a different quote is left unchanged, so a quote someone chose on purpose isn&apos;t replaced.</description>
+        <name>IsOpenOpportunity</name>
+        <label>Is Open Opportunity</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <defaultConnectorLabel>No Open Renewal Opportunity</defaultConnectorLabel>
+        <defaultConnectorLabel>No Opportunity to Sync</defaultConnectorLabel>
         <rules>
             <name>QuoteAlreadySynced</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>GetRenewalOpportunity.Id</leftValueReference>
+                <leftValueReference>GetQuoteOpportunity.Id</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
             <conditions>
-                <leftValueReference>GetRenewalOpportunity.SyncedQuoteId</leftValueReference>
+                <leftValueReference>GetQuoteOpportunity.SyncedQuoteId</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
                     <elementReference>$Record.QuoteId</elementReference>
@@ -114,25 +114,32 @@
             <label>Quote Already Synced</label>
         </rules>
         <rules>
-            <name>QuoteNotSynced</name>
+            <name>NoSyncedQuote</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>GetRenewalOpportunity.Id</leftValueReference>
+                <leftValueReference>GetQuoteOpportunity.Id</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
+            <conditions>
+                <leftValueReference>GetQuoteOpportunity.SyncedQuoteId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
             <connector>
                 <targetReference>SetSyncedQuote</targetReference>
             </connector>
-            <label>Quote Not Synced</label>
+            <label>No Synced Quote</label>
         </rules>
     </decisions>
-    <description>When an order created from a quote is activated and the quote&apos;s opportunity is an open renewal (Type Existing Business), makes the quote the opportunity&apos;s synced quote and syncs its lines to the opportunity products, so the renewal opportunity shows what was actually renewed. RLM_CloseRenewalOpportunityOnQuoteSync then closes it as Closed Won. Needs Asynchronous Opportunity Sync turned on in Revenue Settings. Runs after commit so a failure here can&apos;t roll back order activation. New-business opportunities aren&apos;t changed. If setting the synced quote faults, or the sync action faults or rejects the request, creates a high-priority task for the opportunity owner with the error. A background sync that fails later is reported by RLM_CloseRenewalOpportunityOnQuoteSync.</description>
+    <description>When an order created from a quote is activated and the quote&apos;s opportunity is open, of any type, syncs the quote&apos;s lines to the opportunity products, so the opportunity shows what was actually ordered. An opportunity with no synced quote is first set to sync with this quote. An opportunity that syncs with a different quote is left open and unchanged. RLM_CloseRenewalOpportunityOnQuoteSync then closes it as Closed Won. Needs Asynchronous Opportunity Sync turned on in Revenue Settings. Runs after commit so a failure here can&apos;t roll back order activation. If setting the synced quote faults, or the sync action faults or rejects the request, creates a high-priority task for the opportunity owner with the error. A background sync that fails later is reported by RLM_CloseRenewalOpportunityOnQuoteSync.</description>
     <environments>Default</environments>
-    <interviewLabel>RLM Sync Renewal Quote On Order Activation {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM Sync Renewal Quote On Order Activation</label>
+    <interviewLabel>RLM Sync Quote On Order Activation {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Sync Quote On Order Activation</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -147,7 +154,7 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordCreates>
-        <description>Runs when setting the synced quote faults, or the sync action faults or rejects the request. Creates a task for the renewal opportunity&apos;s owner, because a failure in this background path is otherwise visible only in the flow error email.</description>
+        <description>Runs when setting the synced quote faults, or the sync action faults or rejects the request. Creates a task for the opportunity&apos;s owner, because a failure in this background path is otherwise visible only in the flow error email.</description>
         <name>CreateSyncFailureTask</name>
         <label>Create Sync Failure Task</label>
         <locationX>0</locationX>
@@ -167,7 +174,7 @@
         <inputAssignments>
             <field>OwnerId</field>
             <value>
-                <elementReference>GetRenewalOpportunity.OwnerId</elementReference>
+                <elementReference>GetQuoteOpportunity.OwnerId</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
@@ -179,27 +186,27 @@
         <inputAssignments>
             <field>Subject</field>
             <value>
-                <stringValue>Renewal quote sync failed</stringValue>
+                <stringValue>Quote sync failed</stringValue>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>WhatId</field>
             <value>
-                <elementReference>GetRenewalOpportunity.Id</elementReference>
+                <elementReference>GetQuoteOpportunity.Id</elementReference>
             </value>
         </inputAssignments>
         <object>Task</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordCreates>
     <recordLookups>
-        <description>Gets the quote&apos;s opportunity when it&apos;s an open renewal opportunity.</description>
-        <name>GetRenewalOpportunity</name>
-        <label>Get Renewal Opportunity</label>
+        <description>Gets the quote&apos;s opportunity when it&apos;s open.</description>
+        <name>GetQuoteOpportunity</name>
+        <label>Get Quote Opportunity</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>IsOpenRenewalOpportunity</targetReference>
+            <targetReference>IsOpenOpportunity</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -207,13 +214,6 @@
             <operator>EqualTo</operator>
             <value>
                 <elementReference>$Record.Quote.OpportunityId</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>Type</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Existing Business</stringValue>
             </value>
         </filters>
         <filters>
@@ -231,7 +231,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordUpdates>
-        <description>Makes the order&apos;s quote the renewal opportunity&apos;s synced quote.</description>
+        <description>Makes the order&apos;s quote the opportunity&apos;s synced quote.</description>
         <name>SetSyncedQuote</name>
         <label>Set Synced Quote</label>
         <locationX>0</locationX>
@@ -247,7 +247,7 @@
             <field>Id</field>
             <operator>EqualTo</operator>
             <value>
-                <elementReference>GetRenewalOpportunity.Id</elementReference>
+                <elementReference>GetQuoteOpportunity.Id</elementReference>
             </value>
         </filters>
         <inputAssignments>
@@ -281,7 +281,7 @@
         <recordTriggerType>Update</recordTriggerType>
         <scheduledPaths>
             <connector>
-                <targetReference>GetRenewalOpportunity</targetReference>
+                <targetReference>GetQuoteOpportunity</targetReference>
             </connector>
             <pathType>AsyncAfterCommit</pathType>
         </scheduledPaths>
@@ -298,7 +298,7 @@
         <description>Body of the sync failure task.</description>
         <name>SyncFailureDescription</name>
         <isViewedAsPlainText>true</isViewedAsPlainText>
-        <text>Activated order {!$Record.OrderNumber} couldn&apos;t sync quote {!$Record.QuoteId} to this renewal opportunity, so the opportunity wasn&apos;t closed.
+        <text>Activated order {!$Record.OrderNumber} couldn&apos;t sync quote {!$Record.QuoteId} to this opportunity, so the opportunity wasn&apos;t closed.
 
 Check that Asynchronous Opportunity Sync is turned on in Revenue Settings, then sync the quote to the opportunity manually. The opportunity closes as Closed Won when the sync succeeds.
 
