@@ -16,29 +16,26 @@ PRESETS_PATH = Path(__file__).resolve().parent / "presets.yaml"
 # Preset kinds, as they appear under a release in presets.yaml.
 KINDS = ("help", "dev_guide")
 
-# Options each kind's snapshotter reads. The snapshotters ignore unknown keys,
-# so a typo (`output_dr`, `subtree_ony`) would silently fall back to a default
-# and could mix release notes into the Help corpus; load_presets() rejects it.
-_SHARED_OPTIONS = (
-    "release_version", "release_name", "output_dir", "mode", "headless",
-    "concurrency", "wait_ms",
-)
+# Options a preset may set, per kind. The snapshotters ignore unknown keys, so
+# a typo (`output_dr`, `subtree_ony`) would silently fall back to a default and
+# could mix release notes into the Help corpus; load_presets() rejects it. A
+# preset's release identity (`release_version`, `release_name`) comes only
+# from its release block, so a copied preset can never point at another release.
+SHARED_OPTIONS = frozenset(("output_dir", "mode", "headless", "concurrency", "wait_ms"))
 PRESET_OPTIONS = {
-    "help": frozenset(_SHARED_OPTIONS + (
+    "help": SHARED_OPTIONS | frozenset((
         "area", "root_article_id", "article_id_prefix", "discover_timeout_ms",
         "expect_min_articles", "include_release_param", "subtree_only",
     )),
-    "dev_guide": frozenset(_SHARED_OPTIONS + (
+    "dev_guide": SHARED_OPTIONS | frozenset((
         "deliverable", "doc_version", "section", "sections", "batch_delay_ms",
         "follow_links", "max_pages",
     )),
 }
 
-# Dropped when bootstrapping a new release: the first two are facts about a
-# captured corpus (a verified count floor, a pinned atlas version), not about
-# the root; the last two would override the new release block's identity, so
-# the copy would still request (and write to) the source release.
-_BOOTSTRAP_DROP = ("expect_min_articles", "doc_version", "release_version", "release_name")
+# Dropped when bootstrapping a new release: facts about a captured corpus (a
+# verified count floor, a pinned atlas version), not about the root.
+_BOOTSTRAP_DROP = ("expect_min_articles", "doc_version")
 
 
 def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
@@ -81,6 +78,15 @@ def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
                         f"{', '.join(unknown)} (valid: "
                         f"{', '.join(sorted(PRESET_OPTIONS[kind]))})"
                     )
+                # The snapshotters read null or "" as "use the default", which
+                # would silently discard the option; say so instead.
+                empty = sorted(str(n) for n, v in preset.items()
+                               if v is None or (isinstance(v, str) and not v.strip()))
+                if empty:
+                    raise OptionsError(
+                        f"{path}: {release}.{kind}.{key} has empty option(s) "
+                        f"{', '.join(empty)}; omit them to use the default"
+                    )
         normalized[release] = block
     return normalized
 
@@ -106,12 +112,12 @@ def resolve(
     releases: Dict[str, Any],
     release: str,
     kind: str,
-    key: Optional[str],
+    key: str,
     overrides: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Build snapshotter options: release defaults < preset < overrides.
 
-    ``key`` may name no preset (or be None) for an ad hoc run; the caller's
+    ``key`` may name no preset for an ad hoc run; the caller's
     overrides must then supply whatever the snapshotter requires, and the
     snapshotter's own validation reports anything missing. Overrides whose
     value is None are ignored, so unset CLI flags never mask a preset value.
@@ -132,19 +138,17 @@ def resolve(
     if block.get("release_name"):
         options["release_name"] = block["release_name"]
 
-    if key is not None and key in presets:
+    if key in presets:
         options.update(presets[key])
-        if kind == "help":
-            options.setdefault("area", key)
-    elif key is not None and not overrides_complete(kind, overrides):
+    elif not overrides_complete(kind, overrides):
         known = ", ".join(presets) or "none"
         needed = ("--root-article-id and --prefix" if kind == "help" else "--deliverable")
         raise OptionsError(
             f"no {kind} preset {key!r} for release {release} (known: {known}). "
             f"Pass {needed} for an ad hoc run."
         )
-    elif key is not None and kind == "help":
-        options["area"] = key
+    if kind == "help":
+        options.setdefault("area", key)
 
     for name, value in (overrides or {}).items():
         if value is not None:
@@ -205,9 +209,7 @@ def bootstrap_block(
         for key, preset in presets.items():
             body = []
             for name, value in preset.items():
-                # A null or empty option means "use the default"; copying it
-                # would write the string "None" or an empty path instead.
-                if name in _BOOTSTRAP_DROP or value is None or value == "":
+                if name in _BOOTSTRAP_DROP:
                     continue
                 if name == "output_dir":
                     value = _retarget_output_dir(str(value), source, target)
@@ -225,11 +227,9 @@ def bootstrap_block(
     return "\n".join(lines) + "\n"
 
 
-def append_block(text: str, path: Optional[Path] = None) -> Path:
-    path = path or PRESETS_PATH
+def append_block(text: str, path: Path) -> None:
     with open(path, "a", encoding="utf-8") as fh:
         fh.write(text)
-    return path
 
 
 def _retarget_output_dir(output_dir: str, source: str, target: str) -> Optional[str]:

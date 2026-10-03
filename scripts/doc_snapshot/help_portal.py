@@ -29,8 +29,10 @@ from scripts.doc_snapshot._core import (
     SnapshotError,
     as_bool,
     as_int,
+    captured_table,
     compute_stats,
     get_logger,
+    index_footer,
     log_done,
     normalize_mode,
     raise_on_capture_errors,
@@ -280,7 +282,7 @@ class HelpSnapshot:
             )
         self.options["mode"] = normalize_mode(self.options.get("mode"))
         self.options["headless"] = as_bool(self.options.get("headless"), True)
-        self.options["concurrency"] = as_int(self.options.get("concurrency"), 4)
+        self.options["concurrency"] = max(1, as_int(self.options.get("concurrency"), 4))
         self.options["wait_ms"] = as_int(self.options.get("wait_ms"), 3000)
         self.options["discover_timeout_ms"] = as_int(
             self.options.get("discover_timeout_ms"), 20000
@@ -298,7 +300,7 @@ class HelpSnapshot:
         """Nothing to check offline: every Help failure needs a discovery walk."""
 
     def run(self) -> Dict[str, Any]:
-        """Run the snapshot; returns the manifest's overall stats."""
+        """Run the snapshot; returns this area's stats."""
         require_playwright(self.logger)
 
         output_dir = resolve_output_dir(self.options["output_dir"])
@@ -361,14 +363,16 @@ class HelpSnapshot:
             manifest[key] = required_defaults[key]
         return manifest
 
-    def _save_manifest(self, manifest_path: Path, manifest: Dict[str, Any]) -> None:
+    def _save_manifest(self, manifest_path: Path, manifest: Dict[str, Any]) -> Dict[str, Any]:
+        """Stamp and write the manifest; returns this area's stats."""
         manifest["last_updated"] = utc_timestamp()
-        manifest["stats"] = self._compute_stats(manifest)
-        self._update_area_entry(manifest)
+        manifest["stats"] = compute_stats(manifest, "articles")
+        area_stats = self._update_area_entry(manifest)
         write_manifest(manifest_path, manifest)
+        return area_stats
 
-    def _update_area_entry(self, manifest: Dict[str, Any]) -> None:
-        """Sync this run's per-area metadata into the manifest['areas'] array."""
+    def _update_area_entry(self, manifest: Dict[str, Any]) -> Dict[str, Any]:
+        """Sync this run's per-area metadata into manifest['areas']; returns its stats."""
         current_area = self.options["area"]
         # Per-area stats: only count articles tagged with this area
         area_articles = [
@@ -408,10 +412,7 @@ class HelpSnapshot:
         if not replaced:
             area_entry["snapshot_started"] = today()
             areas.append(area_entry)
-
-    @staticmethod
-    def _compute_stats(manifest: Dict[str, Any]) -> Dict[str, Any]:
-        return compute_stats(manifest, "articles")
+        return area_entry["stats"]
 
     def _prune_moved_out(
         self, manifest: Dict[str, Any], moved_out: Set[str]
@@ -543,7 +544,7 @@ class HelpSnapshot:
         articles_dir: Path,
         manifest_path: Path,
         index_path: Path,
-    ) -> None:
+    ) -> Dict[str, Any]:
         from playwright.async_api import async_playwright
 
         mode = self.options["mode"]
@@ -577,7 +578,7 @@ class HelpSnapshot:
                 self._save_manifest(manifest_path, manifest)
                 self._validate_discovery(
                     len(kept), total_before_filter, stabilized,
-                    only_root=[d["id"] for d in kept] == [self.options["root_article_id"]],
+                    only_root=self._is_only_root([d["id"] for d in kept]),
                 )
                 moved_out = {
                     article_id
@@ -607,17 +608,17 @@ class HelpSnapshot:
             await browser.close()
 
         # Phase 3: Refresh index.md and final manifest
-        self._save_manifest(manifest_path, manifest)
+        area_stats = self._save_manifest(manifest_path, manifest)
         self._build_index(index_path, manifest)
-        stats = manifest.get("stats", {})
-        log_done(self.logger, stats, manifest_path)
+        log_done(self.logger, manifest["stats"], manifest_path)
         self.logger.info(f"Index:    {index_path}")
         raise_on_capture_errors(failed, len(to_capture), "articles")
         # The manifest's stats sum every area; a caller's summary wants this one.
-        for entry in manifest.get("areas", []):
-            if entry.get("area") == self.options["area"]:
-                return entry.get("stats", stats)
-        return stats
+        return area_stats
+
+    def _is_only_root(self, kept_ids: List[str]) -> bool:
+        """True when a walk kept nothing but the root (a wrong or unhydrated root)."""
+        return kept_ids == [self.options["root_article_id"]]
 
     def _validate_timing_options(self) -> None:
         """Reject non-positive wait_ms/discover_timeout_ms before the discovery loop runs.
@@ -808,7 +809,7 @@ class HelpSnapshot:
             # A read holding only the root is what a mid-hydration tree looks
             # like, so it never counts as stable: keep polling, and let
             # _validate_discovery reject it only if the budget runs out.
-            only_root = kept_ids == [self.options["root_article_id"]]
+            only_root = self._is_only_root(kept_ids)
             if (
                 kept > 0 and not only_root and kept == prev_kept and walk == prev_walk
                 and (not expect_min or kept >= expect_min)
@@ -830,8 +831,7 @@ class HelpSnapshot:
         manifest_path: Path,
     ) -> List[str]:
         """Capture ``articles``; returns the ids that failed this run."""
-        concurrency = max(1, int(self.options["concurrency"]))
-        semaphore = asyncio.Semaphore(concurrency)
+        semaphore = asyncio.Semaphore(self.options["concurrency"])
         manifest_lock = asyncio.Lock()
         saved_count = 0
         failed: List[str] = []
@@ -1025,16 +1025,7 @@ class HelpSnapshot:
         else:
             sections = [("## Captured", captured)] if captured else []
         for heading, group in sections:
-            lines.extend([heading, "", "| Article | ID | Bytes |", "|:--|:--|--:|"])
-            for a in sorted(group, key=lambda x: x["article_id"]):
-                article_id = a["article_id"]
-                title = a.get("title", article_id)
-                file_path = a.get("file", f"articles/{article_id}.md")
-                lines.append(
-                    f"| [{title}](./{file_path}) | `{article_id}` | "
-                    f"{a.get('body_length', 0):,} |"
-                )
-            lines.append("")
+            lines.extend(captured_table(heading, group, "article_id", "Article", "Bytes"))
 
         if pending:
             lines.append(f"## Pending ({len(pending)})")
@@ -1053,11 +1044,5 @@ class HelpSnapshot:
                 lines.append(f"- `{a['article_id']}` — {title} — _{err}_")
             lines.append("")
 
-        lines.append("---")
-        lines.append("")
-        lines.append(
-            f"*Generated by `scripts/doc_snapshot help` "
-            f"on {manifest.get('last_updated', 'n/a')}.*"
-        )
-
+        lines.extend(index_footer("help", manifest))
         index_path.write_text("\n".join(lines), encoding="utf-8")

@@ -42,29 +42,24 @@ from scripts.doc_snapshot._core import (  # noqa: E402
     OptionsError,
     SnapshotError,
     get_logger,
+    split_csv,
 )
 
 EXIT_FAILED = 1
 EXIT_USAGE = 2
 
-# CLI dest -> snapshotter option name, per kind. A flag left unset is None and
-# never overrides the preset.
-HELP_FLAGS = (
-    "release_name", "root_article_id", "article_id_prefix", "output_dir", "mode",
-    "headless", "concurrency", "wait_ms", "discover_timeout_ms",
-    "expect_min_articles", "include_release_param", "subtree_only",
-)
-DEV_GUIDE_FLAGS = (
-    "release_name", "deliverable", "doc_version", "section", "sections",
-    "output_dir", "mode", "headless", "concurrency", "wait_ms", "batch_delay_ms",
-    "follow_links", "max_pages",
-)
+# Override flags per subcommand: each argparse dest is the snapshotter option
+# of the same name, so these derive from the preset schema. `--area` selects
+# presets rather than overriding one; `--release-name` overrides the release
+# block's name. A flag left unset is None and never overrides the preset.
+HELP_FLAGS = sorted(presets_mod.PRESET_OPTIONS["help"] - {"area"} | {"release_name"})
+DEV_GUIDE_FLAGS = sorted(presets_mod.PRESET_OPTIONS["dev_guide"] | {"release_name"})
+RUN_FLAGS = sorted(presets_mod.SHARED_OPTIONS - {"output_dir"})
 # Flags that describe one specific target; meaningless across several presets.
 SINGLE_TARGET_FLAGS = (
     "root_article_id", "article_id_prefix", "output_dir", "deliverable",
     "section", "sections",
 )
-RUN_FLAGS = ("mode", "headless", "concurrency", "wait_ms")
 
 
 def _snapshot_class(kind: str):
@@ -176,7 +171,7 @@ def _split_keys(selector: str, flag: str) -> List[str]:
     An empty value (an unset shell variable, or only commas) must not be read
     as "no filter": for ``--only`` that would run every preset.
     """
-    keys = [k.strip() for k in selector.split(",") if k.strip()]
+    keys = split_csv(selector)
     if not keys:
         raise OptionsError(f"{flag} needs at least one preset key (see `list`)")
     return keys
@@ -195,7 +190,8 @@ def run_targets(
     releases, targets: List[Tuple[str, str, str]], overrides: Dict[str, Any], logger
 ) -> int:
     """Run ``(release, kind, key)`` targets; fail-soft when there are several."""
-    if len(targets) > 1:
+    multi = len(targets) > 1
+    if multi:
         conflicting = [f for f in SINGLE_TARGET_FLAGS if overrides.get(f) is not None]
         if conflicting:
             flags = ", ".join("--" + f.replace("_", "-") for f in conflicting)
@@ -214,38 +210,39 @@ def run_targets(
         snapshot.preflight()
         planned.append((f"{release} {kind}.{key}", snapshot))
 
-    results = []
+    # (label, error or None, stats)
+    results: List[Tuple[str, Optional[str], Dict[str, Any]]] = []
     for label, snapshot in planned:
         logger.info(f"=== {label} ===")
         try:
-            stats = snapshot.run() or {}
-            results.append((label, "ok", stats, ""))
+            results.append((label, None, snapshot.run() or {}))
         except (SnapshotError, OSError) as exc:
             # Includes an OptionsError raised mid-run (a doc_version conflict, a
             # renamed section): earlier targets already ran, so record it and
             # carry on. Selector errors were raised while planning, above.
-            if len(targets) == 1:
+            if not multi:
                 raise
             logger.error(f"{label} failed: {exc}")
-            results.append((label, "FAILED", {}, str(exc)))
+            results.append((label, str(exc), {}))
 
-    if len(targets) > 1:
-        _print_summary(results)
-    return EXIT_FAILED if any(r[1] != "ok" for r in results) else 0
+    failed = sum(1 for _, error, _ in results if error is not None)
+    if multi:
+        _print_summary(results, failed)
+    return EXIT_FAILED if failed else 0
 
 
-def _print_summary(results) -> None:
+def _print_summary(results, failed: int) -> None:
     print("\nSummary")
-    width = max(len(r[0]) for r in results)
-    for label, status, stats, error in results:
-        if status == "ok":
+    width = max(len(label) for label, _, _ in results)
+    for label, error, stats in results:
+        if error is None:
+            status = "ok"
             detail = (f"discovered {stats.get('discovered', '?')}, "
                       f"captured {stats.get('captured', '?')}, "
                       f"errored {stats.get('errored', '?')}")
         else:
-            detail = error
+            status, detail = "FAILED", error
         print(f"  {label.ljust(width)}  {status:<6}  {detail}")
-    failed = sum(1 for r in results if r[1] != "ok")
     print(f"\n{len(results) - failed}/{len(results)} succeeded.")
 
 
@@ -270,9 +267,9 @@ def cmd_list(args, releases, logger) -> int:
     if not rows:
         print(f"No presets{' for release ' + args.release if args.release else ''}.")
         return 0
-    widths = [max(len(str(r[i])) for r in rows) for i in range(4)]
+    widths = [max(len(str(r[i])) for r in rows) for i in range(4)] + [0]
     for r in rows:
-        print("  ".join(str(c).ljust(widths[i]) for i, c in enumerate(r[:4])) + "  " + r[4])
+        print("  ".join(str(c).ljust(w) for c, w in zip(r, widths)).rstrip())
     return 0
 
 

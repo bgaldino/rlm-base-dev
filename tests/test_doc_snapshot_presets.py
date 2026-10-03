@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from scripts.doc_snapshot import cli, presets  # noqa: E402
-from scripts.doc_snapshot._core import OptionsError, as_bool, yaml_escape  # noqa: E402
+from scripts.doc_snapshot._core import OptionsError, as_bool, split_csv, yaml_escape  # noqa: E402
 from scripts.doc_snapshot.dev_guide import DevGuideSnapshot  # noqa: E402
 from scripts.doc_snapshot.help_portal import HelpSnapshot  # noqa: E402
 
@@ -183,33 +183,25 @@ def main():
               presets.preset_keys(presets.load_presets(path), "2", "dev_guide")
               == ["empty", "pinned"])
 
-    # Null/empty options keep their default instead of becoming "None" or "".
-    nulls = {"1": {"release_name": "One", "help": {"a": {
-        "root_article_id": "r.htm", "article_id_prefix": "r", "headless": None,
-        "wait_ms": None, "output_dir": None}, "b": {
-        "root_article_id": "r.htm", "article_id_prefix": "r", "output_dir": ""}}}}
+    # Null/empty options would silently read as "use the default", and a
+    # preset-level release identity would let a copied preset point at the
+    # source release's corpus: both are rejected at load.
+    head = ("releases:\n  '1':\n    release_name: x\n    help:\n      a:\n"
+            "        root_article_id: r\n        article_id_prefix: r\n")
     with tempfile.TemporaryDirectory() as tmp:
-        path = _write(tmp, "releases:\n" + presets.bootstrap_block(nulls, "1", "2", "Two"))
-        reloaded = presets.load_presets(path)
-        for key in ("a", "b"):
-            opts = presets.resolve(reloaded, "2", "help", key)
-            check(f"bootstrap skips null/empty options ({key})",
-                  not {"headless", "wait_ms", "output_dir"} & set(opts)
-                  and HelpSnapshot(opts).options["output_dir"] == "docs/salesforce/2/help")
+        for extra in ("        output_dir:\n", "        output_dir: ''\n",
+                      "        headless: ~\n"):
+            check(f"empty preset option rejected at load ({extra.strip()})",
+                  raises(OptionsError, presets.load_presets, _write(tmp, head + extra)))
+        for name in ("release_version", "release_name"):
+            check(f"preset-level {name} rejected at load",
+                  raises(OptionsError, presets.load_presets,
+                         _write(tmp, head + f"        {name}: '1'\n")))
+        check("the minimal preset itself loads",
+              presets.preset_keys(presets.load_presets(_write(tmp, head)), "1", "help") == ["a"])
     custom = {"1": {"release_name": "One", "help": {"a": {
         "root_article_id": "r.htm", "article_id_prefix": "r",
         "output_dir": "/tmp/doc-snapshots/1/help"}}}}
-    # A preset-level release identity must not survive the copy, or the new
-    # release would still request and write to the source release's corpus.
-    ident = {"1": {"release_name": "One", "help": {"a": {
-        "root_article_id": "r.htm", "article_id_prefix": "r",
-        "release_version": "1", "release_name": "One"}}}}
-    with tempfile.TemporaryDirectory() as tmp:
-        path = _write(tmp, "releases:\n" + presets.bootstrap_block(ident, "1", "2", "Two"))
-        opts = presets.resolve(presets.load_presets(path), "2", "help", "a")
-        check("bootstrap drops preset-level release_version/release_name",
-              opts["release_version"] == "2" and opts["release_name"] == "Two"
-              and HelpSnapshot(opts).options["output_dir"] == "docs/salesforce/2/help")
     check("bootstrap rejects an output_dir it cannot retarget",
           raises(OptionsError, presets.bootstrap_block, custom, "1", "2", "Two"))
 
@@ -236,9 +228,16 @@ def main():
         check("bootstrapping an existing release is a usage error", rc == cli.EXIT_USAGE)
 
     # --- CLI wiring -----------------------------------------------------------
-    check("every CLI flag is a valid preset option",
-          set(cli.HELP_FLAGS) <= presets.PRESET_OPTIONS["help"]
-          and set(cli.DEV_GUIDE_FLAGS) <= presets.PRESET_OPTIONS["dev_guide"])
+    sub_dests = {name: {a.dest for a in sp._actions}
+                 for action in cli.build_parser()._subparsers._group_actions
+                 for name, sp in action.choices.items()}
+    for command, flags in (("help", cli.HELP_FLAGS), ("dev-guide", cli.DEV_GUIDE_FLAGS),
+                           ("run", cli.RUN_FLAGS)):
+        missing = set(flags) - sub_dests[command]
+        check(f"every {command} override is an argparse flag (missing: {sorted(missing)})",
+              not missing)
+    check("split_csv strips and drops empties",
+          split_csv(" a, ,b,") == ["a", "b"] and split_csv([" x ", ""]) == ["x"])
     with tempfile.TemporaryDirectory() as tmp:
         blocker = Path(tmp) / "file"
         blocker.write_text("x")

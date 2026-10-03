@@ -203,7 +203,7 @@ applied in this order, and each step overrides the one before:
 
 | Option | Default | Notes |
 |---|---|---|
-| `release_name` | from the release block | Written into frontmatter. A release that isn't in `presets.yaml` has no default, so pass `--release-name`. |
+| `release_name` | from the release block | Written into frontmatter. Set on the release block or with `--release-name`, never on a preset. A release that isn't in `presets.yaml` has no default, so pass `--release-name`. |
 | `output_dir` | per source; see below | Relative paths resolve from the repo root. |
 | `mode` | `all` | See **Modes**. |
 | `headless` | `true` | Set `false` to watch the browser. |
@@ -287,14 +287,15 @@ python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spr
 
 Bootstrap appends a new release block to `presets.yaml` as plain text, so
 existing comments survive. It copies every preset's options and changes the
-release number in each `output_dir` (an `output_dir` outside `docs/salesforce/<release>/` is rejected, since the new release would share its corpus). It leaves out unset options and the two release-specific
+release number in each `output_dir` (an `output_dir` outside `docs/salesforce/<release>/` is rejected, since the new release would share its corpus). It leaves out the two release-specific
 options:
 
 - `expect_min_articles`: set new floors once you've seen the new release's counts.
 - `doc_version`: set it on the dev-guide presets once the new guide is published.
 
-A `release_version` or `release_name` set on an individual preset is dropped
-too, so every copied preset takes the new release block's values.
+A preset can't set `release_version` or `release_name` (they come only from
+its release block), and an empty or null option is rejected rather than read
+as the default, so every copied preset takes the new release block's values.
 
 `--discover` then runs a discovery on every new Help preset, which gives you
 the counts.
