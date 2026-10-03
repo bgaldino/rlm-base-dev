@@ -1,15 +1,15 @@
-"""Unit tests for tasks/rlm_snapshot_help.py — discovery guard + stabilization loop.
+"""Unit tests for scripts/doc_snapshot/help_portal.py — discovery guard + stabilization loop.
 
 Exercises `_validate_discovery` (pack 146: fail loud on a thin/empty walk) and
 `_discover_articles`'s polling loop (pack 146 companion: the sidebar hydrates
 at variable speed, so a single fixed wait races — live probing showed 3 of 4
 single-read trials at a fixed 3s wait succeeding and one catching the tree
-mid-hydration) against a fake `page` stub. No browser or CumulusCI runtime is
+mid-hydration) against a fake `page` stub. No browser or Playwright install is
 needed: `_validate_discovery` uses only `self.options`, and `_discover_articles`
 only calls `page.goto` / `page.wait_for_timeout` / `page.evaluate`, all of
 which the stub fakes.
 
-Run:  <cci-venv-python> tests/test_snapshot_help.py
+Run:  python3 tests/test_snapshot_help.py   (stdlib only)
 """
 
 import asyncio
@@ -18,10 +18,10 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from tasks.rlm_snapshot_help import (  # noqa: E402
-    SnapshotSalesforceHelp,
-    CommandException,
-    TaskOptionsError,
+from scripts.doc_snapshot.help_portal import (  # noqa: E402
+    HelpSnapshot,
+    OptionsError,
+    SnapshotError,
 )
 
 
@@ -50,17 +50,16 @@ class _NullLogger:
 
 
 def _task(**options):
-    # Neither _validate_discovery nor _discover_articles touch CumulusCI init
-    # state (org_config, project_config, etc.) — only self.options/self.logger —
-    # so bypass BaseTask.__init__ entirely.
-    t = SnapshotSalesforceHelp.__new__(SnapshotSalesforceHelp)
+    # Neither _validate_discovery nor _discover_articles needs the option
+    # normalization __init__ runs — only self.options/self.logger — so bypass
+    # __init__ and set exactly the options each check exercises.
+    t = HelpSnapshot.__new__(HelpSnapshot)
     t.options = {
         "article_id_prefix": "ind.example",
         "root_article_id": "ind.example_introduction.htm",
         "expect_min_articles": None,
         "wait_ms": 1,
         "discover_timeout_ms": 5,
-        "include_release_param": False,
         "release_version": "264",
         **options,
     }
@@ -105,17 +104,22 @@ def main():
     try:
         t._validate_discovery(0, 3, True)
         check("zero kept raises", False)
-    except CommandException:
+    except SnapshotError:
         check("zero kept raises", True)
 
     check("nonzero kept with no expect_min_articles passes",
           t._validate_discovery(1, 3, True) is None)
+    try:
+        t._validate_discovery(1, 3, True, only_root=True)
+        check("root-only walk raises (wrong root id)", False)
+    except SnapshotError:
+        check("root-only walk raises (wrong root id)", True)
 
     t2 = _task(expect_min_articles=50)
     try:
         t2._validate_discovery(10, 12, True)
         check("below expect_min_articles raises", False)
-    except CommandException:
+    except SnapshotError:
         check("below expect_min_articles raises", True)
     check("at-or-above expect_min_articles passes",
           t2._validate_discovery(50, 60, True) is None)
@@ -123,34 +127,8 @@ def main():
     try:
         t2._validate_discovery(60, 60, False)
         check("unstabilized-at-timeout raises even above expect_min_articles", False)
-    except CommandException:
+    except SnapshotError:
         check("unstabilized-at-timeout raises even above expect_min_articles", True)
-
-    # --- _validate_timing_options -------------------------------------------
-    t7 = _task(wait_ms=0)
-    try:
-        t7._validate_timing_options()
-        check("wait_ms=0 raises", False)
-    except TaskOptionsError:
-        check("wait_ms=0 raises", True)
-
-    t8 = _task(wait_ms=-100)
-    try:
-        t8._validate_timing_options()
-        check("negative wait_ms raises", False)
-    except TaskOptionsError:
-        check("negative wait_ms raises", True)
-
-    t9 = _task(discover_timeout_ms=0)
-    try:
-        t9._validate_timing_options()
-        check("discover_timeout_ms=0 raises", False)
-    except TaskOptionsError:
-        check("discover_timeout_ms=0 raises", True)
-
-    t10 = _task()
-    check("positive wait_ms/discover_timeout_ms passes",
-          t10._validate_timing_options() is None)
 
     # --- _discover_articles polling loop -----------------------------------
     async def run_discover(t, page):
@@ -169,6 +147,20 @@ def main():
     check("recovers from a mid-hydration partial read to the stabilized count",
           len(result) == 83)
     check("recovered walk reports stabilized", stabilized3 is True)
+
+    # Root-only reads repeated (the SPA lingering mid-hydration) must not count
+    # as stable: the walk keeps polling and recovers the full tree, and only a
+    # budget spent entirely on root-only reads comes back unstabilized.
+    root = ["ind.example_introduction.htm"]
+    t3b = _task(discover_timeout_ms=10)
+    page3b = _FakePage([_articles(root), _articles(root), _articles(root),
+                        _articles([f"ind.example_{n}.htm" for n in range(83)])])
+    result3b, stabilized3b = asyncio.run(run_discover(t3b, page3b))
+    check("repeated root-only reads keep polling until the tree hydrates",
+          len(result3b) == 83 and stabilized3b is True)
+    t3c = _task(discover_timeout_ms=4)
+    _, stabilized3c = asyncio.run(run_discover(t3c, _FakePage([_articles(root)])))
+    check("root-only for the whole budget reports unstabilized", stabilized3c is False)
 
     # Already-stable on the first read: two consecutive equal non-zero reads
     # required, so it takes exactly 2 polls even when the count never moves.
@@ -244,7 +236,7 @@ def main():
     try:
         t7c._validate_discovery(len(result7c), len(result7c), stabilized7c)
         check("validate_discovery rejects an unstabilized above-floor result", False)
-    except CommandException:
+    except SnapshotError:
         check("validate_discovery rejects an unstabilized above-floor result", True)
 
     # PR #485 review: subtree_only prunes from the whole walk, so stability on
@@ -252,14 +244,16 @@ def main():
     # the first read while an outside branch is still hydrating; the walk must
     # not stabilize until the full (id, parent) set repeats.
     root = {"id": "rn.rev.htm", "title": "", "parent_id": None}
+    # A root-only read never counts as stable, so each walk carries one child.
+    child = {"id": "rn.rev_child.htm", "title": "", "parent_id": "rn.rev.htm"}
     outside = [{"id": f"rn.out_{n}.htm", "title": "", "parent_id": None} for n in range(3)]
     t7d = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm",
                 subtree_only=True, wait_ms=1, discover_timeout_ms=10)
-    page7d = _FakePage([[root] + outside[:1], [root] + outside[:2],
-                        [root] + outside, [root] + outside])
+    page7d = _FakePage([[root, child] + outside[:1], [root, child] + outside[:2],
+                        [root, child] + outside, [root, child] + outside])
     result7d, stabilized7d = asyncio.run(run_discover(t7d, page7d))
     check("subtree_only waits for the out-of-subtree walk to stop changing",
-          page7d.evaluate_calls == 4 and len(result7d) == 4)
+          page7d.evaluate_calls == 4 and len(result7d) == 5)
     check("subtree_only walk reports stabilized once the full set repeats",
           stabilized7d is True)
 
@@ -269,7 +263,7 @@ def main():
     flat = {"id": "rn.out_top.htm", "title": "", "parent_id": None}
     t7e = _task(article_id_prefix="rn.", root_article_id="rn.rev.htm",
                 subtree_only=True, wait_ms=1, discover_timeout_ms=10)
-    page7e = _FakePage([[root, flat], [root, dict(flat, top_level=True)]])
+    page7e = _FakePage([[root, flat, child], [root, dict(flat, top_level=True), child]])
     result7e, stabilized7e = asyncio.run(run_discover(t7e, page7e))
     check("subtree_only waits for a late top_level flag to stop changing",
           page7e.evaluate_calls == 3 and stabilized7e is True
@@ -474,7 +468,7 @@ def main():
     from pathlib import Path
 
     async def run_capture_articles(t, browser, articles, articles_dir, manifest, manifest_path):
-        await t._capture_articles(browser, articles, articles_dir, manifest, manifest_path)
+        return await t._capture_articles(browser, articles, articles_dir, manifest, manifest_path)
 
     class _FakeErrorPage:
         async def goto(self, url, wait_until=None, timeout=None):
@@ -526,7 +520,7 @@ def main():
         t13._save_manifest = lambda path, m: None  # avoid touching disk mid-run
         t13._article_url = lambda aid: f"https://example.test/{aid}"
 
-        asyncio.run(run_capture_articles(
+        failed13 = asyncio.run(run_capture_articles(
             t13,
             _FakeErrorBrowser(),
             manifest["articles"],
@@ -546,6 +540,55 @@ def main():
               refreshed["title"] == "A Previously Real Title")
         check("refresh-to-error marks status error",
               refreshed["status"] == "error")
+        check("_capture_articles returns this run's failed ids",
+              failed13 == [article_id])
+
+    # --- run-level failure reporting ------------------------------------------
+    # A run whose own captures errored must exit non-zero (after saving), and a
+    # Playwright error must surface as SnapshotError so a batch run continues.
+    from scripts.doc_snapshot import _core
+
+    check("no failed captures does not raise",
+          _core.raise_on_capture_errors([], 5, "articles") is None)
+    try:
+        _core.raise_on_capture_errors(["b", "a"], 5, "articles")
+        msg = ""
+    except SnapshotError as exc:
+        msg = str(exc)
+    check("failed captures raise SnapshotError naming the ids",
+          msg.startswith("2 of 5 articles failed to capture: a, b"))
+
+    import types
+    fake_pkg = types.ModuleType("playwright")
+    fake_api = types.ModuleType("playwright.async_api")
+
+    class _FakePlaywrightError(Exception):
+        pass
+
+    fake_api.Error = _FakePlaywrightError
+    saved = {k: sys.modules.get(k) for k in ("playwright", "playwright.async_api")}
+    sys.modules.update({"playwright": fake_pkg, "playwright.async_api": fake_api})
+    try:
+        async def _boom():
+            raise _FakePlaywrightError("Timeout 30000ms exceeded")
+
+        async def _fine():
+            return {"ok": 1}
+
+        try:
+            _core.run_browser(_boom())
+            translated = False
+        except SnapshotError:
+            translated = True
+        check("Playwright error becomes SnapshotError", translated)
+        check("run_browser returns the coroutine's result",
+              _core.run_browser(_fine()) == {"ok": 1})
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                sys.modules.pop(k, None)
+            else:
+                sys.modules[k] = v
 
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1

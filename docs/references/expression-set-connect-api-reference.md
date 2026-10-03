@@ -560,7 +560,7 @@ JSON blob** into the element editor — there is no documented API path.
 - **Tooling base:** `{instance}/services/data/v68.0/tooling/sobjects/ExpressionSetDefinitionVersion`
 - **Token for manual API checks:** `yes | sf org auth show-access-token --target-org <sf_alias>`
   (add `--json` to read `result.accessToken`). Take only `instanceUrl` from
-  `sf org display --json`: since sf 2.145 its `accessToken` is redacted unless
+  `sf org display --json`: since sf 2.136.8 its `accessToken` is redacted unless
   `SF_TEMP_SHOW_SECRETS=true`. In Python, `scripts/sf_token.py`'s `org_auth(alias)` returns both.
 - **Validate a payload offline:** `python scripts/ai/validate_expression_set.py <file.json> [--overlay|--definition]`
 

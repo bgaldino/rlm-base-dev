@@ -1,0 +1,252 @@
+"""Load ``presets.yaml`` and turn a preset plus CLI overrides into options.
+
+PyYAML is imported lazily (inside ``load_presets``) so the snapshot modules and
+their offline tests stay importable under a bare stdlib interpreter.
+"""
+
+import json
+import re
+from pathlib import Path
+from typing import Any, Dict, Iterator, List, Optional, Tuple
+
+from scripts.doc_snapshot._core import OptionsError, SnapshotError, blank_options
+
+PRESETS_PATH = Path(__file__).resolve().parent / "presets.yaml"
+
+# Preset kinds, as they appear under a release in presets.yaml.
+KINDS = ("help", "dev_guide")
+
+# Options a preset may set, per kind. The snapshotters ignore unknown keys, so
+# a typo (`output_dr`, `subtree_ony`) would silently fall back to a default and
+# could mix release notes into the Help corpus; load_presets() rejects it. A
+# preset's release identity (`release_version`, `release_name`) comes only
+# from its release block, so a copied preset can never point at another release.
+SHARED_OPTIONS = frozenset(("output_dir", "mode", "headless", "concurrency", "wait_ms"))
+PRESET_OPTIONS = {
+    "help": SHARED_OPTIONS | frozenset((
+        "area", "root_article_id", "article_id_prefix", "discover_timeout_ms",
+        "expect_min_articles", "subtree_only",
+    )),
+    "dev_guide": SHARED_OPTIONS | frozenset((
+        "deliverable", "doc_version", "sections", "batch_delay_ms",
+        "follow_links", "max_pages",
+    )),
+}
+
+# Dropped when bootstrapping a new release: facts about a captured corpus (a
+# verified count floor, a pinned atlas version), not about the root.
+_BOOTSTRAP_DROP = ("expect_min_articles", "doc_version")
+
+
+def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
+    """Parse and sanity-check the preset file; returns its ``releases`` map."""
+    try:
+        import yaml
+    except ImportError:
+        raise SnapshotError(
+            "PyYAML is required to read presets. Install it with: "
+            "python -m pip install -r scripts/doc_snapshot/requirements.txt"
+        )
+    path = path or PRESETS_PATH
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        raise OptionsError(f"cannot read presets file {path}: {exc}") from exc
+    releases = data.get("releases") if isinstance(data, dict) else None
+    if not isinstance(releases, dict):
+        raise OptionsError(f"{path}: top-level 'releases' mapping is missing")
+
+    normalized: Dict[str, Any] = {}
+    for release, block in releases.items():
+        release = str(release)
+        if not isinstance(block, dict) or not block.get("release_name"):
+            raise OptionsError(f"{path}: release {release} needs a release_name")
+        for kind in KINDS:
+            # A bare `help:` (null) means none; `help: []` or `false` is a mistake.
+            presets = block.get(kind)
+            if presets is None:
+                presets = {}
+            if not isinstance(presets, dict):
+                raise OptionsError(f"{path}: {release}.{kind} must be a mapping")
+            for key, preset in presets.items():
+                if not isinstance(preset, dict):
+                    raise OptionsError(
+                        f"{path}: {release}.{kind}.{key} must be a mapping"
+                    )
+                unknown = sorted(set(map(str, preset)) - PRESET_OPTIONS[kind])
+                if unknown:
+                    raise OptionsError(
+                        f"{path}: {release}.{kind}.{key} has unknown option(s) "
+                        f"{', '.join(unknown)} (valid: "
+                        f"{', '.join(sorted(PRESET_OPTIONS[kind]))})"
+                    )
+                # A null would silently read as "use the default"; blank values
+                # are rejected by the snapshotters too, but say so at load time.
+                empty = sorted(
+                    [str(n) for n, v in preset.items() if v is None] + blank_options(preset)
+                )
+                if empty:
+                    raise OptionsError(
+                        f"{path}: {release}.{kind}.{key} has empty option(s) "
+                        f"{', '.join(empty)}; omit them to use the default"
+                    )
+        normalized[release] = block
+    return normalized
+
+
+def iter_presets(
+    releases: Dict[str, Any], release: Optional[str] = None
+) -> Iterator[Tuple[str, str, str, Dict[str, Any]]]:
+    """Yield ``(release, kind, key, preset)`` in file order."""
+    for rel, block in releases.items():
+        if release is not None and rel != str(release):
+            continue
+        for kind in KINDS:
+            for key, preset in (block.get(kind) or {}).items():
+                yield rel, kind, str(key), preset
+
+
+def preset_keys(releases: Dict[str, Any], release: str, kind: str) -> List[str]:
+    block = releases.get(str(release)) or {}
+    return [str(k) for k in (block.get(kind) or {})]
+
+
+def resolve(
+    releases: Dict[str, Any],
+    release: str,
+    kind: str,
+    key: str,
+    overrides: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Build snapshotter options: release defaults < preset < overrides.
+
+    ``key`` may name no preset for an ad hoc run; the caller's
+    overrides must then supply whatever the snapshotter requires, and the
+    snapshotter's own validation reports anything missing or blank. Overrides
+    whose value is None are ignored, so unset CLI flags never mask a preset value.
+    """
+    release = str(release)
+    block = releases.get(release) or {}
+    presets = block.get(kind) or {}
+    options: Dict[str, Any] = {"release_version": release}
+    if block.get("release_name"):
+        options["release_name"] = block["release_name"]
+
+    if key in presets:
+        options.update(presets[key])
+    elif not overrides_complete(kind, overrides):
+        known = ", ".join(presets) or "none"
+        needed = ("--root-article-id and --prefix" if kind == "help" else "--deliverable")
+        raise OptionsError(
+            f"no {kind} preset {key!r} for release {release} (known: {known}). "
+            f"Pass {needed} for an ad hoc run."
+        )
+    if kind == "help":
+        options.setdefault("area", key)
+
+    for name, value in (overrides or {}).items():
+        if value is not None:
+            options[name] = value
+    return options
+
+
+def overrides_complete(kind: str, overrides: Optional[Dict[str, Any]]) -> bool:
+    """True when the overrides alone describe a run (no preset needed)."""
+    overrides = overrides or {}
+    if kind == "help":
+        return bool(overrides.get("root_article_id") and overrides.get("article_id_prefix"))
+    # The deliverable has a default, but an unknown key must not fall back to it:
+    # a mistyped `--guide` would otherwise snapshot (or refresh) the RLM guide.
+    return bool(overrides.get("deliverable"))
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap — add a release block by copying another one
+# ---------------------------------------------------------------------------
+
+
+def bootstrap_block(
+    releases: Dict[str, Any], source: str, target: str, release_name: str
+) -> str:
+    """Render a ``releases.<target>`` YAML block copied from ``source``.
+
+    Root IDs and prefixes carry over unverified; ``expect_min_articles`` and
+    ``doc_version`` are dropped, and release numbers inside ``output_dir`` are
+    rewritten. Returned as text so appending it keeps the file's comments.
+    """
+    source, target = str(source).strip(), str(target).strip()
+    release_name = str(release_name or "").strip()
+    if not target:
+        raise OptionsError("--to needs a release version, e.g. 266")
+    if source not in releases:
+        raise OptionsError(f"no release {source} in presets (known: {', '.join(releases)})")
+    if target in releases:
+        raise OptionsError(f"release {target} already exists in presets")
+    if not release_name:
+        raise OptionsError("a release name is required, e.g. \"Spring '27\"")
+
+    src_block = releases[source]
+    lines = [
+        "",
+        "  # -------------------------------------------------------------------------",
+        f"  # {release_name} ({target}) — bootstrapped from {source}.",
+        "  #",
+        f"  # Root IDs and prefixes are copied from {source} and UNVERIFIED for {target}.",
+        "  # Run `--mode discover` per area, check each \"Discovered N\" line, then add",
+        "  # expect_min_articles floors (and dev-guide doc_version pins) once captured.",
+        "  # -------------------------------------------------------------------------",
+        f"  {_scalar(target)}:",
+        f"    release_name: {_scalar(release_name)}",
+    ]
+    for kind in KINDS:
+        presets = src_block.get(kind) or {}
+        if not presets:
+            continue
+        lines.append(f"    {kind}:")
+        for key, preset in presets.items():
+            body = []
+            for name, value in preset.items():
+                if name in _BOOTSTRAP_DROP:
+                    continue
+                if name == "output_dir":
+                    value = _retarget_output_dir(str(value), source, target)
+                    if value is None:
+                        raise OptionsError(
+                            f"{source} {kind}.{key}: output_dir {preset[name]!r} has no "
+                            f"salesforce/{source}/ segment to retarget, so {target} would "
+                            "share its corpus. Use a docs/salesforce/<release>/ path, or "
+                            "omit output_dir for the default."
+                        )
+                body.extend(_emit(name, value, indent=8))
+            # A bare `key:` would load as null, which load_presets() rejects.
+            lines.append(f"      {key}:" if body else f"      {key}: {{}}")
+            lines.extend(body)
+    return "\n".join(lines) + "\n"
+
+
+def _retarget_output_dir(output_dir: str, source: str, target: str) -> Optional[str]:
+    """Swap the release in ``salesforce/{source}/``; None when there is none."""
+    new, count = re.subn(
+        rf"(^|/)salesforce/{re.escape(source)}(/|$)",
+        rf"\g<1>salesforce/{target}\g<2>",
+        output_dir,
+    )
+    return new if count else None
+
+
+def _scalar(value: Any) -> str:
+    # JSON scalars are valid YAML flow scalars; always quote strings so
+    # release numbers stay strings and apostrophes need no escaping.
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    return json.dumps(str(value), ensure_ascii=False)
+
+
+def _emit(name: str, value: Any, indent: int) -> List[str]:
+    pad = " " * indent
+    if isinstance(value, (list, tuple)):
+        return [f"{pad}{name}:"] + [f"{pad}  - {_scalar(v)}" for v in value]
+    return [f"{pad}{name}: {_scalar(value)}"]
