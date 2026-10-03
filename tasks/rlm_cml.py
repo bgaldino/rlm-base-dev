@@ -78,6 +78,10 @@ HEADER_DECL_RE = re.compile(r"^\s*(define|property|extern)\b")
 MAX_INLINE_UNRESOLVED_TAGS = 10
 
 
+#: A double- or single-quoted CML string literal, honouring backslash escapes.
+STRING_LITERAL_RE = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'')
+
+
 def expected_blob_filename(esdv: Dict[str, str]) -> str:
     """The ``blobs/`` file ImportCML uploads for an ExpressionSetDefinitionVersion row.
 
@@ -1229,8 +1233,11 @@ class ValidateCML(BaseTask):
         first_type_line = None
 
         for line_no, line in enumerate(lines, start=1):
-            brace_balance += line.count("{") - line.count("}")
-            paren_balance += line.count("(") - line.count(")")
+            # Count delimiters outside string literals only: a value such as
+            # "}" is data, and a structural error now fails the task.
+            syntax = STRING_LITERAL_RE.sub('""', line)
+            brace_balance += syntax.count("{") - syntax.count("}")
+            paren_balance += syntax.count("(") - syntax.count(")")
             if brace_balance < 0:
                 issues.append(("error", line_no, "Unbalanced '}' brace."))
                 brace_balance = 0

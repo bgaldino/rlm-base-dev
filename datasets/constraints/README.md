@@ -299,11 +299,11 @@ cci task run validate_cml \
 
 ### What Gets Validated
 
-- **Syntax** -- brace/parenthesis balance, type declarations, relation references
+- **Syntax** -- brace/parenthesis balance (outside string literals), type declarations, relation references. A syntax **error** fails the task
 - **Annotations** -- checks for supported annotation keys, validates boolean/integer/enum/date values
 - **Type hierarchy** -- verifies base types exist, detects duplicate type definitions
 - **Relations** -- ensures relation target types are defined
-- **Association coverage** (when `data_dir` is provided):
+- **Association coverage** (when `data_dirs` or `data_dir` is provided; with `data_dirs`, each model's blob against its own directory's ESC rows):
   - Checks that CML types have corresponding ESC type associations
   - Checks that CML relations have corresponding ESC port associations
   - Reports ESC associations that reference missing CML types or relations

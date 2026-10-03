@@ -120,6 +120,18 @@ with tempfile.TemporaryDirectory() as root:
     check("an unbalanced brace raises instead of only logging",
           _raises(lambda: _task(data_dirs=broken)._run_task(), "CML validation found errors"))
 
+    print("Braces inside string literals are data, not syntax")
+    quoted = _model_dir(root, "ModelG", "ModelG", [],
+                        body='type Widget {\n    string label = "}";\n    string open = \'{(\';\n}\n')
+    t = _task(data_dirs=quoted)
+    try:
+        t._run_task()
+        ok = True
+    except Exception as exc:
+        ok, t.logger.lines = False, t.logger.lines + [str(exc)]
+    check("a brace or paren inside a string literal does not fail validation",
+          ok and not any("Unbalanced" in line for line in t.logger.lines), repr(t.logger.lines[-3:]))
+
     print("An expression_set_name override matches by display Name or ApiName")
     for override in ("Model A", "ModelA"):
         t = _task(cml_dir=os.path.dirname(targets[0][0]), data_dir=a, expression_set_name=override)
