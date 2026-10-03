@@ -278,6 +278,11 @@ Validate checks CML file structure, annotations, and optionally cross-references
 ### Usage
 
 ```bash
+# What prepare_constraints runs: each model's shipped blob against its own ESC rows
+cci task run validate_cml \
+    -o data_dirs "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
+
+# Reference .cml copies against one data dir
 cci task run validate_cml \
     -o cml_dir scripts/cml \
     -o data_dir datasets/constraints/qb/QuantumBitComplete
@@ -289,6 +294,7 @@ cci task run validate_cml \
 |--------|----------|-------------|
 | `cml_dir` | No | Directory containing .cml files (default: `scripts/cml`) |
 | `data_dir` | No | Constraints data plan directory for ESC association checking |
+| `data_dirs` | No | Comma-separated constraints data dirs. Each dir's own `blobs/*.ffxblob` is validated against that dir's ESC rows; replaces `cml_dir`/`data_dir` when set. A dir with no blob is an error |
 | `expression_set_name` | No | Override Expression Set name for association checks |
 
 ### What Gets Validated
@@ -315,7 +321,7 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full QuantumB
 | 3 | `assign_permission_sets` | `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 | 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle (Robot Framework) |
-| 6 | `validate_cml` | `constraints_data` + `qb` | Structure-validate all `scripts/cml/*.cml`; cross-reference ESC associations only against the QuantumBitComplete data dir (other models, incl. QuantumBitBundle, get structure-only validation) |
+| 6 | `validate_cml` | `constraints_data` + `qb` | Validate every model steps 7-10 import: each data dir's own `blobs/*.ffxblob` is structure-checked and cross-referenced against that dir's ESC associations (`data_dirs`) |
 | 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import QuantumBitComplete model (imported but left **inactive** — see note below) |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import QuantumBitPCM model (imported but left **inactive** — see note below) |
@@ -679,7 +685,8 @@ These `.cml` files define the constraint model types, relations, attributes, and
 > `blobs/ESDV_<Model>_V<n>.ffxblob` is **plain text — it is the CML source itself**, not a
 > compiled binary, and `import_cml` uploads it verbatim to
 > `ExpressionSetDefinitionVersion.ConstraintModel`. There is no compile step. `import_cml`
-> never reads a `.cml` file; only `validate_cml` does, via its `cml_dir` option.
+> never reads a `.cml` file; only `validate_cml` does, via its `cml_dir` option (its `data_dirs`
+> option validates the `.ffxblob` itself).
 >
 > **To change a constraint model, edit the `.ffxblob`** and keep the sibling
 > `scripts/cml/<Model>.cml` in sync (they are maintained byte-identical, so a `cp` from the

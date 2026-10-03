@@ -1053,41 +1053,73 @@ class ValidateCML(BaseTask):
             "description": "Constraints data plan directory for association checking",
             "required": False,
         },
+        "data_dirs": {
+            "description": (
+                "Comma-separated constraints data directories. Each directory's own "
+                "blobs/*.ffxblob (the model import_cml uploads) is validated against that "
+                "directory's ESC associations. Replaces cml_dir/data_dir when set."
+            ),
+            "required": False,
+        },
         "expression_set_name": {
             "description": "Override Expression Set name for association checks",
             "required": False,
         },
     }
 
-    def _run_task(self):
+    def _collect_targets(self) -> List[Tuple[str, str, List[str]]]:
+        """Return ``(path, label, dataset_dirs)`` for every model file to validate.
+
+        With ``data_dirs``, each directory's own ``blobs/*.ffxblob`` is checked
+        against that directory alone, so every model is validated against its
+        own ESC rows. Otherwise the ``cml_dir`` copies are checked against the
+        single optional ``data_dir``.
+        """
+        data_dirs = _split_list_values(self.options.get("data_dirs") or "")
+        if data_dirs:
+            targets = []
+            for dd in data_dirs:
+                blob_dir = os.path.join(dd, "blobs")
+                blobs = sorted(
+                    name for name in (os.listdir(blob_dir) if os.path.isdir(blob_dir) else [])
+                    if name.endswith(".ffxblob")
+                )
+                if not blobs:
+                    raise TaskOptionsError(f"No .ffxblob model found in {blob_dir}")
+                targets.extend(
+                    (os.path.join(blob_dir, name), os.path.join(dd, "blobs", name), [dd])
+                    for name in blobs
+                )
+            return targets
+
         cml_dir = self.options.get("cml_dir") or "scripts/cml"
         data_dir = self.options.get("data_dir")
         dataset_dirs = [data_dir] if data_dir else []
-        expression_set_override = (self.options.get("expression_set_name") or "").strip()
-
-        cml_files = sorted([
-            os.path.join(cml_dir, name)
-            for name in os.listdir(cml_dir)
+        return [
+            (os.path.join(cml_dir, name), name, dataset_dirs)
+            for name in sorted(os.listdir(cml_dir))
             if name.endswith(".cml")
-        ])
+        ]
 
-        if not cml_files:
-            self.logger.warning(f"No .cml files found in {cml_dir}")
+    def _run_task(self):
+        expression_set_override = (self.options.get("expression_set_name") or "").strip()
+        targets = self._collect_targets()
+
+        if not targets:
+            self.logger.warning("No CML model files found to validate")
             return
 
-        self.logger.info(f"Validating {len(cml_files)} CML file(s) in {cml_dir}")
-
-        # Load ESC associations from data directories
-        associations = {}
-        for dd in dataset_dirs:
-            associations.update(self._read_dataset_associations(dd))
+        self.logger.info(f"Validating {len(targets)} CML model file(s)")
 
         all_issues = {}
         association_issues = {}
         has_errors = False
 
-        for path in cml_files:
-            rel_path = os.path.relpath(path, cml_dir)
+        for path, rel_path, dataset_dirs in targets:
+            # Associations come from this target's own data directories only.
+            associations = {}
+            for dd in dataset_dirs:
+                associations.update(self._read_dataset_associations(dd))
             issues, types, relations, leaf_types = self._validate_file(path)
 
             if issues:
@@ -1413,7 +1445,9 @@ class ValidateCML(BaseTask):
             with open(expr_path, newline="") as handle:
                 reader = csv.DictReader(handle)
                 for row in reader:
-                    name = (row.get("Name") or "").strip()
+                    # ESC rows are keyed by ExpressionSet.ApiName, which differs
+                    # from the display Name for "QuantumBit PCM"/"QuantumBit Bundle".
+                    name = (row.get("ApiName") or row.get("Name") or "").strip()
                     if name:
                         return name
         return cml_name

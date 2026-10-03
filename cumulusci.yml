@@ -4792,8 +4792,9 @@ flows:
         task: validate_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
-          cml_dir: scripts/cml
-          data_dir: *quantumbit_constraints_data_dir
+          # Every model steps 7-10 import, each checked against its own ESC rows.
+          # Keep in step with the import_cml data_dir values below.
+          data_dirs: "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
       7:
         task: import_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb

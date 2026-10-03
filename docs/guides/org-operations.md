@@ -114,8 +114,8 @@ cci task run export_cml --org <org> -o developer_name QuantumBitComplete -o vers
 # Import a constraint model (with dry run)
 cci task run import_cml --org <org> -o data_dir datasets/constraints/qb/QuantumBitComplete -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm" -o dry_run true
 
-# Validate CML files
-cci task run validate_cml -o cml_dir scripts/cml -o data_dir datasets/constraints/qb/QuantumBitComplete
+# Validate each model's shipped blob against its own ESC rows
+cci task run validate_cml -o data_dirs "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
 ```
 
 For detailed examples and usage, see:

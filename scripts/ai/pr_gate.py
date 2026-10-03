@@ -371,6 +371,7 @@ CHECKS = [
                   "scripts/expression_sets/", "scripts/cml/",
                   "tests/test_expression_set_schema.py",
                   "tests/test_rlm_cml_import_failure.py",
+                  "tests/test_rlm_cml_validate.py",
                   "tests/test_rlm_community.py",
                   "tests/data/expression_set/",
                   "datasets/expression_set_overlays/",
@@ -523,6 +524,7 @@ STDLIB_SUITES = [
 REQUESTS_SUITES = [
     "tests/test_expression_set_schema.py",
     "tests/test_rlm_cml_import_failure.py",
+    "tests/test_rlm_cml_validate.py",
     "tests/test_rlm_community.py",
 ]
 
