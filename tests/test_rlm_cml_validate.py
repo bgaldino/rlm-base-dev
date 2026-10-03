@@ -132,6 +132,33 @@ with tempfile.TemporaryDirectory() as root:
     check("a brace or paren inside a string literal does not fail validation",
           ok and not any("Unbalanced" in line for line in t.logger.lines), repr(t.logger.lines[-3:]))
 
+    print("Comment markers inside string literals are data, not comments")
+    markers = _model_dir(root, "ModelH", "ModelH", [], body=(
+        'type Widget {\n'
+        '    string a = "/*";\n'
+        "    string b = '//';\n"
+        '    string c = "*/";\n'
+        "    string d = '/*';\n"
+        '    string e = "esc \\" // still a string";\n'
+        '}\n'))
+    t = _task(data_dirs=markers)
+    try:
+        t._run_task()
+        ok = True
+    except Exception as exc:
+        ok, t.logger.lines = False, t.logger.lines + [str(exc)]
+    check("//, /* and */ inside either quote style do not start or end a comment",
+          ok and not any("Unbalanced" in line for line in t.logger.lines), repr(t.logger.lines[-3:]))
+
+    print("Unbalanced parentheses are errors that fail the task")
+    early = _model_dir(root, "ModelI", "ModelI", [], body="type Widget {\n    x = 1);\n}\n")
+    check("a stray ')' fails validation",
+          _raises(lambda: _task(data_dirs=early)._run_task(), "CML validation found errors"))
+    unclosed = _model_dir(root, "ModelJ", "ModelJ", [],
+                          body="type Widget {\n    constraint(foo(\n}\n")
+    check("an unclosed '(' at end of file fails validation",
+          _raises(lambda: _task(data_dirs=unclosed)._run_task(), "CML validation found errors"))
+
     print("An expression_set_name override matches by display Name or ApiName")
     for override in ("Model A", "ModelA"):
         t = _task(cml_dir=os.path.dirname(targets[0][0]), data_dir=a, expression_set_name=override)

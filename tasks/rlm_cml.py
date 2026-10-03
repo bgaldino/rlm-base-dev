@@ -1242,7 +1242,7 @@ class ValidateCML(BaseTask):
                 issues.append(("error", line_no, "Unbalanced '}' brace."))
                 brace_balance = 0
             if paren_balance < 0:
-                issues.append(("warning", line_no, "Unbalanced ')' parenthesis."))
+                issues.append(("error", line_no, "Unbalanced ')' parenthesis."))
                 paren_balance = 0
 
             define_parsed = self._parse_define(line)
@@ -1391,7 +1391,7 @@ class ValidateCML(BaseTask):
         if brace_balance != 0:
             issues.append(("error", None, "Unbalanced '{'/'}' braces in file."))
         if paren_balance != 0:
-            issues.append(("warning", None, "Unbalanced '('/')' parentheses in file."))
+            issues.append(("error", None, "Unbalanced '('/')' parentheses in file."))
 
         for line_no, rel_name, rel_type in relations:
             if rel_type not in types:
@@ -1410,29 +1410,54 @@ class ValidateCML(BaseTask):
 
     @staticmethod
     def _strip_comments(lines: List[str]) -> List[str]:
-        """Remove // and /* */ comments from source lines."""
+        """Remove // and /* */ comments from source lines, leaving string literals intact.
+
+        Scans character by character so a comment marker inside a quoted string
+        (``"/*"``, ``'//'``) is data, not the start of a comment: treating it as a
+        comment would drop real code and, now that a structural error fails the
+        task, reject a valid model. Strings honour backslash escapes and end at
+        the line; block comments may span lines.
+        """
         cleaned = []
         in_block = False
         for line in lines:
-            text = line
-            if in_block:
-                if "*/" in text:
-                    text = text.split("*/", 1)[1]
-                    in_block = False
-                else:
-                    cleaned.append("")
+            out = []
+            i, n = 0, len(line)
+            quote = ""
+            while i < n:
+                ch = line[i]
+                nxt = line[i + 1] if i + 1 < n else ""
+                if in_block:
+                    if ch == "*" and nxt == "/":
+                        in_block = False
+                        i += 2
+                    else:
+                        i += 1
                     continue
-            while "/*" in text:
-                before, rest = text.split("/*", 1)
-                if "*/" in rest:
-                    text = before + rest.split("*/", 1)[1]
-                else:
-                    text = before
-                    in_block = True
+                if quote:
+                    out.append(ch)
+                    if ch == "\\" and nxt:
+                        out.append(nxt)
+                        i += 2
+                        continue
+                    if ch == quote:
+                        quote = ""
+                    i += 1
+                    continue
+                if ch in "\"'":
+                    quote = ch
+                    out.append(ch)
+                    i += 1
+                elif ch == "/" and nxt == "/":
                     break
-            if "//" in text:
-                text = text.split("//", 1)[0]
-            cleaned.append(text)
+                elif ch == "/" and nxt == "*":
+                    in_block = True
+                    i += 2
+                else:
+                    out.append(ch)
+                    i += 1
+            text = "".join(out)
+            cleaned.append(text if text.endswith("\n") or not line.endswith("\n") else text + "\n")
         return cleaned
 
     @staticmethod
