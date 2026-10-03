@@ -449,6 +449,24 @@ class RuleOwners(unittest.TestCase):
     def test_repo_rules_all_have_owners(self):
         self.assertTrue(analyzer.check_rule_owners(REPO).ok)
 
+    def test_success_detail_separates_inferred_from_defaulted(self):
+        rules = [
+            analyzer.RuleInfo(path="a", name="sfdmu-csv-data.mdc", globs=(),
+                              equivalent_skill="sfdmu-data-plans/SKILL.md", standalone=False,
+                              has_do_not=True, listed_in_skill_readme=True,
+                              owner="SFDMU Data Plans"),
+            analyzer.RuleInfo(path="b", name="analysis-artifacts.mdc", globs=(),
+                              equivalent_skill="", standalone=True, has_do_not=True,
+                              listed_in_skill_readme=True, owner=analyzer.DEFAULT_OWNER),
+        ]
+        real = analyzer.collect_rules
+        analyzer.collect_rules = lambda root: rules
+        try:
+            detail = analyzer.check_rule_owners(REPO).detail
+        finally:
+            analyzer.collect_rules = real
+        self.assertIn("1 inferred, 1 stand-alone defaulted", detail)
+
 
 if __name__ == "__main__":
     unittest.main()

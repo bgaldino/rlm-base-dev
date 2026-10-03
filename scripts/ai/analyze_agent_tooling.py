@@ -711,7 +711,10 @@ def check_rule_owners(root: Path) -> CheckResult:
     if unmapped:
         return CheckResult("rule owners", False,
                            "no OWNER_KEYWORDS entry for: " + "; ".join(unmapped))
-    return CheckResult("rule owners", True, f"{len(rules)} rule owners inferred")
+    defaulted = sum(1 for r in rules if not r.equivalent_skill and r.owner == DEFAULT_OWNER)
+    return CheckResult("rule owners", True,
+                       f"{len(rules)} rule owners assigned: {len(rules) - defaulted} inferred, "
+                       f"{defaulted} stand-alone defaulted to {DEFAULT_OWNER}")
 
 
 # Launch checks deliberately share the existing stdlib-only baseline entry point.
