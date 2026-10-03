@@ -179,7 +179,7 @@ keeps going. It then prints a summary table and exits 1 if anything failed.
   it tried to capture failed also exits 1, after saving its progress; the
   failed ids are named in the error and recorded in the manifest, and a later
   run retries them.
-- `2`: a usage error, such as an unknown preset or preset option, an empty selector, flag value, or `sections` list, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
+- `2`: a usage error, such as an unknown preset or preset option, an empty selector, flag value, or `sections` list, a list or mapping where an option takes one value (only `sections` may be a list), an integer option given `true` or `2.5`, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
 
 `check` always exits 0. Its hits are leads to verify, not failures.
 

@@ -424,8 +424,14 @@ class DevGuideSnapshot:
     # ------------------------------------------------------------------
 
     def _init_options(self) -> None:
-        validate_options(self.options, "release_version", "release_name")
-        self.options["release_version"] = str(self.options["release_version"])
+        validate_options(
+            self.options, "release_version", "release_name", list_options=("sections",)
+        )
+        # YAML reads `output_dir: 266` or `doc_version: 264.0` as a number.
+        for name in ("release_version", "release_name", "deliverable", "output_dir",
+                     "doc_version"):
+            if self.options.get(name) is not None:
+                self.options[name] = str(self.options[name])
         self.options["deliverable"] = (
             self.options.get("deliverable") or self.DEFAULT_DELIVERABLE
         )
@@ -441,16 +447,14 @@ class DevGuideSnapshot:
         # Each section is a TOC title or a page_id; use the page_id when a
         # title is ambiguous. validate_options() has rejected blank items.
         sections = self.options.get("sections")
-        if isinstance(sections, str):
+        if sections is not None and not isinstance(sections, (list, tuple)):
             sections = [sections]
         self.options["section_filters"] = (
             [str(section).strip() for section in sections] if sections else None
         )
-        self.options["doc_version"] = (
-            str(self.options["doc_version"]) if self.options.get("doc_version") else None
-        )
+        self.options["doc_version"] = self.options.get("doc_version") or None
         self.options["max_pages"] = as_int(self.options.get("max_pages"), 5000)
-        require_positive(self.options, "concurrency", "max_pages")
+        require_positive(self.options, "concurrency", "wait_ms", "max_pages")
         # Follow links by default for a whole-guide run; default off when specific
         # sections are requested (so a section capture stays scoped). Override with
         # follow_links: true to also pull in in-scope pages linked from a section
@@ -468,14 +472,9 @@ class DevGuideSnapshot:
         if not self.options.get("doc_version"):
             return
         manifest_path = self._manifest_path(resolve_output_dir(self.options["output_dir"]))
-        # Read it raw: run() loads (and logs) it again, and replaces an
-        # unreadable or non-object one, so that has nothing to conflict with.
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            return
-        if not isinstance(manifest, dict):
-            return
+        # Load it silently: run() loads (and logs) it again. A manifest it
+        # can't read comes back empty, so it has nothing to conflict with.
+        manifest = read_manifest(manifest_path, {"pages": []}, "pages")
         self._check_doc_version_change(
             manifest, manifest.get("doc_version"), self.options["mode"]
         )

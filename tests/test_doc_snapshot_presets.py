@@ -121,6 +121,10 @@ def main():
         check("non-mapping preset rejected at load",
               raises(OptionsError, presets.load_presets,
                      _write(tmp, "releases:\n  '1':\n    release_name: x\n    help:\n      a: 3\n")))
+        for group in ("help: []", "dev_guide: false", "help: ''"):
+            check(f"a falsy non-mapping group ({group}) is rejected at load",
+                  raises(OptionsError, presets.load_presets,
+                         _write(tmp, f"releases:\n  '1':\n    release_name: x\n    {group}\n")))
         check("missing releases mapping rejected",
               raises(OptionsError, presets.load_presets, _write(tmp, "foo: 1\n")))
         check("a misspelled preset option is rejected at load",
@@ -443,14 +447,33 @@ def main():
         (Path(tmp) / "manifest.json").write_text("[]")
         dg = DevGuideSnapshot(presets.resolve(releases, "264", "dev_guide", "rlm",
                                               {"output_dir": tmp}))
-        logging.disable(logging.WARNING)
-        try:
-            fresh = read_manifest(Path(tmp) / "manifest.json", {"pages": []}, "pages",
-                                  logging.getLogger("t"))
-        finally:
-            logging.disable(logging.NOTSET)
+        fresh = read_manifest(Path(tmp) / "manifest.json", {"pages": []}, "pages")
         check("a non-object manifest passes preflight and is replaced by defaults",
               dg.preflight() is None and fresh == {"pages": []})
+        for bad in ('{"pages": 5}', '{"pages": ["x"]}', '{"pages": [{"page_id": "a"}, null]}'):
+            (Path(tmp) / "manifest.json").write_text(bad)
+            fresh = read_manifest(Path(tmp) / "manifest.json", {"pages": []}, "pages")
+            check(f"a misshapen manifest ({bad}) passes preflight and is replaced",
+                  dg.preflight() is None and fresh == {"pages": []})
+    rlm = presets.resolve(releases, "264", "dev_guide", "rlm")
+    for name, value in (("output_dir", ["a"]), ("deliverable", {"a": 1}),
+                        ("sections", [["a"]]), ("sections", {"a": 1})):
+        check(f"{name}={value!r} is rejected, not crashed on",
+              raises(OptionsError, DevGuideSnapshot, {**rlm, name: value}))
+    for name, value in (("concurrency", True), ("max_pages", 2.5), ("wait_ms", -1)):
+        check(f"{name}={value!r} is rejected", raises(OptionsError, DevGuideSnapshot,
+                                                      {**rlm, name: value}))
+    yaml_numbers = DevGuideSnapshot({**rlm, "output_dir": 266, "doc_version": 264.0,
+                                     "sections": 5})
+    check("YAML numbers become strings (output_dir, doc_version, a lone section)",
+          yaml_numbers.options["output_dir"] == "266"
+          and yaml_numbers.options["doc_version"] == "264.0"
+          and yaml_numbers.options["section_filters"] == ["5"])
+    pcm_opts = presets.resolve(releases, "264", "help", "pcm")
+    check("a numeric root_article_id becomes a string",
+          HelpSnapshot({**pcm_opts, "root_article_id": 123}).options["root_article_id"] == "123")
+    check("a list-valued help option is rejected",
+          raises(OptionsError, HelpSnapshot, {**pcm_opts, "article_id_prefix": ["a"]}))
     with tempfile.TemporaryDirectory() as tmp:
         check("preflight with no manifest yet passes",
               DevGuideSnapshot(presets.resolve(releases, "264", "dev_guide", "rlm",

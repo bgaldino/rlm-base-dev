@@ -11,7 +11,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 # scripts/doc_snapshot/_core.py -> repo root
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -103,6 +103,9 @@ def as_int(value: Any, default: Optional[int]) -> Optional[int]:
     """Coerce a CLI/YAML value to int; None means ``default``."""
     if value is None:
         return default
+    # int() would read `true` as 1 and truncate 2.5 to 2.
+    if isinstance(value, (bool, float)):
+        raise OptionsError(f"expected an integer, got {value!r}")
     try:
         return int(value)
     except (TypeError, ValueError):
@@ -127,16 +130,28 @@ def blank_options(options: Dict[str, Any]) -> List[str]:
     return sorted(name for name, value in options.items() if blank(value))
 
 
-def validate_options(options: Dict[str, Any], *required: str) -> None:
-    """Reject blank values, then missing ``required`` ones.
+def validate_options(
+    options: Dict[str, Any], *required: str, list_options: Tuple[str, ...] = ()
+) -> None:
+    """Reject blank or misshapen values, then missing ``required`` ones.
 
     A blank value must not read as "use the default": an unset shell variable
     passed as ``--output-dir ""`` would send release notes into the Help
-    corpus, and ``sections: []`` would capture the whole guide.
+    corpus, and ``sections: []`` would capture the whole guide. Only
+    ``list_options`` may be a list (of scalars); no option may be a mapping.
     """
     blank = blank_options(options)
     if blank:
         raise OptionsError(f"empty value for {', '.join(blank)}; omit it to use the default")
+
+    def misshapen(name: str, value: Any) -> bool:
+        if isinstance(value, (list, tuple)):
+            return name not in list_options or any(isinstance(v, (list, tuple, dict)) for v in value)
+        return isinstance(value, dict)
+    bad = sorted(name for name, value in options.items() if misshapen(name, value))
+    if bad:
+        allowed = f" ({', '.join(list_options)} may also be a list)" if list_options else ""
+        raise OptionsError(f"{', '.join(bad)}: expected a single value{allowed}")
     missing = [k for k in required if not options.get(k)]
     if missing:
         raise OptionsError(f"missing required option(s): {', '.join(missing)}")
@@ -183,27 +198,47 @@ def yaml_escape(value: Optional[str]) -> str:
     return value
 
 
+# read_manifest's logger when the caller wants no output.
+_SILENT = logging.getLogger(__name__ + ".silent")
+_SILENT.addHandler(logging.NullHandler())
+_SILENT.propagate = False
+
+
 def read_manifest(
-    path: Path, defaults: Dict[str, Any], records_key: str, logger
+    path: Path, defaults: Dict[str, Any], records_key: str, logger=None
 ) -> Dict[str, Any]:
     """Load ``path``, backfilling any missing top-level key from ``defaults``.
 
     Older or hand-written manifests may lack keys the snapshotters read. An
-    unreadable or non-object manifest is logged and replaced by ``defaults``.
+    unreadable manifest, or one whose shape the snapshotters can't read, is
+    logged and replaced by ``defaults``. Pass no ``logger`` to load silently.
     """
+    log = logger or _SILENT
     if not path.exists():
         return defaults
     try:
         existing = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
-        logger.warning(f"Could not load existing manifest ({exc}); starting fresh")
+        log.warning(f"Could not load existing manifest ({exc}); starting fresh")
         return defaults
     if not isinstance(existing, dict):
-        logger.warning("Existing manifest is not a JSON object; starting fresh")
+        log.warning("Existing manifest is not a JSON object; starting fresh")
         return defaults
     for key, default in defaults.items():
         existing.setdefault(key, default)
-    logger.info(
+    # The snapshotters iterate these lists and read each record as an object.
+    misshapen = [
+        key for key, default in defaults.items()
+        if isinstance(default, list) and not (
+            isinstance(existing[key], list) and all(isinstance(r, dict) for r in existing[key])
+        )
+    ]
+    if misshapen:
+        log.warning(
+            f"Existing manifest's {', '.join(misshapen)} is not a list of objects; starting fresh"
+        )
+        return defaults
+    log.info(
         f"Loaded existing manifest with {len(existing.get(records_key, []))} {records_key}"
     )
     return existing

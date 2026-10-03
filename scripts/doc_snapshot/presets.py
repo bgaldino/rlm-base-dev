@@ -63,7 +63,10 @@ def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
         if not isinstance(block, dict) or not block.get("release_name"):
             raise OptionsError(f"{path}: release {release} needs a release_name")
         for kind in KINDS:
-            presets = block.get(kind) or {}
+            # A bare `help:` (null) means none; `help: []` or `false` is a mistake.
+            presets = block.get(kind)
+            if presets is None:
+                presets = {}
             if not isinstance(presets, dict):
                 raise OptionsError(f"{path}: {release}.{kind} must be a mapping")
             for key, preset in presets.items():

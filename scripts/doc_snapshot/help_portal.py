@@ -275,7 +275,11 @@ class HelpSnapshot:
             "release_version", "release_name", "area",
             "root_article_id", "article_id_prefix",
         )
-        self.options["release_version"] = str(self.options["release_version"])
+        # YAML reads `root_article_id: 123` or `output_dir: 266` as a number.
+        for name in ("release_version", "release_name", "area", "root_article_id",
+                     "article_id_prefix", "output_dir"):
+            if self.options.get(name) is not None:
+                self.options[name] = str(self.options[name])
         if not self.options.get("output_dir"):
             self.options["output_dir"] = (
                 f"docs/salesforce/{self.options['release_version']}/help"
@@ -637,9 +641,9 @@ class HelpSnapshot:
                 f"{self.options['article_id_prefix']!r} under root "
                 f"{self.options['root_article_id']!r} "
                 f"({total_before_filter} links seen before prefix filter). "
-                "The sidebar likely didn't finish rendering before "
-                "discover_timeout_ms — rerun, or raise "
-                "--discover-timeout-ms / --wait-ms."
+                "Check the root id and prefix: a nonexistent root renders "
+                "only a few links. Otherwise the sidebar didn't finish "
+                "rendering — rerun, or raise --discover-timeout-ms / --wait-ms."
             )
         if only_root:
             # A nonexistent id still renders the portal shell, and the root
