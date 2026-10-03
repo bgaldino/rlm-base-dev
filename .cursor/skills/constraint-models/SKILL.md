@@ -451,8 +451,10 @@ curl -s -H "Authorization: Bearer $TOK" "$INST$URL" | grep "TokenCommitBounded"
 
 Before calling a constraint-model change done:
 
-1. `cci task run validate_cml -o cml_dir scripts/cml -o data_dir <dir>` → **0 errors**
-   (warnings are noisy and largely pre-existing; the error count is the signal).
+1. `cci task run validate_cml -o data_dirs <dir>[,<dir>…]` → **0 errors** (an error now
+   fails the task). This checks each dir's shipped `.ffxblob`, the exact file `import_cml`
+   uploads, against its own ESC rows (warnings are largely
+   pre-existing; the error count is the signal).
 2. Blob and reference `.cml` byte-identical — **only for a model that ships one**
    (`QuantumBitPCM` does not): `diff -q <blob> scripts/cml/<Model>.cml`. A model with no
    reference copy skips this check; the blob is the artifact, so its absence is not a
@@ -491,10 +493,13 @@ Before calling a constraint-model change done:
 - **`manage_expression_sets` rejects `--org`** and runs against the default org. One
   instance of a repo-wide problem (102 of 193 custom tasks). `import_cml`, `export_cml`
   and `validate_cml`'s siblings do accept it.
-- **`validate_cml`'s warning stream is not clean enough to gate on** — it emitted ~1,779
-  warnings against the QuantumBit models at the time of writing, nearly all pre-existing
-  "missing type association for leaf type". Treat the **error** count as the signal and
-  check the warning count against a known-good baseline for the models you are touching.
+- **`validate_cml`'s warning stream is not clean enough to gate on.** Most of the old
+  "missing association" noise came from checking every `scripts/cml` copy against one
+  model's ESC rows, and from looking those rows up by display `Name` instead of
+  `ApiName`. `data_dirs` fixes both: the four QuantumBit/Server2 models now report about
+  300 warnings, mostly unsupported-annotation notes, against roughly 1,900 the old
+  `cml_dir` run produced. Treat the **error** count as the signal and check the warning
+  count against a known-good baseline for the models you are touching.
 - **A standalone `import_cml` never cycles the version.** `prepare_constraints` covers
   this at steps 11-12, but shipping a model change usually means running `import_cml` on
   its own — where the upload lands and nothing redeploys. There is no single task that

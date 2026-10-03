@@ -660,8 +660,8 @@ cci task run assemble_and_deploy_ux -o deploy false
 # Clear source tracking corruption
 rm -rf .sf/orgs/<org-id>/localSourceTracking
 
-# Validate CML constraint model
-cci task run validate_cml -o data_dir datasets/constraints/qb/QuantumBitComplete --org beta
+# Validate each CML model's shipped blob against its own ESC rows (no org needed)
+cci task run validate_cml -o data_dirs "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
 ```
 
 ---
