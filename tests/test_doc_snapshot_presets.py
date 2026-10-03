@@ -158,6 +158,13 @@ def main():
           raises(OptionsError, presets.bootstrap_block, releases, "262", "264", "x"))
     check("bootstrap from an unknown release raises",
           raises(OptionsError, presets.bootstrap_block, releases, "123", "999", "x"))
+    # An unset shell variable must not append a block the snapshotters reject.
+    for target, name in (("", "x"), ("  ", "x"), ("999", ""), ("999", "   ")):
+        check(f"bootstrap rejects blank --to {target!r} / --release-name {name!r}",
+              raises(OptionsError, presets.bootstrap_block, releases, "264", target, name))
+    check("bootstrap strips the release name",
+          '  "999":\n    release_name: "Spaced"\n'
+          in presets.bootstrap_block(releases, "264", " 999 ", " Spaced "))
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "presets.yaml"
         shutil.copy(presets.PRESETS_PATH, path)

@@ -175,7 +175,10 @@ def bootstrap_block(
     ``doc_version`` are dropped, and release numbers inside ``output_dir`` are
     rewritten. Returned as text so appending it keeps the file's comments.
     """
-    source, target = str(source), str(target)
+    source, target = str(source).strip(), str(target).strip()
+    release_name = str(release_name or "").strip()
+    if not target:
+        raise OptionsError("--to needs a release version, e.g. 266")
     if source not in releases:
         raise OptionsError(f"no release {source} in presets (known: {', '.join(releases)})")
     if target in releases:
