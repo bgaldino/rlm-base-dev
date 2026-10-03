@@ -82,6 +82,17 @@ MAX_INLINE_UNRESOLVED_TAGS = 10
 STRING_LITERAL_RE = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'')
 
 
+#: CSVs ImportCML reads from a model's data_dir unconditionally (the ESC rows
+#: come from data_dir unless a dataset_dirs entry ships its own; the flow's
+#: dataset dir does not). ValidateCML's data_dirs mode requires each one.
+REQUIRED_MODEL_CSVS = (
+    "ExpressionSetDefinitionVersion.csv",
+    "ExpressionSetDefinitionContextDefinition.csv",
+    "ExpressionSet.csv",
+    "ExpressionSetConstraintObj.csv",
+)
+
+
 def expected_blob_filename(esdv: Dict[str, str]) -> str:
     """The ``blobs/`` file ImportCML uploads for an ExpressionSetDefinitionVersion row.
 
@@ -1096,33 +1107,47 @@ class ValidateCML(BaseTask):
         data_dirs = _split_list_values(self.options.get("data_dirs") or "")
         if data_dirs:
             targets = []
+            problems = []
             for dd in data_dirs:
-                esdv_path = os.path.join(dd, "ExpressionSetDefinitionVersion.csv")
-                if not os.path.exists(esdv_path):
-                    raise TaskOptionsError(f"No ExpressionSetDefinitionVersion.csv in {dd}")
-                with open(esdv_path, newline="") as handle:
-                    rows = list(csv.DictReader(handle))
-                if not rows:
-                    raise TaskOptionsError(f"{esdv_path} has no version row")
-                expected = expected_blob_filename(rows[0])
+                # Every CSV import_cml reads unconditionally must be present with a
+                # row, so the flow fails here, before any import mutates the org,
+                # rather than part-way through steps 7-10.
+                rows_by_file = {}
+                for name in REQUIRED_MODEL_CSVS:
+                    path = os.path.join(dd, name)
+                    if not os.path.exists(path):
+                        problems.append(f"{path} is missing")
+                        continue
+                    with open(path, newline="") as handle:
+                        rows_by_file[name] = list(csv.DictReader(handle))
+                    if not rows_by_file[name]:
+                        problems.append(f"{path} has no rows")
+                esdv_rows = rows_by_file.get("ExpressionSetDefinitionVersion.csv")
+                if not esdv_rows:
+                    continue
+                expected = expected_blob_filename(esdv_rows[0])
                 blob_dir = os.path.join(dd, "blobs")
                 present = sorted(
                     name for name in (os.listdir(blob_dir) if os.path.isdir(blob_dir) else [])
                     if name.endswith(".ffxblob")
                 )
                 if expected not in present:
-                    raise TaskOptionsError(
+                    problems.append(
                         f"{os.path.join(blob_dir, expected)} not found: import_cml would "
                         f"upload no model (present: {', '.join(present) or 'none'})"
                     )
+                    continue
                 unexpected = [name for name in present if name != expected]
                 if unexpected:
-                    raise TaskOptionsError(
+                    problems.append(
                         f"Unexpected blob(s) in {blob_dir}: {', '.join(unexpected)}; "
                         f"import_cml uploads only {expected}"
                     )
+                    continue
                 targets.append((os.path.join(blob_dir, expected),
                                 os.path.join(dd, "blobs", expected), [dd]))
+            if problems:
+                raise TaskOptionsError("Incomplete model data: " + "; ".join(problems))
             return targets
 
         cml_dir = self.options.get("cml_dir") or "scripts/cml"

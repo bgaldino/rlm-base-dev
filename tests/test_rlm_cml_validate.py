@@ -61,6 +61,8 @@ def _model_dir(root, api_name, display_name, tags, blob=True, blob_name=None, bo
         f.write("ApiName,Name\n" f"{api_name},{display_name}\n")
     with open(os.path.join(d, "ExpressionSetDefinitionVersion.csv"), "w") as f:
         f.write("DeveloperName,VersionNumber\n" f"{api_name}_V1,1\n")
+    with open(os.path.join(d, "ExpressionSetDefinitionContextDefinition.csv"), "w") as f:
+        f.write("ContextDefinitionApiName\nRLM_SalesTransactionContext\n")
     # Both name columns, with differing values, as an export can carry: the
     # reader must key rows by ApiName or the display Name hides every row.
     with open(os.path.join(d, "ExpressionSetConstraintObj.csv"), "w") as f:
@@ -104,24 +106,39 @@ with tempfile.TemporaryDirectory() as root:
           not missing, repr(missing))
 
     print("Only the exact blob import_cml uploads is accepted")
-    empty = _model_dir(root, "ModelC", "ModelC", [], blob=False)
+    empty = _model_dir(root, "ModelC", "ModelC", ["Widget"], blob=False)
     check("missing blob raises naming the expected file",
           _raises(lambda: _task(data_dirs=empty)._collect_targets(), "ESDV_ModelC_V1.ffxblob"))
-    misnamed = _model_dir(root, "ModelD", "ModelD", [], blob_name="ESDV_ModelD_V2.ffxblob")
+    misnamed = _model_dir(root, "ModelD", "ModelD", ["Widget"], blob_name="ESDV_ModelD_V2.ffxblob")
     check("a misnamed blob is rejected, not validated in place of the expected one",
           _raises(lambda: _task(data_dirs=misnamed)._collect_targets(), "not found"))
-    stray = _model_dir(root, "ModelE", "ModelE", [])
+    stray = _model_dir(root, "ModelE", "ModelE", ["Widget"])
     Path(stray, "blobs", "ESDV_Old_V1.ffxblob").write_text("type Old;\n")
     check("an extra blob beside the expected one is rejected",
           _raises(lambda: _task(data_dirs=stray)._collect_targets(), "Unexpected blob"))
 
+    print("Every CSV import_cml reads must be present, checked before any import")
+    no_esc = _model_dir(root, "ModelK", "ModelK", ["Widget"])
+    os.remove(os.path.join(no_esc, "ExpressionSetConstraintObj.csv"))
+    check("a directory missing its ESC CSV is rejected",
+          _raises(lambda: _task(data_dirs=no_esc)._collect_targets(), "ExpressionSetConstraintObj.csv is missing"))
+    no_es = _model_dir(root, "ModelL", "ModelL", ["Widget"])
+    os.remove(os.path.join(no_es, "ExpressionSet.csv"))
+    check("a directory missing ExpressionSet.csv is rejected",
+          _raises(lambda: _task(data_dirs=no_es)._collect_targets(), "ExpressionSet.csv is missing"))
+    empty_esc = _model_dir(root, "ModelM", "ModelM", [])
+    check("an ESC CSV with no rows is rejected",
+          _raises(lambda: _task(data_dirs=empty_esc)._collect_targets(), "has no rows"))
+    check("problems in a later directory fail before the earlier one is used",
+          _raises(lambda: _task(data_dirs=f"{a},{no_esc}")._collect_targets(), "ModelK"))
+
     print("A structural error fails the task, so it blocks the imports that follow")
-    broken = _model_dir(root, "ModelF", "ModelF", [], body="type Widget {\n}\n}\n")
+    broken = _model_dir(root, "ModelF", "ModelF", ["Widget"], body="type Widget {\n}\n}\n")
     check("an unbalanced brace raises instead of only logging",
           _raises(lambda: _task(data_dirs=broken)._run_task(), "CML validation found errors"))
 
     print("Braces inside string literals are data, not syntax")
-    quoted = _model_dir(root, "ModelG", "ModelG", [],
+    quoted = _model_dir(root, "ModelG", "ModelG", ["Widget"],
                         body='type Widget {\n    string label = "}";\n    string open = \'{(\';\n}\n')
     t = _task(data_dirs=quoted)
     try:
@@ -133,7 +150,7 @@ with tempfile.TemporaryDirectory() as root:
           ok and not any("Unbalanced" in line for line in t.logger.lines), repr(t.logger.lines[-3:]))
 
     print("Comment markers inside string literals are data, not comments")
-    markers = _model_dir(root, "ModelH", "ModelH", [], body=(
+    markers = _model_dir(root, "ModelH", "ModelH", ["Widget"], body=(
         'type Widget {\n'
         '    string a = "/*";\n'
         "    string b = '//';\n"
@@ -151,10 +168,10 @@ with tempfile.TemporaryDirectory() as root:
           ok and not any("Unbalanced" in line for line in t.logger.lines), repr(t.logger.lines[-3:]))
 
     print("Unbalanced parentheses are errors that fail the task")
-    early = _model_dir(root, "ModelI", "ModelI", [], body="type Widget {\n    x = 1);\n}\n")
+    early = _model_dir(root, "ModelI", "ModelI", ["Widget"], body="type Widget {\n    x = 1);\n}\n")
     check("a stray ')' fails validation",
           _raises(lambda: _task(data_dirs=early)._run_task(), "CML validation found errors"))
-    unclosed = _model_dir(root, "ModelJ", "ModelJ", [],
+    unclosed = _model_dir(root, "ModelJ", "ModelJ", ["Widget"],
                           body="type Widget {\n    constraint(foo(\n}\n")
     check("an unclosed '(' at end of file fails validation",
           _raises(lambda: _task(data_dirs=unclosed)._run_task(), "CML validation found errors"))
