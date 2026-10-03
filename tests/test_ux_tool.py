@@ -341,6 +341,15 @@ def test_deploy_non_json_output(monkeypatch, tmp_path):
         deploy(tmp_path, "my-scratch")
 
 
+@pytest.mark.parametrize("name", ["../x.flexipage-meta.xml", "sub/x.flexipage-meta.xml",
+                                  "/tmp/x.flexipage-meta.xml", "..\\x.flexipage-meta.xml"])
+def test_validate_selection_rejects_paths(name):
+    from scripts.ux._assemble import validate_selection
+
+    with pytest.raises(UxOptionError, match="bare filename"):
+        validate_selection("flexipages", name, ("flexipages",))
+
+
 def test_deploy_needs_target_and_directory(tmp_path):
     with pytest.raises(UxOptionError):
         deploy(tmp_path, "")
@@ -474,7 +483,7 @@ def test_apply_drift_drops_insert_action_patch_the_org_lacks(repo_copy):
 
 
 def test_reverse_insert_action_keeps_template_actions_and_targets_anchor_list():
-    from scripts.ux._patch_ops import reverse_insert_action
+    from scripts.ux._patch_ops import ABSENT, REMOVED, reverse_insert_action
 
     ns = "http://soap.sforce.com/2006/04/metadata"
 
@@ -492,10 +501,10 @@ def test_reverse_insert_action_keeps_template_actions_and_targets_anchor_list():
     patch = {"after": "Anchor", "actions": ["A", "B"]}
 
     # The template already has B, so the forward patch never inserted it.
-    assert reverse_insert_action(org, patch, keep={"B"}) is True
+    assert reverse_insert_action(org, patch, keep={"B"}) == REMOVED
     values = [v.text for v in org.iter(f"{{{ns}}}value")]
     assert values == ["Other", "A", "Anchor", "B"]
-    assert reverse_insert_action(org, patch, keep={"B"}) is False
+    assert reverse_insert_action(org, patch, keep={"B"}) == ABSENT
 
 
 NS = "http://soap.sforce.com/2006/04/metadata"
@@ -544,6 +553,34 @@ def test_insert_action_refresh_carries_org_visibility():
     ]
     # Rule removed in the org: back to a bare name.
     assert refresh(_actions_page(_action("Keep"))) == ["Keep"]
+
+
+def test_insert_action_without_org_anchor_targets_list_holding_the_actions():
+    from scripts.ux._patch_ops import FAILED, REMOVED, PagePair, refresh_insert_action, reverse_insert_action
+
+    patch = {"after": "Anchor", "actions": ["New"]}
+
+    # The org removed the anchor, but the inserted action is still in one list.
+    org = _actions_page(_action("Prev"), _action("New"), _action("Next"))
+    refreshed = refresh_insert_action(patch, PagePair(org, org, "", ""))
+    assert refreshed == {"after": "Prev", "actions": ["New"]}
+    assert reverse_insert_action(org, patch) == REMOVED
+    assert _action_names(org) == ["Prev", "Next"]
+
+    # Nothing before the action to anchor to: the patch stays as it was.
+    org = _actions_page(_action("New"), _action("Next"))
+    assert refresh_insert_action(patch, PagePair(org, org, "", "")) is patch
+
+    # Two lists hold the action: neither reverse nor refresh guesses.
+    one_list = (
+        "<itemInstances><componentInstance><componentInstanceProperties><name>actionNames</name>"
+        "<valueList>" + _action("New") + "</valueList></componentInstanceProperties>"
+        "</componentInstance></itemInstances>"
+    )
+    two = ET.fromstring(f'<FlexiPage xmlns="{NS}">{one_list}{one_list}</FlexiPage>')
+    assert reverse_insert_action(two, patch) == FAILED
+    assert _action_names(two) == ["New", "New"]
+    assert refresh_insert_action(patch, PagePair(two, two, "", "")) is patch
 
 
 def test_remove_action_reverse_restores_template_action():

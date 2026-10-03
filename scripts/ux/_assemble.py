@@ -122,6 +122,12 @@ def validate_selection(
             f"metadata_type must be one of {sorted(supported)}, got: '{metadata_type}'"
         )
     if metadata_name:
+        # A bare filename only: retrieve and writeback join it onto output and
+        # template directories, so a path component could escape them.
+        if metadata_name != Path(metadata_name).name or "\\" in metadata_name:
+            raise UxOptionError(
+                f"metadata_name must be a bare filename, not a path: '{metadata_name}'"
+            )
         resolved = resolve_type_from_name(metadata_name)
         if resolved is None:
             raise UxOptionError(

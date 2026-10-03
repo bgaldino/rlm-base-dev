@@ -186,25 +186,43 @@ def _apply_insert_action(root: ET.Element, patch: Patch, logger) -> None:
     logger.warning(f"insert_action anchor '{anchor}' not found in flexipage")
 
 
-def reverse_insert_action(root: ET.Element, patch: Patch, keep: Iterable[str] = ()) -> bool:
-    """Remove the actions an insert_action patch inserted; True if any were removed.
+def _insert_action_list(root: ET.Element, anchor: Optional[str], names: Iterable[str]):
+    """The actionNames list an insert_action patch targets, as ``(vlist, ambiguous)``.
+
+    That is the list holding the ``after`` anchor, as the forward patch picks it.
+    If the org has dropped the anchor, it is the one list still holding any of
+    ``names``; ``ambiguous`` is True when several lists hold them.
+    """
+    vlists = list(value_lists(root, "actionNames"))
+    for vlist in vlists:
+        if anchor and anchor in list_values(vlist):
+            return vlist, False
+    names = set(names)
+    holding = [vlist for vlist in vlists if names & set(list_values(vlist))]
+    if len(holding) > 1:
+        return None, True
+    return (holding[0] if holding else None), False
+
+
+def reverse_insert_action(root: ET.Element, patch: Patch, keep: Iterable[str] = ()) -> str:
+    """Remove the actions an insert_action patch inserted; return REMOVED, ABSENT or FAILED.
 
     Mirrors the forward patch: it targets the actionNames list holding the
     ``after`` anchor and never inserts an action already present, so names in
-    ``keep`` (the template's own actions) are left alone.
+    ``keep`` (the template's own actions) are left alone. If the org dropped
+    the anchor, the one list still holding the inserted actions is used; FAILED
+    when several lists hold them, since the right one cannot be told apart.
     """
     names = {_action_name(a) for a in patch.get("actions", [])} - set(keep)
-    anchor = patch.get("after")
-    for vlist in value_lists(root, "actionNames"):
-        if anchor and anchor not in {item_value(item) for item in value_items(vlist)}:
-            continue
-        return remove_values(vlist, names)
-    return False
+    vlist, ambiguous = _insert_action_list(root, patch.get("after"), names)
+    if ambiguous:
+        return FAILED
+    return _found(vlist is not None and remove_values(vlist, names))
 
 
 def _reverse_insert_action(root, patch, template_root, logger) -> str:
     keep = _all_values(template_root, "actionNames") if template_root is not None else ()
-    return _found(reverse_insert_action(root, patch, keep))
+    return reverse_insert_action(root, patch, keep)
 
 
 def _describe_insert_action(patch: Patch) -> str:
@@ -238,13 +256,21 @@ def refresh_insert_action(patch: Patch, page: PagePair) -> Optional[Patch]:
     criteria. An entry stays a bare name until the org gives it criteria."""
     actions = patch.get("actions", [])
     anchor = patch.get("after")
-    org_items: Dict[str, ET.Element] = {}
-    for vlist in value_lists(page.org_root, "actionNames"):
-        items = value_items(vlist)
-        if anchor and anchor not in {item_value(item) for item in items}:
-            continue
-        org_items = {item_value(item): item for item in items}
-        break
+    names = {_action_name(a) for a in actions}
+    vlist, ambiguous = _insert_action_list(page.org_root, anchor, names)
+    if ambiguous:
+        return patch  # cannot tell which list is the patch's; diff reports the drift
+    items = value_items(vlist) if vlist is not None else []
+    org_items: Dict[str, ET.Element] = {item_value(item): item for item in items}
+    if anchor and vlist is not None and anchor not in org_items:
+        # The org dropped the anchor: re-anchor after the nearest action before
+        # the first inserted one that the patch does not own.
+        values = [item_value(item) for item in items]
+        first = min(i for i, v in enumerate(values) if v in names)
+        preceding = [v for v in values[:first] if v and v not in names]
+        if not preceding:
+            return patch  # nothing to anchor to; diff reports the drift
+        patch = {**patch, "after": preceding[-1]}
     refreshed = []
     for action in actions:
         name = _action_name(action)
