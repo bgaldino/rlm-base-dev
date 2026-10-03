@@ -726,6 +726,17 @@ def check_rule_owners(root: Path) -> CheckResult:
     if unmapped:
         return CheckResult("rule owners", False,
                            "no OWNER_KEYWORDS entry for: " + "; ".join(unmapped))
+    # A keyword can also match the wrong owner (a generic one shadowing a specific
+    # one), which the unmapped test can't see. The recommended rules declare their
+    # owner, so check inference agrees with every declaration.
+    mismatched = []
+    for rec in RECOMMENDED_SKILL_RULES:
+        inferred = infer_owner(rec.suggested_rule, rec.skill_path)
+        if inferred != rec.owner:
+            mismatched.append(f"{rec.suggested_rule} -> {inferred} (declared {rec.owner})")
+    if mismatched:
+        return CheckResult("rule owners", False,
+                           "OWNER_KEYWORDS infers the wrong owner for: " + "; ".join(mismatched))
     defaulted = sum(1 for r in rules if not r.equivalent_skill and r.owner == DEFAULT_OWNER)
     return CheckResult("rule owners", True,
                        f"{len(rules)} rule owners assigned: {len(rules) - defaulted} inferred, "
@@ -1629,6 +1640,8 @@ HIGH_RISK_PATHS: tuple[HighRiskPath, ...] = (
 OWNER_KEYWORDS: tuple[tuple[str, str], ...] = (
     ("sfdmu", "SFDMU Data Plans"), ("cci", "CCI Orchestration"), ("apex", "Apex"),
     ("lwc", "Lightning Web Components"), ("ux", "UX Assembly"), ("robot", "Robot Testing"),
+    # Ahead of the generic "doc", which these names contain.
+    ("revenue-cloud-docs", "Revenue Cloud Docs"), ("document-generation", "Document Generation"),
     ("doc", "Doc Consistency"), ("schema", "Schema Validation"), ("release", "Release Enablement"),
     ("business", "Business APIs"), ("pmos", "PMOS Integration"),
     ("context", "Context Service"),

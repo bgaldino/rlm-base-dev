@@ -127,8 +127,11 @@ Two check modes:
   manifest high-level keys, generated-reference markers, that every skill
   sub-file is registered by its parent `SKILL.md`, that the File-Specific Rules
   table is readable, that every rule file is valid UTF-8 and every rule mapped to
-  a skill has an `OWNER_KEYWORDS` owner (stand-alone rules default to Repository
-  Integration), and that this README documents the check modes. Exits
+  a skill has an `OWNER_KEYWORDS` owner. A stand-alone rule that matches no
+  keyword defaults to Repository Integration; one that matches, such as
+  `apex-classes.mdc`, takes that owner. The check also fails if a keyword infers
+  a different owner than a recommended rule declares. And it verifies that this
+  README documents the check modes. Exits
   non-zero on any failure, so it is safe to run as a CI/scheduled gate.
 
   Launch checks also enforce skill discovery metadata, exact relative native-link

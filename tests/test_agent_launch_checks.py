@@ -469,6 +469,25 @@ class RuleOwners(unittest.TestCase):
         self.assertIn("bad.mdc", result.detail)
         self.assertIn("UnicodeDecodeError", result.detail)
 
+    def test_specific_doc_skills_beat_the_generic_doc_keyword(self):
+        self.assertEqual(analyzer.infer_owner("revenue-cloud-docs.mdc", "revenue-cloud-docs/SKILL.md"),
+                         "Revenue Cloud Docs")
+        self.assertEqual(analyzer.infer_owner("docgen.mdc", "document-generation/SKILL.md"),
+                         "Document Generation")
+        self.assertEqual(analyzer.infer_owner("doc-review.mdc", "doc-consistency/SKILL.md"),
+                         "Doc Consistency")
+
+    def test_check_fails_when_inference_contradicts_a_recommendation(self):
+        real = analyzer.RECOMMENDED_SKILL_RULES
+        analyzer.RECOMMENDED_SKILL_RULES = real + (analyzer.RecommendedSkillRule(
+            "x/SKILL.md", "doc-thing.mdc", ("x/**",), "Some Other Owner", "test"),)
+        try:
+            result = analyzer.check_rule_owners(REPO)
+        finally:
+            analyzer.RECOMMENDED_SKILL_RULES = real
+        self.assertFalse(result.ok)
+        self.assertIn("doc-thing.mdc -> Doc Consistency (declared Some Other Owner)", result.detail)
+
     def test_repo_rules_all_have_owners(self):
         self.assertTrue(analyzer.check_rule_owners(REPO).ok)
 
