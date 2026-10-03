@@ -408,9 +408,10 @@ the failure mode is not a failing check but a **hang**, each level re-running th
 level above it, bounded only by the nested per-check timeouts.
 
 A dependency is probed by really importing it, in a child process, not by `find_spec`. The
-distinction is not academic: CumulusCI imports `fs`, which imports `pkg_resources`,
-which a Python 3.12+ venv does not have until setuptools is installed — so `find_spec` calls
-that install fine, and the breakage surfaces later as unrelated-looking suite failures. The
+distinction is not academic: CumulusCI 4.8.1 imported `fs`, which imported `pkg_resources`,
+which a Python 3.12+ venv does not have until setuptools is installed — so `find_spec` called
+that install fine, and the breakage surfaced later as unrelated-looking suite failures.
+(CumulusCI 4.10.1, now pinned, no longer depends on `fs`.) The
 `cumulusci` entry therefore probes `cumulusci.core.tasks`, the depth a task actually needs,
 and `--requirements` emits `setuptools>=75.4` ahead of the CumulusCI pin whenever a
 selected check needs it — the same pin `prepare-rlm-org.yml` installs. Emitting it is the
