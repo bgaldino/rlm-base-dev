@@ -498,20 +498,128 @@ def test_reverse_insert_action_keeps_template_actions_and_targets_anchor_list():
     assert reverse_insert_action(org, patch, keep={"B"}) is False
 
 
-def test_insert_action_keeps_dict_entries():
+NS = "http://soap.sforce.com/2006/04/metadata"
+
+
+def _actions_page(*items):
+    """A page with one actionNames valueList holding ``items`` (raw valueListItems XML)."""
+    return ET.fromstring(
+        f'<FlexiPage xmlns="{NS}"><itemInstances><componentInstance>'
+        "<componentInstanceProperties><name>actionNames</name><valueList>"
+        + "".join(items)
+        + "</valueList></componentInstanceProperties></componentInstance></itemInstances></FlexiPage>"
+    )
+
+
+def _action(name, rule=""):
+    return f"<valueListItems><value>{name}</value>{rule}</valueListItems>"
+
+
+def _rule(field, value):
+    return (
+        "<visibilityRule><criteria><leftValue>{!" + field + "}</leftValue>"
+        f"<operator>EQUAL</operator><rightValue>{value}</rightValue></criteria></visibilityRule>"
+    )
+
+
+def _action_names(root):
+    from scripts.ux._xml import list_values, value_lists
+    return [v for vl in value_lists(root, "actionNames") for v in list_values(vl)]
+
+
+def test_insert_action_refresh_carries_org_visibility():
     from scripts.ux._patch_ops import PagePair, refresh_insert_action
 
-    ns = "http://soap.sforce.com/2006/04/metadata"
-    org = ET.fromstring(
-        f'<FlexiPage xmlns="{ns}"><itemInstances><componentInstance>'
-        "<componentInstanceProperties><name>actionNames</name><valueList>"
-        "<valueListItems><value>Keep</value></valueListItems>"
-        "</valueList></componentInstanceProperties>"
-        "</componentInstance></itemInstances></FlexiPage>"
-    )
-    keep = {"name": "Keep", "visibility": [{"leftValue": "x", "operator": "EQUAL", "rightValue": "y"}]}
+    keep = {"name": "Keep", "visibility": [{"field": "Record.Status", "operator": "EQUAL", "value": "Draft"}]}
     patch = {"actions": [keep, "Gone"]}
-    assert refresh_insert_action(patch, PagePair(org, org, "", ""))["actions"] == [keep]
+
+    def refresh(org):
+        return refresh_insert_action(patch, PagePair(org, org, "", ""))["actions"]
+
+    # Unchanged rule: the entry keeps its exact shape; the missing action drops.
+    assert refresh(_actions_page(_action("Keep", _rule("Record.Status", "Draft")))) == [keep]
+    # Edited in the org: the patch takes the org's criteria.
+    assert refresh(_actions_page(_action("Keep", _rule("Record.Status", "Approved")))) == [
+        {"name": "Keep", "visibility": [{"field": "Record.Status", "operator": "EQUAL", "value": "Approved"}]}
+    ]
+    # Rule removed in the org: back to a bare name.
+    assert refresh(_actions_page(_action("Keep"))) == ["Keep"]
+
+
+def test_remove_action_reverse_restores_template_action():
+    from scripts.ux._patch_ops import ABSENT, REMOVED, PagePair, refresh_patch, reverse_patch
+
+    template = _actions_page(_action("A"), _action("B", _rule("Record.X", "1")), _action("C"))
+    org = _actions_page(_action("A"), _action("C"))
+    patch = {"type": "remove_action", "action": "B"}
+
+    assert reverse_patch(org, patch, template, None) == REMOVED
+    assert _action_names(org) == ["A", "B", "C"]
+    assert ET.tostring(org).count(b"visibilityRule") == 2  # opening + closing tag, copied from the template
+    # Already back in the org: nothing to restore, and refresh drops the patch.
+    assert reverse_patch(org, patch, template, None) == ABSENT
+    assert refresh_patch(patch, PagePair(template, org, "", "")) is None
+
+
+def test_reverse_keeps_fields_the_template_already_has():
+    from scripts.ux._patch_ops import ABSENT, reverse_patch
+
+    def display_page(*fields):
+        return ET.fromstring(
+            f'<FlexiPage xmlns="{NS}"><itemInstances><componentInstance>'
+            "<componentInstanceProperties><name>displayFields</name><valueList>"
+            + "".join(f"<valueListItems><value>{f}</value></valueListItems>" for f in fields)
+            + "</valueList></componentInstanceProperties></componentInstance></itemInstances></FlexiPage>"
+        )
+
+    org = display_page("Name", "Total")
+    patch = {"type": "add_display_field", "field": "Total"}
+    # The forward patch skipped Total because the template had it, so reverse must too.
+    assert reverse_patch(org, patch, display_page("Total"), None) == ABSENT
+    assert b"Total" in ET.tostring(org)
+
+
+def test_add_facet_field_reverse_removes_one_instance_in_anchor_region():
+    from scripts.ux._patch_ops import REMOVED, reverse_patch
+
+    def field(name):
+        return f"<itemInstances><fieldInstance><fieldItem>Record.{name}</fieldItem></fieldInstance></itemInstances>"
+
+    def facet(name, *fields):
+        return f"<flexiPageRegions>{''.join(map(field, fields))}<name>{name}</name><type>Facet</type></flexiPageRegions>"
+
+    org = ET.fromstring(
+        f'<FlexiPage xmlns="{NS}">{facet("other", "Dup")}{facet("target", "Anchor", "Dup")}</FlexiPage>'
+    )
+    patch = {"type": "add_facet_field", "after": "Anchor", "fields": ["Dup"]}
+    assert reverse_patch(org, patch, ET.fromstring(f'<FlexiPage xmlns="{NS}"/>'), None) == REMOVED
+    regions = {
+        r.find(f"{{{NS}}}name").text: [fi.text for fi in r.iter(f"{{{NS}}}fieldItem")]
+        for r in org.iter(f"{{{NS}}}flexiPageRegions")
+    }
+    assert regions == {"other": ["Record.Dup"], "target": ["Record.Anchor"]}
+
+
+def test_add_component_refresh_carries_org_properties():
+    from scripts.ux._patch_ops import PagePair, refresh_patch
+
+    def page(props):
+        return ET.fromstring(
+            f'<FlexiPage xmlns="{NS}"><flexiPageRegions><itemInstances><componentInstance>'
+            + "".join(
+                f"<componentInstanceProperties><name>{k}</name><value>{v}</value></componentInstanceProperties>"
+                for k, v in props.items()
+            )
+            + "<componentName>c:x</componentName><identifier>c_x</identifier>"
+            "</componentInstance></itemInstances><name>r</name></flexiPageRegions></FlexiPage>"
+        )
+
+    patch = {"type": "add_component", "region": "r", "component": "c:x", "identifier": "c_x",
+             "properties": {"maxRecords": 5}}
+    same = page({"maxRecords": "5"})
+    assert refresh_patch(patch, PagePair(same, same, "", "")) is patch
+    edited = page({"maxRecords": "10"})
+    assert refresh_patch(patch, PagePair(edited, edited, "", ""))["properties"] == {"maxRecords": "10"}
 
 
 if __name__ == "__main__":

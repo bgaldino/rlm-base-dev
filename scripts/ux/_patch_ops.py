@@ -14,6 +14,7 @@ four operations, kept side by side so a new type cannot be half-supported:
 ``template_root`` is the page's current template. ``page`` is a ``PagePair`` of
 the regenerated template and the org page.
 """
+import copy
 import re
 import xml.etree.ElementTree as ET
 from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Optional
@@ -65,10 +66,6 @@ def _found(removed: bool) -> str:
     return REMOVED if removed else ABSENT
 
 
-def _keep(patch: Patch, page: PagePair) -> Patch:
-    return patch
-
-
 def _action_name(action: Any) -> str:
     """An insert_action entry is either a bare action name (str) or a dict with
     a 'name' key plus optional 'visibility' criteria."""
@@ -110,9 +107,33 @@ def _apply_remove_action(root: ET.Element, patch: Patch, logger) -> None:
 
 
 def _reverse_remove_action(root, patch, template_root, logger) -> str:
-    # No-op: the base already has the action the patch removes, and the org
-    # state does not, so there is nothing to re-add.
-    return REMOVED
+    """Put back the action the patch removed, copied from the template and placed
+    after the nearest template action that precedes it in the org list."""
+    action = patch.get("action")
+    if not action or action in _all_values(root, "actionNames"):
+        return ABSENT
+    if template_root is None:
+        return FAILED
+    for t_vlist in value_lists(template_root, "actionNames"):
+        t_items = value_items(t_vlist)
+        names = [item_value(item) for item in t_items]
+        if action not in names:
+            continue
+        idx = names.index(action)
+        for vlist in value_lists(root, "actionNames"):
+            org_items = {item_value(item): item for item in value_items(vlist)}
+            if not org_items.keys() & set(names):
+                continue
+            anchor = next((org_items[n] for n in reversed(names[:idx]) if n in org_items), None)
+            at = list(vlist).index(anchor) + 1 if anchor is not None else 0
+            vlist.insert(at, copy.deepcopy(t_items[idx]))
+            return REMOVED
+    return FAILED
+
+
+def _refresh_remove_action(patch: Patch, page: PagePair) -> Optional[Patch]:
+    """Drop the patch once the org has the action again."""
+    return None if patch.get("action") in _all_values(page.org_root, "actionNames") else patch
 
 
 # ---------------------------------------------------------------------------
@@ -191,15 +212,57 @@ def _describe_insert_action(patch: Patch) -> str:
     return f"insert actions: {', '.join(n for n in names if n)}"
 
 
+def _criteria_key(crit: Dict[str, Any]):
+    field = str(crit.get("field", "")).strip()
+    left = field if field.startswith("{!") else "{!" + field + "}"
+    return (left, str(crit.get("operator", "EQUAL")), str(crit.get("value", "")))
+
+
+def _org_visibility(item: ET.Element) -> List[Dict[str, Any]]:
+    """An action item's visibilityRule criteria, in the patch's {field, operator, value} form."""
+    vr = find_elem(item, "visibilityRule")
+    criteria = []
+    for c in findall_elem(vr, "criteria") if vr is not None else []:
+        left = child_text(c, "leftValue") or ""
+        field = left[2:-1] if left.startswith("{!") and left.endswith("}") else left
+        criteria.append({
+            "field": field,
+            "operator": child_text(c, "operator") or "EQUAL",
+            "value": child_text(c, "rightValue") or "",
+        })
+    return criteria
+
+
 def refresh_insert_action(patch: Patch, page: PagePair) -> Optional[Patch]:
-    """Keep the patch actions still present in the org. Entries are a bare name
-    or a {name, visibility} dict; a survivor keeps its shape."""
+    """Keep the patch actions still present in the org, with the org's visibility
+    criteria. An entry stays a bare name until the org gives it criteria."""
     actions = patch.get("actions", [])
-    org_actions = set(_all_values(page.org_root, "actionNames"))
-    surviving = [a for a in actions if _action_name(a) in org_actions]
-    if surviving == actions:
+    anchor = patch.get("after")
+    org_items: Dict[str, ET.Element] = {}
+    for vlist in value_lists(page.org_root, "actionNames"):
+        items = value_items(vlist)
+        if anchor and anchor not in {item_value(item) for item in items}:
+            continue
+        org_items = {item_value(item): item for item in items}
+        break
+    refreshed = []
+    for action in actions:
+        name = _action_name(action)
+        item = org_items.get(name)
+        if item is None:
+            continue
+        org_crit = _org_visibility(item)
+        old_crit = action.get("visibility", []) if isinstance(action, dict) else []
+        if [_criteria_key(c) for c in org_crit] == [_criteria_key(c) for c in old_crit]:
+            refreshed.append(action)
+        elif org_crit:
+            refreshed.append({**(action if isinstance(action, dict) else {"name": name}),
+                              "visibility": org_crit})
+        else:
+            refreshed.append(name)
+    if refreshed == actions:
         return patch
-    return {**patch, "actions": surviving} if surviving else None
+    return {**patch, "actions": refreshed} if refreshed else None
 
 
 # ---------------------------------------------------------------------------
@@ -221,15 +284,13 @@ def _apply_add_display_field(root: ET.Element, patch: Patch, logger) -> None:
 
 
 def _reverse_add_display_field(root, patch, template_root, logger) -> str:
+    """Mirrors the forward patch: the first displayFields list only, and never a
+    field the template already has (the forward patch skips those)."""
     field = patch.get("field")
-    if not field:
-        return REMOVED
-    for vlist in value_lists(root, "displayFields"):
-        for item in value_items(vlist):
-            if item_value(item) == field:
-                vlist.remove(item)
-                return REMOVED
-    return ABSENT
+    if not field or (template_root is not None and field in _all_values(template_root, "displayFields")):
+        return ABSENT
+    vlist = next(value_lists(root, "displayFields"), None)
+    return _found(vlist is not None and remove_values(vlist, {field}))
 
 
 def _refresh_add_display_field(patch: Patch, page: PagePair) -> Optional[Patch]:
@@ -276,11 +337,14 @@ def _apply_add_sales_txn_line_editor_field(root: ET.Element, patch: Patch, logge
 
 
 def _reverse_add_sales_txn_line_editor_field(root, patch, template_root, logger) -> str:
-    fields = _patch_field_values(patch)
-    if not fields:
-        return REMOVED
-    vlist = component_value_list(root, *_line_editor_target(patch))
-    return _found(vlist is not None and remove_values(vlist, set(fields)))
+    target = _line_editor_target(patch)
+    keep = set()
+    if template_root is not None:
+        t_vlist = component_value_list(template_root, *target)
+        keep = set(list_values(t_vlist)) if t_vlist is not None else set()
+    fields = set(_patch_field_values(patch)) - keep
+    vlist = component_value_list(root, *target)
+    return _found(bool(fields) and vlist is not None and remove_values(vlist, fields))
 
 
 def _describe_add_sales_txn_line_editor_field(patch: Patch) -> str:
@@ -410,15 +474,22 @@ def _apply_add_facet_field(root: ET.Element, patch: Patch, logger) -> None:
 
 
 def _reverse_add_facet_field(root, patch, template_root, logger) -> str:
-    fields = patch.get("fields", [])
-    if not fields:
-        return REMOVED
-    targets = {f"Record.{f}" for f in fields}
+    """Mirrors the forward patch: one instance per field, preferring the region
+    holding the ``after`` anchor, and never a field the template already has."""
+    keep = set(get_facet_field_items(template_root)) if template_root is not None else set()
+    targets = {f"Record.{f}" for f in patch.get("fields", []) if f not in keep}
+    after = f"Record.{patch.get('after')}" if patch.get("after") else None
+    regions = sorted(
+        _facet_regions(root),
+        key=lambda r: not any(_field_item(i) == after for i in findall_elem(r, "itemInstances")),
+    )
     removed_any = False
-    for region in _facet_regions(root):
-        for item in list(findall_elem(region, "itemInstances")):
-            if _field_item(item) in targets:
+    for region in regions:
+        for item in findall_elem(region, "itemInstances"):
+            field = _field_item(item)
+            if field in targets:
                 region.remove(item)
+                targets.discard(field)
                 removed_any = True
     return _found(removed_any)
 
@@ -514,12 +585,25 @@ def _reverse_add_component(root, patch, template_root, logger) -> str:
 
 
 def _refresh_add_component(patch: Patch, page: PagePair) -> Optional[Patch]:
+    """Drop the patch if the component is gone; otherwise carry the org's
+    property values, when they are all plain name/value pairs the patch can hold."""
     identifier = _patch_identifier(patch)
-    exists = any(
-        child_text(ci, "identifier") == identifier
-        for ci in page.org_root.iter(f"{SF_NS_TAG}componentInstance")
+    ci = next(
+        (ci for ci in page.org_root.iter(f"{SF_NS_TAG}componentInstance")
+         if child_text(ci, "identifier") == identifier),
+        None,
     )
-    return patch if exists else None
+    if ci is None:
+        return None
+    org_props = {}
+    for prop in findall_elem(ci, "componentInstanceProperties"):
+        if find_elem(prop, "valueList") is not None:
+            return patch  # structured property: not representable in the patch
+        org_props[child_text(prop, "name")] = child_text(prop, "value") or ""
+    old_props = {k: "" if v is None else str(v) for k, v in patch.get("properties", {}).items()}
+    if org_props == old_props:
+        return patch
+    return {**patch, "properties": org_props}
 
 
 # ---------------------------------------------------------------------------
@@ -745,7 +829,7 @@ def _refresh_insert_after_xml(patch: Patch, page: PagePair) -> Optional[Patch]:
 FLEXIPAGE_OPS: Dict[str, PatchOp] = {
     "remove_action": PatchOp(
         _apply_remove_action, _reverse_remove_action,
-        lambda p: f"remove action: {p.get('action', '?')}", _keep,
+        lambda p: f"remove action: {p.get('action', '?')}", _refresh_remove_action,
     ),
     "insert_action": PatchOp(
         _apply_insert_action, _reverse_insert_action,
