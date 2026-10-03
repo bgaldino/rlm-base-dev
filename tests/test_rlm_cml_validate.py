@@ -54,19 +54,32 @@ def _task(**options):
     return t
 
 
-def _model_dir(root, api_name, display_name, tags, blob=True):
+def _model_dir(root, api_name, display_name, tags, blob=True, blob_name=None, body="type Widget;\n"):
     d = os.path.join(root, api_name)
     os.makedirs(os.path.join(d, "blobs"))
     with open(os.path.join(d, "ExpressionSet.csv"), "w") as f:
         f.write("ApiName,Name\n" f"{api_name},{display_name}\n")
+    with open(os.path.join(d, "ExpressionSetDefinitionVersion.csv"), "w") as f:
+        f.write("DeveloperName,VersionNumber\n" f"{api_name}_V1,1\n")
+    # Both name columns, with differing values, as an export can carry: the
+    # reader must key rows by ApiName or the display Name hides every row.
     with open(os.path.join(d, "ExpressionSetConstraintObj.csv"), "w") as f:
-        f.write("ExpressionSet.ApiName,ConstraintModelTag,ConstraintModelTagType\n")
+        f.write("ExpressionSet.ApiName,ExpressionSet.Name,ConstraintModelTag,ConstraintModelTagType\n")
         for tag in tags:
-            f.write(f"{api_name},{tag},Type\n")
+            f.write(f"{api_name},{display_name},{tag},Type\n")
     if blob:
-        with open(os.path.join(d, "blobs", f"ESDV_{api_name}_V1.ffxblob"), "w") as f:
-            f.write("type Widget;\n")
+        name = blob_name or f"ESDV_{api_name}_V1.ffxblob"
+        with open(os.path.join(d, "blobs", name), "w") as f:
+            f.write(body)
     return d
+
+
+def _raises(fn, needle):
+    try:
+        fn()
+    except Exception as exc:  # TaskOptionsError / CumulusCIFailure, or Exception without CumulusCI
+        return needle in str(exc)
+    return False
 
 
 with tempfile.TemporaryDirectory() as root:
@@ -90,14 +103,22 @@ with tempfile.TemporaryDirectory() as root:
     check("a model whose Name differs from its ApiName reports no false missing associations",
           not missing, repr(missing))
 
-    print("A data directory with no model blob is an error, not a silent skip")
+    print("Only the exact blob import_cml uploads is accepted")
     empty = _model_dir(root, "ModelC", "ModelC", [], blob=False)
-    try:
-        _task(data_dirs=empty)._collect_targets()
-        raised = False
-    except Exception as exc:  # TaskOptionsError, or Exception without CumulusCI
-        raised = "No .ffxblob" in str(exc)
-    check("missing blob raises naming the directory", raised)
+    check("missing blob raises naming the expected file",
+          _raises(lambda: _task(data_dirs=empty)._collect_targets(), "ESDV_ModelC_V1.ffxblob"))
+    misnamed = _model_dir(root, "ModelD", "ModelD", [], blob_name="ESDV_ModelD_V2.ffxblob")
+    check("a misnamed blob is rejected, not validated in place of the expected one",
+          _raises(lambda: _task(data_dirs=misnamed)._collect_targets(), "not found"))
+    stray = _model_dir(root, "ModelE", "ModelE", [])
+    Path(stray, "blobs", "ESDV_Old_V1.ffxblob").write_text("type Old;\n")
+    check("an extra blob beside the expected one is rejected",
+          _raises(lambda: _task(data_dirs=stray)._collect_targets(), "Unexpected blob"))
+
+    print("A structural error fails the task, so it blocks the imports that follow")
+    broken = _model_dir(root, "ModelF", "ModelF", [], body="type Widget {\n}\n}\n")
+    check("an unbalanced brace raises instead of only logging",
+          _raises(lambda: _task(data_dirs=broken)._run_task(), "CML validation found errors"))
 
     print("Without data_dirs the cml_dir behaviour is unchanged")
     cml_dir = os.path.join(root, "cml")

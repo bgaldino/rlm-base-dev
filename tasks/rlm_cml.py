@@ -78,6 +78,19 @@ HEADER_DECL_RE = re.compile(r"^\s*(define|property|extern)\b")
 MAX_INLINE_UNRESOLVED_TAGS = 10
 
 
+def expected_blob_filename(esdv: Dict[str, str]) -> str:
+    """The ``blobs/`` file ImportCML uploads for an ExpressionSetDefinitionVersion row.
+
+    Shared with ValidateCML so the validator checks exactly the file the import
+    reads, not merely any ``.ffxblob`` in the directory.
+    """
+    devname = esdv.get("DeveloperName") or ""
+    version_num = esdv.get("VersionNumber") or "1"
+    suffix = f"_V{version_num}"
+    base_dev = devname.replace(suffix, "") if suffix in devname else devname
+    return f"ESDV_{base_dev}_V{version_num}.ffxblob"
+
+
 def describe_esc_import_failure(
     import_failed: bool,
     unresolved_tags: List[str],
@@ -825,9 +838,7 @@ class ImportCML(CMLBaseTask):
             )
 
         # Step 7: Upload blob
-        version_num = esdv.get("VersionNumber", "1")
-        base_dev = devname.replace(f"_V{version_num}", "") if f"_V{version_num}" in devname else devname
-        blob_file = os.path.join(blob_dir, f"ESDV_{base_dev}_V{version_num}.ffxblob")
+        blob_file = os.path.join(blob_dir, expected_blob_filename(esdv))
         if os.path.exists(blob_file):
             if dry_run:
                 self.logger.info(f"[DRY RUN] Would upload blob {blob_file} to ESDV {esdv_id}")
@@ -1070,26 +1081,44 @@ class ValidateCML(BaseTask):
     def _collect_targets(self) -> List[Tuple[str, str, List[str]]]:
         """Return ``(path, label, dataset_dirs)`` for every model file to validate.
 
-        With ``data_dirs``, each directory's own ``blobs/*.ffxblob`` is checked
-        against that directory alone, so every model is validated against its
-        own ESC rows. Otherwise the ``cml_dir`` copies are checked against the
-        single optional ``data_dir``.
+        With ``data_dirs``, each directory's blob is checked against that
+        directory alone, so every model is validated against its own ESC rows.
+        The blob must be exactly the one ImportCML uploads (named from
+        ``ExpressionSetDefinitionVersion.csv``), and no other may sit beside it:
+        a stale or misnamed blob would otherwise pass here while the import
+        uploads nothing. Otherwise the ``cml_dir`` copies are checked against
+        the single optional ``data_dir``.
         """
         data_dirs = _split_list_values(self.options.get("data_dirs") or "")
         if data_dirs:
             targets = []
             for dd in data_dirs:
+                esdv_path = os.path.join(dd, "ExpressionSetDefinitionVersion.csv")
+                if not os.path.exists(esdv_path):
+                    raise TaskOptionsError(f"No ExpressionSetDefinitionVersion.csv in {dd}")
+                with open(esdv_path, newline="") as handle:
+                    rows = list(csv.DictReader(handle))
+                if not rows:
+                    raise TaskOptionsError(f"{esdv_path} has no version row")
+                expected = expected_blob_filename(rows[0])
                 blob_dir = os.path.join(dd, "blobs")
-                blobs = sorted(
+                present = sorted(
                     name for name in (os.listdir(blob_dir) if os.path.isdir(blob_dir) else [])
                     if name.endswith(".ffxblob")
                 )
-                if not blobs:
-                    raise TaskOptionsError(f"No .ffxblob model found in {blob_dir}")
-                targets.extend(
-                    (os.path.join(blob_dir, name), os.path.join(dd, "blobs", name), [dd])
-                    for name in blobs
-                )
+                if expected not in present:
+                    raise TaskOptionsError(
+                        f"{os.path.join(blob_dir, expected)} not found: import_cml would "
+                        f"upload no model (present: {', '.join(present) or 'none'})"
+                    )
+                unexpected = [name for name in present if name != expected]
+                if unexpected:
+                    raise TaskOptionsError(
+                        f"Unexpected blob(s) in {blob_dir}: {', '.join(unexpected)}; "
+                        f"import_cml uploads only {expected}"
+                    )
+                targets.append((os.path.join(blob_dir, expected),
+                                os.path.join(dd, "blobs", expected), [dd]))
             return targets
 
         cml_dir = self.options.get("cml_dir") or "scripts/cml"
@@ -1170,7 +1199,9 @@ class ValidateCML(BaseTask):
                 self.logger.warning(f"  [{severity}] {loc}{message}")
 
         if has_errors:
-            self.logger.error("CML validation found errors")
+            # Step 6 of prepare_constraints guards the imports that follow, so a
+            # structural error must stop the flow rather than only be logged.
+            raise CumulusCIFailure("CML validation found errors (see the [error] lines above)")
 
     # -- CML Parsing ---------------------------------------------------
 
@@ -1418,9 +1449,11 @@ class ValidateCML(BaseTask):
         with open(esc_path, newline="") as handle:
             reader = csv.DictReader(handle)
             for row in reader:
-                model_name = row.get("ExpressionSet.Name", "").strip()
+                # ApiName first, matching _infer_expression_set_name: the display
+                # Name can differ ("QuantumBit PCM" vs QuantumBitPCM).
+                model_name = row.get("ExpressionSet.ApiName", "").strip()
                 if not model_name:
-                    model_name = row.get("ExpressionSet.ApiName", "").strip()
+                    model_name = row.get("ExpressionSet.Name", "").strip()
                 if not model_name:
                     continue
                 tag = row.get("ConstraintModelTag", "").strip()

@@ -451,8 +451,9 @@ curl -s -H "Authorization: Bearer $TOK" "$INST$URL" | grep "TokenCommitBounded"
 
 Before calling a constraint-model change done:
 
-1. `cci task run validate_cml -o data_dirs <dir>[,<dir>…]` → **0 errors**. This checks
-   each dir's shipped `.ffxblob` against its own ESC rows (warnings are largely
+1. `cci task run validate_cml -o data_dirs <dir>[,<dir>…]` → **0 errors** (an error now
+   fails the task). This checks each dir's shipped `.ffxblob`, the exact file `import_cml`
+   uploads, against its own ESC rows (warnings are largely
    pre-existing; the error count is the signal).
 2. Blob and reference `.cml` byte-identical — **only for a model that ships one**
    (`QuantumBitPCM` does not): `diff -q <blob> scripts/cml/<Model>.cml`. A model with no

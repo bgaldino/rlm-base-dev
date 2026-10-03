@@ -273,7 +273,7 @@ Import complete
 
 ## Validate Workflow
 
-Validate checks CML file structure, annotations, and optionally cross-references ESC association data. This task does **not** require a Salesforce org connection.
+Validate checks CML file structure, annotations, and optionally cross-references ESC association data. A structural **error** fails the task (so `prepare_constraints` stops before importing); warnings are only logged. This task does **not** require a Salesforce org connection.
 
 ### Usage
 
@@ -294,7 +294,7 @@ cci task run validate_cml \
 |--------|----------|-------------|
 | `cml_dir` | No | Directory containing .cml files (default: `scripts/cml`) |
 | `data_dir` | No | Constraints data plan directory for ESC association checking |
-| `data_dirs` | No | Comma-separated constraints data dirs. Each dir's own `blobs/*.ffxblob` is validated against that dir's ESC rows; replaces `cml_dir`/`data_dir` when set. A dir with no blob is an error |
+| `data_dirs` | No | Comma-separated constraints data dirs. Each dir's own `blobs/*.ffxblob` is validated against that dir's ESC rows; replaces `cml_dir`/`data_dir` when set. The blob must be exactly the one `import_cml` uploads (`ESDV_<DeveloperName>_V<n>.ffxblob`, from `ExpressionSetDefinitionVersion.csv`); a missing, misnamed or extra blob is an error |
 | `expression_set_name` | No | Override Expression Set name for association checks |
 
 ### What Gets Validated
