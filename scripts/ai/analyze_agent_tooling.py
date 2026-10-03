@@ -701,6 +701,48 @@ def check_rule_table_readable(root: Path) -> CheckResult:
     return CheckResult("rule table readable", ok, detail)
 
 
+def check_rule_owners(root: Path) -> CheckResult:
+    """Fail when a skill-mapped rule's owner could not be inferred.
+
+    Also fails on a rule file that isn't valid UTF-8: ``read_text`` turns it
+    into an empty string, so it would otherwise be collected with no globs or
+    safeguards and pass every check silently.
+    """
+    unreadable = []
+    for rule_path in sorted((root / RULES_ROOT).glob("*.mdc")):
+        try:
+            rule_path.read_bytes().decode("utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            unreadable.append(f"{rel(rule_path, root)} ({exc.__class__.__name__})")
+    if unreadable:
+        return CheckResult("rule owners", False, "unreadable rule file(s): " + "; ".join(unreadable))
+    try:
+        rules = collect_rules(root)
+    except Exception as exc:
+        # Fail, not skip: the rule-table check only inventories filenames and the
+        # README, so an unreadable .mdc would otherwise pass with no owner checked.
+        return CheckResult("rule owners", False, f"could not collect rules: {exc}")
+    unmapped = [f"{r.name} -> {r.equivalent_skill}" for r in rules if r.owner == UNMAPPED_OWNER]
+    if unmapped:
+        return CheckResult("rule owners", False,
+                           "no OWNER_KEYWORDS entry for: " + "; ".join(unmapped))
+    # A keyword can also match the wrong owner (a generic one shadowing a specific
+    # one), which the unmapped test can't see. The recommended rules declare their
+    # owner, so check inference agrees with every declaration.
+    mismatched = []
+    for rec in RECOMMENDED_SKILL_RULES:
+        inferred = infer_owner(rec.suggested_rule, rec.skill_path)
+        if inferred != rec.owner:
+            mismatched.append(f"{rec.suggested_rule} -> {inferred} (declared {rec.owner})")
+    if mismatched:
+        return CheckResult("rule owners", False,
+                           "OWNER_KEYWORDS infers the wrong owner for: " + "; ".join(mismatched))
+    defaulted = sum(1 for r in rules if not r.equivalent_skill and r.owner == DEFAULT_OWNER)
+    return CheckResult("rule owners", True,
+                       f"{len(rules)} rule owners assigned: {len(rules) - defaulted} inferred, "
+                       f"{defaulted} stand-alone defaulted to {DEFAULT_OWNER}")
+
+
 # Launch checks deliberately share the existing stdlib-only baseline entry point.
 AGENTS_MAX_BYTES = 25_000
 NAVIGATION_ROOTS = (
@@ -1074,6 +1116,7 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
         check_readme_explains_check_modes(root),
         check_skill_subfile_registration(root),
         check_rule_table_readable(root),
+        check_rule_owners(root),
         check_skill_discovery_metadata(root),
         check_native_skill_links(root),
         check_instruction_budget(root),
@@ -1590,17 +1633,21 @@ HIGH_RISK_PATHS: tuple[HighRiskPath, ...] = (
 )
 
 # Matched in order against "<rule name> <skill path>", first hit wins, so keep more
-# specific keywords ahead of ones they contain. A rule whose skill has no entry here
-# falls back to "Repository Integration" (see infer_owner) — which is right for the
-# stand-alone rules but silently mislabels a rule that maps to a skill, so add an entry
-# whenever a rule starts pointing at a skill not covered below.
+# specific keywords ahead of ones they contain. A stand-alone rule (no skill) with no
+# match gets DEFAULT_OWNER. A rule that maps to a skill with no match gets
+# UNMAPPED_OWNER instead, and the `rule owners` check fails on it, so the miss is
+# reported rather than defaulted: add an entry here when that happens.
 OWNER_KEYWORDS: tuple[tuple[str, str], ...] = (
     ("sfdmu", "SFDMU Data Plans"), ("cci", "CCI Orchestration"), ("apex", "Apex"),
     ("lwc", "Lightning Web Components"), ("ux", "UX Assembly"), ("robot", "Robot Testing"),
+    # Ahead of the generic "doc", which these names contain.
+    ("revenue-cloud-docs", "Revenue Cloud Docs"), ("document-generation", "Document Generation"),
     ("doc", "Doc Consistency"), ("schema", "Schema Validation"), ("release", "Release Enablement"),
     ("business", "Business APIs"), ("pmos", "PMOS Integration"),
     ("context", "Context Service"),
 )
+DEFAULT_OWNER = "Repository Integration"
+UNMAPPED_OWNER = "Unassigned (no OWNER_KEYWORDS entry)"
 
 
 def extract_frontmatter(text: str) -> str:
@@ -1717,11 +1764,16 @@ def parse_rule_table(markdown: str) -> dict[str, dict[str, Any]]:
 
 
 def infer_owner(rule_name: str, skill_path: str) -> str:
+    """Owner for a rule; UNMAPPED_OWNER when a skill-mapped rule has no keyword.
+
+    Only a stand-alone rule (no ``skill_path``) falls back to DEFAULT_OWNER.
+    Defaulting a skill-mapped rule would report an owner nobody determined.
+    """
     haystack = f"{rule_name} {skill_path}".lower()
     for keyword, owner in OWNER_KEYWORDS:
         if keyword in haystack:
             return owner
-    return "Repository Integration"
+    return UNMAPPED_OWNER if skill_path else DEFAULT_OWNER
 
 
 def glob_covers(rules: list[RuleInfo], candidate: str) -> bool:
