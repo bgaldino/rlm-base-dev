@@ -279,8 +279,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 4. **task** `apply_context_constraint_engine_node_status`  `when: project_config.project__custom__constraints`
 5. **task** `enable_constraints_settings`  `when: project_config.project__custom__constraints_data`
 6. **task** `validate_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `cml_dir`: `scripts/cml`
-   - `data_dir`: `datasets/constraints/qb/QuantumBitComplete`
+   - `data_dirs`: `datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/q...`
 7. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `data_dir`: `datasets/constraints/qb/QuantumBitComplete`
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`

@@ -185,9 +185,6 @@ if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
 fi
 unset _NVM_PREFIX
 
-# Salesforce CLI token-redaction opt-out (see §6 troubleshooting). Lets
-# CumulusCI 4.10.x keep reading the access token out of `sf --json` output.
-export SF_TEMP_SHOW_SECRETS=true
 ```
 
 ### First-time activation
@@ -237,9 +234,8 @@ The script handles:
 6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
    requires modern setuptools. The historical `<71` pin (older docs)
    is **incompatible**; see the [local installation guide](local-installation.md#step-7--install-cumulusci), *Note on setuptools*. Note CI
-   adds `<77` as well (`.github/workflows/prepare-rlm-org.yml`) because
-   it's pinned to CCI 4.8.1; modern CCI 4.10+ works with setuptools
-   77+ so this guide doesn't enforce the upper bound.
+   (`.github/workflows/prepare-rlm-org.yml`) installs the same
+   `setuptools>=75.4` with no upper bound, now that it pins CCI 4.10.1.
 7. `sf plugins update`
 8. `cci task run validate_setup` — verifies all 12 checks still pass
 
@@ -336,27 +332,28 @@ sobjects/Organization/[REDACTED] Use 'sf org auth show-access-token' to view.
 Cause — the May 2026 Salesforce CLI security change
 ([forcedotcom/cli#3560](https://github.com/forcedotcom/cli/issues/3560))
 redacts access tokens from the `--json` output of `org create scratch`,
-`org display`, `org list`, and the `org login *` commands. CumulusCI 4.10.x
-still parses those outputs for the token, so it grabs the literal
+`org display`, `org list`, and the `org login *` commands. CumulusCI 4.10.0
+and earlier parse those outputs for the token, so it grabs the literal
 `[REDACTED] Use 'sf org auth show-access-token' to view.` string and sends it
 as the auth header. It is **not** a real expired session or an org problem.
 
-Fix — restore the legacy output via the Salesforce-provided shim:
+Fix — upgrade CumulusCI to 4.10.1 or later, which falls back to
+`sf org auth show-access-token` when the token is redacted:
 
 ```bash
-export SF_TEMP_SHOW_SECRETS=true
+pipx upgrade cumulusci && cci version   # expect 4.10.1+
 ```
 
-This is already set in the repo `.envrc` (so `direnv allow` covers local work)
-and in `.github/workflows/prepare-rlm-org.yml` (CI). If you hit it, you're
-likely in a shell where `.envrc` isn't active — re-run `direnv allow` or export
-it manually.
+If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1
+(it needs Python 3.11–3.13); rebuild it on a supported interpreter with
+`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` or
+`scripts/bash/update-toolchain.sh`.
 
-> **Temporary.** Salesforce announced it would remove `SF_TEMP_SHOW_SECRETS` in
-> Summer '26 (262). That window has passed and the shim still works, so treat the
-> removal date as unknown rather than scheduled. The durable fix is a CumulusCI
-> release that fetches the token via `sf org auth show-access-token --json`; drop
-> the env var once CCI does that.
+CI (`.github/workflows/prepare-rlm-org.yml`) pins 4.10.1. The repo no longer
+exports the old `SF_TEMP_SHOW_SECRETS=true` shim for CumulusCI (a few scripts
+still set it on their own `sf` calls); if you added it to `~/.zshenv`
+or a LaunchAgent, remove it (see
+[cci-sf-cli-token-workaround.md](cci-sf-cli-token-workaround.md)).
 
 ---
 

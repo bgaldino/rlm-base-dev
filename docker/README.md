@@ -282,8 +282,7 @@ Design decisions worth knowing:
   browser reaches `localhost:1717` but the page hangs. The dependable path is
   `rlm login --auth-url`, which imports an existing SFDX auth URL via stdin and
   needs no callback. `SF_USE_GENERIC_UNIX_KEYCHAIN=true` stores tokens as files
-  (no OS keyring); `SF_TEMP_SHOW_SECRETS=true` keeps CCI's scratch-org creation
-  working (see `docs/guides/dev-environment-setup.md` §6).
+  (no OS keyring).
 - **Builds route through the build harness.** `rlm build` writes a one-off
   scenario for `scripts/build_harness/harness.py` and runs it with
   `--keep-orgs`. That's the maintained way to apply `project.custom` flag

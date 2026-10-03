@@ -1,5 +1,7 @@
-# Minimum required version of CumulusCI to run this project
-minimum_cumulusci_version: "4.0.0"
+# Minimum required version of CumulusCI to run this project. 4.10.1 is the first
+# release that reads the access token when `sf` redacts it; older versions fail
+# with INVALID_AUTH_HEADER (docs/guides/cci-sf-cli-token-workaround.md).
+minimum_cumulusci_version: "4.10.1"
 
 #-------------------------#
 # SCRATCH ORG DEFINITIONS #
@@ -4136,8 +4138,9 @@ flows:
         task: validate_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
-          cml_dir: scripts/cml
-          data_dir: *quantumbit_constraints_data_dir
+          # Every model steps 7-10 import, each checked against its own ESC rows.
+          # Keep in step with the import_cml data_dir values below.
+          data_dirs: "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
       7:
         task: import_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb

@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""
+Offline invariants for ValidateCML's per-model validation (``data_dirs``).
+
+    python tests/test_rlm_cml_validate.py
+
+No org and no CumulusCI install required.
+
+Why this file exists
+--------------------
+``prepare_constraints`` imports four constraint models but validated only one,
+and that one through the hand-kept ``scripts/cml/*.cml`` copies, each checked
+against a single model's ESC rows. ``data_dirs`` validates each directory's own
+``blobs/*.ffxblob`` (what ``import_cml`` uploads) against that directory's ESC
+rows. The ESC CSVs key rows by ``ExpressionSet.ApiName``, which differs from the
+display ``Name`` for two shipped models ("QuantumBit PCM", "QuantumBit Bundle"),
+so the model name must come from ``ApiName`` or every association reads as
+missing.
+"""
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from tasks.rlm_cml import ValidateCML  # noqa: E402
+
+FAILURES = []
+
+
+def check(label, condition, detail=""):
+    if condition:
+        print(f"  PASS  {label}")
+    else:
+        print(f"  FAIL  {label}{(' -- ' + detail) if detail else ''}")
+        FAILURES.append(label)
+
+
+class _Log:
+    def __init__(self):
+        self.lines = []
+
+    def info(self, msg):
+        self.lines.append(msg)
+
+    warning = error = info
+
+
+def _task(**options):
+    t = ValidateCML.__new__(ValidateCML)
+    t.options = options
+    t.logger = _Log()
+    return t
+
+
+def _model_dir(root, api_name, display_name, tags, blob=True, blob_name=None, body="type Widget;\n"):
+    d = os.path.join(root, api_name)
+    os.makedirs(os.path.join(d, "blobs"))
+    with open(os.path.join(d, "ExpressionSet.csv"), "w") as f:
+        f.write("ApiName,Name\n" f"{api_name},{display_name}\n")
+    with open(os.path.join(d, "ExpressionSetDefinitionVersion.csv"), "w") as f:
+        f.write("DeveloperName,VersionNumber\n" f"{api_name}_V1,1\n")
+    with open(os.path.join(d, "ExpressionSetDefinitionContextDefinition.csv"), "w") as f:
+        f.write("ContextDefinitionApiName\nRLM_SalesTransactionContext\n")
+    # Both name columns, with differing values, as an export can carry: the
+    # reader must key rows by ApiName or the display Name hides every row.
+    with open(os.path.join(d, "ExpressionSetConstraintObj.csv"), "w") as f:
+        f.write("ExpressionSet.ApiName,ExpressionSet.Name,ConstraintModelTag,ConstraintModelTagType\n")
+        for tag in tags:
+            f.write(f"{api_name},{display_name},{tag},Type\n")
+    if blob:
+        name = blob_name or f"ESDV_{api_name}_V1.ffxblob"
+        with open(os.path.join(d, "blobs", name), "w") as f:
+            f.write(body)
+    return d
+
+
+def _raises(fn, needle):
+    try:
+        fn()
+    except Exception as exc:  # TaskOptionsError / CumulusCIFailure, or Exception without CumulusCI
+        return needle in str(exc)
+    return False
+
+
+with tempfile.TemporaryDirectory() as root:
+    a = _model_dir(root, "ModelA", "Model A", ["Widget"])
+    b = _model_dir(root, "ModelB", "ModelB", ["Widget"])
+
+    print("data_dirs validates each directory's own blob against its own rows")
+    targets = _task(data_dirs=f"{a},{b}")._collect_targets()
+    check("one target per model blob", len(targets) == 2, repr(targets))
+    check("each target is checked against its own directory only",
+          [t[2] for t in targets] == [[a], [b]], repr(targets))
+    check("targets are the .ffxblob files import_cml uploads",
+          all(t[0].endswith(".ffxblob") for t in targets), repr(targets))
+
+    print("The model name comes from ApiName, which keys the ESC rows")
+    check("ApiName wins over a differing display Name",
+          ValidateCML._infer_expression_set_name(targets[0][0], [a]) == "ModelA")
+    t = _task(data_dirs=f"{a},{b}")
+    t._run_task()
+    missing = [line for line in t.logger.lines if "Missing" in line or "not found in CML" in line]
+    check("a model whose Name differs from its ApiName reports no false missing associations",
+          not missing, repr(missing))
+
+    print("Only the exact blob import_cml uploads is accepted")
+    empty = _model_dir(root, "ModelC", "ModelC", ["Widget"], blob=False)
+    check("missing blob raises naming the expected file",
+          _raises(lambda: _task(data_dirs=empty)._collect_targets(), "ESDV_ModelC_V1.ffxblob"))
+    misnamed = _model_dir(root, "ModelD", "ModelD", ["Widget"], blob_name="ESDV_ModelD_V2.ffxblob")
+    check("a misnamed blob is rejected, not validated in place of the expected one",
+          _raises(lambda: _task(data_dirs=misnamed)._collect_targets(), "not found"))
+    stray = _model_dir(root, "ModelE", "ModelE", ["Widget"])
+    Path(stray, "blobs", "ESDV_Old_V1.ffxblob").write_text("type Old;\n")
+    check("an extra blob beside the expected one is rejected",
+          _raises(lambda: _task(data_dirs=stray)._collect_targets(), "Unexpected blob"))
+
+    print("Every CSV import_cml reads must be present, checked before any import")
+    no_esc = _model_dir(root, "ModelK", "ModelK", ["Widget"])
+    os.remove(os.path.join(no_esc, "ExpressionSetConstraintObj.csv"))
+    check("a directory missing its ESC CSV is rejected",
+          _raises(lambda: _task(data_dirs=no_esc)._collect_targets(), "ExpressionSetConstraintObj.csv is missing"))
+    no_es = _model_dir(root, "ModelL", "ModelL", ["Widget"])
+    os.remove(os.path.join(no_es, "ExpressionSet.csv"))
+    check("a directory missing ExpressionSet.csv is rejected",
+          _raises(lambda: _task(data_dirs=no_es)._collect_targets(), "ExpressionSet.csv is missing"))
+    empty_esc = _model_dir(root, "ModelM", "ModelM", [])
+    check("an ESC CSV with no rows is rejected",
+          _raises(lambda: _task(data_dirs=empty_esc)._collect_targets(), "has no rows"))
+    check("problems in a later directory fail before the earlier one is used",
+          _raises(lambda: _task(data_dirs=f"{a},{no_esc}")._collect_targets(), "ModelK"))
+
+    print("A structural error fails the task, so it blocks the imports that follow")
+    broken = _model_dir(root, "ModelF", "ModelF", ["Widget"], body="type Widget {\n}\n}\n")
+    check("an unbalanced brace raises instead of only logging",
+          _raises(lambda: _task(data_dirs=broken)._run_task(), "CML validation found errors"))
+
+    print("Braces inside string literals are data, not syntax")
+    quoted = _model_dir(root, "ModelG", "ModelG", ["Widget"],
+                        body='type Widget {\n    string label = "}";\n    string open = \'{(\';\n}\n')
+    t = _task(data_dirs=quoted)
+    try:
+        t._run_task()
+        ok = True
+    except Exception as exc:
+        ok, t.logger.lines = False, t.logger.lines + [str(exc)]
+    check("a brace or paren inside a string literal does not fail validation",
+          ok and not any("Unbalanced" in line for line in t.logger.lines), repr(t.logger.lines[-3:]))
+
+    print("Comment markers inside string literals are data, not comments")
+    markers = _model_dir(root, "ModelH", "ModelH", ["Widget"], body=(
+        'type Widget {\n'
+        '    string a = "/*";\n'
+        "    string b = '//';\n"
+        '    string c = "*/";\n'
+        "    string d = '/*';\n"
+        '    string e = "esc \\" // still a string";\n'
+        '}\n'))
+    t = _task(data_dirs=markers)
+    try:
+        t._run_task()
+        ok = True
+    except Exception as exc:
+        ok, t.logger.lines = False, t.logger.lines + [str(exc)]
+    check("//, /* and */ inside either quote style do not start or end a comment",
+          ok and not any("Unbalanced" in line for line in t.logger.lines), repr(t.logger.lines[-3:]))
+
+    print("Unbalanced parentheses are errors that fail the task")
+    early = _model_dir(root, "ModelI", "ModelI", ["Widget"], body="type Widget {\n    x = 1);\n}\n")
+    check("a stray ')' fails validation",
+          _raises(lambda: _task(data_dirs=early)._run_task(), "CML validation found errors"))
+    unclosed = _model_dir(root, "ModelJ", "ModelJ", ["Widget"],
+                          body="type Widget {\n    constraint(foo(\n}\n")
+    check("an unclosed '(' at end of file fails validation",
+          _raises(lambda: _task(data_dirs=unclosed)._run_task(), "CML validation found errors"))
+
+    print("An expression_set_name override matches by display Name or ApiName")
+    for override in ("Model A", "ModelA"):
+        t = _task(cml_dir=os.path.dirname(targets[0][0]), data_dir=a, expression_set_name=override)
+        t._collect_targets = lambda: [(targets[0][0], "blob", [a])]
+        t._run_task()
+        miss = [line for line in t.logger.lines if "Missing" in line or "not found in CML" in line]
+        check(f"override {override!r} finds the model's associations", not miss, repr(miss))
+
+    print("Without data_dirs the cml_dir behaviour is unchanged")
+    cml_dir = os.path.join(root, "cml")
+    os.makedirs(cml_dir)
+    Path(cml_dir, "One.cml").write_text("type Widget;\n")
+    Path(cml_dir, "notes.txt").write_text("ignored\n")
+    legacy = _task(cml_dir=cml_dir, data_dir=a)._collect_targets()
+    check("cml_dir .cml files are checked against data_dir",
+          legacy == [(os.path.join(cml_dir, "One.cml"), "One.cml", [a])], repr(legacy))
+
+print()
+if FAILURES:
+    print(f"{len(FAILURES)} FAILING CHECK(S): " + "; ".join(FAILURES))
+    sys.exit(1)
+print("All checks passed.")
