@@ -114,9 +114,33 @@ def test_unknown_flag_exits_with_error():
     assert ux_tool.main(["flags", "--flag", "nope=true"]) == ux_tool.EXIT_ERROR
 
 
-def test_missing_manifest_exits_with_error(tmp_path):
-    rc = ux_tool.main(["flags", "--flags-from-manifest", str(tmp_path / "missing.json")])
-    assert rc == ux_tool.EXIT_ERROR
+def _features_for(argv):
+    import logging
+
+    args = ux_tool._build_parser().parse_args(argv)
+    return ux_tool._make_context(args, logging.getLogger("test_ux")).features
+
+
+def test_org_commands_default_to_manifest_flags(tmp_path):
+    name = UX_KNOWN_FLAGS[0]
+    defaults, _ = resolve_features(REPO_ROOT)
+    out = ["--output-path", str(tmp_path)]
+    assert _features_for(["diff", *out])[name] is defaults[name], "no manifest: cumulusci.yml"
+
+    (tmp_path / "assembly_manifest.json").write_text(
+        json.dumps({"feature_flags": {name: not defaults[name]}})
+    )
+    for command in sorted(ux_tool.MANIFEST_COMMANDS):
+        extra = ["--target-org", "x"] if command in ("retrieve", "capture-drift") else []
+        assert _features_for([command, *out, *extra])[name] is (not defaults[name]), command
+    assert _features_for(["diff", *out, "--flag", f"{name}={defaults[name]}"])[name] is defaults[name]
+    assert _features_for(["assemble", *out])[name] is defaults[name], "assemble ignores the manifest"
+
+
+def test_corrupt_manifest_exits_with_error(tmp_path):
+    (tmp_path / "flexipages").mkdir()
+    (tmp_path / "assembly_manifest.json").write_text("{not json")
+    assert ux_tool.main(["diff", "--output-path", str(tmp_path)]) == ux_tool.EXIT_ERROR
 
 
 # ── assemble + diff ──────────────────────────────────────────────────────────
@@ -125,11 +149,6 @@ def test_assemble_writes_manifest(assembled):
     manifest = json.loads((assembled / "assembly_manifest.json").read_text())
     assert manifest["assembled"]
     assert (assembled / "flexipages" / QUOTE_PAGE).exists()
-
-
-def test_assemble_deploy_needs_target_org(tmp_path):
-    rc = ux_tool.main(["assemble", "--output-path", str(tmp_path), "--deploy"])
-    assert rc == ux_tool.EXIT_ERROR
 
 
 @pytest.mark.parametrize("command", ["diff", "writeback"])
@@ -151,9 +170,9 @@ def test_writeback_unknown_name_is_an_error(org_state):
     assert rc == ux_tool.EXIT_ERROR
 
 
-def test_writeback_name_type_mismatch_is_an_error(org_state):
+def test_writeback_rejects_a_layout_name(org_state):
     rc = ux_tool.main([
-        "writeback", "--name", QUOTE_PAGE, "--type", "layouts", "--output-path", str(org_state),
+        "writeback", "--name", "RLM_Quote.layout-meta.xml", "--output-path", str(org_state),
     ])
     assert rc == ux_tool.EXIT_ERROR
 
@@ -165,20 +184,16 @@ def test_diff_against_own_assembly_is_clean(org_state):
     assert report["summary"]["drifted"] == 0
 
 
-def test_diff_detects_removed_region(org_state, tmp_path):
+def test_diff_detects_removed_region(org_state):
     page = org_state / "flexipages" / QUOTE_PAGE
     xml = page.read_text()
     trimmed, n = re.subn(r"<flexiPageRegions>.*?</flexiPageRegions>\s*", "", xml, count=1, flags=re.S)
     assert n == 1
     page.write_text(trimmed)
 
-    report_file = tmp_path / "report.json"
-    rc = ux_tool.main([
-        "diff", "--output-path", str(org_state), "--report-file", str(report_file),
-        "--fail-on-drift",
-    ])
+    rc = ux_tool.main(["diff", "--output-path", str(org_state), "--fail-on-drift"])
     assert rc == ux_tool.EXIT_DRIFT
-    assert json.loads(report_file.read_text())["summary"]["drifted"] == 1
+    assert json.loads((org_state / "drift_report.json").read_text())["summary"]["drifted"] == 1
     # Without --fail-on-drift drift is reported but not an error.
     assert ux_tool.main(["diff", "--output-path", str(org_state)]) == 0
 
@@ -380,7 +395,7 @@ def repo_copy(pristine_repo, tmp_path):
 def _apply_drift(root, out):
     return ux_tool.main([
         "apply-drift", "--repo-root", str(root), "--output-path", str(out),
-        "--no-backup", "--fail-on-drift",
+        "--fail-on-drift",
     ])
 
 

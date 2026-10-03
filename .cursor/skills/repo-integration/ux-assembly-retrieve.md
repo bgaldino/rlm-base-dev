@@ -36,7 +36,7 @@ python scripts/ux/ux_tool.py writeback                                 # dry-run
 python scripts/ux/ux_tool.py apply-drift                               # writeback to templates + verify + reassemble
 ```
 
-`ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. Its flags default to `project.custom` in `cumulusci.yml`; match an org built with overrides via `--flag name=value` or `--flags-from-manifest`. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `-o deploy false` runs assembly locally with no org at all.
+`ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. `assemble` takes its flags from `project.custom` in `cumulusci.yml`; the org-facing commands (`retrieve`, `diff`, `writeback`, `capture-drift`, `apply-drift`) take the flags recorded in `unpackaged/post_ux/assembly_manifest.json` by the last assembly, so they match what was deployed. `--flag name=value` overrides either. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `-o deploy false` runs assembly locally with no org at all.
 
 ## DO NOT
 

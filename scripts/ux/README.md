@@ -10,7 +10,7 @@ The build still assembles through CCI: `prepare_ux` runs `assemble_and_deploy_ux
 writeback exist only here.
 
 Requirements: Python 3 with PyYAML, and the `sf` CLI for the org-facing commands
-(`retrieve`, `deploy`, `capture-drift`, `assemble --deploy`).
+(`retrieve`, `deploy`, `capture-drift`).
 
 ## Commands
 
@@ -21,17 +21,19 @@ python scripts/ux/ux_tool.py <command> [options]
 | Command | Does | Org? |
 |---------|------|------|
 | `flags` | Print the resolved UX feature flags as JSON | no |
-| `assemble [--type T] [--name F] [--output-path P] [--deploy --target-org X]` | `templates/` → `unpackaged/post_ux/` | only with `--deploy` |
+| `assemble [--type T] [--name F] [--output-path P]` | `templates/` → `unpackaged/post_ux/` | no |
 | `deploy --target-org X [--output-path P]` | `sf project deploy start` the assembled output | yes |
 | `retrieve --target-org X [--name F]` | Org flexipages → `unpackaged/post_ux/flexipages/` | yes |
-| `diff [--name F] [--report-file P] [--fail-on-drift]` | Org state in `post_ux/` vs. templates → `drift_report.json` | no |
-| `writeback [--name F] [--type flexipages\|layouts\|all] [--apply] [--no-backup]` | Reverse-apply patches: org state → `templates/` (flexipages by default; layouts need org layouts placed in `post_ux/layouts/` by hand, since `retrieve` fetches only flexipages) | no |
+| `diff [--name F] [--fail-on-drift]` | Org state in `post_ux/` vs. templates → `<output-path>/drift_report.json` | no |
+| `writeback [--name F] [--apply]` | Reverse-apply patches: org flexipages → `templates/` | no |
 | `capture-drift --target-org X [--fail-on-drift]` | `retrieve`, then `diff` | yes |
-| `apply-drift [--no-backup] [--fail-on-drift]` | `writeback --apply` (flexipages), `diff` against the org state, then `assemble` (no deploy) | no |
+| `apply-drift [--fail-on-drift]` | `writeback --apply` (flexipages), `diff` against the org state, then `assemble` (no deploy) | no |
 
 `--type` for `assemble` is one of `all`, `flexipages`, `layouts`, `applications`,
 `profiles`, `objects`. `--name` takes the full source filename including its
-type suffix, e.g. `RLM_Quote_Record_Page.flexipage-meta.xml`.
+type suffix, e.g. `RLM_Quote_Record_Page.flexipage-meta.xml`. Commands compose
+rather than chain through options: `assemble && deploy --target-org X` assembles and
+deploys.
 
 Relative paths resolve against the repository root, so the tool can run from any
 directory. Exit codes: `0` success, `1` drift found with `--fail-on-drift`, `2`
@@ -64,21 +66,21 @@ does not have are reported as warnings.
 
 ## Feature flags
 
-Flags default to `project.custom` in `cumulusci.yml`. Two options layer on top, in
-this order:
+Where a command's flags start depends on what it compares:
 
-1. `--flags-from-manifest [PATH]`: the flags recorded by the last assembly
-   (default `<output-path>/assembly_manifest.json`). Use it when the org was built
-   with runtime overrides, so the diff compares against what was really deployed.
-2. `--flag NAME=true|false`: repeatable runtime overrides; these win. Unknown flag
-   names are rejected.
+- `flags` and `assemble` start from `project.custom` in `cumulusci.yml`.
+- The org-facing commands (`retrieve`, `diff`, `writeback`, `capture-drift`,
+  `apply-drift`) start from the flags recorded in `<output-path>/assembly_manifest.json`
+  by the last assembly, so an org built with runtime overrides is compared against
+  what was really deployed. Without a manifest they fall back to `cumulusci.yml`.
 
-`python scripts/ux/ux_tool.py flags` prints the result.
+`--flag NAME=true|false` (repeatable) overrides either; unknown flag names are
+rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
 
 ## Safety
 
-- `writeback` is a **dry run** unless `--apply` is given. With `--apply` it keeps
-  `*.bak` copies of overwritten templates unless `--no-backup` is set.
+- `writeback` is a **dry run** unless `--apply` is given. It keeps no backup
+  copies: review with `git diff templates/` and revert with git.
 - Never hand-edit `unpackaged/post_ux/`; change `templates/` and reassemble.
 - `retrieve` and `capture-drift` overwrite `unpackaged/post_ux/flexipages/` with
   org state. Run `assemble` (or `git checkout unpackaged/post_ux/`) afterwards if

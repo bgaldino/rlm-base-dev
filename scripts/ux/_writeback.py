@@ -39,17 +39,13 @@ from scripts.ux._context import UxContext, UxOptionError
 from scripts.ux._diff import org_flexipage_files
 from scripts.ux._flags import (
     FLEXIPAGE_SUFFIX,
-    LAYOUT_SUFFIX,
     SALES_TXN_LINE_EDITOR_IDENTIFIER,
-    active_layout_tiers,
     active_patch_files,
     load_yaml,
     resolve_flexipage_sources,
 )
 
 ET.register_namespace("", SF_NS)
-
-WRITEBACK_TYPES = ("all", "flexipages", "layouts")
 
 
 class UxWriteback:
@@ -68,12 +64,10 @@ class UxWriteback:
         self,
         org_path: Path,
         metadata_name: Optional[str] = None,
-        metadata_type: str = "flexipages",
         dry_run: bool = True,
-        backup: bool = True,
     ) -> List[Dict[str, Any]]:
         """Write back (or, with ``dry_run``, report) template changes; return per-item results."""
-        metadata_type = validate_selection(metadata_type, metadata_name, WRITEBACK_TYPES)
+        validate_selection("flexipages", metadata_name, ("flexipages",))
         org_path = Path(org_path)
         templates_path = self.ctx.templates_path
         features = self.ctx.features
@@ -85,19 +79,9 @@ class UxWriteback:
             + (", ".join(k for k, v in features.items() if v) or "none")
         )
 
-        results = []
-
-        if metadata_type in ("all", "flexipages"):
-            results.extend(self._writeback_flexipages(
-                templates_path, org_path, features, metadata_name,
-                dry_run, backup,
-            ))
-
-        if metadata_type in ("all", "layouts"):
-            results.extend(self._writeback_layouts(
-                templates_path, org_path, features, metadata_name,
-                dry_run, backup,
-            ))
+        results = self._writeback_flexipages(
+            templates_path, org_path, features, metadata_name, dry_run,
+        )
 
         # Summary
         written = sum(1 for r in results if r.get("written"))
@@ -119,7 +103,6 @@ class UxWriteback:
         features: Dict[str, bool],
         metadata_name: Optional[str],
         dry_run: bool,
-        backup: bool,
     ) -> List[Dict[str, Any]]:
         base_dir = templates_path / "flexipages" / "base"
         patches_dir = templates_path / "flexipages" / "patches"
@@ -145,7 +128,7 @@ class UxWriteback:
                 results.append(self._handle_new_page(fname, org_dir, base_dir, dry_run))
                 continue
             results.append(self._writeback_page(
-                fname, org_dir, source, patches_dir, features, dry_run, backup,
+                fname, org_dir, source, patches_dir, features, dry_run,
                 standalone=standalone_dir in source.parents,
             ))
 
@@ -153,72 +136,7 @@ class UxWriteback:
             self._update_all_patches(
                 org_dir, patches_dir,
                 features, org_files, page_sources,
-                backup,
             )
-
-        return results
-
-    # ------------------------------------------------------------------
-    # Layouts writeback
-    # ------------------------------------------------------------------
-
-    def _writeback_layouts(
-        self,
-        templates_path: Path,
-        org_path: Path,
-        features: Dict[str, bool],
-        metadata_name: Optional[str],
-        dry_run: bool,
-        backup: bool,
-    ) -> List[Dict[str, Any]]:
-        org_dir = org_path / "layouts"
-
-        if not org_dir.exists():
-            self.logger.info("No org-retrieved layouts to process.")
-            return []
-
-        # Build source map: fname → (tier_name, path); last tier wins, as in assembly.
-        layout_sources: Dict[str, Tuple[str, Path]] = {}
-        for tier_name, tier_dir in active_layout_tiers(templates_path, features):
-            for f in tier_dir.glob(f"*{LAYOUT_SUFFIX}"):
-                layout_sources[f.name] = (tier_name, f)
-
-        org_files = sorted(f.name for f in org_dir.glob(f"*{LAYOUT_SUFFIX}"))
-        if metadata_name:
-            org_files = [f for f in org_files if f == metadata_name]
-
-        if not org_files:
-            self.logger.warning("No org-retrieved layouts to process.")
-            return []
-
-        results = []
-        for fname in org_files:
-            org_file = org_dir / fname
-            source_info = layout_sources.get(fname)
-
-            if source_info is None:
-                # New layout — save to base
-                dest = templates_path / "layouts" / "base" / fname
-                self.logger.info(
-                    f"  [layout:new] {fname} — saving to base"
-                )
-                if not dry_run:
-                    dest.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(str(org_file), str(dest))
-                results.append({"file": fname, "written": not dry_run,
-                                "new": True})
-                continue
-
-            tier_name, dest_file = source_info
-            self.logger.info(
-                f"  [layout:{tier_name}] {fname} — updating template"
-            )
-            if not dry_run:
-                if backup and dest_file.exists():
-                    shutil.copy2(str(dest_file), str(dest_file) + ".bak")
-                shutil.copy2(str(org_file), str(dest_file))
-            results.append({"file": fname, "written": not dry_run,
-                            "tier": tier_name})
 
         return results
 
@@ -234,7 +152,6 @@ class UxWriteback:
         patches_dir: Path,
         features: Dict[str, bool],
         dry_run: bool,
-        backup: bool,
         standalone: bool,
     ) -> Dict[str, Any]:
         """Reverse the active patches out of the org page and write it over ``source``,
@@ -276,8 +193,6 @@ class UxWriteback:
         )
 
         if not dry_run:
-            if backup:
-                shutil.copy2(str(source), str(source) + ".bak")
             _write_xml(root, source)
 
         return {
@@ -317,7 +232,6 @@ class UxWriteback:
         features: Dict[str, bool],
         org_files: List[str],
         page_sources: Dict[str, Path],
-        backup: bool,
     ) -> None:
         """Update patch YAML files so base + patches reproduces org state."""
         self.logger.info("\nUpdating patch files...")
@@ -350,7 +264,7 @@ class UxWriteback:
             for patch_feature, patch_path in patch_files:
                 self._update_patch_file(
                     fname, base_text, org_text, base_root, org_root,
-                    patch_path, patch_feature, backup,
+                    patch_path, patch_feature,
                 )
 
     def _update_patch_file(
@@ -362,7 +276,6 @@ class UxWriteback:
         org_root: ET.Element,
         patch_path: Path,
         patch_feature: str,
-        backup: bool,
     ) -> None:
         """Update a single patch YAML file by extracting current org content."""
         patch_data = load_yaml(patch_path)
@@ -467,14 +380,8 @@ class UxWriteback:
                 f"    [patch] {patch_feature}/{fname}: all patches removed, "
                 f"deleting patch file"
             )
-            if backup:
-                shutil.copy2(str(patch_path), str(patch_path) + ".bak")
             patch_path.unlink()
             return
-
-        # Write updated YAML
-        if backup:
-            shutil.copy2(str(patch_path), str(patch_path) + ".bak")
 
         # Clean up internal markers
         for p in patches:

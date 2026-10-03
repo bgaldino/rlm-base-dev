@@ -307,10 +307,11 @@ writeback workflow automates this. It runs without CCI through
 `scripts/ux/ux_tool.py` and addresses the org by its **sf CLI** alias or username
 (`--target-org`), never a CCI alias. Full option reference: `scripts/ux/README.md`.
 
-Feature flags default to `project.custom` in `cumulusci.yml`. If the org was built
-with runtime overrides, pass the same values with `--flag name=value`, or use
-`--flags-from-manifest` to take the flags recorded in
-`unpackaged/post_ux/assembly_manifest.json` by the last assembly.
+These commands take their feature flags from
+`unpackaged/post_ux/assembly_manifest.json`, the record of the last assembly, so
+they compare against what was assembled and deployed rather than the
+`cumulusci.yml` defaults (which they fall back to when no manifest exists).
+`--flag name=value` overrides a recorded value.
 
 ### Workflow
 
@@ -367,9 +368,10 @@ python scripts/ux/ux_tool.py writeback \
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--apply` | off (dry run) | Actually write back templates |
-| `--name` | (none) | Process a single file |
-| `--type` | `flexipages` | `all`, `flexipages`, or `layouts`. `retrieve` fetches only flexipages, so `layouts`/`all` need org layouts placed in `<output-path>/layouts/` by hand; otherwise the assembled layouts are written back over the feature layout templates |
-| `--no-backup` | off | Skip the `*.bak` copies of overwritten templates |
+| `--name` | (none) | Process a single flexipage |
+
+Writeback handles flexipages only (`retrieve` fetches no layouts) and keeps no
+backup copies: review the result with `git diff templates/` and revert with git.
 
 ### Writeback Algorithm
 
@@ -386,8 +388,6 @@ For flexipages with active patches:
 For standalone flexipages (no patches): copy org file directly to the standalone
 template directory.
 
-For layouts: resolve tier ownership (base → billing → constraints, last-wins) and
-copy the org file to the correct template directory.
 
 Profile writeback is not automated — profile changes require manual review and
 are applied with oversight.

@@ -5,7 +5,7 @@ UX drift diff — compares org state against what current templates assemble to.
 written by ``ux_tool.py retrieve``. The diff assembles flexipages from
 ``templates/`` into a temporary directory and reports added, removed,
 modified and repositioned flexiPageRegions per page. It modifies no files
-other than the report it writes (``drift_report.json`` by default).
+other than the report it writes (``<org_path>/drift_report.json``).
 """
 import json
 import re
@@ -47,13 +47,12 @@ class UxDiff:
         self,
         org_path: Path,
         metadata_name: Optional[str] = None,
-        report_file: Optional[Path] = None,
     ) -> Dict[str, Any]:
-        """Diff, log, write the JSON report and return it."""
+        """Diff, log, write ``<org_path>/drift_report.json`` and return the report."""
         validate_selection("flexipages", metadata_name, ("flexipages",))
         org_path = Path(org_path)
         org_flexipage_files(org_path)
-        report_path = Path(report_file) if report_file else org_path / "drift_report.json"
+        report_path = org_path / "drift_report.json"
         features = self.ctx.features
         self.logger.info(
             "Active features: "
@@ -68,7 +67,6 @@ class UxDiff:
 
         self._log_report(report)
 
-        report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(
             json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
         )
