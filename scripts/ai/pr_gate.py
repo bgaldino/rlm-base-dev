@@ -59,10 +59,10 @@ import time
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Package -> the import that proves it is USABLE, not merely present. `cumulusci` maps to
-# `cumulusci.core.tasks` because the top-level package imports on a install that cannot run
-# a task: `cumulusci.core.tasks` -> `cumulusci.core.config` -> `fs` -> `pkg_resources`, which
-# Python 3.12+ venvs do not ship unless setuptools is installed (`prepare-rlm-org.yml` pins
-# `setuptools>=75.4,<77` ahead of CumulusCI for exactly this reason). Probed with a real
+# `cumulusci.core.tasks` because the top-level package can import on an install that cannot
+# run a task. (CumulusCI 4.8.1 reached `fs` -> `pkg_resources` there, which a Python 3.12+ venv
+# lacks without setuptools; 4.10.1 no longer depends on `fs`, and setuptools 82+ no longer
+# ships `pkg_resources` at all.) Probed with a real
 # import rather than `find_spec`, which answers "is there a file to import" and so calls such
 # an install fine — the failure then surfaces as two unrelated-looking suite failures instead
 # of one blocked dependency. `analyze_agent_tooling.py` also needs Python 3.10+
@@ -79,15 +79,14 @@ DEPS = {
 # What `--requirements` emits, so CI installs only what the selection needs. CumulusCI is
 # pinned to the version `prepare-rlm-org.yml` installs: two workflows resolving different
 # CumulusCI versions would let a flow-citation check pass here and fail there.
-PINS = {"cumulusci": "cumulusci==4.8.1"}
+PINS = {"cumulusci": "cumulusci==4.10.1"}
 
-# Installed alongside a package, because installing only the package leaves it unusable.
-# CumulusCI imports `fs`, which imports `pkg_resources`, which Python 3.12+ venvs do not
-# ship — so a caller that installs exactly what `--requirements` prints would still get
-# MISSING-DEP for cumulusci. Emitting this here rather than documenting a manual extra step
-# keeps that knowledge in one place: `prepare-rlm-org.yml` already installs the same pin, and
-# the second workflow author should not have to rediscover why.
-CO_REQUIRES = {"cumulusci": ["setuptools>=75.4,<77"]}
+# Installed alongside a package. CumulusCI 4.8.1 needed setuptools for `fs` -> `pkg_resources`;
+# 4.10.1 dropped `fs`, so this is now only the same `setuptools>=75.4` floor that
+# `prepare-rlm-org.yml`, the Docker image and `update-toolchain.sh` install (snowfakery expects
+# a modern setuptools). It is uncapped: a fresh CumulusCI 4.10.1 venv imports and runs `cci`
+# with setuptools 84, which has no `pkg_resources`. Emitting it here keeps the installs in step.
+CO_REQUIRES = {"cumulusci": ["setuptools>=75.4"]}
 
 # Lines of an advisory check's output to keep — the FIRST lines, not the last: the SFDMU
 # validator puts its summary and its Critical counts at the top and then lists every passing
@@ -862,8 +861,8 @@ def main():
         needed = sorted({d for c in selected for d in c["deps"]})
         emitted = []
         for pkg in needed:
-            # Co-requirements first: pip installs in order, and setuptools has to be there
-            # before the package that imports pkg_resources at import time.
+            # Co-requirements first: pip installs in order, so the setuptools floor is in
+            # place before the package it accompanies.
             for extra in CO_REQUIRES.get(pkg, ()):
                 if extra not in emitted:
                     emitted.append(extra)

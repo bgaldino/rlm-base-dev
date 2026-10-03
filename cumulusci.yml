@@ -1,5 +1,7 @@
-# Minimum required version of CumulusCI to run this project
-minimum_cumulusci_version: "4.0.0"
+# Minimum required version of CumulusCI to run this project. 4.10.1 is the first
+# release that reads the access token when `sf` redacts it; older versions fail
+# with INVALID_AUTH_HEADER (docs/guides/cci-sf-cli-token-workaround.md).
+minimum_cumulusci_version: "4.10.1"
 
 #-------------------------#
 # SCRATCH ORG DEFINITIONS #

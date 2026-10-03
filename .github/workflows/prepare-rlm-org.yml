@@ -83,7 +83,7 @@ jobs:
           # on `sf org login` ("Detected unsettled top-level await" in the CLI entrypoint).
           # 24.16.0 is the last-known-good — Prepare RLM Org succeeded on it 2026-06-11
           # (run 27314890121). Re-float to "24" once a newer 24.x or sf CLI release restores
-          # compatibility (tracked alongside check-cci-token-fix.yml).
+          # compatibility.
           node-version: "24.16.0"
 
       - name: Cache npm download cache
@@ -107,8 +107,8 @@ jobs:
       - name: Install CumulusCI and dependencies
         run: |
           python -m venv .venv
-          .venv/bin/pip install --upgrade pip "setuptools>=75.4,<77"
-          .venv/bin/pip install "cumulusci==4.8.1"
+          .venv/bin/pip install --upgrade pip "setuptools>=75.4"
+          .venv/bin/pip install "cumulusci==4.10.1"
           .venv/bin/pip install -r robot/requirements.txt
           echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
           .venv/bin/cci version
@@ -131,28 +131,18 @@ jobs:
           sf org login sfdx-url --sfdx-url-file /tmp/sfdx-auth-url.txt --set-default-dev-hub --alias devhub
           rm /tmp/sfdx-auth-url.txt
 
-      # SF_TEMP_SHOW_SECRETS is scoped to ONLY the steps where CumulusCI reads a
-      # scratch-org access token via `sf org display --json`. The May 2026 CLI
-      # change (forcedotcom/cli#3560) redacts tokens, so CCI reads "[REDACTED]"
-      # and fails with INVALID_AUTH_HEADER on scratch creation / org info / the
-      # flow's REST calls. Temporary shim (Salesforce removes it in Summer '26
-      # once CCI uses `sf org auth show-access-token`); kept OFF the checkout /
-      # build / setup steps so a token can't leak from unrelated JSON. Mirrors `.envrc`.
+      # CumulusCI 4.10.1 reads the scratch-org token with `sf org auth
+      # show-access-token` when `sf org display` redacts it, so no step needs
+      # SF_TEMP_SHOW_SECRETS (see docs/guides/cci-sf-cli-token-workaround.md).
       - name: Create scratch org
-        env:
-          SF_TEMP_SHOW_SECRETS: "true"
         run: |
           cci org scratch "$SCRATCH_CONFIG" "$ORG_ALIAS" --default
 
       - name: Run prepare_rlm_org
-        env:
-          SF_TEMP_SHOW_SECRETS: "true"  # CCI reads the scratch token for REST throughout the flow
         run: |
           cci flow run prepare_rlm_org --org "$ORG_ALIAS"
 
       - name: Delete scratch org
         if: always()
-        env:
-          SF_TEMP_SHOW_SECRETS: "true"  # CCI reads org info to delete the scratch
         run: |
           cci org scratch_delete "$ORG_ALIAS" || true
