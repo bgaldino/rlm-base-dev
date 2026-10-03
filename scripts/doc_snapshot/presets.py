@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
-from scripts.doc_snapshot._core import OptionsError, SnapshotError
+from scripts.doc_snapshot._core import OptionsError, SnapshotError, blank_options
 
 PRESETS_PATH = Path(__file__).resolve().parent / "presets.yaml"
 
@@ -25,10 +25,10 @@ SHARED_OPTIONS = frozenset(("output_dir", "mode", "headless", "concurrency", "wa
 PRESET_OPTIONS = {
     "help": SHARED_OPTIONS | frozenset((
         "area", "root_article_id", "article_id_prefix", "discover_timeout_ms",
-        "expect_min_articles", "include_release_param", "subtree_only",
+        "expect_min_articles", "subtree_only",
     )),
     "dev_guide": SHARED_OPTIONS | frozenset((
-        "deliverable", "doc_version", "section", "sections", "batch_delay_ms",
+        "deliverable", "doc_version", "sections", "batch_delay_ms",
         "follow_links", "max_pages",
     )),
 }
@@ -78,10 +78,11 @@ def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
                         f"{', '.join(unknown)} (valid: "
                         f"{', '.join(sorted(PRESET_OPTIONS[kind]))})"
                     )
-                # The snapshotters read null or "" as "use the default", which
-                # would silently discard the option; say so instead.
-                empty = sorted(str(n) for n, v in preset.items()
-                               if v is None or (isinstance(v, str) and not v.strip()))
+                # A null would silently read as "use the default"; blank values
+                # are rejected by the snapshotters too, but say so at load time.
+                empty = sorted(
+                    [str(n) for n, v in preset.items() if v is None] + blank_options(preset)
+                )
                 if empty:
                     raise OptionsError(
                         f"{path}: {release}.{kind}.{key} has empty option(s) "
@@ -119,18 +120,9 @@ def resolve(
 
     ``key`` may name no preset for an ad hoc run; the caller's
     overrides must then supply whatever the snapshotter requires, and the
-    snapshotter's own validation reports anything missing. Overrides whose
-    value is None are ignored, so unset CLI flags never mask a preset value.
-    An empty string override is an error: the snapshotters read "" as "use
-    the default", so an unset shell variable would silently discard the
-    preset's value (e.g. send release notes into the Help corpus).
+    snapshotter's own validation reports anything missing or blank. Overrides
+    whose value is None are ignored, so unset CLI flags never mask a preset value.
     """
-    blank = [n for n, v in (overrides or {}).items() if isinstance(v, str) and not v.strip()]
-    if blank:
-        raise OptionsError(
-            f"empty value for {', '.join(blank)}; omit the flag to use the preset"
-        )
-
     release = str(release)
     block = releases.get(release) or {}
     presets = block.get(kind) or {}
@@ -225,11 +217,6 @@ def bootstrap_block(
             lines.append(f"      {key}:" if body else f"      {key}: {{}}")
             lines.extend(body)
     return "\n".join(lines) + "\n"
-
-
-def append_block(text: str, path: Path) -> None:
-    with open(path, "a", encoding="utf-8") as fh:
-        fh.write(text)
 
 
 def _retarget_output_dir(output_dir: str, source: str, target: str) -> Optional[str]:

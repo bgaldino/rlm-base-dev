@@ -80,7 +80,7 @@ _FALSE = ("false", "0", "no", "off")
 
 
 def as_bool(value: Any, default: bool) -> bool:
-    """Coerce a CLI/YAML value to bool; None or "" means ``default``.
+    """Coerce a CLI/YAML value to bool; None means ``default``.
 
     Anything else that isn't a recognised spelling is an error, not false: a
     typo such as ``tru`` must not silently drop the release pin or run headed.
@@ -90,8 +90,6 @@ def as_bool(value: Any, default: bool) -> bool:
     if isinstance(value, bool):
         return value
     text = str(value).strip().lower()
-    if text == "":
-        return default
     if text in _TRUE:
         return True
     if text in _FALSE:
@@ -102,8 +100,8 @@ def as_bool(value: Any, default: bool) -> bool:
 
 
 def as_int(value: Any, default: Optional[int]) -> Optional[int]:
-    """Coerce a CLI/YAML value to int; None or "" means ``default``."""
-    if value is None or value == "":
+    """Coerce a CLI/YAML value to int; None means ``default``."""
+    if value is None:
         return default
     try:
         return int(value)
@@ -118,20 +116,36 @@ def normalize_mode(value: Any) -> str:
     return mode
 
 
-def require_options(options: Dict[str, Any], *keys: str) -> None:
-    missing = [k for k in keys if not options.get(k)]
+def blank_options(options: Dict[str, Any]) -> List[str]:
+    """Names of options set to a blank string, an empty list, or a list with a blank item."""
+    def blank(value: Any) -> bool:
+        if isinstance(value, str):
+            return not value.strip()
+        if isinstance(value, (list, tuple)):
+            return not value or any(blank(v) for v in value)
+        return False
+    return sorted(name for name, value in options.items() if blank(value))
+
+
+def validate_options(options: Dict[str, Any], *required: str) -> None:
+    """Reject blank values, then missing ``required`` ones.
+
+    A blank value must not read as "use the default": an unset shell variable
+    passed as ``--output-dir ""`` would send release notes into the Help
+    corpus, and ``sections: []`` would capture the whole guide.
+    """
+    blank = blank_options(options)
+    if blank:
+        raise OptionsError(f"empty value for {', '.join(blank)}; omit it to use the default")
+    missing = [k for k in required if not options.get(k)]
     if missing:
         raise OptionsError(f"missing required option(s): {', '.join(missing)}")
 
 
-def split_csv(value: Any) -> List[str]:
-    """Split a list or comma-separated string into stripped, non-empty items.
-
-    An empty result is the caller's to reject: a selector of only separators
-    must not read as "no filter" and widen a run to everything.
-    """
-    items = value if isinstance(value, (list, tuple)) else str(value).split(",")
-    return [s for s in (str(i).strip() for i in items) if s]
+def require_positive(options: Dict[str, Any], *names: str) -> None:
+    for name in names:
+        if options[name] <= 0:
+            raise OptionsError(f"{name} must be positive, got {options[name]!r}")
 
 
 def resolve_output_dir(output_dir: str) -> Path:
@@ -175,21 +189,24 @@ def read_manifest(
     """Load ``path``, backfilling any missing top-level key from ``defaults``.
 
     Older or hand-written manifests may lack keys the snapshotters read. An
-    unreadable manifest is logged and replaced by ``defaults``.
+    unreadable or non-object manifest is logged and replaced by ``defaults``.
     """
-    if path.exists():
-        try:
-            existing = json.loads(path.read_text(encoding="utf-8"))
-            for key, default in defaults.items():
-                existing.setdefault(key, default)
-            logger.info(
-                f"Loaded existing manifest with {len(existing.get(records_key, []))} "
-                f"{records_key}"
-            )
-            return existing
-        except (json.JSONDecodeError, OSError) as exc:
-            logger.warning(f"Could not load existing manifest ({exc}); starting fresh")
-    return defaults
+    if not path.exists():
+        return defaults
+    try:
+        existing = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning(f"Could not load existing manifest ({exc}); starting fresh")
+        return defaults
+    if not isinstance(existing, dict):
+        logger.warning("Existing manifest is not a JSON object; starting fresh")
+        return defaults
+    for key, default in defaults.items():
+        existing.setdefault(key, default)
+    logger.info(
+        f"Loaded existing manifest with {len(existing.get(records_key, []))} {records_key}"
+    )
+    return existing
 
 
 def write_manifest(path: Path, manifest: Dict[str, Any]) -> None:

@@ -42,7 +42,6 @@ from scripts.doc_snapshot._core import (  # noqa: E402
     OptionsError,
     SnapshotError,
     get_logger,
-    split_csv,
 )
 
 EXIT_FAILED = 1
@@ -55,11 +54,15 @@ EXIT_USAGE = 2
 HELP_FLAGS = sorted(presets_mod.PRESET_OPTIONS["help"] - {"area"} | {"release_name"})
 DEV_GUIDE_FLAGS = sorted(presets_mod.PRESET_OPTIONS["dev_guide"] | {"release_name"})
 RUN_FLAGS = sorted(presets_mod.SHARED_OPTIONS - {"output_dir"})
-# Flags that describe one specific target; meaningless across several presets.
-SINGLE_TARGET_FLAGS = (
-    "root_article_id", "article_id_prefix", "output_dir", "deliverable",
-    "section", "sections",
-)
+# Flags that describe one specific target, meaningless across several presets:
+# argparse dest -> the flag as the user types it.
+SINGLE_TARGET_FLAGS = {
+    "root_article_id": "--root-article-id",
+    "article_id_prefix": "--prefix",
+    "output_dir": "--output-dir",
+    "deliverable": "--deliverable",
+    "sections": "--section",
+}
 
 
 def _snapshot_class(kind: str):
@@ -115,7 +118,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--discover-timeout-ms", dest="discover_timeout_ms", type=int)
     p.add_argument("--expect-min-articles", dest="expect_min_articles", type=int,
                    help="fail discovery when fewer articles are found")
-    p.add_argument("--include-release-param", dest="include_release_param", metavar="BOOL")
     p.add_argument("--subtree-only", dest="subtree_only", metavar="BOOL")
 
     p = sub.add_parser("dev-guide", help="snapshot atlas developer guides")
@@ -128,8 +130,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--doc-version", dest="doc_version",
                    help="atlas doc version, e.g. 264.0; without it the unversioned "
                         "endpoint may still serve the previous release")
-    p.add_argument("--section", help="one TOC section (title or page_id)")
-    p.add_argument("--sections", help="comma-separated TOC sections (titles or page_ids)")
+    p.add_argument("--section", dest="sections", action="append", metavar="SECTION",
+                   help="TOC section title or page_id; repeat for several "
+                        "(replaces the preset's sections)")
     p.add_argument("--output-dir", dest="output_dir",
                    help="relative paths resolve from the repo root")
     _add_common_run_flags(p)
@@ -151,8 +154,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--to", dest="target", required=True, help="new release version")
     p.add_argument("--release-name", dest="release_name", required=True)
     p.add_argument("--dry-run", action="store_true", help="print the block; write nothing")
-    p.add_argument("--discover", action="store_true",
-                   help="after writing, run discover mode for every new help preset")
     return parser
 
 
@@ -171,7 +172,7 @@ def _split_keys(selector: str, flag: str) -> List[str]:
     An empty value (an unset shell variable, or only commas) must not be read
     as "no filter": for ``--only`` that would run every preset.
     """
-    keys = split_csv(selector)
+    keys = [k.strip() for k in selector.split(",") if k.strip()]
     if not keys:
         raise OptionsError(f"{flag} needs at least one preset key (see `list`)")
     return keys
@@ -192,9 +193,10 @@ def run_targets(
     """Run ``(release, kind, key)`` targets; fail-soft when there are several."""
     multi = len(targets) > 1
     if multi:
-        conflicting = [f for f in SINGLE_TARGET_FLAGS if overrides.get(f) is not None]
+        conflicting = [flag for dest, flag in SINGLE_TARGET_FLAGS.items()
+                       if overrides.get(dest) is not None]
         if conflicting:
-            flags = ", ".join("--" + f.replace("_", "-") for f in conflicting)
+            flags = ", ".join(conflicting)
             raise OptionsError(
                 f"{flags} applies to a single preset only; {len(targets)} selected"
             )
@@ -261,8 +263,6 @@ def cmd_list(args, releases, logger) -> int:
         else:
             target = preset.get("deliverable", "(default)")
             note = f"doc {preset['doc_version']}" if preset.get("doc_version") else ""
-            if preset.get("sections"):
-                note = (note + f" {len(preset['sections'])} sections").strip()
         rows.append((release, kind, key, target, note))
     if not rows:
         print(f"No presets{' for release ' + args.release if args.release else ''}.")
@@ -281,10 +281,6 @@ def cmd_help(args, releases, logger) -> int:
 
 def cmd_dev_guide(args, releases, logger) -> int:
     overrides = _pick(args, DEV_GUIDE_FLAGS)
-    if args.section and args.sections is None:
-        # A one-off --section narrows a preset that lists `sections`, which
-        # the snapshotter would otherwise prefer.
-        overrides["sections"] = []
     keys = _expand(releases, args.release, "dev_guide", args.guide)
     return run_targets(
         releases, [(args.release, "dev_guide", k) for k in keys], overrides, logger
@@ -322,19 +318,14 @@ def cmd_bootstrap(args, releases, logger) -> int:
     if args.dry_run:
         print(block)
         return 0
-    presets_mod.append_block(block, path)
+    with open(path, "a", encoding="utf-8") as fh:
+        fh.write(block)
     print(f"Added release {args.target} to {path}")
     print("Before capturing dev guides, set `doc_version` on the new release's dev_guide presets: "
           "without it the unversioned endpoint serves the previous release.")
-    if not args.discover:
-        print(f"Next: `help --release {args.target} --area all --mode discover`, "
-              "then set expect_min_articles floors from the counts.")
-        return 0
-    releases = presets_mod.load_presets(path)
-    keys = presets_mod.preset_keys(releases, args.target, "help")
-    return run_targets(
-        releases, [(args.target, "help", k) for k in keys], {"mode": "discover"}, logger
-    )
+    print(f"Next: `help --release {args.target} --area all --mode discover`, "
+          "then set expect_min_articles floors from the counts.")
+    return 0
 
 
 COMMANDS = {

@@ -171,7 +171,7 @@ Trailhead module work involves making product claims and citing Help articles in
 
 When Salesforce publishes a new release (for example 266), the snapshot tool's README has the full recipe, under **Add a release**. In outline:
 
-1. `bootstrap --from <current> --to <new> --release-name "<name>" --discover` copies the presets into a new release block and discovers every Help area.
+1. `bootstrap --from <current> --to <new> --release-name "<name>"` copies the presets into a new release block; then `help --release <new> --area all --mode discover` discovers every Help area.
 2. Read each area's `Discovered N unique articles` line (see **Reading the result** in the README). Before capturing an area, compare a few of its articles with the previous release's corpus. If no article IDs are new and the shared articles' text is unchanged, the area is probably still serving the previous release, so wait.
 3. Capture the areas that are ready, and set an `expect_min_articles` floor on each one you verify. Set `doc_version` on the dev-guide presets once the new guide is published.
 4. Run `check --release <new>` and resolve any hits (see Known limitations).

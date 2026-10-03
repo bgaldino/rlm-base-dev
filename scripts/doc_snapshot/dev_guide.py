@@ -55,14 +55,14 @@ from scripts.doc_snapshot._core import (
     normalize_mode,
     raise_on_capture_errors,
     read_manifest,
-    require_options,
     require_playwright,
+    require_positive,
     resolve_output_dir,
     run_browser,
-    split_csv,
     stats_table,
     today,
     utc_timestamp,
+    validate_options,
     write_manifest,
     yaml_escape,
 )
@@ -400,9 +400,7 @@ class DevGuideSnapshot:
         release_name     required; e.g. "Winter '27"
         deliverable      atlas slug (default revenue_lifecycle_management_dev_guide)
         doc_version      atlas doc version, e.g. '264.0' (default: the guide meta's value)
-        section          capture only the TOC subtree whose title or page_id matches
-        sections         list (or comma-separated string) of sections; supersedes
-                         'section'. Use page_ids when a title contains commas.
+        sections         capture only these TOC subtrees, each named by title or page_id
         output_dir       default docs/salesforce/{release_version}/dev-guide (repo-relative)
         mode             discover | capture | all | refresh (default all)
         headless         default true
@@ -426,7 +424,7 @@ class DevGuideSnapshot:
     # ------------------------------------------------------------------
 
     def _init_options(self) -> None:
-        require_options(self.options, "release_version", "release_name")
+        validate_options(self.options, "release_version", "release_name")
         self.options["release_version"] = str(self.options["release_version"])
         self.options["deliverable"] = (
             self.options.get("deliverable") or self.DEFAULT_DELIVERABLE
@@ -437,29 +435,22 @@ class DevGuideSnapshot:
             )
         self.options["mode"] = normalize_mode(self.options.get("mode"))
         self.options["headless"] = as_bool(self.options.get("headless"), True)
-        self.options["concurrency"] = max(1, as_int(self.options.get("concurrency"), 6))
+        self.options["concurrency"] = as_int(self.options.get("concurrency"), 6)
         self.options["wait_ms"] = as_int(self.options.get("wait_ms"), 3000)
         self.options["batch_delay_ms"] = as_int(self.options.get("batch_delay_ms"), 400)
-        self.options["section"] = self.options.get("section") or None
-        # `sections` (list or comma-separated) captures several named TOC
-        # sections in one run; `section` (singular) stays supported. A section
-        # identifier may be a TOC title OR a page_id — use page_ids when a title
-        # itself contains commas (e.g. the Data Processing Engine section).
-        raw_sections = self.options.get("sections")
-        if raw_sections:
-            filters = split_csv(raw_sections)
-            if not filters:
-                # An empty filter list reads as "whole guide".
-                raise OptionsError(f"sections {raw_sections!r} names no section")
-        elif self.options["section"]:
-            filters = [self.options["section"]]
-        else:
-            filters = None
-        self.options["section_filters"] = filters
+        # Each section is a TOC title or a page_id; use the page_id when a
+        # title is ambiguous. validate_options() has rejected blank items.
+        sections = self.options.get("sections")
+        if isinstance(sections, str):
+            sections = [sections]
+        self.options["section_filters"] = (
+            [str(section).strip() for section in sections] if sections else None
+        )
         self.options["doc_version"] = (
             str(self.options["doc_version"]) if self.options.get("doc_version") else None
         )
         self.options["max_pages"] = as_int(self.options.get("max_pages"), 5000)
+        require_positive(self.options, "concurrency", "max_pages")
         # Follow links by default for a whole-guide run; default off when specific
         # sections are requested (so a section capture stays scoped). Override with
         # follow_links: true to also pull in in-scope pages linked from a section
@@ -477,8 +468,8 @@ class DevGuideSnapshot:
         if not self.options.get("doc_version"):
             return
         manifest_path = self._manifest_path(resolve_output_dir(self.options["output_dir"]))
-        # Read it raw: run() loads (and logs) it again, and an unreadable one
-        # is replaced there, so it has nothing to conflict with.
+        # Read it raw: run() loads (and logs) it again, and replaces an
+        # unreadable or non-object one, so that has nothing to conflict with.
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):

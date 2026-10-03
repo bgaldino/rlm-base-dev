@@ -60,7 +60,6 @@ def _task(**options):
         "expect_min_articles": None,
         "wait_ms": 1,
         "discover_timeout_ms": 5,
-        "include_release_param": False,
         "release_version": "264",
         **options,
     }
@@ -130,32 +129,6 @@ def main():
         check("unstabilized-at-timeout raises even above expect_min_articles", False)
     except SnapshotError:
         check("unstabilized-at-timeout raises even above expect_min_articles", True)
-
-    # --- _validate_timing_options -------------------------------------------
-    t7 = _task(wait_ms=0)
-    try:
-        t7._validate_timing_options()
-        check("wait_ms=0 raises", False)
-    except OptionsError:
-        check("wait_ms=0 raises", True)
-
-    t8 = _task(wait_ms=-100)
-    try:
-        t8._validate_timing_options()
-        check("negative wait_ms raises", False)
-    except OptionsError:
-        check("negative wait_ms raises", True)
-
-    t9 = _task(discover_timeout_ms=0)
-    try:
-        t9._validate_timing_options()
-        check("discover_timeout_ms=0 raises", False)
-    except OptionsError:
-        check("discover_timeout_ms=0 raises", True)
-
-    t10 = _task()
-    check("positive wait_ms/discover_timeout_ms passes",
-          t10._validate_timing_options() is None)
 
     # --- _discover_articles polling loop -----------------------------------
     async def run_discover(t, page):

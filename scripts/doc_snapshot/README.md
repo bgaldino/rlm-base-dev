@@ -179,7 +179,7 @@ keeps going. It then prints a summary table and exits 1 if anything failed.
   it tried to capture failed also exits 1, after saving its progress; the
   failed ids are named in the error and recorded in the manifest, and a later
   run retries them.
-- `2`: a usage error, such as an unknown preset or preset option, an empty selector or flag value, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
+- `2`: a usage error, such as an unknown preset or preset option, an empty selector, flag value, or `sections` list, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
 
 `check` always exits 0. Its hits are leads to verify, not failures.
 
@@ -221,7 +221,6 @@ applied in this order, and each step overrides the one before:
 | `expect_min_articles` | none | The floor. |
 | `discover_timeout_ms` | 20000 | How long to wait for the sidebar to stop growing. |
 | `subtree_only` | `false` | Keep only the root's own sidebar descendants. Use this when other sections share the prefix, as every release-notes product does. |
-| `include_release_param` | `true` | Adds `&release=` to article URLs. |
 
 **`dev-guide`:**
 
@@ -229,14 +228,14 @@ applied in this order, and each step overrides the one before:
 |---|---|---|
 | `deliverable` | `revenue_lifecycle_management_dev_guide` | The guide's atlas id. |
 | `doc_version` | none | For example `264.0`. **Set this for a new release:** without it, the site keeps serving the previous release's guide even after the new one is published. Changing it on a corpus that already has captured pages requires `--mode refresh`. |
-| `section` / `sections` | whole guide | TOC titles or page ids. `--section` on the CLI overrides a preset's `sections` for that run. |
+| `sections` | whole guide | A list of TOC titles or page ids. On the CLI, pass `--section` once per section; it replaces a preset's `sections` for that run. |
 | `follow_links` | on for a whole guide, off when sections are set | Whether cross-references pull in pages outside the TOC walk. |
 | `output_dir` | `docs/salesforce/{release}/dev-guide` | |
 | `batch_delay_ms` | 400 | Pause between fetch batches. |
 | `max_pages` | 5000 | Safety cap. |
 
 Flags that point at one specific target (`--root-article-id`, `--prefix`,
-`--output-dir`, `--deliverable`, `--section`, `--sections`) are rejected when a
+`--output-dir`, `--deliverable`, `--section`) are rejected when a
 command selects more than one preset.
 
 ## Presets — `presets.yaml`
@@ -282,7 +281,8 @@ Keep them accurate when you change a preset.
 
 ```bash
 python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spring '27" --dry-run
-python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spring '27" --discover
+python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spring '27"
+python -m scripts.doc_snapshot help --release 266 --area all --mode discover
 ```
 
 Bootstrap appends a new release block to `presets.yaml` as plain text, so
@@ -294,11 +294,10 @@ options:
 - `doc_version`: set it on the dev-guide presets once the new guide is published.
 
 A preset can't set `release_version` or `release_name` (they come only from
-its release block), and an empty or null option is rejected rather than read
+its release block), and an empty or null option (including an empty `sections` list) is rejected rather than read
 as the default, so every copied preset takes the new release block's values.
 
-`--discover` then runs a discovery on every new Help preset, which gives you
-the counts.
+The `help … --mode discover` run then gives you each new Help area's count.
 
 A Help area can serve the previous release's text for a while after the new
 release appears. Before capturing, compare a few articles with the previous

@@ -72,7 +72,8 @@ python -m scripts.doc_snapshot help --release 264 --area release_notes --mode re
 For a new release, add it to `scripts/doc_snapshot/presets.yaml` with `bootstrap`, which copies every preset from an existing release:
 
 ```bash
-python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spring '27" --discover
+python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spring '27"
+python -m scripts.doc_snapshot help --release 266 --area all --mode discover
 ```
 
 Bootstrap rewrites each `output_dir` and drops the `expect_min_articles` floors. Re-set the `release_notes` floor once you have seen the new release's discovered count, so a partial capture still fails. Options, output layout and refresh rules are in the [snapshot tool README](../../../scripts/doc_snapshot/README.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the tool existed.

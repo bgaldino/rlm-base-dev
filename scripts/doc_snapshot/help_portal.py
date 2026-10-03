@@ -37,13 +37,14 @@ from scripts.doc_snapshot._core import (
     normalize_mode,
     raise_on_capture_errors,
     read_manifest,
-    require_options,
     require_playwright,
+    require_positive,
     resolve_output_dir,
     run_browser,
     stats_table,
     today,
     utc_timestamp,
+    validate_options,
     write_manifest,
     yaml_escape,
 )
@@ -249,7 +250,6 @@ class HelpSnapshot:
         wait_ms               ms between sidebar reads, and the per-article settle (default 3000)
         discover_timeout_ms   max ms to poll the sidebar for a stable count (default 20000)
         expect_min_articles   fail discovery below this many prefix matches
-        include_release_param append &release= to article URLs (default true)
         subtree_only          keep only root_article_id's sidebar descendants (default false);
                               a validated walk also prunes this area's records whose complete
                               parent chain places them in another sidebar branch
@@ -270,7 +270,7 @@ class HelpSnapshot:
     # ------------------------------------------------------------------
 
     def _init_options(self) -> None:
-        require_options(
+        validate_options(
             self.options,
             "release_version", "release_name", "area",
             "root_article_id", "article_id_prefix",
@@ -282,17 +282,16 @@ class HelpSnapshot:
             )
         self.options["mode"] = normalize_mode(self.options.get("mode"))
         self.options["headless"] = as_bool(self.options.get("headless"), True)
-        self.options["concurrency"] = max(1, as_int(self.options.get("concurrency"), 4))
+        self.options["concurrency"] = as_int(self.options.get("concurrency"), 4)
         self.options["wait_ms"] = as_int(self.options.get("wait_ms"), 3000)
         self.options["discover_timeout_ms"] = as_int(
             self.options.get("discover_timeout_ms"), 20000
         )
-        self._validate_timing_options()
+        # `_discover_articles` advances its elapsed-time counter by wait_ms per
+        # read, so a non-positive wait_ms would poll forever instead of timing out.
+        require_positive(self.options, "concurrency", "wait_ms", "discover_timeout_ms")
         self.options["expect_min_articles"] = (
             as_int(self.options.get("expect_min_articles"), None) or None
-        )
-        self.options["include_release_param"] = as_bool(
-            self.options.get("include_release_param"), True
         )
         self.options["subtree_only"] = as_bool(self.options.get("subtree_only"), False)
 
@@ -321,10 +320,7 @@ class HelpSnapshot:
     # ------------------------------------------------------------------
 
     def _article_url(self, article_id: str) -> str:
-        url = f"{self.BASE_URL}?id={article_id}&type=5"
-        if self.options["include_release_param"]:
-            url += f"&release={self.options['release_version']}"
-        return url
+        return f"{self.BASE_URL}?id={article_id}&type=5&release={self.options['release_version']}"
 
     # ------------------------------------------------------------------
     # Manifest I/O
@@ -619,26 +615,6 @@ class HelpSnapshot:
     def _is_only_root(self, kept_ids: List[str]) -> bool:
         """True when a walk kept nothing but the root (a wrong or unhydrated root)."""
         return kept_ids == [self.options["root_article_id"]]
-
-    def _validate_timing_options(self) -> None:
-        """Reject non-positive wait_ms/discover_timeout_ms before the discovery loop runs.
-
-        `_discover_articles` accumulates elapsed time as `elapsed_ms += wait_ms` each
-        read, so `wait_ms <= 0` never advances it — an empty or never-stabilizing walk
-        would then poll forever instead of reaching `discover_timeout_ms` and failing
-        loudly via `_validate_discovery`. Pure option check, no browser state needed.
-        """
-        if self.options["wait_ms"] <= 0:
-            raise OptionsError(
-                f"wait_ms must be positive, got {self.options['wait_ms']!r} — "
-                "the discovery loop's elapsed-time counter is wait_ms * reads, "
-                "so a non-positive value never reaches discover_timeout_ms."
-            )
-        if self.options["discover_timeout_ms"] <= 0:
-            raise OptionsError(
-                f"discover_timeout_ms must be positive, got "
-                f"{self.options['discover_timeout_ms']!r}"
-            )
 
     def _validate_discovery(
         self,

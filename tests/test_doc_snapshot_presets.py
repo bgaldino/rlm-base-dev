@@ -9,6 +9,7 @@ Run:  python3 tests/test_doc_snapshot_presets.py   (needs PyYAML)
 
 import contextlib
 import io
+import logging
 import os
 import shutil
 import sys
@@ -18,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from scripts.doc_snapshot import cli, presets  # noqa: E402
-from scripts.doc_snapshot._core import OptionsError, as_bool, split_csv, yaml_escape  # noqa: E402
+from scripts.doc_snapshot._core import OptionsError, as_bool, read_manifest, yaml_escape  # noqa: E402
 from scripts.doc_snapshot.dev_guide import DevGuideSnapshot  # noqa: E402
 from scripts.doc_snapshot.help_portal import HelpSnapshot  # noqa: E402
 
@@ -88,10 +89,10 @@ def main():
     check("CLI override beats the preset", over["expect_min_articles"] == 1)
     check("unset (None) override never masks a preset value", "mode" not in over)
     check("override adds a new option", over["concurrency"] == 2)
-    for name in ("output_dir", "doc_version", "sections"):
+    for name, value in (("output_dir", " "), ("headless", ""), ("article_id_prefix", "")):
         check(f"empty {name} override rejected, not read as 'use the default'",
-              raises(OptionsError, presets.resolve, releases, "264", "help",
-                     "release_notes", {name: " "}))
+              raises(OptionsError, HelpSnapshot, presets.resolve(
+                  releases, "264", "help", "release_notes", {name: value})))
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         rc = cli.main(["help", "--release", "264", "--area", "release_notes",
                        "--output-dir", ""])
@@ -156,7 +157,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "presets.yaml"
         shutil.copy(presets.PRESETS_PATH, path)
-        presets.append_block(block, path)
+        path.write_text(path.read_text(encoding="utf-8") + block, encoding="utf-8")
         reloaded = presets.load_presets(path)
         new = presets.resolve(reloaded, "999", "help", "release_notes")
         check("appended block loads and resolves",
@@ -193,6 +194,10 @@ def main():
                       "        headless: ~\n"):
             check(f"empty preset option rejected at load ({extra.strip()})",
                   raises(OptionsError, presets.load_presets, _write(tmp, head + extra)))
+        guide = "releases:\n  '1':\n    release_name: x\n    dev_guide:\n      g:\n"
+        for extra in ("        sections: []\n", "        sections: ['a', ' ']\n"):
+            check(f"empty sections rejected at load ({extra.strip()}), not read as 'whole guide'",
+                  raises(OptionsError, presets.load_presets, _write(tmp, guide + extra)))
         for name in ("release_version", "release_name"):
             check(f"preset-level {name} rejected at load",
                   raises(OptionsError, presets.load_presets,
@@ -208,7 +213,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "presets.yaml"
         shutil.copy(presets.PRESETS_PATH, path)
-        presets.append_block(block, path)
+        path.write_text(path.read_text(encoding="utf-8") + block, encoding="utf-8")
 
         # CLI bootstrap writes to --presets, dry-run writes nothing.
         before = path.read_text()
@@ -231,13 +236,16 @@ def main():
     sub_dests = {name: {a.dest for a in sp._actions}
                  for action in cli.build_parser()._subparsers._group_actions
                  for name, sp in action.choices.items()}
+    # Selectors and argparse's own `help` are the only dests that override nothing.
+    selectors = {"help", "release", "area", "guide", "only"}
     for command, flags in (("help", cli.HELP_FLAGS), ("dev-guide", cli.DEV_GUIDE_FLAGS),
                            ("run", cli.RUN_FLAGS)):
         missing = set(flags) - sub_dests[command]
         check(f"every {command} override is an argparse flag (missing: {sorted(missing)})",
               not missing)
-    check("split_csv strips and drops empties",
-          split_csv(" a, ,b,") == ["a", "b"] and split_csv([" x ", ""]) == ["x"])
+        unpicked = sub_dests[command] - selectors - set(flags)
+        check(f"every {command} flag reaches the snapshotter (dropped: {sorted(unpicked)})",
+              not unpicked)
     with tempfile.TemporaryDirectory() as tmp:
         blocker = Path(tmp) / "file"
         blocker.write_text("x")
@@ -293,18 +301,31 @@ def main():
         run_args = parser.parse_args(["run", "--release", "264", "--only", sel])
         check(f"empty --only {sel!r} rejected, not read as 'run everything'",
               raises(OptionsError, cli.cmd_run, run_args, releases, None))
-    for sel in (",,", [" ", ""]):
-        check(f"separator-only sections {sel!r} rejected, not read as 'whole guide'",
+    for sel in ([], [" ", ""], ["a", ""]):
+        check(f"blank sections {sel!r} rejected, not read as 'whole guide'",
               raises(OptionsError, DevGuideSnapshot,
                      presets.resolve(releases, "264", "dev_guide", "rlm", {"sections": sel})))
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         rc = cli.main(["dev-guide", "--release", "264", "--guide", "rlm",
-                       "--sections", ",,", "--mode", "refresh"])
-    check("--sections ',,' is a usage error", rc == cli.EXIT_USAGE)
+                       "--section", " ", "--mode", "refresh"])
+    check("--section ' ' is a usage error", rc == cli.EXIT_USAGE)
     check("single-target flag rejected across several presets",
           raises(OptionsError, cli.run_targets, releases,
                  [("264", "help", "pcm"), ("264", "help", "dro")],
                  {"output_dir": "/tmp/x"}, None))
+    try:
+        cli.run_targets(releases, [("264", "dev_guide", "rlm"), ("264", "dev_guide", "industries")],
+                        {"sections": ["timeline"]}, None)
+        conflict = ""
+    except OptionsError as exc:
+        conflict = str(exc)
+    check("the multi-target error names the flag as typed (--section)",
+          conflict.startswith("--section applies"))
+    for kind, key, name in (("help", "pcm", "concurrency"), ("help", "pcm", "wait_ms"),
+                            ("dev_guide", "rlm", "concurrency"), ("dev_guide", "rlm", "max_pages")):
+        cls = HelpSnapshot if kind == "help" else DevGuideSnapshot
+        check(f"{kind} {name}=0 rejected, not silently clamped",
+              raises(OptionsError, cls, presets.resolve(releases, "264", kind, key, {name: 0})))
 
     # --section on a preset that lists `sections` narrows to that one section.
     captured = {}
@@ -329,6 +350,17 @@ def main():
         cli._snapshot_class = real
     check("--section supersedes the preset's sections",
           rc == 0 and captured.get("section_filters") == ["timeline"])
+    try:
+        cli._snapshot_class = lambda kind: _Fake
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            rc = cli.main(["dev-guide", "--release", "264", "--guide", "industries",
+                           "--section", "Data Processing Engine, Batch Management",
+                           "--section", "timeline"])
+    finally:
+        cli._snapshot_class = real
+    check("--section repeats, and a title keeps its commas",
+          rc == 0 and captured.get("section_filters")
+          == ["Data Processing Engine, Batch Management", "timeline"])
 
     # Every target is validated before any runs: a typo after a valid key is a
     # usage error (exit 2), and the valid preset must not have run first.
@@ -408,12 +440,24 @@ def main():
         check("run: a later dev guide's version conflict exits 2 before Help runs",
               rc == cli.EXIT_USAGE and ran == [])
     with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "manifest.json").write_text("[]")
+        dg = DevGuideSnapshot(presets.resolve(releases, "264", "dev_guide", "rlm",
+                                              {"output_dir": tmp}))
+        logging.disable(logging.WARNING)
+        try:
+            fresh = read_manifest(Path(tmp) / "manifest.json", {"pages": []}, "pages",
+                                  logging.getLogger("t"))
+        finally:
+            logging.disable(logging.NOTSET)
+        check("a non-object manifest passes preflight and is replaced by defaults",
+              dg.preflight() is None and fresh == {"pages": []})
+    with tempfile.TemporaryDirectory() as tmp:
         check("preflight with no manifest yet passes",
               DevGuideSnapshot(presets.resolve(releases, "264", "dev_guide", "rlm",
                                                {"output_dir": tmp})).preflight() is None)
 
     for raw, want in (("true", True), ("Yes", True), ("1", True), ("off", False),
-                      ("FALSE", False), ("", True), (None, True), (False, False)):
+                      ("FALSE", False), (None, True), (False, False)):
         check(f"as_bool({raw!r})", as_bool(raw, True) is want)
     check("as_bool rejects a typo instead of reading it as false",
           raises(OptionsError, as_bool, "tru", True))
@@ -422,7 +466,7 @@ def main():
         check(f"yaml_escape({raw!r})", yaml_escape(raw) == want)
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         rc = cli.main(["help", "--release", "264", "--area", "pcm",
-                       "--include-release-param", "tru"])
+                       "--subtree-only", "tru"])
     check("a malformed boolean flag is a usage error", rc == 2)
 
     with contextlib.redirect_stdout(io.StringIO()) as out:
