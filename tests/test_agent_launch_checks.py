@@ -418,5 +418,37 @@ class LaunchChecks(unittest.TestCase):
             self.assertTrue(pr_gate.selects(spec, [path]), path)
 
 
+class RuleOwners(unittest.TestCase):
+    """infer_owner reports a miss instead of defaulting a skill-mapped rule (#321)."""
+
+    def test_keyword_match_wins(self):
+        self.assertEqual(analyzer.infer_owner("sfdmu-csv-data.mdc", "sfdmu-data-plans/SKILL.md"),
+                         "SFDMU Data Plans")
+
+    def test_standalone_rule_gets_default(self):
+        self.assertEqual(analyzer.infer_owner("analysis-artifacts.mdc", ""), analyzer.DEFAULT_OWNER)
+
+    def test_skill_mapped_miss_is_unmapped_not_default(self):
+        self.assertEqual(analyzer.infer_owner("bre.mdc", "expression-sets/SKILL.md"),
+                         analyzer.UNMAPPED_OWNER)
+
+    def test_check_fails_on_unmapped_rule(self):
+        rule = analyzer.RuleInfo(path=".cursor/rules/bre.mdc", name="bre.mdc", globs=(),
+                                 equivalent_skill="expression-sets/SKILL.md", standalone=False,
+                                 has_do_not=True, listed_in_skill_readme=True,
+                                 owner=analyzer.UNMAPPED_OWNER)
+        real = analyzer.collect_rules
+        analyzer.collect_rules = lambda root: [rule]
+        try:
+            result = analyzer.check_rule_owners(REPO)
+        finally:
+            analyzer.collect_rules = real
+        self.assertFalse(result.ok)
+        self.assertIn("bre.mdc -> expression-sets/SKILL.md", result.detail)
+
+    def test_repo_rules_all_have_owners(self):
+        self.assertTrue(analyzer.check_rule_owners(REPO).ok)
+
+
 if __name__ == "__main__":
     unittest.main()
