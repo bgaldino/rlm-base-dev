@@ -343,6 +343,11 @@ Fix — upgrade CumulusCI to 4.10.1 or later, which falls back to
 pipx upgrade cumulusci && cci version   # expect 4.10.1+
 ```
 
+If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1
+(it needs Python 3.11–3.13); rebuild it on a supported interpreter with
+`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` or
+`scripts/bash/update-toolchain.sh`.
+
 CI (`.github/workflows/prepare-rlm-org.yml`) pins 4.10.1. The repo no longer
 exports the old `SF_TEMP_SHOW_SECRETS=true` shim for CumulusCI (a few scripts
 still set it on their own `sf` calls); if you added it to `~/.zshenv`

@@ -40,7 +40,7 @@ except ImportError:
 # workflow pins 3.13, the dev-environment-setup default.
 MIN_PYTHON: Tuple[int, ...] = (3, 11)
 # 4.10.1 is the first CumulusCI that reads the org token when `sf` redacts it
-# (sf 2.145+); older versions fail org commands with INVALID_AUTH_HEADER.
+# (sf 2.136.8+); older versions fail org commands with INVALID_AUTH_HEADER.
 # Matches minimum_cumulusci_version in cumulusci.yml.
 MIN_CCI: Tuple[int, ...] = (4, 10, 1)
 MIN_SF_MAJOR: int = 2

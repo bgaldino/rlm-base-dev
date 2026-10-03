@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Org instance URL and access token from the sf CLI, without SF_TEMP_SHOW_SECRETS.
 
-Since sf 2.145 (forcedotcom/cli#3560), ``sf org display --json`` redacts
+Since sf 2.136.8 (May 2026, forcedotcom/cli#3560), ``sf org display --json`` redacts
 ``result.accessToken`` to a placeholder unless ``SF_TEMP_SHOW_SECRETS=true`` is
 set. :func:`org_auth` takes the instance URL from ``sf org display`` and, when
 the token it returns is not a real one, fetches it with

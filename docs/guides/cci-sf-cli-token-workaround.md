@@ -45,7 +45,7 @@ org — never use it to "refresh" a token.)
 ## Root cause
 
 CumulusCI **4.10.0** (the version affected by this bug — the workflow's `BASELINE`) reads an
-org's access token by parsing the output of `sf org display`. Salesforce CLI **2.145+** (the May 2026 change, forcedotcom/cli#3560) **redacts secrets** from that
+org's access token by parsing the output of `sf org display`. Salesforce CLI **2.136.8+** (the May 27, 2026 change, forcedotcom/cli#3560) **redacts secrets** from that
 output by default:
 
 ```
@@ -58,7 +58,10 @@ CCI receives the redacted placeholder instead of the real token and sends a malf
 
 ## The fix
 
-**Upgrade CumulusCI to 4.10.1 or later** (`pipx upgrade cumulusci`). This project now
+**Upgrade CumulusCI to 4.10.1 or later** (`pipx upgrade cumulusci`). If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1
+(it needs Python 3.11–3.13); rebuild it on a supported interpreter with
+`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` or
+`scripts/bash/update-toolchain.sh`. This project now
 requires it (`minimum_cumulusci_version: "4.10.1"` in `cumulusci.yml`), so an older CCI
 stops with a version error rather than `INVALID_AUTH_HEADER`.
 
@@ -190,10 +193,15 @@ This workaround relies on a flag Salesforce documents as **temporary** (`SF_TEMP
 2. **The Salesforce CLI removes `SF_TEMP_SHOW_SECRETS`** — this *breaks* the workaround and
    forces option 1. Watch the `sf` release notes.
 
-> **Done:** condition 1 was met by CumulusCI 4.10.1. The weekly
-> `check-cci-token-fix.yml` watcher that tracked it has been removed.
+> **Done:** condition 1 was met by CumulusCI 4.10.1, and the weekly
+> `check-cci-token-fix.yml` watcher that tracked it has been removed. Nothing here needs
+> re-checking. Condition 2 is now dated as well: the CLI announces that
+> `SF_TEMP_SHOW_SECRETS` stops working on **October 28, 2026**, which no longer affects
+> CumulusCI 4.10.1.
 
-### How to check (run periodically)
+### How it was checked (historical)
+
+The check below is kept for reference only; it was how the fix was watched for.
 
 ```bash
 # Print the latest CumulusCI on PyPI; compare it against the baseline yourself.
@@ -204,8 +212,8 @@ echo "If $LATEST is newer than $BASELINE, check its changelog for the sf-token /
 echo "  https://github.com/SFDO-Tooling/CumulusCI/releases"
 ```
 
-If a newer release exists, confirm from its changelog that it addresses the
-`sf org display` token-redaction issue, then:
+When a newer release appeared, its changelog was checked for the `sf org display`
+token-redaction fix (4.10.1 had it), then:
 
 ### Removal steps (once the official fix lands)
 
