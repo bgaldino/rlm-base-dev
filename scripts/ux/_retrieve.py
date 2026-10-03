@@ -21,11 +21,11 @@ import tempfile
 from pathlib import Path
 from typing import List, Optional
 
+from scripts.ux._assemble import validate_selection
 from scripts.ux._context import UxContext, UxError, UxOptionError
-from scripts.ux._flags import resolve_flexipage_sources
+from scripts.ux._flags import FLEXIPAGE_SUFFIX, resolve_flexipage_sources
 from scripts.ux._sf import cli_error, run_sf_json
 
-FLEXIPAGE_SUFFIX = ".flexipage-meta.xml"
 #: Minutes sf waits for the retrieve to finish.
 RETRIEVE_WAIT_MINUTES = 10
 
@@ -42,10 +42,7 @@ class UxRetriever:
 
     def run(self, output_path: Path, metadata_name: Optional[str] = None) -> int:
         """Retrieve into ``output_path/flexipages``; return the number written."""
-        if metadata_name and not metadata_name.endswith(FLEXIPAGE_SUFFIX):
-            raise UxOptionError(
-                f"metadata_name must end in '{FLEXIPAGE_SUFFIX}', got: '{metadata_name}'"
-            )
+        validate_selection("flexipages", metadata_name, ("flexipages",))
         return self._retrieve_flexipages(Path(output_path), metadata_name)
 
     def _retrieve_flexipages(self, output_path: Path, filter_name: Optional[str]) -> int:

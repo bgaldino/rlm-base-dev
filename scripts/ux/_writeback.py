@@ -30,14 +30,20 @@ from scripts.ux._assemble import (
     _action_name,
     _find_elem,
     _findall_elem,
-    _load_yaml,
+    _get_facet_field_items,
+    _local_tag,
     _write_xml,
+    validate_selection,
 )
 from scripts.ux._context import UxContext, UxOptionError
 from scripts.ux._diff import org_flexipage_files
 from scripts.ux._flags import (
+    FLEXIPAGE_SUFFIX,
+    LAYOUT_SUFFIX,
     SALES_TXN_LINE_EDITOR_IDENTIFIER,
+    active_layout_tiers,
     active_patch_files,
+    load_yaml,
     resolve_flexipage_sources,
 )
 
@@ -67,11 +73,7 @@ class UxWriteback:
         backup: bool = True,
     ) -> List[Dict[str, Any]]:
         """Write back (or, with ``dry_run``, report) template changes; return per-item results."""
-        if metadata_type not in WRITEBACK_TYPES:
-            raise UxOptionError(
-                f"metadata_type must be 'all', 'flexipages', or 'layouts', "
-                f"got: '{metadata_type}'"
-            )
+        metadata_type = validate_selection(metadata_type, metadata_name, WRITEBACK_TYPES)
         org_path = Path(org_path)
         templates_path = self.ctx.templates_path
         features = self.ctx.features
@@ -127,7 +129,7 @@ class UxWriteback:
         page_sources = resolve_flexipage_sources(base_dir, standalone_dir, features)
 
         org_files = org_flexipage_files(org_path)
-        if metadata_name and metadata_name.endswith(".flexipage-meta.xml"):
+        if metadata_name:
             if metadata_name not in org_files:
                 raise UxOptionError(f"'{metadata_name}' not found in {org_dir}.")
             org_files = [metadata_name]
@@ -175,27 +177,14 @@ class UxWriteback:
             self.logger.info("No org-retrieved layouts to process.")
             return []
 
-        # Layout tier resolution: last-wins (same as assembler)
-        layout_tiers = [
-            ("base", templates_path / "layouts" / "base", True),
-            ("billing", templates_path / "layouts" / "billing",
-             features.get("billing", False)),
-            ("constraints", templates_path / "layouts" / "constraints",
-             features.get("constraints", False)),
-        ]
-
-        # Build source map: fname → (tier_name, path)
+        # Build source map: fname → (tier_name, path); last tier wins, as in assembly.
         layout_sources: Dict[str, Tuple[str, Path]] = {}
-        for tier_name, tier_dir, active in layout_tiers:
-            if not active or not tier_dir.exists():
-                continue
-            for f in tier_dir.glob("*.layout-meta.xml"):
+        for tier_name, tier_dir in active_layout_tiers(templates_path, features):
+            for f in tier_dir.glob(f"*{LAYOUT_SUFFIX}"):
                 layout_sources[f.name] = (tier_name, f)
 
-        org_files = sorted(
-            f.name for f in org_dir.glob("*.layout-meta.xml")
-        )
-        if metadata_name and metadata_name.endswith(".layout-meta.xml"):
+        org_files = sorted(f.name for f in org_dir.glob(f"*{LAYOUT_SUFFIX}"))
+        if metadata_name:
             org_files = [f for f in org_files if f == metadata_name]
 
         if not org_files:
@@ -253,12 +242,12 @@ class UxWriteback:
         kind = "standalone" if standalone else "base"
         root = ET.parse(str(org_dir / fname)).getroot()
         template_root = ET.parse(str(source)).getroot()
-        page_stem = fname.replace(".flexipage-meta.xml", "")
+        page_stem = fname[: -len(FLEXIPAGE_SUFFIX)]
 
         patches_to_reverse: List[Tuple[str, Dict[str, Any]]] = [
             (patch_feature, patch)
             for patch_feature, patch_file in active_patch_files(patches_dir, page_stem, features)
-            for patch in _load_yaml(patch_file).get("patches", [])
+            for patch in load_yaml(patch_file).get("patches", [])
         ]
 
         # Reverse patches in reverse order (last-applied reversed first)
@@ -337,7 +326,7 @@ class UxWriteback:
             source = page_sources.get(fname)
             if source is None:
                 continue
-            page_stem = fname.replace(".flexipage-meta.xml", "")
+            page_stem = fname[: -len(FLEXIPAGE_SUFFIX)]
             org_file = org_dir / fname
             # Compare against the page's template (base or standalone), which
             # writeback has just regenerated.
@@ -376,7 +365,7 @@ class UxWriteback:
         backup: bool,
     ) -> None:
         """Update a single patch YAML file by extracting current org content."""
-        patch_data = _load_yaml(patch_path)
+        patch_data = load_yaml(patch_path)
         patches = patch_data.get("patches", [])
         if not patches:
             return
@@ -574,12 +563,11 @@ class UxWriteback:
         patch: Dict[str, Any],
     ) -> Optional[List[str]]:
         """Extract facet fields present in org but not in base."""
-        facet_label = patch.get("facet", "")
         patch_fields = patch.get("fields", [])
 
-        # Get field items from both base and org for the target facet
-        base_fields = _get_facet_field_items(base_root, facet_label)
-        org_fields = _get_facet_field_items(org_root, facet_label)
+        # Field items across every Facet region of base and org
+        base_fields = set(_get_facet_field_items(base_root))
+        org_fields = _get_facet_field_items(org_root)
 
         # Patch fields = in org but not in base
         extra = [f for f in org_fields if f not in base_fields]
@@ -978,10 +966,6 @@ def _reverse_insert_after_xml(
 _SIMPLE_ELEMENT_RE = re.compile(r"^\s*<(\w+)>([^<]*)</\1>\s*$")
 
 
-def _local_tag(element: ET.Element) -> str:
-    return element.tag.rsplit("}", 1)[-1]
-
-
 def _remove_anchor_siblings(
     root: ET.Element, anchor: str, fragment_elements: List[ET.Element]
 ) -> bool:
@@ -1095,28 +1079,6 @@ def _get_action_names(root: ET.Element) -> List[str]:
             if val_el is not None and val_el.text:
                 actions.append(val_el.text)
     return actions
-
-
-def _get_facet_field_items(root: ET.Element, facet_label: str) -> List[str]:
-    """Extract field names from a facet region, stripping 'Record.' prefix."""
-    fields = []
-    for region in _findall_elem(root, "flexiPageRegions"):
-        type_el = _find_elem(region, "type")
-        if type_el is None or type_el.text != "Facet":
-            continue
-        # Check if this facet matches the label (by looking at tab titles
-        # that reference it, or by checking field content)
-        for item in _findall_elem(region, "itemInstances"):
-            fi = _find_elem(item, "fieldInstance")
-            if fi is None:
-                continue
-            field_item_el = _find_elem(fi, "fieldItem")
-            if field_item_el is not None and field_item_el.text:
-                fname = field_item_el.text
-                if fname.startswith("Record."):
-                    fname = fname[7:]
-                fields.append(fname)
-    return fields
 
 
 def _field_exists_in_org(

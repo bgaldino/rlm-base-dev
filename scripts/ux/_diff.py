@@ -7,7 +7,6 @@ written by ``ux_tool.py retrieve``. The diff assembles flexipages from
 modified and repositioned flexiPageRegions per page. It modifies no files
 other than the report it writes (``drift_report.json`` by default).
 """
-import copy
 import json
 import re
 import tempfile
@@ -15,12 +14,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from scripts.ux._assemble import UxAssembler
+from scripts.ux._assemble import SF_NS_TAG, UxAssembler, _find_elem, _findall_elem, validate_selection
 from scripts.ux._context import UxContext, UxOptionError
-
-_SF_NS = "http://soap.sforce.com/2006/04/metadata"
-_NS_TAG = f"{{{_SF_NS}}}"
-FLEXIPAGE_SUFFIX = ".flexipage-meta.xml"
+from scripts.ux._flags import FLEXIPAGE_SUFFIX
 
 
 def drift_count(report: Dict[str, Any]) -> int:
@@ -54,10 +50,7 @@ class UxDiff:
         report_file: Optional[Path] = None,
     ) -> Dict[str, Any]:
         """Diff, log, write the JSON report and return it."""
-        if metadata_name and not metadata_name.endswith(FLEXIPAGE_SUFFIX):
-            raise UxOptionError(
-                f"metadata_name must end in '{FLEXIPAGE_SUFFIX}', got: '{metadata_name}'"
-            )
+        validate_selection("flexipages", metadata_name, ("flexipages",))
         org_path = Path(org_path)
         org_flexipage_files(org_path)
         report_path = Path(report_file) if report_file else org_path / "drift_report.json"
@@ -76,8 +69,6 @@ class UxDiff:
         self._log_report(report)
 
         report_path.parent.mkdir(parents=True, exist_ok=True)
-        # Strip non-serialisable xml field before writing
-        _strip_xml_fields(report)
         report_path.write_text(
             json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
         )
@@ -114,12 +105,12 @@ class UxDiff:
         asm_dir = tmp_path / "flexipages"
 
         org_files: set = (
-            {f.name for f in org_dir.glob("*.flexipage-meta.xml")}
+            {f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}")}
             if org_dir.exists()
             else set()
         )
         asm_files: set = (
-            {f.name for f in asm_dir.glob("*.flexipage-meta.xml")}
+            {f.name for f in asm_dir.glob(f"*{FLEXIPAGE_SUFFIX}")}
             if asm_dir.exists()
             else set()
         )
@@ -246,7 +237,8 @@ def _diff_flexipage_file(
     org_by_name = {r["name"]: r for r in org_regions}
     asm_by_name = {r["name"]: r for r in asm_regions}
 
-    all_names_ordered = _merge_ordered(org_order, asm_order)
+    # Union in order: org regions first, then template-only ones.
+    all_names_ordered = list(dict.fromkeys(org_order + asm_order))
     region_diffs: List[Dict[str, Any]] = []
 
     for name in all_names_ordered:
@@ -281,31 +273,21 @@ def _diff_flexipage_file(
             )
             position_changed = org_pos != asm_pos
 
-            if content_changed or position_changed:
-                parts = []
-                if content_changed:
-                    parts.append("content_modified")
-                if position_changed:
-                    parts.append("position_changed")
-                region_diffs.append(
-                    {
-                        "name": name,
-                        "label": org_by_name[name].get("label", ""),
-                        "status": "+".join(parts),
-                        "org_position": org_pos,
-                        "asm_position": asm_pos,
-                    }
-                )
-            else:
-                region_diffs.append(
-                    {
-                        "name": name,
-                        "label": org_by_name[name].get("label", ""),
-                        "status": "in_sync",
-                        "org_position": org_pos,
-                        "asm_position": asm_pos,
-                    }
-                )
+            parts = [
+                part for part, changed in (
+                    ("content_modified", content_changed),
+                    ("position_changed", position_changed),
+                ) if changed
+            ]
+            region_diffs.append(
+                {
+                    "name": name,
+                    "label": org_by_name[name].get("label", ""),
+                    "status": "+".join(parts) or "in_sync",
+                    "org_position": org_pos,
+                    "asm_position": asm_pos,
+                }
+            )
 
     return {"regions": region_diffs}
 
@@ -313,9 +295,9 @@ def _diff_flexipage_file(
 def _extract_regions(root: ET.Element) -> List[Dict[str, Any]]:
     """Return all flexiPageRegion elements with name, type, label, and xml."""
     regions = []
-    for region in root.findall(f"{_NS_TAG}flexiPageRegions"):
-        name_el = region.find(f"{_NS_TAG}name")
-        type_el = region.find(f"{_NS_TAG}type")
+    for region in _findall_elem(root, "flexiPageRegions"):
+        name_el = _find_elem(region, "name")
+        type_el = _find_elem(region, "type")
         name = (name_el.text or "").strip() if name_el is not None else ""
         rtype = (type_el.text or "").strip() if type_el is not None else ""
         # Provide a human-readable label for well-known names
@@ -332,7 +314,7 @@ def _region_label(name: str, rtype: str, region: ET.Element) -> str:
     # Facets: look for a componentName to use as label
     component_names = [
         el.text.strip()
-        for el in region.iter(f"{_NS_TAG}componentName")
+        for el in region.iter(f"{SF_NS_TAG}componentName")
         if el.text
     ]
     if component_names:
@@ -344,31 +326,5 @@ def _region_label(name: str, rtype: str, region: ET.Element) -> str:
 
 def _normalize_xml(element: ET.Element) -> str:
     """Canonical string for XML comparison — strips whitespace-only text nodes."""
-    clone = copy.deepcopy(element)
-    return re.sub(r">\s+<", "><", ET.tostring(clone, encoding="unicode")).strip()
+    return re.sub(r">\s+<", "><", ET.tostring(element, encoding="unicode")).strip()
 
-
-def _merge_ordered(a: List[str], b: List[str]) -> List[str]:
-    """Merge two ordered lists preserving relative order; items in a come first."""
-    seen: set = set()
-    result = []
-    for item in a:
-        if item not in seen:
-            result.append(item)
-            seen.add(item)
-    for item in b:
-        if item not in seen:
-            result.append(item)
-            seen.add(item)
-    return result
-
-
-def _strip_xml_fields(obj: Any) -> None:
-    """Recursively remove any 'xml' key holding an ET.Element (not JSON-serialisable)."""
-    if isinstance(obj, dict):
-        obj.pop("xml", None)
-        for v in obj.values():
-            _strip_xml_fields(v)
-    elif isinstance(obj, list):
-        for item in obj:
-            _strip_xml_fields(item)

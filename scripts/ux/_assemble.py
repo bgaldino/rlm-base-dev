@@ -22,19 +22,18 @@ import json
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 import xml.etree.ElementTree as ET
-
-try:
-    import yaml
-except ImportError:
-    yaml = None
 
 from scripts.ux._context import UxContext, UxOptionError
 from scripts.ux._flags import (
+    FLEXIPAGE_SUFFIX,
+    LAYOUT_SUFFIX,
     PERSONAS_PROFILES,
+    active_layout_tiers,
     active_patch_files,
     SALES_TXN_LINE_EDITOR_IDENTIFIER,
+    load_yaml,
     resolve_flexipage_sources,
 )
 
@@ -44,8 +43,8 @@ SF_NS = "http://soap.sforce.com/2006/04/metadata"
 SF_NS_TAG = f"{{{SF_NS}}}"
 # Maps full source filename suffix → canonical metadata type key
 SUFFIX_TO_TYPE: Dict[str, str] = {
-    ".flexipage-meta.xml": "flexipages",
-    ".layout-meta.xml": "layouts",
+    FLEXIPAGE_SUFFIX: "flexipages",
+    LAYOUT_SUFFIX: "layouts",
     ".app-meta.xml": "applications",
     ".profile-meta.xml": "profiles",
     ".compactLayout-meta.xml": "objects",
@@ -57,13 +56,6 @@ VALID_TYPES: Set[str] = {"all", "flexipages", "layouts", "applications", "profil
 
 # Register default namespace so ElementTree serializes without ns0: prefix
 ET.register_namespace("", SF_NS)
-
-
-def _load_yaml(path: Path) -> Dict[str, Any]:
-    if yaml is None:
-        raise ImportError("PyYAML is required. Install with: pip install pyyaml")
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
 
 
 def _write_xml(root: ET.Element, dest: Path) -> None:
@@ -101,6 +93,11 @@ def _write_xml(root: ET.Element, dest: Path) -> None:
 
 def _find_elem(parent: ET.Element, local_name: str) -> Optional[ET.Element]:
     return parent.find(f"{SF_NS_TAG}{local_name}")
+
+
+def _local_tag(el: ET.Element) -> str:
+    """Tag name without its namespace."""
+    return el.tag.rsplit("}", 1)[-1]
 
 
 def _findall_elem(parent: ET.Element, local_name: str) -> List[ET.Element]:
@@ -299,9 +296,9 @@ def _make_field_instance_item(field_api_name: str, identifier: str) -> ET.Elemen
     return item
 
 
-def _get_facet_field_items(root: ET.Element) -> Set[str]:
-    """Collect all fieldItem values across all Facet flexiPageRegions."""
-    result: Set[str] = set()
+def _get_facet_field_items(root: ET.Element) -> List[str]:
+    """All fieldItem values across all Facet flexiPageRegions, in document order."""
+    result: List[str] = []
     for region in _findall_elem(root, "flexiPageRegions"):
         type_el = _find_elem(region, "type")
         if type_el is None or type_el.text != "Facet":
@@ -316,7 +313,7 @@ def _get_facet_field_items(root: ET.Element) -> Set[str]:
                 val = field_item_el.text
                 if val.startswith("Record."):
                     val = val[len("Record."):]
-                result.add(val)
+                result.append(val)
     return result
 
 
@@ -337,7 +334,7 @@ def _patch_add_facet_field(
     If only `facet_label` is given: navigate from the fieldSection label to
     its `columns` facet UUID and append to that facet region.
     """
-    existing_fields = _get_facet_field_items(root)
+    existing_fields = set(_get_facet_field_items(root))
     fields = [f for f in fields if f not in existing_fields]
     if not fields:
         return True  # all already present, nothing to do
@@ -462,7 +459,7 @@ def _patch_add_component(
         region_children = list(region)
         insert_before = len(region_children)
         for i, child in enumerate(region_children):
-            if child.tag.rsplit("}", 1)[-1] != "itemInstances":
+            if _local_tag(child) != "itemInstances":
                 insert_before = i
                 break
         region.insert(insert_before, new_item)
@@ -601,12 +598,6 @@ def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None)
         if not ok and logger:
             logger.warning(f"add_component: region '{region_name}' not found")
 
-    elif ptype == "insert_after_xml":
-        # Text-based fallback: raw XML string inserted after anchor text
-        # This is handled at the file text level, not on the ET root.
-        # Caller must handle this separately.
-        pass
-
     else:
         log(f"Unknown patch type '{ptype}': {patch}")
 
@@ -614,17 +605,6 @@ def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None)
 # ---------------------------------------------------------------------------
 # Profile XML helpers
 # ---------------------------------------------------------------------------
-
-def _strip_profile_personalization(root: ET.Element) -> None:
-    """Remove layoutAssignments and applicationVisibilities from a profile root."""
-    to_remove = []
-    for child in list(root):
-        local = child.tag.replace(SF_NS_TAG, "")
-        if local in ("layoutAssignments", "applicationVisibilities"):
-            to_remove.append(child)
-    for el in to_remove:
-        root.remove(el)
-
 
 def _add_layout_assignment(root: ET.Element, layout: str, record_type: Optional[str] = None) -> None:
     """Append a <layoutAssignments> element to a profile root."""
@@ -658,11 +638,20 @@ def resolve_type_from_name(name: str) -> Optional[str]:
     return None
 
 
-def validate_selection(metadata_type: str = "all", metadata_name: Optional[str] = None) -> None:
-    """Raise UxOptionError for an unknown type, unrecognised name, or a conflict."""
-    if metadata_type not in VALID_TYPES:
+def validate_selection(
+    metadata_type: str = "all",
+    metadata_name: Optional[str] = None,
+    supported: Iterable[str] = VALID_TYPES,
+) -> str:
+    """Return the type to process (inferred from ``metadata_name`` when given).
+
+    Raise UxOptionError for a type outside ``supported``, an unrecognised name,
+    or a name whose type conflicts with ``metadata_type``.
+    """
+    supported = set(supported)
+    if metadata_type not in supported:
         raise UxOptionError(
-            f"metadata_type must be one of {sorted(VALID_TYPES)}, got: '{metadata_type}'"
+            f"metadata_type must be one of {sorted(supported)}, got: '{metadata_type}'"
         )
     if metadata_name:
         resolved = resolve_type_from_name(metadata_name)
@@ -676,6 +665,12 @@ def validate_selection(metadata_type: str = "all", metadata_name: Optional[str] 
                 f"metadata_type '{metadata_type}' conflicts with type inferred from "
                 f"metadata_name '{metadata_name}' (inferred: '{resolved}')"
             )
+        if resolved not in supported:
+            raise UxOptionError(
+                f"'{metadata_name}' is a {resolved} file; expected one of {sorted(supported - {'all'})}"
+            )
+        return resolved
+    return metadata_type
 
 
 class UxAssembler:
@@ -698,12 +693,11 @@ class UxAssembler:
         metadata_name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Assemble into ``output_path``; write and return the assembly manifest."""
-        validate_selection(metadata_type, metadata_name)
+        metadata_type = validate_selection(metadata_type, metadata_name)
         output_path = Path(output_path)
         templates_path = self.ctx.templates_path
 
         if metadata_name:
-            metadata_type = resolve_type_from_name(metadata_name)
             self.logger.info(f"Assembling single item: {metadata_name} (type: {metadata_type})")
         else:
             self.logger.info(f"Assembling metadata type(s): {metadata_type}")
@@ -840,8 +834,7 @@ class UxAssembler:
             root = ET.parse(str(src_file)).getroot()
 
             # Skip types that cannot be deployed via Metadata API
-            ns = "http://soap.sforce.com/2006/04/metadata"
-            fp_type_el = root.find(f"{{{ns}}}type")
+            fp_type_el = _find_elem(root, "type")
             if fp_type_el is None:
                 fp_type_el = root.find("type")
             fp_type = fp_type_el.text.strip() if fp_type_el is not None else ""
@@ -852,9 +845,9 @@ class UxAssembler:
                 skipped.append({"file": fname, "reason": "non_deployable_metadata", "type": fp_type})
                 continue
 
-            page_stem = fname.replace(".flexipage-meta.xml", "")
+            page_stem = fname[: -len(FLEXIPAGE_SUFFIX)]
             for patch_feature, patch_file in active_patch_files(patches_dir, page_stem, features):
-                patch_data = _load_yaml(patch_file)
+                patch_data = load_yaml(patch_file)
                 for patch in patch_data.get("patches", []):
                     if patch.get("type") == "insert_after_xml":
                         self._apply_raw_xml_patch(root, patch)
@@ -930,18 +923,10 @@ class UxAssembler:
         out_dir = output_path / "layouts"
         assembled = []
 
-        source_dirs = [
-            ("base", templates_path / "layouts" / "base", True),
-            ("billing", templates_path / "layouts" / "billing", features.get("billing", False)),
-            ("constraints", templates_path / "layouts" / "constraints", features.get("constraints", False)),
-        ]
-
         copied_names: Set[str] = set()
 
-        for tier_name, src_dir, active in source_dirs:
-            if not active or not src_dir.exists():
-                continue
-            for src_file in sorted(src_dir.glob("*.layout-meta.xml")):
+        for tier_name, src_dir in active_layout_tiers(templates_path, features):
+            for src_file in sorted(src_dir.glob(f"*{LAYOUT_SUFFIX}")):
                 fname = src_file.name
                 if filter_name and fname != filter_name:
                     continue
@@ -975,11 +960,6 @@ class UxAssembler:
         in the output file are re-sorted alphabetically by pageOrSobjectType then
         formFactor (Large before Small) to satisfy Salesforce metadata ordering.
         """
-        import xml.etree.ElementTree as ET
-
-        NS = "http://soap.sforce.com/2006/04/metadata"
-        ET.register_namespace("", NS)
-
         # Parse the assembled app
         app_tree = ET.parse(app_dest)
         app_root = app_tree.getroot()
@@ -987,24 +967,23 @@ class UxAssembler:
         # Parse patch — wrap in a temporary root so ET can parse multiple siblings
         raw = patch_file.read_text(encoding="utf-8")
         # Strip XML declaration and comments; wrap in a root element
-        import re as _re
-        raw_stripped = _re.sub(r"<\?xml[^?]*\?>", "", raw).strip()
-        raw_stripped = _re.sub(r"<!--[^-]*-->", "", raw_stripped).strip()
-        wrapped = f"<root xmlns=\"{NS}\">{raw_stripped}</root>"
+        raw_stripped = re.sub(r"<\?xml[^?]*\?>", "", raw).strip()
+        raw_stripped = re.sub(r"<!--[^-]*-->", "", raw_stripped).strip()
+        wrapped = f"<root xmlns=\"{SF_NS}\">{raw_stripped}</root>"
         patch_root = ET.fromstring(wrapped)
 
         # Collect existing actionOverrides keys to avoid duplicates
         existing_keys = set()
-        for ao in app_root.findall(f"{{{NS}}}actionOverrides"):
-            sobjtype = (ao.findtext(f"{{{NS}}}pageOrSobjectType") or "").strip()
-            ff = (ao.findtext(f"{{{NS}}}formFactor") or "").strip()
+        for ao in app_root.findall(f"{SF_NS_TAG}actionOverrides"):
+            sobjtype = (ao.findtext(f"{SF_NS_TAG}pageOrSobjectType") or "").strip()
+            ff = (ao.findtext(f"{SF_NS_TAG}formFactor") or "").strip()
             existing_keys.add((sobjtype, ff))
 
         # Inject new actionOverrides that aren't already present
         added = 0
-        for ao in patch_root.findall(f".//{{{NS}}}actionOverrides"):
-            sobjtype = (ao.findtext(f"{{{NS}}}pageOrSobjectType") or "").strip()
-            ff = (ao.findtext(f"{{{NS}}}formFactor") or "").strip()
+        for ao in patch_root.findall(f".//{SF_NS_TAG}actionOverrides"):
+            sobjtype = (ao.findtext(f"{SF_NS_TAG}pageOrSobjectType") or "").strip()
+            ff = (ao.findtext(f"{SF_NS_TAG}formFactor") or "").strip()
             if (sobjtype, ff) not in existing_keys:
                 app_root.append(ao)
                 existing_keys.add((sobjtype, ff))
@@ -1016,21 +995,20 @@ class UxAssembler:
         # Re-sort all actionOverrides by (pageOrSobjectType, formFactor)
         # Large sorts before Small; missing formFactor sorts last
         ff_order = {"Large": 0, "Small": 1, "": 2}
-        all_overrides = app_root.findall(f"{{{NS}}}actionOverrides")
+        all_overrides = app_root.findall(f"{SF_NS_TAG}actionOverrides")
         for ao in all_overrides:
             app_root.remove(ao)
 
         all_overrides.sort(key=lambda ao: (
-            (ao.findtext(f"{{{NS}}}pageOrSobjectType") or "").strip().lower(),
-            ff_order.get((ao.findtext(f"{{{NS}}}formFactor") or "").strip(), 2),
+            (ao.findtext(f"{SF_NS_TAG}pageOrSobjectType") or "").strip().lower(),
+            ff_order.get((ao.findtext(f"{SF_NS_TAG}formFactor") or "").strip(), 2),
         ))
 
         # Re-insert before the first non-actionOverrides element after the overrides block
         # Find insertion index: after existing leading non-actionOverride elements
         insert_before = None
         for i, child in enumerate(list(app_root)):
-            tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-            if tag != "actionOverrides":
+            if _local_tag(child) != "actionOverrides":
                 insert_before = i
                 break
 
@@ -1042,7 +1020,7 @@ class UxAssembler:
                 app_root.append(ao)
 
         ET.indent(app_tree, space="    ")
-        app_tree.write(app_dest, encoding="utf-8", xml_declaration=True, default_namespace=NS)
+        app_tree.write(app_dest, encoding="utf-8", xml_declaration=True, default_namespace=SF_NS)
         self.logger.debug(f"  [app patch] {patch_file.name}: +{added} actionOverride(s)")
 
     def _assemble_applications(
@@ -1204,7 +1182,7 @@ class UxAssembler:
                 )
                 if not patch_file.exists():
                     continue
-                patch_data = _load_yaml(patch_file)
+                patch_data = load_yaml(patch_file)
                 for patch in patch_data.get("patches", []):
                     self._apply_profile_patch(root, patch)
                     patches_applied.append(

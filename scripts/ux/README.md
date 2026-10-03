@@ -90,7 +90,7 @@ this order:
 |--------|----------|
 | `ux_tool.py` | argparse CLI (`main(argv)` is importable for tests) |
 | `_context.py` | `UxContext`, `UxError`, `UxOptionError` |
-| `_flags.py` | Known flags, `_STANDALONE_ORDER`, `FLEXIPAGE_PATCH_ORDER`, flexipage source resolver, flag loading/precedence |
+| `_flags.py` | Known flags, `_STANDALONE_ORDER`, `FLEXIPAGE_PATCH_ORDER`, `LAYOUT_TIERS`, source suffixes, flexipage source resolver, flag loading/precedence |
 | `_assemble.py` | `UxAssembler` and all patch helpers |
 | `_sf.py` | `run_sf_json`: one `sf … --json` runner shared by retrieve and deploy |
 | `_deploy.py` | `deploy()` via `sf project deploy start` |

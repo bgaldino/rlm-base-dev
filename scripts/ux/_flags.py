@@ -31,6 +31,10 @@ PERSONAS_PROFILES: List[str] = [
     "RLM Sales Representative.profile-meta.xml",
 ]
 
+#: Source filename suffixes of the two page types the drift tooling handles.
+FLEXIPAGE_SUFFIX = ".flexipage-meta.xml"
+LAYOUT_SUFFIX = ".layout-meta.xml"
+
 #: LWC identifier for the Sales Transaction Line Editor component in Quote flexipages.
 SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
 
@@ -72,6 +76,25 @@ FLEXIPAGE_PATCH_ORDER: List[Tuple[str, str]] = [
 ]
 
 
+#: Layout template tiers in apply order (last writer wins), as (tier, flag_key);
+#: ``None`` means always active. Shared by the assembler and writeback.
+LAYOUT_TIERS: List[Tuple[str, Optional[str]]] = [
+    ("base",        None),
+    ("billing",     "billing"),
+    ("constraints", "constraints"),
+]
+
+
+def active_layout_tiers(templates_path: Path, features: Mapping[str, bool]) -> List[Tuple[str, Path]]:
+    """``(tier, dir)`` of every enabled layout tier that exists, in apply order."""
+    tiers = []
+    for tier, flag in LAYOUT_TIERS:
+        tier_dir = templates_path / "layouts" / tier
+        if (flag is None or features.get(flag, False)) and tier_dir.exists():
+            tiers.append((tier, tier_dir))
+    return tiers
+
+
 def active_patch_files(
     patches_dir: Path, page_stem: str, features: Mapping[str, bool]
 ) -> List[Tuple[str, Path]]:
@@ -107,14 +130,20 @@ def features_from_custom(custom: Optional[Mapping[str, Any]]) -> Dict[str, bool]
     return flags
 
 
-def load_project_config(repo_root: Path) -> Tuple[Dict[str, Any], str]:
-    """Return ``(project.custom, project.package.api_version)`` from cumulusci.yml."""
+def load_yaml(path: Path) -> Dict[str, Any]:
+    """Parse a YAML file (``{}`` when empty) with the C loader when available."""
     if yaml is None:
         raise UxOptionError("PyYAML is required. Install with: pip install pyyaml")
+    loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+    return yaml.load(Path(path).read_text(encoding="utf-8"), Loader=loader) or {}
+
+
+def load_project_config(repo_root: Path) -> Tuple[Dict[str, Any], str]:
+    """Return ``(project.custom, project.package.api_version)`` from cumulusci.yml."""
     path = Path(repo_root) / "cumulusci.yml"
     if not path.exists():
         raise UxOptionError(f"cumulusci.yml not found at {path}")
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    data = load_yaml(path)
     project = data.get("project") or {}
     custom = project.get("custom") or {}
     api_version = str((project.get("package") or {}).get("api_version") or DEFAULT_API_VERSION)
@@ -180,7 +209,7 @@ def resolve_flexipage_sources(
     """
     sources: Dict[str, Path] = {}
 
-    for f in sorted(base_dir.glob("*.flexipage-meta.xml")):
+    for f in sorted(base_dir.glob(f"*{FLEXIPAGE_SUFFIX}")):
         sources[f.name] = f
 
     for feature_dir, flag_key in _STANDALONE_ORDER:
@@ -189,7 +218,7 @@ def resolve_flexipage_sources(
         src_dir = standalone_dir / feature_dir
         if not src_dir.exists():
             continue
-        for src_file in sorted(src_dir.glob("*.flexipage-meta.xml")):
+        for src_file in sorted(src_dir.glob(f"*{FLEXIPAGE_SUFFIX}")):
             sources[src_file.name] = src_file
 
     return sources

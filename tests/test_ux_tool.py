@@ -151,6 +151,13 @@ def test_writeback_unknown_name_is_an_error(org_state):
     assert rc == ux_tool.EXIT_ERROR
 
 
+def test_writeback_name_type_mismatch_is_an_error(org_state):
+    rc = ux_tool.main([
+        "writeback", "--name", QUOTE_PAGE, "--type", "layouts", "--output-path", str(org_state),
+    ])
+    assert rc == ux_tool.EXIT_ERROR
+
+
 def test_diff_against_own_assembly_is_clean(org_state):
     rc = ux_tool.main(["diff", "--output-path", str(org_state), "--fail-on-drift"])
     assert rc == 0
@@ -352,15 +359,22 @@ def _snapshot(root):
     }
 
 
-@pytest.fixture
-def repo_copy(tmp_path):
-    root = tmp_path / "repo"
+@pytest.fixture(scope="module")
+def pristine_repo(tmp_path_factory):
+    """templates/ + cumulusci.yml and their assembled output, built once."""
+    root = tmp_path_factory.mktemp("ux_repo") / "repo"
     root.mkdir()
     shutil.copytree(REPO_ROOT / "templates", root / "templates")
     shutil.copy2(REPO_ROOT / "cumulusci.yml", root / "cumulusci.yml")
-    out = root / "out"
-    assert ux_tool.main(["assemble", "--repo-root", str(root), "--output-path", str(out)]) == 0
-    return root, out
+    assert ux_tool.main(["assemble", "--repo-root", str(root), "--output-path", str(root / "out")]) == 0
+    return root
+
+
+@pytest.fixture
+def repo_copy(pristine_repo, tmp_path):
+    root = tmp_path / "repo"
+    shutil.copytree(pristine_repo, root)
+    return root, root / "out"
 
 
 def _apply_drift(root, out):

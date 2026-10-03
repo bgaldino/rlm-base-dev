@@ -29,19 +29,17 @@ except ImportError:
     TaskOptionsError = Exception
     CommandException = Exception
     BaseProjectKeychain = object
-
-    def process_bool_arg(val):
-        if isinstance(val, bool):
-            return val
-        return str(val).lower() in ("true", "1", "yes")
+    process_bool_arg = None
 
 # Bootstrap the repo root onto sys.path so the scripts.ux package resolves when
 # CCI imports this task module.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.ux._assemble import UxAssembler, validate_selection  # noqa: E402
-from scripts.ux._context import UxContext, UxError, UxOptionError  # noqa: E402
+from scripts.ux._context import DEFAULT_API_VERSION, UxContext, UxError, UxOptionError  # noqa: E402
 from scripts.ux._deploy import deploy  # noqa: E402
-from scripts.ux._flags import features_from_custom  # noqa: E402
+from scripts.ux._flags import features_from_custom, to_bool  # noqa: E402
+
+process_bool_arg = process_bool_arg or to_bool
 
 
 class AssembleAndDeployUX(SFDXBaseTask):
@@ -110,7 +108,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             repo_root=repo_root,
             features=features_from_custom(getattr(self.project_config, "project__custom", {})),
             api_version=str(
-                getattr(self.project_config, "project__package__api_version", None) or "68.0"
+                getattr(self.project_config, "project__package__api_version", None) or DEFAULT_API_VERSION
             ),
             logger=self.logger or logging.getLogger("rlm_ux"),
         )
