@@ -8,15 +8,15 @@ modified and repositioned flexiPageRegions per page. It modifies no files
 other than the report it writes (``<org_path>/drift_report.json``).
 """
 import json
-import re
 import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from scripts.ux._assemble import SF_NS_TAG, UxAssembler, _find_elem, _findall_elem, validate_selection
+from scripts.ux._assemble import UxAssembler, validate_selection
 from scripts.ux._context import UxContext, UxOptionError
 from scripts.ux._flags import FLEXIPAGE_SUFFIX
+from scripts.ux._xml import SF_NS_TAG, find_elem, findall_elem, normalize_xml
 
 
 def drift_count(report: Dict[str, Any]) -> int:
@@ -36,183 +36,167 @@ def org_flexipage_files(org_path: Path) -> List[str]:
     return names
 
 
-class UxDiff:
-    """Diffs org flexipages against the assembler output from current templates."""
+def diff(
+    ctx: UxContext,
+    org_path: Path,
+    metadata_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Diff, log, write ``<org_path>/drift_report.json`` and return the report."""
+    logger = ctx.logger
+    validate_selection("flexipages", metadata_name, ("flexipages",))
+    org_path = Path(org_path)
+    org_flexipage_files(org_path)
+    report_path = org_path / "drift_report.json"
+    logger.info(
+        "Active features: "
+        + (", ".join(k for k, v in ctx.features.items() if v) or "none")
+    )
 
-    def __init__(self, ctx: UxContext):
-        self.ctx = ctx
-        self.logger = ctx.logger
-
-    def run(
-        self,
-        org_path: Path,
-        metadata_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """Diff, log, write ``<org_path>/drift_report.json`` and return the report."""
-        validate_selection("flexipages", metadata_name, ("flexipages",))
-        org_path = Path(org_path)
-        org_flexipage_files(org_path)
-        report_path = org_path / "drift_report.json"
-        features = self.ctx.features
-        self.logger.info(
-            "Active features: "
-            + (", ".join(k for k, v in features.items() if v) or "none")
-        )
-
-        with tempfile.TemporaryDirectory(prefix="rlm_ux_diff_") as tmpdir:
-            tmp_path = Path(tmpdir)
-            self.logger.info("Assembling flexipages from templates for comparison...")
-            self._assemble_to_temp(tmp_path, metadata_name)
-            report = self._diff_flexipages(org_path, tmp_path, metadata_name)
-
-        self._log_report(report)
-
-        report_path.write_text(
-            json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-        self.logger.info(f"Drift report written to: {report_path}")
-
-        n_drifted = drift_count(report)
-        if n_drifted == 0:
-            self.logger.info("No drift detected — templates are in sync with org state.")
-        else:
-            self.logger.warning(
-                f"{n_drifted} page(s) have drift. Review templates/, run "
-                "`ux_tool.py writeback`, then reassemble and deploy."
-            )
-        return report
-
-    def _assemble_to_temp(self, tmp_path: Path, filter_name: Optional[str]) -> None:
-        """Run the assembler's flexipage logic into tmp_path."""
-        assembled, skipped = UxAssembler(self.ctx)._assemble_flexipages(
-            self.ctx.templates_path, tmp_path, self.ctx.features, filter_name,
-        )
-        self.logger.info(
+    with tempfile.TemporaryDirectory(prefix="rlm_ux_diff_") as tmpdir:
+        tmp_path = Path(tmpdir)
+        logger.info("Assembling flexipages from templates for comparison...")
+        assembled, skipped = UxAssembler(ctx).assemble_flexipages(tmp_path, metadata_name)
+        logger.info(
             f"  Assembled {len(assembled)} flexipage(s) from templates "
             f"({len(skipped)} skipped as non-deployable)."
         )
+        report = _diff_flexipages(org_path, tmp_path, metadata_name)
 
-    def _diff_flexipages(
-        self,
-        org_path: Path,
-        tmp_path: Path,
-        filter_name: Optional[str],
-    ) -> Dict[str, Any]:
-        """Compare org flexipages against assembled-from-templates flexipages."""
-        org_dir = org_path / "flexipages"
-        asm_dir = tmp_path / "flexipages"
+    _log_report(report, logger)
 
-        org_files: set = (
-            {f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}")}
-            if org_dir.exists()
-            else set()
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    logger.info(f"Drift report written to: {report_path}")
+
+    n_drifted = drift_count(report)
+    if n_drifted == 0:
+        logger.info("No drift detected — templates are in sync with org state.")
+    else:
+        logger.warning(
+            f"{n_drifted} page(s) have drift. Review templates/, run "
+            "`ux_tool.py writeback`, then reassemble and deploy."
         )
-        asm_files: set = (
-            {f.name for f in asm_dir.glob(f"*{FLEXIPAGE_SUFFIX}")}
-            if asm_dir.exists()
-            else set()
-        )
+    return report
 
-        if filter_name:
-            org_files &= {filter_name}
-            asm_files &= {filter_name}
 
-        report: Dict[str, Any] = {
-            "pages": [],
-            "summary": {
-                "in_sync": 0,
-                "drifted": 0,
-                "org_only": 0,
-                "templates_only": 0,
-            },
-        }
+def _diff_flexipages(
+    org_path: Path,
+    tmp_path: Path,
+    filter_name: Optional[str],
+) -> Dict[str, Any]:
+    """Compare org flexipages against assembled-from-templates flexipages."""
+    org_dir = org_path / "flexipages"
+    asm_dir = tmp_path / "flexipages"
 
-        for fname in sorted(org_files | asm_files):
-            in_org = fname in org_files
-            in_asm = fname in asm_files
+    org_files: set = (
+        {f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}")}
+        if org_dir.exists()
+        else set()
+    )
+    asm_files: set = (
+        {f.name for f in asm_dir.glob(f"*{FLEXIPAGE_SUFFIX}")}
+        if asm_dir.exists()
+        else set()
+    )
 
-            if in_org and not in_asm:
-                report["pages"].append(
-                    {
-                        "file": fname,
-                        "status": "org_only",
-                        "note": "Exists in org but not produced by current templates.",
-                        "regions": [],
-                    }
-                )
-                report["summary"]["org_only"] += 1
-                continue
+    if filter_name:
+        org_files &= {filter_name}
+        asm_files &= {filter_name}
 
-            if in_asm and not in_org:
-                report["pages"].append(
-                    {
-                        "file": fname,
-                        "status": "templates_only",
-                        "note": "Produced by templates but not found in org state.",
-                        "regions": [],
-                    }
-                )
-                report["summary"]["templates_only"] += 1
-                continue
+    report: Dict[str, Any] = {
+        "pages": [],
+        "summary": {
+            "in_sync": 0,
+            "drifted": 0,
+            "org_only": 0,
+            "templates_only": 0,
+        },
+    }
 
-            page_report = _diff_flexipage_file(org_dir / fname, asm_dir / fname)
-            page_report["file"] = fname
+    for fname in sorted(org_files | asm_files):
+        in_org = fname in org_files
+        in_asm = fname in asm_files
 
-            has_drift = any(
-                r["status"] != "in_sync" for r in page_report["regions"]
+        if in_org and not in_asm:
+            report["pages"].append(
+                {
+                    "file": fname,
+                    "status": "org_only",
+                    "note": "Exists in org but not produced by current templates.",
+                    "regions": [],
+                }
             )
-            page_report["status"] = "drifted" if has_drift else "in_sync"
-            if has_drift:
-                report["summary"]["drifted"] += 1
-            else:
-                report["summary"]["in_sync"] += 1
+            report["summary"]["org_only"] += 1
+            continue
 
-            report["pages"].append(page_report)
+        if in_asm and not in_org:
+            report["pages"].append(
+                {
+                    "file": fname,
+                    "status": "templates_only",
+                    "note": "Produced by templates but not found in org state.",
+                    "regions": [],
+                }
+            )
+            report["summary"]["templates_only"] += 1
+            continue
 
-        return report
+        page_report = _diff_flexipage_file(org_dir / fname, asm_dir / fname)
+        page_report["file"] = fname
 
-    # ------------------------------------------------------------------
-    # Logging
-    # ------------------------------------------------------------------
+        has_drift = any(
+            r["status"] != "in_sync" for r in page_report["regions"]
+        )
+        page_report["status"] = "drifted" if has_drift else "in_sync"
+        if has_drift:
+            report["summary"]["drifted"] += 1
+        else:
+            report["summary"]["in_sync"] += 1
 
-    def _log_report(self, report: Dict[str, Any]) -> None:
-        for page in report["pages"]:
-            fname = page["file"]
-            status = page["status"]
+        report["pages"].append(page_report)
 
-            if status == "in_sync":
-                self.logger.info(f"  [in sync]  {fname}")
+    return report
+
+
+def _log_report(report: Dict[str, Any], logger) -> None:
+    for page in report["pages"]:
+        fname = page["file"]
+        status = page["status"]
+
+        if status == "in_sync":
+            logger.info(f"  [in sync]  {fname}")
+            continue
+
+        logger.info(f"  [drift]    {fname}")
+
+        if status == "org_only":
+            logger.info(
+                "               (page exists in org but not in templates)"
+            )
+            continue
+        if status == "templates_only":
+            logger.info(
+                "               (page in templates but not in org state — "
+                "run `ux_tool.py retrieve` first)"
+            )
+            continue
+
+        for region in page.get("regions", []):
+            rstatus = region["status"]
+            if rstatus == "in_sync":
                 continue
-
-            self.logger.info(f"  [drift]    {fname}")
-
-            if status == "org_only":
-                self.logger.info(
-                    "               (page exists in org but not in templates)"
-                )
-                continue
-            if status == "templates_only":
-                self.logger.info(
-                    "               (page in templates but not in org state — "
-                    "run `ux_tool.py retrieve` first)"
-                )
-                continue
-
-            for region in page.get("regions", []):
-                rstatus = region["status"]
-                if rstatus == "in_sync":
-                    continue
-                label = f" ({region['label']})" if region.get("label") else ""
-                pos_info = ""
-                if region.get("org_position") is not None and region.get("asm_position") is not None:
-                    if region["org_position"] != region["asm_position"]:
-                        pos_info = (
-                            f" [org pos {region['org_position']} "
-                            f"vs templates pos {region['asm_position']}]"
-                        )
-                self.logger.info(
-                    f"    {rstatus.upper():30s}  {region['name']}{label}{pos_info}"
-                )
+            label = f" ({region['label']})" if region.get("label") else ""
+            pos_info = ""
+            if region.get("org_position") is not None and region.get("asm_position") is not None:
+                if region["org_position"] != region["asm_position"]:
+                    pos_info = (
+                        f" [org pos {region['org_position']} "
+                        f"vs templates pos {region['asm_position']}]"
+                    )
+            logger.info(
+                f"    {rstatus.upper():30s}  {region['name']}{label}{pos_info}"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -266,7 +250,7 @@ def _diff_flexipage_file(
         else:
             org_pos = org_order.index(name)
             asm_pos = asm_order.index(name)
-            content_changed = _normalize_xml(org_by_name[name]["xml"]) != _normalize_xml(
+            content_changed = normalize_xml(org_by_name[name]["xml"]) != normalize_xml(
                 asm_by_name[name]["xml"]
             )
             position_changed = org_pos != asm_pos
@@ -293,9 +277,9 @@ def _diff_flexipage_file(
 def _extract_regions(root: ET.Element) -> List[Dict[str, Any]]:
     """Return all flexiPageRegion elements with name, type, label, and xml."""
     regions = []
-    for region in _findall_elem(root, "flexiPageRegions"):
-        name_el = _find_elem(region, "name")
-        type_el = _find_elem(region, "type")
+    for region in findall_elem(root, "flexiPageRegions"):
+        name_el = find_elem(region, "name")
+        type_el = find_elem(region, "type")
         name = (name_el.text or "").strip() if name_el is not None else ""
         rtype = (type_el.text or "").strip() if type_el is not None else ""
         # Provide a human-readable label for well-known names
@@ -320,9 +304,3 @@ def _region_label(name: str, rtype: str, region: ET.Element) -> str:
         short = component_names[0].rsplit(":", 1)[-1]
         return short
     return name
-
-
-def _normalize_xml(element: ET.Element) -> str:
-    """Canonical string for XML comparison — strips whitespace-only text nodes."""
-    return re.sub(r">\s+<", "><", ET.tostring(element, encoding="unicode")).strip()
-

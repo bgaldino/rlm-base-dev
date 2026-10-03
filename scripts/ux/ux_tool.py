@@ -46,10 +46,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.ux._assemble import UxAssembler, VALID_TYPES  # noqa: E402
 from scripts.ux._context import UxContext, UxError  # noqa: E402
 from scripts.ux._deploy import deploy  # noqa: E402
-from scripts.ux._diff import UxDiff, drift_count  # noqa: E402
+from scripts.ux._diff import diff, drift_count  # noqa: E402
 from scripts.ux._flags import parse_flag_overrides, resolve_features  # noqa: E402
-from scripts.ux._retrieve import UxRetriever  # noqa: E402
-from scripts.ux._writeback import UxWriteback  # noqa: E402
+from scripts.ux._retrieve import retrieve  # noqa: E402
+from scripts.ux._writeback import writeback  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OUTPUT = "unpackaged/post_ux"
@@ -164,7 +164,7 @@ def _make_context(args, logger: logging.Logger) -> UxContext:
 
 
 def _run_diff(ctx: UxContext, args, output_path: Path, metadata_name: Optional[str] = None) -> int:
-    report = UxDiff(ctx).run(output_path, metadata_name=metadata_name)
+    report = diff(ctx, output_path, metadata_name)
     if args.fail_on_drift and drift_count(report):
         return EXIT_DRIFT
     return 0
@@ -188,29 +188,25 @@ def _run(args, logger: logging.Logger) -> int:
         return 0
 
     if args.command == "retrieve":
-        UxRetriever(ctx, args.target_org).run(output_path, args.metadata_name)
+        retrieve(ctx, args.target_org, output_path, args.metadata_name)
         return 0
 
     if args.command == "diff":
         return _run_diff(ctx, args, output_path, args.metadata_name)
 
     if args.command == "writeback":
-        UxWriteback(ctx).run(
-            output_path,
-            metadata_name=args.metadata_name,
-            dry_run=not args.apply,
-        )
+        writeback(ctx, output_path, args.metadata_name, apply=args.apply)
         return 0
 
     if args.command == "capture-drift":
-        UxRetriever(ctx, args.target_org).run(output_path)
+        retrieve(ctx, args.target_org, output_path)
         return _run_diff(ctx, args, output_path)
 
     if args.command == "apply-drift":
         # Flexipages only: retrieve never fetches layouts, so layouts in
         # output_path are assembled output, and writing them back would overwrite
         # the feature layout templates with the base versions.
-        UxWriteback(ctx).run(output_path, dry_run=False)
+        writeback(ctx, output_path, apply=True)
         # Diff before reassembling: assembly overwrites the org state in
         # output_path, after which a diff would only compare templates to themselves.
         rc = _run_diff(ctx, args, output_path)

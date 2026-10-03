@@ -93,11 +93,13 @@ rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
 | `ux_tool.py` | argparse CLI (`main(argv)` is importable for tests) |
 | `_context.py` | `UxContext`, `UxError`, `UxOptionError` |
 | `_flags.py` | Known flags, `_STANDALONE_ORDER`, `FLEXIPAGE_PATCH_ORDER`, `LAYOUT_TIERS`, source suffixes, flexipage source resolver, flag loading/precedence |
-| `_assemble.py` | `UxAssembler` and all patch helpers |
+| `_xml.py` | Salesforce metadata XML helpers: namespace, `write_xml`, element and valueList lookups |
+| `_patch_ops.py` | One entry per flexipage patch type (apply, reverse, describe, refresh); add a patch type here |
+| `_assemble.py` | `UxAssembler` (`run`, `assemble_flexipages`), selection validation, profile/app/object patches |
 | `_sf.py` | `run_sf_json`: one `sf … --json` runner shared by retrieve and deploy |
 | `_deploy.py` | `deploy()` via `sf project deploy start` |
-| `_retrieve.py` | `UxRetriever` via `sf project retrieve start` |
-| `_diff.py` | `UxDiff` and the drift report |
-| `_writeback.py` | `UxWriteback` (reverse-patch, patch-file updates) |
+| `_retrieve.py` | `retrieve()` via `sf project retrieve start` |
+| `_diff.py` | `diff()` and the drift report |
+| `_writeback.py` | `writeback()`: reverse the patches, then refresh the patch files from the org |
 
 Tests: `tests/test_ux_tool.py` (offline; sf calls are stubbed).

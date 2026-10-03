@@ -636,3 +636,8 @@ python scripts/ux/ux_tool.py apply-drift --fail-on-drift
 2. Run `cci task run assemble_and_deploy_ux -o metadata_name <pagename>.flexipage-meta.xml -o deploy false` (dry-run; local, no org)
 3. Inspect the output file and compare to the reference in `unpackaged/post_*/flexipages/`
 4. When satisfied, run without `-o deploy false` to deploy
+
+A new patch **type** is one `PatchOp` entry in `FLEXIPAGE_OPS`
+(`scripts/ux/_patch_ops.py`): its apply, reverse, describe and refresh functions.
+Assembly, writeback and the patch-file refresh all dispatch through that table, so
+nothing else needs to change.

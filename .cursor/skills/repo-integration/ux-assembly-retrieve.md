@@ -16,7 +16,7 @@ Read this when changing **`templates/`** UX sources, the **`scripts/ux/`** packa
 - **Purpose** — Merges base templates + YAML patches per feature flags, writes to `unpackaged/post_ux/`, optionally deploys.
 - **Options** — Filter by `metadata_type` (e.g. `flexipages`, `profiles`) or single `metadata_name` (full filename including `.flexipage-meta.xml`).
 - **App menus** — AppSwitcher / `appMenus` are **not** assembled here; launcher order is handled by **`reorder_app_launcher`** (Robot). The task **removes a stale `appMenus/`** directory if present from older runs.
-- **Python changes** — Logic lives in `scripts/ux/` (CCI-free); `tasks/rlm_ux_assembly.py` only maps CCI options, flags and the org onto it. Keep `_assemble_*` helpers internally consistent (return types, early exits): diff and writeback call `UxAssembler._assemble_flexipages` directly and assume a predictable manifest and file layout.
+- **Python changes** — Logic lives in `scripts/ux/` (CCI-free); `tasks/rlm_ux_assembly.py` only maps CCI options, flags and the org onto it. Flexipage patch types live in one table, `scripts/ux/_patch_ops.py::FLEXIPAGE_OPS` (apply, reverse, describe, refresh); assembly and writeback both dispatch through it, so a new type is one entry there. `diff` calls `UxAssembler.assemble_flexipages` and assumes the assembled file layout.
 
 ## Retrieve (`ux_tool.py retrieve`)
 
@@ -53,7 +53,7 @@ a feature is on (custom fields/objects/components under `unpackaged/post_<featur
 **must** live in that feature's patch path, not the base:
 
 - Flexipages → `templates/flexipages/patches/<feature>/<Page>.yml` (applied when the flag is on).
-- Layouts → the feature tier in `tasks/rlm_ux_assembly.py::_assemble_layouts` (base → billing →
+- Layouts → the feature tier in `scripts/ux/_flags.py::LAYOUT_TIERS` (base → billing →
   constraints …). Layouts use **full-file tier override** (no field-level layout patches); if a
   base layout must not carry a gated field, **remove it from base** and surface the field via the
   feature **flexipage** patch (the Lightning record page), which is usually where it belongs anyway.

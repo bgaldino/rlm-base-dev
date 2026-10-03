@@ -22,7 +22,7 @@ from scripts.ux._flags import (  # noqa: E402
     parse_flag_overrides,
     resolve_features,
 )
-from scripts.ux._retrieve import UxRetriever  # noqa: E402
+from scripts.ux._retrieve import retrieve  # noqa: E402
 
 QUOTE_PAGE = "RLM_Quote_Record_Page.flexipage-meta.xml"
 
@@ -220,7 +220,7 @@ def test_retrieve_uses_sf_cli_and_writes_source_names(monkeypatch, tmp_path):
     fake = FakeSf(_retrieve_payload(), on_call=_write_retrieved(["RLM_Quote_Record_Page"]))
     monkeypatch.setattr(_sf.subprocess, "run", fake)
 
-    count = UxRetriever(_ctx(), "my-scratch").run(tmp_path)
+    count = retrieve(_ctx(), "my-scratch", tmp_path)
 
     assert count == 1
     assert (tmp_path / "flexipages" / QUOTE_PAGE).read_text() == (
@@ -243,7 +243,7 @@ def test_retrieve_single_page_keeps_other_files(monkeypatch, tmp_path):
     fake = FakeSf(_retrieve_payload(), on_call=_write_retrieved(["RLM_Quote_Record_Page"]))
     monkeypatch.setattr(_sf.subprocess, "run", fake)
 
-    assert UxRetriever(_ctx(), "my-scratch").run(tmp_path, QUOTE_PAGE) == 1
+    assert retrieve(_ctx(), "my-scratch", tmp_path, QUOTE_PAGE) == 1
     assert other.read_text() == "<keep/>"
     cmd = fake.calls[0][0]
     assert [c for c in cmd if c.startswith("FlexiPage:")] == ["FlexiPage:RLM_Quote_Record_Page"]
@@ -255,7 +255,7 @@ def test_single_page_retrieve_the_org_lacks_clears_the_stale_copy(monkeypatch, t
     stale.write_text("<old/>")
     monkeypatch.setattr(_sf.subprocess, "run", FakeSf(_retrieve_payload(), on_call=_write_retrieved([])))
 
-    assert UxRetriever(_ctx(), "my-scratch").run(tmp_path, QUOTE_PAGE) == 0
+    assert retrieve(_ctx(), "my-scratch", tmp_path, QUOTE_PAGE) == 0
     assert not stale.exists()
 
 
@@ -267,13 +267,13 @@ def test_failed_retrieve_leaves_existing_files(monkeypatch, tmp_path):
     monkeypatch.setattr(_sf.subprocess, "run", fake)
 
     with pytest.raises(UxError, match="NamedOrgNotFoundError"):
-        UxRetriever(_ctx(), "nope").run(tmp_path)
+        retrieve(_ctx(), "nope", tmp_path)
     assert existing.read_text() == "<keep/>"
 
 
 def test_retrieve_rejects_wrong_suffix():
     with pytest.raises(UxOptionError):
-        UxRetriever(_ctx(), "my-scratch").run(Path("/tmp"), "RLM_Quote_Record_Page.layout-meta.xml")
+        retrieve(_ctx(), "my-scratch", Path("/tmp"), "RLM_Quote_Record_Page.layout-meta.xml")
 
 
 def test_retrieve_cli_requires_target_org():
@@ -474,7 +474,7 @@ def test_apply_drift_drops_insert_action_patch_the_org_lacks(repo_copy):
 
 
 def test_reverse_insert_action_keeps_template_actions_and_targets_anchor_list():
-    from scripts.ux._writeback import _reverse_insert_action
+    from scripts.ux._patch_ops import reverse_insert_action
 
     ns = "http://soap.sforce.com/2006/04/metadata"
 
@@ -492,14 +492,14 @@ def test_reverse_insert_action_keeps_template_actions_and_targets_anchor_list():
     patch = {"after": "Anchor", "actions": ["A", "B"]}
 
     # The template already has B, so the forward patch never inserted it.
-    assert _reverse_insert_action(org, patch, keep={"B"}) is True
+    assert reverse_insert_action(org, patch, keep={"B"}) is True
     values = [v.text for v in org.iter(f"{{{ns}}}value")]
     assert values == ["Other", "A", "Anchor", "B"]
-    assert _reverse_insert_action(org, patch, keep={"B"}) is False
+    assert reverse_insert_action(org, patch, keep={"B"}) is False
 
 
 def test_insert_action_keeps_dict_entries():
-    from scripts.ux._writeback import UxWriteback
+    from scripts.ux._patch_ops import PagePair, refresh_insert_action
 
     ns = "http://soap.sforce.com/2006/04/metadata"
     org = ET.fromstring(
@@ -511,7 +511,7 @@ def test_insert_action_keeps_dict_entries():
     )
     keep = {"name": "Keep", "visibility": [{"leftValue": "x", "operator": "EQUAL", "rightValue": "y"}]}
     patch = {"actions": [keep, "Gone"]}
-    assert UxWriteback._extract_insert_actions(None, org, org, patch) == [keep]
+    assert refresh_insert_action(patch, PagePair(org, org, "", ""))["actions"] == [keep]
 
 
 if __name__ == "__main__":

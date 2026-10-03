@@ -32,15 +32,21 @@ from scripts.ux._flags import (
     PERSONAS_PROFILES,
     active_layout_tiers,
     active_patch_files,
-    SALES_TXN_LINE_EDITOR_IDENTIFIER,
     load_yaml,
     resolve_flexipage_sources,
 )
+from scripts.ux._patch_ops import apply_patch, describe_patch
+from scripts.ux._xml import (
+    SF_NS,
+    SF_NS_TAG,
+    find_elem,
+    findall_elem,
+    local_tag,
+    make_elem,
+    sub_elem,
+    write_xml,
+)
 
-
-# Salesforce metadata XML namespace
-SF_NS = "http://soap.sforce.com/2006/04/metadata"
-SF_NS_TAG = f"{{{SF_NS}}}"
 # Maps full source filename suffix → canonical metadata type key
 SUFFIX_TO_TYPE: Dict[str, str] = {
     FLEXIPAGE_SUFFIX: "flexipages",
@@ -54,450 +60,6 @@ SUFFIX_TO_TYPE: Dict[str, str] = {
 
 VALID_TYPES: Set[str] = {"all", "flexipages", "layouts", "applications", "profiles", "objects"}
 
-# Register default namespace so ElementTree serializes without ns0: prefix
-ET.register_namespace("", SF_NS)
-
-
-def _write_xml(root: ET.Element, dest: Path) -> None:
-    """Write an ElementTree Element to a file with XML declaration."""
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    ET.indent(root, space="    ")
-    tree = ET.ElementTree(root)
-    tree.write(str(dest), encoding="unicode", xml_declaration=True)
-    # ElementTree uses single quotes and writes encoding="us-ascii" in the
-    # declaration when using encoding="unicode". Fix both to match Salesforce
-    # convention: double quotes, UTF-8, and trailing newline.
-    text = dest.read_text(encoding="utf-8")
-    # Normalize the XML declaration to Salesforce convention (double quotes).
-    # ET may produce: version='1.0', encoding='us-ascii'|'utf-8'|'UTF-8'
-    text = text.replace("<?xml version='1.0'", '<?xml version="1.0"')
-    for sq_enc in ("encoding='us-ascii'", "encoding='utf-8'", "encoding='UTF-8'"):
-        if sq_enc in text:
-            text = text.replace(sq_enc, 'encoding="UTF-8"')
-            break
-    # Re-encode quotes as &quot; inside <value> elements containing escaped
-    # HTML (&lt;) or JSON ([{/{"}).  ET unescapes &quot; on parse since raw "
-    # is valid in XML text, but Salesforce metadata expects &quot; in these
-    # contexts (HTML attribute quotes, JSON property names/values).
-    def _requote_value(m):
-        content = m.group(2)
-        if "&lt;" in content or content.lstrip().startswith(("[{", '{"')):
-            content = content.replace('"', "&quot;")
-        return m.group(1) + content + m.group(3)
-
-    text = re.sub(r"(<value>)(.*?)(</value>)", _requote_value, text)
-    if not text.endswith("\n"):
-        text += "\n"
-    dest.write_text(text, encoding="utf-8")
-
-
-def _find_elem(parent: ET.Element, local_name: str) -> Optional[ET.Element]:
-    return parent.find(f"{SF_NS_TAG}{local_name}")
-
-
-def _local_tag(el: ET.Element) -> str:
-    """Tag name without its namespace."""
-    return el.tag.rsplit("}", 1)[-1]
-
-
-def _findall_elem(parent: ET.Element, local_name: str) -> List[ET.Element]:
-    return parent.findall(f"{SF_NS_TAG}{local_name}")
-
-
-def _make_elem(local_name: str, text: Optional[str] = None) -> ET.Element:
-    el = ET.Element(f"{SF_NS_TAG}{local_name}")
-    if text is not None:
-        el.text = text
-    return el
-
-
-def _sub_elem(parent: ET.Element, local_name: str, text: Optional[str] = None) -> ET.Element:
-    el = ET.SubElement(parent, f"{SF_NS_TAG}{local_name}")
-    if text is not None:
-        el.text = text
-    return el
-
-
-# ---------------------------------------------------------------------------
-# Flexipage XML patching helpers
-# ---------------------------------------------------------------------------
-
-def _patch_remove_action(root: ET.Element, action: str) -> bool:
-    """Remove an action valueListItem by value. Returns True if removed."""
-    for ci_props in root.iter(f"{SF_NS_TAG}componentInstanceProperties"):
-        name_el = _find_elem(ci_props, "name")
-        if name_el is None or name_el.text != "actionNames":
-            continue
-        vlist = _find_elem(ci_props, "valueList")
-        if vlist is None:
-            continue
-        for item in _findall_elem(vlist, "valueListItems"):
-            val_el = _find_elem(item, "value")
-            if val_el is not None and val_el.text == action:
-                vlist.remove(item)
-                return True
-    return False
-
-
-def _action_name(action: Any) -> str:
-    """An insert_action entry is either a bare action name (str) or a dict with
-    a 'name' key plus optional 'visibility' criteria."""
-    if isinstance(action, dict):
-        return action.get("name", "")
-    return action
-
-
-def _append_visibility_rule(item: ET.Element, criteria: List[Dict[str, Any]]) -> None:
-    """Add a <visibilityRule> with one <criteria> per entry. Multiple criteria are
-    ANDed (FlexiPage default with no booleanFilter). Each criteria entry is
-    {field, operator, value}; field may be 'Record.X' or a full '{!Record.X}'."""
-    if not criteria:
-        return
-    vr = _sub_elem(item, "visibilityRule")
-    for crit in criteria:
-        field = str(crit.get("field", "")).strip()
-        left = field if field.startswith("{!") else "{!" + field + "}"
-        c = _sub_elem(vr, "criteria")
-        _sub_elem(c, "leftValue", left)
-        _sub_elem(c, "operator", str(crit.get("operator", "EQUAL")))
-        _sub_elem(c, "rightValue", str(crit.get("value", "")))
-
-
-def _patch_insert_action(root: ET.Element, anchor: str, actions: List[Any]) -> bool:
-    """Insert action valueListItems immediately after the anchor action.
-    Skips actions already present anywhere in the list (idempotent). Each action
-    is either a bare name (str) or a dict {name, visibility:[{field,operator,value}]}."""
-    for ci_props in root.iter(f"{SF_NS_TAG}componentInstanceProperties"):
-        name_el = _find_elem(ci_props, "name")
-        if name_el is None or name_el.text != "actionNames":
-            continue
-        vlist = _find_elem(ci_props, "valueList")
-        if vlist is None:
-            continue
-        children = list(vlist)
-        existing = {
-            _find_elem(item, "value").text
-            for item in children
-            if _find_elem(item, "value") is not None
-        }
-        for i, item in enumerate(children):
-            val_el = _find_elem(item, "value")
-            if val_el is not None and val_el.text == anchor:
-                offset = 0
-                for action in actions:
-                    name = _action_name(action)
-                    if not name or name in existing:
-                        continue  # missing name or already present, skip
-                    new_item = _make_elem("valueListItems")
-                    _sub_elem(new_item, "value", name)
-                    if isinstance(action, dict):
-                        _append_visibility_rule(new_item, action.get("visibility", []))
-                    vlist.insert(i + 1 + offset, new_item)
-                    offset += 1
-                return True
-    return False
-
-
-def _patch_add_display_field(root: ET.Element, field: str) -> bool:
-    """Append a display field valueListItem to the displayFields valueList.
-    Skips if the field is already present (idempotent)."""
-    for ci_props in root.iter(f"{SF_NS_TAG}componentInstanceProperties"):
-        name_el = _find_elem(ci_props, "name")
-        if name_el is None or name_el.text != "displayFields":
-            continue
-        vlist = _find_elem(ci_props, "valueList")
-        if vlist is None:
-            continue
-        existing = {
-            _find_elem(item, "value").text
-            for item in _findall_elem(vlist, "valueListItems")
-            if _find_elem(item, "value") is not None
-        }
-        if field in existing:
-            return True  # already present, nothing to do
-        new_item = _make_elem("valueListItems")
-        _sub_elem(new_item, "value", field)
-        vlist.append(new_item)
-        return True
-    return False
-
-
-def _patch_add_component_value_list_items(
-    root: ET.Element,
-    component_identifier: str,
-    property_name: str,
-    values: List[str],
-    after: Optional[str] = None,
-) -> bool:
-    """
-    Add values to a componentInstanceProperties valueList for a specific component.
-
-    Skips values already present in the target list. If `after` is supplied,
-    new values are inserted immediately after that existing value; otherwise
-    they are appended.
-    """
-    values = [value for value in values if value]
-    if not values:
-        return True
-
-    for ci in root.iter(f"{SF_NS_TAG}componentInstance"):
-        id_el = _find_elem(ci, "identifier")
-        if id_el is None or id_el.text != component_identifier:
-            continue
-
-        for ci_props in _findall_elem(ci, "componentInstanceProperties"):
-            name_el = _find_elem(ci_props, "name")
-            if name_el is None or name_el.text != property_name:
-                continue
-
-            vlist = _find_elem(ci_props, "valueList")
-            if vlist is None:
-                return False
-
-            children = list(vlist)
-            existing = {
-                _find_elem(item, "value").text
-                for item in children
-                if _find_elem(item, "value") is not None
-            }
-            values_to_add = [value for value in values if value not in existing]
-            if not values_to_add:
-                return True
-
-            insert_at = len(children)
-            if after:
-                insert_at = -1
-                for i, item in enumerate(children):
-                    val_el = _find_elem(item, "value")
-                    if val_el is not None and val_el.text == after:
-                        insert_at = i + 1
-                        break
-                if insert_at < 0:
-                    return False
-
-            for offset, value in enumerate(values_to_add):
-                new_item = _make_elem("valueListItems")
-                _sub_elem(new_item, "value", value)
-                vlist.insert(insert_at + offset, new_item)
-            return True
-
-    return False
-
-
-def _make_field_instance_item(field_api_name: str, identifier: str) -> ET.Element:
-    """Build an <itemInstances><fieldInstance>...<fieldItem>Record.FIELD</fieldItem>"""
-    item = _make_elem("itemInstances")
-    fi = _sub_elem(item, "fieldInstance")
-    fip = _sub_elem(fi, "fieldInstanceProperties")
-    _sub_elem(fip, "name", "uiBehavior")
-    _sub_elem(fip, "value", "none")
-    _sub_elem(fi, "fieldItem", f"Record.{field_api_name}")
-    _sub_elem(fi, "identifier", identifier)
-    return item
-
-
-def _get_facet_field_items(root: ET.Element) -> List[str]:
-    """All fieldItem values across all Facet flexiPageRegions, in document order."""
-    result: List[str] = []
-    for region in _findall_elem(root, "flexiPageRegions"):
-        type_el = _find_elem(region, "type")
-        if type_el is None or type_el.text != "Facet":
-            continue
-        for item in _findall_elem(region, "itemInstances"):
-            fi = _find_elem(item, "fieldInstance")
-            if fi is None:
-                continue
-            field_item_el = _find_elem(fi, "fieldItem")
-            if field_item_el is not None and field_item_el.text:
-                # Strip 'Record.' prefix for comparison
-                val = field_item_el.text
-                if val.startswith("Record."):
-                    val = val[len("Record."):]
-                result.append(val)
-    return result
-
-
-def _patch_add_facet_field(
-    root: ET.Element,
-    fields: List[str],
-    after: Optional[str] = None,
-    facet_label: Optional[str] = None,
-) -> bool:
-    """
-    Insert fieldInstance itemInstances into a Facet flexiPageRegion.
-
-    If `after` is given: find the itemInstances containing
-    <fieldItem>Record.{after}</fieldItem> and insert the new items immediately
-    after it within the same flexiPageRegion. Skips fields already present
-    anywhere in any Facet region (idempotent).
-
-    If only `facet_label` is given: navigate from the fieldSection label to
-    its `columns` facet UUID and append to that facet region.
-    """
-    existing_fields = set(_get_facet_field_items(root))
-    fields = [f for f in fields if f not in existing_fields]
-    if not fields:
-        return True  # all already present, nothing to do
-
-    regions = _findall_elem(root, "flexiPageRegions")
-
-    if after:
-        for region in regions:
-            items = _findall_elem(region, "itemInstances")
-            for i, item in enumerate(items):
-                fi = _find_elem(item, "fieldInstance")
-                if fi is None:
-                    continue
-                field_item_el = _find_elem(fi, "fieldItem")
-                if field_item_el is not None and field_item_el.text == f"Record.{after}":
-                    for j, field in enumerate(fields):
-                        identifier = f"Record{field}Field"
-                        new_item = _make_field_instance_item(field, identifier)
-                        region.insert(list(region).index(item) + 1 + j, new_item)
-                    return True
-        return False
-
-    if facet_label:
-        # Build a mapping: section label → columns facet UUID
-        # Then find the flexiPageRegion with that UUID as its <name>
-        label_to_columns: Dict[str, str] = {}
-        for region in regions:
-            for item in _findall_elem(region, "itemInstances"):
-                ci = _find_elem(item, "componentInstance")
-                if ci is None:
-                    continue
-                has_label_match = False
-                columns_val = None
-                for ci_prop in _findall_elem(ci, "componentInstanceProperties"):
-                    name_el = _find_elem(ci_prop, "name")
-                    val_el = _find_elem(ci_prop, "value")
-                    if name_el is None or val_el is None:
-                        continue
-                    if name_el.text == "label" and val_el.text == facet_label:
-                        has_label_match = True
-                    if name_el.text == "columns":
-                        columns_val = val_el.text
-                if has_label_match and columns_val:
-                    label_to_columns[facet_label] = columns_val
-
-        if facet_label not in label_to_columns:
-            return False
-
-        target_uuid = label_to_columns[facet_label]
-        for region in regions:
-            name_el = _find_elem(region, "name")
-            type_el = _find_elem(region, "type")
-            if (
-                name_el is not None
-                and name_el.text == target_uuid
-                and type_el is not None
-                and type_el.text == "Facet"
-            ):
-                # Append before the <name> element (which is at the end)
-                name_idx = list(region).index(name_el)
-                for j, field in enumerate(fields):
-                    identifier = f"Record{field}Field"
-                    new_item = _make_field_instance_item(field, identifier)
-                    region.insert(name_idx + j, new_item)
-                return True
-
-    return False
-
-
-def _patch_add_component(
-    root: ET.Element,
-    region_name: str,
-    component_name: str,
-    properties: Dict[str, str],
-    identifier: str,
-    after_identifier: Optional[str] = None,
-    before_identifier: Optional[str] = None,
-) -> bool:
-    """
-    Add a componentInstance to a named flexiPageRegion's itemInstances list.
-    Inserts before `before_identifier` if given, else after `after_identifier`
-    if given, else appends before the closing <name> element of the region.
-    """
-    regions = _findall_elem(root, "flexiPageRegions")
-    for region in regions:
-        name_el = _find_elem(region, "name")
-        if name_el is None or name_el.text != region_name:
-            continue
-        items = _findall_elem(region, "itemInstances")
-
-        new_ci = _make_elem("componentInstance")
-        for prop_name, prop_val in properties.items():
-            cip = _sub_elem(new_ci, "componentInstanceProperties")
-            _sub_elem(cip, "name", prop_name)
-            _sub_elem(cip, "value", prop_val)
-        _sub_elem(new_ci, "componentName", component_name)
-        _sub_elem(new_ci, "identifier", identifier)
-
-        new_item = _make_elem("itemInstances")
-        new_item.append(new_ci)
-
-        if before_identifier:
-            for item in items:
-                ci = _find_elem(item, "componentInstance")
-                if ci is not None:
-                    id_el = _find_elem(ci, "identifier")
-                    if id_el is not None and id_el.text == before_identifier:
-                        region.insert(list(region).index(item), new_item)
-                        return True
-
-        if after_identifier:
-            for i, item in enumerate(items):
-                ci = _find_elem(item, "componentInstance")
-                if ci is not None:
-                    id_el = _find_elem(ci, "identifier")
-                    if id_el is not None and id_el.text == after_identifier:
-                        region.insert(list(region).index(item) + 1, new_item)
-                        return True
-
-        # Preserve metadata schema order by keeping all itemInstances contiguous
-        # at the front of the region (before mode/name/type).
-        region_children = list(region)
-        insert_before = len(region_children)
-        for i, child in enumerate(region_children):
-            if _local_tag(child) != "itemInstances":
-                insert_before = i
-                break
-        region.insert(insert_before, new_item)
-        return True
-    return False
-
-
-def _patch_description(patch: Dict[str, Any]) -> str:
-    """Return a short human-readable description of a patch for manifests."""
-    ptype = patch.get("type", "")
-    if ptype == "insert_action":
-        actions = patch.get("actions", [])
-        names = [_action_name(a) for a in actions]
-        return f"insert actions: {', '.join(n for n in names if n)}"
-    if ptype == "remove_action":
-        return f"remove action: {patch.get('action', '?')}"
-    if ptype == "add_display_field":
-        return f"add display field: {patch.get('field', '?')}"
-    if ptype == "add_sales_txn_line_editor_field":
-        fields = patch.get("fields") or [patch.get("field", "?")]
-        prop_name = patch.get("property", "displayFields")
-        return f"add Sales Transaction Line Editor {prop_name}: {', '.join(fields)}"
-    if ptype == "add_facet_field":
-        fields = patch.get("fields", [])
-        facet = patch.get("facet", "")
-        return f"add fields to {facet}: {', '.join(fields)}"
-    if ptype == "add_component":
-        return f"add component: {patch.get('component', '?')}"
-    if ptype == "insert_after_xml":
-        anchor = patch.get("anchor", "")
-        # Extract a recognizable identifier from the anchor
-        for tag in ("identifier", "name", "value"):
-            m = re.search(rf"<{tag}>(.*?)</{tag}>", anchor)
-            if m:
-                return f"insert XML after <{tag}>{m.group(1)}</{tag}>"
-        return "insert XML block"
-    return ptype
-
 
 def _profile_patch_description(patch: Dict[str, Any]) -> str:
     """Return a short description of a profile patch for manifests."""
@@ -509,125 +71,31 @@ def _profile_patch_description(patch: Dict[str, Any]) -> str:
     return ptype
 
 
-def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None) -> None:
-    """Apply a single patch operation to a flexipage XML root element."""
-    ptype = patch.get("type")
-    log = logger.warning if logger else print
-
-    if ptype == "remove_action":
-        action = patch.get("action")
-        ignore_missing = patch.get("ignore_missing", False)
-        if not action:
-            log(f"remove_action patch missing 'action': {patch}")
-            return
-        removed = _patch_remove_action(root, action)
-        if not removed and not ignore_missing and logger:
-            logger.warning(f"remove_action: action '{action}' not found in flexipage")
-
-    elif ptype == "insert_action":
-        anchor = patch.get("after") or patch.get("before")
-        actions = patch.get("actions", [])
-        if not anchor or not actions:
-            log(f"insert_action patch missing 'after' or 'actions': {patch}")
-            return
-        ok = _patch_insert_action(root, anchor, actions)
-        if not ok and logger:
-            logger.warning(f"insert_action anchor '{anchor}' not found in flexipage")
-
-    elif ptype == "add_display_field":
-        field = patch.get("field")
-        if not field:
-            log(f"add_display_field patch missing 'field': {patch}")
-            return
-        ok = _patch_add_display_field(root, field)
-        if not ok and logger:
-            logger.warning("add_display_field: displayFields valueList not found")
-
-    elif ptype == "add_sales_txn_line_editor_field":
-        fields = patch.get("fields")
-        if not fields and patch.get("field"):
-            fields = [patch["field"]]
-        if not fields:
-            log(
-                "add_sales_txn_line_editor_field patch missing "
-                f"'field' or 'fields': {patch}"
-            )
-            return
-        prop_name = patch.get("property", "displayFields")
-        component_identifier = patch.get(
-            "component_identifier", SALES_TXN_LINE_EDITOR_IDENTIFIER
-        )
-        ok = _patch_add_component_value_list_items(
-            root,
-            component_identifier,
-            prop_name,
-            fields,
-            after=patch.get("after"),
-        )
-        if not ok and logger:
-            logger.warning(
-                "add_sales_txn_line_editor_field: "
-                f"{component_identifier}.{prop_name} valueList or anchor "
-                f"'{patch.get('after')}' not found"
-            )
-
-    elif ptype == "add_facet_field":
-        fields = patch.get("fields", [])
-        after = patch.get("after")
-        facet_label = patch.get("facet")
-        if not fields:
-            log(f"add_facet_field patch missing 'fields': {patch}")
-            return
-        ok = _patch_add_facet_field(root, fields, after=after, facet_label=facet_label)
-        if not ok and logger:
-            logger.warning(
-                f"add_facet_field: anchor '{after or facet_label}' not found"
-            )
-
-    elif ptype == "add_component":
-        region_name = patch.get("region")
-        component_name = patch.get("component")
-        properties = patch.get("properties", {})
-        identifier = patch.get("identifier", component_name)
-        after_id = patch.get("after_identifier")
-        before_id = patch.get("before_identifier")
-        if not region_name or not component_name:
-            log(f"add_component patch missing 'region' or 'component': {patch}")
-            return
-        ok = _patch_add_component(root, region_name, component_name, properties, identifier, after_id, before_id)
-        if not ok and logger:
-            logger.warning(f"add_component: region '{region_name}' not found")
-
-    else:
-        log(f"Unknown patch type '{ptype}': {patch}")
-
-
 # ---------------------------------------------------------------------------
 # Profile XML helpers
 # ---------------------------------------------------------------------------
 
 def _add_layout_assignment(root: ET.Element, layout: str, record_type: Optional[str] = None) -> None:
     """Append a <layoutAssignments> element to a profile root."""
-    la = _make_elem("layoutAssignments")
-    _sub_elem(la, "layout", layout)
+    la = make_elem("layoutAssignments")
+    sub_elem(la, "layout", layout)
     if record_type:
-        _sub_elem(la, "recordType", record_type)
+        sub_elem(la, "recordType", record_type)
     root.append(la)
 
 
 def _add_app_visibility(root: ET.Element, application: str, default: bool = False) -> None:
     """Append an <applicationVisibilities> element to a profile root."""
-    av = _make_elem("applicationVisibilities")
-    _sub_elem(av, "application", application)
-    _sub_elem(av, "default", str(default).lower())
-    _sub_elem(av, "visible", "true")
+    av = make_elem("applicationVisibilities")
+    sub_elem(av, "application", application)
+    sub_elem(av, "default", str(default).lower())
+    sub_elem(av, "visible", "true")
     root.append(av)
 
 
 # ---------------------------------------------------------------------------
-# Main task class
+# Selection
 # ---------------------------------------------------------------------------
-
 
 
 def resolve_type_from_name(name: str) -> Optional[str]:
@@ -793,6 +261,14 @@ class UxAssembler:
     # Flexipages assembly
     # ------------------------------------------------------------------
 
+    def assemble_flexipages(
+        self, output_path: Path, filter_name: Optional[str] = None,
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]]]:
+        """Assemble only flexipages into ``output_path``; return (assembled, skipped)."""
+        return self._assemble_flexipages(
+            self.ctx.templates_path, Path(output_path), self.ctx.features, filter_name,
+        )
+
     def _assemble_flexipages(
         self,
         templates_path: Path,
@@ -834,7 +310,7 @@ class UxAssembler:
             root = ET.parse(str(src_file)).getroot()
 
             # Skip types that cannot be deployed via Metadata API
-            fp_type_el = _find_elem(root, "type")
+            fp_type_el = find_elem(root, "type")
             if fp_type_el is None:
                 fp_type_el = root.find("type")
             fp_type = fp_type_el.text.strip() if fp_type_el is not None else ""
@@ -849,18 +325,15 @@ class UxAssembler:
             for patch_feature, patch_file in active_patch_files(patches_dir, page_stem, features):
                 patch_data = load_yaml(patch_file)
                 for patch in patch_data.get("patches", []):
-                    if patch.get("type") == "insert_after_xml":
-                        self._apply_raw_xml_patch(root, patch)
-                    else:
-                        _apply_flexipage_patch(root, patch, logger=self.logger)
+                    apply_patch(root, patch, self.logger)
                     patches_applied.append(
                         {"feature": patch_feature, "patch_type": patch.get("type"),
-                         "description": _patch_description(patch)}
+                         "description": describe_patch(patch)}
                     )
 
             dest = out_dir / fname
             if patches_applied:
-                _write_xml(root, dest)
+                write_xml(root, dest)
             else:
                 # No patches — copy source directly to preserve original
                 # encoding (avoids ET entity re-encoding differences).
@@ -882,32 +355,6 @@ class UxAssembler:
             )
 
         return assembled, skipped
-
-    def _apply_raw_xml_patch(self, root: ET.Element, patch: Dict[str, Any]) -> None:
-        """
-        Text-based XML insertion as a fallback for structures not handled by
-        the semantic patch operations. Operates on the serialized string of the
-        root element and re-parses back into the root. Expensive — use sparingly.
-        """
-        anchor = patch.get("anchor")
-        xml_fragment = patch.get("xml", "")
-        if not anchor or not xml_fragment:
-            self.logger.warning("insert_after_xml patch missing 'anchor' or 'xml'")
-            return
-
-        ET.indent(root, space="    ")
-        text = ET.tostring(root, encoding="unicode")
-        if anchor not in text:
-            self.logger.warning(f"insert_after_xml anchor not found: {anchor!r}")
-            return
-        idx = text.index(anchor) + len(anchor)
-        text = text[:idx] + "\n" + xml_fragment + text[idx:]
-        new_root = ET.fromstring(text)
-        # Replace root children with new_root children (in-place modification)
-        for child in list(root):
-            root.remove(child)
-        for child in list(new_root):
-            root.append(child)
 
     # ------------------------------------------------------------------
     # Layouts assembly
@@ -1008,7 +455,7 @@ class UxAssembler:
         # Find insertion index: after existing leading non-actionOverride elements
         insert_before = None
         for i, child in enumerate(list(app_root)):
-            if _local_tag(child) != "actionOverrides":
+            if local_tag(child) != "actionOverrides":
                 insert_before = i
                 break
 
@@ -1191,7 +638,7 @@ class UxAssembler:
                     )
 
             dest = out_dir / fname
-            _write_xml(root, dest)
+            write_xml(root, dest)
             assembled.append(
                 {
                     "type": "profile",
@@ -1302,8 +749,8 @@ class UxAssembler:
             old_layout = patch.get("old_layout")
             new_layout = patch.get("new_layout")
             if old_layout and new_layout:
-                for la in _findall_elem(root, "layoutAssignments"):
-                    layout_el = _find_elem(la, "layout")
+                for la in findall_elem(root, "layoutAssignments"):
+                    layout_el = find_elem(la, "layout")
                     if layout_el is not None and layout_el.text == old_layout:
                         layout_el.text = new_layout
                         return

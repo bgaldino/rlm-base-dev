@@ -30,120 +30,111 @@ from scripts.ux._sf import cli_error, run_sf_json
 RETRIEVE_WAIT_MINUTES = 10
 
 
-class UxRetriever:
-    """Retrieves flexipages from ``target_org`` (sf CLI alias or username)."""
+def retrieve(
+    ctx: UxContext,
+    target_org: str,
+    output_path: Path,
+    metadata_name: Optional[str] = None,
+) -> int:
+    """Retrieve flexipages from ``target_org`` (sf CLI alias or username) into
+    ``output_path/flexipages``; return the number written."""
+    if not target_org:
+        raise UxOptionError("A target org (sf CLI alias or username) is required.")
+    validate_selection("flexipages", metadata_name, ("flexipages",))
+    logger = ctx.logger
+    output_path = Path(output_path)
 
-    def __init__(self, ctx: UxContext, target_org: str):
-        if not target_org:
-            raise UxOptionError("A target org (sf CLI alias or username) is required.")
-        self.ctx = ctx
-        self.logger = ctx.logger
-        self.target_org = target_org
-
-    def run(self, output_path: Path, metadata_name: Optional[str] = None) -> int:
-        """Retrieve into ``output_path/flexipages``; return the number written."""
-        validate_selection("flexipages", metadata_name, ("flexipages",))
-        return self._retrieve_flexipages(Path(output_path), metadata_name)
-
-    def _retrieve_flexipages(self, output_path: Path, filter_name: Optional[str]) -> int:
-        templates_path = self.ctx.templates_path
-        base_dir = templates_path / "flexipages" / "base"
-        standalone_dir = templates_path / "flexipages" / "standalone"
-
-        if filter_name:
-            pages = [filter_name]
-        else:
-            if not base_dir.exists():
-                self.logger.warning(f"Flexipage base directory not found: {base_dir}")
-                return 0
-
-            # Build page list using the shared resolver so retrieve scope always
-            # matches what the assembler deploys (base + active standalone dirs).
-            page_sources = resolve_flexipage_sources(base_dir, standalone_dir, self.ctx.features)
-            pages = sorted(page_sources.keys())
-
-        if not pages:
-            self.logger.warning("No flexipages found to retrieve.")
+    if metadata_name:
+        pages = [metadata_name]
+    else:
+        base_dir = ctx.templates_path / "flexipages" / "base"
+        standalone_dir = ctx.templates_path / "flexipages" / "standalone"
+        if not base_dir.exists():
+            logger.warning(f"Flexipage base directory not found: {base_dir}")
             return 0
+        # The shared resolver keeps retrieve scope equal to what the assembler
+        # deploys (base + active standalone dirs).
+        pages = sorted(resolve_flexipage_sources(base_dir, standalone_dir, ctx.features))
 
-        # Extract API names from filenames
-        api_names = [name.replace(FLEXIPAGE_SUFFIX, "") for name in pages]
+    if not pages:
+        logger.warning("No flexipages found to retrieve.")
+        return 0
 
-        self.logger.info(
-            f"Retrieving {len(api_names)} flexipage(s) from "
-            f"'{self.target_org}': {', '.join(api_names)}"
+    api_names = [name[: -len(FLEXIPAGE_SUFFIX)] for name in pages]
+    logger.info(
+        f"Retrieving {len(api_names)} flexipage(s) from "
+        f"'{target_org}': {', '.join(api_names)}"
+    )
+
+    dest_dir = output_path / "flexipages"
+    with tempfile.TemporaryDirectory(prefix="ux_retrieve_") as tmp:
+        # Retrieve before touching the output directory, so a bad alias or a
+        # failed retrieve leaves the existing files in place.
+        _sf_retrieve(ctx, target_org, api_names, Path(tmp))
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        # Clear what this retrieve replaces (every page, or just the requested
+        # one), so a page the org lacks cannot survive as a stale copy.
+        stale = [dest_dir / metadata_name] if metadata_name else dest_dir.glob(f"*{FLEXIPAGE_SUFFIX}")
+        for old_file in stale:
+            old_file.unlink(missing_ok=True)
+
+        retrieved = _copy_flexipages(ctx, Path(tmp), dest_dir)
+
+    if retrieved == 0:
+        logger.warning(
+            "No FlexiPage files found in retrieve result. "
+            "The org may not have deployed flexipages for the requested names."
         )
+    else:
+        logger.info(f"Retrieved {retrieved} flexipage(s) written to {dest_dir}")
+    return retrieved
 
-        dest_dir = output_path / "flexipages"
-        with tempfile.TemporaryDirectory(prefix="ux_retrieve_") as tmp:
-            # Retrieve before touching the output directory, so a bad alias or a
-            # failed retrieve leaves the existing files in place.
-            self._sf_retrieve(api_names, Path(tmp))
-            dest_dir.mkdir(parents=True, exist_ok=True)
 
-            # Clear what this retrieve replaces (every page, or just the requested
-            # one), so a page the org lacks cannot survive as a stale copy.
-            stale = [dest_dir / filter_name] if filter_name else dest_dir.glob(f"*{FLEXIPAGE_SUFFIX}")
-            for old_file in stale:
-                old_file.unlink(missing_ok=True)
+def _sf_retrieve(ctx: UxContext, target_org: str, api_names: List[str], target_dir: Path) -> None:
+    """``sf project retrieve start`` the flexipages into ``target_dir`` (metadata format)."""
+    args = ["project", "retrieve", "start"]
+    for name in api_names:
+        args += ["--metadata", f"FlexiPage:{name}"]
+    args += [
+        "--target-metadata-dir", str(target_dir),
+        "--unzip",
+        "--api-version", ctx.api_version,
+        "--wait", str(RETRIEVE_WAIT_MINUTES),
+        "--target-org", target_org,
+    ]
+    output = run_sf_json(
+        args,
+        cwd=ctx.repo_root,
+        timeout=RETRIEVE_WAIT_MINUTES * 60 + 60,
+        logger=ctx.logger,
+    )
+    result = output.get("result") or {}
+    status = result.get("status", "Unknown")
+    if output.get("status", -1) != 0 or status != "Succeeded":
+        detail = cli_error(output) or f"status={status}"
+        raise UxError(f"Retrieve from '{target_org}' failed: {detail}")
+    ctx.logger.info(f"  Retrieve complete: {status}")
+    # Members the org does not have come back as warnings, not failures.
+    messages = result.get("messages") or []
+    if isinstance(messages, dict):
+        messages = [messages]
+    for msg in messages:
+        problem = msg.get("problem") if isinstance(msg, dict) else msg
+        if problem:
+            ctx.logger.warning(f"  {problem}")
 
-            retrieved = self._copy_flexipages(Path(tmp), dest_dir)
 
-        if retrieved == 0:
-            self.logger.warning(
-                "No FlexiPage files found in retrieve result. "
-                "The org may not have deployed flexipages for the requested names."
-            )
-        else:
-            self.logger.info(f"Retrieved {retrieved} flexipage(s) written to {dest_dir}")
-        return retrieved
-
-    def _sf_retrieve(self, api_names: List[str], target_dir: Path) -> None:
-        """``sf project retrieve start`` the flexipages into ``target_dir`` (metadata format)."""
-        args = ["project", "retrieve", "start"]
-        for name in api_names:
-            args += ["--metadata", f"FlexiPage:{name}"]
-        args += [
-            "--target-metadata-dir", str(target_dir),
-            "--unzip",
-            "--api-version", self.ctx.api_version,
-            "--wait", str(RETRIEVE_WAIT_MINUTES),
-            "--target-org", self.target_org,
-        ]
-        output = run_sf_json(
-            args,
-            cwd=self.ctx.repo_root,
-            timeout=RETRIEVE_WAIT_MINUTES * 60 + 60,
-            logger=self.logger,
-        )
-        result = output.get("result") or {}
-        status = result.get("status", "Unknown")
-        if output.get("status", -1) != 0 or status != "Succeeded":
-            detail = cli_error(output) or f"status={status}"
-            raise UxError(f"Retrieve from '{self.target_org}' failed: {detail}")
-        self.logger.info(f"  Retrieve complete: {status}")
-        # Members the org does not have come back as warnings, not failures.
-        messages = result.get("messages") or []
-        if isinstance(messages, dict):
-            messages = [messages]
-        for msg in messages:
-            problem = msg.get("problem") if isinstance(msg, dict) else msg
-            if problem:
-                self.logger.warning(f"  {problem}")
-
-    def _copy_flexipages(self, retrieved_dir: Path, dest_dir: Path) -> int:
-        """Copy retrieved ``*.flexipage`` files into ``dest_dir`` under source-format names."""
-        count = 0
-        for src in sorted(retrieved_dir.rglob("*.flexipage")):
-            dest_name = src.name + "-meta.xml"
-            dest = dest_dir / dest_name
-            shutil.copyfile(src, dest)
-            self.logger.info(f"  [retrieved] {dest_name} -> {self._rel(dest)}")
-            count += 1
-        return count
-
-    def _rel(self, path: Path) -> str:
+def _copy_flexipages(ctx: UxContext, retrieved_dir: Path, dest_dir: Path) -> int:
+    """Copy retrieved ``*.flexipage`` files into ``dest_dir`` under source-format names."""
+    count = 0
+    for src in sorted(retrieved_dir.rglob("*.flexipage")):
+        dest = dest_dir / (src.name + "-meta.xml")
+        shutil.copyfile(src, dest)
         try:
-            return str(path.relative_to(self.ctx.repo_root))
+            shown = dest.relative_to(ctx.repo_root)
         except ValueError:
-            return str(path)
+            shown = dest
+        ctx.logger.info(f"  [retrieved] {dest.name} -> {shown}")
+        count += 1
+    return count
