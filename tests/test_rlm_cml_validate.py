@@ -120,6 +120,14 @@ with tempfile.TemporaryDirectory() as root:
     check("an unbalanced brace raises instead of only logging",
           _raises(lambda: _task(data_dirs=broken)._run_task(), "CML validation found errors"))
 
+    print("An expression_set_name override matches by display Name or ApiName")
+    for override in ("Model A", "ModelA"):
+        t = _task(cml_dir=os.path.dirname(targets[0][0]), data_dir=a, expression_set_name=override)
+        t._collect_targets = lambda: [(targets[0][0], "blob", [a])]
+        t._run_task()
+        miss = [line for line in t.logger.lines if "Missing" in line or "not found in CML" in line]
+        check(f"override {override!r} finds the model's associations", not miss, repr(miss))
+
     print("Without data_dirs the cml_dir behaviour is unchanged")
     cml_dir = os.path.join(root, "cml")
     os.makedirs(cml_dir)

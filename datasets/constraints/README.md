@@ -294,8 +294,8 @@ cci task run validate_cml \
 |--------|----------|-------------|
 | `cml_dir` | No | Directory containing .cml files (default: `scripts/cml`) |
 | `data_dir` | No | Constraints data plan directory for ESC association checking |
-| `data_dirs` | No | Comma-separated constraints data dirs. Each dir's own `blobs/*.ffxblob` is validated against that dir's ESC rows; replaces `cml_dir`/`data_dir` when set. The blob must be exactly the one `import_cml` uploads (`ESDV_<DeveloperName>_V<n>.ffxblob`, from `ExpressionSetDefinitionVersion.csv`); a missing, misnamed or extra blob is an error |
-| `expression_set_name` | No | Override Expression Set name for association checks |
+| `data_dirs` | No | Comma-separated constraints data dirs. Each dir's own `blobs/*.ffxblob` is validated against that dir's ESC rows; replaces `cml_dir`/`data_dir` when set. The blob must be exactly the one `import_cml` uploads, named from `ExpressionSetDefinitionVersion.csv` as `ESDV_<model>_V<n>.ffxblob`, where `<model>` is `DeveloperName` with its `_V<n>` suffix removed (`QuantumBitComplete_V1` → `ESDV_QuantumBitComplete_V1.ffxblob`); a missing, misnamed or extra blob is an error |
+| `expression_set_name` | No | Override Expression Set name for association checks; the API name or the display `Name` both match |
 
 ### What Gets Validated
 

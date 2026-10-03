@@ -383,7 +383,8 @@ CHECKS = [
         cmd=["python", "tests/test_decision_table_tasks.py",
              "tests/test_deactivate_changed_decision_tables.py",
              "tests/test_fulfillment_scope_tolerance.py",
-             "tests/test_skill_manifest_audit.py"],  # run in sequence
+             "tests/test_skill_manifest_audit.py",
+             "tests/test_prepare_constraints_validation.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
         # usage product to that dataset invalidates the assertion, so it has to select this.
@@ -395,7 +396,8 @@ CHECKS = [
                   "unpackaged/pre/5_decisiontables/",
                   "unpackaged/post_prm_pricing/decisionTables/",
                   "tests/test_fulfillment_scope_tolerance.py",
-                  "tests/test_skill_manifest_audit.py"],
+                  "tests/test_skill_manifest_audit.py",
+                  "tests/test_prepare_constraints_validation.py"],
         deps=["PyYAML"], gating=True,
     ),
     dict(

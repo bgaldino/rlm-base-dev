@@ -1445,26 +1445,38 @@ class ValidateCML(BaseTask):
         esc_path = os.path.join(dataset_dir, "ExpressionSetConstraintObj.csv")
         if not os.path.exists(esc_path):
             return {}
+        # ApiName -> display Name from the same directory, so a row is reachable
+        # by either: the inferred name is the ApiName, but an
+        # expression_set_name override may pass the display Name
+        # ("QuantumBit PCM" vs QuantumBitPCM).
+        display_names = {}
+        expr_path = os.path.join(dataset_dir, "ExpressionSet.csv")
+        if os.path.exists(expr_path):
+            with open(expr_path, newline="") as handle:
+                for row in csv.DictReader(handle):
+                    api = (row.get("ApiName") or "").strip()
+                    name = (row.get("Name") or "").strip()
+                    if api and name:
+                        display_names[api] = name
         associations_by_model = {}
         with open(esc_path, newline="") as handle:
             reader = csv.DictReader(handle)
             for row in reader:
-                # ApiName first, matching _infer_expression_set_name: the display
-                # Name can differ ("QuantumBit PCM" vs QuantumBitPCM).
-                model_name = row.get("ExpressionSet.ApiName", "").strip()
-                if not model_name:
-                    model_name = row.get("ExpressionSet.Name", "").strip()
-                if not model_name:
+                api = row.get("ExpressionSet.ApiName", "").strip()
+                keys = {k for k in (api, row.get("ExpressionSet.Name", "").strip(),
+                                    display_names.get(api, "")) if k}
+                if not keys:
                     continue
                 tag = row.get("ConstraintModelTag", "").strip()
                 tag_type = row.get("ConstraintModelTagType", "").strip().lower()
                 if not tag or not tag_type:
                     continue
-                entry = associations_by_model.setdefault(model_name, {"type": set(), "port": set()})
-                if tag_type == "type":
-                    entry["type"].add(tag)
-                elif tag_type == "port":
-                    entry["port"].add(tag)
+                for model_name in keys:
+                    entry = associations_by_model.setdefault(model_name, {"type": set(), "port": set()})
+                    if tag_type == "type":
+                        entry["type"].add(tag)
+                    elif tag_type == "port":
+                        entry["port"].add(tag)
         return associations_by_model
 
     @staticmethod
