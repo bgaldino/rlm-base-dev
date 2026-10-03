@@ -184,7 +184,7 @@ def _refresh_patch_files(
         for patch in patches:
             refreshed = refresh_patch(patch, page)
             if refreshed is None:
-                ctx.logger.info(f"{label}: {describe_patch(patch)} absent in org, removing patch entry")
+                ctx.logger.info(f"{label}: {describe_patch(patch)} no longer applies to the org, removing patch entry")
             else:
                 new_patches.append(refreshed)
         if new_patches == patches:

@@ -42,6 +42,8 @@ python scripts/ux/ux_tool.py apply-drift                               # writeba
 
 - **DO NOT** edit `unpackaged/post_ux/` to “fix” UX — fix **`templates/`** and re-run assembly (or follow drift writeback).
 - **DO NOT** add `EmailTemplatePage` flexipages to templates — they cannot deploy via Metadata API (`AGENTS.md`).
+- **DO NOT** commit a writeback-refreshed patch file without restoring its comments — the rewrite drops YAML comments (often the rationale for a visibility rule). Check `git diff templates/flexipages/patches/`.
+- **DO NOT** treat Dynamic Forms `uiBehavior` drift (`none` → `readonly`/`required`) as a real edit by default — the org normalizes it on save.
 - **DO NOT** assume hand-copied org XML belongs in `post_ux` without going through retrieve + diff + writeback when aligning with templates.
 - **DO NOT** reference a feature-gated custom field/component (e.g. a `post_<feature>`-only field) from a **base/always-on** template (`layouts/base`, `flexipages/base`, `profiles/base`). It assembles into the default build and **breaks deploy** on a flag-off org where that field/component was never deployed. Put it in the feature's patch path.
 

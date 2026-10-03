@@ -82,6 +82,9 @@ rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
 - `writeback` is a **dry run** unless `--apply` is given. It keeps no backup
   copies: review with `git diff templates/` and revert with git.
 - Never hand-edit `unpackaged/post_ux/`; change `templates/` and reassemble.
+- `writeback --apply` rewrites a patch file only when the org changed what the
+  patch produces, but that rewrite drops the file's YAML comments. Restore any
+  rationale comments from `git diff` before committing.
 - `retrieve` and `capture-drift` overwrite `unpackaged/post_ux/flexipages/` with
   org state. Run `assemble` (or `git checkout unpackaged/post_ux/`) afterwards if
   you do not mean to commit that state.
