@@ -57,7 +57,7 @@ Run this first — it checks everything:
 
 | Check | Fix |
 |-------|-----|
-| Python < 3.10 | Install Python 3.12 or 3.13 via `pyenv` (3.10 is the repo floor; 3.12/3.13 are recommended for CumulusCI) |
+| Python < 3.11 | Install Python 3.12 or 3.13 via `pyenv` (3.11 is the repo floor: CumulusCI 4.10.1 needs `>=3.11,<3.14`). Then rebuild CCI on it: `pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | CumulusCI not found | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | SF CLI < v2 | `npm install -g @salesforce/cli` (NOT `brew install sf`) |
 | SFDMU plugin missing/outdated | Auto-fixed by default (`auto_fix=true`). Manual: `sf plugins install sfdmu` |
@@ -105,16 +105,19 @@ cci org info beta         # shows username, instance URL
 `INVALID_AUTH_HEADER` (or "Expired session"), even on a brand-new org — but
 `sf data query --target-org USERNAME` reaches the same org fine.
 
-**Cause:** CumulusCI 4.10 parses `sf org display` for the access token, and
-sf CLI >= 2.13.0 now **redacts** it. CCI sends a bogus header.
+**Cause:** CumulusCI 4.10.0 and earlier parse `sf org display` for the access
+token, and sf CLI 2.136.8+ (the May 27, 2026 change, forcedotcom/cli#3560) **redacts** it. CCI sends a bogus header.
 
-**Fix:** set `SF_TEMP_SHOW_SECRETS=true`. The repo's tracked `.envrc` already exports
-it, so **direnv users are covered automatically** inside the repo; otherwise prefix a
-command for a one-off, or for a durable / Dock-launched-IDE setup use `~/.zshenv` + a
-LaunchAgent. **Do not** delete or recreate the org — and never `cci org remove` a
-scratch org (it deletes it).
-Full guide, including the durable setup, the security tradeoff, and **how to
-check for / remove the workaround once an official fix ships**:
+**Fix:** upgrade CumulusCI to **4.10.1 or later** (`pipx upgrade cumulusci`), which
+falls back to `sf org auth show-access-token`. If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1
+(it needs Python 3.11–3.13); rebuild it on a supported interpreter with
+`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` or
+`scripts/bash/update-toolchain.sh`. The repo no longer exports
+`SF_TEMP_SHOW_SECRETS` for CumulusCI (`.envrc`, Docker, CI); a few scripts still set it on
+their own `sf` calls. On an older CCI you can still set it for a one-off.
+**Do not** delete or recreate the org — and never `cci org remove` a scratch org
+(it deletes it).
+Full guide, including how to remove a personal copy of the flag:
 [cci-sf-cli-token-workaround.md](../../../docs/guides/cci-sf-cli-token-workaround.md).
 
 ### `NonScratchOrgError` ("This command works with only scratch orgs")
