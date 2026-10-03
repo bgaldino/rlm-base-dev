@@ -705,8 +705,10 @@ def check_rule_owners(root: Path) -> CheckResult:
     """Fail when a skill-mapped rule's owner could not be inferred."""
     try:
         rules = collect_rules(root)
-    except Exception as exc:  # the rule-table check reports an unreadable table
-        return CheckResult("rule owners", True, f"skipped: {exc}", skipped=True)
+    except Exception as exc:
+        # Fail, not skip: the rule-table check only inventories filenames and the
+        # README, so an unreadable .mdc would otherwise pass with no owner checked.
+        return CheckResult("rule owners", False, f"could not collect rules: {exc}")
     unmapped = [f"{r.name} -> {r.equivalent_skill}" for r in rules if r.owner == UNMAPPED_OWNER]
     if unmapped:
         return CheckResult("rule owners", False,

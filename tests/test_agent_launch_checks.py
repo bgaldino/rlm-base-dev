@@ -446,6 +446,19 @@ class RuleOwners(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("bre.mdc -> expression-sets/SKILL.md", result.detail)
 
+    def test_collection_error_fails_not_skips(self):
+        def boom(root):
+            raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
+        real = analyzer.collect_rules
+        analyzer.collect_rules = boom
+        try:
+            result = analyzer.check_rule_owners(REPO)
+        finally:
+            analyzer.collect_rules = real
+        self.assertFalse(result.ok)
+        self.assertFalse(result.skipped)
+        self.assertIn("could not collect rules", result.detail)
+
     def test_repo_rules_all_have_owners(self):
         self.assertTrue(analyzer.check_rule_owners(REPO).ok)
 
