@@ -126,7 +126,9 @@ Two check modes:
   syntax, the stdlib-only import invariant, dependency-guidance messages,
   manifest high-level keys, generated-reference markers, that every skill
   sub-file is registered by its parent `SKILL.md`, that the File-Specific Rules
-  table is readable, and that this README documents the check modes. Exits
+  table is readable, that every rule file is valid UTF-8 and every rule mapped to
+  a skill has an `OWNER_KEYWORDS` owner (stand-alone rules default to Repository
+  Integration), and that this README documents the check modes. Exits
   non-zero on any failure, so it is safe to run as a CI/scheduled gate.
 
   Launch checks also enforce skill discovery metadata, exact relative native-link

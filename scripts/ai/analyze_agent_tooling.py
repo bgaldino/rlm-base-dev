@@ -702,7 +702,20 @@ def check_rule_table_readable(root: Path) -> CheckResult:
 
 
 def check_rule_owners(root: Path) -> CheckResult:
-    """Fail when a skill-mapped rule's owner could not be inferred."""
+    """Fail when a skill-mapped rule's owner could not be inferred.
+
+    Also fails on a rule file that isn't valid UTF-8: ``read_text`` turns it
+    into an empty string, so it would otherwise be collected with no globs or
+    safeguards and pass every check silently.
+    """
+    unreadable = []
+    for rule_path in sorted((root / RULES_ROOT).glob("*.mdc")):
+        try:
+            rule_path.read_bytes().decode("utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            unreadable.append(f"{rel(rule_path, root)} ({exc.__class__.__name__})")
+    if unreadable:
+        return CheckResult("rule owners", False, "unreadable rule file(s): " + "; ".join(unreadable))
     try:
         rules = collect_rules(root)
     except Exception as exc:

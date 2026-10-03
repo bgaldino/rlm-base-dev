@@ -459,6 +459,16 @@ class RuleOwners(unittest.TestCase):
         self.assertFalse(result.skipped)
         self.assertIn("could not collect rules", result.detail)
 
+    def test_invalid_utf8_rule_file_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rules_dir = Path(tmp, ".cursor", "rules")
+            rules_dir.mkdir(parents=True)
+            (rules_dir / "bad.mdc").write_bytes(b"---\nglobs: x\n---\n\xff\xfe not utf-8\n")
+            result = analyzer.check_rule_owners(Path(tmp))
+        self.assertFalse(result.ok)
+        self.assertIn("bad.mdc", result.detail)
+        self.assertIn("UnicodeDecodeError", result.detail)
+
     def test_repo_rules_all_have_owners(self):
         self.assertTrue(analyzer.check_rule_owners(REPO).ok)
 
