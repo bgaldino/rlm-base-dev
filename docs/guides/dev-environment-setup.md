@@ -344,7 +344,8 @@ pipx upgrade cumulusci && cci version   # expect 4.10.1+
 ```
 
 CI (`.github/workflows/prepare-rlm-org.yml`) pins 4.10.1. The repo no longer
-sets the old `SF_TEMP_SHOW_SECRETS=true` shim; if you added it to `~/.zshenv`
+exports the old `SF_TEMP_SHOW_SECRETS=true` shim for CumulusCI (a few scripts
+still set it on their own `sf` calls); if you added it to `~/.zshenv`
 or a LaunchAgent, remove it (see
 [cci-sf-cli-token-workaround.md](cci-sf-cli-token-workaround.md)).
 

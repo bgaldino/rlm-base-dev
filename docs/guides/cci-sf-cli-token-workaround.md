@@ -2,9 +2,12 @@
 
 > **Status:** resolved in **CumulusCI 4.10.1**. When `sf org display` redacts the token,
 > 4.10.1 falls back to `sf org auth show-access-token`, so `SF_TEMP_SHOW_SECRETS` is no
-> longer needed. The repo no longer sets it: `.envrc`, the Docker image and
-> `prepare-rlm-org.yml` (now pinned to 4.10.1) all dropped it. **Fix: upgrade CumulusCI**
-> (`pipx upgrade cumulusci`), then remove any personal copy of the flag
+> longer needed. The repo no longer sets it for CumulusCI: the shared `.envrc` export, the
+> Docker image `ENV` and the `prepare-rlm-org.yml` steps (now pinned to 4.10.1) all dropped
+> it. A few scripts that call `sf` themselves still set it on their own `sf` calls
+> (`scripts/build_quote_to_asset.py`, `scripts/qb_usage.py`, the DF workshop scripts), and
+> `docker/README.md` uses it once for `sf org auth show-sfdx-auth-url`. Those are deliberate
+> and don't involve CumulusCI. **Fix: upgrade CumulusCI** (`pipx upgrade cumulusci`), then remove any personal copy of the flag
 > ([Removal steps](#removal-steps-once-the-official-fix-lands)). The rest of this page is
 > kept for anyone still on CumulusCI 4.10.0 or earlier.
 
@@ -62,8 +65,9 @@ stops with a version error rather than `INVALID_AUTH_HEADER`.
 ### Legacy only: CumulusCI 4.10.0 and earlier
 
 Everything from here to *Security note* is kept for CumulusCI 4.10.0 and earlier, outside
-this project. The repo no longer applies the flag anywhere: `.envrc` no longer exports it,
-so **direnv does not cover you**. If you must run an old CumulusCI, set
+this project. The repo no longer applies the flag for CumulusCI: `.envrc` no longer exports
+it, so **direnv does not cover you**. (Only a few scripts still set it on their own `sf`
+calls, which doesn't reach `cci`.) If you must run an old CumulusCI, set
 `SF_TEMP_SHOW_SECRETS=true` yourself in one of the scopes below.
 
 ### Quick / one-off

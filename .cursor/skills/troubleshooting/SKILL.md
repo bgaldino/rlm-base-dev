@@ -109,8 +109,9 @@ cci org info beta         # shows username, instance URL
 token, and sf CLI 2.145+ (the May 2026 change, forcedotcom/cli#3560) **redacts** it. CCI sends a bogus header.
 
 **Fix:** upgrade CumulusCI to **4.10.1 or later** (`pipx upgrade cumulusci`), which
-falls back to `sf org auth show-access-token`. The repo no longer sets
-`SF_TEMP_SHOW_SECRETS`; on an older CCI you can still set it for a one-off.
+falls back to `sf org auth show-access-token`. The repo no longer exports
+`SF_TEMP_SHOW_SECRETS` for CumulusCI (`.envrc`, Docker, CI); a few scripts still set it on
+their own `sf` calls. On an older CCI you can still set it for a one-off.
 **Do not** delete or recreate the org — and never `cci org remove` a scratch org
 (it deletes it).
 Full guide, including how to remove a personal copy of the flag:
