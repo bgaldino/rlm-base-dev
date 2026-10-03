@@ -140,6 +140,9 @@ foundations:
       consumed_by_pmos: [sales-enablement, demo-script, presentation, documentation, release-notes]
       provenance: Playwright + shadow-DOM walker scrape
       caveats: []
+      tooling:
+        - scripts/doc_snapshot/cli.py
+        - scripts/doc_snapshot/presets.yaml
 
     - id: release-enablement
       path: .cursor/skills/release-enablement/SKILL.md
@@ -403,11 +406,6 @@ foundations:
 
   # CCI tasks that Foundations exposes for cross-repo workflows
   cci_tasks:
-    - id: snapshot_salesforce_help
-      class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-      purpose: "Refresh per-release Help portal mirror via Playwright"
-      output: docs/salesforce/{release}/help/articles/
-
     - id: validate_setup
       class_path: tasks.rlm_validate_setup.ValidateSetup
       purpose: "Pre-flight check for CCI/SFDMU/Robot toolchain"
@@ -439,8 +437,8 @@ foundations:
     help_corpus_active:
       # ⚠ Still a 262 capture. 264 is pre-GA and its Help articles have not
       # published, so this remains the newest captured corpus even though
-      # salesforce_release_active is 264. Refresh via snapshot_salesforce_help
-      # against a 264 org once 264 Help publishes, then add a 264 entry.
+      # salesforce_release_active is 264. Refresh with the refresh_command
+      # (release 264) once 264 Help publishes, then add a 264 entry.
       path: docs/salesforce/262/help/articles/
       manifest: docs/salesforce/262/help/manifest.json
       index: docs/salesforce/262/help/index.md
@@ -448,14 +446,15 @@ foundations:
       release: "262"
       season: "Summer '26"
       api_version: v67.0
-      refresh_task: snapshot_salesforce_help
+      refresh_command: "python -m scripts.doc_snapshot help --release {release} --area all"
 
     help_corpus_prior_ga:
       # ⚠ NOT CAPTURED. This advertised docs/salesforce/260/help/{articles,manifest.json}
       # until 2026-07-26; neither path has ever existed, on main or on release/260 or
       # anywhere in history. A consumer resolving it got a miss, not prior-GA content.
       # docs/salesforce/260/ holds only feature-index.md and release-notes-pricing.md.
-      # Run snapshot_salesforce_help against a 260 org to populate it, then restore the
+      # Run `python -m scripts.doc_snapshot help --release 260 --area all` (add 260
+      # presets first) to populate it, then restore the
       # path/manifest keys.
       status: not_captured
       release: "260"

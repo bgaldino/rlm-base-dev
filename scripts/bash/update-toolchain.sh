@@ -117,10 +117,8 @@ fi
 # Historical `<71` pin is incompatible — see docs/guides/local-installation.md,
 # "Step 7 — Install CumulusCI" (Note on setuptools).
 # Force-inject to repair any stale legacy install.
-# Note: CI (.github/workflows/prepare-rlm-org.yml) adds `<77` because it's
-# pinned to CCI 4.8.1; setuptools 77+ broke transitive deps on that version.
-# CCI 4.10+ (what this script installs) works with setuptools 77+, so we
-# don't enforce an upper bound here.
+# CI (.github/workflows/prepare-rlm-org.yml) pins CCI 4.10.1 with the same
+# uncapped setuptools>=75.4; the old `<77` cap was only needed for CCI 4.8.1.
 log "CCI: ensuring setuptools>=75.4"
 "${PIPX[@]}" inject --force cumulusci "setuptools>=75.4"
 

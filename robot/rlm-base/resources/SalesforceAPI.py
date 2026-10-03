@@ -7,7 +7,7 @@ operations, and verify record state without relying on the UI.
 Authentication is obtained via ``sf org display --json`` using the
 ORG_ALIAS variable, which provides an access token and instance URL.
 Since the May 2026 Salesforce CLI security change (forcedotcom/cli#3560,
-sf 2.145+), ``sf org display`` redacts ``result.accessToken`` to a
+sf 2.136.8+), ``sf org display`` redacts ``result.accessToken`` to a
 placeholder unless ``SF_TEMP_SHOW_SECRETS=true`` is set; when the value it
 returns is not a real token, the library falls back to
 ``sf org auth show-access-token --json``, which never redacts. The token is

@@ -2,7 +2,7 @@
 """Offline tests for SalesforceAPI.py's sf CLI authentication.
 
 robot/rlm-base/resources/SalesforceAPI.py reads its Bearer token from
-``sf org display --json``. sf 2.145+ redacts ``result.accessToken`` there, so
+``sf org display --json``. sf 2.136.8+ redacts ``result.accessToken`` there, so
 the library must notice the placeholder and fall back to
 ``sf org auth show-access-token --json`` -- and must never put the token in a
 log record or an exception message. These cases pin that behaviour.
