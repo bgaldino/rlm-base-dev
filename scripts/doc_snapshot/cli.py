@@ -361,7 +361,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     except OptionsError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USAGE
-    except SnapshotError as exc:
+    except (SnapshotError, OSError) as exc:
+        # OSError: an unwritable --output-dir, a full disk, a failed bootstrap
+        # append. A runtime failure (exit 1), as in a multi-target run.
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_FAILED
 

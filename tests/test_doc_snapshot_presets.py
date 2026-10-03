@@ -122,6 +122,15 @@ def main():
                      _write(tmp, "releases:\n  '1':\n    release_name: x\n    help:\n      a: 3\n")))
         check("missing releases mapping rejected",
               raises(OptionsError, presets.load_presets, _write(tmp, "foo: 1\n")))
+        check("a misspelled preset option is rejected at load",
+              raises(OptionsError, presets.load_presets, _write(
+                  tmp, "releases:\n  '1':\n    release_name: x\n    help:\n      rn:\n"
+                       "        root_article_id: r\n        article_id_prefix: r\n"
+                       "        subtree_ony: true\n")))
+        check("a help-only option on a dev-guide preset is rejected",
+              raises(OptionsError, presets.load_presets, _write(
+                  tmp, "releases:\n  '1':\n    release_name: x\n    dev_guide:\n"
+                       "      g:\n        root_article_id: r\n")))
         check("malformed YAML is an OptionsError, not a traceback",
               raises(OptionsError, presets.load_presets, _write(tmp, "releases: [\n")))
         check("a non-mapping file is an OptionsError",
@@ -227,6 +236,33 @@ def main():
         check("bootstrapping an existing release is a usage error", rc == cli.EXIT_USAGE)
 
     # --- CLI wiring -----------------------------------------------------------
+    check("every CLI flag is a valid preset option",
+          set(cli.HELP_FLAGS) <= presets.PRESET_OPTIONS["help"]
+          and set(cli.DEV_GUIDE_FLAGS) <= presets.PRESET_OPTIONS["dev_guide"])
+    with tempfile.TemporaryDirectory() as tmp:
+        blocker = Path(tmp) / "file"
+        blocker.write_text("x")
+
+        class _Unwritable:
+            def __init__(self, options, logger=None):
+                pass
+
+            def preflight(self):
+                pass
+
+            def run(self):
+                (blocker / "articles").mkdir(parents=True)  # NotADirectoryError
+
+        real_cls = cli._snapshot_class
+        cli._snapshot_class = lambda kind: _Unwritable
+        try:
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    contextlib.redirect_stderr(io.StringIO()) as err:
+                rc = cli.main(["help", "--release", "264", "--area", "pcm"])
+        finally:
+            cli._snapshot_class = real_cls
+        check("a single-target OSError exits 1 with a message, not a traceback",
+              rc == cli.EXIT_FAILED and err.getvalue().startswith("error:"))
     parser = cli.build_parser()
     a = parser.parse_args(["help", "--release", "264", "--area", "pcm", "--mode", "discover",
                            "--prefix", "ind.x", "--expect-min-articles", "5",

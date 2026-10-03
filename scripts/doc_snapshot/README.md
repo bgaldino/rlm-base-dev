@@ -175,11 +175,11 @@ keeps going. It then prints a summary table and exits 1 if anything failed.
 
 - `0`: success.
 - `1`: a snapshot failed, for example because of a short or unstable discovery,
-  a browser error or timeout, or a missing dependency. A run where any article
+  a browser error or timeout, a filesystem error such as an unwritable output folder, or a missing dependency. A run where any article
   it tried to capture failed also exits 1, after saving its progress; the
   failed ids are named in the error and recorded in the manifest, and a later
   run retries them.
-- `2`: a usage error, such as an unknown preset, an empty selector or flag value, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
+- `2`: a usage error, such as an unknown preset or preset option, an empty selector or flag value, a boolean flag that is not `true`/`false` (or `yes`/`no`, `on`/`off`, `1`/`0`), or conflicting flags. Every selected preset is checked before any runs, including a pinned `doc_version` that conflicts with a captured corpus, so these errors never follow a partial run.
 
 `check` always exits 0. Its hits are leads to verify, not failures.
 

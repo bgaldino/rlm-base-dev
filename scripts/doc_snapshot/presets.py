@@ -16,6 +16,24 @@ PRESETS_PATH = Path(__file__).resolve().parent / "presets.yaml"
 # Preset kinds, as they appear under a release in presets.yaml.
 KINDS = ("help", "dev_guide")
 
+# Options each kind's snapshotter reads. The snapshotters ignore unknown keys,
+# so a typo (`output_dr`, `subtree_ony`) would silently fall back to a default
+# and could mix release notes into the Help corpus; load_presets() rejects it.
+_SHARED_OPTIONS = (
+    "release_version", "release_name", "output_dir", "mode", "headless",
+    "concurrency", "wait_ms",
+)
+PRESET_OPTIONS = {
+    "help": frozenset(_SHARED_OPTIONS + (
+        "area", "root_article_id", "article_id_prefix", "discover_timeout_ms",
+        "expect_min_articles", "include_release_param", "subtree_only",
+    )),
+    "dev_guide": frozenset(_SHARED_OPTIONS + (
+        "deliverable", "doc_version", "section", "sections", "batch_delay_ms",
+        "follow_links", "max_pages",
+    )),
+}
+
 # Dropped when bootstrapping a new release: the first two are facts about a
 # captured corpus (a verified count floor, a pinned atlas version), not about
 # the root; the last two would override the new release block's identity, so
@@ -55,6 +73,13 @@ def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
                 if not isinstance(preset, dict):
                     raise OptionsError(
                         f"{path}: {release}.{kind}.{key} must be a mapping"
+                    )
+                unknown = sorted(set(map(str, preset)) - PRESET_OPTIONS[kind])
+                if unknown:
+                    raise OptionsError(
+                        f"{path}: {release}.{kind}.{key} has unknown option(s) "
+                        f"{', '.join(unknown)} (valid: "
+                        f"{', '.join(sorted(PRESET_OPTIONS[kind]))})"
                     )
         normalized[release] = block
     return normalized
