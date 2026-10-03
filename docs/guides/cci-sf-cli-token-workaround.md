@@ -55,17 +55,16 @@ CCI receives the redacted placeholder instead of the real token and sends a malf
 
 ## The fix
 
-Set `SF_TEMP_SHOW_SECRETS=true` in the environment so `sf` exposes the token to CCI. Pick the
-scope that matches how you run CCI.
+**Upgrade CumulusCI to 4.10.1 or later** (`pipx upgrade cumulusci`). This project now
+requires it (`minimum_cumulusci_version: "4.10.1"` in `cumulusci.yml`), so an older CCI
+stops with a version error rather than `INVALID_AUTH_HEADER`.
 
-### Already handled in-repo via direnv
+### Legacy only: CumulusCI 4.10.0 and earlier
 
-This repo's tracked **`.envrc`** used to export `SF_TEMP_SHOW_SECRETS=true`; it no longer
-does, because CumulusCI 4.10.1 doesn't need it. If you use **direnv**
-(the repo's standard setup — see `docs/guides/dev-environment-setup.md`), the flag is
-applied automatically whenever your shell is inside the repo, and any CCI command you run
-there inherits it. The scopes below are for processes direnv doesn't reach — a shell where
-direnv isn't hooked, or a GUI-launched IDE that never triggers `.envrc`.
+Everything from here to *Security note* is kept for CumulusCI 4.10.0 and earlier, outside
+this project. The repo no longer applies the flag anywhere: `.envrc` no longer exports it,
+so **direnv does not cover you**. If you must run an old CumulusCI, set
+`SF_TEMP_SHOW_SECRETS=true` yourself in one of the scopes below.
 
 ### Quick / one-off
 
@@ -219,8 +218,8 @@ launchctl unsetenv SF_TEMP_SHOW_SECRETS
 `env:` entries were removed when CI moved to CumulusCI 4.10.1, and the watcher workflow
 was deleted.
 
-Verify `cci org info CCI_ALIAS` still works **without** the flag, then delete this note's entry
-from the troubleshooting skill.
+Verify `cci org info CCI_ALIAS` still works **without** the flag. (The troubleshooting
+skill's entry already points at the upgrade rather than the flag.)
 
 ## Related
 

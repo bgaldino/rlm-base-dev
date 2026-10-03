@@ -363,7 +363,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Verify: `sf --version`
 
 5. **CumulusCI** (CCI)
-   - Minimum version: 4.0.0 (as specified in `cumulusci.yml`)
+   - Minimum version: 4.10.1 (as specified in `cumulusci.yml`; older versions fail with `INVALID_AUTH_HEADER` against current `sf`)
    - Installation: **prefer** `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` (ensure your pyenv global is set to a supported version — 3.12 or 3.13). If you don't use pipx: create a virtual environment and run `pip install cumulusci` inside it.
    - Verify: `cci version`
 
