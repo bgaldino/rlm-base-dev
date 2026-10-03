@@ -42,7 +42,7 @@ org — never use it to "refresh" a token.)
 ## Root cause
 
 CumulusCI **4.10.0** (the version affected by this bug — the workflow's `BASELINE`) reads an
-org's access token by parsing the output of `sf org display`. Salesforce CLI **>= 2.13.0** now **redacts secrets** from that
+org's access token by parsing the output of `sf org display`. Salesforce CLI **2.145+** (the May 2026 change, forcedotcom/cli#3560) **redacts secrets** from that
 output by default:
 
 ```

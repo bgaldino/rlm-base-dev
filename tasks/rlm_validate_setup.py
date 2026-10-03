@@ -39,7 +39,10 @@ except ImportError:
 # 3.13 and `docs/guides/dev-environment-setup.md` defaults to 3.13 already,
 # so 3.10 is a generous floor.
 MIN_PYTHON: Tuple[int, ...] = (3, 10)
-MIN_CCI: Tuple[int, ...] = (4, 0, 0)
+# 4.10.1 is the first CumulusCI that reads the org token when `sf` redacts it
+# (sf 2.145+); older versions fail org commands with INVALID_AUTH_HEADER.
+# Matches minimum_cumulusci_version in cumulusci.yml.
+MIN_CCI: Tuple[int, ...] = (4, 10, 1)
 MIN_SF_MAJOR: int = 2
 # 5.6.4 is the floor (not just 5.x): 5.6.4 fixed upsert matching for
 # relationship externalIds (5.6.4 release, commit 50be987) — qb-prm/qb-prm-pricing upserts

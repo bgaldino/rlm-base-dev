@@ -106,7 +106,7 @@ cci org info beta         # shows username, instance URL
 `sf data query --target-org USERNAME` reaches the same org fine.
 
 **Cause:** CumulusCI 4.10.0 and earlier parse `sf org display` for the access
-token, and sf CLI >= 2.13.0 now **redacts** it. CCI sends a bogus header.
+token, and sf CLI 2.145+ (the May 2026 change, forcedotcom/cli#3560) **redacts** it. CCI sends a bogus header.
 
 **Fix:** upgrade CumulusCI to **4.10.1 or later** (`pipx upgrade cumulusci`), which
 falls back to `sf org auth show-access-token`. The repo no longer sets
