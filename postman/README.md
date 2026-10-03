@@ -63,8 +63,8 @@ Industries Developer Guide, CML User Guide) have been replaced by the
 markdown captured per release.
 
 - Snapshots live at `docs/salesforce/{release}/help/` (e.g. `docs/salesforce/262/help/`).
-- Refresh them per release via the `snapshot_{area}_help_{release}` CCI tasks
-  in `cumulusci.yml`.
+- Refresh them per release with `python -m scripts.doc_snapshot help --release {release} --area all`
+  (see `scripts/doc_snapshot/README.md`).
 - Authoring guidance: `.cursor/skills/revenue-cloud-docs/SKILL.md`.
 
 ---

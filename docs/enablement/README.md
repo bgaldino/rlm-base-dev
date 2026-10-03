@@ -215,7 +215,7 @@ For each release (260, 262), I worked from up to 4 sources:
 |---|---|
 | **Master Help compendium** (Salesforce-published PDF, ~1,500 pages) | Definitive but huge — used for detailed configuration steps |
 | **Internal Solution Overview deck** (CONFIDENTIAL) | Per-feature Customer Need / Solution / Use Case / Impact — most digestible primary source |
-| **Public Salesforce Help portal release notes** | Captured via Chrome MCP (the Help portal is a SPA, so a recursive shadow-DOM walker is needed to extract content). From 264 on, the `snapshot_revenue_release_notes_{version}` task captures them instead (see `revenue-cloud-docs/SKILL.md`) |
+| **Public Salesforce Help portal release notes** | Captured via Chrome MCP (the Help portal is a SPA, so a recursive shadow-DOM walker is needed to extract content). From 264 on, `python -m scripts.doc_snapshot help --release {version} --area release_notes` captures them instead (see `revenue-cloud-docs/SKILL.md`) |
 | **The `rlm-base-dev` project itself** | QB scenario reference, data plans, skills — what's actually in QB orgs |
 
 For an authoring agent picking up the work later, the captured release notes (e.g., [`docs/salesforce/260/release-notes-pricing.md`](../salesforce/260/release-notes-pricing.md)) preserve what was on the public Help portal at extraction time, archived next to the captured Solution Overview content in [`docs/salesforce/{version}/feature-index.md`](../salesforce/260/feature-index.md).

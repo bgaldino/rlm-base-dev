@@ -32,8 +32,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from tasks import rlm_agents_common as common  # noqa: E402
 
 # CommandException comes from the module under test so the assertion names the
-# class the code will raise. See tests/test_snapshot_dev_guide.py for why a
-# narrower import from CumulusCI silently disagrees with the module's fallback.
+# class the code will raise. The module imports BaseTask and its exceptions in
+# one try block, so a CumulusCI whose cumulusci.core.tasks fails to import drops
+# it to the fallback shim while a narrower import here would still resolve the
+# real class, and every raise assertion would miss.
 CommandException = common.CommandException
 
 

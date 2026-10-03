@@ -62,20 +62,21 @@ Each release has up to four primary sources. Drop them into `docs/salesforce/{ve
 
 **Capturing release notes from Salesforce Help:**
 
-Use the snapshot task, not a manual browser capture. `tasks/rlm_snapshot_help.py` renders the Help portal SPA with Playwright and walks the shadow DOM itself. With `subtree_only: true` it keeps only the release-notes root and its sidebar descendants:
+Use the snapshot tool (`scripts/doc_snapshot/`), not a manual browser capture. The `release_notes` preset sets `subtree_only: true`, so it keeps only the release-notes root and its sidebar descendants:
 
 ```bash
-cci task run snapshot_revenue_release_notes_264              # captures docs/salesforce/264/release-notes/
-cci task run snapshot_revenue_release_notes_264 -o mode refresh
+python -m scripts.doc_snapshot help --release 264 --area release_notes              # captures docs/salesforce/264/release-notes/
+python -m scripts.doc_snapshot help --release 264 --area release_notes --mode refresh
 ```
 
-For a new release, copy that task in `cumulusci.yml` and:
+For a new release, add it to `scripts/doc_snapshot/presets.yaml` with `bootstrap`, which copies every preset from an existing release:
 
-- rename the task key (`snapshot_revenue_release_notes_{version}`) and update its description;
-- change `release_version`, `release_name` (written into every article's frontmatter and the index) and `output_dir`;
-- re-check `expect_min_articles` against the new release's article count (264 captured 127 against a floor of 60), so a partial capture still fails.
+```bash
+python -m scripts.doc_snapshot bootstrap --from 264 --to 266 --release-name "Spring '27"
+python -m scripts.doc_snapshot help --release 266 --area all --mode discover
+```
 
-Then run `python scripts/ai/generate_cci_reference.py`. Options, output layout and refresh rules are in [`revenue-cloud-docs/SKILL.md`](../revenue-cloud-docs/SKILL.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the task existed.
+Bootstrap rewrites each `output_dir` and drops the `expect_min_articles` floors. Re-set the `release_notes` floor once you have seen the new release's discovered count, so a partial capture still fails. Options, output layout and refresh rules are in the [snapshot tool README](../../../scripts/doc_snapshot/README.md). The 260/262 `release-notes-{area}.md` files were captured by hand, before the tool existed.
 
 ## Workflow
 
@@ -247,3 +248,4 @@ The project already establishes a two-workstation pattern (personal + Salesforce
 - **2026-05-06** — Skill created during 260 Salesforce Pricing pilot. Captured workflow, source inventory pattern, frontmatter schema, Chrome MCP shadow-walk for Help portal extraction.
 - **2026-05-06** — Restructured for Two-Tier Model after 260 catalog completion (10 area drafts done). Master exercises become source of truth at `docs/enablement/master/`; per-release extracts are filtered views. Added QB Scenario Reference as a required authoring input. Customer accounts canonicalized to `scratch_data` (Infinitech + Global Media). Pricing-feature mapping (Bundle/Attribute/Volume) onto QB-COMPLETE and constraint-engine semantics (Port/Type) for QB-QRack-750 documented in QB Scenario Reference.
 - **2026-09-30** — Release-note capture now uses the `snapshot_revenue_release_notes_{version}` CCI task (`subtree_only`) in place of the manual Chrome MCP shadow-walk; the 264 index is cross-referenced against `docs/salesforce/264/release-notes/` in its **Release-Note Cross-Reference** section.
+- **2026-10-02** — The snapshot CCI tasks were replaced by the standalone `scripts/doc_snapshot` CLI; release-note capture is now `python -m scripts.doc_snapshot help --release {version} --area release_notes`, and a new release is added with its `bootstrap` subcommand.
