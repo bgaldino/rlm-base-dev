@@ -16,9 +16,11 @@ PRESETS_PATH = Path(__file__).resolve().parent / "presets.yaml"
 # Preset kinds, as they appear under a release in presets.yaml.
 KINDS = ("help", "dev_guide")
 
-# Dropped when bootstrapping a new release: both are facts about a captured
-# corpus (a verified count floor, a pinned atlas version), not about the root.
-_BOOTSTRAP_DROP = ("expect_min_articles", "doc_version")
+# Dropped when bootstrapping a new release: the first two are facts about a
+# captured corpus (a verified count floor, a pinned atlas version), not about
+# the root; the last two would override the new release block's identity, so
+# the copy would still request (and write to) the source release.
+_BOOTSTRAP_DROP = ("expect_min_articles", "doc_version", "release_version", "release_name")
 
 
 def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
@@ -31,9 +33,12 @@ def load_presets(path: Optional[Path] = None) -> Dict[str, Any]:
             "python -m pip install -r scripts/doc_snapshot/requirements.txt"
         )
     path = path or PRESETS_PATH
-    with open(path, encoding="utf-8") as fh:
-        data = yaml.safe_load(fh) or {}
-    releases = data.get("releases")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        raise OptionsError(f"cannot read presets file {path}: {exc}") from exc
+    releases = data.get("releases") if isinstance(data, dict) else None
     if not isinstance(releases, dict):
         raise OptionsError(f"{path}: top-level 'releases' mapping is missing")
 

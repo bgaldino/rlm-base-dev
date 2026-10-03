@@ -122,6 +122,15 @@ def main():
                      _write(tmp, "releases:\n  '1':\n    release_name: x\n    help:\n      a: 3\n")))
         check("missing releases mapping rejected",
               raises(OptionsError, presets.load_presets, _write(tmp, "foo: 1\n")))
+        check("malformed YAML is an OptionsError, not a traceback",
+              raises(OptionsError, presets.load_presets, _write(tmp, "releases: [\n")))
+        check("a non-mapping file is an OptionsError",
+              raises(OptionsError, presets.load_presets, _write(tmp, "- a\n")))
+        check("a missing presets file is an OptionsError",
+              raises(OptionsError, presets.load_presets, Path(tmp) / "nope.yaml"))
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            rc = cli.main(["--presets", str(Path(tmp) / "nope.yaml"), "list"])
+        check("--presets pointing at a missing file is a usage error", rc == cli.EXIT_USAGE)
 
     # --- bootstrap ------------------------------------------------------------
     block = presets.bootstrap_block(releases, "264", "999", "Test '99")
@@ -181,6 +190,17 @@ def main():
     custom = {"1": {"release_name": "One", "help": {"a": {
         "root_article_id": "r.htm", "article_id_prefix": "r",
         "output_dir": "/tmp/doc-snapshots/1/help"}}}}
+    # A preset-level release identity must not survive the copy, or the new
+    # release would still request and write to the source release's corpus.
+    ident = {"1": {"release_name": "One", "help": {"a": {
+        "root_article_id": "r.htm", "article_id_prefix": "r",
+        "release_version": "1", "release_name": "One"}}}}
+    with tempfile.TemporaryDirectory() as tmp:
+        path = _write(tmp, "releases:\n" + presets.bootstrap_block(ident, "1", "2", "Two"))
+        opts = presets.resolve(presets.load_presets(path), "2", "help", "a")
+        check("bootstrap drops preset-level release_version/release_name",
+              opts["release_version"] == "2" and opts["release_name"] == "Two"
+              and HelpSnapshot(opts).options["output_dir"] == "docs/salesforce/2/help")
     check("bootstrap rejects an output_dir it cannot retarget",
           raises(OptionsError, presets.bootstrap_block, custom, "1", "2", "Two"))
 

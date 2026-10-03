@@ -293,6 +293,9 @@ options:
 - `expect_min_articles`: set new floors once you've seen the new release's counts.
 - `doc_version`: set it on the dev-guide presets once the new guide is published.
 
+A `release_version` or `release_name` set on an individual preset is dropped
+too, so every copied preset takes the new release block's values.
+
 `--discover` then runs a discovery on every new Help preset, which gives you
 the counts.
 
