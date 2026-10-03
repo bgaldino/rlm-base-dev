@@ -113,7 +113,7 @@ def as_int(value: Any, default: Optional[int]) -> Optional[int]:
 
 
 def normalize_mode(value: Any) -> str:
-    mode = str(value or "all").lower()
+    mode = "all" if value is None else str(value).lower()
     if mode not in VALID_MODES:
         raise OptionsError(f"mode must be one of {VALID_MODES}, got {mode!r}")
     return mode

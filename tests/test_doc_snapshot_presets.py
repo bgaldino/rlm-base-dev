@@ -9,7 +9,6 @@ Run:  python3 tests/test_doc_snapshot_presets.py   (needs PyYAML)
 
 import contextlib
 import io
-import logging
 import os
 import shutil
 import sys
@@ -491,6 +490,15 @@ def main():
         check(f"as_bool({raw!r})", as_bool(raw, True) is want)
     check("as_bool rejects a typo instead of reading it as false",
           raises(OptionsError, as_bool, "tru", True))
+    # A falsy mode is a typo, not "use the default": `mode: false` must not
+    # run discovery and capture.
+    help_opts = presets.resolve(releases, "264", "help", "pcm")
+    for raw in (False, 0):
+        for cls, opts in ((HelpSnapshot, help_opts), (DevGuideSnapshot, dg_opts)):
+            check(f"{cls.__name__} rejects mode {raw!r}",
+                  raises(OptionsError, cls, dict(opts, mode=raw)))
+    check("an unset mode still defaults to all",
+          HelpSnapshot(dict(help_opts, mode=None)).options["mode"] == "all")
     for raw, want in (("# Heading", '"# Heading"'), ("a: b", '"a: b"'),
                       ("two\nlines", "two lines"), ("plain", "plain"), (None, "")):
         check(f"yaml_escape({raw!r})", yaml_escape(raw) == want)
