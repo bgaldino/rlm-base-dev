@@ -62,7 +62,9 @@ reads or handles an access token.
 `flexipages/` under its source-format name. The scope is every flexipage the
 assembler would deploy for the resolved flags (base pages plus active standalone
 overrides). A failed retrieve leaves the existing files untouched; pages the org
-does not have are reported as warnings.
+does not have are reported as warnings. A failure while replacing the local files
+marks the retrieve unfinished: `deploy`, `diff` and `writeback` then refuse the
+output until a new `retrieve` or a full `assemble`.
 Each retrieve records which pages in `flexipages/` are org state (all of them, or
 just the `--name` page) in `retrieve_scope.json`; an `assemble --name` of one of them
 removes it from that list. `diff` and `writeback` refuse to read any other page as

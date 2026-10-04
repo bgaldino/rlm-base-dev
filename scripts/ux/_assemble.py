@@ -173,16 +173,22 @@ def read_org_state(output_path: Path) -> Optional[Set[str]]:
     if not scope_file.exists():
         return None
     data = json.loads(scope_file.read_text(encoding="utf-8"))
+    if data.get("incomplete"):
+        raise UxOptionError(
+            f"The last retrieve into {output_path} did not finish, so its flexipages are "
+            "a mix of org state and earlier files. Retrieve again, or assemble to discard them."
+        )
     names = data.get("org_state")
     if names is None:  # written by an older version: one scoped page
         names = [data["name"]] if data.get("name") else []
     return set(names)
 
 
-def write_org_state(output_path: Path, names: Iterable[str]) -> None:
-    (Path(output_path) / RETRIEVE_SCOPE_NAME).write_text(
-        json.dumps({"org_state": sorted(names)}), encoding="utf-8"
-    )
+def write_org_state(output_path: Path, names: Iterable[str], incomplete: bool = False) -> None:
+    data: Dict[str, Any] = {"org_state": sorted(names)}
+    if incomplete:
+        data["incomplete"] = True
+    (Path(output_path) / RETRIEVE_SCOPE_NAME).write_text(json.dumps(data), encoding="utf-8")
 
 
 def deploy_sources(output_path: Path, manifest: Dict[str, Any]) -> Optional[List[Path]]:
@@ -301,7 +307,10 @@ class UxAssembler:
                 if not metadata_name:
                     (output_path / RETRIEVE_SCOPE_NAME).unlink(missing_ok=True)
                 elif items:
-                    org_state = read_org_state(output_path)
+                    try:
+                        org_state = read_org_state(output_path)
+                    except UxOptionError:
+                        org_state = None  # an unfinished retrieve stays unfinished
                     if org_state is not None:
                         write_org_state(output_path, org_state - {metadata_name})
                 manifest["assembled"].extend(items)

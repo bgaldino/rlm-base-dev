@@ -72,6 +72,9 @@ def retrieve(
         # failed retrieve leaves the existing files in place.
         _sf_retrieve(ctx, target_org, api_names, Path(tmp))
         dest_dir.mkdir(parents=True, exist_ok=True)
+        # Until the copy below finishes, the directory is neither the old
+        # files nor the org's: deploy, diff and writeback must refuse it.
+        write_org_state(output_path, pages, incomplete=True)
 
         # Clear what this retrieve replaces (every page, or just the requested
         # one), so a page the org lacks cannot survive as a stale copy.

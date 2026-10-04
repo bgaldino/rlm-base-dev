@@ -1229,3 +1229,30 @@ def test_org_commands_need_a_retrieve(tmp_path):
     assert ux_tool.main(["assemble", *out]) == 0
     for cmd in (["diff"], ["diff", "--name", QUOTE_PAGE], ["writeback"], ["writeback", "--apply"], ["apply-drift"]):
         assert ux_tool.main([*cmd, *out]) == ux_tool.EXIT_ERROR, cmd
+
+
+def test_interrupted_retrieve_leaves_output_unusable(monkeypatch, tmp_path):
+    """A retrieve that fails while replacing the files leaves a mixed directory,
+    which neither deploy nor the drift commands may trust."""
+    from scripts.ux import _retrieve
+
+    fake = FakeSf(_retrieve_payload(), on_call=_write_retrieved(["RLM_Quote_Record_Page"]))
+    monkeypatch.setattr(_sf.subprocess, "run", fake)
+    out = ["--output-path", str(tmp_path)]
+    assert ux_tool.main(["assemble", *out]) == 0
+
+    def fail(*args):
+        raise OSError("disk full")
+    monkeypatch.setattr(_retrieve, "_copy_flexipages", fail)
+    with pytest.raises(OSError):
+        retrieve(_ctx(), "my-scratch", tmp_path)
+    for cmd in (["deploy", "-o", "x"], ["diff"], ["writeback"], ["diff", "--name", QUOTE_PAGE]):
+        assert ux_tool.main([*cmd, *out]) == ux_tool.EXIT_ERROR, cmd
+    assert len(fake.calls) == 1, "deploy must not run"
+
+    # A --name assemble keeps it unfinished; a full one discards it.
+    assert ux_tool.main(["assemble", "--name", QUOTE_PAGE, *out]) == 0
+    assert ux_tool.main(["diff", "--name", QUOTE_PAGE, *out]) == ux_tool.EXIT_ERROR
+    monkeypatch.setattr(_sf.subprocess, "run", FakeSf({"status": 0, "result": {"status": "Succeeded"}}))
+    assert ux_tool.main(["assemble", *out]) == 0
+    assert ux_tool.main(["deploy", "-o", "x", *out]) == 0
