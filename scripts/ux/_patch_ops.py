@@ -245,20 +245,23 @@ def reverse_insert_action(root: ET.Element, patch: Patch, template_root: Optiona
 
     FAILED when several lists hold the actions, or when an inserted action the
     template lacks survives in another list (the org moved it), since writing
-    the page back would then bake it into the template.
+    the page back would then bake it into the template. Surviving copies are
+    counted, not just named: the template owning an action in one list does
+    not account for a second copy the org added elsewhere.
     """
     anchor = patch.get("after")
     names = {_action_name(a) for a in patch.get("actions", [])} - {""}
-    owned: Set[str] = set()
+    owned: Counter = Counter()
     if template_root is not None:
-        owned = set(_all_values(template_root, "actionNames"))
+        owned = Counter(_all_values(template_root, "actionNames"))
         t_list, _ = _insert_action_list(template_root, anchor, ())
-        names -= set(list_values(t_list)) if t_list is not None else owned
+        names -= set(list_values(t_list)) if t_list is not None else set(owned)
     vlist, ambiguous = _insert_action_list(root, anchor, names)
     if ambiguous:
         return FAILED
     removed = vlist is not None and remove_values(vlist, names)
-    if (names - owned) & set(_all_values(root, "actionNames")):
+    left = Counter(v for v in _all_values(root, "actionNames") if v in names)
+    if any(count > owned[name] for name, count in left.items()):
         return FAILED
     return _found(removed)
 

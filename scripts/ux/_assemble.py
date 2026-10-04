@@ -221,11 +221,15 @@ class UxAssembler:
             "profiles":   output_path / "profiles",
             "objects":    output_path / "objects",
         }
+        # Single-item mode removes only that file, keeping its content in case
+        # the item turns out to be unavailable and the run is rolled back.
+        stale: Optional[Path] = None
+        stale_content: Optional[bytes] = None
         if metadata_name:
-            # Single-item mode: only remove that one file if it exists
             if metadata_type in type_subdirs:
                 stale = type_subdirs[metadata_type] / metadata_name
                 if stale.exists():
+                    stale_content = stale.read_bytes()
                     stale.unlink()
         else:
             # Full or type-scoped assembly: remove the relevant subdirectory contents
@@ -291,8 +295,10 @@ class UxAssembler:
                 raise UxOptionError(f"'{metadata_name}' not found in templates.")
         except UxOptionError:
             if metadata_name and not manifest["assembled"]:
-                # An unknown name wrote nothing, so the previous manifest still
-                # describes the output.
+                # An unknown or unavailable name wrote nothing: put back the file
+                # it cleared, and the previous manifest still describes the output.
+                if stale_content is not None:
+                    stale.write_bytes(stale_content)
                 if previous:
                     manifest_path.write_text(json.dumps(previous, indent=2, ensure_ascii=False), encoding="utf-8")
                 else:

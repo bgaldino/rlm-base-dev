@@ -805,6 +805,14 @@ def test_reverse_insert_action_keeps_template_actions_and_targets_anchor_list():
     )
     assert reverse_insert_action(moved, {"after": "Anchor", "actions": ["New"]}, template) == FAILED
 
+    # The org copied the patch-added A into a third list. The template owns
+    # one A, but two survive the reversal, so one is the patch's.
+    duplicated = ET.fromstring(
+        f'<FlexiPage xmlns="{ns}"><a>{action_list("Other", "A")}</a>'
+        f'<b>{action_list("Anchor", "A", "B")}</b><c>{action_list("A")}</c></FlexiPage>'
+    )
+    assert reverse_insert_action(duplicated, patch, template) == FAILED
+
 
 NS = "http://soap.sforce.com/2006/04/metadata"
 
@@ -1097,3 +1105,19 @@ def test_tracked_post_ux_manifest_is_a_deployable_full_assembly():
 
     out = REPO_ROOT / "unpackaged" / "post_ux"
     assert deploy_sources(out, read_manifest(out / ux_tool.MANIFEST_NAME)) is None
+
+
+def test_rejected_single_item_assemble_restores_the_file_it_cleared(tmp_path):
+    """An item the flags do not produce fails, and the earlier output stays
+    whole, so the restored manifest does not vouch for a missing file."""
+    app = REPO_ROOT / "templates/applications/conditional/billing/standard__BillingConsole.app-meta.xml"
+    out = ["--output-path", str(tmp_path)]
+    assert ux_tool.main(["assemble", *out]) == 0
+    output_file = tmp_path / "applications" / app.name
+    before = output_file.read_bytes()
+    manifest = (tmp_path / "assembly_manifest.json").read_text()
+
+    rc = ux_tool.main(["assemble", "--name", app.name, "--flag", "billing=false", "--flag", "billing_ui=false", *out])
+    assert rc == ux_tool.EXIT_ERROR
+    assert output_file.read_bytes() == before
+    assert (tmp_path / "assembly_manifest.json").read_text() == manifest
