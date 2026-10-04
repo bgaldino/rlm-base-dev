@@ -473,6 +473,18 @@ def test_validate_selection_rejects_paths(name):
         validate_selection("flexipages", name, ("flexipages",))
 
 
+def test_cli_deploy_refuses_partial_manifest(monkeypatch, tmp_path):
+    """Partial output mixes flag sets, so deploying all of it must be refused."""
+    fake = FakeSf({"status": 0, "result": {"status": "Succeeded"}})
+    monkeypatch.setattr(_sf.subprocess, "run", fake)
+    (tmp_path / "assembly_manifest.json").write_text(json.dumps({"partial": True}))
+
+    assert ux_tool.main(["deploy", "--output-path", str(tmp_path), "-o", "x"]) == ux_tool.EXIT_ERROR
+    assert not fake.calls
+    (tmp_path / "assembly_manifest.json").write_text(json.dumps({"feature_flags": {}}))
+    assert ux_tool.main(["deploy", "--output-path", str(tmp_path), "-o", "x"]) == 0
+
+
 def test_deploy_needs_target_and_directory(tmp_path):
     with pytest.raises(UxOptionError):
         deploy(tmp_path, "")

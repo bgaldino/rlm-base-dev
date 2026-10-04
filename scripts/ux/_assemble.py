@@ -147,7 +147,7 @@ def validate_selection(
     return metadata_type
 
 
-def _read_manifest(path: Path) -> Dict[str, Any]:
+def read_manifest(path: Path) -> Dict[str, Any]:
     """A previous assembly manifest, or {} when it is missing or unreadable."""
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -266,7 +266,7 @@ class UxAssembler:
         if metadata_name or metadata_type not in ("all", "flexipages"):
             # The flexipages in the output keep the previous run's flags. Unless
             # those match, the drift commands must not trust this manifest.
-            previous = _read_manifest(manifest_path)
+            previous = read_manifest(manifest_path)
             if previous.get("partial") or previous.get("feature_flags") != features:
                 manifest["partial"] = True
         manifest_path.parent.mkdir(parents=True, exist_ok=True)

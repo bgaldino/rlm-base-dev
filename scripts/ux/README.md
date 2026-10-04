@@ -96,7 +96,8 @@ rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
   A page in the org but not in the active templates is saved as a new base
   template, unless an inactive standalone feature owns it: that is a flag
   mismatch, and writeback aborts the same way.
-- `deploy` treats `SucceededPartial` as a failure.
+- `deploy` treats `SucceededPartial` as a failure, and refuses output whose
+  manifest is partial (a `--type`/`--name` assemble under other flags).
 - `writeback --apply` rewrites a patch file only when the org changed what the
   patch produces, but that rewrite drops the file's YAML comments. Restore any
   rationale comments from `git diff` before committing.

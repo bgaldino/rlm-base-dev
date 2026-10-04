@@ -43,8 +43,8 @@ from typing import List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.ux._assemble import UxAssembler, VALID_TYPES  # noqa: E402
-from scripts.ux._context import UxContext, UxError  # noqa: E402
+from scripts.ux._assemble import UxAssembler, VALID_TYPES, read_manifest  # noqa: E402
+from scripts.ux._context import UxContext, UxError, UxOptionError  # noqa: E402
 from scripts.ux._deploy import deploy  # noqa: E402
 from scripts.ux._diff import diff, drift_count  # noqa: E402
 from scripts.ux._flags import parse_flag_overrides, resolve_features  # noqa: E402
@@ -187,6 +187,12 @@ def _run(args, logger: logging.Logger) -> int:
         return 0
 
     if args.command == "deploy":
+        if read_manifest(output_path / MANIFEST_NAME).get("partial"):
+            # A filtered assemble under other flags left pages from both runs.
+            raise UxOptionError(
+                f"{output_path} mixes output assembled with different flags (partial "
+                "manifest). Run a full assemble before deploying."
+            )
         deploy(output_path, args.target_org, logger, cwd=ctx.repo_root)
         return 0
 
