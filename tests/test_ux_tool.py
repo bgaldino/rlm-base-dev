@@ -96,7 +96,7 @@ def test_resolve_features_precedence(tmp_path):
     name = UX_KNOWN_FLAGS[0]
     defaults, _ = resolve_features(REPO_ROOT)
     manifest = tmp_path / "assembly_manifest.json"
-    manifest.write_text(json.dumps({"feature_flags": {name: not defaults[name], "bogus": True}}))
+    manifest.write_text(json.dumps({"feature_flags": {**defaults, name: not defaults[name], "bogus": True}}))
 
     from_manifest, _ = resolve_features(REPO_ROOT, manifest_path=manifest)
     assert from_manifest[name] is (not defaults[name])
@@ -130,7 +130,7 @@ def test_org_commands_default_to_manifest_flags(tmp_path):
     assert _features_for(["diff", *out])[name] is defaults[name], "no manifest: cumulusci.yml"
 
     (tmp_path / "assembly_manifest.json").write_text(
-        json.dumps({"feature_flags": {name: not defaults[name]}})
+        json.dumps({"feature_flags": {**defaults, name: not defaults[name]}})
     )
     for command in sorted(ux_tool.MANIFEST_COMMANDS):
         extra = ["--target-org", "x"] if command in ("retrieve", "capture-drift") else []
@@ -147,6 +147,19 @@ def test_corrupt_manifest_exits_with_error(tmp_path, content):
     (tmp_path / "flexipages").mkdir()
     (tmp_path / "assembly_manifest.json").write_text(content)
     assert ux_tool.main(["diff", "--output-path", str(tmp_path)]) == ux_tool.EXIT_ERROR
+
+
+def test_manifest_missing_a_known_flag_is_rejected(tmp_path):
+    """A missing flag must not silently take its cumulusci.yml default."""
+    defaults, _ = resolve_features(REPO_ROOT)
+    name = UX_KNOWN_FLAGS[0]
+    manifest = tmp_path / "assembly_manifest.json"
+    manifest.write_text(json.dumps({"feature_flags": {k: v for k, v in defaults.items() if k != name}}))
+
+    with pytest.raises(UxOptionError, match=name):
+        resolve_features(REPO_ROOT, manifest_path=manifest)
+    features, _ = resolve_features(REPO_ROOT, {name: False}, manifest_path=manifest)
+    assert features[name] is False
 
 
 def test_partial_assemble_with_other_flags_marks_manifest_partial(tmp_path):
@@ -868,24 +881,24 @@ def test_add_component_refresh_carries_org_properties():
     assert refresh_patch(patch, PagePair(edited, edited, "", ""))["properties"] == {"maxRecords": "10"}
 
 
-def test_add_component_moved_to_another_region_fails_reverse():
-    from scripts.ux._patch_ops import ABSENT, FAILED, reverse_patch
+def test_add_component_moved_or_duplicated_fails_reverse():
+    from scripts.ux._patch_ops import ABSENT, FAILED, REMOVED, reverse_patch
 
-    def page(region):
+    item = ("<itemInstances><componentInstance><componentName>c:x</componentName>"
+            "<identifier>c_x</identifier></componentInstance></itemInstances>")
+
+    def page(in_r=0, in_s=0):
         return ET.fromstring(
-            f'<FlexiPage xmlns="{NS}"><flexiPageRegions>'
-            + ("<itemInstances><componentInstance><componentName>c:x</componentName>"
-               "<identifier>c_x</identifier></componentInstance></itemInstances>" if region == "r" else "")
-            + "<name>r</name></flexiPageRegions><flexiPageRegions>"
-            + ("<itemInstances><componentInstance><componentName>c:x</componentName>"
-               "<identifier>c_x</identifier></componentInstance></itemInstances>" if region == "s" else "")
-            + "<name>s</name></flexiPageRegions></FlexiPage>"
+            f'<FlexiPage xmlns="{NS}"><flexiPageRegions>{item * in_r}<name>r</name></flexiPageRegions>'
+            f"<flexiPageRegions>{item * in_s}<name>s</name></flexiPageRegions></FlexiPage>"
         )
 
     patch = {"type": "add_component", "region": "r", "component": "c:x", "identifier": "c_x"}
-    template = page(None)
-    assert reverse_patch(page("s"), patch, template, None) == FAILED
-    assert reverse_patch(page(None), patch, template, None) == ABSENT
+    template = page()
+    assert reverse_patch(page(in_s=1), patch, template, None) == FAILED  # moved
+    assert reverse_patch(page(in_r=2), patch, template, None) == FAILED  # duplicated in place
+    assert reverse_patch(page(in_r=1), patch, template, None) == REMOVED
+    assert reverse_patch(page(), patch, template, None) == ABSENT
 
 
 def test_moved_or_duplicated_fields_fail_reverse():

@@ -202,9 +202,20 @@ def resolve_features(
     """Resolve UX flags: cumulusci.yml defaults, then the manifest, then overrides."""
     custom, api_version = load_project_config(repo_root)
     features = features_from_custom(custom)
+    overrides = dict(overrides or {})
     if manifest_path is not None:
-        features.update(flags_from_manifest(manifest_path))
-    features.update(overrides or {})
+        recorded = flags_from_manifest(manifest_path)
+        # An assembly records every known flag. A missing one (an older
+        # manifest, or a flag added since) must not fall back to the
+        # cumulusci.yml default, which may not be what the org has deployed.
+        missing = [f for f in UX_KNOWN_FLAGS if f not in recorded and f not in overrides]
+        if missing:
+            raise UxOptionError(
+                f"Assembly manifest {manifest_path} has no value for: {', '.join(missing)}. "
+                "Run a full assemble, or pass them with --flag."
+            )
+        features.update(recorded)
+    features.update(overrides)
     return features, api_version
 
 

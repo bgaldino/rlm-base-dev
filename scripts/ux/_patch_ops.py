@@ -647,22 +647,25 @@ def _reverse_add_component(root, patch, template_root, logger) -> str:
     if not identifier:
         return REMOVED
     region_name = patch.get("region")
+    removed = False
     for region in findall_elem(root, "flexiPageRegions"):
         if region_name and child_text(region, "name") != region_name:
             continue
-        for item in findall_elem(region, "itemInstances"):
-            if _component_item(item, identifier):
-                region.remove(item)
-                return REMOVED
-    # Moved to another region in the org: writing the page back would put it
-    # in the template while the patch adds it again in its own region.
-    def holds(tree):
-        return tree is not None and any(
-            _component_item(item, identifier) for item in tree.iter(f"{SF_NS_TAG}itemInstances")
-        )
-    if holds(root) and not holds(template_root):
+        item = next((i for i in findall_elem(region, "itemInstances") if _component_item(i, identifier)), None)
+        if item is not None:
+            region.remove(item)
+            removed = True
+            break
+    # The patch adds one copy. Any more than the template has (the org moved
+    # it to another region, or duplicated it) would be written into the
+    # template while the patch adds it again.
+    def copies(tree):
+        if tree is None:
+            return 0
+        return sum(1 for item in tree.iter(f"{SF_NS_TAG}itemInstances") if _component_item(item, identifier))
+    if copies(root) > copies(template_root):
         return FAILED
-    return ABSENT
+    return _found(removed)
 
 
 def _refresh_add_component(patch: Patch, page: PagePair) -> Optional[Patch]:
