@@ -47,7 +47,8 @@ def deploy(
     deploy_result = output.get("result", {}) or {}
     deploy_status = deploy_result.get("status", "Unknown")
 
-    if status != 0 or deploy_status not in ("Succeeded", "SucceededPartial"):
+    # SucceededPartial means some components failed: treat it as a failure.
+    if status != 0 or deploy_status != "Succeeded":
         # Surface CLI-level errors (e.g. MissingPackageDirectoryError) that
         # occur before a deploy job is created — result will be empty.
         cli_message = cli_error(output)

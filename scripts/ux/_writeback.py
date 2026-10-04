@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from scripts.ux._assemble import validate_selection
-from scripts.ux._context import UxContext, UxOptionError
+from scripts.ux._context import UxContext, UxError, UxOptionError
 from scripts.ux._diff import org_flexipage_files
 from scripts.ux._flags import (
     FLEXIPAGE_SUFFIX,
@@ -72,7 +72,11 @@ def writeback(
             raise UxOptionError(f"'{metadata_name}' not found in {org_dir}.")
         org_files = [metadata_name]
 
+    # Reverse every page before writing any, so a failed reversal leaves
+    # templates and patch files untouched.
     results = []
+    pending: List[Tuple[ET.Element, Path]] = []
+    failures: List[str] = []
     for fname in org_files:
         source = page_sources.get(fname)
         if source is None:
@@ -80,16 +84,28 @@ def writeback(
                 f"  [new page]  {fname} — exists in org but not in "
                 "templates. Saving as new base template."
             )
-            if apply:
-                write_xml(ET.parse(str(org_dir / fname)).getroot(), base_dir / fname)
+            pending.append((ET.parse(str(org_dir / fname)).getroot(), base_dir / fname))
             results.append({"file": fname, "written": apply, "new": True})
             continue
-        results.append(_writeback_page(
+        result, root, failed = _writeback_page(
             ctx, fname, org_dir, source, patches_dir, apply,
             standalone=standalone_dir in source.parents,
-        ))
+        )
+        results.append(result)
+        pending.append((root, source))
+        failures += [f"{fname}: {f}" for f in failed]
+
+    if failures:
+        raise UxError(
+            f"Write-back aborted: {len(failures)} patch(es) could not be reversed, "
+            "so no template or patch file was changed. Writing the page anyway "
+            "would bake feature content into its template:\n  "
+            + "\n  ".join(failures)
+        )
 
     if apply:
+        for root, path in pending:
+            write_xml(root, path)
         logger.info("\nUpdating patch files...")
         for fname in org_files:
             source = page_sources.get(fname)
@@ -112,9 +128,13 @@ def _writeback_page(
     patches_dir: Path,
     apply: bool,
     standalone: bool,
-) -> Dict[str, Any]:
-    """Reverse the active patches out of the org page and write it over ``source``,
-    the page's template (a base page or an active standalone override)."""
+) -> Tuple[Dict[str, Any], ET.Element, List[str]]:
+    """Reverse the active patches out of the org page, the new content for
+    ``source`` (a base page or an active standalone override).
+
+    Return the page result, the reversed page, and a description of each patch
+    that could not be reversed. Nothing is written here.
+    """
     logger = ctx.logger
     kind = "standalone" if standalone else "base"
     root = ET.parse(str(org_dir / fname)).getroot()
@@ -129,6 +149,7 @@ def _writeback_page(
 
     # Last-applied patch is reversed first.
     reversed_count = absent_count = 0
+    failed: List[str] = []
     for feature, patch in reversed(patches):
         result = reverse_patch(root, patch, template_root, logger)
         if result == REMOVED:
@@ -138,7 +159,8 @@ def _writeback_page(
             absent_count += 1
             logger.info(f"    skipped {patch.get('type')} from {feature} (already absent)")
         else:
-            logger.warning(
+            failed.append(f"{feature}: {describe_patch(patch)}")
+            logger.error(
                 f"    FAILED to reverse {patch.get('type')} from "
                 f"{feature} — element not found in org XML"
             )
@@ -149,16 +171,13 @@ def _writeback_page(
         + (f" ({absent_count} already absent)" if absent_count else "")
     )
 
-    if apply:
-        write_xml(root, source)
-
     return {
         "file": fname,
         "written": apply,
         "patches_reversed": reversed_count,
         "patches_total": len(patches),
         "standalone": standalone,
-    }
+    }, root, failed
 
 
 def _refresh_patch_files(

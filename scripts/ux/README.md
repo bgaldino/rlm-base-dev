@@ -82,6 +82,9 @@ rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
 - `writeback` is a **dry run** unless `--apply` is given. It keeps no backup
   copies: review with `git diff templates/` and revert with git.
 - Never hand-edit `unpackaged/post_ux/`; change `templates/` and reassemble.
+- `writeback` is all-or-nothing: if any active patch cannot be reversed out of
+  the org page, it exits with an error before changing any template or patch file.
+- `deploy` treats `SucceededPartial` as a failure.
 - `writeback --apply` rewrites a patch file only when the org changed what the
   patch produces, but that rewrite drops the file's YAML comments. Restore any
   rationale comments from `git diff` before committing.

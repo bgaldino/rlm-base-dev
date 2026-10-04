@@ -327,6 +327,14 @@ def test_deploy_reports_component_failures(monkeypatch, tmp_path):
         deploy(tmp_path, "my-scratch")
 
 
+def test_deploy_partial_success_is_a_failure(monkeypatch, tmp_path):
+    payload = {"status": 0, "result": {"status": "SucceededPartial", "numberComponentsDeployed": 2}}
+    monkeypatch.setattr(_sf.subprocess, "run", FakeSf(payload))
+
+    with pytest.raises(UxError, match="SucceededPartial"):
+        deploy(tmp_path, "my-scratch")
+
+
 def test_deploy_reports_cli_error(monkeypatch, tmp_path):
     payload = {"status": 1, "name": "MissingPackageDirectoryError", "message": "not in project"}
     monkeypatch.setattr(_sf.subprocess, "run", FakeSf(payload))
@@ -412,6 +420,26 @@ def test_writeback_dry_run_changes_nothing(repo_copy):
     root, out = repo_copy
     before = _snapshot(root)
     assert ux_tool.main(["writeback", "--repo-root", str(root), "--output-path", str(out)]) == 0
+    assert _snapshot(root) == before
+
+
+def test_writeback_aborts_without_writing_when_a_reversal_fails(repo_copy, monkeypatch):
+    """A failed reversal must not write a page that still holds feature content,
+    nor touch any other page or patch file."""
+    from scripts.ux import _patch_ops, _writeback
+
+    root, out = repo_copy
+    page = out / "flexipages" / QUOTE_PAGE
+    page.write_text(PERSONA_RULE.sub("", page.read_text(), count=1))  # real drift to write back
+    before = _snapshot(root)
+
+    def reverse(root_, patch, template_root, logger):
+        if patch.get("type") == "insert_action":
+            return _patch_ops.FAILED
+        return _patch_ops.reverse_patch(root_, patch, template_root, logger)
+
+    monkeypatch.setattr(_writeback, "reverse_patch", reverse)
+    assert _apply_drift(root, out) == ux_tool.EXIT_ERROR
     assert _snapshot(root) == before
 
 
