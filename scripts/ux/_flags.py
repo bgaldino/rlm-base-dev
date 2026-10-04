@@ -178,7 +178,11 @@ def flags_from_manifest(manifest_path: Path) -> Dict[str, bool]:
         data = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise UxOptionError(f"Assembly manifest is not valid JSON: {path} ({exc})") from exc
+    if not isinstance(data, dict):
+        raise UxOptionError(f"Assembly manifest is not a JSON object: {path}")
     recorded = data.get("feature_flags") or {}
+    if not isinstance(recorded, dict):
+        raise UxOptionError(f"Assembly manifest feature_flags is not an object: {path}")
     return {k: to_bool(v) for k, v in recorded.items() if k in UX_KNOWN_FLAGS}
 
 

@@ -137,9 +137,10 @@ def test_org_commands_default_to_manifest_flags(tmp_path):
     assert _features_for(["assemble", *out])[name] is defaults[name], "assemble ignores the manifest"
 
 
-def test_corrupt_manifest_exits_with_error(tmp_path):
+@pytest.mark.parametrize("content", ["{not json", "[]", '{"feature_flags": true}'])
+def test_corrupt_manifest_exits_with_error(tmp_path, content):
     (tmp_path / "flexipages").mkdir()
-    (tmp_path / "assembly_manifest.json").write_text("{not json")
+    (tmp_path / "assembly_manifest.json").write_text(content)
     assert ux_tool.main(["diff", "--output-path", str(tmp_path)]) == ux_tool.EXIT_ERROR
 
 
