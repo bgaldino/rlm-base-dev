@@ -899,6 +899,8 @@ def test_add_component_moved_or_duplicated_fails_reverse():
     assert reverse_patch(page(in_r=2), patch, template, None) == FAILED  # duplicated in place
     assert reverse_patch(page(in_r=1), patch, template, None) == REMOVED
     assert reverse_patch(page(), patch, template, None) == ABSENT
+    renamed = ET.fromstring(ET.tostring(page(in_r=1)).replace(b"c_x", b"c_renamed"))
+    assert reverse_patch(renamed, patch, template, None) == FAILED  # identifier renamed
 
 
 def test_moved_or_duplicated_fields_fail_reverse():

@@ -665,6 +665,18 @@ def _reverse_add_component(root, patch, template_root, logger) -> str:
         return sum(1 for item in tree.iter(f"{SF_NS_TAG}itemInstances") if _component_item(item, identifier))
     if copies(root) > copies(template_root):
         return FAILED
+    # Not found by identifier: an extra component of the patch's type means the
+    # org renamed it rather than removed it.
+    if not removed:
+        def of_type(tree):
+            if tree is None:
+                return 0
+            return sum(
+                1 for ci in tree.iter(f"{SF_NS_TAG}componentInstance")
+                if child_text(ci, "componentName") == patch.get("component")
+            )
+        if of_type(root) > of_type(template_root):
+            return FAILED
     return _found(removed)
 
 
