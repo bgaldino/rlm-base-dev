@@ -426,7 +426,19 @@ def _reverse_add_sales_txn_line_editor_field(root, patch, template_root, logger)
         keep = set(list_values(t_vlist)) if t_vlist is not None else set()
     fields = set(_patch_field_values(patch)) - keep
     vlist = component_value_list(root, *target)
-    return _found(bool(fields) and vlist is not None and remove_values(vlist, fields))
+    removed = bool(fields) and vlist is not None and remove_values(vlist, fields)
+    # Copies beyond the template's, in any other component or property list,
+    # were moved or duplicated from the patch; writing back would bake them in.
+    left = Counter(v for v in _every_list_value(root) if v in fields)
+    owned = Counter(_every_list_value(template_root)) if template_root is not None else Counter()
+    if any(count > owned[field] for field, count in left.items()):
+        return FAILED
+    return _found(removed)
+
+
+def _every_list_value(root: ET.Element) -> List[str]:
+    """Every valueList value on the page, whatever property holds it."""
+    return [item_value(item) for vlist in root.iter(f"{SF_NS_TAG}valueList") for item in value_items(vlist)]
 
 
 def _describe_add_sales_txn_line_editor_field(patch: Patch) -> str:

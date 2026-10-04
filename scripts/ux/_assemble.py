@@ -251,11 +251,13 @@ class UxAssembler:
 
         try:
             if should_run("flexipages"):
-                # Assembled flexipages replace any retrieved org state.
-                (output_path / RETRIEVE_SCOPE_NAME).unlink(missing_ok=True)
                 items, skipped = self._assemble_flexipages(
                     templates_path, output_path, features, metadata_name
                 )
+                if not metadata_name:
+                    # Every flexipage is now assembled, so none is scoped org
+                    # state. A --name run rewrites one page and leaves the scope.
+                    (output_path / RETRIEVE_SCOPE_NAME).unlink(missing_ok=True)
                 manifest["assembled"].extend(items)
                 manifest["skipped"].extend(skipped)
 

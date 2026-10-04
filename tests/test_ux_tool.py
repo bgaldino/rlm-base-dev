@@ -398,6 +398,9 @@ def test_scoped_retrieve_limits_what_counts_as_org_state(monkeypatch, org_state)
     assert retrieve(_ctx(), "my-scratch", org_state) == 1
     assert org_flexipage_files(org_state)
     assert retrieve(_ctx(), "my-scratch", org_state, QUOTE_PAGE) == 1
+    # Reassembling one page leaves the rest of the directory as it was.
+    assert ux_tool.main(["assemble", "--name", QUOTE_PAGE, *out]) == 0
+    assert ux_tool.main(["diff", *out]) == ux_tool.EXIT_ERROR
     assert ux_tool.main(["assemble", "--type", "flexipages", *out]) == 0
     assert ux_tool.main(["diff", *out]) == 0
 
@@ -1121,3 +1124,28 @@ def test_rejected_single_item_assemble_restores_the_file_it_cleared(tmp_path):
     assert rc == ux_tool.EXIT_ERROR
     assert output_file.read_bytes() == before
     assert (tmp_path / "assembly_manifest.json").read_text() == manifest
+
+
+def test_line_editor_field_moved_or_duplicated_fails_reverse():
+    from scripts.ux._patch_ops import ABSENT, FAILED, REMOVED, reverse_patch
+    from scripts.ux._flags import SALES_TXN_LINE_EDITOR_IDENTIFIER as EDITOR
+
+    def page(editor, other):
+        def comp(identifier, values):
+            items = "".join(f"<valueListItems><value>{v}</value></valueListItems>" for v in values)
+            return (
+                f"<itemInstances><componentInstance><identifier>{identifier}</identifier>"
+                "<componentInstanceProperties><name>displayFields</name>"
+                f"<valueList>{items}</valueList></componentInstanceProperties>"
+                "</componentInstance></itemInstances>"
+            )
+        return ET.fromstring(f'<FlexiPage xmlns="{NS}">{comp(EDITOR, editor)}{comp("other", other)}</FlexiPage>')
+
+    log = logging.getLogger("test_ux")
+    patch = {"type": "add_sales_txn_line_editor_field", "field": "New__c"}
+    template = page(["Name"], ["Name"])
+    assert reverse_patch(page(["Name", "New__c"], ["Name"]), patch, template, log) == REMOVED
+    assert reverse_patch(page(["Name"], ["Name"]), patch, template, log) == ABSENT
+    # Moved out of the editor, or copied into another component: it survives.
+    assert reverse_patch(page(["Name"], ["Name", "New__c"]), patch, template, log) == FAILED
+    assert reverse_patch(page(["Name", "New__c"], ["New__c"]), patch, template, log) == FAILED

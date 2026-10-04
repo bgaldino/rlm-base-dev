@@ -64,7 +64,7 @@ assembler would deploy for the resolved flags (base pages plus active standalone
 overrides). A failed retrieve leaves the existing files untouched; pages the org
 does not have are reported as warnings.
 With `--name`, only that page in `flexipages/` is org state, so until a full
-`retrieve` (or an `assemble` that rewrites the flexipages), `diff` and `writeback`
+`retrieve` (or an `assemble` of every flexipage, without `--name`), `diff` and `writeback`
 refuse any other page, and refuse to run without the same `--name`.
 
 ## Feature flags
