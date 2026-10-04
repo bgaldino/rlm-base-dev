@@ -149,6 +149,20 @@ def test_corrupt_manifest_exits_with_error(tmp_path, content):
     assert ux_tool.main(["diff", "--output-path", str(tmp_path)]) == ux_tool.EXIT_ERROR
 
 
+@pytest.mark.parametrize("value", ["treu", None, 2, [], "yes"])
+def test_manifest_flag_values_must_be_boolean(tmp_path, value):
+    """An unrecognized value must not silently read as false."""
+    defaults, _ = resolve_features(REPO_ROOT)
+    name = UX_KNOWN_FLAGS[0]
+    manifest = tmp_path / "assembly_manifest.json"
+    manifest.write_text(json.dumps({"feature_flags": {**defaults, name: value}}))
+    if value == "yes":
+        assert resolve_features(REPO_ROOT, manifest_path=manifest)[0][name] is True
+        return
+    with pytest.raises(UxOptionError, match=name):
+        resolve_features(REPO_ROOT, manifest_path=manifest)
+
+
 def test_manifest_missing_a_known_flag_is_rejected(tmp_path):
     """A missing flag must not silently take its cumulusci.yml default."""
     defaults, _ = resolve_features(REPO_ROOT)
@@ -919,6 +933,11 @@ def test_moved_or_duplicated_fields_fail_reverse():
     template = display_page(["A"], ["B"])
     assert reverse_patch(display_page(["A", "F"], ["B"]), patch, template, None) == REMOVED
     assert reverse_patch(display_page(["A"], ["B", "F"]), patch, template, None) == FAILED
+    # The template has F only in a later list, so the forward patch still adds
+    # it to the first list: that copy is the patch's.
+    template = display_page(["A"], ["B", "F"])
+    assert reverse_patch(display_page(["A", "F"], ["B", "F"]), patch, template, None) == REMOVED
+    assert reverse_patch(display_page(["A", "F"], ["B", "F", "F"]), patch, template, None) == FAILED
 
     def facet_page(*regions):
         return ET.fromstring(

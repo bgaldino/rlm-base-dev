@@ -74,7 +74,8 @@ Where a command's flags start depends on what it compares:
   by the last assembly, so an org built with runtime overrides is compared against
   what was really deployed. Without a manifest they fall back to `cumulusci.yml`.
   A manifest missing a known flag (older than the flag) is refused unless
-  `--flag` supplies it, rather than taking the `cumulusci.yml` default.
+  `--flag` supplies it, rather than taking the `cumulusci.yml` default; a
+  non-boolean flag value is refused rather than read as false.
   A `--type` or `--name` assemble with flags that differ from the last full one
   marks the manifest partial, and these commands then refuse it until a full
   `assemble` is run.

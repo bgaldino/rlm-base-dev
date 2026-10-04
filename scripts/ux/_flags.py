@@ -191,7 +191,16 @@ def flags_from_manifest(manifest_path: Path) -> Dict[str, bool]:
     recorded = data["feature_flags"]
     if not isinstance(recorded, dict):
         raise UxOptionError(f"Assembly manifest feature_flags is not an object: {path}")
-    return {k: to_bool(v) for k, v in recorded.items() if k in UX_KNOWN_FLAGS}
+    flags: Dict[str, bool] = {}
+    for name, value in recorded.items():
+        if name not in UX_KNOWN_FLAGS:
+            continue
+        text = value.strip().lower() if isinstance(value, str) else None
+        if not isinstance(value, bool) and text not in _TRUE_VALUES + _FALSE_VALUES:
+            # Coercing an unrecognized value to false could hide a deployed feature.
+            raise UxOptionError(f"Assembly manifest flag {name} is not a boolean ({value!r}): {path}")
+        flags[name] = value if isinstance(value, bool) else text in _TRUE_VALUES
+    return flags
 
 
 def resolve_features(

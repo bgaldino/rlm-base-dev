@@ -350,21 +350,29 @@ def _apply_add_display_field(root: ET.Element, patch: Patch, logger) -> None:
     logger.warning("add_display_field: displayFields valueList not found")
 
 
+def _first_display_fields(root) -> List[str]:
+    vlist = next(value_lists(root, "displayFields"), None) if root is not None else None
+    return list_values(vlist) if vlist is not None else []
+
+
 def _reverse_add_display_field(root, patch, template_root, logger) -> str:
     """Mirrors the forward patch: the first displayFields list only, and never a
-    field the template already has (the forward patch skips those)."""
+    field that list already has in the template (the forward patch skips those)."""
     field = patch.get("field")
-    if not field or (template_root is not None and field in _all_values(template_root, "displayFields")):
+    if not field or field in _first_display_fields(template_root):
         return ABSENT
     vlist = next(value_lists(root, "displayFields"), None)
     removed = vlist is not None and remove_values(vlist, {field})
-    if field in _all_values(root, "displayFields"):
-        return FAILED  # moved to another list; writing back would bake it in
+    # Copies beyond the template's (in other lists) were moved or duplicated
+    # from the patch; writing back would bake them in.
+    template_count = _all_values(template_root, "displayFields").count(field) if template_root is not None else 0
+    if _all_values(root, "displayFields").count(field) > template_count:
+        return FAILED
     return _found(removed)
 
 
 def _refresh_add_display_field(patch: Patch, page: PagePair) -> Optional[Patch]:
-    return patch if patch.get("field", "") in _all_values(page.org_root, "displayFields") else None
+    return patch if patch.get("field", "") in _first_display_fields(page.org_root) else None
 
 
 # ---------------------------------------------------------------------------
