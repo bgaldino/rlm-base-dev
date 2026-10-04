@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**47 flows** across **5 groups**.
+**45 flows** across **5 groups**.
 
 ---
 
@@ -713,31 +713,6 @@ Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manu
 ---
 
 ## UX Personalization
-
-### `apply_ux_drift`
-
-Writes back org-retrieved flexipages into base templates by reverse-applying active feature patches (new_base = org_state - patches), then re-assembles and diffs to verify zero drift. Run capture_ux_drift first to review drift, then run this flow to update templates/ automatically.
-
-**Steps:**
-
-1. **task** `writeback_ux_templates`
-   - `dry_run`: `False`
-2. **task** `assemble_and_deploy_ux`
-   - `deploy`: `False`
-3. **task** `diff_ux_templates`
-
----
-
-### `capture_ux_drift`
-
-Retrieves live flexipages from the target org into unpackaged/post_ux/, then diffs them against what the assembler would produce from current templates/. Reports added, removed, modified, and repositioned flexiPageRegions and writes drift_report.json. Does not modify templates/. After reviewing the report, edit templates/ manually then run assemble_and_deploy_ux to deploy.
-
-**Steps:**
-
-1. **task** `retrieve_ux_from_org`
-2. **task** `diff_ux_templates`
-
----
 
 ### `prepare_ux`
 

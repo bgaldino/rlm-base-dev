@@ -410,8 +410,7 @@ tasks:
 | `rlm_manage_flows.py` | `ManageFlows` | Flow management (activate/deactivate) |
 | `rlm_manage_transaction_processing_types.py` | `ManageTransactionProcessingTypes` | TPT management via Tooling API |
 | `rlm_configure_pricing_recipe_table_mappings.py` | `ConfigurePricingRecipeTableMappings` | PricingRecipeTableMapping ensure/list operations via Tooling API |
-| `rlm_ux_assembly.py` | `AssembleAndDeployUX` | Dynamic UX metadata assembly + deploy |
-| `rlm_ux_utils.py` | *(shared utility — no task class)* | `UX_KNOWN_FLAGS`, `_STANDALONE_ORDER`, `get_ux_feature_flags()`, `resolve_flexipage_sources()` — single source of truth for all UX tasks |
+| `rlm_ux_assembly.py` | `AssembleAndDeployUX` | Thin CCI wrapper over `scripts/ux/` (UX assembly + deploy; drift tooling is `scripts/ux/ux_tool.py`, not a task) |
 | `rlm_stamp_commit.py` | `StampGitCommit` | Git commit stamping into org |
 | `rlm_validate_setup.py` | `ValidateSetup` | Local environment validation |
 | `rlm_robot_e2e.py` | `RunE2ETests` | E2E Robot Framework test runner |
@@ -438,9 +437,6 @@ tasks:
 | `rlm_manage_fulfillment_scope_cnfg.py` | `ManageFulfillmentScopeCnfg` | CustomFulfillmentScopeCnfg CRUD via Tooling API |
 | `rlm_billing.py` | `CreateSequencePolicies` | Create/configure billing sequence policies via Connect API |
 | `rlm_currency.py` | `EnableMultiCurrency`, `SetCorporateCurrency` | Multi-currency enablement and corporate currency setup |
-| `rlm_writeback_ux.py` | `WritebackUXTemplates`, `WritebackFromRetrieve` | Write retrieved UX metadata back to templates |
-| `rlm_retrieve_ux.py` | `RetrieveUXFromOrg` | SOAP-based UX metadata retrieve from org |
-| `rlm_diff_ux.py` | `DiffUXTemplates`, `DiffUXFromRetrieve` | Diff UX templates against org or assembled output |
 | `rlm_enable_timeline.py` | `EnableTimeline` | Enable Timeline for RLM objects |
 | `rlm_modify_context.py` | (legacy) | Context modification helpers |
 | `robot_utils.py` | (utilities) | Robot Framework utility functions |
