@@ -142,7 +142,8 @@ templates/
    *(Canonical order defined in `scripts/ux/_flags._STANDALONE_ORDER`; assembly, retrieve, diff and writeback all use this shared constant)*
 
 **Patch application** (additive, in deploy order):
-`quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → collections → prm_pricing`
+`quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → large_stx → collections → personas → prm_pricing`
+*(Canonical order defined in `scripts/ux/_flags.FLEXIPAGE_PATCH_ORDER`)*
 
 **Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
 (platform restriction). During assembly, these pages are skipped, each skip is logged as a
