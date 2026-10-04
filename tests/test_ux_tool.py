@@ -139,7 +139,7 @@ def test_org_commands_default_to_manifest_flags(tmp_path):
 
 @pytest.mark.parametrize("content", [
     "{not json", "[]", '{"feature_flags": true}', '{"feature_flags": []}',
-    '{"feature_flags": false}', '{"feature_flags": null}', '{"partial": true}',
+    '{"feature_flags": false}', '{"feature_flags": null}', '{"partial": true}', "{}",
 ])
 def test_corrupt_manifest_exits_with_error(tmp_path, content):
     (tmp_path / "flexipages").mkdir()
@@ -726,8 +726,10 @@ def test_reverse_keeps_fields_the_template_already_has():
     assert b"Total" in ET.tostring(org)
 
 
-def test_add_facet_field_reverse_removes_one_instance_in_anchor_region():
-    from scripts.ux._patch_ops import REMOVED, reverse_patch
+def test_add_facet_field_reverse_fails_when_a_duplicate_survives():
+    """The forward patch adds one instance; a second copy the template lacks
+    would be baked into the template if writeback went ahead."""
+    from scripts.ux._patch_ops import FAILED, reverse_patch
 
     def field(name):
         return f"<itemInstances><fieldInstance><fieldItem>Record.{name}</fieldItem></fieldInstance></itemInstances>"
@@ -739,12 +741,7 @@ def test_add_facet_field_reverse_removes_one_instance_in_anchor_region():
         f'<FlexiPage xmlns="{NS}">{facet("other", "Dup")}{facet("target", "Anchor", "Dup")}</FlexiPage>'
     )
     patch = {"type": "add_facet_field", "after": "Anchor", "fields": ["Dup"]}
-    assert reverse_patch(org, patch, ET.fromstring(f'<FlexiPage xmlns="{NS}"/>'), None) == REMOVED
-    regions = {
-        r.find(f"{{{NS}}}name").text: [fi.text for fi in r.iter(f"{{{NS}}}fieldItem")]
-        for r in org.iter(f"{{{NS}}}flexiPageRegions")
-    }
-    assert regions == {"other": ["Record.Dup"], "target": ["Record.Anchor"]}
+    assert reverse_patch(org, patch, ET.fromstring(f'<FlexiPage xmlns="{NS}"/>'), None) == FAILED
 
 
 def test_add_component_refresh_carries_org_properties():
@@ -787,6 +784,44 @@ def test_add_component_moved_to_another_region_fails_reverse():
     template = page(None)
     assert reverse_patch(page("s"), patch, template, None) == FAILED
     assert reverse_patch(page(None), patch, template, None) == ABSENT
+
+
+def test_moved_or_duplicated_fields_fail_reverse():
+    from scripts.ux._patch_ops import FAILED, REMOVED, reverse_patch
+
+    def display_page(*lists):
+        props = "".join(
+            "<componentInstanceProperties><name>displayFields</name><valueList>"
+            + "".join(f"<valueListItems><value>{v}</value></valueListItems>" for v in values)
+            + "</valueList></componentInstanceProperties>"
+            for values in lists
+        )
+        return ET.fromstring(f'<FlexiPage xmlns="{NS}"><x>{props}</x></FlexiPage>')
+
+    patch = {"type": "add_display_field", "field": "F"}
+    template = display_page(["A"], ["B"])
+    assert reverse_patch(display_page(["A", "F"], ["B"]), patch, template, None) == REMOVED
+    assert reverse_patch(display_page(["A"], ["B", "F"]), patch, template, None) == FAILED
+
+    def facet_page(*regions):
+        return ET.fromstring(
+            f'<FlexiPage xmlns="{NS}">'
+            + "".join(
+                "<flexiPageRegions>"
+                + "".join(
+                    "<itemInstances><fieldInstance><fieldItem>Record." + f
+                    + "</fieldItem></fieldInstance></itemInstances>" for f in fields
+                )
+                + f"<name>Facet-{i}</name><type>Facet</type></flexiPageRegions>"
+                for i, fields in enumerate(regions)
+            )
+            + "</FlexiPage>"
+        )
+
+    patch = {"type": "add_facet_field", "fields": ["New"], "after": "A"}
+    template = facet_page(["A"], ["B"])
+    assert reverse_patch(facet_page(["A", "New"], ["B"]), patch, template, None) == REMOVED
+    assert reverse_patch(facet_page(["A", "New"], ["B", "New"]), patch, template, None) == FAILED
 
 
 if __name__ == "__main__":

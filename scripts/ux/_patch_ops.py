@@ -327,7 +327,10 @@ def _reverse_add_display_field(root, patch, template_root, logger) -> str:
     if not field or (template_root is not None and field in _all_values(template_root, "displayFields")):
         return ABSENT
     vlist = next(value_lists(root, "displayFields"), None)
-    return _found(vlist is not None and remove_values(vlist, {field}))
+    removed = vlist is not None and remove_values(vlist, {field})
+    if field in _all_values(root, "displayFields"):
+        return FAILED  # moved to another list; writing back would bake it in
+    return _found(removed)
 
 
 def _refresh_add_display_field(patch: Patch, page: PagePair) -> Optional[Patch]:
@@ -514,7 +517,8 @@ def _reverse_add_facet_field(root, patch, template_root, logger) -> str:
     """Mirrors the forward patch: one instance per field, preferring the region
     holding the ``after`` anchor, and never a field the template already has."""
     keep = set(get_facet_field_items(template_root)) if template_root is not None else set()
-    targets = {f"Record.{f}" for f in patch.get("fields", []) if f not in keep}
+    owned = [f for f in patch.get("fields", []) if f not in keep]
+    targets = {f"Record.{f}" for f in owned}
     after = f"Record.{patch.get('after')}" if patch.get("after") else None
     regions = sorted(
         _facet_regions(root),
@@ -528,6 +532,8 @@ def _reverse_add_facet_field(root, patch, template_root, logger) -> str:
                 region.remove(item)
                 targets.discard(field)
                 removed_any = True
+    if set(owned) & set(get_facet_field_items(root)):
+        return FAILED  # another copy survives; writing back would bake it in
     return _found(removed_any)
 
 

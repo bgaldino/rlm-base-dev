@@ -186,7 +186,9 @@ def flags_from_manifest(manifest_path: Path) -> Dict[str, bool]:
             "--name) whose flags may not match the deployed flexipages. Run a full "
             "assemble first."
         )
-    recorded = data.get("feature_flags", {})
+    if "feature_flags" not in data:
+        raise UxOptionError(f"Assembly manifest has no feature_flags: {path}")
+    recorded = data["feature_flags"]
     if not isinstance(recorded, dict):
         raise UxOptionError(f"Assembly manifest feature_flags is not an object: {path}")
     return {k: to_bool(v) for k, v in recorded.items() if k in UX_KNOWN_FLAGS}
