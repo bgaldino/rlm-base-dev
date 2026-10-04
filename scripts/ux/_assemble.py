@@ -263,12 +263,18 @@ class UxAssembler:
             raise UxOptionError(f"'{metadata_name}' not found in templates.")
 
         manifest_path = output_path / "assembly_manifest.json"
-        if metadata_name or metadata_type not in ("all", "flexipages"):
-            # The flexipages in the output keep the previous run's flags. Unless
-            # those match, the drift commands must not trust this manifest.
+        if metadata_name or metadata_type != "all":
+            # Everything this run skipped keeps the previous run's flags. Unless
+            # those match, the output mixes flag sets and must not be deployed
+            # whole ("mixed"); when the flexipages are among the stale parts,
+            # the drift commands must not trust the flags either ("partial").
             previous = read_manifest(manifest_path)
-            if previous.get("partial") or previous.get("feature_flags") != features:
-                manifest["partial"] = True
+            stale = previous.get("feature_flags") != features
+            if stale or previous.get("mixed") or previous.get("partial"):
+                manifest["mixed"] = True
+            if metadata_name or metadata_type != "flexipages":
+                if stale or previous.get("partial"):
+                    manifest["partial"] = True
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(
             json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"

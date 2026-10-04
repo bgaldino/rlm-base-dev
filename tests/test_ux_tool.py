@@ -199,6 +199,33 @@ def test_partial_assemble_with_other_flags_marks_manifest_partial(tmp_path):
     assert "partial" not in json.loads(manifest.read_text())
 
 
+def test_flexipage_assemble_with_other_flags_blocks_deploy(monkeypatch, tmp_path):
+    """--type flexipages refreshes every flexipage (drift may trust it), but the
+    layouts and applications keep the old flags, so the output must not deploy whole."""
+    fake = FakeSf({"status": 0, "result": {"status": "Succeeded"}})
+    monkeypatch.setattr(_sf.subprocess, "run", fake)
+    name = UX_KNOWN_FLAGS[0]
+    defaults, _ = resolve_features(REPO_ROOT)
+    out = ["--output-path", str(tmp_path)]
+    manifest = tmp_path / "assembly_manifest.json"
+    deploy_cmd = ["deploy", *out, "-o", "x"]
+
+    assert ux_tool.main(["assemble", *out]) == 0
+    assert ux_tool.main(["assemble", "--type", "flexipages", *out]) == 0
+    assert ux_tool.main(deploy_cmd) == 0, "same flags: still deployable"
+
+    assert ux_tool.main([
+        "assemble", "--type", "flexipages", *out, "--flag", f"{name}={not defaults[name]}",
+    ]) == 0
+    recorded = json.loads(manifest.read_text())
+    assert recorded["mixed"] is True and "partial" not in recorded
+    assert ux_tool.main(deploy_cmd) == ux_tool.EXIT_ERROR
+    assert len(fake.calls) == 1
+
+    assert ux_tool.main(["assemble", *out]) == 0
+    assert ux_tool.main(deploy_cmd) == 0
+
+
 # ── assemble + diff ──────────────────────────────────────────────────────────
 
 def test_assemble_writes_manifest(assembled):

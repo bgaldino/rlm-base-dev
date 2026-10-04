@@ -187,11 +187,12 @@ def _run(args, logger: logging.Logger) -> int:
         return 0
 
     if args.command == "deploy":
-        if read_manifest(output_path / MANIFEST_NAME).get("partial"):
-            # A filtered assemble under other flags left pages from both runs.
+        recorded = read_manifest(output_path / MANIFEST_NAME)
+        if recorded.get("mixed") or recorded.get("partial"):
+            # A filtered assemble under other flags left output from both runs.
             raise UxOptionError(
-                f"{output_path} mixes output assembled with different flags (partial "
-                "manifest). Run a full assemble before deploying."
+                f"{output_path} mixes output assembled with different flags. "
+                "Run a full assemble before deploying."
             )
         deploy(output_path, args.target_org, logger, cwd=ctx.repo_root)
         return 0
