@@ -58,6 +58,9 @@ SUFFIX_TO_TYPE: Dict[str, str] = {
     ".object-meta.xml": "objects",
 }
 
+#: Written by a ``retrieve --name``: the one page in ``flexipages/`` that is org state.
+RETRIEVE_SCOPE_NAME = "retrieve_scope.json"
+
 VALID_TYPES: Set[str] = {"all", "flexipages", "layouts", "applications", "profiles", "objects"}
 
 
@@ -244,6 +247,8 @@ class UxAssembler:
 
         try:
             if should_run("flexipages"):
+                # Assembled flexipages replace any retrieved org state.
+                (output_path / RETRIEVE_SCOPE_NAME).unlink(missing_ok=True)
                 items, skipped = self._assemble_flexipages(
                     templates_path, output_path, features, metadata_name
                 )

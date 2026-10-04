@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-10-02T04:12:50.594246Z",
+  "assembled_at": "2026-10-04T15:15:32.193617Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -22,6 +22,10 @@
     "collections": true,
     "personas": true,
     "prm_pricing": true
+  },
+  "scope": {
+    "type": "all",
+    "name": null
   },
   "assembled": [
     {

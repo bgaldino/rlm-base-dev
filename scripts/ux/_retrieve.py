@@ -16,12 +16,13 @@ Scope defaults to every flexipage the assembler would deploy: base pages from
 ``templates/flexipages/base/`` plus standalone overrides whose feature flag is
 active. Pass ``metadata_name`` to retrieve a single page.
 """
+import json
 import shutil
 import tempfile
 from pathlib import Path
 from typing import List, Optional
 
-from scripts.ux._assemble import validate_selection
+from scripts.ux._assemble import RETRIEVE_SCOPE_NAME, validate_selection
 from scripts.ux._context import UxContext, UxError, UxOptionError
 from scripts.ux._flags import FLEXIPAGE_SUFFIX, resolve_flexipage_sources
 from scripts.ux._sf import cli_error, run_sf_json
@@ -80,6 +81,14 @@ def retrieve(
             old_file.unlink(missing_ok=True)
 
         retrieved = _copy_flexipages(ctx, Path(tmp), dest_dir)
+
+    # The other pages a scoped retrieve leaves behind are not org state, so
+    # diff and writeback must not read them as such.
+    scope_file = output_path / RETRIEVE_SCOPE_NAME
+    if metadata_name:
+        scope_file.write_text(json.dumps({"name": metadata_name}), encoding="utf-8")
+    else:
+        scope_file.unlink(missing_ok=True)
 
     if retrieved == 0:
         logger.warning(

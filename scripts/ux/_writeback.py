@@ -66,7 +66,7 @@ def writeback(
     org_dir = org_path / "flexipages"
 
     page_sources = resolve_flexipage_sources(base_dir, standalone_dir, features)
-    org_files = org_flexipage_files(org_path)
+    org_files = org_flexipage_files(org_path, metadata_name)
     if metadata_name:
         if metadata_name not in org_files:
             raise UxOptionError(f"'{metadata_name}' not found in {org_dir}.")

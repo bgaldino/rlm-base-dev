@@ -380,6 +380,34 @@ def test_single_page_retrieve_the_org_lacks_clears_the_stale_copy(monkeypatch, t
     assert not stale.exists()
 
 
+def test_scoped_retrieve_limits_what_counts_as_org_state(monkeypatch, org_state):
+    """After retrieve --name, the other pages are assembled output, not org
+    state: an unscoped diff or writeback must not read them as the org's."""
+    from scripts.ux._diff import org_flexipage_files
+
+    monkeypatch.setattr(_sf.subprocess, "run", FakeSf(
+        _retrieve_payload(), on_call=_write_retrieved(["RLM_Quote_Record_Page"])))
+    assert retrieve(_ctx(), "my-scratch", org_state, QUOTE_PAGE) == 1
+    out = ["--output-path", str(org_state)]
+    for cmd in (["diff"], ["writeback"], ["writeback", "--apply"], ["apply-drift"],
+                ["diff", "--name", "RLM_Order_Record_Page.flexipage-meta.xml"]):
+        assert ux_tool.main([*cmd, *out]) == ux_tool.EXIT_ERROR, cmd
+    assert QUOTE_PAGE in org_flexipage_files(org_state, QUOTE_PAGE)
+
+    # A full retrieve, or an assemble that rewrites the flexipages, lifts it.
+    assert retrieve(_ctx(), "my-scratch", org_state) == 1
+    assert org_flexipage_files(org_state)
+    assert retrieve(_ctx(), "my-scratch", org_state, QUOTE_PAGE) == 1
+    assert ux_tool.main(["assemble", "--type", "flexipages", *out]) == 0
+    assert ux_tool.main(["diff", *out]) == 0
+
+
+def test_malformed_input_exits_with_the_error_code(org_state):
+    """Exit 1 means drift under --fail-on-drift, so a parse failure must not use it."""
+    (org_state / "flexipages" / QUOTE_PAGE).write_text("<FlexiPage>")
+    assert ux_tool.main(["diff", "--output-path", str(org_state)]) == ux_tool.EXIT_ERROR
+
+
 def test_failed_retrieve_leaves_existing_files(monkeypatch, tmp_path):
     (tmp_path / "flexipages").mkdir()
     existing = tmp_path / "flexipages" / QUOTE_PAGE
@@ -1061,3 +1089,11 @@ def test_writeback_with_no_org_flexipages_is_an_error(tmp_path):
     (tmp_path / "flexipages").mkdir()
     for apply in ([], ["--apply"]):
         assert ux_tool.main(["writeback", *apply, "--output-path", str(tmp_path)]) == ux_tool.EXIT_ERROR
+
+
+def test_tracked_post_ux_manifest_is_a_deployable_full_assembly():
+    """A clean checkout must deploy without reassembling first."""
+    from scripts.ux._assemble import deploy_sources, read_manifest
+
+    out = REPO_ROOT / "unpackaged" / "post_ux"
+    assert deploy_sources(out, read_manifest(out / ux_tool.MANIFEST_NAME)) is None

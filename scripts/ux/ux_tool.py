@@ -38,8 +38,11 @@ import argparse
 import json
 import logging
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Optional
+
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -235,6 +238,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _run(args, logger)
     except UxError as exc:
         logger.error(f"ERROR: {exc}")
+        return EXIT_ERROR
+    except (ET.ParseError, yaml.YAMLError, json.JSONDecodeError, OSError) as exc:
+        # Malformed or unreadable input; exit 1 is reserved for --fail-on-drift.
+        logger.error(f"ERROR: {type(exc).__name__}: {exc}")
         return EXIT_ERROR
 
 

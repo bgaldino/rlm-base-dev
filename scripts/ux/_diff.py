@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from scripts.ux._assemble import UxAssembler, validate_selection
+from scripts.ux._assemble import RETRIEVE_SCOPE_NAME, UxAssembler, validate_selection
 from scripts.ux._context import UxContext, UxOptionError
 from scripts.ux._flags import FLEXIPAGE_SUFFIX, resolve_flexipage_sources
 from scripts.ux._xml import SF_NS_TAG, find_elem, findall_elem, normalize_xml
@@ -25,17 +25,27 @@ def drift_count(report: Dict[str, Any]) -> int:
     return s["drifted"] + s["org_only"] + s["templates_only"]
 
 
-def org_flexipage_files(org_path: Path) -> List[str]:
+def org_flexipage_files(org_path: Path, metadata_name: Optional[str] = None) -> List[str]:
     """Names of the org-state flexipages under ``org_path``.
 
     Raise if the directory is missing (nothing was retrieved). An empty one is
     valid: the org has none of the requested pages, so they are templates_only.
+    Also raise if the last retrieve fetched one page and ``metadata_name`` asks
+    for any other: the rest of the directory is not org state.
     """
     org_dir = Path(org_path) / "flexipages"
     if not org_dir.is_dir():
         raise UxOptionError(
             f"No org flexipages in {org_dir}. Run `ux_tool.py retrieve` first."
         )
+    scope_file = Path(org_path) / RETRIEVE_SCOPE_NAME
+    if scope_file.exists():
+        retrieved = json.loads(scope_file.read_text(encoding="utf-8")).get("name")
+        if retrieved and metadata_name != retrieved:
+            raise UxOptionError(
+                f"The last retrieve fetched only {retrieved}; the other pages in {org_dir} "
+                f"are not org state. Pass --name {retrieved}, or retrieve without --name."
+            )
     return sorted(f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}"))
 
 
@@ -48,7 +58,7 @@ def diff(
     logger = ctx.logger
     validate_selection("flexipages", metadata_name, ("flexipages",))
     org_path = Path(org_path)
-    org_files = org_flexipage_files(org_path)
+    org_files = org_flexipage_files(org_path, metadata_name)
     report_path = org_path / "drift_report.json"
     logger.info(
         "Active features: "
