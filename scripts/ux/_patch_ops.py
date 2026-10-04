@@ -20,6 +20,7 @@ from collections import Counter
 import xml.etree.ElementTree as ET
 from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Optional, Set
 
+from scripts.ux._context import UxError
 from scripts.ux._flags import SALES_TXN_LINE_EDITOR_IDENTIFIER
 from scripts.ux._xml import (
     SF_NS_TAG,
@@ -96,8 +97,7 @@ def _all_values(root: ET.Element, prop_name: str) -> List[str]:
 def _apply_remove_action(root: ET.Element, patch: Patch, logger) -> None:
     action = patch.get("action")
     if not action:
-        logger.warning(f"remove_action patch missing 'action': {patch}")
-        return
+        raise UxError(f"remove_action patch missing 'action': {patch}")
     for vlist in value_lists(root, "actionNames"):
         for item in value_items(vlist):
             if item_value(item) == action:
@@ -195,8 +195,7 @@ def _apply_insert_action(root: ET.Element, patch: Patch, logger) -> None:
     anchor = patch.get("after") or patch.get("before")
     actions = patch.get("actions", [])
     if not anchor or not actions:
-        logger.warning(f"insert_action patch missing 'after' or 'actions': {patch}")
-        return
+        raise UxError(f"insert_action patch missing 'after' or 'actions': {patch}")
     for vlist in value_lists(root, "actionNames"):
         children = list(vlist)
         existing = {item_value(item) for item in children}
@@ -345,8 +344,7 @@ def _apply_add_display_field(root: ET.Element, patch: Patch, logger) -> None:
     """Append a display field to the displayFields valueList (idempotent)."""
     field = patch.get("field")
     if not field:
-        logger.warning(f"add_display_field patch missing 'field': {patch}")
-        return
+        raise UxError(f"add_display_field patch missing 'field': {patch}")
     for vlist in value_lists(root, "displayFields"):
         if field not in {item_value(item) for item in value_items(vlist)}:
             vlist.append(make_value_item(field))
@@ -396,8 +394,7 @@ def _apply_add_sales_txn_line_editor_field(root: ET.Element, patch: Patch, logge
     present; inserted after ``after`` when given, else appended."""
     fields = _patch_field_values(patch)
     if not fields:
-        logger.warning(f"add_sales_txn_line_editor_field patch missing 'field' or 'fields': {patch}")
-        return
+        raise UxError(f"add_sales_txn_line_editor_field patch missing 'field' or 'fields': {patch}")
     component_identifier, prop_name = _line_editor_target(patch)
     after = patch.get("after")
     vlist = component_value_list(root, component_identifier, prop_name)
@@ -559,8 +556,7 @@ def _apply_add_facet_field(root: ET.Element, patch: Patch, logger) -> None:
     after = patch.get("after")
     facet_label = patch.get("facet")
     if not fields:
-        logger.warning(f"add_facet_field patch missing 'fields': {patch}")
-        return
+        raise UxError(f"add_facet_field patch missing 'fields': {patch}")
     existing = set(get_facet_field_items(root))
     fields = [f for f in fields if f not in existing]
     if fields and not _insert_facet_fields(root, fields, after, facet_label):
@@ -630,8 +626,7 @@ def _apply_add_component(root: ET.Element, patch: Patch, logger) -> None:
     region_name = patch.get("region")
     component_name = patch.get("component")
     if not region_name or not component_name:
-        logger.warning(f"add_component patch missing 'region' or 'component': {patch}")
-        return
+        raise UxError(f"add_component patch missing 'region' or 'component': {patch}")
     for region in findall_elem(root, "flexiPageRegions"):
         if child_text(region, "name") != region_name:
             continue
@@ -740,8 +735,7 @@ def _apply_insert_after_xml(root: ET.Element, patch: Patch, logger) -> None:
     anchor = patch.get("anchor")
     xml_fragment = patch.get("xml", "")
     if not anchor or not xml_fragment:
-        logger.warning("insert_after_xml patch missing 'anchor' or 'xml'")
-        return
+        raise UxError("insert_after_xml patch missing 'anchor' or 'xml'")
 
     ET.indent(root, space="    ")
     text = ET.tostring(root, encoding="unicode")
@@ -1065,8 +1059,7 @@ FLEXIPAGE_OPS: Dict[str, PatchOp] = {
 def apply_patch(root: ET.Element, patch: Patch, logger) -> None:
     op = FLEXIPAGE_OPS.get(patch.get("type"))
     if op is None:
-        logger.warning(f"Unknown patch type '{patch.get('type')}': {patch}")
-        return
+        raise UxError(f"Unknown patch type '{patch.get('type')}': {patch}")
     op.apply(root, patch, logger)
 
 

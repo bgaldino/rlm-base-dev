@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from scripts.ux._assemble import RETRIEVE_SCOPE_NAME, UxAssembler, validate_selection
+from scripts.ux._assemble import UxAssembler, read_org_state, validate_selection
 from scripts.ux._context import UxContext, UxOptionError
 from scripts.ux._flags import FLEXIPAGE_SUFFIX, resolve_flexipage_sources
 from scripts.ux._xml import SF_NS_TAG, find_elem, findall_elem, normalize_xml
@@ -30,23 +30,27 @@ def org_flexipage_files(org_path: Path, metadata_name: Optional[str] = None) -> 
 
     Raise if the directory is missing (nothing was retrieved). An empty one is
     valid: the org has none of the requested pages, so they are templates_only.
-    Also raise if the last retrieve fetched one page and ``metadata_name`` asks
-    for any other: the rest of the directory is not org state.
+    Also raise if the selection (``metadata_name``, or the whole directory)
+    includes a page that is not org state: one a scoped retrieve left behind, or
+    one assembled since the last retrieve.
     """
     org_dir = Path(org_path) / "flexipages"
     if not org_dir.is_dir():
         raise UxOptionError(
             f"No org flexipages in {org_dir}. Run `ux_tool.py retrieve` first."
         )
-    scope_file = Path(org_path) / RETRIEVE_SCOPE_NAME
-    if scope_file.exists():
-        retrieved = json.loads(scope_file.read_text(encoding="utf-8")).get("name")
-        if retrieved and metadata_name != retrieved:
+    files = sorted(f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}"))
+    org_state = read_org_state(org_path)
+    if org_state is not None:
+        selected = [metadata_name] if metadata_name else files
+        stale = [name for name in selected if name not in org_state]
+        if stale:
             raise UxOptionError(
-                f"The last retrieve fetched only {retrieved}; the other pages in {org_dir} "
-                f"are not org state. Pass --name {retrieved}, or retrieve without --name."
+                f"Not org state (assembled, or left over from before the last retrieve) "
+                f"in {org_dir}: {', '.join(stale)}. Org state: "
+                f"{', '.join(sorted(org_state)) or 'none'}. Retrieve the page(s) again."
             )
-    return sorted(f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}"))
+    return files
 
 
 def diff(

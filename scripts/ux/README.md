@@ -63,9 +63,11 @@ reads or handles an access token.
 assembler would deploy for the resolved flags (base pages plus active standalone
 overrides). A failed retrieve leaves the existing files untouched; pages the org
 does not have are reported as warnings.
-With `--name`, only that page in `flexipages/` is org state, so until a full
-`retrieve` (or an `assemble` of every flexipage, without `--name`), `diff` and `writeback`
-refuse any other page, and refuse to run without the same `--name`.
+Each retrieve records which pages in `flexipages/` are org state (all of them, or
+just the `--name` page) in `retrieve_scope.json`; an `assemble --name` of one of them
+removes it from that list. `diff` and `writeback` refuse to read any other page as
+org state, so after a scoped retrieve they need the same `--name`. An `assemble` of
+every flexipage (no `--name`) clears the record.
 
 ## Feature flags
 
@@ -104,7 +106,10 @@ rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
 - `deploy` treats `SucceededPartial` as a failure. After a `--type`/`--name`
   assemble it deploys only the files that run wrote, since the rest of the output
   is left over from earlier runs. It refuses output without a completed
-  assembly manifest, including one an assemble left unfinished by failing.
+  assembly manifest, including one an assemble left unfinished by failing, and
+  refuses to send any page retrieved from an org since the last assemble.
+- `assemble` fails on a patch of an unknown type or missing a required key,
+  rather than skipping it and deploying the page without it.
 - `writeback` refuses an empty or missing `flexipages/` directory: run `retrieve` first.
 - `writeback --apply` rewrites a patch file only when the org changed what the
   patch produces, but that rewrite drops the file's YAML comments. Restore any

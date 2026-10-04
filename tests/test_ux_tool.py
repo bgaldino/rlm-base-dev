@@ -398,9 +398,18 @@ def test_scoped_retrieve_limits_what_counts_as_org_state(monkeypatch, org_state)
     assert retrieve(_ctx(), "my-scratch", org_state) == 1
     assert org_flexipage_files(org_state)
     assert retrieve(_ctx(), "my-scratch", org_state, QUOTE_PAGE) == 1
-    # Reassembling one page leaves the rest of the directory as it was.
+    # Reassembling the retrieved page replaces its org state with template output.
     assert ux_tool.main(["assemble", "--name", QUOTE_PAGE, *out]) == 0
     assert ux_tool.main(["diff", *out]) == ux_tool.EXIT_ERROR
+    assert ux_tool.main(["diff", "--name", QUOTE_PAGE, *out]) == ux_tool.EXIT_ERROR
+    # After a full retrieve, a page reassembled by name is no longer org state,
+    # while the others still are.
+    order_page = "RLM_Order_Record_Page.flexipage-meta.xml"
+    assert retrieve(_ctx(), "my-scratch", org_state) == 1
+    assert ux_tool.main(["assemble", "--name", order_page, *out]) == 0
+    assert ux_tool.main(["diff", *out]) == ux_tool.EXIT_ERROR
+    assert ux_tool.main(["diff", "--name", order_page, *out]) == ux_tool.EXIT_ERROR
+    assert ux_tool.main(["diff", "--name", QUOTE_PAGE, *out]) == 0
     assert ux_tool.main(["assemble", "--type", "flexipages", *out]) == 0
     assert ux_tool.main(["diff", *out]) == 0
 
@@ -1149,3 +1158,57 @@ def test_line_editor_field_moved_or_duplicated_fails_reverse():
     # Moved out of the editor, or copied into another component: it survives.
     assert reverse_patch(page(["Name"], ["Name", "New__c"]), patch, template, log) == FAILED
     assert reverse_patch(page(["Name", "New__c"], ["New__c"]), patch, template, log) == FAILED
+
+
+def test_deploy_refuses_retrieved_org_state(monkeypatch, tmp_path):
+    """A retrieve replaces assembled flexipages with org state, which deploy must
+    not send back as if it were assembled output."""
+    fake = FakeSf({"status": 0, "result": {"status": "Succeeded"}})
+    monkeypatch.setattr(_sf.subprocess, "run", fake)
+    out = ["--output-path", str(tmp_path)]
+    deploy_cmd = ["deploy", *out, "-o", "x"]
+
+    def retrieve_quote_page(*names):
+        monkeypatch.setattr(_sf.subprocess, "run", FakeSf(
+            _retrieve_payload(), on_call=_write_retrieved(["RLM_Quote_Record_Page"])))
+        retrieve(_ctx(), "my-scratch", tmp_path, *names)
+        monkeypatch.setattr(_sf.subprocess, "run", fake)
+
+    for scoped in ((), (QUOTE_PAGE,)):
+        assert ux_tool.main(["assemble", *out]) == 0
+        retrieve_quote_page(*scoped)
+        assert ux_tool.main(deploy_cmd) == ux_tool.EXIT_ERROR, scoped or "full retrieve"
+
+    # A filtered assemble whose files were retrieved over afterwards.
+    assert ux_tool.main(["assemble", "--name", QUOTE_PAGE, *out]) == 0
+    retrieve_quote_page(QUOTE_PAGE)
+    assert ux_tool.main(deploy_cmd) == ux_tool.EXIT_ERROR
+    assert not fake.calls
+
+    # A filtered assemble of other files deploys them; a full one lifts the block.
+    assert ux_tool.main(["assemble", "--type", "layouts", *out]) == 0
+    assert ux_tool.main(deploy_cmd) == 0
+    assert ux_tool.main(["assemble", *out]) == 0
+    assert ux_tool.main(deploy_cmd) == 0
+
+
+def test_malformed_or_unknown_patch_fails_assembly():
+    """A patch that cannot be applied must fail the run, not be recorded as applied."""
+    from scripts.ux._assemble import UxAssembler
+    from scripts.ux._patch_ops import apply_patch
+
+    log = logging.getLogger("test_ux")
+    page = lambda: ET.fromstring(f'<FlexiPage xmlns="{NS}"/>')  # noqa: E731
+    for patch in ({"type": "nope"}, {"type": "remove_action"}, {"type": "add_component", "region": "main"}):
+        with pytest.raises(UxError):
+            apply_patch(page(), patch, log)
+
+    assembler = UxAssembler(_ctx())
+    profile = lambda: ET.fromstring(f'<Profile xmlns="{NS}"/>')  # noqa: E731
+    for patch in ({"type": "nope"}, {"type": "add_layout_assignment"},
+                  {"type": "replace_layout_assignment", "old_layout": "A"}, {"type": "add_app_visibility"}):
+        with pytest.raises(UxError):
+            assembler._apply_profile_patch(profile(), patch)
+    root = profile()
+    assembler._apply_profile_patch(root, {"type": "add_app_visibility", "application": "RLM_App"})
+    assert "RLM_App" in ET.tostring(root, encoding="unicode")

@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 import xml.etree.ElementTree as ET
 
-from scripts.ux._context import UxContext, UxOptionError
+from scripts.ux._context import UxContext, UxError, UxOptionError
 from scripts.ux._flags import (
     FLEXIPAGE_SUFFIX,
     LAYOUT_SUFFIX,
@@ -60,6 +60,13 @@ SUFFIX_TO_TYPE: Dict[str, str] = {
 
 #: Written by a ``retrieve --name``: the one page in ``flexipages/`` that is org state.
 RETRIEVE_SCOPE_NAME = "retrieve_scope.json"
+
+#: Profile patch types and the keys each one requires.
+PROFILE_PATCH_FIELDS = {
+    "add_layout_assignment": ("layout",),
+    "replace_layout_assignment": ("old_layout", "new_layout"),
+    "add_app_visibility": ("application",),
+}
 
 VALID_TYPES: Set[str] = {"all", "flexipages", "layouts", "applications", "profiles", "objects"}
 
@@ -159,18 +166,54 @@ def read_manifest(path: Path) -> Dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def read_org_state(output_path: Path) -> Optional[Set[str]]:
+    """Flexipages in ``output_path`` that hold retrieved org state, or None when
+    nothing was retrieved since the last full flexipage assembly."""
+    scope_file = Path(output_path) / RETRIEVE_SCOPE_NAME
+    if not scope_file.exists():
+        return None
+    data = json.loads(scope_file.read_text(encoding="utf-8"))
+    names = data.get("org_state")
+    if names is None:  # written by an older version: one scoped page
+        names = [data["name"]] if data.get("name") else []
+    return set(names)
+
+
+def write_org_state(output_path: Path, names: Iterable[str]) -> None:
+    (Path(output_path) / RETRIEVE_SCOPE_NAME).write_text(
+        json.dumps({"org_state": sorted(names)}), encoding="utf-8"
+    )
+
+
 def deploy_sources(output_path: Path, manifest: Dict[str, Any]) -> Optional[List[Path]]:
     """What a deploy of ``output_path`` may send, from its latest manifest: None
     (the whole directory) after a full assembly; after a filtered one, only the
-    files it assembled, since everything else is left over from older runs."""
+    files it assembled, since everything else is left over from older runs.
+
+    Refuse when what it would send includes retrieved org state."""
     if not manifest or manifest.get("incomplete") or "scope" not in manifest:
         raise UxOptionError(
             f"{output_path} has no completed assembly manifest. Run assemble before deploying."
         )
+    output_path = Path(output_path)
+    org_state = read_org_state(output_path)
     scope = manifest["scope"]
     if scope.get("type") == "all" and not scope.get("name"):
-        return None
-    return [Path(output_path).parent.parent / item["dest"] for item in manifest.get("assembled", [])]
+        sources = None
+        if org_state is None:
+            retrieved = []
+        else:
+            retrieved = sorted(org_state) or ["flexipages/"]
+    else:
+        sources = [output_path.parent.parent / item["dest"] for item in manifest.get("assembled", [])]
+        org_paths = {output_path / "flexipages" / name for name in org_state or ()}
+        retrieved = sorted(p.name for p in sources if p in org_paths)
+    if retrieved:
+        raise UxOptionError(
+            f"{output_path} holds flexipages retrieved from an org since the last assemble "
+            f"({', '.join(retrieved)}). Run assemble before deploying."
+        )
+    return sources
 
 
 class UxAssembler:
@@ -254,10 +297,13 @@ class UxAssembler:
                 items, skipped = self._assemble_flexipages(
                     templates_path, output_path, features, metadata_name
                 )
+                # The pages this run wrote are assembled output, no longer org state.
                 if not metadata_name:
-                    # Every flexipage is now assembled, so none is scoped org
-                    # state. A --name run rewrites one page and leaves the scope.
                     (output_path / RETRIEVE_SCOPE_NAME).unlink(missing_ok=True)
+                elif items:
+                    org_state = read_org_state(output_path)
+                    if org_state is not None:
+                        write_org_state(output_path, org_state - {metadata_name})
                 manifest["assembled"].extend(items)
                 manifest["skipped"].extend(skipped)
 
@@ -801,28 +847,25 @@ class UxAssembler:
         return assembled
 
     def _apply_profile_patch(self, root: ET.Element, patch: Dict[str, Any]) -> None:
+        # A malformed patch fails the run: skipping it would deploy the profile
+        # without the assignment or visibility it asks for.
         ptype = patch.get("type")
+        required = PROFILE_PATCH_FIELDS.get(ptype)
+        if required is None:
+            raise UxError(f"Unknown profile patch type '{ptype}': {patch}")
+        missing = [k for k in required if not patch.get(k)]
+        if missing:
+            raise UxError(f"{ptype} profile patch missing {', '.join(repr(k) for k in missing)}: {patch}")
+
         if ptype == "add_layout_assignment":
-            layout = patch.get("layout")
-            record_type = patch.get("record_type")
-            if layout:
-                _add_layout_assignment(root, layout, record_type)
+            _add_layout_assignment(root, patch["layout"], patch.get("record_type"))
 
         elif ptype == "replace_layout_assignment":
-            old_layout = patch.get("old_layout")
-            new_layout = patch.get("new_layout")
-            if old_layout and new_layout:
-                for la in findall_elem(root, "layoutAssignments"):
-                    layout_el = find_elem(la, "layout")
-                    if layout_el is not None and layout_el.text == old_layout:
-                        layout_el.text = new_layout
-                        return
-
-        elif ptype == "add_app_visibility":
-            app = patch.get("application")
-            default = patch.get("default", False)
-            if app:
-                _add_app_visibility(root, app, default)
+            for la in findall_elem(root, "layoutAssignments"):
+                layout_el = find_elem(la, "layout")
+                if layout_el is not None and layout_el.text == patch["old_layout"]:
+                    layout_el.text = patch["new_layout"]
+                    return
 
         else:
-            self.logger.warning(f"Unknown profile patch type '{ptype}': {patch}")
+            _add_app_visibility(root, patch["application"], patch.get("default", False))
