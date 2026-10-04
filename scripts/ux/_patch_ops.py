@@ -17,7 +17,7 @@ the regenerated template and the org page.
 import copy
 import re
 import xml.etree.ElementTree as ET
-from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Optional
+from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Optional, Set
 
 from scripts.ux._flags import SALES_TXN_LINE_EDITOR_IDENTIFIER
 from scripts.ux._xml import (
@@ -204,25 +204,36 @@ def _insert_action_list(root: ET.Element, anchor: Optional[str], names: Iterable
     return (holding[0] if holding else None), False
 
 
-def reverse_insert_action(root: ET.Element, patch: Patch, keep: Iterable[str] = ()) -> str:
+def reverse_insert_action(root: ET.Element, patch: Patch, template_root: Optional[ET.Element] = None) -> str:
     """Remove the actions an insert_action patch inserted; return REMOVED, ABSENT or FAILED.
 
     Mirrors the forward patch: it targets the actionNames list holding the
-    ``after`` anchor and never inserts an action already present, so names in
-    ``keep`` (the template's own actions) are left alone. If the org dropped
-    the anchor, the one list still holding the inserted actions is used; FAILED
-    when several lists hold them, since the right one cannot be told apart.
+    ``after`` anchor and never inserts an action that list already has, so the
+    template's own actions in that list are left alone. If the org dropped the
+    anchor, the one list still holding the inserted actions is used.
+
+    FAILED when several lists hold the actions, or when an inserted action the
+    template lacks survives in another list (the org moved it), since writing
+    the page back would then bake it into the template.
     """
-    names = {_action_name(a) for a in patch.get("actions", [])} - set(keep)
-    vlist, ambiguous = _insert_action_list(root, patch.get("after"), names)
+    anchor = patch.get("after")
+    names = {_action_name(a) for a in patch.get("actions", [])} - {""}
+    owned: Set[str] = set()
+    if template_root is not None:
+        owned = set(_all_values(template_root, "actionNames"))
+        t_list, _ = _insert_action_list(template_root, anchor, ())
+        names -= set(list_values(t_list)) if t_list is not None else owned
+    vlist, ambiguous = _insert_action_list(root, anchor, names)
     if ambiguous:
         return FAILED
-    return _found(vlist is not None and remove_values(vlist, names))
+    removed = vlist is not None and remove_values(vlist, names)
+    if (names - owned) & set(_all_values(root, "actionNames")):
+        return FAILED
+    return _found(removed)
 
 
 def _reverse_insert_action(root, patch, template_root, logger) -> str:
-    keep = _all_values(template_root, "actionNames") if template_root is not None else ()
-    return reverse_insert_action(root, patch, keep)
+    return reverse_insert_action(root, patch, template_root)
 
 
 def _describe_insert_action(patch: Patch) -> str:
@@ -726,8 +737,12 @@ def _reverse_insert_after_xml(root, patch, template_root, logger) -> str:
     # the anchor element.
     handled = {"flexiPageRegions", "itemInstances", "valueListItems"}
     others = [el for el in wrapper if local_tag(el) not in handled]
-    if others and _remove_anchor_siblings(root, patch.get("anchor", ""), others):
-        removed_any = True
+    if others:
+        if _remove_anchor_siblings(root, patch.get("anchor", ""), others):
+            removed_any = True
+        elif _survives(root, template_root, others):
+            # The anchor changed but the inserted element is still in the page.
+            return FAILED
 
     # Not found usually means the org no longer has the inserted content.
     return _found(removed_any)
@@ -766,6 +781,17 @@ def _remove_anchor_siblings(
                     removed_any = True
                     break
     return removed_any
+
+
+def _survives(root: ET.Element, template_root: Optional[ET.Element], elements: List[ET.Element]) -> bool:
+    """True when the org has more copies of any of ``elements`` than the template."""
+    def count(tree: Optional[ET.Element], target: ET.Element) -> int:
+        if tree is None:
+            return 0
+        tag, wanted = target.tag, normalize_xml(target)
+        return sum(1 for el in tree.iter(tag) if normalize_xml(el) == wanted)
+
+    return any(count(root, el) > count(template_root, el) for el in elements)
 
 
 def _describe_insert_after_xml(patch: Patch) -> str:

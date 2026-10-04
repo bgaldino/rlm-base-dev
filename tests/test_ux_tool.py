@@ -491,6 +491,23 @@ def test_apply_drift_removes_dropped_insert_after_xml_patch(repo_copy):
     assert base.read_bytes() == base_before
 
 
+def test_apply_drift_aborts_when_insert_after_xml_anchor_changed(repo_copy):
+    """The org renamed the persona rule's anchor component but kept the rule:
+    reverse must fail rather than report the rule absent and bake it into base."""
+    root, out = repo_copy
+    page = out / "flexipages" / QUOTE_PAGE
+    xml, n = re.subn(
+        r"<identifier>runtime_sales_pathassistant_pathAssistant</identifier>",
+        "<identifier>renamed_pathAssistant</identifier>", page.read_text(), count=1,
+    )
+    assert n == 1
+    page.write_text(xml)
+    before = _snapshot(root)
+
+    assert _apply_drift(root, out) == ux_tool.EXIT_ERROR
+    assert _snapshot(root) == before
+
+
 def test_apply_drift_reports_drift_writeback_cannot_resolve(repo_copy):
     """A page the templates produce but the org lacks stays templates_only. The
     diff must see the org state, not the reassembled output (which has the page)."""
@@ -536,7 +553,7 @@ def test_apply_drift_drops_insert_action_patch_the_org_lacks(repo_copy):
 
 
 def test_reverse_insert_action_keeps_template_actions_and_targets_anchor_list():
-    from scripts.ux._patch_ops import ABSENT, REMOVED, reverse_insert_action
+    from scripts.ux._patch_ops import ABSENT, FAILED, REMOVED, reverse_insert_action
 
     ns = "http://soap.sforce.com/2006/04/metadata"
 
@@ -551,13 +568,27 @@ def test_reverse_insert_action_keeps_template_actions_and_targets_anchor_list():
         f'<FlexiPage xmlns="{ns}"><a>{action_list("Other", "A")}</a>'
         f'<b>{action_list("Anchor", "A", "B")}</b></FlexiPage>'
     )
+    template = ET.fromstring(
+        f'<FlexiPage xmlns="{ns}"><a>{action_list("Other", "A")}</a>'
+        f'<b>{action_list("Anchor", "B")}</b></FlexiPage>'
+    )
     patch = {"after": "Anchor", "actions": ["A", "B"]}
 
-    # The template already has B, so the forward patch never inserted it.
-    assert reverse_insert_action(org, patch, keep={"B"}) == REMOVED
+    # The anchor's template list already has B, so the forward patch never
+    # inserted it; A is the template's only in the other list, so the copy
+    # in the anchor list is the patch's.
+    assert reverse_insert_action(org, patch, template) == REMOVED
     values = [v.text for v in org.iter(f"{{{ns}}}value")]
     assert values == ["Other", "A", "Anchor", "B"]
-    assert reverse_insert_action(org, patch, keep={"B"}) == ABSENT
+    assert reverse_insert_action(org, patch, template) == ABSENT
+
+    # The org moved a patch action out of the anchor list: it cannot be
+    # reversed, and must not be reported absent.
+    moved = ET.fromstring(
+        f'<FlexiPage xmlns="{ns}"><a>{action_list("Other", "New")}</a>'
+        f'<b>{action_list("Anchor", "B")}</b></FlexiPage>'
+    )
+    assert reverse_insert_action(moved, {"after": "Anchor", "actions": ["New"]}, template) == FAILED
 
 
 NS = "http://soap.sforce.com/2006/04/metadata"
