@@ -16,6 +16,7 @@ the regenerated template and the org page.
 """
 import copy
 import re
+from collections import Counter
 import xml.etree.ElementTree as ET
 from typing import Any, Callable, Dict, Iterable, List, NamedTuple, Optional, Set
 
@@ -758,6 +759,32 @@ def _page_identifiers(root: Optional[ET.Element]) -> Set[str]:
     return {i for item in root.iter(f"{SF_NS_TAG}itemInstances") for i in _identifiers(item)}
 
 
+def _item_kind(item: ET.Element) -> Optional[tuple]:
+    """What an itemInstances holds, independent of its identifier."""
+    for kind, key in (("componentInstance", "componentName"), ("fieldInstance", "fieldItem")):
+        el = find_elem(item, kind)
+        if el is not None:
+            return (kind, child_text(el, key))
+    return None
+
+
+def _item_kinds(root: Optional[ET.Element]) -> Counter:
+    if root is None:
+        return Counter()
+    return Counter(_item_kind(item) for item in root.iter(f"{SF_NS_TAG}itemInstances"))
+
+
+def _region_count(root: Optional[ET.Element], region: ET.Element) -> int:
+    """Regions of the same type as ``region`` with no items."""
+    if root is None:
+        return 0
+    kind = child_text(region, "type")
+    return sum(
+        1 for r in root.iter(f"{SF_NS_TAG}flexiPageRegions")
+        if child_text(r, "type") == kind and not findall_elem(r, "itemInstances")
+    )
+
+
 def _reverse_insert_after_xml(root, patch, template_root, logger) -> str:
     """
     Remove elements that were added by an insert_after_xml patch.
@@ -776,14 +803,23 @@ def _reverse_insert_after_xml(root, patch, template_root, logger) -> str:
         return FAILED
 
     removed_any = False
+    # Fragment regions and items not found by name or identifier: the org may
+    # have renamed them, so they are checked by stable metadata below.
+    unmatched_regions: List[ET.Element] = []
+    unmatched_items: List[ET.Element] = []
 
     # Case 1: Fragment contains flexiPageRegions — remove by <name>
     fragment_regions = findall_elem(wrapper, "flexiPageRegions")
+    org_names = {child_text(r, "name") for r in findall_elem(root, "flexiPageRegions")}
     names = {child_text(r, "name") for r in fragment_regions} - {None, ""}
     for region in list(findall_elem(root, "flexiPageRegions")):
         if child_text(region, "name") in names:
             root.remove(region)
             removed_any = True
+    for region in fragment_regions:
+        if child_text(region, "name") not in org_names:
+            unmatched_regions.append(region)
+            unmatched_items += findall_elem(region, "itemInstances")
     # A renamed region still holds the fragment's components or fields.
     nested = {i for r in fragment_regions for item in findall_elem(r, "itemInstances") for i in _identifiers(item)}
     if nested & (_page_identifiers(root) - _page_identifiers(template_root)):
@@ -793,11 +829,25 @@ def _reverse_insert_after_xml(root, patch, template_root, logger) -> str:
     fragment_items = findall_elem(wrapper, "itemInstances")
     identifiers = {i for item in fragment_items for i in _identifiers(item)}
     if identifiers:
+        found = set()
         for region in findall_elem(root, "flexiPageRegions"):
             for item in list(findall_elem(region, "itemInstances")):
-                if any(i in identifiers for i in _identifiers(item)):
+                hits = set(_identifiers(item)) & identifiers
+                if hits:
                     region.remove(item)
                     removed_any = True
+                    found |= hits
+        unmatched_items += [i for i in fragment_items if not set(_identifiers(i)) & found]
+
+    # Renamed regions or identifiers: more of the same components, fields or
+    # region types than the template has means the content is still there.
+    if unmatched_items:
+        org_counts, t_counts = _item_kinds(root), _item_kinds(template_root)
+        if any(org_counts[k] > t_counts[k] for k in map(_item_kind, unmatched_items) if k):
+            return FAILED
+    for region in unmatched_regions:
+        if not findall_elem(region, "itemInstances") and _region_count(root, region) > _region_count(template_root, region):
+            return FAILED
 
     # Case 3: Fragment holds only valueListItems — remove by value (values nested
     # in regions or items were handled above).

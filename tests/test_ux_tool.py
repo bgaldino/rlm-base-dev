@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline tests for scripts/ux/ (UX assembly + drift tooling). sf is stubbed."""
 
+import copy
 import json
 import logging
 import re
@@ -961,12 +962,12 @@ def test_moved_or_duplicated_fields_fail_reverse():
 
 
 def test_insert_after_xml_renamed_region_fails_reverse():
-    from scripts.ux._patch_ops import FAILED, REMOVED, reverse_patch
+    from scripts.ux._patch_ops import ABSENT, FAILED, REMOVED, reverse_patch
 
-    def region(name):
+    def region(name, ident="c_x"):
         return (
             "<flexiPageRegions><itemInstances><componentInstance><componentName>c:x</componentName>"
-            f"<identifier>c_x</identifier></componentInstance></itemInstances><name>{name}</name>"
+            f"<identifier>{ident}</identifier></componentInstance></itemInstances><name>{name}</name>"
             "<type>Region</type></flexiPageRegions>"
         )
 
@@ -976,6 +977,20 @@ def test_insert_after_xml_renamed_region_fails_reverse():
     assert reverse_patch(org, patch, template, None) == REMOVED
     renamed = ET.fromstring(f'<FlexiPage xmlns="{NS}"><name>main</name>{region("renamed")}</FlexiPage>')
     assert reverse_patch(renamed, patch, template, None) == FAILED
+    both = ET.fromstring(f'<FlexiPage xmlns="{NS}"><name>main</name>{region("renamed", "c_y")}</FlexiPage>')
+    assert reverse_patch(both, patch, template, None) == FAILED  # region and identifier renamed
+    empty = '<flexiPageRegions><name>{}</name><type>Facet</type></flexiPageRegions>'
+    patch = {"type": "insert_after_xml", "anchor": "<name>main</name>", "xml": empty.format("f1")}
+    org = ET.fromstring(f'<FlexiPage xmlns="{NS}"><name>main</name>{empty.format("f2")}</FlexiPage>')
+    assert reverse_patch(org, patch, template, None) == FAILED  # empty region renamed
+    assert reverse_patch(copy.deepcopy(template), patch, template, None) == ABSENT
+
+    item = '<itemInstances><fieldInstance><fieldItem>Record.F</fieldItem><identifier>{}</identifier></fieldInstance></itemInstances>'
+    patch = {"type": "insert_after_xml", "anchor": "<name>main</name>", "xml": item.format("f_old")}
+    host = '<FlexiPage xmlns="{}"><flexiPageRegions>{}<name>main</name></flexiPageRegions></FlexiPage>'
+    template = ET.fromstring(host.format(NS, ""))
+    assert reverse_patch(ET.fromstring(host.format(NS, item.format("f_old"))), patch, template, None) == REMOVED
+    assert reverse_patch(ET.fromstring(host.format(NS, item.format("f_new"))), patch, template, None) == FAILED
 
 
 if __name__ == "__main__":
