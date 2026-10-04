@@ -80,6 +80,15 @@ def writeback(
     for fname in org_files:
         source = page_sources.get(fname)
         if source is None:
+            # Active standalone pages are in page_sources, so any owner here is
+            # an inactive feature: saving the page as base would leak it.
+            owners = sorted(p.parent.name for p in standalone_dir.glob(f"*/{fname}"))
+            if owners:
+                failures.append(
+                    f"{fname}: belongs to the inactive standalone feature(s) "
+                    f"{', '.join(owners)}; the flags do not match the org (set them with --flag)"
+                )
+                continue
             logger.info(
                 f"  [new page]  {fname} — exists in org but not in "
                 "templates. Saving as new base template."
@@ -97,9 +106,9 @@ def writeback(
 
     if failures:
         raise UxError(
-            f"Write-back aborted: {len(failures)} patch(es) could not be reversed, "
-            "so no template or patch file was changed. Writing the page anyway "
-            "would bake feature content into its template:\n  "
+            f"Write-back aborted: {len(failures)} page(s) or patch(es) could not be "
+            "written back, so no template or patch file was changed. Writing them "
+            "anyway would bake feature content into a template:\n  "
             + "\n  ".join(failures)
         )
 

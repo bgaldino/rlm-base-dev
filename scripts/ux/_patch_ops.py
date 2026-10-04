@@ -788,15 +788,28 @@ def _reverse_insert_after_xml(root, patch, template_root, logger) -> str:
 
     # Case 4: any other element (e.g. a <visibilityRule> inserted after a
     # component's <identifier>) — remove a structurally identical sibling of
-    # the anchor element.
+    # the anchor element. Anything short of that FAILS when the template had
+    # the anchor: the org may have renamed the anchor or edited the element,
+    # and writing the page back would keep the feature content in the base.
     handled = {"flexiPageRegions", "itemInstances", "valueListItems"}
     others = [el for el in wrapper if local_tag(el) not in handled]
     if others:
-        if _remove_anchor_siblings(root, patch.get("anchor", ""), others):
+        anchor = patch.get("anchor", "")
+        parents = _anchor_parents(root, anchor)
+        t_parents = _anchor_parents(template_root, anchor) if template_root is not None else None
+        tags = {el.tag for el in others}
+
+        def tagged(ps):
+            return sum(1 for p in ps or [] for c in p if c.tag in tags)
+
+        if _remove_siblings(parents or [], others):
             removed_any = True
         elif _survives(root, template_root, others):
-            # The anchor changed but the inserted element is still in the page.
-            return FAILED
+            return FAILED  # moved elsewhere unchanged
+        elif not parents and t_parents:
+            return FAILED  # anchor renamed or gone: the element cannot be checked
+        elif tagged(parents) > tagged(t_parents):
+            return FAILED  # edited in place beside the anchor
 
     # Not found usually means the org no longer has the inserted content.
     return _found(removed_any)
@@ -805,29 +818,26 @@ def _reverse_insert_after_xml(root, patch, template_root, logger) -> str:
 _SIMPLE_ELEMENT_RE = re.compile(r"^\s*<(\w+)>([^<]*)</\1>\s*$")
 
 
-def _remove_anchor_siblings(
-    root: ET.Element, anchor: str, fragment_elements: List[ET.Element]
-) -> bool:
-    """Remove each fragment element from the parent of the anchor element.
-
-    Only anchors that are one complete simple element (``<tag>text</tag>``)
-    can be located in the tree; other anchors are left alone, so nothing is
-    removed on a guess.
-    """
+def _anchor_parents(root: ET.Element, anchor: str) -> Optional[List[ET.Element]]:
+    """The parents of every element matching ``anchor``, or None if it cannot
+    be located: only an anchor that is one complete simple element
+    (``<tag>text</tag>``) is looked up, so nothing is matched on a guess."""
     match = _SIMPLE_ELEMENT_RE.match(anchor or "")
     if not match:
-        return False
+        return None
     anchor_tag, anchor_text = match.group(1), match.group(2).strip()
-    wanted = [normalize_xml(el) for el in fragment_elements]
+    return [
+        parent for parent in root.iter()
+        if any(local_tag(c) == anchor_tag and (c.text or "").strip() == anchor_text for c in parent)
+    ]
 
+
+def _remove_siblings(parents: List[ET.Element], fragment_elements: List[ET.Element]) -> bool:
+    """Remove, from each of ``parents``, one child identical to each fragment element."""
+    wanted = [normalize_xml(el) for el in fragment_elements]
     removed_any = False
-    for parent in root.iter():
+    for parent in parents:
         children = list(parent)
-        if not any(
-            local_tag(c) == anchor_tag and (c.text or "").strip() == anchor_text
-            for c in children
-        ):
-            continue
         for target in wanted:
             for child in children:
                 if child in parent and normalize_xml(child) == target:

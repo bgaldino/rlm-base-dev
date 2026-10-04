@@ -570,6 +570,44 @@ def test_apply_drift_aborts_when_insert_after_xml_anchor_changed(repo_copy):
     assert _snapshot(root) == before
 
 
+@pytest.mark.parametrize("edit", ["rename_and_edit", "edit_in_place"])
+def test_apply_drift_aborts_when_insert_after_xml_element_edited(repo_copy, edit):
+    """The org edited the persona rule (and maybe renamed its anchor): no exact
+    copy survives, but reverse must still fail rather than report it absent."""
+    root, out = repo_copy
+    page = out / "flexipages" / QUOTE_PAGE
+    xml = page.read_text()
+    if edit == "rename_and_edit":
+        xml = xml.replace(
+            "<identifier>runtime_sales_pathassistant_pathAssistant</identifier>",
+            "<identifier>renamed_pathAssistant</identifier>", 1,
+        )
+    xml, n = re.subn(r"RLM Sales Representative", "RLM Sales Manager", xml, count=1)
+    assert n == 1
+    page.write_text(xml)
+    before = _snapshot(root)
+
+    assert _apply_drift(root, out) == ux_tool.EXIT_ERROR
+    assert _snapshot(root) == before
+
+
+def test_writeback_refuses_a_page_owned_by_an_inactive_feature(repo_copy):
+    """A page of a disabled standalone feature is not new: saving it as a base
+    template would leak it into every build."""
+    root, out = repo_copy
+    page = root / "templates" / "flexipages" / "standalone" / "payments" / "RLM_Payment_Record_Page.flexipage-meta.xml"
+    shutil.copy2(page, out / "flexipages" / page.name)
+    before = _snapshot(root)
+
+    rc = ux_tool.main([
+        "writeback", "--apply", "--repo-root", str(root), "--output-path", str(out),
+        "--flag", "payments=false",
+    ])
+    assert rc == ux_tool.EXIT_ERROR
+    assert _snapshot(root) == before
+    assert not (root / "templates" / "flexipages" / "base" / page.name).exists()
+
+
 def test_apply_drift_reports_drift_writeback_cannot_resolve(repo_copy):
     """A page the templates produce but the org lacks stays templates_only. The
     diff must see the org state, not the reassembled output (which has the page)."""

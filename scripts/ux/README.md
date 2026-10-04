@@ -90,6 +90,9 @@ rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
 - Never hand-edit `unpackaged/post_ux/`; change `templates/` and reassemble.
 - `writeback` is all-or-nothing: if any active patch cannot be reversed out of
   the org page, it exits with an error before changing any template or patch file.
+  A page in the org but not in the active templates is saved as a new base
+  template, unless an inactive standalone feature owns it: that is a flag
+  mismatch, and writeback aborts the same way.
 - `deploy` treats `SucceededPartial` as a failure.
 - `writeback --apply` rewrites a patch file only when the org changed what the
   patch produces, but that rewrite drops the file's YAML comments. Restore any
