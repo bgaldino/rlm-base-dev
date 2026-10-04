@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from scripts.ux._assemble import UxAssembler, validate_selection
 from scripts.ux._context import UxContext, UxOptionError
-from scripts.ux._flags import FLEXIPAGE_SUFFIX
+from scripts.ux._flags import FLEXIPAGE_SUFFIX, resolve_flexipage_sources
 from scripts.ux._xml import SF_NS_TAG, find_elem, findall_elem, normalize_xml
 
 
@@ -26,14 +26,17 @@ def drift_count(report: Dict[str, Any]) -> int:
 
 
 def org_flexipage_files(org_path: Path) -> List[str]:
-    """Names of the org-state flexipages under ``org_path``; raise if there are none."""
+    """Names of the org-state flexipages under ``org_path``.
+
+    Raise if the directory is missing (nothing was retrieved). An empty one is
+    valid: the org has none of the requested pages, so they are templates_only.
+    """
     org_dir = Path(org_path) / "flexipages"
-    names = sorted(f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}"))
-    if not names:
+    if not org_dir.is_dir():
         raise UxOptionError(
             f"No org flexipages in {org_dir}. Run `ux_tool.py retrieve` first."
         )
-    return names
+    return sorted(f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}"))
 
 
 def diff(
@@ -45,7 +48,7 @@ def diff(
     logger = ctx.logger
     validate_selection("flexipages", metadata_name, ("flexipages",))
     org_path = Path(org_path)
-    org_flexipage_files(org_path)
+    org_files = org_flexipage_files(org_path)
     report_path = org_path / "drift_report.json"
     logger.info(
         "Active features: "
@@ -54,8 +57,19 @@ def diff(
 
     with tempfile.TemporaryDirectory(prefix="rlm_ux_diff_") as tmpdir:
         tmp_path = Path(tmpdir)
-        logger.info("Assembling flexipages from templates for comparison...")
-        assembled, skipped = UxAssembler(ctx).assemble_flexipages(tmp_path, metadata_name)
+        flexipages = ctx.templates_path / "flexipages"
+        sources = resolve_flexipage_sources(flexipages / "base", flexipages / "standalone", ctx.features)
+        if metadata_name and metadata_name not in sources:
+            # A page only the org has (e.g. created there): nothing to assemble,
+            # so the comparison reports it as org_only.
+            if metadata_name not in org_files:
+                raise UxOptionError(
+                    f"'{metadata_name}' is in neither the templates nor {org_path / 'flexipages'}."
+                )
+            assembled, skipped = [], []
+        else:
+            logger.info("Assembling flexipages from templates for comparison...")
+            assembled, skipped = UxAssembler(ctx).assemble_flexipages(tmp_path, metadata_name)
         logger.info(
             f"  Assembled {len(assembled)} flexipage(s) from templates "
             f"({len(skipped)} skipped as non-deployable)."

@@ -153,7 +153,7 @@ def test_assemble_writes_manifest(assembled):
 
 @pytest.mark.parametrize("command", ["diff", "writeback"])
 def test_missing_org_state_is_an_error(command, tmp_path):
-    (tmp_path / "flexipages").mkdir()
+    # No flexipages/ directory: nothing was retrieved. (An empty one is valid.)
     assert ux_tool.main([command, "--output-path", str(tmp_path)]) == ux_tool.EXIT_ERROR
     assert ux_tool.main([command, "--output-path", str(tmp_path / "nope")]) == ux_tool.EXIT_ERROR
 
@@ -196,6 +196,29 @@ def test_diff_detects_removed_region(org_state):
     assert json.loads((org_state / "drift_report.json").read_text())["summary"]["drifted"] == 1
     # Without --fail-on-drift drift is reported but not an error.
     assert ux_tool.main(["diff", "--output-path", str(org_state)]) == 0
+
+
+def test_diff_with_no_org_pages_reports_templates_only(tmp_path):
+    """An empty retrieve (the org has none of the pages) is drift, not an error."""
+    (tmp_path / "flexipages").mkdir()
+    rc = ux_tool.main(["diff", "--output-path", str(tmp_path), "--name", QUOTE_PAGE, "--fail-on-drift"])
+    assert rc == ux_tool.EXIT_DRIFT
+    assert json.loads((tmp_path / "drift_report.json").read_text())["summary"]["templates_only"] == 1
+    # Nothing retrieved at all is still an error.
+    assert ux_tool.main(["diff", "--output-path", str(tmp_path / "missing")]) == ux_tool.EXIT_ERROR
+
+
+def test_scoped_diff_reports_org_only_page(org_state):
+    name = "RLM_Org_Only_Page.flexipage-meta.xml"
+    shutil.copyfile(org_state / "flexipages" / QUOTE_PAGE, org_state / "flexipages" / name)
+
+    rc = ux_tool.main(["diff", "--output-path", str(org_state), "--name", name, "--fail-on-drift"])
+    assert rc == ux_tool.EXIT_DRIFT
+    summary = json.loads((org_state / "drift_report.json").read_text())["summary"]
+    assert summary == {"in_sync": 0, "drifted": 0, "org_only": 1, "templates_only": 0}
+    # A name in neither the templates nor the org is still rejected.
+    missing = "RLM_Nowhere.flexipage-meta.xml"
+    assert ux_tool.main(["diff", "--output-path", str(org_state), "--name", missing]) == ux_tool.EXIT_ERROR
 
 
 # ── retrieve (sf project retrieve start, stubbed) ────────────────────────────
@@ -316,6 +339,8 @@ def test_deploy_success(monkeypatch, tmp_path):
     assert _arg(cmd, "--source-dir") == str(tmp_path)
     assert _arg(cmd, "--target-org") == "my-scratch"
     assert kwargs["cwd"] == str(REPO_ROOT)
+    # sf reports the outcome before the subprocess timeout can kill it.
+    assert int(_arg(cmd, "--wait")) * 60 < kwargs["timeout"]
 
 
 def test_deploy_reports_component_failures(monkeypatch, tmp_path):

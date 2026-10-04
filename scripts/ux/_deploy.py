@@ -11,12 +11,16 @@ from typing import Any, Dict, Optional
 from scripts.ux._context import UxError, UxOptionError
 from scripts.ux._sf import cli_error, run_sf_json
 
+#: Minutes sf waits for the deploy to finish. The subprocess timeout adds a
+#: grace minute, so sf always reports the outcome before it is killed.
+DEPLOY_WAIT_MINUTES = 30
+
 
 def deploy(
     output_path: Path,
     target_org: str,
     logger: Optional[logging.Logger] = None,
-    timeout: int = 600,
+    wait_minutes: int = DEPLOY_WAIT_MINUTES,
     cwd: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """Deploy ``output_path`` to ``target_org``; return the sf ``result`` payload.
@@ -37,9 +41,10 @@ def deploy(
             "--source-dir", str(output_path),
             "--target-org", target_org,
             "--ignore-conflicts",
+            "--wait", str(wait_minutes),
         ],
         cwd=cwd,
-        timeout=timeout,
+        timeout=wait_minutes * 60 + 60,
         logger=logger,
     )
 
