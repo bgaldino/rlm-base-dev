@@ -67,7 +67,9 @@ Each retrieve records which pages in `flexipages/` are org state (all of them, o
 just the `--name` page) in `retrieve_scope.json`; an `assemble --name` of one of them
 removes it from that list. `diff` and `writeback` refuse to read any other page as
 org state, so after a scoped retrieve they need the same `--name`. An `assemble` of
-every flexipage (no `--name`) clears the record.
+every flexipage (no `--name`) clears the record, after which they refuse to run
+until the next `retrieve`: assembled output is not org state, and writing it back
+could undo template edits made since it was assembled.
 
 ## Feature flags
 
@@ -110,7 +112,8 @@ rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
   refuses to send any page retrieved from an org since the last assemble.
 - `assemble` fails on a patch of an unknown type or missing a required key,
   rather than skipping it and deploying the page without it.
-- `writeback` refuses an empty or missing `flexipages/` directory: run `retrieve` first.
+- `diff` and `writeback` need a `retrieve` first; `writeback` also refuses an empty
+  `flexipages/` directory.
 - `writeback --apply` rewrites a patch file only when the org changed what the
   patch produces, but that rewrite drops the file's YAML comments. Restore any
   rationale comments from `git diff` before committing.

@@ -41,15 +41,21 @@ def org_flexipage_files(org_path: Path, metadata_name: Optional[str] = None) -> 
         )
     files = sorted(f.name for f in org_dir.glob(f"*{FLEXIPAGE_SUFFIX}"))
     org_state = read_org_state(org_path)
-    if org_state is not None:
-        selected = [metadata_name] if metadata_name else files
-        stale = [name for name in selected if name not in org_state]
-        if stale:
-            raise UxOptionError(
-                f"Not org state (assembled, or left over from before the last retrieve) "
-                f"in {org_dir}: {', '.join(stale)}. Org state: "
-                f"{', '.join(sorted(org_state)) or 'none'}. Retrieve the page(s) again."
-            )
+    if org_state is None:
+        # No retrieve since the last full flexipage assembly: the directory is
+        # assembled output, and writing it back could undo template edits.
+        raise UxOptionError(
+            f"{org_dir} holds no retrieved org state (nothing was retrieved since the "
+            "last assemble). Run `ux_tool.py retrieve` or `capture-drift` first."
+        )
+    selected = [metadata_name] if metadata_name else files
+    stale = [name for name in selected if name not in org_state]
+    if stale:
+        raise UxOptionError(
+            f"Not org state (assembled, or left over from before the last retrieve) "
+            f"in {org_dir}: {', '.join(stale)}. Org state: "
+            f"{', '.join(sorted(org_state)) or 'none'}. Retrieve the page(s) again."
+        )
     return files
 
 

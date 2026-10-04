@@ -19,6 +19,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.ux import _sf, ux_tool  # noqa: E402
 from scripts.ux._context import UxContext, UxError, UxOptionError  # noqa: E402
+from scripts.ux._assemble import write_org_state  # noqa: E402
 from scripts.ux._deploy import deploy  # noqa: E402
 from scripts.ux._flags import (  # noqa: E402
     UX_KNOWN_FLAGS,
@@ -74,8 +75,10 @@ def assembled(tmp_path_factory):
 
 @pytest.fixture
 def org_state(assembled, tmp_path):
+    """Assembled output standing in for a full retrieve of every page."""
     dest = tmp_path / "org"
     shutil.copytree(assembled, dest)
+    write_org_state(dest, (f.name for f in (dest / "flexipages").iterdir()))
     return dest
 
 
@@ -299,6 +302,7 @@ def test_diff_detects_removed_region(org_state):
 def test_diff_with_no_org_pages_reports_templates_only(tmp_path):
     """An empty retrieve (the org has none of the pages) is drift, not an error."""
     (tmp_path / "flexipages").mkdir()
+    write_org_state(tmp_path, [QUOTE_PAGE])
     rc = ux_tool.main(["diff", "--output-path", str(tmp_path), "--name", QUOTE_PAGE, "--fail-on-drift"])
     assert rc == ux_tool.EXIT_DRIFT
     assert json.loads((tmp_path / "drift_report.json").read_text())["summary"]["templates_only"] == 1
@@ -309,6 +313,7 @@ def test_diff_with_no_org_pages_reports_templates_only(tmp_path):
 def test_scoped_diff_reports_org_only_page(org_state):
     name = "RLM_Org_Only_Page.flexipage-meta.xml"
     shutil.copyfile(org_state / "flexipages" / QUOTE_PAGE, org_state / "flexipages" / name)
+    write_org_state(org_state, [name])  # as `retrieve --name` of that page leaves it
 
     rc = ux_tool.main(["diff", "--output-path", str(org_state), "--name", name, "--fail-on-drift"])
     assert rc == ux_tool.EXIT_DRIFT
@@ -410,8 +415,9 @@ def test_scoped_retrieve_limits_what_counts_as_org_state(monkeypatch, org_state)
     assert ux_tool.main(["diff", *out]) == ux_tool.EXIT_ERROR
     assert ux_tool.main(["diff", "--name", order_page, *out]) == ux_tool.EXIT_ERROR
     assert ux_tool.main(["diff", "--name", QUOTE_PAGE, *out]) == 0
+    # A full flexipage assemble leaves no org state at all.
     assert ux_tool.main(["assemble", "--type", "flexipages", *out]) == 0
-    assert ux_tool.main(["diff", *out]) == 0
+    assert ux_tool.main(["diff", *out]) == ux_tool.EXIT_ERROR
 
 
 def test_malformed_input_exits_with_the_error_code(org_state):
@@ -620,7 +626,9 @@ def pristine_repo(tmp_path_factory):
 def repo_copy(pristine_repo, tmp_path):
     root = tmp_path / "repo"
     shutil.copytree(pristine_repo, root)
-    return root, root / "out"
+    out = root / "out"
+    write_org_state(out, (f.name for f in (out / "flexipages").iterdir()))  # as a full retrieve
+    return root, out
 
 
 def _apply_drift(root, out):
@@ -1212,3 +1220,12 @@ def test_malformed_or_unknown_patch_fails_assembly():
     root = profile()
     assembler._apply_profile_patch(root, {"type": "add_app_visibility", "application": "RLM_App"})
     assert "RLM_App" in ET.tostring(root, encoding="unicode")
+
+
+def test_org_commands_need_a_retrieve(tmp_path):
+    """Assembled output is not org state: diffing it would report clean, and
+    writing it back could undo template edits made since it was assembled."""
+    out = ["--output-path", str(tmp_path)]
+    assert ux_tool.main(["assemble", *out]) == 0
+    for cmd in (["diff"], ["diff", "--name", QUOTE_PAGE], ["writeback"], ["writeback", "--apply"], ["apply-drift"]):
+        assert ux_tool.main([*cmd, *out]) == ux_tool.EXIT_ERROR, cmd
