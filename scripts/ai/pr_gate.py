@@ -490,6 +490,16 @@ CHECKS = [
                   "tests/test_generate_cci_reference.py", "pyproject.toml"],
         deps=["pytest", "PyYAML"], gating=True,
     ),
+    dict(
+        # scripts/ux/ (UX assembly + drift tooling): pytest-style, so run through pytest. It
+        # assembles the real templates/ and runs writeback against a temp copy of them, so a
+        # template or flag change selects it too; sf is stubbed, so no org is needed.
+        name="ux_tool_suite",
+        cmd=["python", "-m", "pytest", "-q", "tests/test_ux_tool.py"],
+        triggers=["scripts/ux/", "templates/", "tasks/rlm_ux_assembly.py", "cumulusci.yml",
+                  "tests/test_ux_tool.py", "pyproject.toml"],
+        deps=["pytest", "PyYAML"], gating=True,
+    ),
 ]
 
 # Suites that need nothing but the standard library, run as one check. Enumerated rather
