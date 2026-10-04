@@ -824,5 +824,23 @@ def test_moved_or_duplicated_fields_fail_reverse():
     assert reverse_patch(facet_page(["A", "New"], ["B", "New"]), patch, template, None) == FAILED
 
 
+def test_insert_after_xml_renamed_region_fails_reverse():
+    from scripts.ux._patch_ops import FAILED, REMOVED, reverse_patch
+
+    def region(name):
+        return (
+            "<flexiPageRegions><itemInstances><componentInstance><componentName>c:x</componentName>"
+            f"<identifier>c_x</identifier></componentInstance></itemInstances><name>{name}</name>"
+            "<type>Region</type></flexiPageRegions>"
+        )
+
+    patch = {"type": "insert_after_xml", "anchor": "<name>main</name>", "xml": region("feature")}
+    template = ET.fromstring(f'<FlexiPage xmlns="{NS}"><name>main</name></FlexiPage>')
+    org = ET.fromstring(f'<FlexiPage xmlns="{NS}"><name>main</name>{region("feature")}</FlexiPage>')
+    assert reverse_patch(org, patch, template, None) == REMOVED
+    renamed = ET.fromstring(f'<FlexiPage xmlns="{NS}"><name>main</name>{region("renamed")}</FlexiPage>')
+    assert reverse_patch(renamed, patch, template, None) == FAILED
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))

@@ -156,7 +156,10 @@ def _make_context(args, logger: logging.Logger) -> UxContext:
         candidate = _resolve(repo_root, args.output_path) / MANIFEST_NAME
         if candidate.exists():
             manifest = candidate
-            logger.debug(f"Feature flags from {candidate}")
+            logger.info(
+                f"Feature flags from the last assembly ({candidate}); they must match "
+                "what the org has deployed. Override with --flag."
+            )
     features, api_version = resolve_features(
         repo_root, parse_flag_overrides(args.flag), manifest_path=manifest,
     )

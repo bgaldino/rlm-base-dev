@@ -699,6 +699,12 @@ def _identifiers(item: ET.Element) -> List[str]:
     return found
 
 
+def _page_identifiers(root: Optional[ET.Element]) -> Set[str]:
+    if root is None:
+        return set()
+    return {i for item in root.iter(f"{SF_NS_TAG}itemInstances") for i in _identifiers(item)}
+
+
 def _reverse_insert_after_xml(root, patch, template_root, logger) -> str:
     """
     Remove elements that were added by an insert_after_xml patch.
@@ -725,6 +731,10 @@ def _reverse_insert_after_xml(root, patch, template_root, logger) -> str:
         if child_text(region, "name") in names:
             root.remove(region)
             removed_any = True
+    # A renamed region still holds the fragment's components or fields.
+    nested = {i for r in fragment_regions for item in findall_elem(r, "itemInstances") for i in _identifiers(item)}
+    if nested & (_page_identifiers(root) - _page_identifiers(template_root)):
+        return FAILED
 
     # Case 2: Fragment contains itemInstances — remove by component or field identifier
     fragment_items = findall_elem(wrapper, "itemInstances")

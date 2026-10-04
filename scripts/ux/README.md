@@ -76,6 +76,9 @@ Where a command's flags start depends on what it compares:
   A `--type` or `--name` assemble with flags that differ from the last full one
   marks the manifest partial, and these commands then refuse it until a full
   `assemble` is run.
+  The manifest records the last local assembly, not what a given org has
+  deployed: after assembling with other flags, or deploying elsewhere, pass
+  `--flag` for the target org's real flags (the command logs which manifest it read).
 
 `--flag NAME=true|false` (repeatable) overrides either; unknown flag names are
 rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
