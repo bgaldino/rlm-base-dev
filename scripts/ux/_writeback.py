@@ -71,6 +71,9 @@ def writeback(
         if metadata_name not in org_files:
             raise UxOptionError(f"'{metadata_name}' not found in {org_dir}.")
         org_files = [metadata_name]
+    if not org_files:
+        # Nothing retrieved means no org state: reporting success would hide that.
+        raise UxOptionError(f"No org flexipages in {org_dir}; nothing to write back.")
 
     # Reverse every page before writing any, so a failed reversal leaves
     # templates and patch files untouched.

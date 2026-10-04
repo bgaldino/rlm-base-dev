@@ -43,7 +43,7 @@ from typing import List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from scripts.ux._assemble import UxAssembler, VALID_TYPES, read_manifest  # noqa: E402
+from scripts.ux._assemble import UxAssembler, VALID_TYPES, deploy_sources, read_manifest  # noqa: E402
 from scripts.ux._context import UxContext, UxError, UxOptionError  # noqa: E402
 from scripts.ux._deploy import deploy  # noqa: E402
 from scripts.ux._diff import diff, drift_count  # noqa: E402
@@ -187,14 +187,12 @@ def _run(args, logger: logging.Logger) -> int:
         return 0
 
     if args.command == "deploy":
-        recorded = read_manifest(output_path / MANIFEST_NAME)
-        if recorded.get("mixed") or recorded.get("partial"):
-            # A filtered assemble under other flags left output from both runs.
-            raise UxOptionError(
-                f"{output_path} mixes output assembled with different flags. "
-                "Run a full assemble before deploying."
-            )
-        deploy(output_path, args.target_org, logger, cwd=ctx.repo_root)
+        sources = deploy_sources(output_path, read_manifest(output_path / MANIFEST_NAME))
+        if sources is not None:
+            if not sources:
+                raise UxOptionError("The last assemble wrote nothing, so there is nothing to deploy.")
+            logger.info(f"Deploying the {len(sources)} item(s) the last (filtered) assemble wrote.")
+        deploy(output_path, args.target_org, logger, cwd=ctx.repo_root, source_paths=sources)
         return 0
 
     if args.command == "retrieve":

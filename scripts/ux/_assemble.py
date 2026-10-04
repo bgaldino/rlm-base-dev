@@ -156,6 +156,20 @@ def read_manifest(path: Path) -> Dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def deploy_sources(output_path: Path, manifest: Dict[str, Any]) -> Optional[List[Path]]:
+    """What a deploy of ``output_path`` may send, from its latest manifest: None
+    (the whole directory) after a full assembly; after a filtered one, only the
+    files it assembled, since everything else is left over from older runs."""
+    if not manifest or manifest.get("incomplete") or "scope" not in manifest:
+        raise UxOptionError(
+            f"{output_path} has no completed assembly manifest. Run assemble before deploying."
+        )
+    scope = manifest["scope"]
+    if scope.get("type") == "all" and not scope.get("name"):
+        return None
+    return [Path(output_path).parent.parent / item["dest"] for item in manifest.get("assembled", [])]
+
+
 class UxAssembler:
     """
     Assembles feature-conditional UX metadata from templates.
@@ -188,6 +202,13 @@ class UxAssembler:
         features = dict(self.ctx.features)
         self.logger.info(f"Active features: {', '.join(k for k, v in features.items() if v) or 'none'}")
 
+        manifest_path = output_path / "assembly_manifest.json"
+        previous = read_manifest(manifest_path)
+        # Until this run completes, the output is neither the old assembly nor
+        # the new one: no command may trust or deploy it.
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(json.dumps({"incomplete": True}), encoding="utf-8")
+
         # Clean output subdirectories for the types being assembled to prevent stale files
         # from previous runs (e.g. files that are no longer emitted due to skip rules).
         type_subdirs = {
@@ -213,6 +234,7 @@ class UxAssembler:
             "assembled_at": datetime.datetime.now(datetime.timezone.utc)
             .replace(tzinfo=None).isoformat() + "Z",
             "feature_flags": features,
+            "scope": {"type": metadata_type, "name": metadata_name},
             "assembled": [],
             "skipped": [],
         }
@@ -220,62 +242,63 @@ class UxAssembler:
         def should_run(t: str) -> bool:
             return metadata_type in ("all", t)
 
-        if should_run("flexipages"):
-            items, skipped = self._assemble_flexipages(
-                templates_path, output_path, features, metadata_name
-            )
-            manifest["assembled"].extend(items)
-            manifest["skipped"].extend(skipped)
+        try:
+            if should_run("flexipages"):
+                items, skipped = self._assemble_flexipages(
+                    templates_path, output_path, features, metadata_name
+                )
+                manifest["assembled"].extend(items)
+                manifest["skipped"].extend(skipped)
 
-        if should_run("layouts"):
-            items = self._assemble_layouts(
-                templates_path, output_path, features, metadata_name
-            )
-            manifest["assembled"].extend(items)
+            if should_run("layouts"):
+                items = self._assemble_layouts(
+                    templates_path, output_path, features, metadata_name
+                )
+                manifest["assembled"].extend(items)
 
-        if should_run("applications"):
-            items = self._assemble_applications(
-                templates_path, output_path, features, metadata_name
-            )
-            manifest["assembled"].extend(items)
+            if should_run("applications"):
+                items = self._assemble_applications(
+                    templates_path, output_path, features, metadata_name
+                )
+                manifest["assembled"].extend(items)
 
-        # AppSwitcher (appmenus) is no longer assembled — app launcher
-        # ordering is handled dynamically by reorder_app_launcher.
-        # Clean up stale appMenus dir from previous assembler versions.
-        stale_appmenus = output_path / "appMenus"
-        if stale_appmenus.exists():
-            shutil.rmtree(stale_appmenus)
-            self.logger.info("Removed stale appMenus/ directory")
+            # AppSwitcher (appmenus) is no longer assembled — app launcher
+            # ordering is handled dynamically by reorder_app_launcher.
+            # Clean up stale appMenus dir from previous assembler versions.
+            stale_appmenus = output_path / "appMenus"
+            if stale_appmenus.exists():
+                shutil.rmtree(stale_appmenus)
+                self.logger.info("Removed stale appMenus/ directory")
 
-        if should_run("profiles"):
-            items = self._assemble_profiles(
-                templates_path, output_path, features, metadata_name
-            )
-            manifest["assembled"].extend(items)
+            if should_run("profiles"):
+                items = self._assemble_profiles(
+                    templates_path, output_path, features, metadata_name
+                )
+                manifest["assembled"].extend(items)
 
-        if should_run("objects"):
-            items = self._assemble_objects(
-                templates_path, output_path, features, metadata_name
-            )
-            manifest["assembled"].extend(items)
+            if should_run("objects"):
+                items = self._assemble_objects(
+                    templates_path, output_path, features, metadata_name
+                )
+                manifest["assembled"].extend(items)
 
-        if metadata_name and not (manifest["assembled"] or manifest["skipped"]):
-            raise UxOptionError(f"'{metadata_name}' not found in templates.")
+            if metadata_name and not (manifest["assembled"] or manifest["skipped"]):
+                raise UxOptionError(f"'{metadata_name}' not found in templates.")
+        except UxOptionError:
+            if metadata_name and not manifest["assembled"]:
+                # An unknown name wrote nothing, so the previous manifest still
+                # describes the output.
+                if previous:
+                    manifest_path.write_text(json.dumps(previous, indent=2, ensure_ascii=False), encoding="utf-8")
+                else:
+                    manifest_path.unlink()
+            raise
 
-        manifest_path = output_path / "assembly_manifest.json"
-        if metadata_name or metadata_type != "all":
-            # Everything this run skipped keeps the previous run's flags. Unless
-            # those match, the output mixes flag sets and must not be deployed
-            # whole ("mixed"); when the flexipages are among the stale parts,
-            # the drift commands must not trust the flags either ("partial").
-            previous = read_manifest(manifest_path)
-            stale = previous.get("feature_flags") != features
-            if stale or previous.get("mixed") or previous.get("partial"):
-                manifest["mixed"] = True
-            if metadata_name or metadata_type != "flexipages":
-                if stale or previous.get("partial"):
-                    manifest["partial"] = True
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        if metadata_name or metadata_type not in ("all", "flexipages"):
+            # The flexipages in the output keep the previous run's flags. Unless
+            # those match, the drift commands must not trust this manifest.
+            if previous.get("partial") or previous.get("feature_flags") != features:
+                manifest["partial"] = True
         manifest_path.write_text(
             json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
         )

@@ -180,6 +180,11 @@ def flags_from_manifest(manifest_path: Path) -> Dict[str, bool]:
         raise UxOptionError(f"Assembly manifest is not valid JSON: {path} ({exc})") from exc
     if not isinstance(data, dict):
         raise UxOptionError(f"Assembly manifest is not a JSON object: {path}")
+    if data.get("incomplete"):
+        raise UxOptionError(
+            f"Assembly manifest {path} is from an assemble that did not complete. "
+            "Run a full assemble first."
+        )
     if data.get("partial"):
         raise UxOptionError(
             f"Assembly manifest {path} was written by a partial assemble (--type or "

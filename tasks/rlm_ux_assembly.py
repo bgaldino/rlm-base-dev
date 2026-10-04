@@ -34,7 +34,7 @@ except ImportError:
 # Bootstrap the repo root onto sys.path so the scripts.ux package resolves when
 # CCI imports this task module.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.ux._assemble import UxAssembler, validate_selection  # noqa: E402
+from scripts.ux._assemble import UxAssembler, deploy_sources, validate_selection  # noqa: E402
 from scripts.ux._context import DEFAULT_API_VERSION, UxContext, UxError, UxOptionError  # noqa: E402
 from scripts.ux._deploy import deploy  # noqa: E402
 from scripts.ux._flags import features_from_custom, to_bool  # noqa: E402
@@ -127,9 +127,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                     )
                 # A filtered run leaves the other outputs in place; deploy only
                 # what it assembled.
-                sources = None
-                if metadata_name or metadata_type != "all":
-                    sources = [output_path.parent.parent / item["dest"] for item in manifest["assembled"]]
+                sources = deploy_sources(output_path, manifest)
                 deploy(output_path, username, self.logger, cwd=repo_root, source_paths=sources)
         except UxOptionError as exc:
             raise TaskOptionsError(str(exc)) from exc

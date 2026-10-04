@@ -76,6 +76,7 @@ Where a command's flags start depends on what it compares:
   A manifest missing a known flag (older than the flag) is refused unless
   `--flag` supplies it, rather than taking the `cumulusci.yml` default; a
   non-boolean flag value is refused rather than read as false.
+  A manifest from an assemble that failed partway is refused.
   A `--type` (other than `flexipages`) or `--name` assemble with flags that
   differ from the last full one marks the manifest partial, and these commands
   then refuse it until a full `assemble` is run. A `--type flexipages` run
@@ -97,9 +98,11 @@ rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
   A page in the org but not in the active templates is saved as a new base
   template, unless an inactive standalone feature owns it: that is a flag
   mismatch, and writeback aborts the same way.
-- `deploy` treats `SucceededPartial` as a failure, and refuses output that any
-  `--type`/`--name` assemble under other flags (including `--type flexipages`)
-  has left mixed, until a full `assemble`.
+- `deploy` treats `SucceededPartial` as a failure. After a `--type`/`--name`
+  assemble it deploys only the files that run wrote, since the rest of the output
+  is left over from earlier runs. It refuses output without a completed
+  assembly manifest, including one an assemble left unfinished by failing.
+- `writeback` refuses an empty or missing `flexipages/` directory: run `retrieve` first.
 - `writeback --apply` rewrites a patch file only when the org changed what the
   patch produces, but that rewrite drops the file's YAML comments. Restore any
   rationale comments from `git diff` before committing.

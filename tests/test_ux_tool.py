@@ -199,31 +199,46 @@ def test_partial_assemble_with_other_flags_marks_manifest_partial(tmp_path):
     assert "partial" not in json.loads(manifest.read_text())
 
 
-def test_flexipage_assemble_with_other_flags_blocks_deploy(monkeypatch, tmp_path):
-    """--type flexipages refreshes every flexipage (drift may trust it), but the
-    layouts and applications keep the old flags, so the output must not deploy whole."""
+def test_filtered_assemble_deploys_only_what_it_wrote(monkeypatch, tmp_path):
+    """After a --type/--name assemble, everything else in the output is left
+    over from older runs, so deploy sends only the files the last run wrote."""
     fake = FakeSf({"status": 0, "result": {"status": "Succeeded"}})
     monkeypatch.setattr(_sf.subprocess, "run", fake)
-    name = UX_KNOWN_FLAGS[0]
-    defaults, _ = resolve_features(REPO_ROOT)
     out = ["--output-path", str(tmp_path)]
-    manifest = tmp_path / "assembly_manifest.json"
     deploy_cmd = ["deploy", *out, "-o", "x"]
 
     assert ux_tool.main(["assemble", *out]) == 0
-    assert ux_tool.main(["assemble", "--type", "flexipages", *out]) == 0
-    assert ux_tool.main(deploy_cmd) == 0, "same flags: still deployable"
-
-    assert ux_tool.main([
-        "assemble", "--type", "flexipages", *out, "--flag", f"{name}={not defaults[name]}",
-    ]) == 0
-    recorded = json.loads(manifest.read_text())
-    assert recorded["mixed"] is True and "partial" not in recorded
-    assert ux_tool.main(deploy_cmd) == ux_tool.EXIT_ERROR
-    assert len(fake.calls) == 1
-
-    assert ux_tool.main(["assemble", *out]) == 0
     assert ux_tool.main(deploy_cmd) == 0
+    assert _arg(fake.calls[-1][0], "--source-dir") == str(tmp_path), "full run: whole directory"
+
+    for selection in (["--type", "flexipages"], ["--name", "RLM_Quote_Record_Page.flexipage-meta.xml"]):
+        assert ux_tool.main(["assemble", *selection, *out]) == 0
+        assert ux_tool.main(deploy_cmd) == 0
+        cmd = fake.calls[-1][0]
+        dirs = [cmd[i + 1] for i, a in enumerate(cmd) if a == "--source-dir"]
+        assert dirs and all("/flexipages/" in d for d in dirs), selection
+        if selection[0] == "--name":
+            assert dirs == [str(tmp_path / "flexipages" / selection[1])]
+
+
+def test_deploy_refuses_an_incomplete_assembly(monkeypatch, tmp_path):
+    """An assemble that fails after clearing the output must not leave the
+    previous manifest vouching for it."""
+    from scripts.ux import _assemble
+
+    fake = FakeSf({"status": 0, "result": {"status": "Succeeded"}})
+    monkeypatch.setattr(_sf.subprocess, "run", fake)
+    out = ["--output-path", str(tmp_path)]
+    assert ux_tool.main(["assemble", *out]) == 0
+
+    def boom(*args, **kwargs):
+        raise UxError("malformed template")
+
+    monkeypatch.setattr(_assemble.UxAssembler, "_assemble_layouts", boom)
+    assert ux_tool.main(["assemble", *out]) == ux_tool.EXIT_ERROR
+    assert ux_tool.main(["deploy", *out, "-o", "x"]) == ux_tool.EXIT_ERROR
+    assert ux_tool.main(["diff", *out]) == ux_tool.EXIT_ERROR
+    assert not fake.calls
 
 
 # ── assemble + diff ──────────────────────────────────────────────────────────
@@ -500,16 +515,21 @@ def test_validate_selection_rejects_paths(name):
         validate_selection("flexipages", name, ("flexipages",))
 
 
-def test_cli_deploy_refuses_partial_manifest(monkeypatch, tmp_path):
-    """Partial output mixes flag sets, so deploying all of it must be refused."""
+def test_cli_deploy_needs_a_completed_manifest(monkeypatch, tmp_path):
     fake = FakeSf({"status": 0, "result": {"status": "Succeeded"}})
     monkeypatch.setattr(_sf.subprocess, "run", fake)
-    (tmp_path / "assembly_manifest.json").write_text(json.dumps({"partial": True}))
+    manifest = tmp_path / "assembly_manifest.json"
+    cmd = ["deploy", "--output-path", str(tmp_path), "-o", "x"]
 
-    assert ux_tool.main(["deploy", "--output-path", str(tmp_path), "-o", "x"]) == ux_tool.EXIT_ERROR
+    assert ux_tool.main(cmd) == ux_tool.EXIT_ERROR, "no manifest"
+    for content in ({"incomplete": True}, {"feature_flags": {}}):  # the latter predates scope
+        manifest.write_text(json.dumps(content))
+        assert ux_tool.main(cmd) == ux_tool.EXIT_ERROR, content
+    manifest.write_text(json.dumps({"scope": {"type": "layouts", "name": None}, "assembled": []}))
+    assert ux_tool.main(cmd) == ux_tool.EXIT_ERROR, "filtered run wrote nothing"
     assert not fake.calls
-    (tmp_path / "assembly_manifest.json").write_text(json.dumps({"feature_flags": {}}))
-    assert ux_tool.main(["deploy", "--output-path", str(tmp_path), "-o", "x"]) == 0
+    manifest.write_text(json.dumps({"scope": {"type": "all", "name": None}, "assembled": []}))
+    assert ux_tool.main(cmd) == 0
 
 
 def test_deploy_needs_target_and_directory(tmp_path):
@@ -1034,3 +1054,10 @@ def test_insert_after_xml_renamed_region_fails_reverse():
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))
+
+
+def test_writeback_with_no_org_flexipages_is_an_error(tmp_path):
+    """An empty or missing flexipages/ means nothing was retrieved, not no drift."""
+    (tmp_path / "flexipages").mkdir()
+    for apply in ([], ["--apply"]):
+        assert ux_tool.main(["writeback", *apply, "--output-path", str(tmp_path)]) == ux_tool.EXIT_ERROR
