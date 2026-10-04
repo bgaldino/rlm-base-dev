@@ -106,34 +106,64 @@ def _apply_remove_action(root: ET.Element, patch: Patch, logger) -> None:
         logger.warning(f"remove_action: action '{action}' not found in flexipage")
 
 
+def _remove_action_lists(template_root: ET.Element, root: ET.Element, action: str):
+    """The actionNames lists a remove_action patch touched, as ``(t_list, org_list)``.
+
+    ``t_list`` is the first template list holding ``action``, the one the forward
+    patch removed it from. ``org_list`` is the org list that shares the most
+    other actions with it; a tie goes to the list at the same position, and is
+    otherwise ambiguous (None). Action names repeat across lists (``New`` is on
+    many), so the org list must be matched rather than searched for the name.
+    """
+    t_lists = list(value_lists(template_root, "actionNames"))
+    t_index = next((i for i, v in enumerate(t_lists) if action in list_values(v)), None)
+    if t_index is None:
+        return None, None
+    t_list = t_lists[t_index]
+    others = set(list_values(t_list)) - {action}
+    org_lists = list(value_lists(root, "actionNames"))
+    overlap = [len(others & set(list_values(v))) for v in org_lists]
+    best = max(overlap, default=0)
+    if not best:
+        return t_list, None
+    tied = [i for i, n in enumerate(overlap) if n == best]
+    if len(tied) == 1:
+        return t_list, org_lists[tied[0]]
+    return t_list, (org_lists[t_index] if t_index in tied else None)
+
+
 def _reverse_remove_action(root, patch, template_root, logger) -> str:
     """Put back the action the patch removed, copied from the template and placed
-    after the nearest template action that precedes it in the org list."""
+    after the nearest template action that precedes it in the matching org list."""
     action = patch.get("action")
-    if not action or action in _all_values(root, "actionNames"):
+    if not action:
         return ABSENT
     if template_root is None:
         return FAILED
-    for t_vlist in value_lists(template_root, "actionNames"):
-        t_items = value_items(t_vlist)
-        names = [item_value(item) for item in t_items]
-        if action not in names:
-            continue
-        idx = names.index(action)
-        for vlist in value_lists(root, "actionNames"):
-            org_items = {item_value(item): item for item in value_items(vlist)}
-            if not org_items.keys() & set(names):
-                continue
-            anchor = next((org_items[n] for n in reversed(names[:idx]) if n in org_items), None)
-            at = list(vlist).index(anchor) + 1 if anchor is not None else 0
-            vlist.insert(at, copy.deepcopy(t_items[idx]))
-            return REMOVED
-    return FAILED
+    t_list, vlist = _remove_action_lists(template_root, root, action)
+    if t_list is None:
+        return ABSENT if action in _all_values(root, "actionNames") else FAILED
+    if vlist is None:
+        return FAILED
+    org_items = {item_value(item): item for item in value_items(vlist)}
+    if action in org_items:
+        return ABSENT
+    t_items = value_items(t_list)
+    names = [item_value(item) for item in t_items]
+    idx = names.index(action)
+    anchor = next((org_items[n] for n in reversed(names[:idx]) if n in org_items), None)
+    at = list(vlist).index(anchor) + 1 if anchor is not None else 0
+    vlist.insert(at, copy.deepcopy(t_items[idx]))
+    return REMOVED
 
 
 def _refresh_remove_action(patch: Patch, page: PagePair) -> Optional[Patch]:
-    """Drop the patch once the org has the action again."""
-    return None if patch.get("action") in _all_values(page.org_root, "actionNames") else patch
+    """Drop the patch once the org list it removed from has the action again."""
+    action = patch.get("action")
+    t_list, vlist = _remove_action_lists(page.base_root, page.org_root, action)
+    if t_list is None:
+        return None if action in _all_values(page.org_root, "actionNames") else patch
+    return None if vlist is not None and action in list_values(vlist) else patch
 
 
 # ---------------------------------------------------------------------------

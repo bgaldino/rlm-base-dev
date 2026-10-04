@@ -6,7 +6,7 @@ alias and never an access token. The CCI wrapper passes
 """
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from scripts.ux._context import UxError, UxOptionError
 from scripts.ux._sf import cli_error, run_sf_json
@@ -22,8 +22,12 @@ def deploy(
     logger: Optional[logging.Logger] = None,
     wait_minutes: int = DEPLOY_WAIT_MINUTES,
     cwd: Optional[Path] = None,
+    source_paths: Optional[List[Path]] = None,
 ) -> Dict[str, Any]:
     """Deploy ``output_path`` to ``target_org``; return the sf ``result`` payload.
+
+    ``source_paths`` limits the deploy to those files under ``output_path``
+    (a filtered assembly), instead of everything in it.
 
     ``cwd`` is the sf project root (the directory holding sfdx-project.json);
     sf resolves ``--source-dir`` against the project there.
@@ -34,11 +38,12 @@ def deploy(
     if not Path(output_path).is_dir():
         raise UxOptionError(f"Nothing to deploy: {output_path} does not exist.")
 
-    logger.info(f"Deploying {output_path} → {target_org}")
+    sources = [str(p) for p in source_paths] if source_paths else [str(output_path)]
+    logger.info(f"Deploying {', '.join(sources)} → {target_org}")
     output = run_sf_json(
         [
             "project", "deploy", "start",
-            "--source-dir", str(output_path),
+            *[arg for src in sources for arg in ("--source-dir", src)],
             "--target-org", target_org,
             "--ignore-conflicts",
             "--wait", str(wait_minutes),

@@ -112,12 +112,10 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ),
             logger=self.logger or logging.getLogger("rlm_ux"),
         )
+        metadata_type = self.options.get("metadata_type", "all")
+        metadata_name = self.options.get("metadata_name")
         try:
-            manifest = UxAssembler(ctx).run(
-                output_path,
-                self.options.get("metadata_type", "all"),
-                self.options.get("metadata_name"),
-            )
+            manifest = UxAssembler(ctx).run(output_path, metadata_type, metadata_name)
             if should_deploy:
                 if not manifest["assembled"]:
                     self.logger.warning("No items assembled — skipping deploy")
@@ -127,7 +125,12 @@ class AssembleAndDeployUX(SFDXBaseTask):
                     raise TaskOptionsError(
                         "Org config has no username. Cannot deploy without a target org."
                     )
-                deploy(output_path, username, self.logger, cwd=repo_root)
+                # A filtered run leaves the other outputs in place; deploy only
+                # what it assembled.
+                sources = None
+                if metadata_name or metadata_type != "all":
+                    sources = [output_path.parent.parent / item["dest"] for item in manifest["assembled"]]
+                deploy(output_path, username, self.logger, cwd=repo_root, source_paths=sources)
         except UxOptionError as exc:
             raise TaskOptionsError(str(exc)) from exc
         except UxError as exc:

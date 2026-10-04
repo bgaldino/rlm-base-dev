@@ -2,10 +2,12 @@
 """Offline tests for scripts/ux/ (UX assembly + drift tooling). sf is stubbed."""
 
 import json
+import logging
 import re
 import shutil
 import subprocess
 import sys
+import types
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -369,6 +371,40 @@ def test_deploy_success(monkeypatch, tmp_path):
     assert int(_arg(cmd, "--wait")) * 60 < kwargs["timeout"]
 
 
+def test_deploy_limits_to_source_paths(monkeypatch, tmp_path):
+    fake = FakeSf({"status": 0, "result": {"status": "Succeeded", "numberComponentsDeployed": 1}})
+    monkeypatch.setattr(_sf.subprocess, "run", fake)
+
+    one, two = tmp_path / "flexipages" / "A.flexipage-meta.xml", tmp_path / "profiles" / "B.profile-meta.xml"
+    deploy(tmp_path, "my-scratch", source_paths=[one, two])
+
+    cmd, _ = fake.calls[0]
+    assert [cmd[i + 1] for i, arg in enumerate(cmd) if arg == "--source-dir"] == [str(one), str(two)]
+
+
+def test_cci_filtered_assembly_deploys_only_what_it_assembled(monkeypatch, tmp_path):
+    """A --name run leaves the other outputs in place; the CCI task must not deploy them."""
+    import tasks.rlm_ux_assembly as task_mod
+
+    deployed = []
+    monkeypatch.setattr(task_mod, "deploy", lambda out, user, logger, cwd, source_paths: deployed.append(source_paths))
+    repo = tmp_path / "repo"
+    shutil.copytree(REPO_ROOT / "templates", repo / "templates")
+    task = task_mod.AssembleAndDeployUX.__new__(task_mod.AssembleAndDeployUX)
+    task.project_config = types.SimpleNamespace(repo_root=str(repo), project__custom={}, project__package__api_version="68.0")
+    task.org_config = types.SimpleNamespace(username="me@example.com")
+    task.logger = logging.getLogger("test")
+
+    task.options = {}
+    task._run_task()
+    assert deployed[-1] is None  # full run: the whole output directory
+
+    name = "RLM_Quote_Record_Page.flexipage-meta.xml"
+    task.options = {"metadata_name": name}
+    task._run_task()
+    assert deployed[-1] == [repo / "unpackaged" / "post_ux" / "flexipages" / name]
+
+
 def test_deploy_reports_component_failures(monkeypatch, tmp_path):
     failure = {"componentType": "FlexiPage", "fullName": "RLM_X", "problem": "bad region"}
     payload = {"status": 1, "result": {"status": "Failed", "details": {"componentFailures": failure}}}
@@ -705,6 +741,34 @@ def test_remove_action_reverse_restores_template_action():
     assert ET.tostring(org).count(b"visibilityRule") == 2  # opening + closing tag, copied from the template
     # Already back in the org: nothing to restore, and refresh drops the patch.
     assert reverse_patch(org, patch, template, None) == ABSENT
+    assert refresh_patch(patch, PagePair(template, org, "", "")) is None
+
+
+def test_remove_action_reverse_targets_the_list_it_removed_from():
+    """Action names repeat across lists: a copy in another list does not mean
+    the removed one is back."""
+    from scripts.ux._patch_ops import REMOVED, PagePair, refresh_patch, reverse_patch
+
+    def page(*lists):
+        body = "".join(
+            "<itemInstances><componentInstance><componentInstanceProperties><name>actionNames</name>"
+            "<valueList>" + "".join(map(_action, names)) + "</valueList></componentInstanceProperties>"
+            "</componentInstance></itemInstances>"
+            for names in lists
+        )
+        return ET.fromstring(f'<FlexiPage xmlns="{NS}">{body}</FlexiPage>')
+
+    def lists(root):
+        from scripts.ux._xml import list_values, value_lists
+        return [list_values(v) for v in value_lists(root, "actionNames")]
+
+    patch = {"type": "remove_action", "action": "New"}
+    template = page(["Edit", "Clone"], ["Delete", "New", "Share"])
+    org = page(["Edit", "New", "Clone"], ["Delete", "Share"])  # forward removed New from the 2nd list only
+
+    assert refresh_patch(patch, PagePair(template, org, "", "")) == patch
+    assert reverse_patch(org, patch, template, None) == REMOVED
+    assert lists(org) == [["Edit", "New", "Clone"], ["Delete", "New", "Share"]]
     assert refresh_patch(patch, PagePair(template, org, "", "")) is None
 
 
