@@ -180,7 +180,13 @@ def flags_from_manifest(manifest_path: Path) -> Dict[str, bool]:
         raise UxOptionError(f"Assembly manifest is not valid JSON: {path} ({exc})") from exc
     if not isinstance(data, dict):
         raise UxOptionError(f"Assembly manifest is not a JSON object: {path}")
-    recorded = data.get("feature_flags") or {}
+    if data.get("partial"):
+        raise UxOptionError(
+            f"Assembly manifest {path} was written by a partial assemble (--type or "
+            "--name) whose flags may not match the deployed flexipages. Run a full "
+            "assemble first."
+        )
+    recorded = data.get("feature_flags", {})
     if not isinstance(recorded, dict):
         raise UxOptionError(f"Assembly manifest feature_flags is not an object: {path}")
     return {k: to_bool(v) for k, v in recorded.items() if k in UX_KNOWN_FLAGS}

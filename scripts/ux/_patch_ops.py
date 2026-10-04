@@ -618,6 +618,14 @@ def _reverse_add_component(root, patch, template_root, logger) -> str:
             if _component_item(item, identifier):
                 region.remove(item)
                 return REMOVED
+    # Moved to another region in the org: writing the page back would put it
+    # in the template while the patch adds it again in its own region.
+    def holds(tree):
+        return tree is not None and any(
+            _component_item(item, identifier) for item in tree.iter(f"{SF_NS_TAG}itemInstances")
+        )
+    if holds(root) and not holds(template_root):
+        return FAILED
     return ABSENT
 
 

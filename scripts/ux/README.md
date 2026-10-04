@@ -73,6 +73,9 @@ Where a command's flags start depends on what it compares:
   `apply-drift`) start from the flags recorded in `<output-path>/assembly_manifest.json`
   by the last assembly, so an org built with runtime overrides is compared against
   what was really deployed. Without a manifest they fall back to `cumulusci.yml`.
+  A `--type` or `--name` assemble with flags that differ from the last full one
+  marks the manifest partial, and these commands then refuse it until a full
+  `assemble` is run.
 
 `--flag NAME=true|false` (repeatable) overrides either; unknown flag names are
 rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.

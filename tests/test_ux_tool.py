@@ -137,11 +137,36 @@ def test_org_commands_default_to_manifest_flags(tmp_path):
     assert _features_for(["assemble", *out])[name] is defaults[name], "assemble ignores the manifest"
 
 
-@pytest.mark.parametrize("content", ["{not json", "[]", '{"feature_flags": true}'])
+@pytest.mark.parametrize("content", [
+    "{not json", "[]", '{"feature_flags": true}', '{"feature_flags": []}',
+    '{"feature_flags": false}', '{"feature_flags": null}', '{"partial": true}',
+])
 def test_corrupt_manifest_exits_with_error(tmp_path, content):
     (tmp_path / "flexipages").mkdir()
     (tmp_path / "assembly_manifest.json").write_text(content)
     assert ux_tool.main(["diff", "--output-path", str(tmp_path)]) == ux_tool.EXIT_ERROR
+
+
+def test_partial_assemble_with_other_flags_marks_manifest_partial(tmp_path):
+    """A --type/--name run leaves the flexipages from the previous run, so its
+    flags must not become the drift commands' flags unless they match."""
+    name = UX_KNOWN_FLAGS[0]
+    defaults, _ = resolve_features(REPO_ROOT)
+    out = ["--output-path", str(tmp_path)]
+    manifest = tmp_path / "assembly_manifest.json"
+
+    assert ux_tool.main(["assemble", *out]) == 0
+    assert ux_tool.main(["assemble", "--type", "layouts", *out]) == 0
+    assert "partial" not in json.loads(manifest.read_text()), "same flags: still trusted"
+
+    assert ux_tool.main([
+        "assemble", "--type", "layouts", *out, "--flag", f"{name}={not defaults[name]}",
+    ]) == 0
+    assert json.loads(manifest.read_text())["partial"] is True
+    assert ux_tool.main(["diff", *out]) == ux_tool.EXIT_ERROR
+
+    assert ux_tool.main(["assemble", *out]) == 0
+    assert "partial" not in json.loads(manifest.read_text())
 
 
 # ── assemble + diff ──────────────────────────────────────────────────────────
@@ -742,6 +767,26 @@ def test_add_component_refresh_carries_org_properties():
     assert refresh_patch(patch, PagePair(same, same, "", "")) is patch
     edited = page({"maxRecords": "10"})
     assert refresh_patch(patch, PagePair(edited, edited, "", ""))["properties"] == {"maxRecords": "10"}
+
+
+def test_add_component_moved_to_another_region_fails_reverse():
+    from scripts.ux._patch_ops import ABSENT, FAILED, reverse_patch
+
+    def page(region):
+        return ET.fromstring(
+            f'<FlexiPage xmlns="{NS}"><flexiPageRegions>'
+            + ("<itemInstances><componentInstance><componentName>c:x</componentName>"
+               "<identifier>c_x</identifier></componentInstance></itemInstances>" if region == "r" else "")
+            + "<name>r</name></flexiPageRegions><flexiPageRegions>"
+            + ("<itemInstances><componentInstance><componentName>c:x</componentName>"
+               "<identifier>c_x</identifier></componentInstance></itemInstances>" if region == "s" else "")
+            + "<name>s</name></flexiPageRegions></FlexiPage>"
+        )
+
+    patch = {"type": "add_component", "region": "r", "component": "c:x", "identifier": "c_x"}
+    template = page(None)
+    assert reverse_patch(page("s"), patch, template, None) == FAILED
+    assert reverse_patch(page(None), patch, template, None) == ABSENT
 
 
 if __name__ == "__main__":
