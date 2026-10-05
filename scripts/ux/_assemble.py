@@ -27,11 +27,13 @@ import xml.etree.ElementTree as ET
 
 from scripts.ux._context import UxContext, UxError, UxOptionError
 from scripts.ux._flags import (
+    APP_PATCH_ORDER,
     FLEXIPAGE_SUFFIX,
     LAYOUT_SUFFIX,
     PERSONAS_PROFILES,
     active_layout_tiers,
     active_patch_files,
+    gate_enabled,
     load_yaml,
     resolve_flexipage_sources,
 )
@@ -632,9 +634,8 @@ class UxAssembler:
                 # TSO template already contains all overrides; patches only run for non-TSO builds.
                 patches_applied = []
                 if not features.get("tso"):
-                    patch_features = ["billing", "payments", "rates", "prm_pricing"]
-                    for pf in patch_features:
-                        if not features.get(pf):
+                    for gate, pf in APP_PATCH_ORDER:
+                        if not gate_enabled(gate, features):
                             continue
                         patch_file = app_base / "patches" / pf / rev_cloud_name.replace(".app-meta.xml", ".patch.xml")
                         if not patch_file.exists():

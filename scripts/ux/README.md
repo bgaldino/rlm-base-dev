@@ -97,6 +97,15 @@ Where a command's flags start depends on what it compares:
 `--flag NAME=true|false` (repeatable) overrides either; unknown flag names are
 rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
 
+A tier (standalone page directory, flexipage patch, app patch or layout tier) is
+assembled only when every flag in its gate is on. Gates mirror the `when:` of the
+deploy steps that ship the metadata the tier references, so turning a parent flag
+off drops the tier too: `approvals` needs `quantumbit and approvals`, and
+`prm_pricing` needs `prm and prm_pricing`. For example, `--flag prm=false` drops
+the Channel Program pages and the PRM pricing patches even though
+`prm_pricing` is still true. The gates are defined in `_flags.py`; see
+[Dynamic UX Assembly](../../docs/features/dynamic-ux-assembly.md#flexipages).
+
 ## Safety
 
 - `writeback` is a **dry run** unless `--apply` is given. It keeps no backup
@@ -129,7 +138,7 @@ rejected. `python scripts/ux/ux_tool.py flags` prints the `cumulusci.yml` view.
 |--------|----------|
 | `ux_tool.py` | argparse CLI (`main(argv)` is importable for tests) |
 | `_context.py` | `UxContext`, `UxError`, `UxOptionError` |
-| `_flags.py` | Known flags, `_STANDALONE_ORDER`, `FLEXIPAGE_PATCH_ORDER`, `LAYOUT_TIERS`, source suffixes, flexipage source resolver, flag loading/precedence |
+| `_flags.py` | Known flags, tier gates (`gate_enabled`), `_STANDALONE_ORDER`, `FLEXIPAGE_PATCH_ORDER`, `APP_PATCH_ORDER`, `LAYOUT_TIERS`, source suffixes, flexipage source resolver, flag loading/precedence |
 | `_xml.py` | Salesforce metadata XML helpers: namespace, `write_xml`, element and valueList lookups |
 | `_patch_ops.py` | One entry per flexipage patch type (apply, reverse, describe, refresh); add a patch type here |
 | `_assemble.py` | `UxAssembler` (`run`, `assemble_flexipages`), selection validation, profile/app/object patches |

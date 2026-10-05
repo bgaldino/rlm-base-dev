@@ -1256,3 +1256,133 @@ def test_interrupted_retrieve_leaves_output_unusable(monkeypatch, tmp_path):
     monkeypatch.setattr(_sf.subprocess, "run", FakeSf({"status": 0, "result": {"status": "Succeeded"}}))
     assert ux_tool.main(["assemble", *out]) == 0
     assert ux_tool.main(["deploy", "-o", "x", *out]) == 0
+
+
+# ── compound tier gates (issue #505) ──────────────────────────────────────────
+
+APPROVALS_REFS = (
+    "Quote.RLM_Submit_for_Approval", "RLM_Approval__c", "RLM_Approval_Status__c",
+    "RLM_Payment_Terms__c", "RLM_Approval_Level__c",
+)
+PRM_PRICING_PAGES = (
+    "RLM_Channel_Program_Record_Page.flexipage-meta.xml",
+    "RLM_Channel_Program_Level_Record_Page.flexipage-meta.xml",
+)
+
+
+def _assemble_with(tmp_path, *flags):
+    out = tmp_path / "out"
+    args = ["assemble", "--output-path", str(out)]
+    for flag in flags:
+        args += ["--flag", flag]
+    assert ux_tool.main(args) == 0
+    return out
+
+
+def _deploy_gate(flow, task):
+    """Flags in the ``when:`` of the cumulusci.yml steps of ``flow`` running ``task``."""
+    from scripts.ux._flags import load_yaml
+
+    steps = load_yaml(REPO_ROOT / "cumulusci.yml")["flows"][flow]["steps"].values()
+    whens = {step["when"] for step in steps if step.get("task") == task}
+    assert len(whens) == 1, f"{flow}.{task} steps disagree on their gate: {whens}"
+    when = whens.pop()
+    # Only a plain conjunction maps onto a Gate.
+    assert re.fullmatch(r"project_config\.project__custom__\w+( and project_config\.project__custom__\w+)*", when)
+    return set(re.findall(r"project__custom__(\w+)", when))
+
+
+@pytest.mark.parametrize("gate_name, flow, task", [
+    ("APPROVALS_GATE", "prepare_approvals", "deploy_post_approvals"),
+    ("PRM_PRICING_GATE", "deploy_post_prm_pricing", "deploy_post_prm_pricing_objects"),
+])
+def test_tier_gates_mirror_their_deploy_steps(gate_name, flow, task):
+    from scripts.ux import _flags
+
+    gate = getattr(_flags, gate_name)
+    assert set(gate) == _deploy_gate(flow, task)
+    assert all(flag in UX_KNOWN_FLAGS for flag in gate)
+
+
+def test_tables_use_the_compound_gates():
+    from scripts.ux._flags import (
+        APP_PATCH_ORDER, APPROVALS_GATE, FLEXIPAGE_PATCH_ORDER, PRM_PRICING_GATE, _STANDALONE_ORDER,
+    )
+
+    assert dict(_STANDALONE_ORDER)["approvals"] == APPROVALS_GATE
+    assert dict(_STANDALONE_ORDER)["prm_pricing"] == PRM_PRICING_GATE
+    patches = {d: g for g, d in FLEXIPAGE_PATCH_ORDER}
+    assert patches["approvals"] == APPROVALS_GATE
+    assert patches["prm_pricing"] == PRM_PRICING_GATE
+    assert {d: g for g, d in APP_PATCH_ORDER}["prm_pricing"] == PRM_PRICING_GATE
+
+
+def test_gate_enabled_needs_every_flag():
+    from scripts.ux._flags import gate_enabled
+
+    assert gate_enabled((), {})
+    assert gate_enabled(("prm", "prm_pricing"), {"prm": True, "prm_pricing": True})
+    assert not gate_enabled(("prm", "prm_pricing"), {"prm": False, "prm_pricing": True})
+    assert not gate_enabled(("prm", "prm_pricing"), {"prm_pricing": True})
+
+
+def test_approvals_is_a_known_flag():
+    assert parse_flag_overrides(["approvals=false"]) == {"approvals": False}
+
+
+def test_default_assembly_keeps_approvals_and_prm_pricing(assembled):
+    quote = (assembled / "flexipages" / QUOTE_PAGE).read_text(encoding="utf-8")
+    for ref in APPROVALS_REFS + ("Quote.RLM_Create_Proposal",):
+        assert ref in quote
+    for page in PRM_PRICING_PAGES:
+        assert (assembled / "flexipages" / page).exists()
+    assert "RLM_Channel_Program_Record_Page" in (
+        assembled / "applications" / "RLM_Revenue_Cloud.app-meta.xml"
+    ).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("flag", ["approvals=false", "quantumbit=false"])
+def test_docgen_without_approvals_emits_no_approval_references(tmp_path, flag):
+    out = _assemble_with(tmp_path, flag, "docgen=true")
+    quote = (out / "flexipages" / QUOTE_PAGE).read_text(encoding="utf-8")
+    assert "Quote.RLM_Create_Proposal" in quote
+    for ref in APPROVALS_REFS:
+        assert ref not in quote
+
+
+@pytest.mark.parametrize("flag", ["prm=false", "prm_pricing=false"])
+def test_prm_pricing_tier_needs_prm(tmp_path, flag):
+    out = _assemble_with(tmp_path, flag)
+    for page in PRM_PRICING_PAGES:
+        assert not (out / "flexipages" / page).exists()
+    account = (out / "flexipages" / "RLM_Account_Record_Page.flexipage-meta.xml").read_text(encoding="utf-8")
+    assert "RLM_Primary_Reseller__c" not in account
+    app = (out / "applications" / "RLM_Revenue_Cloud.app-meta.xml").read_text(encoding="utf-8")
+    assert "RLM_Channel_Program" not in app
+
+
+@pytest.mark.parametrize("custom, expect_prm_pages, expect_approvals", [
+    ({}, True, True),
+    ({"prm": False}, False, True),
+    ({"approvals": False}, True, False),
+])
+def test_cci_task_applies_the_same_gates(tmp_path, custom, expect_prm_pages, expect_approvals):
+    """The CCI wrapper reads project.custom; it must gate tiers exactly as the CLI does."""
+    import tasks.rlm_ux_assembly as task_mod
+    from scripts.ux._flags import load_project_config
+
+    defaults, _ = load_project_config(REPO_ROOT)
+    repo = tmp_path / "repo"
+    shutil.copytree(REPO_ROOT / "templates", repo / "templates")
+    task = task_mod.AssembleAndDeployUX.__new__(task_mod.AssembleAndDeployUX)
+    task.project_config = types.SimpleNamespace(
+        repo_root=str(repo), project__custom={**defaults, **custom}, project__package__api_version="68.0",
+    )
+    task.logger = logging.getLogger("test")
+    task.options = {"deploy": "false", "metadata_type": "flexipages"}
+    task._run_task()
+
+    pages = repo / "unpackaged" / "post_ux" / "flexipages"
+    assert all((pages / p).exists() == expect_prm_pages for p in PRM_PRICING_PAGES)
+    quote = (pages / QUOTE_PAGE).read_text(encoding="utf-8")
+    assert all((ref in quote) == expect_approvals for ref in APPROVALS_REFS)

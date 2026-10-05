@@ -145,6 +145,23 @@ templates/
 `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → large_stx → collections → personas → prm_pricing`
 *(Canonical order defined in `scripts/ux/_flags.FLEXIPAGE_PATCH_ORDER`)*
 
+**Tier gates**: each standalone directory and patch directory is keyed by a
+*gate*, the flags that must all be true for it to be assembled. A gate mirrors
+the `when:` of the `cumulusci.yml` steps that deploy the metadata the tier
+references, so a page never names a field, action or page the build did not
+deploy. Most gates are the tier's own flag; two are compound:
+
+| Tier | Gate | Deploy steps it mirrors |
+|---|---|---|
+| `approvals` (patch) | `quantumbit and approvals` | `prepare_approvals` → `deploy_post_approvals` |
+| `prm_pricing` (standalone, patch, `RLM_Revenue_Cloud` app patch) | `prm and prm_pricing` | `deploy_post_prm_pricing` |
+
+The `docgen` patch adds only the docgen action (`Quote.RLM_Create_Proposal`).
+The approval action and approval-tracking fields it once also inserted live in
+`unpackaged/post_approvals/`, so they come from the `approvals` patch alone and a
+docgen build without approvals references none of them.
+`tests/test_ux_tool.py` checks the compound gates against `cumulusci.yml`.
+
 **Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
 (platform restriction). During assembly, these pages are skipped, each skip is logged as a
 warning, and the skipped file is recorded (with reason `non_deployable_metadata`) in
@@ -157,7 +174,7 @@ created at runtime by `create_approval_email_templates`.
 
 ```yaml
 feature: approvals          # Informational label
-feature_flag: quantumbit    # Controls whether this patch group is active (checked at CCI level, not in YAML; must be a UX_KNOWN_FLAGS name)
+feature_flag: approvals     # Informational only: the gate in scripts/ux/_flags.FLEXIPAGE_PATCH_ORDER decides whether the patch applies
 patches:
   - type: insert_action
     after: "CreateContract"   # Insert after this action value; omit to append
@@ -214,6 +231,12 @@ No patching — layouts are copied as-is.
 - `tso=true` → `templates/applications/tso/`
 - `quantumbit=true` → `templates/applications/quantumbit/`
 - fallback → `templates/applications/base/`
+
+Non-TSO builds then apply the `actionOverrides` patches in
+`templates/applications/patches/{feature}/`, in the order and with the gates of
+`scripts/ux/_flags.APP_PATCH_ORDER`: `billing`, `payments`, `rates`, and
+`prm_pricing` (gated on `prm and prm_pricing`, like its Channel Program pages).
+The TSO template already carries its overrides.
 
 **Conditional standalone apps** (copied when their flag is active):
 - `standard__BillingConsole` — when `billing=true`

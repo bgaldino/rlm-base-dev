@@ -23,8 +23,25 @@ UX_KNOWN_FLAGS: List[str] = [
     "quantumbit", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans", "large_stx",
-    "collections", "personas", "prm_pricing",
+    "collections", "personas", "prm_pricing", "approvals",
 ]
+
+#: A tier's gate: the flags that must all be true for it to be assembled. It
+#: mirrors the ``when:`` of the cumulusci.yml steps that deploy the metadata the
+#: tier references, so a page never names a field, action or page the build
+#: did not deploy. An empty gate is always active.
+Gate = Tuple[str, ...]
+
+#: ``prepare_approvals`` deploys post_approvals only when both are true.
+APPROVALS_GATE: Gate = ("quantumbit", "approvals")
+#: ``deploy_post_prm_pricing`` deploys post_prm_pricing only when both are true.
+PRM_PRICING_GATE: Gate = ("prm", "prm_pricing")
+
+
+def gate_enabled(gate: Gate, features: Mapping[str, bool]) -> bool:
+    """True when every flag in ``gate`` is on."""
+    return all(features.get(flag, False) for flag in gate)
+
 
 #: Profile templates only assembled when the personas feature flag is true.
 PERSONAS_PROFILES: List[str] = [
@@ -39,58 +56,67 @@ LAYOUT_SUFFIX = ".layout-meta.xml"
 SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
 
 #: Standalone flexipage dirs in deploy order (last writer wins).
-#: Each entry is (directory_name, flag_key).
+#: Each entry is (directory_name, gate).
 #: Order matches the prepare_rlm_org deploy sequence.
-_STANDALONE_ORDER: List[Tuple[str, str]] = [
-    ("payments",    "payments"),
-    ("billing",     "billing"),
-    ("billing_ui",  "billing_ui"),
-    ("quantumbit",  "quantumbit"),
-    ("tso",         "tso"),
-    ("constraints", "constraints"),
-    ("utils",       "quantumbit"),  # utils deploys with quantumbit flow
-    ("docgen",      "docgen"),
-    ("approvals",   "quantumbit"),  # approvals deploys with quantumbit flow
-    ("collections", "collections"),
-    ("prm_pricing", "prm_pricing"),
+_STANDALONE_ORDER: List[Tuple[str, Gate]] = [
+    ("payments",    ("payments",)),
+    ("billing",     ("billing",)),
+    ("billing_ui",  ("billing_ui",)),
+    ("quantumbit",  ("quantumbit",)),
+    ("tso",         ("tso",)),
+    ("constraints", ("constraints",)),
+    ("utils",       ("quantumbit",)),  # utils deploys with quantumbit flow
+    ("docgen",      ("docgen",)),
+    ("approvals",   APPROVALS_GATE),
+    ("collections", ("collections",)),
+    ("prm_pricing", PRM_PRICING_GATE),
 ]
 
-#: Flexipage patch directories in apply order, as (flag_key, patch_dir). The
+#: Flexipage patch directories in apply order, as (gate, patch_dir). The
 #: assembler applies them in this order and writeback reverses them in the
 #: opposite order, so both must read this one list.
-FLEXIPAGE_PATCH_ORDER: List[Tuple[str, str]] = [
-    ("quantumbit",    "quantumbit"),
-    ("quantumbit",    "utils"),
-    ("guidedselling", "guidedselling"),
-    ("billing",       "billing"),
-    ("billing_ui",    "billing_ui"),
-    ("payments",      "payments"),
-    ("quantumbit",    "approvals"),
-    ("docgen",        "docgen"),
-    ("tso",           "tso"),
-    ("constraints",   "constraints"),
-    ("large_stx",     "large_stx"),
-    ("collections",   "collections"),
-    ("personas",      "personas"),
-    ("prm_pricing",   "prm_pricing"),
+FLEXIPAGE_PATCH_ORDER: List[Tuple[Gate, str]] = [
+    (("quantumbit",),    "quantumbit"),
+    (("quantumbit",),    "utils"),
+    (("guidedselling",), "guidedselling"),
+    (("billing",),       "billing"),
+    (("billing_ui",),    "billing_ui"),
+    (("payments",),      "payments"),
+    (APPROVALS_GATE,     "approvals"),
+    (("docgen",),        "docgen"),
+    (("tso",),           "tso"),
+    (("constraints",),   "constraints"),
+    (("large_stx",),     "large_stx"),
+    (("collections",),   "collections"),
+    (("personas",),      "personas"),
+    (PRM_PRICING_GATE,   "prm_pricing"),
+]
+
+#: RLM_Revenue_Cloud actionOverride patches in apply order, as (gate, patch_dir).
+#: Applied only to non-TSO builds; the TSO template already carries its overrides.
+APP_PATCH_ORDER: List[Tuple[Gate, str]] = [
+    (("billing",),     "billing"),
+    (("payments",),    "payments"),
+    (("rates",),       "rates"),
+    (PRM_PRICING_GATE, "prm_pricing"),
 ]
 
 
-#: Layout template tiers in apply order (last writer wins), as (tier, flag_key);
-#: ``None`` means always active. Shared by the assembler and writeback.
-LAYOUT_TIERS: List[Tuple[str, Optional[str]]] = [
-    ("base",        None),
-    ("billing",     "billing"),
-    ("constraints", "constraints"),
+#: Layout template tiers in apply order (last writer wins), as (tier, gate).
+#: Shared by the assembler and writeback.
+LAYOUT_TIERS: List[Tuple[str, Gate]] = [
+    ("base",        ()),
+    ("billing",     ("billing",)),
+    ("constraints", ("constraints",)),
 ]
 
 
 def active_layout_tiers(templates_path: Path, features: Mapping[str, bool]) -> List[Tuple[str, Path]]:
     """``(tier, dir)`` of every enabled layout tier that exists, in apply order."""
     tiers = []
-    for tier, flag in LAYOUT_TIERS:
+    for tier, gate in LAYOUT_TIERS:
         tier_dir = templates_path / "layouts" / tier
-        if (flag is None or features.get(flag, False)) and tier_dir.exists():
+        if gate_enabled(gate, features) and tier_dir.exists():
             tiers.append((tier, tier_dir))
     return tiers
 
@@ -100,9 +126,9 @@ def active_patch_files(
 ) -> List[Tuple[str, Path]]:
     """``(patch_dir_name, path)`` of every enabled patch file for one page, in apply order."""
     found = []
-    for flag, patch_feature in FLEXIPAGE_PATCH_ORDER:
+    for gate, patch_feature in FLEXIPAGE_PATCH_ORDER:
         path = patches_dir / patch_feature / f"{page_stem}.yml"
-        if features.get(flag) and path.exists():
+        if gate_enabled(gate, features) and path.exists():
             found.append((patch_feature, path))
     return found
 
@@ -249,8 +275,8 @@ def resolve_flexipage_sources(
     for f in sorted(base_dir.glob(f"*{FLEXIPAGE_SUFFIX}")):
         sources[f.name] = f
 
-    for feature_dir, flag_key in _STANDALONE_ORDER:
-        if not features.get(flag_key, False):
+    for feature_dir, gate in _STANDALONE_ORDER:
+        if not gate_enabled(gate, features):
             continue
         src_dir = standalone_dir / feature_dir
         if not src_dir.exists():
