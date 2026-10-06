@@ -310,18 +310,11 @@
         </connector>
     </assignments>
     <assignments>
-        <description>The extra assets may not belong to the opportunities' contract, and Initiate Renewal rejects any asset outside the contract it is given, so no contract is passed.</description>
+        <description>The extra assets may not belong to the opportunities' contract, and Initiate Renewal rejects any asset outside the contract it is given, so no contract is passed. The assets themselves are added one by one, so RootAssetIds stays distinct.</description>
         <name>Add_Account_Assets</name>
         <label>Add Account Assets</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>RootAssetIds</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>ExtraAssetIds</elementReference>
-            </value>
-        </assignmentItems>
         <assignmentItems>
             <assignToReference>RenewContractId</assignToReference>
             <operator>Assign</operator>
@@ -330,7 +323,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Has_Root_Asset_Ids</targetReference>
+            <targetReference>Loop_Extra_Asset_Ids</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -351,10 +344,18 @@
         </connector>
     </assignments>
     <assignments>
+        <description>Counts the distinct root assets to renew and the ones the lookup returned, to catch a root asset the user can't read or that was deleted.</description>
         <name>Count_Root_Assets</name>
         <label>Count Root Assets</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>ExpectedRootAssetCount</assignToReference>
+            <operator>AssignCount</operator>
+            <value>
+                <elementReference>RootAssetIds</elementReference>
+            </value>
+        </assignmentItems>
         <assignmentItems>
             <assignToReference>RootAssetCount</assignToReference>
             <operator>AssignCount</operator>
@@ -363,7 +364,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Has_Root_Assets</targetReference>
+            <targetReference>Are_All_Root_Assets_Found</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -488,6 +489,70 @@
         </assignmentItems>
         <connector>
             <targetReference>Loop_Close_Renewals</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Add_Selected_Quote_Id</name>
+        <label>Add Selected Quote Id</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>SelectedQuoteIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Loop_Selected_Quotes.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Selected_Quotes</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Add_Action_Asset_Id</name>
+        <label>Add Action Asset Id</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>LineAssetIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Loop_Selected_Renew_Actions.SourceAssetId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Selected_Renew_Actions</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Add_Extra_Root_Id</name>
+        <label>Add Extra Root Id</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>RootAssetIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Loop_Extra_Asset_Ids</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Extra_Asset_Ids</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Count_Current_Opps</name>
+        <label>Count Current Opps</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>CurrentOppCount</assignToReference>
+            <operator>AssignCount</operator>
+            <value>
+                <elementReference>Get_Current_Opportunities</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Is_Selection_Current</targetReference>
         </connector>
     </assignments>
     <decisions>
@@ -824,28 +889,29 @@
         </rules>
     </decisions>
     <decisions>
-        <name>Has_Root_Assets</name>
-        <label>Has Root Assets</label>
+        <description>Like the line assets, a root asset the user can't read, or one deleted since it was listed, is silently left out of the lookup. Renewing the rest would drop it from the renewal while its opportunity is still closed, so stop instead. Has_Root_Asset_Ids already ensures there is at least one.</description>
+        <name>Are_All_Root_Assets_Found</name>
+        <label>Are All Root Assets Found</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>No_Renewable_Assets</targetReference>
+            <targetReference>Root_Assets_Not_Found</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <defaultConnectorLabel>Some Missing</defaultConnectorLabel>
         <rules>
-            <name>Root_Assets_Found</name>
+            <name>All_Root_Assets_Found</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>RootAssetCount</leftValueReference>
-                <operator>GreaterThan</operator>
+                <operator>EqualTo</operator>
                 <rightValue>
-                    <numberValue>0.0</numberValue>
+                    <elementReference>ExpectedRootAssetCount</elementReference>
                 </rightValue>
             </conditions>
             <connector>
                 <targetReference>Loop_Check_Assets</targetReference>
             </connector>
-            <label>Yes</label>
+            <label>All Found</label>
         </rules>
     </decisions>
     <decisions>
@@ -997,6 +1063,134 @@
             <label>Some</label>
         </rules>
     </decisions>
+    <decisions>
+        <name>Has_Selected_Quotes</name>
+        <label>Has Selected Quotes</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Has_Line_Assets</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>None</defaultConnectorLabel>
+        <rules>
+            <name>Selected_Quotes_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Selected_Quotes</leftValueReference>
+                <operator>IsEmpty</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Selected_Quotes</targetReference>
+            </connector>
+            <label>Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Keeps LineAssetIds distinct: most renew actions name an asset already on a line.</description>
+        <name>Is_New_Action_Asset</name>
+        <label>Is New Action Asset</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Add_Action_Asset_Id</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>New</defaultConnectorLabel>
+        <rules>
+            <name>Action_Asset_Already_Added</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>LineAssetIds</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <elementReference>Loop_Selected_Renew_Actions.SourceAssetId</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Selected_Renew_Actions</targetReference>
+            </connector>
+            <label>Already Added</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Keeps RootAssetIds distinct: an extra asset can be the root of a component on a selected line.</description>
+        <name>Is_New_Extra_Root</name>
+        <label>Is New Extra Root</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Add_Extra_Root_Id</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>New</defaultConnectorLabel>
+        <rules>
+            <name>Extra_Root_Already_Added</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>RootAssetIds</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <elementReference>Loop_Extra_Asset_Ids</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Extra_Asset_Ids</targetReference>
+            </connector>
+            <label>Already Added</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Every selected opportunity, the primary included, must still pass the checks it passed before the screens.</description>
+        <name>Is_Selection_Current</name>
+        <label>Is Selection Current</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Selection_Changed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Changed</defaultConnectorLabel>
+        <rules>
+            <name>Selection_Current</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>CurrentOppCount</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>SelectedOppCount</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Root_Assets</targetReference>
+            </connector>
+            <label>Current</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Is_Primary_Opportunity</name>
+        <label>Is Primary Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Set_Closed_Lost</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Other</defaultConnectorLabel>
+        <rules>
+            <name>Primary</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Close_Renewals.Id</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>Get_Primary_Opportunity.Id</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Close_Renewals</targetReference>
+            </connector>
+            <label>Primary</label>
+        </rules>
+    </decisions>
     <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Ramped assets can't be cotermed.</description>
     <environments>Default</environments>
     <formulas>
@@ -1041,6 +1235,12 @@
         <name>MissingAssetCount</name>
         <dataType>Number</dataType>
         <expression>{!LineAssetCount} - {!ReadableAssetCount}</expression>
+        <scale>0</scale>
+    </formulas>
+    <formulas>
+        <name>MissingRootAssetCount</name>
+        <dataType>Number</dataType>
+        <expression>{!ExpectedRootAssetCount} - {!RootAssetCount}</expression>
         <scale>0</scale>
     </formulas>
     <interviewLabel>RLM Consolidate Renewal Opportunities {!$Flow.CurrentDateTime}</interviewLabel>
@@ -1140,7 +1340,7 @@
             <targetReference>Is_New_Line_Asset</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
-            <targetReference>Has_Line_Assets</targetReference>
+            <targetReference>Get_Selected_Quotes</targetReference>
         </noMoreValuesConnector>
     </loops>
     <loops>
@@ -1190,13 +1390,55 @@
         <label>Loop Close Renewals</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <collectionReference>Renewals_Table.selectedRows</collectionReference>
+        <collectionReference>Get_Current_Opportunities</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
-            <targetReference>Set_Closed_Lost</targetReference>
+            <targetReference>Is_Primary_Opportunity</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
             <targetReference>Has_Renewals_To_Close</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <name>Loop_Selected_Quotes</name>
+        <label>Loop Selected Quotes</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Selected_Quotes</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Add_Selected_Quote_Id</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Get_Selected_Renew_Actions</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <name>Loop_Selected_Renew_Actions</name>
+        <label>Loop Selected Renew Actions</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Selected_Renew_Actions</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Is_New_Action_Asset</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Has_Line_Assets</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <name>Loop_Extra_Asset_Ids</name>
+        <label>Loop Extra Asset Ids</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>ExtraAssetIds</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Is_New_Extra_Root</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Has_Root_Asset_Ids</targetReference>
         </noMoreValuesConnector>
     </loops>
     <processMetadataValues>
@@ -1600,6 +1842,134 @@
         <sortOrder>Asc</sortOrder>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <recordLookups>
+        <description>A consolidated quote isn't synced, so the assets it absorbed are on no line of its opportunity; its renew quote actions name them. Without them, consolidating that opportunity again would drop those assets and close it.</description>
+        <name>Get_Selected_Quotes</name>
+        <label>Get Selected Quotes</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Has_Selected_Quotes</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Consolidation_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>OpportunityId</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>SelectedOppIds</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Quote</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Selected_Renew_Actions</name>
+        <label>Get Selected Renew Actions</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Selected_Renew_Actions</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Consolidation_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>QuoteId</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>SelectedQuoteIds</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Type</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Renew</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>SourceAssetId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>QuoteAction</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>SourceAssetId</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Re-reads the primary and the selected opportunities after the screens, where another user or process may have closed or changed them. Only the records returned here are closed, with their current Description.</description>
+        <name>Get_Current_Opportunities</name>
+        <label>Get Current Opportunities</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Count_Current_Opps</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Consolidation_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>SelectedOppIds</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>AccountId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Primary_Opportunity.AccountId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Type</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Existing Business</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>IsClosed</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Pricebook2Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Primary_Opportunity.Pricebook2Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>CurrencyIsoCode</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Primary_Opportunity.CurrencyIsoCode</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Description</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <recordUpdates>
         <name>Close_Consolidated_Renewals</name>
         <label>Close Consolidated Renewals</label>
@@ -1791,7 +2161,7 @@
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
-            <targetReference>Loop_Root_Assets</targetReference>
+            <targetReference>Get_Current_Opportunities</targetReference>
         </connector>
         <fields>
             <name>ConfirmText</name>
@@ -1960,6 +2330,38 @@
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
+    <screens>
+        <name>Root_Assets_Not_Found</name>
+        <label>Root Assets Not Found</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Root_Assets_Not_FoundText</name>
+            <fieldText>&lt;p&gt;{!MissingRootAssetCount} of the {!ExpectedRootAssetCount} assets to renew couldn't be read: you don't have access to them, or they were deleted. Nothing was consolidated, because a quote made without them would leave those products out of the renewal.&lt;/p&gt;&lt;p&gt;Ask your admin for access to the account's assets, then try again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Selection_Changed</name>
+        <label>Selection Changed</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Selection_ChangedText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Nothing was consolidated.&lt;/strong&gt; While you were choosing, {!Get_Primary_Opportunity.Name} or one of the selected opportunities was closed or changed, so it is no longer an open renewal with the same account, price book and currency.&lt;/p&gt;&lt;p&gt;Run Consolidate Renewals again to see the current renewals.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -2064,7 +2466,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Distinct Asset Ids read from the opportunities' lines; may include bundle components.</description>
+        <description>Distinct Asset Ids read from the opportunities' lines and their quotes' renew actions; may include bundle components.</description>
         <name>LineAssetIds</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>
@@ -2096,7 +2498,7 @@
         <scale>0</scale>
     </variables>
     <variables>
-        <description>Distinct root Asset Ids for the opportunities' lines.</description>
+        <description>Distinct root Asset Ids for the opportunities' lines and quotes, plus the extra assets when included.</description>
         <name>RootAssetIds</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>
@@ -2170,5 +2572,31 @@
         <isInput>false</isInput>
         <isOutput>false</isOutput>
         <objectType>Opportunity</objectType>
+    </variables>
+    <variables>
+        <description>Quotes linked to the primary or a selected opportunity.</description>
+        <name>SelectedQuoteIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Distinct root assets to renew; Get_Root_Assets must return all of them.</description>
+        <name>ExpectedRootAssetCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+    </variables>
+    <variables>
+        <description>Selected opportunities, the primary included, that still pass the checks after the screens.</description>
+        <name>CurrentOppCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
     </variables>
 </Flow>
