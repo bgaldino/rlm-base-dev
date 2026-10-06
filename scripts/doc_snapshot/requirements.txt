@@ -1,0 +1,8 @@
+# Doc snapshot tooling (scripts/doc_snapshot). No CumulusCI needed.
+#   python -m pip install -r scripts/doc_snapshot/requirements.txt
+#   python -m playwright install chromium
+playwright
+# Optional: better dev-guide markdown (tables, nested lists). A built-in
+# converter is used without it.
+markdownify
+PyYAML

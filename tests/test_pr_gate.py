@@ -4018,6 +4018,13 @@ def root_anchored(node):
     return tuple(segs) if isinstance(node, ast.Name) and node.id in ROOT_NAMES else ()
 
 
+# Root-level files as git sees them, so a slash-free name counts as a read only when it is
+# tracked. `is_file()` read the working tree instead, and in a git worktree `.git` is a *file*:
+# `doc_build_steps` naming it in a skip-list became a claimed read that no trigger could select,
+# failing this suite from every worktree while passing in CI, where `.git` is a directory.
+ROOT_FILES = {p for p in git(REPO, "ls-files", "-z").stdout.split("\0") if p and "/" not in p}
+
+
 def named_paths(py_file, joins_only=False):
     """Repo-relative paths a source file names, from string constants and os.path.join()."""
     try:
@@ -4055,13 +4062,11 @@ def named_paths(py_file, joins_only=False):
             # comment once offered as an example, is not collected and cannot be. Naming the dead
             # half was worse than omitting it: it described a capability the function does not have.
             #
-            # Shape-gated *before* touching the filesystem: every docstring in the file is a string
-            # constant too, and `Path.exists()` on one raises `OSError: File name too long` rather
-            # than returning False. The 64-char bound is load-bearing for that reason, not tidiness.
-            # `.exists()` reads the working tree, so an untracked root file would be enumerated here
-            # and not in CI; nothing names one today, and `git ls-files` is the fix if that changes.
+            # Shape-gated first because every docstring in the file is a string constant too. The
+            # test is membership in ROOT_FILES (tracked files), not the working tree, so a local
+            # checkout and CI enumerate the same reads.
             elif id(node) not in segments and re.fullmatch(r"[\w.\-]{1,64}", node.value):
-                if (pathlib.Path(REPO) / node.value).is_file():
+                if node.value in ROOT_FILES:
                     found.add(node.value)
         elif isinstance(node, ast.BinOp):
             # repo_root / "tui-cci" — a single root-level segment carries no slash to
@@ -4084,7 +4089,7 @@ def named_paths(py_file, joins_only=False):
     # A lone root-level segment counts only when it names a file. `ROOT / "scripts"` is a
     # directory on its way to a longer path, not something a suite reads.
     return {p for p in found
-            if "/" in p or os.path.isfile(os.path.join(REPO, p))}
+            if "/" in p or p in ROOT_FILES}
 
 
 def check_sources(spec):
@@ -5122,7 +5127,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 705
+EXPECTED = 708
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

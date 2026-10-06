@@ -34,12 +34,15 @@ except ImportError:
     TaskOptionsError = Exception  # type: ignore[assignment,misc]
 
 # ── minimum required versions ────────────────────────────────────────────────
-# Bumped 3.8 -> 3.10 to match the schema-diff / skill-manifest scripts which
-# use PEP 604 union syntax (`X | None`, `list[Path]`). The CI workflow pins
-# 3.13 and `docs/guides/dev-environment-setup.md` defaults to 3.13 already,
-# so 3.10 is a generous floor.
-MIN_PYTHON: Tuple[int, ...] = (3, 10)
-MIN_CCI: Tuple[int, ...] = (4, 0, 0)
+# 3.11: CumulusCI 4.10.1 (MIN_CCI) requires Python >=3.11,<3.14, so a 3.10
+# interpreter cannot install the CumulusCI this project needs. (3.10 was the
+# floor for the schema-diff / skill-manifest scripts' PEP 604 syntax.) The CI
+# workflow pins 3.13, the dev-environment-setup default.
+MIN_PYTHON: Tuple[int, ...] = (3, 11)
+# 4.10.1 is the first CumulusCI that reads the org token when `sf` redacts it
+# (sf 2.136.8+); older versions fail org commands with INVALID_AUTH_HEADER.
+# Matches minimum_cumulusci_version in cumulusci.yml.
+MIN_CCI: Tuple[int, ...] = (4, 10, 1)
 MIN_SF_MAJOR: int = 2
 # 5.6.4 is the floor (not just 5.x): 5.6.4 fixed upsert matching for
 # relationship externalIds (5.6.4 release, commit 50be987) — qb-prm/qb-prm-pricing upserts

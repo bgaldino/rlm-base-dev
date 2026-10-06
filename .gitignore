@@ -139,6 +139,7 @@ docs/erds/erd-data.json.bak*
 # these intermediates are local-only artifacts.
 docs/erds/orphan-candidates*.md
 unpackaged/post_ux/drift_report.json
+unpackaged/post_ux/retrieve_scope.json
 tmp-metadata/
 .cursor/plans/**
 retrieved_rlm_bundle/

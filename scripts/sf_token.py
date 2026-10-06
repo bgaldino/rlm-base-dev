@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Org instance URL and access token from the sf CLI, without SF_TEMP_SHOW_SECRETS.
 
-Since sf 2.145 (forcedotcom/cli#3560), ``sf org display --json`` redacts
+Since sf 2.136.8 (May 2026, forcedotcom/cli#3560), ``sf org display --json`` redacts
 ``result.accessToken`` to a placeholder unless ``SF_TEMP_SHOW_SECRETS=true`` is
 set. :func:`org_auth` takes the instance URL from ``sf org display`` and, when
 the token it returns is not a real one, fetches it with
 ``sf org auth show-access-token --json``, which sf never redacts. Scripts that
 call Salesforce REST directly use this so they keep working once the variable is
-gone. (CumulusCI still needs the variable for its own scratch-org token reads.)
+gone. (CumulusCI 4.10.1, the project's minimum, has the same fallback for its own
+token reads, so nothing in the supported setup needs the variable.)
 
 A real token starts with the org's ``00D`` Id prefix. Matching that, rather than
 the placeholder wording, keeps the check stable if sf changes its text. The same

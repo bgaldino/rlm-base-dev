@@ -78,6 +78,34 @@ HEADER_DECL_RE = re.compile(r"^\s*(define|property|extern)\b")
 MAX_INLINE_UNRESOLVED_TAGS = 10
 
 
+#: A double- or single-quoted CML string literal, honouring backslash escapes.
+STRING_LITERAL_RE = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'')
+
+
+#: CSVs ImportCML reads from a model's data_dir unconditionally (the ESC rows
+#: come from data_dir unless a dataset_dirs entry ships its own; the flow's
+#: dataset dir does not). ValidateCML's data_dirs mode requires each one.
+REQUIRED_MODEL_CSVS = (
+    "ExpressionSetDefinitionVersion.csv",
+    "ExpressionSetDefinitionContextDefinition.csv",
+    "ExpressionSet.csv",
+    "ExpressionSetConstraintObj.csv",
+)
+
+
+def expected_blob_filename(esdv: Dict[str, str]) -> str:
+    """The ``blobs/`` file ImportCML uploads for an ExpressionSetDefinitionVersion row.
+
+    Shared with ValidateCML so the validator checks exactly the file the import
+    reads, not merely any ``.ffxblob`` in the directory.
+    """
+    devname = esdv.get("DeveloperName") or ""
+    version_num = esdv.get("VersionNumber") or "1"
+    suffix = f"_V{version_num}"
+    base_dev = devname.replace(suffix, "") if suffix in devname else devname
+    return f"ESDV_{base_dev}_V{version_num}.ffxblob"
+
+
 def describe_esc_import_failure(
     import_failed: bool,
     unresolved_tags: List[str],
@@ -825,9 +853,7 @@ class ImportCML(CMLBaseTask):
             )
 
         # Step 7: Upload blob
-        version_num = esdv.get("VersionNumber", "1")
-        base_dev = devname.replace(f"_V{version_num}", "") if f"_V{version_num}" in devname else devname
-        blob_file = os.path.join(blob_dir, f"ESDV_{base_dev}_V{version_num}.ffxblob")
+        blob_file = os.path.join(blob_dir, expected_blob_filename(esdv))
         if os.path.exists(blob_file):
             if dry_run:
                 self.logger.info(f"[DRY RUN] Would upload blob {blob_file} to ESDV {esdv_id}")
@@ -1053,41 +1079,105 @@ class ValidateCML(BaseTask):
             "description": "Constraints data plan directory for association checking",
             "required": False,
         },
+        "data_dirs": {
+            "description": (
+                "Comma-separated constraints data directories. Each directory's own "
+                "blobs/*.ffxblob (the model import_cml uploads) is validated against that "
+                "directory's ESC associations. Replaces cml_dir/data_dir when set."
+            ),
+            "required": False,
+        },
         "expression_set_name": {
             "description": "Override Expression Set name for association checks",
             "required": False,
         },
     }
 
-    def _run_task(self):
+    def _collect_targets(self) -> List[Tuple[str, str, List[str]]]:
+        """Return ``(path, label, dataset_dirs)`` for every model file to validate.
+
+        With ``data_dirs``, each directory's blob is checked against that
+        directory alone, so every model is validated against its own ESC rows.
+        The blob must be exactly the one ImportCML uploads (named from
+        ``ExpressionSetDefinitionVersion.csv``), and no other may sit beside it:
+        a stale or misnamed blob would otherwise pass here while the import
+        uploads nothing. Otherwise the ``cml_dir`` copies are checked against
+        the single optional ``data_dir``.
+        """
+        data_dirs = _split_list_values(self.options.get("data_dirs") or "")
+        if data_dirs:
+            targets = []
+            problems = []
+            for dd in data_dirs:
+                # Every CSV import_cml reads unconditionally must be present with a
+                # row, so the flow fails here, before any import mutates the org,
+                # rather than part-way through steps 7-10.
+                rows_by_file = {}
+                for name in REQUIRED_MODEL_CSVS:
+                    path = os.path.join(dd, name)
+                    if not os.path.exists(path):
+                        problems.append(f"{path} is missing")
+                        continue
+                    with open(path, newline="") as handle:
+                        rows_by_file[name] = list(csv.DictReader(handle))
+                    if not rows_by_file[name]:
+                        problems.append(f"{path} has no rows")
+                esdv_rows = rows_by_file.get("ExpressionSetDefinitionVersion.csv")
+                if not esdv_rows:
+                    continue
+                expected = expected_blob_filename(esdv_rows[0])
+                blob_dir = os.path.join(dd, "blobs")
+                present = sorted(
+                    name for name in (os.listdir(blob_dir) if os.path.isdir(blob_dir) else [])
+                    if name.endswith(".ffxblob")
+                )
+                if expected not in present:
+                    problems.append(
+                        f"{os.path.join(blob_dir, expected)} not found: import_cml would "
+                        f"upload no model (present: {', '.join(present) or 'none'})"
+                    )
+                    continue
+                unexpected = [name for name in present if name != expected]
+                if unexpected:
+                    problems.append(
+                        f"Unexpected blob(s) in {blob_dir}: {', '.join(unexpected)}; "
+                        f"import_cml uploads only {expected}"
+                    )
+                    continue
+                targets.append((os.path.join(blob_dir, expected),
+                                os.path.join(dd, "blobs", expected), [dd]))
+            if problems:
+                raise TaskOptionsError("Incomplete model data: " + "; ".join(problems))
+            return targets
+
         cml_dir = self.options.get("cml_dir") or "scripts/cml"
         data_dir = self.options.get("data_dir")
         dataset_dirs = [data_dir] if data_dir else []
-        expression_set_override = (self.options.get("expression_set_name") or "").strip()
-
-        cml_files = sorted([
-            os.path.join(cml_dir, name)
-            for name in os.listdir(cml_dir)
+        return [
+            (os.path.join(cml_dir, name), name, dataset_dirs)
+            for name in sorted(os.listdir(cml_dir))
             if name.endswith(".cml")
-        ])
+        ]
 
-        if not cml_files:
-            self.logger.warning(f"No .cml files found in {cml_dir}")
+    def _run_task(self):
+        expression_set_override = (self.options.get("expression_set_name") or "").strip()
+        targets = self._collect_targets()
+
+        if not targets:
+            self.logger.warning("No CML model files found to validate")
             return
 
-        self.logger.info(f"Validating {len(cml_files)} CML file(s) in {cml_dir}")
-
-        # Load ESC associations from data directories
-        associations = {}
-        for dd in dataset_dirs:
-            associations.update(self._read_dataset_associations(dd))
+        self.logger.info(f"Validating {len(targets)} CML model file(s)")
 
         all_issues = {}
         association_issues = {}
         has_errors = False
 
-        for path in cml_files:
-            rel_path = os.path.relpath(path, cml_dir)
+        for path, rel_path, dataset_dirs in targets:
+            # Associations come from this target's own data directories only.
+            associations = {}
+            for dd in dataset_dirs:
+                associations.update(self._read_dataset_associations(dd))
             issues, types, relations, leaf_types = self._validate_file(path)
 
             if issues:
@@ -1138,7 +1228,9 @@ class ValidateCML(BaseTask):
                 self.logger.warning(f"  [{severity}] {loc}{message}")
 
         if has_errors:
-            self.logger.error("CML validation found errors")
+            # Step 6 of prepare_constraints guards the imports that follow, so a
+            # structural error must stop the flow rather than only be logged.
+            raise CumulusCIFailure("CML validation found errors (see the [error] lines above)")
 
     # -- CML Parsing ---------------------------------------------------
 
@@ -1166,13 +1258,16 @@ class ValidateCML(BaseTask):
         first_type_line = None
 
         for line_no, line in enumerate(lines, start=1):
-            brace_balance += line.count("{") - line.count("}")
-            paren_balance += line.count("(") - line.count(")")
+            # Count delimiters outside string literals only: a value such as
+            # "}" is data, and a structural error now fails the task.
+            syntax = STRING_LITERAL_RE.sub('""', line)
+            brace_balance += syntax.count("{") - syntax.count("}")
+            paren_balance += syntax.count("(") - syntax.count(")")
             if brace_balance < 0:
                 issues.append(("error", line_no, "Unbalanced '}' brace."))
                 brace_balance = 0
             if paren_balance < 0:
-                issues.append(("warning", line_no, "Unbalanced ')' parenthesis."))
+                issues.append(("error", line_no, "Unbalanced ')' parenthesis."))
                 paren_balance = 0
 
             define_parsed = self._parse_define(line)
@@ -1321,7 +1416,7 @@ class ValidateCML(BaseTask):
         if brace_balance != 0:
             issues.append(("error", None, "Unbalanced '{'/'}' braces in file."))
         if paren_balance != 0:
-            issues.append(("warning", None, "Unbalanced '('/')' parentheses in file."))
+            issues.append(("error", None, "Unbalanced '('/')' parentheses in file."))
 
         for line_no, rel_name, rel_type in relations:
             if rel_type not in types:
@@ -1340,29 +1435,54 @@ class ValidateCML(BaseTask):
 
     @staticmethod
     def _strip_comments(lines: List[str]) -> List[str]:
-        """Remove // and /* */ comments from source lines."""
+        """Remove // and /* */ comments from source lines, leaving string literals intact.
+
+        Scans character by character so a comment marker inside a quoted string
+        (``"/*"``, ``'//'``) is data, not the start of a comment: treating it as a
+        comment would drop real code and, now that a structural error fails the
+        task, reject a valid model. Strings honour backslash escapes and end at
+        the line; block comments may span lines.
+        """
         cleaned = []
         in_block = False
         for line in lines:
-            text = line
-            if in_block:
-                if "*/" in text:
-                    text = text.split("*/", 1)[1]
-                    in_block = False
-                else:
-                    cleaned.append("")
+            out = []
+            i, n = 0, len(line)
+            quote = ""
+            while i < n:
+                ch = line[i]
+                nxt = line[i + 1] if i + 1 < n else ""
+                if in_block:
+                    if ch == "*" and nxt == "/":
+                        in_block = False
+                        i += 2
+                    else:
+                        i += 1
                     continue
-            while "/*" in text:
-                before, rest = text.split("/*", 1)
-                if "*/" in rest:
-                    text = before + rest.split("*/", 1)[1]
-                else:
-                    text = before
-                    in_block = True
+                if quote:
+                    out.append(ch)
+                    if ch == "\\" and nxt:
+                        out.append(nxt)
+                        i += 2
+                        continue
+                    if ch == quote:
+                        quote = ""
+                    i += 1
+                    continue
+                if ch in "\"'":
+                    quote = ch
+                    out.append(ch)
+                    i += 1
+                elif ch == "/" and nxt == "/":
                     break
-            if "//" in text:
-                text = text.split("//", 1)[0]
-            cleaned.append(text)
+                elif ch == "/" and nxt == "*":
+                    in_block = True
+                    i += 2
+                else:
+                    out.append(ch)
+                    i += 1
+            text = "".join(out)
+            cleaned.append(text if text.endswith("\n") or not line.endswith("\n") else text + "\n")
         return cleaned
 
     @staticmethod
@@ -1382,24 +1502,38 @@ class ValidateCML(BaseTask):
         esc_path = os.path.join(dataset_dir, "ExpressionSetConstraintObj.csv")
         if not os.path.exists(esc_path):
             return {}
+        # ApiName -> display Name from the same directory, so a row is reachable
+        # by either: the inferred name is the ApiName, but an
+        # expression_set_name override may pass the display Name
+        # ("QuantumBit PCM" vs QuantumBitPCM).
+        display_names = {}
+        expr_path = os.path.join(dataset_dir, "ExpressionSet.csv")
+        if os.path.exists(expr_path):
+            with open(expr_path, newline="") as handle:
+                for row in csv.DictReader(handle):
+                    api = (row.get("ApiName") or "").strip()
+                    name = (row.get("Name") or "").strip()
+                    if api and name:
+                        display_names[api] = name
         associations_by_model = {}
         with open(esc_path, newline="") as handle:
             reader = csv.DictReader(handle)
             for row in reader:
-                model_name = row.get("ExpressionSet.Name", "").strip()
-                if not model_name:
-                    model_name = row.get("ExpressionSet.ApiName", "").strip()
-                if not model_name:
+                api = row.get("ExpressionSet.ApiName", "").strip()
+                keys = {k for k in (api, row.get("ExpressionSet.Name", "").strip(),
+                                    display_names.get(api, "")) if k}
+                if not keys:
                     continue
                 tag = row.get("ConstraintModelTag", "").strip()
                 tag_type = row.get("ConstraintModelTagType", "").strip().lower()
                 if not tag or not tag_type:
                     continue
-                entry = associations_by_model.setdefault(model_name, {"type": set(), "port": set()})
-                if tag_type == "type":
-                    entry["type"].add(tag)
-                elif tag_type == "port":
-                    entry["port"].add(tag)
+                for model_name in keys:
+                    entry = associations_by_model.setdefault(model_name, {"type": set(), "port": set()})
+                    if tag_type == "type":
+                        entry["type"].add(tag)
+                    elif tag_type == "port":
+                        entry["port"].add(tag)
         return associations_by_model
 
     @staticmethod
@@ -1413,7 +1547,9 @@ class ValidateCML(BaseTask):
             with open(expr_path, newline="") as handle:
                 reader = csv.DictReader(handle)
                 for row in reader:
-                    name = (row.get("Name") or "").strip()
+                    # ESC rows are keyed by ExpressionSet.ApiName, which differs
+                    # from the display Name for "QuantumBit PCM"/"QuantumBit Bundle".
+                    name = (row.get("ApiName") or row.get("Name") or "").strip()
                     if name:
                         return name
         return cml_name
