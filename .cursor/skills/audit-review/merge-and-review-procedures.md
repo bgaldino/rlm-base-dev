@@ -128,13 +128,19 @@ For each comment:
    `gh api --method POST repos/<owner>/<repo>/pulls/<n>/comments/<id>/replies -f body="…"`
 4. **React** 👍 on a valid comment:
    `gh api --method POST repos/<owner>/<repo>/pulls/comments/<id>/reactions -H "Accept: application/vnd.github+json" -f content="+1"`
-5. **Resolve the thread** (REST cannot — use GraphQL). List threads with the full query
+5. **Resolve the thread** (GraphQL; REST fallback below). List threads with the full query
    root — `reviewThreads` lives under `repository(owner:, name:){ pullRequest(number:N){ … } }`
    (`pullRequest` is **not** a GraphQL root field) — and **paginate** so PRs with >100
    threads aren't truncated:
    `repository(owner:$o,name:$r){ pullRequest(number:$n){ reviewThreads(first:100, after:$cursor){ pageInfo{ hasNextPage endCursor } nodes{ id isResolved comments(first:1){ nodes{ databaseId path line } } } } } }`
    — loop, passing `endCursor` as `after`, until `hasNextPage` is false. Resolve each
    unresolved id with `mutation($tid:ID!){ resolveReviewThread(input:{threadId:$tid}){ thread{ isResolved } } }`.
+   Where GraphQL is refused (Claude Code cloud sessions proxy REST only), use
+   `GET repos/<owner>/<repo>/pulls/<n>/ccr/review_threads` to list and
+   `POST repos/<owner>/<repo>/pulls/<n>/ccr/comments/<first_comment_id>/resolve` to
+   resolve; `scripts/ai/pr_review.py` falls back to these automatically. Page REST lists
+   with `?page=N` there — `gh api --paginate` follows `repositories/{id}/…` links the
+   same proxy refuses.
 6. **Confirm clean** — re-query `reviewThreads` across **all** pages (same pagination) and
    verify `unresolved == 0` for the round.
 

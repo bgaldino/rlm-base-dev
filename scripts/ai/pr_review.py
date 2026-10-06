@@ -16,8 +16,12 @@ classify it real / partial / false-positive, and sweep the whole class before
 resolving (see AGENTS.md and .cursor/skills/audit-review/SKILL.md).
 
 Tool-agnostic: shells out to the authenticated ``gh`` CLI. Repo defaults to the
-current checkout (``gh repo view``); override with ``--repo owner/name`` to run
-against any repo.
+current checkout (``gh repo view``, else the ``origin`` remote URL); override with
+``--repo owner/name`` to run against any repo.
+
+Thread state and resolution use GraphQL. Where GraphQL is refused (Claude Code
+cloud sessions proxy REST only), both fall back to the REST ``ccr`` routes:
+``GET pulls/{n}/ccr/review_threads`` and ``POST pulls/{n}/ccr/comments/{id}/resolve``.
 
 Examples:
     python scripts/ai/pr_review.py status 212
@@ -68,17 +72,82 @@ def _json(args, input_text=None):
     return json.loads(out) if out else None
 
 
+def _repo_from_origin():
+    """owner/name from the `origin` remote URL, or "" if it can't be read."""
+    res = subprocess.run(
+        ["git", "remote", "get-url", "origin"], capture_output=True, text=True
+    )
+    url = res.stdout.strip().removesuffix(".git") if res.returncode == 0 else ""
+    parts = url.replace(":", "/").rstrip("/").split("/")
+    return f"{parts[-2]}/{parts[-1]}" if len(parts) >= 2 and all(parts[-2:]) else ""
+
+
 def resolve_repo(repo):
     if not repo:
+        # `gh repo view` is GraphQL-backed, so fall back to the remote URL.
         repo = _run(
-            ["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]
-        ).stdout.strip()
+            ["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+            check=False,
+        ).stdout.strip() or _repo_from_origin()
         if not repo:
             raise SystemExit("Could not determine repo; pass --repo owner/name")
     parts = repo.split("/")
     if len(parts) != 2 or not parts[0] or not parts[1]:
         raise SystemExit(f"--repo must be in owner/name format, got: {repo!r}")
     return repo
+
+
+def _graphql_blocked(res):
+    """True when GraphQL itself is refused (not a query error about the PR)."""
+    text = f"{res.stdout}\n{res.stderr}".lower()
+    return res.returncode != 0 and "graphql" in text and "403" in text
+
+
+def _rest_list(path):
+    """Every item of a paginated REST list, paged by `page=N`.
+
+    Not `gh api --paginate`: GitHub's `next` links use `repositories/{id}/...`
+    paths, which the same proxy that refuses GraphQL also refuses.
+    """
+    items, page = [], 1
+    while True:
+        sep = "&" if "?" in path else "?"
+        batch = _json(["api", f"{path}{sep}per_page=100&page={page}"]) or []
+        items.extend(batch)
+        if len(batch) < 100:
+            return items
+        page += 1
+
+
+def _fetch_threads_rest(repo, pr):
+    """Review threads via the REST ccr route, shaped like the GraphQL nodes.
+
+    That route carries no thread node id, author or body -- only each thread's
+    comment ids -- so the first comment is looked up in the PR's review comments.
+    `id` is None, which tells `cmd_handle` to resolve through REST as well.
+    """
+    # The ccr route returns every thread in one response (no Link header).
+    threads = _json(["api", f"repos/{repo}/pulls/{pr}/ccr/review_threads"]) or []
+    by_id = {c["id"]: c for c in _rest_list(f"repos/{repo}/pulls/{pr}/comments")}
+    nodes = []
+    for t in threads:
+        ids = t.get("comment_ids") or []
+        c = by_id.get(ids[0], {}) if ids else {}
+        first = {
+            "databaseId": ids[0] if ids else None,
+            "author": {"login": (c.get("user") or {}).get("login", "?")},
+            "path": c.get("path") or t.get("path"),
+            "line": c.get("line") or t.get("line"),
+            "originalLine": c.get("original_line"),
+            "body": c.get("body", ""),
+        }
+        nodes.append({
+            "id": None,
+            "isResolved": bool(t.get("resolved")),
+            "isOutdated": bool(t.get("outdated")),
+            "comments": {"nodes": [first] if ids else []},
+        })
+    return nodes
 
 
 def fetch_threads(repo, pr):
@@ -94,6 +163,8 @@ def fetch_threads(repo, pr):
         if cursor:
             args += ["-f", f"cursor={cursor}"]
         res = _run(args, check=False)
+        if _graphql_blocked(res):
+            return _fetch_threads_rest(repo, pr)
         try:
             data = json.loads(res.stdout) if res.stdout.strip() else {}
         except json.JSONDecodeError:
@@ -191,8 +262,9 @@ def cmd_handle(repo, pr, comment_id, body, react):
         else:
             detail = (res.stderr or res.stdout or "").strip()
             print(f"  ⚠ 👍 reaction failed (continuing to resolve): {detail[:200]}")
-    # 3. Resolve the thread (REST can't — GraphQL). Match the thread whose first
-    #    comment is the cited (original) review comment.
+    # 3. Resolve the thread (GraphQL, or the REST ccr route where GraphQL is
+    #    refused). Match the thread whose first comment is the cited (original)
+    #    review comment.
     target = next(
         (t for t in fetch_threads(repo, pr)
          if _first(t).get("databaseId") == int(comment_id)),
@@ -207,6 +279,17 @@ def cmd_handle(repo, pr, comment_id, body, react):
     if target["isResolved"]:
         print("  ✓ thread already resolved")
         return 0
+    if target["id"] is None:  # REST fallback: resolve by comment id, then confirm
+        _run([
+            "api", "--method", "POST",
+            f"repos/{owner}/{name}/pulls/{pr}/ccr/comments/{comment_id}/resolve",
+        ])
+        ok = any(
+            t["isResolved"] for t in fetch_threads(repo, pr)
+            if _first(t).get("databaseId") == int(comment_id)
+        )
+        print("  ✓ thread resolved" if ok else "  ⚠ resolve did not take; check the thread")
+        return 0 if ok else 1
     data = _json([
         "api", "graphql",
         "-f", f"query={RESOLVE_MUTATION}", "-f", f"tid={target['id']}",

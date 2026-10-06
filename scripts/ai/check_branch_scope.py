@@ -198,6 +198,82 @@ def _gh_json(args):
     return json.loads(_run(["gh"] + args))
 
 
+def _graphql_blocked(exc):
+    """True when `gh pr view/list` failed because GraphQL is unreachable.
+
+    Both commands are GraphQL-backed, and some environments (Claude Code cloud
+    sessions) proxy REST but refuse GraphQL outright. That is not a verdict about
+    the PR, so it falls back to REST rather than failing the gate.
+    """
+    return "graphql" in str(exc).lower()
+
+
+def _repo_for(remote, repo):
+    """owner/name for the REST fallback: --repo if given, else the remote's URL."""
+    if repo:
+        return repo
+    url = _run(["git", "remote", "get-url", remote]).removesuffix(".git")
+    parts = url.replace(":", "/").rstrip("/").split("/")
+    if len(parts) < 2 or not parts[-2] or not parts[-1]:
+        raise ToolError(f"cannot derive owner/name from {remote} URL {url!r}; pass --repo")
+    return f"{parts[-2]}/{parts[-1]}"
+
+
+def _rest_pr(p):
+    """Map a REST pull object onto the `gh pr` JSON fields this script reads."""
+    head_repo = (p.get("head") or {}).get("repo") or {}
+    base_repo = (p.get("base") or {}).get("repo") or {}
+    return {
+        "number": p["number"],
+        "title": p.get("title", ""),
+        "baseRefName": p["base"]["ref"],
+        "headRefName": p["head"]["ref"],
+        "headRefOid": p["head"]["sha"],
+        "headRepositoryOwner": {"login": (head_repo.get("owner") or {}).get("login", "?")},
+        # A deleted fork has no head repo; treat it as cross-repository, since its
+        # head is certainly not in this checkout.
+        "isCrossRepository": not head_repo
+        or head_repo.get("full_name") != base_repo.get("full_name"),
+    }
+
+
+def _pr_view(number, remote, repo):
+    gh_args = ["pr", "view", str(number), "--json",
+               "baseRefName,headRefName,headRefOid,headRepositoryOwner,isCrossRepository"]
+    if repo:
+        gh_args += ["--repo", repo]
+    try:
+        return _gh_json(gh_args)
+    except ToolError as exc:
+        if not _graphql_blocked(exc):
+            raise
+    return _rest_pr(_gh_json(["api", f"repos/{_repo_for(remote, repo)}/pulls/{number}"]))
+
+
+def _pr_list_open(remote, repo):
+    list_args = ["pr", "list", "--state", "open", "--limit", "200", "--json",
+                 "number,baseRefName,headRefName,headRefOid,title,isCrossRepository"]
+    if repo:
+        list_args += ["--repo", repo]
+    try:
+        return _gh_json(list_args)
+    except ToolError as exc:
+        if not _graphql_blocked(exc):
+            raise
+    # Paged by `page=N`, not `gh api --paginate`: GitHub's `next` links use
+    # `repositories/{id}/...` paths, which the GraphQL-refusing proxy also refuses.
+    # Capped at 200 to match `gh pr list --limit 200` above.
+    prs, page = [], 1
+    while len(prs) < 200:
+        batch = _gh_json(["api", f"repos/{_repo_for(remote, repo)}/pulls"
+                                 f"?state=open&per_page=100&page={page}"])
+        prs.extend(batch)
+        if len(batch) < 100:
+            break
+        page += 1
+    return [_rest_pr(p) for p in prs[:200]]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(
         description="Fail a branch carrying commits it does not own.")
@@ -230,11 +306,7 @@ def _check(args, ap):
 
     if pr_number is not None:
         remote = _remote_for(args.repo)
-        gh_args = ["pr", "view", str(pr_number), "--json",
-                   "baseRefName,headRefName,headRefOid,headRepositoryOwner,isCrossRepository"]
-        if args.repo:
-            gh_args += ["--repo", args.repo]
-        pr = _gh_json(gh_args)
+        pr = _pr_view(pr_number, remote, args.repo)
         base, head = f"{remote}/{pr['baseRefName']}", pr["headRefOid"]
         if pr.get("isCrossRepository"):
             raise ToolError(
@@ -243,11 +315,7 @@ def _check(args, ap):
                 f"this checkout. Fetch it first:\n"
                 f"  git fetch {remote} pull/{pr_number}/head:pr-{pr_number}\n"
                 f"then re-run with --base {base} --head pr-{pr_number}")
-        list_args = ["pr", "list", "--state", "open", "--limit", "200", "--json",
-                     "number,baseRefName,headRefName,headRefOid,title,isCrossRepository"]
-        if args.repo:
-            list_args += ["--repo", args.repo]
-        others = [p for p in _gh_json(list_args) if p["number"] != pr_number]
+        others = [p for p in _pr_list_open(remote, args.repo) if p["number"] != pr_number]
     else:
         base, head = args.base or DEFAULT_BASE, args.head or "HEAD"
 

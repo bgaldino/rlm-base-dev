@@ -34,7 +34,8 @@ description: >-
 5. **One cohesive follow-up commit** per review round; re-run deploy + tests; never
    stage `cumulusci.yml` (local-only flags) or internal-reference docs.
 6. **Reply in-thread, react, and resolve.** Document the resolution (and the commit SHA)
-   on each thread; 👍 valid comments; then **resolve the thread** (GraphQL — REST can't).
+   on each thread; 👍 valid comments; then **resolve the thread** (GraphQL, or the REST
+   `ccr` route where GraphQL is refused — see the command block below).
    **Every review round ends with zero unresolved threads** — that is the audit trail.
    See `AGENTS.md` "Responding to Automated PR Reviews" for the canonical command set.
    **Tooling:** `python scripts/ai/pr_review.py` (`status` / `handle` / `verify`) automates the
@@ -132,8 +133,12 @@ gh api graphql -f query='query($o:String!,$r:String!,$n:Int!,$after:String){
       pageInfo{ hasNextPage endCursor }
       nodes{ id isResolved comments(first:1){ nodes{ databaseId path line } } } } } }' \
   -f o=<owner> -f r=<repo> -F n=<n>
-# resolve a thread (REST cannot)
+# resolve a thread
 gh api graphql -f query='mutation($tid:ID!){ resolveReviewThread(input:{threadId:$tid}){ thread{ isResolved } } }' -f tid=<thread_id>
+# where GraphQL is refused (Claude Code cloud sessions): REST ccr routes, keyed by the
+# thread's first comment id. pr_review.py and check_branch_scope.py fall back automatically.
+gh api repos/<owner>/<repo>/pulls/<n>/ccr/review_threads          # [{resolved, outdated, path, line, comment_ids}]
+gh api --method POST repos/<owner>/<repo>/pulls/<n>/ccr/comments/<comment_id>/resolve
 ```
 
 ## Finding-class checklist (recurring; from real audit rounds)
