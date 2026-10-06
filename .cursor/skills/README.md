@@ -47,6 +47,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 
 | I need to... | Skill | Entry Point |
 |-------------|-------|-------------|
+| Design/create/load CSV/SFDMU DRO plans and maintain existing fulfillment configuration | DRO Plans | [dro-plans/SKILL.md](dro-plans/SKILL.md) |
 | Build / verify a multi-year group **ramp** quote + per-segment (compound) uplift | Ramped Quotes | [ramped-quotes/SKILL.md](ramped-quotes/SKILL.md) |
 | Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history | Renewal Asset Creation | [renewal-asset-creation/SKILL.md](renewal-asset-creation/SKILL.md) |
 | Build, rate, and verify metered consumption demos | Usage & Consumption | [usage-consumption/SKILL.md](usage-consumption/SKILL.md) |
