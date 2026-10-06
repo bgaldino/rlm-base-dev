@@ -43,12 +43,10 @@ read-only access repriced the outputs up and down, and a direct API edit was
 rejected.
 
 The level is a snapshot of the last reprice, so a line edited afterwards (a
-`Discount` changed through the API, say) carries a stale level. Approval treats
-that as unpriced: `RLM_Quote_Approval_Data` reports `PricingStale` when any line
-was modified after `Quote.LastPricedDate` (or the quote has lines and was never
-priced) and then returns level 3, so the full Manager → Director → VP chain is
-required. The submit screen runs the same check first and asks the user to
-reprice instead of submitting.
+`Discount` changed through the API, say) keeps a stale level until the quote is
+repriced. There is deliberately no staleness guard: it flagged every freshly
+repriced quote as stale (the engine writes lines about a second after it stamps
+`Quote.LastPricedDate`) and forced the VP level.
 
 ## Applying an overlay
 
