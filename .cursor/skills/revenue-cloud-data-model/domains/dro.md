@@ -2,6 +2,10 @@
 
 32 objects managing fulfillment plans, step definitions, decomposition rules, and orchestration workflows.
 
+For designing, creating/loading CSV/SFDMU configuration, and updating plans in a
+target org, use [DRO Plans](../../dro-plans/SKILL.md). It covers exact lookup fields,
+deployment prerequisites, targeted updates, and supported in-flight handling.
+
 ## Design-Time Objects (Configuration)
 
 | Object | Purpose | Key Fields |
