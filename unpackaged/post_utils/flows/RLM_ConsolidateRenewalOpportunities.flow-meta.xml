@@ -477,7 +477,7 @@
             <assignToReference>RenewContractId</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>Get_Primary_Opportunity.ContractId</elementReference>
+                <elementReference>Get_Current_Primary.ContractId</elementReference>
             </value>
         </assignmentItems>
         <connector>
@@ -959,7 +959,7 @@
         <defaultConnector>
             <targetReference>Add_Unrenewable_Asset</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>Missing Values</defaultConnectorLabel>
+        <defaultConnectorLabel>Not Renewable</defaultConnectorLabel>
         <rules>
             <name>Renewable_Asset</name>
             <conditionLogic>and</conditionLogic>
@@ -982,6 +982,13 @@
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>IsCheckAssetCurrent</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
@@ -1197,7 +1204,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Set_Primary_Contract</targetReference>
+                <targetReference>Get_Current_Primary</targetReference>
             </connector>
             <label>Current</label>
         </rules>
@@ -1442,12 +1449,18 @@
             <label>Confirmed</label>
         </rules>
     </decisions>
-    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. Ramped assets can't be cotermed.</description>
+    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. Ramped assets, and assets that ended before yesterday, can't be cotermed.</description>
     <environments>Default</environments>
     <formulas>
         <name>CheckAssetEndDate</name>
         <dataType>Date</dataType>
         <expression>DATEVALUE({!Loop_Check_Assets.LifecycleEndDate})</expression>
+    </formulas>
+    <formulas>
+        <description>Initiate Renewal can't start a renewal in the past, and each asset renews from the day after it ends, so it must end no earlier than yesterday.</description>
+        <name>IsCheckAssetCurrent</name>
+        <dataType>Boolean</dataType>
+        <expression>{!CheckAssetEndDate} + 1 &gt;= TODAY()</expression>
     </formulas>
     <formulas>
         <name>RootAssetEndDate</name>
@@ -1733,6 +1746,33 @@
         <queriedFields>ContractId</queriedFields>
         <queriedFields>IsClosed</queriedFields>
         <queriedFields>Type</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Re-reads the primary's contract after the screens, so the contract check starts from its current value rather than the one read before the screens.</description>
+        <name>Get_Current_Primary</name>
+        <label>Get Current Primary</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Set_Primary_Contract</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Consolidation_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>ContractId</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
@@ -2407,7 +2447,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Unrenewable_AssetsText</name>
-            <fieldText>&lt;p&gt;These assets have no end date or no renewal term and unit, so they can't be cotermed: &lt;strong&gt;{!UnrenewableAssetNames}&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Set Renewal Term and Renewal Term Unit on them (for example in the Managed Asset viewer), then try again.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;These assets can't be cotermed: &lt;strong&gt;{!UnrenewableAssetNames}&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Each needs a renewal term and unit and an end date no earlier than yesterday, because a renewal can't start in the past. Set Renewal Term and Renewal Term Unit on them (for example in the Managed Asset viewer), or renew expired assets on their own with a new start date, then try again.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
