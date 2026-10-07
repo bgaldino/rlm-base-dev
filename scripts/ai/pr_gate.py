@@ -346,10 +346,12 @@ CHECKS = [
                   "AGENTS.md", "CLAUDE.md", "README.md",
                   # Loaded by path (spec loader) from tests/test_robot_salesforce_api_auth.py,
                   # so the import-coverage rule cannot see it; named here so an edit to the
-                  # library runs its auth suite. WebDriverManager.py is loaded the same way by
-                  # tests/test_validate_setup_chrome.py.
+                  # library runs its auth suite. tests/test_validate_setup_chrome.py loads the
+                  # three Chrome helpers the same way.
                   "robot/rlm-base/resources/SalesforceAPI.py",
-                  "robot/rlm-base/resources/WebDriverManager.py"],
+                  "robot/rlm-base/resources/WebDriverManager.py",
+                  "robot/rlm-base/resources/ChromeOptionsHelper.py",
+                  "robot/rlm-base/resources/ChromeDebugHelper.py"],
         deps=[], gating=True,
     ),
     dict(

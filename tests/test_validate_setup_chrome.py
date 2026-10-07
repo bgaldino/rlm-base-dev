@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
 Offline invariants for the Chrome/ChromeDriver override handling shared by the
-Robot helpers and tasks/rlm_validate_setup.ValidateSetup.
+Robot helpers (ChromeOptionsHelper, ChromeDebugHelper, WebDriverManager) and
+tasks/rlm_validate_setup.ValidateSetup.
 
     python tests/test_validate_setup_chrome.py
 
-No org, browser, or CumulusCI install required -- fake ``--version``
-executables in a temp directory stand in for Chrome and ChromeDriver.
+No org, browser, CumulusCI, or selenium install required -- fake ``--version``
+executables in a temp directory stand in for Chrome and ChromeDriver, and a
+stub ChromeOptions records what the helpers' option builders set.
 
 Why this file exists
 --------------------
@@ -25,6 +27,7 @@ import os
 import stat
 import sys
 import tempfile
+import types
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -32,11 +35,52 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from tasks.rlm_validate_setup import FAIL, PASS, WARN, ValidateSetup  # noqa: E402
 
-# Loaded by path, like Robot does; named as a stdlib_offline_suites trigger in pr_gate.py.
-_WDM_SRC = REPO_ROOT / "robot" / "rlm-base" / "resources" / "WebDriverManager.py"
-_spec = importlib.util.spec_from_file_location("WebDriverManager", _WDM_SRC)
-WebDriverManager = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(WebDriverManager)
+# The Robot helpers are loaded by path, like Robot does; each is named as a
+# stdlib_offline_suites trigger in pr_gate.py.
+_RESOURCES = REPO_ROOT / "robot" / "rlm-base" / "resources"
+
+
+class _StubChromeOptions:
+    """Records what the option builders set, in place of selenium's ChromeOptions."""
+
+    def __init__(self):
+        self.binary_location = ""
+        self.arguments = []
+
+    def add_argument(self, argument):
+        self.arguments.append(argument)
+
+
+def _load_resource(name):
+    """Load a Robot helper by path with selenium/requests stubbed for the import,
+    so the suite stays stdlib-only; the real modules (if any) are restored after."""
+    webdriver = types.ModuleType("selenium.webdriver")
+    webdriver.ChromeOptions = _StubChromeOptions
+    selenium = types.ModuleType("selenium")
+    selenium.webdriver = webdriver
+    stubs = {"selenium": selenium, "selenium.webdriver": webdriver, "requests": types.ModuleType("requests")}
+    saved = {mod: sys.modules.get(mod) for mod in stubs}
+    sys.modules.update(stubs)
+    try:
+        spec = importlib.util.spec_from_file_location(name, _RESOURCES / f"{name}.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        for mod, original in saved.items():
+            if original is None:
+                sys.modules.pop(mod, None)
+            else:
+                sys.modules[mod] = original
+
+
+WebDriverManager = _load_resource("WebDriverManager")
+ChromeOptionsHelper = _load_resource("ChromeOptionsHelper")
+ChromeDebugHelper = _load_resource("ChromeDebugHelper")
+OPTION_BUILDERS = (
+    ("headless", ChromeOptionsHelper.get_headless_chrome_options),
+    ("visible", ChromeDebugHelper.get_visible_chrome_options),
+)
 
 RESULTS = []
 ENV_VARS = ("CHROME_BINARY", "CHROME_BIN", "CHROMEDRIVER_PATH", "PATH")
@@ -192,6 +236,27 @@ def check_webdriver_manager_ignores_broken_override(tmp):
     check("webdriver_manager_ignores_broken_override", got == fallback, f"got {got!r}, want {fallback!r}")
 
 
+def check_option_builders_honour_chrome_binary(tmp):
+    for mode, build in OPTION_BUILDERS:
+        _set_env(CHROME_BINARY="/opt/cft/chrome", CHROME_BIN="/usr/bin/chromium")
+        got = build().binary_location
+        check(f"{mode}_options_use_chrome_binary", got == "/opt/cft/chrome", f"got {got!r}")
+
+
+def check_option_builders_fall_back_to_chrome_bin(tmp):
+    for mode, build in OPTION_BUILDERS:
+        _set_env(CHROME_BIN="/usr/bin/chromium")
+        got = build().binary_location
+        check(f"{mode}_options_fall_back_to_chrome_bin", got == "/usr/bin/chromium", f"got {got!r}")
+
+
+def check_option_builders_leave_binary_unset(tmp):
+    for mode, build in OPTION_BUILDERS:
+        _set_env()
+        got = build().binary_location
+        check(f"{mode}_options_leave_binary_unset", got == "", f"got {got!r}")
+
+
 def main():
     saved = {var: os.environ.get(var) for var in ENV_VARS}
     checks = (
@@ -208,6 +273,9 @@ def main():
         check_version_match_passes,
         check_webdriver_manager_honours_override,
         check_webdriver_manager_ignores_broken_override,
+        check_option_builders_honour_chrome_binary,
+        check_option_builders_fall_back_to_chrome_bin,
+        check_option_builders_leave_binary_unset,
     )
     try:
         for fn in checks:
