@@ -331,6 +331,13 @@
                 <elementReference>Loop_Check_Assets.LifecycleEndDate</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>AssetSignatures</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>AssetSignature</elementReference>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>Loop_Check_Assets</targetReference>
         </connector>
@@ -546,10 +553,10 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignmentItems>
-            <assignToReference>ConfirmedRootAssetIds</assignToReference>
+            <assignToReference>ConfirmedAssetSignatures</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>RootAssetIds</elementReference>
+                <elementReference>AssetSignatures</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -603,6 +610,13 @@
         </assignmentItems>
         <assignmentItems>
             <assignToReference>RootAssetIds</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>AssetSignatures</assignToReference>
             <operator>Assign</operator>
             <value>
                 <elementReference>NoAssetIds</elementReference>
@@ -1496,14 +1510,14 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Loop_Confirmed_Roots</targetReference>
+                <targetReference>Loop_Asset_Signatures</targetReference>
             </connector>
             <label>Same Totals</label>
         </rules>
     </decisions>
     <decisions>
-        <name>Was_Root_Confirmed</name>
-        <label>Was Root Confirmed</label>
+        <name>Was_Asset_Confirmed</name>
+        <label>Was Asset Confirmed</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
@@ -1511,23 +1525,29 @@
         </defaultConnector>
         <defaultConnectorLabel>Not Confirmed</defaultConnectorLabel>
         <rules>
-            <name>Root_Confirmed</name>
+            <name>Asset_Confirmed</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>ConfirmedRootAssetIds</leftValueReference>
+                <leftValueReference>ConfirmedAssetSignatures</leftValueReference>
                 <operator>Contains</operator>
                 <rightValue>
-                    <elementReference>Loop_Confirmed_Roots</elementReference>
+                    <elementReference>Loop_Asset_Signatures</elementReference>
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Loop_Confirmed_Roots</targetReference>
+                <targetReference>Loop_Asset_Signatures</targetReference>
             </connector>
             <label>Confirmed</label>
         </rules>
     </decisions>
-    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does an existing quote on these opportunities, or a renewal quote for one of the assets' current terms on any other opportunity, open or closed (either could still be ordered, renewing the same assets again), a root asset or component sold from another price book or in another currency (a renewal must use those of the initial sale), ramped, or with a period in a time zone other than GMT (renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones). Assets whose renewal would start before today (GMT) can't be cotermed.</description>
+    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed, down to each root asset&apos;s end and renewal term. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does an existing quote on these opportunities, or a renewal quote for one of the assets' current terms on any other opportunity, open or closed (either could still be ordered, renewing the same assets again), a root asset or component sold from another price book or in another currency (a renewal must use those of the initial sale), ramped, or with a period in a time zone other than GMT (renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones). Assets whose renewal would start before today (GMT) can't be cotermed.</description>
     <environments>Default</environments>
+    <formulas>
+        <description>What the renewal of this asset depends on: the asset, its exact end, and its renewal term.</description>
+        <name>AssetSignature</name>
+        <dataType>String</dataType>
+        <expression>{!Loop_Check_Assets.Id} &amp; "@" &amp; TEXT({!Loop_Check_Assets.LifecycleEndDate}) &amp; "@" &amp; TEXT({!Loop_Check_Assets.RenewalTerm}) &amp; " " &amp; TEXT({!Loop_Check_Assets.RenewalTermUnit})</expression>
+    </formulas>
     <formulas>
         <description>The day the asset ends in GMT, like every other date here. DATEVALUE on the datetime would use the user's time zone, a day late east of GMT for an end at 23:59:59 GMT.</description>
         <name>CheckAssetEndDate</name>
@@ -1745,14 +1765,15 @@
         </noMoreValuesConnector>
     </loops>
     <loops>
-        <name>Loop_Confirmed_Roots</name>
-        <label>Loop Confirmed Roots</label>
+        <description>Every asset to renew, with its end and renewal term, must be one the user confirmed: the counts match, so the sets are the same.</description>
+        <name>Loop_Asset_Signatures</name>
+        <label>Loop Asset Signatures</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <collectionReference>RootAssetIds</collectionReference>
+        <collectionReference>AssetSignatures</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
-            <targetReference>Was_Root_Confirmed</targetReference>
+            <targetReference>Was_Asset_Confirmed</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
             <targetReference>Loop_Root_Assets</targetReference>
@@ -2687,7 +2708,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Selection_ChangedText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;Nothing was consolidated.&lt;/strong&gt; While you were choosing or confirming, {!Get_Primary_Opportunity.Name}, one of the selected opportunities, or the assets they renew changed: an opportunity was closed or no longer has the same account, price book and currency, or the assets to renew, their latest end date or their contract are no longer the ones you confirmed.&lt;/p&gt;&lt;p&gt;Run Consolidate Renewals again to see the current renewals.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Nothing was consolidated.&lt;/strong&gt; While you were choosing or confirming, {!Get_Primary_Opportunity.Name}, one of the selected opportunities, or the assets they renew changed: an opportunity was closed or no longer has the same account, price book and currency, or the assets to renew, their end dates, renewal terms or contract are no longer the ones you confirmed.&lt;/p&gt;&lt;p&gt;Run Consolidate Renewals again to see the current renewals.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
@@ -3074,8 +3095,16 @@
         </value>
     </variables>
     <variables>
-        <description>RootAssetIds as shown on the confirmation screen.</description>
-        <name>ConfirmedRootAssetIds</name>
+        <description>AssetSignature of each root asset to renew, as read in this pass.</description>
+        <name>AssetSignatures</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>AssetSignatures as they were when the user confirmed.</description>
+        <name>ConfirmedAssetSignatures</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>
         <isInput>false</isInput>
