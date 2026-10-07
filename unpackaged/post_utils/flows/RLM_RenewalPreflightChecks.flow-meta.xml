@@ -83,22 +83,6 @@
         </connector>
     </assignments>
     <assignments>
-        <name>Add_Renew_Line_Key</name>
-        <label>Add Renew Line Key</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>RenewLineKeys</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>RenewLineKey</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Loop_Renew_Lines</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
         <name>Set_Has_Pending_Renewal_Quote</name>
         <label>Set Has Pending Renewal Quote</label>
         <locationX>0</locationX>
@@ -111,7 +95,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Loop_Action_Assets</targetReference>
+            <targetReference>Loop_Action_Lines</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -285,9 +269,42 @@
         </rules>
     </decisions>
     <decisions>
-        <description>The quote action renews this asset, and one of its lines starts the second after the asset ends now, so ordering that quote would renew the asset's current term. A line from a renewal already ordered and activated starts after an earlier end, so it doesn't match.</description>
+        <description>A line of this quote action ends after the asset ends now, so ordering that quote would renew the asset past its current term, whatever the line&apos;s start (the default second after the end, a later start, or an early renewal). A renewal already ordered and activated has moved the asset&apos;s end to its line&apos;s end, so its lines don&apos;t match.</description>
         <name>Is_Pending_Renewal</name>
         <label>Is Pending Renewal</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Loop_Action_Lines</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>Pending_Renewal</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Action_Lines.QuoteActionId</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>Loop_Pending_Actions.Id</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Loop_Action_Lines.EndDateTime</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <elementReference>Loop_Action_Assets.LifecycleEndDate</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Has_Pending_Renewal_Quote</targetReference>
+            </connector>
+            <label>Pending Renewal</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>The asset this quote action renews.</description>
+        <name>Is_Action_Asset</name>
+        <label>Is Action Asset</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
@@ -295,7 +312,7 @@
         </defaultConnector>
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
-            <name>Pending_Renewal</name>
+            <name>Action_Asset</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
                 <leftValueReference>Loop_Action_Assets.Id</leftValueReference>
@@ -304,17 +321,10 @@
                     <elementReference>Loop_Pending_Actions.SourceAssetId</elementReference>
                 </rightValue>
             </conditions>
-            <conditions>
-                <leftValueReference>RenewLineKeys</leftValueReference>
-                <operator>Contains</operator>
-                <rightValue>
-                    <elementReference>PendingRenewalKey</elementReference>
-                </rightValue>
-            </conditions>
             <connector>
-                <targetReference>Set_Has_Pending_Renewal_Quote</targetReference>
+                <targetReference>Loop_Action_Lines</targetReference>
             </connector>
-            <label>Pending Renewal</label>
+            <label>Action Asset</label>
         </rules>
     </decisions>
     <decisions>
@@ -440,20 +450,22 @@
     </decisions>
     <description>Checks, before RLM_ConsolidateRenewalOpportunities renews anything, whether any of the given root assets or their bundle components has an asset state period in a time zone other than GMT (a period with no time zone uses GMT) or in a ramp, was sold from a price book other than the renewal quote&apos;s or is in another currency (a renewal must use the price book and currency of the initial sale), whether a quote on any opportunity, open or closed, would renew one of their current terms, and whether any of the given opportunities already has a quote. Runs in system context without sharing: Start End Time Zone and the ramp fields on Asset State Period and the asset&apos;s sales are usually hidden by field-level security, which would fail a read in user context, and a quote the user can't see could still be ordered and renew the same assets. It is given the root assets and opportunities the caller already read and returns only a yes or no for each check, never a record, an Id or a field value.</description>
     <environments>Default</environments>
-    <formulas>
-        <description>A renew line's quote action and its exact start.</description>
-        <name>RenewLineKey</name>
-        <dataType>String</dataType>
-        <expression>{!Loop_Renew_Lines.QuoteActionId} &amp; "@" &amp; TEXT({!Loop_Renew_Lines.StartDateTime})</expression>
-    </formulas>
-    <formulas>
-        <description>The key a line of this quote action would have if it renewed the asset's current term, which starts the second after the asset ends.</description>
-        <name>PendingRenewalKey</name>
-        <dataType>String</dataType>
-        <expression>{!Loop_Pending_Actions.Id} &amp; "@" &amp; TEXT({!Loop_Action_Assets.LifecycleEndDate} + 1/86400)</expression>
-    </formulas>
     <interviewLabel>RLM Renewal Preflight Checks {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Renewal Preflight Checks</label>
+    <loops>
+        <name>Loop_Action_Lines</name>
+        <label>Loop Action Lines</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Renew_Lines</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Is_Pending_Renewal</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Loop_Action_Assets</targetReference>
+        </noMoreValuesConnector>
+    </loops>
     <loops>
         <name>Loop_Bundle_Assets</name>
         <label>Loop Bundle Assets</label>
@@ -511,20 +523,6 @@
         </noMoreValuesConnector>
     </loops>
     <loops>
-        <name>Loop_Renew_Lines</name>
-        <label>Loop Renew Lines</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Renew_Lines</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Add_Renew_Line_Key</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Loop_Pending_Actions</targetReference>
-        </noMoreValuesConnector>
-    </loops>
-    <loops>
         <name>Loop_Pending_Actions</name>
         <label>Loop Pending Actions</label>
         <locationX>0</locationX>
@@ -546,7 +544,7 @@
         <collectionReference>Get_Bundle_Assets</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
-            <targetReference>Is_Pending_Renewal</targetReference>
+            <targetReference>Is_Action_Asset</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
             <targetReference>Loop_Pending_Actions</targetReference>
@@ -723,14 +721,14 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>The quote lines those actions created, with their exact start. StartDateTime isn't filtered on, since a filter on it returns no rows; a line without one gets a key no asset can match.</description>
+        <description>The quote lines those actions created, with their end. EndDateTime isn&apos;t filtered on, since a filter on a line&apos;s date fields returns no rows.</description>
         <name>Get_Renew_Lines</name>
         <label>Get Renew Lines</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Loop_Renew_Lines</targetReference>
+            <targetReference>Loop_Pending_Actions</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -744,7 +742,7 @@
         <object>QuoteLineItem</object>
         <queriedFields>Id</queriedFields>
         <queriedFields>QuoteActionId</queriedFields>
-        <queriedFields>StartDateTime</queriedFields>
+        <queriedFields>EndDateTime</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
@@ -959,14 +957,6 @@
     <variables>
         <description>Renew quote actions for BundleAssetIds.</description>
         <name>RenewActionIds</name>
-        <dataType>String</dataType>
-        <isCollection>true</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <description>RenewLineKey for each line of those actions.</description>
-        <name>RenewLineKeys</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>
         <isInput>false</isInput>
