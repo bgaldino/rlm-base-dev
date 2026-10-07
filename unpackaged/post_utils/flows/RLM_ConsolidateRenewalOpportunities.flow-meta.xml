@@ -334,10 +334,10 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignmentItems>
-            <assignToReference>GroupEndDate</assignToReference>
+            <assignToReference>GroupEndDateTime</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>RootAssetEndDate</elementReference>
+                <elementReference>Loop_Root_Assets.LifecycleEndDate</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -1072,7 +1072,7 @@
         </rules>
     </decisions>
     <decisions>
-        <description>Groups assets by end date. Initiate Renewal applies one start date to every asset in a call, so each group is renewed by its own call.</description>
+        <description>Groups assets by their exact end date and time. Initiate Renewal applies one start to every asset in a call, and each asset's renewal must start the second after it ends, so each group is renewed by its own call.</description>
         <name>Is_Same_Group</name>
         <label>Is Same Group</label>
         <locationX>0</locationX>
@@ -1085,17 +1085,17 @@
             <name>Same_Group</name>
             <conditionLogic>or</conditionLogic>
             <conditions>
-                <leftValueReference>GroupEndDate</leftValueReference>
+                <leftValueReference>GroupEndDateTime</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
             <conditions>
-                <leftValueReference>GroupEndDate</leftValueReference>
+                <leftValueReference>GroupEndDateTime</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
-                    <elementReference>RootAssetEndDate</elementReference>
+                    <elementReference>Loop_Root_Assets.LifecycleEndDate</elementReference>
                 </rightValue>
             </conditions>
             <connector>
@@ -1512,21 +1512,16 @@
         <expression>{!CheckAssetEndDate} + 1 &gt;= TODAY()</expression>
     </formulas>
     <formulas>
-        <name>RootAssetEndDate</name>
-        <dataType>Date</dataType>
-        <expression>DATEVALUE({!Loop_Root_Assets.LifecycleEndDate})</expression>
-    </formulas>
-    <formulas>
         <description>One year after the latest asset ends.</description>
         <name>DefaultTargetEndDate</name>
         <dataType>Date</dataType>
         <expression>ADDMONTHS({!LatestEndDate}, 12)</expression>
     </formulas>
     <formulas>
-        <description>Midnight GMT on the day after the group ends, the same value Initiate Renewal gets from a date-only start.</description>
+        <description>One second after the group ends. Initiate Renewal rejects any other start, and adding to the end datetime keeps it independent of the user's time zone, which a date conversion is not.</description>
         <name>GroupStartDateTime</name>
         <dataType>DateTime</dataType>
-        <expression>DATETIMEVALUE(TEXT({!GroupEndDate} + 1) &amp; " 00:00:00")</expression>
+        <expression>{!GroupEndDateTime} + 1/86400</expression>
     </formulas>
     <formulas>
         <name>TargetEndDateTime</name>
@@ -2186,7 +2181,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>The root assets the shared contract actually links. An opportunity's contract doesn't prove its assets belong to it: a quote that absorbed other assets, or added account assets, can carry assets from elsewhere.</description>
+        <description>The root assets the shared contract actually links. An opportunity's contract doesn't prove its assets belong to it: a quote that absorbed other assets, or added account assets, can carry assets from elsewhere. Relationship dates are not filtered: Initiate Renewal checks that a relationship exists, not that it is current, and a relationship normally ends with the contract term the renewal follows.</description>
         <name>Get_Contract_Assets</name>
         <label>Get Contract Assets</label>
         <locationX>0</locationX>
@@ -2789,14 +2784,15 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <name>GroupEndDate</name>
-        <dataType>Date</dataType>
+        <description>End date and time of the assets in the current group.</description>
+        <name>GroupEndDateTime</name>
+        <dataType>DateTime</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Root assets that end on GroupEndDate, renewed together by one Initiate Renewal call.</description>
+        <description>Root assets that end at GroupEndDateTime, renewed together by one Initiate Renewal call.</description>
         <name>GroupAssetIds</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>
