@@ -3,6 +3,70 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
+        <name>Add_Bundle_Asset_Id</name>
+        <label>Add Bundle Asset Id</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>BundleAssetIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Loop_Bundle_Assets.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Bundle_Assets</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Add_Asset_Action_Id</name>
+        <label>Add Asset Action Id</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>AssetActionIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Loop_Asset_Actions.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Asset_Actions</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Add_Price_Book_Entry_Id</name>
+        <label>Add Price Book Entry Id</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>PriceBookEntryIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Loop_Action_Sources.PricebookEntryId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Action_Sources</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Set_Has_Other_Price_Book</name>
+        <label>Set Has Other Price Book</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>HasOtherPriceBook</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Renew_Actions</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>Add_Renew_Action_Id</name>
         <label>Add Renew Action Id</label>
         <locationX>0</locationX>
@@ -92,9 +156,109 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Get_Renew_Actions</targetReference>
+            <targetReference>Get_Other_Currency_Asset</targetReference>
         </connector>
     </assignments>
+    <decisions>
+        <name>Has_Other_Currency</name>
+        <label>Has Other Currency</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Get_Asset_Actions</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Same Currency</defaultConnectorLabel>
+        <rules>
+            <name>Other_Currency_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Other_Currency_Asset</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Has_Other_Price_Book</targetReference>
+            </connector>
+            <label>Other Currency Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Has_Asset_Actions</name>
+        <label>Has Asset Actions</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Get_Renew_Actions</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>None</defaultConnectorLabel>
+        <rules>
+            <name>Asset_Actions_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Asset_Actions</leftValueReference>
+                <operator>IsEmpty</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Asset_Actions</targetReference>
+            </connector>
+            <label>Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Has_Action_Sources</name>
+        <label>Has Action Sources</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Get_Renew_Actions</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>None</defaultConnectorLabel>
+        <rules>
+            <name>Action_Sources_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Action_Sources</leftValueReference>
+                <operator>IsEmpty</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Action_Sources</targetReference>
+            </connector>
+            <label>Found</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Has_Other_Price_Book_Entry</name>
+        <label>Has Other Price Book Entry</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Get_Renew_Actions</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Same Price Book</defaultConnectorLabel>
+        <rules>
+            <name>Other_Price_Book_Entry_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Other_Price_Book_Entry</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Has_Other_Price_Book</targetReference>
+            </connector>
+            <label>Other Price Book Found</label>
+        </rules>
+    </decisions>
     <decisions>
         <name>Has_Renew_Actions</name>
         <label>Has Renew Actions</label>
@@ -174,7 +338,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Get_Non_Gmt_Period</targetReference>
+                <targetReference>Get_Bundle_Assets</targetReference>
             </connector>
             <label>Assets</label>
         </rules>
@@ -255,7 +419,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>Get_Renew_Actions</targetReference>
+            <targetReference>Get_Other_Currency_Asset</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Not Ramped</defaultConnectorLabel>
         <rules>
@@ -274,7 +438,7 @@
             <label>Ramped Period Found</label>
         </rules>
     </decisions>
-    <description>Checks, before RLM_ConsolidateRenewalOpportunities renews anything, whether any of the given root assets has an asset state period in a time zone other than GMT (a period with no time zone uses GMT) or in a ramp, whether a quote on any opportunity, open or closed, would renew one of their current terms, and whether any of the given opportunities already has a quote. Runs in system context without sharing: Start End Time Zone and the ramp fields on Asset State Period are usually hidden by field-level security, which would fail a read in user context, and a quote the user can't see could still be ordered and renew the same assets. It is given the root assets and opportunities the caller already read and returns only a yes or no for each check, never a record, an Id or a field value.</description>
+    <description>Checks, before RLM_ConsolidateRenewalOpportunities renews anything, whether any of the given root assets or their bundle components has an asset state period in a time zone other than GMT (a period with no time zone uses GMT) or in a ramp, was sold from a price book other than the renewal quote&apos;s or is in another currency (a renewal must use the price book and currency of the initial sale), whether a quote on any opportunity, open or closed, would renew one of their current terms, and whether any of the given opportunities already has a quote. Runs in system context without sharing: Start End Time Zone and the ramp fields on Asset State Period and the asset&apos;s sales are usually hidden by field-level security, which would fail a read in user context, and a quote the user can't see could still be ordered and renew the same assets. It is given the root assets and opportunities the caller already read and returns only a yes or no for each check, never a record, an Id or a field value.</description>
     <environments>Default</environments>
     <formulas>
         <description>A renew line's quote action and its exact start.</description>
@@ -290,6 +454,48 @@
     </formulas>
     <interviewLabel>RLM Renewal Preflight Checks {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Renewal Preflight Checks</label>
+    <loops>
+        <name>Loop_Bundle_Assets</name>
+        <label>Loop Bundle Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Bundle_Assets</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Add_Bundle_Asset_Id</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Get_Non_Gmt_Period</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <name>Loop_Asset_Actions</name>
+        <label>Loop Asset Actions</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Asset_Actions</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Add_Asset_Action_Id</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Get_Action_Sources</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <name>Loop_Action_Sources</name>
+        <label>Loop Action Sources</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Action_Sources</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Add_Price_Book_Entry_Id</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Get_Other_Price_Book_Entry</targetReference>
+        </noMoreValuesConnector>
+    </loops>
     <loops>
         <name>Loop_Renew_Action_Ids</name>
         <label>Loop Renew Action Ids</label>
@@ -315,7 +521,7 @@
             <targetReference>Add_Renew_Line_Key</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
-            <targetReference>Get_Renewed_Assets</targetReference>
+            <targetReference>Loop_Pending_Actions</targetReference>
         </noMoreValuesConnector>
     </loops>
     <loops>
@@ -337,7 +543,7 @@
         <label>Loop Action Assets</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <collectionReference>Get_Renewed_Assets</collectionReference>
+        <collectionReference>Get_Bundle_Assets</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
             <targetReference>Is_Pending_Renewal</targetReference>
@@ -347,6 +553,144 @@
         </noMoreValuesConnector>
     </loops>
     <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>The root assets and their bundle components, with when each ends now. A quote action, period or sale can name a component rather than its root, so every check reads the whole bundle.</description>
+        <name>Get_Bundle_Assets</name>
+        <label>Get Bundle Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Bundle_Assets</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>RootAssetId</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>AssetIds</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Asset</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>LifecycleEndDate</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>An asset in a currency other than the renewal quote&apos;s. A renewal must use the currency of the initial sale.</description>
+        <name>Get_Other_Currency_Asset</name>
+        <label>Get Other Currency Asset</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Has_Other_Currency</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>BundleAssetIds</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>CurrencyIsoCode</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <elementReference>CurrencyCode</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Asset</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>The sales, amendments and renewals of these assets.</description>
+        <name>Get_Asset_Actions</name>
+        <label>Get Asset Actions</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Has_Asset_Actions</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>AssetId</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>BundleAssetIds</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>AssetAction</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>The price book entries those transactions sold from.</description>
+        <name>Get_Action_Sources</name>
+        <label>Get Action Sources</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Has_Action_Sources</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>AssetActionId</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>AssetActionIds</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>PricebookEntryId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>AssetActionSource</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>PricebookEntryId</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>An entry in a price book other than the renewal quote&apos;s. A renewal must use the price book of the initial sale.</description>
+        <name>Get_Other_Price_Book_Entry</name>
+        <label>Get Other Price Book Entry</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Has_Other_Price_Book_Entry</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>PriceBookEntryIds</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Pricebook2Id</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <elementReference>PriceBookId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>PricebookEntry</object>
+        <queriedFields>Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <recordLookups>
         <description>Renew quote actions for these assets on any quote, on any opportunity, open or closed. Any quote can still be ordered, so one that would renew an asset's current term would renew it a second time.</description>
         <name>Get_Renew_Actions</name>
@@ -369,7 +713,7 @@
             <field>SourceAssetId</field>
             <operator>In</operator>
             <value>
-                <elementReference>AssetIds</elementReference>
+                <elementReference>BundleAssetIds</elementReference>
             </value>
         </filters>
         <getFirstRecordOnly>false</getFirstRecordOnly>
@@ -404,30 +748,6 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>When each asset ends now.</description>
-        <name>Get_Renewed_Assets</name>
-        <label>Get Renewed Assets</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Loop_Pending_Actions</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>In</operator>
-            <value>
-                <elementReference>AssetIds</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
-        <object>Asset</object>
-        <queriedFields>Id</queriedFields>
-        <queriedFields>LifecycleEndDate</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
         <name>Get_Non_Gmt_Period</name>
         <label>Get Non-GMT Period</label>
         <locationX>0</locationX>
@@ -441,7 +761,7 @@
             <field>AssetId</field>
             <operator>In</operator>
             <value>
-                <elementReference>AssetIds</elementReference>
+                <elementReference>BundleAssetIds</elementReference>
             </value>
         </filters>
         <filters>
@@ -501,7 +821,7 @@
             <field>AssetId</field>
             <operator>In</operator>
             <value>
-                <elementReference>AssetIds</elementReference>
+                <elementReference>BundleAssetIds</elementReference>
             </value>
         </filters>
         <filters>
@@ -526,6 +846,57 @@
     </start>
     <status>Active</status>
     <variables>
+        <description>AssetIds and their bundle components.</description>
+        <name>BundleAssetIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>The price book the renewal quote uses: the opportunity being consolidated into&apos;s.</description>
+        <name>PriceBookId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>The currency the renewal quote uses: the opportunity being consolidated into&apos;s.</description>
+        <name>CurrencyCode</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>True when any of AssetIds or their components was sold from a price book other than PriceBookId, or is in a currency other than CurrencyCode.</description>
+        <name>HasOtherPriceBook</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <description>Asset actions of BundleAssetIds.</description>
+        <name>AssetActionIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Price book entries those asset actions sold from.</description>
+        <name>PriceBookEntryIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
         <description>Root Asset Ids the caller already read with its own sharing.</description>
         <name>AssetIds</name>
         <dataType>String</dataType>
@@ -542,7 +913,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>True when any of AssetIds has a period in a time zone other than GMT.</description>
+        <description>True when any of AssetIds or their components has a period in a time zone other than GMT.</description>
         <name>HasNonGmtTimeZone</name>
         <dataType>Boolean</dataType>
         <isCollection>false</isCollection>
@@ -553,7 +924,7 @@
         </value>
     </variables>
     <variables>
-        <description>True when any of AssetIds has a period in a ramp.</description>
+        <description>True when any of AssetIds or their components has a period in a ramp.</description>
         <name>HasRampedPeriod</name>
         <dataType>Boolean</dataType>
         <isCollection>false</isCollection>
@@ -575,7 +946,7 @@
         </value>
     </variables>
     <variables>
-        <description>True when a quote on any opportunity would renew the current term of any of AssetIds.</description>
+        <description>True when a quote on any opportunity would renew the current term of any of AssetIds or their components.</description>
         <name>HasPendingRenewalQuote</name>
         <dataType>Boolean</dataType>
         <isCollection>false</isCollection>
@@ -586,7 +957,7 @@
         </value>
     </variables>
     <variables>
-        <description>Renew quote actions for AssetIds.</description>
+        <description>Renew quote actions for BundleAssetIds.</description>
         <name>RenewActionIds</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>

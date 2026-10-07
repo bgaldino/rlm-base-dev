@@ -1317,6 +1317,21 @@
             <label>Pending Renewal Quote</label>
         </rules>
         <rules>
+            <name>Other_Price_Book</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>HasOtherPriceBook</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Other_Price_Book_Assets</targetReference>
+            </connector>
+            <label>Other Price Book</label>
+        </rules>
+        <rules>
             <name>Ramped_Period</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
@@ -1511,7 +1526,7 @@
             <label>Confirmed</label>
         </rules>
     </decisions>
-    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does an existing quote on these opportunities, or a renewal quote for one of the assets' current terms on any other opportunity, open or closed (either could still be ordered, renewing the same assets again), a ramped root asset, or a root asset with a period in a time zone other than GMT (renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones). Assets whose renewal would start before today (GMT) can't be cotermed.</description>
+    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does an existing quote on these opportunities, or a renewal quote for one of the assets' current terms on any other opportunity, open or closed (either could still be ordered, renewing the same assets again), a root asset or component sold from another price book or in another currency (a renewal must use those of the initial sale), ramped, or with a period in a time zone other than GMT (renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones). Assets whose renewal would start before today (GMT) can't be cotermed.</description>
     <environments>Default</environments>
     <formulas>
         <description>The day the asset ends in GMT, like every other date here. DATEVALUE on the datetime would use the user's time zone, a day late east of GMT for an end at 23:59:59 GMT.</description>
@@ -2204,6 +2219,22 @@
         <inputReference>RenewalsToClose</inputReference>
     </recordUpdates>
     <screens>
+        <name>Other_Price_Book_Assets</name>
+        <label>Other Price Book Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Other_Price_Book_AssetsText</name>
+            <fieldText>&lt;p&gt;An asset to renew was sold from a different price book or in a different currency than this opportunity uses, so nothing was consolidated. A renewal must use the price book and currency of the asset&apos;s initial sale.&lt;/p&gt;&lt;p&gt;Leave out the opportunity that asset is on, or the account&apos;s other assets if it is one of them, then try again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
         <name>Pending_Renewal_Quotes</name>
         <label>Pending Renewal Quotes</label>
         <locationX>0</locationX>
@@ -2671,7 +2702,7 @@
     </start>
     <status>Active</status>
     <subflows>
-        <description>Checks, before anything is renewed, that no root asset has a period in a time zone other than GMT (renewal lines inherit the asset's time zone, the end is set at 23:59:59 GMT, and one quote can't mix time zones) or in a ramp (a ramp renews segment by segment), and that none of these opportunities already has a quote (it could still be ordered, renewing the same assets again). RLM_RenewalPreflightChecks runs in system context without sharing, because the period fields are usually hidden by field-level security and an order the user can't see still counts; it is given the root assets and opportunities the user already read and returns only a yes or no for each. Runs again after the confirmation screen.</description>
+        <description>Checks, before anything is renewed, that no root asset or bundle component was sold from a price book other than this opportunity&apos;s or is in another currency (a renewal must use those of the initial sale), or has a period in a time zone other than GMT (renewal lines inherit the asset's time zone, the end is set at 23:59:59 GMT, and one quote can't mix time zones) or in a ramp (a ramp renews segment by segment), and that none of these opportunities already has a quote and no quote on any other opportunity, open or closed, would renew one of their current terms (either could still be ordered, renewing the same assets again). RLM_RenewalPreflightChecks runs in system context without sharing, because the period fields and the assets&apos; sales are usually hidden by field-level security and a quote the user can't see still counts; it is given the root assets and opportunities the user already read and returns only a yes or no for each. Runs again after the confirmation screen.</description>
         <name>Run_Preflight_Checks</name>
         <label>Run Preflight Checks</label>
         <locationX>0</locationX>
@@ -2692,6 +2723,18 @@
                 <elementReference>SelectedOppIds</elementReference>
             </value>
         </inputAssignments>
+        <inputAssignments>
+            <name>PriceBookId</name>
+            <value>
+                <elementReference>Get_Primary_Opportunity.Pricebook2Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <name>CurrencyCode</name>
+            <value>
+                <elementReference>Get_Primary_Opportunity.CurrencyIsoCode</elementReference>
+            </value>
+        </inputAssignments>
         <outputAssignments>
             <assignToReference>HasNonGmtTimeZone</assignToReference>
             <name>HasNonGmtTimeZone</name>
@@ -2707,6 +2750,10 @@
         <outputAssignments>
             <assignToReference>HasPendingRenewalQuote</assignToReference>
             <name>HasPendingRenewalQuote</name>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>HasOtherPriceBook</assignToReference>
+            <name>HasOtherPriceBook</name>
         </outputAssignments>
         <storeOutputAutomatically>false</storeOutputAutomatically>
     </subflows>
@@ -2738,6 +2785,17 @@
         </outputAssignments>
         <storeOutputAutomatically>false</storeOutputAutomatically>
     </subflows>
+    <variables>
+        <description>Set by RLM_RenewalPreflightChecks: whether an asset to renew was sold from a price book other than this opportunity&apos;s, or is in another currency.</description>
+        <name>HasOtherPriceBook</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
     <variables>
         <description>Set by RLM_RenewalPreflightChecks: whether a quote on any opportunity, open or closed, would renew the current term of one of these assets.</description>
         <name>HasPendingRenewalQuote</name>
