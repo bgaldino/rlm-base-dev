@@ -109,6 +109,15 @@ def _fake_binary(directory, name, version_line):
     return str(path)
 
 
+def _non_executable_file(directory, name):
+    """A file that exists but lacks execute permission -- the case os.access(X_OK)
+    guards against, distinct from a missing path."""
+    path = Path(directory) / name
+    path.write_text("#!/bin/sh\n")
+    path.chmod(0o644)
+    return str(path)
+
+
 def _set_env(**values):
     for var in ENV_VARS:
         os.environ.pop(var, None)
@@ -136,6 +145,12 @@ def check_broken_chrome_override_fails(tmp):
     check("broken_chrome_override_fails", result["status"] == FAIL, result["detail"])
 
 
+def check_non_executable_chrome_override_fails(tmp):
+    _set_env(CHROME_BINARY=_non_executable_file(tmp, "cft-chrome"))
+    result = _task(tmp)._check_chrome_chromium()
+    check("non_executable_chrome_override_fails", result["status"] == FAIL, result["detail"])
+
+
 def _expected_fallback_driver(tmp):
     """Put a fake chromedriver on PATH; return what WebDriverManager.py's default
     lookup should pick (its hardcoded /usr/bin/chromedriver still wins on hosts
@@ -152,6 +167,17 @@ def check_broken_driver_override_warns_with_fallback(tmp):
     result = _task(tmp)._check_chromedriver()
     check(
         "broken_driver_override_warns_with_fallback",
+        result["status"] == WARN and fallback in result["detail"],
+        result["detail"],
+    )
+
+
+def check_non_executable_driver_override_warns_with_fallback(tmp):
+    fallback = _fake_binary(tmp, "chromedriver", "ChromeDriver 154.0.8037.98 (abc)")
+    _set_env(CHROMEDRIVER_PATH=_non_executable_file(tmp, "cft-chromedriver"), PATH=tmp)
+    result = _task(tmp)._check_chromedriver()
+    check(
+        "non_executable_driver_override_warns_with_fallback",
         result["status"] == WARN and fallback in result["detail"],
         result["detail"],
     )
@@ -260,13 +286,22 @@ def check_option_builders_leave_binary_unset(tmp):
         check(f"{mode}_options_leave_binary_unset", got == "", f"got {got!r}")
 
 
+def check_webdriver_manager_ignores_non_executable_override(tmp):
+    fallback = _expected_fallback_driver(tmp)
+    _set_env(CHROMEDRIVER_PATH=_non_executable_file(tmp, "cft-chromedriver"), PATH=tmp)
+    got = WebDriverManager.get_chrome_driver_path()
+    check("webdriver_manager_ignores_non_executable_override", got == fallback, f"got {got!r}, want {fallback!r}")
+
+
 def main():
     saved = {var: os.environ.get(var) for var in ENV_VARS}
     checks = (
         check_chrome_binary_override_wins,
         check_chrome_bin_is_fallback,
         check_broken_chrome_override_fails,
+        check_non_executable_chrome_override_fails,
         check_broken_driver_override_warns_with_fallback,
+        check_non_executable_driver_override_warns_with_fallback,
         check_broken_driver_override_without_fallback_fails,
         check_driver_override_passes,
         check_version_mismatch_with_browser_override_fails,
@@ -276,6 +311,7 @@ def main():
         check_version_match_passes,
         check_webdriver_manager_honours_override,
         check_webdriver_manager_ignores_broken_override,
+        check_webdriver_manager_ignores_non_executable_override,
         check_option_builders_honour_chrome_binary,
         check_option_builders_fall_back_to_chrome_bin,
         check_option_builders_leave_binary_unset,
