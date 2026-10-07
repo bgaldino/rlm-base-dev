@@ -76,71 +76,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Get_Open_Renewals</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <name>Add_Open_Renewal_Id</name>
-        <label>Add Open Renewal Id</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>OpenRenewalIds</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>Loop_Open_Renewals.Id</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Loop_Open_Renewals</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <name>Add_Covered_Line_Asset</name>
-        <label>Add Covered Line Asset</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>CoveredAssetIds</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>Loop_Open_Renewal_Lines.AssetId</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Loop_Open_Renewal_Lines</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <name>Add_Open_Renewal_Quote_Id</name>
-        <label>Add Open Renewal Quote Id</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>OpenRenewalQuoteIds</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>Loop_Open_Renewal_Quotes.Id</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Loop_Open_Renewal_Quotes</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <name>Add_Covered_Quote_Asset</name>
-        <label>Add Covered Quote Asset</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>CoveredAssetIds</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>Loop_Renew_Quote_Actions.SourceAssetId</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Loop_Renew_Quote_Actions</targetReference>
+            <targetReference>Get_Covered_Assets</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -179,7 +115,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Has_Anything_To_Consolidate</targetReference>
+            <targetReference>Is_Revalidating_Coverage</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -210,13 +146,6 @@
                 <elementReference>Get_Primary_Opportunity.Id</elementReference>
             </value>
         </assignmentItems>
-        <assignmentItems>
-            <assignToReference>RenewContractId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>Get_Primary_Opportunity.ContractId</elementReference>
-            </value>
-        </assignmentItems>
         <connector>
             <targetReference>Loop_Selected_Renewals</targetReference>
         </connector>
@@ -234,7 +163,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Get_Renewal_Lines</targetReference>
+            <targetReference>Get_Current_Opportunities</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -247,22 +176,6 @@
             <operator>Add</operator>
             <value>
                 <elementReference>Loop_Selected_Renewals.Id</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Is_Same_Contract</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <name>Clear_Contract</name>
-        <label>Clear Contract</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>RenewContractId</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>NoContractId</elementReference>
             </value>
         </assignmentItems>
         <connector>
@@ -555,6 +468,180 @@
             <targetReference>Is_Selection_Current</targetReference>
         </connector>
     </assignments>
+    <assignments>
+        <name>Set_Primary_Contract</name>
+        <label>Set Primary Contract</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>RenewContractId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_Primary_Opportunity.ContractId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Current_Contracts</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Clear_Contract</name>
+        <label>Clear Contract</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>RenewContractId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoContractId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Current_Contracts</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Add_Contract_Asset_Id</name>
+        <label>Add Contract Asset Id</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>ContractAssetIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Loop_Contract_Assets.AssetId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Contract_Assets</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Count_Contract_Assets</name>
+        <label>Count Contract Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>ContractAssetCount</assignToReference>
+            <operator>AssignCount</operator>
+            <value>
+                <elementReference>ContractAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Are_All_Assets_On_Contract</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Clear_Unlinked_Contract</name>
+        <label>Clear Unlinked Contract</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>RenewContractId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoContractId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Is_Revalidating</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Keeps what the user confirmed, then empties the working collections so the selection is rebuilt from current records before anything is renewed.</description>
+        <name>Snapshot_Confirmed_Selection</name>
+        <label>Snapshot Confirmed Selection</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>ConfirmedRootAssetIds</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>RootAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ConfirmedRootAssetCount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>RootAssetCount</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ConfirmedContractId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>RenewContractId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ConfirmedEndDate</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>LatestEndDate</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>IsRevalidating</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ExtraAssets</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoAssets</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ExtraAssetIds</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>LineAssetIds</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>SelectedQuoteIds</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>RootAssetIds</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>UnrenewableAssetNames</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>ContractAssetIds</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoAssetIds</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Covered_Assets</targetReference>
+        </connector>
+    </assignments>
     <decisions>
         <description>Same rule as the action's visibility on the record page: only an open renewal opportunity (Type Existing Business) can absorb other renewals.</description>
         <name>Is_Open_Renewal</name>
@@ -589,31 +676,6 @@
         </rules>
     </decisions>
     <decisions>
-        <name>Has_Open_Renewal_Quotes</name>
-        <label>Has Open Renewal Quotes</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>Get_Account_Assets</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>None</defaultConnectorLabel>
-        <rules>
-            <name>Open_Renewal_Quotes_Found</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>Get_Open_Renewal_Quotes</leftValueReference>
-                <operator>IsEmpty</operator>
-                <rightValue>
-                    <booleanValue>false</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Loop_Open_Renewal_Quotes</targetReference>
-            </connector>
-            <label>Found</label>
-        </rules>
-    </decisions>
-    <decisions>
         <description>Only root assets are renewed, and only those no open renewal opportunity or its quote already covers.</description>
         <name>Is_Covered_Asset</name>
         <label>Is Covered Asset</label>
@@ -634,7 +696,7 @@
                 </rightValue>
             </conditions>
             <conditions>
-                <leftValueReference>CoveredAssetIds</leftValueReference>
+                <leftValueReference>CoveredRootAssetIds</leftValueReference>
                 <operator>Contains</operator>
                 <rightValue>
                     <elementReference>Loop_Account_Assets.Id</elementReference>
@@ -708,32 +770,6 @@
                 <targetReference>Start_Selection</targetReference>
             </connector>
             <label>Selected</label>
-        </rules>
-    </decisions>
-    <decisions>
-        <description>Initiate Renewal requires every asset to belong to the contract it is given, so the contract is passed only when all the opportunities share it.</description>
-        <name>Is_Same_Contract</name>
-        <label>Is Same Contract</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>Clear_Contract</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>Different</defaultConnectorLabel>
-        <rules>
-            <name>Same_Contract</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>Loop_Selected_Renewals.ContractId</leftValueReference>
-                <operator>EqualTo</operator>
-                <rightValue>
-                    <elementReference>RenewContractId</elementReference>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Loop_Selected_Renewals</targetReference>
-            </connector>
-            <label>Same</label>
         </rules>
     </decisions>
     <decisions>
@@ -974,7 +1010,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Confirm_Consolidation</targetReference>
+                <targetReference>Has_Renew_Contract</targetReference>
             </connector>
             <label>None</label>
         </rules>
@@ -1161,7 +1197,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Loop_Root_Assets</targetReference>
+                <targetReference>Set_Primary_Contract</targetReference>
             </connector>
             <label>Current</label>
         </rules>
@@ -1191,7 +1227,222 @@
             <label>Primary</label>
         </rules>
     </decisions>
-    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Ramped assets can't be cotermed.</description>
+    <decisions>
+        <name>Is_Revalidating_Coverage</name>
+        <label>Is Revalidating Coverage</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Has_Anything_To_Consolidate</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>First Pass</defaultConnectorLabel>
+        <rules>
+            <name>Revalidating_Coverage</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>IsRevalidating</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Current_Opportunities</targetReference>
+            </connector>
+            <label>Revalidating</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Initiate Renewal requires every asset to belong to the contract it is given, so the contract is passed only when all the opportunities share it (as re-read now) and it links every root asset.</description>
+        <name>Is_Same_Contract</name>
+        <label>Is Same Contract</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Clear_Contract</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Different Contract</defaultConnectorLabel>
+        <rules>
+            <name>Same_Contract</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Current_Contracts.ContractId</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>RenewContractId</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Current_Contracts</targetReference>
+            </connector>
+            <label>Same Contract</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Has_Renew_Contract</name>
+        <label>Has Renew Contract</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Is_Revalidating</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Contract</defaultConnectorLabel>
+        <rules>
+            <name>Renew_Contract_Set</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>RenewContractId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Contract_Assets</targetReference>
+            </connector>
+            <label>Contract Set</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Is_New_Contract_Asset</name>
+        <label>Is New Contract Asset</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Add_Contract_Asset_Id</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>New</defaultConnectorLabel>
+        <rules>
+            <name>Contract_Asset_Already_Added</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>ContractAssetIds</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <elementReference>Loop_Contract_Assets.AssetId</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Contract_Assets</targetReference>
+            </connector>
+            <label>Already Added</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Are_All_Assets_On_Contract</name>
+        <label>Are All Assets On Contract</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Clear_Unlinked_Contract</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not All On Contract</defaultConnectorLabel>
+        <rules>
+            <name>All_On_Contract</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>ContractAssetCount</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>RootAssetCount</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Is_Revalidating</targetReference>
+            </connector>
+            <label>All On Contract</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Is_Revalidating</name>
+        <label>Is Revalidating</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Confirm_Consolidation</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>First Pass</defaultConnectorLabel>
+        <rules>
+            <name>Revalidating</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>IsRevalidating</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Is_Confirmed_Selection</targetReference>
+            </connector>
+            <label>Revalidating</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Is_Confirmed_Selection</name>
+        <label>Is Confirmed Selection</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Selection_Changed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Changed</defaultConnectorLabel>
+        <rules>
+            <name>Same_Totals</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>RootAssetCount</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>ConfirmedRootAssetCount</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>LatestEndDate</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>ConfirmedEndDate</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>IsSameContract</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Confirmed_Roots</targetReference>
+            </connector>
+            <label>Same Totals</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Was_Root_Confirmed</name>
+        <label>Was Root Confirmed</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Selection_Changed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Confirmed</defaultConnectorLabel>
+        <rules>
+            <name>Root_Confirmed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>ConfirmedRootAssetIds</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <elementReference>Loop_Confirmed_Roots</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_Confirmed_Roots</targetReference>
+            </connector>
+            <label>Confirmed</label>
+        </rules>
+    </decisions>
+    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. Ramped assets can't be cotermed.</description>
     <environments>Default</environments>
     <formulas>
         <name>CheckAssetEndDate</name>
@@ -1243,64 +1494,14 @@
         <expression>{!ExpectedRootAssetCount} - {!RootAssetCount}</expression>
         <scale>0</scale>
     </formulas>
+    <formulas>
+        <description>True when the contract to pass is the one the user confirmed (both may be blank).</description>
+        <name>IsSameContract</name>
+        <dataType>Boolean</dataType>
+        <expression>BLANKVALUE({!RenewContractId}, "") = BLANKVALUE({!ConfirmedContractId}, "")</expression>
+    </formulas>
     <interviewLabel>RLM Consolidate Renewal Opportunities {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Consolidate Renewal Opportunities</label>
-    <loops>
-        <name>Loop_Open_Renewals</name>
-        <label>Loop Open Renewals</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Open_Renewals</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Add_Open_Renewal_Id</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Get_Open_Renewal_Lines</targetReference>
-        </noMoreValuesConnector>
-    </loops>
-    <loops>
-        <name>Loop_Open_Renewal_Lines</name>
-        <label>Loop Open Renewal Lines</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Open_Renewal_Lines</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Add_Covered_Line_Asset</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Get_Open_Renewal_Quotes</targetReference>
-        </noMoreValuesConnector>
-    </loops>
-    <loops>
-        <name>Loop_Open_Renewal_Quotes</name>
-        <label>Loop Open Renewal Quotes</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Open_Renewal_Quotes</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Add_Open_Renewal_Quote_Id</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Get_Renew_Quote_Actions</targetReference>
-        </noMoreValuesConnector>
-    </loops>
-    <loops>
-        <name>Loop_Renew_Quote_Actions</name>
-        <label>Loop Renew Quote Actions</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Renew_Quote_Actions</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Add_Covered_Quote_Asset</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Get_Account_Assets</targetReference>
-        </noMoreValuesConnector>
-    </loops>
     <loops>
         <name>Loop_Account_Assets</name>
         <label>Loop Account Assets</label>
@@ -1441,6 +1642,48 @@
             <targetReference>Has_Root_Asset_Ids</targetReference>
         </noMoreValuesConnector>
     </loops>
+    <loops>
+        <name>Loop_Current_Contracts</name>
+        <label>Loop Current Contracts</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Current_Opportunities</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Is_Same_Contract</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Get_Renewal_Lines</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <name>Loop_Contract_Assets</name>
+        <label>Loop Contract Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Contract_Assets</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Is_New_Contract_Asset</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Count_Contract_Assets</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <name>Loop_Confirmed_Roots</name>
+        <label>Loop Confirmed Roots</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>RootAssetIds</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Was_Root_Confirmed</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Loop_Root_Assets</targetReference>
+        </noMoreValuesConnector>
+    </loops>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>
@@ -1558,138 +1801,6 @@
         <queriedFields>Description</queriedFields>
         <sortField>CloseDate</sortField>
         <sortOrder>Asc</sortOrder>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <description>Every open renewal on the account, whatever its price book: their assets are already being renewed, so they are not offered as extra assets.</description>
-        <name>Get_Open_Renewals</name>
-        <label>Get Open Renewals</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Loop_Open_Renewals</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>AccountId</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>Get_Primary_Opportunity.AccountId</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>Type</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Existing Business</stringValue>
-            </value>
-        </filters>
-        <filters>
-            <field>IsClosed</field>
-            <operator>EqualTo</operator>
-            <value>
-                <booleanValue>false</booleanValue>
-            </value>
-        </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
-        <object>Opportunity</object>
-        <queriedFields>Id</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <name>Get_Open_Renewal_Lines</name>
-        <label>Get Open Renewal Lines</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Loop_Open_Renewal_Lines</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>OpportunityId</field>
-            <operator>In</operator>
-            <value>
-                <elementReference>OpenRenewalIds</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>AssetId</field>
-            <operator>IsNull</operator>
-            <value>
-                <booleanValue>false</booleanValue>
-            </value>
-        </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
-        <object>OpportunityLineItem</object>
-        <queriedFields>Id</queriedFields>
-        <queriedFields>AssetId</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <description>A consolidated quote isn't synced, so the assets it absorbed are on no open opportunity's lines; its renew quote actions still name them.</description>
-        <name>Get_Open_Renewal_Quotes</name>
-        <label>Get Open Renewal Quotes</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Has_Open_Renewal_Quotes</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>OpportunityId</field>
-            <operator>In</operator>
-            <value>
-                <elementReference>OpenRenewalIds</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
-        <object>Quote</object>
-        <queriedFields>Id</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <name>Get_Renew_Quote_Actions</name>
-        <label>Get Renew Quote Actions</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Loop_Renew_Quote_Actions</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>QuoteId</field>
-            <operator>In</operator>
-            <value>
-                <elementReference>OpenRenewalQuoteIds</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>Type</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Renew</stringValue>
-            </value>
-        </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
-        <object>QuoteAction</object>
-        <queriedFields>Id</queriedFields>
-        <queriedFields>SourceAssetId</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
@@ -1968,6 +2079,41 @@
         <object>Opportunity</object>
         <queriedFields>Id</queriedFields>
         <queriedFields>Description</queriedFields>
+        <queriedFields>ContractId</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>The root assets the shared contract actually links. An opportunity's contract doesn't prove its assets belong to it: a quote that absorbed other assets, or added account assets, can carry assets from elsewhere.</description>
+        <name>Get_Contract_Assets</name>
+        <label>Get Contract Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Contract_Assets</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Consolidation_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>ContractId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>RenewContractId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>AssetId</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>RootAssetIds</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>AssetContractRelationship</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>AssetId</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordUpdates>
@@ -2161,7 +2307,7 @@
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
-            <targetReference>Get_Current_Opportunities</targetReference>
+            <targetReference>Snapshot_Confirmed_Selection</targetReference>
         </connector>
         <fields>
             <name>ConfirmText</name>
@@ -2356,7 +2502,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Selection_ChangedText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;Nothing was consolidated.&lt;/strong&gt; While you were choosing, {!Get_Primary_Opportunity.Name} or one of the selected opportunities was closed or changed, so it is no longer an open renewal with the same account, price book and currency.&lt;/p&gt;&lt;p&gt;Run Consolidate Renewals again to see the current renewals.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Nothing was consolidated.&lt;/strong&gt; While you were choosing or confirming, {!Get_Primary_Opportunity.Name}, one of the selected opportunities, or the assets they renew changed: an opportunity was closed or no longer has the same account, price book and currency, or the assets to renew, their latest end date or their contract are no longer the ones you confirmed.&lt;/p&gt;&lt;p&gt;Run Consolidate Renewals again to see the current renewals.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
@@ -2370,6 +2516,28 @@
         </connector>
     </start>
     <status>Active</status>
+    <subflows>
+        <description>Reads which root assets an open renewal on the account already covers. RLM_RenewalCoveredAssets runs in system context without sharing, so a renewal the user can't see still counts, and returns only Asset Ids. Runs again after the confirmation screen.</description>
+        <name>Get_Covered_Assets</name>
+        <label>Get Covered Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Account_Assets</targetReference>
+        </connector>
+        <flowName>RLM_RenewalCoveredAssets</flowName>
+        <inputAssignments>
+            <name>AccountId</name>
+            <value>
+                <elementReference>Get_Primary_Opportunity.AccountId</elementReference>
+            </value>
+        </inputAssignments>
+        <outputAssignments>
+            <assignToReference>CoveredRootAssetIds</assignToReference>
+            <name>CoveredRootAssetIds</name>
+        </outputAssignments>
+        <storeOutputAutomatically>false</storeOutputAutomatically>
+    </subflows>
     <variables>
         <description>Primary renewal Opportunity Id, supplied by the Opportunity.RLM_ConsolidateRenewalOpportunities quick action.</description>
         <name>recordId</name>
@@ -2385,30 +2553,6 @@
         <isInput>false</isInput>
         <isOutput>false</isOutput>
         <scale>0</scale>
-    </variables>
-    <variables>
-        <description>Every open renewal opportunity on the account.</description>
-        <name>OpenRenewalIds</name>
-        <dataType>String</dataType>
-        <isCollection>true</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <description>Quotes linked to an open renewal opportunity on the account.</description>
-        <name>OpenRenewalQuoteIds</name>
-        <dataType>String</dataType>
-        <isCollection>true</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-    </variables>
-    <variables>
-        <description>Assets already on an open renewal opportunity's lines or its quotes.</description>
-        <name>CoveredAssetIds</name>
-        <dataType>String</dataType>
-        <isCollection>true</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
     </variables>
     <variables>
         <description>Root assets on the account that no open renewal covers, shown on the selection screen.</description>
@@ -2450,7 +2594,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>The contract shared by every selected opportunity; null when they differ.</description>
+        <description>The contract shared by every selected opportunity that also links every root asset to renew; null otherwise.</description>
         <name>RenewContractId</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -2598,5 +2742,81 @@
         <isInput>false</isInput>
         <isOutput>false</isOutput>
         <scale>0</scale>
+    </variables>
+    <variables>
+        <description>Root assets an open renewal on the account already covers, from RLM_RenewalCoveredAssets.</description>
+        <name>CoveredRootAssetIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>True on the second pass, after the confirmation screen, when the selection is rebuilt from current records and compared with what the user confirmed.</description>
+        <name>IsRevalidating</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <description>RootAssetIds as shown on the confirmation screen.</description>
+        <name>ConfirmedRootAssetIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>ConfirmedRootAssetCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+    </variables>
+    <variables>
+        <description>RenewContractId as it was when the user confirmed.</description>
+        <name>ConfirmedContractId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>LatestEndDate as it was when the user confirmed; the chosen TargetEndDate was validated against it.</description>
+        <name>ConfirmedEndDate</name>
+        <dataType>Date</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Distinct root assets that RenewContractId links through AssetContractRelationship.</description>
+        <name>ContractAssetIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>ContractAssetCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+    </variables>
+    <variables>
+        <description>Never set; assigning it empties ExtraAssets.</description>
+        <name>NoAssets</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Asset</objectType>
     </variables>
 </Flow>
