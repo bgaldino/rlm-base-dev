@@ -19,6 +19,7 @@ Install and verify prerequisites in the **local installation guide**: [Setup for
 - **Python packages:** Robot Framework, SeleniumLibrary, webdriver-manager, urllib3 ≥ 2.6.3
 - **Chrome or Chromium:** Required for headless runs (macOS, Linux, CI install steps in the local installation guide)
 - **ChromeDriver:** Provided by webdriver-manager at runtime, or install on PATH
+- **Optional overrides:** `CHROME_BINARY` (falls back to `CHROME_BIN`) and `CHROMEDRIVER_PATH` point the helpers at a specific browser/driver pair, e.g. [Chrome for Testing](../../../../docs/guides/local-installation.md#chrome-for-testing-managed-workstations) on workstations where stock Chrome crashes on Setup pages
 - **Salesforce CLI:** For `sf org open --url-only` authenticated sessions
 
 Run `cci task run validate_setup` to verify all dependencies. Tests run headless by default. If you see **"Timeout value connect was &lt;object object at ...&gt;"** during suite setup, ensure urllib3 ≥ 2.6.3 is installed; see [Troubleshooting](../../../../docs/guides/org-operations.md#troubleshooting).

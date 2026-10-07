@@ -318,6 +318,10 @@ Robot tasks run headless and require Chrome or Chromium plus ChromeDriver. Use t
 - **ChromeDriver missing:** Install webdriver-manager in the CCI environment (`pipx inject cumulusci webdriver-manager` for pipx, or `python -m pip install webdriver-manager` inside the CCI venv) so it downloads ChromeDriver at runtime, or install chromedriver on PATH (e.g. `apt install chromium-driver` on Debian/Ubuntu).
 - **CI:** Set `CHROME_BIN` to the browser path (e.g. `/usr/bin/chromium`).
 
+### Headless robot: "Unable to receive message from renderer" on Setup pages
+
+Chrome launches and the driver connects, but the renderer dies when the Robot step loads a Salesforce Setup page. This has been seen on managed workstations with stock Chrome; the same build succeeds on other machines. Install Chrome for Testing and point the Robot helpers at it with `CHROME_BINARY` and `CHROMEDRIVER_PATH`. Steps: [Chrome for Testing (managed workstations)](local-installation.md#chrome-for-testing-managed-workstations). Then rerun the failed step on the same org; a Robot step failure does not require a new org.
+
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
 This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. This project requires `selenium>=4.10`, which does not have this issue — if you see this error, an older selenium may still be installed in the environment running CCI. For pipx, upgrade it:
