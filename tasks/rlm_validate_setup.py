@@ -528,16 +528,25 @@ class ValidateSetup(BaseTask):
         )
 
     @staticmethod
-    def _binary_major_version(path: str) -> Optional[int]:
-        """Return the major version from ``<path> --version``, or None."""
+    def _binary_major_version(path: str) -> Tuple[Optional[int], Optional[str]]:
+        """Run ``<path> --version``; return (major, None), or (None, reason).
+
+        The reason starts with "cannot run" when the binary could not be
+        spawned at all (wrong architecture, missing interpreter), which is
+        distinct from output that merely has no recognisable version.
+        """
         try:
             result = subprocess.run(
                 [path, "--version"], capture_output=True, text=True, timeout=30
             )
-        except (OSError, subprocess.SubprocessError):
-            return None
+        except OSError as exc:
+            return None, f"cannot run {path}: {exc.strerror or exc}"
+        except subprocess.SubprocessError as exc:
+            return None, f"could not read the version of {path}: {exc}"
         match = re.search(r"(\d+)\.\d+\.\d+", result.stdout or "")
-        return int(match.group(1)) if match else None
+        if match:
+            return int(match.group(1)), None
+        return None, f"could not read the version of {path}"
 
     def _check_chrome_driver_versions(self) -> Optional[Dict[str, str]]:
         """Flag a Chrome/ChromeDriver major-version mismatch.
@@ -565,10 +574,22 @@ class ValidateSetup(BaseTask):
             )
         if not chrome or not driver:
             return None
-        chrome_major = self._binary_major_version(chrome)
-        driver_major = self._binary_major_version(driver)
-        if chrome_major is None or driver_major is None:
-            return self._warn(label, f"could not read the version of {chrome if chrome_major is None else driver}")
+        chrome_major, chrome_error = self._binary_major_version(chrome)
+        driver_major, driver_error = self._binary_major_version(driver)
+        for error, explicit in (
+            (chrome_error, bool(override)),
+            (driver_error, driver == os.environ.get("CHROMEDRIVER_PATH")),
+        ):
+            # An explicitly selected binary that cannot be spawned is exactly what
+            # Selenium will try to start, so that is a certain failure.
+            if error and explicit and error.startswith("cannot run"):
+                return self._fail(
+                    label,
+                    f"{error} — Robot tasks will fail to start the browser.\n"
+                    "  Fix: install the build for this machine's architecture, or unset the override",
+                )
+        if chrome_error or driver_error:
+            return self._warn(label, chrome_error or driver_error)
         if chrome_major != driver_major:
             certain = bool(self._chrome_override()[1])
             report = self._fail if certain else self._warn

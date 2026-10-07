@@ -132,7 +132,8 @@ default. Set them as a matching pair, e.g. Chrome for Testing on managed worksta
 stock Chrome's renderer crashes on Setup pages; see
 `docs/guides/local-installation.md` → Chrome for Testing. `validate_setup` reports both and
 flags a major-version mismatch (FAIL when the browser is overridden, WARN otherwise), plus a
-browser override with no driver set (WARN: webdriver-manager sizes its driver for stock Chrome).
+browser override with no driver set (WARN: webdriver-manager sizes its driver for stock Chrome),
+and an override that exists but cannot be run, e.g. a wrong-architecture build (FAIL).
 
 ---
 

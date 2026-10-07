@@ -427,7 +427,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    4. **Salesforce CLI** — The task uses `sf org open --url-only` to authenticate the browser; ensure `sf` is installed and the org is logged in.
 
-   5. **Verify** — Use the [validation command for your CCI environment](#step-11--verify-the-full-setup) (no org required) to check dependencies, including Chrome/Chromium and ChromeDriver. It reports the overrides above when set, and flags a Chrome/ChromeDriver major-version mismatch: it fails when the browser comes from an override, and warns when the browser path was found by search. It also warns when a browser override is set but no ChromeDriver is (webdriver-manager would size its driver for stock Chrome, not the override).
+   5. **Verify** — Use the [validation command for your CCI environment](#step-11--verify-the-full-setup) (no org required) to check dependencies, including Chrome/Chromium and ChromeDriver. It reports the overrides above when set, and flags a Chrome/ChromeDriver major-version mismatch: it fails when the browser comes from an override, and warns when the browser path was found by search. It also warns when a browser override is set but no ChromeDriver is (webdriver-manager would size its driver for stock Chrome, not the override), and fails when an override exists but cannot be run (e.g. a build for the wrong architecture).
 
    #### Chrome for Testing (managed workstations)
 
@@ -439,11 +439,11 @@ For the full architecture — shell config responsibilities, the per-project `.e
    npx -y @puppeteer/browsers install "chromedriver@$CFT_VERSION" --path ~/.cache/cft
    ```
 
-   Each command prints the installed executable's path. Export both before running CCI (macOS Apple silicon paths shown), then rerun `validate_setup`:
+   Each command prints the installed executable's path. Export both before running CCI (macOS Apple silicon paths for 154.0.8037.92 shown; substitute your version, since `CFT_VERSION` is not kept once the shell exits), then rerun `validate_setup`:
 
    ```bash
-   export CHROME_BINARY="$HOME/.cache/cft/chrome/mac_arm-$CFT_VERSION/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
-   export CHROMEDRIVER_PATH="$HOME/.cache/cft/chromedriver/mac_arm-$CFT_VERSION/chromedriver-mac-arm64/chromedriver"
+   export CHROME_BINARY="$HOME/.cache/cft/chrome/mac_arm-154.0.8037.92/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+   export CHROMEDRIVER_PATH="$HOME/.cache/cft/chromedriver/mac_arm-154.0.8037.92/chromedriver-mac-arm64/chromedriver"
    ```
 
    Both variables are unset by default, and nothing changes when they are unset. Put the exports in your shell profile (or a direnv `.envrc`) only on machines that need them.
