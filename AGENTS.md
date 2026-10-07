@@ -275,6 +275,7 @@ review round with zero unresolved threads.**
    evidence-backed refutation. React 👍 to valid findings, then resolve threads
    once addressed. False positives still need replies and resolution.
 5. Verify zero unresolved threads across **all pages**, not just the first 100.
+   Only then request the next review.
 
 Use `python scripts/ai/pr_review.py`: `status <pr>` lists paginated threads;
 `handle <pr> --comment <id> --body "…"` replies, reacts and resolves;

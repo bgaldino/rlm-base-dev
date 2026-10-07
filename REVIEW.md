@@ -142,6 +142,10 @@ Neither improves with more pushes. So:
 - Multiple commits are fine — just do not push between them.
 - Finish local verification *before* pushing, not between pushes.
 - Never push a lone typo or comment fix; fold it into the next batch.
+- **Request a re-review only at zero unresolved.** Do not post `@codex review` or
+  re-request Copilot until every thread from the round is replied to and resolved
+  (`pr_review.py verify` passes). A review requested while threads are still open races
+  the fixes for them and is spent on a superseded head.
 
 **Keep diffs small.** Beyond roughly 10,000 changed lines, automated reviewers begin
 truncating or skipping. A PR that outgrows review is a PR that ships unreviewed.
