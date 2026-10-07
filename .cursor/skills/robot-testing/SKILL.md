@@ -131,7 +131,7 @@ to `CHROME_BIN`) for the browser and `CHROMEDRIVER_PATH` for the driver. Both ar
 default. Set them as a matching pair, e.g. Chrome for Testing on managed workstations where
 stock Chrome's renderer crashes on Setup pages; see
 `docs/guides/local-installation.md` → Chrome for Testing. `validate_setup` reports both and
-flags a major-version mismatch.
+flags a major-version mismatch (FAIL when the browser is overridden, WARN otherwise).
 
 ---
 

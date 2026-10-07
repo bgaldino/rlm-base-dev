@@ -16,7 +16,8 @@ matching Chrome for Testing pair. validate_setup has to report what Robot will
 actually launch: an override that is set but broken must not pass silently, a
 broken CHROMEDRIVER_PATH falls back (WebDriverManager.py ignores it), and a
 browser/driver major-version mismatch -- the usual failure when only one of the
-two is overridden -- must be flagged before a build gets as far as docgen.
+two is overridden -- must be flagged before a build gets as far as docgen: as a
+FAIL when the browser is an override (certain), a WARN when it was guessed.
 """
 import importlib.util
 import logging
@@ -122,12 +123,30 @@ def check_driver_override_passes(tmp):
     check("driver_override_passes", result["status"] == PASS and driver in result["detail"], result["detail"])
 
 
-def check_version_mismatch_warns(tmp):
+def check_version_mismatch_with_browser_override_fails(tmp):
     chrome = _fake_binary(tmp, "chrome-155", "Google Chrome 155.0.1.2")
     driver = _fake_binary(tmp, "driver-154", "ChromeDriver 154.0.8037.92 (abc)")
     _set_env(CHROME_BINARY=chrome, CHROMEDRIVER_PATH=driver)
     result = _task()._check_chrome_driver_versions()
-    check("version_mismatch_warns", result is not None and result["status"] == WARN, result and result["detail"])
+    check(
+        "version_mismatch_with_browser_override_fails",
+        result is not None and result["status"] == FAIL,
+        result and result["detail"],
+    )
+
+
+def check_version_mismatch_with_guessed_browser_warns(tmp):
+    chrome = _fake_binary(tmp, "chrome-155", "Google Chrome 155.0.1.2")
+    driver = _fake_binary(tmp, "driver-154", "ChromeDriver 154.0.8037.92 (abc)")
+    _set_env(CHROMEDRIVER_PATH=driver)
+    task = _task()
+    task._resolve_chrome_binary = lambda: chrome  # stands in for the candidate-path search
+    result = task._check_chrome_driver_versions()
+    check(
+        "version_mismatch_with_guessed_browser_warns",
+        result is not None and result["status"] == WARN,
+        result and result["detail"],
+    )
 
 
 def check_version_match_passes(tmp):
@@ -161,7 +180,8 @@ def main():
         check_broken_driver_override_warns_with_fallback,
         check_broken_driver_override_without_fallback_fails,
         check_driver_override_passes,
-        check_version_mismatch_warns,
+        check_version_mismatch_with_browser_override_fails,
+        check_version_mismatch_with_guessed_browser_warns,
         check_version_match_passes,
         check_webdriver_manager_honours_override,
         check_webdriver_manager_ignores_broken_override,

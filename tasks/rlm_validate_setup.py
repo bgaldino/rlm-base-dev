@@ -5,8 +5,7 @@ Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js,
 and Robot Framework dependencies (Robot, selenium, SeleniumLibrary,
 webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3). Honours the
 Robot helpers' browser overrides (CHROME_BINARY / CHROME_BIN and
-CHROMEDRIVER_PATH) and warns when Chrome and ChromeDriver major versions
-differ. Optionally
+CHROMEDRIVER_PATH) and flags a Chrome/ChromeDriver major-version mismatch. Optionally
 auto-fixes an outdated or missing SFDMU plugin (auto_fix), robot
 dependencies via pipx inject (auto_fix_robot, on by default), and urllib3
 via pipx inject (auto_fix_urllib3, off by default).
@@ -537,10 +536,14 @@ class ValidateSetup(BaseTask):
         return int(match.group(1)) if match else None
 
     def _check_chrome_driver_versions(self) -> Optional[Dict[str, str]]:
-        """Warn when Chrome and an explicit ChromeDriver differ in major version.
+        """Flag a Chrome/ChromeDriver major-version mismatch.
 
-        Skipped (returns None) when either side is unresolved, or the driver
-        comes from webdriver-manager, which matches the browser itself.
+        FAIL when the browser comes from CHROME_BINARY/CHROME_BIN: the helpers
+        launch exactly that binary, so the mismatch is a certain startup
+        failure. WARN otherwise, because the browser path is this check's
+        guess at what ChromeDriver will find. Skipped (returns None) when
+        either side is unresolved, or the driver comes from webdriver-manager,
+        which matches the browser itself.
         """
         chrome = self._resolve_chrome_binary()
         driver = self._resolve_chromedriver()
@@ -552,10 +555,13 @@ class ValidateSetup(BaseTask):
         if chrome_major is None or driver_major is None:
             return self._warn(label, f"could not read the version of {chrome if chrome_major is None else driver}")
         if chrome_major != driver_major:
-            return self._warn(
+            certain = bool(self._chrome_override()[1])
+            report = self._fail if certain else self._warn
+            outcome = "the browser will fail to start" if certain else "the browser will likely fail to start"
+            return report(
                 label,
                 f"Chrome {chrome_major} ({chrome}) does not match ChromeDriver "
-                f"{driver_major} ({driver}) — the browser will fail to start.\n"
+                f"{driver_major} ({driver}) — {outcome}.\n"
                 "  Fix: install the matching driver, or set CHROME_BINARY and "
                 "CHROMEDRIVER_PATH to a matching pair (e.g. Chrome for Testing)",
             )

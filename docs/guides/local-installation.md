@@ -427,7 +427,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    4. **Salesforce CLI** — The task uses `sf org open --url-only` to authenticate the browser; ensure `sf` is installed and the org is logged in.
 
-   5. **Verify** — Use the [validation command for your CCI environment](#step-11--verify-the-full-setup) (no org required) to check dependencies, including Chrome/Chromium and ChromeDriver. It reports the overrides above when set, and warns when Chrome and ChromeDriver differ in major version.
+   5. **Verify** — Use the [validation command for your CCI environment](#step-11--verify-the-full-setup) (no org required) to check dependencies, including Chrome/Chromium and ChromeDriver. It reports the overrides above when set, and flags a Chrome/ChromeDriver major-version mismatch: it fails when the browser comes from an override, and warns when the browser path was found by search.
 
    #### Chrome for Testing (managed workstations)
 
