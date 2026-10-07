@@ -199,7 +199,11 @@ def check_broken_driver_override_without_fallback_fails(tmp):
     task = _task(tmp)
     task._webdriver_manager_available = lambda: False
     result = task._check_chromedriver()
-    check("broken_driver_override_without_fallback_fails", result["status"] == FAIL, result["detail"])
+    check(
+        "broken_driver_override_without_fallback_fails",
+        result["status"] == FAIL and "CHROMEDRIVER_PATH" in result["detail"],
+        result["detail"],
+    )
 
 
 def check_driver_override_passes(tmp):
@@ -268,6 +272,16 @@ def check_unrunnable_browser_override_fails(tmp):
     result = _task(tmp)._check_chrome_driver_versions()
     check(
         "unrunnable_browser_override_fails",
+        result is not None and result["status"] == FAIL and "cannot run" in result["detail"],
+        result and result["detail"],
+    )
+
+
+def check_unrunnable_browser_override_without_driver_fails(tmp):
+    _set_env(CHROME_BINARY=_unrunnable_binary(tmp, "cft-chrome"), PATH=tmp)  # no driver anywhere
+    result = _task(tmp)._check_chrome_driver_versions()
+    check(
+        "unrunnable_browser_override_without_driver_fails",
         result is not None and result["status"] == FAIL and "cannot run" in result["detail"],
         result and result["detail"],
     )
@@ -360,6 +374,7 @@ def main():
         check_stock_browser_with_webdriver_manager_driver_skips,
         check_version_match_passes,
         check_unrunnable_browser_override_fails,
+        check_unrunnable_browser_override_without_driver_fails,
         check_unrunnable_driver_override_fails,
         check_unreadable_version_warns,
         check_unrunnable_guessed_browser_warns,

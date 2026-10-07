@@ -431,7 +431,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    #### Chrome for Testing (managed workstations)
 
-   Optional. Most machines run the Robot tasks on stock Chrome. On some managed workstations, stock headless Chrome crashes on Salesforce Setup pages (the root cause is not confirmed; it has only been seen on managed machines): the Robot step (e.g. `enable_document_builder` in `prepare_docgen`) fails with `Unable to receive message from renderer`, even though Chrome loads other sites. [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) is a separate Chrome build that does not touch your regular install, and it loads those pages. Install a browser and a driver of the **same version** (`npx` ships with Node.js):
+   Optional. Most machines run the Robot tasks on stock Chrome. On some managed workstations, stock headless Chrome crashes on Salesforce Setup pages (the root cause is not confirmed; it has only been seen on managed machines): the Robot step (e.g. `enable_document_builder_toggle` in `prepare_docgen`) fails with `Unable to receive message from renderer`, even though Chrome loads other sites. [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) is a separate Chrome build that does not touch your regular install, and it loads those pages. Install a browser and a driver of the **same version** (`npx` ships with Node.js):
 
    ```bash
    CFT_VERSION=154.0.8037.92   # any Chrome for Testing version; keep browser and driver identical

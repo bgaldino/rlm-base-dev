@@ -480,7 +480,12 @@ class ValidateSetup(BaseTask):
                 return self._ok(label, f"{override} (from CHROMEDRIVER_PATH)")
             fallback = self._check_chromedriver_default(label, auto_fix)
             if fallback["status"] == FAIL:
-                return fallback
+                return self._fail(
+                    label,
+                    f"CHROMEDRIVER_PATH is set to {override!r}, which is not an executable file, "
+                    "and no other ChromeDriver was found — Robot tasks will fail to start the browser.\n"
+                    "  Fix: point CHROMEDRIVER_PATH at the chromedriver executable",
+                )
             return self._warn(
                 label,
                 f"CHROMEDRIVER_PATH is set to {override!r}, which is not an executable file — "
@@ -488,8 +493,12 @@ class ValidateSetup(BaseTask):
                 "  Fix: point CHROMEDRIVER_PATH at the chromedriver executable, or unset it",
             )
         result = self._check_chromedriver_default(label, auto_fix)
-        # FIXED/FAIL are logged where they are built; a plain PASS is not.
-        return self._ok(label, result["detail"]) if result["status"] == PASS else result
+        # FIXED is logged where it is built; a plain PASS or FAIL is not.
+        if result["status"] == PASS:
+            return self._ok(label, result["detail"])
+        if result["status"] == FAIL:
+            return self._fail(label, result["detail"])
+        return result
 
     @staticmethod
     def _webdriver_manager_available() -> bool:
@@ -500,8 +509,8 @@ class ValidateSetup(BaseTask):
             return False
 
     def _check_chromedriver_default(self, label: str, auto_fix: bool) -> Dict[str, str]:
-        """Default driver lookup, in WebDriverManager.py's order. A PASS is
-        returned unlogged so the caller can fold it into an override warning."""
+        """Default driver lookup, in WebDriverManager.py's order. A PASS or FAIL
+        is returned unlogged so the caller can fold it into an override result."""
         # System chromedriver
         if self._is_executable(self._system_chromedriver):
             return {"label": label, "status": PASS, "detail": self._system_chromedriver}
@@ -520,12 +529,13 @@ class ValidateSetup(BaseTask):
                 return self._fixed(label, "via webdriver-manager (downloads ChromeDriver at runtime)")
             except ImportError:
                 pass
-        return self._fail(
-            label,
-            "not found — ChromeDriver is required for all robot tasks.\n"
+        return {
+            "label": label,
+            "status": FAIL,
+            "detail": "not found — ChromeDriver is required for all robot tasks.\n"
             "  Fix: pipx inject cumulusci webdriver-manager (downloads ChromeDriver at runtime)\n"
             "  Or: brew install chromedriver",
-        )
+        }
 
     @staticmethod
     def _binary_major_version(path: str) -> Tuple[Optional[int], Optional[str]]:
@@ -565,29 +575,30 @@ class ValidateSetup(BaseTask):
         var, override = self._chrome_override()
         chrome = self._resolve_chrome_binary()
         driver = self._resolve_chromedriver()
-        if chrome and override and not driver:
+        if not chrome:
+            return None
+        chrome_major, chrome_error = self._binary_major_version(chrome)
+        # An explicitly selected binary that cannot be spawned is exactly what
+        # Selenium will try to start, so that is a certain failure.
+        unrunnable = (
+            "{} — Robot tasks will fail to start the browser.\n"
+            "  Fix: install the build for this machine's architecture, or unset the override"
+        )
+        if override and chrome_error and chrome_error.startswith("cannot run"):
+            return self._fail(label, unrunnable.format(chrome_error))
+        if override and not driver:
             return self._warn(
                 label,
                 f"{var} selects {override}, but no ChromeDriver is set — webdriver-manager "
                 "picks a driver for the stock Chrome install, not for this binary.\n"
                 "  Fix: set CHROMEDRIVER_PATH to the driver that matches it",
             )
-        if not chrome or not driver:
+        if not driver:
             return None
-        chrome_major, chrome_error = self._binary_major_version(chrome)
         driver_major, driver_error = self._binary_major_version(driver)
-        for error, explicit in (
-            (chrome_error, bool(override)),
-            (driver_error, driver == os.environ.get("CHROMEDRIVER_PATH")),
-        ):
-            # An explicitly selected binary that cannot be spawned is exactly what
-            # Selenium will try to start, so that is a certain failure.
-            if error and explicit and error.startswith("cannot run"):
-                return self._fail(
-                    label,
-                    f"{error} — Robot tasks will fail to start the browser.\n"
-                    "  Fix: install the build for this machine's architecture, or unset the override",
-                )
+        explicit_driver = driver == os.environ.get("CHROMEDRIVER_PATH")
+        if explicit_driver and driver_error and driver_error.startswith("cannot run"):
+            return self._fail(label, unrunnable.format(driver_error))
         if chrome_error or driver_error:
             return self._warn(label, chrome_error or driver_error)
         if chrome_major != driver_major:
