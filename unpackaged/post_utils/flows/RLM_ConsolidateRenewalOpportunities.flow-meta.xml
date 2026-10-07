@@ -428,38 +428,6 @@
         </connector>
     </assignments>
     <assignments>
-        <name>Add_Selected_Quote_Id</name>
-        <label>Add Selected Quote Id</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>SelectedQuoteIds</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>Loop_Selected_Quotes.Id</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Loop_Selected_Quotes</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
-        <name>Add_Action_Asset_Id</name>
-        <label>Add Action Asset Id</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>LineAssetIds</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>Loop_Selected_Renew_Actions.SourceAssetId</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Loop_Selected_Renew_Actions</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
         <name>Add_Extra_Root_Id</name>
         <label>Add Extra Root Id</label>
         <locationX>0</locationX>
@@ -628,13 +596,6 @@
         </assignmentItems>
         <assignmentItems>
             <assignToReference>LineAssetIds</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>NoAssetIds</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>SelectedQuoteIds</assignToReference>
             <operator>Assign</operator>
             <value>
                 <elementReference>NoAssetIds</elementReference>
@@ -1189,57 +1150,6 @@
         </rules>
     </decisions>
     <decisions>
-        <name>Has_Selected_Quotes</name>
-        <label>Has Selected Quotes</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>Has_Line_Assets</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>None</defaultConnectorLabel>
-        <rules>
-            <name>Selected_Quotes_Found</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>Get_Selected_Quotes</leftValueReference>
-                <operator>IsEmpty</operator>
-                <rightValue>
-                    <booleanValue>false</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Loop_Selected_Quotes</targetReference>
-            </connector>
-            <label>Found</label>
-        </rules>
-    </decisions>
-    <decisions>
-        <description>Keeps LineAssetIds distinct: most renew actions name an asset already on a line.</description>
-        <name>Is_New_Action_Asset</name>
-        <label>Is New Action Asset</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnector>
-            <targetReference>Add_Action_Asset_Id</targetReference>
-        </defaultConnector>
-        <defaultConnectorLabel>New</defaultConnectorLabel>
-        <rules>
-            <name>Action_Asset_Already_Added</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>LineAssetIds</leftValueReference>
-                <operator>Contains</operator>
-                <rightValue>
-                    <elementReference>Loop_Selected_Renew_Actions.SourceAssetId</elementReference>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Loop_Selected_Renew_Actions</targetReference>
-            </connector>
-            <label>Already Added</label>
-        </rules>
-    </decisions>
-    <decisions>
         <description>Keeps RootAssetIds distinct: an extra asset can be the root of a component on a selected line.</description>
         <name>Is_New_Extra_Root</name>
         <label>Is New Extra Root</label>
@@ -1390,6 +1300,21 @@
                 <targetReference>Existing_Quotes</targetReference>
             </connector>
             <label>Quote Exists</label>
+        </rules>
+        <rules>
+            <name>Pending_Renewal_Quote</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>HasPendingRenewalQuote</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Pending_Renewal_Quotes</targetReference>
+            </connector>
+            <label>Pending Renewal Quote</label>
         </rules>
         <rules>
             <name>Ramped_Period</name>
@@ -1586,7 +1511,7 @@
             <label>Confirmed</label>
         </rules>
     </decisions>
-    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does an existing quote on these opportunities (it could still be ordered, renewing the same assets again), a ramped root asset, or a root asset with a period in a time zone other than GMT (renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones). Assets whose renewal would start before today (GMT) can't be cotermed.</description>
+    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does an existing quote on these opportunities, or a renewal quote for one of the assets' current terms on any other opportunity, open or closed (either could still be ordered, renewing the same assets again), a ramped root asset, or a root asset with a period in a time zone other than GMT (renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones). Assets whose renewal would start before today (GMT) can't be cotermed.</description>
     <environments>Default</environments>
     <formulas>
         <description>The day the asset ends in GMT, like every other date here. DATEVALUE on the datetime would use the user's time zone, a day late east of GMT for an end at 23:59:59 GMT.</description>
@@ -1703,7 +1628,7 @@
             <targetReference>Is_New_Line_Asset</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
-            <targetReference>Get_Selected_Quotes</targetReference>
+            <targetReference>Has_Line_Assets</targetReference>
         </noMoreValuesConnector>
     </loops>
     <loops>
@@ -1760,34 +1685,6 @@
         </nextValueConnector>
         <noMoreValuesConnector>
             <targetReference>Has_Renewals_To_Close</targetReference>
-        </noMoreValuesConnector>
-    </loops>
-    <loops>
-        <name>Loop_Selected_Quotes</name>
-        <label>Loop Selected Quotes</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Selected_Quotes</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Add_Selected_Quote_Id</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Get_Selected_Renew_Actions</targetReference>
-        </noMoreValuesConnector>
-    </loops>
-    <loops>
-        <name>Loop_Selected_Renew_Actions</name>
-        <label>Loop Selected Renew Actions</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Selected_Renew_Actions</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Is_New_Action_Asset</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Has_Line_Assets</targetReference>
         </noMoreValuesConnector>
     </loops>
     <loops>
@@ -2177,72 +2074,6 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>A consolidated quote isn't synced, so the assets it absorbed are on no line of its opportunity; its renew quote actions name them. Without them, consolidating that opportunity again would drop those assets and close it.</description>
-        <name>Get_Selected_Quotes</name>
-        <label>Get Selected Quotes</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Has_Selected_Quotes</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Roll_Back_Renewal</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>OpportunityId</field>
-            <operator>In</operator>
-            <value>
-                <elementReference>SelectedOppIds</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
-        <object>Quote</object>
-        <queriedFields>Id</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <name>Get_Selected_Renew_Actions</name>
-        <label>Get Selected Renew Actions</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Loop_Selected_Renew_Actions</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Roll_Back_Renewal</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>QuoteId</field>
-            <operator>In</operator>
-            <value>
-                <elementReference>SelectedQuoteIds</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>Type</field>
-            <operator>EqualTo</operator>
-            <value>
-                <stringValue>Renew</stringValue>
-            </value>
-        </filters>
-        <filters>
-            <field>SourceAssetId</field>
-            <operator>IsNull</operator>
-            <value>
-                <booleanValue>false</booleanValue>
-            </value>
-        </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
-        <object>QuoteAction</object>
-        <queriedFields>Id</queriedFields>
-        <queriedFields>SourceAssetId</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
         <description>Re-reads the primary and the selected opportunities after the screens, where another user or process may have closed or changed them. Only the records returned here are closed, with their current Description.</description>
         <name>Get_Current_Opportunities</name>
         <label>Get Current Opportunities</label>
@@ -2372,6 +2203,22 @@
         </faultConnector>
         <inputReference>RenewalsToClose</inputReference>
     </recordUpdates>
+    <screens>
+        <name>Pending_Renewal_Quotes</name>
+        <label>Pending Renewal Quotes</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Pending_Renewal_QuotesText</name>
+            <fieldText>&lt;p&gt;One of these assets is already on a renewal quote for its current term, on another opportunity (open or closed), so nothing was consolidated. That quote could still be ordered, whatever its status, and activating the order would renew the asset a second time.&lt;/p&gt;&lt;p&gt;Delete that quote first, then try again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
     <screens>
         <name>Existing_Quotes</name>
         <label>Existing Quotes</label>
@@ -2857,6 +2704,10 @@
             <assignToReference>HasQuote</assignToReference>
             <name>HasQuote</name>
         </outputAssignments>
+        <outputAssignments>
+            <assignToReference>HasPendingRenewalQuote</assignToReference>
+            <name>HasPendingRenewalQuote</name>
+        </outputAssignments>
         <storeOutputAutomatically>false</storeOutputAutomatically>
     </subflows>
     <subflows>
@@ -2887,6 +2738,17 @@
         </outputAssignments>
         <storeOutputAutomatically>false</storeOutputAutomatically>
     </subflows>
+    <variables>
+        <description>Set by RLM_RenewalPreflightChecks: whether a quote on any opportunity, open or closed, would renew the current term of one of these assets.</description>
+        <name>HasPendingRenewalQuote</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
     <variables>
         <description>Set by RLM_RenewalPreflightChecks: whether any of these opportunities already has a quote.</description>
         <name>HasQuote</name>
@@ -3000,7 +2862,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Distinct Asset Ids read from the opportunities' lines and their quotes' renew actions; may include bundle components.</description>
+        <description>Distinct Asset Ids read from the opportunities' lines; may include bundle components.</description>
         <name>LineAssetIds</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>
@@ -3032,7 +2894,7 @@
         <scale>0</scale>
     </variables>
     <variables>
-        <description>Distinct root Asset Ids for the opportunities' lines and quotes, plus the extra assets when included.</description>
+        <description>Distinct root Asset Ids for the opportunities' lines, plus the extra assets when included.</description>
         <name>RootAssetIds</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>
@@ -3115,14 +2977,6 @@
         <isInput>false</isInput>
         <isOutput>false</isOutput>
         <objectType>Opportunity</objectType>
-    </variables>
-    <variables>
-        <description>Quotes linked to the primary or a selected opportunity.</description>
-        <name>SelectedQuoteIds</name>
-        <dataType>String</dataType>
-        <isCollection>true</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
     </variables>
     <variables>
         <description>Distinct root assets to renew; Get_Root_Assets must return all of them.</description>
