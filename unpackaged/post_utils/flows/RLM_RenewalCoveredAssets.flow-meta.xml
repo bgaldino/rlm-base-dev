@@ -83,6 +83,29 @@
         </connector>
     </assignments>
     <decisions>
+        <description>Nothing to check, so nothing is read.</description>
+        <name>Has_Candidate_Assets</name>
+        <label>Has Candidate Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>None</defaultConnectorLabel>
+        <rules>
+            <name>Candidates</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>CandidateAssetIds</leftValueReference>
+                <operator>IsEmpty</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Open_Renewals</targetReference>
+            </connector>
+            <label>Candidates</label>
+        </rules>
+    </decisions>
+    <decisions>
         <name>Has_Open_Renewals</name>
         <label>Has Open Renewals</label>
         <locationX>0</locationX>
@@ -157,9 +180,9 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>Add_Covered_Root_Asset_Id</targetReference>
+            <targetReference>Loop_Covered_Assets</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>New</defaultConnectorLabel>
+        <defaultConnectorLabel>Not a Candidate</defaultConnectorLabel>
         <rules>
             <name>Covered_Root_Already_Added</name>
             <conditionLogic>and</conditionLogic>
@@ -175,8 +198,23 @@
             </connector>
             <label>Already Added</label>
         </rules>
+        <rules>
+            <name>Candidate_Root</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>CandidateAssetIds</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <elementReference>Loop_Covered_Assets.RootAssetId</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Add_Covered_Root_Asset_Id</targetReference>
+            </connector>
+            <label>Candidate</label>
+        </rules>
     </decisions>
-    <description>Returns the root assets that an open renewal opportunity on the account already covers, through its lines or its quotes' Renew quote actions, normalized to RootAssetId so a covered bundle component marks its root covered. Runs in system context without sharing so the answer doesn't depend on which opportunities the running user can see: called by RLM_ConsolidateRenewalOpportunities to decide which of the account's assets no renewal covers, and it returns only Asset Ids, never the opportunities or quotes.</description>
+    <description>Returns the root assets that an open renewal opportunity on the account already covers, through its lines or its quotes' Renew quote actions, normalized to RootAssetId so a covered bundle component marks its root covered. Runs in system context without sharing so the answer doesn't depend on which opportunities the running user can see: called by RLM_ConsolidateRenewalOpportunities to decide which of the account's assets no renewal covers. It returns only those of the caller's CandidateAssetIds that are covered, never the opportunities, quotes or any other Asset Id.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Renewal Covered Assets {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Renewal Covered Assets</label>
@@ -404,10 +442,18 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Get_Open_Renewals</targetReference>
+            <targetReference>Has_Candidate_Assets</targetReference>
         </connector>
     </start>
     <status>Active</status>
+    <variables>
+        <description>Root Asset Ids the caller already read with its own sharing. Only these are checked and returned, so the system-context read never hands back an Id the caller couldn't find itself.</description>
+        <name>CandidateAssetIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
     <variables>
         <description>The account whose open renewal opportunities are read.</description>
         <name>AccountId</name>
@@ -417,7 +463,7 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>Distinct root Asset Ids covered by an open renewal opportunity's lines or its quotes' Renew quote actions.</description>
+        <description>Distinct CandidateAssetIds covered by an open renewal opportunity's lines or its quotes' Renew quote actions.</description>
         <name>CoveredRootAssetIds</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>

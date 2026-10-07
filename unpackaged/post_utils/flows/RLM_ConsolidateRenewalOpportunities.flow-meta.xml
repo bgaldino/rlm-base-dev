@@ -64,6 +64,22 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
+        <name>Add_Candidate_Asset_Id</name>
+        <label>Add Candidate Asset Id</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>CandidateAssetIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Loop_Candidate_Assets.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Candidate_Assets</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>Count_Other_Renewals</name>
         <label>Count Other Renewals</label>
         <locationX>0</locationX>
@@ -76,7 +92,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Get_Covered_Assets</targetReference>
+            <targetReference>Get_Account_Assets</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -638,10 +654,43 @@
                 <elementReference>NoAssetIds</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>CandidateAssetIds</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>NoAssetIds</elementReference>
+            </value>
+        </assignmentItems>
         <connector>
-            <targetReference>Get_Covered_Assets</targetReference>
+            <targetReference>Get_Account_Assets</targetReference>
         </connector>
     </assignments>
+    <decisions>
+        <description>Only root assets can be extra assets, so only their Ids are checked for coverage.</description>
+        <name>Is_Root_Candidate</name>
+        <label>Is Root Candidate</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Loop_Candidate_Assets</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Component</defaultConnectorLabel>
+        <rules>
+            <name>Root_Candidate</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Candidate_Assets.RootAssetId</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>Loop_Candidate_Assets.Id</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Add_Candidate_Asset_Id</targetReference>
+            </connector>
+            <label>Root</label>
+        </rules>
+    </decisions>
     <decisions>
         <description>Same rule as the action's visibility on the record page: only an open renewal opportunity (Type Existing Business) can absorb other renewals.</description>
         <name>Is_Open_Renewal</name>
@@ -1516,6 +1565,20 @@
     <interviewLabel>RLM Consolidate Renewal Opportunities {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Consolidate Renewal Opportunities</label>
     <loops>
+        <name>Loop_Candidate_Assets</name>
+        <label>Loop Candidate Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <collectionReference>Get_Account_Assets</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Is_Root_Candidate</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Get_Covered_Assets</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
         <name>Loop_Account_Assets</name>
         <label>Loop Account Assets</label>
         <locationX>0</locationX>
@@ -1851,7 +1914,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Loop_Account_Assets</targetReference>
+            <targetReference>Loop_Candidate_Assets</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Consolidation_Error</targetReference>
@@ -2557,13 +2620,13 @@
     </start>
     <status>Active</status>
     <subflows>
-        <description>Reads which root assets an open renewal on the account already covers. RLM_RenewalCoveredAssets runs in system context without sharing, so a renewal the user can't see still counts, and returns only Asset Ids. Runs again after the confirmation screen.</description>
+        <description>Reads which root assets an open renewal on the account already covers. RLM_RenewalCoveredAssets runs in system context without sharing, so a renewal the user can't see still counts; it is given the root assets the user already read (CandidateAssetIds) and returns only those that are covered, never an Id found in system context. Runs again after the confirmation screen.</description>
         <name>Get_Covered_Assets</name>
         <label>Get Covered Assets</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>Get_Account_Assets</targetReference>
+            <targetReference>Loop_Account_Assets</targetReference>
         </connector>
         <flowName>RLM_RenewalCoveredAssets</flowName>
         <inputAssignments>
@@ -2572,12 +2635,26 @@
                 <elementReference>Get_Primary_Opportunity.AccountId</elementReference>
             </value>
         </inputAssignments>
+        <inputAssignments>
+            <name>CandidateAssetIds</name>
+            <value>
+                <elementReference>CandidateAssetIds</elementReference>
+            </value>
+        </inputAssignments>
         <outputAssignments>
             <assignToReference>CoveredRootAssetIds</assignToReference>
             <name>CoveredRootAssetIds</name>
         </outputAssignments>
         <storeOutputAutomatically>false</storeOutputAutomatically>
     </subflows>
+    <variables>
+        <description>Root Ids of the account assets the user can read, passed to RLM_RenewalCoveredAssets so it reports coverage only for them.</description>
+        <name>CandidateAssetIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
     <variables>
         <description>Primary renewal Opportunity Id, supplied by the Opportunity.RLM_ConsolidateRenewalOpportunities quick action.</description>
         <name>recordId</name>
