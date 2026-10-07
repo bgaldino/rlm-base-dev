@@ -3,22 +3,6 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
-        <name>Add_Quote_Id</name>
-        <label>Add Quote Id</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>QuoteIds</assignToReference>
-            <operator>Add</operator>
-            <value>
-                <elementReference>Loop_Quotes.Id</elementReference>
-            </value>
-        </assignmentItems>
-        <connector>
-            <targetReference>Loop_Quotes</targetReference>
-        </connector>
-    </assignments>
-    <assignments>
         <name>Set_Has_Non_Gmt_Time_Zone</name>
         <label>Set Has Non-GMT Time Zone</label>
         <locationX>0</locationX>
@@ -35,12 +19,12 @@
         </connector>
     </assignments>
     <assignments>
-        <name>Set_Has_Order</name>
-        <label>Set Has Order</label>
+        <name>Set_Has_Quote</name>
+        <label>Set Has Quote</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignmentItems>
-            <assignToReference>HasOrder</assignToReference>
+            <assignToReference>HasQuote</assignToReference>
             <operator>Assign</operator>
             <value>
                 <booleanValue>true</booleanValue>
@@ -132,53 +116,31 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Get_Quotes</targetReference>
+                <targetReference>Get_Quote</targetReference>
             </connector>
             <label>Opportunities</label>
         </rules>
     </decisions>
     <decisions>
-        <name>Has_Order</name>
-        <label>Has Order</label>
+        <name>Has_Quote</name>
+        <label>Has Quote</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnectorLabel>None</defaultConnectorLabel>
         <rules>
-            <name>Order_Found</name>
+            <name>Quote_Found</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>Get_Order</leftValueReference>
+                <leftValueReference>Get_Quote</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Set_Has_Order</targetReference>
+                <targetReference>Set_Has_Quote</targetReference>
             </connector>
-            <label>Order Found</label>
-        </rules>
-    </decisions>
-    <decisions>
-        <name>Has_Quotes</name>
-        <label>Has Quotes</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <defaultConnectorLabel>None</defaultConnectorLabel>
-        <rules>
-            <name>Quotes_Found</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>QuoteIds</leftValueReference>
-                <operator>IsEmpty</operator>
-                <rightValue>
-                    <booleanValue>false</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Get_Order</targetReference>
-            </connector>
-            <label>Quotes Found</label>
+            <label>Quote Found</label>
         </rules>
     </decisions>
     <decisions>
@@ -206,24 +168,10 @@
             <label>Ramped Period Found</label>
         </rules>
     </decisions>
-    <description>Checks, before RLM_ConsolidateRenewalOpportunities renews anything, whether any of the given root assets has an asset state period in a time zone other than GMT (a period with no time zone uses GMT) or in a ramp, and whether any quote on the given opportunities already has an order. Runs in system context without sharing: Start End Time Zone and the ramp fields on Asset State Period are usually hidden by field-level security, which would fail a read in user context, and an order the user can't see would still renew the same assets when activated. It is given the root assets and opportunities the caller already read and returns only a yes or no for each check, never a record, an Id or a field value.</description>
+    <description>Checks, before RLM_ConsolidateRenewalOpportunities renews anything, whether any of the given root assets has an asset state period in a time zone other than GMT (a period with no time zone uses GMT) or in a ramp, and whether any of the given opportunities already has a quote. Runs in system context without sharing: Start End Time Zone and the ramp fields on Asset State Period are usually hidden by field-level security, which would fail a read in user context, and a quote the user can't see could still be ordered and renew the same assets. It is given the root assets and opportunities the caller already read and returns only a yes or no for each check, never a record, an Id or a field value.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Renewal Preflight Checks {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Renewal Preflight Checks</label>
-    <loops>
-        <name>Loop_Quotes</name>
-        <label>Loop Quotes</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <collectionReference>Get_Quotes</collectionReference>
-        <iterationOrder>Asc</iterationOrder>
-        <nextValueConnector>
-            <targetReference>Add_Quote_Id</targetReference>
-        </nextValueConnector>
-        <noMoreValuesConnector>
-            <targetReference>Has_Quotes</targetReference>
-        </noMoreValuesConnector>
-    </loops>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
         <name>Get_Non_Gmt_Period</name>
@@ -262,36 +210,14 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>An order, of any status, on one of the opportunities' quotes. A draft order can still be activated and renew its assets, and an activated one already has, so renewing them again here would renew them twice.</description>
-        <name>Get_Order</name>
-        <label>Get Order</label>
+        <description>A quote, of any status, on one of the opportunities. Any quote can still be turned into an order whatever its status, and activating that order renews its assets, so once this consolidation's quote exists the same assets could be renewed twice.</description>
+        <name>Get_Quote</name>
+        <label>Get Quote</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Has_Order</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>QuoteId</field>
-            <operator>In</operator>
-            <value>
-                <elementReference>QuoteIds</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Order</object>
-        <queriedFields>Id</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
-    <recordLookups>
-        <name>Get_Quotes</name>
-        <label>Get Quotes</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Loop_Quotes</targetReference>
+            <targetReference>Has_Quote</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -301,7 +227,7 @@
                 <elementReference>OpportunityIds</elementReference>
             </value>
         </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>Quote</object>
         <queriedFields>Id</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -384,8 +310,8 @@
         </value>
     </variables>
     <variables>
-        <description>True when a quote on any of OpportunityIds has an order.</description>
-        <name>HasOrder</name>
+        <description>True when any of OpportunityIds already has a quote.</description>
+        <name>HasQuote</name>
         <dataType>Boolean</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
@@ -393,13 +319,5 @@
         <value>
             <booleanValue>false</booleanValue>
         </value>
-    </variables>
-    <variables>
-        <description>Quotes on any of OpportunityIds.</description>
-        <name>QuoteIds</name>
-        <dataType>String</dataType>
-        <isCollection>true</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
     </variables>
 </Flow>

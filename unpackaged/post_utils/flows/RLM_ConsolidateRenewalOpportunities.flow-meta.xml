@@ -12,7 +12,7 @@
             <targetReference>Store_Quote_Id</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
@@ -1377,19 +1377,19 @@
         </defaultConnector>
         <defaultConnectorLabel>All Clear</defaultConnectorLabel>
         <rules>
-            <name>Order_Exists</name>
+            <name>Quote_Exists</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>HasOrder</leftValueReference>
+                <leftValueReference>HasQuote</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
                     <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Existing_Orders</targetReference>
+                <targetReference>Existing_Quotes</targetReference>
             </connector>
-            <label>Order Exists</label>
+            <label>Quote Exists</label>
         </rules>
         <rules>
             <name>Ramped_Period</name>
@@ -1586,7 +1586,7 @@
             <label>Confirmed</label>
         </rules>
     </decisions>
-    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does a quote on these opportunities that already has an order (activating it would renew the same assets again), a ramped root asset, or a root asset with a period in a time zone other than GMT (renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones). Assets whose renewal would start before today (GMT) can't be cotermed.</description>
+    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does an existing quote on these opportunities (it could still be ordered, renewing the same assets again), a ramped root asset, or a root asset with a period in a time zone other than GMT (renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones). Assets whose renewal would start before today (GMT) can't be cotermed.</description>
     <environments>Default</environments>
     <formulas>
         <name>CheckAssetEndDate</name>
@@ -1873,7 +1873,7 @@
             <targetReference>Is_Open_Renewal</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -1906,7 +1906,7 @@
             <targetReference>Set_Primary_Contract</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -1933,7 +1933,7 @@
             <targetReference>Count_Other_Renewals</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2001,7 +2001,7 @@
             <targetReference>Loop_Candidate_Assets</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2060,7 +2060,7 @@
             <targetReference>Has_Unlinked_Lines</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2093,7 +2093,7 @@
             <targetReference>Loop_Renewal_Lines</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2126,7 +2126,7 @@
             <targetReference>Count_Line_Assets</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2153,7 +2153,7 @@
             <targetReference>Count_Root_Assets</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2185,7 +2185,7 @@
             <targetReference>Has_Selected_Quotes</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2210,7 +2210,7 @@
             <targetReference>Loop_Selected_Renew_Actions</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2251,7 +2251,7 @@
             <targetReference>Count_Current_Opps</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2314,7 +2314,7 @@
             <targetReference>Loop_Contract_Assets</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Consolidation_Error</targetReference>
+            <targetReference>Roll_Back_Renewal</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -2337,6 +2337,26 @@
         <queriedFields>AssetId</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <recordRollbacks>
+        <description>Undoes everything since the confirmation screen, including the quote lines a Renew_Group call already added, so the closing step either happens in full or not at all.</description>
+        <name>Roll_Back_Close</name>
+        <label>Roll Back Close</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Close_Error</targetReference>
+        </connector>
+    </recordRollbacks>
+    <recordRollbacks>
+        <description>Undoes everything since the confirmation screen, so a fault in a later Renew_Group call doesn't leave a partial quote from the earlier ones. Nothing is pending when a read before the first call faults, so it changes nothing then.</description>
+        <name>Roll_Back_Renewal</name>
+        <label>Roll Back Renewal</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Consolidation_Error</targetReference>
+        </connector>
+    </recordRollbacks>
     <recordUpdates>
         <name>Close_Consolidated_Renewals</name>
         <label>Close Consolidated Renewals</label>
@@ -2346,21 +2366,21 @@
             <targetReference>Quote_Redirect</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Close_Error</targetReference>
+            <targetReference>Roll_Back_Close</targetReference>
         </faultConnector>
         <inputReference>RenewalsToClose</inputReference>
     </recordUpdates>
     <screens>
-        <name>Existing_Orders</name>
-        <label>Existing Orders</label>
+        <name>Existing_Quotes</name>
+        <label>Existing Quotes</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <allowBack>false</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <fields>
-            <name>Existing_OrdersText</name>
-            <fieldText>&lt;p&gt;A quote on this or a selected opportunity already has an order, so nothing was consolidated. Activating that order renews its assets, so renewing them again here would renew them twice.&lt;/p&gt;&lt;p&gt;Leave that opportunity out, or cancel or delete the order first, then try again.&lt;/p&gt;</fieldText>
+            <name>Existing_QuotesText</name>
+            <fieldText>&lt;p&gt;This or a selected opportunity already has a quote, so nothing was consolidated. That quote could still be ordered, whatever its status, and activating the order would renew the same assets a second time.&lt;/p&gt;&lt;p&gt;Leave that opportunity out, or delete its quotes first, then try again.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
@@ -2692,7 +2712,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Consolidation_ErrorText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The renewals were not consolidated.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;If a renewal quote was already started it is linked to this opportunity; delete it before trying again.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The renewals were not consolidated.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;Nothing was saved, so you can try again once the problem is fixed.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
@@ -2708,7 +2728,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Close_ErrorText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The renewal quote was created, but the other opportunities were not closed.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;Close them as Closed Lost by hand.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The other opportunities couldn't be closed, so the renewals were not consolidated.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;The renewal quote was undone too, so nothing was saved; you can try again once the problem is fixed.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
@@ -2802,7 +2822,7 @@
     </start>
     <status>Active</status>
     <subflows>
-        <description>Checks, before anything is renewed, that no root asset has a period in a time zone other than GMT (renewal lines inherit the asset's time zone, the end is set at 23:59:59 GMT, and one quote can't mix time zones) or in a ramp (a ramp renews segment by segment), and that no quote on these opportunities has an order (activating it would renew the same assets again). RLM_RenewalPreflightChecks runs in system context without sharing, because the period fields are usually hidden by field-level security and an order the user can't see still counts; it is given the root assets and opportunities the user already read and returns only a yes or no for each. Runs again after the confirmation screen.</description>
+        <description>Checks, before anything is renewed, that no root asset has a period in a time zone other than GMT (renewal lines inherit the asset's time zone, the end is set at 23:59:59 GMT, and one quote can't mix time zones) or in a ramp (a ramp renews segment by segment), and that none of these opportunities already has a quote (it could still be ordered, renewing the same assets again). RLM_RenewalPreflightChecks runs in system context without sharing, because the period fields are usually hidden by field-level security and an order the user can't see still counts; it is given the root assets and opportunities the user already read and returns only a yes or no for each. Runs again after the confirmation screen.</description>
         <name>Run_Preflight_Checks</name>
         <label>Run Preflight Checks</label>
         <locationX>0</locationX>
@@ -2832,8 +2852,8 @@
             <name>HasRampedPeriod</name>
         </outputAssignments>
         <outputAssignments>
-            <assignToReference>HasOrder</assignToReference>
-            <name>HasOrder</name>
+            <assignToReference>HasQuote</assignToReference>
+            <name>HasQuote</name>
         </outputAssignments>
         <storeOutputAutomatically>false</storeOutputAutomatically>
     </subflows>
@@ -2866,8 +2886,8 @@
         <storeOutputAutomatically>false</storeOutputAutomatically>
     </subflows>
     <variables>
-        <description>Set by RLM_RenewalPreflightChecks: whether a quote on these opportunities has an order.</description>
-        <name>HasOrder</name>
+        <description>Set by RLM_RenewalPreflightChecks: whether any of these opportunities already has a quote.</description>
+        <name>HasQuote</name>
         <dataType>Boolean</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
