@@ -324,6 +324,13 @@
                 <elementReference>CheckAssetEndDate</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>LatestEndDateTime</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_Check_Assets.LifecycleEndDate</elementReference>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>Loop_Check_Assets</targetReference>
         </connector>
@@ -592,10 +599,10 @@
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>ConfirmedEndDate</assignToReference>
+            <assignToReference>ConfirmedEndDateTime</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>LatestEndDate</elementReference>
+                <elementReference>LatestEndDateTime</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -1454,10 +1461,10 @@
                 </rightValue>
             </conditions>
             <conditions>
-                <leftValueReference>LatestEndDate</leftValueReference>
+                <leftValueReference>LatestEndDateTime</leftValueReference>
                 <operator>EqualTo</operator>
                 <rightValue>
-                    <elementReference>ConfirmedEndDate</elementReference>
+                    <elementReference>ConfirmedEndDateTime</elementReference>
                 </rightValue>
             </conditions>
             <conditions>
@@ -1524,9 +1531,10 @@
         <expression>{!GroupEndDateTime} + 1/86400</expression>
     </formulas>
     <formulas>
+        <description>The last second (GMT) of the chosen date, the value Initiate Renewal stores for any end on that date. Passing midnight instead can put the end at or before a group's start, which it rejects.</description>
         <name>TargetEndDateTime</name>
         <dataType>DateTime</dataType>
-        <expression>DATETIMEVALUE(TEXT({!TargetEndDate}) &amp; " 00:00:00")</expression>
+        <expression>DATETIMEVALUE(TEXT({!TargetEndDate}) &amp; " 23:59:59")</expression>
     </formulas>
     <formulas>
         <name>ConsolidatedDescription</name>
@@ -2181,7 +2189,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>The root assets the shared contract actually links. An opportunity's contract doesn't prove its assets belong to it: a quote that absorbed other assets, or added account assets, can carry assets from elsewhere. Relationship dates are not filtered: Initiate Renewal checks that a relationship exists, not that it is current, and a relationship normally ends with the contract term the renewal follows.</description>
+        <description>The root assets the shared contract actually links. An opportunity's contract doesn't prove its assets belong to it: a quote that absorbed other assets, or added account assets, can carry assets from elsewhere. Relationship dates are not filtered: Initiate Renewal accepts a relationship that has ended or not yet started, and a relationship normally ends with the contract term the renewal follows. The renewal reads the term from the asset, which every root asset must have, so it never needs a current relationship to copy the contract's term.</description>
         <name>Get_Contract_Assets</name>
         <label>Get Contract Assets</label>
         <locationX>0</locationX>
@@ -2423,8 +2431,8 @@
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <validationRule>
-                <errorMessage>&lt;p&gt;Choose a date after {!LatestEndDate}, when the latest asset ends.&lt;/p&gt;</errorMessage>
-                <formulaExpression>{!TargetEndDate} &gt; {!LatestEndDate}</formulaExpression>
+                <errorMessage>&lt;p&gt;Choose a later date. The latest asset ends on {!LatestEndDate}, and the renewal must end after it.&lt;/p&gt;</errorMessage>
+                <formulaExpression>DATETIMEVALUE(TEXT({!TargetEndDate}) &amp; " 23:59:59") &gt; {!LatestEndDateTime}</formulaExpression>
             </validationRule>
         </fields>
         <nextOrFinishButtonLabel>Create Quote</nextOrFinishButtonLabel>
@@ -2784,6 +2792,14 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
+        <description>End date and time of the asset that ends last; the renewal end is validated against it.</description>
+        <name>LatestEndDateTime</name>
+        <dataType>DateTime</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
         <description>End date and time of the assets in the current group.</description>
         <name>GroupEndDateTime</name>
         <dataType>DateTime</dataType>
@@ -2900,9 +2916,9 @@
         <isOutput>false</isOutput>
     </variables>
     <variables>
-        <description>LatestEndDate as it was when the user confirmed; the chosen TargetEndDate was validated against it.</description>
-        <name>ConfirmedEndDate</name>
-        <dataType>Date</dataType>
+        <description>LatestEndDateTime as it was when the user confirmed; the chosen TargetEndDate was validated against it.</description>
+        <name>ConfirmedEndDateTime</name>
+        <dataType>DateTime</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>
