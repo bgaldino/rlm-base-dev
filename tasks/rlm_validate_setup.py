@@ -3,7 +3,10 @@ CumulusCI task to validate the local developer setup for rlm-base-dev.
 
 Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js,
 and Robot Framework dependencies (Robot, selenium, SeleniumLibrary,
-webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3). Optionally
+webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3). Honours the
+Robot helpers' browser overrides (CHROME_BINARY / CHROME_BIN and
+CHROMEDRIVER_PATH) and warns when Chrome and ChromeDriver major versions
+differ. Optionally
 auto-fixes an outdated or missing SFDMU plugin (auto_fix), robot
 dependencies via pipx inject (auto_fix_robot, on by default), and urllib3
 via pipx inject (auto_fix_urllib3, off by default).
@@ -160,8 +163,11 @@ class ValidateSetup(BaseTask):
             self._check_webdriver_manager(auto_fix_robot),
             self._check_chrome_chromium(),
             self._check_chromedriver(auto_fix_robot),
-            self._check_urllib3(auto_fix_urllib3),
         ]
+        version_match = self._check_chrome_driver_versions()
+        if version_match:
+            results.append(version_match)
+        results.append(self._check_urllib3(auto_fix_urllib3))
 
         self._log_summary(results)
 
@@ -387,14 +393,28 @@ class ValidateSetup(BaseTask):
                 "  Fix: pipx inject cumulusci webdriver-manager",
             )
 
-    def _check_chrome_chromium(self) -> Dict[str, str]:
-        """Check for Chrome or Chromium browser (required for headless robot tasks)."""
-        label = "Chrome/Chromium"
-        # Check CHROME_BIN env (used in CI/Docker)
-        env_bin = os.environ.get("CHROME_BIN")
-        if env_bin and os.path.isfile(env_bin) and os.access(env_bin, os.X_OK):
-            return self._ok(label, env_bin)
-        # Common paths
+    @staticmethod
+    def _is_executable(path: Optional[str]) -> bool:
+        return bool(path) and os.path.isfile(path) and os.access(path, os.X_OK)
+
+    @staticmethod
+    def _chrome_override() -> Tuple[Optional[str], Optional[str]]:
+        """Return (env var name, path) of the browser override the Robot helpers use.
+
+        Mirrors ChromeOptionsHelper/ChromeDebugHelper: CHROME_BINARY wins,
+        CHROME_BIN (CI/Docker) is the fallback.
+        """
+        for var in ("CHROME_BINARY", "CHROME_BIN"):
+            value = os.environ.get(var)
+            if value:
+                return var, value
+        return None, None
+
+    def _resolve_chrome_binary(self) -> Optional[str]:
+        """Return the Chrome/Chromium executable Robot will launch, or None."""
+        _, override = self._chrome_override()
+        if override:
+            return override if self._is_executable(override) else None
         candidates = [
             "/usr/bin/google-chrome",
             "/usr/bin/chromium",
@@ -403,13 +423,42 @@ class ValidateSetup(BaseTask):
             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
         ]
         for path in candidates:
-            if os.path.isfile(path) and os.access(path, os.X_OK):
-                return self._ok(label, path)
-        # Try PATH
+            if self._is_executable(path):
+                return path
         for name in ("google-chrome", "chromium", "chromium-browser", "chrome"):
             found = shutil.which(name)
             if found:
-                return self._ok(label, found)
+                return found
+        return None
+
+    def _resolve_chromedriver(self) -> Optional[str]:
+        """Return the ChromeDriver path WebDriverManager.py would pick, or None
+        when it would fall through to webdriver-manager."""
+        override = os.environ.get("CHROMEDRIVER_PATH")
+        if self._is_executable(override):
+            return override
+        if self._is_executable("/usr/bin/chromedriver"):
+            return "/usr/bin/chromedriver"
+        return shutil.which("chromedriver")
+
+    def _check_chrome_chromium(self) -> Dict[str, str]:
+        """Check for Chrome or Chromium browser (required for headless robot tasks)."""
+        label = "Chrome/Chromium"
+        # An explicit override is what the Robot helpers launch — no fallback.
+        var, override = self._chrome_override()
+        if override:
+            if self._is_executable(override):
+                return self._ok(label, f"{override} (from {var})")
+            return self._fail(
+                label,
+                f"{var} is set to {override!r}, which is not an executable file — "
+                "Robot tasks will fail to launch the browser.\n"
+                f"  Fix: point {var} at the browser executable, or unset it",
+            )
+        # Common paths
+        found = self._resolve_chrome_binary()
+        if found:
+            return self._ok(label, found)
         return self._fail(
             label,
             "not found — Chrome or Chromium is required for all robot tasks (headless mode via --headless=new).\n"
@@ -420,19 +469,46 @@ class ValidateSetup(BaseTask):
     def _check_chromedriver(self, auto_fix: bool = False) -> Dict[str, str]:
         """Check for ChromeDriver (required for headless robot tasks)."""
         label = "ChromeDriver"
+        # Explicit override (WebDriverManager.py ignores it when invalid, so an
+        # invalid one is only a warning when the default lookup still finds a driver)
+        override = os.environ.get("CHROMEDRIVER_PATH")
+        if override:
+            if self._is_executable(override):
+                return self._ok(label, f"{override} (from CHROMEDRIVER_PATH)")
+            fallback = self._check_chromedriver_default(label, auto_fix)
+            if fallback["status"] == FAIL:
+                return fallback
+            return self._warn(
+                label,
+                f"CHROMEDRIVER_PATH is set to {override!r}, which is not an executable file — "
+                f"it is ignored; using {fallback['detail']}.\n"
+                "  Fix: point CHROMEDRIVER_PATH at the chromedriver executable, or unset it",
+            )
+        result = self._check_chromedriver_default(label, auto_fix)
+        # FIXED/FAIL are logged where they are built; a plain PASS is not.
+        return self._ok(label, result["detail"]) if result["status"] == PASS else result
+
+    @staticmethod
+    def _webdriver_manager_available() -> bool:
+        try:
+            import webdriver_manager  # noqa: F401, PLC0415
+            return True
+        except ImportError:
+            return False
+
+    def _check_chromedriver_default(self, label: str, auto_fix: bool) -> Dict[str, str]:
+        """Default driver lookup, in WebDriverManager.py's order. A PASS is
+        returned unlogged so the caller can fold it into an override warning."""
         # System chromedriver
-        if os.path.isfile("/usr/bin/chromedriver") and os.access("/usr/bin/chromedriver", os.X_OK):
-            return self._ok(label, "/usr/bin/chromedriver")
+        if self._is_executable("/usr/bin/chromedriver"):
+            return {"label": label, "status": PASS, "detail": "/usr/bin/chromedriver"}
         # PATH
         path_chromedriver = shutil.which("chromedriver")
         if path_chromedriver:
-            return self._ok(label, path_chromedriver)
+            return {"label": label, "status": PASS, "detail": path_chromedriver}
         # webdriver-manager can download at runtime
-        try:
-            import webdriver_manager  # noqa: PLC0415
-            return self._ok(label, "via webdriver-manager (downloads at runtime)")
-        except ImportError:
-            pass
+        if self._webdriver_manager_available():
+            return {"label": label, "status": PASS, "detail": "via webdriver-manager (downloads at runtime)"}
         # Try auto-fix (installs webdriver-manager via robot/requirements.txt)
         if auto_fix and self._install_robot_deps():
             try:
@@ -447,6 +523,43 @@ class ValidateSetup(BaseTask):
             "  Fix: pipx inject cumulusci webdriver-manager (downloads ChromeDriver at runtime)\n"
             "  Or: brew install chromedriver",
         )
+
+    @staticmethod
+    def _binary_major_version(path: str) -> Optional[int]:
+        """Return the major version from ``<path> --version``, or None."""
+        try:
+            result = subprocess.run(
+                [path, "--version"], capture_output=True, text=True, timeout=30
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        match = re.search(r"(\d+)\.\d+\.\d+", result.stdout or "")
+        return int(match.group(1)) if match else None
+
+    def _check_chrome_driver_versions(self) -> Optional[Dict[str, str]]:
+        """Warn when Chrome and an explicit ChromeDriver differ in major version.
+
+        Skipped (returns None) when either side is unresolved, or the driver
+        comes from webdriver-manager, which matches the browser itself.
+        """
+        chrome = self._resolve_chrome_binary()
+        driver = self._resolve_chromedriver()
+        if not chrome or not driver:
+            return None
+        label = "Chrome/ChromeDriver versions"
+        chrome_major = self._binary_major_version(chrome)
+        driver_major = self._binary_major_version(driver)
+        if chrome_major is None or driver_major is None:
+            return self._warn(label, f"could not read the version of {chrome if chrome_major is None else driver}")
+        if chrome_major != driver_major:
+            return self._warn(
+                label,
+                f"Chrome {chrome_major} ({chrome}) does not match ChromeDriver "
+                f"{driver_major} ({driver}) — the browser will fail to start.\n"
+                "  Fix: install the matching driver, or set CHROME_BINARY and "
+                "CHROMEDRIVER_PATH to a matching pair (e.g. Chrome for Testing)",
+            )
+        return self._ok(label, f"both major version {chrome_major}")
 
     def _check_urllib3(self, auto_fix: bool = False) -> Dict[str, str]:
         label = "urllib3"

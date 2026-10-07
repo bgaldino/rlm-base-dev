@@ -421,12 +421,32 @@ For the full architecture — shell config responsibilities, the per-project `.e
      - **macOS:** Install [Google Chrome](https://www.google.com/chrome/) or `brew install chromium`
      - **Linux:** `apt install chromium` (Debian/Ubuntu) or `dnf install chromium` (Fedora)
      - **CI:** Set `CHROME_BIN` to the browser path (e.g. `/usr/bin/chromium`)
+     - **Alternate browser:** Set `CHROME_BINARY` to launch a specific Chrome executable instead of the stock install. It takes precedence over `CHROME_BIN`. Pair it with `CHROMEDRIVER_PATH` (step 3) so the driver matches. See [Chrome for Testing](#chrome-for-testing-managed-workstations).
 
-   3. **ChromeDriver** — webdriver-manager downloads it automatically at runtime. If webdriver-manager is not installed, ChromeDriver must be on `PATH` or at `/usr/bin/chromedriver` (e.g. `apt install chromium-driver` on Debian/Ubuntu).
+   3. **ChromeDriver** — webdriver-manager downloads it automatically at runtime. If webdriver-manager is not installed, ChromeDriver must be on `PATH` or at `/usr/bin/chromedriver` (e.g. `apt install chromium-driver` on Debian/Ubuntu). Set `CHROMEDRIVER_PATH` to force a specific driver; it wins over every other lookup, and is ignored with a warning if it is not an executable file.
 
    4. **Salesforce CLI** — The task uses `sf org open --url-only` to authenticate the browser; ensure `sf` is installed and the org is logged in.
 
-   5. **Verify** — Use the [validation command for your CCI environment](#step-11--verify-the-full-setup) (no org required) to check dependencies, including Chrome/Chromium and ChromeDriver.
+   5. **Verify** — Use the [validation command for your CCI environment](#step-11--verify-the-full-setup) (no org required) to check dependencies, including Chrome/Chromium and ChromeDriver. It reports the overrides above when set, and warns when Chrome and ChromeDriver differ in major version.
+
+   #### Chrome for Testing (managed workstations)
+
+   Optional. Most machines run the Robot tasks on stock Chrome. On some managed workstations, an endpoint security policy makes stock headless Chrome crash on Salesforce Setup pages: the Robot step (e.g. `enable_document_builder` in `prepare_docgen`) fails with `Unable to receive message from renderer`, even though Chrome loads other sites. [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) is a separate Chrome build that does not touch your regular install, and it loads those pages. Install a browser and a driver of the **same version** (`npx` ships with Node.js):
+
+   ```bash
+   CFT_VERSION=154.0.8037.92   # any Chrome for Testing version; keep browser and driver identical
+   npx -y @puppeteer/browsers install "chrome@$CFT_VERSION" --path ~/.cache/cft
+   npx -y @puppeteer/browsers install "chromedriver@$CFT_VERSION" --path ~/.cache/cft
+   ```
+
+   Each command prints the installed executable's path. Export both before running CCI (macOS Apple silicon paths shown), then rerun `validate_setup`:
+
+   ```bash
+   export CHROME_BINARY="$HOME/.cache/cft/chrome/mac_arm-$CFT_VERSION/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+   export CHROMEDRIVER_PATH="$HOME/.cache/cft/chromedriver/mac_arm-$CFT_VERSION/chromedriver-mac-arm64/chromedriver"
+   ```
+
+   Both variables are unset by default, and nothing changes when they are unset. Put the exports in your shell profile (or a direnv `.envrc`) only on machines that need them.
 
 3. **Install SFDMU (v5.6.4+):**
    ```bash

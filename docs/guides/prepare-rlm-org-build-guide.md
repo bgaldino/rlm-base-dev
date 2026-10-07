@@ -245,7 +245,7 @@ The most common failure points and how to address them:
 
 **Data load failures** — Most commonly caused by SFDMU v5 composite key issues or missing prerequisite records. See `docs/references/sfdmu-composite-key-optimizations.md` for the primary reference on v5 migration changes and known bugs; `CLAUDE.md` covers the same rules in a developer-oriented format.
 
-**Robot Framework failures** — The browser automation steps can fail if Chrome/ChromeDriver versions are mismatched or if Salesforce UI elements have changed between releases. Running `validate_setup` first catches ChromeDriver issues.
+**Robot Framework failures** — The browser automation steps can fail if Chrome/ChromeDriver versions are mismatched or if Salesforce UI elements have changed between releases. Running `validate_setup` first catches ChromeDriver issues, including a browser/driver version mismatch. If Chrome crashes with "Unable to receive message from renderer" on Setup pages, see [org operations troubleshooting](org-operations.md#headless-robot-unable-to-receive-message-from-renderer-on-setup-pages).
 
 **Decision table refresh timeouts** — Large decision tables can take several minutes to refresh. The platform has built-in timeout handling, but very large orgs may need retry.
 
