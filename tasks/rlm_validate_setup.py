@@ -392,6 +392,10 @@ class ValidateSetup(BaseTask):
                 "  Fix: pipx inject cumulusci webdriver-manager",
             )
 
+    # WebDriverManager.py's first default-lookup location; an attribute so tests
+    # can isolate themselves from a host that has one (e.g. the Docker image).
+    _system_chromedriver = "/usr/bin/chromedriver"
+
     @staticmethod
     def _is_executable(path: Optional[str]) -> bool:
         return bool(path) and os.path.isfile(path) and os.access(path, os.X_OK)
@@ -436,8 +440,8 @@ class ValidateSetup(BaseTask):
         override = os.environ.get("CHROMEDRIVER_PATH")
         if self._is_executable(override):
             return override
-        if self._is_executable("/usr/bin/chromedriver"):
-            return "/usr/bin/chromedriver"
+        if self._is_executable(self._system_chromedriver):
+            return self._system_chromedriver
         return shutil.which("chromedriver")
 
     def _check_chrome_chromium(self) -> Dict[str, str]:
@@ -499,8 +503,8 @@ class ValidateSetup(BaseTask):
         """Default driver lookup, in WebDriverManager.py's order. A PASS is
         returned unlogged so the caller can fold it into an override warning."""
         # System chromedriver
-        if self._is_executable("/usr/bin/chromedriver"):
-            return {"label": label, "status": PASS, "detail": "/usr/bin/chromedriver"}
+        if self._is_executable(self._system_chromedriver):
+            return {"label": label, "status": PASS, "detail": self._system_chromedriver}
         # PATH
         path_chromedriver = shutil.which("chromedriver")
         if path_chromedriver:
@@ -541,15 +545,26 @@ class ValidateSetup(BaseTask):
         FAIL when the browser comes from CHROME_BINARY/CHROME_BIN: the helpers
         launch exactly that binary, so the mismatch is a certain startup
         failure. WARN otherwise, because the browser path is this check's
-        guess at what ChromeDriver will find. Skipped (returns None) when
-        either side is unresolved, or the driver comes from webdriver-manager,
-        which matches the browser itself.
+        guess at what ChromeDriver will find. When the driver would come from
+        webdriver-manager, there is nothing to compare: that is fine for stock
+        Chrome (webdriver-manager matches it), but WARN under a browser
+        override, since webdriver-manager is never told about the alternate
+        binary and sizes the driver for stock Chrome. Skipped (returns None)
+        when either side is otherwise unresolved.
         """
+        label = "Chrome/ChromeDriver versions"
+        var, override = self._chrome_override()
         chrome = self._resolve_chrome_binary()
         driver = self._resolve_chromedriver()
+        if chrome and override and not driver:
+            return self._warn(
+                label,
+                f"{var} selects {override}, but no ChromeDriver is set — webdriver-manager "
+                "picks a driver for the stock Chrome install, not for this binary.\n"
+                "  Fix: set CHROMEDRIVER_PATH to the driver that matches it",
+            )
         if not chrome or not driver:
             return None
-        label = "Chrome/ChromeDriver versions"
         chrome_major = self._binary_major_version(chrome)
         driver_major = self._binary_major_version(driver)
         if chrome_major is None or driver_major is None:

@@ -64,7 +64,7 @@ Run this first — it checks everything:
 | Node.js not found | `nvm install --lts && nvm alias default lts/*` |
 | Robot Framework deps missing | Auto-fixed by default. Manual: `pipx inject cumulusci --force -r robot/requirements.txt` |
 | Chrome/ChromeDriver missing | Install Chrome; `pip install webdriver-manager` |
-| Chrome/ChromeDriver versions mismatch, or an override path is not executable | Install the matching driver, or fix/unset `CHROME_BINARY` / `CHROME_BIN` / `CHROMEDRIVER_PATH` |
+| Chrome/ChromeDriver versions mismatch, a browser override has no `CHROMEDRIVER_PATH`, or an override path is not executable | Install the matching driver and point `CHROMEDRIVER_PATH` at it, or fix/unset `CHROME_BINARY` / `CHROME_BIN` / `CHROMEDRIVER_PATH` |
 | Robot step dies with "Unable to receive message from renderer" on a Setup page (managed workstations) | Chrome for Testing via `CHROME_BINARY` + `CHROMEDRIVER_PATH`; see `docs/guides/local-installation.md` → Chrome for Testing |
 | urllib3 < 2.6.3 (CVE) | `pipx inject cumulusci urllib3>=2.6.3` |
 

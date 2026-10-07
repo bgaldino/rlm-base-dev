@@ -46,9 +46,12 @@ def check(name, ok, detail=""):
     RESULTS.append((name, bool(ok), detail))
 
 
-def _task():
+def _task(tmp):
+    """A task isolated from host drivers: its system-driver location is a path
+    under ``tmp`` that does not exist, so only PATH (set per check) is searched."""
     task = object.__new__(ValidateSetup)
     task.logger = logging.getLogger("validate_setup_test")
+    task._system_chromedriver = str(Path(tmp) / "no-system-chromedriver")
     return task
 
 
@@ -69,35 +72,37 @@ def _set_env(**values):
 def check_chrome_binary_override_wins(tmp):
     chrome = _fake_binary(tmp, "cft-chrome", "Google Chrome for Testing 154.0.8037.92")
     _set_env(CHROME_BINARY=chrome, CHROME_BIN="/nonexistent/chromium")
-    result = _task()._check_chrome_chromium()
+    result = _task(tmp)._check_chrome_chromium()
     check("chrome_binary_override_wins", result["status"] == PASS and "CHROME_BINARY" in result["detail"], result["detail"])
 
 
 def check_chrome_bin_is_fallback(tmp):
     chrome = _fake_binary(tmp, "chromium", "Chromium 154.0.8037.98")
     _set_env(CHROME_BIN=chrome)
-    result = _task()._check_chrome_chromium()
+    result = _task(tmp)._check_chrome_chromium()
     check("chrome_bin_is_fallback", result["status"] == PASS and "CHROME_BIN" in result["detail"], result["detail"])
 
 
 def check_broken_chrome_override_fails(tmp):
     _set_env(CHROME_BINARY=str(Path(tmp) / "missing-chrome"))
-    result = _task()._check_chrome_chromium()
+    result = _task(tmp)._check_chrome_chromium()
     check("broken_chrome_override_fails", result["status"] == FAIL, result["detail"])
 
 
 def _expected_fallback_driver(tmp):
-    """Put a fake chromedriver on PATH; return what the default lookup should pick
-    (/usr/bin/chromedriver still wins on hosts that have one)."""
+    """Put a fake chromedriver on PATH; return what WebDriverManager.py's default
+    lookup should pick (its hardcoded /usr/bin/chromedriver still wins on hosts
+    that have one, so the expectation is exact either way)."""
+    fake = _fake_binary(tmp, "chromedriver", "ChromeDriver 154.0.8037.98 (abc)")
     if os.path.isfile("/usr/bin/chromedriver") and os.access("/usr/bin/chromedriver", os.X_OK):
         return "/usr/bin/chromedriver"
-    return _fake_binary(tmp, "chromedriver", "ChromeDriver 154.0.8037.98 (abc)")
+    return fake
 
 
 def check_broken_driver_override_warns_with_fallback(tmp):
-    fallback = _expected_fallback_driver(tmp)
+    fallback = _fake_binary(tmp, "chromedriver", "ChromeDriver 154.0.8037.98 (abc)")
     _set_env(CHROMEDRIVER_PATH=str(Path(tmp) / "missing-driver"), PATH=tmp)
-    result = _task()._check_chromedriver()
+    result = _task(tmp)._check_chromedriver()
     check(
         "broken_driver_override_warns_with_fallback",
         result["status"] == WARN and fallback in result["detail"],
@@ -106,11 +111,8 @@ def check_broken_driver_override_warns_with_fallback(tmp):
 
 
 def check_broken_driver_override_without_fallback_fails(tmp):
-    if os.path.isfile("/usr/bin/chromedriver"):
-        check("broken_driver_override_without_fallback_fails", True, "skipped: host has /usr/bin/chromedriver")
-        return
     _set_env(CHROMEDRIVER_PATH=str(Path(tmp) / "missing-driver"), PATH=tmp)
-    task = _task()
+    task = _task(tmp)
     task._webdriver_manager_available = lambda: False
     result = task._check_chromedriver()
     check("broken_driver_override_without_fallback_fails", result["status"] == FAIL, result["detail"])
@@ -119,7 +121,7 @@ def check_broken_driver_override_without_fallback_fails(tmp):
 def check_driver_override_passes(tmp):
     driver = _fake_binary(tmp, "chromedriver", "ChromeDriver 154.0.8037.92 (abc)")
     _set_env(CHROMEDRIVER_PATH=driver)
-    result = _task()._check_chromedriver()
+    result = _task(tmp)._check_chromedriver()
     check("driver_override_passes", result["status"] == PASS and driver in result["detail"], result["detail"])
 
 
@@ -127,7 +129,7 @@ def check_version_mismatch_with_browser_override_fails(tmp):
     chrome = _fake_binary(tmp, "chrome-155", "Google Chrome 155.0.1.2")
     driver = _fake_binary(tmp, "driver-154", "ChromeDriver 154.0.8037.92 (abc)")
     _set_env(CHROME_BINARY=chrome, CHROMEDRIVER_PATH=driver)
-    result = _task()._check_chrome_driver_versions()
+    result = _task(tmp)._check_chrome_driver_versions()
     check(
         "version_mismatch_with_browser_override_fails",
         result is not None and result["status"] == FAIL,
@@ -139,7 +141,7 @@ def check_version_mismatch_with_guessed_browser_warns(tmp):
     chrome = _fake_binary(tmp, "chrome-155", "Google Chrome 155.0.1.2")
     driver = _fake_binary(tmp, "driver-154", "ChromeDriver 154.0.8037.92 (abc)")
     _set_env(CHROMEDRIVER_PATH=driver)
-    task = _task()
+    task = _task(tmp)
     task._resolve_chrome_binary = lambda: chrome  # stands in for the candidate-path search
     result = task._check_chrome_driver_versions()
     check(
@@ -149,11 +151,30 @@ def check_version_mismatch_with_guessed_browser_warns(tmp):
     )
 
 
+def check_browser_override_with_webdriver_manager_driver_warns(tmp):
+    chrome = _fake_binary(tmp, "cft-chrome", "Google Chrome for Testing 154.0.8037.92")
+    _set_env(CHROME_BINARY=chrome, PATH=tmp)  # no driver override, none on PATH
+    result = _task(tmp)._check_chrome_driver_versions()
+    check(
+        "browser_override_with_webdriver_manager_driver_warns",
+        result is not None and result["status"] == WARN and "CHROMEDRIVER_PATH" in result["detail"],
+        result and result["detail"],
+    )
+
+
+def check_stock_browser_with_webdriver_manager_driver_skips(tmp):
+    _set_env(PATH=tmp)
+    task = _task(tmp)
+    task._resolve_chrome_binary = lambda: _fake_binary(tmp, "chrome", "Google Chrome 154.0.8037.98")
+    result = task._check_chrome_driver_versions()
+    check("stock_browser_with_webdriver_manager_driver_skips", result is None, f"got {result!r}")
+
+
 def check_version_match_passes(tmp):
     chrome = _fake_binary(tmp, "chrome-154", "Google Chrome for Testing 154.0.8037.92")
     driver = _fake_binary(tmp, "driver-154b", "ChromeDriver 154.0.8037.92 (abc)")
     _set_env(CHROME_BINARY=chrome, CHROMEDRIVER_PATH=driver)
-    result = _task()._check_chrome_driver_versions()
+    result = _task(tmp)._check_chrome_driver_versions()
     check("version_match_passes", result is not None and result["status"] == PASS, result and result["detail"])
 
 
@@ -182,6 +203,8 @@ def main():
         check_driver_override_passes,
         check_version_mismatch_with_browser_override_fails,
         check_version_mismatch_with_guessed_browser_warns,
+        check_browser_override_with_webdriver_manager_driver_warns,
+        check_stock_browser_with_webdriver_manager_driver_skips,
         check_version_match_passes,
         check_webdriver_manager_honours_override,
         check_webdriver_manager_ignores_broken_override,
