@@ -118,6 +118,8 @@ partners, and customers via Salesforce Labs. The bar is higher than normal revie
    **resolve the thread** (GraphQL).
 8. **Confirm zero unresolved.** Re-query `reviewThreads` across **all** pages and verify
    the round closed with `unresolved == 0`.
+9. **Only then request the next review.** Never post `@codex review` or re-request
+   Copilot while a thread is open; that review races the in-flight fixes.
 
 ```bash
 # in-thread reply to a review comment (pull_number IS in the path — GitHub's documented endpoint)
