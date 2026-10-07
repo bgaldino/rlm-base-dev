@@ -35,9 +35,12 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from tasks.rlm_validate_setup import FAIL, PASS, WARN, ValidateSetup  # noqa: E402
 
-# The Robot helpers are loaded by path, like Robot does; each is named as a
-# stdlib_offline_suites trigger in pr_gate.py.
-_RESOURCES = REPO_ROOT / "robot" / "rlm-base" / "resources"
+# The Robot helpers are loaded by path, like Robot does; each path is spelled out
+# (not built from a shared directory) so pr_gate.py can see it as a file read, and
+# each is named as a stdlib_offline_suites trigger there.
+_WDM_SRC = REPO_ROOT / "robot" / "rlm-base" / "resources" / "WebDriverManager.py"
+_OPTIONS_SRC = REPO_ROOT / "robot" / "rlm-base" / "resources" / "ChromeOptionsHelper.py"
+_DEBUG_SRC = REPO_ROOT / "robot" / "rlm-base" / "resources" / "ChromeDebugHelper.py"
 
 
 class _StubChromeOptions:
@@ -51,7 +54,7 @@ class _StubChromeOptions:
         self.arguments.append(argument)
 
 
-def _load_resource(name):
+def _load_resource(path):
     """Load a Robot helper by path with selenium/requests stubbed for the import,
     so the suite stays stdlib-only; the real modules (if any) are restored after."""
     webdriver = types.ModuleType("selenium.webdriver")
@@ -62,7 +65,7 @@ def _load_resource(name):
     saved = {mod: sys.modules.get(mod) for mod in stubs}
     sys.modules.update(stubs)
     try:
-        spec = importlib.util.spec_from_file_location(name, _RESOURCES / f"{name}.py")
+        spec = importlib.util.spec_from_file_location(path.stem, path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
@@ -74,9 +77,9 @@ def _load_resource(name):
                 sys.modules[mod] = original
 
 
-WebDriverManager = _load_resource("WebDriverManager")
-ChromeOptionsHelper = _load_resource("ChromeOptionsHelper")
-ChromeDebugHelper = _load_resource("ChromeDebugHelper")
+WebDriverManager = _load_resource(_WDM_SRC)
+ChromeOptionsHelper = _load_resource(_OPTIONS_SRC)
+ChromeDebugHelper = _load_resource(_DEBUG_SRC)
 OPTION_BUILDERS = (
     ("headless", ChromeOptionsHelper.get_headless_chrome_options),
     ("visible", ChromeDebugHelper.get_visible_chrome_options),
