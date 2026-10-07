@@ -673,7 +673,7 @@
         </connector>
     </assignments>
     <decisions>
-        <description>A line with no asset can't be renewed, so closing its opportunity would drop that product from the renewal; stop instead.</description>
+        <description>A line with no asset can't be renewed, so consolidating would drop that product; stop instead.</description>
         <name>Has_Unlinked_Lines</name>
         <label>Has Unlinked Lines</label>
         <locationX>0</locationX>
@@ -1080,6 +1080,31 @@
         </rules>
     </decisions>
     <decisions>
+        <name>Has_Non_Gmt_Periods</name>
+        <label>Has Non-GMT Periods</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Has_Renew_Contract</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>All GMT</defaultConnectorLabel>
+        <rules>
+            <name>Non_Gmt_Period_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>HasNonGmtTimeZone</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Non_Gmt_Assets</targetReference>
+            </connector>
+            <label>Non-GMT Period Found</label>
+        </rules>
+    </decisions>
+    <decisions>
         <name>Has_Unrenewable_Assets</name>
         <label>Has Unrenewable Assets</label>
         <locationX>0</locationX>
@@ -1099,7 +1124,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Has_Renew_Contract</targetReference>
+                <targetReference>Get_Non_Gmt_Periods</targetReference>
             </connector>
             <label>None</label>
         </rules>
@@ -1531,7 +1556,7 @@
             <label>Confirmed</label>
         </rules>
     </decisions>
-    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A selected opportunity with a line linked to no asset stops the flow, since closing it would drop that product. Ramped assets, and assets whose renewal would start before today (GMT), can't be cotermed.</description>
+    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does a root asset with a period in a time zone other than GMT: renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones. Ramped assets, and assets whose renewal would start before today (GMT), can't be cotermed.</description>
     <environments>Default</environments>
     <formulas>
         <name>CheckAssetEndDate</name>
@@ -1995,7 +2020,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
-        <description>A line on an opportunity that will be closed but linked to no asset. This opportunity keeps its own lines, so only the selected ones are checked.</description>
+        <description>A line linked to no asset, on this opportunity or a selected one. The quote holds only renewed assets, so the product would be lost: the selected opportunities are closed, and this one gets the quote's lines when its order is activated.</description>
         <name>Get_Unlinked_Lines</name>
         <label>Get Unlinked Lines</label>
         <locationX>0</locationX>
@@ -2013,13 +2038,6 @@
             <operator>In</operator>
             <value>
                 <elementReference>SelectedOppIds</elementReference>
-            </value>
-        </filters>
-        <filters>
-            <field>OpportunityId</field>
-            <operator>NotEqualTo</operator>
-            <value>
-                <elementReference>recordId</elementReference>
             </value>
         </filters>
         <filters>
@@ -2507,6 +2525,22 @@
         <showHeader>true</showHeader>
     </screens>
     <screens>
+        <name>Non_Gmt_Assets</name>
+        <label>Non-GMT Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Non_Gmt_AssetsText</name>
+            <fieldText>&lt;p&gt;An asset to renew uses a time zone other than GMT, so nothing was consolidated. Renewal lines keep their asset's time zone, and this action coterms only GMT assets: it ends the renewal at 11:59:59 PM GMT, and one quote can't mix time zones.&lt;/p&gt;&lt;p&gt;Renew assets in other time zones with Generate Renewal Quote instead.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
         <name>Not_Open_Renewal</name>
         <label>Not Open Renewal</label>
         <locationX>0</locationX>
@@ -2580,7 +2614,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Unlinked_LinesText</name>
-            <fieldText>&lt;p&gt;A selected opportunity has a product that isn't linked to an asset (&lt;strong&gt;{!Get_Unlinked_Lines.Name}&lt;/strong&gt;), so nothing was consolidated. Only assets can be renewed, and closing that opportunity would drop the product from the renewal.&lt;/p&gt;&lt;p&gt;Remove the product or move it to this opportunity, or leave that opportunity out, then try again.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;A product on this or a selected opportunity isn't linked to an asset (&lt;strong&gt;{!Get_Unlinked_Lines.Name}&lt;/strong&gt;), so nothing was consolidated. The renewal quote holds only renewed assets, so consolidating would drop that product.&lt;/p&gt;&lt;p&gt;Remove the product or quote it separately, or leave its opportunity out, then try again.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
@@ -2706,6 +2740,28 @@
     </start>
     <status>Active</status>
     <subflows>
+        <description>Reads whether a root asset has a period in a time zone other than GMT. Renewal lines inherit the asset's time zone, the end is set at 23:59:59 GMT, and one quote can't mix time zones, so only GMT assets are cotermed. RLM_RenewalAssetTimeZone runs in system context because Start End Time Zone is usually hidden by field-level security; it is given the root assets the user already read and returns only a yes or no. Runs again after the confirmation screen.</description>
+        <name>Get_Non_Gmt_Periods</name>
+        <label>Get Non-GMT Periods</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Has_Non_Gmt_Periods</targetReference>
+        </connector>
+        <flowName>RLM_RenewalAssetTimeZone</flowName>
+        <inputAssignments>
+            <name>AssetIds</name>
+            <value>
+                <elementReference>RootAssetIds</elementReference>
+            </value>
+        </inputAssignments>
+        <outputAssignments>
+            <assignToReference>HasNonGmtTimeZone</assignToReference>
+            <name>HasNonGmtTimeZone</name>
+        </outputAssignments>
+        <storeOutputAutomatically>false</storeOutputAutomatically>
+    </subflows>
+    <subflows>
         <description>Reads which root assets an open renewal on the account already covers. RLM_RenewalCoveredAssets runs in system context without sharing, so a renewal the user can't see still counts; it is given the root assets the user already read (CandidateAssetIds) and returns only those that are covered, never an Id found in system context. Runs again after the confirmation screen.</description>
         <name>Get_Covered_Assets</name>
         <label>Get Covered Assets</label>
@@ -2733,6 +2789,17 @@
         </outputAssignments>
         <storeOutputAutomatically>false</storeOutputAutomatically>
     </subflows>
+    <variables>
+        <description>Set by RLM_RenewalAssetTimeZone: whether a root asset has a period in a time zone other than GMT.</description>
+        <name>HasNonGmtTimeZone</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
     <variables>
         <description>Root Ids of the account assets the user can read, passed to RLM_RenewalCoveredAssets so it reports coverage only for them.</description>
         <name>CandidateAssetIds</name>
