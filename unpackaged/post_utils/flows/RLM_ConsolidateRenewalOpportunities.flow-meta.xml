@@ -1589,9 +1589,10 @@
     <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A line linked to no asset, on this or a selected opportunity, stops the flow, since consolidating would drop that product. So does an existing quote on these opportunities (it could still be ordered, renewing the same assets again), a ramped root asset, or a root asset with a period in a time zone other than GMT (renewal lines keep the asset's time zone, the end is set in GMT, and one quote can't mix time zones). Assets whose renewal would start before today (GMT) can't be cotermed.</description>
     <environments>Default</environments>
     <formulas>
+        <description>The day the asset ends in GMT, like every other date here. DATEVALUE on the datetime would use the user's time zone, a day late east of GMT for an end at 23:59:59 GMT.</description>
         <name>CheckAssetEndDate</name>
         <dataType>Date</dataType>
-        <expression>DATEVALUE({!Loop_Check_Assets.LifecycleEndDate})</expression>
+        <expression>DATEVALUE(LEFT(TEXT({!Loop_Check_Assets.LifecycleEndDate}), 10))</expression>
     </formulas>
     <formulas>
         <description>Initiate Renewal can't start a renewal before today, so the exact start the asset would get (the second after it ends) must fall today or later. Both dates are taken in GMT, the days Initiate Renewal uses.</description>
@@ -1618,9 +1619,10 @@
         <expression>DATETIMEVALUE(TEXT({!TargetEndDate}) &amp; " 23:59:59")</expression>
     </formulas>
     <formulas>
+        <description>The note goes first and the existing description is kept after it, cut to the 32,000 characters Description holds, so a long one can't fail the close. The date is the GMT day, like every other date here.</description>
         <name>ConsolidatedDescription</name>
         <dataType>String</dataType>
-        <expression>"Consolidated into " &amp; {!Get_Primary_Opportunity.Name} &amp; " (" &amp; {!Get_Primary_Opportunity.Id} &amp; ") on " &amp; TEXT(TODAY()) &amp; "." &amp; IF(ISBLANK({!Loop_Close_Renewals.Description}), "", BR() &amp; BR() &amp; {!Loop_Close_Renewals.Description})</expression>
+        <expression>LEFT("Consolidated into " &amp; {!Get_Primary_Opportunity.Name} &amp; " (" &amp; {!Get_Primary_Opportunity.Id} &amp; ") on " &amp; LEFT(TEXT(NOW()), 10) &amp; " (GMT)." &amp; IF(ISBLANK({!Loop_Close_Renewals.Description}), "", BR() &amp; BR() &amp; {!Loop_Close_Renewals.Description}), 32000)</expression>
     </formulas>
     <formulas>
         <name>ClosingCount</name>
