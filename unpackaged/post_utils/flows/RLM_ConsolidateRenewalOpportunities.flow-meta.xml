@@ -673,6 +673,32 @@
         </connector>
     </assignments>
     <decisions>
+        <description>A line with no asset can't be renewed, so closing its opportunity would drop that product from the renewal; stop instead.</description>
+        <name>Has_Unlinked_Lines</name>
+        <label>Has Unlinked Lines</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Get_Renewal_Lines</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>All Linked</defaultConnectorLabel>
+        <rules>
+            <name>Unlinked_Line_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Unlinked_Lines</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Unlinked_Lines</targetReference>
+            </connector>
+            <label>Unlinked Line Found</label>
+        </rules>
+    </decisions>
+    <decisions>
         <description>Only root assets can be extra assets, so only their Ids are checked for coverage.</description>
         <name>Is_Root_Candidate</name>
         <label>Is Root Candidate</label>
@@ -1505,7 +1531,7 @@
             <label>Confirmed</label>
         </rules>
     </decisions>
-    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. Ramped assets, and assets that ended before yesterday, can't be cotermed.</description>
+    <description>Quick action on a renewal Opportunity. Merges other open renewal opportunities on the same account (same price book and currency) into this one, optionally with the account's renewable assets that no open renewal covers: renews the root assets of all their lines (and those assets) onto one quote linked to this opportunity, cotermed to an end date the user picks (default one year after the latest asset ends), then closes the others as Closed Lost. Initiate Renewal takes one start date per call, so it is called once per asset end date, the first call creating the quote and later ones adding to it through renewRecordId. Which assets an open renewal already covers is read by RLM_RenewalCoveredAssets in system context, so renewals the user can't see still count. After the confirmation screen everything is read again and nothing is renewed unless it still matches what the user confirmed. The contract is passed only when every opportunity shares it and it links every root asset. A selected opportunity with a line linked to no asset stops the flow, since closing it would drop that product. Ramped assets, and assets whose renewal would start before today (GMT), can't be cotermed.</description>
     <environments>Default</environments>
     <formulas>
         <name>CheckAssetEndDate</name>
@@ -1513,10 +1539,10 @@
         <expression>DATEVALUE({!Loop_Check_Assets.LifecycleEndDate})</expression>
     </formulas>
     <formulas>
-        <description>Initiate Renewal can't start a renewal in the past, and each asset renews from the day after it ends, so it must end no earlier than yesterday.</description>
+        <description>Initiate Renewal can't start a renewal before today, so the exact start the asset would get (the second after it ends) must fall today or later. Both dates are taken in GMT, the days Initiate Renewal uses.</description>
         <name>IsCheckAssetCurrent</name>
         <dataType>Boolean</dataType>
-        <expression>{!CheckAssetEndDate} + 1 &gt;= TODAY()</expression>
+        <expression>DATEVALUE(LEFT(TEXT({!Loop_Check_Assets.LifecycleEndDate} + 1/86400), 10)) &gt;= DATEVALUE(LEFT(TEXT(NOW()), 10))</expression>
     </formulas>
     <formulas>
         <description>One year after the latest asset ends.</description>
@@ -1732,7 +1758,7 @@
             <targetReference>Is_Same_Contract</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
-            <targetReference>Get_Renewal_Lines</targetReference>
+            <targetReference>Get_Unlinked_Lines</targetReference>
         </noMoreValuesConnector>
     </loops>
     <loops>
@@ -1966,6 +1992,47 @@
         <queriedFields>LifecycleEndDate</queriedFields>
         <sortField>LifecycleEndDate</sortField>
         <sortOrder>Asc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>A line on an opportunity that will be closed but linked to no asset. This opportunity keeps its own lines, so only the selected ones are checked.</description>
+        <name>Get_Unlinked_Lines</name>
+        <label>Get Unlinked Lines</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Has_Unlinked_Lines</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Consolidation_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>OpportunityId</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>SelectedOppIds</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>OpportunityId</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>AssetId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>OpportunityLineItem</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordLookups>
@@ -2504,6 +2571,22 @@
         <showHeader>true</showHeader>
     </screens>
     <screens>
+        <name>Unlinked_Lines</name>
+        <label>Unlinked Lines</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Unlinked_LinesText</name>
+            <fieldText>&lt;p&gt;A selected opportunity has a product that isn't linked to an asset (&lt;strong&gt;{!Get_Unlinked_Lines.Name}&lt;/strong&gt;), so nothing was consolidated. Only assets can be renewed, and closing that opportunity would drop the product from the renewal.&lt;/p&gt;&lt;p&gt;Remove the product or move it to this opportunity, or leave that opportunity out, then try again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
         <name>Unrenewable_Assets</name>
         <label>Unrenewable Assets</label>
         <locationX>0</locationX>
@@ -2513,7 +2596,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>Unrenewable_AssetsText</name>
-            <fieldText>&lt;p&gt;These assets can't be cotermed: &lt;strong&gt;{!UnrenewableAssetNames}&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Each needs a renewal term and unit and an end date no earlier than yesterday, because a renewal can't start in the past. Set Renewal Term and Renewal Term Unit on them (for example in the Managed Asset viewer), or renew expired assets on their own with a new start date, then try again.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;These assets can't be cotermed: &lt;strong&gt;{!UnrenewableAssetNames}&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;Each needs a renewal term and unit and an end date late enough that its renewal, which starts the second after it ends, starts today or later (in GMT), because a renewal can't start in the past. Set Renewal Term and Renewal Term Unit on them (for example in the Managed Asset viewer), or renew expired assets on their own with a new start date, then try again.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
