@@ -395,6 +395,7 @@ class ValidateSetup(BaseTask):
     # WebDriverManager.py's first default-lookup location; an attribute so tests
     # can isolate themselves from a host that has one (e.g. the Docker image).
     _system_chromedriver = "/usr/bin/chromedriver"
+    _version_timeout = 30  # seconds allowed for ``<binary> --version``
 
     @staticmethod
     def _is_executable(path: Optional[str]) -> bool:
@@ -537,23 +538,30 @@ class ValidateSetup(BaseTask):
             "  Or: brew install chromedriver",
         }
 
-    @staticmethod
-    def _binary_major_version(path: str) -> Tuple[Optional[int], Optional[str]]:
+    def _binary_major_version(self, path: str) -> Tuple[Optional[int], Optional[str]]:
         """Run ``<path> --version``; return (major, None), or (None, reason).
 
-        The reason starts with "cannot run" when the binary could not be
-        spawned at all (wrong architecture, missing interpreter), which is
-        distinct from output that merely has no recognisable version.
+        The reason starts with "cannot run" when the binary does not run
+        cleanly: it cannot be spawned (wrong architecture, missing
+        interpreter), exits nonzero (e.g. a missing shared library), or times
+        out. That is distinct from a clean exit whose output merely has no
+        recognisable version.
         """
         try:
             result = subprocess.run(
-                [path, "--version"], capture_output=True, text=True, timeout=30
+                [path, "--version"], capture_output=True, text=True, timeout=self._version_timeout
             )
         except OSError as exc:
             return None, f"cannot run {path}: {exc.strerror or exc}"
+        except subprocess.TimeoutExpired:
+            return None, f"cannot run {path}: --version timed out after {self._version_timeout}s"
         except subprocess.SubprocessError as exc:
             return None, f"could not read the version of {path}: {exc}"
-        match = re.search(r"(\d+)\.\d+\.\d+", result.stdout or "")
+        if result.returncode != 0:
+            stderr = (result.stderr or "").strip().splitlines()
+            reason = f": {stderr[0]}" if stderr else ""
+            return None, f"cannot run {path}: --version exited {result.returncode}{reason}"
+        match = re.search(r"(\d+)\.\d+\.\d+", f"{result.stdout or ''}\n{result.stderr or ''}")
         if match:
             return int(match.group(1)), None
         return None, f"could not read the version of {path}"
@@ -582,7 +590,8 @@ class ValidateSetup(BaseTask):
         # Selenium will try to start, so that is a certain failure.
         unrunnable = (
             "{} — Robot tasks will fail to start the browser.\n"
-            "  Fix: install the build for this machine's architecture, or unset the override"
+            "  Fix: make sure `<binary> --version` runs (e.g. a build for this machine's "
+            "architecture, with its libraries installed), or unset the override"
         )
         if override and chrome_error and chrome_error.startswith("cannot run"):
             return self._fail(label, unrunnable.format(chrome_error))

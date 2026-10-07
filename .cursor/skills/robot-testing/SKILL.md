@@ -133,7 +133,8 @@ stock Chrome's renderer crashes on Setup pages; see
 `docs/guides/local-installation.md` → Chrome for Testing. `validate_setup` reports both and
 flags a major-version mismatch (FAIL when the browser is overridden, WARN otherwise), plus a
 browser override with no driver set (WARN: webdriver-manager sizes its driver for stock Chrome),
-and an override that exists but cannot be run, e.g. a wrong-architecture build (FAIL).
+and an override that exists but does not run cleanly, e.g. a wrong-architecture build or a
+nonzero `--version` exit (FAIL).
 
 ---
 

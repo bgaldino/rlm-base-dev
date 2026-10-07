@@ -20,8 +20,8 @@ broken CHROMEDRIVER_PATH falls back (WebDriverManager.py ignores it), and a
 browser/driver major-version mismatch -- the usual failure when only one of the
 two is overridden -- must be flagged before a build gets as far as docgen: as a
 FAIL when the browser is an override (certain), a WARN when it was guessed.
-An explicitly selected binary that cannot even be spawned (wrong architecture,
-missing interpreter) is a FAIL too; output with no readable version is a WARN.
+An explicitly selected binary that does not run cleanly (cannot be spawned,
+exits nonzero, or hangs) is a FAIL too; output with no readable version is a WARN.
 """
 import importlib.util
 import logging
@@ -125,6 +125,15 @@ def _unrunnable_binary(directory, name):
     OSError -- the stand-in for a wrong-architecture build."""
     path = Path(directory) / name
     path.write_text("#!/nonexistent/interpreter\n")
+    path.chmod(0o755)
+    return str(path)
+
+
+def _script(directory, name, body):
+    """An executable shell script with the given body -- for binaries that start
+    but then fail (nonzero exit, hang)."""
+    path = Path(directory) / name
+    path.write_text(f"#!/bin/sh\n{body}\n")
     path.chmod(0o755)
     return str(path)
 
@@ -298,6 +307,40 @@ def check_unrunnable_driver_override_fails(tmp):
     )
 
 
+def check_failing_browser_override_fails(tmp):
+    chrome = _script(tmp, "cft-chrome", "echo 'error while loading shared libraries: libnss3.so' >&2; exit 127")
+    driver = _fake_binary(tmp, "driver-154", "ChromeDriver 154.0.8037.92 (abc)")
+    _set_env(CHROME_BINARY=chrome, CHROMEDRIVER_PATH=driver)
+    result = _task(tmp)._check_chrome_driver_versions()
+    check(
+        "failing_browser_override_fails",
+        result is not None and result["status"] == FAIL and "exited 127" in result["detail"] and "libnss3" in result["detail"],
+        result and result["detail"],
+    )
+
+
+def check_hanging_driver_override_fails(tmp):
+    chrome = _fake_binary(tmp, "chrome-154", "Google Chrome for Testing 154.0.8037.92")
+    driver = _script(tmp, "cft-chromedriver", "exec sleep 5")
+    _set_env(CHROME_BINARY=chrome, CHROMEDRIVER_PATH=driver)
+    task = _task(tmp)
+    task._version_timeout = 0.5
+    result = task._check_chrome_driver_versions()
+    check(
+        "hanging_driver_override_fails",
+        result is not None and result["status"] == FAIL and "timed out" in result["detail"],
+        result and result["detail"],
+    )
+
+
+def check_version_on_stderr_is_read(tmp):
+    chrome = _script(tmp, "cft-chrome", "echo 'Google Chrome for Testing 154.0.8037.92' >&2")
+    driver = _fake_binary(tmp, "driver-154", "ChromeDriver 154.0.8037.92 (abc)")
+    _set_env(CHROME_BINARY=chrome, CHROMEDRIVER_PATH=driver)
+    result = _task(tmp)._check_chrome_driver_versions()
+    check("version_on_stderr_is_read", result is not None and result["status"] == PASS, result and result["detail"])
+
+
 def check_unreadable_version_warns(tmp):
     chrome = _fake_binary(tmp, "cft-chrome", "no version here")
     driver = _fake_binary(tmp, "driver-154", "ChromeDriver 154.0.8037.92 (abc)")
@@ -376,6 +419,9 @@ def main():
         check_unrunnable_browser_override_fails,
         check_unrunnable_browser_override_without_driver_fails,
         check_unrunnable_driver_override_fails,
+        check_failing_browser_override_fails,
+        check_hanging_driver_override_fails,
+        check_version_on_stderr_is_read,
         check_unreadable_version_warns,
         check_unrunnable_guessed_browser_warns,
         check_webdriver_manager_honours_override,
