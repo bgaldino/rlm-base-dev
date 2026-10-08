@@ -27,14 +27,14 @@ Preflight order (mirrors the skill's Quick Rule 6):
 
 Examples
 --------
-    # dry-run the RampMode plan (no org mutation; prints ordered call sequence)
+    # dry-run the Approvals plan (no org mutation; prints ordered call sequence)
     python scripts/context_service/definition/apply_context_plan.py \
-        --plan-file datasets/context_plans/RampMode/manifest.json \
+        --plan-file datasets/context_plans/Approvals/manifest.json \
         --target-org rlm-base__beta --dry-run
 
     # apply + verify + activate
     python scripts/context_service/definition/apply_context_plan.py \
-        --plan-file datasets/context_plans/RampMode/manifest.json \
+        --plan-file datasets/context_plans/Approvals/manifest.json \
         --target-org rlm-base__beta --verify --activate
 """
 

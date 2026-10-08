@@ -1,5 +1,7 @@
-# Minimum required version of CumulusCI to run this project
-minimum_cumulusci_version: "4.0.0"
+# Minimum required version of CumulusCI to run this project. 4.10.1 is the first
+# release that reads the access token when `sf` redacts it; older versions fail
+# with INVALID_AUTH_HEADER (docs/guides/cci-sf-cli-token-workaround.md).
+minimum_cumulusci_version: "4.10.1"
 
 #-------------------------#
 # SCRATCH ORG DEFINITIONS #
@@ -653,6 +655,8 @@ tasks:
       sales workflow: Reset Account → Create Opportunity → Create Quote → Browse
       Catalogs → Add Products → Configure Bundle Line → Create Order → Activate
       Order → Verify Assets → Verify Renewal Opportunity Includes Product.
+      A second test runs the flow contract-first (tag contract) and checks the
+      renewal Opportunity's ContractId.
       Requires a provisioned org with qb=true (run prepare_rlm_org first).
     class_path: tasks.rlm_robot_e2e.RunE2ETests
     options:
@@ -796,6 +800,24 @@ tasks:
     options:
       developer_name: *sales_transaction_context_name
       plan_file: datasets/context_plans/PrmPricing/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
+  apply_context_approvals:
+    group: Revenue Lifecycle Management
+    description: >
+      Adds the line approval flag attributes (RLM_Approval_Level_Calc__c and
+      RLM_Approval__c) to RLM_SalesTransactionContext with QuoteLineItem mappings
+      and matching OrderItem mappings in OrderEntitiesMapping, using an additive
+      Context Service plan, so the approval-flags overlay on
+      RLM_DefaultPricingProcedure can write them when pricing Quotes or Orders
+      (Orders are priced by getRenewableAssetsSummary in the renewal flow).
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: *sales_transaction_context_name
+      plan_file: datasets/context_plans/Approvals/manifest.json
       translate_plan: true
       deactivate_before: false
       activate: true
@@ -1293,7 +1315,7 @@ tasks:
 
   deploy_post_approvals:
     description: >
-      Deploy Advanced Approvals metadata: Quote/QuoteLineItem fields, RLM_Payment_Terms GVS,
+      Deploy Advanced Approvals metadata: Quote/QuoteLineItem/OrderItem fields, RLM_Payment_Terms GVS,
       PathAssistant, quickAction, flows (RLM_Quote_Smart_Approval, RLM_Quote_Approval_Data),
       Apex class, and permission set. EmailTemplatePage FlexiPages (including
       RLM_Quote_Record_Page) are excluded via .forceignore — EmailTemplatePage type cannot be
@@ -1549,6 +1571,8 @@ tasks:
       Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and
       deploys in a single sf project deploy start call. Supports granular invocation
       via metadata_type and metadata_name options for development and debugging.
+      Thin wrapper over scripts/ux/; drift capture and writeback run without CCI
+      via python scripts/ux/ux_tool.py (capture-drift, apply-drift).
     class_path: tasks.rlm_ux_assembly.AssembleAndDeployUX
 
   reorder_app_launcher:
@@ -1566,34 +1590,6 @@ tasks:
     options:
       suite: robot/rlm-base/tests/setup/reorder_app_launcher.robot
       outputdir: robot/rlm-base/results
-
-  retrieve_ux_from_org:
-    group: UX Personalization
-    description: >
-      Retrieves live UX metadata (flexipages) from the target org into
-      unpackaged/post_ux/, replacing the assembled output with the org's current
-      state. Use before diff_ux_templates to capture drift between the org and
-      the assembler templates. Scope to a single page with the metadata_name option.
-    class_path: tasks.rlm_retrieve_ux.RetrieveUXFromOrg
-
-  diff_ux_templates:
-    group: UX Personalization
-    description: >
-      Compares unpackaged/post_ux/ (org state from retrieve_ux_from_org) against
-      what the assembler would produce from current templates/. Reports added,
-      removed, modified, and repositioned flexiPageRegions per page. Writes a
-      drift_report.json to unpackaged/post_ux/. Does not modify any files.
-    class_path: tasks.rlm_diff_ux.DiffUXTemplates
-
-  writeback_ux_templates:
-    group: UX Personalization
-    description: >
-      Reverse-applies active feature patches against org-retrieved flexipages
-      and writes the result as updated base templates. Computes
-      new_base = org_state - patches so the assembler reproduces org state
-      without double-applying non-idempotent patches. Defaults to dry_run mode.
-      Run retrieve_ux_from_org first to populate unpackaged/post_ux/.
-    class_path: tasks.rlm_writeback_ux.WriteBackUXTemplates
 
   deploy_post_collections:
     group: Revenue Lifecycle Management
@@ -2141,19 +2137,19 @@ tasks:
     options:
       path: scripts/apex/deactivateDecisionTables.apex
 
-  exclude_active_decision_tables:
+  deactivate_changed_decision_tables:
     group: Revenue Lifecycle Management
-    description: "Exclude active decision tables from deployment (TODO: implement proper deactivation)"
-    class_path: tasks.rlm_exclude_active_decision_tables.ExcludeActiveDecisionTables
+    description: "Check-only deploy the repo's decision tables that are Active in the org and deactivate only those the platform refuses to edit in place (structural changes), then deploy those tables itself, which reactivates them (on failure it tries to reactivate them and fails, naming any left Inactive)"
+    class_path: tasks.rlm_deactivate_changed_decision_tables.DeactivateChangedDecisionTables
     options:
       path: unpackaged/pre/5_decisiontables
 
-  restore_decision_tables:
+  deactivate_changed_post_prm_pricing_decision_tables:
     group: Revenue Lifecycle Management
-    description: "Restore skipped decision tables after deploy"
-    class_path: tasks.rlm_exclude_active_decision_tables.RestoreDecisionTables
+    description: "deactivate_changed_decision_tables for unpackaged/post_prm_pricing/decisionTables (run before deploy_post_prm_pricing_decision_tables)"
+    class_path: tasks.rlm_deactivate_changed_decision_tables.DeactivateChangedDecisionTables
     options:
-      path: unpackaged/pre/5_decisiontables
+      path: unpackaged/post_prm_pricing/decisionTables
 
   assign_permission_set_groups_tolerant:
     group: Revenue Lifecycle Management
@@ -3182,6 +3178,27 @@ tasks:
       verify: true
       skip_validation: false
       normalize_html_entities: true
+      preserve_labels: true
+      activate_after_apply: true
+      cascade_deactivate_procedure_plan: true
+      max_wait_seconds: 45
+      poll_interval_seconds: 3
+
+  apply_approval_flags_overlay:
+    group: Revenue Lifecycle Management
+    description: >
+      Apply the approval-flags overlay to RLM_DefaultPricingProcedure: every reprice
+      resets each quote or order line to level 0 / blank, then bands the line
+      Discount into Manager (15-<25), Director (25-<35) or VP (35-<100) and writes
+      RLM_Approval_Level_Calc__c and RLM_Approval__c.
+    class_path: tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay
+    options:
+      overlay_file: datasets/expression_set_overlays/approval_flags.json
+      dry_run: false
+      verify: true
+      skip_validation: false
+      normalize_html_entities: true
+      preserve_labels: true
       activate_after_apply: true
       cascade_deactivate_procedure_plan: true
       max_wait_seconds: 45
@@ -3196,6 +3213,7 @@ tasks:
       dry_run: false
       skip_validation: false
       normalize_html_entities: true
+      preserve_labels: true
       activate_after_import: true
       cascade_deactivate_procedure_plan: true
       max_wait_seconds: 45
@@ -3254,662 +3272,6 @@ tasks:
     options:
       flow_name: manual
 
-  # ----------------------------------------------------------------------
-  # Documentation / AI grounding
-  # ----------------------------------------------------------------------
-  # snapshot_salesforce_help walks a Salesforce Help portal area and emits
-  # one markdown file per article, plus a manifest.json and index.md.
-  # See tasks/rlm_snapshot_help.py for full docstring.
-  #
-  # Playwright must be installed into the same Python environment that runs
-  # CCI. With pipx-installed CCI (recommended in docs/guides/local-installation.md, which
-  # uses the standard ~/.local/pipx/venvs/cumulusci/ path):
-  #
-  #   pipx inject cumulusci playwright
-  #   ~/.local/pipx/venvs/cumulusci/bin/python -m playwright install chromium
-  #
-  # On Windows, the equivalent path is %USERPROFILE%\pipx\venvs\cumulusci\Scripts\python.exe.
-  # If your pipx install lives somewhere non-standard (custom PIPX_HOME, etc.),
-  # `pipx environment --value PIPX_LOCAL_VENVS` returns the actual base
-  # directory containing the cumulusci venv.
-  #
-  # pipx doesn't expose Playwright's CLI by default; running via the venv's
-  # Python is the cleanest path. Alternatively, re-inject with --include-apps
-  # to put `playwright` on your PATH:
-  #   pipx inject cumulusci playwright --include-apps --force
-  #   playwright install chromium
-  #
-  # With pip-installed CCI in the project .venv:
-  #
-  #   source .venv/bin/activate
-  #   python -m pip install playwright
-  #   playwright install chromium
-
-  snapshot_salesforce_help:
-    group: Documentation
-    description: >
-      Generic snapshot task. Walks a Salesforce Help portal area from a root
-      article ID, captures every article whose ID starts with the given prefix,
-      and writes markdown files with YAML frontmatter to
-      docs/salesforce/{release_version}/help/articles/. Also produces
-      manifest.json and index.md.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    # All options must be provided at invocation time. See the area-specific
-    # variants below for ready-to-run examples.
-
-  # snapshot_dev_guide captures the "atlas" Developer Guide (the
-  # developer.salesforce.com/docs/atlas... viewer), a different doc system than
-  # the help.salesforce.com portal that snapshot_*_help capture. It drives the
-  # atlas JSON content API from a Playwright browser context (to pass Akamai bot
-  # protection) and converts the HTML to markdown under
-  # docs/salesforce/{release}/dev-guide/. Same Playwright requirement as
-  # snapshot_help; markdownify is optional but recommended (see task docstring).
-  # See tasks/rlm_snapshot_dev_guide.py for full docstring.
-  snapshot_salesforce_dev_guide:
-    group: Documentation
-    description: >
-      Generic atlas Developer Guide snapshot. Fetches the guide TOC, captures
-      each page as markdown with YAML frontmatter to
-      docs/salesforce/{release_version}/dev-guide/articles/, and writes
-      manifest.json and index.md. Provide release_version, release_name, and
-      (optionally) deliverable / doc_version / section at invocation time.
-    class_path: tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide
-
-  snapshot_dev_guide_262:
-    group: Documentation
-    description: >
-      Snapshot the full 262 (Summer '26) Revenue Cloud Developer Guide
-      (atlas deliverable revenue_lifecycle_management_dev_guide). Use
-      -o section "Constraint Modeling Language" to capture a single section.
-    class_path: tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      deliverable: revenue_lifecycle_management_dev_guide
-      mode: all
-
-  snapshot_industries_dev_guide_262:
-    group: Documentation
-    description: >
-      Snapshot the RC-relevant sections of the 262 (Summer '26) Industries
-      Common Resources Developer Guide (atlas deliverable industries_reference).
-      The full guide is ~1435 pages across 37 sections, most for other Industries
-      clouds; this captures the ~571 pages RC builds on — Business Rules Engine,
-      Context Service, OmniStudio, Discovery Framework, Data Processing
-      Engine/Batch, Decision Explainer, Collections and Recovery, Action Launcher,
-      and Timeline — into a separate corpus (dev-guide-industries) so it never
-      clobbers the RLM dev-guide. Capture is scoped to those sections' TOC
-      subtrees; follow_links stays off (its default when `sections` is set) so a
-      link out of scope can't pull unrelated sections in. Edit the `sections`
-      list to widen/narrow coverage.
-    class_path: tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      deliverable: industries_reference
-      output_dir: docs/salesforce/262/dev-guide-industries
-      sections: "business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer, collections_objects, action_launcher, timeline"
-      mode: all
-
-  snapshot_billing_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 (Summer '26) Billing area of Salesforce Help.
-      ~171 articles (matches the captured inventory below). Default
-      headless run takes ~10-15 minutes.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: billing
-      root_article_id: ind.billing.htm
-      article_id_prefix: ind.billing
-      mode: all
-
-  snapshot_billing_help_260:
-    group: Documentation
-    description: >
-      Snapshot the 260 (Spring '26) Billing area of Salesforce Help.
-      For diff-against-262 verification work.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "260"
-      release_name: "Spring '26"
-      area: billing
-      root_article_id: ind.billing.htm
-      article_id_prefix: ind.billing
-      mode: all
-
-  # Module 3 (Usage, Rating, and Consumption Agents) requires TWO snapshot
-  # areas because the Revenue Cloud data model treats Usage Management and
-  # Rate Management as separate domains (see .cursor/skills/revenue-cloud-data-model/SKILL.md).
-  # - Usage Management owns: TransactionUsageEntitlement, UsageEntitlementAccount,
-  #   UsageEntitlementBucket, UsageEntitlementEntry, ProductUsageResource (PUR),
-  #   ProductUsageGrant (PUG), UsageResource, UsageSummary, TransactionJournal,
-  #   Usage Agent, Drawdown Policies, Digital Wallets.
-  # - Rate Management owns: RateCard, RateCardEntry, AssetRateCardEntry,
-  #   AssetRateAdjustment, Rating Procedure (ExpressionSetDefinition), the
-  #   Ratable Summary / Liable Summary part of the rating pipeline.
-  #
-  # Root IDs for both wrappers were verified during the 2026-05-11 sidebar
-  # walk and the tasks have captured successfully — see the AREA SNAPSHOT
-  # VARIANTS header below for the verified inventory. Troubleshooting note
-  # for future releases: Help-portal article IDs are not stable across
-  # release reorgs. During 262 capture, the candidates ind.usage_management.htm
-  # and ind.usage.htm both 404'd before ind.um_usage_management.htm /
-  # ind.rm_rate_management.htm were confirmed as the real roots. If the
-  # discover phase fails on a future release, start from the Revenue
-  # Lifecycle Management parent (ind.revenue_lifecycle_management.htm),
-  # find the relevant sidebar links, and copy the id= param into
-  # root_article_id / article_id_prefix below. The discover phase fails
-  # loudly if the root ID is wrong.
-
-  # =====================================================================
-  # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Summer '26 (262)
-  # =====================================================================
-  # All 11 RC functional areas captured 2026-05-11 / 2026-05-12
-  # (collections added 2026-06-21). 935 articles captured / 935
-  # discovered — 0 errored (the final 3 collections articles were
-  # recaptured 2026-08-04; see docs/salesforce/262/help/index.md). Roots
-  # verified via the Revenue Lifecycle Management parent sidebar walk.
-  #
-  # Captured (article counts as of capture date):
-  #   ✓ snapshot_pcm_help_262                — 107 articles
-  #   ✓ snapshot_pricing_help_262            — 110 articles
-  #   ✓ snapshot_rating_help_262             —  35 articles
-  #   ✓ snapshot_configurator_help_262       —  76 articles
-  #   ✓ snapshot_transaction_mgmt_help_262   — 170 articles
-  #   ✓ snapshot_dro_help_262                —  70 articles
-  #   ✓ snapshot_usage_help_262              —  52 articles
-  #   ✓ snapshot_billing_help_262            — 171 articles
-  #   ✓ snapshot_agents_help_262             —  13 articles (topic-reference;
-  #                                              area-specific agent how-to
-  #                                              articles live under each
-  #                                              area's prefix — see the
-  #                                              revenue-cloud-docs skill)
-  #   ✓ snapshot_approvals_help_262          —  34 articles
-  #   ✓ snapshot_collections_help_262        —  97 articles (0 errored;
-  #                                              final 3 recaptured 2026-08-04 —
-  #                                              see docs/salesforce/262/help/index.md
-  #                                              and the refresh command below)
-  #
-  # NOTE — the Help portal uses short-prefix conventions that differ from
-  # data-model domain names. For example: Rate Management → `ind.rm_*`,
-  # Usage Management → `ind.um_*`, Transaction Management → `ind.qocal_*`
-  # (Quote/Order/Contract/Asset/Lifecycle all combined under one prefix).
-  #
-  # To refresh any area (e.g., when a new release ships):
-  #   cci task run snapshot_{area}_help_262 -o mode refresh
-  #
-  # To validate a root_article_id change without doing a full capture:
-  #   cci task run snapshot_{area}_help_262 -o mode discover
-  #
-  # Ordered to mirror the data-model domain flow:
-  # Catalog → Pricing → Rating → Configuration → Transaction lifecycle
-  # → Fulfillment → Usage → Billing → Agents → Approvals.
-
-  snapshot_pcm_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 (Summer '26) Product Catalog Management area of
-      Salesforce Help. Covers Product2, ProductCategory, AttributeDefinition,
-      ProductRelatedComponent. Root verified via RLM sidebar walk.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: pcm
-      root_article_id: ind.product_catalog_introduction.htm
-      article_id_prefix: ind.product_catalog
-      mode: all
-
-  snapshot_pricing_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 Pricing area of Salesforce Help. Covers PriceBook2,
-      PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel, proration.
-      Distinct from Rate Management. Root verified via RLM sidebar walk.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: pricing
-      root_article_id: ind.pricing_salesforce_pricing.htm
-      article_id_prefix: ind.pricing
-      mode: all
-
-  snapshot_rating_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 Rate Management area of Salesforce Help. Required for
-      Module 3 Unit 2 LO validation (Rate Card, Rate Card Entry, Asset Rate
-      Card Entry, Asset Rate Adjustment, Rating Procedure, the Transaction
-      Journal → Usage Summary → Ratable Summary → Liable Summary pipeline).
-      Root verified via RLM sidebar walk. Prefix `ind.rm_*` (NOT `ind.rate_*`).
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: rating
-      root_article_id: ind.rm_rate_management.htm
-      article_id_prefix: ind.rm
-      mode: all
-
-  snapshot_configurator_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 Product Configurator area of Salesforce Help. Covers
-      ProductConfigurationFlow, ProductConfigurationRule. Small data-model
-      domain (4 objects) but the Help area covers configuration rules and
-      flow assignments that affect Quote/Order configuration. Root verified
-      via RLM sidebar walk.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: configurator
-      root_article_id: ind.product_configurator_introduction.htm
-      article_id_prefix: ind.product_configurator
-      mode: all
-
-  # The Transaction Management data-model domain corresponds to a SINGLE
-  # Help-portal area in 262 — not four seller-facing splits. Quote, Order,
-  # Contract, Asset, and Lifecycle articles all share the `ind.qocal_*`
-  # prefix (Quote-Order-Contract-Asset-Lifecycle). One snapshot variant
-  # covers all of them.
-  snapshot_transaction_mgmt_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 Transaction Management area of Salesforce Help. Covers
-      Quote, QuoteLineItem, Order, OrderItem, Contract, Asset, AssetAction,
-      AssetStatePeriod, AssetRelationship, and quote/order/asset lifecycle
-      management. ONE combined area with prefix `ind.qocal_*` — not four
-      separate areas. Root verified via RLM sidebar walk.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: transaction_mgmt
-      root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
-      article_id_prefix: ind.qocal
-      mode: all
-
-  snapshot_dro_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 DRO (Dynamic Revenue Orchestration) / Fulfillment area
-      of Salesforce Help. Covers FulfillmentPlan, FulfillmentStep,
-      FulfillmentStepDefinition, ProductFulfillmentDecompRule. Root verified
-      via RLM sidebar walk.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: dro
-      root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
-      article_id_prefix: ind.dro
-      mode: all
-
-  snapshot_usage_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 Usage Management area of Salesforce Help. Required for
-      Module 3 Unit 1 + Unit 3 LO validation (data model, Usage Agent,
-      Drawdown Policies, Digital Wallets, TransactionUsageEntitlement, Usage
-      Entitlement Account / Bucket / Entry). Root verified via RLM sidebar
-      walk. Prefix `ind.um_*` (NOT `ind.usage_*`).
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: usage
-      root_article_id: ind.um_usage_management.htm
-      article_id_prefix: ind.um
-      mode: all
-
-  snapshot_approvals_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 Advanced Approvals area of Salesforce Help (~34 articles
-      per the sidebar walk). Covers Advanced Approval Objects, approval
-      workflow design, Smart Approvals, approval previews, Slack notifications,
-      auto-approval rules. Note: the data-model domain is thin (1 object,
-      ApprovalSubmission) but the Help area is rich. Root and prefix verified
-      via sidebar walk.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: approvals
-      root_article_id: ind.approvals_advanced_approvals.htm
-      article_id_prefix: ind.approvals
-      mode: all
-
-  # Agentforce for Revenue Management — the AI-agent suite that spans every
-  # functional domain (PCM, Quote/Order, Usage, Billing). 7 subagents per the
-  # 2026-05-11 sidebar walk:
-  #   - Subagent: Product Selection (PCM)
-  #   - Subagent: Product Description Generation (PCM)
-  #   - Subagent: Quote Management (Transaction Mgmt)
-  #   - Subagent: Consumption Management (Usage) — answers Module 3 LO 3.1
-  #   - Subagent: Invoice Line Explanation (Billing)
-  #   - Subagent: Billing Collections Management (Billing)
-  #   - Subagent: Billing Inquiries (Billing)
-  # This is the missing area that resolves the "Usage Agent / Consumption
-  # Agent" question for Module 3 — the subagent is named "Consumption
-  # Management" and lives in this area, not in the Usage Management area.
-  # Also relevant for Module 1 v2 voice corrections (the M1v2 validation
-  # report flagged Invoice Explanation / Billing Inquiries / Collections
-  # naming, all of which actually live here).
-  snapshot_agents_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 Agentforce for Revenue Management area of Salesforce
-      Help. Covers the 7 revenue-management subagents (Product Selection,
-      Product Description Generation, Quote Management, Consumption
-      Management, Invoice Line Explanation, Billing Collections Management,
-      Billing Inquiries) plus agent templates and setup. Root and prefix
-      verified via RLM sidebar walk.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: agents
-      root_article_id: ind.rev_agent_overview.htm
-      article_id_prefix: ind.rev_agent
-      mode: all
-
-  # Collections and Recovery — the billing-adjacent area covering Collection
-  # Plans, Collection Plan Reasons, dunning/treatment flows, Promise to Pay,
-  # write-offs, late fees, and the Create-Case-for-Collection automation. The
-  # Create Case flow (unpackaged/post_collections) invokes a BRE Decision
-  # Matrix (DetermineCaseReasonAndRelatedAttributes) that is authored per the
-  # Help docs in this area. Root given by the area landing page
-  # (ind.collections.htm). Prefix verified via `mode: discover` — adjust if a
-  # Recovery sub-prefix is discovered separately.
-  snapshot_collections_help_262:
-    group: Documentation
-    description: >
-      Snapshot the 262 (Summer '26) Collections and Recovery area of
-      Salesforce Help. Covers Collection Plans, Collection Plan Reasons,
-      treatment/dunning flows, Promise to Pay, write-offs, late fees, and the
-      decision-matrix-driven Create Case automation. Root verified via the
-      Collections area landing page.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "262"
-      release_name: "Summer '26"
-      area: collections
-      root_article_id: ind.collections.htm
-      article_id_prefix: ind.collections
-      mode: all
-
-  # =====================================================================
-  # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Winter '27 (264)
-  # =====================================================================
-  # Twins of the 262 variants above, added with the 264 branch cut. The 262
-  # tasks are kept as-is: each release's corpus is a frozen snapshot under
-  # docs/salesforce/{release}/, and the 260-vs-262 diff work depends on the
-  # older tasks staying runnable.
-  #
-  # ⚠ ROOT IDs ARE INHERITED FROM 262 AND UNVERIFIED FOR 264 — for one of
-  # the eleven areas below (collections; checked but not ready, see the
-  # revenue-cloud-docs SKILL.md branch note).
-  # The other ten — configurator, transaction_mgmt, pcm, billing, dro,
-  # pricing, rating, usage, agents, approvals — were verified and captured to
-  # docs/salesforce/264/help/
-  # (see `.cursor/skills/revenue-cloud-docs/SKILL.md`'s branch note) and each
-  # now carries an `expect_min_articles` floor below. Help-portal article IDs
-  # are not stable across release reorgs — during 262 capture both
-  # ind.usage_management.htm and ind.usage.htm 404'd before the real root was
-  # found. Before any full capture of the one unverified area,
-  # validate the root:
-  #
-  #   cci task run snapshot_{area}_help_264 -o mode discover
-  #
-  # A wrong root or crashed walker now fails loudly: _validate_discovery
-  # (pack 146) raises unconditionally on a zero post-prefix result. A
-  # nonzero-but-thin result — e.g. a reorganized prefix still matching a
-  # handful of stale links — only raises if the task sets expect_min_articles;
-  # without that floor it exits 0, so read the "Discovered N unique articles"
-  # line it logs either way. Read that line from the task's own output:
-  # piping to grep would report grep's exit status instead of the task's and
-  # hide a failure occurring after the count is logged. Do not read
-  # stats.discovered from the manifest either: it sums all areas and retains
-  # prior runs, so it stays positive through a failed re-walk. If the logged
-  # count is 0 (or the task raises), start from the
-  # Revenue Lifecycle Management parent (ind.revenue_lifecycle_management.htm),
-  # walk the sidebar, and copy the id= param into root_article_id /
-  # article_id_prefix here. See the 262 header above for the per-area domain
-  # rationale and the prefix conventions (rating → ind.rm_*, usage → ind.um_*,
-  # transaction management → ind.qocal_*).
-  #
-  # Article counts are deliberately not asserted for the unverified `collections`
-  # area — it is recorded after a capture, not predicted before one (and its
-  # 262-twin-matching discover count with zero net-new content means it isn't
-  # ready anyway — see the revenue-cloud-docs SKILL.md branch note). The ten
-  # verified areas are the exception: each carries an expect_min_articles floor
-  # (configurator 38, transaction_mgmt 85, billing 85, pcm 53, dro 35, pricing 55,
-  # rating 17, usage 26, agents 6, approvals 17) set at ~50% of its 262 twin's
-  # count, to tolerate real content growth/shrinkage between releases without
-  # re-flagging as unverified.
-
-  snapshot_dev_guide_264:
-    group: Documentation
-    description: >
-      Snapshot the full 264 (Winter '27) Revenue Cloud Developer Guide (atlas
-      deliverable revenue_lifecycle_management_dev_guide). Use -o section
-      "Constraint Modeling Language" to capture a single section.
-    class_path: tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      deliverable: revenue_lifecycle_management_dev_guide
-      doc_version: "264.0"
-      mode: all
-
-  snapshot_industries_dev_guide_264:
-    group: Documentation
-    description: >
-      Snapshot the RC-relevant sections of the 264 (Winter '27) Industries
-      Common Resources Developer Guide (atlas deliverable industries_reference)
-      into a separate corpus (dev-guide-industries) so it never clobbers the RLM
-      dev-guide. Section list mirrors the 262 twin; edit to widen/narrow.
-    class_path: tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      deliverable: industries_reference
-      output_dir: docs/salesforce/264/dev-guide-industries
-      sections: "business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer, collections_objects, action_launcher, timeline"
-      doc_version: "264.0"
-      mode: all
-
-  snapshot_pcm_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Product Catalog Management area of
-      Salesforce Help. See snapshot_pcm_help_262 for domain coverage.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: pcm
-      root_article_id: ind.product_catalog_introduction.htm
-      article_id_prefix: ind.product_catalog
-      mode: all
-      expect_min_articles: 53
-
-  snapshot_pricing_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Pricing area of Salesforce Help. Distinct
-      from Rate Management. See snapshot_pricing_help_262 for domain coverage.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: pricing
-      root_article_id: ind.pricing_salesforce_pricing.htm
-      article_id_prefix: ind.pricing
-      mode: all
-      expect_min_articles: 55
-
-  snapshot_rating_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Rate Management area of Salesforce Help.
-      Prefix `ind.rm_*` (NOT `ind.rate_*`). See snapshot_rating_help_262.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: rating
-      root_article_id: ind.rm_rate_management.htm
-      article_id_prefix: ind.rm
-      mode: all
-      expect_min_articles: 17
-
-  snapshot_configurator_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Product Configurator area of Salesforce
-      Help. See snapshot_configurator_help_262 for domain coverage.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: configurator
-      root_article_id: ind.product_configurator_introduction.htm
-      article_id_prefix: ind.product_configurator
-      mode: all
-      expect_min_articles: 38
-
-  snapshot_transaction_mgmt_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Transaction Management area of Salesforce
-      Help. ONE combined area with prefix `ind.qocal_*` covering Quote, Order,
-      Contract, Asset, and lifecycle — not four separate areas. See
-      snapshot_transaction_mgmt_help_262.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: transaction_mgmt
-      root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
-      article_id_prefix: ind.qocal
-      mode: all
-      expect_min_articles: 85
-
-  snapshot_dro_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) DRO (Dynamic Revenue Orchestration) /
-      Fulfillment area of Salesforce Help. See snapshot_dro_help_262.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: dro
-      root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
-      article_id_prefix: ind.dro
-      mode: all
-      expect_min_articles: 35
-
-  snapshot_usage_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Usage Management area of Salesforce Help.
-      Prefix `ind.um_*` (NOT `ind.usage_*`). See snapshot_usage_help_262.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: usage
-      root_article_id: ind.um_usage_management.htm
-      article_id_prefix: ind.um
-      mode: all
-      expect_min_articles: 26
-
-  snapshot_billing_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Billing area of Salesforce Help. See
-      snapshot_billing_help_262 for domain coverage.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: billing
-      root_article_id: ind.billing.htm
-      article_id_prefix: ind.billing
-      mode: all
-      expect_min_articles: 85
-
-  snapshot_agents_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Agentforce for Revenue Management area of
-      Salesforce Help. See snapshot_agents_help_262 for the subagent inventory.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: agents
-      root_article_id: ind.rev_agent_overview.htm
-      article_id_prefix: ind.rev_agent
-      mode: all
-      expect_min_articles: 6
-
-  snapshot_approvals_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Advanced Approvals area of Salesforce Help.
-      See snapshot_approvals_help_262 for domain coverage.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: approvals
-      root_article_id: ind.approvals_advanced_approvals.htm
-      article_id_prefix: ind.approvals
-      mode: all
-      expect_min_articles: 17
-
-  snapshot_collections_help_264:
-    group: Documentation
-    description: >
-      Snapshot the 264 (Winter '27) Collections and Recovery area of Salesforce
-      Help. See snapshot_collections_help_262 for domain coverage.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: collections
-      root_article_id: ind.collections.htm
-      article_id_prefix: ind.collections
-      mode: all
-
-  snapshot_revenue_release_notes_264:
-    group: Documentation
-    description: >
-      Snapshot the Revenue Management (Revenue Cloud) section of the Winter '27
-      (264) release notes into docs/salesforce/264/release-notes/. Every
-      release-notes article shares the release-notes.rn_ prefix, so
-      subtree_only keeps just the Revenue section under its root.
-    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
-    options:
-      release_version: "264"
-      release_name: "Winter '27"
-      area: revenue
-      root_article_id: release-notes.rn_revenue.htm
-      article_id_prefix: release-notes.rn_
-      subtree_only: true
-      output_dir: docs/salesforce/264/release-notes
-      mode: all
-      expect_min_articles: 60
-
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -3959,36 +3321,38 @@ flows:
       18:
         task: activate_and_deploy_expression_sets
       19:
-        flow: prepare_tso
+        flow: prepare_approvals_pricing
       20:
-        flow: prepare_procedureplans
+        flow: prepare_tso
       21:
-        flow: prepare_prm
+        flow: prepare_procedureplans
       22:
-        flow: prepare_agents
+        flow: prepare_prm
       23:
-        flow: prepare_constraints
+        flow: prepare_agents
       24:
-        flow: prepare_guidedselling
+        flow: prepare_constraints
       25:
-        flow: prepare_revenue_settings
+        flow: prepare_guidedselling
       26:
-        flow: prepare_pricing_discovery
+        flow: prepare_revenue_settings
       27:
-        flow: prepare_large_stx
+        flow: prepare_pricing_discovery
       28:
-        flow: prepare_personas
+        flow: prepare_large_stx
       29:
-        flow: prepare_ux
+        flow: prepare_personas
       30:
-        flow: prepare_inapp
+        flow: prepare_ux
       31:
-        flow: prepare_scratch
+        flow: prepare_inapp
       32:
-        flow: refresh_all_decision_tables
+        flow: prepare_scratch
       33:
-        task: rebuild_search_index
+        flow: refresh_all_decision_tables
       34:
+        task: rebuild_search_index
+      35:
         flow: stamp_git_commit
 
   prepare_core:
@@ -4015,42 +3379,38 @@ flows:
         task: cleanup_settings_for_dev
         #when: org_config.scratch
       6:
-        task: exclude_active_decision_tables
-        #when: org_config.scratch
+        task: deactivate_changed_decision_tables
       7:
         task: deploy_pre
       8:
-        task: restore_decision_tables
-        #when: org_config.scratch
-      9:
         flow: assign_feature_psls
-      10:
+      9:
         task: recalculate_permission_set_groups
         options:
           api_names: *rlm_psg_api_names
-      11:
+      10:
         task: assign_permission_set_groups_tolerant
         options:
           api_names: *rlm_psg_api_names
-      12:
+      11:
         task: recalculate_permission_set_groups
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
+      12:
+        task: assign_permission_set_groups_tolerant
         when: project_config.project__custom__tso
         options:
           api_names: *psg_tso
       13:
-        task: assign_permission_set_groups_tolerant
-        when: project_config.project__custom__tso
-        options:
-          api_names: *psg_tso
-      14:
         flow: extend_context_definitions
-      15:
+      14:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      16:
+      15:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      17:
+      16:
         flow: assign_feature_permission_sets
 
   assign_feature_psls:
@@ -4236,7 +3596,7 @@ flows:
       10:
         # Ship the QuantumBit Demo Setup guide (Visualforce page). It is
         # referenced by pageName on the RLM_Home_Page_Default flexipage, which is
-        # assembled/deployed later by assemble_and_deploy_ux (prepare_ux, step 29
+        # assembled/deployed later by assemble_and_deploy_ux (prepare_ux, step 30
         # of prepare_rlm_org) — so the page must exist first. This whole flow runs
         # at step 7, well before UX assembly.
         task: deploy_post_setup_guide
@@ -4478,21 +3838,24 @@ flows:
         task: deploy_post_prm_pricing_objects
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       2:
-        task: deploy_post_prm_pricing_decision_tables
+        task: deactivate_changed_post_prm_pricing_decision_tables
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       3:
-        task: configure_pricing_recipe_table_mappings
+        task: deploy_post_prm_pricing_decision_tables
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       4:
-        task: apply_context_prm_pricing
+        task: configure_pricing_recipe_table_mappings
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       5:
-        task: deploy_post_prm_pricing_expression_sets
+        task: apply_context_prm_pricing
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       6:
-        task: deploy_post_prm_pricing_flows
+        task: deploy_post_prm_pricing_expression_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       7:
+        task: deploy_post_prm_pricing_flows
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
+      8:
         task: deploy_post_prm_pricing_permissionsets
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 
@@ -4749,8 +4112,9 @@ flows:
         task: validate_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
-          cml_dir: scripts/cml
-          data_dir: *quantumbit_constraints_data_dir
+          # Every model steps 7-10 import, each checked against its own ESC rows.
+          # Keep in step with the import_cml data_dir values below.
+          data_dirs: "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
       7:
         task: import_cml
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
@@ -4831,6 +4195,16 @@ flows:
       4:
         task: insert_qb_approvals_data
         when: project_config.project__custom__qb and project_config.project__custom__approvals
+
+  prepare_approvals_pricing:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: apply_context_approvals
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+      2:
+        task: apply_approval_flags_overlay
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
 
   prepare_guidedselling:
     group: Revenue Lifecycle Management
@@ -4920,7 +4294,7 @@ flows:
         when: project_config.project__custom__collections
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
     # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant
-    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 29), gated on
+    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on
     # the same collections flag. The native CollectionsAndRecoveryPsl is always assigned via
     # rlm_psl_api_names in prepare_core.
 
@@ -4953,8 +4327,8 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 29 of
-      prepare_rlm_org, after all feature provisioning (including personas at step 28)
+      applications, profiles) from feature-conditional templates. Runs at step 30 of
+      prepare_rlm_org, after all feature provisioning (including personas at step 29)
       is complete, ensuring all referenced objects, fields, and components exist before
       UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
     steps:
@@ -4965,47 +4339,14 @@ flows:
         task: reorder_app_launcher
         when: project_config.project__custom__ux
 
-  capture_ux_drift:
-    group: UX Personalization
-    description: >
-      Retrieves live flexipages from the target org into unpackaged/post_ux/, then
-      diffs them against what the assembler would produce from current templates/.
-      Reports added, removed, modified, and repositioned flexiPageRegions and writes
-      drift_report.json. Does not modify templates/. After reviewing the report,
-      edit templates/ manually then run assemble_and_deploy_ux to deploy.
-    steps:
-      1:
-        task: retrieve_ux_from_org
-      2:
-        task: diff_ux_templates
-
-  apply_ux_drift:
-    group: UX Personalization
-    description: >
-      Writes back org-retrieved flexipages into base templates by reverse-applying
-      active feature patches (new_base = org_state - patches), then re-assembles
-      and diffs to verify zero drift. Run capture_ux_drift first to review drift,
-      then run this flow to update templates/ automatically.
-    steps:
-      1:
-        task: writeback_ux_templates
-        options:
-          dry_run: false
-      2:
-        task: assemble_and_deploy_ux
-        options:
-          deploy: false
-      3:
-        task: diff_ux_templates
-
   prepare_personas:
     group: Revenue Lifecycle Management
     description: >
       Deploy persona metadata (profiles, permission set groups, permission sets) from
       unpackaged/post_personas and create the Sales Rep persona user (scratch and
-      non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of
+      non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of
       prepare_rlm_org, before prepare_ux
-      (step 29), so that persona profile templates are assembled and deployed by
+      (step 30), so that persona profile templates are assembled and deployed by
       the UX assembler in the same pass.
     steps:
       1:
@@ -5081,8 +4422,8 @@ flows:
         # deployed — but quantumbit/tso are on — will fail here. That is the same
         # exposure step 7 above carries for RLM_LargeSalesTransaction, and it is safe in
         # a full build: prepare_rlm_org runs prepare_quantumbit at step 7 and prepare_tso
-        # at step 19, both of which deploy_post_utils, well before prepare_personas at
-        # step 28. If you run this flow on its own, deploy post_utils first.
+        # at step 20, both of which deploy_post_utils, well before prepare_personas at
+        # step 29. If you run this flow on its own, deploy post_utils first.
         task: assign_permission_sets
         when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
         options:
@@ -5142,6 +4483,15 @@ flows:
           api_names: *ps_quantumbit_demo_setup
           user_alias: salesrep
       11:
+        # Repricing writes approval levels and labels back to quote/order lines.
+        # The build-user assignment in prepare_approvals does not reach this
+        # non-admin persona; reuse the feature's existing field-access set.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and project_config.project__custom__quantumbit and project_config.project__custom__approvals
+        options:
+          api_names: *ps_approvals
+          user_alias: salesrep
+      12:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

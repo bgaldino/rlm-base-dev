@@ -5,6 +5,7 @@
   "addSteps": [
     {
       "name": "MapLineItemtoDetailItem",
+      "label": "Map Line Item to Detail Item",
       "description": "Map Line Item",
       "stepType": "BusinessKnowledgeModel",
       "actionType": "BreakdownLineMapping",

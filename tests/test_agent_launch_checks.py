@@ -418,5 +418,97 @@ class LaunchChecks(unittest.TestCase):
             self.assertTrue(pr_gate.selects(spec, [path]), path)
 
 
+class RuleOwners(unittest.TestCase):
+    """infer_owner reports a miss instead of defaulting a skill-mapped rule (#321)."""
+
+    def test_keyword_match_wins(self):
+        self.assertEqual(analyzer.infer_owner("sfdmu-csv-data.mdc", "sfdmu-data-plans/SKILL.md"),
+                         "SFDMU Data Plans")
+
+    def test_standalone_rule_gets_default(self):
+        self.assertEqual(analyzer.infer_owner("analysis-artifacts.mdc", ""), analyzer.DEFAULT_OWNER)
+
+    def test_skill_mapped_miss_is_unmapped_not_default(self):
+        self.assertEqual(analyzer.infer_owner("bre.mdc", "expression-sets/SKILL.md"),
+                         analyzer.UNMAPPED_OWNER)
+
+    def test_check_fails_on_unmapped_rule(self):
+        rule = analyzer.RuleInfo(path=".cursor/rules/bre.mdc", name="bre.mdc", globs=(),
+                                 equivalent_skill="expression-sets/SKILL.md", standalone=False,
+                                 has_do_not=True, listed_in_skill_readme=True,
+                                 owner=analyzer.UNMAPPED_OWNER)
+        real = analyzer.collect_rules
+        analyzer.collect_rules = lambda root: [rule]
+        try:
+            result = analyzer.check_rule_owners(REPO)
+        finally:
+            analyzer.collect_rules = real
+        self.assertFalse(result.ok)
+        self.assertIn("bre.mdc -> expression-sets/SKILL.md", result.detail)
+
+    def test_collection_error_fails_not_skips(self):
+        def boom(root):
+            raise UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte")
+        real = analyzer.collect_rules
+        analyzer.collect_rules = boom
+        try:
+            result = analyzer.check_rule_owners(REPO)
+        finally:
+            analyzer.collect_rules = real
+        self.assertFalse(result.ok)
+        self.assertFalse(result.skipped)
+        self.assertIn("could not collect rules", result.detail)
+
+    def test_invalid_utf8_rule_file_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rules_dir = Path(tmp, ".cursor", "rules")
+            rules_dir.mkdir(parents=True)
+            (rules_dir / "bad.mdc").write_bytes(b"---\nglobs: x\n---\n\xff\xfe not utf-8\n")
+            result = analyzer.check_rule_owners(Path(tmp))
+        self.assertFalse(result.ok)
+        self.assertIn("bad.mdc", result.detail)
+        self.assertIn("UnicodeDecodeError", result.detail)
+
+    def test_specific_doc_skills_beat_the_generic_doc_keyword(self):
+        self.assertEqual(analyzer.infer_owner("revenue-cloud-docs.mdc", "revenue-cloud-docs/SKILL.md"),
+                         "Revenue Cloud Docs")
+        self.assertEqual(analyzer.infer_owner("docgen.mdc", "document-generation/SKILL.md"),
+                         "Document Generation")
+        self.assertEqual(analyzer.infer_owner("doc-review.mdc", "doc-consistency/SKILL.md"),
+                         "Doc Consistency")
+
+    def test_check_fails_when_inference_contradicts_a_recommendation(self):
+        real = analyzer.RECOMMENDED_SKILL_RULES
+        analyzer.RECOMMENDED_SKILL_RULES = real + (analyzer.RecommendedSkillRule(
+            "x/SKILL.md", "doc-thing.mdc", ("x/**",), "Some Other Owner", "test"),)
+        try:
+            result = analyzer.check_rule_owners(REPO)
+        finally:
+            analyzer.RECOMMENDED_SKILL_RULES = real
+        self.assertFalse(result.ok)
+        self.assertIn("doc-thing.mdc -> Doc Consistency (declared Some Other Owner)", result.detail)
+
+    def test_repo_rules_all_have_owners(self):
+        self.assertTrue(analyzer.check_rule_owners(REPO).ok)
+
+    def test_success_detail_separates_inferred_from_defaulted(self):
+        rules = [
+            analyzer.RuleInfo(path="a", name="sfdmu-csv-data.mdc", globs=(),
+                              equivalent_skill="sfdmu-data-plans/SKILL.md", standalone=False,
+                              has_do_not=True, listed_in_skill_readme=True,
+                              owner="SFDMU Data Plans"),
+            analyzer.RuleInfo(path="b", name="analysis-artifacts.mdc", globs=(),
+                              equivalent_skill="", standalone=True, has_do_not=True,
+                              listed_in_skill_readme=True, owner=analyzer.DEFAULT_OWNER),
+        ]
+        real = analyzer.collect_rules
+        analyzer.collect_rules = lambda root: rules
+        try:
+            detail = analyzer.check_rule_owners(REPO).detail
+        finally:
+            analyzer.collect_rules = real
+        self.assertIn("1 inferred, 1 stand-alone defaulted", detail)
+
+
 if __name__ == "__main__":
     unittest.main()

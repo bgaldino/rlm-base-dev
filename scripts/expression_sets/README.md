@@ -58,7 +58,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | Script | Org? | Purpose |
 |--------|------|---------|
 | `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace **by querying the org for an existing top-level `apiName`** (NOT the version name). For a clone/CREATE, change top-level `apiName`, top-level `name`, and version `apiName`. On a REPLACE it **auto-preserves step labels** (captures them before the clobbering PATCH, restores the survivors after — `--no-preserve-labels` to skip). |
-| `apply_expression_set_overlay.py` | **Mutates** | Merge a declarative overlay (`addSteps` / `removeSteps` / `updateSteps` / `reorderSteps` / `addVariables` / `removeVariables`) into a live version; **all local pre-flights run BEFORE any deactivation**. **Auto-preserves step labels** (captures the survivors before the PATCH + honors any labels the overlay carries for its new steps, restores after — `--no-preserve-labels` to skip). |
+| `apply_expression_set_overlay.py` | **Mutates** | Merge a declarative overlay (`addSteps` / `removeSteps` / `updateSteps` / `reorderSteps` / `addVariables` / `removeVariables`) into a live version; **all local pre-flights run BEFORE any deactivation**. **Auto-preserves step labels** (captures the survivors before the PATCH + honors any labels the overlay carries for added or updated steps, restores after — `--no-preserve-labels` to skip). |
 | `activate_expression_set.py` | **Mutates** | `--activate` / `--deactivate` a version (+ the procedure-plan cascade), standalone. Use to re-enable a version left off by a failed apply. |
 | `relabel_expression_set.py` | **Mutates** | Set readable step **labels** via the Tooling `Metadata` PATCH (the ONLY place labels live — Connect has no `label` and clobbers it on every PATCH). Label source: `--auto` (lossy derive for drift steps), `--labels-file` (`{name: label}` JSON), `--set NAME=LABEL` (repeatable), or **`--from-metadata <file>`** (read the authoritative `{name: label}` map straight from a `*.expressionSetDefinition-meta.xml` — the source-controlled `force-app/…/expressionSetDefinition/` files, or a target-org retrieve). Runs the same deactivate→PATCH→reactivate lifecycle. The Connect mutators now auto-restore labels, so this is mainly for a manual fix or a bulk relabel from the repo XML. |
 | `delete_expression_set.py` | **Destructive** | Delete a whole set (Connect DELETE + cascade) or one version (`--version`). `--confirm` REQUIRED (absence of `--confirm` IS the preview). |
@@ -71,9 +71,9 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `_resolve.py` | api-name → `ExpressionSetDefinition` (9QA) / `ExpressionSet` (9QL) / active `ExpressionSetVersion`; the "prefer active version" ordering. |
 | `_schema.py` | **Vendored** validator + enums (mirror of `tasks/expression_set_schema.py`): `validate_definition` / `validate_overlay` / `validate_overlay_against_definition`, `_step_variable_refs` / `_step_all_refs`, `_is_custom_ref`, `INTERFACE_SOURCE_TYPES` / `USAGE_TYPES`. Stdlib-only. |
 | `_payload.py` | Verb-specific field rules (strip top-level `id`; keep-and-rewrite vs strip version `id`); HTML-entity normalization (`unescape_value` / `normalize_html_entities`). Pure. |
-| `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`) + `overlay_labels` (harvest the `{name: label}` map an overlay carries — top-level `labels` block and/or per-`addSteps` `label`, per-step wins) + `OVERLAY_ONLY_STEP_KEYS` (`placement` / `label` — stripped from a step before the Connect send). Pure. |
+| `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`) + `overlay_labels` (harvest the `{name: label}` map an overlay carries — top-level `labels` block and/or per-`addSteps` or `updateSteps` `label`, per-step wins) + `OVERLAY_ONLY_STEP_KEYS` (`placement` / `label` — stripped from a step before the Connect send). Pure. |
 | `_graph.py` | Flat `steps[]` → producer/consumer dependency graph + three-scope classifier. Imports `_schema` (in-package). Pure. |
-| `_tooling.py` | Tooling-API access for step **labels** — the one thing Connect can't touch. Pure helpers (`step_labels` / `label_drift` / `readable_labels` / `humanize_name` / `derive_labels` / `apply_labels` / `strip_metadata_readonly` / `labels_from_metadata_xml` (read `{name: label}` from a `*.expressionSetDefinition-meta.xml`)) + I/O over the `Transport` (`resolve_esdv` (9QB) / `fetch_metadata` / `patch_metadata`, dropping the read-only `urls` key). **Label-preservation trio:** `capture_labels` (best-effort snapshot of the readable labels a Connect PATCH will clobber), `relabel_version` (the shared deactivate→Tooling PATCH→reactivate core, used by both `relabel_expression_set.py` and auto-restore), and `restore_labels_after_clobber` (non-fatal re-apply after a Connect mutation — re-resolves the version, restores survivors, never fails the mutation). The active-version guard applies to the Metadata PATCH exactly as to a Connect mutation. |
+| `_tooling.py` | Tooling-API access for step **labels** — the one thing Connect can't touch. Pure helpers (`step_labels` / `label_drift` / `readable_labels` / `humanize_name` / `derive_labels` / `apply_labels` / `strip_metadata_readonly` / `labels_from_metadata_xml` (read `{name: label}` from a `*.expressionSetDefinition-meta.xml`)) + I/O over the `Transport` (`resolve_esdv` (9QB) / `fetch_metadata` / `patch_metadata`, dropping the read-only `urls` key). **Label-preservation trio:** `capture_labels` (best-effort snapshot of the readable labels a Connect PATCH will clobber), `relabel_version` (the shared deactivate→Tooling PATCH→reactivate core, used by both `relabel_expression_set.py` and auto-restore), and `restore_labels_after_clobber` (non-fatal re-apply after a Connect mutation — re-resolves the version, restores survivors, never fails the mutation). `capture_version_labels` / `restore_version_labels` run the capture and restore over **every** version of the set, since the full-graph PATCH clobbers all of them. The active-version guard applies to the Metadata PATCH exactly as to a Connect mutation. |
 | `_lifecycle.py` | The `LifecycleEngine`: deactivate → PATCH/POST → reactivate sequencer, the `ProcedurePlanDefinitionVersion` cascade (with rollback), version-state polling, `ResourceInitializationType` alignment, and delete-with-rollback — all on the `Transport` seam. A failed PATCH leaves the version **DEACTIVATED** and re-raises (never reactivated over a half-mutated definition). Drives both the Connect and the Tooling-`Metadata` (relabel) mutations. |
 
 **Tests:** `tests/test_expression_sets_toolkit.py` — offline unit tests (no org,
@@ -221,7 +221,24 @@ expected behavior; the outputs are not dead code.
 - **A failed Connect PATCH is not atomic.** The lifecycle engine leaves the
   version DEACTIVATED and re-raises rather than reactivating a half-mutated
   definition. Re-enable it with `activate_expression_set.py --activate` once
-  you've inspected and restored it. **A failed label-only Tooling `Metadata`
+  you've inspected and restored it. A failure **during deactivation setup**, before the
+  mutation callback starts (for example the deactivation poll timing out), wrote
+  nothing, so the version is restored too,
+  with a forced PATCH, since the stale read that timed the poll out would make an
+  idempotent one a no-op. The version and the plans are restored independently,
+  and every plan is attempted before any failure is raised.
+  After a failed PATCH it first confirms the version is off (a failed full-graph
+  PATCH can still apply `enabled: true`), then reactivates the procedure plans it
+  cascaded off (unless `--no-activate`). If the version can't be confirmed off, the
+  plans stay off, and (with cascade on) any other active referencing plan is
+  turned off too, so pricing can't reach a half-written version. Restoring the
+  plans matters because an inactive plan is silently skipped: pricing falls back to the Revenue Settings default procedure with plausible
+  numbers, while an active plan over the inactive version fails loudly. After any
+  failure, including a failed reactivation, it re-reads the version and every
+  referencing plan. Records the run deactivated get a restore command, except a
+  version a failed PATCH may have half-written (re-import it first); other
+  inactive plan versions (which may be intentional drafts) are listed for
+  inspection only. **A failed label-only Tooling `Metadata`
   PATCH (the relabel path) is different** — it never touches the definition
   graph, so the stored Metadata is byte-identical after a failure and only the
   cosmetic labels are stale. That path therefore **reactivates** the version even
@@ -241,7 +258,7 @@ expected behavior; the outputs are not dead code.
   activation cycle.
   This covers two step populations: **survivors** (restored from the pre-PATCH
   target-org snapshot — a renamed/added step simply won't match, which is correct) and
-  **new steps** (labeled from the overlay's own `labels` block / per-step `label`, so a
+  **added or updated steps** (labeled from the overlay's own `labels` block / per-step `label`, so a
   sliced step exported `--with-labels` lands readable). Restore is **non-fatal but
   surfaced**: the Connect mutation already succeeded, so a restore failure is never
   raised — but the mutator **exits non-zero** and emits `labelRestore.ok=false` in its
@@ -272,7 +289,8 @@ After PATCH, both the CCI task and standalone CLI re-read the selected version
 and compare the final step graph with the merged payload, including formula
 parameters and sequence numbers, including for variable-only overlays. Missing,
 unexpected, duplicate, or changed steps fail verification; removed steps must
-be absent. Named parameter order and HTML
-entity encoding do not count as content changes. This verifies stored step
+be absent. Named parameter order, HTML entity encoding, and an empty string
+that reads back as null (such as a blank step `description`) do not count as
+content changes. This verifies stored step
 configuration, not execution results or step labels. The CLI's `--no-verify`
 option explicitly skips this read-back.

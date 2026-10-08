@@ -23,9 +23,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 # the build-time SFDMU plugin install below.
 #   - Generic UNIX keychain  → store auth as plain JSON under ~/.sfdx (no OS
 #     keyring exists in a headless container).
-#   - SF_TEMP_SHOW_SECRETS    → CCI 4.10.x still parses the access token out of
-#     `sf --json`; the May 2026 redaction change otherwise breaks scratch creation
-#     (see docs/guides/dev-environment-setup.md §6).
 #   - Disable telemetry/auto-update so the CLI never prompts or self-mutates.
 # ---------------------------------------------------------------------------
 ENV LANG=C.UTF-8 \
@@ -38,7 +35,6 @@ ENV LANG=C.UTF-8 \
     CHROME_BIN=/usr/bin/chromium \
     SF_USE_GENERIC_UNIX_KEYCHAIN=true \
     SFDX_USE_GENERIC_UNIX_KEYCHAIN=true \
-    SF_TEMP_SHOW_SECRETS=true \
     SF_DISABLE_TELEMETRY=true \
     SF_DISABLE_AUTOUPDATE=true \
     npm_config_update_notifier=false \
@@ -79,7 +75,7 @@ RUN set -eux; \
 COPY robot/requirements.txt /tmp/robot-requirements.txt
 RUN set -eux; \
     pip install pipx PyYAML; \
-    pipx install cumulusci; \
+    pipx install "cumulusci>=4.10.1"; \
     pipx inject cumulusci "setuptools>=75.4"; \
     pipx inject cumulusci --force -r /tmp/robot-requirements.txt; \
     rm -f /tmp/robot-requirements.txt; \

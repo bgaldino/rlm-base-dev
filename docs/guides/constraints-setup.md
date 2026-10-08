@@ -24,7 +24,7 @@ These steps run when `constraints_data` is `true` (steps 6-12 also require `qb`)
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
 | 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type to "Advanced Configurator", set Asset Context for Product Configurator, and enable Constraints Engine toggle via Robot Framework browser automation |
-| 6 | `validate_cml` | `constraints_data` + `qb` | Structure-validate **all** `scripts/cml/*.cml` files; cross-reference ESC associations **only** against the QuantumBitComplete data dir (other models, incl. QuantumBitBundle, get structure-only validation — their ESC coverage is not checked here) |
+| 6 | `validate_cml` | `constraints_data` + `qb` | Validate every model steps 7-10 import: each data dir's own `blobs/*.ffxblob` is structure-checked and cross-referenced against that dir's ESC associations (`data_dirs`) |
 | 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import the QuantumBitComplete constraint model (imported but left **inactive**) |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import the Server2 constraint model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model (imported but left **inactive**) |
@@ -115,7 +115,7 @@ Before constraint data can be imported, three Revenue Settings must be configure
 
 The `enable_constraints_settings` task (step 5) automates all three using Robot Framework browser automation, following the same pattern as `enable_document_builder_toggle`. It requires the same Robot Framework / SeleniumLibrary / webdriver-manager dependencies (see [Prerequisites](local-installation.md#setup-for-headless-robot-runs)).
 
-The Asset Context field uses the same combobox-recipe LWC pattern as the Pricing and Usage Rating fields — a `div.container-combobox-recipe` inside its own `<li>` setup-assistant step. All XPath selectors are scoped to the Asset Context `<li>` element to prevent cross-section interference. The automation clears any previously set value (pill) before selecting the target, and `configure_revenue_settings` (inside `prepare_revenue_settings`, called at `prepare_rlm_org` step 25) does **not** touch this field, preventing accidental clearing of the value set during the constraints phase.
+The Asset Context field uses the same combobox-recipe LWC pattern as the Pricing and Usage Rating fields — a `div.container-combobox-recipe` inside its own `<li>` setup-assistant step. All XPath selectors are scoped to the Asset Context `<li>` element to prevent cross-section interference. The automation clears any previously set value (pill) before selecting the target, and `configure_revenue_settings` (inside `prepare_revenue_settings`, called at `prepare_rlm_org` step 26) does **not** touch this field, preventing accidental clearing of the value set during the constraints phase.
 
 All values are configurable via `cumulusci.yml` task options:
 
@@ -135,7 +135,7 @@ cci task run enable_constraints_settings --org <org>
 
 In addition to the constraints-specific settings above, the `prepare_rlm_org` flow includes two Revenue Cloud configuration steps that run after the core data/metadata is deployed (and before the feature-extension, UX, and decision-table-refresh steps):
 
-### configure_revenue_settings (step 25 of prepare_rlm_org)
+### configure_revenue_settings (step 26 of prepare_rlm_org)
 
 Runs inside `prepare_revenue_settings` and automates general Revenue Settings page configuration via Robot Framework:
 
@@ -148,7 +148,7 @@ Runs inside `prepare_revenue_settings` and automates general Revenue Settings pa
 
 All values are configurable via `cumulusci.yml` task options. All procedure field selectors are scoped to their parent `<li>` setup-assistant step, making it impossible to accidentally interact with the Asset Context field. The Asset Context field is **not** configured in this step; it is handled exclusively by `enable_constraints_settings`.
 
-### reconfigure_pricing_discovery (step 26 of prepare_rlm_org)
+### reconfigure_pricing_discovery (step 27 of prepare_rlm_org)
 
 Runs inside `prepare_pricing_discovery`. Salesforce autoproc creates `Salesforce_Default_Pricing_Discovery_Procedure` in scratch orgs with an incorrect context definition. This Python CCI task performs a deactivate-reconfigure-reactivate cycle via REST API:
 

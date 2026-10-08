@@ -126,6 +126,16 @@ cci task run robot_e2e_debug                             # headed + CDP port 922
 cci task run robot_e2e_debug -o pause_for_recording true  # with pauses
 ```
 
+**Browser/driver overrides.** Headless and headed runs both honour `CHROME_BINARY` (falls back
+to `CHROME_BIN`) for the browser and `CHROMEDRIVER_PATH` for the driver. Both are unset by
+default. Set them as a matching pair, e.g. Chrome for Testing on managed workstations where
+stock Chrome's renderer crashes on Setup pages; see
+`docs/guides/local-installation.md` → Chrome for Testing. `validate_setup` reports both and
+flags a major-version mismatch (FAIL when the browser is overridden, WARN otherwise), plus a
+browser override with no driver set (WARN: webdriver-manager sizes its driver for stock Chrome),
+and an override that exists but does not run cleanly, e.g. a wrong-architecture build or a
+nonzero `--version` exit (FAIL).
+
 ---
 
 ## Related Skills

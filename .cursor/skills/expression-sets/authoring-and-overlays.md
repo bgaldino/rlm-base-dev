@@ -239,6 +239,31 @@ imply a value that never arrives.
 
 ---
 
+## Conditional assignments — reset every line first
+
+Each reprice hydrates a written field's **prior value from the record** before
+the procedure runs. An overlay that assigns a field only inside filtered
+branches (e.g. "discount above X → flag") therefore never clears it: a line
+that stops matching every branch keeps its stale value. Start with an
+unconditional step that resets the field on **every** line, then let the
+branches overwrite it. Order matters — the reset must come before the branches.
+
+- An empty-string `Constant` assigned to a Text field persists as **null**, so a
+  `""` reset is a real clear, not a blank string.
+- Add the overlay to a shipped procedure in a flow step **after**
+  `activate_and_deploy_expression_sets` and **before** `prepare_procedureplans`.
+  The apply deactivates and reactivates the procedure; doing it before
+  procedure plans are wired to it avoids cascading through those plans.
+
+Worked example: `datasets/expression_set_overlays/approval_flags.json`
+(applied by `prepare_approvals_pricing`). The `RLMApprovalFlagsReset`
+`ListGroup` clears both flag fields on every line, then one `ListGroup` per
+band sets them. That overlay selects "every line" with an
+`IsNull OR IsNotNull` filter on the same field; that is how this example does
+it, not a platform requirement.
+
+---
+
 ## Removing steps — validation is structural, not functional
 
 A `removeSteps` (or any PATCH) that passes validation and reactivates is **not**
@@ -272,3 +297,5 @@ surfaces consumed-with-no-producer names left behind. Always do removals on a
 - Exhaustive object/ID model, schema enums, every error + resolution:
   `docs/references/expression-set-connect-api-reference.md`
 - Worked overlay examples (all three scopes): `SKILL.md` → *Examples*.
+- The shipped overlays, which of them run in the build, and the file format:
+  `datasets/expression_set_overlays/README.md`

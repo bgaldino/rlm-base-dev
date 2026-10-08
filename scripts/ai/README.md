@@ -126,7 +126,12 @@ Two check modes:
   syntax, the stdlib-only import invariant, dependency-guidance messages,
   manifest high-level keys, generated-reference markers, that every skill
   sub-file is registered by its parent `SKILL.md`, that the File-Specific Rules
-  table is readable, and that this README documents the check modes. Exits
+  table is readable, that every rule file is valid UTF-8 and every rule mapped to
+  a skill has an `OWNER_KEYWORDS` owner. A stand-alone rule that matches no
+  keyword defaults to Repository Integration; one that matches, such as
+  `apex-classes.mdc`, takes that owner. The check also fails if a keyword infers
+  a different owner than a recommended rule declares. And it verifies that this
+  README documents the check modes. Exits
   non-zero on any failure, so it is safe to run as a CI/scheduled gate.
 
   Launch checks also enforce skill discovery metadata, exact relative native-link
@@ -284,7 +289,7 @@ silently each fail the suite.
 
 Runs the mechanical checks a change actually needs, and reports the status of **every**
 check — including the ones it skipped, and why. One command instead of remembering which
-of twenty-two validators a given diff should have run.
+of twenty-three validators a given diff should have run.
 
 ```bash
 python scripts/ai/pr_gate.py --base origin/264   # select from the diff vs a base ref
@@ -408,11 +413,12 @@ the failure mode is not a failing check but a **hang**, each level re-running th
 level above it, bounded only by the nested per-check timeouts.
 
 A dependency is probed by really importing it, in a child process, not by `find_spec`. The
-distinction is not academic: CumulusCI 4.8.1 imports `fs`, which imports `pkg_resources`,
-which a Python 3.12+ venv does not have until setuptools is installed — so `find_spec` calls
-that install fine, and the breakage surfaces later as unrelated-looking suite failures. The
+distinction is not academic: CumulusCI 4.8.1 imported `fs`, which imported `pkg_resources`,
+which a Python 3.12+ venv does not have until setuptools is installed — so `find_spec` called
+that install fine, and the breakage surfaced later as unrelated-looking suite failures.
+(CumulusCI 4.10.1, now pinned, no longer depends on `fs`.) The
 `cumulusci` entry therefore probes `cumulusci.core.tasks`, the depth a task actually needs,
-and `--requirements` emits `setuptools>=75.4,<77` ahead of the CumulusCI pin whenever a
+and `--requirements` emits `setuptools>=75.4` ahead of the CumulusCI pin whenever a
 selected check needs it — the same pin `prepare-rlm-org.yml` installs. Emitting it is the
 point: installing exactly what `--requirements` prints has to *work*, or the caller gets
 `MISSING-DEP` for a dependency it just installed and has to rediscover why.
@@ -517,15 +523,15 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 22 checks in about 17 seconds, of which the branch-scope *suite*
+A full `--all` run is 23 checks in about 17 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is 8 —
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
-selection is a couple of seconds. That timing is measured on a machine where two of the twenty-two
+selection is a couple of seconds. That timing is measured on a machine where two of the twenty-three
 (`docgen_suite`, `harness_suites`) are blocked on optional dependencies and so contribute nothing, which
-is worth naming rather than leaving the reader to assume all twenty-two ran: with those installed the
+is worth naming rather than leaving the reader to assume all twenty-three ran: with those installed the
 number is higher.
 
-Verified by `tests/test_pr_gate.py` (702 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (708 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -545,7 +551,7 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the twenty-two trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the twenty-three trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted

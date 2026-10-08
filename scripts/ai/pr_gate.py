@@ -59,10 +59,10 @@ import time
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Package -> the import that proves it is USABLE, not merely present. `cumulusci` maps to
-# `cumulusci.core.tasks` because the top-level package imports on a install that cannot run
-# a task: `cumulusci.core.tasks` -> `cumulusci.core.config` -> `fs` -> `pkg_resources`, which
-# Python 3.12+ venvs do not ship unless setuptools is installed (`prepare-rlm-org.yml` pins
-# `setuptools>=75.4,<77` ahead of CumulusCI for exactly this reason). Probed with a real
+# `cumulusci.core.tasks` because the top-level package can import on an install that cannot
+# run a task. (CumulusCI 4.8.1 reached `fs` -> `pkg_resources` there, which a Python 3.12+ venv
+# lacks without setuptools; 4.10.1 no longer depends on `fs`, and setuptools 82+ no longer
+# ships `pkg_resources` at all.) Probed with a real
 # import rather than `find_spec`, which answers "is there a file to import" and so calls such
 # an install fine — the failure then surfaces as two unrelated-looking suite failures instead
 # of one blocked dependency. `analyze_agent_tooling.py` also needs Python 3.10+
@@ -79,15 +79,14 @@ DEPS = {
 # What `--requirements` emits, so CI installs only what the selection needs. CumulusCI is
 # pinned to the version `prepare-rlm-org.yml` installs: two workflows resolving different
 # CumulusCI versions would let a flow-citation check pass here and fail there.
-PINS = {"cumulusci": "cumulusci==4.8.1"}
+PINS = {"cumulusci": "cumulusci==4.10.1"}
 
-# Installed alongside a package, because installing only the package leaves it unusable.
-# CumulusCI imports `fs`, which imports `pkg_resources`, which Python 3.12+ venvs do not
-# ship — so a caller that installs exactly what `--requirements` prints would still get
-# MISSING-DEP for cumulusci. Emitting this here rather than documenting a manual extra step
-# keeps that knowledge in one place: `prepare-rlm-org.yml` already installs the same pin, and
-# the second workflow author should not have to rediscover why.
-CO_REQUIRES = {"cumulusci": ["setuptools>=75.4,<77"]}
+# Installed alongside a package. CumulusCI 4.8.1 needed setuptools for `fs` -> `pkg_resources`;
+# 4.10.1 dropped `fs`, so this is now only the same `setuptools>=75.4` floor that
+# `prepare-rlm-org.yml`, the Docker image and `update-toolchain.sh` install (snowfakery expects
+# a modern setuptools). It is uncapped: a fresh CumulusCI 4.10.1 venv imports and runs `cci`
+# with setuptools 84, which has no `pkg_resources`. Emitting it here keeps the installs in step.
+CO_REQUIRES = {"cumulusci": ["setuptools>=75.4"]}
 
 # Lines of an advisory check's output to keep — the FIRST lines, not the last: the SFDMU
 # validator puts its summary and its Critical counts at the top and then lists every passing
@@ -306,14 +305,22 @@ CHECKS = [
     dict(
         name="extend_stdctx_recovery",
         cmd=["python", "tests/test_extend_stdctx.py"],
-        # Kept out of stdlib_offline_suites (deps=[]) on purpose: unlike the tasks that suite's
-        # files cover, tasks/rlm_extend_stdctx.py imports cumulusci.tasks.sfdx/cumulusci.core.keychain
-        # unconditionally rather than behind a try/except ImportError fallback (the guard
-        # tests/test_snapshot_help.py's and tests/test_snapshot_dev_guide.py's modules use to stay
-        # importable without cumulusci) — the module was never written to be importable without it, and
-        # adding that guard is a bigger footprint than this pack (126 / #264-64) needs.
+        # Kept out of stdlib_offline_suites (deps=[]) on purpose: tasks/rlm_extend_stdctx.py imports
+        # cumulusci.tasks.sfdx/cumulusci.core.keychain unconditionally rather than behind a
+        # try/except ImportError fallback — the module was never written to be importable without
+        # it, and adding that guard is a bigger footprint than this pack (126 / #264-64) needs.
         triggers=["tasks/rlm_extend_stdctx.py", "tests/test_extend_stdctx.py"],
         deps=["cumulusci"], gating=True,
+    ),
+    dict(
+        name="context_node_mapping_merge",
+        cmd=["python", "tests/test_context_service_node_mapping_merge.py"],
+        # tasks/rlm_context_service.py imports cumulusci and requests unconditionally (as
+        # extend_stdctx_recovery's module does), and borrows the sibling-merge helpers from
+        # scripts/context_service/_apply.py, so a change to either side runs this suite.
+        triggers=["tasks/rlm_context_service.py", "scripts/context_service/_apply.py",
+                  "tests/test_context_service_node_mapping_merge.py"],
+        deps=["cumulusci", "requests"], gating=True,
     ),
     dict(
         name="cci_reference_drift",
@@ -336,7 +343,15 @@ CHECKS = [
         triggers=["tasks/", "scripts/", "tests/", "datasets/", "cumulusci.yml",
                   "force-app/", "unpackaged/",
                   ".agents/", ".claude/", ".cursor/", "docs/references/",
-                  "AGENTS.md", "CLAUDE.md", "README.md"],
+                  "AGENTS.md", "CLAUDE.md", "README.md",
+                  # Loaded by path (spec loader) from tests/test_robot_salesforce_api_auth.py,
+                  # so the import-coverage rule cannot see it; named here so an edit to the
+                  # library runs its auth suite. tests/test_validate_setup_chrome.py loads the
+                  # three Chrome helpers the same way.
+                  "robot/rlm-base/resources/SalesforceAPI.py",
+                  "robot/rlm-base/resources/WebDriverManager.py",
+                  "robot/rlm-base/resources/ChromeOptionsHelper.py",
+                  "robot/rlm-base/resources/ChromeDebugHelper.py"],
         deps=[], gating=True,
     ),
     dict(
@@ -357,6 +372,7 @@ CHECKS = [
                   "scripts/expression_sets/", "scripts/cml/",
                   "tests/test_expression_set_schema.py",
                   "tests/test_rlm_cml_import_failure.py",
+                  "tests/test_rlm_cml_validate.py",
                   "tests/test_rlm_community.py",
                   "tests/data/expression_set/",
                   "datasets/expression_set_overlays/",
@@ -366,8 +382,11 @@ CHECKS = [
     dict(
         name="yaml_offline_suites",
         cmd=["python", "tests/test_decision_table_tasks.py",
+             "tests/test_deactivate_changed_decision_tables.py",
              "tests/test_fulfillment_scope_tolerance.py",
-             "tests/test_skill_manifest_audit.py"],  # run in sequence
+             "tests/test_skill_manifest_audit.py",
+             "tests/test_prepare_constraints_validation.py",
+             "tests/test_doc_snapshot_presets.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
         # usage product to that dataset invalidates the assertion, so it has to select this.
@@ -375,8 +394,15 @@ CHECKS = [
                   ".claude/skill-manifest.yml",
                   "datasets/sfdmu/qb/en-US/qb-dro/",
                   "tests/test_decision_table_tasks.py",
+                  "tests/test_deactivate_changed_decision_tables.py",
+                  "unpackaged/pre/5_decisiontables/",
+                  "unpackaged/post_prm_pricing/decisionTables/",
                   "tests/test_fulfillment_scope_tolerance.py",
-                  "tests/test_skill_manifest_audit.py"],
+                  "tests/test_skill_manifest_audit.py",
+                  "tests/test_prepare_constraints_validation.py",
+                  # The doc snapshot CLI reads presets.yaml through PyYAML; its offline
+                  # suite lives here rather than in STDLIB_SUITES for that reason.
+                  "scripts/doc_snapshot/", "tests/test_doc_snapshot_presets.py"],
         deps=["PyYAML"], gating=True,
     ),
     dict(
@@ -468,6 +494,17 @@ CHECKS = [
                   "tests/test_generate_cci_reference.py", "pyproject.toml"],
         deps=["pytest", "PyYAML"], gating=True,
     ),
+    dict(
+        # scripts/ux/ (UX assembly + drift tooling): pytest-style, so run through pytest. It
+        # assembles the real templates/ and runs writeback against a temp copy of them, so a
+        # template or flag change selects it too; sf is stubbed, so no org is needed. It also
+        # checks that the tracked post_ux manifest is one a clean checkout can deploy.
+        name="ux_tool_suite",
+        cmd=["python", "-m", "pytest", "-q", "tests/test_ux_tool.py"],
+        triggers=["scripts/ux/", "templates/", "tasks/rlm_ux_assembly.py", "cumulusci.yml",
+                  "tests/test_ux_tool.py", "pyproject.toml", "unpackaged/post_ux/"],
+        deps=["pytest", "PyYAML"], gating=True,
+    ),
 ]
 
 # Suites that need nothing but the standard library, run as one check. Enumerated rather
@@ -492,9 +529,12 @@ STDLIB_SUITES = [
     "tests/test_qb_multicurrency_data.py",
     "tests/test_renewal_bucket_planner.py",
     "tests/test_rlm_apex_file.py",
+    "tests/test_robot_salesforce_api_auth.py",
+    "tests/test_sf_token.py",
     "tests/test_snapshot_dev_guide.py",
     "tests/test_snapshot_help.py",
     "tests/test_validate_keys_targets.py",
+    "tests/test_validate_setup_chrome.py",
 ]
 
 # Offline like the list above, but they reach a `tasks/` module that imports `requests`, so the
@@ -503,6 +543,7 @@ STDLIB_SUITES = [
 REQUESTS_SUITES = [
     "tests/test_expression_set_schema.py",
     "tests/test_rlm_cml_import_failure.py",
+    "tests/test_rlm_cml_validate.py",
     "tests/test_rlm_community.py",
 ]
 
@@ -838,8 +879,8 @@ def main():
         needed = sorted({d for c in selected for d in c["deps"]})
         emitted = []
         for pkg in needed:
-            # Co-requirements first: pip installs in order, and setuptools has to be there
-            # before the package that imports pkg_resources at import time.
+            # Co-requirements first: pip installs in order, so the setuptools floor is in
+            # place before the package it accompanies.
             for extra in CO_REQUIRES.get(pkg, ()):
                 if extra not in emitted:
                     emitted.append(extra)

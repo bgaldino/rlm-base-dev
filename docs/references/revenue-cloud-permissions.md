@@ -6,7 +6,7 @@ This document describes the Permission Set Licenses (PSLs), Permission Set Group
 
 ## Permission Set Licenses (PSLs)
 
-PSLs are Salesforce-managed licenses that must be assigned to a user before the corresponding permission sets or PSGs can take effect. They are assigned early in `prepare_core` — step 4, then `assign_feature_psls` (steps 1, 2, 3, 4), i.e. build steps 1.4 and 1.9.1–1.9.4 — before any PSGs or permission sets.
+PSLs are Salesforce-managed licenses that must be assigned to a user before the corresponding permission sets or PSGs can take effect. They are assigned early in `prepare_core` — step 4, then `assign_feature_psls` (steps 1, 2, 3, 4), i.e. build steps 1.4 and 1.8.1–1.8.4 — before any PSGs or permission sets.
 
 ### Core RLM PSLs (`rlm_psl_api_names`) -- Always Assigned
 
@@ -42,13 +42,13 @@ Assigned unconditionally at `prepare_core` step 4 → `assign_permission_set_lic
 
 ### `EinsteinAnalyticsPlusPsl` -- `analytics: true`
 
-Assigned at `assign_feature_psls` step 3 → `assign_permission_set_licenses` — build step 1.9.3 — when `analytics` is on
+Assigned at `assign_feature_psls` step 3 → `assign_permission_set_licenses` — build step 1.8.3 — when `analytics` is on
 (separate from the AI list because it is required for RLM_RMI PSG functionality, and
 `analytics` defaults to true; it is genuinely skipped with `analytics: false`).
 
 ### CLM PSLs (`rlm_clm_psl_api_names`) -- `clm: true`
 
-Assigned at `assign_feature_psls` step 1 → `assign_permission_set_licenses` — build step 1.9.1 (11 licenses). Several overlap with core PSLs; Salesforce deduplicates automatically.
+Assigned at `assign_feature_psls` step 1 → `assign_permission_set_licenses` — build step 1.8.1 (11 licenses). Several overlap with core PSLs; Salesforce deduplicates automatically.
 
 | PSL API Name | Capability Area |
 |---|---|
@@ -66,7 +66,7 @@ Assigned at `assign_feature_psls` step 1 → `assign_permission_set_licenses` �
 
 ### Einstein / AI PSLs (`rlm_ai_psl_api_names`) -- `einstein: true`
 
-Assigned at `assign_feature_psls` step 2 → `assign_permission_set_licenses` — build step 1.9.2 (3 active licenses).
+Assigned at `assign_feature_psls` step 2 → `assign_permission_set_licenses` — build step 1.8.2 (3 active licenses).
 
 | PSL API Name | Capability Area |
 |---|---|
@@ -114,7 +114,7 @@ Defined as a YAML anchor (`TableauEinsteinUserPsl`) but not assigned in any stan
 
 ## Permission Set Groups (PSGs)
 
-PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 10, then assigned to the running user at step 11 (build steps 1.10 and 1.11; `tso` adds a second recalculate/assign pair at 1.12 and 1.13).
+PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 9, then assigned to the running user at step 10 (build steps 1.9 and 1.10; `tso` adds a second recalculate/assign pair at 1.11 and 1.12).
 
 ### Core PSGs (`rlm_psg_api_names`) -- Always Assigned
 
@@ -245,7 +245,7 @@ Placeholder PSG with no permission sets. AI permission sets are assigned separat
 
 ### RLM_TSO -- Trialforce Source Org PSG -- `tso: true`
 
-Assigned in `prepare_core` step 13 via `assign_permission_set_groups_tolerant` (preceded by a `recalculate_permission_set_groups` at step 12). Contains 50 permission sets spanning Sales Cloud Unlimited, Einstein AI, Tableau, CLM AI, Data Cloud, and engagement features. This is the catch-all PSG for trial/demo orgs that bundles permissions unavailable on Enterprise dev scratch orgs.
+Assigned in `prepare_core` step 12 via `assign_permission_set_groups_tolerant` (preceded by a `recalculate_permission_set_groups` at step 11). Contains 50 permission sets spanning Sales Cloud Unlimited, Einstein AI, Tableau, CLM AI, Data Cloud, and engagement features. This is the catch-all PSG for trial/demo orgs that bundles permissions unavailable on Enterprise dev scratch orgs.
 
 <details>
 <summary>Full list (50 permission sets)</summary>
@@ -291,7 +291,7 @@ persona user instead. See the persona rows in the flow inventory below.
 |---|---|---|---|
 | `RLM_QuantumBit` | `quantumbit` | `prepare_quantumbit` step 4 | FLS on custom QB fields (Order, Quote, etc.) |
 | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 7 | SObject access for CALM Delete operations |
-| `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (called from `prepare_quantumbit` step 2) | FLS on approval fields + `RLM_AA_Submit_Approval` Apex class |
+| `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (running user) · `prepare_personas` step 11 (salesrep user, when `personas` is on) | FLS on approval fields (read-only on both stored pricing outputs on quote lines and order products: the pricing engine writes them in system context, and user edit access would let a rep lower the level before submitting) + `RLM_AA_Submit_Approval` Apex class |
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
 | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` | `prepare_prm` step 8 | FLS on partner/channel program fields |
@@ -305,7 +305,7 @@ persona user instead. See the persona rows in the flow inventory below.
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
 
-Assigned by `assign_feature_permission_sets` steps 1–2 — build steps 1.17.1–1.17.2 — when `einstein` is on (`SalesCloudEinsteinAll` additionally requires a non-Developer-Edition org).
+Assigned by `assign_feature_permission_sets` steps 1–2 — build steps 1.16.1–1.16.2 — when `einstein` is on (`SalesCloudEinsteinAll` additionally requires a non-Developer-Edition org).
 
 | Permission Set | Purpose |
 |---|---|
@@ -361,16 +361,16 @@ The following table shows the sequence of all permission-related steps across th
 |---|---|---|---|
 | 1.4 | `prepare_core` > `assign_permission_set_licenses` | Core RLM PSLs (25) | Always |
 | 1.7 | `prepare_core` > `deploy_pre` | Deploy PSG metadata (`deploy_pre`) | Always |
-| 1.9.1 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | CLM PSLs (11) | `clm` |
-| 1.9.2 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | Einstein AI PSLs (3) | `einstein` |
-| 1.9.3 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | `EinsteinAnalyticsPlusPsl` | `analytics` |
-| 1.9.4 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | TSO PSLs (23) | `tso` |
-| 1.10 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate 11 core PSGs | Always |
-| 1.11 | `prepare_core` > `assign_permission_set_groups_tolerant` | Assign 11 core PSGs | Always |
-| 1.12 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate `RLM_TSO` PSG | `tso` |
-| 1.13 | `prepare_core` > `assign_permission_set_groups_tolerant` | `RLM_TSO` PSG | `tso` |
-| 1.17.1 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
-| 1.17.2 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
+| 1.8.1 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | CLM PSLs (11) | `clm` |
+| 1.8.2 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | Einstein AI PSLs (3) | `einstein` |
+| 1.8.3 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | `EinsteinAnalyticsPlusPsl` | `analytics` |
+| 1.8.4 | `prepare_core` > `assign_feature_psls` > `assign_permission_set_licenses` | TSO PSLs (23) | `tso` |
+| 1.9 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate 11 core PSGs | Always |
+| 1.10 | `prepare_core` > `assign_permission_set_groups_tolerant` | Assign 11 core PSGs | Always |
+| 1.11 | `prepare_core` > `recalculate_permission_set_groups` | Recalculate `RLM_TSO` PSG | `tso` |
+| 1.12 | `prepare_core` > `assign_permission_set_groups_tolerant` | `RLM_TSO` PSG | `tso` |
+| 1.16.1 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
+| 1.16.2 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
 | 4.8 | `prepare_payments` > `assign_permission_sets` | `RLM_Payments` | `payments` |
 | 7.2.3 | `prepare_quantumbit` > `prepare_approvals` > `assign_permission_sets` | `RLM_Approvals` | `quantumbit` + `approvals` |
 | 7.4 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_QuantumBit` | `quantumbit` |
@@ -381,29 +381,30 @@ The following table shows the sequence of all permission-related steps across th
 | 7.9 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 10.10 | `prepare_docgen` > `assign_permission_sets` | `RLM_DocGen` | `docgen` |
 | 13.12 | `prepare_billing` > `assign_permission_sets` | `RLM_BillingUI` | `billing_ui` |
-| 19.1 | `prepare_tso` > `assign_permission_set_groups` | Copilot + Catalog PSGs (4) | `tso` |
-| 19.4 | `prepare_tso` > `assign_permission_sets` | TSO permission sets (7) | `tso` |
-| 21.7 | `prepare_prm` > `assign_permission_sets` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
-| 21.10.3 | `prepare_prm` > `prepare_prm_pricing` > `assign_permission_sets` | `RLM_PRM_Pricing` | `prm` + `prm_pricing` |
-| 22.1 | `prepare_agents` > `assign_permission_set_groups` | Copilot PSGs (2) | `agents` |
-| 22.10 | `prepare_agents` > `assign_permission_sets` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
-| 23.3 | `prepare_constraints` > `assign_permission_sets` | `RLM_Constraints` | `tso` + `constraints` |
-| 24.1 | `prepare_guidedselling` > `assign_permission_sets` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
-| 24.3 | `prepare_guidedselling` > `assign_permission_sets` | `RLM_Guided_Selling` | `guidedselling` |
-| 27.2 | `prepare_large_stx` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
-| 28.5 | `prepare_personas` > `assign_personas_sales_rep_psg` | `RLM_Sales_Representative` PSG (salesrep user) | `personas` |
-| 28.6 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
-| 28.7 | `prepare_personas` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
-| 28.8 | `prepare_personas` > `assign_permission_sets` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
-| 28.9 | `prepare_personas` > `assign_permission_sets` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \| `tso`) |
-| 28.10 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBitDemoSetup` (salesrep user) | `personas` + `quantumbit` |
-| 30.2 | `prepare_inapp` > `assign_permission_sets` | `RLM_Learning` | `inapp` |
+| 20.1 | `prepare_tso` > `assign_permission_set_groups` | Copilot + Catalog PSGs (4) | `tso` |
+| 20.4 | `prepare_tso` > `assign_permission_sets` | TSO permission sets (7) | `tso` |
+| 22.7 | `prepare_prm` > `assign_permission_sets` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
+| 22.10.3 | `prepare_prm` > `prepare_prm_pricing` > `assign_permission_sets` | `RLM_PRM_Pricing` | `prm` + `prm_pricing` |
+| 23.1 | `prepare_agents` > `assign_permission_set_groups` | Copilot PSGs (2) | `agents` |
+| 23.10 | `prepare_agents` > `assign_permission_sets` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
+| 24.3 | `prepare_constraints` > `assign_permission_sets` | `RLM_Constraints` | `tso` + `constraints` |
+| 25.1 | `prepare_guidedselling` > `assign_permission_sets` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
+| 25.3 | `prepare_guidedselling` > `assign_permission_sets` | `RLM_Guided_Selling` | `guidedselling` |
+| 28.2 | `prepare_large_stx` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
+| 29.5 | `prepare_personas` > `assign_personas_sales_rep_psg` | `RLM_Sales_Representative` PSG (salesrep user) | `personas` |
+| 29.6 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
+| 29.7 | `prepare_personas` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
+| 29.8 | `prepare_personas` > `assign_permission_sets` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
+| 29.9 | `prepare_personas` > `assign_permission_sets` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \| `tso`) |
+| 29.10 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBitDemoSetup` (salesrep user) | `personas` + `quantumbit` |
+| 29.11 | `prepare_personas` > `assign_permission_sets` | `RLM_Approvals` (salesrep user) | `personas` + `quantumbit` + `approvals` |
+| 31.2 | `prepare_inapp` > `assign_permission_sets` | `RLM_Learning` | `inapp` |
 
 ---
 
 ## Persona PSGs (Optional)
 
-Persona PSGs provide role-based permission groupings for end users. They are deployed by `prepare_personas`, which runs as **step 28 of `prepare_rlm_org`** when the `personas` flag is on (and can also be run standalone via `cci flow run prepare_personas`). Metadata lives in `unpackaged/post_personas/`.
+Persona PSGs provide role-based permission groupings for end users. They are deployed by `prepare_personas`, which runs as **step 29 of `prepare_rlm_org`** when the `personas` flag is on (and can also be run standalone via `cci flow run prepare_personas`). Metadata lives in `unpackaged/post_personas/`.
 
 | Persona PSG | Label | Permission Sets |
 |---|---|---|
@@ -442,13 +443,13 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 
 ## Implementation Notes
 
-1. **PSLs before PSGs** -- Salesforce requires the underlying license before any PSG containing those permission sets can take effect. The flow enforces this by assigning PSLs at steps 2/7/8/10, then PSGs at step 12.
+1. **PSLs before PSGs** -- Salesforce requires the underlying license before any PSG containing those permission sets can take effect. The flow enforces this by assigning PSLs at `prepare_core` steps 4 and 8, then PSGs at steps 10 and 12.
 
 2. **PSG recalculation** -- After deploying PSG metadata (`deploy_pre`), the `recalculate_permission_set_groups` task waits for Salesforce to finish calculating PSG status (`Outdated` -> `Updating` -> `Updated`) before assignment. Without this wait, assignment can fail silently.
 
 3. **Tolerant assignment** -- `assign_permission_set_groups_tolerant` extends the standard CCI `AssignPermissionSetGroups` task to tolerate warnings about permissions unavailable on the target org edition (e.g., Enterprise vs. Unlimited). Used for core PSGs and `RLM_TSO`.
 
-4. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 28 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
+4. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 29 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
 
 5. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
-6. **Persona assignments are not admin assignments** -- steps 28.6-28.9 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 28.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.
+6. **Persona assignments are not admin assignments** -- steps 29.6-29.11 use `user_alias: salesrep`, so those sets land on a **non-admin** user. Step 29.8 (`RLM_UtilitiesPermset`) is destructive; when auditing who can delete transactional data, the salesrep persona must be counted alongside System Administrator.

@@ -37,7 +37,7 @@ Usage
 -----
     # canonical: validate the active (non-archive) plans
     python scripts/context_service/definition/validate_context_plan.py \
-        datasets/context_plans/{Billing,ConstraintEngineNodeStatus,DocGen,PartnerAccount,PrmPricing,RampMode}/manifest.json
+        datasets/context_plans/{Approvals,Billing,ConstraintEngineNodeStatus,DocGen,PartnerAccount,PrmPricing,mfg}/manifest.json
 
     # or discover all active manifests (skips archive/ unless --include-archive)
     python scripts/context_service/definition/validate_context_plan.py

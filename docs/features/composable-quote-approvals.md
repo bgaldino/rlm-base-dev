@@ -60,6 +60,10 @@ The Discount chain is sequential because Director waits on Manager and VP waits
 on Director. The Finance chain can run in parallel with Discount because it uses
 a different `ApprovalChainName`.
 
+`DiscountApprovalLevel` is the Quote roll-up of the line levels the pricing
+procedure stores on each reprice. There is no staleness guard: a discount changed
+without a reprice keeps its old level until the quote is repriced.
+
 If no approval is required (`DiscountApprovalLevel = 0` AND `PaymentTerms = "Net 30"`),
 the flow takes the `Requires_Approval` decision's default connector directly to
 `Update_Quote_Status_to_Approved`, bypassing the approval stage entirely.

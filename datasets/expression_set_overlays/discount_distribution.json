@@ -51,6 +51,7 @@
   "addSteps": [
     {
       "name": "ListApplyAmountBasedHeaderDiscount",
+      "label": "List Apply Amount Based Header Discount",
       "description": "",
       "stepType": "ListGroup",
       "resultIncluded": false,
@@ -67,6 +68,7 @@
     },
     {
       "name": "ListOperation",
+      "label": "List Operation",
       "description": "",
       "stepType": "AdvancedListFilter",
       "resultIncluded": false,
@@ -102,6 +104,7 @@
     },
     {
       "name": "AssignAmountBasedHeaderDiscount",
+      "label": "Assign Amount Based Header Discount",
       "description": "Assignment",
       "stepType": "BusinessKnowledgeModel",
       "actionType": "AssignmentElement",
@@ -178,6 +181,7 @@
     },
     {
       "name": "ApplyPercentageBasedHeaderDiscount",
+      "label": "Apply Percentage Based Header Discount",
       "description": "",
       "stepType": "ListGroup",
       "resultIncluded": false,
@@ -194,6 +198,7 @@
     },
     {
       "name": "PercentageBasedHeaderDiscount",
+      "label": "Percentage Based Header Discount",
       "description": "",
       "stepType": "AdvancedListFilter",
       "resultIncluded": false,
@@ -229,6 +234,7 @@
     },
     {
       "name": "AssignPercentageBasedHeaderDiscount",
+      "label": "Assign Percentage Based Header Discount",
       "description": "Assignment",
       "stepType": "BusinessKnowledgeModel",
       "actionType": "AssignmentElement",
@@ -305,6 +311,7 @@
     },
     {
       "name": "ApplyHeaderPriceOverride",
+      "label": "Apply Header Price Override",
       "description": "",
       "stepType": "ListGroup",
       "resultIncluded": false,
@@ -321,6 +328,7 @@
     },
     {
       "name": "HeaderPriceOverride",
+      "label": "Header Price Override",
       "description": "",
       "stepType": "AdvancedListFilter",
       "resultIncluded": false,
@@ -356,6 +364,7 @@
     },
     {
       "name": "AssignTotalPriceOverride",
+      "label": "Assign Total Price Override",
       "description": "Assignment",
       "stepType": "BusinessKnowledgeModel",
       "actionType": "AssignmentElement",
@@ -432,6 +441,7 @@
     },
     {
       "name": "DiscountDistributionService",
+      "label": "Discount Distribution Service",
       "description": "Discount Distribution Service",
       "stepType": "BusinessKnowledgeModel",
       "actionType": "DiscountDistributionService",

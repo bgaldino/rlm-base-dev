@@ -26,7 +26,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <actionCalls>
-        <description>Calls an action that sends an email to the account owner if there’s an error running the Get Renewable Assets Summary invocable action.</description>
+        <description>Calls an action that sends an email to the account owner and the user who activated the order if the flow can’t get the order, its account, or the renewable assets summary.</description>
         <name>SendErrorEmailGetRenewableAssetsSummaryFailed</name>
         <label>Send Error Email If Get Renewable Assets Summary Fails</label>
         <locationX>0</locationX>
@@ -37,7 +37,7 @@
         <inputParameters>
             <name>emailAddresses</name>
             <value>
-                <elementReference>ContactEmailAddress</elementReference>
+                <elementReference>ErrorEmailRecipientsFormula</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
@@ -55,14 +55,20 @@
         <inputParameters>
             <name>emailBody</name>
             <value>
-                <stringValue>&lt;p&gt;{!RenewalOpportunitiesNotCreatedOrUpdatedErrorBodyTextTemplate}&lt;/p&gt;</stringValue>
+                <elementReference>RenewalOpportunitiesNotCreatedOrUpdatedErrorBodyTextTemplate</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>sendRichBody</name>
+            <value>
+                <booleanValue>true</booleanValue>
             </value>
         </inputParameters>
         <nameSegment>emailSimple</nameSegment>
         <offset>0</offset>
     </actionCalls>
     <actionCalls>
-        <description>Calls an action that sends an email to an account owner if opportunities in the Opportunities collection aren’t created.</description>
+        <description>Calls an action that sends an email to the account owner and the user who activated the order if opportunities in the Opportunities collection aren’t created.</description>
         <name>SendErrorEmailOpportunitiesNotCreated</name>
         <label>Send Error Email If Opportunities Aren’t Created</label>
         <locationX>0</locationX>
@@ -73,7 +79,7 @@
         <inputParameters>
             <name>emailAddresses</name>
             <value>
-                <elementReference>ContactEmailAddress</elementReference>
+                <elementReference>ErrorEmailRecipientsFormula</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
@@ -91,14 +97,20 @@
         <inputParameters>
             <name>emailBody</name>
             <value>
-                <stringValue>&lt;p&gt;{!OpportunitiesNotCreatedEmailBodyTextTemplate}&lt;/p&gt;</stringValue>
+                <elementReference>OpportunitiesNotCreatedEmailBodyTextTemplate</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>sendRichBody</name>
+            <value>
+                <booleanValue>true</booleanValue>
             </value>
         </inputParameters>
         <nameSegment>emailSimple</nameSegment>
         <offset>0</offset>
     </actionCalls>
     <actionCalls>
-        <description>Calls an action that sends an email to the account owner if opportunity products in the OpportunityProductsToCreate collection aren’t created.</description>
+        <description>Calls an action that sends an email to the account owner and the user who activated the order if opportunity products in the OpportunityProductsWithOpportunityIdForAllProducts collection aren’t created.</description>
         <name>SendErrorEmailOpportunityProductsNotCreated</name>
         <label>Send Error Email If Opportunity Products Aren’t Created</label>
         <locationX>0</locationX>
@@ -109,7 +121,7 @@
         <inputParameters>
             <name>emailAddresses</name>
             <value>
-                <elementReference>ContactEmailAddress</elementReference>
+                <elementReference>ErrorEmailRecipientsFormula</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
@@ -121,14 +133,20 @@
         <inputParameters>
             <name>emailBody</name>
             <value>
-                <stringValue>&lt;p&gt;{!OpportunityProductsNotCreatedEmailBodyTextTemplate}&lt;/p&gt;</stringValue>
+                <elementReference>OpportunityProductsNotCreatedEmailBodyTextTemplate</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>sendRichBody</name>
+            <value>
+                <booleanValue>true</booleanValue>
             </value>
         </inputParameters>
         <nameSegment>emailSimple</nameSegment>
         <offset>0</offset>
     </actionCalls>
     <actionCalls>
-        <description>Calls an action that sends an email to the account owner if opportunity products in the CanceledOpportunityProducts collection aren’t deleted.</description>
+        <description>Calls an action that sends an email to the account owner and the user who activated the order if opportunity products in the CanceledOpportunityProducts collection aren’t deleted.</description>
         <name>SendErrorEmailOpportunityProductsNotDeleted</name>
         <label>Send Error Email If Opportunity Products Aren’t Deleted</label>
         <locationX>0</locationX>
@@ -147,7 +165,7 @@
         <inputParameters>
             <name>emailAddresses</name>
             <value>
-                <elementReference>ContactEmailAddress</elementReference>
+                <elementReference>ErrorEmailRecipientsFormula</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
@@ -165,17 +183,20 @@
         <inputParameters>
             <name>emailBody</name>
             <value>
-                <stringValue>&lt;p&gt;{!OpportunityProductsNotDeletedEmailBodyTextTemplate}&lt;/p&gt;</stringValue>
+                <elementReference>OpportunityProductsNotDeletedEmailBodyTextTemplate</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
             <name>sendRichBody</name>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
         </inputParameters>
         <nameSegment>emailSimple</nameSegment>
         <offset>0</offset>
     </actionCalls>
     <actionCalls>
-        <description>Calls an action that sends an email to the account owner if opportunity products in the OpportunityProductsToUpdate collection aren’t updated.</description>
+        <description>Calls an action that sends an email to the account owner and the user who activated the order if opportunity products in the OpportunityProductsToUpdate collection aren’t updated.</description>
         <name>SendErrorEmailOpportunityProductsNotUpdated</name>
         <label>Send Error Email If Opportunity Products Aren’t Updated</label>
         <locationX>0</locationX>
@@ -194,7 +215,7 @@
         <inputParameters>
             <name>emailAddresses</name>
             <value>
-                <elementReference>ContactEmailAddress</elementReference>
+                <elementReference>ErrorEmailRecipientsFormula</elementReference>
             </value>
         </inputParameters>
         <inputParameters>
@@ -212,7 +233,13 @@
         <inputParameters>
             <name>emailBody</name>
             <value>
-                <stringValue>&lt;p&gt;Test updation failed body&lt;/p&gt;</stringValue>
+                <elementReference>OpportunityProductsNotUpdatedEmailBodyTextTemplate</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>sendRichBody</name>
+            <value>
+                <booleanValue>true</booleanValue>
             </value>
         </inputParameters>
         <nameSegment>emailSimple</nameSegment>
@@ -220,7 +247,7 @@
     </actionCalls>
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
-    <description>Cloned from template runtime_revenue_arcflows__RenewalOpp. Customization: TotalPrice assignments removed from all OpportunityLineItem create/update nodes. Salesforce only allows setting UnitPrice OR TotalPrice on OLI, not both. The flow sets UnitPrice (weighted average) and Quantity; Salesforce auto-calculates TotalPrice.</description>
+    <description>Cloned from template runtime_revenue_arcflows__RenewalOpp. Customization: TotalPrice assignments removed from all OpportunityLineItem create/update nodes. Salesforce only allows setting UnitPrice OR TotalPrice on OLI, not both. The flow sets UnitPrice (weighted average) and Quantity; Salesforce auto-calculates TotalPrice. Further customizations: new opportunities get a name from RenewalOpportunityNameFormula, Type from RenewalOpportunityType, and ContractId and CurrencyIsoCode from the order. HasRenewalQuantity skips an asset whose renewal price details add up to zero quantity instead of dividing by zero; the quantity is totaled before the flow decides whether to create an opportunity, so a skipped asset doesn’t leave an opportunity without products. Error emails go to the account owner and the user who activated the order (only that user when the account lookup itself faults, since there is no owner to read), include $Flow.FaultMessage, and are sent as rich text. GetOrder and GetContact faults send an error email instead of continuing without an account.</description>
     <assignments>
         <description>Adds the asset price and asset quantity  in the loop to the TotalAssetPriceAmount and TotalAssetQuantity variables, respectively.</description>
         <name>AddAssetPriceToTotalAssetPriceAndQuantityToTotalAssetQuantity</name>
@@ -589,7 +616,7 @@
         </connector>
     </assignments>
     <assignments>
-        <description>Adds the current opportunity record to the Opportunities collection.</description>
+        <description>Sets the fields of the current opportunity record, including its type and the contract and currency of the order, and then adds the record to the Opportunities collection.</description>
         <name>AddOpportunityToCollection</name>
         <label>Add Opportunity to Collection</label>
         <locationX>0</locationX>
@@ -612,7 +639,7 @@
             <assignToReference>opportunity.Name</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>OpportunityName</elementReference>
+                <elementReference>RenewalOpportunityNameFormula</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -630,6 +657,27 @@
             </value>
         </assignmentItems>
         <assignmentItems>
+            <assignToReference>opportunity.Type</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>RenewalOpportunityType</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>opportunity.ContractId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOrder.ContractId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>opportunity.CurrencyIsoCode</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOrder.CurrencyIsoCode</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
             <assignToReference>Opportunities</assignToReference>
             <operator>Add</operator>
             <value>
@@ -637,8 +685,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <isGoTo>true</isGoTo>
-            <targetReference>ResetVariableValues</targetReference>
+            <targetReference>AddCurrentOpportunityProductAndPriceBookEntryToCollection</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -690,7 +737,7 @@
         </connector>
     </assignments>
     <assignments>
-        <description>Sets AccountEmailAddress to the email address of the account to which the order belongs.</description>
+        <description>Sets ContactEmailAddress to the email address of the owner of the account to which the order belongs, and stores the account name, which the opportunity name and the error emails use. The order-derived values are set earlier by SetOrderContext, so they are present even when the account lookup faults.</description>
         <name>SetContactEmailAddress</name>
         <label>Set Contact Email Address</label>
         <locationX>0</locationX>
@@ -703,10 +750,10 @@
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>AccountId</assignToReference>
+            <assignToReference>AccountName</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>GetOrder.AccountId</elementReference>
+                <elementReference>GetContact.Name</elementReference>
             </value>
         </assignmentItems>
         <connector>
@@ -728,6 +775,30 @@
         </assignmentItems>
         <connector>
             <targetReference>IterateOverOpportunitiesWhenTheyExist</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Stores the account ID and the order number from the order, which the opportunity name and the error emails use. Runs before the account lookup, so an error email sent from that lookup's fault path still names the order.</description>
+        <name>SetOrderContext</name>
+        <label>Set Order Context</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>AccountId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOrder.AccountId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>OrderNumber</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>GetOrder.OrderNumber</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>GetContact</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -874,11 +945,11 @@
         </value>
     </constants>
     <constants>
-        <description>Stores the name of the opportunity records to be created. To use a different name for the opportunities created by the flow, change this value.</description>
+        <description>Stores the base name of the opportunity records to be created. RenewalOpportunityNameFormula combines it with the account name and the close date. To use a different name for the opportunities created by the flow, change this value.</description>
         <name>OpportunityName</name>
         <dataType>String</dataType>
         <value>
-            <stringValue>Renewal Forecast Opportunity</stringValue>
+            <stringValue>Renewal</stringValue>
         </value>
     </constants>
     <constants>
@@ -887,6 +958,14 @@
         <dataType>String</dataType>
         <value>
             <stringValue>006</stringValue>
+        </value>
+    </constants>
+    <constants>
+        <description>Stores the Type picklist value of the opportunity records to be created. To use a different type, change this value to one of the values in your org’s Opportunity Type picklist.</description>
+        <name>RenewalOpportunityType</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Existing Business</stringValue>
         </value>
     </constants>
     <constants>
@@ -1033,6 +1112,32 @@
         </rules>
     </decisions>
     <decisions>
+        <description>Determines whether the renewal price details of the current asset add up to a nonzero quantity. An opportunity product needs a nonzero quantity, and the average price divides by the total quantity. If the total is zero, the flow skips the asset instead of failing. Runs before the flow checks for or creates the asset’s opportunity, so a skipped asset doesn’t create one.</description>
+        <name>HasRenewalQuantity</name>
+        <label>Has Renewal Quantity?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>IterateOverAssets</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No (Default)</defaultConnectorLabel>
+        <rules>
+            <name>HasQuantity</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>TotalAssetQuantity</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <numberValue>0.0</numberValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>SetAverageAssetPriceAmount</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
         <description>Determines whether the opportunityProductId of the current record in the loop exists.</description>
         <name>HaveOpportunityProductId</name>
         <label>Have Opportunity Product ID?</label>
@@ -1093,7 +1198,8 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>FilterOpportunitiesToIdentifyWhetherOpportunityExists</targetReference>
+                <isGoTo>true</isGoTo>
+                <targetReference>ResetVariableValues</targetReference>
             </connector>
             <label>Create Opportunity Product</label>
         </rules>
@@ -1221,7 +1327,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>AddCurrentOpportunityProductAndPriceBookEntryToCollection</targetReference>
+                <targetReference>FilterOpportunitiesToIdentifyWhetherOpportunityExists</targetReference>
             </connector>
             <label>Create Opportunity Product</label>
         </rules>
@@ -1233,8 +1339,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <isGoTo>true</isGoTo>
-            <targetReference>ResetVariableValues</targetReference>
+            <targetReference>AddCurrentOpportunityProductAndPriceBookEntryToCollection</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>No (Default)</defaultConnectorLabel>
         <rules>
@@ -1276,10 +1381,22 @@
         <scale>6</scale>
     </formulas>
     <formulas>
+        <description>Returns the error email recipients: the account owner and the user who activated the order. Uses only the user if the account owner’s email address isn’t available, and lists the address once if they’re the same person.</description>
+        <name>ErrorEmailRecipientsFormula</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!ContactEmailAddress}), {!$User.Email}, IF(LOWER({!ContactEmailAddress}) = LOWER({!$User.Email}), {!ContactEmailAddress}, {!ContactEmailAddress} &amp; &quot;,&quot; &amp; {!$User.Email}))</expression>
+    </formulas>
+    <formulas>
         <description>Removes the ‘ref_’ string from the asset ID field on an opportunity product record.</description>
         <name>RemoveReferencePrefixFromAssetIdFormula</name>
         <dataType>String</dataType>
         <expression>SUBSTITUTE({!IterateOverOpportunityProducts.OpportunityId}, &quot;ref_&quot;, &quot;&quot;)</expression>
+    </formulas>
+    <formulas>
+        <description>Returns the name of the opportunity record to be created: the account name, the OpportunityName constant, and the close date, such as Acme - Renewal - 2027-09-29. Keeps the name within the 120-character limit of the Opportunity Name field.</description>
+        <name>RenewalOpportunityNameFormula</name>
+        <dataType>String</dataType>
+        <expression>LEFT(IF(ISBLANK({!AccountName}), &quot;&quot;, LEFT({!AccountName}, 80) &amp; &quot; - &quot;) &amp; {!OpportunityName} &amp; &quot; - &quot; &amp; TEXT({!IterateOverAssets.endDate}), 120)</expression>
     </formulas>
     <interviewLabel>RLM Create and Update Renewal Opportunities {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Create and Update Renewal Opportunities</label>
@@ -1400,7 +1517,7 @@
             <targetReference>AddAssetPriceToTotalAssetPriceAndQuantityToTotalAssetQuantity</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
-            <targetReference>SetAverageAssetPriceAmount</targetReference>
+            <targetReference>HasRenewalQuantity</targetReference>
         </noMoreValuesConnector>
     </loops>
     <processMetadataValues>
@@ -1473,6 +1590,10 @@
         <connector>
             <targetReference>SetContactEmailAddress</targetReference>
         </connector>
+        <faultConnector>
+            <isGoTo>true</isGoTo>
+            <targetReference>SendErrorEmailGetRenewableAssetsSummaryFailed</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -1493,11 +1614,11 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>GetContact</targetReference>
+            <targetReference>SetOrderContext</targetReference>
         </connector>
         <faultConnector>
             <isGoTo>true</isGoTo>
-            <targetReference>GetRenewableAssetsSummary</targetReference>
+            <targetReference>SendErrorEmailGetRenewableAssetsSummaryFailed</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -1538,38 +1659,46 @@
     </start>
     <status>Active</status>
     <textTemplates>
-        <description>Stores the body of the email that notifies the account owner about the error in creating opportunities and includes a list of the opportunities that couldn&apos;t be created.</description>
+        <description>Stores the body of the email that notifies the account owner and the user who activated the order about the error in creating opportunities. Includes the order, the error message, and the opportunities that couldn&apos;t be created.</description>
         <name>OpportunitiesNotCreatedEmailBodyTextTemplate</name>
         <isViewedAsPlainText>false</isViewedAsPlainText>
-        <text>&lt;p&gt;{!GetContact.Owner.Name}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;background-color: transparent; color: rgb(0, 0, 0); font-family: &amp;quot;Arial Narrow&amp;quot;, sans-serif; font-size: 12pt;&quot;&gt;We couldn’t create these opportunities: {!Opportunities}&lt;/span&gt;&lt;/p&gt;</text>
+        <text>&lt;p&gt;The RLM Create and Update Renewal Opportunities flow couldn’t create the renewal opportunities for this order.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Order number: {!OrderNumber}&lt;/li&gt;&lt;li&gt;Order ID: {!$Record.OrderIdentifier}&lt;/li&gt;&lt;li&gt;Account: {!AccountName}&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Error: {!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;Opportunities that weren’t created: {!Opportunities}&lt;/p&gt;&lt;p&gt;Create the renewal opportunities manually, or ask your Salesforce admin to check the flow.&lt;/p&gt;</text>
     </textTemplates>
     <textTemplates>
-        <description>Stores the body of the email that notifies the account owner about the error in creating opportunity products and includes a list of the opportunities that couldn&apos;t be created.</description>
+        <description>Stores the body of the email that notifies the account owner and the user who activated the order about the error in creating opportunity products. Includes the order, the error message, and the opportunity products that couldn&apos;t be created.</description>
         <name>OpportunityProductsNotCreatedEmailBodyTextTemplate</name>
         <isViewedAsPlainText>false</isViewedAsPlainText>
-        <text>&lt;p&gt;{!GetContact.Owner.Name}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;background-color: transparent; color: rgb(0, 0, 0); font-family: &amp;quot;Arial Narrow&amp;quot;, sans-serif; font-size: 12pt;&quot;&gt;We couldn’t create these opportunity products: {!OpportunityProductsToCreate}&lt;/span&gt;&lt;/p&gt;</text>
+        <text>&lt;p&gt;The RLM Create and Update Renewal Opportunities flow couldn’t add opportunity products to the renewal opportunities for this order.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Order number: {!OrderNumber}&lt;/li&gt;&lt;li&gt;Order ID: {!$Record.OrderIdentifier}&lt;/li&gt;&lt;li&gt;Account: {!AccountName}&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Error: {!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;Opportunity products that weren’t created: {!OpportunityProductsWithOpportunityIdForAllProducts}&lt;/p&gt;&lt;p&gt;Add the products to the renewal opportunities manually, or ask your Salesforce admin to check the flow.&lt;/p&gt;</text>
     </textTemplates>
     <textTemplates>
-        <description>Stores the body of the email that notifies the account owner about the error in creating opportunity products and includes a list of the opportunities that couldn&apos;t be deleted.</description>
+        <description>Stores the body of the email that notifies the account owner and the user who activated the order about the error in deleting opportunity products. Includes the order, the error message, and the opportunity products that couldn&apos;t be deleted.</description>
         <name>OpportunityProductsNotDeletedEmailBodyTextTemplate</name>
         <isViewedAsPlainText>false</isViewedAsPlainText>
-        <text>&lt;p&gt;{!GetContact.Owner.Name}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;background-color: transparent; color: rgb(0, 0, 0); font-family: &amp;quot;Arial Narrow&amp;quot;, sans-serif; font-size: 12pt;&quot;&gt;We couldn’t delete these opportunity products: {!CanceledOpportunityProducts}&lt;/span&gt;&lt;/p&gt;</text>
+        <text>&lt;p&gt;The RLM Create and Update Renewal Opportunities flow couldn’t remove canceled products from the renewal opportunities for this order.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Order number: {!OrderNumber}&lt;/li&gt;&lt;li&gt;Order ID: {!$Record.OrderIdentifier}&lt;/li&gt;&lt;li&gt;Account: {!AccountName}&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Error: {!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;Opportunity products that weren’t deleted: {!CanceledOpportunityProducts}&lt;/p&gt;&lt;p&gt;Delete these products from the renewal opportunities manually, or ask your Salesforce admin to check the flow.&lt;/p&gt;</text>
     </textTemplates>
     <textTemplates>
-        <description>Stores the body of the email that notifies the account owner about the error in updating opportunity products and includes a list of the opportunities that couldn&apos;t be updated.</description>
+        <description>Stores the body of the email that notifies the account owner and the user who activated the order about the error in updating opportunity products. Includes the order, the error message, and the opportunity products that couldn&apos;t be updated.</description>
         <name>OpportunityProductsNotUpdatedEmailBodyTextTemplate</name>
         <isViewedAsPlainText>false</isViewedAsPlainText>
-        <text>&lt;p&gt;{!GetContact.Owner.Name}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;background-color: transparent; color: rgb(0, 0, 0); font-family: &amp;quot;Arial Narrow&amp;quot;, sans-serif; font-size: 12pt;&quot;&gt;We couldn’t update these opportunity products: {!OpportunityProductsToUpdate}&lt;/span&gt;&lt;/p&gt;</text>
+        <text>&lt;p&gt;The RLM Create and Update Renewal Opportunities flow couldn’t update opportunity products on the renewal opportunities for this order.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Order number: {!OrderNumber}&lt;/li&gt;&lt;li&gt;Order ID: {!$Record.OrderIdentifier}&lt;/li&gt;&lt;li&gt;Account: {!AccountName}&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Error: {!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;Opportunity products that weren’t updated: {!OpportunityProductsToUpdate}&lt;/p&gt;&lt;p&gt;Update the quantities and prices of these products manually, or ask your Salesforce admin to check the flow.&lt;/p&gt;</text>
     </textTemplates>
     <textTemplates>
-        <description>Stores the body of the email that notifies the account owner if there&apos;s an error when getting the renewable assets summary.</description>
+        <description>Stores the body of the email that notifies the account owner and the user who activated the order if the flow can&apos;t get the order, its account, or the renewable assets summary. Includes the order and the error message.</description>
         <name>RenewalOpportunitiesNotCreatedOrUpdatedErrorBodyTextTemplate</name>
         <isViewedAsPlainText>false</isViewedAsPlainText>
-        <text>&lt;p&gt;{!GetContact.Owner.Name}&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;background-color: transparent; color: rgb(0, 0, 0); font-family: &amp;quot;Arial Narrow&amp;quot;, sans-serif; font-size: 12pt;&quot;&gt;We couldn’t create or update renewal opportunities for this order: {!$Record.OrderIdentifier}&lt;/span&gt;&lt;/p&gt;</text>
+        <text>&lt;p&gt;The RLM Create and Update Renewal Opportunities flow couldn’t create or update the renewal opportunities for this order.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Order number: {!OrderNumber}&lt;/li&gt;&lt;li&gt;Order ID: {!$Record.OrderIdentifier}&lt;/li&gt;&lt;li&gt;Account: {!AccountName}&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Error: {!$Flow.FaultMessage}&lt;/p&gt;&lt;p&gt;Create or update the renewal opportunities manually, or ask your Salesforce admin to check the flow.&lt;/p&gt;</text>
     </textTemplates>
     <variables>
         <description>Stores the ID of the account to which the order passed into the flow belongs.</description>
         <name>AccountId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Stores the name of the account to which the order passed into the flow belongs.</description>
+        <name>AccountName</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
@@ -1717,6 +1846,14 @@
         <isInput>false</isInput>
         <isOutput>false</isOutput>
         <objectType>OpportunityLineItem</objectType>
+    </variables>
+    <variables>
+        <description>Stores the order number of the order passed into the flow.</description>
+        <name>OrderNumber</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
     </variables>
     <variables>
         <description>Stores a collection of price book entry records for all the opportunity products.</description>

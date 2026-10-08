@@ -99,13 +99,21 @@ debugging a run.
 
 1. **An enabled version cannot be modified or deleted.** A mutation runs
    **deactivate → PATCH → reactivate**.
-2. **Reactivation is idempotent.** A full-graph PATCH whose body carries
-   `enabled: true` re-activates the version itself, so the task checks the
-   current `IsActive` and skips a redundant reactivation (which would otherwise
-   hit the enabled-version guardrail). Handled by `_set_version_active`.
+2. **Reactivation is explicit.** The CCI task sends `enabled: false` in the
+   full-graph PATCH, restores readable step labels while the version is inactive,
+   then activates once. `_set_version_active` still checks `IsActive` to avoid
+   a redundant update if another path already activated the version.
 3. **PATCH is not atomic.** A failed (400) PATCH still commits the parts it
    accepted, so on failure the task **leaves the version deactivated** and raises
-   loudly rather than re-enabling a half-mutated procedure.
+   loudly rather than re-enabling a half-mutated procedure. Once it has confirmed
+   the version is off, it reactivates the procedure plans it cascaded off (an
+   inactive plan silently skips its procedures; an active plan over an inactive
+   version fails loudly). The plans stay off when `activate_after` is false, or
+   when the version can't be confirmed off (a failed PATCH can re-enable a
+   half-written version, and an active plan would route pricing to it). It gives
+   a restore command for each record the run left inactive, except a version a
+   failed PATCH may have half-written, which must be re-imported first (other
+   inactive plan versions are listed for inspection only).
 4. **Version `id` handling differs by verb.** A PATCH (replace) body **must keep**
    the version-level `id` (from the `ExpressionSetVersion` sObject) so the server
    matches the version in place. A POST (create) of a new ES **must omit** the
@@ -308,7 +316,10 @@ Shipped examples: `datasets/expression_set_overlays/map_line_item.json` (flat,
 single step) and `discount_distribution.json` (nested — three `ListGroup` parents
 each with an `AdvancedListFilter` + `AssignmentElement` child, followed by the
 `DiscountDistributionService` element, **plus** 4 `Constant_DDS_*` version
-constants in `addVariables`).
+constants in `addVariables`), and `approval_flags.json` (nested — a reset
+`ListGroup` that clears every line, followed by three band `ListGroup`s, each
+with an `AdvancedListFilter` + `AssignmentElement` child, plus 8 Constants in
+`addVariables`).
 
 Environment-specific examples belong under
 `docs/references/expression-set-overlay-examples/`, not the shipped overlay
@@ -547,8 +558,10 @@ JSON blob** into the element editor — there is no documented API path.
   → referenced `DecisionTable`s. Keyed by **version Id** (`9QM`); the `9QL`
   variant returns `INVALID_ID_FIELD`.
 - **Tooling base:** `{instance}/services/data/v68.0/tooling/sobjects/ExpressionSetDefinitionVersion`
-- **Token for manual API checks:** `yes | sf org auth show-access-token --target-org <sf_alias>`,
-  or pull `instanceUrl`/`accessToken` from `sf org display --json`.
+- **Token for manual API checks:** `yes | sf org auth show-access-token --target-org <sf_alias>`
+  (add `--json` to read `result.accessToken`). Take only `instanceUrl` from
+  `sf org display --json`: since sf 2.136.8 its `accessToken` is redacted unless
+  `SF_TEMP_SHOW_SECRETS=true`. In Python, `scripts/sf_token.py`'s `org_auth(alias)` returns both.
 - **Validate a payload offline:** `python scripts/ai/validate_expression_set.py <file.json> [--overlay|--definition]`
 
 Endpoints target **264 / v68.0**; the observed behavior was verified on **262 /

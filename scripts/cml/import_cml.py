@@ -15,6 +15,13 @@ import csv
 import json
 import requests
 import subprocess
+import sys
+from pathlib import Path
+
+# sf redacts the token in `sf org display` unless SF_TEMP_SHOW_SECRETS is set;
+# the shared helper falls back to `sf org auth show-access-token`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from sf_token import org_auth  # noqa: E402
 
 DEFAULT_DATA_DIR = "data"
 TARGET_ALIAS = "tgtOrg"
@@ -42,14 +49,8 @@ def get_latest_api_version(instance_url):
 
 # === Auth + Org Info ===
 def get_auth(target_alias):
-    result = subprocess.run(
-        ["sf", "org", "display", "--target-org", target_alias, "--json"],
-        check=True,
-        capture_output=True,
-        text=True
-    )
-    info = json.loads(result.stdout)["result"]
-    return info["accessToken"], info["instanceUrl"]
+    instance_url, access_token = org_auth(target_alias)
+    return access_token, instance_url
 
 # === CSV Loader ===
 def read_csv(filename, data_dir):
