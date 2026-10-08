@@ -339,7 +339,7 @@
         {
           "feature": "utils",
           "patch_type": "insert_action",
-          "description": "insert actions: Opportunity.RLM_CreateQuoteFromRenewalOpp"
+          "description": "insert actions: Opportunity.RLM_CreateQuoteFromRenewalOpp, Opportunity.RLM_ConsolidateRenewalOpportunities"
         }
       ]
     },
