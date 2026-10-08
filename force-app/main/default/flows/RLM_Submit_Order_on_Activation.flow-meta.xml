@@ -116,7 +116,7 @@
         <doesRequireRecordChangedToMeetCriteria>true</doesRequireRecordChangedToMeetCriteria>
         <filterLogic>and</filterLogic>
         <filters>
-            <field>Status</field>
+            <field>StatusCode</field>
             <operator>EqualTo</operator>
             <value>
                 <stringValue>Activated</stringValue>
