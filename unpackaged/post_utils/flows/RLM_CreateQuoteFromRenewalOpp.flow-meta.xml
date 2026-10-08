@@ -1,6 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
+        <description>Locks the root assets until this transaction ends, which also runs Initiate Renewal, so if someone else is renewing them at the same time this waits until their quote is saved and the checks below then see it and stop.</description>
+        <name>Lock_Renewal_Assets</name>
+        <label>Lock Renewal Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>RLM_RenewalAssetLock</actionName>
+        <actionType>apex</actionType>
+        <connector>
+            <targetReference>Run_Preflight_Checks</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Renewal_Quote_Error</targetReference>
+        </faultConnector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>assetIds</name>
+            <value>
+                <elementReference>RenewAssetIds</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>RLM_RenewalAssetLock</nameSegment>
+        <offset>0</offset>
+    </actionCalls>
+    <actionCalls>
         <description>Standard Initiate Renewal action. Passing the opportunity (and its contract, when set) syncs the renewal quote to them; the assets are the root assets of the renewal opportunity&apos;s lines.</description>
         <name>Initiate_Renewal_Quote</name>
         <label>Initiate Renewal Quote</label>
@@ -58,7 +82,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Run_Preflight_Checks</targetReference>
+            <targetReference>Lock_Renewal_Assets</targetReference>
         </connector>
     </assignments>
     <assignments>
