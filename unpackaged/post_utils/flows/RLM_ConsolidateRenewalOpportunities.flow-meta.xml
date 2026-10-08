@@ -1,6 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <actionCalls>
+        <description>Locks the root assets until this transaction ends, so if someone else is renewing them at the same time this waits until their quote is saved and the checks below then see it and stop. Before the confirmation screen the lock is released at that screen; after it, Initiate Renewal runs in the same transaction, so the lock is held until the quote is saved.</description>
+        <name>Lock_Renewal_Assets</name>
+        <label>Lock Renewal Assets</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>RLM_RenewalAssetLock</actionName>
+        <actionType>apex</actionType>
+        <connector>
+            <targetReference>Run_Preflight_Checks</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Consolidation_Error</targetReference>
+        </faultConnector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>assetIds</name>
+            <value>
+                <elementReference>RootAssetIds</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>RLM_RenewalAssetLock</nameSegment>
+        <offset>0</offset>
+    </actionCalls>
+    <actionCalls>
         <description>Standard Initiate Renewal action for one end-date group. The first call creates the quote, linked to the primary opportunity (and the shared contract, if any); later calls add their assets to it through renewRecordId.</description>
         <name>Renew_Group</name>
         <label>Renew Group</label>
@@ -1074,7 +1098,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Run_Preflight_Checks</targetReference>
+                <targetReference>Lock_Renewal_Assets</targetReference>
             </connector>
             <label>None</label>
         </rules>
