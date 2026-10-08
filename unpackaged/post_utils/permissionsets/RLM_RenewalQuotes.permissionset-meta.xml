@@ -10,9 +10,11 @@
 
       Deliberately separate from RLM_UtilitiesPermset: that set also grants
       RLM_AccountUtilities' destructive reset. RLM_RenewalAssetLock only selects the
-      given assets FOR UPDATE: it changes nothing and returns nothing, so this set
-      grants class access and nothing else. The flows' own reads and Initiate
-      Renewal still run with the user's object and field access.
+      given assets FOR UPDATE, WITH USER_MODE: it changes nothing and returns
+      nothing, so this set grants class access and the Asset read that query needs
+      (it selects only Id, so no field permissions), plus the Account read the
+      platform requires before it grants Asset read. The flows' own reads and
+      Initiate Renewal still run with the user's object and field access.
     -->
     <classAccesses>
         <apexClass>RLM_RenewalAssetLock</apexClass>
@@ -20,4 +22,22 @@
     </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Renewal Quotes</label>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Account</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Asset</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
 </PermissionSet>

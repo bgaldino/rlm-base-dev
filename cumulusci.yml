@@ -340,9 +340,11 @@ project:
       # Renewal quick actions (post_utils, deployed via deploy_post_utils in the
       # quantumbit and tso flows): Generate Renewal Quote and Consolidate Renewals
       # both call RLM_RenewalAssetLock, so a non-admin needs class access to run
-      # them. Least privilege: class access only, and the class just locks the
-      # assets being renewed. Not RLM_UtilitiesPermset, which also grants the
-      # destructive account reset.
+      # them. Least privilege: class access and Asset read only (its user-mode
+      # query selects only Id; Account read comes with it, as Asset read requires
+      # it), and the class just locks the assets being
+      # renewed. Not RLM_UtilitiesPermset, which also grants the destructive
+      # account reset.
       - RLM_RenewalQuotes
 
     ps_quantumbit_demo_setup: &ps_quantumbit_demo_setup
@@ -4514,7 +4516,8 @@ flows:
         # Generate Renewal Quote and Consolidate Renewals sit on RLM_Opportunity_Record_Page,
         # which the salesrep persona uses, and renewing is a sales rep's job. Both call
         # RLM_RenewalAssetLock, so without this the persona faults running them. The grant
-        # is class access to an invocable that only locks the assets being renewed.
+        # is class access to an invocable that only locks the assets being renewed, plus
+        # the Asset (and required Account) read its user-mode query needs.
         #
         # Gated like step 8: the permission set ships with post_utils, so assigning it on
         # a personas-only build would fail on a PermissionSet that was never deployed.

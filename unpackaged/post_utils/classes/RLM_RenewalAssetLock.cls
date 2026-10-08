@@ -11,10 +11,11 @@
  * platform's lock timeout the query throws and the flow shows its fault screen;
  * nothing has been renewed at that point.
  *
- * `without sharing`: it only locks the rows and returns nothing, and the flows
- * pass only root assets the user has already read.
+ * `with sharing` and WITH USER_MODE: the flows pass only root assets the user has
+ * already read, so the lock needs no wider access than that. RLM_RenewalQuotes
+ * grants Asset read along with access to this class.
  */
-public without sharing class RLM_RenewalAssetLock {
+public with sharing class RLM_RenewalAssetLock {
 
     public class Request {
         @InvocableVariable(label='Asset Ids' required=true)
@@ -37,6 +38,6 @@ public without sharing class RLM_RenewalAssetLock {
         if (assetIds.isEmpty()) {
             return;
         }
-        List<Asset> locked = [SELECT Id FROM Asset WHERE Id IN :assetIds FOR UPDATE];
+        List<Asset> locked = [SELECT Id FROM Asset WHERE Id IN :assetIds WITH USER_MODE FOR UPDATE];
     }
 }

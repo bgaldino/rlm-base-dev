@@ -1,5 +1,5 @@
 @IsTest
-private class RLM_RenewalAssetLockTest {
+private with sharing class RLM_RenewalAssetLockTest {
 
     @IsTest
     static void locksGivenAssets() {
