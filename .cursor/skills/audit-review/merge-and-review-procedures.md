@@ -107,7 +107,8 @@ threads.**
 automated review; re-reviews are not incremental (a hosted reviewer may repeat comments
 already dismissed or resolved), and a push mid-review lands against a superseded commit,
 spending a whole round on findings that no longer apply. Fix everything from a round,
-verify locally, then push once. See `REVIEW.md` → *Push discipline*.
+verify locally, then push once. Request the next review only once the round is at zero
+unresolved threads; one requested earlier races the fixes. See `REVIEW.md` → *Push discipline*.
 
 **Tooling — `python scripts/ai/pr_review.py`** (or the `/pr-review <pr>` command in Claude
 Code) automates the mechanical steps so a round can't be left half-finished:

@@ -1,8 +1,15 @@
 # Workaround: CCI `INVALID_AUTH_HEADER` on healthy scratch orgs (sf CLI token redaction)
 
-> **Status:** temporary workaround. Track the removal conditions in
-> [When can we remove this?](#when-can-we-remove-this) and drop it as soon as an
-> official fix ships.
+> **Status:** resolved in **CumulusCI 4.10.1**. When `sf org display` redacts the token,
+> 4.10.1 falls back to `sf org auth show-access-token`, so `SF_TEMP_SHOW_SECRETS` is no
+> longer needed. The repo no longer sets it for CumulusCI: the shared `.envrc` export, the
+> Docker image `ENV` and the `prepare-rlm-org.yml` steps (now pinned to 4.10.1) all dropped
+> it. A few scripts that call `sf` themselves still set it on their own `sf` calls
+> (`scripts/build_quote_to_asset.py`, `scripts/qb_usage.py`, the DF workshop scripts), and
+> `docker/README.md` uses it once for `sf org auth show-sfdx-auth-url`. Those are deliberate
+> and don't involve CumulusCI. **Fix: upgrade CumulusCI** (`pipx upgrade cumulusci`), then remove any personal copy of the flag
+> ([Removal steps](#removal-steps-once-the-official-fix-lands)). The rest of this page is
+> kept for anyone still on CumulusCI 4.10.0 or earlier.
 
 ## Symptom
 
@@ -38,7 +45,7 @@ org — never use it to "refresh" a token.)
 ## Root cause
 
 CumulusCI **4.10.0** (the version affected by this bug — the workflow's `BASELINE`) reads an
-org's access token by parsing the output of `sf org display`. Salesforce CLI **>= 2.13.0** now **redacts secrets** from that
+org's access token by parsing the output of `sf org display`. Salesforce CLI **2.136.8+** (the May 27, 2026 change, forcedotcom/cli#3560) **redacts secrets** from that
 output by default:
 
 ```
@@ -51,17 +58,20 @@ CCI receives the redacted placeholder instead of the real token and sends a malf
 
 ## The fix
 
-Set `SF_TEMP_SHOW_SECRETS=true` in the environment so `sf` exposes the token to CCI. Pick the
-scope that matches how you run CCI.
+**Upgrade CumulusCI to 4.10.1 or later** (`pipx upgrade cumulusci`). If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1
+(it needs Python 3.11–3.13); rebuild it on a supported interpreter with
+`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` or
+`scripts/bash/update-toolchain.sh`. This project now
+requires it (`minimum_cumulusci_version: "4.10.1"` in `cumulusci.yml`), so an older CCI
+stops with a version error rather than `INVALID_AUTH_HEADER`.
 
-### Already handled in-repo via direnv
+### Legacy only: CumulusCI 4.10.0 and earlier
 
-This repo's tracked **`.envrc`** already exports `SF_TEMP_SHOW_SECRETS=true` (see the
-*Salesforce CLI token redaction opt-out* block, `.envrc:34-47`). If you use **direnv**
-(the repo's standard setup — see `docs/guides/dev-environment-setup.md`), the flag is
-applied automatically whenever your shell is inside the repo, and any CCI command you run
-there inherits it. The scopes below are for processes direnv doesn't reach — a shell where
-direnv isn't hooked, or a GUI-launched IDE that never triggers `.envrc`.
+Everything from here to *Security note* is kept for CumulusCI 4.10.0 and earlier, outside
+this project. The repo no longer applies the flag for CumulusCI: `.envrc` no longer exports
+it, so **direnv does not cover you**. (Only a few scripts still set it on their own `sf`
+calls, which doesn't reach `cci`.) If you must run an old CumulusCI, set
+`SF_TEMP_SHOW_SECRETS=true` yourself in one of the scopes below.
 
 ### Quick / one-off
 
@@ -143,6 +153,28 @@ launchctl getenv SF_TEMP_SHOW_SECRETS    # -> true
 cci org info CCI_ALIAS                     # -> instance_url, no INVALID_AUTH_HEADER
 ```
 
+### Robot E2E suites need no flag
+
+`robot/rlm-base/resources/SalesforceAPI.py` (the REST library every E2E suite under
+`robot/rlm-base/tests/e2e/` uses) also authenticates by parsing `sf org display --json`, and
+without the flag its suite setup failed with `SOQL query failed: 401 INVALID_AUTH_HEADER`. It now
+checks the token it gets back — a real one starts with the org's `00D` Id prefix — and when it
+doesn't, it fetches one with `sf org auth show-access-token -o <ORG_ALIAS> --json`, which `sf`
+never redacts. The token is never logged. This covers only the library's own REST calls; CCI's
+other tasks still need the fix above. Offline tests: `tests/test_robot_salesforce_api_auth.py`.
+
+### Repo scripts need no flag
+
+Scripts that call Salesforce REST themselves get the token from `scripts/sf_token.py`
+(`org_auth(alias)`). It takes the instance URL from `sf org display`, checks the token
+(a real one starts with the org's `00D` Id prefix), and when it isn't real fetches it with
+`sf org auth show-access-token --json`, which `sf` never redacts. The token is never logged or
+put in an error. `scripts/cml/export_cml.py`, `scripts/cml/import_cml.py` and
+`scripts/docgen/docgen_template_manage.py` use it; `scripts/txn_data_harness/auth.py` already
+used `show-access-token`. New scripts that need a token should use the helper rather than
+parsing `sf org display`. Offline tests: `tests/test_sf_token.py`. CumulusCI's own token reads
+are covered by CumulusCI 4.10.1 itself (see the status note at the top).
+
 ### Security note
 
 `SF_TEMP_SHOW_SECRETS=true` makes `sf org display` print access tokens in **plaintext**. That's
@@ -161,12 +193,15 @@ This workaround relies on a flag Salesforce documents as **temporary** (`SF_TEMP
 2. **The Salesforce CLI removes `SF_TEMP_SHOW_SECRETS`** — this *breaks* the workaround and
    forces option 1. Watch the `sf` release notes.
 
-> **Automated:** the `.github/workflows/check-cci-token-fix.yml` workflow runs this check
-> weekly (and on demand via *Run workflow*) and opens a tracking issue when a newer CumulusCI
-> release appears — so nobody has to remember. It compares versions with PEP 440 semantics
-> (`packaging.Version`). The manual command below just prints the latest for you to eyeball.
+> **Done:** condition 1 was met by CumulusCI 4.10.1, and the weekly
+> `check-cci-token-fix.yml` watcher that tracked it has been removed. Nothing here needs
+> re-checking. Condition 2 is now dated as well: the CLI announces that
+> `SF_TEMP_SHOW_SECRETS` stops working on **October 28, 2026**, which no longer affects
+> CumulusCI 4.10.1.
 
-### How to check (run periodically)
+### How it was checked (historical)
+
+The check below is kept for reference only; it was how the fix was watched for.
 
 ```bash
 # Print the latest CumulusCI on PyPI; compare it against the baseline yourself.
@@ -177,8 +212,8 @@ echo "If $LATEST is newer than $BASELINE, check its changelog for the sf-token /
 echo "  https://github.com/SFDO-Tooling/CumulusCI/releases"
 ```
 
-If a newer release exists, confirm from its changelog that it addresses the
-`sf org display` token-redaction issue, then:
+When a newer release appeared, its changelog was checked for the `sf org display`
+token-redaction fix (4.10.1 had it), then:
 
 ### Removal steps (once the official fix lands)
 
@@ -191,12 +226,12 @@ launchctl unsetenv SF_TEMP_SHOW_SECRETS
 # remove the `export SF_TEMP_SHOW_SECRETS=true` line from ~/.zshenv (personal scope)
 ```
 
-**Repo scope:** the in-repo `.envrc` export (`.envrc:34-47`) is the shared, committed
-copy — remove that block in the same PR that upgrades CumulusCI (and delete the
-`.github/workflows/check-cci-token-fix.yml` watcher), so it stops applying for everyone.
+**Repo scope:** done. The `.envrc` export, the Docker image's `ENV` and the CI step
+`env:` entries were removed when CI moved to CumulusCI 4.10.1, and the watcher workflow
+was deleted.
 
-Verify `cci org info CCI_ALIAS` still works **without** the flag, then delete this note's entry
-from the troubleshooting skill.
+Verify `cci org info CCI_ALIAS` still works **without** the flag. (The troubleshooting
+skill's entry already points at the upgrade rather than the flag.)
 
 ## Related
 

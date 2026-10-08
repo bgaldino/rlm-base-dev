@@ -1,6 +1,6 @@
 # UX Assembly, Retrieve, and Drift
 
-Read this when changing **`templates/`** UX sources, **`tasks/rlm_ux_assembly.py`**, **`tasks/rlm_retrieve_ux.py`**, drift tasks, or anything under **`unpackaged/post_ux/`** output.
+Read this when changing **`templates/`** UX sources, the **`scripts/ux/`** package (assembler, retrieve, diff, writeback, `ux_tool.py`), its CCI wrapper **`tasks/rlm_ux_assembly.py`**, or anything under **`unpackaged/post_ux/`** output.
 
 ## Source of truth
 
@@ -9,18 +9,19 @@ Read this when changing **`templates/`** UX sources, **`tasks/rlm_ux_assembly.py
 | `templates/` | **Edit here** — flexipage patches, layouts, apps, profiles, object bindings |
 | `unpackaged/post_ux/` | **Generated** — assembled output; **do not hand-edit** (see `AGENTS.md`) |
 | `docs/features/dynamic-ux-assembly.md` | Full drift capture / writeback / assembly behavior |
+| `scripts/ux/README.md` | `ux_tool.py` commands, flag resolution, sf CLI targeting |
 
-## Assembler (`assemble_and_deploy_ux`)
+## Assembler (`scripts/ux/_assemble.py`; CCI task `assemble_and_deploy_ux`)
 
 - **Purpose** — Merges base templates + YAML patches per feature flags, writes to `unpackaged/post_ux/`, optionally deploys.
 - **Options** — Filter by `metadata_type` (e.g. `flexipages`, `profiles`) or single `metadata_name` (full filename including `.flexipage-meta.xml`).
 - **App menus** — AppSwitcher / `appMenus` are **not** assembled here; launcher order is handled by **`reorder_app_launcher`** (Robot). The task **removes a stale `appMenus/`** directory if present from older runs.
-- **Python changes** — Keep `_assemble_*` helpers internally consistent (return types, early exits). Drift flows assume predictable manifest and file layout.
+- **Python changes** — Logic lives in `scripts/ux/` (CCI-free); `tasks/rlm_ux_assembly.py` only maps CCI options, flags and the org onto it. Flexipage patch types live in one table, `scripts/ux/_patch_ops.py::FLEXIPAGE_OPS` (apply, reverse, describe, refresh); assembly and writeback both dispatch through it, so a new type is one entry there. `diff` calls `UxAssembler.assemble_flexipages` and assumes the assembled file layout.
 
-## Retrieve (`retrieve_ux_from_org`)
+## Retrieve (`ux_tool.py retrieve`)
 
-- **Purpose** — Pulls live flexipages from the org into `unpackaged/post_ux/` for **drift comparison** (`capture_ux_drift` → `diff_ux_templates`).
-- **Implementation** — Uses **Metadata API SOAP retrieve** inside CCI (not necessarily `sf` CLI) to avoid PATH/env issues in embedded runs.
+- **Purpose** — Pulls live flexipages from the org into `unpackaged/post_ux/` for **drift comparison** (`capture-drift` = `retrieve` → `diff`).
+- **Implementation** — Runs `sf project retrieve start --metadata FlexiPage:<name> … --target-metadata-dir <tmp> --unzip` and copies each raw `.flexipage` in as `.flexipage-meta.xml`. The sf CLI owns auth and polling; no access token passes through the package. A failed retrieve leaves the existing files untouched.
 - **Scope** — Defaults to the same flexipage set the assembler would deploy (base + standalone for active flags). Narrow with `metadata_name` when testing one page.
 - **XML / namespace** — Retrieved XML must match parser expectations (namespace-aware parsing). If you change retrieve or strip logic, validate with a real org retrieve.
 
@@ -29,16 +30,20 @@ Read this when changing **`templates/`** UX sources, **`tasks/rlm_ux_assembly.py
 ```bash
 cci task run assemble_and_deploy_ux -o deploy false                    # dry-run assembly: local only, no org needed
 cci task run assemble_and_deploy_ux                                    # deploy: targets your DEFAULT cci org (no --org flag)
-cci flow run capture_ux_drift --org <cci_alias>                        # retrieve + diff
-cci flow run apply_ux_drift --org <cci_alias>                          # writeback to templates + verify
+python scripts/ux/ux_tool.py assemble                                  # same assembly without CCI
+python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>     # retrieve + diff
+python scripts/ux/ux_tool.py writeback                                 # dry-run writeback (add --apply to write)
+python scripts/ux/ux_tool.py apply-drift                               # writeback to templates + verify + reassemble
 ```
 
-Use **`--org`** with the **CCI alias** on the *flows* above; for raw `sf` commands use **`--target-org`** with the SF CLI alias (e.g. `rlm-base__beta`). See `AGENTS.md` — Org Identity. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `-o deploy false` runs assembly locally with no org at all.
+`ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. `assemble` takes its flags from `project.custom` in `cumulusci.yml`; the org-facing commands (`retrieve`, `diff`, `writeback`, `capture-drift`, `apply-drift`) take the flags recorded in `unpackaged/post_ux/assembly_manifest.json` by the last assembly, so they match what was deployed. `--flag name=value` overrides either. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `-o deploy false` runs assembly locally with no org at all.
 
 ## DO NOT
 
 - **DO NOT** edit `unpackaged/post_ux/` to “fix” UX — fix **`templates/`** and re-run assembly (or follow drift writeback).
 - **DO NOT** add `EmailTemplatePage` flexipages to templates — they cannot deploy via Metadata API (`AGENTS.md`).
+- **DO NOT** commit a writeback-refreshed patch file without restoring its comments — the rewrite drops YAML comments (often the rationale for a visibility rule). Check `git diff templates/flexipages/patches/`.
+- **DO NOT** treat Dynamic Forms `uiBehavior` drift (`none` → `readonly`/`required`) as a real edit by default — the org normalizes it on save.
 - **DO NOT** assume hand-copied org XML belongs in `post_ux` without going through retrieve + diff + writeback when aligning with templates.
 - **DO NOT** reference a feature-gated custom field/component (e.g. a `post_<feature>`-only field) from a **base/always-on** template (`layouts/base`, `flexipages/base`, `profiles/base`). It assembles into the default build and **breaks deploy** on a flag-off org where that field/component was never deployed. Put it in the feature's patch path.
 
@@ -50,7 +55,7 @@ a feature is on (custom fields/objects/components under `unpackaged/post_<featur
 **must** live in that feature's patch path, not the base:
 
 - Flexipages → `templates/flexipages/patches/<feature>/<Page>.yml` (applied when the flag is on).
-- Layouts → the feature tier in `tasks/rlm_ux_assembly.py::_assemble_layouts` (base → billing →
+- Layouts → the feature tier in `scripts/ux/_flags.py::LAYOUT_TIERS` (base → billing →
   constraints …). Layouts use **full-file tier override** (no field-level layout patches); if a
   base layout must not carry a gated field, **remove it from base** and surface the field via the
   feature **flexipage** patch (the Lightning record page), which is usually where it belongs anyway.

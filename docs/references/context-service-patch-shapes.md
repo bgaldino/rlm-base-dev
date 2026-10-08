@@ -75,7 +75,11 @@ on active versions.
 > we have *already* merged siblings into that body, and firing a payload the
 > platform rejects after the merge risks the exact silent sibling-loss the merge
 > exists to prevent. A **POST** stays log-only (no siblings to lose; the platform
-> rejects a bad POST loudly).
+> rejects a bad POST loudly). The CCI task (`tasks/rlm_context_service.py`,
+> `manage_context_definition` and the `apply_context_*` tasks) imports the
+> same merge helpers for layer (1), so plans sharing a node mapping (Approvals,
+> PrmPricing and ConstraintEngineNodeStatus on `SalesTransactionItem`) keep
+> each other's rows; it does not run the layer (2) pre-flight.
 
 **Body:**
 

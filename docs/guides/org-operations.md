@@ -62,7 +62,7 @@ cci org scratch <config-name> <org-alias> --default --days 30
 cci flow run prepare_rlm_org --org <org-alias>
 ```
 
-Decision tables under `unpackaged/pre/5_decisiontables` are deployed by this flow. Active decision tables are excluded per run by moving them into a `.skip` subdirectory before deploy (no `.forceignore` changes). Permission set groups are recalculated only when they are in **Outdated** state; if all are already **Updated**, the recalc step exits without waiting.
+Decision tables under `unpackaged/pre/5_decisiontables` are deployed by this flow. When a table is already Active and the repo carries a structural change to it, `deactivate_changed_decision_tables` (run just before `deploy_pre`) deactivates that table and deploys the change, which reactivates it; unchanged and non-structural redeploys apply in place. Permission set groups are recalculated only when they are in **Outdated** state; if all are already **Updated**, the recalc step exits without waiting.
 
 ### List Available Flows and Tasks
 
@@ -114,8 +114,8 @@ cci task run export_cml --org <org> -o developer_name QuantumBitComplete -o vers
 # Import a constraint model (with dry run)
 cci task run import_cml --org <org> -o data_dir datasets/constraints/qb/QuantumBitComplete -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm" -o dry_run true
 
-# Validate CML files
-cci task run validate_cml -o cml_dir scripts/cml -o data_dir datasets/constraints/qb/QuantumBitComplete
+# Validate each model's shipped blob against its own ESC rows
+cci task run validate_cml -o data_dirs "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
 ```
 
 For detailed examples and usage, see:
@@ -148,7 +148,7 @@ cci flow run prepare_rlm_org -o ux false
 ### Assemble and Deploy UX Metadata
 
 ```bash
-# Assemble all UX metadata and deploy (same as step 29)
+# Assemble all UX metadata and deploy (same as step 30)
 cci flow run prepare_ux
 
 # Dry-run only — inspect unpackaged/post_ux/ without deploying
@@ -317,6 +317,10 @@ Robot tasks run headless and require Chrome or Chromium plus ChromeDriver. Use t
 - **Chrome/Chromium missing:** Install per [Setup for headless robot runs](local-installation.md#setup-for-headless-robot-runs) (macOS: `brew install chromium`; Linux: `apt install chromium`).
 - **ChromeDriver missing:** Install webdriver-manager in the CCI environment (`pipx inject cumulusci webdriver-manager` for pipx, or `python -m pip install webdriver-manager` inside the CCI venv) so it downloads ChromeDriver at runtime, or install chromedriver on PATH (e.g. `apt install chromium-driver` on Debian/Ubuntu).
 - **CI:** Set `CHROME_BIN` to the browser path (e.g. `/usr/bin/chromium`).
+
+### Headless robot: "Unable to receive message from renderer" on Setup pages
+
+Chrome launches and the driver connects, but the renderer dies when the Robot step loads a Salesforce Setup page. This has been seen on managed workstations with stock Chrome; the same build succeeds on other machines. Install Chrome for Testing and point the Robot helpers at it with `CHROME_BINARY` and `CHROMEDRIVER_PATH`. Steps: [Chrome for Testing (managed workstations)](local-installation.md#chrome-for-testing-managed-workstations). Then rerun the failed step on the same org; a Robot step failure does not require a new org.
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 

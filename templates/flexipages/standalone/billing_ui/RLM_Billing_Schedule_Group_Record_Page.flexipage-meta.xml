@@ -368,7 +368,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillingScheduleGroupNumber</fieldItem>
                 <identifier>bsg0a_BillingScheduleGroupNumber_0</identifier>
@@ -460,7 +460,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillingAccountId</fieldItem>
                 <identifier>bsg1a_BillingAccountId_0</identifier>
@@ -612,7 +612,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillingMethod</fieldItem>
                 <identifier>bsg2a_BillingMethod_2</identifier>
@@ -622,7 +622,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillDayOfMonth</fieldItem>
                 <identifier>bsg2a_BillDayOfMonth_3</identifier>
@@ -632,7 +632,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillingSuspensionDate</fieldItem>
                 <identifier>bsg2a_BillingSuspensionDate_4</identifier>
@@ -666,7 +666,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillingTermUnit</fieldItem>
                 <identifier>bsg2b_BillingTermUnit_1</identifier>
@@ -676,7 +676,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillingType</fieldItem>
                 <identifier>bsg2b_BillingType_2</identifier>
@@ -696,7 +696,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillingResumptionDate</fieldItem>
                 <identifier>bsg2b_BillingResumptionDate_4</identifier>
@@ -754,7 +754,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.PaymentTermId</fieldItem>
                 <identifier>bsg3a_PaymentTermId_2</identifier>
@@ -846,7 +846,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.CreatedById</fieldItem>
                 <identifier>bsg4a_CreatedById_0</identifier>
@@ -856,7 +856,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.CreatedDate</fieldItem>
                 <identifier>bsg4a_CreatedDate_1</identifier>
@@ -870,7 +870,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.LastModifiedById</fieldItem>
                 <identifier>bsg4b_LastModifiedById_0</identifier>
@@ -880,7 +880,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.LastModifiedDate</fieldItem>
                 <identifier>bsg4b_LastModifiedDate_1</identifier>

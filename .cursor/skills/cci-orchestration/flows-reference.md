@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**46 flows** across **5 groups**.
+**45 flows** across **5 groups**.
 
 ---
 
@@ -119,12 +119,13 @@ Deploy and configure the PRM pricing bundle in dependency order so context resou
 **Steps:**
 
 1. **task** `deploy_post_prm_pricing_objects`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-2. **task** `deploy_post_prm_pricing_decision_tables`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-3. **task** `configure_pricing_recipe_table_mappings`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-4. **task** `apply_context_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-5. **task** `deploy_post_prm_pricing_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-6. **task** `deploy_post_prm_pricing_flows`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-7. **task** `deploy_post_prm_pricing_permissionsets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+2. **task** `deactivate_changed_post_prm_pricing_decision_tables`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+3. **task** `deploy_post_prm_pricing_decision_tables`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+4. **task** `configure_pricing_recipe_table_mappings`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+5. **task** `apply_context_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+6. **task** `deploy_post_prm_pricing_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+7. **task** `deploy_post_prm_pricing_flows`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+8. **task** `deploy_post_prm_pricing_permissionsets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
 
 ---
 
@@ -193,6 +194,15 @@ Extract rating and rates data from an org into CSV files
 3. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
    - `api_names`: `['RLM_Approvals']`
 4. **task** `insert_qb_approvals_data`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
+
+---
+
+### `prepare_approvals_pricing`
+
+**Steps:**
+
+1. **task** `apply_context_approvals`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
+2. **task** `apply_approval_flags_overlay`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
 
 ---
 
@@ -269,8 +279,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 4. **task** `apply_context_constraint_engine_node_status`  `when: project_config.project__custom__constraints`
 5. **task** `enable_constraints_settings`  `when: project_config.project__custom__constraints_data`
 6. **task** `validate_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `cml_dir`: `scripts/cml`
-   - `data_dir`: `datasets/constraints/qb/QuantumBitComplete`
+   - `data_dirs`: `datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/q...`
 7. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `data_dir`: `datasets/constraints/qb/QuantumBitComplete`
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
@@ -302,22 +311,21 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 4. **task** `assign_permission_set_licenses`
    - `api_names`: `['BREDesigner', 'BRERuntime', 'CorePricingDesignTime', 'DataProcessingEnginePsl', 'DecimalQuantit...`
 5. **task** `cleanup_settings_for_dev`
-6. **task** `exclude_active_decision_tables`
+6. **task** `deactivate_changed_decision_tables`
 7. **task** `deploy_pre`
-8. **task** `restore_decision_tables`
-9. **flow** `assign_feature_psls`
-10. **task** `recalculate_permission_set_groups`
+8. **flow** `assign_feature_psls`
+9. **task** `recalculate_permission_set_groups`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-11. **task** `assign_permission_set_groups_tolerant`
+10. **task** `assign_permission_set_groups_tolerant`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-12. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
+11. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-13. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
+12. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-14. **flow** `extend_context_definitions`
-15. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
-16. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
-17. **flow** `assign_feature_permission_sets`
+13. **flow** `extend_context_definitions`
+14. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
+15. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
+16. **flow** `assign_feature_permission_sets`
 
 ---
 
@@ -431,7 +439,7 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 
 ### `prepare_personas`
 
-Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of prepare_rlm_org, before prepare_ux (step 29), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
+Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of prepare_rlm_org, before prepare_ux (step 30), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
 
 **Steps:**
 
@@ -455,7 +463,10 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 10. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_QuantumBitDemoSetup']`
    - `user_alias`: `salesrep`
-11. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+11. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__quantumbit and project_config.project__custom__approvals`
+   - `api_names`: `['RLM_Approvals']`
+   - `user_alias`: `salesrep`
+12. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -621,22 +632,23 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 16. **flow** `prepare_clm`
 17. **flow** `prepare_rating`
 18. **task** `activate_and_deploy_expression_sets`
-19. **flow** `prepare_tso`
-20. **flow** `prepare_procedureplans`
-21. **flow** `prepare_prm`
-22. **flow** `prepare_agents`
-23. **flow** `prepare_constraints`
-24. **flow** `prepare_guidedselling`
-25. **flow** `prepare_revenue_settings`
-26. **flow** `prepare_pricing_discovery`
-27. **flow** `prepare_large_stx`
-28. **flow** `prepare_personas`
-29. **flow** `prepare_ux`
-30. **flow** `prepare_inapp`
-31. **flow** `prepare_scratch`
-32. **flow** `refresh_all_decision_tables`
-33. **task** `rebuild_search_index`
-34. **flow** `stamp_git_commit`
+19. **flow** `prepare_approvals_pricing`
+20. **flow** `prepare_tso`
+21. **flow** `prepare_procedureplans`
+22. **flow** `prepare_prm`
+23. **flow** `prepare_agents`
+24. **flow** `prepare_constraints`
+25. **flow** `prepare_guidedselling`
+26. **flow** `prepare_revenue_settings`
+27. **flow** `prepare_pricing_discovery`
+28. **flow** `prepare_large_stx`
+29. **flow** `prepare_personas`
+30. **flow** `prepare_ux`
+31. **flow** `prepare_inapp`
+32. **flow** `prepare_scratch`
+33. **flow** `refresh_all_decision_tables`
+34. **task** `rebuild_search_index`
+35. **flow** `stamp_git_commit`
 
 ---
 
@@ -702,34 +714,9 @@ Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manu
 
 ## UX Personalization
 
-### `apply_ux_drift`
-
-Writes back org-retrieved flexipages into base templates by reverse-applying active feature patches (new_base = org_state - patches), then re-assembles and diffs to verify zero drift. Run capture_ux_drift first to review drift, then run this flow to update templates/ automatically.
-
-**Steps:**
-
-1. **task** `writeback_ux_templates`
-   - `dry_run`: `False`
-2. **task** `assemble_and_deploy_ux`
-   - `deploy`: `False`
-3. **task** `diff_ux_templates`
-
----
-
-### `capture_ux_drift`
-
-Retrieves live flexipages from the target org into unpackaged/post_ux/, then diffs them against what the assembler would produce from current templates/. Reports added, removed, modified, and repositioned flexiPageRegions and writes drift_report.json. Does not modify templates/. After reviewing the report, edit templates/ manually then run assemble_and_deploy_ux to deploy.
-
-**Steps:**
-
-1. **task** `retrieve_ux_from_org`
-2. **task** `diff_ux_templates`
-
----
-
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning (including personas at step 28) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 30 of prepare_rlm_org, after all feature provisioning (including personas at step 29) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 

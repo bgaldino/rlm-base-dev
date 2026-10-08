@@ -9,7 +9,7 @@
 | File | Description |
 |---|---|
 | [`help/`](help/) | Salesforce Help snapshot — 1,131 articles captured 2026-09-04 through 2026-09-07 across 10 RC functional areas. Collections not captured — verified still serving 262 content. |
-| [`release-notes/`](release-notes/) | Winter '27 (264) Revenue release notes — 127 articles under `release-notes.rn_revenue.htm`, captured by `snapshot_revenue_release_notes_264` and mapped in **Release-Note Cross-Reference**. The notes label no feature Beta or Pilot. Invoice Risk Scoring (Pilot) is labelled only in Help. |
+| [`release-notes/`](release-notes/) | Winter '27 (264) Revenue release notes under `release-notes.rn_revenue.htm`, captured by `python -m scripts.doc_snapshot help --release 264 --area release_notes` and mapped in **Release-Note Cross-Reference**. The notes label no feature Beta or Pilot. Invoice Risk Scoring (Pilot) is labelled only in Help. |
 | *(not captured)* | Solution Overview decks, so features without Help or release-note coverage are unverified. |
 
 ## Change Summary
@@ -385,13 +385,13 @@ New and changed objects, Connect APIs, metadata types, invocable actions and Ape
 
 ### How to re-check this index
 
-1. **Refresh the release notes** (`cci task run snapshot_revenue_release_notes_264 -o mode refresh`) and re-map any new or retitled feature notes in **Release-Note Cross-Reference**. Update tiers if a note gains a Beta or Pilot label. Promote unmapped notes to index rows as the index is extended.
+1. **Refresh the release notes** (`python -m scripts.doc_snapshot help --release 264 --area release_notes --mode refresh`) and re-map any new or retitled feature notes in **Release-Note Cross-Reference**. Update tiers if a note gains a Beta or Pilot label. Promote unmapped notes to index rows as the index is extended.
 2. **Check the v68.0 Metadata Coverage Report** (availability not yet checked): if it is available, verify object/field/API changes match it.
 3. **Refresh Collections snapshot** once 264 content publishes:
    ```bash
-   cci task run snapshot_collections_help_264 -o mode discover
+   python -m scripts.doc_snapshot help --release 264 --area collections --mode discover
    # byte-diff shared articles against 262 to confirm changed-text signal
-   # if ready: cci task run snapshot_collections_help_264
+   # if ready: python -m scripts.doc_snapshot help --release 264 --area collections
    ```
 4. **When Solution Overview decks publish:** Add to Sources table, reconcile descriptions.
 

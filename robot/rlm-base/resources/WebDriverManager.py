@@ -49,13 +49,22 @@ _patch_selenium_timeout()
 def get_chrome_driver_path():
     """Return the path to the ChromeDriver executable.
 
-    Prefers system ChromeDriver (/usr/bin/chromedriver) when available
-    (e.g., in CI or when chromium-driver is installed). Falls back to
-    webdriver-manager for automatic driver management, or returns None
-    to use system PATH as a last resort.
+    CHROMEDRIVER_PATH, when set, wins outright (pair it with CHROME_BINARY to
+    run an alternate Chrome such as Chrome for Testing). Otherwise prefers
+    system ChromeDriver (/usr/bin/chromedriver) when available (e.g., in CI
+    or when chromium-driver is installed). Falls back to webdriver-manager
+    for automatic driver management, or returns None to use system PATH as
+    a last resort.
     """
     import os
     import shutil
+
+    override = os.environ.get("CHROMEDRIVER_PATH")
+    if override:
+        if os.path.isfile(override) and os.access(override, os.X_OK):
+            _logger.debug(f"Using ChromeDriver from CHROMEDRIVER_PATH: {override}")
+            return override
+        _logger.warning(f"CHROMEDRIVER_PATH is not an executable file: {override}; ignoring it.")
 
     # Check for system ChromeDriver first
     system_chromedriver = "/usr/bin/chromedriver"

@@ -37,7 +37,7 @@ rlm-base-dev/
 │       └── patches/            # Feature-specific profile patches (billing, constraints, prm)
 ├── unpackaged/                 # Conditional metadata (deployed based on flags)
 │   ├── pre/                    # Pre-deployment metadata
-│   │   └── 5_decisiontables/   # Decision tables (active ones auto-excluded)
+│   │   └── 5_decisiontables/   # Decision tables (structural edits to active ones: deactivate_changed_decision_tables)
 │   ├── post_approvals/         # Approvals metadata
 │   ├── post_billing/           # Billing metadata (objects, flows, settings, quickActions)
 │   ├── post_billing_id_settings/ # Billing settings with org-specific record IDs (XPath transforms)
@@ -56,7 +56,7 @@ rlm-base-dev/
 ├── tasks/                      # Custom CumulusCI Python task modules
 │   ├── rlm_cml.py              # CML constraint utility (ExportCML, ImportCML, ValidateCML)
 │   ├── rlm_sfdmu.py            # SFDMU data loading tasks
-│   ├── rlm_ux_assembly.py      # Dynamic UX assembly (AssembleAndDeployUX)
+│   ├── rlm_ux_assembly.py      # CCI wrapper for scripts/ux/ assembly (AssembleAndDeployUX)
 │   ├── rlm_manage_decision_tables.py
 │   ├── rlm_manage_expression_sets.py
 │   ├── rlm_manage_flows.py
@@ -74,7 +74,7 @@ rlm-base-dev/
 │   ├── rlm_cleanup_settings.py
 │   ├── rlm_assign_permission_set_groups.py
 │   ├── rlm_recalculate_permission_set_groups.py
-│   ├── rlm_exclude_active_decision_tables.py
+│   ├── rlm_deactivate_changed_decision_tables.py
 │   └── rlm_modify_context.py
 ├── robot/                      # Robot Framework tests
 │   └── rlm-base/
@@ -118,6 +118,7 @@ rlm-base-dev/
 ├── scripts/                    # Utility scripts
 │   ├── apex/                   # Anonymous Apex scripts
 │   ├── cml/                    # CML source files (.cml) and deprecated Python scripts
+│   ├── ux/                     # CCI-free UX assembly + drift tooling (ux_tool.py: assemble, retrieve, diff, writeback)
 │   ├── bash/                   # Bash scripts
 │   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into templates/appMenus/base/ (no deploy)
 │   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract

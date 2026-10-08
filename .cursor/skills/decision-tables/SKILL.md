@@ -139,11 +139,16 @@ restrictions, CSV upload, async refresh, and recipe mapping validation are in
 
 Always start here. Counts and names differ per release and per feature flag.
 
-> ⚠ **The 5 Decision Table setup objects are Tooling-only.** `DecisionTable`,
-> `DecisionTableParameter`, `DecisionTableSourceCriteria` (and the two dataset
-> objects) are not on the standard data API, so every `sf data query` below passes
-> `--use-tooling-api` (`-t`). Without it the query fails
-> (`sObject type 'DecisionTable' is not supported`). The toolkit inspectors
+> ⚠ **The 5 Decision Table setup objects are on Tooling — and, on 264, on the
+> standard data API too.** `DecisionTable`, `DecisionTableParameter`,
+> `DecisionTableSourceCriteria`, `DecisionTableDatasetLink` and
+> `DecisionTblDatasetParameter` all answer a standard `sf data query` (no `-t`) on a
+> built 264 org and on a fresh 264 build (measured 2026-10-02), and
+> `DecisionTable.Status` is updatable through it —
+> `deactivate_changed_decision_tables` relies on that. Older guidance here called
+> them Tooling-only (`sObject type 'DecisionTable' is not supported` without `-t`);
+> treat that as a possible older-release or feature-off behavior. The queries below
+> keep `--use-tooling-api` (`-t`), which works either way. The toolkit inspectors
 > (`list_decision_tables.py`, `describe_decision_table.py`) already route through the
 > Tooling surface, so prefer them when you have the toolkit on PATH.
 

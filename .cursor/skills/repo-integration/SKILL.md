@@ -13,7 +13,7 @@ capabilities to the rlm-base-dev repository.
 
 ## Quick Rules
 
-1. `force-app/` = step 5. `unpackaged/post_*/` = feature steps. `templates/` = step 29.
+1. `force-app/` = step 5. `unpackaged/post_*/` = feature steps. `templates/` = step 30.
 2. Never edit `unpackaged/post_ux/` — edit `templates/` instead.
 3. Never add `layoutAssignment` to `force-app/` profiles — use `templates/profiles/`.
 4. CCI: `--org beta`. SF CLI: `--target-org rlm-base__beta`. Never mix them.
@@ -57,22 +57,23 @@ capabilities to the rlm-base-dev repository.
 ## Drift Capture and Writeback
 
 When UX changes are made directly in the org, use the drift capture workflow to
-update templates:
+update templates. It runs without CCI and targets the org by its **sf CLI**
+alias or username (see `scripts/ux/README.md`):
 
 ```bash
 # 1. Capture drift (retrieve org state + diff against templates)
-cci flow run capture_ux_drift --org dev-sb0
+python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>
 
 # 2. Review drift_report.json, then apply to templates
-cci flow run apply_ux_drift --org dev-sb0
+python scripts/ux/ux_tool.py apply-drift
 ```
 
-The writeback task computes `new_base = org_state - patches` and also
+The writeback step computes `new_base = org_state - patches` and also
 auto-updates YAML patch files. Profile writeback requires manual oversight.
 
 For full details, see `docs/features/dynamic-ux-assembly.md`.
 
-For **assembler vs retrieve**, SOAP retrieve scope, stale `appMenus/` cleanup,
+For **assembler vs retrieve**, retrieve scope, stale `appMenus/` cleanup,
 and why not to hand-edit `unpackaged/post_ux/`, read
 `.cursor/skills/repo-integration/ux-assembly-retrieve.md`.
 
@@ -124,7 +125,7 @@ strip-and-build, data dependencies, activation patterns), read
 Key rules:
 - `unpackaged/pre/` numbered subdirs deploy in order (1→2→3→5)
 - `force-app/` deploys as one bundle at step 5
-- `force-app/` profiles are classAccesses-only (full profile at step 29)
+- `force-app/` profiles are classAccesses-only (full profile at step 30)
 - Products (PCM) → pricing → billing → tax → rating → rates
 - Delete in reverse: rates → rating → billing → pricing → PCM
 

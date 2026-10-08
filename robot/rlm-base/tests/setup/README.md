@@ -19,6 +19,7 @@ Install and verify prerequisites in the **local installation guide**: [Setup for
 - **Python packages:** Robot Framework, SeleniumLibrary, webdriver-manager, urllib3 ≥ 2.6.3
 - **Chrome or Chromium:** Required for headless runs (macOS, Linux, CI install steps in the local installation guide)
 - **ChromeDriver:** Provided by webdriver-manager at runtime, or install on PATH
+- **Optional overrides:** `CHROME_BINARY` (falls back to `CHROME_BIN`) and `CHROMEDRIVER_PATH` point the helpers at a specific browser/driver pair, e.g. [Chrome for Testing](../../../../docs/guides/local-installation.md#chrome-for-testing-managed-workstations) on workstations where stock Chrome crashes on Setup pages
 - **Salesforce CLI:** For `sf org open --url-only` authenticated sessions
 
 Run `cci task run validate_setup` to verify all dependencies. Tests run headless by default. If you see **"Timeout value connect was &lt;object object at ...&gt;"** during suite setup, ensure urllib3 ≥ 2.6.3 is installed; see [Troubleshooting](../../../../docs/guides/org-operations.md#troubleshooting).
@@ -157,8 +158,8 @@ All tests detect current state before making changes:
 |------|------|------|
 | `enable_document_builder_toggle` | `prepare_docgen` | Step 2 |
 | `enable_constraints_settings` | `prepare_constraints` | Step 5 (when `constraints_data` is true) |
-| `configure_revenue_settings` | `prepare_rlm_org` | Step 25 (via `prepare_revenue_settings`) |
-| `configure_core_pricing_setup` | `prepare_rlm_org` | Step 25 (via `prepare_revenue_settings`, step 3) |
+| `configure_revenue_settings` | `prepare_rlm_org` | Step 26 (via `prepare_revenue_settings`) |
+| `configure_core_pricing_setup` | `prepare_rlm_org` | Step 26 (via `prepare_revenue_settings`, step 3) |
 | `configure_product_discovery_settings` | `prepare_rlm_org` | Via `prepare_pricing_discovery`, step 2 (gated by `project__custom__qb`) |
 
 ## Generated Output

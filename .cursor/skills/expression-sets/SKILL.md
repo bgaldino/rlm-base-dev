@@ -129,10 +129,15 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
    referenced name into one of three scopes (version variable → `addVariables`;
    custom external dep → `externalDependencies`; standard context → nothing).
 7. **Mutations run deactivate → modify → reactivate**, in a guarded `finally`;
-   the tasks enforce this, including the procedure-plan cascade. **Label
-   preservation runs a second deactivate→relabel→reactivate cycle** after the
-   Connect PATCH, adding 30-60s for large procedures (90+ steps). Use
-   `--no-preserve-labels` to skip if speed is critical.
+   the tasks enforce this, including the procedure-plan cascade. The CCI task
+   restores labels before reactivation in that same inactive window; its Connect
+   PATCH sends `enabled:false` so the PATCH cannot reactivate first. The
+   standalone toolkit still restores labels in a second lifecycle cycle. In
+   `tasks/rlm_expression_set_connect.py`, preservation lives in
+   `_run_connect_mutation`, so every Connect PATCH gets it. Opt out with
+   `--no-preserve-labels` (toolkit) or `-o preserve_labels false` (CCI). Give an
+   overlay's new or updated steps readable labels with a per-step `label` (or a top-level
+   `labels` map); without one they show the spaceless `name`.
 8. **Test Connect CRUD on a disposable clone** (POST-create a renamed copy),
    never the shipped procedure — except for an intentional, approved change.
 9. **Step `name` ≠ `label`.** `name` is the spaceless API-Name identifier (and the
@@ -302,7 +307,13 @@ Common options on the mutation tasks: `dry_run` (log without mutating),
 Every Connect mutation runs **deactivate → PATCH/POST → reactivate** in a guarded
 `finally` (an enabled version can't be modified/deleted), including the
 `ProcedurePlanDefinitionVersion` cascade; a failed PATCH is **left deactivated and
-raised** (non-atomic). Verb-specific field rules (version `id` omit-on-create /
+raised** (non-atomic), but the cascaded procedure plans are **reactivated** — an
+inactive plan silently skips its procedures — once the version is confirmed off.
+They stay off under `activate_after=false`, or when the version can't be
+confirmed off (a failed PATCH can re-enable a half-written version; don't
+restore a plan over it). Each record the run left inactive is reported with its
+restore command, except a version a failed PATCH may have half-written: re-import
+it before reactivating. Verb-specific field rules (version `id` omit-on-create /
 keep-on-replace, `contextDefinitions[].id`, immutable `resourceInitializationType`,
 `usageType`), the GET serializer gotchas (alphabetical top-level order,
 per-parent `sequenceNumber`, HTML-escaped string leaves), and the **Metadata API**
