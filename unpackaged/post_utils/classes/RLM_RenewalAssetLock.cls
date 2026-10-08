@@ -8,8 +8,9 @@
  * transaction ends, and both flows run Initiate Renewal in that same transaction
  * (CurrentTransaction), so a second run waits here until the first one's quote is
  * saved, and its checks then see that quote and stop. If the wait runs past the
- * platform's lock timeout the query throws and the flow shows its fault screen;
- * nothing has been renewed at that point.
+ * platform's lock timeout the query throws, and if any asset can't be locked (deleted,
+ * or no longer visible to the user) this throws; either way the flow shows its fault
+ * screen before anything is renewed.
  *
  * `with sharing` and WITH USER_MODE: the flows pass only root assets the user has
  * already read, so the lock needs no wider access than that. RLM_RenewalQuotes
@@ -39,5 +40,16 @@ public with sharing class RLM_RenewalAssetLock {
             return;
         }
         List<Asset> locked = [SELECT Id FROM Asset WHERE Id IN :assetIds WITH USER_MODE FOR UPDATE];
+        // A user-mode query returns only the assets the user can still see, so a
+        // short result would leave the rest unlocked: fail instead, before anything
+        // is renewed.
+        if (locked.size() != assetIds.size()) {
+            throw new LockException(
+                'Only ' + locked.size() + ' of the ' + assetIds.size()
+                + ' assets to renew could be locked. One may have been deleted or is no longer shared with you.'
+            );
+        }
     }
+
+    public class LockException extends Exception {}
 }
