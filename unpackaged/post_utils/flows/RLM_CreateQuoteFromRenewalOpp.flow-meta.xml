@@ -46,6 +46,22 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
+        <name>Set_Opportunity_Ids</name>
+        <label>Set Opportunity Ids</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>OpportunityIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>Get_Renewal_Opportunity.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Run_Preflight_Checks</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>Add_Asset_Id</name>
         <label>Add Asset Id</label>
         <locationX>0</locationX>
@@ -118,6 +134,47 @@
             <targetReference>Has_Renewable_Assets</targetReference>
         </connector>
     </assignments>
+    <decisions>
+        <description>Stops before quoting when this opportunity already has a quote, or a quote on any opportunity has a renewal of these assets that hasn&apos;t been ordered and activated: either could still be ordered, and activating it would renew the same assets again.</description>
+        <name>Has_Existing_Renewal</name>
+        <label>Has Existing Renewal</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Initiate_Renewal_Quote</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>None</defaultConnectorLabel>
+        <rules>
+            <name>Existing_Quote</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>HasQuote</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Existing_Renewal_Quote</targetReference>
+            </connector>
+            <label>Existing Quote</label>
+        </rules>
+        <rules>
+            <name>Pending_Renewal_Quote</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>HasPendingRenewalQuote</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Existing_Renewal_Quote</targetReference>
+            </connector>
+            <label>Pending Renewal Quote</label>
+        </rules>
+    </decisions>
     <decisions>
         <description>The asset lookup runs as the user, so assets they can&apos;t read are silently left out. Renewing only the readable subset would create a renewal quote missing products, so stop instead.</description>
         <name>Are_All_Assets_Readable</name>
@@ -396,6 +453,8 @@
         <queriedFields>ContractId</queriedFields>
         <queriedFields>IsClosed</queriedFields>
         <queriedFields>Type</queriedFields>
+        <queriedFields>Pricebook2Id</queriedFields>
+        <queriedFields>CurrencyIsoCode</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <screens>
@@ -407,7 +466,7 @@
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
-            <targetReference>Initiate_Renewal_Quote</targetReference>
+            <targetReference>Set_Opportunity_Ids</targetReference>
         </connector>
         <fields>
             <name>ConfirmationText</name>
@@ -498,6 +557,22 @@
         <showHeader>true</showHeader>
     </screens>
     <screens>
+        <name>Existing_Renewal_Quote</name>
+        <label>Existing Renewal Quote</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>ExistingRenewalQuoteText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Renewal_Opportunity.Name}&lt;/strong&gt; already has a quote, or one of its assets is on a renewal quote on another opportunity that hasn&apos;t been ordered and activated, so no renewal quote was created. That quote could still be ordered, whatever its status, and activating the order would renew the assets a second time.&lt;/p&gt;&lt;p&gt;Use that quote, or delete it and any draft order from it, then try again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
         <name>Renewal_Quote_Error</name>
         <label>Renewal Quote Error</label>
         <locationX>0</locationX>
@@ -521,6 +596,50 @@
         </connector>
     </start>
     <status>Active</status>
+    <subflows>
+        <description>Reads, in system context without sharing, whether this opportunity already has a quote and whether a quote on any opportunity, open or closed, has a renewal of these assets that hasn&apos;t been ordered and activated; a quote the user can&apos;t see still counts. Runs after the confirmation screen, so a second run started before the first finished still stops. Only those two answers are used here.</description>
+        <name>Run_Preflight_Checks</name>
+        <label>Run Preflight Checks</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Has_Existing_Renewal</targetReference>
+        </connector>
+        <flowName>RLM_RenewalPreflightChecks</flowName>
+        <inputAssignments>
+            <name>AssetIds</name>
+            <value>
+                <elementReference>RenewAssetIds</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <name>OpportunityIds</name>
+            <value>
+                <elementReference>OpportunityIds</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <name>PriceBookId</name>
+            <value>
+                <elementReference>Get_Renewal_Opportunity.Pricebook2Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <name>CurrencyCode</name>
+            <value>
+                <elementReference>Get_Renewal_Opportunity.CurrencyIsoCode</elementReference>
+            </value>
+        </inputAssignments>
+        <outputAssignments>
+            <assignToReference>HasQuote</assignToReference>
+            <name>HasQuote</name>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>HasPendingRenewalQuote</assignToReference>
+            <name>HasPendingRenewalQuote</name>
+        </outputAssignments>
+        <storeOutputAutomatically>false</storeOutputAutomatically>
+    </subflows>
     <variables>
         <description>Renewal Opportunity Id, supplied by the Opportunity.RLM_CreateQuoteFromRenewalOpp quick action.</description>
         <name>recordId</name>
@@ -564,6 +683,36 @@
     <variables>
         <description>Distinct root Asset Ids for the renewal opportunity&apos;s lines, passed to Initiate Renewal.</description>
         <name>RenewAssetIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Set by RLM_RenewalPreflightChecks: whether this opportunity already has a quote.</description>
+        <name>HasQuote</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <description>Set by RLM_RenewalPreflightChecks: whether a quote on any opportunity has a renewal of these assets that isn&apos;t on an activated order.</description>
+        <name>HasPendingRenewalQuote</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <description>This opportunity, for RLM_RenewalPreflightChecks.</description>
+        <name>OpportunityIds</name>
         <dataType>String</dataType>
         <isCollection>true</isCollection>
         <isInput>false</isInput>
