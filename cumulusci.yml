@@ -259,6 +259,7 @@ project:
       - RLM_ExpressionSetManager
       - RLM_DecisionTableManager
       - RLM_RebuildSearchIndex
+      - RLM_RenewalQuotes
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
@@ -334,6 +335,15 @@ project:
       # access, the RLM_SessionId page and ApiEnabled — no object permissions,
       # because the class runs no SOQL and no DML.
       - RLM_RebuildSearchIndex
+
+    ps_renewal_quotes: &ps_renewal_quotes
+      # Renewal quick actions (post_utils, deployed via deploy_post_utils in the
+      # quantumbit and tso flows): Generate Renewal Quote and Consolidate Renewals
+      # both call RLM_RenewalAssetLock, so a non-admin needs class access to run
+      # them. Least privilege: class access only, and the class just locks the
+      # assets being renewed. Not RLM_UtilitiesPermset, which also grants the
+      # destructive account reset.
+      - RLM_RenewalQuotes
 
     ps_quantumbit_demo_setup: &ps_quantumbit_demo_setup
       # QuantumBit Demo Setup guide (post_setup_guide, deployed via
@@ -3601,6 +3611,15 @@ flows:
         # at step 7, well before UX assembly.
         task: deploy_post_setup_guide
         when: project_config.project__custom__quantumbit
+      11:
+        # The renewal quick actions deploy_post_utils (step 1) places on the
+        # opportunity page call RLM_RenewalAssetLock; without this a non-admin sees
+        # Generate Renewal Quote and Consolidate Renewals but faults running them.
+        # The tso flow assigns it via rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_renewal_quotes
 
   prepare_tso:
     group: Revenue Lifecycle Management
@@ -4492,6 +4511,19 @@ flows:
           api_names: *ps_approvals
           user_alias: salesrep
       12:
+        # Generate Renewal Quote and Consolidate Renewals sit on RLM_Opportunity_Record_Page,
+        # which the salesrep persona uses, and renewing is a sales rep's job. Both call
+        # RLM_RenewalAssetLock, so without this the persona faults running them. The grant
+        # is class access to an invocable that only locks the assets being renewed.
+        #
+        # Gated like step 8: the permission set ships with post_utils, so assigning it on
+        # a personas-only build would fail on a PermissionSet that was never deployed.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
+        options:
+          api_names: *ps_renewal_quotes
+          user_alias: salesrep
+      13:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

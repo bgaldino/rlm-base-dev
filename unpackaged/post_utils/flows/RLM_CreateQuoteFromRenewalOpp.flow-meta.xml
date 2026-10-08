@@ -9,7 +9,7 @@
         <actionName>RLM_RenewalAssetLock</actionName>
         <actionType>apex</actionType>
         <connector>
-            <targetReference>Run_Preflight_Checks</targetReference>
+            <targetReference>Recheck_Renewal_Opportunity</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Renewal_Quote_Error</targetReference>
@@ -60,7 +60,7 @@
         <inputParameters>
             <name>renewContractId</name>
             <value>
-                <elementReference>Get_Renewal_Opportunity.ContractId</elementReference>
+                <elementReference>Recheck_Renewal_Opportunity.ContractId</elementReference>
             </value>
         </inputParameters>
         <nameSegment>initiateRenewal</nameSegment>
@@ -158,6 +158,32 @@
             <targetReference>Has_Renewable_Assets</targetReference>
         </connector>
     </assignments>
+    <decisions>
+        <description>Stops if the opportunity was closed or its type changed while the confirmation screen was open, for example because it was consolidated into another opportunity whose renewal has since been activated; the checks below wouldn't catch that, since an activated renewal isn't pending.</description>
+        <name>Is_Still_Open_Renewal</name>
+        <label>Is Still Open Renewal</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Not_Open_Renewal</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Open</defaultConnectorLabel>
+        <rules>
+            <name>Still_Open</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Recheck_Renewal_Opportunity.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Run_Preflight_Checks</targetReference>
+            </connector>
+            <label>Still Open</label>
+        </rules>
+    </decisions>
     <decisions>
         <description>Stops before quoting when this opportunity already has a quote, or a quote on any opportunity has a renewal of these assets that hasn&apos;t been ordered and activated: either could still be ordered, and activating it would renew the same assets again.</description>
         <name>Has_Existing_Renewal</name>
@@ -391,6 +417,49 @@
         </value>
     </processMetadataValues>
     <processType>Flow</processType>
+    <recordLookups>
+        <description>Reads the opportunity again after the confirmation screen, with the assets locked, and only if it is still open with Type Existing Business. The checks and the renewal use this read, so they get its current price book, currency and contract.</description>
+        <name>Recheck_Renewal_Opportunity</name>
+        <label>Recheck Renewal Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Is_Still_Open_Renewal</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Renewal_Quote_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>IsClosed</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Type</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Existing Business</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>ContractId</queriedFields>
+        <queriedFields>Pricebook2Id</queriedFields>
+        <queriedFields>CurrencyIsoCode</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <recordLookups>
         <name>Get_Renewal_Assets</name>
         <label>Get Renewal Assets</label>
@@ -645,13 +714,13 @@
         <inputAssignments>
             <name>PriceBookId</name>
             <value>
-                <elementReference>Get_Renewal_Opportunity.Pricebook2Id</elementReference>
+                <elementReference>Recheck_Renewal_Opportunity.Pricebook2Id</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <name>CurrencyCode</name>
             <value>
-                <elementReference>Get_Renewal_Opportunity.CurrencyIsoCode</elementReference>
+                <elementReference>Recheck_Renewal_Opportunity.CurrencyIsoCode</elementReference>
             </value>
         </inputAssignments>
         <outputAssignments>

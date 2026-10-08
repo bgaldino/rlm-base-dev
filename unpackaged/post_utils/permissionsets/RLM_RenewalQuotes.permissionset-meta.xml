@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+      Apex the renewal quick actions call: Generate Renewal Quote
+      (RLM_CreateQuoteFromRenewalOpp) and Consolidate Renewals
+      (RLM_ConsolidateRenewalOpportunities) both run RLM_RenewalAssetLock, which
+      locks the root assets so two renewals of them run one at a time. A flow user
+      needs class access to an invocable Apex action, so without this set a
+      non-admin running either action faults at the lock.
+
+      Deliberately separate from RLM_UtilitiesPermset: that set also grants
+      RLM_AccountUtilities' destructive reset. RLM_RenewalAssetLock only selects the
+      given assets FOR UPDATE: it changes nothing and returns nothing, so this set
+      grants class access and nothing else. The flows' own reads and Initiate
+      Renewal still run with the user's object and field access.
+    -->
+    <classAccesses>
+        <apexClass>RLM_RenewalAssetLock</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM Renewal Quotes</label>
+</PermissionSet>
