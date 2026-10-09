@@ -23,6 +23,7 @@
     "ExternalClientApps",
     "GlobalPromotionsMgmtBasic",
     "InsightsPlatform",
+    "MaxBundleDepth:5",
     "OrderManagement",
     "OrderSaveLogicEnabled",
     "PartnerCommunity",
