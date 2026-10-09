@@ -106,10 +106,10 @@ Reverse dependency order (children before parents):
 | 3 | prepare_expression_sets | ES lifecycle |
 | 4 | prepare_payments | Payments webhook + metadata |
 | 5 | deploy_full | `force-app/` bundle |
-| 6 | prepare_price_adjustment_schedules | PAS metadata |
 | 7 | prepare_quantumbit | QB metadata |
 | 8 | prepare_product_data | PCM, Q3, product images |
 | 9 | prepare_pricing_data | Pricing |
+| 9.5 | prepare_price_adjustment_schedules | PAS activation (after pricing data, which upserts the schedule inactive) |
 | 10 | prepare_docgen | DocGen |
 | 11 | prepare_dro | DRO + fulfillment scope |
 | 12 | prepare_tax | Tax |
