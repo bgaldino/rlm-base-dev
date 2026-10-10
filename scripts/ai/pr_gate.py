@@ -42,7 +42,7 @@ Exit codes follow `check_branch_scope.py`, so a tool error is never read as a ve
 0 = every selected gating check passed · 1 = at least one failed · 2 = usage or tool error.
 
 Usage:
-    python scripts/ai/pr_gate.py --base origin/264        # select from the diff vs a ref
+    python scripts/ai/pr_gate.py --base origin/main        # select from the diff vs a ref
     python scripts/ai/pr_gate.py --changed-files-from f   # one path per line (tests, CI)
     python scripts/ai/pr_gate.py --all                    # ignore selection, run everything
     python scripts/ai/pr_gate.py --list                   # print the matrix, run nothing
@@ -109,6 +109,17 @@ CHECKS = [
         # files). Always select this cheap check so target-only removals cannot bypass it.
         triggers=["scripts/ai/analyze_agent_tooling.py"], always=True,
         deps=[], min_python=(3, 10), gating=True,
+    ),
+    dict(
+        name="release_refs",
+        cmd=["python", "scripts/ai/check_release_refs.py"],
+        # Branches are named by role, never by release number (README → Branch
+        # Information). The triggers are the script's own SCOPE, so any file it audits
+        # selects it; it reads ~400 files in well under a second.
+        triggers=["AGENTS.md", "CONTRIBUTING.md", "REVIEW.md", ".agents/", ".claude/",
+                  ".cursor/", ".github/", "scripts/", "tasks/", "docs/guides/",
+                  "docs/references/"],
+        deps=[], gating=True,
     ),
     dict(
         name="skill_manifest",
@@ -515,6 +526,7 @@ STDLIB_SUITES = [
     "tests/test_agent_launch_checks.py",
     "tests/test_agents_common.py",
     "tests/test_build_billing_ui_module.py",
+    "tests/test_check_release_refs.py",
     "tests/test_context_apply.py",
     "tests/test_context_delete.py",
     "tests/test_context_payload.py",
@@ -838,7 +850,7 @@ def run_sequence(cmds):
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--base", help="git ref to diff against (e.g. origin/264)")
+    ap.add_argument("--base", help="git ref to diff against (e.g. origin/main)")
     ap.add_argument("--changed-files-from", help="file with one changed path per line")
     ap.add_argument("--all", action="store_true", help="run every check regardless of paths")
     ap.add_argument("--list", action="store_true", help="print the matrix and exit")
