@@ -8,7 +8,9 @@ Robot helpers' browser overrides (CHROME_BINARY / CHROME_BIN and
 CHROMEDRIVER_PATH) and flags a Chrome/ChromeDriver major-version mismatch. Optionally
 auto-fixes an outdated or missing SFDMU plugin (auto_fix), robot
 dependencies via pipx inject (auto_fix_robot, on by default), and urllib3
-via pipx inject (auto_fix_urllib3, off by default).
+via pipx inject (auto_fix_urllib3, off by default). Warns when the gate
+interpreter (scripts/ai/gate_python.py) is missing or can't run every
+pr_gate.py check.
 
 Run without an org:
     cci task run validate_setup
@@ -167,6 +169,7 @@ class ValidateSetup(BaseTask):
         if version_match:
             results.append(version_match)
         results.append(self._check_urllib3(auto_fix_urllib3))
+        results.append(self._check_gate_python())
 
         self._log_summary(results)
 
@@ -186,6 +189,28 @@ class ValidateSetup(BaseTask):
         if current >= MIN_PYTHON:
             return self._ok(label, ver_str)
         return self._fail(label, f"{ver_str} — requires {min_str}+")
+
+    def _check_gate_python(self) -> Dict[str, str]:
+        """The interpreter that runs scripts/ai/pr_gate.py locally and in the agent Stop hook.
+
+        WARN, not FAIL: org builds don't need it. Without it, though, the local gate reports
+        MISSING-DEP and a loop builder can't finish, so say so here rather than mid-run.
+        """
+        label = "Gate interpreter"
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sys.path.insert(0, os.path.join(repo_root, "scripts", "ai"))
+        try:
+            import gate_python  # noqa: PLC0415
+            from pathlib import Path  # noqa: PLC0415
+
+            python, problems = gate_python.problems(Path(repo_root))
+        except Exception as exc:
+            return self._warn(label, f"check failed: {exc}")
+        if problems:
+            return self._warn(
+                label, "; ".join(problems) + " — create it as described in scripts/ai/gate_python.py"
+            )
+        return self._ok(label, str(python))
 
     def _check_cumulusci(self) -> Dict[str, str]:
         label = "CumulusCI"
