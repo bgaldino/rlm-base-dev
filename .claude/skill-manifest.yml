@@ -53,7 +53,7 @@ api_version_prior_ga: "v67.0"
 foundations:
   name: rlm-base-dev
   repo_url: https://github.com/bgaldino/rlm-base-dev
-  branch_active: "264"
+  branch_active: "main"
   role: build
   maintainer: Brian Galdino
   local_path_hints:

@@ -44,7 +44,7 @@ placeholders or explicitly labeled QB example data.
 ### Release 264 re-verification
 
 - `[verify]` **Every contract in this directory was captured at API v67.0; the
-  request examples now read v68.0.** The `264` branch retargeted the endpoint
+  request examples now read v68.0.** The 264 cutover retargeted the endpoint
   paths to `v68.0` (Release 264). Nothing in these docs has been re-exercised on
   a 264 org, and the capture org (`rlm-base__jun17_1`, R262) had a **maximum API
   version of 67.0** — so the v68.0 requests shown were not merely untried there,

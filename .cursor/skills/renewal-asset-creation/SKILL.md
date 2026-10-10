@@ -63,8 +63,8 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
    renewal/amendment history *after* augment (surviving unmarked action/period count
    ≠ 1) is refused entirely, so the restore step can't overlap or clobber genuine
    history.
-6. **Everything ships through a feature branch + PR.** Never commit to `264` /
-   `main` / `release/*`. This skill and its scripts are their own branch — adding
+6. **Everything ships through a feature branch + PR.** Never commit to `main` /
+   `preview/*` / `release/*`. This skill and its scripts are their own branch — adding
    them to an unrelated feature branch trips `check_branch_scope.py`.
 
 ## DO NOT
@@ -206,5 +206,5 @@ reason.
 > a behavioral change to them.
 
 Before the PR: `python -m py_compile scripts/renewal_assets/*.py`, run
-`python scripts/ai/pr_gate.py --base origin/264`, and follow
+`python scripts/ai/pr_gate.py --base origin/main`, and follow
 `doc-consistency/SKILL.md` (this skill is registered in `AGENTS.md`).

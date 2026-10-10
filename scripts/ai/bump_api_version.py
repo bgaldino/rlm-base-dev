@@ -85,10 +85,12 @@ EXCLUDED_PREFIXES: dict[str, str] = {
     # (Release 262 ... API 67.0 GA target)"), which a blanket rewrite would destroy.
     # So they need a hand edit each release, and the instruction is spelled out here
     # rather than deferred: in `project-map.md` update "Salesforce target" and
-    # "API version" and leave the "Default branch"/"Frozen prior-GA" lines alone; in
+    # "API version" and leave the "Default branch" line alone; in
     # `project-memory.json` update `repository.salesforce_release.number` and
-    # `.api_version` (plus `repository.active_work_branch`) and leave that object's
-    # `prior_ga_release`/`prior_ga_api_version` alone. The release's own docs pass
+    # `.api_version`, and leave that object's `prior_ga_release`/`prior_ga_api_version`
+    # alone. Branch fields (`active_work_branch`, the manifest's `branch_active`) say
+    # `main` and never change at a cutover: branches are named by role, not release
+    # number (README → Branch Information). The release's own docs pass
     # (doc-consistency/SKILL.md) is where this belongs long-term, but a pointer is
     # not a procedure -- an operator reading this comment can act on it as it stands.
     ".agents/": "mixed current/prior release refs — retarget by hand, do not sweep",

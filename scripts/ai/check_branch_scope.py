@@ -36,19 +36,18 @@ yet and each signal is blind to one of those cases:
    whom**, and five exclusions keep the signal from reporting the wrong branch.
    Every one was a false positive before it was a guard:
 
-   - **Contained in the base.** The release integration PR (`264` -> `main`) has
+   - **Contained in the base.** The release integration PR (`preview/<n>` -> `main`) has
      the base branch itself as its head, so without this every branch merely *up
      to date* with base was reported -- and being behind base read cleaner than
      being current with it.
    - **A merged-in join contained in the other PR's base.** Those commits have
-     merged there, so they are not that PR's work. The sync PR (`main` merged into
-     `264`, #471) shares main's merged commits with every open PR cut from `main`,
+     merged there, so they are not that PR's work. A sync PR (`main` merged into `preview/<n>`; first seen in #471) shares main's merged commits with every open PR cut from `main`,
      and was reported as stacked on all of them. Only joins reached through a
      merge (off this head's first-parent line) qualify: the other base may itself
      be an unmerged integration branch, and a branch *built on* it still carries
      that work on its first-parent line.
    - **A fork's head.** Not in this checkout, and the `<remote>/<branch>` fallback
-     would resolve a fork PR on a branch named `264` or `main` to *our* branch of
+     would resolve a fork PR on a branch named `main` or `preview/<n>` to *our* branch of
      that name.
    - **A PR that targets this branch.** That is the declaration of a child stack:
      they are building on us. GitHub records it in `baseRefName`, which is worth
@@ -103,7 +102,7 @@ removing the fetch or letting it fail silently.
 
 Examples:
     python scripts/ai/check_branch_scope.py --pr 370       # both signals
-    python scripts/ai/check_branch_scope.py                # HEAD vs origin/264
+    python scripts/ai/check_branch_scope.py                # HEAD vs the default branch
     python scripts/ai/check_branch_scope.py --base origin/main --head my-branch
 """
 from __future__ import annotations
@@ -113,7 +112,9 @@ import json
 import subprocess
 import sys
 
-DEFAULT_BASE = "origin/264"
+# The remote's default branch, never a release number: release lines come and go three
+# times a year, and a pinned default silently compares against a retired line.
+DEFAULT_BASE = "origin/HEAD"
 
 
 class ToolError(Exception):
@@ -264,7 +265,7 @@ def _check(args, ap):
     # available, but only by asking for it with --no-fetch.
     if not args.no_fetch and "/" in base:
         candidate = base.split("/", 1)[0]
-        # A slash does not prove a remote: `--base release/262` is a local branch
+        # A slash does not prove a remote: `--base release/<n>` is a local branch
         # whose first segment is not a remote, and fetching 'release' would fail
         # for a reason that says nothing about staleness.
         if candidate in _run(["git", "remote"]).split():
@@ -279,7 +280,9 @@ def _check(args, ap):
 
     for ref in (base, head):
         if not _resolves(ref):
-            raise ToolError(f"{ref} does not resolve in this checkout")
+            hint = (" (set it with: git remote set-head origin --auto)"
+                    if ref == DEFAULT_BASE else "")
+            raise ToolError(f"{ref} does not resolve in this checkout{hint}")
 
     own, foreign = [], []
     for line in _run(["git", "cherry", base, head]).splitlines():
@@ -292,7 +295,7 @@ def _check(args, ap):
         if other.get("isCrossRepository"):
             # A fork's head is not in this checkout, and `<remote>/<headRefName>`
             # would silently resolve to *our* branch of that name — so a fork PR on
-            # a branch called `264` or `main` would be compared against the wrong
+            # a branch called `main` or `preview/<n>` would be compared against the wrong
             # commits entirely. Signal 1 still covers this branch.
             continue
         ref = other["headRefOid"] if _resolves(other["headRefOid"]) \
@@ -302,7 +305,7 @@ def _check(args, ap):
         if _is_ancestor(ref, base):
             # Already contained in the base, so containing it says nothing about
             # this branch. Load-bearing for one case in particular: the release
-            # integration PR (`264` -> `main`) has the *base branch itself* as its
+            # integration PR (`preview/<n>` -> `main`) has the *base branch itself* as its
             # head, which is an ancestor of every branch that is up to date with
             # base. Without this, opening that PR fails every other branch in the
             # repo, and being *behind* base would read cleaner than being current
@@ -339,7 +342,7 @@ def _check(args, ap):
         # A join already inside the *other* PR's base, and brought in by a merge, is
         # not that PR's work either: it has merged there, so it is upstream to them,
         # and a branch that merged that line in is carrying merged work, not
-        # unmerged work of theirs. This is the sync PR (`main` merged into `264`):
+        # unmerged work of theirs. This is a sync PR (`main` merged into `preview/<n>`):
         # every open PR cut from `main` since then shares main's merged commits with
         # it, and without this each one was reported. A branch cut from another PR's
         # *unmerged* commits still joins outside both bases, so it is still caught.

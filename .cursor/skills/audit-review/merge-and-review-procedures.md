@@ -9,7 +9,7 @@ the repository root as the working directory.
 
 Use these before opening or updating a PR. They complement the [PR Review Focus Areas](../../../AGENTS.md#pr-review-focus-areas) in the root contract.
 
-**Run `python scripts/ai/pr_gate.py --base origin/264` first.** It selects the mechanical
+**Run `python scripts/ai/pr_gate.py --base origin/main` first.** It selects the mechanical
 checks your diff actually needs, runs them, and prints a status for **every** check — including the
 ones it skipped and why. That is the point: the checks below already existed and were enforced only
 by an agent reading this list, which is the enforcement that failed in `#264-27`, `#264-55` and
@@ -40,7 +40,7 @@ paths. (What reports success is a *job-level* `if:` skip, which is a different m
 way selection is the driver's job and never the trigger's.
 
 **Running is blocking, and a skipped run is too.** `Mechanical checks` is a **required status
-check** on `main`, `264` and `release/*` — the `Approvals` ruleset requires the context from the
+check** on `main`, `preview/*` and `release/*` — the `Approvals` ruleset requires the context from the
 GitHub Actions app, so no other actor can report a same-named check to satisfy it. Three consequences
 worth knowing.
 
@@ -55,7 +55,7 @@ contents are unaffected, which is why the list above is safe here.
 
 The requirement is matched on the **job's published name**, and the ruleset lives outside this repo,
 so renaming `name: Mechanical checks` does not un-require anything — the ruleset goes on waiting for
-a context nobody publishes, which leaves it **Pending** on every PR to `main`, `264` and `release/*`
+a context nobody publishes, which leaves it **Pending** on every PR to `main`, `preview/*` and `release/*`
 at once. That is the same mechanism as a skipped run, and it fails *closed*: a rename is a repo-wide
 merge outage, not a bypass. The guard suite pins that string for this reason, and the pin is not
 cosmetic. (The bypass hazard is the opposite shape — a *second* job publishing the same name, since
@@ -88,7 +88,7 @@ indexes, and more.
 ### Merges and unintended diffs
 
 1. **Run `python scripts/ai/check_branch_scope.py --pr <n>` before merging.** It fails a branch carrying commits it does not own — the signature of a branch cut from a *composed* integration branch, which inherits other fixes **in their pre-review state** and can revert landed review fixes on merge. A branch that re-accumulated five foreign commits reached the point of merging twice (`#264-56`); this is what catches it. It reports two distinct findings: `FOREIGN` (content already upstream) and `STACKED` (built on another **open** PR, which the first signal cannot see because nothing has merged yet). Rebuild a `FOREIGN` branch from the base rather than reverting on top of it; a `STACKED` one must at minimum not merge before its parent. Pass `--pr` for both signals. Details and the two weaker checks that do *not* work: `.cursor/skills/audit-review/SKILL.md` → **Step −1**.
-2. Before push, review the diff/stat against the intended PR base: `git diff origin/264 --stat` for the active release line (substitute the target base for other PRs). Pay extra attention to **`orgs/`**, **`datasets/`**, **`unpackaged/post_ux/`**, and scratch data — unexpected churn often means files were **swept in from another branch**.
+2. Before push, review the diff/stat against the intended PR base: `git diff origin/main --stat` (substitute the PR's base when it targets a `preview/*` or `release/*` branch). Pay extra attention to **`orgs/`**, **`datasets/`**, **`unpackaged/post_ux/`**, and scratch data — unexpected churn often means files were **swept in from another branch**.
 3. Changes under **`unpackaged/post_ux/`** should come from **`assemble_and_deploy_ux`** or the **UX drift** flows, not manual XML edits (see `.cursor/skills/repo-integration/ux-assembly-retrieve.md`).
 
 ## Responding to Automated PR Reviews

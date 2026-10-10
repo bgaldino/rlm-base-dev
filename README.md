@@ -136,14 +136,25 @@ security vulnerabilities privately through the process in
 
 ## Branch Information
 
-- **`main`**: Salesforce Release 264 (Winter '27, API v68.0) — the current published line, promoted from the `264` branch. 264 is **preview / pre-GA** (no v68.0 GA certification yet); a live 264 org remains ground truth.
-- **`264`**: The Release 264 development branch, in sync with `main` following the promotion.
-- **`262`**: Salesforce Release 262 (Summer '26, API v67.0) — active maintenance branch for remaining 262 patches through 262 GA; at the final 262 release tip.
-- **`release/262`**: Frozen Release 262 GA reference, snapshotted from the pre-cutover `main` at `49a494de`.
-- **`release/260`**: Salesforce Release 260 (Spring '26, GA) — prior GA reference.
-- Other branches exist for different release scenarios and preview features.
+Branches are named by role, never by release number alone, so nothing about the pattern
+changes from one release to the next:
 
-`main` now carries the 264 line; the `262` branch receives any remaining Release 262 patches until 262 GA. This promotion mirrors how 262 was promoted into `main` via PR #208.
+| Branch | Carries | Lifetime |
+|---|---|---|
+| `main` | The current line. The default base for every PR. | Permanent |
+| `preview/<n>` | Release `<n>` before it reaches `main`, opened once preview orgs exist | Until cutover, then merged into `main` by PR and deleted |
+| `release/<n>` | Patches for an earlier line, cut from `main` at the cutover that replaced it | Until that release's end of life, then kept as a frozen record |
+| `feat/*`, `fix/*`, `chore/*`, `docs/*` | One change each | Until merged |
+
+**At a cutover** to release `<n>`: cut `release/<current>` from `main`, merge `preview/<n>`
+into `main` by PR, delete `preview/<n>`, then update this section and the release fields in
+`.claude/skill-manifest.yml` (and run `scripts/ai/bump_api_version.py` for the API pins).
+
+**Today** — the only place in the repo that maps a release to a branch:
+
+- **`main`**: Salesforce Release 264 (Winter '27, API v68.0).
+- **`release/262`**: Release 262 (Summer '26, API v67.0) — patches for the prior line.
+- **`release/260`** and earlier: frozen records of past GA lines.
 
 ## Project Governance & Support
 

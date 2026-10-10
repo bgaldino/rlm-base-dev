@@ -25,18 +25,19 @@
 ## Project Overview
 
 **Revenue Cloud Base Foundations** automates creation and configuration of
-Salesforce environments for Revenue Lifecycle Management (RLM). **`main` is now the
-Release 264 (Winter '27, API v68.0) line**, promoted from the `264` branch (the two
-are in sync). The `262` branch carries any remaining Release 262 (Summer '26, v67.0)
-patches through 262 GA; `release/262` and `release/260` are frozen references.
+Salesforce environments for Revenue Lifecycle Management (RLM).
 
-264 is pre-GA — the Winter '27 release notes are published on Help (the Revenue
-section is captured under `docs/salesforce/264/release-notes/`), but pre-GA docs
-can still change and the v68.0 Metadata Coverage Report has not been checked — so
-**a live 264 org is ground truth, not documentation**. The dev hub is on API 68.0, so
-every scratch org it creates is a 264 org, and `main` (the 264 line) builds against
-it. Distinguish a *fresh* 264 org from a 262 org *upgraded* to 264: an upgrade
-grandfathers settings and schema, so it is not evidence about fresh builds.
+**Branches are named by role, never by release number.** `main` is the current line
+and the default base for every PR; `preview/<n>` carries the next release before its
+cutover; `release/<n>` branches carry patches for earlier lines. Which release each
+one carries is recorded in [README → Branch Information](README.md#branch-information),
+and the active release and API version in `.claude/skill-manifest.yml`
+(`salesforce_release_active`, `api_version_active`). Don't restate them elsewhere.
+
+While a release is pre-GA its Help docs can still change, so **a live org of that
+release is ground truth, not documentation**. Scratch orgs take the dev hub's
+release. Distinguish a *fresh* org from one *upgraded* from the prior release: an
+upgrade grandfathers settings and schema, so it is not evidence about fresh builds.
 
 Key technology stack:
 - **CumulusCI (CCI)** — orchestration engine for tasks and flows
@@ -76,12 +77,11 @@ under `tests/`; Robot suites under `robot/rlm-base/`. `datasets/bre/` and
    — they cannot deploy via Metadata API
 7. **DO NOT** commit real emails in `rlm.network-meta.xml` — use the
    placeholder; patch/revert tasks handle deploy-time substitution
-8. **DO NOT** commit or push directly to `main` **or to the active release
-   branch** (`264`; likewise `release/*`) — all changes go through a feature
-   branch and a pull request, which is how the 262 line was built. This applies
-   to docs and agent-instruction files, not just code. Never force-push any of
-   them without explicit user approval: PRs are routinely stacked on the active
-   release branch, so rewriting it invalidates every one of them.
+8. **DO NOT** commit or push directly to `main`, a `preview/*` or a `release/*`
+   branch — all changes go through a feature branch and a pull request. This
+   applies to docs and agent-instruction files, not just code. Never force-push
+   any of them without explicit user approval: PRs are routinely stacked on them,
+   so rewriting one invalidates every one of them.
 9. **DO NOT** present a behavioral Robot Framework change as verified —
    or merge one — on the strength of `robot --dryrun`. Dryrun validates only
    syntax and keyword resolution; it never launches a browser or runs the
@@ -182,7 +182,7 @@ python scripts/ai/generate_cci_reference.py                         # after cumu
 
 ## Pre-merge checklists for AI agents
 
-Before opening or updating a PR, **run `python scripts/ai/pr_gate.py --base origin/264` first**.
+Before opening or updating a PR, **run `python scripts/ai/pr_gate.py --base origin/main` first**.
 Every selected check gates; missing dependencies fail rather
 than skip. Inspect every result, including skips. Run locally even though CI
 runs the same gate. Detailed procedures, generator behavior and enforcement
@@ -190,7 +190,7 @@ history: [.cursor/skills/audit-review/merge-and-review-procedures.md](.cursor/sk
 
 ### Required CI check
 
-`Mechanical checks` from the GitHub Actions app is required on `main`, `264`
+`Mechanical checks` from the GitHub Actions app is required on `main`, `preview/*`
 and `release/*`. Running or missing checks block landing. Do not path-filter
 away the workflow, rename the published job, or introduce another job with
 that same name. Skip directives in commit messages leave the required check
@@ -234,8 +234,8 @@ indexes in the same change as their source.
    Rebuild a `FOREIGN` branch from the base; do not revert on top of it.
    A `STACKED` branch must not merge before its parent. Pass `--pr` for both
    signals; see `.cursor/skills/audit-review/SKILL.md` → **Step −1**.
-2. Before push, inspect the diff/stat against the intended base (`origin/264`
-   for this line). Watch `orgs/`, `datasets/`, `unpackaged/post_ux/` and scratch
+2. Before push, inspect the diff/stat against the PR's base (`origin/main` unless
+   the PR targets a `preview/*` or `release/*` branch). Watch `orgs/`, `datasets/`, `unpackaged/post_ux/` and scratch
    data for unrelated changes inherited from another branch.
 3. Changes under `unpackaged/post_ux/` must come from `assemble_and_deploy_ux`
    or the UX drift flows, never manual XML edits; see

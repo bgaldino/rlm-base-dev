@@ -10,7 +10,7 @@ description: >-
 
 > How to process automated PR reviews (Codex, Copilot) and run the deep
 > pre-merge audit, through the lens that matters for this repo: **the release
-> branch → `main` promotion (now `264` → `main`) is mirrored to an internal
+> promotion (`preview/<n>` → `main`) is mirrored to an internal
 > Salesforce repo and passes through Salesforce audit agents.** The goal is to
 > minimize audit passes — so every
 > finding is handled as a *class*, not a one-line patch, and verified before it
@@ -67,7 +67,7 @@ mandatory checklist remains in `AGENTS.md`.
 | A single trivial nit with no class | Fix inline; reply; skip the full ceremony |
 | Authoring the actual CRUD/FLS fixes | Pair with `apex-security-hardening/SKILL.md` |
 
-## Release Audit (release branch → `main` → Salesforce Labs; now `264` → `main`)
+## Release Audit (`preview/<n>` → `main` → Salesforce Labs)
 
 When a branch is being prepared to merge to `main`, it is **mirrored to an internal
 Salesforce repo and run through Salesforce audit agents** before release to devs,
@@ -189,7 +189,7 @@ branch diverged. This is the "swept-in file" risk mentioned in AGENTS.md
 ### Step −1 — Confirm the branch owns every commit on it (cheapest check; run before anything else)
 
 ```bash
-python scripts/ai/check_branch_scope.py --pr <n>     # or: --base origin/264 --head <branch>
+python scripts/ai/check_branch_scope.py --pr <n>     # or: --base origin/main --head <branch>
 ```
 
 A branch cut from a **composed integration branch** — one built by stacking
@@ -252,11 +252,11 @@ substituted:
 Four things that are **not** findings. A parent branch that truly merged (a merge
 commit, not squash or rebase): its commits are literal ancestors of the base, so
 they are not in this branch's diff and there is nothing to strip. An open PR whose
-head is **already contained in the base** — the release integration PR (`264` →
+head is **already contained in the base** — the release integration PR (`preview/<n>` →
 `main`) has the base branch itself as its head, and treating that as a stack flags
 every branch that is up to date with base, which would reward being stale. A join
-**merged in from the other PR's base** — the sync PR (`main` merged into `264`,
-#471) shares main's merged commits with every open PR cut from `main`; those have
+**merged in from the other PR's base** — a sync PR (`main` merged into `preview/<n>`;
+first seen in #471) shares main's merged commits with every open PR cut from `main`; those have
 merged there, so they are nobody's unmerged work. This applies only to a join
 reached through a merge, off this head's first-parent line: a branch *built on* an
 unmerged integration branch that another PR targets still carries that work, and

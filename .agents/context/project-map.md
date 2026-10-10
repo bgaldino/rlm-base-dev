@@ -7,9 +7,9 @@
 - **Salesforce target:** Release 264 / Winter '27
 - **API version:** `68.0`
 - **Source format:** SFDX
-- **Default branch:** `main` (Release 264 / Winter '27 / API `68.0` — promoted from `264`; 264 is preview/pre-GA)
-- **Active release branch in manifest:** `264`
-- **Frozen prior-GA reference branch:** `release/262`
+- **Default branch:** `main` — the current line and the default PR base. Next-release work
+  goes on `preview/<n>`; earlier lines are `release/<n>`. See
+  [README → Branch Information](../../README.md#branch-information).
 
 ## Agent Memory Files
 
@@ -53,7 +53,7 @@
 5. Do not pass `access_token` to `sf` CLI commands; use usernames or aliases with `--target-org`.
 6. Do not add `EmailTemplatePage` flexipages to `templates/flexipages/`.
 7. Do not commit real emails in `rlm.network-meta.xml`; keep placeholders.
-8. Do not commit or push directly to `main` **or to the active release branch** (`264`; likewise `release/*`) — feature branch plus PR, for docs and agent-instruction files as well as code. Never force-push any of them without explicit approval; PRs are routinely stacked on the active release branch.
+8. Do not commit or push directly to `main`, `preview/*` or `release/*` — feature branch plus PR, for docs and agent-instruction files as well as code. Never force-push any of them without explicit approval; PRs are routinely stacked on them.
 
 ## Generated References
 

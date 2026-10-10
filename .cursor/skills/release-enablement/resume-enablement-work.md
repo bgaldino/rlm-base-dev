@@ -24,7 +24,7 @@ git log --oneline -5
 git status --short | head -20
 ```
 
-Expected branch: typically a `feat/enablement-*` or `feat/skills-and-enablement-*` feature branch (initial 260-cycle authoring happened on `feat/enablement-260-master-exercises`; subsequent cycles use a `feat/...-to-{version}` branch). If on `main` or a release branch (`264`, `release/262`, `release/260`, …), check whether the user wants to switch — enablement work happens on a feature branch.
+Expected branch: typically a `feat/enablement-*` or `feat/skills-and-enablement-*` feature branch (initial 260-cycle authoring happened on `feat/enablement-260-master-exercises`; subsequent cycles use a `feat/...-to-{version}` branch). If on `main`, a `preview/<n>` or a `release/<n>` branch, check whether the user wants to switch — enablement work happens on a feature branch.
 
 If you see commits with messages starting `feat(enablement):` or `docs(enablement):`, you're in the right place.
 
@@ -88,7 +88,7 @@ The user may need to re-grant these on the new workstation. If you don't have a 
 
 ## Critical do-nots when picking up
 
-1. **DO NOT push to `main` or the active release branch (`264`) directly.** Enablement work always uses a feature branch plus a PR, and per `AGENTS.md` rule 8 that has **no approval exception** — "get it approved" is not a route to a direct push. Explicit user approval is required only for the separate, rarer act of *force-pushing* one of those branches: PRs are routinely stacked on the release branch, so rewriting it invalidates every one of them.
+1. **DO NOT push to `main`, `preview/*` or `release/*` directly.** Enablement work always uses a feature branch plus a PR, and per `AGENTS.md` rule 8 that has **no approval exception** — "get it approved" is not a route to a direct push. Explicit user approval is required only for the separate, rarer act of *force-pushing* one of those branches: PRs are routinely stacked on them, so rewriting one invalidates every one of them.
 2. **DO NOT amend or rewrite commits that have been pushed.** If the feature branch has been pushed (`git log @{upstream}` shows commits), amending changes the SHA and breaks anyone tracking the branch. New commits only.
 3. **DO NOT assume the user uploaded source PDFs (Solution Overview decks, master Help PDF) on this workstation.** Those are CONFIDENTIAL or 130 MB — typically NOT in the repo. The captured markdown summaries in `docs/salesforce/{version}/feature-index.md` are usually sufficient for authoring; only ask for re-uploads if you genuinely need a section that wasn't captured.
 4. **DO NOT invent customer or product names.** Customers come from `scratch_data` (Infinitech, Global Media). Partners from `qb-prm` (Robot Resellers). Bundles + products from `qb-pcm`. Constraint models from `qb-constraints` (QuantumBitComplete, Server2). See QB Scenario Reference for the canonical list.
