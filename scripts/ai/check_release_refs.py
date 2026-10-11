@@ -130,7 +130,8 @@ def git_invocations(line: str):
 
 
 # `git` as a command word: not inside `git-tracking`, `.git`, `/git/`.
-GIT_WORD = re.compile(r"(?<![\w.-])git[\"']?(?=\s)")  # `/usr/bin/git`, `"/opt/x/git"`; not `.git`
+# `/usr/bin/git`, `"/opt/x/git"`, Windows `git.exe`; not `.git`, `git-x`.
+GIT_WORD = re.compile(r"(?<![\w.-])git(?:\.exe)?[\"']?(?=\s)", re.IGNORECASE)
 
 
 def git_commands() -> frozenset:
@@ -210,7 +211,7 @@ for _verb in ("diff", "log", "show", "whatchanged", "format-patch"):
         {"-S", "-G", "-O", "--output", "--grep", "--author", "--committer", "--format",
          "--pretty", "--date", "--since", "--until", "--after", "--before", "--line-prefix",
          "--src-prefix", "--dst-prefix", "--word-diff-regex", "-I", "--ignore-matching-lines",
-         "-l"})
+         "-l", "--encoding", "--notes", "--show-notes"})
 # Options whose value is a file, path or pattern under any subcommand that has them.
 VALUE_FLAGS_ANYWHERE = {"--pathspec-from-file", "--rotate-to", "--skip-to", "--decorate-refs",
                         "--decorate-refs-exclude", "--exclude", "--exclude-per-directory",
@@ -257,8 +258,8 @@ REF_FLAG_WORDS = {"branch", "branches", "base", "head", "ref", "onto", "into", "
 # or be a Make assignment (`?=`, `:=`). Not `!=`/`==`: those are comparisons.
 SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*"
                      r"(?::\s*[\w.\[\]|, ]+?\s*=(?!=)|[?:+]=|(?<![!=<>+])=(?!=)|:(?!=))\s*")
-BRANCH_WORDS = {"base", "branch", "branches", "ref", "refs", "protected", "target", "targets",
-                "head", "heads"}
+BRANCH_WORDS = {"base", "bases", "branch", "branches", "ref", "refs", "protected", "target",
+                "targets", "head", "heads"}
 MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "length", "num",
             "delay", "retry", "retries", "seconds", "secs", "ms", "width", "height", "depth",
             "price", "amount", "quantity", "qty", "cost", "total", "percent", "score",
@@ -570,7 +571,7 @@ def near_branch(line: str) -> bool:
 
 # Role prefixes: a remote that happens to be called `release` or `preview` must not turn the
 # role branch `release/NNN` into a numbered remote ref (refs/remotes/... stays unambiguous).
-ROLE_PREFIXES = {"release", "preview"}
+ROLE_PREFIXES = {"release", "preview", "feat", "fix", "chore", "docs"}  # README's roles
 # Tag namespaces: `archive/NNN` is the tag a retired numbered branch was archived as, not a
 # branch, so it names history rather than pinning a line.
 TAG_PREFIXES = {"archive"}
@@ -701,9 +702,11 @@ OPENER = re.compile(r"\\\s*$|=\s*$|\[\s*$|[:=]\s*(?:[A-Za-z_][\w.]*)?[\[({]|:\s*
 # An argv list for git or gh: `subprocess.run(["git", "diff", "NNN..HEAD"])`, the usual
 # Python form here. Rebuilt as the shell command it runs, then read by the same rules.
 # A list or tuple whose first item is git or gh, by basename (`"/usr/bin/git"` too).
-ARGV = re.compile(r"""[\[(]\s*(["'])(?:[\w./-]*/)?(git|gh)\1\s*,([^\])]*)[\])]""")
+ARGV = re.compile(r"""[\[(]\s*(["'])(?:[\w./\\: -]*[/\\])?(git|gh)(?:\.exe)?\1\s*,([^\])]*)[\])]""",
+                  re.IGNORECASE)
 ARGV_ITEM = re.compile(r"""(["'])(.*?)\1""")
-ARGV_OPEN = re.compile(r"""[\[(]\s*["'](?:[\w./-]*/)?(?:git|gh)["']""")
+ARGV_OPEN = re.compile(r"""[\[(]\s*["'](?:[\w./\\: -]*[/\\])?(?:git|gh)(?:\.exe)?["']""",
+                       re.IGNORECASE)
 
 
 def expression_end(text: str, pos: int) -> int:
@@ -748,8 +751,9 @@ def argv_commands(text: str) -> list:
                 break  # the list's own close
             items.append("DYNAMIC")
             pos = end
-        if items and items[0].rsplit("/", 1)[-1] in ("git", "gh"):
-            commands.append(items[0].rsplit("/", 1)[-1] + " " +
+        exe = re.split(r"[/\\]", items[0])[-1].lower().removesuffix(".exe") if items else ""
+        if exe in ("git", "gh"):
+            commands.append(exe + " " +
                             " ".join(shlex.quote(x) for x in items[1:]))
     return commands
 
