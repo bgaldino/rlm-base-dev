@@ -27,6 +27,12 @@ class NumberedBranches(unittest.TestCase):
                      'gh pr create --base "264"', "check_branch_scope.py --head '264'",
                      "gh pr create --base  264", "check_branch_scope.py --head\t264",
                      "git clone --branch 264 https://example.com/r.git",
+                     "gh pr create -B 264", "gh pr create -H 264 -B main",
+                     "gh pr create --head alice:264",
+                     "release 264 is now on `main`", "`main` now carries Release 264",
+                     "Foundations' skill (shipped in Release 262, now on `main`)",
+                     # Exact refs stay checked on a long (minified-looking) line.
+                     "x" * 2100 + " git diff origin/264", '"active_work_branch":"264",' + "x" * 2100,
                      "git diff labs/264 --stat", "--base=264", "git push origin refs/heads/264",
                      'DEFAULT_BASE = "origin/264"',
                      "never push to the active release branch (`264`)",
@@ -62,7 +68,9 @@ class NumberedBranches(unittest.TestCase):
                      "every scratch org it creates is a 264 org regardless of branch",
                      "from 260 to 262 the schema grew", "the release/264 branch",
                      "merged into main in 264", "branch protection: 3 rules",
-                     "**This branch:** the current line; see Branch Information"):
+                     "**This branch:** the current line; see Branch Information",
+                     "verify against a live 264 org built from `main`",
+                     "shipped in Release 262"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), [], line)
 
@@ -84,6 +92,9 @@ class NumberedBranches(unittest.TestCase):
                      "git clone -b 264 https://example.com/r.git",
                      "git clone --branch=264 https://example.com/r.git",
                      'DEFAULT_BASE = os.getenv("BASE", "264")',
+                     "git config branch.feature.gh-merge-base 264", "git format-patch 264..HEAD",
+                     "git archive 264", "git blame 264 -- README.md", "git tag v1 264",
+                     'BASE_BRANCH="${BASE_BRANCH:-264}"', "git log ${TARGET_REF:-264}",
                      "base_ref = env.get('BASE_REF', '262')"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
@@ -131,6 +142,12 @@ class NumberedBranches(unittest.TestCase):
                      "git show HEAD:README.md", "git rev-list --count HEAD",
                      "git --no-pager log -n 100", "input.targetPrice = 150;",
                      'DEFAULT_BASE = os.getenv("BASE", "main")', "base_timeout = int('300')",
+                     "git diff --stat-width=264 main", "git diff --stat-width 264 main",
+                     "git gc --prune=100", "git log --abbrev=100", "git blame -L 100,200 f.py",
+                     "git config core.bigFileThreshold 512", "git config http.postBuffer 524",
+                     'TIMEOUT="${TIMEOUT:-300}"', "rg -B 100 pattern", "grep -H 200 x",
+                     # A call-wrapped quoted number on a minified line is noise.
+                     "x" * 2100 + ' base=fn("264")',
                      "git clone --depth=100 https://example.com/r.git",
                      "timeout_base = 300", "branch_count = 3", 'ref = "main"',
                      "base: origin/main", "git checkout release/264", "max_refs = [1, 2]",

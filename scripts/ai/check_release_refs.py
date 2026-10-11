@@ -84,20 +84,28 @@ UNQUOTED = re.compile(
     rf"|\b(?:merged?|push(?:ed)?|commit(?:ted)?|rebased?)\s+(?:in|on)?to\s+{N}"
     rf"|\bretarget\w*\s+(?:[\w#`-]+\s+){{0,4}}?from\s+{N}"
     rf"|{N}\s*(?:→|->)\s*`?main\b|\bmain`?\s*(?:→|->)\s*{N}"
+    # A release mapped onto a role branch: "NNN is now on `main`", "`main` now carries
+    # Release NNN". README → Branch Information is the one place that does this, by marker.
+    rf"|\b(?:Release\s+)?{N}\b[^.\n]{{0,40}}?\b(?:is\s+)?(?:now\s+)?on\s+`(?:main|preview/|release/)"
+    rf"|`(?:main|preview/[^`]*|release/[^`]*)`\s+(?:now\s+)?(?:carries|holds|tracks|is)\s+"
+    rf"(?:the\s+)?(?:Salesforce\s+)?Release\s+{N}"
     # A branch labelled with a release: "This branch: Release NNN", "the branch is NNN".
     rf"|\bbranch\b[*:\s]+(?:is\s+|carries\s+)?(?:(?:Salesforce\s+)?Release\s+)?{N}",
     re.IGNORECASE)
 
 
-# A git verb that names branches, then the rest of that simple command.
+# Any git subcommand, then the rest of that simple command. Not an allowlist of verbs: a list
+# went stale one review round at a time (clone, format-patch, archive, blame, tag, config).
+# A bare three-digit argument is a ref unless an option's name says it's a measure.
 GIT_BRANCH_CMD = re.compile(
     r"\bgit\s+(?:(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace|exec-path)(?:[= ]\S+)?|"
     r"--no-pager|--paginate|-[pP]|--bare|--no-replace-objects|--literal-pathspecs|"
-    r"--no-optional-locks)\s+)*(?:clone|checkout|switch|push|pull|fetch|merge-base|merge|rebase|"
-    r"branch|worktree\s+add|reset|diff|log|cherry|show|rev-parse|rev-list|restore)\b"
-    r"([^\n#|;&`]*)")
-# Flags whose next token is a count, not a ref.
-COUNT_FLAGS = {"-n", "--max-count", "-U", "--unified", "--depth", "--deepen", "--skip"}
+    r"--no-optional-locks)\s+)*([a-z][\w-]*)\b([^\n#|;&`]*)")
+# Short flags whose next token is a count, not a ref. Long flags are judged by their words.
+COUNT_FLAGS = {"-n", "-U", "-L"}
+# Words in a long option that make its value a ref (`--branch=`, `--onto`, `--set-upstream-to`).
+REF_FLAG_WORDS = {"branch", "base", "head", "ref", "onto", "into", "upstream", "target", "to",
+                  "from"}
 # A branch-ish setting: an identifier with a branch word in it (`DEFAULT_BASE`, `base_ref`,
 # `targetBranch`, `PROTECTED`), then `=` or `:`, then a release-shaped value: the whole value,
 # or an element of a list/tuple/set. Identifiers are split into words, so `keyPrefix` is not a
@@ -118,7 +126,7 @@ def identifier_words(name: str) -> set:
     return {w.lower() for w in re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])", name)}
 
 
-def branch_setting(line: str, first_len: int = 0) -> bool:
+def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bool:
     """`first_len`, for a joined logical line, limits the settings read to those on its first
     physical line: the block's own nested keys (a JSON object's fields) aren't its value."""
     for match in SETTING.finditer(line):
@@ -132,7 +140,7 @@ def branch_setting(line: str, first_len: int = 0) -> bool:
             return True
         # A default wrapped in a call: `DEFAULT_BASE = os.getenv("BASE", "NNN")`. Only a quoted
         # literal counts, so `limit(300)`-style arguments stay numbers.
-        call = CALL.match(value)
+        call = None if long_line else CALL.match(value)
         if call and QUOTED_NUMBER.search(call.group(1)):
             return True
         if value and value[0] in "[({":
@@ -157,20 +165,54 @@ def ref_parts(token: str) -> list:
     return [REV_SUFFIX.sub("", part.lstrip("+")) for part in REV_SPLIT.split(token)]
 
 
-def numbered_branch_in_code(line: str, first_len: int = 0) -> bool:
+def measure_flag(flag: str) -> bool:
+    """A flag whose value is a number: a short count flag, or a long one whose name has a
+    measurement word and no ref word (`--max-count`, `--stat-width`, `--depth`, `--prune`)."""
+    if flag in COUNT_FLAGS:
+        return True
+    if not flag.startswith("--"):
+        return False
+    words = set(flag.lstrip("-").lower().split("-"))
+    return bool(words & (MEASURES | {"prune", "deepen", "skip", "unified", "abbrev", "context"})) \
+        and not words & REF_FLAG_WORDS
+
+
+def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = False) -> bool:
     for match in GIT_BRANCH_CMD.finditer(line):
-        tokens = match.group(1).split()
+        verb, tokens = match.group(1), match.group(2).split()
+        if verb == "config":
+            # `git config branch.<b>.gh-merge-base NNN`: a ref only under a branch-ish key.
+            key = next((t for t in tokens if not t.startswith("-")), "")
+            words = {w for w in re.split(r"[.\-_]", key.lower()) if w}
+            if not words & (BRANCH_WORDS | {"merge", "remote"}) or words & MEASURES:
+                continue
+            tokens = tokens[tokens.index(key) + 1:] if key else []
         for i, token in enumerate(tokens):
-            if i and tokens[i - 1] in COUNT_FLAGS:
+            if i and measure_flag(tokens[i - 1]):
                 continue
             if token.startswith("-"):
-                # `--branch=NNN`: the value of a long option is a ref like any other argument.
+                # `--branch=NNN` is a ref; `--stat-width=NNN` is a measure.
                 flag, _, token = token.partition("=")
-                if not token or flag in COUNT_FLAGS:
+                if not token or measure_flag(flag) or flag.startswith("--") and not \
+                        set(flag.lstrip("-").lower().split("-")) & REF_FLAG_WORDS:
                     continue
             if any(re.fullmatch(r"\d{3}", part) for part in ref_parts(token)):
                 return True
-    return branch_setting(line, first_len)
+    if shell_default(line):
+        return True
+    return branch_setting(line, first_len, long_line)
+
+
+# A shell parameter default for a branch-named variable: `${BASE_BRANCH:-NNN}`.
+SHELL_DEFAULT = re.compile(r"\$\{([A-Za-z_]\w*):?[-=]\s*[\"']?\d{3}[\"']?\}")
+
+
+def shell_default(line: str) -> bool:
+    for match in SHELL_DEFAULT.finditer(line):
+        words = identifier_words(match.group(1))
+        if words & BRANCH_WORDS and not words & MEASURES:
+            return True
+    return False
 
 
 def near_branch(line: str) -> bool:
@@ -186,7 +228,9 @@ def near_branch(line: str) -> bool:
 def ref_pattern(remotes) -> re.Pattern:
     names = "|".join(sorted({re.escape(r) for r in remotes}))
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
-                      rf"|--(?:base|head)(?:=|\s+)[\"']?(?:(?:{names})/)?\d{{3}}\b")
+                      rf"|--(?:base|head)(?:=|\s+)[\"']?(?:[\w.-]+:)?(?:(?:{names})/)?\d{{3}}\b"
+                      # gh's short aliases, only after `gh pr` (`grep -B 100` is context).
+                      rf"|\bgh\s+pr\s+[^\n|;&]*?\s-[BH]\s*[\"']?(?:[\w.-]+:)?\d{{3}}\b")
 
 
 def remotes() -> set:
@@ -248,7 +292,8 @@ def logical_line(lines: list, i: int) -> str:
 # joins. These two let the scan skip the rest: it reads every tracked text file, ~10 MB.
 DIGITS = re.compile(r"\d{3}")
 # Longer than any hand-written line: minified or generated code (vendored static resources),
-# where a call-wrapped quoted number is noise, not a branch someone wrote.
+# where a call-wrapped quoted number is noise, not a branch someone wrote. Only that heuristic
+# is switched off on such a line; exact refs and direct settings are still checked.
 MAX_LINE = 2000
 OPENER = re.compile(r"\\\s*$|[:=]\s*[\[({]|:\s*(?:#.*)?$")
 
@@ -259,7 +304,7 @@ def findings(text: str, ref: re.Pattern):
     lines = text.splitlines()
     for number, line in enumerate(lines, 1):
         has_number = DIGITS.search(line)
-        if not has_number and not OPENER.search(line) or ALLOW in line or len(line) > MAX_LINE:
+        if not has_number and not OPENER.search(line) or ALLOW in line:
             continue
         if has_number and ref.search(line):
             yield number, "ref", line.strip()
@@ -267,7 +312,8 @@ def findings(text: str, ref: re.Pattern):
             yield number, "ref", line.strip()
         elif has_number and near_branch(line):
             yield number, "branch", line.strip()
-        elif numbered_branch_in_code(logical_line(lines, number - 1), len(line)):
+        elif numbered_branch_in_code(logical_line(lines, number - 1), len(line),
+                                     len(line) > MAX_LINE):
             yield number, "code", line.strip()
 
 
