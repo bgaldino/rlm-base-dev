@@ -109,10 +109,13 @@ GIT_BRANCH_CMD = re.compile(
     # other long option (`--no-pager`, `--config-env=k=v`, ...) rather than a list of them.
     r"\bgit\s+(?:(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace|exec-path|config-env)\s+\S+|"
     r"--[\w-]+(?:=\S+)?|-[pP])\s+)*([a-z][\w-]*)\b([^\n`]*)")
+GIT_WORD = re.compile(r"\bgit\b")
 # Subcommands whose positional arguments are only paths (or a URL and directory); in them a
 # number is a ref only as the value of a ref flag (`clone -b NNN`).
 PATH_VERBS = {"add", "rm", "mv", "status", "ls-files", "clean", "commit", "init", "clone",
-              "apply", "am", "check-ignore", "check-attr"}
+              "apply", "am", "check-ignore", "check-attr", "restore"}  # restore: --source=
+# Subcommands whose first positional argument is a pattern, not a ref (`git grep NNN main`).
+PATTERN_VERBS = {"grep"}
 SHORT_REF_FLAGS = {"-b", "-B", "-c", "-C"}
 
 
@@ -136,7 +139,7 @@ def command_tokens(rest: str) -> list:
 COUNT_FLAGS = {"-n", "-U", "-L"}
 # Words in a long option that make its value a ref (`--branch=`, `--onto`, `--set-upstream-to`).
 REF_FLAG_WORDS = {"branch", "base", "head", "ref", "onto", "into", "upstream", "target", "to",
-                  "from"}
+                  "from", "source"}
 # A branch-ish setting: an identifier with a branch word in it (`DEFAULT_BASE`, `base_ref`,
 # `targetBranch`, `PROTECTED`), then `=` or `:`, then a release-shaped value: the whole value,
 # or an element of a list/tuple/set. Identifiers are split into words, so `keyPrefix` is not a
@@ -147,6 +150,7 @@ MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "l
             "delay", "retry", "retries", "seconds", "secs", "ms", "width", "height", "depth",
             "price", "amount", "quantity", "qty", "cost", "total", "percent", "score",
             "index", "idx", "version", "rate", "ttl"}
+MAPPING_KEY = re.compile(r"(?:^|[{,])\s*[\"']?\d{3}[\"']?\s*:")
 QUOTED_NUMBER = re.compile(r"[\"']\d{3}[\"']")
 SCALAR = re.compile(r"[\"']?\d{3}[\"']?(?![\w.-])")
 ELEMENT = re.compile(r"(?<![\w./-])[\"']?\d{3}[\"']?(?![\w./-])")
@@ -178,8 +182,12 @@ def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bo
         if value and value[0] in "[({":
             close = {"[": "]", "(": ")", "{": "}"}[value[0]]
             inner = value[1:value.find(close) if close in value else None]
-            # `{…}` with `key: value` pairs is a mapping (a JSON object), not a set of refs.
+            # `{…}` with `key: value` pairs is a mapping. Under a branch-named setting its
+            # keys are branches (`PROTECTED = {"main": True, "NNN": True}`); its values,
+            # and any nested object's fields, aren't.
             if value[0] == "{" and ":" in inner:
+                if MAPPING_KEY.search(inner):
+                    return True
                 continue
             if ELEMENT.search(inner):
                 return True
@@ -210,7 +218,10 @@ def measure_flag(flag: str) -> bool:
 
 
 def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = False) -> bool:
-    for match in GIT_BRANCH_CMD.finditer(line):
+    # Each `git` on the line, not just the first: `git fetch && git checkout NNN`.
+    for match in (GIT_BRANCH_CMD.match(line, m.start()) for m in GIT_WORD.finditer(line)):
+        if not match:
+            continue
         verb, tokens = match.group(1), command_tokens(match.group(2))
         if verb == "config":
             # `git config branch.<b>.gh-merge-base NNN`: a ref only under a branch-ish key.
@@ -219,6 +230,10 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
             if not words & (BRANCH_WORDS | {"merge", "remote"}) or words & MEASURES:
                 continue
             tokens = tokens[tokens.index(key) + 1:] if key else []
+        if verb in PATTERN_VERBS and "-e" not in tokens:
+            positional = [k for k, t in enumerate(tokens) if not t.startswith("-")]
+            if positional:
+                tokens = tokens[:positional[0]] + tokens[positional[0] + 1:]
         for i, token in enumerate(tokens):
             if i and measure_flag(tokens[i - 1]):
                 continue
@@ -277,7 +292,15 @@ def shell_default(line: str) -> bool:
     return False
 
 
+# Every prose pattern needs one of these words; checking for them first skips the costly
+# case-insensitive UNQUOTED on almost every line.
+PROSE_KEY = re.compile(r"branch|named|called|merge|push|commit|rebase|retarget|main|release/|"
+                       r"preview/|→|->", re.IGNORECASE)
+
+
 def near_branch(line: str) -> bool:
+    if not PROSE_KEY.search(line):
+        return False
     if BARE_WORD_BRANCH.search(line) or UNQUOTED.search(line):
         return True
     for match in BARE.finditer(line):
@@ -301,7 +324,7 @@ def remotes() -> set:
 
 
 # A setting whose list, tuple or set opens on this line and doesn't close on it.
-OPEN_SETTING = re.compile(r"[:=]\s*([\[({])")
+OPEN_SETTING = re.compile(r"[:=]\s*(?:[A-Za-z_][\w.]*)?([\[({])")  # incl. `= os.getenv(`
 CLOSER = {"[": "]", "(": ")", "{": "}"}
 LOGICAL_MAX = 50
 
@@ -364,7 +387,16 @@ DIGITS = re.compile(r"\d{3}")
 # where a call-wrapped quoted number is noise, not a branch someone wrote. Only that heuristic
 # is switched off on such a line; exact refs and direct settings are still checked.
 MAX_LINE = 2000
-OPENER = re.compile(r"\\\s*$|[:=]\s*[\[({]|:\s*(?:#.*)?$|\b(?:add_argument|option)\(")
+OPENER = re.compile(r"\\\s*$|[:=]\s*(?:[A-Za-z_][\w.]*)?[\[({]|:\s*(?:#.*)?$|"
+                    r"\b(?:add_argument|option)\(")
+
+
+def code_finding(lines: list, i: int, line: str, has_number) -> bool:
+    logical = logical_line(lines, i)
+    if not has_number and not DIGITS.search(logical) and not OPTION_CALL.search(line):
+        return False  # an opener whose block holds no three-digit run: nothing to find
+    return numbered_branch_in_code(logical, len(line), len(line) > MAX_LINE) \
+        or option_default(lines, i)
 
 
 def findings(text: str, ref: re.Pattern):
@@ -373,7 +405,9 @@ def findings(text: str, ref: re.Pattern):
     lines = text.splitlines()
     for number, line in enumerate(lines, 1):
         has_number = DIGITS.search(line)
-        if not has_number and not OPENER.search(line) or ALLOW in line:
+        following = lines[number] if number < len(lines) else ""
+        if not has_number and not OPENER.search(line) and not DIGITS.search(following) \
+                or ALLOW in line:
             continue
         if has_number and ref.search(line):
             yield number, "ref", line.strip()
@@ -381,8 +415,13 @@ def findings(text: str, ref: re.Pattern):
             yield number, "ref", line.strip()
         elif has_number and near_branch(line):
             yield number, "branch", line.strip()
-        elif numbered_branch_in_code(logical_line(lines, number - 1), len(line),
-                                     len(line) > MAX_LINE) or option_default(lines, number - 1):
+        elif following and ALLOW not in following and len(line) < MAX_LINE and \
+                (PROSE_KEY.search(line) or PROSE_KEY.search(following)) and \
+                not near_branch(following) and near_branch(line.rstrip() + " " + following.lstrip()):
+            # Prose wrapped across two lines: "… the `NNN`" / "branch cut …". Reported at the
+            # first line, and only when neither line matches on its own.
+            yield number, "branch", line.strip()
+        elif code_finding(lines, number - 1, line, has_number):
             yield number, "code", line.strip()
 
 

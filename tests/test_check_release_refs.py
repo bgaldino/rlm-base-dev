@@ -108,6 +108,9 @@ class NumberedBranches(unittest.TestCase):
                      'git log --format="%h | %s" 264', "git log --format='# %h' 264",
                      'DEFAULT_BASE = os.getenv("BASE") or "264"',
                      "base_ref = env.get('BASE_REF') if env else '262'",
+                     'PROTECTED_BRANCHES = {"main": True, "264": True}',
+                     "git fetch origin && git checkout 264", "git status; git switch 264",
+                     "git grep TODO 264", "git restore --source=264 README.md",
                      "base_ref = env.get('BASE_REF', '262')"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
@@ -131,6 +134,18 @@ class NumberedBranches(unittest.TestCase):
         # A GitHub Actions branch filter: reported at its `branches:` line.
         workflow = "on:\n  push:\n    branches:\n      - main\n      - 264\n"
         self.assertEqual([(n, r) for n, r, _ in crr.findings(workflow, REF)], [(3, "code")])
+
+    def test_a_wrapped_call_default_and_wrapped_prose_fail_at_their_first_line(self):
+        for text in ('DEFAULT_BASE = os.getenv(\n    "BASE", "264"\n)',
+                     "Created with the `264`\nbranch cut so the directory exists.",
+                     "the sync PR merged\ninto `264` first."):
+            with self.subTest(text=text):
+                self.assertEqual([n for n, _, _ in crr.findings(text, REF)], [1])
+        for text in ('timeout = os.getenv(\n    "T", "300"\n)',
+                     "Release 264 shipped.\nThe branch is `main`.",
+                     "a live 264 org\nbuilt from `main`"):
+            with self.subTest(text=text):
+                self.assertEqual(list(crr.findings(text, REF)), [])
 
     def test_a_wrapped_option_declaration_fails_at_its_call(self):
         text = 'ap.add_argument(\n    "--base",\n    default="264",\n    help="base ref",\n)'
@@ -169,6 +184,9 @@ class NumberedBranches(unittest.TestCase):
                      'ap.add_argument("--base", default=os.getenv("BASE", "main"))',
                      'ap.add_argument("--timeout", default=int(os.getenv("T", "300")))',
                      "git log -n100", "cut `release/264` from `main` -> `preview/266`",
+                     "git grep 264", "git grep -n 264 -- docs", "git restore 264",
+                     'PROTECTED = {"main": {"reviews": 2, "timeout": 300}}',
+                     "git status && echo 264",
                      # Pathspec-only subcommands: the number is a path.
                      "git add 264", "git rm 264", "git status 264", "git ls-files 264",
                      "git clone https://example.com/r.git 264", "git commit -m 264",

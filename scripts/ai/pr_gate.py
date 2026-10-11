@@ -115,7 +115,7 @@ CHECKS = [
         cmd=["python", "scripts/ai/check_release_refs.py"],
         # Branches are named by role, never by release number (README → Branch
         # Information). It reads every tracked text file, so like agent_tooling it always
-        # runs rather than mirroring a scope here: ~2,900 files in about five seconds.
+        # runs rather than mirroring a scope here: ~2,900 files in about five seconds (it is profiled: keep it there).
         triggers=["scripts/ai/check_release_refs.py"], always=True,
         deps=[], gating=True,
     ),
