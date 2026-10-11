@@ -110,9 +110,48 @@ class PushGuard(unittest.TestCase):
 
     def test_ordinary_commands_are_allowed(self):
         for command in ("git push origin feature", "git push -u origin feature",
-                        "echo git push origin main", "git log main", "git pushx origin main"):
+                        "echo git push origin main", "git log main", "git pushx origin main",
+                        "git -c user.name=x push origin feature"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
+
+    def test_configured_push_refspecs_are_resolved(self):
+        # `git -c remote.origin.push=HEAD:main push origin` really pushes to main; the guard
+        # used to resolve it with separate git calls that never saw the `-c`.
+        for command in ("git -c remote.origin.push=HEAD:main push origin",
+                        "git -c remote.origin.push=HEAD:main push",
+                        "git -c remote.origin.push=refs/heads/feature:refs/heads/release/next "
+                        "push origin"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        sh(self.work, "git", "config", "remote.origin.push", "HEAD:refs/heads/main")
+        try:
+            self.assertEqual(self.decision("git push origin"), "deny")
+            self.assertEqual(self.decision("git push"), "deny")
+            self.assertEqual(self.decision("git push origin feature"), "allow")  # explicit wins
+        finally:
+            sh(self.work, "git", "config", "--unset", "remote.origin.push")
+
+    def test_aliases_that_push_are_resolved(self):
+        sh(self.work, "git", "config", "alias.p", "push")
+        sh(self.work, "git", "config", "alias.ship", "!git push origin HEAD:main")
+        sh(self.work, "git", "config", "alias.lg", "log --oneline")
+        try:
+            self.assertEqual(self.decision("git p origin HEAD:main"), "deny")
+            self.assertEqual(self.decision("git ship"), "deny")
+            self.assertEqual(self.decision("git p origin feature"), "allow")
+            self.assertEqual(self.decision("git lg"), "allow")
+        finally:
+            for name in ("p", "ship", "lg"):
+                sh(self.work, "git", "config", "--unset", f"alias.{name}")
+
+    def test_pushes_that_cannot_be_resolved_are_refused(self):
+        for command in ("GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.push "
+                        "GIT_CONFIG_VALUE_0=HEAD:main git push origin",
+                        "git --config-env=remote.origin.push=TARGET push origin",
+                        "git push origin 'refs/heads/*:refs/heads/*'"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
 
 
 class SfdmuGuard(unittest.TestCase):
@@ -156,6 +195,61 @@ class SfdmuGuard(unittest.TestCase):
         self.assertEqual(self.decision("MultiEdit", {
             "file_path": str(REPO / "datasets/plan/export.json"), "edits": edits}), "ask")
 
+    @staticmethod
+    def plan(*objects, sets=False):
+        """An SFDMU plan; each object is (sObject, operation, deleteOldData)."""
+        listed = [{"query": f"SELECT Id FROM {name}", "operation": op,
+                   **({"deleteOldData": True} if delete else {})}
+                  for name, op, delete in objects]
+        body = {"objectSets": [{"objects": listed}]} if sets else {"objects": listed}
+        return json.dumps(body, indent=2)
+
+    def write(self, before, after):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "datasets" / "plan" / "export.json"
+            path.parent.mkdir(parents=True)
+            path.write_text(before)
+            return self.decision("Write", {"file_path": str(path), "content": after})
+
+    def test_moving_delete_old_data_to_another_object_asks(self):
+        # Same count of `"deleteOldData": true` before and after: the old aggregate allowed it.
+        self.assertEqual(self.write(self.plan(("Account", "Upsert", True), ("Product2", "Upsert", False)),
+                                    self.plan(("Account", "Upsert", False), ("Product2", "Upsert", True))),
+                         "ask")
+
+    def test_swapping_upsert_and_insert_between_objects_asks(self):
+        self.assertEqual(self.write(self.plan(("Account", "Upsert", False), ("Product2", "Insert", False)),
+                                    self.plan(("Account", "Insert", False), ("Product2", "Upsert", False))),
+                         "ask")
+
+    def test_object_sets_are_compared_object_by_object(self):
+        self.assertEqual(self.write(self.plan(("Account", "Upsert", False), sets=True),
+                                    self.plan(("Account", "Upsert", True), sets=True)), "ask")
+
+    def test_reordering_or_making_an_object_safer_is_allowed(self):
+        before = self.plan(("Account", "Upsert", True), ("Product2", "Insert", False))
+        self.assertEqual(self.write(before, self.plan(("Product2", "Insert", False),
+                                                      ("Account", "Upsert", True))), "allow")
+        self.assertEqual(self.write(before, self.plan(("Account", "Upsert", False),
+                                                      ("Product2", "Upsert", False))), "allow")
+
+    def test_edits_are_replayed_against_the_whole_plan(self):
+        # One MultiEdit moves deleteOldData from Account to Product2.
+        before = self.plan(("Account", "Upsert", True), ("Product2", "Upsert", False))
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "datasets" / "plan" / "export.json"
+            path.parent.mkdir(parents=True)
+            path.write_text(before)
+            edits = [{"old_string": '"operation": "Upsert",\n      "deleteOldData": true',
+                      "new_string": '"operation": "Upsert"'},
+                     {"old_string": 'FROM Product2",\n      "operation": "Upsert"',
+                      "new_string": 'FROM Product2",\n      "operation": "Upsert",\n'
+                                    '      "deleteOldData": true'}]
+            for edit in edits:
+                self.assertIn(edit["old_string"], before)
+            self.assertEqual(self.decision("MultiEdit", {"file_path": str(path),
+                                                         "edits": edits}), "ask")
+
 
 class KillSwitch(unittest.TestCase):
     def test_stop_file_refuses_loop_agents_only(self):
@@ -166,6 +260,22 @@ class KillSwitch(unittest.TestCase):
             event = {"tool_name": "Read", "tool_input": {"file_path": "x"}, "cwd": str(work)}
             self.assertEqual(run_hook(GUARD, event, {"LOOP_ROLE": "builder"}).returncode, 2)
             self.assertEqual(run_hook(GUARD, event).returncode, 0)
+
+    def test_a_run_stop_file_refuses_only_that_run(self):
+        # A remote cancel aimed at one run must not stop another run on the same workstation.
+        with tempfile.TemporaryDirectory() as tmp:
+            work = make_repo(Path(tmp))
+            cancelled, other = work / ".loop" / "7", work / ".loop" / "8"
+            cancelled.mkdir(parents=True)
+            other.mkdir()
+            (cancelled / "STOP").touch()
+            event = {"tool_name": "Read", "tool_input": {"file_path": "x"}, "cwd": str(work)}
+            hit = run_hook(GUARD, event, {"LOOP_ROLE": "builder", "LOOP_RUN_DIR": str(cancelled)})
+            self.assertEqual(hit.returncode, 2)
+            self.assertIn("this run's stop file", hit.stderr)
+            self.assertEqual(run_hook(GUARD, event, {"LOOP_ROLE": "builder",
+                                                     "LOOP_RUN_DIR": str(other)}).returncode, 0)
+            self.assertEqual(run_hook(GUARD, event, {"LOOP_RUN_DIR": str(cancelled)}).returncode, 0)
 
 
 FAKE_GATE = textwrap.dedent("""\
@@ -204,9 +314,11 @@ class StopGate(unittest.TestCase):
     def gate_exits(self, code):
         (self.work / "scripts" / "ai" / "exit_code").write_text(str(code))
 
-    def stop(self, env=None):
-        return run_hook(STOP, {"hook_event_name": "Stop", "cwd": str(self.work)},
-                        dict(self.env, **(env or {})))
+    def stop(self, env=None, session=None):
+        event = {"hook_event_name": "Stop", "cwd": str(self.work)}
+        if session:
+            event["session_id"] = session
+        return run_hook(STOP, event, dict(self.env, **(env or {})))
 
     def checks(self):
         return (self.run_dir / "checks.log").read_text().splitlines()
@@ -265,6 +377,22 @@ class StopGate(unittest.TestCase):
         (self.work / ".loop" / "STOP").touch()
         self.assertEqual(self.stop().returncode, 0)
 
+    def test_a_run_stop_file_lets_that_builder_stop(self):
+        self.gate_exits(1)
+        self.run_dir.mkdir(parents=True)
+        (self.run_dir / "STOP").touch()
+        self.assertEqual(self.stop().returncode, 0)
+
+    def test_sessions_without_a_run_dir_do_not_share_a_budget(self):
+        # With no LOOP_RUN_DIR, the run folder used to be one shared .loop/: after one
+        # session spent its five blocks, no later session was ever gated again.
+        self.gate_exits(1)
+        unset = {"LOOP_RUN_DIR": ""}
+        first = [self.stop(unset, session="s1").returncode for _ in range(6)]
+        self.assertEqual(first, [2, 2, 2, 2, 2, 0])
+        self.assertEqual(self.stop(unset, session="s2").returncode, 2)
+        self.assertTrue((self.work / ".loop" / "session-s1" / "checks.log").exists())
+
 
 class GatePython(unittest.TestCase):
     def test_an_incomplete_interpreter_is_reported_not_trusted(self):
@@ -277,6 +405,28 @@ class GatePython(unittest.TestCase):
             del os.environ["RLM_GATE_PYTHON"]
         self.assertEqual(str(python), "/nonexistent/python")
         self.assertIn("does not exist", problems[0])
+
+    def test_the_matrix_probed_is_the_worktrees_not_the_main_checkouts(self):
+        # The interpreter is shared, but a worktree's branch may need more of it.
+        sys.path.insert(0, str(REPO / "scripts" / "ai"))
+        import gate_python
+        with tempfile.TemporaryDirectory() as tmp:
+            work = make_repo(Path(tmp))
+            ai = work / "scripts" / "ai"
+            ai.mkdir(parents=True)
+            (ai / "pr_gate.py").write_text(FAKE_GATE)
+            sh(work, "git", "add", "-A")
+            sh(work, "git", "commit", "-q", "-m", "fixture")
+            tree = Path(tmp) / "tree"
+            sh(work, "git", "worktree", "add", "-q", str(tree), "-b", "wt")
+            (tree / "scripts" / "ai" / "pr_gate.py").write_text(
+                FAKE_GATE.replace("CHECKS = []", "CHECKS = [{'min_python': (99, 0)}]"))
+            os.environ["RLM_GATE_PYTHON"] = sys.executable
+            try:
+                self.assertEqual(gate_python.problems(work)[1], [])
+                self.assertTrue(any("needs 99.0+" in p for p in gate_python.problems(tree)[1]))
+            finally:
+                del os.environ["RLM_GATE_PYTHON"]
 
 
 if __name__ == "__main__":

@@ -7,20 +7,34 @@ They bind Claude Code only. The required CI check is the layer every tool hits, 
 that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
 
 1. Push target (DO NOT 8). A push whose destination is `main`, a `preview/*` or a
-   `release/*` branch is denied, however it is spelled: `git push origin HEAD:main`, a bare `git push` whose
-   upstream is `main`, `git -C <dir> push`, `--mirror`/`--all`. Release lines are matched
-   by prefix, never by number, so nothing here changes from one release to the next. The
-   `Bash(git push origin main …)` deny rules in settings.json only catch the literal spelling. A force push to any
-   other branch asks the person, because rewriting a branch that other PRs stack on needs
-   their approval.
-2. SFDMU destructive operation (CRITICAL rule). An edit that adds `"deleteOldData": true` or
-   flips `"operation": "Upsert"` to `"Insert"` in a `datasets/` plan asks the person. The
+   `release/*` branch is denied, however it is spelled: an explicit refspec
+   (`HEAD:main`), a bare `git push` whose upstream is `main`, a configured
+   `remote.<name>.push` refspec (from the repo config or the command's own `-c`), a git
+   alias that expands to `push`, `git -C <dir> push`, `--mirror`/`--all`. Release lines are
+   matched by prefix, never by number. A push the guard cannot resolve to concrete
+   destinations is denied rather than guessed at: wildcard refspecs, `--config-env`, `GIT_*`
+   environment overrides, and shell aliases that run `push`. The `Bash(git push origin …)`
+   deny rules in settings.json only catch the literal spelling.
+   Adapter policy, not a DO NOT 8 rule: a force push to any other branch asks the person.
+2. SFDMU destructive operation (CRITICAL rule). An edit to a `datasets/` plan that makes any
+   object newly destructive asks the person: `deleteOldData` turning on, or an `Upsert`
+   object becoming `Insert`. Objects are compared one by one, keyed by the object their
+   query reads (`scripts/sfdmu_export.py`'s parsers), so moving `deleteOldData` from one
+   object to another, or swapping Upsert and Insert between two objects, still asks. The
    agent cannot approve it for itself.
-3. Kill switch. While `.loop/STOP` exists in the main checkout, every tool call by a loop
-   agent (`LOOP_ROLE` set) is refused. Interactive sessions are not affected.
+3. Stop files, for loop agents only (`LOOP_ROLE` set; interactive sessions are not affected):
+   `$LOOP_RUN_DIR/STOP` refuses every tool call of that one run (a remote cancel of one run);
+   `<main checkout>/.loop/STOP` refuses every loop agent on the workstation (`make stop`).
+   Either takes effect at the agent's next tool call; neither aborts a tool already running.
 
-Not covered, by design: commands hidden in `$(...)`, `bash -c` or `eval`. The server-side
-ruleset is the backstop there.
+What this guard does not catch, and what backs it up:
+- Commands hidden in `$(...)`, `bash -c` or `eval`, and pushes by any non-git program. The
+  branch ruleset requires a PR on `main` and `release/*`, but its bypass list includes the
+  repository admin role, and agents push with the owner's credentials, so for those pushes
+  there is no server-side backstop until that bypass is narrowed.
+- SFDMU edits made through Bash (`sed -i`, a script) rather than Edit/Write. No diff-level
+  check for destructive operations exists in `pr_gate.py` yet; adding one is planned with the
+  defect registry work, and until then a person reviewing the diff is the only backstop.
 
 Stdlib only, Python 3.9-safe: it runs under whatever `python3` the shell provides.
 Exit 0 = allow (or a JSON `ask` decision on stdout) · exit 2 = deny, reason on stderr.
@@ -34,21 +48,26 @@ import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import Iterator, List, Optional, Tuple
+from typing import Dict, Iterator, List, Optional, Sequence, Tuple
 
 PROTECTED = ("main",)
 PROTECTED_PREFIXES = ("preview/", "release/")
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 # git's global options that take a separate argument, so `git -C dir push` is still a push.
 GIT_GLOBAL_WITH_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"}
+# Global options replayed into every resolution call, so `-c remote.origin.push=…` and
+# `--git-dir` mean to the guard what they mean to the push.
+GIT_GLOBAL_REPLAYED = {"-c", "--git-dir", "--work-tree", "--namespace"}
 # `git push` options that take a separate argument, so their value is not read as a remote.
-PUSH_WITH_ARG = {"-o", "--push-option", "--repo", "--receive-pack", "--exec"}
+PUSH_WITH_ARG = {"-o", "--push-option", "--receive-pack", "--exec"}
 FORCE_FLAGS = ("-f", "--force", "--force-with-lease", "--force-if-includes")
 EVERYTHING_FLAGS = ("--mirror", "--all", "--branches")
+ENV_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
 
 DELETE_OLD_DATA = re.compile(r'"deleteOldData"\s*:\s*true')
 OP_INSERT = re.compile(r'"operation"\s*:\s*"Insert"')
 OP_UPSERT = re.compile(r'"operation"\s*:\s*"Upsert"')
+CHECKOUT = Path(__file__).resolve().parents[2]  # the checkout this hook ships in
 
 
 def is_protected(ref: str) -> bool:
@@ -56,9 +75,9 @@ def is_protected(ref: str) -> bool:
     return name in PROTECTED or name.startswith(PROTECTED_PREFIXES)
 
 
-def git(cwd: str, *args: str) -> Optional[str]:
+def git(cwd: str, *args: str, opts: Sequence[str] = ()) -> Optional[str]:
     try:
-        out = subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True,
+        out = subprocess.run(["git", *opts, "-C", cwd, *args], capture_output=True, text=True,
                              timeout=10)
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -84,42 +103,110 @@ def simple_commands(command: str) -> Iterator[List[str]]:
                 argv.append(token)
 
 
-def git_push_args(argv: List[str], cwd: str) -> Optional[Tuple[str, List[str]]]:
-    """(directory, push arguments) if argv is a `git push`, else None."""
-    while argv and (re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", argv[0]) or argv[0] == "env"):
+class Push:
+    """One `git push`, with what is needed to resolve where it goes."""
+
+    def __init__(self, directory: str, args: List[str], opts: List[str], env: Dict[str, str],
+                 unresolvable: str = "") -> None:
+        self.directory, self.args, self.opts, self.env = directory, args, opts, env
+        self.unresolvable = unresolvable
+
+
+def git_push(argv: List[str], cwd: str) -> Optional[Push]:
+    """A Push if argv runs `git push` directly or through an alias, else None."""
+    env: Dict[str, str] = {}
+    while argv and (ENV_ASSIGNMENT.match(argv[0]) or argv[0] == "env"):
+        if argv[0] != "env":
+            name, _, value = argv[0].partition("=")
+            env[name] = value
         argv = argv[1:]
     if not argv or os.path.basename(argv[0]) != "git":
         return None
-    i, directory = 1, cwd
+    i, directory, opts, config_env = 1, cwd, [], False
     while i < len(argv) and argv[i].startswith("-"):
-        if argv[i] in GIT_GLOBAL_WITH_ARG and i + 1 < len(argv):
-            if argv[i] == "-C":
+        flag = argv[i]
+        if flag in GIT_GLOBAL_WITH_ARG and i + 1 < len(argv):
+            if flag == "-C":
                 directory = os.path.join(directory, argv[i + 1])
+            elif flag in GIT_GLOBAL_REPLAYED:
+                opts += [flag, argv[i + 1]]
+            else:
+                config_env = True
             i += 2
         else:
+            if flag.startswith("--config-env"):
+                config_env = True
+            elif flag.split("=", 1)[0] in GIT_GLOBAL_REPLAYED:
+                opts.append(flag)
             i += 1
-    if i >= len(argv) or argv[i] != "push":
+    if i >= len(argv):
         return None
-    return directory, argv[i + 1:]
+    sub, rest = argv[i], argv[i + 1:]
+    if sub != "push":
+        alias = git(directory, "config", "--get", f"alias.{sub}", opts=opts)
+        if alias is None:
+            return None
+        if alias.startswith("!"):
+            if re.search(r"\bpush\b", alias):
+                return Push(directory, [], opts, env,
+                            f"the shell alias `{sub}` runs a push the guard cannot resolve")
+            return None
+        try:
+            expansion = shlex.split(alias)
+        except ValueError:
+            return None
+        if not expansion or expansion[0] != "push":
+            return None
+        rest = expansion[1:] + rest
+    unresolvable = ""
+    if config_env:
+        unresolvable = "`--config-env` takes push configuration from the environment"
+    elif any(name.startswith("GIT_") for name in env):
+        unresolvable = "`GIT_*` environment overrides change where git pushes"
+    return Push(directory, rest, opts, env, unresolvable)
 
 
-def push_decision(directory: str, args: List[str]) -> Tuple[str, str]:
+def strip_remote(ref: str) -> str:
+    """`origin/release/x` → `release/x`: only the first segment is the remote."""
+    return ref.split("/", 1)[1] if "/" in ref else ref
+
+
+def push_decision(push: Push) -> Tuple[str, str]:
     """('deny' | 'ask' | 'allow', reason) for one `git push`."""
-    force, positional, i = False, [], 0
-    while i < len(args):
-        arg = args[i]
+    if push.unresolvable:
+        return "deny", f"{push.unresolvable}, so this push is refused rather than guessed at"
+    d, opts = push.directory, push.opts
+    force, positional, remote_flag, i = False, [], None, 0
+    while i < len(push.args):
+        arg = push.args[i]
         if arg in EVERYTHING_FLAGS:
             return "deny", f"`git push {arg}` updates protected branches too"
         if arg.startswith(FORCE_FLAGS):
             force = True
+        elif arg == "--repo" and i + 1 < len(push.args):
+            remote_flag = push.args[i + 1]
+            i += 1
+        elif arg.startswith("--repo="):
+            remote_flag = arg.split("=", 1)[1]
         elif arg in PUSH_WITH_ARG:
             i += 1
-        elif arg in ("-d", "--delete"):
-            pass
         elif not arg.startswith("-"):
             positional.append(arg)
         i += 1
+    current = git(d, "rev-parse", "--abbrev-ref", "HEAD", opts=opts)
+    remote = (positional[0] if positional else remote_flag
+              or (current and git(d, "config", "--get", f"branch.{current}.pushRemote", opts=opts))
+              or git(d, "config", "--get", "remote.pushDefault", opts=opts)
+              or (current and git(d, "config", "--get", f"branch.{current}.remote", opts=opts))
+              or "origin")
     refspecs = positional[1:]
+    configured = False
+    if not refspecs:
+        # With no refspec on the command line, git uses `remote.<remote>.push` if set (from
+        # the repo config or this command's `-c`), and only otherwise push.default.
+        listed = git(d, "config", "--get-all", f"remote.{remote}.push", opts=opts)
+        if listed:
+            refspecs, configured = listed.splitlines(), True
     targets: List[str] = []
     if refspecs:
         for spec in refspecs:
@@ -127,72 +214,133 @@ def push_decision(directory: str, args: List[str]) -> Tuple[str, str]:
                 force, spec = True, spec[1:]
             if spec == ":":
                 return "deny", "the `:` refspec pushes every matching branch, including protected ones"
+            if "*" in spec:
+                return "deny", f"the wildcard refspec `{spec}` can't be resolved to concrete branches"
             src, _, dst = spec.partition(":")
             if not dst and src in ("HEAD", "@"):
-                dst = git(directory, "rev-parse", "--abbrev-ref", "HEAD") or src
+                dst = current or src
             targets.append(dst or src)
     else:
         # A bare push goes to @{push} (the same-named branch or the upstream, by push.default),
         # so check both @{push} and @{upstream}: `git -c push.default=upstream push` reaches
         # the upstream even where the plain config makes @{push} unresolvable. A feature
         # branch that tracks main is refused here; plain git would refuse that push anyway.
-        # Both are `<remote>/<branch>`, the only form with a remote prefix to strip, since a
-        # preview/* or release/* branch name has a slash of its own.
         for spec in ("@{push}", "@{upstream}"):
-            where = git(directory, "rev-parse", "--abbrev-ref", "--symbolic-full-name", spec)
+            where = git(d, "rev-parse", "--abbrev-ref", "--symbolic-full-name", spec, opts=opts)
             if where and "/" in where:
-                targets.append(where.split("/", 1)[1])
-        current = git(directory, "rev-parse", "--abbrev-ref", "HEAD")
+                targets.append(strip_remote(where))
         if current and current != "HEAD":
             targets.append(current)
     hit = [t for t in targets if is_protected(t)]
     if hit:
-        return "deny", (f"this push updates {', '.join(sorted(set(hit)))}. AGENTS.md DO NOT 8: "
-                        "changes reach main, preview/* and release/* only through a pull request")
+        how = f" (via the configured remote.{remote}.push refspec)" if configured else ""
+        return "deny", (f"this push updates {', '.join(sorted(set(hit)))}{how}. AGENTS.md DO NOT "
+                        "8: changes reach main, preview/* and release/* only through a pull request")
     if force:
-        return "ask", ("force push rewrites a branch other PRs may be stacked on "
-                       "(AGENTS.md DO NOT 8); a person must approve it")
+        return "ask", ("force push rewrites a branch other PRs may be stacked on; this adapter "
+                       "asks a person first (adapter policy, not a DO NOT 8 rule)")
     return "allow", ""
 
 
-def text_change(tool: str, tool_input: dict) -> Optional[Tuple[str, str, str]]:
-    """(path, text before, text after) for a file edit, else None."""
+def text_change(tool: str, tool_input: dict) -> Optional[Tuple[str, str, Optional[str], str, str]]:
+    """(path, whole file before, whole file after or None, snippet before, snippet after)."""
     path = tool_input.get("file_path") or ""
+    if tool not in ("Write", "Edit", "MultiEdit"):
+        return None
+    try:
+        before = Path(path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        before = ""
     if tool == "Write":
-        try:
-            before = Path(path).read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            before = ""
-        return path, before, tool_input.get("content") or ""
-    if tool == "Edit":
-        return path, tool_input.get("old_string") or "", tool_input.get("new_string") or ""
-    if tool == "MultiEdit":
-        edits = tool_input.get("edits") or []
-        return (path, "".join(e.get("old_string") or "" for e in edits),
-                "".join(e.get("new_string") or "" for e in edits))
-    return None
+        after = tool_input.get("content") or ""
+        return path, before, after, before, after
+    edits = [tool_input] if tool == "Edit" else (tool_input.get("edits") or [])
+    after: Optional[str] = before
+    for edit in edits:
+        old, new = edit.get("old_string") or "", edit.get("new_string") or ""
+        if after is None or not old or old not in after:
+            after = None  # the edit can't be replayed here; fall back to the snippets
+            continue
+        after = after.replace(old, new) if edit.get("replace_all") else after.replace(old, new, 1)
+    return (path, before, after, "".join(e.get("old_string") or "" for e in edits),
+            "".join(e.get("new_string") or "" for e in edits))
 
 
-def sfdmu_decision(path: str, before: str, after: str) -> Tuple[str, str]:
+def destructive_objects(text: str) -> Optional[Dict[Tuple[str, int], Tuple[bool, Optional[str]]]]:
+    """{(object, nth occurrence): (deleteOldData on, operation)} for an SFDMU plan, or None."""
+    sys.path.insert(0, str(CHECKOUT / "scripts"))
+    try:
+        import sfdmu_export as sfdmu  # noqa: PLC0415  (the checkout's own parsers)
+    except ImportError:
+        return None
+    try:
+        plan = json.loads(text)
+    except ValueError:
+        return None
+    if not isinstance(plan, dict):
+        return None
+    seen: Dict[str, int] = {}
+    out: Dict[Tuple[str, int], Tuple[bool, Optional[str]]] = {}
+    for object_set in sfdmu.normalize_object_sets(plan):
+        objects = object_set.get("objects") if isinstance(object_set, dict) else None
+        for obj in objects if isinstance(objects, list) else []:
+            if not isinstance(obj, dict):
+                continue
+            name = sfdmu.extract_object_name(obj.get("query")) or "?"
+            nth = seen[name] = seen.get(name, -1) + 1
+            out[(name, nth)] = (sfdmu.is_js_truthy(obj.get("deleteOldData")),
+                                sfdmu.resolve_operation(obj.get("operation")))
+    return out
+
+
+def sfdmu_decision(path: str, before: str, after: Optional[str], old: str,
+                   new: str) -> Tuple[str, str]:
     if "datasets/" not in path.replace(os.sep, "/") or not path.endswith(".json"):
         return "allow", ""
+    was = destructive_objects(before) if before else {}
+    now = destructive_objects(after) if after is not None else None
+    # A document that parses but declares no objects isn't a plan the parsers understand, so
+    # it gets the conservative text comparison below rather than a vacuous "nothing changed".
+    if was is not None and now:
+        prior = lambda key: was.get(key, (False, None))  # noqa: E731
+        newly_deleting = [k[0] for k, (deletes, _) in now.items()
+                          if deletes and not prior(k)[0]]
+        flipped = [k[0] for k, (_, op) in now.items()
+                   if op == "insert" and prior(k)[1] == "upsert"]
+        if newly_deleting:
+            return "ask", (f'this edit turns on "deleteOldData" for {", ".join(newly_deleting)}, '
+                           "which deletes every existing record before inserting. AGENTS.md "
+                           "CRITICAL rule: explain why Upsert cannot work and get explicit "
+                           "approval")
+        if flipped:
+            return "ask", (f"this edit flips {', '.join(flipped)} from Upsert to Insert. "
+                           "AGENTS.md CRITICAL rule: on SFDMU 5.6.4+ Upsert works; explicit "
+                           "approval is required")
+        return "allow", ""
+    # The plan doesn't parse (mid-edit), has no objects, or the edit can't be replayed: compare
+    # the edited text itself, and ask whenever it adds a destructive marker or an Insert where
+    # an Upsert was.
     count = lambda rx, s: len(rx.findall(s))  # noqa: E731
-    if count(DELETE_OLD_DATA, after) > count(DELETE_OLD_DATA, before):
-        return "ask", ('this edit adds "deleteOldData": true, which deletes every existing '
-                       "record before inserting. AGENTS.md CRITICAL rule: explain why Upsert "
-                       "cannot work and get explicit approval")
-    if (count(OP_INSERT, after) > count(OP_INSERT, before)
-            and count(OP_UPSERT, after) < count(OP_UPSERT, before)):
-        return "ask", ("this edit flips an Upsert operation to Insert. AGENTS.md CRITICAL rule: "
-                       "on SFDMU 5.6.4+ Upsert works; explicit approval is required")
+    if count(DELETE_OLD_DATA, new) > count(DELETE_OLD_DATA, old) or (
+            count(OP_INSERT, new) > count(OP_INSERT, old) and count(OP_UPSERT, old)):
+        return "ask", ("this SFDMU plan edit can't be compared object by object (the plan "
+                       "doesn't parse, or the edit can't be replayed), and it adds deleteOldData "
+                       "or an Insert where an Upsert was. AGENTS.md CRITICAL rule: explicit "
+                       "approval is required")
     return "allow", ""
 
 
-def kill_switch(cwd: str) -> bool:
+def stop_file(cwd: str) -> Optional[str]:
+    """Why a loop agent must stop now, or None. Interactive sessions never stop here."""
     if not os.environ.get("LOOP_ROLE"):
-        return False
+        return None
+    run_dir = os.environ.get("LOOP_RUN_DIR")
+    if run_dir and (Path(run_dir) / "STOP").exists():
+        return f"this run's stop file is set ({run_dir}/STOP): a cancel was requested for this run"
     common = git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir")
-    return bool(common) and (Path(common).parent / ".loop" / "STOP").exists()
+    if common and (Path(common).parent / ".loop" / "STOP").exists():
+        return "the workstation's kill switch is on (.loop/STOP)"
+    return None
 
 
 def respond(decision: str, reason: str) -> int:
@@ -212,15 +360,15 @@ def decide(event: dict) -> Tuple[str, str]:
     tool = event.get("tool_name") or ""
     tool_input = event.get("tool_input") or {}
     cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-    if kill_switch(cwd):
-        return "deny", ("the loop's kill switch is on (.loop/STOP). Make no more tool calls; "
-                        "say where you got to and stop")
+    stop = stop_file(cwd)
+    if stop:
+        return "deny", f"{stop}. Make no more tool calls; say where you got to and stop"
     if tool == "Bash":
         worst = ("allow", "")
         for argv in simple_commands(tool_input.get("command") or ""):
-            push = git_push_args(argv, cwd)
+            push = git_push(argv, cwd)
             if push:
-                decision = push_decision(*push)
+                decision = push_decision(push)
                 if decision[0] == "deny":
                     return decision
                 if decision[0] == "ask":

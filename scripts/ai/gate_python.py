@@ -60,6 +60,16 @@ def main_checkout(start: Path) -> Optional[Path]:
     return Path(out.stdout.strip()).parent
 
 
+def checkout_root(start: Path) -> Optional[Path]:
+    """The root of the checkout (main or linked worktree) that contains `start`."""
+    try:
+        out = subprocess.run(["git", "-C", str(start), "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return Path(out.stdout.strip()) if out.returncode == 0 and out.stdout.strip() else None
+
+
 def resolve(start: Path) -> Tuple[Optional[Path], str]:
     """(interpreter, where it came from). The interpreter is None when nothing is configured."""
     override = os.environ.get(ENV_VAR)
@@ -78,7 +88,10 @@ def problems(start: Path) -> Tuple[Optional[Path], List[str]]:
         return None, [source]
     if not python.exists():
         return python, [f"{python} does not exist (from {source})"]
-    root = main_checkout(start) or start
+    # The interpreter is shared (the main checkout's .venv), but what it must be able to run
+    # is the matrix of the checkout being verified: a worktree's branch may raise
+    # `min_python` or add a dependency the main checkout's copy doesn't know about yet.
+    root = checkout_root(start) or start
     try:
         out = subprocess.run(
             [str(python), "-c", _PROBE, str(root / "scripts" / "ai")],

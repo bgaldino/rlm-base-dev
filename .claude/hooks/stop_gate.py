@@ -17,8 +17,11 @@ a code failure:
   with a message naming it as a setup problem, then allowed. These don't count toward the
   5-stop budget.
 
-Each outcome adds one line to `checks.log` in the run folder (`$LOOP_RUN_DIR`, default
-`<main checkout>/.loop`); each block's full message also goes to `blocked.log`.
+Each outcome adds one line to `checks.log` in the run folder; each block's full message also
+goes to `blocked.log`. The run folder is `$LOOP_RUN_DIR`, or `<main checkout>/.loop/session-
+<session id>` when that is unset, so a budget or a setup block never carries over from one
+session to the next. A set stop file (`$LOOP_RUN_DIR/STOP` for this run, `.loop/STOP` for every
+run) lets the builder stop at once: a cancel wants it to stop, not to keep fixing.
 
 Stdlib only, Python 3.9-safe. Exit 0 = allow the stop · exit 2 = block, reason on stderr.
 """
@@ -67,10 +70,12 @@ def main() -> int:
     if not top or not common:
         return 0
     root, main_root = Path(top.strip()), Path(common.strip()).parent
-    if (main_root / ".loop" / "STOP").exists():
-        return 0  # the kill switch wants the agent to stop, not to keep fixing
+    configured = os.environ.get("LOOP_RUN_DIR")
+    session = re.sub(r"[^A-Za-z0-9_.-]", "_", str(event.get("session_id") or "unknown"))
+    run_dir = Path(configured) if configured else main_root / ".loop" / f"session-{session}"
+    if (run_dir / "STOP").exists() or (main_root / ".loop" / "STOP").exists():
+        return 0  # a stop file wants the agent to stop, not to keep fixing
 
-    run_dir = Path(os.environ.get("LOOP_RUN_DIR") or main_root / ".loop")
     run_dir.mkdir(parents=True, exist_ok=True)
     checks, blocked_log = run_dir / "checks.log", run_dir / "blocked.log"
     base = os.environ.get("LOOP_BASE") or "origin/main"
