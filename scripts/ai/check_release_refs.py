@@ -152,6 +152,10 @@ PATH_VERBS = {"add", "rm", "mv", "status", "ls-files", "clean", "commit", "init"
 # Subcommands whose first positional argument is a pattern, not a ref (`git grep NNN main`).
 PATTERN_VERBS = {"grep"}
 SHORT_REF_FLAGS = {"-b", "-B", "-c", "-C"}
+# `git config` options whose next token is their value, not the key.
+CONFIG_VALUE_OPTS = {"-t", "--type", "-f", "--file", "--blob", "--comment", "--default"}
+# `git worktree` actions whose operands are all paths (only `add` takes a commit-ish).
+WORKTREE_PATH_ACTIONS = {"remove", "move", "lock", "unlock", "repair", "prune", "list"}
 # Short flags that take a ref only under one subcommand (`restore -s`, short for --source).
 VERB_REF_FLAGS = {"restore": {"-s"}}
 
@@ -261,20 +265,37 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
             tokens = tokens[:tokens.index("--")]  # after `--`, pathspecs (`git log -- 264`)
         if verb == "config":
             # `git config branch.<b>.gh-merge-base NNN`: a ref only under a branch-ish key.
-            key = next((t for t in tokens if not t.startswith("-")), "")
+            # Skip options and the values of those that take one (`--type path`).
+            key, k = "", 0
+            while k < len(tokens):
+                if tokens[k] in CONFIG_VALUE_OPTS:
+                    k += 2
+                elif tokens[k].startswith("-"):
+                    k += 1
+                else:
+                    key = tokens[k]
+                    break
             words = {w for w in re.split(r"[.\-_]", key.lower()) if w}
             if not words & (BRANCH_WORDS | {"merge", "remote"}) or words & MEASURES:
                 continue
-            tokens = tokens[tokens.index(key) + 1:] if key else []
+            tokens = tokens[k + 1:] if key else []
         if verb in PATTERN_VERBS:
             # Patterns are the values of `-e`, or else the first positional; either way not refs.
-            if "-e" in tokens:
-                tokens = [t for k, t in enumerate(tokens) if t != "-e" and
-                          not (k and tokens[k - 1] == "-e")]
+            if any(t == "-e" or t.startswith(("-e", "--regexp")) for t in tokens):
+                tokens = [t for k, t in enumerate(tokens)
+                          if not t.startswith(("-e", "--regexp"))
+                          and not (k and tokens[k - 1] in ("-e", "--regexp"))]
             else:
                 positional = [k for k, t in enumerate(tokens) if not t.startswith("-")]
                 if positional:
                     tokens = tokens[:positional[0]] + tokens[positional[0] + 1:]
+        if verb == "worktree":
+            # `worktree add <path> [<commit-ish>]`; every other action takes only paths.
+            positional = [k for k, t in enumerate(tokens) if not t.startswith("-")]
+            action = tokens[positional[0]] if positional else ""
+            keep = positional[2:] if action == "add" else []
+            tokens = [t for k, t in enumerate(tokens)
+                      if t.startswith("-") or k in keep or k and tokens[k - 1] in SHORT_REF_FLAGS]
         ref_flags = SHORT_REF_FLAGS | VERB_REF_FLAGS.get(verb, set())
         for i, token in enumerate(tokens):
             if i and measure_flag(tokens[i - 1]):
@@ -302,7 +323,7 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
 # A CLI option declared with a numbered default: `add_argument("--base", default="NNN")`,
 # `click.option("--head", default="NNN")`. Read over the whole call, which often wraps.
 OPTION_CALL = re.compile(r"\b(?:add_argument|option)\(")
-OPTION_DEFAULT = re.compile(r"[\"'](--?[\w-]+)[\"'][^)]*?\bdefault\s*=\s*"
+OPTION_DEFAULT = re.compile(r"[\"'](--?[\w-]+)[\"'].*?\bdefault\s*=\s*"
                             # a literal, or a call holding a quoted one (`os.getenv("B", "NNN")`)
                             r"(?:[\"']?\d{3}[\"']?(?![\w.])|[\w.]+\([^)]*?[\"']\d{3}[\"'])")
 
@@ -436,7 +457,7 @@ DIGITS = re.compile(r"\d{3}")
 # where a call-wrapped quoted number is noise, not a branch someone wrote. Only that heuristic
 # is switched off on such a line; exact refs and direct settings are still checked.
 MAX_LINE = 2000
-OPENER = re.compile(r"\\\s*$|=\s*$|[:=]\s*(?:[A-Za-z_][\w.]*)?[\[({]|:\s*(?:#.*)?$|"
+OPENER = re.compile(r"\\\s*$|=\s*$|\[\s*$|[:=]\s*(?:[A-Za-z_][\w.]*)?[\[({]|:\s*(?:#.*)?$|"
                     r"\b(?:add_argument|option)\(|\[\s*[\"'](?:git|gh)[\"']\s*,")
 
 
@@ -444,6 +465,7 @@ OPENER = re.compile(r"\\\s*$|=\s*$|[:=]\s*(?:[A-Za-z_][\w.]*)?[\[({]|:\s*(?:#.*)
 # Python form here. Rebuilt as the shell command it runs, then read by the same rules.
 ARGV = re.compile(r"""\[\s*(["'])(git|gh)\1\s*,([^\]]*)\]""")
 ARGV_ITEM = re.compile(r"""(["'])(.*?)\1""")
+ARGV_OPEN = re.compile(r"""\[\s*["'](?:git|gh)["']""")
 
 
 def argv_commands(text: str) -> list:
@@ -452,12 +474,26 @@ def argv_commands(text: str) -> list:
             for m in ARGV.finditer(text)]
 
 
+def argv_block(lines: list, i: int) -> str:
+    """A list literal opened on line i and closed later, joined, if it's a git/gh argv."""
+    line = lines[i]
+    if not (ARGV_OPEN.search(line) or line.rstrip().endswith("[")) or "]" in line.split("[")[-1]:
+        return ""
+    joined = line
+    for nxt in lines[i + 1:i + 1 + LOGICAL_MAX]:
+        joined += " " + allowed_out(nxt)
+        if "]" in nxt:
+            break
+    return joined if ARGV.search(joined) else ""
+
+
 def code_finding(lines: list, i: int, line: str, has_number) -> bool:
     logical = logical_line(lines, i)
-    for command in argv_commands(logical):
+    for command in argv_commands(logical) + argv_commands(argv_block(lines, i)):
         if REF.search(command) or numbered_branch_in_code(command):
             return True
-    if not has_number and not DIGITS.search(logical) and not OPTION_CALL.search(line):
+    if not has_number and not DIGITS.search(logical) and not OPTION_CALL.search(line) \
+            and not line.rstrip().endswith("["):
         return False  # an opener whose block holds no three-digit run: nothing to find
     return numbered_branch_in_code(logical, len(line), len(line) > MAX_LINE) \
         or option_default(lines, i)

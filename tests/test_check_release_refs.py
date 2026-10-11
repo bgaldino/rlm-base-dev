@@ -31,6 +31,10 @@ class NumberedBranches(unittest.TestCase):
                      "gh pr create --head alice:264", "gh pr create -B=264",
                      "git checkout refs/remotes/origin/264", "git push origin -- 264",
                      "git restore -s 264 -- file.txt", "git restore -s264 file.txt",
+                     "git config --type path branch.foo.gh-merge-base 264",
+                     "git grep -eTODO 264", "git grep --regexp=TODO 264",
+                     "git worktree add ../wt 264", "git worktree add -b feat ../wt 264",
+                     'ap.add_argument("--base", choices=("main", "264"), default="264")',
                      'subprocess.run(["git", "diff", "264..HEAD"])',
                      "run(['git', 'checkout', '264'], check=True)",
                      'subprocess.run(["gh", "pr", "create", "--base", "264"])',
@@ -145,11 +149,16 @@ class NumberedBranches(unittest.TestCase):
 
     def test_a_wrapped_call_default_and_wrapped_prose_fail_at_their_first_line(self):
         for text in ('DEFAULT_BASE = os.getenv(\n    "BASE", "264"\n)',
+                     'subprocess.run([\n    "git",\n    "checkout",\n    "264",\n])',
+
                      'const DEFAULT_BASE =\n  "264";',
                      "Created with the `264`\nbranch cut so the directory exists.",
                      "the sync PR merged\ninto `264` first."):
             with self.subTest(text=text):
                 self.assertEqual([n for n, _, _ in crr.findings(text, REF)], [1])
+        # An argv list opened on its own line: reported where the list opens.
+        argv = 'subprocess.run(\n    [\n        "gh", "pr", "create",\n        "--base", "264",\n    ]\n)'
+        self.assertEqual([n for n, _, _ in crr.findings(argv, REF)], [2])
         for text in ('timeout = os.getenv(\n    "T", "300"\n)',
                      "Release 264 shipped.\nThe branch is `main`.",
                      "a live 264 org\nbuilt from `main`"):
@@ -200,7 +209,10 @@ class NumberedBranches(unittest.TestCase):
                      'the "200" status code', "'069' prefix",
                      "# The shared git-tracking helpers (scripts/repo_paths.py, pack 167)",
                      "use git to compare 264 snapshots", "cd .git && ls 264",
-                     "git grep -e 264", "git grep -e 264 -e 262 main",
+                     "git grep -e 264", "git grep -e 264 -e 262 main", "git grep -e264",
+                     "git worktree remove 264", "git worktree move old 264",
+                     "git worktree add 264", "git config --type int core.bigFileThreshold 512",
+                     'ap.add_argument("--base", choices=("main", "x"), default="main")',
                      'subprocess.run(["git", "log", "-n", "100"])',
                      'subprocess.run(["git", "add", "264"])', 'run(["gh", "pr", "view", "264"])',
                      # Pathspec-only subcommands: the number is a path.
