@@ -75,7 +75,9 @@ class NumberedBranches(unittest.TestCase):
                      "git push origin +264", "git diff 264^", "git log 264~3 -1",
                      "git checkout 264@{1}", "git push origin :264", "git diff 264...HEAD",
                      "git log 264..main", "git show 264:README.md", "git rev-parse 264",
-                     "git merge-base main 264"):
+                     "git merge-base main 264", "git --no-pager log 264",
+                     "git --paginate show 264:README.md", "git -P diff 264",
+                     "git --git-dir=.git --work-tree . checkout 264"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
 
@@ -104,6 +106,7 @@ class NumberedBranches(unittest.TestCase):
                      "git log HEAD~100..HEAD", "git diff main...feat/x", "git log --depth=100",
                      "git push origin main:release/264", "git diff HEAD@{100}",
                      "git show HEAD:README.md", "git rev-list --count HEAD",
+                     "git --no-pager log -n 100", "input.targetPrice = 150;",
                      "timeout_base = 300", "branch_count = 3", 'ref = "main"',
                      "base: origin/main", "git checkout release/264", "max_refs = [1, 2]",
                      '"keyPrefix": "001",', 'branch:"262-patch"',
@@ -111,17 +114,24 @@ class NumberedBranches(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), [], line)
 
-    def test_the_gate_selects_on_exactly_the_scanned_scope(self):
-        # The gate mirrors SCOPE in its triggers; a scope entry missing there means a change
-        # to that file never runs the check that audits it.
+    def test_the_gate_runs_it_on_every_change(self):
+        # The scope is every tracked text file, so no trigger list can mirror it; the gate
+        # has to run it unconditionally, or a change to an unlisted file skips the check.
         import pr_gate
         check = next(c for c in pr_gate.CHECKS if c["name"] == "release_refs")
-        self.assertEqual(sorted(check["triggers"]), sorted(crr.SCOPE))
+        self.assertTrue(check.get("always"))
+        self.assertTrue(pr_gate.selects(check, ["any/unlisted/file.md"]))
 
     def test_readme_and_current_docs_are_scanned_and_help_snapshots_are_not(self):
         scanned = {p.relative_to(REPO).as_posix() for p in crr.tracked_scope()}
         self.assertIn("README.md", scanned)
         self.assertIn("cumulusci.yml", scanned)
+        # Directories a path list used to miss, named by top-level segment rather than by
+        # path so this test doesn't read files it can't select (test_pr_gate's read rule).
+        roots = {p.split("/", 1)[0] for p in scanned}
+        self.assertLessEqual({"docker", "orgs", "datasets", "postman", "robot"}, roots)
+        self.assertIn("Dockerfile", {p.rsplit("/", 1)[-1] for p in scanned})
+        self.assertTrue([p for p in scanned if p.endswith(".robot")])
         docs = [p for p in scanned if p.startswith("docs")]
         self.assertTrue([p for p in docs if "/" in p and p.count("/") == 1], "docs root unscanned")
         self.assertFalse([p for p in docs if p.startswith(crr.EXCLUDE)])

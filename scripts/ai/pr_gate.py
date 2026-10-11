@@ -114,14 +114,9 @@ CHECKS = [
         name="release_refs",
         cmd=["python", "scripts/ai/check_release_refs.py"],
         # Branches are named by role, never by release number (README → Branch
-        # Information). The triggers are the script's own SCOPE, so any file it audits
-        # selects it (tests/test_check_release_refs.py holds them equal). Its EXCLUDE
-        # isn't mirrored: a diff touching only excluded files selects a check that reads
-        # ~550 files in well under a second, which is cheaper than a second rule shape.
-        triggers=["AGENTS.md", "CONTRIBUTING.md", "README.md", "REVIEW.md", "SECURITY.md",
-                  "cumulusci.yml", "package.json", "pyproject.toml", "sfdx-project.json",
-                  ".agents/", ".claude/", ".cursor/", ".github/", "scripts/", "tasks/",
-                  "tests/", "docs/"],
+        # Information). It reads every tracked text file, so like agent_tooling it always
+        # runs rather than mirroring a scope here: ~1,200 files in a couple of seconds.
+        triggers=["scripts/ai/check_release_refs.py"], always=True,
         deps=[], gating=True,
     ),
     dict(

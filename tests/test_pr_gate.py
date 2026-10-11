@@ -254,10 +254,13 @@ check("a cumulusci.yml change selects the CCI reference drift check",
       "cci_reference_drift" in sel, sel)
 sel = selected_names(["docs/erds/erd-data.json"])
 check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel, sel)
-# Local Markdown links can target any repository file. The cheap navigation baseline
-# therefore runs for every non-empty change, while unrelated expensive checks stay skipped.
+# Local Markdown links can target any repository file, and a numbered branch can appear in
+# any tracked text file. The two cheap whole-repo checks (navigation baseline and
+# release_refs) therefore run for every non-empty change, while unrelated expensive checks
+# stay skipped.
 sel = selected_names(["docker/Dockerfile"])
-check("an otherwise unrelated path selects only the navigation baseline", sel == {"agent_tooling"}, sel)
+check("an otherwise unrelated path selects only the two whole-repo baselines",
+      sel == {"agent_tooling", "release_refs"}, sel)
 # A suffix selector, for the check that walks every .md in the repo. Prefix triggers left
 # the root README and seven datasets/**/README.md build-step citations unable to select the
 # suite that audits them.

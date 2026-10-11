@@ -7,7 +7,8 @@ three releases a year, so a branch named by number in an instruction or a tool d
 goes stale within months. A tool that defaulted to a numbered branch quietly compared
 every branch against a retired line after the cutover.
 
-What fails, on any line of a tracked instruction or tooling file:
+What fails, on any line of a tracked text file (see SUFFIXES and BASENAMES; EXCLUDE is the
+exception list):
 
 * `ref`: a release number used as a git ref: `origin/NNN`, `refs/heads/NNN`,
   `--base NNN`, `--head NNN` (any tool's flag: `gh pr create`, `check_branch_scope.py`), for
@@ -55,12 +56,14 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-SCOPE = ("AGENTS.md", "CONTRIBUTING.md", "README.md", "REVIEW.md", "SECURITY.md",
-         "cumulusci.yml", "package.json", "pyproject.toml", "sfdx-project.json", ".agents/",
-         ".claude/", ".cursor/", ".github/", "scripts/", "tasks/", "tests/", "docs/")
+# Every tracked file of these kinds, wherever it lives: a list of directories went stale one
+# review round at a time (README, docs/, tests/, root configs, docker/, orgs/, datasets/ ...).
+# Metadata XML, Apex and CSV data aren't instructions or tooling and stay out.
+SUFFIXES = (".md", ".mdc", ".py", ".yml", ".yaml", ".json", ".sh", ".toml", ".txt", ".robot",
+            ".resource")
+BASENAMES = ("Dockerfile",)
 # Captured Help text, and this checker's own fixtures, which spell numbered branches on purpose.
 EXCLUDE = ("docs/salesforce/", "tests/test_check_release_refs.py")
-SUFFIXES = (".md", ".mdc", ".py", ".yml", ".yaml", ".json", ".sh", ".toml", ".txt")
 ALLOW = "release-ref: allow"
 
 # Remotes this repo uses, plus whatever `git remote` lists at run time. Only a remote name
@@ -89,7 +92,9 @@ UNQUOTED = re.compile(
 
 # A git verb that names branches, then the rest of that simple command.
 GIT_BRANCH_CMD = re.compile(
-    r"\bgit\s+(?:-[Cc]\s+\S+\s+)*(?:checkout|switch|push|pull|fetch|merge-base|merge|rebase|"
+    r"\bgit\s+(?:(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace|exec-path)(?:[= ]\S+)?|"
+    r"--no-pager|--paginate|-[pP]|--bare|--no-replace-objects|--literal-pathspecs|"
+    r"--no-optional-locks)\s+)*(?:checkout|switch|push|pull|fetch|merge-base|merge|rebase|"
     r"branch|worktree\s+add|reset|diff|log|cherry|show|rev-parse|rev-list|restore)\b"
     r"([^\n#|;&`]*)")
 # Flags whose next token is a count, not a ref.
@@ -102,6 +107,7 @@ SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*[:=]\s*")
 BRANCH_WORDS = {"base", "branch", "branches", "ref", "refs", "protected", "target", "targets"}
 MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "length", "num",
             "delay", "retry", "retries", "seconds", "secs", "ms", "width", "height", "depth",
+            "price", "amount", "quantity", "qty", "cost", "total", "percent", "score",
             "index", "idx", "version", "rate", "ttl"}
 SCALAR = re.compile(r"[\"']?\d{3}[\"']?(?![\w.-])")
 ELEMENT = re.compile(r"(?<![\w./-])[\"']?\d{3}[\"']?(?![\w./-])")
@@ -215,13 +221,13 @@ def findings(text: str, ref: re.Pattern):
 
 
 def tracked_scope() -> list[Path]:
-    out = subprocess.run(["git", "-C", str(REPO), "ls-files", "-z", "--", *SCOPE],
+    out = subprocess.run(["git", "-C", str(REPO), "ls-files", "-z"],
                          capture_output=True, text=True)
     if out.returncode != 0:
         raise OSError(out.stderr.strip() or "git ls-files failed")
     return [REPO / name for name in out.stdout.split("\0")
-            if name.endswith(SUFFIXES) and not name.startswith(EXCLUDE)
-            and not (REPO / name).is_symlink()]
+            if name and (name.endswith(SUFFIXES) or name.rsplit("/", 1)[-1] in BASENAMES)
+            and not name.startswith(EXCLUDE) and not (REPO / name).is_symlink()]
 
 
 def main(argv: list[str]) -> int:
