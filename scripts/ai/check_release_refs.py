@@ -7,8 +7,7 @@ three releases a year, so a branch named by number in an instruction or a tool d
 goes stale within months. A tool that defaulted to a numbered branch quietly compared
 every branch against a retired line after the cutover.
 
-What fails, on any line of a tracked text file (see SUFFIXES and BASENAMES; EXCLUDE is the
-exception list):
+What fails, on any line of any tracked text file (is_text; EXCLUDE is the exception list):
 
 * `ref`: a release number used as a git ref: `origin/NNN`, `refs/heads/NNN`,
   `--base NNN`, `--head NNN` (any tool's flag: `gh pr create`, `check_branch_scope.py`), for
@@ -57,12 +56,11 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-# Every tracked file of these kinds, wherever it lives: a list of directories went stale one
-# review round at a time (README, docs/, tests/, root configs, docker/, orgs/, datasets/ ...).
-# Metadata XML, Apex and CSV data aren't instructions or tooling and stay out.
-SUFFIXES = (".md", ".mdc", ".py", ".yml", ".yaml", ".json", ".sh", ".toml", ".txt", ".robot",
-            ".resource")
-BASENAMES = ("Dockerfile",)  # plus any extensionless file that starts with `#!` (is_launcher)
+# Every tracked text file, wherever it lives and whatever it is called: a list of directories,
+# then of suffixes, went stale one review round at a time (README, docs/, tests/, root
+# configs, docker/, launchers, .html, .js ...). Text means UTF-8 with no NUL byte in the
+# first 8 KB (is_text); anything else is binary and skipped.
+TEXT_PROBE = 8192
 # Captured Help text, and this checker's own fixtures, which spell numbered branches on purpose.
 EXCLUDE = ("docs/salesforce/", "tests/test_check_release_refs.py")
 ALLOW = "release-ref: allow"
@@ -203,6 +201,8 @@ def yaml_block(lines: list, i: int):
         return None
     indent, items = len(key.group(1)), []
     for line in lines[i + 1:i + 1 + LOGICAL_MAX]:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
         item = YAML_ITEM.match(line)
         if not item or len(item.group(1)) < indent:
             break
@@ -232,14 +232,23 @@ def logical_line(lines: list, i: int) -> str:
     return joined
 
 
+# Every rule needs a three-digit run, on the line or, for a block, on a later line its opener
+# joins. These two let the scan skip the rest: it reads every tracked text file, ~10 MB.
+DIGITS = re.compile(r"\d{3}")
+OPENER = re.compile(r"\\\s*$|[:=]\s*[\[({]|:\s*(?:#.*)?$")
+
+
 def findings(text: str, ref: re.Pattern):
+    if not DIGITS.search(text):
+        return
     lines = text.splitlines()
     for number, line in enumerate(lines, 1):
-        if ALLOW in line:
+        has_number = DIGITS.search(line)
+        if not has_number and not OPENER.search(line) or ALLOW in line:
             continue
-        if ref.search(line):
+        if has_number and ref.search(line):
             yield number, "ref", line.strip()
-        elif near_branch(line):
+        elif has_number and near_branch(line):
             yield number, "branch", line.strip()
         elif numbered_branch_in_code(logical_line(lines, number - 1), len(line)):
             yield number, "code", line.strip()
@@ -252,16 +261,22 @@ def tracked_scope() -> list[Path]:
         raise OSError(out.stderr.strip() or "git ls-files failed")
     return [REPO / name for name in out.stdout.split("\0")
             if name and not name.startswith(EXCLUDE) and not (REPO / name).is_symlink()
-            and (name.endswith(SUFFIXES) or name.rsplit("/", 1)[-1] in BASENAMES
-                 or is_launcher(REPO / name))]
+            and is_text(REPO / name)]
 
 
-def is_launcher(path: Path) -> bool:
-    """An extensionless script (`docker/rlm`, `tui-cci`): it starts with a shebang."""
-    if "." in path.name or not path.is_file():
+def is_text(path: Path) -> bool:
+    if not path.is_file():
         return False
     with open(path, "rb") as handle:
-        return handle.read(2) == b"#!"
+        head = handle.read(TEXT_PROBE)
+    if b"\0" in head:
+        return False
+    try:
+        head.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        # A multi-byte character cut at the probe boundary is still text.
+        return exc.start >= len(head) - 3
+    return True
 
 
 def main(argv: list[str]) -> int:
@@ -273,7 +288,8 @@ def main(argv: list[str]) -> int:
     total, ref = 0, ref_pattern(remotes())
     for path in paths:
         try:
-            text = path.read_text(encoding="utf-8")
+            # Classified as text by its head; a stray invalid byte further in isn't a tool error.
+            text = path.read_text(encoding="utf-8", errors="replace")
         except (OSError, UnicodeDecodeError) as exc:
             print(f"error: cannot read {path}: {exc}", file=sys.stderr)
             return 2

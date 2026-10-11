@@ -87,7 +87,10 @@ class NumberedBranches(unittest.TestCase):
                      "branches: [\n  main,\n  264\n]", "git push origin \\\n  main \\\n  264",
                      "branches: [main,\n  264\n]", 'PROTECTED = {"main",\n  "264"\n}',
                      'PROTECTED = {\n  "main",\n  "264",\n}',
-                     "branches:\n  - main\n  - 264", "branches:\n- main\n- '264'"):
+                     "branches:\n  - main\n  - 264", "branches:\n- main\n- '264'",
+                     # Comments and blank lines inside the sequence don't end it.
+                     "branches:\n  # migration\n  - main\n  - 264",
+                     "branches:\n\n  - main\n\n  - 264"):
             with self.subTest(text=text):
                 self.assertEqual([(n, r) for n, r, _ in crr.findings(text, REF)], [(1, "code")])
         # A GitHub Actions branch filter: reported at its `branches:` line.
@@ -140,6 +143,9 @@ class NumberedBranches(unittest.TestCase):
         roots = {p.split("/", 1)[0] for p in scanned}
         self.assertLessEqual({"docker", "orgs", "datasets", "postman", "robot"}, roots)
         names = {p.rsplit("/", 1)[-1] for p in scanned}
+        # Any text format, not an allowlist of suffixes: HTML docs and JS/MJS tooling too.
+        suffixes = {p.rsplit(".", 1)[-1] for p in names if "." in p}
+        self.assertLessEqual({"html", "js", "mjs", "md", "yml", "py"}, suffixes)
         self.assertIn("Dockerfile", names)
         # Extensionless launchers, found by their shebang (this repo has at least three).
         launchers = [p for p in scanned if "." not in p.rsplit("/", 1)[-1]
