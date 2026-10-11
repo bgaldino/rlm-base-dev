@@ -168,12 +168,20 @@ def yaml_items_under(lines: list, i: int):
     # The list belongs to the key's own column, which for `- branches:` is past the dash: a
     # sibling item at the dash's indent has left the block.
     column = key.start(2) - (head[key.start(2) - 1] in "\"'")
+    direct = None  # the first item's indent; deeper lines belong to an item, not the list
     for j in range(i + 1, len(lines)):
         line = lines[j]
         if not line.strip() or line.lstrip().startswith("#"):
             continue
+        indent = len(line) - len(line.lstrip())
         item = YAML_ITEM.match(line)
-        if not item or len(item.group(1)) < column:
+        if direct is None:
+            if not item or indent < column:
+                return
+            direct = indent
+        if indent > direct:
+            continue
+        if not item or indent < direct:
             return
         if ALLOW not in line and SCALAR.fullmatch(item.group(2)):
             yield j + 1

@@ -98,6 +98,10 @@ class Contract(unittest.TestCase):
         self.assertEqual(rules("rules:\n  - branches:\n      - main\n  - 264"), [])
         self.assertEqual(rules("rules:\n  - branches:\n    - main\n    - 264"), ["setting"])
         self.assertEqual(rules("branches:\n- main\n- 264"), ["setting"])
+        self.assertEqual(rules("branches:\n  - ports:\n      - 264"), [])
+        self.assertEqual(rules("branches:\n  - name: main\n    ports:\n      - 264\n  - 262"),
+                         ["setting"])
+        self.assertEqual(rules("branches:\n- main\nports:\n- 264"), [])
 
     def test_the_allow_marker_exempts_its_line_only(self):
         self.assert_clean(("the `264` branch existed then  <!-- release-ref: allow -->",
