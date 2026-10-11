@@ -152,6 +152,8 @@ PATH_VERBS = {"add", "rm", "mv", "status", "ls-files", "clean", "commit", "init"
 # Subcommands whose first positional argument is a pattern, not a ref (`git grep NNN main`).
 PATTERN_VERBS = {"grep"}
 SHORT_REF_FLAGS = {"-b", "-B", "-c", "-C"}
+# Short flags that take a ref only under one subcommand (`restore -s`, short for --source).
+VERB_REF_FLAGS = {"restore": {"-s"}}
 
 
 def command_tokens(rest: str) -> list:
@@ -264,18 +266,25 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
             if not words & (BRANCH_WORDS | {"merge", "remote"}) or words & MEASURES:
                 continue
             tokens = tokens[tokens.index(key) + 1:] if key else []
-        if verb in PATTERN_VERBS and "-e" not in tokens:
-            positional = [k for k, t in enumerate(tokens) if not t.startswith("-")]
-            if positional:
-                tokens = tokens[:positional[0]] + tokens[positional[0] + 1:]
+        if verb in PATTERN_VERBS:
+            # Patterns are the values of `-e`, or else the first positional; either way not refs.
+            if "-e" in tokens:
+                tokens = [t for k, t in enumerate(tokens) if t != "-e" and
+                          not (k and tokens[k - 1] == "-e")]
+            else:
+                positional = [k for k, t in enumerate(tokens) if not t.startswith("-")]
+                if positional:
+                    tokens = tokens[:positional[0]] + tokens[positional[0] + 1:]
+        ref_flags = SHORT_REF_FLAGS | VERB_REF_FLAGS.get(verb, set())
         for i, token in enumerate(tokens):
             if i and measure_flag(tokens[i - 1]):
                 continue
             if verb in PATH_VERBS and not token.startswith("-") and not (
-                    i and (tokens[i - 1] in SHORT_REF_FLAGS or tokens[i - 1].startswith("--")
+                    i and (tokens[i - 1] in ref_flags or tokens[i - 1].startswith("--")
                            and set(tokens[i - 1].lstrip("-").split("-")) & REF_FLAG_WORDS)):
                 continue  # `git add 264`: a path
-            if re.fullmatch(r"-[bBcC][\"']?\d{3}[\"']?", token):
+            if re.fullmatch(r"-[bBcC][\"']?\d{3}[\"']?", token) or verb in VERB_REF_FLAGS and \
+                    re.fullmatch(r"-[s][\"']?\d{3}[\"']?", token):
                 return True  # `clone -b264`, `checkout -B264`, `switch -c264`: attached value
             if token.startswith("-"):
                 # `--branch=NNN` is a ref; `--stat-width=NNN` is a measure.
@@ -428,18 +437,38 @@ DIGITS = re.compile(r"\d{3}")
 # is switched off on such a line; exact refs and direct settings are still checked.
 MAX_LINE = 2000
 OPENER = re.compile(r"\\\s*$|=\s*$|[:=]\s*(?:[A-Za-z_][\w.]*)?[\[({]|:\s*(?:#.*)?$|"
-                    r"\b(?:add_argument|option)\(")
+                    r"\b(?:add_argument|option)\(|\[\s*[\"'](?:git|gh)[\"']\s*,")
+
+
+# An argv list for git or gh: `subprocess.run(["git", "diff", "NNN..HEAD"])`, the usual
+# Python form here. Rebuilt as the shell command it runs, then read by the same rules.
+ARGV = re.compile(r"""\[\s*(["'])(git|gh)\1\s*,([^\]]*)\]""")
+ARGV_ITEM = re.compile(r"""(["'])(.*?)\1""")
+
+
+def argv_commands(text: str) -> list:
+    return [m.group(2) + " " + " ".join(shlex.quote(item) for _, item in
+                                        ARGV_ITEM.findall(m.group(3)))
+            for m in ARGV.finditer(text)]
 
 
 def code_finding(lines: list, i: int, line: str, has_number) -> bool:
     logical = logical_line(lines, i)
+    for command in argv_commands(logical):
+        if REF.search(command) or numbered_branch_in_code(command):
+            return True
     if not has_number and not DIGITS.search(logical) and not OPTION_CALL.search(line):
         return False  # an opener whose block holds no three-digit run: nothing to find
     return numbered_branch_in_code(logical, len(line), len(line) > MAX_LINE) \
         or option_default(lines, i)
 
 
+REF = None  # the ref pattern of the current scan, for argv commands; set by findings()
+
+
 def findings(text: str, ref: re.Pattern):
+    global REF
+    REF = ref
     if not DIGITS.search(text):
         return
     lines = text.splitlines()
