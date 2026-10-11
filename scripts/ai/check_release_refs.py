@@ -172,6 +172,7 @@ VERB_VALUE_FLAGS = {
     "stash": {"-m", "--message"}, "revert": {"-m", "--mainline"},
     "cherry-pick": {"-m", "--mainline"},
     "branch": {"--format", "--sort", "--color", "--column"},
+    "push": {"-o", "--push-option", "--receive-pack", "--exec"},
     "for-each-ref": {"--format", "--sort", "--count"},
 }
 VERB_VALUE_FLAGS["tag"] |= {"--format", "--sort", "--color", "--column"}
@@ -591,14 +592,15 @@ DIGITS = re.compile(r"\d{3}")
 # is switched off on such a line; exact refs and direct settings are still checked.
 MAX_LINE = 2000
 OPENER = re.compile(r"\\\s*$|=\s*$|\[\s*$|[:=]\s*(?:[A-Za-z_][\w.]*)?[\[({]|:\s*(?:#.*)?$|"
-                    r"\b(?:add_argument|option)\(|\[\s*[\"'](?:git|gh)[\"']\s*,")
+                    r"\b(?:add_argument|option)\(|[\[(]\s*[\"'](?:[\w./-]*/)?(?:git|gh)[\"']")
 
 
 # An argv list for git or gh: `subprocess.run(["git", "diff", "NNN..HEAD"])`, the usual
 # Python form here. Rebuilt as the shell command it runs, then read by the same rules.
-ARGV = re.compile(r"""\[\s*(["'])(git|gh)\1\s*,([^\]]*)\]""")
+# A list or tuple whose first item is git or gh, by basename (`"/usr/bin/git"` too).
+ARGV = re.compile(r"""[\[(]\s*(["'])(?:[\w./-]*/)?(git|gh)\1\s*,([^\])]*)[\])]""")
 ARGV_ITEM = re.compile(r"""(["'])(.*?)\1""")
-ARGV_OPEN = re.compile(r"""\[\s*["'](?:git|gh)["']""")
+ARGV_OPEN = re.compile(r"""[\[(]\s*["'](?:[\w./-]*/)?(?:git|gh)["']""")
 
 
 def argv_commands(text: str) -> list:
@@ -608,14 +610,21 @@ def argv_commands(text: str) -> list:
 
 
 def argv_block(lines: list, i: int) -> str:
-    """A list literal opened on line i and closed later, joined, if it's a git/gh argv."""
+    """A list or tuple opened on line i and closed later, joined, if it's a git/gh argv."""
     line = lines[i]
-    if not (ARGV_OPEN.search(line) or line.rstrip().endswith("[")) or "]" in line.split("[")[-1]:
+    opened = ARGV_OPEN.search(line)
+    if opened:
+        if ")" in line[opened.end():] or "]" in line[opened.end():]:
+            return ""
+    elif not line.rstrip().endswith(("[", "(")):
         return ""
+    elif not ARGV_OPEN.match(line.rstrip()[-1] + " ".join(
+            x.strip() for x in lines[i + 1:i + 3])):
+        return ""  # a bare opener whose next lines don't start a git/gh argv
     joined = line
     for nxt in lines[i + 1:i + 1 + LOGICAL_MAX]:
         joined += " " + allowed_out(nxt)
-        if "]" in nxt:
+        if "]" in nxt or ")" in nxt:
             break
     return joined if ARGV.search(joined) else ""
 
@@ -626,7 +635,9 @@ def code_finding(lines: list, i: int, line: str, has_number) -> bool:
         if REF.search(command) or numbered_branch_in_code(command):
             return True
     if not has_number and not DIGITS.search(logical) and not OPTION_CALL.search(line) \
-            and not line.rstrip().endswith("["):
+            and not line.rstrip().endswith("[") and not ARGV_OPEN.search(line) \
+            and not (line.rstrip().endswith("(") and i + 1 < len(lines)
+                     and ARGV_OPEN.match("(" + lines[i + 1].strip())):
         return False  # an opener whose block holds no three-digit run: nothing to find
     return numbered_branch_in_code(logical, len(line), len(line) > MAX_LINE) \
         or option_default(lines, i)
@@ -645,6 +656,7 @@ def findings(text: str, ref: re.Pattern):
         has_number = DIGITS.search(line)
         following = lines[number] if number < len(lines) else ""
         if not has_number and not OPENER.search(line) and not DIGITS.search(following) \
+                and not (line.rstrip().endswith("(") and ARGV_OPEN.match("(" + following.strip())) \
                 or ALLOW in line:
             continue
         if has_number and ref.search(line):
