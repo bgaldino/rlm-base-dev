@@ -522,13 +522,12 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 25 checks in about 17 seconds, of which the branch-scope *suite*
-(`tests/test_branch_scope.py`) is 8 —
-so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
-selection is a couple of seconds. That timing is measured on a machine where two of the twenty-five
-(`docgen_suite`, `harness_suites`) are blocked on optional dependencies and so contribute nothing, which
-is worth naming rather than leaving the reader to assume all twenty-five ran: with those installed the
-number is higher.
+A full `--all` run is 25 checks in about 100 seconds, of which the branch-scope *suite*
+(`tests/test_branch_scope.py`) is about 14. A typical docs-only selection is about 9 seconds, most
+of it the two checks that run on every change: `release_refs`, which reads every tracked text
+file (about 6), and `agent_tooling`. Measured 2026-10-11 on a workstation where all twenty-five
+ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
+`harness_suites`) reports it rather than counting it, and its total is lower.
 
 Verified by `tests/test_pr_gate.py` (711 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which

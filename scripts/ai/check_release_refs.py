@@ -145,8 +145,10 @@ def git_commands() -> frozenset:
 
 
 _GIT_COMMANDS = None
-# Subcommands where `--` doesn't start pathspecs; what follows can still be a refspec.
-REFSPEC_VERBS = {"push", "fetch", "pull"}
+# Subcommands where `--` starts pathspecs. Everywhere else it only ends option parsing.
+PATHSPEC_VERBS = {"log", "diff", "show", "checkout", "reset", "restore", "blame", "grep",
+                  "rev-list", "shortlog", "whatchanged", "format-patch", "difftool", "stash",
+                  "add", "rm", "mv", "status", "ls-files", "clean", "commit", "annotate"}
 # Subcommands whose positional arguments are only paths (or a URL and directory); in them a
 # number is a ref only as the value of a ref flag (`clone -b NNN`).
 PATH_VERBS = {"add", "rm", "mv", "status", "ls-files", "clean", "commit", "init", "clone",
@@ -170,8 +172,15 @@ VERB_VALUE_FLAGS = {
     "stash": {"-m", "--message"}, "revert": {"-m", "--mainline"},
     "cherry-pick": {"-m", "--mainline"},
 }
+# diff/log/show search and output options: a string, regex or file, never a revision.
+for _verb in ("diff", "log", "show", "whatchanged", "format-patch"):
+    VERB_VALUE_FLAGS.setdefault(_verb, set()).update(
+        {"-S", "-G", "-O", "--output", "--grep", "--author", "--committer", "--format",
+         "--pretty", "--date", "--since", "--until", "--after", "--before"})
 # Long options whose value is a ref though their name has no ref word.
-LONG_REF_FLAGS = {"--force-with-lease", "--shallow-exclude", "--fork-point"}
+LONG_REF_FLAGS = {"--force-with-lease", "--shallow-exclude", "--fork-point", "--merged",
+                  "--no-merged", "--contains", "--no-contains", "--points-at", "--orphan",
+                  "--ancestry-path", "--exclude-first-parent-only"}
 
 
 def command_tokens(rest: str) -> list:
@@ -307,8 +316,11 @@ def measure_flag(flag: str, verb: str = "") -> bool:
 def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = False) -> bool:
     # Each `git` on the line, not just the first: `git fetch && git checkout NNN`.
     for verb, tokens in git_invocations(line):
-        if verb not in REFSPEC_VERBS and "--" in tokens:
-            tokens = tokens[:tokens.index("--")]  # after `--`, pathspecs (`git log -- 264`)
+        if "--" in tokens:
+            # After `--`: pathspecs for the revision-and-path commands (`git log -- 264`); for
+            # the rest it only ends options, so `git branch -- NNN` still names a branch.
+            cut = tokens.index("--")
+            tokens = tokens[:cut] if verb in PATHSPEC_VERBS else tokens[:cut] + tokens[cut + 1:]
         if verb == "config":
             # `git config branch.<b>.gh-merge-base NNN`: a ref only under a branch-ish key.
             # Skip options and the values of those that take one (`--type path`).
