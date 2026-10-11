@@ -164,7 +164,7 @@ def git_commands() -> frozenset:
 
 _GIT_COMMANDS = None
 # Subcommands whose first operand is a repository (remote name or URL), then refspecs.
-REPOSITORY_FIRST = {"push", "fetch", "pull"}
+REPOSITORY_FIRST = {"push", "fetch", "pull", "ls-remote", "send-pack", "fetch-pack"}
 # Subcommands where `--` starts pathspecs. Everywhere else it only ends option parsing.
 PATHSPEC_VERBS = {"log", "diff", "show", "checkout", "reset", "restore", "blame", "grep",
                   "rev-list", "shortlog", "whatchanged", "format-patch", "difftool", "stash",
@@ -181,6 +181,7 @@ REVISION_VERBS = {
     "commit-tree", "read-tree", "diff-tree", "show-ref", "verify-commit", "verify-tag",
     "fast-export", "for-each-ref", "stash", "notes", "restore", "worktree", "remote",
     "bundle", "config", "clone", "reflog", "cherry-pick", "merge-tree", "log-tree",
+    "ls-remote", "send-pack", "fetch-pack", "replay", "checkout-index", "subtree",
 }
 # Subcommands whose positional arguments are only paths (or a URL and directory); in them a
 # number is a ref only as the value of a ref flag (`clone -b NNN`).
@@ -225,13 +226,14 @@ for _verb in ("diff", "log", "show", "whatchanged", "format-patch"):
         {"-S", "-G", "-O", "--output", "--grep", "--author", "--committer", "--format",
          "--pretty", "--date", "--since", "--until", "--after", "--before", "--line-prefix",
          "--src-prefix", "--dst-prefix", "--word-diff-regex", "-I", "--ignore-matching-lines",
-         "-l", "--encoding", "--notes", "--show-notes"})
+         "-l", "--encoding"})  # not --notes/--show-notes: their ref is optional, `=` only
 # Options whose value is a file, path or pattern under any subcommand that has them.
 VALUE_FLAGS_ANYWHERE = {"--pathspec-from-file", "--rotate-to", "--skip-to", "--decorate-refs",
                         "--decorate-refs-exclude", "--exclude", "--exclude-per-directory",
                         "--template", "--separate-git-dir", "--reference", "--config"}
 # Long options whose value is a ref though their name has no ref word.
 LONG_REF_FLAGS = {"--force-with-lease", "--shallow-exclude", "--fork-point", "--merged",
+                  "--negotiation-tip", "--notes", "--show-notes",
                   "--no-merged", "--contains", "--no-contains", "--points-at", "--orphan",
                   "--ancestry-path", "--exclude-first-parent-only"}
 
@@ -547,6 +549,7 @@ OPTION_DEFAULT = re.compile(r"[\"'](--?[\w-]+)[\"'].*?\bdefault\s*=\s*"
 
 
 OPTION_NAME = re.compile(r"[\"'](--[\w-]+)[\"']")
+OPTION_DEST = re.compile(r"\bdest\s*=\s*[\"']([\w-]+)[\"']")
 OPTION_CHOICES = re.compile(r"\b(?:choices\s*=\s*|Choice\(\s*)[\[({]([^\])}]*)")
 
 
@@ -559,8 +562,12 @@ def option_default(lines: list, i: int) -> bool:
         depth += line.count("(") - line.count(")")
         if depth <= 0:
             break
-    # Branch-ness from every long name the option declares (`"-b", "--base"`), not the first.
-    words = {w for name in OPTION_NAME.findall(call) for w in name.lstrip("-").lower().split("-")}
+    # Branch-ness from every name the option declares: each long flag (`"-b", "--base"`), an
+    # argparse `dest=`, and click's bare parameter name (`click.option("-B", "base", ...)`).
+    names = OPTION_NAME.findall(call) + OPTION_DEST.findall(call)
+    leading = call.split("(", 1)[-1].split("=", 1)[0]  # the positional args, before any kwarg
+    names += [n for n in re.findall(r"[\"']([A-Za-z_][\w-]*)[\"']", leading)]
+    words = {w for name in names for w in identifier_words(name.lstrip("-").replace("-", "_"))}
     if not words & REF_FLAG_WORDS or words & MEASURES:
         return False
     if OPTION_DEFAULT.search(call):
