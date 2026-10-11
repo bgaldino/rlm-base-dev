@@ -122,7 +122,7 @@ def git_invocations(line: str):
 
 
 # `git` as a command word: not inside `git-tracking`, `.git`, `/git/`.
-GIT_WORD = re.compile(r"(?<![\w./-])git(?=\s)")
+GIT_WORD = re.compile(r"(?<![\w.-])git(?=\s)")  # `/usr/bin/git` too; not `.git`, `git-x`
 
 
 def git_commands() -> frozenset:
@@ -158,6 +158,13 @@ CONFIG_VALUE_OPTS = {"-t", "--type", "-f", "--file", "--blob", "--comment", "--d
 WORKTREE_PATH_ACTIONS = {"remove", "move", "lock", "unlock", "repair", "prune", "list"}
 # Short flags that take a ref only under one subcommand (`restore -s`, short for --source).
 VERB_REF_FLAGS = {"restore": {"-s"}}
+# Options whose value is a path, message or format, not a ref, per subcommand.
+VERB_VALUE_FLAGS = {
+    "archive": {"-o", "--output", "--prefix", "--format", "--remote", "--add-file"},
+    "tag": {"-m", "-F", "-u", "--message", "--file", "--local-user"},
+    "notes": {"-m", "-F", "-C", "-c", "--message", "--file"},
+    "bundle": {"--output"}, "format-patch": {"-o", "--output-directory", "--subject-prefix"},
+}
 
 
 def command_tokens(rest: str) -> list:
@@ -206,6 +213,32 @@ def identifier_words(name: str) -> set:
     return {w.lower() for w in re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])", name)}
 
 
+def top_level(value: str) -> str:
+    """The contents of the collection `value` opens, up to its matching close, with any nested
+    collection's contents dropped. Quotes are respected, so a bracket in a string doesn't count."""
+    out, depth, quote = [], 0, ""
+    for ch in value:
+        if quote:
+            if ch == quote:
+                quote = ""
+            if depth == 1:
+                out.append(ch)
+            continue
+        if ch in "\"'":
+            quote = ch
+            if depth == 1:
+                out.append(ch)
+        elif ch in "[({":
+            depth += 1
+        elif ch in "])}":
+            depth -= 1
+            if depth == 0:
+                break
+        elif depth == 1:
+            out.append(ch)
+    return "".join(out)
+
+
 def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bool:
     """`first_len`, for a joined logical line, limits the settings read to those on its first
     physical line: the block's own nested keys (a JSON object's fields) aren't its value."""
@@ -218,16 +251,15 @@ def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bo
         value = line[match.end():]
         if SCALAR.match(value):
             return True
-        # A default wrapped in a call: `DEFAULT_BASE = os.getenv("BASE", "NNN")`. Only a quoted
-        # literal counts, so `limit(300)`-style arguments stay numbers.
         # An expression rather than a literal (`os.getenv("BASE", "NNN")`,
         # `os.getenv("BASE") or "NNN"`): any quoted three-digit literal in it is the default.
         if not long_line and re.match(r"[A-Za-z_]", value) and \
                 QUOTED_NUMBER.search(re.split(r"[;\n]", value, maxsplit=1)[0]):
             return True
         if value and value[0] in "[({":
-            close = {"[": "]", "(": ")", "{": "}"}[value[0]]
-            inner = value[1:value.find(close) if close in value else None]
+            # The collection's own top level: up to its matching close, nested ones removed,
+            # so `{"main": {"reviews": 2}, "NNN": {...}}` keeps the "NNN" key.
+            inner = top_level(value)
             # `{…}` with `key: value` pairs is a mapping. Under a branch-named setting its
             # keys are branches (`PROTECTED = {"main": True, "NNN": True}`); its values,
             # and any nested object's fields, aren't.
@@ -248,7 +280,7 @@ REV_SUFFIX = re.compile(r"(?:[\^~]\d*|@\{[^}]*\})+$")
 
 def ref_parts(token: str) -> list:
     token = token.strip("\"'")
-    return [REV_SUFFIX.sub("", part.lstrip("+")) for part in REV_SPLIT.split(token)]
+    return [REV_SUFFIX.sub("", part.lstrip("+^")) for part in REV_SPLIT.split(token)]
 
 
 def measure_flag(flag: str, verb: str = "") -> bool:
@@ -305,7 +337,8 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                       if t.startswith("-") or k in keep or k and tokens[k - 1] in SHORT_REF_FLAGS]
         ref_flags = SHORT_REF_FLAGS | VERB_REF_FLAGS.get(verb, set())
         for i, token in enumerate(tokens):
-            if i and measure_flag(tokens[i - 1], verb):
+            if i and (measure_flag(tokens[i - 1], verb)
+                      or tokens[i - 1] in VERB_VALUE_FLAGS.get(verb, ())):
                 continue
             if verb in PATH_VERBS and not token.startswith("-") and not (
                     i and (tokens[i - 1] in ref_flags or tokens[i - 1].startswith("--")
@@ -332,7 +365,9 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
 OPTION_CALL = re.compile(r"\b(?:add_argument|option)\(")
 OPTION_DEFAULT = re.compile(r"[\"'](--?[\w-]+)[\"'].*?\bdefault\s*=\s*"
                             # a literal, or a call holding a quoted one (`os.getenv("B", "NNN")`)
-                            r"(?:[\"']?\d{3}[\"']?(?![\w.])|[\w.]+\([^)]*?[\"']\d{3}[\"'])")
+                            r"(?:[\"']?\d{3}[\"']?(?![\w.])|[\w.]+\([^)]*?[\"']\d{3}[\"']"
+                            # or a fallback within the same argument (`os.getenv("B") or "NNN"`)
+                            r"|[^,]*?[\"']\d{3}[\"'])")
 
 
 def option_default(lines: list, i: int) -> bool:
@@ -406,6 +441,29 @@ YAML_KEY = re.compile(r"^(\s*)(?:-\s+)?[\"']?[A-Za-z_][\w-]*[\"']?\s*:\s*(?:#.*)
 YAML_ITEM = re.compile(r"^(\s*)-\s+(.*?)\s*(?:#.*)?$")
 
 
+YAML_CHILD_KEY = re.compile(r"^(\s+)[\"']?([\w./-]+)[\"']?\s*:(?:\s|$)")
+
+
+def yaml_child_keys(lines: list, i: int, indent: int) -> list:
+    """`protected_branches:` then `main: true` / `"NNN": true`: the mapping's own keys (its
+    direct children only), which under a branch-named key are branches."""
+    keys, child = [], None
+    for line in lines[i + 1:i + 1 + LOGICAL_MAX]:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        width = len(line) - len(line.lstrip())
+        if width <= indent:
+            break
+        match = YAML_CHILD_KEY.match(line)
+        if child is None:
+            if not match:
+                return []
+            child = width
+        if width == child and match and ALLOW not in line:
+            keys.append(match.group(2))
+    return keys
+
+
 def yaml_block(lines: list, i: int):
     """`key:` then `- item` lines (indented deeper, or at the key's own indent, which YAML
     allows for a sequence) as one flow line, `key: [item, item]`. None if not that shape."""
@@ -413,6 +471,9 @@ def yaml_block(lines: list, i: int):
     if not key:
         return None
     indent, items = len(key.group(1)), []
+    keys = yaml_child_keys(lines, i, indent)
+    if keys:
+        return f"{lines[i].split('#')[0].rstrip()} [{', '.join(keys)}]"
     for line in lines[i + 1:i + 1 + LOGICAL_MAX]:
         if not line.strip() or line.lstrip().startswith("#"):
             continue
@@ -441,13 +502,14 @@ def logical_line(lines: list, i: int) -> str:
         j += 1
         joined = joined.rstrip()[:-1] + " " + allowed_out(lines[j])
     opened = OPEN_SETTING.search(joined)
-    close = CLOSER[opened.group(1)] if opened else None
-    if opened and close not in joined[opened.end(1):].split("#")[0]:
-        while j + 1 < len(lines) and j - i < LOGICAL_MAX:
+    if opened:
+        open_ch = opened.group(1)
+        close = CLOSER[open_ch]
+        depth = joined[opened.start(1):].count(open_ch) - joined[opened.start(1):].count(close)
+        while depth > 0 and j + 1 < len(lines) and j - i < LOGICAL_MAX:
             j += 1
             joined += " " + allowed_out(lines[j])
-            if close in lines[j]:
-                break
+            depth += lines[j].count(open_ch) - lines[j].count(close)
     return joined
 
 

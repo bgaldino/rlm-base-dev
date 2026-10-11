@@ -35,6 +35,8 @@ class NumberedBranches(unittest.TestCase):
                      "git grep -eTODO 264", "git grep --regexp=TODO 264",
                      "git worktree add ../wt 264", "git worktree add -b feat ../wt 264",
                      "git grep -e TODO -L 264", "git grep -n TODO 264",
+                     "/usr/bin/git checkout 264", "git log ^264 main", "git rev-list main ^264",
+                     'parser.add_argument("--base", default=os.getenv("BASE") or "264")',
                      "the `264` active maintenance branch", "the 262 old maintenance branch",
                      "git worktree add -b 264 ../wt main",
                      'ap.add_argument("--base", choices=("main", "264"), default="264")',
@@ -152,6 +154,8 @@ class NumberedBranches(unittest.TestCase):
 
     def test_a_wrapped_call_default_and_wrapped_prose_fail_at_their_first_line(self):
         for text in ('DEFAULT_BASE = os.getenv(\n    "BASE", "264"\n)',
+                     'protected_branches:\n  main: true\n  "264": true',
+                     'PROTECTED_BRANCHES = {\n  "main": {"reviews": 2},\n  "264": {"reviews": 2},\n}',
                      'subprocess.run([\n    "git",\n    "checkout",\n    "264",\n])',
 
                      'const DEFAULT_BASE =\n  "264";',
@@ -163,6 +167,9 @@ class NumberedBranches(unittest.TestCase):
         argv = 'subprocess.run(\n    [\n        "gh", "pr", "create",\n        "--base", "264",\n    ]\n)'
         self.assertEqual([n for n, _, _ in crr.findings(argv, REF)], [2])
         for text in ('timeout = os.getenv(\n    "T", "300"\n)',
+                     "protected_branches:\n  main:\n    reviews: 264",
+                     'PROTECTED = {\n  "main": {"100": 2},\n}',
+                     "settings:\n  264: true",
                      "Release 264 shipped.\nThe branch is `main`.",
                      "a live 264 org\nbuilt from `main`"):
             with self.subTest(text=text):
@@ -215,6 +222,8 @@ class NumberedBranches(unittest.TestCase):
                      "git grep -e 264", "git grep -e 264 -e 262 main", "git grep -e264",
                      "git worktree remove 264", "git worktree move old 264",
                      "git worktree add -b topic 264 main", "git blame -L 100 f.py",
+                     "git archive -o 264 HEAD", "git tag -m 264 v1", "ls /srv/git/264",
+                     "cd repo.git 264",
                      "git log -n 100 main", "git diff -U 200 main",
                      "a live 264 org built off this branch",
                      "git worktree add 264", "git config --type int core.bigFileThreshold 512",
