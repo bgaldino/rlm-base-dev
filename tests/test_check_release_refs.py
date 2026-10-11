@@ -95,6 +95,10 @@ class NumberedBranches(unittest.TestCase):
                      "git config branch.feature.gh-merge-base 264", "git format-patch 264..HEAD",
                      "git archive 264", "git blame 264 -- README.md", "git tag v1 264",
                      'BASE_BRANCH="${BASE_BRANCH:-264}"', "git log ${TARGET_REF:-264}",
+                     "git --config-env=http.extraHeader=HEADER checkout 264",
+                     "git --exec-path=/x --no-replace-objects log 264",
+                     'parser.add_argument("--base", default="264")',
+                     "@click.option('--head', default='264', help='PR head')",
                      "base_ref = env.get('BASE_REF', '262')"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
@@ -118,6 +122,10 @@ class NumberedBranches(unittest.TestCase):
         # A GitHub Actions branch filter: reported at its `branches:` line.
         workflow = "on:\n  push:\n    branches:\n      - main\n      - 264\n"
         self.assertEqual([(n, r) for n, r, _ in crr.findings(workflow, REF)], [(3, "code")])
+
+    def test_a_wrapped_option_declaration_fails_at_its_call(self):
+        text = 'ap.add_argument(\n    "--base",\n    default="264",\n    help="base ref",\n)'
+        self.assertEqual([(n, r) for n, r, _ in crr.findings(text, REF)], [(1, "code")])
 
     def test_multiline_values_that_are_not_branches_pass(self):
         for text in ("git log -n \\\n  100", 'PROTECTED = (\n  "main",\n)\nx = 264',
@@ -143,6 +151,8 @@ class NumberedBranches(unittest.TestCase):
                      "git --no-pager log -n 100", "input.targetPrice = 150;",
                      'DEFAULT_BASE = os.getenv("BASE", "main")', "base_timeout = int('300')",
                      "git diff --stat-width=264 main", "git diff --stat-width 264 main",
+                     'ap.add_argument("--timeout", default=300)',
+                     'ap.add_argument("--base", default="main")', "git --version 264",
                      "git gc --prune=100", "git log --abbrev=100", "git blame -L 100,200 f.py",
                      "git config core.bigFileThreshold 512", "git config http.postBuffer 524",
                      'TIMEOUT="${TIMEOUT:-300}"', "rg -B 100 pattern", "grep -H 200 x",
@@ -184,7 +194,10 @@ class NumberedBranches(unittest.TestCase):
         self.assertTrue([p for p in scanned if p.endswith(".robot")])
         docs = [p for p in scanned if p.startswith("docs")]
         self.assertTrue([p for p in docs if "/" in p and p.count("/") == 1], "docs root unscanned")
-        self.assertFalse([p for p in docs if p.startswith(crr.EXCLUDE)])
+        self.assertFalse([p for p in docs if p.startswith(crr.EXCLUDE) or crr.CAPTURED.match(p)])
+        # Release-root docs beside the captured corpora are maintained here, so they're scanned.
+        self.assertTrue([p for p in docs if p.endswith("feature-index.md") and
+                         p.startswith("docs/sales")])
 
     def test_remotes_found_at_run_time_count(self):
         ref = crr.ref_pattern(["fork"])

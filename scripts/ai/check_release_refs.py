@@ -38,8 +38,9 @@ release numbers in prose ("a live NNN org", `salesforce_release_active`), paths 
 other three-digit values such as ID prefixes or HTTP codes, which aren't backticked next
 to a branch word. The one place that maps releases to branches is the README's Branch
 Information section, and it does so by role name (`release/<n>`), so it passes too. The
-Salesforce Help snapshots under `docs/salesforce/` are captured product text, not
-instructions, and are out of scope. A line that must keep a number, such as a record of
+captured Help, dev-guide and release-note corpora under `docs/salesforce/<n>/` are
+Salesforce's text, not instructions, and are out of scope (CAPTURED); the release-root files
+beside them are scanned. A line that must keep a number, such as a record of
 what happened at a past commit, can carry the marker `release-ref: allow`.
 
 Usage:
@@ -62,7 +63,11 @@ REPO = Path(__file__).resolve().parents[2]
 # first 8 KB (is_text); anything else is binary and skipped.
 TEXT_PROBE = 8192
 # Captured Help text, and this checker's own fixtures, which spell numbered branches on purpose.
-EXCLUDE = ("docs/salesforce/", "tests/test_check_release_refs.py")
+# Captured Help, dev-guide and release-note corpora are Salesforce's text, not ours; the
+# release-root files beside them (feature-index.md, notes) are maintained here and scanned.
+CAPTURED = re.compile(r"^docs/salesforce/[^/]+/(?:help|dev-guide|dev-guide-industries|"
+                      r"release-notes)/")
+EXCLUDE = ("tests/test_check_release_refs.py",)  # this checker's own fixtures
 ALLOW = "release-ref: allow"
 
 # Remotes this repo uses, plus whatever `git remote` lists at run time. Only a remote name
@@ -98,9 +103,10 @@ UNQUOTED = re.compile(
 # went stale one review round at a time (clone, format-patch, archive, blame, tag, config).
 # A bare three-digit argument is a ref unless an option's name says it's a measure.
 GIT_BRANCH_CMD = re.compile(
-    r"\bgit\s+(?:(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace|exec-path)(?:[= ]\S+)?|"
-    r"--no-pager|--paginate|-[pP]|--bare|--no-replace-objects|--literal-pathspecs|"
-    r"--no-optional-locks)\s+)*([a-z][\w-]*)\b([^\n#|;&`]*)")
+    # Global options before the subcommand: the ones that take a separate value, then any
+    # other long option (`--no-pager`, `--config-env=k=v`, ...) rather than a list of them.
+    r"\bgit\s+(?:(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace|exec-path|config-env)\s+\S+|"
+    r"--[\w-]+(?:=\S+)?|-[pP])\s+)*([a-z][\w-]*)\b([^\n#|;&`]*)")
 # Short flags whose next token is a count, not a ref. Long flags are judged by their words.
 COUNT_FLAGS = {"-n", "-U", "-L"}
 # Words in a long option that make its value a ref (`--branch=`, `--onto`, `--set-upstream-to`).
@@ -203,6 +209,28 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
     return branch_setting(line, first_len, long_line)
 
 
+# A CLI option declared with a numbered default: `add_argument("--base", default="NNN")`,
+# `click.option("--head", default="NNN")`. Read over the whole call, which often wraps.
+OPTION_CALL = re.compile(r"\b(?:add_argument|option)\(")
+OPTION_DEFAULT = re.compile(r"[\"'](--?[\w-]+)[\"'][^)]*?\bdefault\s*=\s*[\"']?\d{3}[\"']?(?![\w.])")
+
+
+def option_default(lines: list, i: int) -> bool:
+    if not OPTION_CALL.search(lines[i]):
+        return False
+    call, depth = "", 0
+    for line in lines[i:i + LOGICAL_MAX]:
+        call += " " + line.strip()
+        depth += line.count("(") - line.count(")")
+        if depth <= 0:
+            break
+    for match in OPTION_DEFAULT.finditer(call):
+        words = set(match.group(1).lstrip("-").lower().split("-"))
+        if words & REF_FLAG_WORDS and not words & MEASURES:
+            return True
+    return False
+
+
 # A shell parameter default for a branch-named variable: `${BASE_BRANCH:-NNN}`.
 SHELL_DEFAULT = re.compile(r"\$\{([A-Za-z_]\w*):?[-=]\s*[\"']?\d{3}[\"']?\}")
 
@@ -295,7 +323,7 @@ DIGITS = re.compile(r"\d{3}")
 # where a call-wrapped quoted number is noise, not a branch someone wrote. Only that heuristic
 # is switched off on such a line; exact refs and direct settings are still checked.
 MAX_LINE = 2000
-OPENER = re.compile(r"\\\s*$|[:=]\s*[\[({]|:\s*(?:#.*)?$")
+OPENER = re.compile(r"\\\s*$|[:=]\s*[\[({]|:\s*(?:#.*)?$|\b(?:add_argument|option)\(")
 
 
 def findings(text: str, ref: re.Pattern):
@@ -313,7 +341,7 @@ def findings(text: str, ref: re.Pattern):
         elif has_number and near_branch(line):
             yield number, "branch", line.strip()
         elif numbered_branch_in_code(logical_line(lines, number - 1), len(line),
-                                     len(line) > MAX_LINE):
+                                     len(line) > MAX_LINE) or option_default(lines, number - 1):
             yield number, "code", line.strip()
 
 
@@ -323,7 +351,8 @@ def tracked_scope() -> list[Path]:
     if out.returncode != 0:
         raise OSError(out.stderr.strip() or "git ls-files failed")
     return [REPO / name for name in out.stdout.split("\0")
-            if name and not name.startswith(EXCLUDE) and not (REPO / name).is_symlink()
+            if name and not name.startswith(EXCLUDE) and not CAPTURED.match(name)
+            and not (REPO / name).is_symlink()
             and is_text(REPO / name)]
 
 
