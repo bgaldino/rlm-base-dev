@@ -523,9 +523,9 @@ answer. This file is densely commented precisely because each setting matters, w
 made the first version of three separate guards vacuous.
 
 A full `--all` run is 25 checks in about 100 seconds, of which the branch-scope *suite*
-(`tests/test_branch_scope.py`) is about 14. A typical docs-only selection is about 9 seconds, most
+(`tests/test_branch_scope.py`) is about 14. A typical docs-only selection is about 7 seconds, most
 of it the two checks that run on every change: `release_refs`, which reads every tracked text
-file (about 6), and `agent_tooling`. Measured 2026-10-11 on a workstation where all twenty-five
+file (about 3), and `agent_tooling`. Measured 2026-10-11 on a workstation where all twenty-five
 ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
