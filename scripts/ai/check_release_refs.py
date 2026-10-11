@@ -16,7 +16,9 @@ What fails, on any line of any tracked text file (is_text; EXCLUDE is the except
   "branch (`NNN`", "`NNN` branch", "the `NNN` maintenance branch", "merged into `NNN`",
   "commit to `NNN`", "a branch named `NNN`", "`main`, `NNN`", "`NNN` → `main`" (via
   `main`). Only the 12 characters either side count, so a backticked ID prefix or HTTP code
-  elsewhere on a line about branches doesn't. Unquoted (or inside a code span), a number
+  elsewhere on a line about branches doesn't. The exception is a number followed by up to two
+  words and then "branch" ("the `NNN` active maintenance branch"), which is matched whatever
+  the words' length. Unquoted (or inside a code span), a number
   counts only in a phrase that can't mean anything but a branch: "NNN branch", "branch
   NNN", "from NNN to main", "merged into NNN", "retarget … from NNN", "NNN → main",
   "This branch: Release NNN".
@@ -412,7 +414,12 @@ def action_operands(verb: str, tokens: list) -> list:
     action = tokens[positional[0]] if positional else ""
     keep = set(positional[spec["from"][action]:]) if action in spec["from"] else set()
     out = []
-    if verb == "worktree" and action == "add" and "--orphan" in tokens and len(positional) > 1:
+    # worktree add names a new branch after the path's basename under --orphan, and also when
+    # given only a path (no commit-ish, no -b/-B, no --detach): `git worktree add NNN`.
+    if verb == "worktree" and action == "add" and len(positional) > 1 and (
+            "--orphan" in tokens or len(positional) == 2 and not
+            ({"-b", "-B", "--detach", "-d"} & set(tokens) or any(
+                t.startswith(("-b", "-B")) and len(t) > 2 for t in tokens))):
         out.append(tokens[positional[1]].rstrip("/").rsplit("/", 1)[-1])  # basename = new branch
     for k, t in enumerate(tokens):
         if k in keep or k and tokens[k - 1] in spec["refs"]:
@@ -585,7 +592,7 @@ def ref_pattern(remotes) -> re.Pattern:
                       # The same pair as adjacent argv items: `["...", "--base", "NNN"]`.
                       rf"|[\"']--(?:base|head)[\"']\s*,\s*[\"'](?:[\w.-]+:)?(?:(?:{names})/)?\d{{3}}[\"']"
                       # gh's short aliases, only after `gh pr` (`grep -B 100` is context).
-                      rf"|\bgh[\"']?\s+pr\s+[^\n|;&]*?\s-[BH](?:=|\s*)[\"']?(?:[\w.-]+:)?\d{{3}}\b")
+                      rf"|\bgh(?:\.exe)?[\"']?\s+pr\s+[^\n|;&]*?\s-[BH](?:=|\s*)[\"']?(?:[\w.-]+:)?\d{{3}}\b")
 
 
 def remotes() -> set:
