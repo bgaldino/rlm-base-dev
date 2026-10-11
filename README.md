@@ -148,11 +148,7 @@ changes from one release to the next:
 
 **At a cutover** to release `<n>`: cut `release/<current>` from `main`, merge `preview/<n>`
 into `main` by PR, delete `preview/<n>`, then update this section and the release fields in
-`.claude/skill-manifest.yml` (and run `scripts/ai/bump_api_version.py` for the API pins). The
-agent context under `.agents/context/` is retargeted by hand because the bump script excludes it:
-in `project-map.md` the "Salesforce target" and "API version" lines, and in
-`project-memory.json` `repository.salesforce_release.number` and `.api_version`. Leave the
-prior-GA fields alone unless that release's status also changed.
+`.claude/skill-manifest.yml` (and run `scripts/ai/bump_api_version.py` for the API pins).
 
 **Today** — the only place in the repo that maps a release to a branch:
 

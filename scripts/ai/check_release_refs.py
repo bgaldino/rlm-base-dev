@@ -25,7 +25,9 @@ What fails, on any line of a tracked instruction or tooling file:
   `show`/`rev-parse`/`rev-list`/`merge-base` too; values of count
   flags such as `-n`/`--depth` don't count), or a
   branch-ish setting given a 3-digit value directly or in a list (`DEFAULT_BASE = "NNN"`,
-  `base: NNN`, `PROTECTED = ("main", "NNN")`, `branches: [main, NNN]`).
+  `base: NNN`, `PROTECTED = ("main", "NNN")`, `branches: [main, NNN]`). A command continued
+  with a trailing backslash, or a list or tuple opened on the setting's line and closed lines later,
+  is read as one line and reported at its first.
 
 What passes: `release/<n>` and `preview/<n>` by name (that is the pattern), product
 release numbers in prose ("a live NNN org", `salesforce_release_active`), paths such as
@@ -52,8 +54,9 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 SCOPE = ("AGENTS.md", "CONTRIBUTING.md", "README.md", "REVIEW.md", ".agents/", ".claude/",
-         ".cursor/", ".github/", "scripts/", "tasks/", "docs/")
-EXCLUDE = ("docs/salesforce/",)
+         ".cursor/", ".github/", "scripts/", "tasks/", "tests/", "docs/")
+# Captured Help text, and this checker's own fixtures, which spell numbered branches on purpose.
+EXCLUDE = ("docs/salesforce/", "tests/test_check_release_refs.py")
 SUFFIXES = (".md", ".mdc", ".py", ".yml", ".yaml", ".json", ".sh", ".toml", ".txt")
 ALLOW = "release-ref: allow"
 
@@ -160,15 +163,38 @@ def remotes() -> set:
     return set(KNOWN_REMOTES) | set(out.stdout.split())
 
 
+OPEN_SETTING = re.compile(r"[:=]\s*([\[(])\s*(?:#.*)?$")
+LOGICAL_MAX = 50
+
+
+def logical_line(lines: list, i: int) -> str:
+    """Line i joined with what continues it: trailing-backslash lines, then the rest of a list
+    or tuple opened at the end of a setting. Code rules read this; prose rules read the line."""
+    joined, j = lines[i], i
+    while joined.rstrip().endswith("\\") and j + 1 < len(lines) and j - i < LOGICAL_MAX:
+        j += 1
+        joined = joined.rstrip()[:-1] + " " + lines[j].strip()
+    opened = OPEN_SETTING.search(joined)
+    if opened:
+        joined, close = joined[:opened.end(1)], {"[": "]", "(": ")"}[opened.group(1)]
+        while j + 1 < len(lines) and j - i < LOGICAL_MAX:
+            j += 1
+            joined += " " + lines[j].strip()
+            if close in lines[j]:
+                break
+    return joined
+
+
 def findings(text: str, ref: re.Pattern):
-    for number, line in enumerate(text.splitlines(), 1):
+    lines = text.splitlines()
+    for number, line in enumerate(lines, 1):
         if ALLOW in line:
             continue
         if ref.search(line):
             yield number, "ref", line.strip()
         elif near_branch(line):
             yield number, "branch", line.strip()
-        elif numbered_branch_in_code(line):
+        elif numbered_branch_in_code(logical_line(lines, number - 1)):
             yield number, "code", line.strip()
 
 

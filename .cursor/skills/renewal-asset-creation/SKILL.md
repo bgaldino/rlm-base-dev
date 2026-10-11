@@ -207,5 +207,5 @@ reason.
 
 Before the PR: `python -m py_compile scripts/renewal_assets/*.py`, run
 `python scripts/ai/pr_gate.py --base origin/<base>` (the PR's base: `main` unless it targets a
-`release/<n>` line), and follow
+`preview/<n>` or `release/<n>` branch), and follow
 `doc-consistency/SKILL.md` (this skill is registered in `AGENTS.md`).

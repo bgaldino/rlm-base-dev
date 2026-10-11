@@ -73,6 +73,19 @@ class NumberedBranches(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
 
+    def test_numbered_branches_across_lines_fail_at_their_first_line(self):
+        for text in ('PROTECTED = (\n    "main",\n    "264",\n)', "git checkout \\\n  264",
+                     "branches: [\n  main,\n  264\n]", "git push origin \\\n  main \\\n  264"):
+            with self.subTest(text=text):
+                self.assertEqual([(n, r) for n, r, _ in crr.findings(text, REF)], [(1, "code")])
+
+    def test_multiline_values_that_are_not_branches_pass(self):
+        for text in ("git log -n \\\n  100", 'PROTECTED = (\n  "main",\n)\nx = 264',
+                     'targets = [  # roles\n  "main",\n]\nport = (\n  264,\n)',
+                     "git diff \\\n  HEAD~100"):
+            with self.subTest(text=text):
+                self.assertEqual(list(crr.findings(text, REF)), [])
+
     def test_numbers_in_code_that_are_not_branches_pass(self):
         # Counts, measurements, paths, IDs and other repos' branch names found while
         # calibrating against this repo (keyPrefix appears 36 times in the ERD snapshots).

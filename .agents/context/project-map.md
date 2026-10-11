@@ -4,8 +4,8 @@
 
 - **Repository:** `rlm-base-dev`
 - **CCI project:** `rlm-base`
-- **Salesforce target:** Release 264 / Winter '27
-- **API version:** `68.0`
+- **Salesforce release and API version:** recorded in `.claude/skill-manifest.yml`
+  (`salesforce_release_active`, `api_version_active`); not restated here.
 - **Source format:** SFDX
 - **Default branch:** `main` — the current line and the default PR base. Next-release work
   goes on `preview/<n>`; earlier lines are `release/<n>`. See
@@ -22,7 +22,7 @@
 | Path | Ownership / Purpose | Agent Notes |
 | --- | --- | --- |
 | `cumulusci.yml` | CCI project, task, flow, org, and feature-flag configuration | After edits, run `python scripts/ai/generate_cci_reference.py` and commit regenerated references. |
-| `config/` | Scratch org definition configuration | Review org shape and feature changes against Release 264 expectations. |
+| `config/` | Scratch org definition configuration | Review org shape and feature changes against the active release's expectations. |
 | `force-app/` | Core SFDX metadata | Keep profile and object safety constraints in mind. |
 | `unpackaged/pre/` | Pre-deploy metadata | Deploys before core metadata/data. |
 | `unpackaged/post_*/` | Feature-specific post-deploy metadata | Verify edition and feature guards when adding bundles. |

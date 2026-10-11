@@ -75,25 +75,12 @@ def tracked_files() -> frozenset[str]:
 # Path prefixes never rewritten, with the reason each one is off-limits.
 EXCLUDED_PREFIXES: dict[str, str] = {
     ".git/": "vcs internals",
-    # NOT frozen -- excluded because it must be retargeted *by hand*.
-    # `.agents/artifacts/` is a private nested repo (gitignored, so never reachable
-    # here anyway), but the tracked `.agents/context/` files are live agent
-    # orientation: project-map.md and project-memory.json record the active release
-    # and API version, and an agent that reads a stale one is left on the previous
-    # release. They are excluded rather than swept because each deliberately records
-    # the *prior* GA alongside the current target (`prior_ga_api_version`, "main
-    # (Release 262 ... API 67.0 GA target)"), which a blanket rewrite would destroy.
-    # So they need a hand edit each release, and the instruction is spelled out here
-    # rather than deferred: in `project-map.md` update "Salesforce target" and
-    # "API version" and leave the "Default branch" line alone; in
-    # `project-memory.json` update `repository.salesforce_release.number` and
-    # `.api_version`, and leave that object's `prior_ga_release`/`prior_ga_api_version`
-    # alone. Branch fields (`active_work_branch`, the manifest's `branch_active`) say
-    # `main` and never change at a cutover: branches are named by role, not release
-    # number (README → Branch Information). The release's own docs pass
-    # (doc-consistency/SKILL.md) is where this belongs long-term, but a pointer is
-    # not a procedure -- an operator reading this comment can act on it as it stands.
-    ".agents/": "mixed current/prior release refs — retarget by hand, do not sweep",
+    # `.agents/artifacts/` is a private nested repo (gitignored, so never reachable here
+    # anyway). The tracked `.agents/context/` files no longer restate the active release
+    # or API version -- they point at `.claude/skill-manifest.yml`, the one place a
+    # cutover updates -- so nothing there needs retargeting. What is left is historical
+    # (cross-release lists such as "260/262/264"), which a sweep must not rewrite.
+    ".agents/": "agent context: no current-release fields; history must not be swept",
     "docs/salesforce/": "frozen per-release Help/dev-guide snapshot corpora",
     "docs/enablement/260/": "frozen per-release enablement extract",
     "docs/enablement/262/": "frozen per-release enablement extract",

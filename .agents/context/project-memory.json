@@ -8,13 +8,7 @@
     "default_branch": "main",
     "active_work_branch": "main",
     "source_format": "sfdx",
-    "salesforce_release": {
-      "number": "264",
-      "name": "Winter '27",
-      "api_version": "68.0",
-      "prior_ga_release": "262",
-      "prior_ga_api_version": "67.0"
-    }
+    "salesforce_release_source": ".claude/skill-manifest.yml (salesforce_release_active, api_version_active, salesforce_release_prior_ga, api_version_prior_ga)"
   },
   "key_directories": [
     {

@@ -2306,7 +2306,7 @@ if os.path.exists(workflow):
     check("that rule rejects a checker whose verdict is discarded",
           not pr_arg('            python scripts/ai/check_branch_scope.py --pr 1 || true'))
     check("that rule rejects --pr echoed beside a real argument list on one line",
-          not pr_arg('            set -- --base origin/264 --head HEAD; '
+          not pr_arg('            set -- --base origin/main --head HEAD; '
                      'echo "STACKED needs --pr and is off"'))
     # Controls for the step-scoped rules. Each feeds the real predicate a mutated step, because a
     # control that only re-states its own input tests nothing: the previous `continue-on-error`
@@ -4727,7 +4727,7 @@ for spec in pr_gate.CHECKS:
 check("and each trigger on its own selects the check that watches it, so no single tree or extension "
       "can be excluded between the changed-file list and the selected list",
       not unselecting, unselecting[:6])
-# The same list under the base spelling CI actually passes. `--base origin/264` is what the workflow
+# The same list under the base spelling CI actually passes. `--base origin/<base>` is what the workflow
 # runs and `--base HEAD` is what every fixture here runs, so a predicate on the *value* of `--base`
 # separates the two populations exactly the way an environment variable would.
 buf = io.StringIO()
@@ -4735,7 +4735,7 @@ try:
     pr_gate.run = lambda cmd: (0, "", 0.0)
     pr_gate.run_sequence = lambda cmds: (0, "", 0.0)
     pr_gate.changed_files = lambda base: list(every_tree)
-    sys.argv = ["pr_gate.py", "--base", "origin/264"]
+    sys.argv = ["pr_gate.py", "--base", "origin/main"]
     with redirect_stdout(buf):
         pr_gate.main()
 finally:
@@ -5002,7 +5002,7 @@ check("git() dies on a non-zero exit rather than returning empty stdout as an an
 
 # Behavioural, per spawn failure that is not FileNotFoundError: a git present on PATH but not
 # executable raises PermissionError, also an OSError, and used to escape as a traceback.
-for label, thunk in (("changed_files", lambda: pr_gate.changed_files("origin/264")),
+for label, thunk in (("changed_files", lambda: pr_gate.changed_files("origin/main")),
                      ("the drift check", pr_gate.run_cci_reference_drift)):
     prior_spawn, prior_run = subprocess.run, pr_gate.run
     try:
@@ -5087,7 +5087,7 @@ try:
     pr_gate.REPO_ROOT = broken_git
     try:
         with outside_any_repo(broken_git):
-            code, out = main_with(["--base", "origin/264"])
+            code, out = main_with(["--base", "origin/main"])
         check("an unusable repo is a tool error, not a clean selection",
               code == 2, f"exit {code}: {out[-200:]}")
     finally:

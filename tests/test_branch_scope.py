@@ -295,7 +295,7 @@ def test_stacked_on_unmerged(root):
           "PR #1" not in out, out)
 
     print("\n  ...and a branch merely UP TO DATE with base is not stacked")
-    # The release-integration PR (`264` -> `main`) has the base branch itself as
+    # The release-integration PR (`preview/<n>` -> `main`) has the base branch itself as
     # its head. That head is an ancestor of every branch current with base, so
     # without the containment guard this fails every branch in the repo.
     integration = {"number": 3, "headRefName": "base",
@@ -480,8 +480,8 @@ def test_stacked_on_unmerged(root):
     check("an unrelated open PR is not reported", rc == 0, f"rc={rc}\n{out}")
 
     print("\n  ...and a SYNC PR shares only merged work with PRs cut from the other line")
-    # #471: `main` merged into `264`. Open PRs that target `main` were cut from it
-    # after its commits landed, so they join the sync branch at a commit `264` lacks
+    # A sync PR: `main` merged into another line (#471 did this). Open PRs that target `main`
+    # were cut from it after its commits landed, so they join the sync branch at a commit that line lacks
     # -- but that commit is in *their* base, i.e. merged, not theirs to own.
     git(cwd, "checkout", "--quiet", "-b", "other-line", "base")
     commit(cwd, "line.txt", "line\n", "merged on the other line")
