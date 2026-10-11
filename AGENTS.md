@@ -28,10 +28,10 @@
 Salesforce environments for Revenue Lifecycle Management (RLM).
 
 **Branches are named by role, never by release number.** `main` is the current line
-and the base for every PR except next-release work (`preview/<n>`, before its cutover) and
-patches to an earlier line (`release/<n>`). Which release each one carries is recorded in
+and the base for every PR except next-release work (`preview/<n>`) and patches to an
+earlier line (`release/<n>`). Which release each one carries is recorded in
 [README → Branch Information](README.md#branch-information), and the active release and API
-version in `.claude/skill-manifest.yml` (`salesforce_release_active`, `api_version_active`). Don't restate them elsewhere.
+version in `.claude/skill-manifest.yml` (`salesforce_release_active`, `api_version_active`). Don't restate them in other instructions.
 
 While a release is pre-GA its Help docs can still change, so **a live org of that
 release is ground truth, not documentation**. Scratch orgs take the dev hub's

@@ -25,6 +25,8 @@ class NumberedBranches(unittest.TestCase):
                      "python scripts/ai/check_branch_scope.py --head 264",
                      "gh pr create --head 264 --base main", "--head=origin/264",
                      'gh pr create --base "264"', "check_branch_scope.py --head '264'",
+                     "gh pr create --base  264", "check_branch_scope.py --head\t264",
+                     "git clone --branch 264 https://example.com/r.git",
                      "git diff labs/264 --stat", "--base=264", "git push origin refs/heads/264",
                      'DEFAULT_BASE = "origin/264"',
                      "never push to the active release branch (`264`)",
@@ -78,7 +80,11 @@ class NumberedBranches(unittest.TestCase):
                      "git log 264..main", "git show 264:README.md", "git rev-parse 264",
                      "git merge-base main 264", "git --no-pager log 264",
                      "git --paginate show 264:README.md", "git -P diff 264",
-                     "git --git-dir=.git --work-tree . checkout 264"):
+                     "git --git-dir=.git --work-tree . checkout 264",
+                     "git clone -b 264 https://example.com/r.git",
+                     "git clone --branch=264 https://example.com/r.git",
+                     'DEFAULT_BASE = os.getenv("BASE", "264")',
+                     "base_ref = env.get('BASE_REF', '262')"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
 
@@ -93,6 +99,11 @@ class NumberedBranches(unittest.TestCase):
                      "branches:\n\n  - main\n\n  - 264"):
             with self.subTest(text=text):
                 self.assertEqual([(n, r) for n, r, _ in crr.findings(text, REF)], [(1, "code")])
+        # A --base/--head value continued onto the next line: a ref, at the command's line.
+        for text in ("python scripts/ai/pr_gate.py --base \\\n  264",
+                     "gh pr create --head \\\n  264 --base main"):
+            with self.subTest(text=text):
+                self.assertEqual([(n, r) for n, r, _ in crr.findings(text, REF)], [(1, "ref")])
         # A GitHub Actions branch filter: reported at its `branches:` line.
         workflow = "on:\n  push:\n    branches:\n      - main\n      - 264\n"
         self.assertEqual([(n, r) for n, r, _ in crr.findings(workflow, REF)], [(3, "code")])
@@ -119,6 +130,8 @@ class NumberedBranches(unittest.TestCase):
                      "git push origin main:release/264", "git diff HEAD@{100}",
                      "git show HEAD:README.md", "git rev-list --count HEAD",
                      "git --no-pager log -n 100", "input.targetPrice = 150;",
+                     'DEFAULT_BASE = os.getenv("BASE", "main")', "base_timeout = int('300')",
+                     "git clone --depth=100 https://example.com/r.git",
                      "timeout_base = 300", "branch_count = 3", 'ref = "main"',
                      "base: origin/main", "git checkout release/264", "max_refs = [1, 2]",
                      '"keyPrefix": "001",', 'branch:"262-patch"',

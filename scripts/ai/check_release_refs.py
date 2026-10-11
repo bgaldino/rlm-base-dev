@@ -93,7 +93,7 @@ UNQUOTED = re.compile(
 GIT_BRANCH_CMD = re.compile(
     r"\bgit\s+(?:(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace|exec-path)(?:[= ]\S+)?|"
     r"--no-pager|--paginate|-[pP]|--bare|--no-replace-objects|--literal-pathspecs|"
-    r"--no-optional-locks)\s+)*(?:checkout|switch|push|pull|fetch|merge-base|merge|rebase|"
+    r"--no-optional-locks)\s+)*(?:clone|checkout|switch|push|pull|fetch|merge-base|merge|rebase|"
     r"branch|worktree\s+add|reset|diff|log|cherry|show|rev-parse|rev-list|restore)\b"
     r"([^\n#|;&`]*)")
 # Flags whose next token is a count, not a ref.
@@ -108,6 +108,8 @@ MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "l
             "delay", "retry", "retries", "seconds", "secs", "ms", "width", "height", "depth",
             "price", "amount", "quantity", "qty", "cost", "total", "percent", "score",
             "index", "idx", "version", "rate", "ttl"}
+CALL = re.compile(r"[A-Za-z_][\w.]*\((.*)\)")
+QUOTED_NUMBER = re.compile(r"[\"']\d{3}[\"']")
 SCALAR = re.compile(r"[\"']?\d{3}[\"']?(?![\w.-])")
 ELEMENT = re.compile(r"(?<![\w./-])[\"']?\d{3}[\"']?(?![\w./-])")
 
@@ -127,6 +129,11 @@ def branch_setting(line: str, first_len: int = 0) -> bool:
             continue
         value = line[match.end():]
         if SCALAR.match(value):
+            return True
+        # A default wrapped in a call: `DEFAULT_BASE = os.getenv("BASE", "NNN")`. Only a quoted
+        # literal counts, so `limit(300)`-style arguments stay numbers.
+        call = CALL.match(value)
+        if call and QUOTED_NUMBER.search(call.group(1)):
             return True
         if value and value[0] in "[({":
             close = {"[": "]", "(": ")", "{": "}"}[value[0]]
@@ -154,8 +161,13 @@ def numbered_branch_in_code(line: str, first_len: int = 0) -> bool:
     for match in GIT_BRANCH_CMD.finditer(line):
         tokens = match.group(1).split()
         for i, token in enumerate(tokens):
-            if i and tokens[i - 1] in COUNT_FLAGS or token.startswith("-"):
+            if i and tokens[i - 1] in COUNT_FLAGS:
                 continue
+            if token.startswith("-"):
+                # `--branch=NNN`: the value of a long option is a ref like any other argument.
+                flag, _, token = token.partition("=")
+                if not token or flag in COUNT_FLAGS:
+                    continue
             if any(re.fullmatch(r"\d{3}", part) for part in ref_parts(token)):
                 return True
     return branch_setting(line, first_len)
@@ -174,7 +186,7 @@ def near_branch(line: str) -> bool:
 def ref_pattern(remotes) -> re.Pattern:
     names = "|".join(sorted({re.escape(r) for r in remotes}))
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
-                      rf"|--(?:base|head)[ =][\"']?(?:(?:{names})/)?\d{{3}}\b")
+                      rf"|--(?:base|head)(?:=|\s+)[\"']?(?:(?:{names})/)?\d{{3}}\b")
 
 
 def remotes() -> set:
@@ -235,6 +247,9 @@ def logical_line(lines: list, i: int) -> str:
 # Every rule needs a three-digit run, on the line or, for a block, on a later line its opener
 # joins. These two let the scan skip the rest: it reads every tracked text file, ~10 MB.
 DIGITS = re.compile(r"\d{3}")
+# Longer than any hand-written line: minified or generated code (vendored static resources),
+# where a call-wrapped quoted number is noise, not a branch someone wrote.
+MAX_LINE = 2000
 OPENER = re.compile(r"\\\s*$|[:=]\s*[\[({]|:\s*(?:#.*)?$")
 
 
@@ -244,9 +259,11 @@ def findings(text: str, ref: re.Pattern):
     lines = text.splitlines()
     for number, line in enumerate(lines, 1):
         has_number = DIGITS.search(line)
-        if not has_number and not OPENER.search(line) or ALLOW in line:
+        if not has_number and not OPENER.search(line) or ALLOW in line or len(line) > MAX_LINE:
             continue
         if has_number and ref.search(line):
+            yield number, "ref", line.strip()
+        elif line.rstrip().endswith("\\") and ref.search(logical_line(lines, number - 1)):
             yield number, "ref", line.strip()
         elif has_number and near_branch(line):
             yield number, "branch", line.strip()
