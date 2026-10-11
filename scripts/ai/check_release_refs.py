@@ -88,7 +88,8 @@ UNQUOTED = re.compile(
     rf"|\bfrom\s+{N}\s+(?:in|on)?to\s+`?(?:main|release/|preview/)"
     rf"|\b(?:merged?|push(?:ed)?|commit(?:ted)?|rebased?)\s+(?:in|on)?to\s+{N}"
     rf"|\bretarget\w*\s+(?:[\w#`-]+\s+){{0,4}}?from\s+{N}"
-    rf"|{N}\s*(?:→|->)\s*`?main\b|\bmain`?\s*(?:→|->)\s*{N}"
+    rf"|{N}\s*(?:→|->)\s*`?(?:main\b|preview/|release/)"
+    rf"|(?:\bmain|\b(?:preview|release)/[\w.<>-]+)`?\s*(?:→|->)\s*{N}"
     # A release mapped onto a role branch: "NNN is now on `main`", "`main` now carries
     # Release NNN". README → Branch Information is the one place that does this, by marker.
     rf"|\b(?:Release\s+)?{N}\b[^.\n]{{0,40}}?\b(?:is\s+)?(?:now\s+)?on\s+`(?:main|preview/|release/)"
@@ -196,6 +197,8 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
         for i, token in enumerate(tokens):
             if i and measure_flag(tokens[i - 1]):
                 continue
+            if re.fullmatch(r"-[bBcC][\"']?\d{3}[\"']?", token):
+                return True  # `clone -b264`, `checkout -B264`, `switch -c264`: attached value
             if token.startswith("-"):
                 # `--branch=NNN` is a ref; `--stat-width=NNN` is a measure.
                 flag, _, token = token.partition("=")
@@ -212,7 +215,9 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
 # A CLI option declared with a numbered default: `add_argument("--base", default="NNN")`,
 # `click.option("--head", default="NNN")`. Read over the whole call, which often wraps.
 OPTION_CALL = re.compile(r"\b(?:add_argument|option)\(")
-OPTION_DEFAULT = re.compile(r"[\"'](--?[\w-]+)[\"'][^)]*?\bdefault\s*=\s*[\"']?\d{3}[\"']?(?![\w.])")
+OPTION_DEFAULT = re.compile(r"[\"'](--?[\w-]+)[\"'][^)]*?\bdefault\s*=\s*"
+                            # a literal, or a call holding a quoted one (`os.getenv("B", "NNN")`)
+                            r"(?:[\"']?\d{3}[\"']?(?![\w.])|[\w.]+\([^)]*?[\"']\d{3}[\"'])")
 
 
 def option_default(lines: list, i: int) -> bool:
@@ -258,7 +263,7 @@ def ref_pattern(remotes) -> re.Pattern:
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
                       rf"|--(?:base|head)(?:=|\s+)[\"']?(?:[\w.-]+:)?(?:(?:{names})/)?\d{{3}}\b"
                       # gh's short aliases, only after `gh pr` (`grep -B 100` is context).
-                      rf"|\bgh\s+pr\s+[^\n|;&]*?\s-[BH]\s*[\"']?(?:[\w.-]+:)?\d{{3}}\b")
+                      rf"|\bgh\s+pr\s+[^\n|;&]*?\s-[BH](?:=|\s*)[\"']?(?:[\w.-]+:)?\d{{3}}\b")
 
 
 def remotes() -> set:
@@ -290,7 +295,8 @@ def yaml_block(lines: list, i: int):
         item = YAML_ITEM.match(line)
         if not item or len(item.group(1)) < indent:
             break
-        items.append(item.group(2))
+        if ALLOW not in line:  # the marker exempts the item it's on
+            items.append(item.group(2))
     return f"{lines[i].split('#')[0].rstrip()} [{', '.join(items)}]" if items else None
 
 
@@ -304,16 +310,22 @@ def logical_line(lines: list, i: int) -> str:
     joined, j = lines[i], i
     while joined.rstrip().endswith("\\") and j + 1 < len(lines) and j - i < LOGICAL_MAX:
         j += 1
-        joined = joined.rstrip()[:-1] + " " + lines[j].strip()
+        joined = joined.rstrip()[:-1] + " " + allowed_out(lines[j])
     opened = OPEN_SETTING.search(joined)
     close = CLOSER[opened.group(1)] if opened else None
     if opened and close not in joined[opened.end(1):].split("#")[0]:
         while j + 1 < len(lines) and j - i < LOGICAL_MAX:
             j += 1
-            joined += " " + lines[j].strip()
+            joined += " " + allowed_out(lines[j])
             if close in lines[j]:
                 break
     return joined
+
+
+def allowed_out(line: str) -> str:
+    """A joined continuation line, or nothing if it carries the allow marker, so the marker
+    works on the line that keeps the number rather than only on the block's opener."""
+    return "" if ALLOW in line else line.strip()
 
 
 # Every rule needs a three-digit run, on the line or, for a block, on a later line its opener

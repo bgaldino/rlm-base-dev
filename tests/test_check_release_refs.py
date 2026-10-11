@@ -28,7 +28,9 @@ class NumberedBranches(unittest.TestCase):
                      "gh pr create --base  264", "check_branch_scope.py --head\t264",
                      "git clone --branch 264 https://example.com/r.git",
                      "gh pr create -B 264", "gh pr create -H 264 -B main",
-                     "gh pr create --head alice:264",
+                     "gh pr create --head alice:264", "gh pr create -B=264",
+                     "gh pr create -H=alice:264", "sync 264 -> preview/266",
+                     "264 → release/262 backport", "preview/266 -> 264",
                      "release 264 is now on `main`", "`main` now carries Release 264",
                      "Foundations' skill (shipped in Release 262, now on `main`)",
                      # Exact refs stay checked on a long (minified-looking) line.
@@ -99,6 +101,10 @@ class NumberedBranches(unittest.TestCase):
                      "git --exec-path=/x --no-replace-objects log 264",
                      'parser.add_argument("--base", default="264")',
                      "@click.option('--head', default='264', help='PR head')",
+                     'parser.add_argument("--base", default=os.getenv("BASE", "264"))',
+                     "click.option('--head', default=os.environ.get('HEAD_REF', '262'))",
+                     "git clone -b264 https://example.com/r.git", "git checkout -B264",
+                     "git switch -c264",
                      "base_ref = env.get('BASE_REF', '262')"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
@@ -130,7 +136,11 @@ class NumberedBranches(unittest.TestCase):
     def test_multiline_values_that_are_not_branches_pass(self):
         for text in ("git log -n \\\n  100", 'PROTECTED = (\n  "main",\n)\nx = 264',
                      'targets = [  # roles\n  "main",\n]\nport = (\n  264,\n)',
-                     "git diff \\\n  HEAD~100", 'refs = {"main": 1}\nport = 264',
+                     "git diff \\\n  HEAD~100",
+                     # The allow marker works on the line that keeps the number.
+                     "branches:\n  - main\n  - 264 # release-ref: allow",
+                     "PROTECTED = (\n  \"main\",\n  \"264\",  # release-ref: allow\n)",
+                     "git checkout \\\n  264  # release-ref: allow", 'refs = {"main": 1}\nport = 264',
                      'base: {\n  "name": "main"\n}\ntimeout = 300',
                      # YAML: the sequence ends at a shallower line, and a non-branch key's
                      # items don't count.
@@ -153,6 +163,9 @@ class NumberedBranches(unittest.TestCase):
                      "git diff --stat-width=264 main", "git diff --stat-width 264 main",
                      'ap.add_argument("--timeout", default=300)',
                      'ap.add_argument("--base", default="main")', "git --version 264",
+                     'ap.add_argument("--base", default=os.getenv("BASE", "main"))',
+                     'ap.add_argument("--timeout", default=int(os.getenv("T", "300")))',
+                     "git log -n100", "cut `release/264` from `main` -> `preview/266`",
                      "git gc --prune=100", "git log --abbrev=100", "git blame -L 100,200 f.py",
                      "git config core.bigFileThreshold 512", "git config http.postBuffer 524",
                      'TIMEOUT="${TIMEOUT:-300}"', "rg -B 100 pattern", "grep -H 200 x",
