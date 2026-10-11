@@ -84,13 +84,15 @@ BARE_WORD_BRANCH = re.compile(r"[`\"']\d{3}[`\"']\s+(?:[\w-]+\s+){0,2}branch(?:e
 # An unquoted number, in a phrase that can only mean a branch. Kept to whole phrases because
 # unquoted release numbers are everywhere in prose ("a live NNN org", "NNN GA").
 N = r"(?<![\w./$-])\d{3}(?![\w./-])"
+Q = r"[`\"']?"  # an optional backtick or quote around the number
 UNQUOTED = re.compile(
     rf"{N}\s+(?:[\w-]+\s+){{0,2}}branch(?:es)?\b|\bbranch(?:es)?\s+(?:(?:named|called)\s+)?{N}"
-    rf"|\bfrom\s+{N}\s+(?:in|on)?to\s+`?(?:main|release/|preview/)"
-    rf"|\b(?:merged?|push(?:ed)?|commit(?:ted)?|rebased?)\s+(?:in|on)?to\s+{N}"
-    rf"|\bretarget\w*\s+(?:[\w#`-]+\s+){{0,4}}?from\s+{N}"
-    rf"|{N}\s*(?:→|->)\s*`?(?:main\b|preview/|release/)"
-    rf"|(?:\bmain|\b(?:preview|release)/[\w.<>-]+)`?\s*(?:→|->)\s*{N}"
+    # In these, the number may also be backticked or quoted (`from \`NNN\` to main`).
+    rf"|\bfrom\s+{Q}{N}{Q}\s+(?:in|on)?to\s+`?(?:main|release/|preview/)"
+    rf"|\b(?:merged?|push(?:ed)?|commit(?:ted)?|rebased?)\s+(?:in|on)?to\s+{Q}{N}"
+    rf"|\bretarget\w*\s+(?:[\w#`-]+\s+){{0,4}}?from\s+{Q}{N}"
+    rf"|{N}{Q}\s*(?:→|->)\s*`?(?:main\b|preview/|release/)"
+    rf"|(?:\bmain|\b(?:preview|release)/[\w.<>-]+)`?\s*(?:→|->)\s*{Q}{N}"
     # A release mapped onto a role branch: "NNN is now on `main`", "`main` now carries
     # Release NNN". README → Branch Information is the one place that does this, by marker.
     rf"|\b(?:Release\s+)?{N}\b[^.\n]{{0,40}}?\b(?:is\s+)?(?:now\s+)?on\s+`(?:main|preview/|release/)"
@@ -194,6 +196,7 @@ COUNT_FLAGS = {
     "-n": {"log", "rev-list", "shortlog", "show", "whatchanged", "reflog", "format-patch"},
     "-U": {"diff", "log", "show", "format-patch", "diff-tree", "diff-index", "diff-files"},
     "-L": {"log", "blame"},
+    "-j": {"fetch", "pull", "clone", "submodule"},
 }
 # Words in a long option that make its value a ref (`--branch=`, `--onto`, `--set-upstream-to`).
 REF_FLAG_WORDS = {"branch", "base", "head", "ref", "onto", "into", "upstream", "target", "to",
@@ -296,7 +299,8 @@ def measure_flag(flag: str, verb: str = "") -> bool:
     if not flag.startswith("--"):
         return False
     words = set(flag.lstrip("-").lower().split("-"))
-    return bool(words & (MEASURES | {"prune", "deepen", "skip", "unified", "abbrev", "context"})) \
+    return bool(words & (MEASURES | {"prune", "deepen", "skip", "unified", "abbrev", "context",
+                                      "jobs"})) \
         and not words & REF_FLAG_WORDS
 
 
