@@ -141,14 +141,18 @@ changes from one release to the next:
 
 | Branch | Carries | Lifetime |
 |---|---|---|
-| `main` | The current line. The default base for every PR. | Permanent |
+| `main` | The current line. The base for every PR except next-release and patch work (the rows below). | Permanent |
 | `preview/<n>` | Release `<n>` before it reaches `main`, opened once preview orgs exist | Until cutover, then merged into `main` by PR and deleted |
 | `release/<n>` | Patches for an earlier line, cut from `main` at the cutover that replaced it | Until that release's end of life, then kept as a frozen record |
 | `feat/*`, `fix/*`, `chore/*`, `docs/*` | One change each | Until merged |
 
 **At a cutover** to release `<n>`: cut `release/<current>` from `main`, merge `preview/<n>`
 into `main` by PR, delete `preview/<n>`, then update this section and the release fields in
-`.claude/skill-manifest.yml` (and run `scripts/ai/bump_api_version.py` for the API pins).
+`.claude/skill-manifest.yml` (and run `scripts/ai/bump_api_version.py` for the API pins). The
+agent context under `.agents/context/` is retargeted by hand because the bump script excludes it:
+in `project-map.md` the "Salesforce target" and "API version" lines, and in
+`project-memory.json` `repository.salesforce_release.number` and `.api_version`. Leave the
+prior-GA fields alone unless that release's status also changed.
 
 **Today** — the only place in the repo that maps a release to a branch:
 

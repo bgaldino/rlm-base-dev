@@ -9,7 +9,7 @@ the repository root as the working directory.
 
 Use these before opening or updating a PR. They complement the [PR Review Focus Areas](../../../AGENTS.md#pr-review-focus-areas) in the root contract.
 
-**Run `python scripts/ai/pr_gate.py --base origin/main` first.** It selects the mechanical
+**Run `python scripts/ai/pr_gate.py --base origin/<base>` first** (`<base>` is the PR's base: `main` unless the PR targets a `preview/*` or `release/*` branch). It selects the mechanical
 checks your diff actually needs, runs them, and prints a status for **every** check — including the
 ones it skipped and why. That is the point: the checks below already existed and were enforced only
 by an agent reading this list, which is the enforcement that failed in `#264-27`, `#264-55` and

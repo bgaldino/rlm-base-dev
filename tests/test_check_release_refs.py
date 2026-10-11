@@ -63,7 +63,13 @@ class NumberedBranches(unittest.TestCase):
         for line in ('DEFAULT_BASE = "264"', "git checkout 264", "base: 264",
                      'PROTECTED = ("main", "264")', "git switch 262", "git push origin 264",
                      "branches: [main, 264]", 'targetBranch: "264"',
-                     '"active_work_branch": "264",', 'branch_active: "264"'):
+                     '"active_work_branch": "264",', 'branch_active: "264"',
+                     # Inside revision syntax: ranges, refspecs, suffixes.
+                     "git diff 264..HEAD", "git log main...264", "git push origin 264:preview/266",
+                     "git push origin +264", "git diff 264^", "git log 264~3 -1",
+                     "git checkout 264@{1}", "git push origin :264", "git diff 264...HEAD",
+                     "git log 264..main", "git show 264:README.md", "git rev-parse 264",
+                     "git merge-base main 264"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
 
@@ -71,6 +77,9 @@ class NumberedBranches(unittest.TestCase):
         # Counts, measurements, paths, IDs and other repos' branch names found while
         # calibrating against this repo (keyPrefix appears 36 times in the ERD snapshots).
         for line in ("git log -n 100", "git log HEAD~100", "git diff -U 200 main",
+                     "git log HEAD~100..HEAD", "git diff main...feat/x", "git log --depth=100",
+                     "git push origin main:release/264", "git diff HEAD@{100}",
+                     "git show HEAD:README.md", "git rev-list --count HEAD",
                      "timeout_base = 300", "branch_count = 3", 'ref = "main"',
                      "base: origin/main", "git checkout release/264", "max_refs = [1, 2]",
                      '"keyPrefix": "001",', 'branch:"262-patch"',

@@ -189,7 +189,8 @@ branch diverged. This is the "swept-in file" risk mentioned in AGENTS.md
 ### Step −1 — Confirm the branch owns every commit on it (cheapest check; run before anything else)
 
 ```bash
-python scripts/ai/check_branch_scope.py --pr <n>     # or: --base origin/main --head <branch>
+# <base>: the PR's intended base — main unless it targets a preview/* or release/* branch.
+python scripts/ai/check_branch_scope.py --pr <n>     # or: --base origin/<base> --head <branch>
 ```
 
 A branch cut from a **composed integration branch** — one built by stacking

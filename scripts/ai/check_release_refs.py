@@ -20,7 +20,10 @@ What fails, on any line of a tracked instruction or tooling file:
   "merged into NNN", "retarget … from NNN", "NNN → main".
 * `code`: a numbered branch in code or a command, where it is spelled without backticks or a
   remote: a branch-taking git command with a bare 3-digit argument (`git checkout NNN`,
-  `git push origin NNN`; values of count flags such as `-n`/`--depth` don't count), or a
+  `git push origin NNN`, also inside a range, refspec or revision suffix: `NNN..HEAD`,
+  `HEAD...NNN`, `NNN:preview/<n>`, `NNN:README.md`, `+NNN`, `NNN^`, `NNN~2`, `NNN@{1}`, for
+  `show`/`rev-parse`/`rev-list`/`merge-base` too; values of count
+  flags such as `-n`/`--depth` don't count), or a
   branch-ish setting given a 3-digit value directly or in a list (`DEFAULT_BASE = "NNN"`,
   `base: NNN`, `PROTECTED = ("main", "NNN")`, `branches: [main, NNN]`).
 
@@ -77,8 +80,9 @@ UNQUOTED = re.compile(
 
 # A git verb that names branches, then the rest of that simple command.
 GIT_BRANCH_CMD = re.compile(
-    r"\bgit\s+(?:-[Cc]\s+\S+\s+)*(?:checkout|switch|push|pull|fetch|merge|rebase|branch|"
-    r"worktree\s+add|reset|diff|log|cherry)\b([^\n#|;&`]*)")
+    r"\bgit\s+(?:-[Cc]\s+\S+\s+)*(?:checkout|switch|push|pull|fetch|merge-base|merge|rebase|"
+    r"branch|worktree\s+add|reset|diff|log|cherry|show|rev-parse|rev-list|restore)\b"
+    r"([^\n#|;&`]*)")
 # Flags whose next token is a count, not a ref.
 COUNT_FLAGS = {"-n", "--max-count", "-U", "--unified", "--depth", "--deepen", "--skip"}
 # A branch-ish setting: an identifier with a branch word in it (`DEFAULT_BASE`, `base_ref`,
@@ -113,12 +117,24 @@ def branch_setting(line: str) -> bool:
     return False
 
 
+# A revision token's ref parts: split a range (`a..b`, `a...b`) or refspec (`+a:b`), then drop
+# a revision suffix (`^`, `~2`, `@{1}`), so `264..HEAD` and `264:preview/266` yield `264`.
+REV_SPLIT = re.compile(r"\.\.\.?|:")
+REV_SUFFIX = re.compile(r"(?:[\^~]\d*|@\{[^}]*\})+$")
+
+
+def ref_parts(token: str) -> list:
+    token = token.strip("\"'")
+    return [REV_SUFFIX.sub("", part.lstrip("+")) for part in REV_SPLIT.split(token)]
+
+
 def numbered_branch_in_code(line: str) -> bool:
     for match in GIT_BRANCH_CMD.finditer(line):
         tokens = match.group(1).split()
         for i, token in enumerate(tokens):
-            if re.fullmatch(r"[\"']?\d{3}[\"']?", token) and (i == 0 or tokens[i - 1]
-                                                                 not in COUNT_FLAGS):
+            if i and tokens[i - 1] in COUNT_FLAGS or token.startswith("-"):
+                continue
+            if any(re.fullmatch(r"\d{3}", part) for part in ref_parts(token)):
                 return True
     return branch_setting(line)
 
