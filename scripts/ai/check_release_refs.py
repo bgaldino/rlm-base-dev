@@ -74,13 +74,13 @@ ALLOW = "release-ref: allow"
 # Remotes this repo uses, plus whatever `git remote` lists at run time. Only a remote name
 # makes `<name>/NNN` a ref; `docs/salesforce/NNN/` and `366/365` are paths and arithmetic.
 KNOWN_REMOTES = ("origin", "upstream", "labs", "emu")
-BARE = re.compile(r"`\d{3}`")
+BARE = re.compile(r"`\d{3}`|\"\d{3}\"|'\d{3}'")  # backticked or quoted
 NEAR = 12
 BRANCH_NEAR = re.compile(r"\bbranch(?:es)?\b|\b(?:named|called)\s|"
                          r"\b(?:merged?|push(?:ed)?|commit(?:ted)?|rebased?)\s+(?:in)?to\b|"
                          r"`main`|`(?:release|preview)/")
 # One word between the number and "branch": "the `NNN` maintenance branch".
-BARE_WORD_BRANCH = re.compile(r"`\d{3}`\s+[\w-]+\s+branch(?:es)?\b")
+BARE_WORD_BRANCH = re.compile(r"[`\"']\d{3}[`\"']\s+(?:[\w-]+\s+)?branch(?:es)?\b")
 # An unquoted number, in a phrase that can only mean a branch. Kept to whole phrases because
 # unquoted release numbers are everywhere in prose ("a live NNN org", "NNN GA").
 N = r"(?<![\w./$-])\d{3}(?![\w./-])"
@@ -101,15 +101,50 @@ UNQUOTED = re.compile(
     re.IGNORECASE)
 
 
-# Any git subcommand, then the rest of that simple command. Not an allowlist of verbs: a list
-# went stale one review round at a time (clone, format-patch, archive, blame, tag, config).
+# Any git subcommand, read from shell tokens: global options are skipped by shape (quoted
+# values included: `-c http.extraHeader="A: b"`), and the first other token is the verb. Not
+# an allowlist of verbs or options; both went stale one review round at a time.
 # A bare three-digit argument is a ref unless an option's name says it's a measure.
-GIT_BRANCH_CMD = re.compile(
-    # Global options before the subcommand: the ones that take a separate value, then any
-    # other long option (`--no-pager`, `--config-env=k=v`, ...) rather than a list of them.
-    r"\bgit\s+(?:(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace|exec-path|config-env)\s+\S+|"
-    r"--[\w-]+(?:=\S+)?|-[pP])\s+)*([a-z][\w-]*)\b([^\n`]*)")
-GIT_WORD = re.compile(r"\bgit\b")
+GLOBAL_WITH_VALUE = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path",
+                     "--config-env", "--super-prefix", "--list-cmds"}
+
+
+def git_invocations(line: str):
+    """(verb, arguments) for each `git` command on the line."""
+    for word in GIT_WORD.finditer(line):
+        rest = line[word.end():].split("`", 1)[0]
+        tokens = command_tokens(rest)
+        k = 0
+        while k < len(tokens) and tokens[k].startswith("-"):
+            k += 2 if tokens[k] in GLOBAL_WITH_VALUE else 1
+        if k < len(tokens) and tokens[k] in git_commands():
+            yield tokens[k], tokens[k + 1:]
+
+
+# `git` as a command word: not inside `git-tracking`, `.git`, `/git/`.
+GIT_WORD = re.compile(r"(?<![\w./-])git(?=\s)")
+
+
+def git_commands() -> frozenset:
+    """Every subcommand this git knows (`git --list-cmds`), so prose such as "git helpers in
+    pack 167" isn't a command. Asked of git rather than listed here, so it can't go stale."""
+    global _GIT_COMMANDS
+    if _GIT_COMMANDS is None:
+        out = subprocess.run(["git", "--list-cmds=main,others,nohelpers,alias"],
+                             capture_output=True, text=True)
+        names = set(out.stdout.split()) if out.returncode == 0 else set()
+        # An old git without --list-cmds: the porcelain that takes refs, at least.
+        _GIT_COMMANDS = frozenset(names or {
+            "checkout", "switch", "push", "pull", "fetch", "merge", "rebase", "branch", "reset",
+            "diff", "log", "show", "rev-parse", "rev-list", "merge-base", "cherry", "cherry-pick",
+            "clone", "tag", "format-patch", "archive", "blame", "config", "worktree", "grep",
+            "restore", "add", "rm", "mv", "status", "ls-files", "commit"})
+    return _GIT_COMMANDS
+
+
+_GIT_COMMANDS = None
+# Subcommands where `--` doesn't start pathspecs; what follows can still be a refspec.
+REFSPEC_VERBS = {"push", "fetch", "pull"}
 # Subcommands whose positional arguments are only paths (or a URL and directory); in them a
 # number is a ref only as the value of a ref flag (`clone -b NNN`).
 PATH_VERBS = {"add", "rm", "mv", "status", "ls-files", "clean", "commit", "init", "clone",
@@ -219,10 +254,9 @@ def measure_flag(flag: str) -> bool:
 
 def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = False) -> bool:
     # Each `git` on the line, not just the first: `git fetch && git checkout NNN`.
-    for match in (GIT_BRANCH_CMD.match(line, m.start()) for m in GIT_WORD.finditer(line)):
-        if not match:
-            continue
-        verb, tokens = match.group(1), command_tokens(match.group(2))
+    for verb, tokens in git_invocations(line):
+        if verb not in REFSPEC_VERBS and "--" in tokens:
+            tokens = tokens[:tokens.index("--")]  # after `--`, pathspecs (`git log -- 264`)
         if verb == "config":
             # `git config branch.<b>.gh-merge-base NNN`: a ref only under a branch-ish key.
             key = next((t for t in tokens if not t.startswith("-")), "")
@@ -313,6 +347,7 @@ def near_branch(line: str) -> bool:
 def ref_pattern(remotes) -> re.Pattern:
     names = "|".join(sorted({re.escape(r) for r in remotes}))
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
+                      rf"|refs/remotes/[\w.-]+/\d{{3}}\b"
                       rf"|--(?:base|head)(?:=|\s+)[\"']?(?:[\w.-]+:)?(?:(?:{names})/)?\d{{3}}\b"
                       # gh's short aliases, only after `gh pr` (`grep -B 100` is context).
                       rf"|\bgh\s+pr\s+[^\n|;&]*?\s-[BH](?:=|\s*)[\"']?(?:[\w.-]+:)?\d{{3}}\b")
@@ -360,6 +395,11 @@ def logical_line(lines: list, i: int) -> str:
     if block:
         return block
     joined, j = lines[i], i
+    # `const DEFAULT_BASE =` with its value on the next line.
+    if joined.rstrip().endswith("=") and not joined.rstrip().endswith(("==", "!=", "<=", ">=")) \
+            and j + 1 < len(lines):
+        j += 1
+        joined = joined.rstrip() + " " + allowed_out(lines[j])
     while joined.rstrip().endswith("\\") and j + 1 < len(lines) and j - i < LOGICAL_MAX:
         j += 1
         joined = joined.rstrip()[:-1] + " " + allowed_out(lines[j])
@@ -387,7 +427,7 @@ DIGITS = re.compile(r"\d{3}")
 # where a call-wrapped quoted number is noise, not a branch someone wrote. Only that heuristic
 # is switched off on such a line; exact refs and direct settings are still checked.
 MAX_LINE = 2000
-OPENER = re.compile(r"\\\s*$|[:=]\s*(?:[A-Za-z_][\w.]*)?[\[({]|:\s*(?:#.*)?$|"
+OPENER = re.compile(r"\\\s*$|=\s*$|[:=]\s*(?:[A-Za-z_][\w.]*)?[\[({]|:\s*(?:#.*)?$|"
                     r"\b(?:add_argument|option)\(")
 
 

@@ -29,6 +29,8 @@ class NumberedBranches(unittest.TestCase):
                      "git clone --branch 264 https://example.com/r.git",
                      "gh pr create -B 264", "gh pr create -H 264 -B main",
                      "gh pr create --head alice:264", "gh pr create -B=264",
+                     "git checkout refs/remotes/origin/264", "git push origin -- 264",
+                     'the "264" branch is retired', "the '264' branch is retired",
                      "gh pr create -H=alice:264", "sync 264 -> preview/266",
                      "264 → release/262 backport", "preview/266 -> 264",
                      "release 264 is now on `main`", "`main` now carries Release 264",
@@ -111,6 +113,8 @@ class NumberedBranches(unittest.TestCase):
                      'PROTECTED_BRANCHES = {"main": True, "264": True}',
                      "git fetch origin && git checkout 264", "git status; git switch 264",
                      "git grep TODO 264", "git restore --source=264 README.md",
+                     'git -c http.extraHeader="Authorization: Bearer x" checkout 264',
+                     "git --config-env 'http.extraHeader=TOKEN' checkout 264",
                      "base_ref = env.get('BASE_REF', '262')"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
@@ -137,6 +141,7 @@ class NumberedBranches(unittest.TestCase):
 
     def test_a_wrapped_call_default_and_wrapped_prose_fail_at_their_first_line(self):
         for text in ('DEFAULT_BASE = os.getenv(\n    "BASE", "264"\n)',
+                     'const DEFAULT_BASE =\n  "264";',
                      "Created with the `264`\nbranch cut so the directory exists.",
                      "the sync PR merged\ninto `264` first."):
             with self.subTest(text=text):
@@ -186,7 +191,11 @@ class NumberedBranches(unittest.TestCase):
                      "git log -n100", "cut `release/264` from `main` -> `preview/266`",
                      "git grep 264", "git grep -n 264 -- docs", "git restore 264",
                      'PROTECTED = {"main": {"reviews": 2, "timeout": 300}}',
-                     "git status && echo 264",
+                     "git status && echo 264", "git log -- 264", "git checkout -- 264",
+                     "git diff main -- docs/264", 'x = "264"', "if a == \n  264:",
+                     'the "200" status code', "'069' prefix",
+                     "# The shared git-tracking helpers (scripts/repo_paths.py, pack 167)",
+                     "use git to compare 264 snapshots", "cd .git && ls 264",
                      # Pathspec-only subcommands: the number is a path.
                      "git add 264", "git rm 264", "git status 264", "git ls-files 264",
                      "git clone https://example.com/r.git 264", "git commit -m 264",
