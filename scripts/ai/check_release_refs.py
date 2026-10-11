@@ -215,7 +215,8 @@ REF_FLAG_WORDS = {"branch", "base", "head", "ref", "onto", "into", "upstream", "
 # or an element of a list/tuple/set. Identifiers are split into words, so `keyPrefix` is not a
 # `ref`, and one that also names a measurement (`timeout_base`, `max_refs`) is not a branch.
 SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*[:=]\s*")
-BRANCH_WORDS = {"base", "branch", "branches", "ref", "refs", "protected", "target", "targets"}
+BRANCH_WORDS = {"base", "branch", "branches", "ref", "refs", "protected", "target", "targets",
+                "head", "heads"}
 MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "length", "num",
             "delay", "retry", "retries", "seconds", "secs", "ms", "width", "height", "depth",
             "price", "amount", "quantity", "qty", "cost", "total", "percent", "score",
@@ -256,6 +257,20 @@ def top_level(value: str) -> str:
     return "".join(out)
 
 
+KWARG = re.compile(r"\b([A-Za-z_]\w*)\s*=\s*[\"']\d{3}[\"']")
+
+
+def non_branch_kwargs_out(expression: str) -> str:
+    """The expression without keyword arguments whose name isn't branch-like, so the
+    `timeout="300"` in `resolve_ref(timeout="300")` isn't taken for the default branch."""
+    def keep(match):
+        words = identifier_words(match.group(1))
+        # `default=`/`fallback=` supply the setting's own value, so they stay.
+        return match.group(0) if (words & (BRANCH_WORDS | {"default", "fallback"})
+                                  and not words & MEASURES) else ""
+    return KWARG.sub(keep, expression)
+
+
 def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bool:
     """`first_len`, for a joined logical line, limits the settings read to those on its first
     physical line: the block's own nested keys (a JSON object's fields) aren't its value."""
@@ -271,7 +286,7 @@ def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bo
         # An expression rather than a literal (`os.getenv("BASE", "NNN")`,
         # `os.getenv("BASE") or "NNN"`): any quoted three-digit literal in it is the default.
         if not long_line and re.match(r"[A-Za-z_]", value) and \
-                QUOTED_NUMBER.search(re.split(r"[;\n]", value, maxsplit=1)[0]):
+                QUOTED_NUMBER.search(non_branch_kwargs_out(re.split(r"[;\n]", value, maxsplit=1)[0])):
             return True
         if value and value[0] in "[({":
             # The collection's own top level: up to its matching close, nested ones removed,
@@ -292,7 +307,7 @@ def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bo
 # A revision token's ref parts: split a range (`a..b`, `a...b`) or refspec (`+a:b`), then drop
 # a revision suffix (`^`, `~2`, `@{1}`), so `264..HEAD` and `264:preview/266` yield `264`.
 REV_SPLIT = re.compile(r"\.\.\.?|:")
-REV_SUFFIX = re.compile(r"(?:\^\{[^}]*\}|[\^~]\d*|@\{[^}]*\})+$")  # incl. ^{commit}, ^{}
+REV_SUFFIX = re.compile(r"(?:\^\{[^}]*\}|\^[!@]|\^-\d*|[\^~]\d*|@\{[^}]*\})+$")  # ^{commit}, ^!, ^@, ^-
 
 
 def ref_parts(token: str) -> list:
