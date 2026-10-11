@@ -58,6 +58,8 @@ class NumberedBranches(unittest.TestCase):
                      "git worktree add --orphan 264", "git worktree add --orphan ../trees/264",
                      "PROTECTED_BRANCHES += 264", 'BASE_BRANCH += "264"',
                      "git branch -u264 master", "git log --branches=264",
+                     "git remote add --track 264 mirror url", "git remote add --master 264 m url",
+                     "git remote add --track=264 mirror url",
                      'subprocess.run(["git", "log", "--branches=264"])', "git switch -C264",
                      'subprocess.run(["python", "scripts/ai/pr_gate.py", "--base", "264"])',
                      'cmd = ["check_branch_scope.py", "--head", "262"]',
@@ -231,6 +233,19 @@ class NumberedBranches(unittest.TestCase):
         text = 'ap.add_argument(\n    "--base",\n    default="264",\n    help="base ref",\n)'
         self.assertEqual([(n, r) for n, r, _ in crr.findings(text, REF)], [(1, "code")])
 
+    def test_a_marker_on_an_opener_does_not_exempt_the_block(self):
+        for text in ('PROTECTED = (  # release-ref: allow\n  "264"\n)',
+                     "branches:  # release-ref: allow\n  - 264",
+                     'subprocess.run([  # release-ref: allow\n  "git", "checkout", "264",\n])'):
+            with self.subTest(text=text):
+                self.assertEqual([n for n, _, _ in crr.findings(text, REF)], [1])
+        # A marker on the opener exempts the opener's own number.
+        self.assertEqual(list(crr.findings('base: 264  # release-ref: allow', REF)), [])
+
+    def test_the_exclusion_is_exact(self):
+        self.assertIn("tests/test_check_release_refs.py", crr.EXCLUDE)
+        self.assertNotIn("tests/test_check_release_refs.py.snapshot", crr.EXCLUDE)
+
     def test_multiline_values_that_are_not_branches_pass(self):
         for text in ("git log -n \\\n  100", 'PROTECTED = (\n  "main",\n)\nx = 264',
                      'targets = [  # roles\n  "main",\n]\nport = (\n  264,\n)',
@@ -238,7 +253,8 @@ class NumberedBranches(unittest.TestCase):
                      # The allow marker works on the line that keeps the number.
                      "branches:\n  - main\n  - 264 # release-ref: allow",
                      "PROTECTED = (\n  \"main\",\n  \"264\",  # release-ref: allow\n)",
-                     "git checkout \\\n  264  # release-ref: allow", 'refs = {"main": 1}\nport = 264',
+                     "git checkout \\\n  264  # release-ref: allow",
+                     # A marker on a block's opener exempts that line, not the block (below). 'refs = {"main": 1}\nport = 264',
                      'base: {\n  "name": "main"\n}\ntimeout = 300',
                      # YAML: the sequence ends at a shallower line, and a non-branch key's
                      # items don't count.
@@ -301,6 +317,8 @@ class NumberedBranches(unittest.TestCase):
                      "git symbolic-ref -m 264 HEAD refs/heads/main",
                      "git update-ref -m 264 refs/heads/foo HEAD", "git diff -B100 main",
                      "git apply -C100 patch", "git diff -M100 main", "git log --branches=main",
+                     "git reset --pathspec-from-file 264", "git diff --rotate-to 264 main",
+                     "git log --decorate-refs 264 main",
                      "git worktree add --detach --lock --reason why 264 HEAD",
                      "git remote add backup 264", "git remote set-url backup 264",
                      "git bundle create 264 main", "if base != 264:", "TIMEOUT ?= 300",
@@ -364,7 +382,7 @@ class NumberedBranches(unittest.TestCase):
         self.assertTrue([p for p in scanned if p.endswith(".robot")])
         docs = [p for p in scanned if p.startswith("docs")]
         self.assertTrue([p for p in docs if "/" in p and p.count("/") == 1], "docs root unscanned")
-        self.assertFalse([p for p in docs if p.startswith(crr.EXCLUDE) or crr.CAPTURED.match(p)])
+        self.assertFalse([p for p in docs if p in crr.EXCLUDE or crr.CAPTURED.match(p)])
         # Release-root docs beside the captured corpora are maintained here, so they're scanned.
         self.assertTrue([p for p in docs if p.endswith("feature-index.md") and
                          p.startswith("docs/sales")])

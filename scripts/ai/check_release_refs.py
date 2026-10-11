@@ -68,7 +68,7 @@ TEXT_PROBE = 8192
 # release-root files beside them (feature-index.md, notes) are maintained here and scanned.
 CAPTURED = re.compile(r"^docs/salesforce/[^/]+/(?:help|dev-guide|dev-guide-industries|"
                       r"release-notes)/")
-EXCLUDE = ("tests/test_check_release_refs.py",)  # this checker's own fixtures
+EXCLUDE = frozenset({"tests/test_check_release_refs.py"})  # exact paths: its own fixtures
 ALLOW = "release-ref: allow"
 
 # Remotes this repo uses, plus whatever `git remote` lists at run time. Only a remote name
@@ -209,6 +209,10 @@ for _verb in ("diff", "log", "show", "whatchanged", "format-patch"):
          "--pretty", "--date", "--since", "--until", "--after", "--before", "--line-prefix",
          "--src-prefix", "--dst-prefix", "--word-diff-regex", "-I", "--ignore-matching-lines",
          "--anchored", "-l", "--relative", "--color-moved-ws", "--ws-error-highlight"})
+# Options whose value is a file, path or pattern under any subcommand that has them.
+VALUE_FLAGS_ANYWHERE = {"--pathspec-from-file", "--rotate-to", "--skip-to", "--decorate-refs",
+                        "--decorate-refs-exclude", "--exclude", "--exclude-per-directory",
+                        "--template", "--separate-git-dir", "--reference", "--config"}
 # Long options whose value is a ref though their name has no ref word.
 LONG_REF_FLAGS = {"--force-with-lease", "--shallow-exclude", "--fork-point", "--merged",
                   "--no-merged", "--contains", "--no-contains", "--points-at", "--orphan",
@@ -386,7 +390,8 @@ ACTION_VERBS = {
     # worktree add [-b <branch>] [--reason <s>] <path> [<commit-ish>]; others take paths.
     "worktree": {"from": {"add": 2}, "refs": {"-b", "-B"}, "values": {"--reason"}},
     # remote add/set-url/rename take names and URLs; set-head and set-branches take branches.
-    "remote": {"from": {"set-head": 2, "set-branches": 2}, "refs": {"-t", "-m"},
+    "remote": {"from": {"set-head": 2, "set-branches": 2},
+               "refs": {"-t", "-m", "--track", "--master"},
                "values": {"--mirror"}},
     # bundle create <file> <rev-list args>; verify/list-heads/unbundle take a file.
     "bundle": {"from": {"create": 2}, "refs": set(), "values": {"--version"}},
@@ -408,8 +413,10 @@ def action_operands(verb: str, tokens: list) -> list:
     for k, t in enumerate(tokens):
         if k in keep or k and tokens[k - 1] in spec["refs"]:
             out.append(t)
-        elif t[:2] in spec["refs"] and len(t) > 2:
+        elif t[:2] in spec["refs"] and len(t) > 2 and not t.startswith("--"):
             out.append(t[2:])  # attached: `-b264`, `-t264`
+        elif "=" in t and t.split("=", 1)[0] in spec["refs"]:
+            out.append(t.split("=", 1)[1])  # `--track=264`
     return out
 
 
@@ -467,7 +474,8 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
         ref_flags = VERB_REF_FLAGS.get(verb, set())
         for i, token in enumerate(tokens):
             if i and (takes_number(tokens[i - 1], verb)
-                      or tokens[i - 1] in VERB_VALUE_FLAGS.get(verb, ())):
+                      or tokens[i - 1] in VERB_VALUE_FLAGS.get(verb, ())
+                      or tokens[i - 1] in VALUE_FLAGS_ANYWHERE):
                 continue
             if (verb in PATH_VERBS or verb not in REVISION_VERBS) and not token.startswith("-") \
                     and not (
@@ -804,9 +812,18 @@ def findings(text: str, ref: re.Pattern):
     for number, line in enumerate(lines, 1):
         has_number = DIGITS.search(line)
         following = lines[number] if number < len(lines) else ""
+        if ALLOW in line:
+            # The marker exempts this physical line only. If it opens a block, the block's
+            # other lines are still read, with this line's own numbers masked out.
+            code = re.split(r"\s#|//", line, maxsplit=1)[0].rstrip()  # the marker's comment off
+            if OPENER.search(code) or ARGV_OPEN.search(code) or code.endswith(("(", "[")):
+                masked = list(lines)
+                masked[number - 1] = re.sub(r"\d", "x", code)
+                if code_finding(masked, number - 1, masked[number - 1], None):
+                    yield number, "code", line.strip()
+            continue
         if not has_number and not OPENER.search(line) and not DIGITS.search(following) \
-                and not (line.rstrip().endswith("(") and ARGV_OPEN.match("(" + following.strip())) \
-                or ALLOW in line:
+                and not (line.rstrip().endswith("(") and ARGV_OPEN.match("(" + following.strip())):
             continue
         expanded = SHELL_EXPANSION.sub(r"\1", line) if "${" in line else line
         if has_number and ref.search(expanded):
@@ -835,7 +852,7 @@ def tracked_scope() -> list[Path]:
     if out.returncode != 0:
         raise OSError(out.stderr.strip() or "git ls-files failed")
     return [REPO / name for name in out.stdout.split("\0")
-            if name and not name.startswith(EXCLUDE) and not CAPTURED.match(name)
+            if name and name not in EXCLUDE and not CAPTURED.match(name)
             and not (REPO / name).is_symlink()
             and is_text(REPO / name)]
 
