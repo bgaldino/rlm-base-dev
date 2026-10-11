@@ -12,10 +12,12 @@ What fails, on any line of a tracked instruction or tooling file:
 * `ref`: a release number used as a git ref: `origin/NNN`, `refs/heads/NNN`,
   `--base NNN`, for any remote this repo has.
 * `branch`: a bare backticked release number (`` `NNN` ``) right next to branch wording:
-  "branch (`NNN`", "`NNN` branch", "merged into `NNN`", "commit to `NNN`", "a branch named
-  `NNN`", "`main`, `NNN`", "`NNN` → `main`" (via `main`). Only the 12 characters either
-  side count, so a backticked ID prefix or HTTP code elsewhere on a line about branches
-  doesn't.
+  "branch (`NNN`", "`NNN` branch", "the `NNN` maintenance branch", "merged into `NNN`",
+  "commit to `NNN`", "a branch named `NNN`", "`main`, `NNN`", "`NNN` → `main`" (via
+  `main`). Only the 12 characters either side count, so a backticked ID prefix or HTTP code
+  elsewhere on a line about branches doesn't. Unquoted, a number counts only in a phrase
+  that can't mean anything but a branch: "NNN branch", "branch NNN", "from NNN to main",
+  "merged into NNN", "retarget … from NNN", "NNN → main".
 * `code`: a numbered branch in code or a command, where it is spelled without backticks or a
   remote: a branch-taking git command with a bare 3-digit argument (`git checkout NNN`,
   `git push origin NNN`; values of count flags such as `-n`/`--depth` don't count), or a
@@ -27,8 +29,10 @@ release numbers in prose ("a live NNN org", `salesforce_release_active`), paths 
 `docs/salesforce/NNN/`, and
 other three-digit values such as ID prefixes or HTTP codes, which aren't backticked next
 to a branch word. The one place that maps releases to branches is the README's Branch
-Information section, which is out of scope. A line that must keep a number, such as a
-record of what happened at a past commit, can carry the marker `release-ref: allow`.
+Information section, and it does so by role name (`release/<n>`), so it passes too. The
+Salesforce Help snapshots under `docs/salesforce/` are captured product text, not
+instructions, and are out of scope. A line that must keep a number, such as a record of
+what happened at a past commit, can carry the marker `release-ref: allow`.
 
 Usage:
     python scripts/ai/check_release_refs.py            # scan the tracked scope
@@ -44,8 +48,9 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-SCOPE = ("AGENTS.md", "CONTRIBUTING.md", "REVIEW.md", ".agents/", ".claude/", ".cursor/",
-         ".github/", "scripts/", "tasks/", "docs/guides/", "docs/references/")
+SCOPE = ("AGENTS.md", "CONTRIBUTING.md", "README.md", "REVIEW.md", ".agents/", ".claude/",
+         ".cursor/", ".github/", "scripts/", "tasks/", "docs/")
+EXCLUDE = ("docs/salesforce/",)
 SUFFIXES = (".md", ".mdc", ".py", ".yml", ".yaml", ".json", ".sh", ".toml", ".txt")
 ALLOW = "release-ref: allow"
 
@@ -57,6 +62,17 @@ NEAR = 12
 BRANCH_NEAR = re.compile(r"\bbranch(?:es)?\b|\b(?:named|called)\s|"
                          r"\b(?:merged?|push(?:ed)?|commit(?:ted)?|rebased?)\s+(?:in)?to\b|"
                          r"`main`|`(?:release|preview)/")
+# One word between the number and "branch": "the `NNN` maintenance branch".
+BARE_WORD_BRANCH = re.compile(r"`\d{3}`\s+[\w-]+\s+branch(?:es)?\b")
+# An unquoted number, in a phrase that can only mean a branch. Kept to whole phrases because
+# unquoted release numbers are everywhere in prose ("a live NNN org", "NNN GA").
+N = r"(?<![\w./`$-])\d{3}(?![\w./`-])"
+UNQUOTED = re.compile(
+    rf"{N}\s+(?:[\w-]+\s+)?branch(?:es)?\b|\bbranch(?:es)?\s+(?:(?:named|called)\s+)?{N}"
+    rf"|\bfrom\s+{N}\s+(?:in|on)?to\s+`?(?:main|release/|preview/)"
+    rf"|\b(?:merged?|push(?:ed)?|commit(?:ted)?|rebased?)\s+(?:in|on)?to\s+{N}"
+    rf"|\bretarget\w*\s+(?:[\w#`-]+\s+){{0,4}}?from\s+{N}"
+    rf"|{N}\s*(?:→|->)\s*`?main\b|\bmain`?\s*(?:→|->)\s*{N}", re.IGNORECASE)
 
 
 # A git verb that names branches, then the rest of that simple command.
@@ -108,6 +124,8 @@ def numbered_branch_in_code(line: str) -> bool:
 
 
 def near_branch(line: str) -> bool:
+    if BARE_WORD_BRANCH.search(line) or UNQUOTED.search(line):
+        return True
     for match in BARE.finditer(line):
         window = line[max(0, match.start() - NEAR):match.end() + NEAR]
         if BRANCH_NEAR.search(window):
@@ -144,7 +162,8 @@ def tracked_scope() -> list[Path]:
     if out.returncode != 0:
         raise OSError(out.stderr.strip() or "git ls-files failed")
     return [REPO / name for name in out.stdout.split("\0")
-            if name.endswith(SUFFIXES) and not (REPO / name).is_symlink()]
+            if name.endswith(SUFFIXES) and not name.startswith(EXCLUDE)
+            and not (REPO / name).is_symlink()]
 
 
 def main(argv: list[str]) -> int:

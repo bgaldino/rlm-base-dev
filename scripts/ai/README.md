@@ -289,7 +289,7 @@ silently each fail the suite.
 
 Runs the mechanical checks a change actually needs, and reports the status of **every**
 check — including the ones it skipped, and why. One command instead of remembering which
-of twenty-three validators a given diff should have run.
+of twenty-five validators a given diff should have run.
 
 ```bash
 python scripts/ai/pr_gate.py --base origin/main   # select from the diff vs a base ref
@@ -522,12 +522,12 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 23 checks in about 17 seconds, of which the branch-scope *suite*
+A full `--all` run is 25 checks in about 17 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is 8 —
 so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
-selection is a couple of seconds. That timing is measured on a machine where two of the twenty-three
+selection is a couple of seconds. That timing is measured on a machine where two of the twenty-five
 (`docgen_suite`, `harness_suites`) are blocked on optional dependencies and so contribute nothing, which
-is worth naming rather than leaving the reader to assume all twenty-three ran: with those installed the
+is worth naming rather than leaving the reader to assume all twenty-five ran: with those installed the
 number is higher.
 
 Verified by `tests/test_pr_gate.py` (711 checks, throwaway repos, no network — hermetic for all but
@@ -550,7 +550,7 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the twenty-three trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the twenty-five trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted

@@ -339,7 +339,7 @@ Project conventions that affect this work:
 - **2026-05-04 → 2026-05-06** — Initial enablement work: 10 per-release 260 drafts authored manually + skill + patterns extracted + QB scenario reference written + 2 master exercise pilots (PCM, Pricing) drafted + 262 feature index scaffolded
 - **2026-05-06** — Two-tier model formally documented in skill; master exercise pilots authored validating Pattern 9 (Scenario Threading) + Pattern 10 (Version-Aware Section Metadata)
 - **2026-05-06** — Initial commit on branch `feat/enablement-260-master-exercises` (commit `cae8d05d`)
-- **2026-05-22** — Brought the catalog onto the `262` branch (master + 260 extracts + 260/262 feature indexes + 262 Help-portal snapshot). Trailhead L2 editorial artifacts stay off the public branch.
+- **2026-05-22** — Brought the catalog onto the `262` branch (master + 260 extracts + 260/262 feature indexes + 262 Help-portal snapshot). Trailhead L2 editorial artifacts stay off the public branch. <!-- release-ref: allow -->
 - **2026-05-24** — 262 QB demo script drafted (`262/qb-demo-script.md`) via the `qb-demo-script` SKILL; introduces a new per-release artifact type (SE/partner demo script) alongside the per-area Hands-On extracts.
 - **2026-05-28** — README refreshed for 262 status (this commit). 262 per-area Hands-On extracts intentionally deferred until master coverage broadens — see *Why two-tier?* and the *Per-release 262 artifacts* table for the rationale.
 

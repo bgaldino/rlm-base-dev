@@ -115,10 +115,11 @@ CHECKS = [
         cmd=["python", "scripts/ai/check_release_refs.py"],
         # Branches are named by role, never by release number (README → Branch
         # Information). The triggers are the script's own SCOPE, so any file it audits
-        # selects it; it reads ~400 files in well under a second.
-        triggers=["AGENTS.md", "CONTRIBUTING.md", "REVIEW.md", ".agents/", ".claude/",
-                  ".cursor/", ".github/", "scripts/", "tasks/", "docs/guides/",
-                  "docs/references/"],
+        # selects it (tests/test_check_release_refs.py holds them equal). Its EXCLUDE of
+        # docs/salesforce/ isn't mirrored: a snapshot-only diff selects a check that reads
+        # ~460 files in well under a second, which is cheaper than a second rule shape.
+        triggers=["AGENTS.md", "CONTRIBUTING.md", "README.md", "REVIEW.md", ".agents/",
+                  ".claude/", ".cursor/", ".github/", "scripts/", "tasks/", "docs/"],
         deps=[], gating=True,
     ),
     dict(

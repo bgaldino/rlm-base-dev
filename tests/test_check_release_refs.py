@@ -26,7 +26,13 @@ class NumberedBranches(unittest.TestCase):
                      'DEFAULT_BASE = "origin/264"',
                      "never push to the active release branch (`264`)",
                      "the sync PR (`main` merged into `264`)",
-                     "required on `main`, `264` and `release/*`"):
+                     "required on `main`, `264` and `release/*`",
+                     "Prior GA reference (the `262` maintenance branch)",
+                     # Unquoted, in phrases that can only mean a branch.
+                     "Retarget a green PR from 264 to main and no event fires",
+                     "the 264 branch is in sync", "the 262 maintenance branch",
+                     "check out branch 264", "it was merged into 264 first",
+                     "retarget #285 from 264", "sync 264 → main by PR"):
             with self.subTest(line=line):
                 self.assertTrue(rules(line), line)
 
@@ -40,7 +46,14 @@ class NumberedBranches(unittest.TestCase):
                      "Bare positive int: ``364`` -> 364 days forward",
                      "int `123` -> `\"123\"`, same as a literal",
                      'salesforce_release_active: "264"',
-                     "the `264` branch existed then  <!-- release-ref: allow -->"):
+                     "the `264` branch existed then  <!-- release-ref: allow -->",
+                     # Unquoted release numbers in ordinary prose stay quiet.
+                     "Release 264 (Winter '27) is the GA line",
+                     "an upgraded 262 org keeps settings a fresh 264 org lacks",
+                     "262 is the prior GA reference; 260 extracts remain",
+                     "every scratch org it creates is a 264 org regardless of branch",
+                     "from 260 to 262 the schema grew", "the release/264 branch",
+                     "merged into main in 264"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), [], line)
 
@@ -64,6 +77,20 @@ class NumberedBranches(unittest.TestCase):
                      'salesforce_release_active: "264"', 'api_version: "64.0"'):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), [], line)
+
+    def test_the_gate_selects_on_exactly_the_scanned_scope(self):
+        # The gate mirrors SCOPE in its triggers; a scope entry missing there means a change
+        # to that file never runs the check that audits it.
+        import pr_gate
+        check = next(c for c in pr_gate.CHECKS if c["name"] == "release_refs")
+        self.assertEqual(sorted(check["triggers"]), sorted(crr.SCOPE))
+
+    def test_readme_and_current_docs_are_scanned_and_help_snapshots_are_not(self):
+        scanned = {p.relative_to(REPO).as_posix() for p in crr.tracked_scope()}
+        self.assertIn("README.md", scanned)
+        docs = [p for p in scanned if p.startswith("docs")]
+        self.assertTrue([p for p in docs if "/" in p and p.count("/") == 1], "docs root unscanned")
+        self.assertFalse([p for p in docs if p.startswith(crr.EXCLUDE)])
 
     def test_remotes_found_at_run_time_count(self):
         ref = crr.ref_pattern(["fork"])
