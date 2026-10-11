@@ -330,6 +330,10 @@ def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bo
         value = line[match.end():]
         if SCALAR.match(value) or SHELL_POSITIONAL.match(value):
             return True
+        # A remote-qualified value (`"mirror/NNN"`), even on a remote this clone lacks.
+        scalar = re.match(r"[\"']?([\w.-]+/\d{3})[\"']?(?![\w./-])", value)
+        if scalar and remote_tracking(scalar.group(1)):
+            return True
         # An expression rather than a literal (`os.getenv("BASE", "NNN")`,
         # `os.getenv("BASE") or "NNN"`): any quoted three-digit literal in it is the default.
         if not long_line and re.match(r"[A-Za-z_]", value) and \
@@ -420,7 +424,7 @@ def action_operands(verb: str, tokens: list) -> list:
             "--orphan" in tokens or len(positional) == 2 and not
             ({"-b", "-B", "--detach", "-d"} & set(tokens) or any(
                 t.startswith(("-b", "-B")) and len(t) > 2 for t in tokens))):
-        out.append(tokens[positional[1]].rstrip("/").rsplit("/", 1)[-1])  # basename = new branch
+        out.append(re.split(r"[/\\]", tokens[positional[1]].rstrip("/\\"))[-1])  # basename
     for k, t in enumerate(tokens):
         if k in keep or k and tokens[k - 1] in spec["refs"]:
             out.append(t)
@@ -466,7 +470,8 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                     break
             if re.fullmatch(r"branch\.\d{3}\..+", key):
                 return True  # `git config branch.NNN.remote origin`: the key names the branch
-            words = {w for w in re.split(r"[.\-_]", key.lower()) if w}
+            # Split on punctuation and camelCase: `init.defaultBranch` names a branch too.
+            words = {w for seg in re.split(r"[.\-_]", key) for w in identifier_words(seg)}
             if not words & (BRANCH_WORDS | {"merge", "remote"}) or words & MEASURES:
                 continue
             tokens = tokens[k + 1:] if key else []
