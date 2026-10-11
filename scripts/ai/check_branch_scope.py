@@ -83,7 +83,7 @@ Exit status: 0 clean, 1 commits not owned by the branch, 2 usage/tool error. A
 missing `git`/`gh` gives 2, never 1, so a gate keyed on the status cannot call a
 branch dirty because a tool is absent.
 
-Verified by `tests/test_branch_scope.py` (78 checks) against throwaway repos, not
+Verified by `tests/test_branch_scope.py` (83 checks) against throwaway repos, not
 against this checkout's branches -- the #264-56 branches have since been rebuilt
 and merged, so a test reading real history would rot. It reproduces the #264-56
 shape (5 inherited + 3 own, reported 5 of 8), the rebase that fixes it, a

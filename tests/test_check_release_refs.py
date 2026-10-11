@@ -32,7 +32,10 @@ class NumberedBranches(unittest.TestCase):
                      "Retarget a green PR from 264 to main and no event fires",
                      "the 264 branch is in sync", "the 262 maintenance branch",
                      "check out branch 264", "it was merged into 264 first",
-                     "retarget #285 from 264", "sync 264 → main by PR"):
+                     "retarget #285 from 264", "sync 264 → main by PR",
+                     "| The deep pre-merge audit of a branch before `264 → main` | Yes |",
+                     "**This branch:** Release 264 (Winter '27), API v68.0.",
+                     "the branch is 262 until cutover"):
             with self.subTest(line=line):
                 self.assertTrue(rules(line), line)
 
@@ -53,7 +56,8 @@ class NumberedBranches(unittest.TestCase):
                      "262 is the prior GA reference; 260 extracts remain",
                      "every scratch org it creates is a 264 org regardless of branch",
                      "from 260 to 262 the schema grew", "the release/264 branch",
-                     "merged into main in 264"):
+                     "merged into main in 264", "branch protection: 3 rules",
+                     "**This branch:** the current line; see Branch Information"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), [], line)
 
@@ -110,6 +114,7 @@ class NumberedBranches(unittest.TestCase):
     def test_readme_and_current_docs_are_scanned_and_help_snapshots_are_not(self):
         scanned = {p.relative_to(REPO).as_posix() for p in crr.tracked_scope()}
         self.assertIn("README.md", scanned)
+        self.assertIn("cumulusci.yml", scanned)
         docs = [p for p in scanned if p.startswith("docs")]
         self.assertTrue([p for p in docs if "/" in p and p.count("/") == 1], "docs root unscanned")
         self.assertFalse([p for p in docs if p.startswith(crr.EXCLUDE)])

@@ -63,7 +63,7 @@ mandatory checklist remains in `AGENTS.md`.
 | Situation | Use this skill? |
 |-----------|-----------------|
 | A Codex/Copilot review posted on a PR | Yes — triage, verify, sweep, fix, reply |
-| The deep pre-merge audit of a branch before `264 → main` | Yes — drive it by finding-class |
+| The deep pre-merge audit of a branch before `preview/<n> → main` | Yes — drive it by finding-class |
 | A single trivial nit with no class | Fix inline; reply; skip the full ceremony |
 | Authoring the actual CRUD/FLS fixes | Pair with `apex-security-hardening/SKILL.md` |
 
@@ -271,7 +271,7 @@ exits 2 instead of comparing the ref it just failed to refresh, because the stal
 case reports *clean* and a swallowed error would restore that false negative at the
 worst moment. Use `--no-fetch` if you mean to compare a local copy knowingly.
 
-The check's own behavior is pinned by `tests/test_branch_scope.py` (78 checks, no
+The check's own behavior is pinned by `tests/test_branch_scope.py` (83 checks, no
 network) — run it if you change the script, and add a shape to it rather than
 tightening the script by feel. Drive whole invocations, not helpers: an earlier
 version tested `STACKED`'s ancestor helper in isolation, and three mutations that

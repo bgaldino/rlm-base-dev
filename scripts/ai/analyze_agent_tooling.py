@@ -284,7 +284,9 @@ def parse_manifest_fallback(text: str) -> dict[str, Any]:
         # Top-level scalars only (no leading whitespace).
         if line[:1].isspace():
             continue
-        for key in ("manifest_version", "generated_at", "last_verified", "salesforce_release_active"):
+        # Not the active release: the manifest is its one home, and a generated snapshot of
+        # it is a second copy that goes stale at every cutover until the next regeneration.
+        for key in ("manifest_version", "generated_at", "last_verified"):
             prefix = key + ":"
             if line.startswith(prefix):
                 summary[key] = line[len(prefix):].strip().strip('"').strip("'")
@@ -336,7 +338,6 @@ def summarize_manifest(root: Path) -> dict[str, Any]:
             "manifest_version": _version_str(data.get("manifest_version")),
             "generated_at": _scalar(data.get("generated_at")),
             "last_verified": _scalar(data.get("last_verified")),
-            "salesforce_release_active": _version_str(data.get("salesforce_release_active")),
             "skill_count": len(skill_ids),
             "skill_ids": sorted(str(s) for s in skill_ids),
             "skill_paths": sorted(str(p) for p in skill_paths),
@@ -349,7 +350,6 @@ def summarize_manifest(root: Path) -> dict[str, Any]:
         "manifest_version": _version_str(fb.get("manifest_version")),
         "generated_at": fb.get("generated_at"),
         "last_verified": fb.get("last_verified"),
-        "salesforce_release_active": _version_str(fb.get("salesforce_release_active")),
         "skill_count": len(fb.get("skills", [])),
         "skill_ids": sorted(fb.get("skills", [])),
         "skill_paths": sorted(fb.get("skill_paths", [])),
@@ -1471,7 +1471,6 @@ def render_report_markdown(a: Analysis) -> str:
         f"- Present: **{m.get('present', False)}**",
         f"- Manifest version: `{m.get('manifest_version')}`",
         f"- Last verified: `{m.get('last_verified')}`",
-        f"- Active Salesforce release: `{m.get('salesforce_release_active')}`",
         f"- Manifest skill count: **{m.get('skill_count', 0)}**",
     ]
     for sid in m.get("skill_ids", []) or []:

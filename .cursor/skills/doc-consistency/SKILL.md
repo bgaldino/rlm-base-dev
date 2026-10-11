@@ -76,12 +76,12 @@ release is diffed against.
 | `docs/enablement/260/`, `docs/enablement/262/` | released per-release enablement extracts |
 | `postman/` | version-branded end to end; regenerate, do not `sed` |
 
-**Retarget by hand — excluded because a blanket rewrite would corrupt them, not
-because they are historical.**
-
-| Hand-retargeted | Why it is excluded, and why it still must change |
-|---|---|
-| `.agents/context/**` | `project-map.md` and `project-memory.json` record the **active** release and API version, so leaving them behind strands every agent on the previous release. They are excluded because each also deliberately records the *prior* GA in the same file, alongside the active target (for example, current `number` / `api_version` beside `prior_ga_release` / `prior_ga_api_version`) — a blanket rewrite would flatten the distinction the file exists to draw. Edit the current-target fields, leave the prior-GA fields alone. |
+**`.agents/context/**` — excluded, and nothing in it needs retargeting.** The agent
+context files don't restate the active or prior-GA release or API version:
+`project-map.md` and `project-memory.json` point to `.claude/skill-manifest.yml`, which is the
+one place a cutover updates, and the generated `tooling-scorecard.json` doesn't carry the
+release. What remains there is history (cross-release lists such as ERD comparisons),
+which a sweep must not rewrite.
 
 `.agents/artifacts/**` is a private nested repo, gitignored and therefore unreachable
 by either pass; nothing there needs retargeting.

@@ -592,6 +592,51 @@ def test_fetch_before_comparing(root):
           f"rc={rc} — a local branch with a slash was fetched as a remote\n{out}")
 
 
+def test_default_base_is_origin_head(root):
+    """With no --base, the base is the remote's default branch, never a pinned release line.
+
+    The default used to be a numbered branch, which went on comparing every branch against
+    a retired line after the cutover. Every other test passes --base explicitly, so this is
+    the only one that drives DEFAULT_BASE.
+    """
+    print("\nNo --base: compare against origin/HEAD, the remote's default branch")
+    upstream = new_repo(root, "default-upstream")
+    git(upstream, "checkout", "--quiet", "-b", "other")
+    inherited = commit(upstream, "other.txt", "other\n", "work on another line")
+    git(upstream, "checkout", "--quiet", "base")
+    # Move base first: picked onto the same parent in the same second, the commit would
+    # come out with the same SHA and be an ancestor rather than merged-as-a-copy work.
+    commit(upstream, "moved.txt", "moved\n", "base moves on")
+    git(upstream, "cherry-pick", inherited)
+
+    work = Path(root) / "default-clone"
+    subprocess.run(["git", "clone", "--quiet", str(upstream), str(work)],
+                   capture_output=True, env=GIT_ENV, check=True)
+    git(work, "config", "user.email", "t@example.com")
+    git(work, "config", "user.name", "test")
+    git(work, "config", "commit.gpgsign", "false")
+    git(work, "checkout", "--quiet", "-b", "feature", "origin/other")
+    commit(work, "mine.txt", "mine\n", "my change")
+
+    rc, out = run_check(work, "--head", "feature")
+    check("the default base is origin/HEAD", "origin/HEAD" in out, out)
+    check("and it is the remote's default branch: work merged there is found",
+          rc == 1 and "1 of 2 non-merge commit(s)" in out, f"rc={rc}\n{out}")
+
+    # Re-point the remote's default at a line that has none of that work: the default
+    # follows it, so the same branch now owns everything.
+    git(work, "remote", "set-head", "origin", "other")
+    rc, out = run_check(work, "--head", "feature")
+    check("and follows the remote's default when it moves", rc == 0, f"rc={rc}\n{out}")
+
+    # A clone made without a remote HEAD (or one deleted since) leaves origin/HEAD
+    # unresolvable; that is a tool error with the command that fixes it, not a verdict.
+    git(work, "remote", "set-head", "origin", "--delete")
+    rc, out = run_check(work, "--head", "feature")
+    check("an unset origin/HEAD exits 2, not a verdict", rc == 2, f"rc={rc}\n{out}")
+    check("and names the command that sets it", "git remote set-head origin --auto" in out, out)
+
+
 def test_exit_code_contract(root):
     print("\nExit codes: 2 is for tool/usage errors, never 1")
     cwd = new_repo(root, "codes")
@@ -725,6 +770,7 @@ def main():
         test_empty_branch(root)
         test_stacked_on_unmerged(root)
         test_fetch_before_comparing(root)
+        test_default_base_is_origin_head(root)
         test_exit_code_contract(root)
         test_documented_count_is_current(root)
     print("\n" + "=" * 100)

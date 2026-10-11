@@ -11,8 +11,8 @@ deployment automation and example datasets.
 **[Explore the documentation](docs/index.md)** ·
 **[Build an environment](#build-and-configure-an-org)**
 
-**This branch:** Release 264 (Winter '27), API v68.0.
-See [branch information](#branch-information) before choosing an org or release.
+**Which release this branch carries:** see [branch information](#branch-information) before
+choosing an org or release.
 
 ## Start with a skill
 

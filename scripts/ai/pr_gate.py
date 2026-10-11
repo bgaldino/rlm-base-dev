@@ -118,8 +118,10 @@ CHECKS = [
         # selects it (tests/test_check_release_refs.py holds them equal). Its EXCLUDE
         # isn't mirrored: a diff touching only excluded files selects a check that reads
         # ~550 files in well under a second, which is cheaper than a second rule shape.
-        triggers=["AGENTS.md", "CONTRIBUTING.md", "README.md", "REVIEW.md", ".agents/",
-                  ".claude/", ".cursor/", ".github/", "scripts/", "tasks/", "tests/", "docs/"],
+        triggers=["AGENTS.md", "CONTRIBUTING.md", "README.md", "REVIEW.md", "SECURITY.md",
+                  "cumulusci.yml", "package.json", "pyproject.toml", "sfdx-project.json",
+                  ".agents/", ".claude/", ".cursor/", ".github/", "scripts/", "tasks/",
+                  "tests/", "docs/"],
         deps=[], gating=True,
     ),
     dict(

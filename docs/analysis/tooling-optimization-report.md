@@ -180,7 +180,6 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
 - Present: **True**
 - Manifest version: `2`
 - Last verified: `2026-07-26`
-- Active Salesforce release: `264`
 - Manifest skill count: **32**
   - `apex-security-hardening`
   - `audit-review`
