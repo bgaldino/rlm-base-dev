@@ -54,7 +54,7 @@ class Contract(unittest.TestCase):
         self.assert_flagged("setting", (
             'DEFAULT_BASE = "264"', "base: 264", 'PROTECTED = ("main", "264")',
             "branches: [main, 264]", 'targetBranch: "264"', '"active_work_branch": "264",',
-            "BASE_BRANCH ?= 264", "branches:\n  - main\n  - 264",
+            "BASE_BRANCH ?= 264", "BASE_BRANCH ::= 264", "BASE_BRANCH := 264", "branches:\n  - main\n  - 264",
             "on:\n  push:\n    branches:\n      - 264", "base = 264.", 'targets: ["main", "264"]'))
 
     def test_numbered_branches_in_prose_fail(self):

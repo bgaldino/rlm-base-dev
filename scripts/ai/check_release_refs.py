@@ -91,11 +91,12 @@ GIT = re.compile(rf"(?<![\w.-])git\s+(?:{'|'.join(GIT_VERBS)})\b([^\n|;&#`]*)")
 VALUE_FLAGS = {"-n", "--max-count", "-U", "--unified", "--depth", "--deepen", "--skip", "-m",
                "--message", "--grep", "--author", "--committer", "--since", "--until", "-S",
                "-G"}
-# A quoted string with a space in it is a message or a pattern, never a branch name.
 SENTENCE_END = re.compile(r"[,;!?)]+$|(?<!\.)\.$")
+# A quoted string with a space in it is a message or a pattern, never a branch name.
 QUOTED_PHRASE = re.compile(r"\"[^\"]*\s[^\"]*\"|'[^']*\s[^']*'")
 
-SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*(?:[:?+]?=(?!=)|:)\s*")
+# `:=`, `::=` and `:::=` are Make's immediate assignments; `!=` is left out (a comparison).
+SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*(?::{1,3}=|[?+]?=(?!=)|:)\s*")
 BRANCH_WORDS = {"base", "bases", "branch", "branches", "head", "heads", "ref", "refs",
                 "target", "targets", "protected"}
 MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "length", "num",
