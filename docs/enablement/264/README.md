@@ -1,7 +1,7 @@
 # Release 264 (Winter '27) — Enablement Extracts
 
-**Status: scaffold — no 264 artifacts authored yet.** Created with the `264`
-branch cut so the per-release directory exists. The Help-derived 264 feature
+**Status: scaffold — no 264 artifacts authored yet.** Created at the start of
+the 264 release cycle so the per-release directory exists. The Help-derived 264 feature
 inventory exists; authoring starts once its tiers are verified (see below).
 
 Per-release directories hold two different kinds of artifact, and they have

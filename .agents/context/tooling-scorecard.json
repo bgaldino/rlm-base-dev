@@ -67,7 +67,6 @@
     "last_verified": "2026-07-26",
     "manifest_version": "2",
     "present": true,
-    "salesforce_release_active": "264",
     "skill_count": 32,
     "skill_ids": [
       "apex-security-hardening",

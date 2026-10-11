@@ -254,10 +254,13 @@ check("a cumulusci.yml change selects the CCI reference drift check",
       "cci_reference_drift" in sel, sel)
 sel = selected_names(["docs/erds/erd-data.json"])
 check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel, sel)
-# Local Markdown links can target any repository file. The cheap navigation baseline
-# therefore runs for every non-empty change, while unrelated expensive checks stay skipped.
+# Local Markdown links can target any repository file, and a numbered branch can appear in
+# any tracked text file. The two cheap whole-repo checks (navigation baseline and
+# release_refs) therefore run for every non-empty change, while unrelated expensive checks
+# stay skipped.
 sel = selected_names(["docker/Dockerfile"])
-check("an otherwise unrelated path selects only the navigation baseline", sel == {"agent_tooling"}, sel)
+check("an otherwise unrelated path selects only the two whole-repo baselines",
+      sel == {"agent_tooling", "release_refs"}, sel)
 # A suffix selector, for the check that walks every .md in the repo. Prefix triggers left
 # the root README and seven datasets/**/README.md build-step citations unable to select the
 # suite that audits them.
@@ -2306,7 +2309,7 @@ if os.path.exists(workflow):
     check("that rule rejects a checker whose verdict is discarded",
           not pr_arg('            python scripts/ai/check_branch_scope.py --pr 1 || true'))
     check("that rule rejects --pr echoed beside a real argument list on one line",
-          not pr_arg('            set -- --base origin/264 --head HEAD; '
+          not pr_arg('            set -- --base origin/main --head HEAD; '
                      'echo "STACKED needs --pr and is off"'))
     # Controls for the step-scoped rules. Each feeds the real predicate a mutated step, because a
     # control that only re-states its own input tests nothing: the previous `continue-on-error`
@@ -4727,7 +4730,7 @@ for spec in pr_gate.CHECKS:
 check("and each trigger on its own selects the check that watches it, so no single tree or extension "
       "can be excluded between the changed-file list and the selected list",
       not unselecting, unselecting[:6])
-# The same list under the base spelling CI actually passes. `--base origin/264` is what the workflow
+# The same list under the base spelling CI actually passes. `--base origin/<base>` is what the workflow
 # runs and `--base HEAD` is what every fixture here runs, so a predicate on the *value* of `--base`
 # separates the two populations exactly the way an environment variable would.
 buf = io.StringIO()
@@ -4735,7 +4738,7 @@ try:
     pr_gate.run = lambda cmd: (0, "", 0.0)
     pr_gate.run_sequence = lambda cmds: (0, "", 0.0)
     pr_gate.changed_files = lambda base: list(every_tree)
-    sys.argv = ["pr_gate.py", "--base", "origin/264"]
+    sys.argv = ["pr_gate.py", "--base", "origin/main"]
     with redirect_stdout(buf):
         pr_gate.main()
 finally:
@@ -5002,7 +5005,7 @@ check("git() dies on a non-zero exit rather than returning empty stdout as an an
 
 # Behavioural, per spawn failure that is not FileNotFoundError: a git present on PATH but not
 # executable raises PermissionError, also an OSError, and used to escape as a traceback.
-for label, thunk in (("changed_files", lambda: pr_gate.changed_files("origin/264")),
+for label, thunk in (("changed_files", lambda: pr_gate.changed_files("origin/main")),
                      ("the drift check", pr_gate.run_cci_reference_drift)):
     prior_spawn, prior_run = subprocess.run, pr_gate.run
     try:
@@ -5087,7 +5090,7 @@ try:
     pr_gate.REPO_ROOT = broken_git
     try:
         with outside_any_repo(broken_git):
-            code, out = main_with(["--base", "origin/264"])
+            code, out = main_with(["--base", "origin/main"])
         check("an unusable repo is a tool error, not a clean selection",
               code == 2, f"exit {code}: {out[-200:]}")
     finally:
@@ -5127,7 +5130,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 708
+EXPECTED = 711
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
@@ -5141,7 +5144,9 @@ check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the p
 # `MATRIX_SIZE_PROSE` deliberately anchors on phrases that describe CHECKS, since "fourteen" also
 # appears in unrelated incident narration that must not be rewritten.
 _NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen",
-              18: "eighteen", 19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two"}
+              18: "eighteen", 19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two",
+              23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six",
+              27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty"}
 _actual = len(pr_gate.CHECKS)
 # A word boundary that also rejects a trailing hyphen, so the pattern for a smaller number word
 # does not match inside a hyphenated compound of a larger one: "two of the twenty" must NOT

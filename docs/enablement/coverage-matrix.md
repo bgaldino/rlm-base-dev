@@ -13,8 +13,8 @@ Working document tracking what enablement artifacts exist across releases, what'
 | `256/` *(label only)* | 256 | Summer '25 | Exercises only (PDF) |
 | `258/` *(label only)* | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
 | `260/` | 260 | Spring '26 | Reference — 10 per-release `.md` drafts complete |
-| `262/` | 262 | Summer '26 | **Prior GA reference** (the `262` maintenance branch) — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
-| `264/` | 264 | Winter '27 | **Current release cycle — now on `main`** (preview / pre-GA) — scaffold only. The 264 feature index is populated from the Help corpus; authoring is blocked on tier verification; the Revenue release notes are captured (PR #480) and cross-referenced into it, with note-backed rows provisionally GA, Invoice Risk Scoring Pilot and three note-less New rows tier-unknown until confirmed at GA (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
+| `262/` | 262 | Summer '26 | **Prior GA reference** — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
+| `264/` | 264 | Winter '27 | **Current release cycle** — scaffold only. The 264 feature index is populated from the Help corpus; authoring is blocked on tier verification; the Revenue release notes are captured (PR #480) and cross-referenced into it, with note-backed rows provisionally GA, Invoice Risk Scoring Pilot and three note-less New rows tier-unknown until confirmed at GA (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
 
 > *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/`, `262/`, and `264/` exist as real per-release directories.
 
@@ -111,10 +111,10 @@ Sorts cleanly by version, area is unambiguous, type suffix lets both kinds coexi
    - (a) migrate exercises that still reference older data shapes (Acme, Laptop Pro) onto the QuantumBit catalog?
    - (b) update QuantumBit-aligned exercises to reflect changes within QB itself (new products, restructured bundles, renamed fields)?
    - (c) both?
-2. ~~**Target release** — Is Winter '26 (258) the deliverable…~~ — **Resolved 2026-05-22.** 262 (Summer '26) is the current development cycle; 260 (Spring '26) is the prior GA reference. Master exercises target 262; 260 per-release extracts remain in the catalog as the prior-release authoring output. **(Superseded 2026-09-16 by the 264 cutover: `main` now carries the 264 / Winter '27 preview line; 262 is the prior GA reference on the `262` maintenance branch. See the version-mapping table above.)**
+2. ~~**Target release** — Is Winter '26 (258) the deliverable…~~ — **Resolved 2026-05-22.** 262 (Summer '26) is the current development cycle; 260 (Spring '26) is the prior GA reference. Master exercises target 262; 260 per-release extracts remain in the catalog as the prior-release authoring output. **(Superseded 2026-09-16 by the 264 cutover: `main` now carries the 264 / Winter '27 preview line; 262 is the prior GA reference on the `262` maintenance branch. See the version-mapping table above.)** <!-- release-ref: allow -->
 3. **Advanced Approvals** for 258 — needs to be authored from scratch? The journey map includes it, but no draft exists in the 258 folder. (Lower priority now that 260 has a `.md` draft.)
 4. **Recordings** — Winter '26 page in the journey map omits the "Recording" links every prior release had. Intentional (no recordings this cycle), or TODO?
 
 ---
 
-*Last updated: 2026-09-16 — synced the active-release rows to the 264 cutover: `main` now carries the 264 / Winter '27 preview (pre-GA) line, and 262 is the prior GA reference on the `262` maintenance branch. Prior: 2026-08-13 — added the 264 (Winter '27) column and per-release directory with the `264` branch cut.*
+*Last updated: 2026-09-16 — synced the active-release rows to the 264 cutover: `main` now carries the 264 / Winter '27 preview (pre-GA) line, and 262 is the prior GA reference on the `262` maintenance branch. Prior: 2026-08-13 — added the 264 (Winter '27) column and per-release directory with the `264` branch cut.* <!-- release-ref: allow -->

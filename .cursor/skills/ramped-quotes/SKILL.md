@@ -445,7 +445,7 @@ Snapshot — re-verify with a `describe` on the target org. Writeable = createab
 
 A dependency-free `scripts/ramp_deals/` toolkit (schedule math, payload builders,
 status polling, read-back invariants) mirroring `scripts/expression_sets/` is being
-built on branch **`feat/ramp-deals-core`** (not yet merged to `264`). Until it
+built on branch **`feat/ramp-deals-core`** (not yet merged to `main`). Until it
 lands, use the raw Connect calls above. When it merges, wire its CLIs into this
 skill's routing.
 

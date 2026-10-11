@@ -76,12 +76,12 @@ release is diffed against.
 | `docs/enablement/260/`, `docs/enablement/262/` | released per-release enablement extracts |
 | `postman/` | version-branded end to end; regenerate, do not `sed` |
 
-**Retarget by hand — excluded because a blanket rewrite would corrupt them, not
-because they are historical.**
-
-| Hand-retargeted | Why it is excluded, and why it still must change |
-|---|---|
-| `.agents/context/**` | `project-map.md` and `project-memory.json` record the **active** release and API version, so leaving them behind strands every agent on the previous release. They are excluded because each also deliberately records the *prior* GA in the same file, alongside the active target (post-cutover: current `number` `264` / `api_version` `68.0` with `prior_ga_release` `262` / `prior_ga_api_version` `67.0`) — a blanket rewrite would flatten the distinction the file exists to draw. Edit the current-target fields, leave the prior-GA fields alone. |
+**`.agents/context/**` — excluded, and nothing in it needs retargeting.** The agent
+context files don't restate the active or prior-GA release or API version:
+`project-map.md` and `project-memory.json` point to `.claude/skill-manifest.yml`, which is the
+one place a cutover updates, and the generated `tooling-scorecard.json` doesn't carry the
+release. What remains there is history (cross-release lists such as ERD comparisons),
+which a sweep must not rewrite.
 
 `.agents/artifacts/**` is a private nested repo, gitignored and therefore unreachable
 by either pass; nothing there needs retargeting.
@@ -194,7 +194,8 @@ Understanding where truth lives prevents duplication drift.
 ## Verification Commands
 
 ```bash
-python scripts/ai/pr_gate.py --base origin/264            # all of the below, selected by your diff
+python scripts/ai/pr_gate.py --base origin/<base>          # all of the below, selected by your diff
+                                                         # (<base>: the PR's base — main unless preview/* or release/*)
 python scripts/ai/generate_cci_reference.py              # regenerate references
 git diff .cursor/skills/cci-orchestration/               # should show only intended changes
 python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — should PASS (0 Critical, 0 High) on a clean tree

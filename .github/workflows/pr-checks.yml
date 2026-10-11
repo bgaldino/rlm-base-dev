@@ -4,7 +4,7 @@ on:
   pull_request:
     # Spelled out because the default set is `opened`, `synchronize`, `reopened` — and `edited`,
     # which fires when a pull request's *base branch* changes, is not in it. Retarget a green PR
-    # from 264 to main and no event fires: the check run stays green on that head SHA, and the
+    # to a different base and no event fires: the check run stays green on that head SHA, and the
     # merge base, the selection and both branch-scope verdicts are now all computed against a
     # base the gate never diffed. `ready_for_review` is belt-and-braces — a draft already fires
     # `opened`/`synchronize`, so a check run exists on the SHA before it is undrafted.

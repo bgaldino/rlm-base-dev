@@ -210,7 +210,7 @@ it merges.
 
 ```bash
 python scripts/ai/check_branch_scope.py --pr 370          # both signals below
-python scripts/ai/check_branch_scope.py --base origin/264 # HEAD vs an explicit base
+python scripts/ai/check_branch_scope.py --base origin/main # HEAD vs an explicit base
 ```
 
 Two signals, because the inherited work may or may not have merged yet and each
@@ -235,9 +235,9 @@ signal is blind to one of those cases:
 
    | skipped | why |
    |---------|-----|
-   | head already in the base | the release integration PR (`264` → `main`) has the base branch *as* its head, which otherwise flags every branch up to date with base — making a stale branch read cleaner than a current one |
-   | a join merged in from the other PR's base | those commits have merged there, so they are not that PR's work. The sync PR (`main` merged into `264`, #471) shares main's merged commits with every open PR cut from `main` and was reported as stacked on all of them. Only a join reached through a merge (off this head's first-parent line) qualifies: the other base may itself be an unmerged integration branch, and a branch *built on* it still carries that work on its first-parent line, so it is still reported |
-   | a fork's head | not in this checkout; the `<remote>/<branch>` fallback would resolve a fork PR on a branch named `264` to *our* `264` |
+   | head already in the base | the release integration PR (`preview/<n>` → `main`) has the base branch *as* its head, which otherwise flags every branch up to date with base — making a stale branch read cleaner than a current one |
+   | a join merged in from the other PR's base | those commits have merged there, so they are not that PR's work. A sync PR (`main` merged into `preview/<n>`; first seen in #471) shares main's merged commits with every open PR cut from `main` and was reported as stacked on all of them. Only a join reached through a merge (off this head's first-parent line) qualifies: the other base may itself be an unmerged integration branch, and a branch *built on* it still carries that work on its first-parent line, so it is still reported |
+   | a fork's head | not in this checkout; the `<remote>/<branch>` fallback would resolve a fork PR on a branch named `main` to *our* `main` |
    | a PR that targets **this** branch | that is a declared child stack. History cannot tell it from a parent: a child cut from our `B` while we advance to `C` is the same graph. Without it, a parent PR failed its own gate as soon as it took a review fix |
    | a descendant of this head | the unmoved form of the same case |
 
@@ -270,11 +270,11 @@ reinstate the exact false negative the fetch exists to prevent, and it would do 
 precisely when something is wrong (offline, dead credential). Skipping the fetch is
 still available, but only by asking for it with `--no-fetch`.
 
-Verified by `tests/test_branch_scope.py` (78 checks, throwaway repos, no network),
+Verified by `tests/test_branch_scope.py` (83 checks, throwaway repos, no network),
 which reproduces the `#264-56` shape (5 inherited + 3 own → "5 of 8"), the rebase
 that fixes it, a reworded inherited commit, a true-merged parent, a stale base
 (which reports clean — so the fetch is load-bearing), a failing fetch (exit 2), a
-slash-bearing local branch such as `release/262` that must not be fetched as a
+slash-bearing local branch such as `release/<n>` that must not be fetched as a
 remote, and the exit-code contract. Signal 2 is driven end to end through `--pr`
 against a stubbed `gh`; testing only its ancestor helper let three mutations that
 delete the signal outright pass. Emptying the PR loop, inverting the ancestor test
@@ -289,13 +289,13 @@ silently each fail the suite.
 
 Runs the mechanical checks a change actually needs, and reports the status of **every**
 check — including the ones it skipped, and why. One command instead of remembering which
-of twenty-three validators a given diff should have run.
+of twenty-five validators a given diff should have run.
 
 ```bash
-python scripts/ai/pr_gate.py --base origin/264   # select from the diff vs a base ref
+python scripts/ai/pr_gate.py --base origin/main   # select from the diff vs a base ref
 python scripts/ai/pr_gate.py --all               # run everything
 python scripts/ai/pr_gate.py --list              # the matrix: check, gating, deps, triggers
-python scripts/ai/pr_gate.py --requirements --base origin/264   # pip deps the selection needs
+python scripts/ai/pr_gate.py --requirements --base origin/main   # pip deps the selection needs
 ```
 
 Selection lives here rather than in a workflow's `paths:` filter because the two ways of not
@@ -453,8 +453,7 @@ takes a PR number and talks to GitHub, so it belongs in the workflow (which has
 
 That workflow is `.github/workflows/pr-checks.yml`, and it runs on every pull request: it asks
 `--requirements` what the selection needs, installs exactly that, runs the gate, then runs the
-per-PR branch scope. `Mechanical checks` **is** a required status check, on `main`, `264` and
-`release/*`, pinned to the GitHub Actions app so no other actor can report a same-named check to
+per-PR branch scope. `Mechanical checks` **is** a required status check, on `main`, `preview/*` and `release/*`, pinned to the GitHub Actions app so no other actor can report a same-named check to
 satisfy it. That was a separate act from writing the workflow — repository settings, not a file here —
 and until it happened every guard below was advice.
 
@@ -523,15 +522,14 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 23 checks in about 17 seconds, of which the branch-scope *suite*
-(`tests/test_branch_scope.py`) is 8 —
-so the gate costs roughly one branch-scope run more than nothing, and a typical docs-only
-selection is a couple of seconds. That timing is measured on a machine where two of the twenty-three
-(`docgen_suite`, `harness_suites`) are blocked on optional dependencies and so contribute nothing, which
-is worth naming rather than leaving the reader to assume all twenty-three ran: with those installed the
-number is higher.
+A full `--all` run is 25 checks in about 100 seconds, of which the branch-scope *suite*
+(`tests/test_branch_scope.py`) is about 14. A typical docs-only selection is about 7 seconds, most
+of it the two checks that run on every change: `release_refs`, which reads every tracked text
+file (about 3), and `agent_tooling`. Measured 2026-10-11 on a workstation where all twenty-five
+ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
+`harness_suites`) reports it rather than counting it, and its total is lower.
 
-Verified by `tests/test_pr_gate.py` (708 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (711 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -551,7 +549,7 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the twenty-three trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the twenty-five trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted
@@ -1442,7 +1440,7 @@ suite.
 
 **Used by:** `AGENTS.md` §"Pre-merge checklists". The workflow that runs it on every PR is
 `.github/workflows/pr-checks.yml`, added by `#264-58`; `Mechanical checks` is a **required** status
-check on `main`, `264` and `release/*` (repository settings, applied separately from the workflow).
+check on `main`, `preview/*` and `release/*` (repository settings, applied separately from the workflow).
 
 ---
 
