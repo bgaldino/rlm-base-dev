@@ -153,8 +153,8 @@ into `main` by PR, delete `preview/<n>`, then update this section and the releas
 **Today** — the only place in the repo that maps a release to a branch:
 
 - **`main`**: Salesforce Release 264 (Winter '27, API v68.0).
-- **`release/262`**: Release 262 (Summer '26, API v67.0) — patches for the prior line.
-- **`release/260`** and earlier: frozen records of past GA lines.
+- **`release/262`** and earlier: frozen records of past GA lines. No release line currently
+  takes patches; the retired pre-cutover branches are kept as `archive/<name>` tags.
 
 ## Project Governance & Support
 
