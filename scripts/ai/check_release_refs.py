@@ -128,7 +128,7 @@ def git_invocations(line: str):
 
 
 # `git` as a command word: not inside `git-tracking`, `.git`, `/git/`.
-GIT_WORD = re.compile(r"(?<![\w.-])git(?=\s)")  # `/usr/bin/git` too; not `.git`, `git-x`
+GIT_WORD = re.compile(r"(?<![\w.-])git[\"']?(?=\s)")  # `/usr/bin/git`, `"/opt/x/git"`; not `.git`
 
 
 def git_commands() -> frozenset:
@@ -461,20 +461,15 @@ def option_default(lines: list, i: int) -> bool:
         depth += line.count("(") - line.count(")")
         if depth <= 0:
             break
-    for match in OPTION_DEFAULT.finditer(call):
-        words = set(match.group(1).lstrip("-").lower().split("-"))
-        if words & REF_FLAG_WORDS and not words & MEASURES:
-            return True
-    # `choices=("main", "NNN")` / `click.Choice([...])` on a branch-like option: a numbered
-    # branch in the CLI's allowed values, whatever its default.
-    name = OPTION_NAME.search(call)
-    if name:
-        words = set(name.group(1).lstrip("-").lower().split("-"))
-        if words & REF_FLAG_WORDS and not words & MEASURES:
-            for choices in OPTION_CHOICES.finditer(call):
-                if QUOTED_NUMBER.search(choices.group(1)):
-                    return True
-    return False
+    # Branch-ness from every long name the option declares (`"-b", "--base"`), not the first.
+    words = {w for name in OPTION_NAME.findall(call) for w in name.lstrip("-").lower().split("-")}
+    if not words & REF_FLAG_WORDS or words & MEASURES:
+        return False
+    if OPTION_DEFAULT.search(call):
+        return True
+    # `choices=("main", "NNN")` / `click.Choice([...])`: a numbered branch in the CLI's
+    # allowed values, whatever its default.
+    return any(QUOTED_NUMBER.search(choices.group(1)) for choices in OPTION_CHOICES.finditer(call))
 
 
 # A shell parameter default for a branch-named variable: `${BASE_BRANCH:-NNN}`.
@@ -621,6 +616,9 @@ def allowed_out(line: str) -> str:
 # Every rule needs a three-digit run, on the line or, for a block, on a later line its opener
 # joins. These two let the scan skip the rest: it reads every tracked text file, ~10 MB.
 DIGITS = re.compile(r"\d{3}")
+# A shell parameter's default, `${1:-NNN}` / `${VAR:-NNN}`: what the command sees when the
+# argument is absent, so `git checkout "${1:-NNN}"` is read as `git checkout "NNN"`.
+SHELL_EXPANSION = re.compile(r"\$\{[\w@*#?]+:?[-=]\s*[\"']?(\d{3})[\"']?\}")
 # Longer than any hand-written line: minified or generated code (vendored static resources),
 # where a call-wrapped quoted number is noise, not a branch someone wrote. Only that heuristic
 # is switched off on such a line; exact refs and direct settings are still checked.
@@ -637,6 +635,27 @@ ARGV_ITEM = re.compile(r"""(["'])(.*?)\1""")
 ARGV_OPEN = re.compile(r"""[\[(]\s*["'](?:[\w./-]*/)?(?:git|gh)["']""")
 
 
+def expression_end(text: str, pos: int) -> int:
+    """Where the list element starting at `pos` ends: the next comma or close at its depth."""
+    depth, quote, k = 0, "", pos
+    while k < len(text):
+        ch = text[k]
+        if quote:
+            quote = "" if ch == quote else quote
+        elif ch in "\"'":
+            quote = ch
+        elif ch in "[({":
+            depth += 1
+        elif ch in "])}":
+            if depth == 0:
+                return k
+            depth -= 1
+        elif ch == "," and depth == 0:
+            return k
+        k += 1
+    return k
+
+
 def argv_commands(text: str) -> list:
     """Each git/gh argv in `text`, read item by item (quote-aware), so a `)` or `]` inside an
     argument (`"--format=%h (%s)"`) doesn't end the list."""
@@ -647,10 +666,17 @@ def argv_commands(text: str) -> list:
             while pos < len(text) and text[pos] in " \t\n,":
                 pos += 1
             item = ARGV_ITEM.match(text, pos)
-            if not item:
-                break
-            items.append(item.group(2))
-            pos = item.end()
+            if item:
+                items.append(item.group(2))
+                pos = item.end()
+                continue
+            # A non-literal element (`str(repo)`): skip it to the next top-level comma and keep
+            # a placeholder, so literal refs after it are still read.
+            end = expression_end(text, pos)
+            if end == pos:
+                break  # the list's own close
+            items.append("DYNAMIC")
+            pos = end
         if items and items[0].rsplit("/", 1)[-1] in ("git", "gh"):
             commands.append(items[0].rsplit("/", 1)[-1] + " " +
                             " ".join(shlex.quote(x) for x in items[1:]))
@@ -722,7 +748,8 @@ def findings(text: str, ref: re.Pattern):
                 and not (line.rstrip().endswith("(") and ARGV_OPEN.match("(" + following.strip())) \
                 or ALLOW in line:
             continue
-        if has_number and ref.search(line):
+        expanded = SHELL_EXPANSION.sub(r"\1", line) if "${" in line else line
+        if has_number and ref.search(expanded):
             yield number, "ref", line.strip()
         elif line.rstrip().endswith("\\") and ref.search(logical_line(lines, number - 1)):
             yield number, "ref", line.strip()
@@ -734,7 +761,8 @@ def findings(text: str, ref: re.Pattern):
             # Prose wrapped across two lines: "… the `NNN`" / "branch cut …". Reported at the
             # first line, and only when neither line matches on its own.
             yield number, "branch", line.strip()
-        elif code_finding(lines, number - 1, line, has_number):
+        elif code_finding(lines, number - 1, line, has_number) or expanded != line and \
+                numbered_branch_in_code(expanded):
             yield number, "code", line.strip()
 
 
