@@ -174,16 +174,20 @@ PATH_VERBS = {"add", "rm", "mv", "status", "ls-files", "clean", "commit", "init"
               "apply", "am", "check-ignore", "check-attr", "restore"}  # restore: --source=
 # Subcommands whose first positional argument is a pattern, not a ref (`git grep NNN main`).
 PATTERN_VERBS = {"grep"}
-SHORT_REF_FLAGS = {"-b", "-B", "-c", "-C"}
 # `git config` options whose next token is their value, not the key.
 CONFIG_VALUE_OPTS = {"-t", "--type", "-f", "--file", "--blob", "--comment", "--default"}
 # `git worktree` actions whose operands are all paths (only `add` takes a commit-ish).
 WORKTREE_PATH_ACTIONS = {"remove", "move", "lock", "unlock", "repair", "prune", "list"}
-# Short flags that take a ref only under one subcommand (`restore -s`, short for --source).
-VERB_REF_FLAGS = {"restore": {"-s"}}
+# Short flags whose value is a ref, per subcommand. Scoped, because the same letters are
+# numbers elsewhere (`diff -B100` is a break-rewrite threshold, `apply -C100` a context count).
+VERB_REF_FLAGS = {
+    "checkout": {"-b", "-B"}, "switch": {"-c", "-C"}, "clone": {"-b"}, "branch": {"-u"},
+    "restore": {"-s"}, "submodule": {"-b"},
+}
 # Options whose value is a path, message or format, not a ref, per subcommand.
 VERB_VALUE_FLAGS = {
     "archive": {"-o", "--output", "--prefix", "--format", "--remote", "--add-file"},
+    "symbolic-ref": {"-m"}, "update-ref": {"-m"},
     "tag": {"-m", "-F", "-u", "--message", "--file", "--local-user"},
     "notes": {"-m", "-F", "-C", "-c", "--message", "--file"},
     "bundle": {"--output"}, "format-patch": {"-o", "--output-directory", "--subject-prefix"},
@@ -236,8 +240,8 @@ COUNT_FLAGS = {
     "-j": {"fetch", "pull", "clone", "submodule"},
 }
 # Words in a long option that make its value a ref (`--branch=`, `--onto`, `--set-upstream-to`).
-REF_FLAG_WORDS = {"branch", "base", "head", "ref", "onto", "into", "upstream", "target", "to",
-                  "from", "source"}
+REF_FLAG_WORDS = {"branch", "branches", "base", "head", "ref", "onto", "into", "upstream",
+                  "target", "to", "from", "source", "remotes"}
 # A branch-ish setting: an identifier with a branch word in it (`DEFAULT_BASE`, `base_ref`,
 # `targetBranch`, `PROTECTED`), then `=` or `:`, then a release-shaped value: the whole value,
 # or an element of a list/tuple/set. Identifiers are split into words, so `keyPrefix` is not a
@@ -460,7 +464,7 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                     tokens = tokens[:positional[0]] + tokens[positional[0] + 1:]
         if verb in ACTION_VERBS:
             tokens = action_operands(verb, tokens)
-        ref_flags = SHORT_REF_FLAGS | VERB_REF_FLAGS.get(verb, set())
+        ref_flags = VERB_REF_FLAGS.get(verb, set())
         for i, token in enumerate(tokens):
             if i and (takes_number(tokens[i - 1], verb)
                       or tokens[i - 1] in VERB_VALUE_FLAGS.get(verb, ())):
@@ -470,9 +474,9 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                     i and (tokens[i - 1] in ref_flags or tokens[i - 1].startswith("--")
                            and set(tokens[i - 1].lstrip("-").split("-")) & REF_FLAG_WORDS)):
                 continue  # `git add 264`: a path
-            if re.fullmatch(r"-[bBcC][\"']?\d{3}[\"']?", token) or verb in VERB_REF_FLAGS and \
-                    re.fullmatch(r"-[s][\"']?\d{3}[\"']?", token):
-                return True  # `clone -b264`, `checkout -B264`, `switch -c264`: attached value
+            attached = re.fullmatch(r"(-[A-Za-z])[\"']?\d{3}[\"']?", token)
+            if attached and attached.group(1) in ref_flags:
+                return True  # `clone -b264`, `checkout -B264`, `branch -u264`: attached value
             if token.startswith("-"):
                 # `--branch=NNN` is a ref; `--stat-width=NNN` is a measure.
                 flag, _, token = token.partition("=")
