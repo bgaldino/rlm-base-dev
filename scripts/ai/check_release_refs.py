@@ -80,12 +80,12 @@ BRANCH_NEAR = re.compile(r"\bbranch(?:es)?\b|\b(?:named|called)\s|"
                          r"\b(?:merged?|push(?:ed)?|commit(?:ted)?|rebased?)\s+(?:in)?to\b|"
                          r"`main`|`(?:release|preview)/")
 # One word between the number and "branch": "the `NNN` maintenance branch".
-BARE_WORD_BRANCH = re.compile(r"[`\"']\d{3}[`\"']\s+(?:[\w-]+\s+)?branch(?:es)?\b")
+BARE_WORD_BRANCH = re.compile(r"[`\"']\d{3}[`\"']\s+(?:[\w-]+\s+){0,2}branch(?:es)?\b")
 # An unquoted number, in a phrase that can only mean a branch. Kept to whole phrases because
 # unquoted release numbers are everywhere in prose ("a live NNN org", "NNN GA").
 N = r"(?<![\w./$-])\d{3}(?![\w./-])"
 UNQUOTED = re.compile(
-    rf"{N}\s+(?:[\w-]+\s+)?branch(?:es)?\b|\bbranch(?:es)?\s+(?:(?:named|called)\s+)?{N}"
+    rf"{N}\s+(?:[\w-]+\s+){{0,2}}branch(?:es)?\b|\bbranch(?:es)?\s+(?:(?:named|called)\s+)?{N}"
     rf"|\bfrom\s+{N}\s+(?:in|on)?to\s+`?(?:main|release/|preview/)"
     rf"|\b(?:merged?|push(?:ed)?|commit(?:ted)?|rebased?)\s+(?:in|on)?to\s+{N}"
     rf"|\bretarget\w*\s+(?:[\w#`-]+\s+){{0,4}}?from\s+{N}"
@@ -177,7 +177,12 @@ def command_tokens(rest: str) -> list:
     except ValueError:
         return re.split(r"[#|;&]", rest, maxsplit=1)[0].split()
 # Short flags whose next token is a count, not a ref. Long flags are judged by their words.
-COUNT_FLAGS = {"-n", "-U", "-L"}
+# Per subcommand, because a short flag's arity differs (`grep -n`/`-L` take no value).
+COUNT_FLAGS = {
+    "-n": {"log", "rev-list", "shortlog", "show", "whatchanged", "reflog", "format-patch"},
+    "-U": {"diff", "log", "show", "format-patch", "diff-tree", "diff-index", "diff-files"},
+    "-L": {"log", "blame"},
+}
 # Words in a long option that make its value a ref (`--branch=`, `--onto`, `--set-upstream-to`).
 REF_FLAG_WORDS = {"branch", "base", "head", "ref", "onto", "into", "upstream", "target", "to",
                   "from", "source"}
@@ -246,11 +251,11 @@ def ref_parts(token: str) -> list:
     return [REV_SUFFIX.sub("", part.lstrip("+")) for part in REV_SPLIT.split(token)]
 
 
-def measure_flag(flag: str) -> bool:
-    """A flag whose value is a number: a short count flag, or a long one whose name has a
-    measurement word and no ref word (`--max-count`, `--stat-width`, `--depth`, `--prune`)."""
+def measure_flag(flag: str, verb: str = "") -> bool:
+    """A flag whose value is a number: a short count flag of this subcommand, or a long one whose
+    name has a measurement word and no ref word (`--max-count`, `--stat-width`, `--prune`)."""
     if flag in COUNT_FLAGS:
-        return True
+        return verb in COUNT_FLAGS[flag]
     if not flag.startswith("--"):
         return False
     words = set(flag.lstrip("-").lower().split("-"))
@@ -291,14 +296,16 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                     tokens = tokens[:positional[0]] + tokens[positional[0] + 1:]
         if verb == "worktree":
             # `worktree add <path> [<commit-ish>]`; every other action takes only paths.
-            positional = [k for k, t in enumerate(tokens) if not t.startswith("-")]
+            # A `-b`/`-B` value is the new branch, not the path, so it isn't positional.
+            positional = [k for k, t in enumerate(tokens) if not t.startswith("-")
+                          and not (k and tokens[k - 1] in SHORT_REF_FLAGS)]
             action = tokens[positional[0]] if positional else ""
             keep = positional[2:] if action == "add" else []
             tokens = [t for k, t in enumerate(tokens)
                       if t.startswith("-") or k in keep or k and tokens[k - 1] in SHORT_REF_FLAGS]
         ref_flags = SHORT_REF_FLAGS | VERB_REF_FLAGS.get(verb, set())
         for i, token in enumerate(tokens):
-            if i and measure_flag(tokens[i - 1]):
+            if i and measure_flag(tokens[i - 1], verb):
                 continue
             if verb in PATH_VERBS and not token.startswith("-") and not (
                     i and (tokens[i - 1] in ref_flags or tokens[i - 1].startswith("--")
@@ -310,7 +317,7 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
             if token.startswith("-"):
                 # `--branch=NNN` is a ref; `--stat-width=NNN` is a measure.
                 flag, _, token = token.partition("=")
-                if not token or measure_flag(flag) or flag.startswith("--") and not \
+                if not token or measure_flag(flag, verb) or flag.startswith("--") and not \
                         set(flag.lstrip("-").lower().split("-")) & REF_FLAG_WORDS:
                     continue
             if any(re.fullmatch(r"\d{3}", part) for part in ref_parts(token)):
