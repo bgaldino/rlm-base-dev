@@ -630,7 +630,11 @@ def test_default_base_is_origin_main(root):
     git(work, "update-ref", "-d", "refs/remotes/origin/main")
     rc, out = run_check(work, "--head", "feature")
     check("a missing origin/main exits 2, not a verdict", rc == 2, f"rc={rc}\n{out}")
-    check("and names the command that fetches it", "git fetch origin main" in out, out)
+    check("and names the command that fetches it", "git fetch origin," in out, out)
+    # The command it names really does recreate origin/main for a --no-fetch rerun.
+    git(work, "fetch", "--quiet", "origin")
+    rc, out = run_check(work, "--head", "feature")
+    check("and that command recreates origin/main", rc == 1, f"rc={rc}\n{out}")
 
 
 def test_exit_code_contract(root):

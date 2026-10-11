@@ -171,7 +171,10 @@ VERB_VALUE_FLAGS = {
     "merge": {"-m", "-F", "--message", "--file", "-s", "--strategy", "-X"},
     "stash": {"-m", "--message"}, "revert": {"-m", "--mainline"},
     "cherry-pick": {"-m", "--mainline"},
+    "branch": {"--format", "--sort", "--color", "--column"},
+    "for-each-ref": {"--format", "--sort", "--count"},
 }
+VERB_VALUE_FLAGS["tag"] |= {"--format", "--sort", "--color", "--column"}
 # diff/log/show search and output options: a string, regex or file, never a revision.
 for _verb in ("diff", "log", "show", "whatchanged", "format-patch"):
     VERB_VALUE_FLAGS.setdefault(_verb, set()).update(
@@ -257,6 +260,8 @@ def top_level(value: str) -> str:
     return "".join(out)
 
 
+# `BASE_BRANCH="${1:-NNN}"`: a launcher's default for a positional argument.
+SHELL_POSITIONAL = re.compile(r"[\"']?\$\{\d+:?[-=]\s*[\"']?\d{3}[\"']?\}")
 KWARG = re.compile(r"\b([A-Za-z_]\w*)\s*=\s*[\"']\d{3}[\"']")
 
 
@@ -281,7 +286,7 @@ def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bo
         if not words & BRANCH_WORDS or words & MEASURES:
             continue
         value = line[match.end():]
-        if SCALAR.match(value):
+        if SCALAR.match(value) or SHELL_POSITIONAL.match(value):
             return True
         # An expression rather than a literal (`os.getenv("BASE", "NNN")`,
         # `os.getenv("BASE") or "NNN"`): any quoted three-digit literal in it is the default.
@@ -313,6 +318,16 @@ REV_SUFFIX = re.compile(r"(?:\^\{[^}]*\}|\^[!@]|\^-\d*|[\^~]\d*|@\{[^}]*\})+$") 
 def ref_parts(token: str) -> list:
     token = token.strip("\"'")
     return [REV_SUFFIX.sub("", part.lstrip("+^")) for part in REV_SPLIT.split(token)]
+
+
+def remote_tracking(token: str) -> bool:
+    """`mirror/NNN` on a remote this clone may not have: `<name>/NNN` where <name> isn't a role
+    prefix (`release/NNN` is the pattern) and isn't a directory here (`docs/NNN` is a path)."""
+    for part in ref_parts(token):
+        match = re.fullmatch(r"([\w.-]+)/(\d{3})", part)
+        if match and match.group(1) not in ROLE_PREFIXES and not (REPO / match.group(1)).is_dir():
+            return True
+    return False
 
 
 def measure_flag(flag: str, verb: str = "") -> bool:
@@ -348,6 +363,8 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                 else:
                     key = tokens[k]
                     break
+            if re.fullmatch(r"branch\.\d{3}\..+", key):
+                return True  # `git config branch.NNN.remote origin`: the key names the branch
             words = {w for w in re.split(r"[.\-_]", key.lower()) if w}
             if not words & (BRANCH_WORDS | {"merge", "remote"}) or words & MEASURES:
                 continue
@@ -391,6 +408,8 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                         set(flag.lstrip("-").lower().split("-")) & REF_FLAG_WORDS:
                     continue
             if any(re.fullmatch(r"\d{3}", part) for part in ref_parts(token)):
+                return True
+            if remote_tracking(token):
                 return True
     if shell_default(line):
         return True
