@@ -223,7 +223,9 @@ REF_FLAG_WORDS = {"branch", "base", "head", "ref", "onto", "into", "upstream", "
 # `targetBranch`, `PROTECTED`), then `=` or `:`, then a release-shaped value: the whole value,
 # or an element of a list/tuple/set. Identifiers are split into words, so `keyPrefix` is not a
 # `ref`, and one that also names a measurement (`timeout_base`, `max_refs`) is not a branch.
-SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*[:=]\s*")
+# The separator may carry a type annotation: `DEFAULT_BRANCH: str = "NNN"`, TS `: string =`.
+SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*"
+                     r"(?::\s*[\w.\[\]|, ]+?\s*=(?!=)|[:=])\s*")
 BRANCH_WORDS = {"base", "branch", "branches", "ref", "refs", "protected", "target", "targets",
                 "head", "heads"}
 MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "length", "num",
@@ -331,7 +333,8 @@ def remote_tracking(token: str) -> bool:
     prefix (`release/NNN` is the pattern) and isn't a directory here (`docs/NNN` is a path)."""
     for part in ref_parts(token):
         match = re.fullmatch(r"([\w.-]+)/(\d{3})", part)
-        if match and match.group(1) not in ROLE_PREFIXES and not (REPO / match.group(1)).is_dir():
+        if match and match.group(1) not in ROLE_PREFIXES | TAG_PREFIXES \
+                and not (REPO / match.group(1)).is_dir():
             return True
     return False
 
@@ -505,15 +508,18 @@ def near_branch(line: str) -> bool:
 # Role prefixes: a remote that happens to be called `release` or `preview` must not turn the
 # role branch `release/NNN` into a numbered remote ref (refs/remotes/... stays unambiguous).
 ROLE_PREFIXES = {"release", "preview"}
+# Tag namespaces: `archive/NNN` is the tag a retired numbered branch was archived as, not a
+# branch, so it names history rather than pinning a line.
+TAG_PREFIXES = {"archive"}
 
 
 def ref_pattern(remotes) -> re.Pattern:
-    names = "|".join(sorted({re.escape(r) for r in remotes} - ROLE_PREFIXES))
+    names = "|".join(sorted({re.escape(r) for r in remotes} - ROLE_PREFIXES - TAG_PREFIXES))
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
                       rf"|(?<![\w./-])(?:refs/)?remotes/[\w.-]+/\d{{3}}\b"
                       rf"|--(?:base|head)(?:=|\s+)[\"']?(?:[\w.-]+:)?(?:(?:{names})/)?\d{{3}}\b"
                       # gh's short aliases, only after `gh pr` (`grep -B 100` is context).
-                      rf"|\bgh\s+pr\s+[^\n|;&]*?\s-[BH](?:=|\s*)[\"']?(?:[\w.-]+:)?\d{{3}}\b")
+                      rf"|\bgh[\"']?\s+pr\s+[^\n|;&]*?\s-[BH](?:=|\s*)[\"']?(?:[\w.-]+:)?\d{{3}}\b")
 
 
 def remotes() -> set:
