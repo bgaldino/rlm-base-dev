@@ -245,7 +245,7 @@ REF_FLAG_WORDS = {"branch", "base", "head", "ref", "onto", "into", "upstream", "
 # The separator may carry a type annotation (`DEFAULT_BRANCH: str = "NNN"`, TS `: string =`)
 # or be a Make assignment (`?=`, `:=`). Not `!=`/`==`: those are comparisons.
 SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*"
-                     r"(?::\s*[\w.\[\]|, ]+?\s*=(?!=)|[?:]=|(?<![!=<>])=(?!=)|:(?!=))\s*")
+                     r"(?::\s*[\w.\[\]|, ]+?\s*=(?!=)|[?:+]=|(?<![!=<>+])=(?!=)|:(?!=))\s*")
 BRANCH_WORDS = {"base", "branch", "branches", "ref", "refs", "protected", "target", "targets",
                 "head", "heads"}
 MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "length", "num",
@@ -399,6 +399,8 @@ def action_operands(verb: str, tokens: list) -> list:
     action = tokens[positional[0]] if positional else ""
     keep = set(positional[spec["from"][action]:]) if action in spec["from"] else set()
     out = []
+    if verb == "worktree" and action == "add" and "--orphan" in tokens and len(positional) > 1:
+        out.append(tokens[positional[1]].rstrip("/").rsplit("/", 1)[-1])  # basename = new branch
     for k, t in enumerate(tokens):
         if k in keep or k and tokens[k - 1] in spec["refs"]:
             out.append(t)
@@ -564,6 +566,8 @@ def ref_pattern(remotes) -> re.Pattern:
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
                       rf"|(?<![\w./-])(?:refs/)?remotes/[\w.-]+/\d{{3}}\b"
                       rf"|--(?:base|head)(?:=|\s+)[\"']?(?:[\w.-]+:)?(?:(?:{names})/)?\d{{3}}\b"
+                      # The same pair as adjacent argv items: `["...", "--base", "NNN"]`.
+                      rf"|[\"']--(?:base|head)[\"']\s*,\s*[\"'](?:[\w.-]+:)?(?:(?:{names})/)?\d{{3}}[\"']"
                       # gh's short aliases, only after `gh pr` (`grep -B 100` is context).
                       rf"|\bgh[\"']?\s+pr\s+[^\n|;&]*?\s-[BH](?:=|\s*)[\"']?(?:[\w.-]+:)?\d{{3}}\b")
 
@@ -805,6 +809,9 @@ def findings(text: str, ref: re.Pattern):
             yield number, "ref", line.strip()
         elif line.rstrip().endswith("\\") and ref.search(logical_line(lines, number - 1)):
             yield number, "ref", line.strip()
+        elif ("--base" in line or "--head" in line) and following and \
+                ref.search(line.rstrip() + " " + following.strip()) and not ref.search(following):
+            yield number, "ref", line.strip()  # `"--base",` then `"NNN",` on the next line
         elif has_number and near_branch(line):
             yield number, "branch", line.strip()
         elif following and ALLOW not in following and len(line) < MAX_LINE and \

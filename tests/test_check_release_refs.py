@@ -55,6 +55,10 @@ class NumberedBranches(unittest.TestCase):
                      "BASE_BRANCH ?= 264", "DEFAULT_BASE := 264",
                      "git worktree add -b264 ../wt HEAD", "git remote add -t264 mirror url",
                      "git sparse-checkout set --branch 264", "git describe 264",
+                     "git worktree add --orphan 264", "git worktree add --orphan ../trees/264",
+                     "PROTECTED_BRANCHES += 264", 'BASE_BRANCH += "264"',
+                     'subprocess.run(["python", "scripts/ai/pr_gate.py", "--base", "264"])',
+                     'cmd = ["check_branch_scope.py", "--head", "262"]',
                      "Release 264 was promoted to `main` on 2026-09-16",
                      "264 was merged into `main` at cutover",
                      "git remote set-head origin 264", "git remote add -t 264 mirror url",
@@ -205,9 +209,13 @@ class NumberedBranches(unittest.TestCase):
                      "the sync PR merged\ninto `264` first."):
             with self.subTest(text=text):
                 self.assertEqual([n for n, _, _ in crr.findings(text, REF)], [1])
+        # `"--base",` then the number on the next line: reported at the flag's line.
+        wrapped = 'cmd = [\n    "pr_gate.py",\n    "--base",\n    "264",\n]'
+        self.assertEqual([n for n, _, _ in crr.findings(wrapped, REF)], [3])
         # An argv list opened on its own line: reported where the list opens.
         argv = 'subprocess.run(\n    [\n        "gh", "pr", "create",\n        "--base", "264",\n    ]\n)'
-        self.assertEqual([n for n, _, _ in crr.findings(argv, REF)], [2])
+        # ...and its `"--base", "NNN"` pair is reported where it sits, too.
+        self.assertEqual([n for n, _, _ in crr.findings(argv, REF)], [2, 4])
         for text in ('timeout = os.getenv(\n    "T", "300"\n)',
                      "protected_branches:\n  main:\n    reviews: 264",
                      'PROTECTED = {\n  "main": {"100": 2},\n}',
@@ -285,7 +293,9 @@ class NumberedBranches(unittest.TestCase):
                      "git diff --line-prefix 264 main", "git diff --src-prefix 264 main",
                      "git diff --dst-prefix 264 main", "git diff --word-diff-regex 264 main",
                      "git hash-object 264", "git sparse-checkout set 264", "git gc 264",
-                     "git check-ref-format 264",
+                     "git check-ref-format 264", "git worktree add ../wt 264x",
+                     "git worktree add --orphan ../wt", "TIMEOUT += 300",
+                     'cmd = ["pr_gate.py", "--base", "main"]', 'x = ["--depth", "100"]',
                      "git worktree add --detach --lock --reason why 264 HEAD",
                      "git remote add backup 264", "git remote set-url backup 264",
                      "git bundle create 264 main", "if base != 264:", "TIMEOUT ?= 300",
