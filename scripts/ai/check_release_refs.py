@@ -194,21 +194,23 @@ VERB_VALUE_FLAGS = {
     "merge": {"-m", "-F", "--message", "--file", "-s", "--strategy", "-X"},
     "stash": {"-m", "--message"}, "revert": {"-m", "--mainline"},
     "cherry-pick": {"-m", "--mainline"},
-    "branch": {"--format", "--sort", "--color", "--column"},
+    "branch": {"--format", "--sort"},
     "push": {"-o", "--push-option", "--receive-pack", "--exec"},
     "fetch": {"-o", "--server-option", "--upload-pack"},
     "pull": {"-o", "--server-option", "--upload-pack"},
     "blame": {"--contents", "-S", "--ignore-revs-file", "--ignore-rev", "--date"},
     "for-each-ref": {"--format", "--sort", "--count"},
 }
-VERB_VALUE_FLAGS["tag"] |= {"--format", "--sort", "--color", "--column"}
+# Optional-value options (`--color[=<when>]`, `--column[=<opts>]`, `--relative[=<path>]`)
+# take their value only attached with `=`, so they never consume the next token.
+VERB_VALUE_FLAGS["tag"] |= {"--format", "--sort"}
 # diff/log/show search and output options: a string, regex or file, never a revision.
 for _verb in ("diff", "log", "show", "whatchanged", "format-patch"):
     VERB_VALUE_FLAGS.setdefault(_verb, set()).update(
         {"-S", "-G", "-O", "--output", "--grep", "--author", "--committer", "--format",
          "--pretty", "--date", "--since", "--until", "--after", "--before", "--line-prefix",
          "--src-prefix", "--dst-prefix", "--word-diff-regex", "-I", "--ignore-matching-lines",
-         "--anchored", "-l", "--relative", "--color-moved-ws", "--ws-error-highlight"})
+         "-l"})
 # Options whose value is a file, path or pattern under any subcommand that has them.
 VALUE_FLAGS_ANYWHERE = {"--pathspec-from-file", "--rotate-to", "--skip-to", "--decorate-refs",
                         "--decorate-refs-exclude", "--exclude", "--exclude-per-directory",
@@ -220,21 +222,22 @@ LONG_REF_FLAGS = {"--force-with-lease", "--shallow-exclude", "--fork-point", "--
 
 
 def command_tokens(rest: str) -> list:
-    """The arguments of one simple command, shell-quoted: a `|`, `;`, `&` or `#` inside
+    """The arguments of one simple command, shell-quoted, ending at an unquoted `|`, `;`, `&`,
+    `#` or `)` (a command substitution's close, `$(git rev-parse NNN)`). The same characters inside
     quotes (`--format="%h | %s"`) doesn't end it. Unbalanced quotes fall back to whitespace."""
     if "'" not in rest and '"' not in rest:  # the common case, and much cheaper than shlex
-        return re.split(r"[#|;&]", rest, maxsplit=1)[0].split()
+        return re.split(r"[#|;&)]", rest, maxsplit=1)[0].split()
     try:
-        lexer = shlex.shlex(rest, posix=True, punctuation_chars=";&|")
+        lexer = shlex.shlex(rest, posix=True, punctuation_chars=";&|()")
         lexer.whitespace_split, lexer.commenters = True, "#"
         tokens = []
         for token in lexer:
-            if token and set(token) <= set(";&|"):
+            if token and set(token) <= set(";&|()"):
                 break
             tokens.append(token)
         return tokens
     except ValueError:
-        return re.split(r"[#|;&]", rest, maxsplit=1)[0].split()
+        return re.split(r"[#|;&)]", rest, maxsplit=1)[0].split()
 # Short flags whose next token is a count, not a ref. Long flags are judged by their words.
 # Per subcommand, because a short flag's arity differs (`grep -n`/`-L` take no value).
 COUNT_FLAGS = {
