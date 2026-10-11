@@ -37,7 +37,7 @@ release numbers in prose ("a live NNN org", `salesforce_release_active`), paths 
 `docs/salesforce/NNN/`, and
 other three-digit values such as ID prefixes or HTTP codes, which aren't backticked next
 to a branch word. The one place that maps releases to branches is the README's Branch
-Information section, and it does so by role name (`release/<n>`), so it passes too. The
+Information section; its one line mapping `main` to a release carries the allow marker. The
 captured Help, dev-guide and release-note corpora under `docs/salesforce/<n>/` are
 Salesforce's text, not instructions, and are out of scope (CAPTURED); the release-root files
 beside them are scanned. A line that must keep a number, such as a record of
@@ -98,6 +98,10 @@ UNQUOTED = re.compile(
     rf"|\b(?:Release\s+)?{N}\b[^.\n]{{0,40}}?\b(?:is\s+)?(?:now\s+)?on\s+`(?:main|preview/|release/)"
     rf"|`(?:main|preview/[^`]*|release/[^`]*)`\s+(?:now\s+)?(?:carries|holds|tracks|is)\s+"
     rf"(?:the\s+)?(?:Salesforce\s+)?Release\s+{N}"
+    # A role branch labelled with a release, as README's Branch Information spells it
+    # ("**`main`**: Salesforce Release NNN", "`main` (Release NNN)"); that one line is marked.
+    rf"|`(?:main|preview/[^`]*|release/[^`]*)`\**\s*(?:[:—–(]|-{{1,2}})\s*(?:the\s+)?"
+    rf"(?:Salesforce\s+)?Release\s+{N}"
     # A branch labelled with a release: "This branch: Release NNN", "the branch is NNN".
     rf"|\bbranch\b[*:\s]+(?:is\s+|carries\s+)?(?:(?:Salesforce\s+)?Release\s+)?{N}",
     re.IGNORECASE)
@@ -173,6 +177,7 @@ VERB_VALUE_FLAGS = {
     "cherry-pick": {"-m", "--mainline"},
     "branch": {"--format", "--sort", "--color", "--column"},
     "push": {"-o", "--push-option", "--receive-pack", "--exec"},
+    "blame": {"--contents", "-S", "--ignore-revs-file", "--ignore-rev", "--date"},
     "for-each-ref": {"--format", "--sort", "--count"},
 }
 VERB_VALUE_FLAGS["tag"] |= {"--format", "--sort", "--color", "--column"}
@@ -510,7 +515,7 @@ ROLE_PREFIXES = {"release", "preview"}
 def ref_pattern(remotes) -> re.Pattern:
     names = "|".join(sorted({re.escape(r) for r in remotes} - ROLE_PREFIXES))
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
-                      rf"|refs/remotes/[\w.-]+/\d{{3}}\b"
+                      rf"|(?<![\w./-])(?:refs/)?remotes/[\w.-]+/\d{{3}}\b"
                       rf"|--(?:base|head)(?:=|\s+)[\"']?(?:[\w.-]+:)?(?:(?:{names})/)?\d{{3}}\b"
                       # gh's short aliases, only after `gh pr` (`grep -B 100` is context).
                       rf"|\bgh\s+pr\s+[^\n|;&]*?\s-[BH](?:=|\s*)[\"']?(?:[\w.-]+:)?\d{{3}}\b")
@@ -633,9 +638,23 @@ ARGV_OPEN = re.compile(r"""[\[(]\s*["'](?:[\w./-]*/)?(?:git|gh)["']""")
 
 
 def argv_commands(text: str) -> list:
-    return [m.group(2) + " " + " ".join(shlex.quote(item) for _, item in
-                                        ARGV_ITEM.findall(m.group(3)))
-            for m in ARGV.finditer(text)]
+    """Each git/gh argv in `text`, read item by item (quote-aware), so a `)` or `]` inside an
+    argument (`"--format=%h (%s)"`) doesn't end the list."""
+    commands = []
+    for opened in ARGV_OPEN.finditer(text):
+        pos, items = opened.start() + 1, []
+        while True:
+            while pos < len(text) and text[pos] in " \t\n,":
+                pos += 1
+            item = ARGV_ITEM.match(text, pos)
+            if not item:
+                break
+            items.append(item.group(2))
+            pos = item.end()
+        if items and items[0].rsplit("/", 1)[-1] in ("git", "gh"):
+            commands.append(items[0].rsplit("/", 1)[-1] + " " +
+                            " ".join(shlex.quote(x) for x in items[1:]))
+    return commands
 
 
 def argv_block(lines: list, i: int) -> str:
@@ -643,8 +662,8 @@ def argv_block(lines: list, i: int) -> str:
     line = lines[i]
     opened = ARGV_OPEN.search(line)
     if opened:
-        if ")" in line[opened.end():] or "]" in line[opened.end():]:
-            return ""
+        if closes(line[opened.start():]):
+            return ""  # closed on this line: argv_commands() reads it from the logical line
     elif not line.rstrip().endswith(("[", "(")):
         return ""
     elif not ARGV_OPEN.match(line.rstrip()[-1] + " ".join(
@@ -653,9 +672,24 @@ def argv_block(lines: list, i: int) -> str:
     joined = line
     for nxt in lines[i + 1:i + 1 + LOGICAL_MAX]:
         joined += " " + allowed_out(nxt)
-        if "]" in nxt or ")" in nxt:
+        if closes(joined):
             break
-    return joined if ARGV.search(joined) else ""
+    return joined if argv_commands(joined) else ""
+
+
+def closes(text: str) -> bool:
+    """Whether every bracket opened in `text` is closed, counting outside quotes only."""
+    depth, quote = 0, ""
+    for ch in text:
+        if quote:
+            quote = "" if ch == quote else quote
+        elif ch in "\"'":
+            quote = ch
+        elif ch in "[(":
+            depth += 1
+        elif ch in "])":
+            depth -= 1
+    return depth <= 0
 
 
 def code_finding(lines: list, i: int, line: str, has_number) -> bool:

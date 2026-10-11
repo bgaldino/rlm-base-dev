@@ -152,8 +152,8 @@ into `main` by PR, delete `preview/<n>`, then update this section and the releas
 
 **Today** — the only place in the repo that maps a release to a branch:
 
-- **`main`**: Salesforce Release 264 (Winter '27). Its API version is `api_version_active` in
-  `.claude/skill-manifest.yml`.
+- **`main`**: Salesforce Release 264 (Winter '27). <!-- release-ref: allow — the one mapping -->
+  Its API version is `api_version_active` in `.claude/skill-manifest.yml`.
 - **`release/262`** and earlier: frozen records of past GA lines. No release line currently
   takes patches; the retired pre-cutover branches are kept as `archive/<name>` tags.
 
