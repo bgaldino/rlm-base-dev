@@ -92,6 +92,7 @@ VALUE_FLAGS = {"-n", "--max-count", "-U", "--unified", "--depth", "--deepen", "-
                "--message", "--grep", "--author", "--committer", "--since", "--until", "-S",
                "-G"}
 # A quoted string with a space in it is a message or a pattern, never a branch name.
+SENTENCE_END = re.compile(r"[,;!?)]+$|(?<!\.)\.$")
 QUOTED_PHRASE = re.compile(r"\"[^\"]*\s[^\"]*\"|'[^']*\s[^']*'")
 
 SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*(?:[:?+]?=(?!=)|:)\s*")
@@ -148,9 +149,10 @@ def numbered_git(line: str) -> bool:
         for i, token in enumerate(tokens):
             if i and tokens[i - 1] in VALUE_FLAGS:
                 continue
-            # A range (`a..b`) or refspec (`a:b`) names each side; `^`/`~N` suffixes don't
-            # change the branch.
-            for part in re.split(r"\.\.\.?|:", token.strip("\"'").lstrip("+^")):
+            # Sentence punctuation isn't part of the name (`git checkout NNN.`). A range
+            # (`a..b`) or refspec (`a:b`) names each side; `^`/`~N` suffixes don't change it.
+            token = SENTENCE_END.sub("", token).strip("\"'")
+            for part in re.split(r"\.\.\.?|:", token.lstrip("+^")):
                 if re.fullmatch(r"\d{3}", re.sub(r"[\^~]\d*$", "", part)):
                     return True
     return False

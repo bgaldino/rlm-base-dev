@@ -47,7 +47,8 @@ class Contract(unittest.TestCase):
             "git checkout 264", "git switch 262", "git push origin 264", "git merge 264",
             "git rebase 264", "git diff 264..HEAD", "git log main...264",
             "git push origin 264:preview/266", "git worktree add ../wt 264",
-            "git log 264~3", "git rev-list 264..HEAD"))
+            "git log 264~3", "git rev-list 264..HEAD", "Run git checkout 264.",
+            "Run git merge 264, then continue", "(or git switch '264')"))
 
     def test_numbered_branch_settings_fail(self):
         self.assert_flagged("setting", (
