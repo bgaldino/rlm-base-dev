@@ -295,7 +295,7 @@ def test_stacked_on_unmerged(root):
           "PR #1" not in out, out)
 
     print("\n  ...and a branch merely UP TO DATE with base is not stacked")
-    # The release-integration PR (`264` -> `main`) has the base branch itself as
+    # The release-integration PR (`preview/<n>` -> `main`) has the base branch itself as
     # its head. That head is an ancestor of every branch current with base, so
     # without the containment guard this fails every branch in the repo.
     integration = {"number": 3, "headRefName": "base",
@@ -480,8 +480,8 @@ def test_stacked_on_unmerged(root):
     check("an unrelated open PR is not reported", rc == 0, f"rc={rc}\n{out}")
 
     print("\n  ...and a SYNC PR shares only merged work with PRs cut from the other line")
-    # #471: `main` merged into `264`. Open PRs that target `main` were cut from it
-    # after its commits landed, so they join the sync branch at a commit `264` lacks
+    # A sync PR: `main` merged into another line (#471 did this). Open PRs that target `main`
+    # were cut from it after its commits landed, so they join the sync branch at a commit that line lacks
     # -- but that commit is in *their* base, i.e. merged, not theirs to own.
     git(cwd, "checkout", "--quiet", "-b", "other-line", "base")
     commit(cwd, "line.txt", "line\n", "merged on the other line")
@@ -590,6 +590,54 @@ def test_fetch_before_comparing(root):
     rc, out = run_check(work, "--base", "release/262", "--head", "feature", no_fetch=False)
     check("a slashed local branch is not mistaken for a remote", rc in (0, 1),
           f"rc={rc} — a local branch with a slash was fetched as a remote\n{out}")
+
+
+def test_default_base_is_origin_main(root):
+    """With no --base, the base is origin/main: the permanent role, never a release line.
+
+    The default used to be a numbered branch, which went on comparing every branch against
+    a retired line after the cutover. Not origin/HEAD either: that pointer is clone-local
+    and `git fetch` doesn't refresh it, so an old clone keeps whatever it pointed at. Every
+    other test passes --base explicitly, so this is the only one that drives DEFAULT_BASE.
+    """
+    print("\nNo --base: compare against origin/main, whatever origin/HEAD says")
+    upstream = new_repo(root, "default-upstream")
+    git(upstream, "checkout", "--quiet", "-b", "other")
+    inherited = commit(upstream, "other.txt", "other\n", "work on another line")
+    git(upstream, "checkout", "--quiet", "-b", "main", "base")
+    # Move main first: picked onto the same parent in the same second, the commit would
+    # come out with the same SHA and be an ancestor rather than merged-as-a-copy work.
+    commit(upstream, "moved.txt", "moved\n", "main moves on")
+    git(upstream, "cherry-pick", inherited)
+
+    work = Path(root) / "default-clone"
+    subprocess.run(["git", "clone", "--quiet", str(upstream), str(work)],
+                   capture_output=True, env=GIT_ENV, check=True)
+    git(work, "config", "user.email", "t@example.com")
+    git(work, "config", "user.name", "test")
+    git(work, "config", "commit.gpgsign", "false")
+    git(work, "checkout", "--quiet", "-b", "feature", "origin/other")
+    commit(work, "mine.txt", "mine\n", "my change")
+    # A stale clone-local pointer, as an old clone would have: it must not be followed.
+    git(work, "remote", "set-head", "origin", "other")
+
+    rc, out = run_check(work, "--head", "feature")
+    check("the default base is origin/main", "origin/main" in out, out)
+    check("and work merged into main is found, though origin/HEAD points elsewhere",
+          rc == 1 and "1 of 2 non-merge commit(s)" in out, f"rc={rc}\n{out}")
+
+    # A checkout with no origin/main is a tool error with the fix, not a verdict.
+    git(work, "update-ref", "-d", "refs/remotes/origin/main")
+    rc, out = run_check(work, "--head", "feature")
+    check("a missing origin/main exits 2, not a verdict", rc == 2, f"rc={rc}\n{out}")
+    refspec = "+refs/heads/main:refs/remotes/origin/main"
+    check("and names the command that fetches it", f"git fetch origin {refspec}" in out, out)
+    # The command it names really does recreate origin/main for a --no-fetch rerun, even in a
+    # single-branch clone whose configured refspec doesn't map main.
+    git(work, "config", "remote.origin.fetch", "+refs/heads/other:refs/remotes/origin/other")
+    git(work, "fetch", "--quiet", "origin", refspec)
+    rc, out = run_check(work, "--head", "feature")
+    check("and that command recreates origin/main", rc == 1, f"rc={rc}\n{out}")
 
 
 def test_exit_code_contract(root):
@@ -725,6 +773,7 @@ def main():
         test_empty_branch(root)
         test_stacked_on_unmerged(root)
         test_fetch_before_comparing(root)
+        test_default_base_is_origin_main(root)
         test_exit_code_contract(root)
         test_documented_count_is_current(root)
     print("\n" + "=" * 100)

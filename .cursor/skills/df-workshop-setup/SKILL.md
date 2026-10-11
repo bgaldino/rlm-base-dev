@@ -46,8 +46,8 @@ exercise guide for any other release (see **Discovery**).
 5. **Verify by query — never enable features to test the template org.** See
    **DO NOT**. Confirm bucket-C economics + bucket-B state with SOQL; run live
    Coworker/Data-Cloud exercises only on a **separate disposable clone**.
-6. **Everything ships through a feature branch + PR.** Never commit to `264` /
-   `main` / `release/*`. Credentials from the Slack canvas are never committed.
+6. **Everything ships through a feature branch + PR.** Never commit to `main` /
+   `preview/*` / `release/*`. Credentials from the Slack canvas are never committed.
 
 ## DO NOT
 

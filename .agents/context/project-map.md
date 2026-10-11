@@ -4,12 +4,12 @@
 
 - **Repository:** `rlm-base-dev`
 - **CCI project:** `rlm-base`
-- **Salesforce target:** Release 264 / Winter '27
-- **API version:** `68.0`
+- **Salesforce release and API version:** recorded in `.claude/skill-manifest.yml`
+  (`salesforce_release_active`, `api_version_active`); not restated here.
 - **Source format:** SFDX
-- **Default branch:** `main` (Release 264 / Winter '27 / API `68.0` — promoted from `264`; 264 is preview/pre-GA)
-- **Active release branch in manifest:** `264`
-- **Frozen prior-GA reference branch:** `release/262`
+- **Default branch:** `main` — the current line and the default PR base. Next-release work
+  goes on `preview/<n>`; earlier lines are `release/<n>`. See
+  [README → Branch Information](../../README.md#branch-information).
 
 ## Agent Memory Files
 
@@ -22,7 +22,7 @@
 | Path | Ownership / Purpose | Agent Notes |
 | --- | --- | --- |
 | `cumulusci.yml` | CCI project, task, flow, org, and feature-flag configuration | After edits, run `python scripts/ai/generate_cci_reference.py` and commit regenerated references. |
-| `config/` | Scratch org definition configuration | Review org shape and feature changes against Release 264 expectations. |
+| `config/` | Scratch org definition configuration | Review org shape and feature changes against the active release's expectations. |
 | `force-app/` | Core SFDX metadata | Keep profile and object safety constraints in mind. |
 | `unpackaged/pre/` | Pre-deploy metadata | Deploys before core metadata/data. |
 | `unpackaged/post_*/` | Feature-specific post-deploy metadata | Verify edition and feature guards when adding bundles. |
@@ -53,7 +53,7 @@
 5. Do not pass `access_token` to `sf` CLI commands; use usernames or aliases with `--target-org`.
 6. Do not add `EmailTemplatePage` flexipages to `templates/flexipages/`.
 7. Do not commit real emails in `rlm.network-meta.xml`; keep placeholders.
-8. Do not commit or push directly to `main` **or to the active release branch** (`264`; likewise `release/*`) — feature branch plus PR, for docs and agent-instruction files as well as code. Never force-push any of them without explicit approval; PRs are routinely stacked on the active release branch.
+8. Do not commit or push directly to `main`, `preview/*` or `release/*` — feature branch plus PR, for docs and agent-instruction files as well as code. Never force-push any of them without explicit approval; PRs are routinely stacked on them.
 
 ## Generated References
 
