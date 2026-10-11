@@ -331,6 +331,22 @@ def remote_tracking(token: str) -> bool:
     return False
 
 
+# Long options that take their value as the next token (`--max-count 100`). Arity is listed,
+# not guessed from the name: `--count`, `--no-abbrev-commit` and `--prune` are switches, and
+# the token after them is a revision. (An attached `--x=NNN` is judged by name below.)
+LONG_SEPARATE_VALUE = {"--max-count", "--skip", "--depth", "--deepen", "--stat-width",
+                       "--stat-count", "--stat-name-width", "--stat-graph-width", "--unified",
+                       "--inter-hunk-context", "--jobs", "--max-parents", "--min-parents",
+                       "--max-age", "--min-age", "--shallow-since"}
+
+
+def takes_number(flag: str, verb: str = "") -> bool:
+    """Whether `flag` consumes the next token as a number."""
+    if flag in COUNT_FLAGS:
+        return verb in COUNT_FLAGS[flag]
+    return flag in LONG_SEPARATE_VALUE
+
+
 def measure_flag(flag: str, verb: str = "") -> bool:
     """A flag whose value is a number: a short count flag of this subcommand, or a long one whose
     name has a measurement word and no ref word (`--max-count`, `--stat-width`, `--prune`)."""
@@ -391,7 +407,7 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                       if t.startswith("-") or k in keep or k and tokens[k - 1] in SHORT_REF_FLAGS]
         ref_flags = SHORT_REF_FLAGS | VERB_REF_FLAGS.get(verb, set())
         for i, token in enumerate(tokens):
-            if i and (measure_flag(tokens[i - 1], verb)
+            if i and (takes_number(tokens[i - 1], verb)
                       or tokens[i - 1] in VERB_VALUE_FLAGS.get(verb, ())):
                 continue
             if verb in PATH_VERBS and not token.startswith("-") and not (
@@ -427,6 +443,10 @@ OPTION_DEFAULT = re.compile(r"[\"'](--?[\w-]+)[\"'].*?\bdefault\s*=\s*"
                             r"|[^,]*?[\"']\d{3}[\"'])")
 
 
+OPTION_NAME = re.compile(r"[\"'](--[\w-]+)[\"']")
+OPTION_CHOICES = re.compile(r"\b(?:choices\s*=\s*|Choice\(\s*)[\[({]([^\])}]*)")
+
+
 def option_default(lines: list, i: int) -> bool:
     if not OPTION_CALL.search(lines[i]):
         return False
@@ -440,6 +460,15 @@ def option_default(lines: list, i: int) -> bool:
         words = set(match.group(1).lstrip("-").lower().split("-"))
         if words & REF_FLAG_WORDS and not words & MEASURES:
             return True
+    # `choices=("main", "NNN")` / `click.Choice([...])` on a branch-like option: a numbered
+    # branch in the CLI's allowed values, whatever its default.
+    name = OPTION_NAME.search(call)
+    if name:
+        words = set(name.group(1).lstrip("-").lower().split("-"))
+        if words & REF_FLAG_WORDS and not words & MEASURES:
+            for choices in OPTION_CHOICES.finditer(call):
+                if QUOTED_NUMBER.search(choices.group(1)):
+                    return True
     return False
 
 

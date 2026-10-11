@@ -282,9 +282,10 @@ def _check(args, ap):
 
     for ref in (base, head):
         if not _resolves(ref):
-            # A bare `git fetch origin main` only fills FETCH_HEAD; the default refspec is
-            # what recreates refs/remotes/origin/main.
-            hint = (" (fetch it with: git fetch origin, or pass --base)"
+            # An explicit refspec: a bare `git fetch origin main` only fills FETCH_HEAD, and
+            # `git fetch origin` doesn't map main in a --single-branch clone.
+            hint = (" (fetch it with: git fetch origin +refs/heads/main:refs/remotes/origin/main,"
+                    " or pass --base)"
                     if ref == DEFAULT_BASE else "")
             raise ToolError(f"{ref} does not resolve in this checkout{hint}")
 

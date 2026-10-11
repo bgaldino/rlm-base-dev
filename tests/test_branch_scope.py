@@ -630,9 +630,12 @@ def test_default_base_is_origin_main(root):
     git(work, "update-ref", "-d", "refs/remotes/origin/main")
     rc, out = run_check(work, "--head", "feature")
     check("a missing origin/main exits 2, not a verdict", rc == 2, f"rc={rc}\n{out}")
-    check("and names the command that fetches it", "git fetch origin," in out, out)
-    # The command it names really does recreate origin/main for a --no-fetch rerun.
-    git(work, "fetch", "--quiet", "origin")
+    refspec = "+refs/heads/main:refs/remotes/origin/main"
+    check("and names the command that fetches it", f"git fetch origin {refspec}" in out, out)
+    # The command it names really does recreate origin/main for a --no-fetch rerun, even in a
+    # single-branch clone whose configured refspec doesn't map main.
+    git(work, "config", "remote.origin.fetch", "+refs/heads/other:refs/remotes/origin/other")
+    git(work, "fetch", "--quiet", "origin", refspec)
     rc, out = run_check(work, "--head", "feature")
     check("and that command recreates origin/main", rc == 1, f"rc={rc}\n{out}")
 
