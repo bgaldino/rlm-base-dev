@@ -24,6 +24,7 @@ class NumberedBranches(unittest.TestCase):
         for line in ("python scripts/ai/pr_gate.py --base origin/264",
                      "python scripts/ai/check_branch_scope.py --head 264",
                      "gh pr create --head 264 --base main", "--head=origin/264",
+                     'gh pr create --base "264"', "check_branch_scope.py --head '264'",
                      "git diff labs/264 --stat", "--base=264", "git push origin refs/heads/264",
                      'DEFAULT_BASE = "origin/264"',
                      "never push to the active release branch (`264`)",
@@ -85,15 +86,23 @@ class NumberedBranches(unittest.TestCase):
         for text in ('PROTECTED = (\n    "main",\n    "264",\n)', "git checkout \\\n  264",
                      "branches: [\n  main,\n  264\n]", "git push origin \\\n  main \\\n  264",
                      "branches: [main,\n  264\n]", 'PROTECTED = {"main",\n  "264"\n}',
-                     'PROTECTED = {\n  "main",\n  "264",\n}'):
+                     'PROTECTED = {\n  "main",\n  "264",\n}',
+                     "branches:\n  - main\n  - 264", "branches:\n- main\n- '264'"):
             with self.subTest(text=text):
                 self.assertEqual([(n, r) for n, r, _ in crr.findings(text, REF)], [(1, "code")])
+        # A GitHub Actions branch filter: reported at its `branches:` line.
+        workflow = "on:\n  push:\n    branches:\n      - main\n      - 264\n"
+        self.assertEqual([(n, r) for n, r, _ in crr.findings(workflow, REF)], [(3, "code")])
 
     def test_multiline_values_that_are_not_branches_pass(self):
         for text in ("git log -n \\\n  100", 'PROTECTED = (\n  "main",\n)\nx = 264',
                      'targets = [  # roles\n  "main",\n]\nport = (\n  264,\n)',
                      "git diff \\\n  HEAD~100", 'refs = {"main": 1}\nport = 264',
                      'base: {\n  "name": "main"\n}\ntimeout = 300',
+                     # YAML: the sequence ends at a shallower line, and a non-branch key's
+                     # items don't count.
+                     "branches:\n  - main\nport: 264", "items:\n  - 264\n  - 265",
+                     "branches:\n  - main\n  - release/264\n  - preview/266",
                      # The ERD schema's shape: a branch word in a key whose value is an object.
                      '"GrantBindingTargetType": {\n  "length": 255,\n  "type": "picklist"\n}'):
             with self.subTest(text=text):
@@ -130,7 +139,12 @@ class NumberedBranches(unittest.TestCase):
         # path so this test doesn't read files it can't select (test_pr_gate's read rule).
         roots = {p.split("/", 1)[0] for p in scanned}
         self.assertLessEqual({"docker", "orgs", "datasets", "postman", "robot"}, roots)
-        self.assertIn("Dockerfile", {p.rsplit("/", 1)[-1] for p in scanned})
+        names = {p.rsplit("/", 1)[-1] for p in scanned}
+        self.assertIn("Dockerfile", names)
+        # Extensionless launchers, found by their shebang (this repo has at least three).
+        launchers = [p for p in scanned if "." not in p.rsplit("/", 1)[-1]
+                     and p.rsplit("/", 1)[-1] != "Dockerfile"]
+        self.assertGreaterEqual(len(launchers), 3, launchers)
         self.assertTrue([p for p in scanned if p.endswith(".robot")])
         docs = [p for p in scanned if p.startswith("docs")]
         self.assertTrue([p for p in docs if "/" in p and p.count("/") == 1], "docs root unscanned")

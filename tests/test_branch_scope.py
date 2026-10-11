@@ -592,21 +592,22 @@ def test_fetch_before_comparing(root):
           f"rc={rc} — a local branch with a slash was fetched as a remote\n{out}")
 
 
-def test_default_base_is_origin_head(root):
-    """With no --base, the base is the remote's default branch, never a pinned release line.
+def test_default_base_is_origin_main(root):
+    """With no --base, the base is origin/main: the permanent role, never a release line.
 
     The default used to be a numbered branch, which went on comparing every branch against
-    a retired line after the cutover. Every other test passes --base explicitly, so this is
-    the only one that drives DEFAULT_BASE.
+    a retired line after the cutover. Not origin/HEAD either: that pointer is clone-local
+    and `git fetch` doesn't refresh it, so an old clone keeps whatever it pointed at. Every
+    other test passes --base explicitly, so this is the only one that drives DEFAULT_BASE.
     """
-    print("\nNo --base: compare against origin/HEAD, the remote's default branch")
+    print("\nNo --base: compare against origin/main, whatever origin/HEAD says")
     upstream = new_repo(root, "default-upstream")
     git(upstream, "checkout", "--quiet", "-b", "other")
     inherited = commit(upstream, "other.txt", "other\n", "work on another line")
-    git(upstream, "checkout", "--quiet", "base")
-    # Move base first: picked onto the same parent in the same second, the commit would
+    git(upstream, "checkout", "--quiet", "-b", "main", "base")
+    # Move main first: picked onto the same parent in the same second, the commit would
     # come out with the same SHA and be an ancestor rather than merged-as-a-copy work.
-    commit(upstream, "moved.txt", "moved\n", "base moves on")
+    commit(upstream, "moved.txt", "moved\n", "main moves on")
     git(upstream, "cherry-pick", inherited)
 
     work = Path(root) / "default-clone"
@@ -617,24 +618,19 @@ def test_default_base_is_origin_head(root):
     git(work, "config", "commit.gpgsign", "false")
     git(work, "checkout", "--quiet", "-b", "feature", "origin/other")
     commit(work, "mine.txt", "mine\n", "my change")
+    # A stale clone-local pointer, as an old clone would have: it must not be followed.
+    git(work, "remote", "set-head", "origin", "other")
 
     rc, out = run_check(work, "--head", "feature")
-    check("the default base is origin/HEAD", "origin/HEAD" in out, out)
-    check("and it is the remote's default branch: work merged there is found",
+    check("the default base is origin/main", "origin/main" in out, out)
+    check("and work merged into main is found, though origin/HEAD points elsewhere",
           rc == 1 and "1 of 2 non-merge commit(s)" in out, f"rc={rc}\n{out}")
 
-    # Re-point the remote's default at a line that has none of that work: the default
-    # follows it, so the same branch now owns everything.
-    git(work, "remote", "set-head", "origin", "other")
+    # A checkout with no origin/main is a tool error with the fix, not a verdict.
+    git(work, "update-ref", "-d", "refs/remotes/origin/main")
     rc, out = run_check(work, "--head", "feature")
-    check("and follows the remote's default when it moves", rc == 0, f"rc={rc}\n{out}")
-
-    # A clone made without a remote HEAD (or one deleted since) leaves origin/HEAD
-    # unresolvable; that is a tool error with the command that fixes it, not a verdict.
-    git(work, "remote", "set-head", "origin", "--delete")
-    rc, out = run_check(work, "--head", "feature")
-    check("an unset origin/HEAD exits 2, not a verdict", rc == 2, f"rc={rc}\n{out}")
-    check("and names the command that sets it", "git remote set-head origin --auto" in out, out)
+    check("a missing origin/main exits 2, not a verdict", rc == 2, f"rc={rc}\n{out}")
+    check("and names the command that fetches it", "git fetch origin main" in out, out)
 
 
 def test_exit_code_contract(root):
@@ -770,7 +766,7 @@ def main():
         test_empty_branch(root)
         test_stacked_on_unmerged(root)
         test_fetch_before_comparing(root)
-        test_default_base_is_origin_head(root)
+        test_default_base_is_origin_main(root)
         test_exit_code_contract(root)
         test_documented_count_is_current(root)
     print("\n" + "=" * 100)

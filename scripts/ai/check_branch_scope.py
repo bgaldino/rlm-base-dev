@@ -83,7 +83,7 @@ Exit status: 0 clean, 1 commits not owned by the branch, 2 usage/tool error. A
 missing `git`/`gh` gives 2, never 1, so a gate keyed on the status cannot call a
 branch dirty because a tool is absent.
 
-Verified by `tests/test_branch_scope.py` (83 checks) against throwaway repos, not
+Verified by `tests/test_branch_scope.py` (82 checks) against throwaway repos, not
 against this checkout's branches -- the #264-56 branches have since been rebuilt
 and merged, so a test reading real history would rot. It reproduces the #264-56
 shape (5 inherited + 3 own, reported 5 of 8), the rebase that fixes it, a
@@ -102,7 +102,7 @@ removing the fetch or letting it fail silently.
 
 Examples:
     python scripts/ai/check_branch_scope.py --pr 370       # both signals
-    python scripts/ai/check_branch_scope.py                # HEAD vs the default branch
+    python scripts/ai/check_branch_scope.py                # HEAD vs origin/main
     python scripts/ai/check_branch_scope.py --base origin/main --head my-branch
 """
 from __future__ import annotations
@@ -112,9 +112,11 @@ import json
 import subprocess
 import sys
 
-# The remote's default branch, never a release number: release lines come and go three
-# times a year, and a pinned default silently compares against a retired line.
-DEFAULT_BASE = "origin/HEAD"
+# `main` is the permanent current line (README → Branch Information), never a release number:
+# release lines come and go three times a year, and a pinned default silently compared
+# against a retired line. Not `origin/HEAD`: that is a clone-local pointer that `git fetch`
+# doesn't refresh, so a clone made before a default-branch change keeps the old target.
+DEFAULT_BASE = "origin/main"
 
 
 class ToolError(Exception):
@@ -280,7 +282,7 @@ def _check(args, ap):
 
     for ref in (base, head):
         if not _resolves(ref):
-            hint = (" (set it with: git remote set-head origin --auto)"
+            hint = (" (fetch it with: git fetch origin main, or pass --base)"
                     if ref == DEFAULT_BASE else "")
             raise ToolError(f"{ref} does not resolve in this checkout{hint}")
 

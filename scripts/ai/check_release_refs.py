@@ -29,8 +29,9 @@ exception list):
   flags such as `-n`/`--depth` don't count), or a
   branch-ish setting given a 3-digit value directly or in a list (`DEFAULT_BASE = "NNN"`,
   `base: NNN`, `PROTECTED = ("main", "NNN")`, `branches: [main, NNN]`). A command continued
-  with a trailing backslash, or a list or tuple opened on the setting's line and closed lines later,
-  is read as one line and reported at its first.
+  with a trailing backslash, a list, tuple or set opened on the setting's line and closed lines
+  later, or a YAML block sequence (`branches:` then `- NNN`) is read as one line and reported at
+  its first.
 
 What passes: `release/<n>` and `preview/<n>` by name (that is the pattern), product
 release numbers in prose ("a live NNN org", `salesforce_release_active`), paths such as
@@ -61,7 +62,7 @@ REPO = Path(__file__).resolve().parents[2]
 # Metadata XML, Apex and CSV data aren't instructions or tooling and stay out.
 SUFFIXES = (".md", ".mdc", ".py", ".yml", ".yaml", ".json", ".sh", ".toml", ".txt", ".robot",
             ".resource")
-BASENAMES = ("Dockerfile",)
+BASENAMES = ("Dockerfile",)  # plus any extensionless file that starts with `#!` (is_launcher)
 # Captured Help text, and this checker's own fixtures, which spell numbered branches on purpose.
 EXCLUDE = ("docs/salesforce/", "tests/test_check_release_refs.py")
 ALLOW = "release-ref: allow"
@@ -175,7 +176,7 @@ def near_branch(line: str) -> bool:
 def ref_pattern(remotes) -> re.Pattern:
     names = "|".join(sorted({re.escape(r) for r in remotes}))
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
-                      rf"|--(?:base|head)[ =](?:(?:{names})/)?\d{{3}}\b")
+                      rf"|--(?:base|head)[ =][\"']?(?:(?:{names})/)?\d{{3}}\b")
 
 
 def remotes() -> set:
@@ -189,9 +190,33 @@ CLOSER = {"[": "]", "(": ")", "{": "}"}
 LOGICAL_MAX = 50
 
 
+# A YAML key with no inline value (`branches:`), whose value is the block sequence below it.
+YAML_KEY = re.compile(r"^(\s*)(?:-\s+)?[\"']?[A-Za-z_][\w-]*[\"']?\s*:\s*(?:#.*)?$")
+YAML_ITEM = re.compile(r"^(\s*)-\s+(.*?)\s*(?:#.*)?$")
+
+
+def yaml_block(lines: list, i: int):
+    """`key:` then `- item` lines (indented deeper, or at the key's own indent, which YAML
+    allows for a sequence) as one flow line, `key: [item, item]`. None if not that shape."""
+    key = YAML_KEY.match(lines[i])
+    if not key:
+        return None
+    indent, items = len(key.group(1)), []
+    for line in lines[i + 1:i + 1 + LOGICAL_MAX]:
+        item = YAML_ITEM.match(line)
+        if not item or len(item.group(1)) < indent:
+            break
+        items.append(item.group(2))
+    return f"{lines[i].split('#')[0].rstrip()} [{', '.join(items)}]" if items else None
+
+
 def logical_line(lines: list, i: int) -> str:
     """Line i joined with what continues it: trailing-backslash lines, then the rest of a list
-    or tuple opened at the end of a setting. Code rules read this; prose rules read the line."""
+    or tuple opened at the end of a setting, or a YAML block sequence under a bare key. Code
+    rules read this; prose rules read the line."""
+    block = yaml_block(lines, i)
+    if block:
+        return block
     joined, j = lines[i], i
     while joined.rstrip().endswith("\\") and j + 1 < len(lines) and j - i < LOGICAL_MAX:
         j += 1
@@ -226,8 +251,17 @@ def tracked_scope() -> list[Path]:
     if out.returncode != 0:
         raise OSError(out.stderr.strip() or "git ls-files failed")
     return [REPO / name for name in out.stdout.split("\0")
-            if name and (name.endswith(SUFFIXES) or name.rsplit("/", 1)[-1] in BASENAMES)
-            and not name.startswith(EXCLUDE) and not (REPO / name).is_symlink()]
+            if name and not name.startswith(EXCLUDE) and not (REPO / name).is_symlink()
+            and (name.endswith(SUFFIXES) or name.rsplit("/", 1)[-1] in BASENAMES
+                 or is_launcher(REPO / name))]
+
+
+def is_launcher(path: Path) -> bool:
+    """An extensionless script (`docker/rlm`, `tui-cci`): it starts with a shebang."""
+    if "." in path.name or not path.is_file():
+        return False
+    with open(path, "rb") as handle:
+        return handle.read(2) == b"#!"
 
 
 def main(argv: list[str]) -> int:
