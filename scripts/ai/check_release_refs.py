@@ -52,6 +52,7 @@ Exit codes: 0 = clean · 1 = findings · 2 = tool error.
 from __future__ import annotations
 
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -107,7 +108,30 @@ GIT_BRANCH_CMD = re.compile(
     # Global options before the subcommand: the ones that take a separate value, then any
     # other long option (`--no-pager`, `--config-env=k=v`, ...) rather than a list of them.
     r"\bgit\s+(?:(?:-[Cc]\s+\S+|--(?:git-dir|work-tree|namespace|exec-path|config-env)\s+\S+|"
-    r"--[\w-]+(?:=\S+)?|-[pP])\s+)*([a-z][\w-]*)\b([^\n#|;&`]*)")
+    r"--[\w-]+(?:=\S+)?|-[pP])\s+)*([a-z][\w-]*)\b([^\n`]*)")
+# Subcommands whose positional arguments are only paths (or a URL and directory); in them a
+# number is a ref only as the value of a ref flag (`clone -b NNN`).
+PATH_VERBS = {"add", "rm", "mv", "status", "ls-files", "clean", "commit", "init", "clone",
+              "apply", "am", "check-ignore", "check-attr"}
+SHORT_REF_FLAGS = {"-b", "-B", "-c", "-C"}
+
+
+def command_tokens(rest: str) -> list:
+    """The arguments of one simple command, shell-quoted: a `|`, `;`, `&` or `#` inside
+    quotes (`--format="%h | %s"`) doesn't end it. Unbalanced quotes fall back to whitespace."""
+    if "'" not in rest and '"' not in rest:  # the common case, and much cheaper than shlex
+        return re.split(r"[#|;&]", rest, maxsplit=1)[0].split()
+    try:
+        lexer = shlex.shlex(rest, posix=True, punctuation_chars=";&|")
+        lexer.whitespace_split, lexer.commenters = True, "#"
+        tokens = []
+        for token in lexer:
+            if token and set(token) <= set(";&|"):
+                break
+            tokens.append(token)
+        return tokens
+    except ValueError:
+        return re.split(r"[#|;&]", rest, maxsplit=1)[0].split()
 # Short flags whose next token is a count, not a ref. Long flags are judged by their words.
 COUNT_FLAGS = {"-n", "-U", "-L"}
 # Words in a long option that make its value a ref (`--branch=`, `--onto`, `--set-upstream-to`).
@@ -123,7 +147,6 @@ MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "l
             "delay", "retry", "retries", "seconds", "secs", "ms", "width", "height", "depth",
             "price", "amount", "quantity", "qty", "cost", "total", "percent", "score",
             "index", "idx", "version", "rate", "ttl"}
-CALL = re.compile(r"[A-Za-z_][\w.]*\((.*)\)")
 QUOTED_NUMBER = re.compile(r"[\"']\d{3}[\"']")
 SCALAR = re.compile(r"[\"']?\d{3}[\"']?(?![\w.-])")
 ELEMENT = re.compile(r"(?<![\w./-])[\"']?\d{3}[\"']?(?![\w./-])")
@@ -147,8 +170,10 @@ def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bo
             return True
         # A default wrapped in a call: `DEFAULT_BASE = os.getenv("BASE", "NNN")`. Only a quoted
         # literal counts, so `limit(300)`-style arguments stay numbers.
-        call = None if long_line else CALL.match(value)
-        if call and QUOTED_NUMBER.search(call.group(1)):
+        # An expression rather than a literal (`os.getenv("BASE", "NNN")`,
+        # `os.getenv("BASE") or "NNN"`): any quoted three-digit literal in it is the default.
+        if not long_line and re.match(r"[A-Za-z_]", value) and \
+                QUOTED_NUMBER.search(re.split(r"[;\n]", value, maxsplit=1)[0]):
             return True
         if value and value[0] in "[({":
             close = {"[": "]", "(": ")", "{": "}"}[value[0]]
@@ -186,7 +211,7 @@ def measure_flag(flag: str) -> bool:
 
 def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = False) -> bool:
     for match in GIT_BRANCH_CMD.finditer(line):
-        verb, tokens = match.group(1), match.group(2).split()
+        verb, tokens = match.group(1), command_tokens(match.group(2))
         if verb == "config":
             # `git config branch.<b>.gh-merge-base NNN`: a ref only under a branch-ish key.
             key = next((t for t in tokens if not t.startswith("-")), "")
@@ -197,6 +222,10 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
         for i, token in enumerate(tokens):
             if i and measure_flag(tokens[i - 1]):
                 continue
+            if verb in PATH_VERBS and not token.startswith("-") and not (
+                    i and (tokens[i - 1] in SHORT_REF_FLAGS or tokens[i - 1].startswith("--")
+                           and set(tokens[i - 1].lstrip("-").split("-")) & REF_FLAG_WORDS)):
+                continue  # `git add 264`: a path
             if re.fullmatch(r"-[bBcC][\"']?\d{3}[\"']?", token):
                 return True  # `clone -b264`, `checkout -B264`, `switch -c264`: attached value
             if token.startswith("-"):

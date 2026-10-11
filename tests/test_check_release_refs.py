@@ -105,6 +105,9 @@ class NumberedBranches(unittest.TestCase):
                      "click.option('--head', default=os.environ.get('HEAD_REF', '262'))",
                      "git clone -b264 https://example.com/r.git", "git checkout -B264",
                      "git switch -c264",
+                     'git log --format="%h | %s" 264', "git log --format='# %h' 264",
+                     'DEFAULT_BASE = os.getenv("BASE") or "264"',
+                     "base_ref = env.get('BASE_REF') if env else '262'",
                      "base_ref = env.get('BASE_REF', '262')"):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), ["code"], line)
@@ -166,6 +169,10 @@ class NumberedBranches(unittest.TestCase):
                      'ap.add_argument("--base", default=os.getenv("BASE", "main"))',
                      'ap.add_argument("--timeout", default=int(os.getenv("T", "300")))',
                      "git log -n100", "cut `release/264` from `main` -> `preview/266`",
+                     # Pathspec-only subcommands: the number is a path.
+                     "git add 264", "git rm 264", "git status 264", "git ls-files 264",
+                     "git clone https://example.com/r.git 264", "git commit -m 264",
+                     'git log --format="%h | 264"', "git log main | head -264",
                      "git gc --prune=100", "git log --abbrev=100", "git blame -L 100,200 f.py",
                      "git config core.bigFileThreshold 512", "git config http.postBuffer 524",
                      'TIMEOUT="${TIMEOUT:-300}"', "rg -B 100 pattern", "grep -H 200 x",
