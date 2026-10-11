@@ -96,6 +96,8 @@ UNQUOTED = re.compile(
     # A release mapped onto a role branch: "NNN is now on `main`", "`main` now carries
     # Release NNN". README → Branch Information is the one place that does this, by marker.
     rf"|\b(?:Release\s+)?{N}\b[^.\n]{{0,40}}?\b(?:is\s+)?(?:now\s+)?on\s+`(?:main|preview/|release/)"
+    rf"|\b(?:Release\s+)?{N}\b[^.\n]{{0,40}}?\b(?:was\s+|is\s+)?(?:promoted|moved|merged|cut|"
+    rf"graduated)\s+(?:in|on)?to\s+`?(?:main\b|preview/|release/)"
     rf"|`(?:main|preview/[^`]*|release/[^`]*)`\s+(?:now\s+)?(?:carries|holds|tracks|is)\s+"
     rf"(?:the\s+)?(?:Salesforce\s+)?Release\s+{N}"
     # A role branch labelled with a release, as README's Branch Information spells it
@@ -177,6 +179,8 @@ VERB_VALUE_FLAGS = {
     "cherry-pick": {"-m", "--mainline"},
     "branch": {"--format", "--sort", "--color", "--column"},
     "push": {"-o", "--push-option", "--receive-pack", "--exec"},
+    "fetch": {"-o", "--server-option", "--upload-pack"},
+    "pull": {"-o", "--server-option", "--upload-pack"},
     "blame": {"--contents", "-S", "--ignore-revs-file", "--ignore-rev", "--date"},
     "for-each-ref": {"--format", "--sort", "--count"},
 }
@@ -223,9 +227,10 @@ REF_FLAG_WORDS = {"branch", "base", "head", "ref", "onto", "into", "upstream", "
 # `targetBranch`, `PROTECTED`), then `=` or `:`, then a release-shaped value: the whole value,
 # or an element of a list/tuple/set. Identifiers are split into words, so `keyPrefix` is not a
 # `ref`, and one that also names a measurement (`timeout_base`, `max_refs`) is not a branch.
-# The separator may carry a type annotation: `DEFAULT_BRANCH: str = "NNN"`, TS `: string =`.
+# The separator may carry a type annotation (`DEFAULT_BRANCH: str = "NNN"`, TS `: string =`)
+# or be a Make assignment (`?=`, `:=`). Not `!=`/`==`: those are comparisons.
 SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*"
-                     r"(?::\s*[\w.\[\]|, ]+?\s*=(?!=)|[:=])\s*")
+                     r"(?::\s*[\w.\[\]|, ]+?\s*=(?!=)|[?:]=|(?<![!=<>])=(?!=)|:(?!=))\s*")
 BRANCH_WORDS = {"base", "branch", "branches", "ref", "refs", "protected", "target", "targets",
                 "head", "heads"}
 MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "length", "num",
@@ -355,6 +360,33 @@ def takes_number(flag: str, verb: str = "") -> bool:
     return flag in LONG_SEPARATE_VALUE
 
 
+# Subcommands with an action word, whose positionals' roles depend on it. Per action: from
+# which positional (counting the action as 0) operands can be refs; actions not listed take
+# none. Flags in `refs` carry a ref value; flags in `values` carry other data.
+ACTION_VERBS = {
+    # worktree add [-b <branch>] [--reason <s>] <path> [<commit-ish>]; others take paths.
+    "worktree": {"from": {"add": 2}, "refs": {"-b", "-B"}, "values": {"--reason"}},
+    # remote add/set-url/rename take names and URLs; set-head and set-branches take branches.
+    "remote": {"from": {"set-head": 2, "set-branches": 2}, "refs": {"-t", "-m"},
+               "values": {"--mirror"}},
+    # bundle create <file> <rev-list args>; verify/list-heads/unbundle take a file.
+    "bundle": {"from": {"create": 2}, "refs": set(), "values": {"--version"}},
+}
+
+
+def action_operands(verb: str, tokens: list) -> list:
+    """The tokens of an action subcommand that can be refs: ref-flag values, and positionals
+    from the action's ref position on. Option data (`--reason why`) isn't positional."""
+    spec = ACTION_VERBS[verb]
+    taken = spec["refs"] | spec["values"]
+    positional = [k for k, t in enumerate(tokens) if not t.startswith("-")
+                  and not (k and tokens[k - 1] in taken)]
+    action = tokens[positional[0]] if positional else ""
+    keep = set(positional[spec["from"][action]:]) if action in spec["from"] else set()
+    return [t for k, t in enumerate(tokens)
+            if k in keep or k and tokens[k - 1] in spec["refs"]]
+
+
 def measure_flag(flag: str, verb: str = "") -> bool:
     """A flag whose value is a number: a short count flag of this subcommand, or a long one whose
     name has a measurement word and no ref word (`--max-count`, `--stat-width`, `--prune`)."""
@@ -404,15 +436,8 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                 positional = [k for k, t in enumerate(tokens) if not t.startswith("-")]
                 if positional:
                     tokens = tokens[:positional[0]] + tokens[positional[0] + 1:]
-        if verb == "worktree":
-            # `worktree add <path> [<commit-ish>]`; every other action takes only paths.
-            # A `-b`/`-B` value is the new branch, not the path, so it isn't positional.
-            positional = [k for k, t in enumerate(tokens) if not t.startswith("-")
-                          and not (k and tokens[k - 1] in SHORT_REF_FLAGS)]
-            action = tokens[positional[0]] if positional else ""
-            keep = positional[2:] if action == "add" else []
-            tokens = [t for k, t in enumerate(tokens)
-                      if t.startswith("-") or k in keep or k and tokens[k - 1] in SHORT_REF_FLAGS]
+        if verb in ACTION_VERBS:
+            tokens = action_operands(verb, tokens)
         ref_flags = SHORT_REF_FLAGS | VERB_REF_FLAGS.get(verb, set())
         for i, token in enumerate(tokens):
             if i and (takes_number(tokens[i - 1], verb)

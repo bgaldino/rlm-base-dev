@@ -1,6 +1,6 @@
 # Release 264 (Winter '27) — Feature Index
 
-**Per-area inventory of features in Winter '27 / Release 264, derived from the Salesforce Help portal snapshot.** Release 264 was promoted to `main` on 2026-09-16; Help snapshots captured 2026-09-04 through 2026-09-07 for ten functional areas (1,131 articles across configurator, transaction_mgmt, billing, pcm, dro, pricing, rating, usage, agents, and approvals). Collections area not captured — still serving 262 content as of 2026-09-07.
+**Per-area inventory of features in Winter '27 / Release 264, derived from the Salesforce Help portal snapshot.** Release 264 reached its cutover on 2026-09-16; Help snapshots captured 2026-09-04 through 2026-09-07 for ten functional areas (1,131 articles across configurator, transaction_mgmt, billing, pcm, dro, pricing, rating, usage, agents, and approvals). Collections area not captured — still serving 262 content as of 2026-09-07.
 
 > **Pre-GA status:** API v68.0 GA waves 2026-09-05 → 2026-10-10 are in progress as of 2026-09-29. This index derives from Help articles captured during early GA rollout. The feature inventory comes from the Help corpus only. The Winter '27 release notes are published on Help, and their Revenue section is captured under `docs/salesforce/264/release-notes/` (PR #480) and cross-referenced below (**Release-Note Cross-Reference**). A live 264 org remains the ground truth for behavioral verification.
 
