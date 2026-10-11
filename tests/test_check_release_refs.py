@@ -44,6 +44,27 @@ class NumberedBranches(unittest.TestCase):
             with self.subTest(line=line):
                 self.assertEqual(rules(line), [], line)
 
+    def test_numbered_branches_in_code_fail(self):
+        # Spelled without backticks or a remote, these passed the first two rules; the two
+        # config lines are the ones this repo actually carried (agent context and manifest).
+        for line in ('DEFAULT_BASE = "264"', "git checkout 264", "base: 264",
+                     'PROTECTED = ("main", "264")', "git switch 262", "git push origin 264",
+                     "branches: [main, 264]", 'targetBranch: "264"',
+                     '"active_work_branch": "264",', 'branch_active: "264"'):
+            with self.subTest(line=line):
+                self.assertEqual(rules(line), ["code"], line)
+
+    def test_numbers_in_code_that_are_not_branches_pass(self):
+        # Counts, measurements, paths, IDs and other repos' branch names found while
+        # calibrating against this repo (keyPrefix appears 36 times in the ERD snapshots).
+        for line in ("git log -n 100", "git log HEAD~100", "git diff -U 200 main",
+                     "timeout_base = 300", "branch_count = 3", 'ref = "main"',
+                     "base: origin/main", "git checkout release/264", "max_refs = [1, 2]",
+                     '"keyPrefix": "001",', 'branch:"262-patch"',
+                     'salesforce_release_active: "264"', 'api_version: "64.0"'):
+            with self.subTest(line=line):
+                self.assertEqual(rules(line), [], line)
+
     def test_remotes_found_at_run_time_count(self):
         ref = crr.ref_pattern(["fork"])
         self.assertTrue(list(crr.findings("git diff fork/264", ref)))

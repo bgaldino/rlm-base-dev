@@ -16,6 +16,11 @@ What fails, on any line of a tracked instruction or tooling file:
   `NNN`", "`main`, `NNN`", "`NNN` → `main`" (via `main`). Only the 12 characters either
   side count, so a backticked ID prefix or HTTP code elsewhere on a line about branches
   doesn't.
+* `code`: a numbered branch in code or a command, where it is spelled without backticks or a
+  remote: a branch-taking git command with a bare 3-digit argument (`git checkout NNN`,
+  `git push origin NNN`; values of count flags such as `-n`/`--depth` don't count), or a
+  branch-ish setting given a 3-digit value directly or in a list (`DEFAULT_BASE = "NNN"`,
+  `base: NNN`, `PROTECTED = ("main", "NNN")`, `branches: [main, NNN]`).
 
 What passes: `release/<n>` and `preview/<n>` by name (that is the pattern), product
 release numbers in prose ("a live NNN org", `salesforce_release_active`), paths such as
@@ -54,6 +59,54 @@ BRANCH_NEAR = re.compile(r"\bbranch(?:es)?\b|\b(?:named|called)\s|"
                          r"`main`|`(?:release|preview)/")
 
 
+# A git verb that names branches, then the rest of that simple command.
+GIT_BRANCH_CMD = re.compile(
+    r"\bgit\s+(?:-[Cc]\s+\S+\s+)*(?:checkout|switch|push|pull|fetch|merge|rebase|branch|"
+    r"worktree\s+add|reset|diff|log|cherry)\b([^\n#|;&`]*)")
+# Flags whose next token is a count, not a ref.
+COUNT_FLAGS = {"-n", "--max-count", "-U", "--unified", "--depth", "--deepen", "--skip"}
+# A branch-ish setting: an identifier with a branch word in it (`DEFAULT_BASE`, `base_ref`,
+# `targetBranch`, `PROTECTED`), then `=` or `:`, then a release-shaped value: the whole value,
+# or an element of a list/tuple/set. Identifiers are split into words, so `keyPrefix` is not a
+# `ref`, and one that also names a measurement (`timeout_base`, `max_refs`) is not a branch.
+SETTING = re.compile(r"(?<![\w-])([A-Za-z_][\w-]*)[\"']?\s*[:=]\s*")
+BRANCH_WORDS = {"base", "branch", "branches", "ref", "refs", "protected", "target", "targets"}
+MEASURES = {"timeout", "count", "size", "port", "limit", "max", "min", "len", "length", "num",
+            "delay", "retry", "retries", "seconds", "secs", "ms", "width", "height", "depth",
+            "index", "idx", "version", "rate", "ttl"}
+SCALAR = re.compile(r"[\"']?\d{3}[\"']?(?![\w.-])")
+ELEMENT = re.compile(r"(?<![\w./-])[\"']?\d{3}[\"']?(?![\w./-])")
+
+
+def identifier_words(name: str) -> set:
+    return {w.lower() for w in re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])", name)}
+
+
+def branch_setting(line: str) -> bool:
+    for match in SETTING.finditer(line):
+        words = identifier_words(match.group(1))
+        if not words & BRANCH_WORDS or words & MEASURES:
+            continue
+        value = line[match.end():]
+        if SCALAR.match(value):
+            return True
+        if value and value[0] in "[({":
+            close = {"[": "]", "(": ")", "{": "}"}[value[0]]
+            if ELEMENT.search(value[1:value.find(close) if close in value else None]):
+                return True
+    return False
+
+
+def numbered_branch_in_code(line: str) -> bool:
+    for match in GIT_BRANCH_CMD.finditer(line):
+        tokens = match.group(1).split()
+        for i, token in enumerate(tokens):
+            if re.fullmatch(r"[\"']?\d{3}[\"']?", token) and (i == 0 or tokens[i - 1]
+                                                                 not in COUNT_FLAGS):
+                return True
+    return branch_setting(line)
+
+
 def near_branch(line: str) -> bool:
     for match in BARE.finditer(line):
         window = line[max(0, match.start() - NEAR):match.end() + NEAR]
@@ -81,6 +134,8 @@ def findings(text: str, ref: re.Pattern):
             yield number, "ref", line.strip()
         elif near_branch(line):
             yield number, "branch", line.strip()
+        elif numbered_branch_in_code(line):
+            yield number, "code", line.strip()
 
 
 def tracked_scope() -> list[Path]:
