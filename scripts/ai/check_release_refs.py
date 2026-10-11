@@ -164,7 +164,12 @@ VERB_VALUE_FLAGS = {
     "tag": {"-m", "-F", "-u", "--message", "--file", "--local-user"},
     "notes": {"-m", "-F", "-C", "-c", "--message", "--file"},
     "bundle": {"--output"}, "format-patch": {"-o", "--output-directory", "--subject-prefix"},
+    "merge": {"-m", "-F", "--message", "--file", "-s", "--strategy", "-X"},
+    "stash": {"-m", "--message"}, "revert": {"-m", "--mainline"},
+    "cherry-pick": {"-m", "--mainline"},
 }
+# Long options whose value is a ref though their name has no ref word.
+LONG_REF_FLAGS = {"--force-with-lease", "--shallow-exclude", "--fork-point"}
 
 
 def command_tokens(rest: str) -> list:
@@ -275,7 +280,7 @@ def branch_setting(line: str, first_len: int = 0, long_line: bool = False) -> bo
 # A revision token's ref parts: split a range (`a..b`, `a...b`) or refspec (`+a:b`), then drop
 # a revision suffix (`^`, `~2`, `@{1}`), so `264..HEAD` and `264:preview/266` yield `264`.
 REV_SPLIT = re.compile(r"\.\.\.?|:")
-REV_SUFFIX = re.compile(r"(?:[\^~]\d*|@\{[^}]*\})+$")
+REV_SUFFIX = re.compile(r"(?:\^\{[^}]*\}|[\^~]\d*|@\{[^}]*\})+$")  # incl. ^{commit}, ^{}
 
 
 def ref_parts(token: str) -> list:
@@ -350,7 +355,8 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
             if token.startswith("-"):
                 # `--branch=NNN` is a ref; `--stat-width=NNN` is a measure.
                 flag, _, token = token.partition("=")
-                if not token or measure_flag(flag, verb) or flag.startswith("--") and not \
+                if not token or measure_flag(flag, verb) or flag.startswith("--") and \
+                        flag not in LONG_REF_FLAGS and not \
                         set(flag.lstrip("-").lower().split("-")) & REF_FLAG_WORDS:
                     continue
             if any(re.fullmatch(r"\d{3}", part) for part in ref_parts(token)):
@@ -416,8 +422,13 @@ def near_branch(line: str) -> bool:
     return False
 
 
+# Role prefixes: a remote that happens to be called `release` or `preview` must not turn the
+# role branch `release/NNN` into a numbered remote ref (refs/remotes/... stays unambiguous).
+ROLE_PREFIXES = {"release", "preview"}
+
+
 def ref_pattern(remotes) -> re.Pattern:
-    names = "|".join(sorted({re.escape(r) for r in remotes}))
+    names = "|".join(sorted({re.escape(r) for r in remotes} - ROLE_PREFIXES))
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
                       rf"|refs/remotes/[\w.-]+/\d{{3}}\b"
                       rf"|--(?:base|head)(?:=|\s+)[\"']?(?:[\w.-]+:)?(?:(?:{names})/)?\d{{3}}\b"
@@ -426,7 +437,10 @@ def ref_pattern(remotes) -> re.Pattern:
 
 
 def remotes() -> set:
+    """Fails with OSError rather than scanning with an incomplete remote list."""
     out = subprocess.run(["git", "-C", str(REPO), "remote"], capture_output=True, text=True)
+    if out.returncode != 0:
+        raise OSError(out.stderr.strip() or "git remote failed")
     return set(KNOWN_REMOTES) | set(out.stdout.split())
 
 
@@ -628,10 +642,11 @@ def is_text(path: Path) -> bool:
 def main(argv: list[str]) -> int:
     try:
         paths = [Path(a).resolve() for a in argv] if argv else tracked_scope()
+        ref = ref_pattern(remotes())  # a spawn failure is an OSError too
     except OSError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    total, ref = 0, ref_pattern(remotes())
+    total = 0
     for path in paths:
         try:
             # Classified as text by its head; a stray invalid byte further in isn't a tool error.

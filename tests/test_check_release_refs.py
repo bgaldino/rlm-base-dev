@@ -36,6 +36,9 @@ class NumberedBranches(unittest.TestCase):
                      "git worktree add ../wt 264", "git worktree add -b feat ../wt 264",
                      "git grep -e TODO -L 264", "git grep -n TODO 264",
                      "/usr/bin/git checkout 264", "git log ^264 main", "git rev-list main ^264",
+                     "git log 264^{commit}", "git show 264^{}",
+                     "git push --force-with-lease=264 origin HEAD",
+                     "git push --force-with-lease=264:abc123 origin 264",
                      'parser.add_argument("--base", default=os.getenv("BASE") or "264")',
                      "the `264` active maintenance branch", "the 262 old maintenance branch",
                      "git worktree add -b 264 ../wt main",
@@ -223,6 +226,7 @@ class NumberedBranches(unittest.TestCase):
                      "git worktree remove 264", "git worktree move old 264",
                      "git worktree add -b topic 264 main", "git blame -L 100 f.py",
                      "git archive -o 264 HEAD", "git tag -m 264 v1", "ls /srv/git/264",
+                     "git merge -m 264 main", "git stash push -m 264", "git revert -m 1 HEAD",
                      "cd repo.git 264",
                      "git log -n 100 main", "git diff -U 200 main",
                      "a live 264 org built off this branch",
@@ -279,6 +283,23 @@ class NumberedBranches(unittest.TestCase):
         # Release-root docs beside the captured corpora are maintained here, so they're scanned.
         self.assertTrue([p for p in docs if p.endswith("feature-index.md") and
                          p.startswith("docs/sales")])
+
+    def test_a_remote_named_like_a_role_does_not_make_role_branches_refs(self):
+        ref = crr.ref_pattern(["release", "preview", "origin"])
+        self.assertFalse(list(crr.findings("cut `release/264` from `main`", ref)))
+        self.assertFalse(list(crr.findings("git checkout preview/266", ref)))
+        self.assertTrue(list(crr.findings("git checkout refs/remotes/release/264", ref)))
+
+    def test_a_failing_git_remote_is_a_tool_error(self):
+        import subprocess
+        from unittest import mock
+        failed = subprocess.CompletedProcess([], 128, "", "fatal: not a git repository")
+        with mock.patch.object(crr.subprocess, "run", return_value=failed):
+            with self.assertRaises(OSError):
+                crr.remotes()
+        with mock.patch.object(crr, "remotes", side_effect=OSError("spawn failed")), \
+                mock.patch.object(crr, "tracked_scope", return_value=[]):
+            self.assertEqual(crr.main([]), 2)
 
     def test_remotes_found_at_run_time_count(self):
         ref = crr.ref_pattern(["fork"])
