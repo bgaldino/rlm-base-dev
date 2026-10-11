@@ -158,15 +158,19 @@ def numbered_git(line: str) -> bool:
 
 def yaml_items_under(lines: list, i: int):
     """Line numbers of `- NNN` items in the block list under a branch-named key (`branches:`)."""
-    key = YAML_KEY.match(lines[i].split("#")[0].rstrip())
+    head = lines[i].split("#")[0].rstrip()
+    key = YAML_KEY.match(head)
     if not key or not branch_named(key.group(2)):
         return
-    for j in range(i + 1, min(i + 51, len(lines))):
+    # The list belongs to the key's own column, which for `- branches:` is past the dash: a
+    # sibling item at the dash's indent has left the block.
+    column = key.start(2) - (head[key.start(2) - 1] in "\"'")
+    for j in range(i + 1, len(lines)):
         line = lines[j]
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         item = YAML_ITEM.match(line)
-        if not item or len(item.group(1)) < len(key.group(1)):
+        if not item or len(item.group(1)) < column:
             return
         if ALLOW not in line and SCALAR.fullmatch(item.group(2)):
             yield j + 1

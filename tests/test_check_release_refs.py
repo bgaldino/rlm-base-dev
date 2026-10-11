@@ -91,6 +91,13 @@ class Contract(unittest.TestCase):
         self.assertEqual([(n, r) for n, r, _ in crr.findings("branches:\n  - main\n  - 264", REF)],
                          [(3, "setting")])
 
+    def test_a_block_list_ends_at_its_dedent_however_long(self):
+        long_list = "branches:\n" + "  - main\n" * 60 + "  - 264"
+        self.assertEqual(rules(long_list), ["setting"])
+        self.assertEqual(rules("rules:\n  - branches:\n      - main\n  - 264"), [])
+        self.assertEqual(rules("rules:\n  - branches:\n    - main\n    - 264"), ["setting"])
+        self.assertEqual(rules("branches:\n- main\n- 264"), ["setting"])
+
     def test_the_allow_marker_exempts_its_line_only(self):
         self.assert_clean(("the `264` branch existed then  <!-- release-ref: allow -->",
                            "branches:\n  - main\n  - 264 # release-ref: allow"))
