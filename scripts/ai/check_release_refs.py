@@ -67,7 +67,8 @@ REPO = Path(__file__).resolve().parents[2]
 TEXT_PROBE = 8192
 # Captured Help text, and this checker's own fixtures, which spell numbered branches on purpose.
 # Captured Help, dev-guide and release-note corpora are Salesforce's text, not ours; the
-# release-root files beside them (feature-index.md, notes) are maintained here and scanned.
+# release-root files beside them (feature-index.md, notes) are maintained here and scanned,
+# and so are the maintainers' `*.notes.md` annotations inside a corpus.
 CAPTURED = re.compile(r"^docs/salesforce/[^/]+/(?:help|dev-guide|dev-guide-industries|"
                       r"release-notes)/")
 EXCLUDE = frozenset({"tests/test_check_release_refs.py"})  # exact paths: its own fixtures
@@ -107,7 +108,7 @@ UNQUOTED = re.compile(
     rf"|`(?:main|preview/[^`]*|release/[^`]*)`\**\s*(?:[:—–(]|-{{1,2}})\s*(?:the\s+)?"
     rf"(?:Salesforce\s+)?Release\s+{N}"
     # A branch labelled with a release: "This branch: Release NNN", "the branch is NNN".
-    rf"|\bbranch\b[*:\s]+(?:is\s+|carries\s+)?(?:(?:Salesforce\s+)?Release\s+)?{N}",
+    rf"|\bbranch\b[*:\s]+(?:is\s+|was\s+|carries\s+|carried\s+)?(?:(?:Salesforce\s+)?Release\s+)?{N}",
     re.IGNORECASE)
 
 
@@ -124,9 +125,17 @@ def git_invocations(line: str):
     for word in GIT_WORD.finditer(line):
         rest = line[word.end():].split("`", 1)[0]
         tokens = command_tokens(rest)
-        k = 0
+        k, aliases = 0, {}
         while k < len(tokens) and tokens[k].startswith("-"):
+            # `-c alias.co=checkout`: an alias defined for this invocation.
+            if tokens[k] == "-c" and k + 1 < len(tokens):
+                name, _, value = tokens[k + 1].partition("=")
+                if name.lower().startswith("alias.") and value and not value.startswith("!"):
+                    aliases[name[len("alias."):]] = value.split()
             k += 2 if tokens[k] in GLOBAL_WITH_VALUE else 1
+        if k < len(tokens) and tokens[k] in aliases:
+            expansion = aliases[tokens[k]]
+            tokens = tokens[:k] + expansion + tokens[k + 1:]
         if k < len(tokens) and tokens[k] in git_commands():
             yield tokens[k], tokens[k + 1:]
 
@@ -154,6 +163,8 @@ def git_commands() -> frozenset:
 
 
 _GIT_COMMANDS = None
+# Subcommands whose first operand is a repository (remote name or URL), then refspecs.
+REPOSITORY_FIRST = {"push", "fetch", "pull"}
 # Subcommands where `--` starts pathspecs. Everywhere else it only ends option parsing.
 PATHSPEC_VERBS = {"log", "diff", "show", "checkout", "reset", "restore", "blame", "grep",
                   "rev-list", "shortlog", "whatchanged", "format-patch", "difftool", "stash",
@@ -191,6 +202,7 @@ VERB_REF_FLAGS = {
 VERB_VALUE_FLAGS = {
     "archive": {"-o", "--output", "--prefix", "--format", "--remote", "--add-file"},
     "symbolic-ref": {"-m"}, "update-ref": {"-m"},
+    "rev-parse": {"--prefix", "--git-path", "--resolve-git-dir", "--show-object-format"},
     "tag": {"-m", "-F", "-u", "--message", "--file", "--local-user"},
     "notes": {"-m", "-F", "-C", "-c", "--message", "--file"},
     "bundle": {"--output"}, "format-patch": {"-o", "--output-directory", "--subject-prefix"},
@@ -487,6 +499,13 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
                     tokens = tokens[:positional[0]] + tokens[positional[0] + 1:]
         if verb in ACTION_VERBS:
             tokens = action_operands(verb, tokens)
+        if verb in REPOSITORY_FIRST:
+            # `git push <repository> [<refspec>...]`: the first operand names a remote or URL.
+            values = VERB_VALUE_FLAGS.get(verb, set()) | VALUE_FLAGS_ANYWHERE
+            for k, t in enumerate(tokens):
+                if not t.startswith("-") and not (k and tokens[k - 1] in values):
+                    tokens = tokens[:k] + tokens[k + 1:]
+                    break
         ref_flags = VERB_REF_FLAGS.get(verb, set())
         for i, token in enumerate(tokens):
             if i and (takes_number(tokens[i - 1], verb)
@@ -871,9 +890,15 @@ def tracked_scope() -> list[Path]:
     if out.returncode != 0:
         raise OSError(out.stderr.strip() or "git ls-files failed")
     return [REPO / name for name in out.stdout.split("\0")
-            if name and name not in EXCLUDE and not CAPTURED.match(name)
+            if name and in_scope_name(name)
             and not (REPO / name).is_symlink()
             and is_text(REPO / name)]
+
+
+def in_scope_name(name: str) -> bool:
+    """Whether a tracked path is scanned, before the text check: not an exact exclusion, and
+    not captured corpus text unless it is a maintainer's `*.notes.md` annotation there."""
+    return name not in EXCLUDE and (not CAPTURED.match(name) or name.endswith(".notes.md"))
 
 
 def is_text(path: Path) -> bool:

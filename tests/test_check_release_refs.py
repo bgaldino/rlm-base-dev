@@ -60,6 +60,8 @@ class NumberedBranches(unittest.TestCase):
                      "git.exe worktree add 'C:\\trees\\264'", 'DEFAULT_BASE = "mirror/264"',
                      "base_ref: mirror/264", "git config init.defaultBranch 264",
                      "git config --global init.defaultBranch 264",
+                     "git -c alias.co=checkout co 264", "git -c alias.lg='log --oneline' lg 264",
+                     "the branch was 264", "the branch carried 262",
                      "gh.exe pr create -B 264",
                      "PROTECTED_BRANCHES += 264", 'BASE_BRANCH += "264"',
                      "git branch -u264 master", "git log --branches=264",
@@ -255,6 +257,11 @@ class NumberedBranches(unittest.TestCase):
         # A marker on the opener exempts the opener's own number.
         self.assertEqual(list(crr.findings('base: 264  # release-ref: allow', REF)), [])
 
+    def test_maintainer_notes_inside_a_corpus_are_scanned(self):
+        corpus = "docs/sales" + "force/264/help/articles/"
+        self.assertTrue(crr.in_scope_name(corpus + "pricing.notes.md"))
+        self.assertFalse(crr.in_scope_name(corpus + "pricing.md"))
+
     def test_the_exclusion_is_exact(self):
         self.assertIn("tests/test_check_release_refs.py", crr.EXCLUDE)
         self.assertNotIn("tests/test_check_release_refs.py.snapshot", crr.EXCLUDE)
@@ -354,6 +361,8 @@ class NumberedBranches(unittest.TestCase):
                      "git worktree add --detach 264", "git worktree add -b topic 264",
                      'DEFAULT_BASE = "release/264"', 'base_ref: "docs/264"',
                      "git config init.defaultBranch main", "git config core.fsyncMethod 100",
+                     "git push 264 main", "git fetch 264", "git rev-parse --prefix 264 --show-prefix",
+                     "git -c alias.st=status st 264",
                      "git worktree add ../wt",
                      'ap.add_argument("--base", choices=("main", "x"), default="main")',
                      'subprocess.run(["git", "log", "-n", "100"])',
@@ -403,7 +412,8 @@ class NumberedBranches(unittest.TestCase):
         self.assertTrue([p for p in scanned if p.endswith(".robot")])
         docs = [p for p in scanned if p.startswith("docs")]
         self.assertTrue([p for p in docs if "/" in p and p.count("/") == 1], "docs root unscanned")
-        self.assertFalse([p for p in docs if p in crr.EXCLUDE or crr.CAPTURED.match(p)])
+        self.assertFalse([p for p in docs if p in crr.EXCLUDE or
+                          crr.CAPTURED.match(p) and not p.endswith(".notes.md")])
         # Release-root docs beside the captured corpora are maintained here, so they're scanned.
         self.assertTrue([p for p in docs if p.endswith("feature-index.md") and
                          p.startswith("docs/sales")])
