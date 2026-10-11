@@ -155,6 +155,19 @@ _GIT_COMMANDS = None
 PATHSPEC_VERBS = {"log", "diff", "show", "checkout", "reset", "restore", "blame", "grep",
                   "rev-list", "shortlog", "whatchanged", "format-patch", "difftool", "stash",
                   "add", "rm", "mv", "status", "ls-files", "clean", "commit", "annotate"}
+# Subcommands whose positional operands can be revisions (from git's own synopses). For every
+# other subcommand (`hash-object`, `sparse-checkout`, ...) a positional is a path, name or
+# value; only the value of a ref flag (`--branch`, `-b`, `--onto`, ...) is still read as a ref.
+REVISION_VERBS = {
+    "checkout", "switch", "branch", "merge", "rebase", "reset", "log", "diff", "show",
+    "rev-parse", "rev-list", "merge-base", "cherry", "cherry-pick", "revert", "tag", "push",
+    "pull", "fetch", "format-patch", "archive", "blame", "annotate", "grep", "describe",
+    "shortlog", "whatchanged", "range-diff", "name-rev", "ls-tree", "cat-file", "show-branch",
+    "update-ref", "symbolic-ref", "bisect", "difftool", "request-pull", "replace",
+    "commit-tree", "read-tree", "diff-tree", "show-ref", "verify-commit", "verify-tag",
+    "fast-export", "for-each-ref", "stash", "notes", "restore", "worktree", "remote",
+    "bundle", "config", "clone", "reflog", "cherry-pick", "merge-tree", "log-tree",
+}
 # Subcommands whose positional arguments are only paths (or a URL and directory); in them a
 # number is a ref only as the value of a ref flag (`clone -b NNN`).
 PATH_VERBS = {"add", "rm", "mv", "status", "ls-files", "clean", "commit", "init", "clone",
@@ -189,7 +202,9 @@ VERB_VALUE_FLAGS["tag"] |= {"--format", "--sort", "--color", "--column"}
 for _verb in ("diff", "log", "show", "whatchanged", "format-patch"):
     VERB_VALUE_FLAGS.setdefault(_verb, set()).update(
         {"-S", "-G", "-O", "--output", "--grep", "--author", "--committer", "--format",
-         "--pretty", "--date", "--since", "--until", "--after", "--before"})
+         "--pretty", "--date", "--since", "--until", "--after", "--before", "--line-prefix",
+         "--src-prefix", "--dst-prefix", "--word-diff-regex", "-I", "--ignore-matching-lines",
+         "--anchored", "-l", "--relative", "--color-moved-ws", "--ws-error-highlight"})
 # Long options whose value is a ref though their name has no ref word.
 LONG_REF_FLAGS = {"--force-with-lease", "--shallow-exclude", "--fork-point", "--merged",
                   "--no-merged", "--contains", "--no-contains", "--points-at", "--orphan",
@@ -383,8 +398,13 @@ def action_operands(verb: str, tokens: list) -> list:
                   and not (k and tokens[k - 1] in taken)]
     action = tokens[positional[0]] if positional else ""
     keep = set(positional[spec["from"][action]:]) if action in spec["from"] else set()
-    return [t for k, t in enumerate(tokens)
-            if k in keep or k and tokens[k - 1] in spec["refs"]]
+    out = []
+    for k, t in enumerate(tokens):
+        if k in keep or k and tokens[k - 1] in spec["refs"]:
+            out.append(t)
+        elif t[:2] in spec["refs"] and len(t) > 2:
+            out.append(t[2:])  # attached: `-b264`, `-t264`
+    return out
 
 
 def measure_flag(flag: str, verb: str = "") -> bool:
@@ -443,7 +463,8 @@ def numbered_branch_in_code(line: str, first_len: int = 0, long_line: bool = Fal
             if i and (takes_number(tokens[i - 1], verb)
                       or tokens[i - 1] in VERB_VALUE_FLAGS.get(verb, ())):
                 continue
-            if verb in PATH_VERBS and not token.startswith("-") and not (
+            if (verb in PATH_VERBS or verb not in REVISION_VERBS) and not token.startswith("-") \
+                    and not (
                     i and (tokens[i - 1] in ref_flags or tokens[i - 1].startswith("--")
                            and set(tokens[i - 1].lstrip("-").split("-")) & REF_FLAG_WORDS)):
                 continue  # `git add 264`: a path
