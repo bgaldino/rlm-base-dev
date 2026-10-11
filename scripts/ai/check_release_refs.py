@@ -10,7 +10,8 @@ every branch against a retired line after the cutover.
 What fails, on any line of a tracked instruction or tooling file:
 
 * `ref`: a release number used as a git ref: `origin/NNN`, `refs/heads/NNN`,
-  `--base NNN`, for any remote this repo has.
+  `--base NNN`, `--head NNN` (any tool's flag: `gh pr create`, `check_branch_scope.py`), for
+  any remote this repo has.
 * `branch`: a bare backticked release number (`` `NNN` ``) right next to branch wording:
   "branch (`NNN`", "`NNN` branch", "the `NNN` maintenance branch", "merged into `NNN`",
   "commit to `NNN`", "a branch named `NNN`", "`main`, `NNN`", "`NNN` → `main`" (via
@@ -110,8 +111,12 @@ def identifier_words(name: str) -> set:
     return {w.lower() for w in re.findall(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])", name)}
 
 
-def branch_setting(line: str) -> bool:
+def branch_setting(line: str, first_len: int = 0) -> bool:
+    """`first_len`, for a joined logical line, limits the settings read to those on its first
+    physical line: the block's own nested keys (a JSON object's fields) aren't its value."""
     for match in SETTING.finditer(line):
+        if first_len and match.start() >= first_len:
+            break
         words = identifier_words(match.group(1))
         if not words & BRANCH_WORDS or words & MEASURES:
             continue
@@ -120,7 +125,11 @@ def branch_setting(line: str) -> bool:
             return True
         if value and value[0] in "[({":
             close = {"[": "]", "(": ")", "{": "}"}[value[0]]
-            if ELEMENT.search(value[1:value.find(close) if close in value else None]):
+            inner = value[1:value.find(close) if close in value else None]
+            # `{…}` with `key: value` pairs is a mapping (a JSON object), not a set of refs.
+            if value[0] == "{" and ":" in inner:
+                continue
+            if ELEMENT.search(inner):
                 return True
     return False
 
@@ -136,7 +145,7 @@ def ref_parts(token: str) -> list:
     return [REV_SUFFIX.sub("", part.lstrip("+")) for part in REV_SPLIT.split(token)]
 
 
-def numbered_branch_in_code(line: str) -> bool:
+def numbered_branch_in_code(line: str, first_len: int = 0) -> bool:
     for match in GIT_BRANCH_CMD.finditer(line):
         tokens = match.group(1).split()
         for i, token in enumerate(tokens):
@@ -144,7 +153,7 @@ def numbered_branch_in_code(line: str) -> bool:
                 continue
             if any(re.fullmatch(r"\d{3}", part) for part in ref_parts(token)):
                 return True
-    return branch_setting(line)
+    return branch_setting(line, first_len)
 
 
 def near_branch(line: str) -> bool:
@@ -160,7 +169,7 @@ def near_branch(line: str) -> bool:
 def ref_pattern(remotes) -> re.Pattern:
     names = "|".join(sorted({re.escape(r) for r in remotes}))
     return re.compile(rf"(?<![\w./-])(?:{names})/\d{{3}}\b|refs/heads/\d{{3}}\b"
-                      rf"|--base[ =](?:(?:{names})/)?\d{{3}}\b")
+                      rf"|--(?:base|head)[ =](?:(?:{names})/)?\d{{3}}\b")
 
 
 def remotes() -> set:
@@ -168,7 +177,9 @@ def remotes() -> set:
     return set(KNOWN_REMOTES) | set(out.stdout.split())
 
 
-OPEN_SETTING = re.compile(r"[:=]\s*([\[(])\s*(?:#.*)?$")
+# A setting whose list, tuple or set opens on this line and doesn't close on it.
+OPEN_SETTING = re.compile(r"[:=]\s*([\[({])")
+CLOSER = {"[": "]", "(": ")", "{": "}"}
 LOGICAL_MAX = 50
 
 
@@ -180,8 +191,8 @@ def logical_line(lines: list, i: int) -> str:
         j += 1
         joined = joined.rstrip()[:-1] + " " + lines[j].strip()
     opened = OPEN_SETTING.search(joined)
-    if opened:
-        joined, close = joined[:opened.end(1)], {"[": "]", "(": ")"}[opened.group(1)]
+    close = CLOSER[opened.group(1)] if opened else None
+    if opened and close not in joined[opened.end(1):].split("#")[0]:
         while j + 1 < len(lines) and j - i < LOGICAL_MAX:
             j += 1
             joined += " " + lines[j].strip()
@@ -199,7 +210,7 @@ def findings(text: str, ref: re.Pattern):
             yield number, "ref", line.strip()
         elif near_branch(line):
             yield number, "branch", line.strip()
-        elif numbered_branch_in_code(logical_line(lines, number - 1)):
+        elif numbered_branch_in_code(logical_line(lines, number - 1), len(line)):
             yield number, "code", line.strip()
 
 

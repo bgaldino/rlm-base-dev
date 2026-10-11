@@ -22,6 +22,8 @@ def rules(line):
 class NumberedBranches(unittest.TestCase):
     def test_numbered_refs_and_branches_fail(self):
         for line in ("python scripts/ai/pr_gate.py --base origin/264",
+                     "python scripts/ai/check_branch_scope.py --head 264",
+                     "gh pr create --head 264 --base main", "--head=origin/264",
                      "git diff labs/264 --stat", "--base=264", "git push origin refs/heads/264",
                      'DEFAULT_BASE = "origin/264"',
                      "never push to the active release branch (`264`)",
@@ -79,14 +81,19 @@ class NumberedBranches(unittest.TestCase):
 
     def test_numbered_branches_across_lines_fail_at_their_first_line(self):
         for text in ('PROTECTED = (\n    "main",\n    "264",\n)', "git checkout \\\n  264",
-                     "branches: [\n  main,\n  264\n]", "git push origin \\\n  main \\\n  264"):
+                     "branches: [\n  main,\n  264\n]", "git push origin \\\n  main \\\n  264",
+                     "branches: [main,\n  264\n]", 'PROTECTED = {"main",\n  "264"\n}',
+                     'PROTECTED = {\n  "main",\n  "264",\n}'):
             with self.subTest(text=text):
                 self.assertEqual([(n, r) for n, r, _ in crr.findings(text, REF)], [(1, "code")])
 
     def test_multiline_values_that_are_not_branches_pass(self):
         for text in ("git log -n \\\n  100", 'PROTECTED = (\n  "main",\n)\nx = 264',
                      'targets = [  # roles\n  "main",\n]\nport = (\n  264,\n)',
-                     "git diff \\\n  HEAD~100"):
+                     "git diff \\\n  HEAD~100", 'refs = {"main": 1}\nport = 264',
+                     'base: {\n  "name": "main"\n}\ntimeout = 300',
+                     # The ERD schema's shape: a branch word in a key whose value is an object.
+                     '"GrantBindingTargetType": {\n  "length": 255,\n  "type": "picklist"\n}'):
             with self.subTest(text=text):
                 self.assertEqual(list(crr.findings(text, REF)), [])
 

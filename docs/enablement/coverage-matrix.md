@@ -13,8 +13,8 @@ Working document tracking what enablement artifacts exist across releases, what'
 | `256/` *(label only)* | 256 | Summer '25 | Exercises only (PDF) |
 | `258/` *(label only)* | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
 | `260/` | 260 | Spring '26 | Reference — 10 per-release `.md` drafts complete |
-| `262/` | 262 | Summer '26 | **Prior GA reference** (frozen as `release/262`) — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
-| `264/` | 264 | Winter '27 | **Current release cycle — now on `main`** (preview / pre-GA) — scaffold only. The 264 feature index is populated from the Help corpus; authoring is blocked on tier verification; the Revenue release notes are captured (PR #480) and cross-referenced into it, with note-backed rows provisionally GA, Invoice Risk Scoring Pilot and three note-less New rows tier-unknown until confirmed at GA (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
+| `262/` | 262 | Summer '26 | **Prior GA reference** — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
+| `264/` | 264 | Winter '27 | **Current release cycle** — scaffold only. The 264 feature index is populated from the Help corpus; authoring is blocked on tier verification; the Revenue release notes are captured (PR #480) and cross-referenced into it, with note-backed rows provisionally GA, Invoice Risk Scoring Pilot and three note-less New rows tier-unknown until confirmed at GA (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
 
 > *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/`, `262/`, and `264/` exist as real per-release directories.
 
