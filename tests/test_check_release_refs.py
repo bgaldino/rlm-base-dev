@@ -83,7 +83,7 @@ class Contract(unittest.TestCase):
             '"keyPrefix": "001",', "if base_ref == 264:", "x = 264"))
         # Messages, search patterns, labels and counts that sit near branch words.
         self.assert_clean((
-            'git log --grep "404 error"', "git log -S 123", 'git commit -m "fix 264 build"',
+            'git log --grep "404 error"', "git diff -- 264", "git checkout main -- 264", "git log -S 123", 'git commit -m "fix 264 build"',
             "git log --since 100", "see the 500 open branches", "a 264 org build branch",
             "Target: 200 ms", "Protected: 300 files", 'branches: ["see 123 items"]',
             "targets: [x 100 y]"))

@@ -148,6 +148,8 @@ def numbered_git(line: str) -> bool:
     for match in GIT.finditer(line):
         tokens = QUOTED_PHRASE.sub(" ", match.group(1)).split()
         for i, token in enumerate(tokens):
+            if token == "--":
+                break  # everything after it is a path
             if i and tokens[i - 1] in VALUE_FLAGS:
                 continue
             # Sentence punctuation isn't part of the name (`git checkout NNN.`). A range
