@@ -43,10 +43,10 @@ What this guard does not catch, and what backs it up:
   aren't parsed per wrapper, so a value that names a wrapper (`env -u sudo -C dir`) or a
   repeated chdir (`env -C a -C ../b`, where the last one wins) can resolve the wrong
   directory.
-- State a compound command changes before its push runs, other than a leading `cd <dir> &&`
-  (a push after a second `cd`/`pushd`/`popd` is refused as unresolvable):
-  `git checkout main && git push` and `true && cd elsewhere && git push` are resolved against
-  the branch and directory the command started in. An explicit destination (`git push origin main`) is caught either way.
+- A branch change a compound command makes before its push runs: `git checkout main &&
+  git push` is resolved against the branch the command started on. (Directory changes are
+  covered: a leading `cd <dir> &&` is followed, and a push in a command that changes
+  directory any other way is refused as unresolvable.) An explicit destination (`git push origin main`) is caught either way.
 - For both push cases above the server is the backstop: the "Approvals" branch ruleset on
   `main`, `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion,
   and its admin bypass applies to pull-request merges only, so a direct push with the
@@ -529,22 +529,36 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     `(cd <dir> && …)`, moves them (`cd .agents/artifacts && git push`). The starting directory
     is checked too when the target can't be resolved as the shell would (`-`, `$…`, a
     backtick, `CDPATH`, a directory that doesn't exist), or when anything after it can run if
-    the `cd` failed. None if it moves again (`cd a && cd b && git push`): later moves can be
-    conditional, use variables or sit in subshells, so where a push runs is unresolvable."""
+    the `cd` failed. None for any other change of directory (`cd a; git push`, `x && cd a`,
+    `cd a && cd b`): those can be conditional, use variables or sit in subshells, so where a
+    push runs is unresolvable."""
+    # Heredoc bodies are data (a commit message may mention `cd`), as in simple_commands.
+    command = "\n".join(code_lines(command.splitlines()))
     lexer = shlex.shlex(command, posix=True, punctuation_chars="();<>|&\n")
     lexer.whitespace, lexer.whitespace_split = " \t\r", True
     try:
         tokens = list(lexer)
     except ValueError:
         return [cwd]
-    i = 1 if tokens[:1] == ["("] else 0
-    if tokens[i:i + 1] != ["cd"] or len(tokens) < i + 3 or tokens[i + 2] != "&&":
+    if not any(t in MOVES for t in tokens):
         return [cwd]
-    raw = tokens[i + 1]
+    # The one form followed: a leading `cd [-L|-P|-e|-@]… [--] <dir> &&`, optionally in `( )`.
+    # Any other change of directory makes where a push runs unresolvable.
+    i = 1 if tokens[:1] == ["("] else 0
+    if tokens[i:i + 1] != ["cd"]:
+        return None
+    j = i + 1
+    while j < len(tokens) and re.fullmatch(r"-[LPe@]+", tokens[j]):
+        j += 1
+    if j < len(tokens) and tokens[j] == "--":
+        j += 1
+    if len(tokens) < j + 2 or tokens[j + 1] != "&&":
+        return None
+    raw = tokens[j]
     target = os.path.join(cwd, os.path.expanduser(raw))
     unresolved = (raw.startswith("-") or "$" in raw or "`" in raw or not os.path.isdir(target)
                   or (os.environ.get("CDPATH") and not raw.startswith(("/", "./", "../"))))
-    rest = tokens[i + 3:]
+    rest = tokens[j + 2:]
     if any(t in MOVES for t in rest):
         return None
     if unresolved or any(t in UNCONDITIONAL for t in rest):

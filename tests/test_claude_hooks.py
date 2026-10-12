@@ -165,10 +165,20 @@ class PushGuard(unittest.TestCase):
             sh(Path(self.tmp.name), "git", "clone", "-q", "-b", "main",
                str(Path(self.tmp.name) / "remote.git"), str(on_main))
         for command in (f"cd {art} && cd {on_main} && git push", f"cd {art} && pushd {on_main} "
-                        "&& git push", f"cd {art} && cd . && git push"):
+                        "&& git push", f"cd {art} && cd . && git push",
+                        f"cd -- {on_main} && git push", f"cd -P {on_main} && git push",
+                        f"cd {on_main}; git push", f"true && cd {on_main} && git push",
+                        f"pushd {on_main} && git push"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
         self.assertEqual(self.decision(f"cd {art} && cd . && git status"), "allow")
+        # A heredoc body that mentions cd is data, not a change of directory.
+        self.assertEqual(self.decision("git commit -q -F - <<'EOF'\nfix: cd a && cd b\nEOF\n"
+                                       "git push -q origin feature"), "allow")
+        for command in (f"cd -- {art} && git push", f"cd -P {art} && git push",
+                        f"cd -L -- {art} && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "allow")
         self.assertEqual(self.decision("git push origin main"), "deny")
 
     def test_the_exemption_needs_every_push_url_to_be_the_artifacts_repo(self):
