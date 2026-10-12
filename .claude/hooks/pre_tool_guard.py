@@ -301,9 +301,12 @@ def push_decision(push: Push) -> Tuple[str, str]:
     if push.unresolvable:
         return "deny", f"{push.unresolvable}, so this push is refused rather than guessed at"
     d, opts = push.directory, push.opts
-    force, positional, remote_flag, i = False, [], None, 0
+    force, tags, positional, remote_flag, i = False, False, [], None, 0
     while i < len(push.args):
         arg = push.args[i]
+        if arg == "--":  # everything after it is the repository and refspecs, never an option
+            positional += push.args[i + 1:]
+            break
         name, eq, value = arg.partition("=")
         name = long_option(name, PUSH_LONG)
         if name in EVERYTHING_FLAGS:
@@ -315,6 +318,8 @@ def push_decision(push: Push) -> Tuple[str, str]:
                 i += 1
         elif name in FORCE_LONG:
             force = True
+        elif name in ("--tags", "--no-tags"):
+            tags = name == "--tags"  # the last one wins
         elif name == "--repo":
             if eq:
                 remote_flag = value
@@ -334,7 +339,10 @@ def push_decision(push: Push) -> Tuple[str, str]:
               or "origin")
     refspecs = positional[1:]
     configured = False
-    if not refspecs:
+    # `--tags` is itself a refspec (refs/tags/*): with no other on the command line, git
+    # pushes only tags and uses neither remote.<name>.push nor push.default.
+    tags_only = tags and not refspecs
+    if not refspecs and not tags_only:
         # With no refspec on the command line, git uses `remote.<remote>.push` if set (from
         # the repo config or this command's `-c`), and only otherwise push.default.
         listed = git(d, "config", "--get-all", f"remote.{remote}.push", opts=opts)
@@ -353,7 +361,7 @@ def push_decision(push: Push) -> Tuple[str, str]:
             if not dst and src in ("HEAD", "@"):
                 dst = current or src
             targets.append(dst or src)
-    else:
+    elif not tags_only:
         # A bare push goes to @{push} (the same-named branch or the upstream, by push.default),
         # so check both @{push} and @{upstream}: `git -c push.default=upstream push` reaches
         # the upstream even where the plain config makes @{push} unresolvable. A feature
