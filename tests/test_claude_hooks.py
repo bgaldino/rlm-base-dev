@@ -105,6 +105,22 @@ class PushGuard(unittest.TestCase):
         # A dev/ branch is ordinary work; only main, preview/* and release/* are protected.
         self.assertEqual(self.decision("git push", branch="dev/next"), "allow")
 
+    def test_a_tag_only_push_from_a_protected_branch_is_allowed(self):
+        # `--tags` with no other refspec pushes only tags, whatever branch is checked out.
+        for command in ("git push --tags origin", "git push origin --tags", "git push --tags",
+                        "git push --ta origin", "git -c push.default=matching push --tags"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "allow")
+        sh(self.work, "git", "config", "remote.origin.push", "HEAD:refs/heads/main")
+        try:
+            self.assertEqual(self.decision("git push --tags origin"), "allow")
+        finally:
+            sh(self.work, "git", "config", "--unset", "remote.origin.push")
+        # A branch named alongside --tags is still checked.
+        self.assertEqual(self.decision("git push --tags origin main"), "deny")
+        self.assertEqual(self.decision("git push --tags origin HEAD", branch="main"), "deny")
+        self.assertEqual(self.decision("git push --follow-tags", branch="main"), "deny")
+
     def test_redirections_are_not_push_arguments(self):
         for command in ("git push 2>&1 | tail -1", "git push >/tmp/push.log",
                         "git push &>> log", "git push 1>&2 2> /dev/null", "git push < /dev/null",
