@@ -102,6 +102,8 @@ _NEGATABLE = ("all", "atomic", "branches", "delete", "dry-run", "exec", "follow-
 PUSH_LONG = tuple(f"--{n}" for n in _NEGATABLE) + tuple(f"--no-{n}" for n in _NEGATABLE) + (
     "--ipv4", "--ipv6", "--verify", "--no-verify")
 EVERYTHING_FLAGS = ("--mirror", "--all", "--branches")
+# Shell reserved words that can precede a simple command (`! git push`, `if git push …; then`).
+SHELL_PREFIX = {"!", "{", "}", "if", "then", "elif", "else", "do", "while", "until", "fi", "done"}
 ENV_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
 
 DELETE_OLD_DATA = re.compile(r'"deleteOldData"\s*:\s*true')
@@ -176,6 +178,8 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None,
              depth: int = 0) -> Optional[Push]:
     """A Push if argv runs `git push` directly or through an alias, else None."""
     env = dict(env or {})
+    while argv and argv[0] in SHELL_PREFIX:
+        argv = argv[1:]
     while argv and ENV_ASSIGNMENT.match(argv[0]):
         name, _, value = argv[0].partition("=")
         env[name] = value
@@ -196,7 +200,10 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None,
                         continue
                     flag, eq, value = word.partition("=")
                     flag = long_option(flag, WRAPPER_LONG.get(wrapper, ()))
-                    if flag in (CHDIR.get(wrapper), "--chdir") and wrapper in CHDIR:
+                    short = CHDIR.get(wrapper)
+                    if short and word.startswith(short) and len(word) > len(short):
+                        directory = os.path.join(directory, word[len(short):])  # `-Cdir`
+                    elif flag in (short, "--chdir") and short:
                         if eq:
                             directory = os.path.join(directory, value)
                         elif j + 1 < at:

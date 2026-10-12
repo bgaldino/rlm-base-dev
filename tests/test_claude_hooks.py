@@ -88,6 +88,8 @@ class PushGuard(unittest.TestCase):
                         "timeout 60 git push origin main", "ionice -c3 git push origin main",
                         "true \\\\\ngit push origin main", "# note \\\ngit push origin main",
                         "git push \\\r\n  origin main", "sudo -u git git push origin main",
+                        "! git push origin HEAD:main", "if git push origin main; then :; fi",
+                        "while ! git push origin main; do sleep 1; done", "{ git push origin main; }",
                         "env -C /srv/git git push origin main", "env GIT_DIR=x git push origin feature",
                         "git push -fo ci.skip origin main",
                         "cat > x.md <<'EOF'\nnotes\nEOF\ngit push origin main"):
@@ -149,7 +151,8 @@ class PushGuard(unittest.TestCase):
                         f"sudo -D {other} git push", f"env --chd={other} git push",
                         f"env --c {other} git push", f"sudo --chd {other} git push",
                         f"timeout 60 env -C {other} git push",
-                        f"nice -n 5 sudo -D {other} git push"):
+                        f"nice -n 5 sudo -D {other} git push", f"env -C{other} git push",
+                        f"sudo -D{other} git push"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
         self.assertEqual(self.decision(f"env -C {other} git status"), "allow")
