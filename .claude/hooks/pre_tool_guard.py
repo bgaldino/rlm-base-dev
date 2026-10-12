@@ -607,7 +607,8 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     `(cd <dir> && …)`, moves them (`cd .agents/artifacts && git push`), and the starting
     directory is checked too when anything after it can run if the `cd` failed, or follows
     the subshell. None when where a push runs can't be resolved: a target the shell would
-    resolve differently (`-`, `~`, `$…`, a backtick, `CDPATH`, a missing directory), or any other
+    resolve differently (`-`, `~`, `$…`, a backtick, a glob or brace, `CDPATH`, a missing
+    directory), or any other
     change of directory (`cd a; git push`, `x && cd a`, `cd a && cd b`, `time cd a`). Any
     standalone `cd`/`pushd`/`popd` word counts, other than a redirection's operand."""
     # Heredoc bodies are data (a commit message may mention `cd`), as in simple_commands.
@@ -649,7 +650,8 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     target = os.path.normpath(os.path.join(cwd, raw))
     # The lexer has dropped quotes, so `~` can't be told from `'~'` (a literal directory): a
     # tilde target is refused like any other the guard can't resolve as the shell would.
-    if (raw.startswith(("-", "~")) or "$" in raw or "`" in raw or not os.path.isdir(target)
+    # Nor can a glob or brace expansion (`[x]`, `*`, `{a,b}`) be told from a literal name.
+    if (raw.startswith(("-", "~")) or set(raw) & set("$`*?[]{}") or not os.path.isdir(target)
             or (os.environ.get("CDPATH") and not raw.startswith(("/", "./", "../")))):
         return None
     rest = tokens[j + 2:]

@@ -252,6 +252,12 @@ class PushGuard(unittest.TestCase):
         if not tilde.exists():
             sh(self.work, "git", "clone", "-q", "-b", "main",
                str(Path(self.tmp.name) / "remote.git"), str(tilde))
+        # A glob or brace target is refused: quoted it's literal, unquoted the shell expands it.
+        (self.work / "[x]").mkdir(exist_ok=True)
+        for command in ("cd [x] && git push", "cd '[x]' && git push", "cd *x* && git push",
+                        "cd {a,b} && git push", "cd ?x? && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
         for command in ("cd '~' && git push", "cd \\~ && git push", "cd ~ && git push"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
