@@ -170,7 +170,9 @@ class PushGuard(unittest.TestCase):
                         "origin",
                         "git -c remote.origin.push=HEAD:main push --recurse check origin",
                         "git -c remote.origin.push=HEAD:main push --push-opt x origin",
-                        "git push --mir", "git push --bra origin"):
+                        "git push --mir", "git push --bra origin",
+                        "git -c push.default=matching push",
+                        "git -c push.default=Matching push origin"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
         sh(self.work, "git", "config", "remote.origin.push", "HEAD:refs/heads/main")

@@ -342,6 +342,9 @@ def push_decision(push: Push) -> Tuple[str, str]:
         # so check both @{push} and @{upstream}: `git -c push.default=upstream push` reaches
         # the upstream even where the plain config makes @{push} unresolvable. A feature
         # branch that tracks main is refused here; plain git would refuse that push anyway.
+        if (git(d, "config", "--get", "push.default", opts=opts) or "").lower() == "matching":
+            return "deny", ("push.default=matching pushes every branch that exists on both "
+                            "ends, protected ones included")
         for spec in ("@{push}", "@{upstream}"):
             where = git(d, "rev-parse", "--abbrev-ref", "--symbolic-full-name", spec, opts=opts)
             if where and "/" in where:
