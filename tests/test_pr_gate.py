@@ -663,7 +663,10 @@ print("\nEvery action in every workflow is pinned to a full commit SHA")
 # The ESAG GitHub Actions Security Guide requires SHA pins, and the repository setting that
 # enforces it server-side can be switched off; this is the check that still fails a PR then.
 # A local `./action` has no remote ref to pin; a `docker://` image must carry an @sha256 digest.
-USES_LINE = re.compile(r"""^\s*(?:-\s*)?uses:\s*["']?([^"'\s#]+)""")
+# Every `uses` key counts, however YAML spells it (`uses :`, `"uses":`, `- { uses: … }`), and a
+# value this can't read as one plain ref (a block scalar, an empty value) counts as unpinned:
+# an allowlist of the readable pinned form, not a list of the spellings to look for.
+USES_KEY = re.compile(r"""(?:^|[\s{,])["']?uses["']?\s*:\s*["']?([^"'\s,}#]*)""")
 FULL_SHA_USE = re.compile(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}")
 workflows_dir = os.path.join(REPO, ".github", "workflows")
 unpinned = []
@@ -672,22 +675,30 @@ for name in sorted(os.listdir(workflows_dir)) if os.path.isdir(workflows_dir) el
         continue
     with open(os.path.join(workflows_dir, name)) as fh:
         for number, line in enumerate(fh, 1):
-            found = USES_LINE.match(line)
-            if not found:
+            if line.lstrip().startswith("#"):
                 continue
-            ref = found.group(1)
-            if ref.startswith("./") or (ref.startswith("docker://") and "@sha256:" in ref):
-                continue
-            if not FULL_SHA_USE.fullmatch(ref):
-                unpinned.append(f"{name}:{number}: {ref}")
+            for found in USES_KEY.finditer(line):
+                ref = found.group(1)
+                if ref.startswith("./") or (ref.startswith("docker://") and "@sha256:" in ref):
+                    continue
+                if not FULL_SHA_USE.fullmatch(ref):
+                    unpinned.append(f"{name}:{number}: {ref or line.strip()}")
 check("no `uses:` in .github/workflows is a tag, a branch or a short SHA", not unpinned, unpinned)
+SHA = "c" * 40
 for label, line, ok in (("a release tag", "      - uses: actions/checkout@v6", False),
                         ("a branch", "        uses: docker/login-action@master", False),
+                        ("a space before the colon", "        uses : actions/checkout@v6", False),
+                        ("a quoted key", '        "uses": actions/checkout@v6', False),
+                        ("a flow mapping", "      - { uses: actions/checkout@v6 }", False),
+                        ("a flow mapping with other keys",
+                         "      - { name: x, uses: actions/checkout@v6 }", False),
+                        ("a block scalar", "        uses: >-", False),
                         ("a full SHA with a version comment",
-                         "        uses: actions/cache@" + "c" * 40 + "  # v5.1.0", True)):
-    ref = USES_LINE.match(line).group(1)
+                         f"        uses: actions/cache@{SHA}  # v5.1.0", True),
+                        ("a full SHA in a flow mapping", f"      - {{ uses: actions/cache@{SHA} }}", True)):
+    refs = [m.group(1) for m in USES_KEY.finditer(line)]
     check(f"that rule {'accepts' if ok else 'rejects'} {label}",
-          bool(FULL_SHA_USE.fullmatch(ref)) is ok, line)
+          bool(refs) and all(bool(FULL_SHA_USE.fullmatch(r)) for r in refs) is ok, line)
 
 print("\nThe workflow that runs the gate cannot be quietly defanged")
 # The gate is only as real as the job that invokes it, and every way of disabling that job
@@ -5161,7 +5172,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 716
+EXPECTED = 722
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
