@@ -35,10 +35,11 @@ What this guard does not catch, and what backs it up:
 - State a compound command changes before its push runs: `git checkout main && git push` and
   `cd elsewhere && git push` are resolved against the branch and directory the command
   started in. An explicit destination (`git push origin main`) is caught either way.
-- Aliases more than one level deep (an alias whose expansion is another alias). The
-  branch ruleset requires a PR on `main` and `release/*`, but its bypass list includes the
-  repository admin role, and agents push with the owner's credentials, so for those pushes
-  there is no server-side backstop until that bypass is narrowed.
+- Aliases more than one level deep (an alias whose expansion is another alias).
+  For all of these the server is the backstop: the "Approvals" branch ruleset on `main`,
+  `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion, and its
+  admin bypass applies to pull-request merges only, so a direct push with the owner's
+  credentials is rejected. This guard refuses it earlier and says why.
 - SFDMU edits made through Bash (`sed -i`, a script) rather than Edit/Write. No diff-level
   check for destructive operations exists in `pr_gate.py` yet; adding one is planned with the
   defect registry work, and until then a person reviewing the diff is the only backstop.
