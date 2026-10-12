@@ -83,7 +83,11 @@ class PushGuard(unittest.TestCase):
                         "env -i git push origin HEAD:main", "env -u HOME git push origin main",
                         "command git push origin main", "sudo -E git push origin main",
                         "time git push origin main", "nohup git push origin main &",
-                        "nice -n 10 git push origin main", "git push \\\n  origin main"):
+                        "nice -n 10 git push origin main", "git push \\\n  origin main",
+                        "sudo -n git push origin main", "exec -a x git push origin main",
+                        "timeout 60 git push origin main", "ionice -c3 git push origin main",
+                        "true \\\\\ngit push origin main", "# note \\\ngit push origin main",
+                        "git push \\\r\n  origin main"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
 
@@ -110,7 +114,8 @@ class PushGuard(unittest.TestCase):
         for command in ("git push --force origin feature", "git push -f",
                         "git push --force-with-lease origin feature", "git push origin +feature",
                         "git push -uf origin feature", "git push -fu origin feature",
-                        "git push --force-with-lease=feature origin feature"):
+                        "git push --force-with-lease=feature origin feature",
+                        "git push --forc origin feature", "git push --force-with origin feature"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "ask")
 
@@ -118,7 +123,9 @@ class PushGuard(unittest.TestCase):
         for command in ("git push origin feature", "git push -u origin feature",
                         "echo git push origin main", "git log main", "git pushx origin main",
                         "git -c user.name=x push origin feature", "sudo ls", "time make",
-                        "env -u HOME git push origin feature", "git push --follow-tags origin feature"):
+                        "env -u HOME git push origin feature", "git push --follow-tags origin feature",
+                        "command -v git", "git push -oforce origin feature",
+                        "timeout 60 git fetch origin"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
 

@@ -208,7 +208,8 @@ class ValidateSetup(BaseTask):
         except Exception as exc:
             return self._warn(label, f"check failed: {exc}")
         finally:
-            sys.path.remove(scripts_ai)
+            if scripts_ai in sys.path:
+                sys.path.remove(scripts_ai)
         if problems:
             return self._warn(
                 label, "; ".join(problems) + " — create it as described in scripts/ai/gate_python.py"

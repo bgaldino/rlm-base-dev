@@ -11,8 +11,9 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    (`HEAD:main`), a bare `git push` whose upstream is `main`, a configured
    `remote.<name>.push` refspec (from the repo config or the command's own `-c`), a git
    alias that expands to `push`, `git -C <dir> push`, `--mirror`/`--all`, a push behind a
-   command wrapper (`env -i`, `command`, `sudo`, `time`, `nohup`, `nice`, `exec`) or split
-   across lines with a trailing backslash. Release lines are
+   command wrapper (a command starting with `env`, `sudo`, `time`, `timeout`, `nohup`,
+   `nice` and the others in WRAPPERS, whatever their options), or split across lines with a
+   trailing backslash. Release lines are
    matched by prefix, never by number. A push the guard cannot resolve to concrete
    destinations is denied rather than guessed at: wildcard refspecs, `--config-env`, `GIT_*`
    environment overrides, and shell aliases that run `push`. The `Bash(git push origin …)`
@@ -30,8 +31,8 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    Either takes effect at the agent's next tool call; neither aborts a tool already running.
 
 What this guard does not catch, and what backs it up:
-- Commands hidden in `$(...)`, `bash -c`, `eval`, `xargs` or `find -exec`, and pushes by any
-  non-git program.
+- Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
+  wrapper not in WRAPPERS, and pushes by any non-git program.
 - State a compound command changes before its push runs: `git checkout main && git push` and
   `cd elsewhere && git push` are resolved against the branch and directory the command
   started in. An explicit destination (`git push origin main`) is caught either way.
@@ -69,11 +70,12 @@ GIT_GLOBAL_REPLAYED = {"-c", "--git-dir", "--work-tree", "--namespace"}
 # `git push` options that take a separate argument, so their value is not read as a remote.
 PUSH_WITH_ARG = {"-o", "--push-option", "--receive-pack", "--exec"}
 FORCE_LONG = ("--force", "--force-with-lease", "--force-if-includes")
-FORCE_SHORT = re.compile(r"-[A-Za-z]*f[A-Za-z]*")  # `-f`, and `-uf`/`-fu` clusters
-# Programs that run the command after their own options, and the options that take a value.
-WRAPPERS = {"env", "command", "sudo", "time", "nohup", "nice", "exec", "builtin"}
-WRAPPER_WITH_ARG = {"-u", "--unset", "-C", "--chdir", "-n", "--adjustment", "-g", "--group",
-                    "--user"}
+# `-f` alone or clustered with `git push`'s other no-value short flags (`-uf`, `-fu`).
+FORCE_SHORT = re.compile(r"-[46dnquv]*f[46dnquv]*")
+# Programs that run another command after their own options and values. Rather than model
+# each one's options, the push is read from the first `git` after the wrapper.
+WRAPPERS = {"env", "command", "builtin", "exec", "sudo", "doas", "time", "timeout", "nohup",
+            "nice", "ionice", "stdbuf", "setsid", "chronic", "caffeinate", "arch", "unbuffer"}
 EVERYTHING_FLAGS = ("--mirror", "--all", "--branches")
 ENV_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
 
@@ -99,7 +101,11 @@ def git(cwd: str, *args: str, opts: Sequence[str] = ()) -> Optional[str]:
 
 def simple_commands(command: str) -> Iterator[List[str]]:
     """Each simple command in a shell line, as argv. Unparseable text yields nothing."""
-    for line in re.sub(r"\\\n", " ", command).splitlines():  # rejoin `\`-continued lines
+    # Each line as written and with `\`-continued lines rejoined: the shell may read it
+    # either way (an escaped `\\`, a backslash in a comment), so both are checked.
+    joined = re.sub(r"\\\r?\n", " ", command)
+    lines = command.splitlines() + ([] if joined == command else joined.splitlines())
+    for line in lines:
         lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
         lexer.whitespace_split = True
         try:
@@ -128,20 +134,16 @@ class Push:
 def git_push(argv: List[str], cwd: str) -> Optional[Push]:
     """A Push if argv runs `git push` directly or through an alias, else None."""
     env: Dict[str, str] = {}
-    wrapped = False
-    while argv:
-        word = argv[0]
-        if ENV_ASSIGNMENT.match(word):
-            name, _, value = word.partition("=")
-            env[name] = value
-        elif os.path.basename(word) in WRAPPERS:
-            wrapped = True
-        elif wrapped and word.startswith("-"):
-            if word in WRAPPER_WITH_ARG:
-                argv = argv[1:]
-        else:
-            break
+    while argv and ENV_ASSIGNMENT.match(argv[0]):
+        name, _, value = argv[0].partition("=")
+        env[name] = value
         argv = argv[1:]
+    if argv and os.path.basename(argv[0]) in WRAPPERS:
+        at = next((i for i, w in enumerate(argv) if os.path.basename(w) == "git"), None)
+        if at is None:
+            return None
+        env.update(w.partition("=")[::2] for w in argv[1:at] if ENV_ASSIGNMENT.match(w))
+        argv = argv[at:]
     if not argv or os.path.basename(argv[0]) != "git":
         return None
     i, directory, opts, config_env = 1, cwd, [], False
@@ -203,7 +205,10 @@ def push_decision(push: Push) -> Tuple[str, str]:
         arg = push.args[i]
         if arg in EVERYTHING_FLAGS:
             return "deny", f"`git push {arg}` updates protected branches too"
-        if arg.split("=", 1)[0] in FORCE_LONG or FORCE_SHORT.fullmatch(arg):
+        name = arg.split("=", 1)[0]
+        # git takes any unambiguous prefix of a long option: `--forc` is `--force`.
+        if FORCE_SHORT.fullmatch(arg) or (name.startswith("--forc")
+                                          and any(f.startswith(name) for f in FORCE_LONG)):
             force = True
         elif arg == "--repo" and i + 1 < len(push.args):
             remote_flag = push.args[i + 1]
@@ -296,7 +301,8 @@ def destructive_objects(text: str) -> Optional[Dict[Tuple[str, int], Tuple[bool,
     except Exception:  # noqa: BLE001  any failure falls back to the text comparison, which asks
         return None
     finally:
-        sys.path.remove(str(CHECKOUT / "scripts"))
+        if str(CHECKOUT / "scripts") in sys.path:
+            sys.path.remove(str(CHECKOUT / "scripts"))
     try:
         return _objects(sfdmu, json.loads(text))
     except Exception:  # noqa: BLE001  a plan shape the parsers choke on: same fallback
