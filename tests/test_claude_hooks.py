@@ -130,6 +130,47 @@ class PushGuard(unittest.TestCase):
         self.assertEqual(self.decision("git push -- origin main"), "deny")
         self.assertEqual(self.decision("git push -- origin feature"), "allow")
 
+    def artifacts_clone(self):
+        """A clone, on main, of a remote whose URL names the private artifacts repo."""
+        root = Path(self.tmp.name)
+        remote = root / "gh" / "bgaldino" / "rlm-base-artifacts.git"
+        clone = root / "artifacts"
+        if not clone.exists():
+            remote.parent.mkdir(parents=True)
+            sh(root, "git", "init", "-q", "--bare", str(remote))
+            sh(root, "git", "init", "-q", "-b", "main", str(clone))
+            for key, value in (("user.email", "t@example.com"), ("user.name", "t"),
+                               ("commit.gpgsign", "false")):
+                sh(clone, "git", "config", key, value)
+            sh(clone, "git", "commit", "-q", "--allow-empty", "-m", "base")
+            sh(clone, "git", "remote", "add", "origin", str(remote))
+            sh(clone, "git", "push", "-q", "-u", "origin", "main")
+        return clone
+
+    def test_the_artifacts_repo_takes_direct_pushes_to_main(self):
+        art = self.artifacts_clone()
+        for command in (f"git -C {art} push", f"git -C {art} push origin main",
+                        f"cd {art} && git push", f"cd {art} && git add -A && git push -q 2>&1",
+                        f"env -C {art} git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
+        # A force push there still asks; this repository's main is still refused.
+        self.assertEqual(self.decision(f"git -C {art} push -f origin main"), "ask")
+        self.assertEqual(self.decision(f"cd {art} && git push && cd {self.work} && git push "
+                                       "origin main"), "deny")
+        self.assertEqual(self.decision("git push origin main"), "deny")
+
+    def test_a_leading_cd_is_followed_only_when_the_rest_depends_on_it(self):
+        art = self.artifacts_clone()
+        # If the cd fails, `;` and `||` still run the push here, on main.
+        for command in (f"cd {art}; git push", f"cd {art} || git push", f"cd {art} && x; git push",
+                        f"cd {art} && x\ngit push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "deny")
+        self.assertEqual(self.decision(f"cd {art} && git push", branch="main"), "allow")
+        self.assertEqual(self.decision(f"cd '{art}' && git push 2>&1 | tail -1", branch="main"),
+                         "allow")
+
     def test_redirections_are_not_push_arguments(self):
         for command in ("git push 2>&1 | tail -1", "git push >/tmp/push.log",
                         "git push &>> log", "git push 1>&2 2> /dev/null", "git push < /dev/null",

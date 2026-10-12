@@ -22,6 +22,9 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    aliases that run `push`. Redirections (`2>&1`, `>log`, before or after the command) are
    not arguments. The `Bash(git push origin …)`
    deny rules in settings.json only catch the literal spelling.
+   A leading `cd <dir> &&` is followed. The private artifacts repo (`rlm-base-artifacts`,
+   cloned at `.agents/artifacts`) takes direct commits on its `main` by design, so a push
+   whose remote is that repository isn't refused for its target; every other repository is.
    Adapter policy, not a DO NOT 8 rule: a force push to any other branch asks the person.
 2. SFDMU destructive operation (CRITICAL rule). An edit to a `datasets/` plan that makes any
    object newly destructive asks the person: `deleteOldData` turning on, or an `Upsert`
@@ -40,9 +43,9 @@ What this guard does not catch, and what backs it up:
   aren't parsed per wrapper, so a value that names a wrapper (`env -u sudo -C dir`) or a
   repeated chdir (`env -C a -C ../b`, where the last one wins) can resolve the wrong
   directory.
-- State a compound command changes before its push runs: `git checkout main && git push` and
-  `cd elsewhere && git push` are resolved against the branch and directory the command
-  started in. An explicit destination (`git push origin main`) is caught either way.
+- State a compound command changes before its push runs, other than a leading `cd <dir> &&`:
+  `git checkout main && git push` and `true && cd elsewhere && git push` are resolved against
+  the branch and directory the command started in. An explicit destination (`git push origin main`) is caught either way.
 - For both push cases above the server is the backstop: the "Approvals" branch ruleset on
   `main`, `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion,
   and its admin bypass applies to pull-request merges only, so a direct push with the
@@ -66,6 +69,10 @@ from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Sequence, Tuple
 
 PROTECTED = ("main",)
+# Repositories whose protected-looking branches are pushed to directly by design: the private
+# artifacts repo (`.agents/artifacts`, the todo tracker) takes commits on its `main`. Matched
+# against the push remote's URL, so every other repository stays protected by default.
+UNPROTECTED_REPOS = re.compile(r"[:/]bgaldino/rlm-base-artifacts(?:\.git)?/?$")
 PROTECTED_PREFIXES = ("preview/", "release/")
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 # git's global options that take a separate argument, so `git -C dir push` is still a push.
@@ -375,7 +382,8 @@ def push_decision(push: Push) -> Tuple[str, str]:
                 targets.append(strip_remote(where))
         if current and current != "HEAD":
             targets.append(current)
-    hit = [t for t in targets if is_protected(t)]
+    url = git(d, "remote", "get-url", "--push", remote, opts=opts) or remote
+    hit = [] if UNPROTECTED_REPOS.search(url) else [t for t in targets if is_protected(t)]
     if hit:
         how = f" (via the configured remote.{remote}.push refspec)" if configured else ""
         return "deny", (f"this push updates {', '.join(sorted(set(hit)))}{how}. AGENTS.md DO NOT "
@@ -506,6 +514,24 @@ def respond(decision: str, reason: str) -> int:
     return 0
 
 
+LEADING_CD = re.compile(r"^\s*cd\s+(\"[^\"]*\"|'[^']*'|[^\s;&|]+)\s*&&")
+# What means a later command may not run in the `cd` target: `;`, `||`, a newline or a lone `&`
+# (it runs even if the `cd` failed), or another `cd`/`pushd`/`popd` (it moves again).
+UNCONDITIONAL = re.compile(r";|\|\||\n|(?<![&>])&(?![&>])|\b(?:cd|pushd|popd)\b")
+
+
+def command_directories(command: str, cwd: str) -> List[str]:
+    """The directories this command's pushes may run in. A leading `cd <dir> &&` moves them
+    (`cd .agents/artifacts && git push`), but if anything after it can run when the `cd` fails,
+    or moves again, the starting directory is checked too."""
+    lead = LEADING_CD.match(command)
+    if not lead:
+        return [cwd]
+    target = os.path.join(cwd, os.path.expanduser(lead.group(1).strip("\"'")))
+    rest = re.sub(r"\"[^\"]*\"|'[^']*'", "", command[lead.end():])
+    return [target, cwd] if UNCONDITIONAL.search(rest) else [target]
+
+
 def decide(event: dict) -> Tuple[str, str]:
     tool = event.get("tool_name") or ""
     tool_input = event.get("tool_input") or {}
@@ -515,14 +541,16 @@ def decide(event: dict) -> Tuple[str, str]:
         return "deny", f"{stop}. Make no more tool calls; say where you got to and stop"
     if tool == "Bash":
         worst = ("allow", "")
-        for argv in simple_commands(tool_input.get("command") or ""):
-            push = git_push(argv, cwd)
-            if push:
-                decision = push_decision(push)
-                if decision[0] == "deny":
-                    return decision
-                if decision[0] == "ask":
-                    worst = decision
+        command = tool_input.get("command") or ""
+        for directory in command_directories(command, cwd):
+            for argv in simple_commands(command):
+                push = git_push(argv, directory)
+                if push:
+                    decision = push_decision(push)
+                    if decision[0] == "deny":
+                        return decision
+                    if decision[0] == "ask":
+                        worst = decision
         return worst
     change = text_change(tool, tool_input)
     if change:
