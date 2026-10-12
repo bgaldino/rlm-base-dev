@@ -239,6 +239,14 @@ class PushGuard(unittest.TestCase):
         # could be any directory, not just the starting one.
         self.assertEqual(self.decision(f"ON_MAIN={on_main} && cd \"$ON_MAIN\" && git push"), "deny")
         self.assertEqual(self.decision("cd \"$MAIN_CHECKOUT\" && git push"), "deny")
+        # A tilde target is refused: quoted it's a literal directory, unquoted it's $HOME.
+        tilde = self.work / "~"
+        if not tilde.exists():
+            sh(self.work, "git", "clone", "-q", "-b", "main",
+               str(Path(self.tmp.name) / "remote.git"), str(tilde))
+        for command in ("cd '~' && git push", "cd \\~ && git push", "cd ~ && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
         # A redirection's operand named cd is not a change of directory.
         for command in ("cat < cd && git push origin feature", "echo x > cd && git push origin feature",
                         "cat <<< cd && git push origin feature",
