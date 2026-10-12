@@ -166,6 +166,10 @@ class PushGuard(unittest.TestCase):
                 self.assertEqual(self.decision(command), "allow")
         # A force push there still asks; this repository's main is still refused.
         self.assertEqual(self.decision(f"git -C {art} push -f origin main"), "ask")
+        # GitHub names are case-insensitive, so a differently cased URL is still the repo.
+        upper = Path(self.tmp.name) / "gh" / "BGaldino" / "RLM-Base-Artifacts.git"
+        self.assertEqual(self.decision(f"git -C {art} -c remote.origin.url={upper} push origin main"),
+                         "allow")
         # So does deleting a protected-looking branch there.
         for command in (f"git -C {art} push origin :release/foo",
                         f"git -C {art} push --delete origin release/foo",
@@ -263,6 +267,14 @@ class PushGuard(unittest.TestCase):
                 self.assertEqual(self.decision(command, branch="main"), "deny")
         self.assertEqual(self.decision(f"cd -PL {link.name}/.. && git status", branch="main"),
                          "allow")
+        # Without an explicit -L, `..` is refused: the shell may be in physical mode.
+        art_link = art / "link-into-main"
+        if not art_link.exists():
+            art_link.symlink_to(self.main_clone())
+        self.assertEqual(self.decision(f"git -C {art} status && cd {art_link.name}/.. && git push"),
+                         "deny")
+        self.assertEqual(self.decision(f"cd -L {art}/{art_link.name}/.. && git push"), "allow")
+        self.assertEqual(self.decision(f"cd {art}/{art_link.name}/.. && git push"), "deny")
         # A redirection's operand named cd is not a change of directory.
         for command in ("cat < cd && git push origin feature", "echo x > cd && git push origin feature",
                         "cat <<< cd && git push origin feature",
@@ -286,6 +298,22 @@ class PushGuard(unittest.TestCase):
                                        f"'a\nb' && git push", branch="main"), "allow")
         self.assertEqual(self.decision(f"cd '{art}' && git push 2>&1 | tail -1", branch="main"),
                          "allow")
+
+    def test_a_quote_spanning_lines_does_not_hide_a_push(self):
+        # The usual agent commit: a multi-line message, then a push, in one command.
+        for command in ('git commit -m "title\n\nbody" && git push origin main',
+                        "git commit -m \"$(cat <<'EOF'\nmsg\nEOF\n)\" && git push origin HEAD:main",
+                        'echo "a\nb" ; git push origin HEAD:main'):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        art = self.artifacts_clone()
+        for command in (f'cd {art} && git commit -m "t\n\nb" && git push --force',
+                        f'cd {art} && git commit -m "t\n\nb" && git push origin --delete main'):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "ask")
+        self.assertEqual(self.decision('git commit -m "a\nb" && git push origin feature'), "allow")
+        self.assertEqual(self.decision("git commit -q -F - <<'EOF'\nfix: x\n\nbody\nEOF\n"
+                                       "git push -q origin feature 2>&1 | tail -1"), "allow")
 
     def test_redirections_are_not_push_arguments(self):
         for command in ("git push 2>&1 | tail -1", "git push >/tmp/push.log",

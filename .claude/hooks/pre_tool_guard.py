@@ -77,7 +77,7 @@ PROTECTED = ("main",)
 # Repositories whose protected-looking branches are pushed to directly by design: the private
 # artifacts repo (`.agents/artifacts`, the todo tracker) takes commits on its `main`. Matched
 # against the push remote's URL, so every other repository stays protected by default.
-UNPROTECTED_REPOS = re.compile(r"[:/]bgaldino/rlm-base-artifacts(?:\.git)?/?$")
+UNPROTECTED_REPOS = re.compile(r"[:/]bgaldino/rlm-base-artifacts(?:\.git)?/?$", re.IGNORECASE)
 PROTECTED_PREFIXES = ("preview/", "release/")
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 # git's global options that take a separate argument, so `git -C dir push` is still a push.
@@ -168,31 +168,50 @@ def code_lines(lines: List[str]) -> Iterator[str]:
             end = heredoc.group(2)
 
 
+def _argvs(text: str, whole: bool) -> Iterator[List[str]]:
+    """Split one text into simple commands. `whole` lexes it as one script, so a quoted string
+    may span lines (`-m "title⏎⏎body" && git push`) and a newline outside quotes separates
+    commands; otherwise it is one line. Unparseable text yields nothing."""
+    if whole:
+        lexer = shlex.shlex(text, posix=True, punctuation_chars="();<>|&\n")
+        lexer.whitespace = " \t\r"
+    else:
+        lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return
+    argv: List[str] = []
+    for token in tokens + [";"]:
+        # Punctuation arrives grouped (`&&\n`, `);`); a redirection (`>`, `2>&`) stays with its
+        # command, anything else ends it.
+        redirection = set(token) <= set("<>&") and bool(set(token) & set("<>"))
+        if token in SEPARATORS or (whole and is_punctuation(token) and not redirection):
+            if argv:
+                yield argv
+            argv = []
+        else:
+            argv.append(token)
+
+
 def simple_commands(command: str) -> Iterator[List[str]]:
-    """Each simple command in a shell line, as argv. Unparseable text yields nothing."""
-    # Each line as written and with `\`-continued lines rejoined: the shell may read it
-    # either way (an escaped `\\`, a backslash in a comment), so both are checked.
+    """Each simple command in a shell command, as argv, read every way the shell might: the
+    whole script (quotes spanning lines), each line as written, and each line with
+    backslash-continued lines rejoined (an escaped backslash, a backslash in a comment) and
+    with redirections removed. A push found in any reading counts."""
+    code = list(code_lines(command.splitlines()))
     joined = re.sub(r"\\\r?\n", " ", command)
-    lines = list(code_lines(command.splitlines()))
+    lines = list(code)
     if joined != command:
         lines += code_lines(joined.splitlines())
     lines += [stripped for stripped in (REDIRECT.sub(" ", line) for line in lines)
               if stripped not in lines]
+    script = "\n".join(code)
+    for text in dict.fromkeys([script, REDIRECT.sub(" ", script)]):
+        yield from _argvs(text, whole=True)
     for line in lines:
-        lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
-        lexer.whitespace_split = True
-        try:
-            tokens = list(lexer)
-        except ValueError:
-            continue
-        argv: List[str] = []
-        for token in tokens + [";"]:
-            if token in SEPARATORS:
-                if argv:
-                    yield argv
-                argv = []
-            else:
-                argv.append(token)
+        yield from _argvs(line, whole=False)
 
 
 class Push:
@@ -610,7 +629,7 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     i = 1 if tokens[:1] == ["("] else 0
     if len(moves) > 1 or tokens[i:i + 1] != ["cd"]:
         return None
-    j, physical = i + 1, False
+    j, physical = i + 1, None  # None: no -L/-P given, so the shell's own default applies
     while j < len(tokens) and re.fullmatch(r"-[LPe@]+", tokens[j]):
         modes = [c for c in tokens[j] if c in "LP"]
         if modes:
@@ -621,10 +640,11 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     if len(tokens) < j + 2 or tokens[j + 1] != "&&":
         return None
     raw = tokens[j]
-    # Bash's default `cd -L` cancels `..` against the path as typed (`link/..` is where you
-    # started), before any symlink is followed; normpath does the same. Under `-P` the `..`
-    # applies after symlinks, which the guard doesn't model, so that is refused.
-    if physical and ".." in raw.split("/"):
+    # `cd -L` cancels `..` against the path as typed (`link/..` is where you started), before
+    # any symlink is followed; normpath does the same. Under `-P`, or with no option (the
+    # shell may run with `set -o physical`, e.g. inherited through SHELLOPTS), `..` applies
+    # after symlinks, which the guard doesn't model, so a `..` is followed only under `-L`.
+    if physical is not False and ".." in raw.split("/"):
         return None
     target = os.path.normpath(os.path.join(cwd, raw))
     # The lexer has dropped quotes, so `~` can't be told from `'~'` (a literal directory): a
@@ -665,8 +685,9 @@ def decide(event: dict) -> Tuple[str, str]:
         directories = command_directories(command, cwd)
         if directories is None:
             if any(git_push(argv, cwd) for argv in simple_commands(command)):
-                return "deny", ("this command changes directory more than once before a push, so "
-                                "where the push runs can't be resolved; run it as "
+                return "deny", ("this command changes directory in a way the guard can't follow "
+                                "(only one leading `cd <dir> &&` to a literal path is), so where "
+                                "the push runs can't be resolved; run it as "
                                 "`git -C <dir> push …` instead")
             directories = [cwd]
         for directory in directories:
