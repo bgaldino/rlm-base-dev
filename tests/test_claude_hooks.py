@@ -80,6 +80,8 @@ class PushGuard(unittest.TestCase):
                         "cd . && git push origin main", "git status; git push origin release/next",
                         "git push -o ci.skip origin main", "git push --delete origin main",
                         "git push --mirror", "git push --all origin", "git push origin :",
+                        "git push origin HEAD:heads/main", "git push origin HEAD:refs/heads/main",
+                        "git push origin feature:heads/release/next", "git push origin :heads/main",
                         "env -i git push origin HEAD:main", "env -u HOME git push origin main",
                         "command git push origin main", "sudo -E git push origin main",
                         "time git push origin main", "nohup git push origin main &",
@@ -129,6 +131,216 @@ class PushGuard(unittest.TestCase):
         self.assertEqual(self.decision("git push -- --mirror main"), "deny")
         self.assertEqual(self.decision("git push -- origin main"), "deny")
         self.assertEqual(self.decision("git push -- origin feature"), "allow")
+
+    def main_clone(self):
+        """A second clone of this fixture's remote, checked out on main."""
+        on_main = Path(self.tmp.name) / "on-main"
+        if not on_main.exists():
+            sh(Path(self.tmp.name), "git", "clone", "-q", "-b", "main",
+               str(Path(self.tmp.name) / "remote.git"), str(on_main))
+        return on_main
+
+    def artifacts_clone(self):
+        """A clone, on main, of a remote whose URL names the private artifacts repo."""
+        root = Path(self.tmp.name)
+        remote = root / "gh" / "bgaldino" / "rlm-base-artifacts.git"
+        clone = root / "artifacts"
+        if not clone.exists():
+            remote.parent.mkdir(parents=True)
+            sh(root, "git", "init", "-q", "--bare", str(remote))
+            sh(root, "git", "init", "-q", "-b", "main", str(clone))
+            for key, value in (("user.email", "t@example.com"), ("user.name", "t"),
+                               ("commit.gpgsign", "false")):
+                sh(clone, "git", "config", key, value)
+            sh(clone, "git", "commit", "-q", "--allow-empty", "-m", "base")
+            sh(clone, "git", "remote", "add", "origin", str(remote))
+            sh(clone, "git", "push", "-q", "-u", "origin", "main")
+            # What the guard matches is the push URL: GitHub host and repository path. The
+            # guard only reads it; nothing in these tests pushes.
+            sh(clone, "git", "config", "remote.origin.pushurl",
+               "git@github.com:bgaldino/rlm-base-artifacts.git")
+        return clone
+
+    def test_the_artifacts_repo_takes_direct_pushes_to_main(self):
+        art = self.artifacts_clone()
+        for command in (f"git -C {art} push", f"git -C {art} push origin main",
+                        f"cd {art} && git push", f"cd {art} && git add -A && git push -q 2>&1",
+                        f"env -C {art} git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
+        # A force push there still asks; this repository's main is still refused.
+        self.assertEqual(self.decision(f"git -C {art} push -f origin main"), "ask")
+        # GitHub names are case-insensitive, so a differently cased URL is still the repo.
+        self.assertEqual(self.decision(f"git -C {art} -c remote.origin.pushurl=https://github.com/"
+                                       "BGaldino/RLM-Base-Artifacts.git push origin main"), "allow")
+        # The same repository path on another host, or as a local path, is not the repo.
+        for url in ("https://example.com/bgaldino/rlm-base-artifacts.git",
+                    "git@example.com:bgaldino/rlm-base-artifacts.git",
+                    str(Path(self.tmp.name) / "gh" / "bgaldino" / "rlm-base-artifacts.git"),
+                    "https://github.com.evil.example/bgaldino/rlm-base-artifacts.git"):
+            with self.subTest(url=url):
+                self.assertEqual(self.decision(f"git -C {art} -c remote.origin.pushurl={url} "
+                                               "push origin main"), "deny")
+        # So does deleting a protected-looking branch there.
+        for command in (f"git -C {art} push origin :release/foo",
+                        f"git -C {art} push --delete origin release/foo",
+                        f"git -C {art} push -d origin main", f"git -C {art} push --del origin main",
+                        f"git -C {art} push --delete origin heads/main",
+                        f"git -C {art} push origin :refs/heads/release/x"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "ask")
+        self.assertEqual(self.decision(f"git -C {art} push origin :scratch"), "allow")
+        self.assertEqual(self.decision(f"git -C {art} push --delete --no-delete origin main"),
+                         "allow")
+        self.assertEqual(self.decision(f"cd {art} && git push && cd {self.work} && git push "
+                                       "origin main"), "deny")
+        # A second change of directory makes where a push runs unresolvable, so it's refused,
+        # even from a feature checkout and even if the second target looks harmless.
+        on_main = self.main_clone()
+        for command in (f"cd {art} && cd {on_main} && git push", f"cd {art} && pushd {on_main} "
+                        "&& git push", f"cd {art} && cd . && git push",
+                        f"cd -- {on_main} && git push", f"cd -P {on_main} && git push",
+                        f"cd {on_main}; git push", f"true && cd {on_main} && git push",
+                        f"pushd {on_main} && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        self.assertEqual(self.decision(f"cd {art} && cd . && git status"), "allow")
+        # A heredoc body that mentions cd is data, not a change of directory.
+        self.assertEqual(self.decision("git commit -q -F - <<'EOF'\nfix: cd a && cd b\nEOF\n"
+                                       "git push -q origin feature"), "allow")
+        for command in (f"cd -- {art} && git push", f"cd -P {art} && git push",
+                        f"cd -L -- {art} && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "allow")
+        self.assertEqual(self.decision("git push origin main"), "deny")
+
+    def test_the_exemption_needs_every_push_url_to_be_the_artifacts_repo(self):
+        art = self.artifacts_clone()
+        remote = Path(self.tmp.name) / "gh" / "bgaldino" / "rlm-base-artifacts.git"
+        here = Path(self.tmp.name) / "remote.git"
+        # A second push URL that is another repository: git pushes to both, so no exemption.
+        self.assertEqual(self.decision(f"git -C {art} -c remote.origin.pushurl={remote} "
+                                       f"-c remote.origin.pushurl={here} push origin main"),
+                         "deny")
+        # A raw URL or path is never exempt, whatever insteadOf would rewrite it to.
+        self.assertEqual(self.decision(f"git -C {art} push {remote} main"), "deny")
+        self.assertEqual(self.decision(f"git -c url.{here}.insteadOf={remote} push {remote} "
+                                       "main:main"), "deny")
+
+    def test_a_leading_cd_is_followed_only_when_the_rest_depends_on_it(self):
+        art = self.artifacts_clone()
+        # If the cd fails, `;` and `||` still run the push here, on main.
+        for command in (f"cd {art}; git push", f"cd {art} || git push", f"cd {art} && x; git push",
+                        f"cd {art} && x\ngit push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "deny")
+        # A target the guard can't resolve as the shell would also checks the starting
+        # directory; so does a separator hidden behind an escaped quote.
+        for command in ("cd - && git push", 'cd "$PWD" && git push', "cd `pwd` && git push",
+                        "cd /nonexistent && git push",
+                        f"cd {art} && echo \\' ; git push \\'"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "deny")
+        self.assertEqual(self.decision(f"cd {art} && git push", branch="main"), "allow")
+        self.assertEqual(self.decision(f"(cd {art} && git push)", branch="main"), "allow")
+        # After the subshell's `)`, commands run back in the starting directory.
+        for command in (f"(cd {art} && true) && git push", f"(cd {art} && (true)) && git push",
+                        f"(cd {art} && echo '(') && git push",
+                        f"(cd {art} && git push) && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "deny")
+        # Only a push after the `)` runs back here; a redirection or a pipe to tail doesn't.
+        for command in (f"(cd {art} && git push) 2>&1", f"(cd {art} && git push) 2>&1 | tail -1"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "allow")
+        on_main = self.main_clone()
+        # A target the shell resolves and the guard can't (a variable) is refused outright: it
+        # could be any directory, not just the starting one.
+        self.assertEqual(self.decision(f"ON_MAIN={on_main} && cd \"$ON_MAIN\" && git push"), "deny")
+        self.assertEqual(self.decision("cd \"$MAIN_CHECKOUT\" && git push"), "deny")
+        # A tilde target is refused: quoted it's a literal directory, unquoted it's $HOME.
+        tilde = self.work / "~"
+        if not tilde.exists():
+            sh(self.work, "git", "clone", "-q", "-b", "main",
+               str(Path(self.tmp.name) / "remote.git"), str(tilde))
+        # A continuation inside a word is deleted by bash, so `c\⏎d` is a cd.
+        art = self.artifacts_clone()
+        self.assertEqual(self.decision(f"cd {art} && c\\\nd {on_main} && git push"), "deny")
+        # Only a plain literal path is followed; anything the shell might expand is refused.
+        for name in ("x!", "a b", "a=b"):
+            (self.work / name).mkdir(exist_ok=True)
+        for command in ("cd x! && git push", "cd 'a b' && git push", "cd a=b && git push",
+                        f"cd \\{on_main.name} && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        # A glob or brace target is refused: quoted it's literal, unquoted the shell expands it.
+        (self.work / "[x]").mkdir(exist_ok=True)
+        for command in ("cd [x] && git push", "cd '[x]' && git push", "cd *x* && git push",
+                        "cd {a,b} && git push", "cd ?x? && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        for command in ("cd '~' && git push", "cd \\~ && git push", "cd ~ && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        # `link/..` is where you started under bash's default `cd -L`, not the link's parent.
+        art = self.artifacts_clone()
+        (art / "sub").mkdir(exist_ok=True)
+        link = self.work / "link-into-artifacts"
+        if not link.exists():
+            link.symlink_to(art / "sub")
+        for command in (f"cd {link.name}/.. && git push", f"cd -L {link.name}/.. && git push",
+                        f"cd -P {link.name}/.. && git push", f"cd -LP {link.name}/.. && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "deny")
+        self.assertEqual(self.decision(f"cd -PL {link.name}/.. && git status", branch="main"),
+                         "allow")
+        # Without an explicit -L, `..` is refused: the shell may be in physical mode.
+        art_link = art / "link-into-main"
+        if not art_link.exists():
+            art_link.symlink_to(self.main_clone())
+        self.assertEqual(self.decision(f"git -C {art} status && cd {art_link.name}/.. && git push"),
+                         "deny")
+        self.assertEqual(self.decision(f"cd -L {art}/{art_link.name}/.. && git push"), "allow")
+        self.assertEqual(self.decision(f"cd {art}/{art_link.name}/.. && git push"), "deny")
+        # A redirection's operand named cd is not a change of directory.
+        for command in ("cat < cd && git push origin feature", "echo x > cd && git push origin feature",
+                        "cat <<< cd && git push origin feature",
+                        "git add cd-notes.md && git push origin feature"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
+        # Any other standalone cd word counts, wherever it sits, so a prefix can't hide it; a cd
+        # that is only data is refused too, which errs toward refusing.
+        for command in (f"time cd {on_main} && git push", f"command -p cd {on_main} && git push",
+                        f"{{fd}}>/tmp/log cd {on_main} && git push", f"exec cd {on_main} && git push",
+                        "echo cd && git push origin feature"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        self.assertEqual(self.decision(f"builtin cd {on_main} ; git push"), "deny")
+        # A descriptor-prefixed redirection before the cd doesn't hide it.
+        for command in (f"2>/tmp/x cd {on_main} && git push", f"2> /tmp/x cd {on_main} && git push",
+                        f"0</dev/null cd {on_main} && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        self.assertEqual(self.decision(f"cd {art} && git add cd-notes.md && git commit -m "
+                                       f"'a\nb' && git push", branch="main"), "allow")
+        self.assertEqual(self.decision(f"cd '{art}' && git push 2>&1 | tail -1", branch="main"),
+                         "allow")
+
+    def test_a_quote_spanning_lines_does_not_hide_a_push(self):
+        # The usual agent commit: a multi-line message, then a push, in one command.
+        for command in ('git commit -m "title\n\nbody" && git push origin main',
+                        "git commit -m \"$(cat <<'EOF'\nmsg\nEOF\n)\" && git push origin HEAD:main",
+                        'echo "a\nb" ; git push origin HEAD:main'):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        art = self.artifacts_clone()
+        for command in (f'cd {art} && git commit -m "t\n\nb" && git push --force',
+                        f'cd {art} && git commit -m "t\n\nb" && git push origin --delete main'):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "ask")
+        self.assertEqual(self.decision('git commit -m "a\nb" && git push origin feature'), "allow")
+        self.assertEqual(self.decision("git commit -q -F - <<'EOF'\nfix: x\n\nbody\nEOF\n"
+                                       "git push -q origin feature 2>&1 | tail -1"), "allow")
 
     def test_redirections_are_not_push_arguments(self):
         for command in ("git push 2>&1 | tail -1", "git push >/tmp/push.log",

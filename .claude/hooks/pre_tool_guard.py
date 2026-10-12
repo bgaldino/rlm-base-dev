@@ -22,6 +22,10 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    aliases that run `push`. Redirections (`2>&1`, `>log`, before or after the command) are
    not arguments. The `Bash(git push origin …)`
    deny rules in settings.json only catch the literal spelling.
+   A leading `cd <dir> &&` is followed. The private artifacts repo (`rlm-base-artifacts`,
+   cloned at `.agents/artifacts`) takes direct commits on its `main` by design, so a push
+   whose remote is that repository isn't refused for its target (a force push or a deletion
+   of `main`, `preview/*` or `release/*` there asks); every other repository is.
    Adapter policy, not a DO NOT 8 rule: a force push to any other branch asks the person.
 2. SFDMU destructive operation (CRITICAL rule). An edit to a `datasets/` plan that makes any
    object newly destructive asks the person: `deleteOldData` turning on, or an `Upsert`
@@ -40,9 +44,13 @@ What this guard does not catch, and what backs it up:
   aren't parsed per wrapper, so a value that names a wrapper (`env -u sudo -C dir`) or a
   repeated chdir (`env -C a -C ../b`, where the last one wins) can resolve the wrong
   directory.
-- State a compound command changes before its push runs: `git checkout main && git push` and
-  `cd elsewhere && git push` are resolved against the branch and directory the command
-  started in. An explicit destination (`git push origin main`) is caught either way.
+- A branch change a compound command makes before its push runs: `git checkout main &&
+  git push` is resolved against the branch the command started on. (Directory changes are
+  covered: a leading `cd <dir> &&` is followed, and a push in a command that changes
+  directory any other way is refused as unresolvable.) An explicit destination (`git push origin main`) is caught either way.
+- A brace group after a leading `cd`: `cd <dir> && { a; b; git push; }` also checks the
+  starting directory, because the `;` inside is read as one that could run after a failed
+  `cd`. That errs toward refusing; spell it with `&&` throughout, or `git -C <dir>`.
 - For both push cases above the server is the backstop: the "Approvals" branch ruleset on
   `main`, `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion,
   and its admin bypass applies to pull-request merges only, so a direct push with the
@@ -66,6 +74,18 @@ from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Sequence, Tuple
 
 PROTECTED = ("main",)
+# The one repository whose protected-looking branches are pushed to directly by design: the
+# private artifacts repo (`.agents/artifacts`, the todo tracker) takes commits on its `main`.
+# Matched on the push URL's host *and* path (see is_artifacts_url), so every other repository,
+# on any host or local path, stays protected by default. GitHub names are case-insensitive.
+ARTIFACTS_HOST = "github.com"
+ARTIFACTS_PATH = re.compile(r"/?bgaldino/rlm-base-artifacts(?:\.git)?/?", re.IGNORECASE)
+URL_FORMS = (
+    re.compile(r"https://(?:[^@/]+@)?(?P<host>[^/:@]+)/(?P<path>.+)"),
+    re.compile(r"ssh://(?:[^@/]+@)?(?P<host>[^/:@]+)(?::\d+)?/(?P<path>.+)"),
+    re.compile(r"(?:[^@/:]+@)?(?P<host>[^/:@]+):(?P<path>[^/].*)"),  # scp-like, git@host:path
+)
+SAFE_HOST = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 PROTECTED_PREFIXES = ("preview/", "release/")
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 # git's global options that take a separate argument, so `git -C dir push` is still a push.
@@ -123,8 +143,45 @@ OP_UPSERT = re.compile(r'"operation"\s*:\s*"Upsert"')
 CHECKOUT = Path(__file__).resolve().parents[2]  # the checkout this hook ships in
 
 
+def ssh_hostname(alias: str) -> Optional[str]:
+    """The host an SSH alias connects to (`github.com-me` -> `github.com`), per `ssh -G`."""
+    if not SAFE_HOST.fullmatch(alias):  # never let a host be read as an ssh option
+        return None
+    try:
+        out = subprocess.run(["ssh", "-G", alias], capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    for line in out.stdout.splitlines() if out.returncode == 0 else []:
+        key, _, value = line.partition(" ")
+        if key == "hostname":
+            return value.strip().lower()
+    return None
+
+
+def is_artifacts_url(url: str) -> bool:
+    """Whether a push URL is the private artifacts repo on GitHub: https://github.com/…, or SSH
+    to github.com directly or through an alias that resolves to it."""
+    for form in URL_FORMS:
+        found = form.fullmatch(url)
+        if found:
+            break
+    else:
+        return False  # a local path or another scheme is never the artifacts repo
+    if not ARTIFACTS_PATH.fullmatch(found.group("path")):
+        return False
+    host = found.group("host").lower()
+    if host == ARTIFACTS_HOST:
+        return True
+    return not url.startswith("https://") and ssh_hostname(host) == ARTIFACTS_HOST
+
+
 def is_protected(ref: str) -> bool:
-    name = ref[len("refs/heads/"):] if ref.startswith("refs/heads/") else ref
+    """git resolves a push destination by trying `refs/<dst>` and `refs/heads/<dst>`, so
+    `main`, `heads/main` and `refs/heads/main` all name the same branch."""
+    name = ref
+    for prefix in ("refs/", "heads/"):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
     return name in PROTECTED or name.startswith(PROTECTED_PREFIXES)
 
 
@@ -151,31 +208,50 @@ def code_lines(lines: List[str]) -> Iterator[str]:
             end = heredoc.group(2)
 
 
+def _argvs(text: str, whole: bool) -> Iterator[List[str]]:
+    """Split one text into simple commands. `whole` lexes it as one script, so a quoted string
+    may span lines (`-m "title⏎⏎body" && git push`) and a newline outside quotes separates
+    commands; otherwise it is one line. Unparseable text yields nothing."""
+    if whole:
+        lexer = shlex.shlex(text, posix=True, punctuation_chars="();<>|&\n")
+        lexer.whitespace = " \t\r"
+    else:
+        lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return
+    argv: List[str] = []
+    for token in tokens + [";"]:
+        # Punctuation arrives grouped (`&&\n`, `);`); a redirection (`>`, `2>&`) stays with its
+        # command, anything else ends it.
+        redirection = set(token) <= set("<>&") and bool(set(token) & set("<>"))
+        if token in SEPARATORS or (whole and is_punctuation(token) and not redirection):
+            if argv:
+                yield argv
+            argv = []
+        else:
+            argv.append(token)
+
+
 def simple_commands(command: str) -> Iterator[List[str]]:
-    """Each simple command in a shell line, as argv. Unparseable text yields nothing."""
-    # Each line as written and with `\`-continued lines rejoined: the shell may read it
-    # either way (an escaped `\\`, a backslash in a comment), so both are checked.
-    joined = re.sub(r"\\\r?\n", " ", command)
-    lines = list(code_lines(command.splitlines()))
+    """Each simple command in a shell command, as argv, read every way the shell might: the
+    whole script (quotes spanning lines), each line as written, and each line with
+    backslash-continued lines rejoined (an escaped backslash, a backslash in a comment) and
+    with redirections removed. A push found in any reading counts."""
+    code = list(code_lines(command.splitlines()))
+    joined = re.sub(r"\\\r?\n", "", command)  # bash deletes a continuation: `c\⏎d` is `cd`
+    lines = list(code)
     if joined != command:
         lines += code_lines(joined.splitlines())
     lines += [stripped for stripped in (REDIRECT.sub(" ", line) for line in lines)
               if stripped not in lines]
+    script = "\n".join(code)
+    for text in dict.fromkeys([script, REDIRECT.sub(" ", script)]):
+        yield from _argvs(text, whole=True)
     for line in lines:
-        lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
-        lexer.whitespace_split = True
-        try:
-            tokens = list(lexer)
-        except ValueError:
-            continue
-        argv: List[str] = []
-        for token in tokens + [";"]:
-            if token in SEPARATORS:
-                if argv:
-                    yield argv
-                argv = []
-            else:
-                argv.append(token)
+        yield from _argvs(line, whole=False)
 
 
 class Push:
@@ -301,7 +377,7 @@ def push_decision(push: Push) -> Tuple[str, str]:
     if push.unresolvable:
         return "deny", f"{push.unresolvable}, so this push is refused rather than guessed at"
     d, opts = push.directory, push.opts
-    force, tags, positional, remote_flag, i = False, False, [], None, 0
+    force, tags, delete, positional, remote_flag, i = False, False, False, [], None, 0
     while i < len(push.args):
         arg = push.args[i]
         if arg == "--":  # everything after it is the repository and refspecs, never an option
@@ -314,10 +390,13 @@ def push_decision(push: Push) -> Tuple[str, str]:
         cluster = SHORT_CLUSTER.fullmatch(arg)
         if cluster and arg != "-":
             force = force or "f" in cluster.group(1)
+            delete = delete or "d" in cluster.group(1)
             if cluster.group(2) == "":  # `-o value` / `-fo value`: skip the value
                 i += 1
         elif name in FORCE_LONG:
             force = True
+        elif name in ("--delete", "--no-delete"):
+            delete = name == "--delete"
         elif name in ("--tags", "--no-tags"):
             tags = name == "--tags"  # the last one wins
         elif name == "--repo":
@@ -349,6 +428,7 @@ def push_decision(push: Push) -> Tuple[str, str]:
         if listed:
             refspecs, configured = listed.splitlines(), True
     targets: List[str] = []
+    deletions: List[str] = []  # `:dst` refspecs, or every target under --delete
     if refspecs:
         for spec in refspecs:
             if spec.startswith("+"):
@@ -358,6 +438,8 @@ def push_decision(push: Push) -> Tuple[str, str]:
             if "*" in spec:
                 return "deny", f"the wildcard refspec `{spec}` can't be resolved to concrete branches"
             src, _, dst = spec.partition(":")
+            if not src and dst:
+                deletions.append(dst)
             if not dst and src in ("HEAD", "@"):
                 dst = current or src
             targets.append(dst or src)
@@ -375,7 +457,19 @@ def push_decision(push: Push) -> Tuple[str, str]:
                 targets.append(strip_remote(where))
         if current and current != "HEAD":
             targets.append(current)
-    hit = [t for t in targets if is_protected(t)]
+    # Exempt only a configured remote, every one of whose push URLs (after insteadOf and
+    # pushInsteadOf rewriting) is the artifacts repo; a raw URL or path is never exempt.
+    urls = (git(d, "remote", "get-url", "--push", "--all", remote, opts=opts) or "").split()
+    exempt = bool(urls) and all(is_artifacts_url(u) for u in urls)
+    hit = [] if exempt else [t for t in targets if is_protected(t)]
+    if delete:
+        deletions += targets
+    gone = sorted({t for t in deletions if is_protected(t)})
+    if exempt and gone:
+        # The exemption is for direct commits; deleting a protected-looking branch there asks,
+        # like a force push.
+        return "ask", (f"this deletes {', '.join(gone)} in the artifacts repo; deleting a "
+                       "branch asks a person first (adapter policy)")
     if hit:
         how = f" (via the configured remote.{remote}.push refspec)" if configured else ""
         return "deny", (f"this push updates {', '.join(sorted(set(hit)))}{how}. AGENTS.md DO NOT "
@@ -506,6 +600,136 @@ def respond(decision: str, reason: str) -> int:
     return 0
 
 
+LITERAL_PATH = re.compile(r"[A-Za-z0-9._/-]+")  # a cd target the guard follows (see below)
+# Another change of directory after a leading `cd <dir> &&` (see command_directories).
+MOVES = {"cd", "pushd", "popd"}
+
+
+def unconditional(token: str) -> bool:
+    """Whether a lexer token (punctuation arrives grouped, e.g. `);`) holds a separator that runs
+    what follows even if an earlier `cd` failed: `;`, `||`, a newline, or a lone `&`."""
+    if not token or not set(token) <= set("();<>|&\n"):
+        return False
+    if ";" in token or "||" in token or "\n" in token:
+        return True
+    return "&" in token.replace("&&", "").replace(">&", "").replace("&>", "")
+
+
+PUNCTUATION = set("();<>|&\n")
+
+
+def is_punctuation(token: str) -> bool:
+    return bool(token) and set(token) <= PUNCTUATION
+
+
+def lexed_commands(tokens: List[str]) -> List[List[str]]:
+    """The words of each simple command in a token list (punctuation arrives grouped). A
+    redirection (`<`, `>`, `<<<`, `2>&`) belongs to its command, and its operand (`< cd`) is
+    not a word of it."""
+    out, words, operand = [], [], False
+    for token in tokens + [";"]:
+        if is_punctuation(token) and set(token) <= set("<>&") and set(token) & set("<>"):
+            if words and words[-1].isdigit():  # `2>` arrives as `2`, `>`: the fd isn't a word
+                words.pop()
+            operand = True
+        elif is_punctuation(token):
+            if words:
+                out.append(words)
+            words, operand = [], False
+        elif operand:
+            operand = False
+        else:
+            words.append(token)
+    return out
+
+
+def command_directories(command: str, cwd: str) -> Optional[List[str]]:
+    """command_directories for every way the shell may read the command: as written, and with
+    backslash-newline continuations deleted (`c\⏎d` is `cd`). An escaped backslash before a
+    newline is not a continuation, so both readings are taken; None if either is."""
+    readings = dict.fromkeys([command, re.sub(r"\\\r?\n", "", command)])
+    found: List[str] = []
+    for text in readings:
+        dirs = _command_directories(text, cwd)
+        if dirs is None:
+            return None
+        found += [d for d in dirs if d not in found]
+    return found
+
+
+def _command_directories(command: str, cwd: str) -> Optional[List[str]]:
+    """The directories this command's pushes may run in. A leading `cd <dir> &&`, or
+    `(cd <dir> && …)`, moves them (`cd .agents/artifacts && git push`), and the starting
+    directory is checked too when anything after it can run if the `cd` failed, or follows
+    the subshell. None when where a push runs can't be resolved: a target the shell would
+    resolve differently (anything but a literal path of letters, digits and `._/-`; `CDPATH`;
+    a missing directory), or any other
+    change of directory (`cd a; git push`, `x && cd a`, `cd a && cd b`, `time cd a`). Any
+    standalone `cd`/`pushd`/`popd` word counts, other than a redirection's operand."""
+    # Heredoc bodies are data (a commit message may mention `cd`), as in simple_commands.
+    command = "\n".join(code_lines(command.splitlines()))
+    lexer = shlex.shlex(command, posix=True, punctuation_chars="();<>|&\n")
+    lexer.whitespace, lexer.whitespace_split = " \t\r", True
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return [cwd]
+    # Any standalone cd/pushd/popd word counts, wherever it sits: telling the command word from
+    # its prefixes (`time`, `command -p`, `{fd}>`, `exec`, …) is open-ended, and missing one lets
+    # a push through. Only a redirection's operand (`< cd`) is skipped. `echo cd && git push`
+    # is refused as a result, which errs toward refusing.
+    moves = [w for argv in lexed_commands(tokens) for w in argv if w in MOVES]
+    if not moves:
+        return [cwd]
+    # The one form followed: a leading `cd [-L|-P|-e|-@]… [--] <dir> &&`, optionally in `( )`.
+    i = 1 if tokens[:1] == ["("] else 0
+    if len(moves) > 1 or tokens[i:i + 1] != ["cd"]:
+        return None
+    j, physical = i + 1, None  # None: no -L/-P given, so the shell's own default applies
+    while j < len(tokens) and re.fullmatch(r"-[LPe@]+", tokens[j]):
+        modes = [c for c in tokens[j] if c in "LP"]
+        if modes:
+            physical = modes[-1] == "P"  # the last of -L / -P wins
+        j += 1
+    if j < len(tokens) and tokens[j] == "--":
+        j += 1
+    if len(tokens) < j + 2 or tokens[j + 1] != "&&":
+        return None
+    raw = tokens[j]
+    # `cd -L` cancels `..` against the path as typed (`link/..` is where you started), before
+    # any symlink is followed; normpath does the same. Under `-P`, or with no option (the
+    # shell may run with `set -o physical`, e.g. inherited through SHELLOPTS), `..` applies
+    # after symlinks, which the guard doesn't model, so a `..` is followed only under `-L`.
+    if physical is not False and ".." in raw.split("/"):
+        return None
+    target = os.path.normpath(os.path.join(cwd, raw))
+    # Followed only when the target is a plain literal path. The lexer has dropped the quoting
+    # that decides how the shell expands a word (`~` vs `'~'`, `[x]`, `$VAR`, `{a,b}`, `!`,
+    # escapes), so rather than list what the shell might expand, anything outside letters,
+    # digits and `._/-` is refused. CDPATH would also redirect a relative name.
+    if (not LITERAL_PATH.fullmatch(raw) or raw.startswith("-") or not os.path.isdir(target)
+            or (os.environ.get("CDPATH") and not raw.startswith(("/", "./", "../")))):
+        return None
+    rest = tokens[j + 2:]
+    # In `(cd dir && …) && git push` the cd is the subshell's alone: a push after the matching
+    # `)` runs back in the starting directory. (A redirection or `| tail` there doesn't.)
+    after_subshell = False
+    if i:
+        # A quoted `(` or `)` arrives unquoted; if no matching `)` is found, assume something
+        # may follow it, and check the starting directory too.
+        after_subshell = True
+        depth = 1
+        for k, t in enumerate(rest):
+            if is_punctuation(t):
+                depth += t.count("(") - t.count(")")
+            if depth <= 0:
+                after_subshell = any(git_push(argv, cwd) for argv in lexed_commands(rest[k + 1:]))
+                break
+    if after_subshell or any(unconditional(t) for t in rest):
+        return [target, cwd]
+    return [target]
+
+
 def decide(event: dict) -> Tuple[str, str]:
     tool = event.get("tool_name") or ""
     tool_input = event.get("tool_input") or {}
@@ -515,14 +739,24 @@ def decide(event: dict) -> Tuple[str, str]:
         return "deny", f"{stop}. Make no more tool calls; say where you got to and stop"
     if tool == "Bash":
         worst = ("allow", "")
-        for argv in simple_commands(tool_input.get("command") or ""):
-            push = git_push(argv, cwd)
-            if push:
-                decision = push_decision(push)
-                if decision[0] == "deny":
-                    return decision
-                if decision[0] == "ask":
-                    worst = decision
+        command = tool_input.get("command") or ""
+        directories = command_directories(command, cwd)
+        if directories is None:
+            if any(git_push(argv, cwd) for argv in simple_commands(command)):
+                return "deny", ("this command changes directory in a way the guard can't follow "
+                                "(only one leading `cd <dir> &&` to a literal path is), so where "
+                                "the push runs can't be resolved; run it as "
+                                "`git -C <dir> push …` instead")
+            directories = [cwd]
+        for directory in directories:
+            for argv in simple_commands(command):
+                push = git_push(argv, directory)
+                if push:
+                    decision = push_decision(push)
+                    if decision[0] == "deny":
+                        return decision
+                    if decision[0] == "ask":
+                        worst = decision
         return worst
     change = text_change(tool, tool_input)
     if change:
