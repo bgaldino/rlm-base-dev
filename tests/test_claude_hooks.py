@@ -120,6 +120,10 @@ class PushGuard(unittest.TestCase):
         self.assertEqual(self.decision("git push --tags origin main"), "deny")
         self.assertEqual(self.decision("git push --tags origin HEAD", branch="main"), "deny")
         self.assertEqual(self.decision("git push --follow-tags", branch="main"), "deny")
+        # The last of --tags / --no-tags wins, as in git.
+        self.assertEqual(self.decision("git push --tags --no-tags origin", branch="main"), "deny")
+        self.assertEqual(self.decision("git push --tags --no-ta origin", branch="main"), "deny")
+        self.assertEqual(self.decision("git push --no-tags --tags origin", branch="main"), "allow")
 
     def test_redirections_are_not_push_arguments(self):
         for command in ("git push 2>&1 | tail -1", "git push >/tmp/push.log",

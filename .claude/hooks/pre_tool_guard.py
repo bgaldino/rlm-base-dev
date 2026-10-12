@@ -315,8 +315,8 @@ def push_decision(push: Push) -> Tuple[str, str]:
                 i += 1
         elif name in FORCE_LONG:
             force = True
-        elif name == "--tags":
-            tags = True
+        elif name in ("--tags", "--no-tags"):
+            tags = name == "--tags"  # the last one wins
         elif name == "--repo":
             if eq:
                 remote_flag = value
