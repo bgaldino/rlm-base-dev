@@ -12,7 +12,8 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    `remote.<name>.push` refspec (from the repo config or the command's own `-c`), a git
    alias that expands to `push`, `git -C <dir> push`, `--mirror`/`--all`, a push behind a
    command wrapper (a command starting with `env`, `sudo`, `time`, `timeout`, `nohup`,
-   `nice` and the others in WRAPPERS, whatever their options), or split across lines with a
+   `nice` and the others in WRAPPERS, whatever their options, resolved in the directory `env -C`
+   or `sudo -D` names), or split across lines with a
    trailing backslash. Release lines are
    matched by prefix, never by number. A push the guard cannot resolve to concrete
    destinations is denied rather than guessed at: wildcard refspecs, `--config-env`, `GIT_*`
@@ -68,7 +69,7 @@ GIT_GLOBAL_WITH_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "-
 # `--git-dir` mean to the guard what they mean to the push.
 GIT_GLOBAL_REPLAYED = {"-c", "--git-dir", "--work-tree", "--namespace"}
 # `git push` options that take a separate argument, so their value is not read as a remote.
-PUSH_WITH_ARG = {"-o", "--push-option", "--receive-pack", "--exec"}
+PUSH_WITH_ARG = {"-o", "--push-option", "--receive-pack", "--exec", "--recurse-submodules"}
 FORCE_LONG = ("--force", "--force-with-lease", "--force-if-includes")
 # A cluster of `git push`'s short flags: no-value ones, optionally ending in `-o` (whose value
 # is glued on, or is the next word). `-f` in it is a force: `-uf`, `-fu`, `-fo ci.skip`.
@@ -79,6 +80,8 @@ HEREDOC = re.compile(r"(?<!<)<<(?!<)-?\s*(['\"]?)([A-Za-z_][\w-]*)\1")
 # each one's options, the push is read from the first `git` after the wrapper.
 WRAPPERS = {"env", "command", "builtin", "exec", "sudo", "doas", "time", "timeout", "nohup",
             "nice", "ionice", "stdbuf", "setsid", "chronic", "caffeinate", "arch", "unbuffer"}
+# Wrapper options that run the command in another directory (`env -C`, `sudo -D`).
+CHDIR = {"env": ("-C", "--chdir"), "sudo": ("-D", "--chdir")}
 EVERYTHING_FLAGS = ("--mirror", "--all", "--branches")
 ENV_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
 
@@ -160,11 +163,18 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None) ->
     if argv and os.path.basename(argv[0]) in WRAPPERS:
         # The first `git` that reads as a push: an option value can be `git` too
         # (`sudo -u git git push`, `env -C /srv/git git push`).
+        flags = CHDIR.get(os.path.basename(argv[0]), ())
         for at in range(1, len(argv)):
             if os.path.basename(argv[at]) == "git":
                 inner = dict(env, **dict(w.partition("=")[::2] for w in argv[1:at]
                                          if ENV_ASSIGNMENT.match(w)))
-                push = git_push(argv[at:], cwd, inner)
+                directory = cwd
+                for j, word in enumerate(argv[1:at], 1):
+                    if word in flags and j + 1 < at:
+                        directory = os.path.join(directory, argv[j + 1])
+                    elif word.split("=", 1)[0] in flags and "=" in word:
+                        directory = os.path.join(directory, word.split("=", 1)[1])
+                push = git_push(argv[at:], directory, inner)
                 if push:
                     return push
         return None

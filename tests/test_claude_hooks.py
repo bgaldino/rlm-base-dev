@@ -136,13 +136,27 @@ class PushGuard(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
 
+    def test_a_wrapper_that_changes_directory_is_resolved_there(self):
+        # From the feature checkout, `env -C <a checkout on main> git push` pushes main.
+        other = Path(self.tmp.name) / "on-main"
+        if not other.exists():
+            sh(Path(self.tmp.name), "git", "clone", "-q", "-b", "main",
+               str(Path(self.tmp.name) / "remote.git"), str(other))
+        for command in (f"env -C {other} git push", f"env --chdir={other} git push",
+                        f"sudo -D {other} git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        self.assertEqual(self.decision(f"env -C {other} git status"), "allow")
+
     def test_configured_push_refspecs_are_resolved(self):
         # `git -c remote.origin.push=HEAD:main push origin` really pushes to main; the guard
         # used to resolve it with separate git calls that never saw the `-c`.
         for command in ("git -c remote.origin.push=HEAD:main push origin",
                         "git -c remote.origin.push=HEAD:main push",
                         "git -c remote.origin.push=refs/heads/feature:refs/heads/release/next "
-                        "push origin"):
+                        "push origin",
+                        "git -c remote.origin.push=HEAD:main push --recurse-submodules check "
+                        "origin"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
         sh(self.work, "git", "config", "remote.origin.push", "HEAD:refs/heads/main")
