@@ -210,6 +210,12 @@ class PushGuard(unittest.TestCase):
                 self.assertEqual(self.decision(command, branch="main"), "deny")
         self.assertEqual(self.decision(f"cd {art} && git push", branch="main"), "allow")
         self.assertEqual(self.decision(f"(cd {art} && git push)", branch="main"), "allow")
+        # After the subshell's `)`, commands run back in the starting directory.
+        for command in (f"(cd {art} && true) && git push", f"(cd {art} && (true)) && git push",
+                        f"(cd {art} && git push) && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "deny")
+        self.assertEqual(self.decision(f"(cd {art} && git push) 2>&1", branch="main"), "deny")
         self.assertEqual(self.decision(f"cd {art} && git add cd-notes.md && git commit -m "
                                        f"'a\nb' && git push", branch="main"), "allow")
         self.assertEqual(self.decision(f"cd '{art}' && git push 2>&1 | tail -1", branch="main"),

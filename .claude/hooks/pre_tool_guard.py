@@ -518,10 +518,18 @@ def respond(decision: str, reason: str) -> int:
     return 0
 
 
-# Words after a leading `cd <dir> &&` that mean a later command may not run in that directory:
-# separators that run it even if the `cd` failed, and another change of directory.
-UNCONDITIONAL = {";", "||", "&", ";;", "|&", "\n"}
+# Another change of directory after a leading `cd <dir> &&` (see command_directories).
 MOVES = {"cd", "pushd", "popd"}
+
+
+def unconditional(token: str) -> bool:
+    """Whether a lexer token (punctuation arrives grouped, e.g. `);`) holds a separator that runs
+    what follows even if an earlier `cd` failed: `;`, `||`, a newline, or a lone `&`."""
+    if not token or not set(token) <= set("();<>|&\n"):
+        return False
+    if ";" in token or "||" in token or "\n" in token:
+        return True
+    return "&" in token.replace("&&", "").replace(">&", "").replace("&>", "")
 
 
 def command_directories(command: str, cwd: str) -> Optional[List[str]]:
@@ -561,7 +569,18 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     rest = tokens[j + 2:]
     if any(t in MOVES for t in rest):
         return None
-    if unresolved or any(t in UNCONDITIONAL for t in rest):
+    # In `(cd dir && …) && git push` the cd is the subshell's alone: whatever follows the
+    # matching `)` runs back in the starting directory.
+    after_subshell = False
+    if i:
+        depth = 1
+        for k, t in enumerate(rest):
+            if t and set(t) <= set("();<>|&"):  # the lexer groups punctuation: `))`
+                depth += t.count("(") - t.count(")")
+            if depth == 0:
+                after_subshell = any(rest[k + 1:])
+                break
+    if unresolved or after_subshell or any(unconditional(t) for t in rest):
         return [target, cwd]
     return [target]
 
