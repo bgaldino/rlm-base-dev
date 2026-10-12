@@ -119,6 +119,7 @@ class PushGuard(unittest.TestCase):
                         "git push -uf origin feature", "git push -fu origin feature",
                         "git push --force-with-lease=feature origin feature",
                         "git push --forc origin feature", "git push --force-with origin feature",
+                        "git push --force-w origin feature",
                         "git push -fo ci.skip origin feature"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "ask")
@@ -130,6 +131,8 @@ class PushGuard(unittest.TestCase):
                         "env -u HOME git push origin feature", "git push --follow-tags origin feature",
                         "command -v git", "git push -oforce origin feature",
                         "timeout 60 git fetch origin", "git push -o ci.skip origin feature",
+                        "git push --no-force origin feature", "git push --push-option=x origin feature",
+                        "git push --dry origin feature",
                         "cat > x.md <<'EOF'\ngit push origin main\nEOF",
                         "cat <<-EOF > x.md\n\tgit push origin main\n\tEOF",
                         "grep -c x <<< 'git push origin main'"):
@@ -143,7 +146,8 @@ class PushGuard(unittest.TestCase):
             sh(Path(self.tmp.name), "git", "clone", "-q", "-b", "main",
                str(Path(self.tmp.name) / "remote.git"), str(other))
         for command in (f"env -C {other} git push", f"env --chdir={other} git push",
-                        f"sudo -D {other} git push"):
+                        f"sudo -D {other} git push", f"env --chd={other} git push",
+                        f"env --c {other} git push", f"sudo --chd {other} git push"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
         self.assertEqual(self.decision(f"env -C {other} git status"), "allow")
@@ -156,7 +160,12 @@ class PushGuard(unittest.TestCase):
                         "git -c remote.origin.push=refs/heads/feature:refs/heads/release/next "
                         "push origin",
                         "git -c remote.origin.push=HEAD:main push --recurse-submodules check "
-                        "origin"):
+                        "origin",
+                        "git -c remote.origin.push=HEAD:main push --receive git-receive-pack "
+                        "origin",
+                        "git -c remote.origin.push=HEAD:main push --recurse check origin",
+                        "git -c remote.origin.push=HEAD:main push --push-opt x origin",
+                        "git push --mir", "git push --bra origin"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
         sh(self.work, "git", "config", "remote.origin.push", "HEAD:refs/heads/main")

@@ -80,8 +80,27 @@ HEREDOC = re.compile(r"(?<!<)<<(?!<)-?\s*(['\"]?)([A-Za-z_][\w-]*)\1")
 # each one's options, the push is read from the first `git` after the wrapper.
 WRAPPERS = {"env", "command", "builtin", "exec", "sudo", "doas", "time", "timeout", "nohup",
             "nice", "ionice", "stdbuf", "setsid", "chronic", "caffeinate", "arch", "unbuffer"}
-# Wrapper options that run the command in another directory (`env -C`, `sudo -D`).
-CHDIR = {"env": ("-C", "--chdir"), "sudo": ("-D", "--chdir")}
+# Wrapper options that run the command in another directory (`env -C`, `sudo -D`), and each
+# wrapper's long options, so an abbreviation (`env --chd=…`) resolves as the tool would.
+CHDIR = {"env": "-C", "sudo": "-D"}
+WRAPPER_LONG = {
+    "env": ("--ignore-environment", "--null", "--unset", "--chdir", "--split-string",
+            "--block-signal", "--default-signal", "--ignore-signal", "--list-signal-handling",
+            "--debug", "--help", "--version"),
+    "sudo": ("--askpass", "--background", "--bell", "--chdir", "--chroot", "--close-from",
+             "--command-timeout", "--edit", "--group", "--help", "--host", "--list", "--login",
+             "--non-interactive", "--other-user", "--preserve-env", "--preserve-groups",
+             "--prompt", "--remove-timestamp", "--reset-timestamp", "--role", "--set-home",
+             "--shell", "--stdin", "--type", "--user", "--validate", "--version"),
+}
+# `git push`'s long options (`git push -h`), so an abbreviation git accepts (`--receive`,
+# `--mir`) is read as the option it names.
+_NEGATABLE = ("all", "atomic", "branches", "delete", "dry-run", "exec", "follow-tags", "force",
+              "force-if-includes", "force-with-lease", "mirror", "porcelain", "progress", "prune",
+              "push-option", "quiet", "receive-pack", "recurse-submodules", "repo",
+              "set-upstream", "signed", "tags", "thin", "verbose")
+PUSH_LONG = tuple(f"--{n}" for n in _NEGATABLE) + tuple(f"--no-{n}" for n in _NEGATABLE) + (
+    "--ipv4", "--ipv6", "--verify", "--no-verify")
 EVERYTHING_FLAGS = ("--mirror", "--all", "--branches")
 ENV_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
 
@@ -163,17 +182,20 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None) ->
     if argv and os.path.basename(argv[0]) in WRAPPERS:
         # The first `git` that reads as a push: an option value can be `git` too
         # (`sudo -u git git push`, `env -C /srv/git git push`).
-        flags = CHDIR.get(os.path.basename(argv[0]), ())
+        wrapper = os.path.basename(argv[0])
         for at in range(1, len(argv)):
             if os.path.basename(argv[at]) == "git":
                 inner = dict(env, **dict(w.partition("=")[::2] for w in argv[1:at]
                                          if ENV_ASSIGNMENT.match(w)))
                 directory = cwd
                 for j, word in enumerate(argv[1:at], 1):
-                    if word in flags and j + 1 < at:
-                        directory = os.path.join(directory, argv[j + 1])
-                    elif word.split("=", 1)[0] in flags and "=" in word:
-                        directory = os.path.join(directory, word.split("=", 1)[1])
+                    flag, eq, value = word.partition("=")
+                    flag = long_option(flag, WRAPPER_LONG.get(wrapper, ()))
+                    if flag in (CHDIR.get(wrapper), "--chdir") and wrapper in CHDIR:
+                        if eq:
+                            directory = os.path.join(directory, value)
+                        elif j + 1 < at:
+                            directory = os.path.join(directory, argv[j + 1])
                 push = git_push(argv[at:], directory, inner)
                 if push:
                     return push
@@ -224,6 +246,20 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None) ->
     return Push(directory, rest, opts, env, unresolvable)
 
 
+def long_option(name: str, options: Sequence[str]) -> str:
+    """The long option `name` (before any `=`) abbreviates, as getopt and git resolve it: an
+    exact name, else the one option it is a prefix of. An ambiguous prefix every candidate of
+    which forces (`--forc`) is `--force`; any other is returned unchanged."""
+    if name in options or not name.startswith("--") or name == "--":
+        return name
+    matches = [o for o in options if o.startswith(name)]
+    if len(matches) == 1:
+        return matches[0]
+    if matches and all(m in FORCE_LONG for m in matches):
+        return "--force"
+    return name
+
+
 def strip_remote(ref: str) -> str:
     """`origin/release/x` → `release/x`: only the first segment is the remote."""
     return ref.split("/", 1)[1] if "/" in ref else ref
@@ -237,24 +273,24 @@ def push_decision(push: Push) -> Tuple[str, str]:
     force, positional, remote_flag, i = False, [], None, 0
     while i < len(push.args):
         arg = push.args[i]
-        if arg in EVERYTHING_FLAGS:
+        name, eq, value = arg.partition("=")
+        name = long_option(name, PUSH_LONG)
+        if name in EVERYTHING_FLAGS:
             return "deny", f"`git push {arg}` updates protected branches too"
-        name = arg.split("=", 1)[0]
         cluster = SHORT_CLUSTER.fullmatch(arg)
         if cluster and arg != "-":
             force = force or "f" in cluster.group(1)
             if cluster.group(2) == "":  # `-o value` / `-fo value`: skip the value
                 i += 1
-        # git takes an unambiguous prefix of a long option (`--force-w`). `--forc`, which git
-        # rejects as ambiguous, asks too.
-        elif name.startswith("--forc") and any(f.startswith(name) for f in FORCE_LONG):
+        elif name in FORCE_LONG:
             force = True
-        elif arg == "--repo" and i + 1 < len(push.args):
-            remote_flag = push.args[i + 1]
-            i += 1
-        elif arg.startswith("--repo="):
-            remote_flag = arg.split("=", 1)[1]
-        elif arg in PUSH_WITH_ARG:
+        elif name == "--repo":
+            if eq:
+                remote_flag = value
+            elif i + 1 < len(push.args):
+                remote_flag = push.args[i + 1]
+                i += 1
+        elif name in PUSH_WITH_ARG and not eq:
             i += 1
         elif not arg.startswith("-"):
             positional.append(arg)
