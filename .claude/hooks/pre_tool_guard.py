@@ -201,7 +201,7 @@ def simple_commands(command: str) -> Iterator[List[str]]:
     backslash-continued lines rejoined (an escaped backslash, a backslash in a comment) and
     with redirections removed. A push found in any reading counts."""
     code = list(code_lines(command.splitlines()))
-    joined = re.sub(r"\\\r?\n", " ", command)
+    joined = re.sub(r"\\\r?\n", "", command)  # bash deletes a continuation: `c\⏎d` is `cd`
     lines = list(code)
     if joined != command:
         lines += code_lines(joined.splitlines())
@@ -560,6 +560,7 @@ def respond(decision: str, reason: str) -> int:
     return 0
 
 
+LITERAL_PATH = re.compile(r"[A-Za-z0-9._/-]+")  # a cd target the guard follows (see below)
 # Another change of directory after a leading `cd <dir> &&` (see command_directories).
 MOVES = {"cd", "pushd", "popd"}
 
@@ -603,12 +604,26 @@ def lexed_commands(tokens: List[str]) -> List[List[str]]:
 
 
 def command_directories(command: str, cwd: str) -> Optional[List[str]]:
+    """command_directories for every way the shell may read the command: as written, and with
+    backslash-newline continuations deleted (`c\⏎d` is `cd`). An escaped backslash before a
+    newline is not a continuation, so both readings are taken; None if either is."""
+    readings = dict.fromkeys([command, re.sub(r"\\\r?\n", "", command)])
+    found: List[str] = []
+    for text in readings:
+        dirs = _command_directories(text, cwd)
+        if dirs is None:
+            return None
+        found += [d for d in dirs if d not in found]
+    return found
+
+
+def _command_directories(command: str, cwd: str) -> Optional[List[str]]:
     """The directories this command's pushes may run in. A leading `cd <dir> &&`, or
     `(cd <dir> && …)`, moves them (`cd .agents/artifacts && git push`), and the starting
     directory is checked too when anything after it can run if the `cd` failed, or follows
     the subshell. None when where a push runs can't be resolved: a target the shell would
-    resolve differently (`-`, `~`, `$…`, a backtick, a glob or brace, `CDPATH`, a missing
-    directory), or any other
+    resolve differently (anything but a literal path of letters, digits and `._/-`; `CDPATH`;
+    a missing directory), or any other
     change of directory (`cd a; git push`, `x && cd a`, `cd a && cd b`, `time cd a`). Any
     standalone `cd`/`pushd`/`popd` word counts, other than a redirection's operand."""
     # Heredoc bodies are data (a commit message may mention `cd`), as in simple_commands.
@@ -648,10 +663,11 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     if physical is not False and ".." in raw.split("/"):
         return None
     target = os.path.normpath(os.path.join(cwd, raw))
-    # The lexer has dropped quotes, so `~` can't be told from `'~'` (a literal directory): a
-    # tilde target is refused like any other the guard can't resolve as the shell would.
-    # Nor can a glob or brace expansion (`[x]`, `*`, `{a,b}`) be told from a literal name.
-    if (raw.startswith(("-", "~")) or set(raw) & set("$`*?[]{}") or not os.path.isdir(target)
+    # Followed only when the target is a plain literal path. The lexer has dropped the quoting
+    # that decides how the shell expands a word (`~` vs `'~'`, `[x]`, `$VAR`, `{a,b}`, `!`,
+    # escapes), so rather than list what the shell might expand, anything outside letters,
+    # digits and `._/-` is refused. CDPATH would also redirect a relative name.
+    if (not LITERAL_PATH.fullmatch(raw) or raw.startswith("-") or not os.path.isdir(target)
             or (os.environ.get("CDPATH") and not raw.startswith(("/", "./", "../")))):
         return None
     rest = tokens[j + 2:]
