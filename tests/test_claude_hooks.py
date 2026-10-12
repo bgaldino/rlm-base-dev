@@ -147,7 +147,9 @@ class PushGuard(unittest.TestCase):
                str(Path(self.tmp.name) / "remote.git"), str(other))
         for command in (f"env -C {other} git push", f"env --chdir={other} git push",
                         f"sudo -D {other} git push", f"env --chd={other} git push",
-                        f"env --c {other} git push", f"sudo --chd {other} git push"):
+                        f"env --c {other} git push", f"sudo --chd {other} git push",
+                        f"timeout 60 env -C {other} git push",
+                        f"nice -n 5 sudo -D {other} git push"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
         self.assertEqual(self.decision(f"env -C {other} git status"), "allow")
@@ -180,13 +182,21 @@ class PushGuard(unittest.TestCase):
         sh(self.work, "git", "config", "alias.p", "push")
         sh(self.work, "git", "config", "alias.ship", "!git push origin HEAD:main")
         sh(self.work, "git", "config", "alias.lg", "log --oneline")
+        # An alias may start with global options, or name another alias.
+        sh(self.work, "git", "config", "alias.cp", "-c remote.origin.push=HEAD:main push")
+        sh(self.work, "git", "config", "alias.pf", "p -f")
+        sh(self.work, "git", "config", "alias.loop", "loop")
         try:
             self.assertEqual(self.decision("git p origin HEAD:main"), "deny")
             self.assertEqual(self.decision("git ship"), "deny")
+            self.assertEqual(self.decision("git cp origin"), "deny")
+            self.assertEqual(self.decision("git pf origin HEAD:main"), "deny")
+            self.assertEqual(self.decision("git pf origin feature"), "ask")
+            self.assertEqual(self.decision("git loop"), "allow")
             self.assertEqual(self.decision("git p origin feature"), "allow")
             self.assertEqual(self.decision("git lg"), "allow")
         finally:
-            for name in ("p", "ship", "lg"):
+            for name in ("p", "ship", "lg", "cp", "pf", "loop"):
                 sh(self.work, "git", "config", "--unset", f"alias.{name}")
 
     def test_pushes_that_cannot_be_resolved_are_refused(self):

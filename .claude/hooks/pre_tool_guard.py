@@ -10,12 +10,13 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    `release/*` branch is denied, however it is spelled: an explicit refspec
    (`HEAD:main`), a bare `git push` whose upstream is `main`, a configured
    `remote.<name>.push` refspec (from the repo config or the command's own `-c`), a git
-   alias that expands to `push`, `git -C <dir> push`, `--mirror`/`--all`, a push behind a
-   command wrapper (a command starting with `env`, `sudo`, `time`, `timeout`, `nohup`,
-   `nice` and the others in WRAPPERS, whatever their options, resolved in the directory `env -C`
-   or `sudo -D` names), or split across lines with a
-   trailing backslash. Release lines are
-   matched by prefix, never by number. A push the guard cannot resolve to concrete
+   alias that expands to `push` (also through leading global options or another
+   alias), `git -C <dir> push`, `--mirror`/`--all`, a push behind command wrappers (`env`,
+   `sudo`, `time`, `timeout`, `nohup`, `nice` and the others in WRAPPERS, nested or not,
+   whatever their options, and resolved in the directory `env -C` or `sudo -D` names), or
+   split across lines with a trailing backslash. Long options are read the way the tool
+   reads them, abbreviations included (`--mir`, `env --chd=`). Release lines are matched by
+   prefix, never by number. A push the guard cannot resolve to concrete
    destinations is denied rather than guessed at: wildcard refspecs, `--config-env`, `GIT_*`
    environment overrides, and shell aliases that run `push`. The `Bash(git push origin …)`
    deny rules in settings.json only catch the literal spelling.
@@ -37,11 +38,10 @@ What this guard does not catch, and what backs it up:
 - State a compound command changes before its push runs: `git checkout main && git push` and
   `cd elsewhere && git push` are resolved against the branch and directory the command
   started in. An explicit destination (`git push origin main`) is caught either way.
-- Aliases more than one level deep (an alias whose expansion is another alias).
-  For all of these the server is the backstop: the "Approvals" branch ruleset on `main`,
-  `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion, and its
-  admin bypass applies to pull-request merges only, so a direct push with the owner's
-  credentials is rejected. This guard refuses it earlier and says why.
+- For both push cases above the server is the backstop: the "Approvals" branch ruleset on
+  `main`, `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion,
+  and its admin bypass applies to pull-request merges only, so a direct push with the
+  owner's credentials is rejected. This guard refuses it earlier and says why.
 - SFDMU edits made through Bash (`sed -i`, a script) rather than Edit/Write. No diff-level
   check for destructive operations exists in `pr_gate.py` yet; adding one is planned with the
   defect registry work, and until then a person reviewing the diff is the only backstop.
@@ -172,7 +172,8 @@ class Push:
         self.unresolvable = unresolvable
 
 
-def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None) -> Optional[Push]:
+def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None,
+             depth: int = 0) -> Optional[Push]:
     """A Push if argv runs `git push` directly or through an alias, else None."""
     env = dict(env or {})
     while argv and ENV_ASSIGNMENT.match(argv[0]):
@@ -182,13 +183,17 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None) ->
     if argv and os.path.basename(argv[0]) in WRAPPERS:
         # The first `git` that reads as a push: an option value can be `git` too
         # (`sudo -u git git push`, `env -C /srv/git git push`).
-        wrapper = os.path.basename(argv[0])
         for at in range(1, len(argv)):
             if os.path.basename(argv[at]) == "git":
                 inner = dict(env, **dict(w.partition("=")[::2] for w in argv[1:at]
                                          if ENV_ASSIGNMENT.match(w)))
-                directory = cwd
+                # Wrappers nest (`timeout 60 env -C dir git push`): each option is read as
+                # the innermost wrapper before it reads it.
+                directory, wrapper = cwd, os.path.basename(argv[0])
                 for j, word in enumerate(argv[1:at], 1):
+                    if os.path.basename(word) in WRAPPERS:
+                        wrapper = os.path.basename(word)
+                        continue
                     flag, eq, value = word.partition("=")
                     flag = long_option(flag, WRAPPER_LONG.get(wrapper, ()))
                     if flag in (CHDIR.get(wrapper), "--chdir") and wrapper in CHDIR:
@@ -235,9 +240,12 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None) ->
             expansion = shlex.split(alias)
         except ValueError:
             return None
-        if not expansion or expansion[0] != "push":
+        # An alias can start with global options (`-c remote.origin.push=… push`) or name
+        # another alias, so its expansion is read like a command line of its own. git itself
+        # refuses alias loops; the depth bound only stops this guard looping on one.
+        if not expansion or depth >= 10:
             return None
-        rest = expansion[1:] + rest
+        return git_push(argv[:i] + expansion + rest, cwd, env, depth + 1)
     unresolvable = ""
     if config_env:
         unresolvable = "`--config-env` takes push configuration from the environment"
