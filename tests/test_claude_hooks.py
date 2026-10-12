@@ -80,6 +80,8 @@ class PushGuard(unittest.TestCase):
                         "cd . && git push origin main", "git status; git push origin release/next",
                         "git push -o ci.skip origin main", "git push --delete origin main",
                         "git push --mirror", "git push --all origin", "git push origin :",
+                        "git push origin HEAD:heads/main", "git push origin HEAD:refs/heads/main",
+                        "git push origin feature:heads/release/next", "git push origin :heads/main",
                         "env -i git push origin HEAD:main", "env -u HOME git push origin main",
                         "command git push origin main", "sudo -E git push origin main",
                         "time git push origin main", "nohup git push origin main &",
@@ -167,7 +169,9 @@ class PushGuard(unittest.TestCase):
         # So does deleting a protected-looking branch there.
         for command in (f"git -C {art} push origin :release/foo",
                         f"git -C {art} push --delete origin release/foo",
-                        f"git -C {art} push -d origin main", f"git -C {art} push --del origin main"):
+                        f"git -C {art} push -d origin main", f"git -C {art} push --del origin main",
+                        f"git -C {art} push --delete origin heads/main",
+                        f"git -C {art} push origin :refs/heads/release/x"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "ask")
         self.assertEqual(self.decision(f"git -C {art} push origin :scratch"), "allow")
@@ -247,6 +251,18 @@ class PushGuard(unittest.TestCase):
         for command in ("cd '~' && git push", "cd \\~ && git push", "cd ~ && git push"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
+        # `link/..` is where you started under bash's default `cd -L`, not the link's parent.
+        art = self.artifacts_clone()
+        (art / "sub").mkdir(exist_ok=True)
+        link = self.work / "link-into-artifacts"
+        if not link.exists():
+            link.symlink_to(art / "sub")
+        for command in (f"cd {link.name}/.. && git push", f"cd -L {link.name}/.. && git push",
+                        f"cd -P {link.name}/.. && git push", f"cd -LP {link.name}/.. && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "deny")
+        self.assertEqual(self.decision(f"cd -PL {link.name}/.. && git status", branch="main"),
+                         "allow")
         # A redirection's operand named cd is not a change of directory.
         for command in ("cat < cd && git push origin feature", "echo x > cd && git push origin feature",
                         "cat <<< cd && git push origin feature",

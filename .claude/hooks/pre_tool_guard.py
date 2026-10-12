@@ -136,7 +136,12 @@ CHECKOUT = Path(__file__).resolve().parents[2]  # the checkout this hook ships i
 
 
 def is_protected(ref: str) -> bool:
-    name = ref[len("refs/heads/"):] if ref.startswith("refs/heads/") else ref
+    """git resolves a push destination by trying `refs/<dst>` and `refs/heads/<dst>`, so
+    `main`, `heads/main` and `refs/heads/main` all name the same branch."""
+    name = ref
+    for prefix in ("refs/", "heads/"):
+        if name.startswith(prefix):
+            name = name[len(prefix):]
     return name in PROTECTED or name.startswith(PROTECTED_PREFIXES)
 
 
@@ -605,15 +610,23 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     i = 1 if tokens[:1] == ["("] else 0
     if len(moves) > 1 or tokens[i:i + 1] != ["cd"]:
         return None
-    j = i + 1
+    j, physical = i + 1, False
     while j < len(tokens) and re.fullmatch(r"-[LPe@]+", tokens[j]):
+        modes = [c for c in tokens[j] if c in "LP"]
+        if modes:
+            physical = modes[-1] == "P"  # the last of -L / -P wins
         j += 1
     if j < len(tokens) and tokens[j] == "--":
         j += 1
     if len(tokens) < j + 2 or tokens[j + 1] != "&&":
         return None
     raw = tokens[j]
-    target = os.path.join(cwd, raw)
+    # Bash's default `cd -L` cancels `..` against the path as typed (`link/..` is where you
+    # started), before any symlink is followed; normpath does the same. Under `-P` the `..`
+    # applies after symlinks, which the guard doesn't model, so that is refused.
+    if physical and ".." in raw.split("/"):
+        return None
+    target = os.path.normpath(os.path.join(cwd, raw))
     # The lexer has dropped quotes, so `~` can't be told from `'~'` (a literal directory): a
     # tilde target is refused like any other the guard can't resolve as the shell would.
     if (raw.startswith(("-", "~")) or "$" in raw or "`" in raw or not os.path.isdir(target)
