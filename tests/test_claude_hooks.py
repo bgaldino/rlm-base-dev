@@ -226,6 +226,7 @@ class PushGuard(unittest.TestCase):
         self.assertEqual(self.decision(f"(cd {art} && git push)", branch="main"), "allow")
         # After the subshell's `)`, commands run back in the starting directory.
         for command in (f"(cd {art} && true) && git push", f"(cd {art} && (true)) && git push",
+                        f"(cd {art} && echo '(') && git push",
                         f"(cd {art} && git push) && git push"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command, branch="main"), "deny")
@@ -240,6 +241,8 @@ class PushGuard(unittest.TestCase):
         self.assertEqual(self.decision("cd \"$MAIN_CHECKOUT\" && git push"), "deny")
         # `cd` as data, not a command, is not a change of directory.
         for command in ("echo cd && git push origin feature", "git add cd && git push origin feature",
+                        "cat < cd && git push origin feature", "echo x > cd && git push origin feature",
+                        "cat <<< cd && git push origin feature", "ls 2>&1 cd && git push origin feature",
                         "builtin echo pushd && git push origin feature"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")

@@ -558,13 +558,19 @@ def is_punctuation(token: str) -> bool:
 
 
 def lexed_commands(tokens: List[str]) -> List[List[str]]:
-    """The words of each simple command in a token list (punctuation arrives grouped)."""
-    out, words = [], []
+    """The words of each simple command in a token list (punctuation arrives grouped). A
+    redirection (`<`, `>`, `<<<`, `2>&`) belongs to its command, and its operand (`< cd`) is
+    not a word of it."""
+    out, words, operand = [], [], False
     for token in tokens + [";"]:
-        if is_punctuation(token):
+        if is_punctuation(token) and set(token) <= set("<>&") and set(token) & set("<>"):
+            operand = True
+        elif is_punctuation(token):
             if words:
                 out.append(words)
-            words = []
+            words, operand = [], False
+        elif operand:
+            operand = False
         else:
             words.append(token)
     return out
@@ -619,6 +625,9 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     # `)` runs back in the starting directory. (A redirection or `| tail` there doesn't.)
     after_subshell = False
     if i:
+        # A quoted `(` or `)` arrives unquoted; if no matching `)` is found, assume something
+        # may follow it, and check the starting directory too.
+        after_subshell = True
         depth = 1
         for k, t in enumerate(rest):
             if is_punctuation(t):
