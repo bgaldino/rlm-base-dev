@@ -155,6 +155,10 @@ class PushGuard(unittest.TestCase):
             sh(clone, "git", "commit", "-q", "--allow-empty", "-m", "base")
             sh(clone, "git", "remote", "add", "origin", str(remote))
             sh(clone, "git", "push", "-q", "-u", "origin", "main")
+            # What the guard matches is the push URL: GitHub host and repository path. The
+            # guard only reads it; nothing in these tests pushes.
+            sh(clone, "git", "config", "remote.origin.pushurl",
+               "git@github.com:bgaldino/rlm-base-artifacts.git")
         return clone
 
     def test_the_artifacts_repo_takes_direct_pushes_to_main(self):
@@ -167,9 +171,16 @@ class PushGuard(unittest.TestCase):
         # A force push there still asks; this repository's main is still refused.
         self.assertEqual(self.decision(f"git -C {art} push -f origin main"), "ask")
         # GitHub names are case-insensitive, so a differently cased URL is still the repo.
-        upper = Path(self.tmp.name) / "gh" / "BGaldino" / "RLM-Base-Artifacts.git"
-        self.assertEqual(self.decision(f"git -C {art} -c remote.origin.url={upper} push origin main"),
-                         "allow")
+        self.assertEqual(self.decision(f"git -C {art} -c remote.origin.pushurl=https://github.com/"
+                                       "BGaldino/RLM-Base-Artifacts.git push origin main"), "allow")
+        # The same repository path on another host, or as a local path, is not the repo.
+        for url in ("https://example.com/bgaldino/rlm-base-artifacts.git",
+                    "git@example.com:bgaldino/rlm-base-artifacts.git",
+                    str(Path(self.tmp.name) / "gh" / "bgaldino" / "rlm-base-artifacts.git"),
+                    "https://github.com.evil.example/bgaldino/rlm-base-artifacts.git"):
+            with self.subTest(url=url):
+                self.assertEqual(self.decision(f"git -C {art} -c remote.origin.pushurl={url} "
+                                               "push origin main"), "deny")
         # So does deleting a protected-looking branch there.
         for command in (f"git -C {art} push origin :release/foo",
                         f"git -C {art} push --delete origin release/foo",

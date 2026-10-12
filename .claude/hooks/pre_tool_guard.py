@@ -74,10 +74,18 @@ from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Sequence, Tuple
 
 PROTECTED = ("main",)
-# Repositories whose protected-looking branches are pushed to directly by design: the private
-# artifacts repo (`.agents/artifacts`, the todo tracker) takes commits on its `main`. Matched
-# against the push remote's URL, so every other repository stays protected by default.
-UNPROTECTED_REPOS = re.compile(r"[:/]bgaldino/rlm-base-artifacts(?:\.git)?/?$", re.IGNORECASE)
+# The one repository whose protected-looking branches are pushed to directly by design: the
+# private artifacts repo (`.agents/artifacts`, the todo tracker) takes commits on its `main`.
+# Matched on the push URL's host *and* path (see is_artifacts_url), so every other repository,
+# on any host or local path, stays protected by default. GitHub names are case-insensitive.
+ARTIFACTS_HOST = "github.com"
+ARTIFACTS_PATH = re.compile(r"/?bgaldino/rlm-base-artifacts(?:\.git)?/?", re.IGNORECASE)
+URL_FORMS = (
+    re.compile(r"https://(?:[^@/]+@)?(?P<host>[^/:@]+)/(?P<path>.+)"),
+    re.compile(r"ssh://(?:[^@/]+@)?(?P<host>[^/:@]+)(?::\d+)?/(?P<path>.+)"),
+    re.compile(r"(?:[^@/:]+@)?(?P<host>[^/:@]+):(?P<path>[^/].*)"),  # scp-like, git@host:path
+)
+SAFE_HOST = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 PROTECTED_PREFIXES = ("preview/", "release/")
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 # git's global options that take a separate argument, so `git -C dir push` is still a push.
@@ -133,6 +141,38 @@ DELETE_OLD_DATA = re.compile(r'"deleteOldData"\s*:\s*true')
 OP_INSERT = re.compile(r'"operation"\s*:\s*"Insert"')
 OP_UPSERT = re.compile(r'"operation"\s*:\s*"Upsert"')
 CHECKOUT = Path(__file__).resolve().parents[2]  # the checkout this hook ships in
+
+
+def ssh_hostname(alias: str) -> Optional[str]:
+    """The host an SSH alias connects to (`github.com-me` -> `github.com`), per `ssh -G`."""
+    if not SAFE_HOST.fullmatch(alias):  # never let a host be read as an ssh option
+        return None
+    try:
+        out = subprocess.run(["ssh", "-G", alias], capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    for line in out.stdout.splitlines() if out.returncode == 0 else []:
+        key, _, value = line.partition(" ")
+        if key == "hostname":
+            return value.strip().lower()
+    return None
+
+
+def is_artifacts_url(url: str) -> bool:
+    """Whether a push URL is the private artifacts repo on GitHub: https://github.com/…, or SSH
+    to github.com directly or through an alias that resolves to it."""
+    for form in URL_FORMS:
+        found = form.fullmatch(url)
+        if found:
+            break
+    else:
+        return False  # a local path or another scheme is never the artifacts repo
+    if not ARTIFACTS_PATH.fullmatch(found.group("path")):
+        return False
+    host = found.group("host").lower()
+    if host == ARTIFACTS_HOST:
+        return True
+    return not url.startswith("https://") and ssh_hostname(host) == ARTIFACTS_HOST
 
 
 def is_protected(ref: str) -> bool:
@@ -420,7 +460,7 @@ def push_decision(push: Push) -> Tuple[str, str]:
     # Exempt only a configured remote, every one of whose push URLs (after insteadOf and
     # pushInsteadOf rewriting) is the artifacts repo; a raw URL or path is never exempt.
     urls = (git(d, "remote", "get-url", "--push", "--all", remote, opts=opts) or "").split()
-    exempt = bool(urls) and all(UNPROTECTED_REPOS.search(u) for u in urls)
+    exempt = bool(urls) and all(is_artifacts_url(u) for u in urls)
     hit = [] if exempt else [t for t in targets if is_protected(t)]
     if delete:
         deletions += targets
