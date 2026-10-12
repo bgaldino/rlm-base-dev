@@ -164,6 +164,15 @@ class PushGuard(unittest.TestCase):
                 self.assertEqual(self.decision(command), "allow")
         # A force push there still asks; this repository's main is still refused.
         self.assertEqual(self.decision(f"git -C {art} push -f origin main"), "ask")
+        # So does deleting a protected-looking branch there.
+        for command in (f"git -C {art} push origin :release/foo",
+                        f"git -C {art} push --delete origin release/foo",
+                        f"git -C {art} push -d origin main", f"git -C {art} push --del origin main"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "ask")
+        self.assertEqual(self.decision(f"git -C {art} push origin :scratch"), "allow")
+        self.assertEqual(self.decision(f"git -C {art} push --delete --no-delete origin main"),
+                         "allow")
         self.assertEqual(self.decision(f"cd {art} && git push && cd {self.work} && git push "
                                        "origin main"), "deny")
         # A second change of directory makes where a push runs unresolvable, so it's refused,

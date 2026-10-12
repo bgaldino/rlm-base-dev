@@ -24,7 +24,8 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    deny rules in settings.json only catch the literal spelling.
    A leading `cd <dir> &&` is followed. The private artifacts repo (`rlm-base-artifacts`,
    cloned at `.agents/artifacts`) takes direct commits on its `main` by design, so a push
-   whose remote is that repository isn't refused for its target; every other repository is.
+   whose remote is that repository isn't refused for its target (a force push or a deletion
+   of `main`, `preview/*` or `release/*` there asks); every other repository is.
    Adapter policy, not a DO NOT 8 rule: a force push to any other branch asks the person.
 2. SFDMU destructive operation (CRITICAL rule). An edit to a `datasets/` plan that makes any
    object newly destructive asks the person: `deleteOldData` turning on, or an `Upsert`
@@ -47,6 +48,9 @@ What this guard does not catch, and what backs it up:
   git push` is resolved against the branch the command started on. (Directory changes are
   covered: a leading `cd <dir> &&` is followed, and a push in a command that changes
   directory any other way is refused as unresolvable.) An explicit destination (`git push origin main`) is caught either way.
+- A brace group after a leading `cd`: `cd <dir> && { a; b; git push; }` also checks the
+  starting directory, because the `;` inside is read as one that could run after a failed
+  `cd`. That errs toward refusing; spell it with `&&` throughout, or `git -C <dir>`.
 - For both push cases above the server is the backstop: the "Approvals" branch ruleset on
   `main`, `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion,
   and its admin bypass applies to pull-request merges only, so a direct push with the
@@ -309,7 +313,7 @@ def push_decision(push: Push) -> Tuple[str, str]:
     if push.unresolvable:
         return "deny", f"{push.unresolvable}, so this push is refused rather than guessed at"
     d, opts = push.directory, push.opts
-    force, tags, positional, remote_flag, i = False, False, [], None, 0
+    force, tags, delete, positional, remote_flag, i = False, False, False, [], None, 0
     while i < len(push.args):
         arg = push.args[i]
         if arg == "--":  # everything after it is the repository and refspecs, never an option
@@ -322,10 +326,13 @@ def push_decision(push: Push) -> Tuple[str, str]:
         cluster = SHORT_CLUSTER.fullmatch(arg)
         if cluster and arg != "-":
             force = force or "f" in cluster.group(1)
+            delete = delete or "d" in cluster.group(1)
             if cluster.group(2) == "":  # `-o value` / `-fo value`: skip the value
                 i += 1
         elif name in FORCE_LONG:
             force = True
+        elif name in ("--delete", "--no-delete"):
+            delete = name == "--delete"
         elif name in ("--tags", "--no-tags"):
             tags = name == "--tags"  # the last one wins
         elif name == "--repo":
@@ -357,6 +364,7 @@ def push_decision(push: Push) -> Tuple[str, str]:
         if listed:
             refspecs, configured = listed.splitlines(), True
     targets: List[str] = []
+    deletions: List[str] = []  # `:dst` refspecs, or every target under --delete
     if refspecs:
         for spec in refspecs:
             if spec.startswith("+"):
@@ -366,6 +374,8 @@ def push_decision(push: Push) -> Tuple[str, str]:
             if "*" in spec:
                 return "deny", f"the wildcard refspec `{spec}` can't be resolved to concrete branches"
             src, _, dst = spec.partition(":")
+            if not src and dst:
+                deletions.append(dst)
             if not dst and src in ("HEAD", "@"):
                 dst = current or src
             targets.append(dst or src)
@@ -388,6 +398,14 @@ def push_decision(push: Push) -> Tuple[str, str]:
     urls = (git(d, "remote", "get-url", "--push", "--all", remote, opts=opts) or "").split()
     exempt = bool(urls) and all(UNPROTECTED_REPOS.search(u) for u in urls)
     hit = [] if exempt else [t for t in targets if is_protected(t)]
+    if delete:
+        deletions += targets
+    gone = sorted({t for t in deletions if is_protected(t)})
+    if exempt and gone:
+        # The exemption is for direct commits; deleting a protected-looking branch there asks,
+        # like a force push.
+        return "ask", (f"this deletes {', '.join(gone)} in the artifacts repo; deleting a "
+                       "branch asks a person first (adapter policy)")
     if hit:
         how = f" (via the configured remote.{remote}.push refspec)" if configured else ""
         return "deny", (f"this push updates {', '.join(sorted(set(hit)))}{how}. AGENTS.md DO NOT "
