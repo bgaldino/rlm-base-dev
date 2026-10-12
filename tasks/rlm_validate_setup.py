@@ -198,7 +198,8 @@ class ValidateSetup(BaseTask):
         """
         label = "Gate interpreter"
         repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        sys.path.insert(0, os.path.join(repo_root, "scripts", "ai"))
+        scripts_ai = os.path.join(repo_root, "scripts", "ai")
+        sys.path.insert(0, scripts_ai)
         try:
             import gate_python  # noqa: PLC0415
             from pathlib import Path  # noqa: PLC0415
@@ -206,6 +207,8 @@ class ValidateSetup(BaseTask):
             python, problems = gate_python.problems(Path(repo_root))
         except Exception as exc:
             return self._warn(label, f"check failed: {exc}")
+        finally:
+            sys.path.remove(scripts_ai)
         if problems:
             return self._warn(
                 label, "; ".join(problems) + " — create it as described in scripts/ai/gate_python.py"

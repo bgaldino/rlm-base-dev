@@ -79,7 +79,11 @@ class PushGuard(unittest.TestCase):
                         "git -C . push origin main", "FOO=1 git push origin main",
                         "cd . && git push origin main", "git status; git push origin release/next",
                         "git push -o ci.skip origin main", "git push --delete origin main",
-                        "git push --mirror", "git push --all origin", "git push origin :"):
+                        "git push --mirror", "git push --all origin", "git push origin :",
+                        "env -i git push origin HEAD:main", "env -u HOME git push origin main",
+                        "command git push origin main", "sudo -E git push origin main",
+                        "time git push origin main", "nohup git push origin main &",
+                        "nice -n 10 git push origin main", "git push \\\n  origin main"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "deny")
 
@@ -104,14 +108,17 @@ class PushGuard(unittest.TestCase):
 
     def test_force_push_to_a_feature_branch_asks(self):
         for command in ("git push --force origin feature", "git push -f",
-                        "git push --force-with-lease origin feature", "git push origin +feature"):
+                        "git push --force-with-lease origin feature", "git push origin +feature",
+                        "git push -uf origin feature", "git push -fu origin feature",
+                        "git push --force-with-lease=feature origin feature"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "ask")
 
     def test_ordinary_commands_are_allowed(self):
         for command in ("git push origin feature", "git push -u origin feature",
                         "echo git push origin main", "git log main", "git pushx origin main",
-                        "git -c user.name=x push origin feature"):
+                        "git -c user.name=x push origin feature", "sudo ls", "time make",
+                        "env -u HOME git push origin feature", "git push --follow-tags origin feature"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
 
@@ -329,6 +336,21 @@ class StopGate(unittest.TestCase):
         self.assertEqual(self.stop({"LOOP_ROLE": "spec-reviewer"}).returncode, 0)
         (self.work / "scripts" / "ai" / "exit_code").unlink()
         self.assertEqual(self.stop().returncode, 0)
+
+    def test_a_branch_the_base_has_moved_past_is_not_gated(self):
+        # The gate would fail if it ran; the branch has nothing of its own, so it mustn't.
+        self.gate_exits(1)
+        sh(self.work, "git", "add", "-A")
+        sh(self.work, "git", "commit", "-q", "-m", "gate fails")
+        sh(self.work, "git", "push", "-q", "origin", "feature")
+        sh(self.work, "git", "checkout", "-q", "-b", "ahead")
+        (self.work / "later.txt").write_text("base moved on\n")
+        sh(self.work, "git", "add", "-A")
+        sh(self.work, "git", "commit", "-q", "-m", "base moves")
+        sh(self.work, "git", "push", "-q", "origin", "ahead:feature")
+        sh(self.work, "git", "checkout", "-q", "feature")
+        self.assertEqual(self.stop().returncode, 0)
+        self.assertFalse((self.run_dir / "checks.log").exists())
 
     def test_a_failing_gate_blocks_with_its_output_and_the_defect_classes(self):
         self.gate_exits(1)

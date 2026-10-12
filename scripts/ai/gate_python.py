@@ -102,7 +102,10 @@ def problems(start: Path) -> Tuple[Optional[Path], List[str]]:
     if out.returncode != 0:
         tail = (out.stderr.strip().splitlines() or ["no output"])[-1]
         return python, [f"{python} could not import pr_gate: {tail}"]
-    report = json.loads(out.stdout)
+    try:
+        report = json.loads(out.stdout.strip().splitlines()[-1])
+    except (IndexError, ValueError):
+        return python, [f"{python} probe printed no readable report: {out.stdout[-200:]!r}"]
     found: List[str] = []
     if tuple(report["version"]) < tuple(report["needs"]):
         found.append(f"{python} is Python {'.'.join(map(str, report['version']))}, "

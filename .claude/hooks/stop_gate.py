@@ -100,7 +100,10 @@ def main() -> int:
                      f"{reason}\nMake no more changes for it. Say in your answer that the gate "
                      f"did not run and why, then stop.")
 
-    unchanged = git(root, "diff", "--quiet", base, "--") is not None
+    # Against where the branch left the base, not the base's tip: a branch the base has moved
+    # past still has nothing of its own to gate.
+    fork = (git(root, "merge-base", base, "HEAD") or "").strip()
+    unchanged = bool(fork) and git(root, "diff", "--quiet", fork, "--") is not None
     if unchanged and not (git(root, "status", "--porcelain") or "").strip():
         return 0
     prior = checks.read_text(encoding="utf-8").splitlines() if checks.exists() else []
