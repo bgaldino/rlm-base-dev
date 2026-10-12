@@ -188,7 +188,7 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None,
         # The first `git` that reads as a push: an option value can be `git` too
         # (`sudo -u git git push`, `env -C /srv/git git push`).
         for at in range(1, len(argv)):
-            if os.path.basename(argv[at]) == "git":
+            if os.path.basename(argv[at]) in ("git", "git-push"):
                 inner = dict(env, **dict(w.partition("=")[::2] for w in argv[1:at]
                                          if ENV_ASSIGNMENT.match(w)))
                 # Wrappers nest (`timeout 60 env -C dir git push`): each option is read as
@@ -212,6 +212,8 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None,
                 if push:
                     return push
         return None
+    if argv and os.path.basename(argv[0]) == "git-push":
+        argv = ["git", "push"] + argv[1:]  # git's exec-path entry point, `git-push`, run directly
     if not argv or os.path.basename(argv[0]) != "git":
         return None
     i, directory, opts, config_env = 1, cwd, [], False
