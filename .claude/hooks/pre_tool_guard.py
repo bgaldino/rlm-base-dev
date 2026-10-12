@@ -304,6 +304,9 @@ def push_decision(push: Push) -> Tuple[str, str]:
     force, tags, positional, remote_flag, i = False, False, [], None, 0
     while i < len(push.args):
         arg = push.args[i]
+        if arg == "--":  # everything after it is the repository and refspecs, never an option
+            positional += push.args[i + 1:]
+            break
         name, eq, value = arg.partition("=")
         name = long_option(name, PUSH_LONG)
         if name in EVERYTHING_FLAGS:
