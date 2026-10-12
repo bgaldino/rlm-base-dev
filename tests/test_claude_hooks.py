@@ -160,6 +160,19 @@ class PushGuard(unittest.TestCase):
                                        "origin main"), "deny")
         self.assertEqual(self.decision("git push origin main"), "deny")
 
+    def test_the_exemption_needs_every_push_url_to_be_the_artifacts_repo(self):
+        art = self.artifacts_clone()
+        remote = Path(self.tmp.name) / "gh" / "bgaldino" / "rlm-base-artifacts.git"
+        here = Path(self.tmp.name) / "remote.git"
+        # A second push URL that is another repository: git pushes to both, so no exemption.
+        self.assertEqual(self.decision(f"git -C {art} -c remote.origin.pushurl={remote} "
+                                       f"-c remote.origin.pushurl={here} push origin main"),
+                         "deny")
+        # A raw URL or path is never exempt, whatever insteadOf would rewrite it to.
+        self.assertEqual(self.decision(f"git -C {art} push {remote} main"), "deny")
+        self.assertEqual(self.decision(f"git -c url.{here}.insteadOf={remote} push {remote} "
+                                       "main:main"), "deny")
+
     def test_a_leading_cd_is_followed_only_when_the_rest_depends_on_it(self):
         art = self.artifacts_clone()
         # If the cd fails, `;` and `||` still run the push here, on main.
@@ -167,7 +180,17 @@ class PushGuard(unittest.TestCase):
                         f"cd {art} && x\ngit push"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command, branch="main"), "deny")
+        # A target the guard can't resolve as the shell would also checks the starting
+        # directory; so does a separator hidden behind an escaped quote.
+        for command in ("cd - && git push", 'cd "$PWD" && git push', "cd `pwd` && git push",
+                        "cd /nonexistent && git push",
+                        f"cd {art} && echo \\' ; git push \\'"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "deny")
         self.assertEqual(self.decision(f"cd {art} && git push", branch="main"), "allow")
+        self.assertEqual(self.decision(f"(cd {art} && git push)", branch="main"), "allow")
+        self.assertEqual(self.decision(f"cd {art} && git add cd-notes.md && git commit -m "
+                                       f"'a\nb' && git push", branch="main"), "allow")
         self.assertEqual(self.decision(f"cd '{art}' && git push 2>&1 | tail -1", branch="main"),
                          "allow")
 

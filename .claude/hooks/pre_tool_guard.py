@@ -382,8 +382,11 @@ def push_decision(push: Push) -> Tuple[str, str]:
                 targets.append(strip_remote(where))
         if current and current != "HEAD":
             targets.append(current)
-    url = git(d, "remote", "get-url", "--push", remote, opts=opts) or remote
-    hit = [] if UNPROTECTED_REPOS.search(url) else [t for t in targets if is_protected(t)]
+    # Exempt only a configured remote, every one of whose push URLs (after insteadOf and
+    # pushInsteadOf rewriting) is the artifacts repo; a raw URL or path is never exempt.
+    urls = (git(d, "remote", "get-url", "--push", "--all", remote, opts=opts) or "").split()
+    exempt = bool(urls) and all(UNPROTECTED_REPOS.search(u) for u in urls)
+    hit = [] if exempt else [t for t in targets if is_protected(t)]
     if hit:
         how = f" (via the configured remote.{remote}.push refspec)" if configured else ""
         return "deny", (f"this push updates {', '.join(sorted(set(hit)))}{how}. AGENTS.md DO NOT "
@@ -514,22 +517,35 @@ def respond(decision: str, reason: str) -> int:
     return 0
 
 
-LEADING_CD = re.compile(r"^\s*cd\s+(\"[^\"]*\"|'[^']*'|[^\s;&|]+)\s*&&")
-# What means a later command may not run in the `cd` target: `;`, `||`, a newline or a lone `&`
-# (it runs even if the `cd` failed), or another `cd`/`pushd`/`popd` (it moves again).
-UNCONDITIONAL = re.compile(r";|\|\||\n|(?<![&>])&(?![&>])|\b(?:cd|pushd|popd)\b")
+# Words after a leading `cd <dir> &&` that mean a later command may not run in that directory:
+# separators that run it even if the `cd` failed, and another change of directory.
+UNCONDITIONAL = {";", "||", "&", ";;", "|&", "\n"}
+MOVES = {"cd", "pushd", "popd"}
 
 
 def command_directories(command: str, cwd: str) -> List[str]:
-    """The directories this command's pushes may run in. A leading `cd <dir> &&` moves them
-    (`cd .agents/artifacts && git push`), but if anything after it can run when the `cd` fails,
-    or moves again, the starting directory is checked too."""
-    lead = LEADING_CD.match(command)
-    if not lead:
+    """The directories this command's pushes may run in. A leading `cd <dir> &&`, or
+    `(cd <dir> && …)`, moves them (`cd .agents/artifacts && git push`). The starting directory
+    is checked too when the target can't be resolved as the shell would (`-`, `$…`, a
+    backtick, `CDPATH`, a directory that doesn't exist), or when anything after it can run if
+    the `cd` failed, or moves again."""
+    lexer = shlex.shlex(command, posix=True, punctuation_chars="();<>|&\n")
+    lexer.whitespace, lexer.whitespace_split = " \t\r", True
+    try:
+        tokens = list(lexer)
+    except ValueError:
         return [cwd]
-    target = os.path.join(cwd, os.path.expanduser(lead.group(1).strip("\"'")))
-    rest = re.sub(r"\"[^\"]*\"|'[^']*'", "", command[lead.end():])
-    return [target, cwd] if UNCONDITIONAL.search(rest) else [target]
+    i = 1 if tokens[:1] == ["("] else 0
+    if tokens[i:i + 1] != ["cd"] or len(tokens) < i + 3 or tokens[i + 2] != "&&":
+        return [cwd]
+    raw = tokens[i + 1]
+    target = os.path.join(cwd, os.path.expanduser(raw))
+    unresolved = (raw.startswith("-") or "$" in raw or "`" in raw or not os.path.isdir(target)
+                  or (os.environ.get("CDPATH") and not raw.startswith(("/", "./", "../"))))
+    rest = tokens[i + 3:]
+    if unresolved or any(t in UNCONDITIONAL or t in MOVES for t in rest):
+        return [target, cwd]
+    return [target]
 
 
 def decide(event: dict) -> Tuple[str, str]:
