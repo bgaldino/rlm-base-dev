@@ -239,13 +239,19 @@ class PushGuard(unittest.TestCase):
         # could be any directory, not just the starting one.
         self.assertEqual(self.decision(f"ON_MAIN={on_main} && cd \"$ON_MAIN\" && git push"), "deny")
         self.assertEqual(self.decision("cd \"$MAIN_CHECKOUT\" && git push"), "deny")
-        # `cd` as data, not a command, is not a change of directory.
-        for command in ("echo cd && git push origin feature", "git add cd && git push origin feature",
-                        "cat < cd && git push origin feature", "echo x > cd && git push origin feature",
-                        "cat <<< cd && git push origin feature", "ls 2>&1 cd && git push origin feature",
-                        "builtin echo pushd && git push origin feature"):
+        # A redirection's operand named cd is not a change of directory.
+        for command in ("cat < cd && git push origin feature", "echo x > cd && git push origin feature",
+                        "cat <<< cd && git push origin feature",
+                        "git add cd-notes.md && git push origin feature"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
+        # Any other standalone cd word counts, wherever it sits, so a prefix can't hide it; a cd
+        # that is only data is refused too, which errs toward refusing.
+        for command in (f"time cd {on_main} && git push", f"command -p cd {on_main} && git push",
+                        f"{{fd}}>/tmp/log cd {on_main} && git push", f"exec cd {on_main} && git push",
+                        "echo cd && git push origin feature"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
         self.assertEqual(self.decision(f"builtin cd {on_main} ; git push"), "deny")
         # A descriptor-prefixed redirection before the cd doesn't hide it.
         for command in (f"2>/tmp/x cd {on_main} && git push", f"2> /tmp/x cd {on_main} && git push",

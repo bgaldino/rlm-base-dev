@@ -578,23 +578,14 @@ def lexed_commands(tokens: List[str]) -> List[List[str]]:
     return out
 
 
-def command_word(argv: List[str]) -> str:
-    """The word a simple command runs, past reserved words, assignments, `builtin`/`command`."""
-    k = 0
-    while k < len(argv) and (argv[k] in SHELL_PREFIX or ENV_ASSIGNMENT.match(argv[k])
-                             or argv[k] in ("builtin", "command")):
-        k += 1
-    return os.path.basename(argv[k]) if k < len(argv) else ""
-
-
 def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     """The directories this command's pushes may run in. A leading `cd <dir> &&`, or
     `(cd <dir> && …)`, moves them (`cd .agents/artifacts && git push`), and the starting
     directory is checked too when anything after it can run if the `cd` failed, or follows
     the subshell. None when where a push runs can't be resolved: a target the shell would
     resolve differently (`-`, `$…`, a backtick, `CDPATH`, a missing directory), or any other
-    change of directory (`cd a; git push`, `x && cd a`, `cd a && cd b`). `cd` counts only as
-    the command a simple command runs, not as an argument (`echo cd`)."""
+    change of directory (`cd a; git push`, `x && cd a`, `cd a && cd b`, `time cd a`). Any
+    standalone `cd`/`pushd`/`popd` word counts, other than a redirection's operand."""
     # Heredoc bodies are data (a commit message may mention `cd`), as in simple_commands.
     command = "\n".join(code_lines(command.splitlines()))
     lexer = shlex.shlex(command, posix=True, punctuation_chars="();<>|&\n")
@@ -603,7 +594,11 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
         tokens = list(lexer)
     except ValueError:
         return [cwd]
-    moves = [argv for argv in lexed_commands(tokens) if command_word(argv) in MOVES]
+    # Any standalone cd/pushd/popd word counts, wherever it sits: telling the command word from
+    # its prefixes (`time`, `command -p`, `{fd}>`, `exec`, …) is open-ended, and missing one lets
+    # a push through. Only a redirection's operand (`< cd`) is skipped. `echo cd && git push`
+    # is refused as a result, which errs toward refusing.
+    moves = [w for argv in lexed_commands(tokens) for w in argv if w in MOVES]
     if not moves:
         return [cwd]
     # The one form followed: a leading `cd [-L|-P|-e|-@]… [--] <dir> &&`, optionally in `( )`.
