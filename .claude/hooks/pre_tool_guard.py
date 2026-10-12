@@ -532,14 +532,43 @@ def unconditional(token: str) -> bool:
     return "&" in token.replace("&&", "").replace(">&", "").replace("&>", "")
 
 
+PUNCTUATION = set("();<>|&\n")
+
+
+def is_punctuation(token: str) -> bool:
+    return bool(token) and set(token) <= PUNCTUATION
+
+
+def lexed_commands(tokens: List[str]) -> List[List[str]]:
+    """The words of each simple command in a token list (punctuation arrives grouped)."""
+    out, words = [], []
+    for token in tokens + [";"]:
+        if is_punctuation(token):
+            if words:
+                out.append(words)
+            words = []
+        else:
+            words.append(token)
+    return out
+
+
+def command_word(argv: List[str]) -> str:
+    """The word a simple command runs, past reserved words, assignments, `builtin`/`command`."""
+    k = 0
+    while k < len(argv) and (argv[k] in SHELL_PREFIX or ENV_ASSIGNMENT.match(argv[k])
+                             or argv[k] in ("builtin", "command")):
+        k += 1
+    return os.path.basename(argv[k]) if k < len(argv) else ""
+
+
 def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     """The directories this command's pushes may run in. A leading `cd <dir> &&`, or
-    `(cd <dir> && …)`, moves them (`cd .agents/artifacts && git push`). The starting directory
-    is checked too when the target can't be resolved as the shell would (`-`, `$…`, a
-    backtick, `CDPATH`, a directory that doesn't exist), or when anything after it can run if
-    the `cd` failed. None for any other change of directory (`cd a; git push`, `x && cd a`,
-    `cd a && cd b`): those can be conditional, use variables or sit in subshells, so where a
-    push runs is unresolvable."""
+    `(cd <dir> && …)`, moves them (`cd .agents/artifacts && git push`), and the starting
+    directory is checked too when anything after it can run if the `cd` failed, or follows
+    the subshell. None when where a push runs can't be resolved: a target the shell would
+    resolve differently (`-`, `$…`, a backtick, `CDPATH`, a missing directory), or any other
+    change of directory (`cd a; git push`, `x && cd a`, `cd a && cd b`). `cd` counts only as
+    the command a simple command runs, not as an argument (`echo cd`)."""
     # Heredoc bodies are data (a commit message may mention `cd`), as in simple_commands.
     command = "\n".join(code_lines(command.splitlines()))
     lexer = shlex.shlex(command, posix=True, punctuation_chars="();<>|&\n")
@@ -548,12 +577,12 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
         tokens = list(lexer)
     except ValueError:
         return [cwd]
-    if not any(t in MOVES for t in tokens):
+    moves = [argv for argv in lexed_commands(tokens) if command_word(argv) in MOVES]
+    if not moves:
         return [cwd]
     # The one form followed: a leading `cd [-L|-P|-e|-@]… [--] <dir> &&`, optionally in `( )`.
-    # Any other change of directory makes where a push runs unresolvable.
     i = 1 if tokens[:1] == ["("] else 0
-    if tokens[i:i + 1] != ["cd"]:
+    if len(moves) > 1 or tokens[i:i + 1] != ["cd"]:
         return None
     j = i + 1
     while j < len(tokens) and re.fullmatch(r"-[LPe@]+", tokens[j]):
@@ -564,23 +593,22 @@ def command_directories(command: str, cwd: str) -> Optional[List[str]]:
         return None
     raw = tokens[j]
     target = os.path.join(cwd, os.path.expanduser(raw))
-    unresolved = (raw.startswith("-") or "$" in raw or "`" in raw or not os.path.isdir(target)
-                  or (os.environ.get("CDPATH") and not raw.startswith(("/", "./", "../"))))
-    rest = tokens[j + 2:]
-    if any(t in MOVES for t in rest):
+    if (raw.startswith("-") or "$" in raw or "`" in raw or not os.path.isdir(target)
+            or (os.environ.get("CDPATH") and not raw.startswith(("/", "./", "../")))):
         return None
-    # In `(cd dir && …) && git push` the cd is the subshell's alone: whatever follows the
-    # matching `)` runs back in the starting directory.
+    rest = tokens[j + 2:]
+    # In `(cd dir && …) && git push` the cd is the subshell's alone: a push after the matching
+    # `)` runs back in the starting directory. (A redirection or `| tail` there doesn't.)
     after_subshell = False
     if i:
         depth = 1
         for k, t in enumerate(rest):
-            if t and set(t) <= set("();<>|&"):  # the lexer groups punctuation: `))`
+            if is_punctuation(t):
                 depth += t.count("(") - t.count(")")
-            if depth == 0:
-                after_subshell = any(rest[k + 1:])
+            if depth <= 0:
+                after_subshell = any(git_push(argv, cwd) for argv in lexed_commands(rest[k + 1:]))
                 break
-    if unresolved or after_subshell or any(unconditional(t) for t in rest):
+    if after_subshell or any(unconditional(t) for t in rest):
         return [target, cwd]
     return [target]
 

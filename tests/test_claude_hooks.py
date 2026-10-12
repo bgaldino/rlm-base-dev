@@ -130,6 +130,14 @@ class PushGuard(unittest.TestCase):
         self.assertEqual(self.decision("git push -- origin main"), "deny")
         self.assertEqual(self.decision("git push -- origin feature"), "allow")
 
+    def main_clone(self):
+        """A second clone of this fixture's remote, checked out on main."""
+        on_main = Path(self.tmp.name) / "on-main"
+        if not on_main.exists():
+            sh(Path(self.tmp.name), "git", "clone", "-q", "-b", "main",
+               str(Path(self.tmp.name) / "remote.git"), str(on_main))
+        return on_main
+
     def artifacts_clone(self):
         """A clone, on main, of a remote whose URL names the private artifacts repo."""
         root = Path(self.tmp.name)
@@ -160,10 +168,7 @@ class PushGuard(unittest.TestCase):
                                        "origin main"), "deny")
         # A second change of directory makes where a push runs unresolvable, so it's refused,
         # even from a feature checkout and even if the second target looks harmless.
-        on_main = Path(self.tmp.name) / "on-main"
-        if not on_main.exists():
-            sh(Path(self.tmp.name), "git", "clone", "-q", "-b", "main",
-               str(Path(self.tmp.name) / "remote.git"), str(on_main))
+        on_main = self.main_clone()
         for command in (f"cd {art} && cd {on_main} && git push", f"cd {art} && pushd {on_main} "
                         "&& git push", f"cd {art} && cd . && git push",
                         f"cd -- {on_main} && git push", f"cd -P {on_main} && git push",
@@ -215,7 +220,21 @@ class PushGuard(unittest.TestCase):
                         f"(cd {art} && git push) && git push"):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command, branch="main"), "deny")
-        self.assertEqual(self.decision(f"(cd {art} && git push) 2>&1", branch="main"), "deny")
+        # Only a push after the `)` runs back here; a redirection or a pipe to tail doesn't.
+        for command in (f"(cd {art} && git push) 2>&1", f"(cd {art} && git push) 2>&1 | tail -1"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "allow")
+        on_main = self.main_clone()
+        # A target the shell resolves and the guard can't (a variable) is refused outright: it
+        # could be any directory, not just the starting one.
+        self.assertEqual(self.decision(f"ON_MAIN={on_main} && cd \"$ON_MAIN\" && git push"), "deny")
+        self.assertEqual(self.decision("cd \"$MAIN_CHECKOUT\" && git push"), "deny")
+        # `cd` as data, not a command, is not a change of directory.
+        for command in ("echo cd && git push origin feature", "git add cd && git push origin feature",
+                        "builtin echo pushd && git push origin feature"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "allow")
+        self.assertEqual(self.decision(f"builtin cd {on_main} ; git push"), "deny")
         self.assertEqual(self.decision(f"cd {art} && git add cd-notes.md && git commit -m "
                                        f"'a\nb' && git push", branch="main"), "allow")
         self.assertEqual(self.decision(f"cd '{art}' && git push 2>&1 | tail -1", branch="main"),
