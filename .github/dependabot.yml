@@ -22,9 +22,12 @@ updates:
     commit-message:
       prefix: ci
       include: scope
+    # Minor and patch bumps arrive grouped; each major bump gets its own PR, so a breaking
+    # release (including for the write-scoped actions) is reviewed on its own.
     groups:
       actions:
         patterns: ["*"]
+        update-types: [minor, patch]
 
   # LWC tooling in package.json (all devDependencies). There's no lockfile, and
   # every range uses ^, so expect PRs only for major-version bumps.

@@ -472,8 +472,7 @@ CHECKS = [
         # guarantee has to hold from this side too: an edit to the workflow alone must run the
         # suite that judges it. The enumeration gate below demanded this trigger the moment the
         # assertion was written, which is the intended order.
-        triggers=["scripts/ai/", "tests/", ".github/workflows/prepare-rlm-org.yml",
-                  ".github/workflows/pr-checks.yml"],
+        triggers=["scripts/ai/", "tests/", ".github/workflows/"],
         deps=[], gating=True,
     ),
     dict(
