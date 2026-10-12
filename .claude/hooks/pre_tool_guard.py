@@ -564,6 +564,8 @@ def lexed_commands(tokens: List[str]) -> List[List[str]]:
     out, words, operand = [], [], False
     for token in tokens + [";"]:
         if is_punctuation(token) and set(token) <= set("<>&") and set(token) & set("<>"):
+            if words and words[-1].isdigit():  # `2>` arrives as `2`, `>`: the fd isn't a word
+                words.pop()
             operand = True
         elif is_punctuation(token):
             if words:

@@ -247,6 +247,11 @@ class PushGuard(unittest.TestCase):
             with self.subTest(command=command):
                 self.assertEqual(self.decision(command), "allow")
         self.assertEqual(self.decision(f"builtin cd {on_main} ; git push"), "deny")
+        # A descriptor-prefixed redirection before the cd doesn't hide it.
+        for command in (f"2>/tmp/x cd {on_main} && git push", f"2> /tmp/x cd {on_main} && git push",
+                        f"0</dev/null cd {on_main} && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
         self.assertEqual(self.decision(f"cd {art} && git add cd-notes.md && git commit -m "
                                        f"'a\nb' && git push", branch="main"), "allow")
         self.assertEqual(self.decision(f"cd '{art}' && git push 2>&1 | tail -1", branch="main"),
