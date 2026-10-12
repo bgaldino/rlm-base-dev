@@ -13,7 +13,7 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    alias that expands to `push` (also through leading global options or another
    alias), `git -C <dir> push`, `--mirror`/`--all`, a push behind command wrappers (`env`,
    `sudo`, `time`, `timeout`, `nohup`, `nice` and the others in WRAPPERS, nested or not,
-   whatever their options, and resolved in the directory `env -C` or `sudo -D` names), or
+   and resolved in the directory a single `env -C` or `sudo -D` names), or
    split across lines with a trailing backslash. Long options are read the way the tool
    reads them, abbreviations included (`--mir`, `env --chd=`). Release lines are matched by
    prefix, never by number. A push the guard cannot resolve to concrete
@@ -34,7 +34,10 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
-  wrapper not in WRAPPERS, and pushes by any non-git program.
+  wrapper not in WRAPPERS, and pushes by any non-git program. Wrapper option *values*
+  aren't parsed per wrapper, so a value that names a wrapper (`env -u sudo -C dir`) or a
+  repeated chdir (`env -C a -C ../b`, where the last one wins) can resolve the wrong
+  directory.
 - State a compound command changes before its push runs: `git checkout main && git push` and
   `cd elsewhere && git push` are resolved against the branch and directory the command
   started in. An explicit destination (`git push origin main`) is caught either way.
