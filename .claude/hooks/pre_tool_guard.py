@@ -1,0 +1,534 @@
+#!/usr/bin/env python3
+"""PreToolUse guard: refuse, before it happens, what AGENTS.md says an agent must not do.
+
+These rules are enforced here because by the time a gate sees the diff the damage is done
+(a push to a protected branch) or the context is gone (which edit flipped an operation).
+They bind Claude Code only. The required CI check is the layer every tool hits, so a rule
+that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
+
+1. Push target (DO NOT 8). A push whose destination is `main`, a `preview/*` or a
+   `release/*` branch is denied, however it is spelled: an explicit refspec
+   (`HEAD:main`), a bare `git push` whose upstream is `main`, a configured
+   `remote.<name>.push` refspec (from the repo config or the command's own `-c`), a git
+   alias that expands to `push` (also through leading global options or another
+   alias), `git -C <dir> push`, `--mirror`/`--all`, a push behind command wrappers (`env`,
+   `sudo`, `time`, `timeout`, `nohup`, `nice` and the others in WRAPPERS, nested or not,
+   and resolved in the directory a single `env -C` or `sudo -D` names), or
+   split across lines with a trailing backslash. Long options are read the way the tool
+   reads them, abbreviations included (`--mir`, `env --chd=`). Release lines are matched by
+   prefix, never by number. A push the guard cannot resolve to concrete
+   destinations is denied rather than guessed at: wildcard refspecs, `--config-env`, `GIT_*`,
+   `HOME` or `XDG_CONFIG_HOME` overrides (they choose which config git reads), and shell
+   aliases that run `push`. Redirections (`2>&1`, `>log`, before or after the command) are
+   not arguments. The `Bash(git push origin …)`
+   deny rules in settings.json only catch the literal spelling.
+   Adapter policy, not a DO NOT 8 rule: a force push to any other branch asks the person.
+2. SFDMU destructive operation (CRITICAL rule). An edit to a `datasets/` plan that makes any
+   object newly destructive asks the person: `deleteOldData` turning on, or an `Upsert`
+   object becoming `Insert`. Objects are compared one by one, keyed by the object their
+   query reads (`scripts/sfdmu_export.py`'s parsers), so moving `deleteOldData` from one
+   object to another, or swapping Upsert and Insert between two objects, still asks. The
+   agent cannot approve it for itself.
+3. Stop files, for loop agents only (`LOOP_ROLE` set; interactive sessions are not affected):
+   `$LOOP_RUN_DIR/STOP` refuses every tool call of that one run (a remote cancel of one run);
+   `<main checkout>/.loop/STOP` refuses every loop agent on the workstation (`make stop`).
+   Either takes effect at the agent's next tool call; neither aborts a tool already running.
+
+What this guard does not catch, and what backs it up:
+- Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
+  wrapper not in WRAPPERS, and pushes by any non-git program. Wrapper option *values*
+  aren't parsed per wrapper, so a value that names a wrapper (`env -u sudo -C dir`) or a
+  repeated chdir (`env -C a -C ../b`, where the last one wins) can resolve the wrong
+  directory.
+- State a compound command changes before its push runs: `git checkout main && git push` and
+  `cd elsewhere && git push` are resolved against the branch and directory the command
+  started in. An explicit destination (`git push origin main`) is caught either way.
+- For both push cases above the server is the backstop: the "Approvals" branch ruleset on
+  `main`, `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion,
+  and its admin bypass applies to pull-request merges only, so a direct push with the
+  owner's credentials is rejected. This guard refuses it earlier and says why.
+- SFDMU edits made through Bash (`sed -i`, a script) rather than Edit/Write. No diff-level
+  check for destructive operations exists in `pr_gate.py` yet; adding one is planned with the
+  defect registry work, and until then a person reviewing the diff is the only backstop.
+
+Stdlib only, Python 3.9-safe: it runs under whatever `python3` the shell provides.
+Exit 0 = allow (or a JSON `ask` decision on stdout) · exit 2 = deny, reason on stderr.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+from typing import Dict, Iterator, List, Optional, Sequence, Tuple
+
+PROTECTED = ("main",)
+PROTECTED_PREFIXES = ("preview/", "release/")
+SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
+# git's global options that take a separate argument, so `git -C dir push` is still a push.
+GIT_GLOBAL_WITH_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"}
+# Global options replayed into every resolution call, so `-c remote.origin.push=…` and
+# `--git-dir` mean to the guard what they mean to the push.
+GIT_GLOBAL_REPLAYED = {"-c", "--git-dir", "--work-tree", "--namespace"}
+# `git push` options that take a separate argument, so their value is not read as a remote.
+PUSH_WITH_ARG = {"-o", "--push-option", "--receive-pack", "--exec", "--recurse-submodules"}
+FORCE_LONG = ("--force", "--force-with-lease", "--force-if-includes")
+# A cluster of `git push`'s short flags: no-value ones, optionally ending in `-o` (whose value
+# is glued on, or is the next word). `-f` in it is a force: `-uf`, `-fu`, `-fo ci.skip`.
+SHORT_CLUSTER = re.compile(r"-([46dfnquv]*)(?:o(.*))?")
+# A redirection and its target (`2>&1`, `>log`, `&>>log`, `<in`); heredocs (`<<`) are left
+# for code_lines. Stripping can unbalance a quote (`-m "a > b"`), so each line is read both
+# with and without them.
+REDIRECT = re.compile(r"(?:(?<=\s)|^)(?:\d+|&)?(?:>\||>>?|<(?!<)|<&)"
+                      r"(?:&?\d+-?|-|\s*(?:'[^']*'|\"[^\"]*\"|[^\s;&|<>()]+))?")
+# A heredoc's body is data, not commands (`cat > notes.md <<'EOF'`); `<<<` is a here-string.
+HEREDOC = re.compile(r"(?<!<)<<(?!<)-?\s*(['\"]?)([A-Za-z_][\w-]*)\1")
+# Programs that run another command after their own options and values. Rather than model
+# each one's options, the push is read from the first `git` after the wrapper.
+WRAPPERS = {"env", "command", "builtin", "exec", "sudo", "doas", "time", "timeout", "nohup",
+            "nice", "ionice", "stdbuf", "setsid", "chronic", "caffeinate", "arch", "unbuffer"}
+# Wrapper options that run the command in another directory (`env -C`, `sudo -D`), and each
+# wrapper's long options, so an abbreviation (`env --chd=…`) resolves as the tool would.
+CHDIR = {"env": "-C", "sudo": "-D"}
+WRAPPER_LONG = {
+    "env": ("--ignore-environment", "--null", "--unset", "--chdir", "--split-string",
+            "--block-signal", "--default-signal", "--ignore-signal", "--list-signal-handling",
+            "--debug", "--help", "--version"),
+    "sudo": ("--askpass", "--background", "--bell", "--chdir", "--chroot", "--close-from",
+             "--command-timeout", "--edit", "--group", "--help", "--host", "--list", "--login",
+             "--non-interactive", "--other-user", "--preserve-env", "--preserve-groups",
+             "--prompt", "--remove-timestamp", "--reset-timestamp", "--role", "--set-home",
+             "--shell", "--stdin", "--type", "--user", "--validate", "--version"),
+}
+# `git push`'s long options (`git push -h`), so an abbreviation git accepts (`--receive`,
+# `--mir`) is read as the option it names.
+_NEGATABLE = ("all", "atomic", "branches", "delete", "dry-run", "exec", "follow-tags", "force",
+              "force-if-includes", "force-with-lease", "mirror", "porcelain", "progress", "prune",
+              "push-option", "quiet", "receive-pack", "recurse-submodules", "repo",
+              "set-upstream", "signed", "tags", "thin", "verbose")
+PUSH_LONG = tuple(f"--{n}" for n in _NEGATABLE) + tuple(f"--no-{n}" for n in _NEGATABLE) + (
+    "--ipv4", "--ipv6", "--verify", "--no-verify")
+EVERYTHING_FLAGS = ("--mirror", "--all", "--branches")
+# Shell reserved words that can precede a simple command (`! git push`, `if git push …; then`).
+SHELL_PREFIX = {"!", "{", "}", "if", "then", "elif", "else", "do", "while", "until", "fi", "done"}
+CONFIG_LOCATION = {"HOME", "XDG_CONFIG_HOME"}  # where git finds its global configuration
+ENV_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
+
+DELETE_OLD_DATA = re.compile(r'"deleteOldData"\s*:\s*true')
+OP_INSERT = re.compile(r'"operation"\s*:\s*"Insert"')
+OP_UPSERT = re.compile(r'"operation"\s*:\s*"Upsert"')
+CHECKOUT = Path(__file__).resolve().parents[2]  # the checkout this hook ships in
+
+
+def is_protected(ref: str) -> bool:
+    name = ref[len("refs/heads/"):] if ref.startswith("refs/heads/") else ref
+    return name in PROTECTED or name.startswith(PROTECTED_PREFIXES)
+
+
+def git(cwd: str, *args: str, opts: Sequence[str] = ()) -> Optional[str]:
+    try:
+        out = subprocess.run(["git", *opts, "-C", cwd, *args], capture_output=True, text=True,
+                             timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def code_lines(lines: List[str]) -> Iterator[str]:
+    """The lines that are commands, skipping heredoc bodies."""
+    end = None
+    for line in lines:
+        if end is not None:
+            if line.strip() == end:
+                end = None
+            continue
+        yield line
+        heredoc = HEREDOC.search(line)
+        if heredoc:
+            end = heredoc.group(2)
+
+
+def simple_commands(command: str) -> Iterator[List[str]]:
+    """Each simple command in a shell line, as argv. Unparseable text yields nothing."""
+    # Each line as written and with `\`-continued lines rejoined: the shell may read it
+    # either way (an escaped `\\`, a backslash in a comment), so both are checked.
+    joined = re.sub(r"\\\r?\n", " ", command)
+    lines = list(code_lines(command.splitlines()))
+    if joined != command:
+        lines += code_lines(joined.splitlines())
+    lines += [stripped for stripped in (REDIRECT.sub(" ", line) for line in lines)
+              if stripped not in lines]
+    for line in lines:
+        lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        try:
+            tokens = list(lexer)
+        except ValueError:
+            continue
+        argv: List[str] = []
+        for token in tokens + [";"]:
+            if token in SEPARATORS:
+                if argv:
+                    yield argv
+                argv = []
+            else:
+                argv.append(token)
+
+
+class Push:
+    """One `git push`, with what is needed to resolve where it goes."""
+
+    def __init__(self, directory: str, args: List[str], opts: List[str], env: Dict[str, str],
+                 unresolvable: str = "") -> None:
+        self.directory, self.args, self.opts, self.env = directory, args, opts, env
+        self.unresolvable = unresolvable
+
+
+def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None,
+             depth: int = 0) -> Optional[Push]:
+    """A Push if argv runs `git push` directly or through an alias, else None."""
+    env = dict(env or {})
+    while argv and argv[0] in SHELL_PREFIX:
+        argv = argv[1:]
+    while argv and ENV_ASSIGNMENT.match(argv[0]):
+        name, _, value = argv[0].partition("=")
+        env[name] = value
+        argv = argv[1:]
+    if argv and os.path.basename(argv[0]) in WRAPPERS:
+        # The first `git` that reads as a push: an option value can be `git` too
+        # (`sudo -u git git push`, `env -C /srv/git git push`).
+        for at in range(1, len(argv)):
+            if os.path.basename(argv[at]) in ("git", "git-push"):
+                inner = dict(env, **dict(w.partition("=")[::2] for w in argv[1:at]
+                                         if ENV_ASSIGNMENT.match(w)))
+                # Wrappers nest (`timeout 60 env -C dir git push`): each option is read as
+                # the innermost wrapper before it reads it.
+                directory, wrapper = cwd, os.path.basename(argv[0])
+                for j, word in enumerate(argv[1:at], 1):
+                    if os.path.basename(word) in WRAPPERS:
+                        wrapper = os.path.basename(word)
+                        continue
+                    flag, eq, value = word.partition("=")
+                    flag = long_option(flag, WRAPPER_LONG.get(wrapper, ()))
+                    short = CHDIR.get(wrapper)
+                    if short and word.startswith(short) and len(word) > len(short):
+                        directory = os.path.join(directory, word[len(short):])  # `-Cdir`
+                    elif flag in (short, "--chdir") and short:
+                        if eq:
+                            directory = os.path.join(directory, value)
+                        elif j + 1 < at:
+                            directory = os.path.join(directory, argv[j + 1])
+                push = git_push(argv[at:], directory, inner)
+                if push:
+                    return push
+        return None
+    if argv and os.path.basename(argv[0]) == "git-push":
+        argv = ["git", "push"] + argv[1:]  # git's exec-path entry point, `git-push`, run directly
+    if not argv or os.path.basename(argv[0]) != "git":
+        return None
+    i, directory, opts, config_env = 1, cwd, [], False
+    while i < len(argv) and argv[i].startswith("-"):
+        flag = argv[i]
+        if flag in GIT_GLOBAL_WITH_ARG and i + 1 < len(argv):
+            if flag == "-C":
+                directory = os.path.join(directory, argv[i + 1])
+            elif flag in GIT_GLOBAL_REPLAYED:
+                opts += [flag, argv[i + 1]]
+            else:
+                config_env = True
+            i += 2
+        else:
+            if flag.startswith("--config-env"):
+                config_env = True
+            elif flag.split("=", 1)[0] in GIT_GLOBAL_REPLAYED:
+                opts.append(flag)
+            i += 1
+    if i >= len(argv):
+        return None
+    sub, rest = argv[i], argv[i + 1:]
+    if sub != "push":
+        alias = git(directory, "config", "--get", f"alias.{sub}", opts=opts)
+        if alias is None:
+            return None
+        if alias.startswith("!"):
+            if re.search(r"\bpush\b", alias):
+                return Push(directory, [], opts, env,
+                            f"the shell alias `{sub}` runs a push the guard cannot resolve")
+            return None
+        try:
+            expansion = shlex.split(alias)
+        except ValueError:
+            return None
+        # An alias can start with global options (`-c remote.origin.push=… push`) or name
+        # another alias, so its expansion is read like a command line of its own. git itself
+        # refuses alias loops; the depth bound only stops this guard looping on one.
+        if not expansion or depth >= 10:
+            return None
+        return git_push(argv[:i] + expansion + rest, cwd, env, depth + 1)
+    unresolvable = ""
+    if config_env:
+        unresolvable = "`--config-env` takes push configuration from the environment"
+    elif any(name.startswith("GIT_") or name in CONFIG_LOCATION for name in env):
+        unresolvable = ("`GIT_*`, `HOME` or `XDG_CONFIG_HOME` overrides change which "
+                        "configuration, and so which destination, git uses")
+    return Push(directory, rest, opts, env, unresolvable)
+
+
+def long_option(name: str, options: Sequence[str]) -> str:
+    """The long option `name` (before any `=`) abbreviates, as getopt and git resolve it: an
+    exact name, else the one option it is a prefix of. An ambiguous prefix every candidate of
+    which forces (`--forc`) is `--force`; any other is returned unchanged."""
+    if name in options or not name.startswith("--") or name == "--":
+        return name
+    matches = [o for o in options if o.startswith(name)]
+    if len(matches) == 1:
+        return matches[0]
+    if matches and all(m in FORCE_LONG for m in matches):
+        return "--force"
+    return name
+
+
+def strip_remote(ref: str) -> str:
+    """`origin/release/x` → `release/x`: only the first segment is the remote."""
+    return ref.split("/", 1)[1] if "/" in ref else ref
+
+
+def push_decision(push: Push) -> Tuple[str, str]:
+    """('deny' | 'ask' | 'allow', reason) for one `git push`."""
+    if push.unresolvable:
+        return "deny", f"{push.unresolvable}, so this push is refused rather than guessed at"
+    d, opts = push.directory, push.opts
+    force, positional, remote_flag, i = False, [], None, 0
+    while i < len(push.args):
+        arg = push.args[i]
+        name, eq, value = arg.partition("=")
+        name = long_option(name, PUSH_LONG)
+        if name in EVERYTHING_FLAGS:
+            return "deny", f"`git push {arg}` updates protected branches too"
+        cluster = SHORT_CLUSTER.fullmatch(arg)
+        if cluster and arg != "-":
+            force = force or "f" in cluster.group(1)
+            if cluster.group(2) == "":  # `-o value` / `-fo value`: skip the value
+                i += 1
+        elif name in FORCE_LONG:
+            force = True
+        elif name == "--repo":
+            if eq:
+                remote_flag = value
+            elif i + 1 < len(push.args):
+                remote_flag = push.args[i + 1]
+                i += 1
+        elif name in PUSH_WITH_ARG and not eq:
+            i += 1
+        elif not arg.startswith("-"):
+            positional.append(arg)
+        i += 1
+    current = git(d, "rev-parse", "--abbrev-ref", "HEAD", opts=opts)
+    remote = (positional[0] if positional else remote_flag
+              or (current and git(d, "config", "--get", f"branch.{current}.pushRemote", opts=opts))
+              or git(d, "config", "--get", "remote.pushDefault", opts=opts)
+              or (current and git(d, "config", "--get", f"branch.{current}.remote", opts=opts))
+              or "origin")
+    refspecs = positional[1:]
+    configured = False
+    if not refspecs:
+        # With no refspec on the command line, git uses `remote.<remote>.push` if set (from
+        # the repo config or this command's `-c`), and only otherwise push.default.
+        listed = git(d, "config", "--get-all", f"remote.{remote}.push", opts=opts)
+        if listed:
+            refspecs, configured = listed.splitlines(), True
+    targets: List[str] = []
+    if refspecs:
+        for spec in refspecs:
+            if spec.startswith("+"):
+                force, spec = True, spec[1:]
+            if spec == ":":
+                return "deny", "the `:` refspec pushes every matching branch, including protected ones"
+            if "*" in spec:
+                return "deny", f"the wildcard refspec `{spec}` can't be resolved to concrete branches"
+            src, _, dst = spec.partition(":")
+            if not dst and src in ("HEAD", "@"):
+                dst = current or src
+            targets.append(dst or src)
+    else:
+        # A bare push goes to @{push} (the same-named branch or the upstream, by push.default),
+        # so check both @{push} and @{upstream}: `git -c push.default=upstream push` reaches
+        # the upstream even where the plain config makes @{push} unresolvable. A feature
+        # branch that tracks main is refused here; plain git would refuse that push anyway.
+        if (git(d, "config", "--get", "push.default", opts=opts) or "").lower() == "matching":
+            return "deny", ("push.default=matching pushes every branch that exists on both "
+                            "ends, protected ones included")
+        for spec in ("@{push}", "@{upstream}"):
+            where = git(d, "rev-parse", "--abbrev-ref", "--symbolic-full-name", spec, opts=opts)
+            if where and "/" in where:
+                targets.append(strip_remote(where))
+        if current and current != "HEAD":
+            targets.append(current)
+    hit = [t for t in targets if is_protected(t)]
+    if hit:
+        how = f" (via the configured remote.{remote}.push refspec)" if configured else ""
+        return "deny", (f"this push updates {', '.join(sorted(set(hit)))}{how}. AGENTS.md DO NOT "
+                        "8: changes reach main, preview/* and release/* only through a pull request")
+    if force:
+        return "ask", ("force push rewrites a branch other PRs may be stacked on; this adapter "
+                       "asks a person first (adapter policy, not a DO NOT 8 rule)")
+    return "allow", ""
+
+
+def text_change(tool: str, tool_input: dict) -> Optional[Tuple[str, str, Optional[str], str, str]]:
+    """(path, whole file before, whole file after or None, snippet before, snippet after)."""
+    path = tool_input.get("file_path") or ""
+    if tool not in ("Write", "Edit", "MultiEdit"):
+        return None
+    try:
+        before = Path(path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        before = ""
+    if tool == "Write":
+        after = tool_input.get("content") or ""
+        return path, before, after, before, after
+    edits = [tool_input] if tool == "Edit" else (tool_input.get("edits") or [])
+    after: Optional[str] = before
+    for edit in edits:
+        old, new = edit.get("old_string") or "", edit.get("new_string") or ""
+        if after is None or not old or old not in after:
+            after = None  # the edit can't be replayed here; fall back to the snippets
+            continue
+        after = after.replace(old, new) if edit.get("replace_all") else after.replace(old, new, 1)
+    return (path, before, after, "".join(e.get("old_string") or "" for e in edits),
+            "".join(e.get("new_string") or "" for e in edits))
+
+
+def destructive_objects(text: str) -> Optional[Dict[Tuple[str, int], Tuple[bool, Optional[str]]]]:
+    """{(object, nth occurrence): (deleteOldData on, operation)} for an SFDMU plan, or None."""
+    sys.path.insert(0, str(CHECKOUT / "scripts"))
+    try:
+        import sfdmu_export as sfdmu  # noqa: PLC0415  (the checkout's own parsers)
+    except Exception:  # noqa: BLE001  any failure falls back to the text comparison, which asks
+        return None
+    finally:
+        if str(CHECKOUT / "scripts") in sys.path:
+            sys.path.remove(str(CHECKOUT / "scripts"))
+    try:
+        return _objects(sfdmu, json.loads(text))
+    except Exception:  # noqa: BLE001  a plan shape the parsers choke on: same fallback
+        return None
+
+
+def _objects(sfdmu, plan) -> Optional[Dict[Tuple[str, int], Tuple[bool, Optional[str]]]]:
+    if not isinstance(plan, dict):
+        return None
+    seen: Dict[str, int] = {}
+    out: Dict[Tuple[str, int], Tuple[bool, Optional[str]]] = {}
+    for object_set in sfdmu.normalize_object_sets(plan):
+        objects = object_set.get("objects") if isinstance(object_set, dict) else None
+        for obj in objects if isinstance(objects, list) else []:
+            if not isinstance(obj, dict):
+                continue
+            name = sfdmu.extract_object_name(obj.get("query")) or "?"
+            nth = seen[name] = seen.get(name, -1) + 1
+            out[(name, nth)] = (sfdmu.is_js_truthy(obj.get("deleteOldData")),
+                                sfdmu.resolve_operation(obj.get("operation")))
+    return out
+
+
+def sfdmu_decision(path: str, before: str, after: Optional[str], old: str,
+                   new: str) -> Tuple[str, str]:
+    if "datasets/" not in path.replace(os.sep, "/") or not path.endswith(".json"):
+        return "allow", ""
+    was = destructive_objects(before) if before else {}
+    now = destructive_objects(after) if after is not None else None
+    # A document that parses but declares no objects isn't a plan the parsers understand, so
+    # it gets the conservative text comparison below rather than a vacuous "nothing changed".
+    if was is not None and now:
+        prior = lambda key: was.get(key, (False, None))  # noqa: E731
+        newly_deleting = [k[0] for k, (deletes, _) in now.items()
+                          if deletes and not prior(k)[0]]
+        flipped = [k[0] for k, (_, op) in now.items()
+                   if op == "insert" and prior(k)[1] == "upsert"]
+        if newly_deleting:
+            return "ask", (f'this edit turns on "deleteOldData" for {", ".join(newly_deleting)}, '
+                           "which deletes every existing record before inserting. AGENTS.md "
+                           "CRITICAL rule: explain why Upsert cannot work and get explicit "
+                           "approval")
+        if flipped:
+            return "ask", (f"this edit flips {', '.join(flipped)} from Upsert to Insert. "
+                           "AGENTS.md CRITICAL rule: on SFDMU 5.6.4+ Upsert works; explicit "
+                           "approval is required")
+        return "allow", ""
+    # The plan doesn't parse (mid-edit), has no objects, or the edit can't be replayed: compare
+    # the edited text itself, and ask whenever it adds a destructive marker or an Insert where
+    # an Upsert was.
+    count = lambda rx, s: len(rx.findall(s))  # noqa: E731
+    if count(DELETE_OLD_DATA, new) > count(DELETE_OLD_DATA, old) or (
+            count(OP_INSERT, new) > count(OP_INSERT, old) and count(OP_UPSERT, old)):
+        return "ask", ("this SFDMU plan edit can't be compared object by object (the plan "
+                       "doesn't parse, or the edit can't be replayed), and it adds deleteOldData "
+                       "or an Insert where an Upsert was. AGENTS.md CRITICAL rule: explicit "
+                       "approval is required")
+    return "allow", ""
+
+
+def stop_file(cwd: str) -> Optional[str]:
+    """Why a loop agent must stop now, or None. Interactive sessions never stop here."""
+    if not os.environ.get("LOOP_ROLE"):
+        return None
+    run_dir = os.environ.get("LOOP_RUN_DIR")
+    if run_dir and (Path(run_dir) / "STOP").exists():
+        return f"this run's stop file is set ({run_dir}/STOP): a cancel was requested for this run"
+    common = git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir")
+    if common and (Path(common).parent / ".loop" / "STOP").exists():
+        return "the workstation's kill switch is on (.loop/STOP)"
+    return None
+
+
+def respond(decision: str, reason: str) -> int:
+    if decision == "deny":
+        print(f"Blocked: {reason}.", file=sys.stderr)
+        return 2
+    if decision == "ask":
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "ask",
+            "permissionDecisionReason": reason,
+        }}))
+    return 0
+
+
+def decide(event: dict) -> Tuple[str, str]:
+    tool = event.get("tool_name") or ""
+    tool_input = event.get("tool_input") or {}
+    cwd = event.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    stop = stop_file(cwd)
+    if stop:
+        return "deny", f"{stop}. Make no more tool calls; say where you got to and stop"
+    if tool == "Bash":
+        worst = ("allow", "")
+        for argv in simple_commands(tool_input.get("command") or ""):
+            push = git_push(argv, cwd)
+            if push:
+                decision = push_decision(push)
+                if decision[0] == "deny":
+                    return decision
+                if decision[0] == "ask":
+                    worst = decision
+        return worst
+    change = text_change(tool, tool_input)
+    if change:
+        return sfdmu_decision(*change)
+    return "allow", ""
+
+
+def main() -> int:
+    try:
+        event = json.load(sys.stdin)
+    except ValueError:
+        return 0
+    return respond(*decide(event))
+
+
+if __name__ == "__main__":
+    sys.exit(main())
