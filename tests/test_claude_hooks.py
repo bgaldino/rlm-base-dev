@@ -105,6 +105,25 @@ class PushGuard(unittest.TestCase):
         # A dev/ branch is ordinary work; only main, preview/* and release/* are protected.
         self.assertEqual(self.decision("git push", branch="dev/next"), "allow")
 
+    def test_redirections_are_not_push_arguments(self):
+        for command in ("git push 2>&1 | tail -1", "git push >/tmp/push.log",
+                        "git push &>> log", "git push 1>&2 2> /dev/null", "git push < /dev/null",
+                        "git push -q 2>&1"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command, branch="main"), "deny")
+        self.assertEqual(self.decision(">/tmp/push.log git push origin HEAD:main"), "deny")
+        self.assertEqual(self.decision('git commit -m "a > b" && git push origin main'), "deny")
+        self.assertEqual(self.decision("git push origin feature 2>&1 | tail -1"), "allow")
+        self.assertEqual(self.decision("git push 2>&1"), "allow")
+
+    def test_config_location_overrides_are_refused(self):
+        for command in ("HOME=/tmp/elsewhere git push origin",
+                        "env HOME=/tmp/elsewhere git push origin feature",
+                        "XDG_CONFIG_HOME=/tmp/x git push origin feature"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        self.assertEqual(self.decision("HOME=/tmp/elsewhere git status"), "allow")
+
     def test_a_branch_tracking_main_cannot_bare_push(self):
         # `git switch -c work origin/main` tracks main. Plain git refuses a bare push from it,
         # but `-c push.default=upstream` would send it to main, so the guard refuses both.

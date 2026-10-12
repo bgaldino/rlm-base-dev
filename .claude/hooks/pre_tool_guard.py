@@ -17,8 +17,10 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    split across lines with a trailing backslash. Long options are read the way the tool
    reads them, abbreviations included (`--mir`, `env --chd=`). Release lines are matched by
    prefix, never by number. A push the guard cannot resolve to concrete
-   destinations is denied rather than guessed at: wildcard refspecs, `--config-env`, `GIT_*`
-   environment overrides, and shell aliases that run `push`. The `Bash(git push origin …)`
+   destinations is denied rather than guessed at: wildcard refspecs, `--config-env`, `GIT_*`,
+   `HOME` or `XDG_CONFIG_HOME` overrides (they choose which config git reads), and shell
+   aliases that run `push`. Redirections (`2>&1`, `>log`, before or after the command) are
+   not arguments. The `Bash(git push origin …)`
    deny rules in settings.json only catch the literal spelling.
    Adapter policy, not a DO NOT 8 rule: a force push to any other branch asks the person.
 2. SFDMU destructive operation (CRITICAL rule). An edit to a `datasets/` plan that makes any
@@ -77,6 +79,11 @@ FORCE_LONG = ("--force", "--force-with-lease", "--force-if-includes")
 # A cluster of `git push`'s short flags: no-value ones, optionally ending in `-o` (whose value
 # is glued on, or is the next word). `-f` in it is a force: `-uf`, `-fu`, `-fo ci.skip`.
 SHORT_CLUSTER = re.compile(r"-([46dfnquv]*)(?:o(.*))?")
+# A redirection and its target (`2>&1`, `>log`, `&>>log`, `<in`); heredocs (`<<`) are left
+# for code_lines. Stripping can unbalance a quote (`-m "a > b"`), so each line is read both
+# with and without them.
+REDIRECT = re.compile(r"(?:(?<=\s)|^)(?:\d+|&)?(?:>\||>>?|<(?!<)|<&)"
+                      r"(?:&?\d+-?|-|\s*(?:'[^']*'|\"[^\"]*\"|[^\s;&|<>()]+))?")
 # A heredoc's body is data, not commands (`cat > notes.md <<'EOF'`); `<<<` is a here-string.
 HEREDOC = re.compile(r"(?<!<)<<(?!<)-?\s*(['\"]?)([A-Za-z_][\w-]*)\1")
 # Programs that run another command after their own options and values. Rather than model
@@ -107,6 +114,7 @@ PUSH_LONG = tuple(f"--{n}" for n in _NEGATABLE) + tuple(f"--no-{n}" for n in _NE
 EVERYTHING_FLAGS = ("--mirror", "--all", "--branches")
 # Shell reserved words that can precede a simple command (`! git push`, `if git push …; then`).
 SHELL_PREFIX = {"!", "{", "}", "if", "then", "elif", "else", "do", "while", "until", "fi", "done"}
+CONFIG_LOCATION = {"HOME", "XDG_CONFIG_HOME"}  # where git finds its global configuration
 ENV_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=")
 
 DELETE_OLD_DATA = re.compile(r'"deleteOldData"\s*:\s*true')
@@ -151,6 +159,8 @@ def simple_commands(command: str) -> Iterator[List[str]]:
     lines = list(code_lines(command.splitlines()))
     if joined != command:
         lines += code_lines(joined.splitlines())
+    lines += [stripped for stripped in (REDIRECT.sub(" ", line) for line in lines)
+              if stripped not in lines]
     for line in lines:
         lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
         lexer.whitespace_split = True
@@ -261,8 +271,9 @@ def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None,
     unresolvable = ""
     if config_env:
         unresolvable = "`--config-env` takes push configuration from the environment"
-    elif any(name.startswith("GIT_") for name in env):
-        unresolvable = "`GIT_*` environment overrides change where git pushes"
+    elif any(name.startswith("GIT_") or name in CONFIG_LOCATION for name in env):
+        unresolvable = ("`GIT_*`, `HOME` or `XDG_CONFIG_HOME` overrides change which "
+                        "configuration, and so which destination, git uses")
     return Push(directory, rest, opts, env, unresolvable)
 
 
