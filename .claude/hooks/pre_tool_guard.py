@@ -70,8 +70,11 @@ GIT_GLOBAL_REPLAYED = {"-c", "--git-dir", "--work-tree", "--namespace"}
 # `git push` options that take a separate argument, so their value is not read as a remote.
 PUSH_WITH_ARG = {"-o", "--push-option", "--receive-pack", "--exec"}
 FORCE_LONG = ("--force", "--force-with-lease", "--force-if-includes")
-# `-f` alone or clustered with `git push`'s other no-value short flags (`-uf`, `-fu`).
-FORCE_SHORT = re.compile(r"-[46dnquv]*f[46dnquv]*")
+# A cluster of `git push`'s short flags: no-value ones, optionally ending in `-o` (whose value
+# is glued on, or is the next word). `-f` in it is a force: `-uf`, `-fu`, `-fo ci.skip`.
+SHORT_CLUSTER = re.compile(r"-([46dfnquv]*)(?:o(.*))?")
+# A heredoc's body is data, not commands (`cat > notes.md <<'EOF'`); `<<<` is a here-string.
+HEREDOC = re.compile(r"(?<!<)<<(?!<)-?\s*(['\"]?)([A-Za-z_][\w-]*)\1")
 # Programs that run another command after their own options and values. Rather than model
 # each one's options, the push is read from the first `git` after the wrapper.
 WRAPPERS = {"env", "command", "builtin", "exec", "sudo", "doas", "time", "timeout", "nohup",
@@ -99,12 +102,28 @@ def git(cwd: str, *args: str, opts: Sequence[str] = ()) -> Optional[str]:
     return out.stdout.strip() if out.returncode == 0 else None
 
 
+def code_lines(lines: List[str]) -> Iterator[str]:
+    """The lines that are commands, skipping heredoc bodies."""
+    end = None
+    for line in lines:
+        if end is not None:
+            if line.strip() == end:
+                end = None
+            continue
+        yield line
+        heredoc = HEREDOC.search(line)
+        if heredoc:
+            end = heredoc.group(2)
+
+
 def simple_commands(command: str) -> Iterator[List[str]]:
     """Each simple command in a shell line, as argv. Unparseable text yields nothing."""
     # Each line as written and with `\`-continued lines rejoined: the shell may read it
     # either way (an escaped `\\`, a backslash in a comment), so both are checked.
     joined = re.sub(r"\\\r?\n", " ", command)
-    lines = command.splitlines() + ([] if joined == command else joined.splitlines())
+    lines = list(code_lines(command.splitlines()))
+    if joined != command:
+        lines += code_lines(joined.splitlines())
     for line in lines:
         lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
         lexer.whitespace_split = True
@@ -131,19 +150,24 @@ class Push:
         self.unresolvable = unresolvable
 
 
-def git_push(argv: List[str], cwd: str) -> Optional[Push]:
+def git_push(argv: List[str], cwd: str, env: Optional[Dict[str, str]] = None) -> Optional[Push]:
     """A Push if argv runs `git push` directly or through an alias, else None."""
-    env: Dict[str, str] = {}
+    env = dict(env or {})
     while argv and ENV_ASSIGNMENT.match(argv[0]):
         name, _, value = argv[0].partition("=")
         env[name] = value
         argv = argv[1:]
     if argv and os.path.basename(argv[0]) in WRAPPERS:
-        at = next((i for i, w in enumerate(argv) if os.path.basename(w) == "git"), None)
-        if at is None:
-            return None
-        env.update(w.partition("=")[::2] for w in argv[1:at] if ENV_ASSIGNMENT.match(w))
-        argv = argv[at:]
+        # The first `git` that reads as a push: an option value can be `git` too
+        # (`sudo -u git git push`, `env -C /srv/git git push`).
+        for at in range(1, len(argv)):
+            if os.path.basename(argv[at]) == "git":
+                inner = dict(env, **dict(w.partition("=")[::2] for w in argv[1:at]
+                                         if ENV_ASSIGNMENT.match(w)))
+                push = git_push(argv[at:], cwd, inner)
+                if push:
+                    return push
+        return None
     if not argv or os.path.basename(argv[0]) != "git":
         return None
     i, directory, opts, config_env = 1, cwd, [], False
@@ -206,9 +230,14 @@ def push_decision(push: Push) -> Tuple[str, str]:
         if arg in EVERYTHING_FLAGS:
             return "deny", f"`git push {arg}` updates protected branches too"
         name = arg.split("=", 1)[0]
-        # git takes any unambiguous prefix of a long option: `--forc` is `--force`.
-        if FORCE_SHORT.fullmatch(arg) or (name.startswith("--forc")
-                                          and any(f.startswith(name) for f in FORCE_LONG)):
+        cluster = SHORT_CLUSTER.fullmatch(arg)
+        if cluster and arg != "-":
+            force = force or "f" in cluster.group(1)
+            if cluster.group(2) == "":  # `-o value` / `-fo value`: skip the value
+                i += 1
+        # git takes an unambiguous prefix of a long option (`--force-w`). `--forc`, which git
+        # rejects as ambiguous, asks too.
+        elif name.startswith("--forc") and any(f.startswith(name) for f in FORCE_LONG):
             force = True
         elif arg == "--repo" and i + 1 < len(push.args):
             remote_flag = push.args[i + 1]
