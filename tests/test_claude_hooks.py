@@ -158,6 +158,17 @@ class PushGuard(unittest.TestCase):
         self.assertEqual(self.decision(f"git -C {art} push -f origin main"), "ask")
         self.assertEqual(self.decision(f"cd {art} && git push && cd {self.work} && git push "
                                        "origin main"), "deny")
+        # A second change of directory makes where a push runs unresolvable, so it's refused,
+        # even from a feature checkout and even if the second target looks harmless.
+        on_main = Path(self.tmp.name) / "on-main"
+        if not on_main.exists():
+            sh(Path(self.tmp.name), "git", "clone", "-q", "-b", "main",
+               str(Path(self.tmp.name) / "remote.git"), str(on_main))
+        for command in (f"cd {art} && cd {on_main} && git push", f"cd {art} && pushd {on_main} "
+                        "&& git push", f"cd {art} && cd . && git push"):
+            with self.subTest(command=command):
+                self.assertEqual(self.decision(command), "deny")
+        self.assertEqual(self.decision(f"cd {art} && cd . && git status"), "allow")
         self.assertEqual(self.decision("git push origin main"), "deny")
 
     def test_the_exemption_needs_every_push_url_to_be_the_artifacts_repo(self):

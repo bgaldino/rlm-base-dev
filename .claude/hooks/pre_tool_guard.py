@@ -43,7 +43,8 @@ What this guard does not catch, and what backs it up:
   aren't parsed per wrapper, so a value that names a wrapper (`env -u sudo -C dir`) or a
   repeated chdir (`env -C a -C ../b`, where the last one wins) can resolve the wrong
   directory.
-- State a compound command changes before its push runs, other than a leading `cd <dir> &&`:
+- State a compound command changes before its push runs, other than a leading `cd <dir> &&`
+  (a push after a second `cd`/`pushd`/`popd` is refused as unresolvable):
   `git checkout main && git push` and `true && cd elsewhere && git push` are resolved against
   the branch and directory the command started in. An explicit destination (`git push origin main`) is caught either way.
 - For both push cases above the server is the backstop: the "Approvals" branch ruleset on
@@ -523,12 +524,13 @@ UNCONDITIONAL = {";", "||", "&", ";;", "|&", "\n"}
 MOVES = {"cd", "pushd", "popd"}
 
 
-def command_directories(command: str, cwd: str) -> List[str]:
+def command_directories(command: str, cwd: str) -> Optional[List[str]]:
     """The directories this command's pushes may run in. A leading `cd <dir> &&`, or
     `(cd <dir> && …)`, moves them (`cd .agents/artifacts && git push`). The starting directory
     is checked too when the target can't be resolved as the shell would (`-`, `$…`, a
     backtick, `CDPATH`, a directory that doesn't exist), or when anything after it can run if
-    the `cd` failed, or moves again."""
+    the `cd` failed. None if it moves again (`cd a && cd b && git push`): later moves can be
+    conditional, use variables or sit in subshells, so where a push runs is unresolvable."""
     lexer = shlex.shlex(command, posix=True, punctuation_chars="();<>|&\n")
     lexer.whitespace, lexer.whitespace_split = " \t\r", True
     try:
@@ -543,7 +545,9 @@ def command_directories(command: str, cwd: str) -> List[str]:
     unresolved = (raw.startswith("-") or "$" in raw or "`" in raw or not os.path.isdir(target)
                   or (os.environ.get("CDPATH") and not raw.startswith(("/", "./", "../"))))
     rest = tokens[i + 3:]
-    if unresolved or any(t in UNCONDITIONAL or t in MOVES for t in rest):
+    if any(t in MOVES for t in rest):
+        return None
+    if unresolved or any(t in UNCONDITIONAL for t in rest):
         return [target, cwd]
     return [target]
 
@@ -558,7 +562,14 @@ def decide(event: dict) -> Tuple[str, str]:
     if tool == "Bash":
         worst = ("allow", "")
         command = tool_input.get("command") or ""
-        for directory in command_directories(command, cwd):
+        directories = command_directories(command, cwd)
+        if directories is None:
+            if any(git_push(argv, cwd) for argv in simple_commands(command)):
+                return "deny", ("this command changes directory more than once before a push, so "
+                                "where the push runs can't be resolved; run it as "
+                                "`git -C <dir> push …` instead")
+            directories = [cwd]
+        for directory in directories:
             for argv in simple_commands(command):
                 push = git_push(argv, directory)
                 if push:
