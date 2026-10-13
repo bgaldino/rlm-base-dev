@@ -6,9 +6,11 @@
 #   • On tag:    push a tag matching `image-v*` (e.g. `image-v262.0`)
 #   • Weekly:    scheduled rebuild (cron below) — runs automatically
 #
-# `:latest` moves only on purpose: on the weekly rebuild, on an `image-v*` tag push, and on a manual
-# run whose tag is `latest` and that builds both platforms. A manual run with any other tag publishes
-# only that tag, so a test build can't replace what `docker pull …:latest` returns.
+# `:latest` moves only on purpose: on the weekly rebuild, and on a manual run from the default branch
+# whose tag is `latest` and that builds both platforms. A manual run with any other tag publishes
+# only that tag, so a test build can't replace what `docker pull …:latest` returns. An `image-v*` tag
+# push publishes only its version tag too: a patch tag cut on a release/<n> line would otherwise move
+# `:latest` back to an older release.
 #
 # After a run, the image is at:
 #   ghcr.io/<owner>/rlm-base:<tag>     e.g. ghcr.io/bgaldino/rlm-base:latest
@@ -20,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Image tag to publish (e.g. latest, 262). Only `latest`, built for both platforms, moves :latest"
+        description: "Image tag to publish (e.g. latest, 262). Only `latest`, run from the default branch on both platforms, moves :latest"
         required: true
         default: "latest"
       platforms:
@@ -38,9 +40,11 @@ on:
     # scheduled workflows after 60 days of repo inactivity.
     - cron: "0 7 * * 1"
 
+# Queued, not cancelled: a manual test build started during the weekly run would otherwise cancel
+# it, and :latest would miss that week's refresh.
 concurrency:
   group: docker-publish-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 # No default token permissions; each job grants only what it uses.
 permissions: {}
@@ -61,11 +65,14 @@ jobs:
         # validated before they reach $GITHUB_OUTPUT (a newline there would add an output).
         env:
           EVENT_NAME: ${{ github.event_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           INPUT_TAG: ${{ github.event.inputs.tag }}
           INPUT_PLATFORMS: ${{ github.event.inputs.platforms }}
         run: |
-          owner="${GITHUB_REPOSITORY_OWNER,,}"   # lowercase for GHCR
-          echo "image=ghcr.io/${owner}/rlm-base" >> "$GITHUB_OUTPUT"
+          # Lowercase for GHCR (tr, not ${var,,}, so the offline test also runs under bash 3.2).
+          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          image="ghcr.io/${owner}/rlm-base"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
           case "$EVENT_NAME" in
             workflow_dispatch)
               tag="$INPUT_TAG"
@@ -84,20 +91,21 @@ jobs:
           [[ "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]] || { echo "::error::invalid image tag"; exit 1; }
           [[ "$platforms" =~ ^[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?(,[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?)*$ ]] \
             || { echo "::error::invalid platforms"; exit 1; }
-          # :latest is what an unpinned pull gets, so it follows only a deliberate, complete build: the
-          # schedule, a release tag push, or a manual run that asks for `latest` on both platforms.
+          # :latest is what an unpinned pull gets, so it follows only a deliberate, complete build of the
+          # default branch: the schedule, or a manual run that asks for `latest`.
           all_platforms="linux/amd64,linux/arm64"
           move_latest=0
           case "$EVENT_NAME" in
+            schedule) move_latest=1 ;;
             workflow_dispatch)
               if [ "$tag" = latest ]; then
                 [ "$platforms" = "$all_platforms" ] \
-                  || { echo "::error::latest must be built for ${all_platforms}"; exit 1; }
+                  || { echo "::error::latest must be built for exactly ${all_platforms}"; exit 1; }
+                [ "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH" ] \
+                  || { echo "::error::latest is published only from the default branch"; exit 1; }
                 move_latest=1
               fi ;;
-            *) move_latest=1 ;;
           esac
-          image="ghcr.io/${owner}/rlm-base"
           {
             echo "tags<<TAGS_EOF"
             echo "${image}:${tag}"
