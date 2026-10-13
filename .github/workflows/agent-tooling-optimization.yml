@@ -74,6 +74,7 @@ jobs:
     permissions:
       contents: write
       issues: write
+      pull-requests: read   # gh pr list: is an open PR using the automation branch?
     steps:
       - name: Checkout repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
@@ -125,10 +126,17 @@ jobs:
           title="Agent tooling artifacts drifted"
           git_auth=(-c credential.helper=
                     -c 'credential.helper=!f() { echo username=x-access-token; echo "password=${GH_TOKEN}"; }; f')
-          # A label filter, not search (search lags behind a just-created issue), then exact title.
+          # A label filter first (search lags behind a just-created issue), then search by title for
+          # one whose label was removed; exact title either way.
           open_issue() {
-            gh issue list -R "$REPO" --state open --label agent-tooling --limit 100 --json number,title \
-              --jq ".[] | select(.title == \"${title}\") | .number" | head -1
+            local found
+            found=$(gh issue list -R "$REPO" --state open --label agent-tooling --limit 100 --json number,title \
+                      --jq ".[] | select(.title == \"${title}\") | .number" | head -1)
+            if [ -z "$found" ]; then
+              found=$(gh issue list -R "$REPO" --state open --search "in:title \"${title}\"" --limit 100 \
+                        --json number,title --jq ".[] | select(.title == \"${title}\") | .number" | head -1)
+            fi
+            echo "$found"
           }
           # 0 = the automation branch exists, 2 = it doesn't; anything else is an error, not "absent".
           branch_state() {
@@ -180,8 +188,8 @@ jobs:
           git add -- "${paths[@]}"
           git commit -q -m "chore: refresh agent tooling artifacts"
           # Unchanged since the last push (the drift isn't merged yet): nothing to push or say.
-          if branch_state; then
-            git "${git_auth[@]}" fetch -q origin "refs/heads/${BRANCH}"
+          # (A depth-1 fetch; if the branch vanished meanwhile, fall through and push.)
+          if branch_state && git "${git_auth[@]}" fetch -q --depth=1 origin "refs/heads/${BRANCH}"; then
             if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ] && [ -n "$(open_issue)" ]; then
               echo "The automation branch already holds this refresh; nothing new."
               exit 0

@@ -11,10 +11,13 @@ Every workflow in .github/workflows must:
 4. keep `${{ }}` expressions out of scripts: `run:`, and the `script` of `actions/github-script`.
    Values reach a script through `env:`, so neither untrusted input nor a secret is interpolated
    into the script text (script injection, or a secret written into the generated script
-   file). Action inputs (`with:`) may not carry an attacker-controlled event value (an issue,
-   comment or review title or body, a branch name, a commit message): those reach an action as
-   text it may run or follow, a prompt included. Every local composite action a workflow uses
-   (`uses: ./path`), and any under `.github/actions/`, is held to the same rules.
+   file). An expression in an action input (`with:`) may reference only allowlisted contexts
+   (secrets, step outputs, runner/matrix/vars/env/needs/inputs, and `github` fields no outside
+   contributor sets), because an input reaches an action as text it may run or follow, a prompt
+   included, and the attacker-controlled fields can't be listed completely. Every local action
+   reachable from a workflow (`uses: ./path`, followed through other local actions), and any
+   under `.github/actions/`, is held to the same rules; a `./` reference with nothing behind it
+   fails.
 
 Repository settings enforce some of this server-side, but they can be switched off and don't
 travel with the code to the SalesforceLabs mirror. This suite is the in-repo guard that still
@@ -50,13 +53,22 @@ ALLOWED_OWNERS = {"actions", "github", "docker", "anthropics"}  # compared case-
 # `docker://` images skip the owner list, so each must be approved by name (none are in use).
 ALLOWED_IMAGES: set = set()
 EXPRESSION = re.compile(r"\$\{\{")
-# Event fields an outside contributor controls, as GitHub's security hardening guide lists them.
-UNTRUSTED = re.compile(
-    r"\$\{\{[^}]*github\.(?:head_ref|event\.(?:"
-    r"(?:issue|pull_request|discussion)\.(?:title|body)|(?:comment|review|review_comment)\.body"
-    r"|pages\.[^.}\s]+\.page_name|commits\.[^}\s]*\.(?:message|author\.(?:email|name))"
-    r"|head_commit\.(?:message|author\.(?:email|name))|pull_request\.head\.(?:ref|label)"
-    r"|workflow_run\.(?:head_branch|head_commit\.message)))")
+# An expression in an action input may reference only contexts known to be safe: an allowlist,
+# because a list of the attacker-controlled fields (titles, bodies, branch names, commit
+# messages, in dotted, indexed or bracketed form) never ends. Writers-only `inputs`, step
+# outputs, secrets and runner/matrix/vars/env/needs values are allowed; of `github`, only fields
+# no outside contributor sets.
+EXPR = re.compile(r"\$\{\{(.*?)\}\}", re.DOTALL)
+CONTEXT_REF = re.compile(r"(?<![\w.'\"])([A-Za-z_][\w-]*)((?:\.[\w-]+|\[[^\]]*\])*)")
+SAFE_ROOTS = {"secrets", "steps", "runner", "env", "matrix", "vars", "needs", "inputs", "job",
+              "strategy"}
+SAFE_GITHUB = {"repository", "repository_owner", "repository_id", "run_id", "run_number",
+               "run_attempt", "sha", "server_url", "api_url", "graphql_url", "workflow", "job",
+               "event_name", "actor", "token", "action", "workspace",
+               "event.pull_request.number", "event.number", "event.repository.default_branch",
+               "event.repository.full_name", "event.repository.name"}
+FUNCTIONS = {"format", "contains", "startsWith", "endsWith", "join", "toJSON", "fromJSON",
+             "hashFiles", "success", "always", "cancelled", "failure", "true", "false", "null"}
 
 _passed = _total = 0
 
@@ -161,14 +173,32 @@ def run_scripts(doc):
             yield label + " with.script", str((step.get("with") or {}).get("script", ""))
 
 
+def unsafe_references(value: str):
+    """Context references in `${{ }}` expressions that aren't on the allowlist."""
+    out = []
+    for expression in EXPR.findall(str(value)):
+        code = re.sub(r"'(?:[^']|'')*'", "''", expression)  # string literals aren't references
+        for root, rest in CONTEXT_REF.findall(code):
+            if root in FUNCTIONS or root.isdigit():
+                continue
+            if root == "github":
+                field = rest[1:] if rest.startswith(".") else rest
+                if "[" in rest or field not in SAFE_GITHUB:
+                    out.append(f"github{rest}")
+            elif root not in SAFE_ROOTS:
+                out.append(root + rest)
+    return out
+
+
 def untrusted_inputs_in(doc):
-    """Steps whose `with:` inputs carry an attacker-controlled event value."""
+    """Steps whose `with:` inputs reference a context that isn't known to be safe."""
     out = []
     for where, step in steps_of(doc):
         if isinstance(step, dict):
             for key, value in (step.get("with") or {}).items():
-                if UNTRUSTED.search(str(value)):
-                    out.append(f"{where}.with.{key}")
+                bad = unsafe_references(value)
+                if bad:
+                    out.append(f"{where}.with.{key}: {bad}")
     return out
 
 
@@ -189,16 +219,33 @@ local_actions = []
 for root, _, files in os.walk(ACTIONS) if os.path.isdir(ACTIONS) else []:
     local_actions += [os.path.relpath(os.path.join(root, f), WORKFLOWS) for f in files
                       if f in ("action.yml", "action.yaml")]
-# And every local action a workflow uses, wherever it lives (`uses: ./tools/setup`).
-for name in names:
+# And every local action reachable from a workflow, wherever it lives (`uses: ./tools/setup`),
+# following local actions that use other local actions. A `./` reference with no action.yml
+# behind it is a failure, not a skip.
+missing_local = []
+queue = list(names) + list(local_actions)
+seen = set()
+while queue:
+    name = queue.pop()
+    if name in seen:
+        continue
+    seen.add(name)
     with open(os.path.join(WORKFLOWS, name), encoding="utf-8") as fh:
-        for _, ref in uses_values(yaml.safe_load(fh.read())):
-            if isinstance(ref, str) and ref.startswith("./"):
-                for filename in ("action.yml", "action.yaml"):
-                    path = os.path.join(REPO, ref[2:], filename)
-                    rel = os.path.relpath(path, WORKFLOWS)
-                    if os.path.isfile(path) and rel not in local_actions:
-                        local_actions.append(rel)
+        refs = [r for _, r in uses_values(yaml.safe_load(fh.read()))
+                if isinstance(r, str) and r.startswith("./")]
+    for ref in refs:
+        target = os.path.normpath(os.path.join(REPO, ref[2:]))
+        if target.endswith((".yml", ".yaml")):  # a local reusable workflow, scanned as one
+            continue
+        found = [os.path.relpath(os.path.join(target, f), WORKFLOWS)
+                 for f in ("action.yml", "action.yaml") if os.path.isfile(os.path.join(target, f))]
+        if not found:
+            missing_local.append(f"{name}: {ref}")
+        for rel in found:
+            if rel not in local_actions:
+                local_actions.append(rel)
+                queue.append(rel)
+check("every local `./` action a workflow uses exists", not missing_local, missing_local)
 for name in names + sorted(local_actions):
     composite = name in local_actions
     with open(os.path.join(WORKFLOWS, name), encoding="utf-8") as fh:
@@ -281,11 +328,21 @@ check("an unapproved docker:// image is disallowed",
 for label, value, ok in (("a PR number", "${{ github.event.pull_request.number }}", True),
                         ("the repository", "${{ github.repository }}", True),
                         ("a step output", "${{ steps.meta.outputs.tag }}", True),
+                        ("a secret", "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}", True),
+                        ("runner.os", "${{ runner.os }}", True),
+                        ("a format() of safe values", "${{ format('{0}-{1}', github.repository, runner.os) }}", True),
                         ("a comment body", "review ${{ github.event.comment.body }}", False),
                         ("an issue title", "${{ github.event.issue.title }}", False),
                         ("a PR head ref", "${{ github.event.pull_request.head.ref }}", False),
                         ("github.head_ref", "${{ github.head_ref }}", False),
-                        ("a commit message", "${{ github.event.head_commit.message }}", False)):
+                        ("a commit message", "${{ github.event.head_commit.message }}", False),
+                        ("an indexed commit message", "${{ github.event.commits[0].message }}", False),
+                        ("a wildcard commit author", "${{ github.event.commits[*].author.email }}", False),
+                        ("an indexed page name", "${{ github.event.pages[0].page_name }}", False),
+                        ("head_ref inside format()", "${{ format('{0}', github.head_ref) }}", False),
+                        ("bracket access", "${{ github['head_ref'] }}", False),
+                        ("github.ref_name", "${{ github.ref_name }}", False),
+                        ("an unlisted event field", "${{ github.event.pull_request.head.repo.default_branch }}", False)):
     found = untrusted_inputs_in({"jobs": {"j": {"steps": [{"uses": f"actions/x@{SHA}",
                                                            "with": {"prompt": value}}]}}})
     check(f"an action input with {label} is {'allowed' if ok else 'refused'}", (not found) is ok, value)
