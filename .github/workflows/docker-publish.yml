@@ -4,8 +4,13 @@
 # Triggers (never on ordinary pushes/PRs):
 #   • Manually:  Actions → "Publish build-environment image" → Run workflow
 #   • On tag:    push a tag matching `image-v*` (e.g. `image-v262.0`)
-#   • Weekly:    scheduled rebuild (cron below) — runs automatically and also
-#                refreshes the `:latest` tag
+#   • Weekly:    scheduled rebuild (cron below) — runs automatically
+#
+# `:latest` moves only on purpose: on the weekly rebuild, and on a manual run from the default branch
+# whose tag is `latest` and that builds both platforms. A manual run with any other tag publishes
+# only that tag, so a test build can't replace what `docker pull …:latest` returns. An `image-v*` tag
+# push publishes only its version tag too: a patch tag cut on a release/<n> line would otherwise move
+# `:latest` back to an older release.
 #
 # After a run, the image is at:
 #   ghcr.io/<owner>/rlm-base:<tag>     e.g. ghcr.io/bgaldino/rlm-base:latest
@@ -17,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Image tag to publish (e.g. latest, 262)"
+        description: "Image tag to publish (e.g. latest, 262). Only `latest`, run from the default branch on both platforms, moves :latest"
         required: true
         default: "latest"
       platforms:
@@ -35,9 +40,13 @@ on:
     # scheduled workflows after 60 days of repo inactivity.
     - cron: "0 7 * * 1"
 
+# The runs that move :latest (the schedule, and a manual run tagged latest) share one group; every
+# other manual tag, and each tag push, gets its own. A group holds one running and one pending run,
+# and a newer pending run replaces the older, so a test build in the same group as the weekly run
+# could drop that week's :latest refresh even without cancel-in-progress. Queued, not cancelled.
 concurrency:
-  group: docker-publish-${{ github.ref }}
-  cancel-in-progress: true
+  group: docker-publish-${{ github.ref }}-${{ github.event_name == 'schedule' && 'latest' || github.event.inputs.tag || 'tag-push' }}
+  cancel-in-progress: false
 
 # No default token permissions; each job grants only what it uses.
 permissions: {}
@@ -58,21 +67,26 @@ jobs:
         # validated before they reach $GITHUB_OUTPUT (a newline there would add an output).
         env:
           EVENT_NAME: ${{ github.event_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           INPUT_TAG: ${{ github.event.inputs.tag }}
           INPUT_PLATFORMS: ${{ github.event.inputs.platforms }}
         run: |
-          owner="${GITHUB_REPOSITORY_OWNER,,}"   # lowercase for GHCR
-          echo "image=ghcr.io/${owner}/rlm-base" >> "$GITHUB_OUTPUT"
+          # Lowercase for GHCR (tr, not ${var,,}, so the offline test also runs under bash 3.2).
+          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          image="ghcr.io/${owner}/rlm-base"
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
           case "$EVENT_NAME" in
             workflow_dispatch)
               tag="$INPUT_TAG"
               platforms="$INPUT_PLATFORMS" ;;
             schedule)
-              # Weekly run: date-stamped tag for history, plus :latest (added below).
+              # Weekly run: a date-stamped tag for history, plus :latest.
               tag="$(date -u +%Y%m%d)"
               platforms="linux/amd64,linux/arm64" ;;
             *)  # tag push (image-v*)
               tag="${GITHUB_REF_NAME#image-v}"
+              # `latest` is reserved for the schedule and a default-branch manual run.
+              [ "$tag" != latest ] || { echo "::error::image-vlatest can't publish :latest"; exit 1; }
               platforms="linux/amd64,linux/arm64" ;;
           esac
           # Validated for every event (a pushed tag like `image-v` would give an empty one) before
@@ -81,7 +95,29 @@ jobs:
           [[ "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]] || { echo "::error::invalid image tag"; exit 1; }
           [[ "$platforms" =~ ^[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?(,[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?)*$ ]] \
             || { echo "::error::invalid platforms"; exit 1; }
+          # :latest is what an unpinned pull gets, so it follows only a deliberate, complete build of the
+          # default branch: the schedule, or a manual run that asks for `latest`.
+          all_platforms="linux/amd64,linux/arm64"
+          move_latest=0
+          case "$EVENT_NAME" in
+            schedule) move_latest=1 ;;
+            workflow_dispatch)
+              if [ "$tag" = latest ]; then
+                [ "$platforms" = "$all_platforms" ] \
+                  || { echo "::error::latest must be built for exactly ${all_platforms}"; exit 1; }
+                [ "$GITHUB_REF_NAME" = "$DEFAULT_BRANCH" ] \
+                  || { echo "::error::latest is published only from the default branch"; exit 1; }
+                move_latest=1
+              fi ;;
+          esac
+          {
+            echo "tags<<TAGS_EOF"
+            echo "${image}:${tag}"
+            if [ "$move_latest" = 1 ] && [ "$tag" != latest ]; then echo "${image}:latest"; fi
+            echo "TAGS_EOF"
+          } >> "$GITHUB_OUTPUT"
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "latest=$([ "$move_latest" = 1 ] && echo yes || echo no)" >> "$GITHUB_OUTPUT"
           echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU (multi-arch)
@@ -104,9 +140,7 @@ jobs:
           file: docker/Dockerfile
           platforms: ${{ steps.meta.outputs.platforms }}
           push: true
-          tags: |
-            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
-            ${{ steps.meta.outputs.image }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -114,8 +148,11 @@ jobs:
         env:
           IMAGE: ${{ steps.meta.outputs.image }}
           TAG: ${{ steps.meta.outputs.tag }}
+          LATEST: ${{ steps.meta.outputs.latest }}
         run: |
           echo "### Published \`${IMAGE}:${TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`:latest\` moved: ${LATEST}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Pull with:" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

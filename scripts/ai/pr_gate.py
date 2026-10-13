@@ -460,7 +460,8 @@ CHECKS = [
              "tests/test_skill_manifest_audit.py",
              "tests/test_prepare_constraints_validation.py",
              "tests/test_doc_snapshot_presets.py",
-             "tests/test_workflow_policy.py"],  # run in sequence
+             "tests/test_workflow_policy.py",
+             "tests/test_docker_publish.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
         # usage product to that dataset invalidates the assertion, so it has to select this.
@@ -479,7 +480,9 @@ CHECKS = [
                   "scripts/doc_snapshot/", "tests/test_doc_snapshot_presets.py",
                   # The workflow security policy (SHA pins, allowed owners, permissions, no
                   # interpolation in run:) parses the YAML, so any workflow or local-action change selects it.
-                  ".github/workflows/", ".github/actions/", "tests/test_workflow_policy.py"],
+                  ".github/workflows/", ".github/actions/", "tests/test_workflow_policy.py",
+                  # docker-publish's :latest rule runs the workflow's own coordinates script.
+                  "tests/test_docker_publish.py"],
         deps=["PyYAML"], gating=True,
     ),
     dict(
