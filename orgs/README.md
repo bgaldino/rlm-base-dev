@@ -21,8 +21,9 @@ Every `features` array in this directory (and `config/project-scratch-def.json`)
 carries `MaxBundleDepth:5`. It raises the PCM `MaxBundleDepth` org value from its
 scratch-org default of 3 to 5 — the maximum this org value supports — so the
 **QuantumBit - OmniRack DC42 Series** bundle's 6-product, 5-link nesting (in
-the `qb-pcm` SFDMU plan) loads in full. Without it, 56 of 233
-`ProductRelatedComponent` rows fail with
+the `qb-pcm` SFDMU plan) loads in full. Without it, 56 of this plan's 234
+`ProductRelatedComponent` rows (per the plan's tracked record count — see
+`datasets/sfdmu/qb/en-US/qb-pcm/README.md`) fail with
 `bundle or set levels would exceed 3`; SFDMU logs the failure and the build
 carries on, so the gap is easy to miss. Live-verified against a fresh scratch org
 in [PR #516](https://github.com/bgaldino/rlm-base-dev/pull/516) (234/234 rows
