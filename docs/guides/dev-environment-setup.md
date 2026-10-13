@@ -196,8 +196,10 @@ direnv allow              # one-time per workstation per .envrc revision
 
 Machine-specific settings (a path that differs per workstation, such as the Chrome for
 Testing overrides in [local-installation.md](local-installation.md#chrome-for-testing-managed-workstations))
-go in `.envrc.local`, which `.envrc` sources and git ignores. `.envrc` itself is tracked, so
-git overwrites local edits to it. `direnv allow` is needed again whenever either file changes.
+go in `.env.local`, which git ignores. `.envrc` loads it as dotenv: `KEY="value"` lines with
+`$VAR` expansion, and never runs it as shell. direnv doesn't ask to approve a file loaded that
+way, so it's restricted to values: a line like `X=$(cmd)` is rejected, not run. `.envrc` itself
+is tracked, so git overwrites local edits to it, and `direnv allow` is needed again when it changes.
 
 ### Verify
 

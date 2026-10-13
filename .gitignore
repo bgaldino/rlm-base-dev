@@ -184,5 +184,5 @@ scripts/build_harness/tui/settings.local.json
 # each run (force-overwritten); they should never be committed.
 force-app/main/default/aiEvaluationDefinitions/
 
-# Per-workstation direnv overrides, sourced by .envrc (machine-specific paths).
-.envrc.local
+# Per-workstation overrides that .envrc loads as dotenv (machine-specific paths).
+.env.local
