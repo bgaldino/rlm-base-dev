@@ -1,5 +1,5 @@
 {
-  "orgName": "Salesforce Agentforce Revenue Management",
+  "orgName": "Salesforce Revenue Cloud",
   "country": "US",
   "edition": "Enterprise",
   "features": [
@@ -20,6 +20,7 @@
     "DisclosureFramework",
     "CGAnalytics",
     "InsightsPlatform",
+    "MaxBundleDepth:5",
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "B2BCommerce",

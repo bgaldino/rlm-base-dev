@@ -1,5 +1,5 @@
 {
-  "orgName": "Salesforce Agentforce Revenue Management",
+  "orgName": "Salesforce Revenue Cloud",
   "country": "US",
   "edition": "developer",
   "language": "en_US",
@@ -22,6 +22,7 @@
     "ExternalClientApps",
     "GlobalPromotionsMgmtBasic",
     "InsightsPlatform",
+    "MaxBundleDepth:5",
     "OrderManagement",
     "OrderSaveLogicEnabled",
     "PartnerCommunity",
