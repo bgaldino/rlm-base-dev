@@ -291,7 +291,7 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <recordUpdates>
-        <description>Makes the order&apos;s quote the opportunity&apos;s synced quote, only if the opportunity still has no synced quote when the update runs, so a quote chosen since the first lookup isn&apos;t overwritten.</description>
+        <description>Makes the order&apos;s quote the opportunity&apos;s synced quote, only if the opportunity still has no synced quote when the update runs, so a quote chosen since the first lookup isn&apos;t overwritten. Sets the opportunity&apos;s price book to the quote&apos;s in the same update: a sync needs them to match, and a new opportunity has none, so setting SyncedQuoteId alone fails with &quot;You cannot modify the quote price book on quotes which have quote line items&quot;. If the opportunity already has lines from another price book, the update is rejected and the fault path records the failure.</description>
         <name>SetSyncedQuote</name>
         <label>Set Synced Quote</label>
         <locationX>0</locationX>
@@ -317,6 +317,12 @@
                 <booleanValue>true</booleanValue>
             </value>
         </filters>
+        <inputAssignments>
+            <field>Pricebook2Id</field>
+            <value>
+                <elementReference>$Record.Quote.Pricebook2Id</elementReference>
+            </value>
+        </inputAssignments>
         <inputAssignments>
             <field>SyncedQuoteId</field>
             <value>
