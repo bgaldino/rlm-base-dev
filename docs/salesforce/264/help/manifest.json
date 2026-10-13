@@ -1,12 +1,12 @@
 {
   "release": "264",
   "release_name": "Winter '27",
-  "area": "approvals",
-  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.approvals_advanced_approvals.htm&type=5&release=264",
-  "root_article_id": "ind.approvals_advanced_approvals.htm",
-  "article_id_prefix": "ind.approvals",
+  "area": "salesforce_contracts",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.sf_contracts_salesforce_contracts_overview_2.htm&type=5&release=264",
+  "root_article_id": "ind.sf_contracts_salesforce_contracts_overview_2.htm",
+  "article_id_prefix": "ind.sf_contracts",
   "snapshot_started": "2026-09-04",
-  "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
+  "capture_method": "scripts/doc_snapshot help (Playwright + shadow-DOM walker)",
   "areas": [
     {
       "area": "configurator",
@@ -197,6 +197,25 @@
         "kept": 43,
         "before_prefix_filter": 1371
       }
+    },
+    {
+      "area": "salesforce_contracts",
+      "root_article_id": "ind.sf_contracts_salesforce_contracts_overview_2.htm",
+      "article_id_prefix": "ind.sf_contracts",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.sf_contracts_salesforce_contracts_overview_2.htm&type=5&release=264",
+      "last_updated": "2026-10-13T15:04:27Z",
+      "stats": {
+        "discovered": 428,
+        "captured": 428,
+        "pending": 0,
+        "errored": 0,
+        "total_captured_body_chars": 825536
+      },
+      "last_run_discovered": {
+        "kept": 428,
+        "before_prefix_filter": 436
+      },
+      "snapshot_started": "2026-10-09"
     }
   ],
   "articles": [
@@ -9924,6 +9943,3846 @@
       "file": "articles/ind.rm_simulate_activate_rating_procedure.htm.md"
     },
     {
+      "article_id": "ind.sf_contracts__create_new_contract_status_values.htm",
+      "title": "Create New Contract Status Values",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_configure_new_contract_status_values_and_map_to_contract_object_state_definition.htm",
+      "body_length": 1075,
+      "file": "articles/ind.sf_contracts__create_new_contract_status_values.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_aa_approve.htm",
+      "title": "Review and Approve a Contract",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_aa_overview.htm",
+      "body_length": 1858,
+      "file": "articles/ind.sf_contracts_aa_approve.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_aa_configure.htm",
+      "title": "Configure Advanced Approvals for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_aa_overview.htm",
+      "body_length": 4891,
+      "file": "articles/ind.sf_contracts_aa_configure.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_aa_faq.htm",
+      "title": "Advanced Approvals Troubleshooting and FAQ for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_aa_overview.htm",
+      "body_length": 2091,
+      "file": "articles/ind.sf_contracts_aa_faq.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_aa_overview.htm",
+      "title": "Advanced Approval Workflow for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_approvals_concept.htm",
+      "body_length": 5107,
+      "file": "articles/ind.sf_contracts_aa_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_aa_reference.htm",
+      "title": "Advanced Approvals for Salesforce Contracts Components",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_aa_overview.htm",
+      "body_length": 2452,
+      "file": "articles/ind.sf_contracts_aa_reference.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_aa_submit.htm",
+      "title": "Submit a Contract for Approval by Using Advanced Approvals for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_aa_overview.htm",
+      "body_length": 1520,
+      "file": "articles/ind.sf_contracts_aa_submit.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_actions_available_for_a_section.htm",
+      "title": "Actions Available for a Section in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_section_management.htm",
+      "body_length": 598,
+      "file": "articles/ind.sf_contracts_actions_available_for_a_section.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_activate_obligations_based_on_contract_status.htm",
+      "title": "Activate Obligations Based on Contract Status",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_obligation_management.htm",
+      "body_length": 1467,
+      "file": "articles/ind.sf_contracts_activate_obligations_based_on_contract_status.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_add_clauses_to_draft_state_or_clause_library.htm",
+      "title": "Add Clauses to Draft State or Clause Library",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_drafting_with_contracts_ai.htm",
+      "body_length": 1591,
+      "file": "articles/ind.sf_contracts_add_clauses_to_draft_state_or_clause_library.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_add_description_for_userdefined_fields.htm",
+      "title": "Add Description for User-Defined Fields",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm",
+      "body_length": 1119,
+      "file": "articles/ind.sf_contracts_add_description_for_userdefined_fields.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_add_non_standard_clauses_to_the_clause_library_to_ensure_enhanced_reusability.htm",
+      "title": "Add Non-Standard Clauses to the Clause Library To Ensure Reusability",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm",
+      "body_length": 1159,
+      "file": "articles/ind.sf_contracts_add_non_standard_clauses_to_the_clause_library_to_ensure_enhanced_reusability.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_add_recipients.htm",
+      "title": "Add E-Signature Recipients",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_for_submitting_a_contract_for_e-signature.htm",
+      "body_length": 1496,
+      "file": "articles/ind.sf_contracts_add_recipients.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_add_salesforce_contracts_licenses_and_install_omnistudio_package.htm",
+      "title": "Add Salesforce Contracts Licenses and Install Omnistudio Package",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_licenses.htm",
+      "body_length": 1335,
+      "file": "articles/ind.sf_contracts_add_salesforce_contracts_licenses_and_install_omnistudio_package.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_additional_post_install_set_ups.htm",
+      "title": "Additional Set Up for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 4335,
+      "file": "articles/ind.sf_contracts_additional_post_install_set_ups.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_approvals_concept.htm",
+      "title": "Contract Approval Processes in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 1455,
+      "file": "articles/ind.sf_contracts_approvals_concept.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_attach_a_role_to_a_user.htm",
+      "title": "Attach a Role to a User",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm",
+      "body_length": 759,
+      "file": "articles/ind.sf_contracts_attach_a_role_to_a_user.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_attach_additional_documents_for_enhanced_contract_e-signature_experience.htm",
+      "title": "Attach Additional Documents for Enhanced Contract E-Signature Experience",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm",
+      "body_length": 625,
+      "file": "articles/ind.sf_contracts_attach_additional_documents_for_enhanced_contract_e-signature_experience.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_attachments.htm",
+      "title": "Attachments in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_creation.htm",
+      "body_length": 2410,
+      "file": "articles/ind.sf_contracts_attachments.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_auto_generate_document_on_contract_creation.htm",
+      "title": "Auto Generate Document On Contract Creation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_type_config_settings.htm",
+      "body_length": 946,
+      "file": "articles/ind.sf_contracts_auto_generate_document_on_contract_creation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_auto_generate_document_on_contract_update.htm",
+      "title": "Auto Generate Document On Contract Update",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_type_config_settings.htm",
+      "body_length": 944,
+      "file": "articles/ind.sf_contracts_auto_generate_document_on_contract_update.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_automate_clause_generation_and_quickly_modify_clauses.htm",
+      "title": "Automate Clause Generation and Quickly Modify Clauses with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contracts_ai.htm",
+      "body_length": 1225,
+      "file": "articles/ind.sf_contracts_automate_clause_generation_and_quickly_modify_clauses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_b2b_sales_home.htm",
+      "title": "B2B Sales Home Dashboard for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_embedded_analytics.htm",
+      "body_length": 581,
+      "file": "articles/ind.sf_contracts_b2b_sales_home.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_billing_considerations_for_contract_agent.htm",
+      "title": "Billing Considerations for Contract Search",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contract_search_for_contract_ai.htm",
+      "body_length": 3995,
+      "file": "articles/ind.sf_contracts_billing_considerations_for_contract_agent.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_build_your_team.htm",
+      "title": "Build Your Salesforce Contracts Team",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm",
+      "body_length": 1158,
+      "file": "articles/ind.sf_contracts_build_your_team.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_bulk_extra_compare.htm",
+      "title": "Compare Bulk and Single Document Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contracts_ai.htm",
+      "body_length": 1637,
+      "file": "articles/ind.sf_contracts_bulk_extra_compare.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_bulk_extra_configuration.htm",
+      "title": "Create a Bulk Extraction Configuration",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_bulk_extra_overview.htm",
+      "body_length": 2216,
+      "file": "articles/ind.sf_contracts_bulk_extra_configuration.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_bulk_extra_delete.htm",
+      "title": "Delete a Bulk Extraction Configuration",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_bulk_extra_overview.htm",
+      "body_length": 597,
+      "file": "articles/ind.sf_contracts_bulk_extra_delete.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_bulk_extra_external_repo.htm",
+      "title": "Connect an External Repository for Bulk Contract Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_bulk_extra_overview.htm",
+      "body_length": 1932,
+      "file": "articles/ind.sf_contracts_bulk_extra_external_repo.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_bulk_extra_overview.htm",
+      "title": "Bulk Extraction with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contracts_ai.htm",
+      "body_length": 2500,
+      "file": "articles/ind.sf_contracts_bulk_extra_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_bulk_extra_ownership.htm",
+      "title": "Change Ownership of Bulk Extraction Results",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_bulk_extra_overview.htm",
+      "body_length": 810,
+      "file": "articles/ind.sf_contracts_bulk_extra_ownership.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_bulk_extra_prepare.htm",
+      "title": "Set Up Bulk Contract Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_bulk_extra_overview.htm",
+      "body_length": 1273,
+      "file": "articles/ind.sf_contracts_bulk_extra_prepare.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_bulk_extra_ref_info.htm",
+      "title": "Considerations for Bulk Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_bulk_extra_overview.htm",
+      "body_length": 578,
+      "file": "articles/ind.sf_contracts_bulk_extra_ref_info.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_bulk_extra_review_results.htm",
+      "title": "Verify Bulk Extraction Results and Create a Contract Record",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_bulk_extra_overview.htm",
+      "body_length": 2044,
+      "file": "articles/ind.sf_contracts_bulk_extra_review_results.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_cancel_review_and_view_review_status.htm",
+      "title": "View Review Status and Cancel Internal Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_internal_review.htm",
+      "body_length": 1716,
+      "file": "articles/ind.sf_contracts_cancel_review_and_view_review_status.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_change_in_processing_time_to_check_in_and_save_documents_in_microsoft_365_editor.htm",
+      "title": "Change in Processing Time to Check In and Save Documents in Microsoft 365 Editor",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm",
+      "body_length": 748,
+      "file": "articles/ind.sf_contracts_change_in_processing_time_to_check_in_and_save_documents_in_microsoft_365_editor.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_change_obligation_owner.htm",
+      "title": "Change Obligation Owner",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 700,
+      "file": "articles/ind.sf_contracts_change_obligation_owner.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_check_in_a_contract_document.htm",
+      "title": "Check In a Contract Document",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_creation.htm",
+      "body_length": 292,
+      "file": "articles/ind.sf_contracts_check_in_a_contract_document.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_clause_approval_workflow.htm",
+      "title": "Clause Approval Workflow",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause_library.htm",
+      "body_length": 2317,
+      "file": "articles/ind.sf_contracts_clause_approval_workflow.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_clause_drafting_with_contracts_ai.htm",
+      "title": "Clause Drafting with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contracts_ai_overview.htm",
+      "body_length": 2828,
+      "file": "articles/ind.sf_contracts_clause_drafting_with_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_clause_gen_ptbuilder_modify.htm",
+      "title": "Customize Clause Generation in Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_generation_enable.htm",
+      "body_length": 1387,
+      "file": "articles/ind.sf_contracts_clause_gen_ptbuilder_modify.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_clause_generation_enable.htm",
+      "title": "Turn On Clause Generation in Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contracts_ai.htm",
+      "body_length": 808,
+      "file": "articles/ind.sf_contracts_clause_generation_enable.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_clone_the_contractsextractioncontext_context_definition.htm",
+      "title": "Clone the ContractsExtractionContext Context Definition for Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm",
+      "body_length": 3125,
+      "file": "articles/ind.sf_contracts_clone_the_contractsextractioncontext_context_definition.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_collaborate_with_external_users_in_the_contract_management_process_.htm",
+      "title": "Collaborate with External Users in the Contract Management Process",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm",
+      "body_length": 597,
+      "file": "articles/ind.sf_contracts_collaborate_with_external_users_in_the_contract_management_process_.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_compare_contract_document_from_microsoft_365_editor.htm",
+      "title": "Compare Two Versions of a Contract Document from the Microsoft 365 Editor",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_comparison_of_contract_document_versions.htm",
+      "body_length": 1973,
+      "file": "articles/ind.sf_contracts_compare_contract_document_from_microsoft_365_editor.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_compare_contract_document_from_the_record_page.htm",
+      "title": "Compare Two Versions of a Contract Document from the Contract Record Page",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_comparison_of_contract_document_versions.htm",
+      "body_length": 2290,
+      "file": "articles/ind.sf_contracts_compare_contract_document_from_the_record_page.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_comparison_of_contract_document_versions.htm",
+      "title": "Comparing Contract Document Versions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 1231,
+      "file": "articles/ind.sf_contracts_comparison_of_contract_document_versions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm",
+      "title": "Configuration of Fields for Extraction From a File",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_fields_for_extraction_with_contracts_ai.htm",
+      "body_length": 2390,
+      "file": "articles/ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_a_microsoft_azure_app_and_create_a_sharepoint_site_site.htm",
+      "title": "Configure a Microsoft Azure App and Create a SharePoint Site Using Guided Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm",
+      "body_length": 4671,
+      "file": "articles/ind.sf_contracts_configure_a_microsoft_azure_app_and_create_a_sharepoint_site_site.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm",
+      "title": "Configure a Named Credential and External Credential for Industries Einstein AI Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_enable_einstein_and_contracts_ai_settings.htm",
+      "body_length": 1318,
+      "file": "articles/ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_an_auth_provider.htm",
+      "title": "Configure an Auth Provider for Salesforce Contracts Using Guided Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm",
+      "body_length": 3447,
+      "file": "articles/ind.sf_contracts_configure_an_auth_provider.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_an_auth_provider_for_microsoft_app.htm",
+      "title": "Configure an Auth Provider for Salesforce Contracts Microsoft Integration",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm",
+      "body_length": 4213,
+      "file": "articles/ind.sf_contracts_configure_an_auth_provider_for_microsoft_app.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_an_integration_user_for_contract_search.htm",
+      "title": "Configure an Integration User for Manual Contract Search Set Up",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_search_datakit_manual_overview.htm",
+      "body_length": 1157,
+      "file": "articles/ind.sf_contracts_configure_an_integration_user_for_contract_search.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_clause_category.htm",
+      "title": "Configure Clause Category",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause_library.htm",
+      "body_length": 1280,
+      "file": "articles/ind.sf_contracts_configure_clause_category.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm",
+      "title": "Configure Context Service to Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_create_contract_and_update_contracts.htm",
+      "body_length": 2389,
+      "file": "articles/ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_context_use_case_mapping_for_contracts.htm",
+      "title": "Configure Context Use Case Mapping to Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_context_use_case_mapping_to_create_and_update_contracts.htm",
+      "body_length": 2369,
+      "file": "articles/ind.sf_contracts_configure_context_use_case_mapping_for_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_design_document_template.htm",
+      "title": "Design and Configure Document Templates for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 1035,
+      "file": "articles/ind.sf_contracts_configure_design_document_template.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_document_generation_notification.htm",
+      "title": "Configure Document Generation Notifications for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 2657,
+      "file": "articles/ind.sf_contracts_configure_document_generation_notification.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_e-signature.htm",
+      "title": "Configure E-Signature",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 961,
+      "file": "articles/ind.sf_contracts_configure_e-signature.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_external_document_storage_for_contracts.htm",
+      "title": "Configure External Document Storage for Contracts Manually",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm",
+      "body_length": 1534,
+      "file": "articles/ind.sf_contracts_configure_external_document_storage_for_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_external_document_storage_for_document_templates.htm",
+      "title": "Configure External Document Storage for Document Templates Manually",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm",
+      "body_length": 1454,
+      "file": "articles/ind.sf_contracts_configure_external_document_storage_for_document_templates.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_fields_for_extraction_with_contracts_ai.htm",
+      "title": "Configure Fields for Extraction With Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_singleext_overview.htm",
+      "body_length": 1390,
+      "file": "articles/ind.sf_contracts_configure_fields_for_extraction_with_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_file_upload_and_download_security.htm",
+      "title": "Configure File Upload and Download Security for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 376,
+      "file": "articles/ind.sf_contracts_configure_file_upload_and_download_security.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_obligation_management.htm",
+      "title": "Obligation Management Configuration",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 1264,
+      "file": "articles/ind.sf_contracts_configure_obligation_management.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_configure_obligation_notifications.htm",
+      "title": "Configuration of Obligation Notifications",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_obligation_management.htm",
+      "body_length": 963,
+      "file": "articles/ind.sf_contracts_configure_obligation_notifications.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_connect_with_salesforce_contracts_console_app.htm",
+      "title": "Connect with Salesforce Contracts Console App",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 605,
+      "file": "articles/ind.sf_contracts_connect_with_salesforce_contracts_console_app.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_considerations_lpp_licenses.htm",
+      "title": "Considerations for Salesforce Contracts on Lightning Platform Licenses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_lightning_platform_licenses.htm",
+      "body_length": 1456,
+      "file": "articles/ind.sf_contracts_considerations_lpp_licenses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_considerations_tokens_contract_authoring_and_document_generation.htm",
+      "title": "Considerations for Tokens Across Contract Authoring and Document Generation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause.htm",
+      "body_length": 2167,
+      "file": "articles/ind.sf_contracts_considerations_tokens_contract_authoring_and_document_generation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_context_definitions_to_create_and_update_contracts.htm",
+      "title": "Context Definitions to Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm",
+      "body_length": 1140,
+      "file": "articles/ind.sf_contracts_context_definitions_to_create_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_context_use_case_mapping_to_create_and_update_contracts.htm",
+      "title": "Context Use Case Mapping to Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm",
+      "body_length": 1559,
+      "file": "articles/ind.sf_contracts_context_use_case_mapping_to_create_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm",
+      "title": "Contract and Clause Extraction with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contracts_ai_overview.htm",
+      "body_length": 2495,
+      "file": "articles/ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_approval_workflow.htm",
+      "title": "Standard Approval Workflow for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_approvals_concept.htm",
+      "body_length": 1906,
+      "file": "articles/ind.sf_contracts_contract_approval_workflow.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_authoring.htm",
+      "title": "Contract Authoring in Microsoft 365 Editor",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 2282,
+      "file": "articles/ind.sf_contracts_contract_authoring.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_creation.htm",
+      "title": "Create and Manage Contracts in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 3350,
+      "file": "articles/ind.sf_contracts_contract_creation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_document_overview.htm",
+      "title": "Agentforce for Contract Search",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contract_search_for_contract_ai.htm",
+      "body_length": 3386,
+      "file": "articles/ind.sf_contracts_contract_document_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "title": "Use Salesforce Contracts Application",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 3104,
+      "file": "articles/ind.sf_contracts_contract_documnet_actions_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_extraction_results.htm",
+      "title": "Contract Extraction Results",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm",
+      "body_length": 788,
+      "file": "articles/ind.sf_contracts_contract_extraction_results.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_lifecycle_analytics_for_contract_administrators.htm",
+      "title": "Contract Lifecycle Analytics for Contract Administrators",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics_dashboards.htm",
+      "body_length": 1358,
+      "file": "articles/ind.sf_contracts_contract_lifecycle_analytics_for_contract_administrators.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_lifecycle_analytics_for_sales_operations.htm",
+      "title": "Contract Lifecycle Analytics for Sales Operations",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics_dashboards.htm",
+      "body_length": 1196,
+      "file": "articles/ind.sf_contracts_contract_lifecycle_analytics_for_sales_operations.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_line_items.htm",
+      "title": "Contract Line Items",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_embedded_analytics.htm",
+      "body_length": 650,
+      "file": "articles/ind.sf_contracts_contract_line_items.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_review.htm",
+      "title": "Contract Review in Microsoft 365",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_authoring.htm",
+      "body_length": 2338,
+      "file": "articles/ind.sf_contracts_contract_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_reviews_easy_with_streamlined_section_clause_mgmt.htm",
+      "title": "Enable Efficient Contract Reviews with Easy View of Edits at Each Stage",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm",
+      "body_length": 1718,
+      "file": "articles/ind.sf_contracts_contract_reviews_easy_with_streamlined_section_clause_mgmt.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_search_datakit_deploy.htm",
+      "title": "Deploy the Contract Document Data Kit for Contract Search",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_search_datakit_overview.htm",
+      "body_length": 1735,
+      "file": "articles/ind.sf_contracts_contract_search_datakit_deploy.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_search_datakit_integration_user.htm",
+      "title": "Set Up a Contract Search Integration User for Data Kit Deployment",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_search_datakit_overview.htm",
+      "body_length": 2091,
+      "file": "articles/ind.sf_contracts_contract_search_datakit_integration_user.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_search_datakit_manual_overview.htm",
+      "title": "Manually Configure Contract Search",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contract_search_for_contract_ai.htm",
+      "body_length": 1883,
+      "file": "articles/ind.sf_contracts_contract_search_datakit_manual_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_search_datakit_overview.htm",
+      "title": "Set Up Contract Search By Using Prebuilt Data Kit",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contract_search_for_contract_ai.htm",
+      "body_length": 3875,
+      "file": "articles/ind.sf_contracts_contract_search_datakit_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_search_limitations.htm",
+      "title": "Contract Search Limitations",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contract_search_for_contract_ai.htm",
+      "body_length": 1167,
+      "file": "articles/ind.sf_contracts_contract_search_limitations.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_stage_insights.htm",
+      "title": "Contract Stage Insights in Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_embedded_analytics.htm",
+      "body_length": 717,
+      "file": "articles/ind.sf_contracts_contract_stage_insights.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_type_config_settings.htm",
+      "title": "Contract Type Config Settings",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 7238,
+      "file": "articles/ind.sf_contracts_contract_type_config_settings.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm",
+      "title": "Contract Types, Contract Record Types, and Contract Type Configs",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 3045,
+      "file": "articles/ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contractcache_and_salescontractlinecache_nodes.htm",
+      "title": "ContractCache and SalesContractLineCache Nodes",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_context_definitions_to_create_and_update_contracts.htm",
+      "body_length": 1570,
+      "file": "articles/ind.sf_contracts_contractcache_and_salescontractlinecache_nodes.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contracts_account.htm",
+      "title": "Account Dashboard for Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_embedded_analytics.htm",
+      "body_length": 652,
+      "file": "articles/ind.sf_contracts_contracts_account.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contracts_ai.htm",
+      "title": "Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm",
+      "body_length": 1418,
+      "file": "articles/ind.sf_contracts_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contracts_ai_overview.htm",
+      "title": "Contracts AI Overview",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 2075,
+      "file": "articles/ind.sf_contracts_contracts_ai_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_contracts_quote.htm",
+      "title": "Quote Dashboard for Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_embedded_analytics.htm",
+      "body_length": 503,
+      "file": "articles/ind.sf_contracts_contracts_quote.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_contract_extraction_template_for_extraction.htm",
+      "title": "Create a Contract Extraction Template for Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm",
+      "body_length": 3344,
+      "file": "articles/ind.sf_contracts_create_a_contract_extraction_template_for_extraction.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_contract_from_an_opportunity_order_or_quote.htm",
+      "title": "Create a Contract from an Opportunity, Order, or Quote",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_creation.htm",
+      "body_length": 1168,
+      "file": "articles/ind.sf_contracts_create_a_contract_from_an_opportunity_order_or_quote.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_custom_report_type_and_build_a_report_for_clause_history.htm",
+      "title": "Create a Custom Report Type and Clause History Report",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause_library.htm",
+      "body_length": 3489,
+      "file": "articles/ind.sf_contracts_create_a_custom_report_type_and_build_a_report_for_clause_history.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_microsoft_azure_app.htm",
+      "title": "Configure a Microsoft Azure App for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm",
+      "body_length": 2042,
+      "file": "articles/ind.sf_contracts_create_a_microsoft_azure_app.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_named_credential_for_docusign.htm",
+      "title": "Create a Named Credential for DocuSign",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm",
+      "body_length": 1601,
+      "file": "articles/ind.sf_contracts_create_a_named_credential_for_docusign.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_named_credential_for_sf_connector_for_word_add-in_app.htm",
+      "title": "Create a Named Credential for Salesforce Contracts Connector for Word Add-in Manually",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm",
+      "body_length": 1894,
+      "file": "articles/ind.sf_contracts_create_a_named_credential_for_sf_connector_for_word_add-in_app.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_new_contract_document_with_clauses.htm",
+      "title": "Create a Contract Document by Using Clauses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_authoring.htm",
+      "body_length": 1452,
+      "file": "articles/ind.sf_contracts_create_a_new_contract_document_with_clauses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_new_document_template_with_clauses.htm",
+      "title": "Create a Document Template by Using Clauses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_create_template_using_microsoft_365_word.htm",
+      "body_length": 1454,
+      "file": "articles/ind.sf_contracts_create_a_new_document_template_with_clauses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_record_type_for_document_templates.htm",
+      "title": "Create a Record Type for Salesforce Contracts Document Templates",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 943,
+      "file": "articles/ind.sf_contracts_create_a_record_type_for_document_templates.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_site.htm",
+      "title": "Create a SharePoint Site for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm",
+      "body_length": 1621,
+      "file": "articles/ind.sf_contracts_create_a_site.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_a_vector_search_index_for_contract_documents.htm",
+      "title": "Create a Vector Search Index for Contract Documents for Manual Contract Search Set Up",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_search_datakit_manual_overview.htm",
+      "body_length": 1612,
+      "file": "articles/ind.sf_contracts_create_a_vector_search_index_for_contract_documents.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_alternate_document_clause.htm",
+      "title": "Create an Alternate Document Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause.htm",
+      "body_length": 1557,
+      "file": "articles/ind.sf_contracts_create_alternate_document_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_an_apex_class_for_object_state_action_definition.htm",
+      "title": "Create an Apex Class for Object State Action Definition",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 4543,
+      "file": "articles/ind.sf_contracts_create_an_apex_class_for_object_state_action_definition.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_an_auth_provider_for_docusign.htm",
+      "title": "Create an Auth Provider for DocuSign",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm",
+      "body_length": 2171,
+      "file": "articles/ind.sf_contracts_create_an_auth_provider_for_docusign.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_an_experience_cloud_site_for_customer_community_plus_users.htm",
+      "title": "Create an Experience Cloud Site for Customer Community Plus Users",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_setup_cc_plus_user.htm",
+      "body_length": 2243,
+      "file": "articles/ind.sf_contracts_create_an_experience_cloud_site_for_customer_community_plus_users.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_an_external_credential_and_named_credential.htm",
+      "title": "Create an External Credential and Named Credential",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm",
+      "body_length": 2295,
+      "file": "articles/ind.sf_contracts_create_an_external_credential_and_named_credential.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_and_add_users_to_document_template_library.htm",
+      "title": "Create a Document Template Library for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 1585,
+      "file": "articles/ind.sf_contracts_create_and_add_users_to_document_template_library.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_and_update_contracts_using_enhanced_parent_and_child_support_mappings.htm",
+      "title": "Create and Update Contracts with Enhanced Parent and Child Mappings",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm",
+      "body_length": 898,
+      "file": "articles/ind.sf_contracts_create_and_update_contracts_using_enhanced_parent_and_child_support_mappings.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_contract_and_update_contracts.htm",
+      "title": "Configure Contract Creation and Updates for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 1262,
+      "file": "articles/ind.sf_contracts_create_contract_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_contract_record.htm",
+      "title": "Create Contract Record",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm",
+      "body_length": 971,
+      "file": "articles/ind.sf_contracts_create_contract_record.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_contract_record_type.htm",
+      "title": "Create Contract Record Type",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm",
+      "body_length": 965,
+      "file": "articles/ind.sf_contracts_create_contract_record_type.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_contract_type_and_map_to_a_contract_record_type.htm",
+      "title": "Create Contract Type and Map to a Contract Record Type",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm",
+      "body_length": 1192,
+      "file": "articles/ind.sf_contracts_create_contract_type_and_map_to_a_contract_record_type.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_contract_type_config_compare_contract_versions.htm",
+      "title": "Create Contract Type Config to Compare Contract Versions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 955,
+      "file": "articles/ind.sf_contracts_create_contract_type_config_compare_contract_versions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_custom_context_definitions_to_create_and_update_contracts.htm",
+      "title": "Create Custom Context Definitions to Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_custom_context_definitions_to_create_and_update_contracts.htm",
+      "body_length": 1656,
+      "file": "articles/ind.sf_contracts_create_custom_context_definitions_to_create_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_document_clause.htm",
+      "title": "Create a Document Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause.htm",
+      "body_length": 1516,
+      "file": "articles/ind.sf_contracts_create_document_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_document_clause_version.htm",
+      "title": "Create a Version of a Document Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause.htm",
+      "body_length": 1567,
+      "file": "articles/ind.sf_contracts_create_document_clause_version.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_electronic_signature_envelope_configurations_for_standard_and_custom_objects.htm",
+      "title": "Create Electronic Signature Envelope Configurations for Standard and Custom Objects",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_electronic_signature_envelope_config.htm",
+      "body_length": 669,
+      "file": "articles/ind.sf_contracts_create_electronic_signature_envelope_configurations_for_standard_and_custom_objects.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_hydration_mapping_to_create_and_update_contracts.htm",
+      "title": "Create Hydration Mapping to Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_map_context_definitions_to_create_and_update_contracts.htm",
+      "body_length": 1981,
+      "file": "articles/ind.sf_contracts_create_hydration_mapping_to_create_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_new_contract_document_versions_.htm",
+      "title": "Create New Contract Document Versions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_creation.htm",
+      "body_length": 2412,
+      "file": "articles/ind.sf_contracts_create_new_contract_document_versions_.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_obligation_status_picklist_value.htm",
+      "title": "Create Obligation Status Picklist Value",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_obligation_management.htm",
+      "body_length": 703,
+      "file": "articles/ind.sf_contracts_create_obligation_status_picklist_value.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_other_versions_of_salesforce_contracts_analytics.htm",
+      "title": "Create Other Versions of Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm",
+      "body_length": 1477,
+      "file": "articles/ind.sf_contracts_create_other_versions_of_salesforce_contracts_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_persistence_mapping_to_create_and_update_contracts.htm",
+      "title": "Create Persistence Mapping to Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_map_context_definitions_to_create_and_update_contracts.htm",
+      "body_length": 2484,
+      "file": "articles/ind.sf_contracts_create_persistence_mapping_to_create_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_ps_for_external_credential_principal_access.htm",
+      "title": "Create a Permission Set for External Credential Principal Access",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm",
+      "body_length": 1819,
+      "file": "articles/ind.sf_contracts_create_ps_for_external_credential_principal_access.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_section_in_contract_document.htm",
+      "title": "Create Section in Contract Document",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_section_management.htm",
+      "body_length": 865,
+      "file": "articles/ind.sf_contracts_create_section_in_contract_document.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_section_in_document_template.htm",
+      "title": "Create Section in Document Template",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_connector_for_word.htm",
+      "body_length": 975,
+      "file": "articles/ind.sf_contracts_create_section_in_document_template.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_create_template_using_microsoft_365_word.htm",
+      "title": "Create Templates by Using Microsoft 365 Word in Document Template Designer",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_connector_for_word.htm",
+      "body_length": 1655,
+      "file": "articles/ind.sf_contracts_create_template_using_microsoft_365_word.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_custom_context_definitions_to_create_and_update_contracts.htm",
+      "title": "Custom Context Definitions to Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm",
+      "body_length": 1544,
+      "file": "articles/ind.sf_contracts_custom_context_definitions_to_create_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_custom_contract_actions.htm",
+      "title": "Use Custom Actions To Change Contract Status",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_23_release_notes.htm",
+      "body_length": 837,
+      "file": "articles/ind.sf_contracts_custom_contract_actions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_customize_prompt_template_for_contract_search.htm",
+      "title": "Customize Prompt Templates for Contract Search",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_document_overview.htm",
+      "body_length": 945,
+      "file": "articles/ind.sf_contracts_customize_prompt_template_for_contract_search.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_customize_the_contract_document_overview_topic_for_contract_search.htm",
+      "title": "Customize the Contract Document Overview Topic for Contract Search",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_document_overview.htm",
+      "body_length": 862,
+      "file": "articles/ind.sf_contracts_customize_the_contract_document_overview_topic_for_contract_search.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_data_model_overview.htm",
+      "title": "Data Model Overview for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm",
+      "body_length": 569,
+      "file": "articles/ind.sf_contracts_data_model_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datasets_in_salesforce_contracts_analytics.htm",
+      "title": "Datasets in Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_salesforce_contracts_analytics.htm",
+      "body_length": 1168,
+      "file": "articles/ind.sf_contracts_datasets_in_salesforce_contracts_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datatrueup_actions_status.htm",
+      "title": "Data True-Up Actions and Statuses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_datatrueup_overview.htm",
+      "body_length": 1564,
+      "file": "articles/ind.sf_contracts_datatrueup_actions_status.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datatrueup_compare_sync_values.htm",
+      "title": "Compare and Sync Token Values in a Document",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_datatrueup_overview.htm",
+      "body_length": 1846,
+      "file": "articles/ind.sf_contracts_datatrueup_compare_sync_values.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datatrueup_enable.htm",
+      "title": "Enable Data True-Up",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_datatrueup_overview.htm",
+      "body_length": 1221,
+      "file": "articles/ind.sf_contracts_datatrueup_enable.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datatrueup_limitations.htm",
+      "title": "Limitations for Data True-Up",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_datatrueup_overview.htm",
+      "body_length": 5635,
+      "file": "articles/ind.sf_contracts_datatrueup_limitations.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datatrueup_lineitems.htm",
+      "title": "How to Keep Contract Line Items in Sync with Data True-Up",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_datatrueup_overview.htm",
+      "body_length": 2492,
+      "file": "articles/ind.sf_contracts_datatrueup_lineitems.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datatrueup_nestedtokens.htm",
+      "title": "Nested and Related Record Tokens in Data True-Up",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_datatrueup_overview.htm",
+      "body_length": 2268,
+      "file": "articles/ind.sf_contracts_datatrueup_nestedtokens.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datatrueup_overview.htm",
+      "title": "Keep Data in Sync by Using Data True-Up",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 4212,
+      "file": "articles/ind.sf_contracts_datatrueup_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datatrueup_tokens.htm",
+      "title": "Data True-Up Tokens in Document Templates",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_datatrueup_overview.htm",
+      "body_length": 1957,
+      "file": "articles/ind.sf_contracts_datatrueup_tokens.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_datatrueup_usecases.htm",
+      "title": "Use Cases for Data True-Up",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_datatrueup_overview.htm",
+      "body_length": 3454,
+      "file": "articles/ind.sf_contracts_datatrueup_usecases.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_default_contract_states_and_predefined_contract_actions_relationship.htm",
+      "title": "Default Transitions and Actions in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 4514,
+      "file": "articles/ind.sf_contracts_default_contract_states_and_predefined_contract_actions_relationship.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_default_contract_status_picklist_values.htm",
+      "title": "Contract Status Picklist Values in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 1622,
+      "file": "articles/ind.sf_contracts_default_contract_status_picklist_values.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_default_contract_type_config_settings_for_e-signature.htm",
+      "title": "Default Contract Type Config Settings for E-Signature",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm",
+      "body_length": 3156,
+      "file": "articles/ind.sf_contracts_default_contract_type_config_settings_for_e-signature.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_default_electronic_signature_envelope_configurations_for_contracts.htm",
+      "title": "Default Electronic Signature Envelope Configurations for Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_electronic_signature_envelope_config.htm",
+      "body_length": 2478,
+      "file": "articles/ind.sf_contracts_default_electronic_signature_envelope_configurations_for_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_default_object_state_definition_for_contract.htm",
+      "title": "Default Object State Definition in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 3014,
+      "file": "articles/ind.sf_contracts_default_object_state_definition_for_contract.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_default_obligation_values.htm",
+      "title": "Default Obligation Values",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 656,
+      "file": "articles/ind.sf_contracts_default_obligation_values.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_define_a_clause_approval_process_name.htm",
+      "title": "Define a Clause Approval Process Name",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_approval_workflow.htm",
+      "body_length": 1733,
+      "file": "articles/ind.sf_contracts_define_a_clause_approval_process_name.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_define_a_contract_approval_process_name.htm",
+      "title": "Define a Contract Approval Process",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_approval_workflow.htm",
+      "body_length": 2818,
+      "file": "articles/ind.sf_contracts_define_a_contract_approval_process_name.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_define_field_mappings_to_create_and_update_contracts.htm",
+      "title": "Define Field Mappings to Create and Update Contracts from sObjects with an Intuitive UI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm",
+      "body_length": 1410,
+      "file": "articles/ind.sf_contracts_define_field_mappings_to_create_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_define_new_contract_object_state_values.htm",
+      "title": "Define New Contract Object State Values",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_configure_new_contract_status_values_and_map_to_contract_object_state_definition.htm",
+      "body_length": 575,
+      "file": "articles/ind.sf_contracts_define_new_contract_object_state_values.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_define_sharing_settings_for_clause_sets_and_clauses.htm",
+      "title": "Define Sharing Settings for Clause Sets and Clauses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_clause_category.htm",
+      "body_length": 1003,
+      "file": "articles/ind.sf_contracts_define_sharing_settings_for_clause_sets_and_clauses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_define_sharing_settings_for_obligations.htm",
+      "title": "Define Sharing Settings for Obligations",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_obligation_management.htm",
+      "body_length": 1076,
+      "file": "articles/ind.sf_contracts_define_sharing_settings_for_obligations.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_delete_a_document_clause.htm",
+      "title": "Delete a Document Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause.htm",
+      "body_length": 586,
+      "file": "articles/ind.sf_contracts_delete_a_document_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_delete_an_obligation.htm",
+      "title": "Delete an Obligation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 445,
+      "file": "articles/ind.sf_contracts_delete_an_obligation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_deploy_salesforce_contracts_connector.htm",
+      "title": "Deploy Salesforce Contracts Connector for Microsoft Word Using Guided Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm",
+      "body_length": 228,
+      "file": "articles/ind.sf_contracts_deploy_salesforce_contracts_connector.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_deploy_salesforce_contracts_connector_for_word_add-in_app_to_users.htm",
+      "title": "Deploy Salesforce Contracts Connector for Word Add-In App to Users Manually",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm",
+      "body_length": 1206,
+      "file": "articles/ind.sf_contracts_deploy_salesforce_contracts_connector_for_word_add-in_app_to_users.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_design_templates_create_and_edit_contract_documents_using_microsoft_365_word_features.htm",
+      "title": "Design Templates and Create and Edit Contract Documents with Microsoft 365 Word Features",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm",
+      "body_length": 1430,
+      "file": "articles/ind.sf_contracts_design_templates_create_and_edit_contract_documents_using_microsoft_365_word_features.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_digital_experience_partner_user_license.htm",
+      "title": "Generate Contract Documents On Digital Experience Partner Sites",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_23_release_notes.htm",
+      "body_length": 432,
+      "file": "articles/ind.sf_contracts_digital_experience_partner_user_license.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_disable_automatic_synchronization_of_username_and_email_address.htm",
+      "title": "Disable Automatic Synchronization of Username and Email Address Using Guided Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_an_auth_provider.htm",
+      "body_length": 861,
+      "file": "articles/ind.sf_contracts_disable_automatic_synchronization_of_username_and_email_address.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_disable_vlocity_state_models_trigger.htm",
+      "title": "Disable Vlocity State Models Trigger",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_salesforce_contracts_in_vlocity_managed_packages.htm",
+      "body_length": 988,
+      "file": "articles/ind.sf_contracts_disable_vlocity_state_models_trigger.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_assign_perms.htm",
+      "title": "Assign Document Playbook Licenses and Permission Sets",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_setup.htm",
+      "body_length": 1388,
+      "file": "articles/ind.sf_contracts_docplaybook_assign_perms.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_configure_indexing.htm",
+      "title": "Configure Document Playbook Indexing",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_setup.htm",
+      "body_length": 1162,
+      "file": "articles/ind.sf_contracts_docplaybook_configure_indexing.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_create_activate.htm",
+      "title": "Create a Document Playbook and Activate a Version",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_work_with.htm",
+      "body_length": 2044,
+      "file": "articles/ind.sf_contracts_docplaybook_create_activate.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_deploy_datakit.htm",
+      "title": "Deploy the Document Playbook Data Kit",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_setup.htm",
+      "body_length": 2824,
+      "file": "articles/ind.sf_contracts_docplaybook_deploy_datakit.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_manual_datastreams.htm",
+      "title": "Manually Configure Document Playbook Data Streams",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_manual_index.htm",
+      "body_length": 3814,
+      "file": "articles/ind.sf_contracts_docplaybook_manual_datastreams.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_manual_index.htm",
+      "title": "Manually Configure Document Playbook Data Streams and Search Index",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_setup.htm",
+      "body_length": 3218,
+      "file": "articles/ind.sf_contracts_docplaybook_manual_index.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_manual_search_index.htm",
+      "title": "Manually Create a Document Playbook Search Index",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_manual_index.htm",
+      "body_length": 3073,
+      "file": "articles/ind.sf_contracts_docplaybook_manual_search_index.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_psls.htm",
+      "title": "Permission Set Licenses for Document Playbook",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_licenses.htm",
+      "body_length": 1242,
+      "file": "articles/ind.sf_contracts_docplaybook_psls.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_setup.htm",
+      "title": "Set Up Document Playbook",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 3556,
+      "file": "articles/ind.sf_contracts_docplaybook_setup.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_sharing_rule.htm",
+      "title": "Create a Document Playbook Sharing Rule",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_setup.htm",
+      "body_length": 1052,
+      "file": "articles/ind.sf_contracts_docplaybook_sharing_rule.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_turn_on.htm",
+      "title": "Turn On Document Playbook Management",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_setup.htm",
+      "body_length": 1905,
+      "file": "articles/ind.sf_contracts_docplaybook_turn_on.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_upload.htm",
+      "title": "Create a Document Playbook by Uploading a File",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_docplaybook_work_with.htm",
+      "body_length": 1316,
+      "file": "articles/ind.sf_contracts_docplaybook_upload.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docplaybook_work_with.htm",
+      "title": "How Document Playbook Works",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 6611,
+      "file": "articles/ind.sf_contracts_docplaybook_work_with.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_document_clause.htm",
+      "title": "Document Clauses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause_library.htm",
+      "body_length": 3156,
+      "file": "articles/ind.sf_contracts_document_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_document_clause_and_document_templates_tokens.htm",
+      "title": "Tokens for Document Clauses and Document Templates",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause.htm",
+      "body_length": 3602,
+      "file": "articles/ind.sf_contracts_document_clause_and_document_templates_tokens.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_document_clause_library.htm",
+      "title": "Document Clause Library",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 2162,
+      "file": "articles/ind.sf_contracts_document_clause_library.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_document_clause_lifecycle.htm",
+      "title": "Document Clause Lifecycle",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause.htm",
+      "body_length": 1420,
+      "file": "articles/ind.sf_contracts_document_clause_lifecycle.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_document_clause_sets.htm",
+      "title": "Document Clause Sets",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause_library.htm",
+      "body_length": 3068,
+      "file": "articles/ind.sf_contracts_document_clause_sets.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_document_template_filtering.htm",
+      "title": "Document Template Filtering for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 432,
+      "file": "articles/ind.sf_contracts_document_template_filtering.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_docusign_job_to_poll_document_signed_status.htm",
+      "title": "DocuSign Job to Poll for Document Signed Status",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 487,
+      "file": "articles/ind.sf_contracts_docusign_job_to_poll_document_signed_status.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_draft_clauses_in_microsoft_365_word_add-in_with_contracts_ai.htm",
+      "title": "Draft Clauses in Microsoft 365 Word Add-In with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contracts_ai_overview.htm",
+      "body_length": 1522,
+      "file": "articles/ind.sf_contracts_draft_clauses_in_microsoft_365_word_add-in_with_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_draft_clauses_instantly_with_contracts_ai_in_microsoft_365_word_add-in.htm",
+      "title": "Instantly Draft Clauses in Microsoft 365 Word Add-in with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contracts_ai.htm",
+      "body_length": 811,
+      "file": "articles/ind.sf_contracts_draft_clauses_instantly_with_contracts_ai_in_microsoft_365_word_add-in.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_draft_clauses_with_contracts_ai.htm",
+      "title": "Draft Clauses with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_drafting_with_contracts_ai.htm",
+      "body_length": 1566,
+      "file": "articles/ind.sf_contracts_draft_clauses_with_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_e-signature_overview.htm",
+      "title": "E-Signatures for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 1867,
+      "file": "articles/ind.sf_contracts_e-signature_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_e-signature_workflows.htm",
+      "title": "E-Signature Workflows",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_e-signature_overview.htm",
+      "body_length": 989,
+      "file": "articles/ind.sf_contracts_e-signature_workflows.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_easy_document_clause_creation_and_maintenance_within_a_centralized_clause_library.htm",
+      "title": "Create and Maintain Document Clauses in a Centralized Library",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm",
+      "body_length": 1517,
+      "file": "articles/ind.sf_contracts_easy_document_clause_creation_and_maintenance_within_a_centralized_clause_library.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_edit_a_draft_clause.htm",
+      "title": "Edit a Draft Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_drafting_with_contracts_ai.htm",
+      "body_length": 760,
+      "file": "articles/ind.sf_contracts_edit_a_draft_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_edit_an_obligation.htm",
+      "title": "Edit an Obligation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 717,
+      "file": "articles/ind.sf_contracts_edit_an_obligation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_edit_document_clause.htm",
+      "title": "Edit a Document Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause.htm",
+      "body_length": 505,
+      "file": "articles/ind.sf_contracts_edit_document_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_edit_electronic_signature_envelope_configurations_for_contracts.htm",
+      "title": "Edit Electronic Signature Envelope Configurations for Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_electronic_signature_envelope_config.htm",
+      "body_length": 779,
+      "file": "articles/ind.sf_contracts_edit_electronic_signature_envelope_configurations_for_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_edit_electronic_signature_envelope_configurations_for_standard_and_custom_objects.htm",
+      "title": "Edit Electronic Signature Envelope Configurations for Standard and Custom Objects",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_electronic_signature_envelope_config.htm",
+      "body_length": 398,
+      "file": "articles/ind.sf_contracts_edit_electronic_signature_envelope_configurations_for_standard_and_custom_objects.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_edit_or_delete_a_contract_type.htm",
+      "title": "Edit or Delete a Contract Type",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm",
+      "body_length": 1441,
+      "file": "articles/ind.sf_contracts_edit_or_delete_a_contract_type.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_effective_ways_to_provide_context_for_contracts_ai_clause_generation.htm",
+      "title": "Effective Ways to Provide Context for Contracts AI Clause Generation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_drafting_with_contracts_ai.htm",
+      "body_length": 3035,
+      "file": "articles/ind.sf_contracts_effective_ways_to_provide_context_for_contracts_ai_clause_generation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_effortlessly_digitalize_legacy_contracts_and_create_contract_records.htm",
+      "title": "Effortlessly Digitalize Legacy Contracts and Create Contract Records with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contracts_ai.htm",
+      "body_length": 1521,
+      "file": "articles/ind.sf_contracts_effortlessly_digitalize_legacy_contracts_and_create_contract_records.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_electronic_signature_envelope_config.htm",
+      "title": "Electronic Signature Envelope Configuration for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_setup_esignature_for_standard_and_custom_objects.htm",
+      "body_length": 1638,
+      "file": "articles/ind.sf_contracts_electronic_signature_envelope_config.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_embed_salesforce_contracts_analytics_dashboards.htm",
+      "title": "Salesforce Contracts Analytics Dashboard Attributes",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm",
+      "body_length": 1864,
+      "file": "articles/ind.sf_contracts_embed_salesforce_contracts_analytics_dashboards.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_embed_salesforce_contracts_analytics_dashboards_main.htm",
+      "title": "Embed Salesforce Contracts Analytics Dashboards",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm",
+      "body_length": 1140,
+      "file": "articles/ind.sf_contracts_embed_salesforce_contracts_analytics_dashboards_main.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_embedded_analytics.htm",
+      "title": "Embedded Analytics for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics_dashboards.htm",
+      "body_length": 2328,
+      "file": "articles/ind.sf_contracts_embedded_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_enable_customer_community_plus_for_salesforce_contracts_setting.htm",
+      "title": "Enable Customer Community Plus for Salesforce Contracts Setting",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm",
+      "body_length": 614,
+      "file": "articles/ind.sf_contracts_enable_customer_community_plus_for_salesforce_contracts_setting.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_enable_design_document_templates_in_salesforce_setting_.htm",
+      "title": "Enable Design Document Templates in Salesforce",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm",
+      "body_length": 650,
+      "file": "articles/ind.sf_contracts_enable_design_document_templates_in_salesforce_setting_.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_enable_einstein_and_contracts_ai_settings.htm",
+      "title": "Turn On Industries Einstein AI Single Document Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_singleext_overview.htm",
+      "body_length": 5528,
+      "file": "articles/ind.sf_contracts_enable_einstein_and_contracts_ai_settings.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_enable_salesforce_contracts_analytics.htm",
+      "title": "Enable Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_salesforce_contracts_analytics.htm",
+      "body_length": 1764,
+      "file": "articles/ind.sf_contracts_enable_salesforce_contracts_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_enable_salesforce_contracts_connector_for_word_microsoft_365_setting.htm",
+      "title": "Enable Salesforce Contracts Connector for Word (Microsoft 365) Setting",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm",
+      "body_length": 526,
+      "file": "articles/ind.sf_contracts_enable_salesforce_contracts_connector_for_word_microsoft_365_setting.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_enable_salesforce_contracts_console_app.htm",
+      "title": "Enable Salesforce Contracts Console App",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 1076,
+      "file": "articles/ind.sf_contracts_enable_salesforce_contracts_console_app.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_enable_salesforce_contracts_setting.htm",
+      "title": "Enable Salesforce Contracts Setting",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm",
+      "body_length": 583,
+      "file": "articles/ind.sf_contracts_enable_salesforce_contracts_setting.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_end_to_end_flow.htm",
+      "title": "Salesforce Contracts End To End Flow",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_overview.htm",
+      "body_length": 4463,
+      "file": "articles/ind.sf_contracts_end_to_end_flow.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_enhanced_design_document_template_management.htm",
+      "title": "Access Versions of a Template and Filter Templates More Intuitively",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm",
+      "body_length": 524,
+      "file": "articles/ind.sf_contracts_enhanced_design_document_template_management.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_esignature_apis.htm",
+      "title": "E-Signature APIs",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_na_1.htm",
+      "body_length": 8797,
+      "file": "articles/ind.sf_contracts_esignature_apis.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_esignature_configuration.htm",
+      "title": "Electronic Signature Configuration for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm",
+      "body_length": 4083,
+      "file": "articles/ind.sf_contracts_esignature_configuration.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_external_review.htm",
+      "title": "External Review in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_review.htm",
+      "body_length": 1717,
+      "file": "articles/ind.sf_contracts_external_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_external_reviewer_type.htm",
+      "title": "External Reviewer Type in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_review.htm",
+      "body_length": 423,
+      "file": "articles/ind.sf_contracts_external_reviewer_type.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_extract_aws_account_id_and_access_keys.htm",
+      "title": "Extract the AWS Account ID and Access Keys",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm",
+      "body_length": 1268,
+      "file": "articles/ind.sf_contracts_extract_aws_account_id_and_access_keys.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_extract_the_arn_value_for_a_user.htm",
+      "title": "Extract the ARN Value for a User",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm",
+      "body_length": 1105,
+      "file": "articles/ind.sf_contracts_extract_the_arn_value_for_a_user.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_extract_the_clause_category_id.htm",
+      "title": "Extract the Clause Category ID for Clause Approval",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_approval_workflow.htm",
+      "body_length": 737,
+      "file": "articles/ind.sf_contracts_extract_the_clause_category_id.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_facilitate_collaborative_negotiations_with_external_reviewers.htm",
+      "title": "Facilitate Collaborative Negotiations with External Reviewers",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm",
+      "body_length": 660,
+      "file": "articles/ind.sf_contracts_facilitate_collaborative_negotiations_with_external_reviewers.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_fls_requirements_for_doc_gen.htm",
+      "title": "FLS Requirements for Contract Document Generation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_setup_digital_experience_sites.htm",
+      "body_length": 1682,
+      "file": "articles/ind.sf_contracts_fls_requirements_for_doc_gen.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_general_settings_for_document_generation.htm",
+      "title": "Document Generation Settings for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 1295,
+      "file": "articles/ind.sf_contracts_general_settings_for_document_generation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_generate_a_contract_document.htm",
+      "title": "Generate Contract Document Versions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_creation.htm",
+      "body_length": 1862,
+      "file": "articles/ind.sf_contracts_generate_a_contract_document.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_generic_contract_lifecycle_stages.htm",
+      "title": "Contract Lifecycle Stages",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 2478,
+      "file": "articles/ind.sf_contracts_generic_contract_lifecycle_stages.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_get_started_with_salesforce_contracts_implementation.htm",
+      "title": "Get Started With Salesforce Contracts Implementation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm",
+      "body_length": 1055,
+      "file": "articles/ind.sf_contracts_get_started_with_salesforce_contracts_implementation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_glossary.htm",
+      "title": "Salesforce Contracts Glossary",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_overview.htm",
+      "body_length": 13049,
+      "file": "articles/ind.sf_contracts_glossary.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_grant_dataspace_file_and_contract_object_access.htm",
+      "title": "Grant Dataspace, File, and Contract Object Access",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_search_datakit_overview.htm",
+      "body_length": 2911,
+      "file": "articles/ind.sf_contracts_grant_dataspace_file_and_contract_object_access.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_import_and_export_document_templates_between_salesforce_orgs.htm",
+      "title": "Export and Import Document Templates Between Salesforce Orgs",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm",
+      "body_length": 505,
+      "file": "articles/ind.sf_contracts_import_and_export_document_templates_between_salesforce_orgs.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_in_external_review.htm",
+      "title": "Reviewer Actions in External Reviews",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_external_review.htm",
+      "body_length": 1173,
+      "file": "articles/ind.sf_contracts_in_external_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_in_review.htm",
+      "title": "In Internal Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_internal_review.htm",
+      "body_length": 1277,
+      "file": "articles/ind.sf_contracts_in_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_incorporate_private_external_reviewer_changes.htm",
+      "title": "Incorporate Reviewer Changes from Private External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_initiate_private_external_review.htm",
+      "body_length": 1666,
+      "file": "articles/ind.sf_contracts_incorporate_private_external_reviewer_changes.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_initiate_online_external_review.htm",
+      "title": "Initiate Non-Private External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_initiate_online_external_review_concept.htm",
+      "body_length": 2116,
+      "file": "articles/ind.sf_contracts_initiate_online_external_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_initiate_online_external_review_concept.htm",
+      "title": "Initiate Online External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_external_review.htm",
+      "body_length": 1030,
+      "file": "articles/ind.sf_contracts_initiate_online_external_review_concept.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_initiate_private_external_review.htm",
+      "title": "Initiate Private External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_initiate_online_external_review_concept.htm",
+      "body_length": 2930,
+      "file": "articles/ind.sf_contracts_initiate_private_external_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_initiate_review.htm",
+      "title": "Initiate Internal Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_internal_review.htm",
+      "body_length": 2910,
+      "file": "articles/ind.sf_contracts_initiate_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_insert_docusign_signature_tags.htm",
+      "title": "Insert DocuSign Signature Tags",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_for_submitting_a_contract_for_e-signature.htm",
+      "body_length": 867,
+      "file": "articles/ind.sf_contracts_insert_docusign_signature_tags.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_insert_sf_connector_for_word_add-in_app_into_microsoft_365_word.htm",
+      "title": "Insert Salesforce Contracts Connector for Word Add-In App Into Microsoft 365 Word",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integration_ms365_overview.htm",
+      "body_length": 1312,
+      "file": "articles/ind.sf_contracts_insert_sf_connector_for_word_add-in_app_into_microsoft_365_word.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_integrate_docusign_with_salesforce_contracts_2.htm",
+      "title": "Integrate DocuSign with Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 742,
+      "file": "articles/ind.sf_contracts_integrate_docusign_with_salesforce_contracts_2.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm",
+      "title": "Integrate Microsoft 365 and Azure with Salesforce Contracts Manually",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integration_ms365_overview.htm",
+      "body_length": 2989,
+      "file": "articles/ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_integrate_salesforce_contracts_in_vlocity_managed_packages.htm",
+      "title": "Integration of Salesforce Contracts in Vlocity Managed Packages",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 1526,
+      "file": "articles/ind.sf_contracts_integrate_salesforce_contracts_in_vlocity_managed_packages.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_integration_ms365_overview.htm",
+      "title": "Ways to Set Up Microsoft 365 and Azure Integration with Salesforce",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 4270,
+      "file": "articles/ind.sf_contracts_integration_ms365_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_internal_and_external_reviewer_statuses.htm",
+      "title": "Internal and External Reviewer Statuses in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_review.htm",
+      "body_length": 465,
+      "file": "articles/ind.sf_contracts_internal_and_external_reviewer_statuses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_internal_review.htm",
+      "title": "Internal Review in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_review.htm",
+      "body_length": 1211,
+      "file": "articles/ind.sf_contracts_internal_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_invocable_actions_for_salesforce_contracts.htm",
+      "title": "Invocable Actions for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_na_1.htm",
+      "body_length": 7881,
+      "file": "articles/ind.sf_contracts_invocable_actions_for_salesforce_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_key_capabilities.htm",
+      "title": "Understand the Salesforce Contracts Lifecycle",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm",
+      "body_length": 1919,
+      "file": "articles/ind.sf_contracts_key_capabilities.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_key_performance_indicators.htm",
+      "title": "Key Performance Indicators in Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics_dashboards.htm",
+      "body_length": 1803,
+      "file": "articles/ind.sf_contracts_key_performance_indicators.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_known_limitation_for_salesforce_contracts.htm",
+      "title": "General Considerations for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_known_limitations.htm",
+      "body_length": 1575,
+      "file": "articles/ind.sf_contracts_known_limitation_for_salesforce_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_known_limitations.htm",
+      "title": "Considerations and Limitations with Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_overview.htm",
+      "body_length": 688,
+      "file": "articles/ind.sf_contracts_known_limitations.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_known_limitations_for_create_contract_and_update_contracts_apis.htm",
+      "title": "Limitations for Create Contract and Update Contracts APIs",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_create_contract_and_update_contracts.htm",
+      "body_length": 201,
+      "file": "articles/ind.sf_contracts_known_limitations_for_create_contract_and_update_contracts_apis.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_known_limitations_for_microsoft_365_integration.htm",
+      "title": "Integration Limitations with Microsoft 365",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_authoring.htm",
+      "body_length": 4042,
+      "file": "articles/ind.sf_contracts_known_limitations_for_microsoft_365_integration.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm",
+      "title": "Implement Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_overview.htm",
+      "body_length": 2358,
+      "file": "articles/ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_lightning_platform_licenses.htm",
+      "title": "Set Up Salesforce Contracts for Lightning Platform Licenses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 3037,
+      "file": "articles/ind.sf_contracts_lightning_platform_licenses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_limitations_for_clause_and_content_tokens.htm",
+      "title": "Limitations for Clause and Content Tokens",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_document_clause.htm",
+      "body_length": 1995,
+      "file": "articles/ind.sf_contracts_limitations_for_clause_and_content_tokens.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_limitations_for_contract_comparison_previewer.htm",
+      "title": "Limitations of Contract Comparison Previewer",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_comparison_of_contract_document_versions.htm",
+      "body_length": 1143,
+      "file": "articles/ind.sf_contracts_limitations_for_contract_comparison_previewer.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_limitations_for_contracts_ai.htm",
+      "title": "Limitations for Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_drafting_with_contracts_ai.htm",
+      "body_length": 1197,
+      "file": "articles/ind.sf_contracts_limitations_for_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_limitations_for_microsoft_365.htm",
+      "title": "Limitations with Microsoft 365 Editor",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_authoring.htm",
+      "body_length": 1604,
+      "file": "articles/ind.sf_contracts_limitations_for_microsoft_365.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_lock_and_unlock_a_contract_document_version.htm",
+      "title": "Lock and Unlock a Contract Document Version",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_creation.htm",
+      "body_length": 476,
+      "file": "articles/ind.sf_contracts_lock_and_unlock_a_contract_document_version.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_lock_section.htm",
+      "title": "Lock Sections Within a Document",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_section_management.htm",
+      "body_length": 2364,
+      "file": "articles/ind.sf_contracts_lock_section.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_manage_and_test_contract_extraction_instructions.htm",
+      "title": "Manage and Test Contract Extraction Instructions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm",
+      "body_length": 2361,
+      "file": "articles/ind.sf_contracts_manage_and_test_contract_extraction_instructions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_manage_notification_delivery_settings_for_obligations.htm",
+      "title": "Manage Notification Delivery Settings for Obligations",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_obligation_notifications.htm",
+      "body_length": 2020,
+      "file": "articles/ind.sf_contracts_manage_notification_delivery_settings_for_obligations.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_map_context_definitions_to_create_and_update_contracts.htm",
+      "title": "Map Context Definitions to Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm",
+      "body_length": 1564,
+      "file": "articles/ind.sf_contracts_map_context_definitions_to_create_and_update_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_map_extracted_contract_fields_to_salesforce.htm",
+      "title": "Limitations of Field Values Extraction Using Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm",
+      "body_length": 4359,
+      "file": "articles/ind.sf_contracts_map_extracted_contract_fields_to_salesforce.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_map_new_contract_status_value_to_a_new_contract_object_state_transition.htm",
+      "title": "Map New Contract Status Value to a New Contract Object State Transition",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_configure_new_contract_status_values_and_map_to_contract_object_state_definition.htm",
+      "body_length": 1114,
+      "file": "articles/ind.sf_contracts_map_new_contract_status_value_to_a_new_contract_object_state_transition.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_map_your_business_requirements_with_sfcontract_features.htm",
+      "title": "Map Your Business Requirements to Salesforce Contracts Features",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm",
+      "body_length": 3593,
+      "file": "articles/ind.sf_contracts_map_your_business_requirements_with_sfcontract_features.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_mapping_contract_record_type_to_contract_type.htm",
+      "title": "Mapping Contract Record Type to Contract Type",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm",
+      "body_length": 209,
+      "file": "articles/ind.sf_contracts_mapping_contract_record_type_to_contract_type.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_mark_as_clause.htm",
+      "title": "Mark as Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_authoring.htm",
+      "body_length": 1118,
+      "file": "articles/ind.sf_contracts_mark_as_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_microsoft_365_frequently_asked_questions_faqs.htm",
+      "title": "Microsoft 365 Frequently Asked Questions (FAQs)",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integration_ms365_overview.htm",
+      "body_length": 15481,
+      "file": "articles/ind.sf_contracts_microsoft_365_frequently_asked_questions_faqs.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_microsoft_365_integration_troubleshooting_guide.htm",
+      "title": "Microsoft 365 Integration Troubleshooting Guide",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_troubleshooting_guide.htm",
+      "body_length": 655,
+      "file": "articles/ind.sf_contracts_microsoft_365_integration_troubleshooting_guide.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_migrate_ms_templates.htm",
+      "title": "Considerations When Migrating Microsoft 365 Word Templates Across Environments",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integration_ms365_overview.htm",
+      "body_length": 2117,
+      "file": "articles/ind.sf_contracts_migrate_ms_templates.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_modify_section.htm",
+      "title": "Modify a Section in a Salesforce Contract Document",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_section_management.htm",
+      "body_length": 618,
+      "file": "articles/ind.sf_contracts_modify_section.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_modularize_documents_with_sections_and_clause_marking.htm",
+      "title": "Modularize Documents with Sections and Clause Marking",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm",
+      "body_length": 775,
+      "file": "articles/ind.sf_contracts_modularize_documents_with_sections_and_clause_marking.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_ms365_minimum_pri_auth_provider.htm",
+      "title": "Configure an Auth Provider for Microsoft App Manually Through Minimum Privilege Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_ms365_minimum_pri_overview.htm",
+      "body_length": 4183,
+      "file": "articles/ind.sf_contracts_ms365_minimum_pri_auth_provider.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_ms365_minimum_pri_azure_app.htm",
+      "title": "Configure a Microsoft Azure App Manually Through Minimum Privilege Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_ms365_minimum_pri_overview.htm",
+      "body_length": 2083,
+      "file": "articles/ind.sf_contracts_ms365_minimum_pri_azure_app.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_ms365_minimum_pri_deploy_addin.htm",
+      "title": "Deploy and Configure the Microsoft 365 Word Add-In for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_ms365_minimum_pri_overview.htm",
+      "body_length": 1222,
+      "file": "articles/ind.sf_contracts_ms365_minimum_pri_deploy_addin.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_ms365_minimum_pri_existing_customers.htm",
+      "title": "Update Microsoft App Registration to Use Minimum-Privilege Permissions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm",
+      "body_length": 3206,
+      "file": "articles/ind.sf_contracts_ms365_minimum_pri_existing_customers.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_ms365_minimum_pri_external_doc_storage.htm",
+      "title": "Configure External Document Storage for Document Templates Manually Through Minimum Privilege Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_ms365_minimum_pri_overview.htm",
+      "body_length": 1799,
+      "file": "articles/ind.sf_contracts_ms365_minimum_pri_external_doc_storage.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_ms365_minimum_pri_external_storage_contracts.htm",
+      "title": "Configure External Document Storage for Contracts Manually Through Minimum Privilege Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_ms365_minimum_pri_overview.htm",
+      "body_length": 1482,
+      "file": "articles/ind.sf_contracts_ms365_minimum_pri_external_storage_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_ms365_minimum_pri_named_credential.htm",
+      "title": "Create a Named Credential for Salesforce Contracts Connector for Word Add-in Manually Through Minimum Privilege Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_ms365_minimum_pri_overview.htm",
+      "body_length": 1776,
+      "file": "articles/ind.sf_contracts_ms365_minimum_pri_named_credential.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_ms365_minimum_pri_overview.htm",
+      "title": "Manual Integration of Microsoft 365 Azure with Salesforce Through Minimum Privilege Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integration_ms365_overview.htm",
+      "body_length": 2747,
+      "file": "articles/ind.sf_contracts_ms365_minimum_pri_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_ms365_minimum_pri_sharepoint.htm",
+      "title": "Create a SharePoint Site Manually Through Minimum Privilege Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_ms365_minimum_pri_overview.htm",
+      "body_length": 1848,
+      "file": "articles/ind.sf_contracts_ms365_minimum_pri_sharepoint.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_na_1.htm",
+      "title": "Salesforce Contracts APIs",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 1054,
+      "file": "articles/ind.sf_contracts_na_1.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_new_and_changed_connectapis_spring24.htm",
+      "title": "New and Changed Salesforce Contracts Connect APIs",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm",
+      "body_length": 1751,
+      "file": "articles/ind.sf_contracts_new_and_changed_connectapis_spring24.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_new_and_changed_salesforce_contracts_objects_winter24.htm",
+      "title": "New and Changed Salesforce Contracts Objects",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm",
+      "body_length": 976,
+      "file": "articles/ind.sf_contracts_new_and_changed_salesforce_contracts_objects_winter24.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_new_invocable_actions.htm",
+      "title": "New Invocable Actions in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm",
+      "body_length": 653,
+      "file": "articles/ind.sf_contracts_new_invocable_actions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_non_private_external_review_mode.htm",
+      "title": "Review a Contract Document in Non-Private External Review Mode",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_initiate_online_external_review.htm",
+      "body_length": 3348,
+      "file": "articles/ind.sf_contracts_non_private_external_review_mode.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_object_state_action_definition.htm",
+      "title": "Object State Action Definition in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 4173,
+      "file": "articles/ind.sf_contracts_object_state_action_definition.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_object_state_transition_action.htm",
+      "title": "Object State Transition Action in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 1398,
+      "file": "articles/ind.sf_contracts_object_state_transition_action.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_object_state_transition_action_scenarios.htm",
+      "title": "Object State Transition Action Scenarios in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 4378,
+      "file": "articles/ind.sf_contracts_object_state_transition_action_scenarios.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_obligation_actions.htm",
+      "title": "Obligation Actions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 611,
+      "file": "articles/ind.sf_contracts_obligation_actions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_obligation_creation.htm",
+      "title": "Obligation Creation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 3018,
+      "file": "articles/ind.sf_contracts_obligation_creation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_obligation_management.htm",
+      "title": "Obligation Management",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 3395,
+      "file": "articles/ind.sf_contracts_obligation_management.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_obligation_management_personas_and_supported_actions.htm",
+      "title": "Obligation Management Personas and Supported Actions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 1575,
+      "file": "articles/ind.sf_contracts_obligation_management_personas_and_supported_actions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_offline_external_review.htm",
+      "title": "Initiate Offline External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_external_review.htm",
+      "body_length": 1172,
+      "file": "articles/ind.sf_contracts_offline_external_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_org_settings_and_object_requirements_for_salesforce_contracts_analytics.htm",
+      "title": "Org Settings and Object Requirements for Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_salesforce_contracts_analytics.htm",
+      "body_length": 881,
+      "file": "articles/ind.sf_contracts_org_settings_and_object_requirements_for_salesforce_contracts_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_permission_set_licenses_for_contracts_ai.htm",
+      "title": "Permission Set Licenses for Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_licenses.htm",
+      "body_length": 1388,
+      "file": "articles/ind.sf_contracts_permission_set_licenses_for_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_permission_set_licenses_for_salesforce_contracts_.htm",
+      "title": "Personas and Permission Set Licenses for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_licenses.htm",
+      "body_length": 6877,
+      "file": "articles/ind.sf_contracts_permission_set_licenses_for_salesforce_contracts_.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_permission_sets_combination_for_salesforce_contracts.htm",
+      "title": "Permission Sets Combination for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_licenses.htm",
+      "body_length": 710,
+      "file": "articles/ind.sf_contracts_permission_sets_combination_for_salesforce_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_permission_sets_for_docusign.htm",
+      "title": "Permission Sets For DocuSign",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm",
+      "body_length": 985,
+      "file": "articles/ind.sf_contracts_permission_sets_for_docusign.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_personas_in_salesforce_contracts.htm",
+      "title": "Journey Map Example by User Type in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_overview.htm",
+      "body_length": 2092,
+      "file": "articles/ind.sf_contracts_personas_in_salesforce_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_plan_your_contract_lifecycle.htm",
+      "title": "Plan Your Salesforce Contracts Implementation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm",
+      "body_length": 6325,
+      "file": "articles/ind.sf_contracts_plan_your_contract_lifecycle.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "title": "Get Started With Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 3228,
+      "file": "articles/ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_prepare_for_microsoft_365_and_azure_integration.htm",
+      "title": "Prepare for Microsoft 365 and Azure Integration Using Guided Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm",
+      "body_length": 1442,
+      "file": "articles/ind.sf_contracts_prepare_for_microsoft_365_and_azure_integration.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_prepare_your_org_for_contract_search.htm",
+      "title": "Prepare Your Org for Contract Search",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_search_datakit_overview.htm",
+      "body_length": 1260,
+      "file": "articles/ind.sf_contracts_prepare_your_org_for_contract_search.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_prerequisites_for_setting_up_state_models_state_transitions_and_actions.htm",
+      "title": "Prerequisites For Setting Up State Models, State Transitions, and Actions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 473,
+      "file": "articles/ind.sf_contracts_prerequisites_for_setting_up_state_models_state_transitions_and_actions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_psl_for_salesforce_contracts_analytics.htm",
+      "title": "Permission Set Licenses for Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_licenses.htm",
+      "body_length": 1966,
+      "file": "articles/ind.sf_contracts_psl_for_salesforce_contracts_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_quickly_design_document_templates_without_a_managed_package.htm",
+      "title": "Quickly Design Document Templates Without a Managed Package",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm",
+      "body_length": 505,
+      "file": "articles/ind.sf_contracts_quickly_design_document_templates_without_a_managed_package.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_quickly_view_create_and_manage_contracts_from_salesforce_contracts_console_app.htm",
+      "title": "Quickly Create, and Manage Contracts from Salesforce Contracts Console App",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm",
+      "body_length": 551,
+      "file": "articles/ind.sf_contracts_quickly_view_create_and_manage_contracts_from_salesforce_contracts_console_app.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_recipes_in_salesforce_contracts_analytics.htm",
+      "title": "Recipes in Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_salesforce_contracts_analytics.htm",
+      "body_length": 254,
+      "file": "articles/ind.sf_contracts_recipes_in_salesforce_contracts_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_records_that_need_attention.htm",
+      "title": "Records that Need Attention in Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_embedded_analytics.htm",
+      "body_length": 662,
+      "file": "articles/ind.sf_contracts_records_that_need_attention.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_records_that_need_attention_sales.htm",
+      "title": "Records that Need Attention (Sales) in Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_embedded_analytics.htm",
+      "body_length": 667,
+      "file": "articles/ind.sf_contracts_records_that_need_attention_sales.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_redraft_extracted_clause.htm",
+      "title": "Redraft Extracted Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm",
+      "body_length": 925,
+      "file": "articles/ind.sf_contracts_redraft_extracted_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_relation_between_contract_status_and_obligation_state.htm",
+      "title": "Relation Between Contract Status and Obligation State",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 813,
+      "file": "articles/ind.sf_contracts_relation_between_contract_status_and_obligation_state.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_remove_visualforce_components_from_vlocity_clm.htm",
+      "title": "Remove Visualforce Components from Vlocity Contract Lifecycle Management",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_salesforce_contracts_in_vlocity_managed_packages.htm",
+      "body_length": 891,
+      "file": "articles/ind.sf_contracts_remove_visualforce_components_from_vlocity_clm.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_restart_private_external_review.htm",
+      "title": "Restart Private External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_initiate_private_external_review.htm",
+      "body_length": 1497,
+      "file": "articles/ind.sf_contracts_restart_private_external_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_retry_contract_document_generation.htm",
+      "title": "Retry Contract Document Generation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_creation.htm",
+      "body_length": 975,
+      "file": "articles/ind.sf_contracts_retry_contract_document_generation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_review_as_an_external_reviewer.htm",
+      "title": "Review a Contract Document in Private External Review Mode",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_initiate_private_external_review.htm",
+      "body_length": 1423,
+      "file": "articles/ind.sf_contracts_review_as_an_external_reviewer.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_review_extracted_clause.htm",
+      "title": "Review Extracted Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm",
+      "body_length": 757,
+      "file": "articles/ind.sf_contracts_review_extracted_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_reviewer_type_and_access_mode.htm",
+      "title": "Reviewer Type and Access Mode in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_review.htm",
+      "body_length": 1012,
+      "file": "articles/ind.sf_contracts_reviewer_type_and_access_mode.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_riskanalysis_analyze.htm",
+      "title": "Analyze Contract Risks After a Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_riskanalysis_how.htm",
+      "body_length": 4751,
+      "file": "articles/ind.sf_contracts_riskanalysis_analyze.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_riskanalysis_how.htm",
+      "title": "How Contract Risk Analysis Works",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 4509,
+      "file": "articles/ind.sf_contracts_riskanalysis_how.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_riskanalysis_setup.htm",
+      "title": "Set Up Contract Risk Analysis",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_riskanalysis_how.htm",
+      "body_length": 3556,
+      "file": "articles/ind.sf_contracts_riskanalysis_setup.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_run_salesforce_contracts_invocable_actions.htm",
+      "title": "Run Salesforce Contracts Invocable Actions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_invocable_actions_for_salesforce_contracts.htm",
+      "body_length": 1210,
+      "file": "articles/ind.sf_contracts_run_salesforce_contracts_invocable_actions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_analytics_licenses_and_permissions.htm",
+      "title": "Licenses and Permissions for Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_salesforce_contracts_analytics.htm",
+      "body_length": 1055,
+      "file": "articles/ind.sf_contracts_salesforce_analytics_licenses_and_permissions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_analytics.htm",
+      "title": "Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 994,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_analytics_dashboards.htm",
+      "title": "Salesforce Contracts Analytics Dashboards",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics.htm",
+      "body_length": 1359,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_analytics_dashboards.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm",
+      "title": "Salesforce Contracts Analytics Post-Installation Steps",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_salesforce_contracts_analytics.htm",
+      "body_length": 1317,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_connector_for_word.htm",
+      "title": "Design Document Templates in Microsoft 365 Editor",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_documnet_actions_overview.htm",
+      "body_length": 1326,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_connector_for_word.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_licenses.htm",
+      "title": "Salesforce Contracts Licenses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 2205,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_licenses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_overview.htm",
+      "title": "Learn and Explore Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 3548,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_overview_2.htm",
+      "title": "Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 3109,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_overview_2.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_release_notes.htm",
+      "title": "Salesforce Contracts Release Notes",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 2295,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_release_notes.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_spring_23_release_notes.htm",
+      "title": "Salesforce Contracts Spring '23 Release Notes",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_release_notes.htm",
+      "body_length": 1106,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_spring_23_release_notes.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm",
+      "title": "Salesforce Contracts Spring '24 Release Notes",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_release_notes.htm",
+      "body_length": 2729,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm",
+      "title": "Salesforce Contracts Summer '23 Release Notes",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_release_notes.htm",
+      "body_length": 2635,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm",
+      "title": "Salesforce Contracts Summer '24 Release Notes",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_release_notes.htm",
+      "body_length": 3288,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_troubleshooting_guide.htm",
+      "title": "Salesforce Contracts Troubleshooting Reference",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 901,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_troubleshooting_guide.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_winter_23_release_notes.htm",
+      "title": "Salesforce Contracts Winter '23 Release Notes",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_release_notes.htm",
+      "body_length": 3445,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_winter_23_release_notes.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm",
+      "title": "Salesforce Contracts Winter '24 Release Notes",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_release_notes.htm",
+      "body_length": 2603,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_salesforce_contracts_winter_25_release_notes_2.htm",
+      "title": "Salesforce Contracts Release Notes Winter '25 and Later",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_release_notes.htm",
+      "body_length": 341,
+      "file": "articles/ind.sf_contracts_salesforce_contracts_winter_25_release_notes_2.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_sample_clause_report.htm",
+      "title": "Sample Clause Report",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_create_a_custom_report_type_and_build_a_report_for_clause_history.htm",
+      "body_length": 1051,
+      "file": "articles/ind.sf_contracts_sample_clause_report.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_sample_code_to_update_out-of-sync_contract_type_mapping.htm",
+      "title": "Sample Code To Update Out-of-Sync Contract Type Mapping",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_type_config_settings.htm",
+      "body_length": 6343,
+      "file": "articles/ind.sf_contracts_sample_code_to_update_out-of-sync_contract_type_mapping.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_sample_contract_queries_and_follow_up_questions_for_ai_interactions.htm",
+      "title": "Sample Contract Queries and Follow-Up Questions for AI Interactions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_search_summarize_and_interact_with_contracts_using_ai.htm",
+      "body_length": 2634,
+      "file": "articles/ind.sf_contracts_sample_contract_queries_and_follow_up_questions_for_ai_interactions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_sample_salesforce_contracts_api_sequence.htm",
+      "title": "Sample Salesforce Contracts API Sequence",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_na_1.htm",
+      "body_length": 8612,
+      "file": "articles/ind.sf_contracts_sample_salesforce_contracts_api_sequence.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_sample_workflows_to_create_and_customize_contract_object_state_definitions.htm",
+      "title": "Sample Workflows to Create and Customize Contract Object State Definitions",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "body_length": 1398,
+      "file": "articles/ind.sf_contracts_sample_workflows_to_create_and_customize_contract_object_state_definitions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_schedule_a_docusign_job_to_poll_for_document_signed_status.htm",
+      "title": "Schedule a DocuSign Job to Poll for Document Signed Status",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_e-signature.htm",
+      "body_length": 2036,
+      "file": "articles/ind.sf_contracts_schedule_a_docusign_job_to_poll_for_document_signed_status.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_schedule_the_app.htm",
+      "title": "Schedule the Salesforce Contracts Analytics App",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm",
+      "body_length": 259,
+      "file": "articles/ind.sf_contracts_schedule_the_app.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_search_standard_clauses.htm",
+      "title": "Search for Standard Clauses in Clause Library",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_authoring.htm",
+      "body_length": 1626,
+      "file": "articles/ind.sf_contracts_search_standard_clauses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_search_summarize_and_interact_with_contracts_using_ai.htm",
+      "title": "Search, Summarize, and Interact with Contracts Using AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contract_search_for_contract_ai.htm",
+      "body_length": 3425,
+      "file": "articles/ind.sf_contracts_search_summarize_and_interact_with_contracts_using_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_section_control.htm",
+      "title": "Configure Section Access Control Permissions in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_section_management.htm",
+      "body_length": 934,
+      "file": "articles/ind.sf_contracts_section_control.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_section_management.htm",
+      "title": "Section Management in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_authoring.htm",
+      "body_length": 2326,
+      "file": "articles/ind.sf_contracts_section_management.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_select_a_sharepoint_site_and_drive.htm",
+      "title": "Select a SharePoint Site and Drive Using Guided Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm",
+      "body_length": 917,
+      "file": "articles/ind.sf_contracts_select_a_sharepoint_site_and_drive.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_default_contract_record_type_for_user_profiles.htm",
+      "title": "Set Default Contract Record Type for User Profiles",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 578,
+      "file": "articles/ind.sf_contracts_set_default_contract_record_type_for_user_profiles.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_a_named_credential.htm",
+      "title": "Set Up a Named Credential for Salesforce Contracts Using Guided Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm",
+      "body_length": 1821,
+      "file": "articles/ind.sf_contracts_set_up_a_named_credential.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_agentforce_employee_agent_aea_for_contract.htm",
+      "title": "Set Up a Contract Agent",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_document_overview.htm",
+      "body_length": 1730,
+      "file": "articles/ind.sf_contracts_set_up_agentforce_employee_agent_aea_for_contract.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_approval_process_detail_page.htm",
+      "title": "Set Up Approval Process Detail Page For Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_approval_workflow.htm",
+      "body_length": 3771,
+      "file": "articles/ind.sf_contracts_set_up_approval_process_detail_page.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_approval_process_for_clause.htm",
+      "title": "Set Up Approval Process Detail Page For Clause",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_approval_workflow.htm",
+      "body_length": 2492,
+      "file": "articles/ind.sf_contracts_set_up_approval_process_for_clause.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_contract_approval_workflow.htm",
+      "title": "Optional: Set Up Contract Approval Workflow",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 600,
+      "file": "articles/ind.sf_contracts_set_up_contract_approval_workflow.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_contract_search_for_contract_ai.htm",
+      "title": "Configure Contract Search",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 4625,
+      "file": "articles/ind.sf_contracts_set_up_contract_search_for_contract_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_contracts_ai.htm",
+      "title": "Set Up Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contracts_ai_overview.htm",
+      "body_length": 1792,
+      "file": "articles/ind.sf_contracts_set_up_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_data_governance_for_contract_search.htm",
+      "title": "Set Up Data Governance for Contract Search",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_search_datakit_overview.htm",
+      "body_length": 4940,
+      "file": "articles/ind.sf_contracts_set_up_data_governance_for_contract_search.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_external_document_storage.htm",
+      "title": "Set Up External Document Storage for Salesforce Contracts Using Guided Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm",
+      "body_length": 1527,
+      "file": "articles/ind.sf_contracts_set_up_external_document_storage.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm",
+      "title": "Set Up Microsoft 365 and Azure Integration Using Guided Setup",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integration_ms365_overview.htm",
+      "body_length": 3052,
+      "file": "articles/ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_salesforce_contract_document_indexing_in_data_cloud.htm",
+      "title": "Set Up Salesforce Contract Document Indexing in Data Cloud for Manual Contract Search Set Up",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_search_datakit_manual_overview.htm",
+      "body_length": 3411,
+      "file": "articles/ind.sf_contracts_set_up_salesforce_contract_document_indexing_in_data_cloud.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_salesforce_contracts_analytics.htm",
+      "title": "Set Up Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics.htm",
+      "body_length": 1675,
+      "file": "articles/ind.sf_contracts_set_up_salesforce_contracts_analytics.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_set_up_the_remote_site.htm",
+      "title": "Set Up the Remote Site for Salesforce Contracts E-Signature",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm",
+      "body_length": 807,
+      "file": "articles/ind.sf_contracts_set_up_the_remote_site.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_setup_cc_plus_user.htm",
+      "title": "Set Up Salesforce Contracts Customer Community Plus User",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_setup_digital_experience_sites.htm",
+      "body_length": 3711,
+      "file": "articles/ind.sf_contracts_setup_cc_plus_user.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_setup_clm_partner_community_user.htm",
+      "title": "Set Up Salesforce Contracts Partner Community User",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_setup_digital_experience_sites.htm",
+      "body_length": 7137,
+      "file": "articles/ind.sf_contracts_setup_clm_partner_community_user.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_setup_digital_experience_sites.htm",
+      "title": "Set Up Digital Experience Sites for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 1284,
+      "file": "articles/ind.sf_contracts_setup_digital_experience_sites.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_setup_private_external_review_four.htm",
+      "title": "Enable Private Online External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_setup_private_external_review_one.htm",
+      "body_length": 794,
+      "file": "articles/ind.sf_contracts_setup_private_external_review_four.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_setup_private_external_review_one.htm",
+      "title": "Configure Private Online External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integration_ms365_overview.htm",
+      "body_length": 1043,
+      "file": "articles/ind.sf_contracts_setup_private_external_review_one.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_setup_private_external_review_three.htm",
+      "title": "Create a Private External Review Setting",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_setup_private_external_review_one.htm",
+      "body_length": 871,
+      "file": "articles/ind.sf_contracts_setup_private_external_review_three.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_setup_private_external_review_two.htm",
+      "title": "Create a Digital Experience Site for Private Online External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_setup_private_external_review_one.htm",
+      "body_length": 2066,
+      "file": "articles/ind.sf_contracts_setup_private_external_review_two.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_singleext_comparison.htm",
+      "title": "Single Document Extraction Methods and Licensing Requirements for Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_singleext_overview.htm",
+      "body_length": 3371,
+      "file": "articles/ind.sf_contracts_singleext_comparison.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_singleext_concept_one.htm",
+      "title": "Context Definitions and Prompts for Document Contract Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_singleext_overview.htm",
+      "body_length": 1355,
+      "file": "articles/ind.sf_contracts_singleext_concept_one.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_singleext_documentai_enable.htm",
+      "title": "Turn On Document AI for Single Document Contract Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_singleext_overview.htm",
+      "body_length": 1207,
+      "file": "articles/ind.sf_contracts_singleext_documentai_enable.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_singleext_extraction_methods.htm",
+      "title": "Single Document Extraction Methods Fallback Behavior",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_singleext_overview.htm",
+      "body_length": 1045,
+      "file": "articles/ind.sf_contracts_singleext_extraction_methods.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_singleext_multimodal_enable.htm",
+      "title": "Turn On Multimodal Single Document Contract Extraction",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_singleext_overview.htm",
+      "body_length": 1051,
+      "file": "articles/ind.sf_contracts_singleext_multimodal_enable.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_singleext_overview.htm",
+      "title": "Single Document Extraction with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_set_up_contracts_ai.htm",
+      "body_length": 4201,
+      "file": "articles/ind.sf_contracts_singleext_overview.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_singleext_promptbuilder_extraction.htm",
+      "title": "Customize Multimodal Document Extraction with Prompt Builder",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_singleext_overview.htm",
+      "body_length": 1796,
+      "file": "articles/ind.sf_contracts_singleext_promptbuilder_extraction.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_state_models_transitions_and_actions.htm",
+      "title": "State Models and Transitions in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 4124,
+      "file": "articles/ind.sf_contracts_state_models_transitions_and_actions.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_stay_compliant_meet_contractual_commitments_and_mitigate_risks_.htm",
+      "title": "Easily Ensure Superior Contract Performance and Compliance",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm",
+      "body_length": 589,
+      "file": "articles/ind.sf_contracts_stay_compliant_meet_contractual_commitments_and_mitigate_risks_.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_submit_a_contract_for_esignature.htm",
+      "title": "Submit a Contract for E-Signature",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_workflow_for_submitting_a_contract_for_e-signature.htm",
+      "body_length": 1967,
+      "file": "articles/ind.sf_contracts_submit_a_contract_for_esignature.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_support_for_designer_in_core_and_ss_document_generation.htm",
+      "title": "Support for Template Designer in Core and Server-Side Document Generation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integrate_salesforce_contracts_in_vlocity_managed_packages.htm",
+      "body_length": 1694,
+      "file": "articles/ind.sf_contracts_support_for_designer_in_core_and_ss_document_generation.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_supported_browsers_and_devices_for_salesforce_contracts_connector_for_word.htm",
+      "title": "Supported Browsers and Devices for Salesforce Contracts Connector for Word Add-In",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_integration_ms365_overview.htm",
+      "body_length": 1578,
+      "file": "articles/ind.sf_contracts_supported_browsers_and_devices_for_salesforce_contracts_connector_for_word.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "title": "System Administration and Set Up for ​Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "body_length": 5242,
+      "file": "articles/ind.sf_contracts_system_administration_for_salesforce_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_tailor_and_define_field_prompts_for_extraction_with_contracts_ai.htm",
+      "title": "Tailor Your Default and New Field Prompts for Effective Data Extraction with Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contractscontracts_ai_summer24.htm",
+      "body_length": 1412,
+      "file": "articles/ind.sf_contracts_tailor_and_define_field_prompts_for_extraction_with_contracts_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_throttling.htm",
+      "title": "Maintain the Consistency and Resilience of Server-Side Document Generation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_spring_23_release_notes.htm",
+      "body_length": 757,
+      "file": "articles/ind.sf_contracts_throttling.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_track_and_manage_your_contracts_better.htm",
+      "title": "Track and Manage Your Contracts Better",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm",
+      "body_length": 1175,
+      "file": "articles/ind.sf_contracts_track_and_manage_your_contracts_better.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_troubleshooting.htm",
+      "title": "Troubleshoot Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm",
+      "body_length": 184,
+      "file": "articles/ind.sf_contracts_troubleshooting.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_turn_on_context_service_for_extracting_contract_details.htm",
+      "title": "Turn On Context Service for Extracting Contract Details in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_fields_for_extraction_with_contracts_ai.htm",
+      "body_length": 1296,
+      "file": "articles/ind.sf_contracts_turn_on_context_service_for_extracting_contract_details.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_turn_on_context_service_for_salesforce_contracts.htm",
+      "title": "Enable Context Service for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm",
+      "body_length": 1376,
+      "file": "articles/ind.sf_contracts_turn_on_context_service_for_salesforce_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_turn_on_salesforce_contracts.htm",
+      "title": "Enable Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 537,
+      "file": "articles/ind.sf_contracts_turn_on_salesforce_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_unlock_section.htm",
+      "title": "Unlock Sections in a Document",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_section_management.htm",
+      "body_length": 1592,
+      "file": "articles/ind.sf_contracts_unlock_section.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_update_contract_document_with_clauses.htm",
+      "title": "Modify the Clauses in Contract Documents",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_authoring.htm",
+      "body_length": 1510,
+      "file": "articles/ind.sf_contracts_update_contract_document_with_clauses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_update_contracts_from_opportunity_order_or_quote.htm",
+      "title": "Update Contracts from Opportunity, Order, or Quote",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_creation.htm",
+      "body_length": 1207,
+      "file": "articles/ind.sf_contracts_update_contracts_from_opportunity_order_or_quote.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_update_document_template_with_clauses.htm",
+      "title": "Modify the Clauses in Document Templates",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_create_template_using_microsoft_365_word.htm",
+      "body_length": 1714,
+      "file": "articles/ind.sf_contracts_update_document_template_with_clauses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_update_sharing_settings_for_object_state_definition.htm",
+      "title": "Update Sharing Settings for Object State Definition in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 431,
+      "file": "articles/ind.sf_contracts_update_sharing_settings_for_object_state_definition.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_update_sharing_settings_for_omni_objects.htm",
+      "title": "Update Sharing Settings for Omni Objects in Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm",
+      "body_length": 992,
+      "file": "articles/ind.sf_contracts_update_sharing_settings_for_omni_objects.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_use_case_customize_the_contract_agent_experience.htm",
+      "title": "Use Case: Customize the Contract Agent Experience",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_document_overview.htm",
+      "body_length": 2343,
+      "file": "articles/ind.sf_contracts_use_case_customize_the_contract_agent_experience.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_use_case_extract_key_terms_from_contracts_using_ai.htm",
+      "title": "Use Case: Extract Key Terms from Contracts Using AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_search_summarize_and_interact_with_contracts_using_ai.htm",
+      "body_length": 2893,
+      "file": "articles/ind.sf_contracts_use_case_extract_key_terms_from_contracts_using_ai.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_use_case_mapping_parameters_for_contracts.htm",
+      "title": "Use Case Mapping Parameters To Create and Update Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_context_use_case_mapping_to_create_and_update_contracts.htm",
+      "body_length": 1497,
+      "file": "articles/ind.sf_contracts_use_case_mapping_parameters_for_contracts.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_use_context_definitions_to_extract_contract_details.htm",
+      "title": "Use Context Definitions to Extract Contract Details",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_fields_for_extraction_with_contracts_ai.htm",
+      "body_length": 896,
+      "file": "articles/ind.sf_contracts_use_context_definitions_to_extract_contract_details.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_use_custom_document_template_filtering.htm",
+      "title": "Use Custom Document Template Filtering for Salesforce Contracts",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 2741,
+      "file": "articles/ind.sf_contracts_use_custom_document_template_filtering.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_use_salesforce_task_for_obligations.htm",
+      "title": "Create a Salesforce Task for an Obligation",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 1091,
+      "file": "articles/ind.sf_contracts_use_salesforce_task_for_obligations.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_use_suggest_more_option_to_draft_clauses.htm",
+      "title": "Use Suggest More Option to Draft Clauses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_clause_drafting_with_contracts_ai.htm",
+      "body_length": 1061,
+      "file": "articles/ind.sf_contracts_use_suggest_more_option_to_draft_clauses.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_verify_your_permission_settings.htm",
+      "title": "Verify Permissions for Salesforce Contracts Analytics",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm",
+      "body_length": 622,
+      "file": "articles/ind.sf_contracts_verify_your_permission_settings.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_view_associated_clauses_.htm",
+      "title": "View Associated Clauses",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_authoring.htm",
+      "body_length": 971,
+      "file": "articles/ind.sf_contracts_view_associated_clauses_.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_view_contract_documents.htm",
+      "title": "View Contract Documents",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_contract_creation.htm",
+      "body_length": 501,
+      "file": "articles/ind.sf_contracts_view_contract_documents.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_view_is_associated_with_clm.htm",
+      "title": "View 'Is Associated With CLM'",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_system_administration_for_salesforce_contracts.htm",
+      "body_length": 1523,
+      "file": "articles/ind.sf_contracts_view_is_associated_with_clm.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_view_obligations_associated_with_a_contract.htm",
+      "title": "View Obligations Associated with a Contract",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_obligation_management.htm",
+      "body_length": 1576,
+      "file": "articles/ind.sf_contracts_view_obligations_associated_with_a_contract.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_view_review_status_and_cancel_external_review.htm",
+      "title": "View Review Status and Cancel External Review",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_external_review.htm",
+      "body_length": 1284,
+      "file": "articles/ind.sf_contracts_view_review_status_and_cancel_external_review.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_view_the_standard_contractscontextdefinition_mapping.htm",
+      "title": "View the Standard ContractsContextDefinition Mapping",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_context_definitions_to_create_and_update_contracts.htm",
+      "body_length": 1682,
+      "file": "articles/ind.sf_contracts_view_the_standard_contractscontextdefinition_mapping.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_view_the_standard_contractsextractioncontext_mapping.htm",
+      "title": "View the Standard ContractsExtractionContext Mapping",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_use_context_definitions_to_extract_contract_details.htm",
+      "body_length": 1650,
+      "file": "articles/ind.sf_contracts_view_the_standard_contractsextractioncontext_mapping.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_why_am_i_unable_to_add_a_line_inside_a_section_in_the_microsoft_365_document.htm",
+      "title": "Why Can't I Add a Line in a Section in a Microsoft 365 Document?",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_microsoft_365_integration_troubleshooting_guide.htm",
+      "body_length": 372,
+      "file": "articles/ind.sf_contracts_why_am_i_unable_to_add_a_line_inside_a_section_in_the_microsoft_365_document.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_why_cant_i_create_a_contract_using_microsoft_365.htm",
+      "title": "Why Can’t I Create or Edit a Contract using Microsoft 365 Word?",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_microsoft_365_integration_troubleshooting_guide.htm",
+      "body_length": 903,
+      "file": "articles/ind.sf_contracts_why_cant_i_create_a_contract_using_microsoft_365.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_why_cant_i_edit_the_document_template_in_microsoft_365_editor.htm",
+      "title": "Why Can’t I Edit the Document Template in Microsoft 365?",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_microsoft_365_integration_troubleshooting_guide.htm",
+      "body_length": 333,
+      "file": "articles/ind.sf_contracts_why_cant_i_edit_the_document_template_in_microsoft_365_editor.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_for_revoking_an_envelope_status.htm",
+      "title": "Workflow for Revoking an Envelope Status",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_e-signature_overview.htm",
+      "body_length": 552,
+      "file": "articles/ind.sf_contracts_workflow_for_revoking_an_envelope_status.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_for_sending_a_contract_for_esignature.htm",
+      "title": "Workflow for Signing a Contract Via E-Signature",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_e-signature_overview.htm",
+      "body_length": 943,
+      "file": "articles/ind.sf_contracts_workflow_for_sending_a_contract_for_esignature.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_for_submitting_a_contract_for_e-signature.htm",
+      "title": "Workflow for Submitting a Contract for E-Signature",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_e-signature_overview.htm",
+      "body_length": 1501,
+      "file": "articles/ind.sf_contracts_workflow_for_submitting_a_contract_for_e-signature.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_for_updating_an_envelope_status.htm",
+      "title": "Workflow for Updating an Envelope Status",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_e-signature_overview.htm",
+      "body_length": 967,
+      "file": "articles/ind.sf_contracts_workflow_for_updating_an_envelope_status.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_to_configure_new_contract_status_values_and_map_to_contract_object_state_definition.htm",
+      "title": "Workflow to Configure New Contract Status Values and Map To Contract Object State Definition",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_sample_workflows_to_create_and_customize_contract_object_state_definitions.htm",
+      "body_length": 912,
+      "file": "articles/ind.sf_contracts_workflow_to_configure_new_contract_status_values_and_map_to_contract_object_state_definition.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_to_create_a_custom_object_state_action_definition.htm",
+      "title": "Workflow to Create a Custom Object State Action Definition",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_sample_workflows_to_create_and_customize_contract_object_state_definitions.htm",
+      "body_length": 5235,
+      "file": "articles/ind.sf_contracts_workflow_to_create_a_custom_object_state_action_definition.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_to_create_a_new_contract_object_state_definition_and_map_it_to_a_new_record_type_.htm",
+      "title": "Workflow to Create a New Contract Object State Definition and Map it to a New Record Type",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_sample_workflows_to_create_and_customize_contract_object_state_definitions.htm",
+      "body_length": 3711,
+      "file": "articles/ind.sf_contracts_workflow_to_create_a_new_contract_object_state_definition_and_map_it_to_a_new_record_type_.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_to_remove_contract_status_values_from_a_contract_object_state_definition.htm",
+      "title": "Workflow to Remove Contract Status Values From A Contract Object State Definition",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_sample_workflows_to_create_and_customize_contract_object_state_definitions.htm",
+      "body_length": 2411,
+      "file": "articles/ind.sf_contracts_workflow_to_remove_contract_status_values_from_a_contract_object_state_definition.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm",
+      "title": "Workflow to Setup E-Signature for Contract Object",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_e-signature.htm",
+      "body_length": 2142,
+      "file": "articles/ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contracts_workflow_to_setup_esignature_for_standard_and_custom_objects.htm",
+      "title": "Workflow to Setup E-Signature for Standard and Custom Objects",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_configure_e-signature.htm",
+      "body_length": 1128,
+      "file": "articles/ind.sf_contracts_workflow_to_setup_esignature_for_standard_and_custom_objects.htm.md"
+    },
+    {
+      "article_id": "ind.sf_contractscontracts_ai_summer24.htm",
+      "title": "Contracts AI",
+      "status": "captured",
+      "area": "salesforce_contracts",
+      "parent_article": "ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm",
+      "body_length": 712,
+      "file": "articles/ind.sf_contractscontracts_ai_summer24.htm.md"
+    },
+    {
       "article_id": "ind.um_add_wallet_components_to_record_pages.htm",
       "title": "Add Wallet Components to Record Pages",
       "status": "captured",
@@ -10391,12 +14250,12 @@
       "file": "articles/ind.um_wallet_management.htm.md"
     }
   ],
-  "last_updated": "2026-09-07T22:13:05Z",
+  "last_updated": "2026-10-13T15:04:27Z",
   "stats": {
-    "discovered": 1134,
-    "captured": 1131,
+    "discovered": 1562,
+    "captured": 1559,
     "pending": 0,
     "errored": 3,
-    "total_captured_body_chars": 2729487
+    "total_captured_body_chars": 3555023
   }
 }

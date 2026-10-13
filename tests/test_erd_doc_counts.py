@@ -1,10 +1,9 @@
-"""Audit the ERD-derived counts in docs against `docs/erds/erd-data.json`.
+"""Audit ERD-derived counts against the base and Contracts CLM datasets.
 
-Every "N objects / N,NNN fields / NNN relationships" figure in the ERD docs is
-hand-copied out of `erd-data.json`, and nothing regenerates them. The headline
-triple is swept when the ERD is refreshed — it went 4,190 -> 4,252 fields at 264
-and all seven citations were updated — but the **per-domain** counts underneath it
-never were, and the sweep does not look at them.
+Core Revenue Cloud counts are hand-copied from `erd-data.json`; the AI tooling
+README reports the combined viewer counts from both datasets. The headline triple
+is swept when the ERD changes, but the **per-domain** counts underneath it were
+never checked until this test.
 
 What that cost, measured on the 264 ERD (263 objects):
 
@@ -130,20 +129,22 @@ WINDOW = 3
 # citation, row, headline or whole file leaving the audit shows up as a smaller
 # number instead of as "all checks passed" — the failure mode the per-site guards
 # above exist to prevent, and the reason `tests/test_branch_scope.py` pins its own.
-EXPECTED_CHECKS = 102
+EXPECTED_CHECKS = 107
 
 ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "erd-data.json")
+CLM_ERD_DATA = os.path.join(REPO_ROOT, "docs", "erds", "contracts-erd-data.json")
+CLM_SCHEMA = os.path.join(REPO_ROOT, "scripts", "erd", "schema_diff", "264-clm-schema.json")
 SKILL = os.path.join(
     REPO_ROOT, ".cursor", "skills", "revenue-cloud-data-model", "SKILL.md"
 )
+AI_README = os.path.join(REPO_ROOT, "scripts", "ai", "README.md")
 DOMAINS_DIR = os.path.join(
     REPO_ROOT, ".cursor", "skills", "revenue-cloud-data-model", "domains"
 )
 
-# Files that cite the headline triple. Each is checked wherever the phrasing appears.
-# All four docs the schema-validation skill names as restating the figures, so the
-# one that got missed in the 262->264 sweep (`scripts/ai/README.md`, which left
-# `query_erd.py stats` printing 264 numbers under a 262 README) is gated too.
+# Files that cite a headline triple. Each is checked wherever the phrasing appears;
+# scripts/ai/README.md is compared with the combined viewer model, the other pages
+# with the core Revenue Cloud baseline.
 TRIPLE_SITES = [
     os.path.join(REPO_ROOT, "docs", "erds", "README.md"),
     SKILL,
@@ -338,7 +339,41 @@ def main():
         ))
     check("builder_and_validator_domain_maps_agree", maps[0] == maps[1],
           "DOMAIN_MAP differs between the HTML builder and org validator")
+    with open(CLM_ERD_DATA) as f:
+        clm_erd = json.load(f)
+    with open(CLM_SCHEMA) as f:
+        clm_schema = json.load(f)
+    clm_totals = {
+        "objects": len(clm_erd.get("objects", {})),
+        "fields": sum(len(o.get("fields", {})) for o in clm_erd.get("objects", {}).values()),
+        "relationships": len(clm_erd.get("relationships", [])),
+    }
+    for key, stat_key in (("objects", "totalObjects"), ("fields", "totalFields"),
+                          ("relationships", "totalRelationships")):
+        check(f"clm_extension_stats_{key}_match_content",
+              clm_erd.get("stats", {}).get(stat_key) == clm_totals[key],
+              f"CLM stats says {clm_erd.get('stats', {}).get(stat_key)}, content has {clm_totals[key]}")
+    source_objects = clm_schema.get("objects", {})
+    extension_matches_source = set(clm_erd["objects"]).issubset(source_objects)
+    for name, obj in clm_erd["objects"].items():
+        source_fields = source_objects.get(name, {}).get("fields", {})
+        if obj.get("queryable") != source_objects.get(name, {}).get("queryable"):
+            extension_matches_source = False
+        for field_name, field in obj.get("fields", {}).items():
+            source_field = source_fields.get(field_name)
+            if not source_field or source_field.get("type") != field.get("type"):
+                extension_matches_source = False
+                break
+            refs = field.get("refersTo", [])
+            if refs and sorted(r.casefold() for r in refs) != sorted(
+                    r.casefold() for r in source_field.get("referenceTo", [])):
+                extension_matches_source = False
+                break
+    check("clm_extension_nodes_and_fields_match_source_schema", extension_matches_source,
+          "extension contains an object, field, type or relationship target absent from its 264 source schema")
+
     raw_domains = {obj["domain"] for obj in erd["objects"].values()}
+    raw_domains |= {obj["domain"] for obj in clm_erd["objects"].values()}
     unmapped = sorted(raw_domains - maps[0].keys())
     check("all_erd_domains_have_explicit_colors", not unmapped,
           f"raw domain labels would render with the fallback color: {unmapped}")
@@ -361,15 +396,32 @@ def main():
           "regenerate with python scripts/erd/build_erds.py")
     actual_nodes = sorted((node["id"], node.get("dom"), node.get("c"))
                           for node in payload["nodes"])
+    combined_objects = {**erd["objects"], **clm_erd["objects"]}
     expected_nodes = sorted(
         (name, maps[0].get(obj["domain"], {}).get("short"),
          maps[0].get(obj["domain"], {}).get("color"))
-        for name, obj in erd["objects"].items()
+        for name, obj in combined_objects.items()
     )
     # Compare lists, not just keyed dictionaries: duplicate nodes must fail too.
     check("html_domain_colors_match_erd_mapping", actual_nodes == expected_nodes,
           "checked-in viewer has missing, extra, duplicate or stale domain/color nodes; "
           "regenerate with python scripts/erd/build_erds.py")
+    actual_queryability = {node["id"]: node.get("q") for node in payload["nodes"]}
+    queryability_matches = all(
+        actual_queryability.get(name) == obj.get("queryable")
+        for name, obj in clm_erd["objects"].items()
+    )
+    check("html_queryability_flags_match_clm_schema", queryability_matches,
+          "viewer queryability badges drift from the CLM extension metadata")
+    expected_links = set()
+    node_ids = {row[0] for row in expected_nodes}
+    for relationship in erd.get("relationships", []) + clm_erd.get("relationships", []):
+        if relationship["source"] in node_ids and relationship["target"] in node_ids:
+            expected_links.add((relationship["source"], relationship["target"], relationship["field"]))
+    actual_links = {(link["source"], link["target"], link["field"])
+                    for link in payload.get("links", [])}
+    check("html_relationships_match_merged_sources", actual_links == expected_links,
+          f"viewer has {len(actual_links)} links; the two source datasets define {len(expected_links)}")
 
     print()
     print("headline triples")
@@ -382,7 +434,10 @@ def main():
         r"([\d,]+)\s+objects,\s+([\d,]+)\s+(?:platform\s+)?fields,\s+"
         r"([\d,]+)\s+(?:\w+\s+)?relationships?"
     )
-    want = (totals["objects"], totals["fields"], totals["relationships"])
+    combined_want = (totals["objects"] + clm_totals["objects"],
+                     totals["fields"] + clm_totals["fields"],
+                     len({(r["source"], r["target"], r["field"])
+                          for r in erd.get("relationships", []) + clm_erd.get("relationships", [])}))
     triples = 0
     for path in TRIPLE_SITES:
         # Per site, not in aggregate. A global "did anything match?" only fires when
@@ -408,6 +463,8 @@ def main():
                     continue
                 here += 1
                 got = (num(m.group(1)), num(m.group(2)), num(m.group(3)))
+                want = combined_want if path == AI_README else (
+                    totals["objects"], totals["fields"], totals["relationships"])
                 check(
                     f"{rel(path)}:{i + 1}_triple",
                     got == want,
@@ -418,6 +475,21 @@ def main():
               f"no citation in {rel(path)} matched the triple pattern — it was "
               f"reworded, or wrapped across more than {WINDOW} lines, and this file "
               "stopped being audited")
+
+    combined_reference_fields = sum(
+        1 for obj in combined_objects.values()
+        for field in obj.get("fields", {}).values()
+        if field.get("type") == "reference" or "refersTo" in field
+    )
+    with open(AI_README) as f:
+        ai_readme = f.read()
+    ref_match = re.search(r"([\d,]+)\s+reference fields", ai_readme)
+    check("combined_reference_field_count_is_cited", ref_match is not None,
+          "scripts/ai/README.md no longer states the combined reference-field count")
+    if ref_match:
+        check("combined_reference_field_count_matches_data",
+              num(ref_match.group(1)) == combined_reference_fields,
+              f"doc says {num(ref_match.group(1))}, combined data has {combined_reference_fields}")
 
     print()
     print("Statistics block")
@@ -622,7 +694,6 @@ def main():
         r"excluding those variants gives (\d+)": ("excluding_core_total", excluding_core),
         r"(\d+) raw labels": ("raw_label_count", raw_labels),
         r"covering ([\d,]+) objects": ("prose_object_total", len(erd["objects"])),
-        r"([\d,]+)-object schema": ("hyphenated_object_total", len(erd["objects"])),
     }
     for pattern, (name, expected) in derived.items():
         hits = []
@@ -643,6 +714,8 @@ def main():
                   f"doc says {claimed}, the data gives {expected}")
     claim = re.compile(r"across\s+([\d,]+)\s+domains")
     claims = 0
+    combined_domains = len({obj.get("domainShort", obj.get("domain", "Unknown"))
+                            for obj in combined_objects.values()})
     for path in TRIPLE_SITES:
         if not os.path.isfile(path):
             continue
@@ -650,10 +723,16 @@ def main():
             for lineno, line in enumerate(f.read().split("\n"), 1):
                 for m in claim.finditer(line):
                     claims += 1
+                    is_combined_viewer_claim = (
+                        path == AI_README
+                        or (path == os.path.join(ERD_DIR, "README.md")
+                            and "integrated viewer" in line)
+                    )
+                    expected_domains = combined_domains if is_combined_viewer_claim else len(per_domain)
                     check(f"{rel(path)}:{lineno}_domain_count",
-                          num(m.group(1)) == len(per_domain),
+                          num(m.group(1)) == expected_domains,
                           f"doc says {num(m.group(1))} domains, the data folds to "
-                          f"{len(per_domain)}")
+                          f"{expected_domains}")
     check("domain_count_is_claimed_somewhere", claims > 0,
           "no doc states `across N domains` — the phrasing changed and this direction "
           "stopped auditing anything")

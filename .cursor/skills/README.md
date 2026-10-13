@@ -32,6 +32,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Understand RLM objects/relationships | Revenue Cloud Data Model | [revenue-cloud-data-model/SKILL.md](revenue-cloud-data-model/SKILL.md) |
 | Use Revenue Cloud REST APIs | Business APIs | [rlm-business-apis/SKILL.md](rlm-business-apis/SKILL.md) |
 | Ground claims against Salesforce Help | Revenue Cloud Docs | [revenue-cloud-docs/SKILL.md](revenue-cloud-docs/SKILL.md) |
+| Set up, query, author, or troubleshoot Salesforce Contracts CLM | Salesforce Contracts | [salesforce-contracts/SKILL.md](salesforce-contracts/SKILL.md) |
 
 ### Product configuration and pricing
 

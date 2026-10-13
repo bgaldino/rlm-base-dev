@@ -1,0 +1,3091 @@
+{
+  "metadata": {
+    "release": "264",
+    "releaseLabel": "Winter '27",
+    "apiVersion": "68.0",
+    "source": "CLM extension derived from scripts/erd/schema_diff/264-clm-schema.json",
+    "org_aliases": [
+      "rlm-base__ent_1002",
+      "rlm-base__ent_1002_2",
+      "rlm-base__ent_1002_main",
+      "rlm-base__ent_1001"
+    ],
+    "lastRefreshedOn": "2026-10-13",
+    "note": "40 new CLM nodes; 8 CLM-adjacent nodes already exist in the Revenue Cloud ERD. Feature-gated objects and polymorphic target unions are documented in the source snapshot. Polymorphic fields with more than five possible targets remain visible in field details but are omitted as graph edges to avoid misleading all-to-many hairballs. The extension relationship list stores only edges not already represented in the base Revenue Cloud ERD.",
+    "omittedGraphEdges": [
+      "DocumentEnvelope.ReferenceObjectId (296 polymorphic targets)"
+    ]
+  },
+  "stats": {
+    "totalObjects": 40,
+    "totalFields": 446,
+    "totalRelationships": 55,
+    "domains": [
+      "Contracts & CLM"
+    ]
+  },
+  "objects": {
+    "ContextAttribute": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "AggregateFunctionType": {
+          "description": "Aggregate Function Type",
+          "type": "picklist"
+        },
+        "AggregateSrcContextAttrId": {
+          "description": "Aggregate Source Context Attribute ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextAttribute"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "AggregateSrcContextAttr"
+        },
+        "ContextNodeId": {
+          "description": "Context Node ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextNode"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextNode"
+        },
+        "DataType": {
+          "description": "Data Type",
+          "type": "picklist"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        },
+        "DisplayName": {
+          "description": "Display Name",
+          "type": "textarea"
+        },
+        "DomainSet": {
+          "description": "Domain Set",
+          "type": "string"
+        },
+        "FieldType": {
+          "description": "Field Type",
+          "type": "picklist"
+        },
+        "InheritedFrom": {
+          "description": "Inherited From",
+          "type": "string"
+        },
+        "IsCustomMappingAllowed": {
+          "description": "Is Custom Mapping Allowed",
+          "type": "boolean"
+        },
+        "IsKey": {
+          "description": "Is Key",
+          "type": "boolean"
+        },
+        "IsLocalizationDisabled": {
+          "description": "Is Localization Disabled",
+          "type": "boolean"
+        },
+        "IsTransient": {
+          "description": "Is Transient",
+          "type": "boolean"
+        },
+        "IsValue": {
+          "description": "Is Value",
+          "type": "boolean"
+        },
+        "Title": {
+          "description": "Title",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ContextAttributeMapping": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextAttributeId": {
+          "description": "Context Attribute ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextAttribute"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextAttribute"
+        },
+        "ContextInputAttributeName": {
+          "description": "Context Input Attribute Name",
+          "type": "string"
+        },
+        "ContextNodeMappingId": {
+          "description": "Context Node Mapping ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextNodeMapping"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextNodeMapping"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        },
+        "InheritedFrom": {
+          "description": "Inherited From",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ContextDefinition": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "CanBeReferenceDefinition": {
+          "description": "Can Be Reference Definition",
+          "type": "boolean"
+        },
+        "ClonedFrom": {
+          "description": "Cloned From",
+          "type": "string"
+        },
+        "ContextTtl": {
+          "description": "Context Ttl",
+          "type": "int"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "string"
+        },
+        "DeveloperName": {
+          "description": "Name",
+          "type": "string"
+        },
+        "DisplayName": {
+          "description": "Display Name",
+          "type": "string"
+        },
+        "HasSystemTags": {
+          "description": "Has System Tags",
+          "type": "boolean"
+        },
+        "InheritedFrom": {
+          "description": "Inherited From",
+          "type": "string"
+        },
+        "InheritedFromVersion": {
+          "description": "Inherited From Version",
+          "type": "string"
+        },
+        "IsExtensionV2Used": {
+          "description": "Extension V2 Used",
+          "type": "boolean"
+        },
+        "IsTransformationEnabled": {
+          "description": "Enable Transformations",
+          "type": "boolean"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        },
+        "Title": {
+          "description": "Title",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ContextDefinitionReference": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextDefinitionId": {
+          "description": "Context Definition ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextDefinition"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextDefinition"
+        },
+        "InheritedFrom": {
+          "description": "Inherited From",
+          "type": "string"
+        },
+        "ReferenceContextDefinition": {
+          "description": "Context Definition ID",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "ContextDefinitionSync": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextDefinitionName": {
+          "description": "Context Definition Name",
+          "type": "string"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "EndDateTime": {
+          "description": "End Date Time",
+          "type": "datetime"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "StartDateTime": {
+          "description": "Start Date Time",
+          "type": "datetime"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "SynchronizationInformation": {
+          "description": "Synchronization Information",
+          "type": "textarea"
+        }
+      },
+      "queryable": true
+    },
+    "ContextDefinitionVersion": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextDefinitionId": {
+          "description": "Context Definition ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextDefinition"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextDefinition"
+        },
+        "EndDate": {
+          "description": "End Date",
+          "type": "datetime"
+        },
+        "InheritedApexVersion": {
+          "description": "Inherited Apex Version",
+          "type": "string"
+        },
+        "IsActive": {
+          "description": "Is Active",
+          "type": "boolean"
+        },
+        "StartDate": {
+          "description": "Start Date",
+          "type": "datetime"
+        },
+        "VersionNumber": {
+          "description": "Version Number",
+          "type": "int"
+        }
+      },
+      "queryable": true
+    },
+    "ContextMapping": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextDefinitionVersionId": {
+          "description": "Context Definition Version ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextDefinitionVersion"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextDefinitionVersion"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "string"
+        },
+        "InheritedFrom": {
+          "description": "Inherited From",
+          "type": "string"
+        },
+        "IsDefault": {
+          "description": "Is Default",
+          "type": "boolean"
+        },
+        "Title": {
+          "description": "Title",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ContextMappingIntent": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextMappingId": {
+          "description": "Context Mapping ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextMapping"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextMapping"
+        },
+        "MappingIntent": {
+          "description": "Mapping Intent",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "ContextNode": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "CanonicalNodeId": {
+          "description": "Canonical Node ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextNode"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "CanonicalNode"
+        },
+        "ContextDefinitionVersionId": {
+          "description": "Context Definition Version ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextDefinitionVersion"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextDefinitionVersion"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        },
+        "DisplayName": {
+          "description": "Display Name",
+          "type": "string"
+        },
+        "InheritedFrom": {
+          "description": "Inherited From",
+          "type": "string"
+        },
+        "IsCustomMappingAllowed": {
+          "description": "Is Custom Mapping Allowed",
+          "type": "boolean"
+        },
+        "IsTransposable": {
+          "description": "Is Transposable",
+          "type": "boolean"
+        },
+        "Title": {
+          "description": "Title",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ContextNodeAttrDictionary": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextAttrDictIdentifier": {
+          "description": "Context Dictionary Identifier",
+          "type": "string"
+        },
+        "ContextNodeId": {
+          "description": "Context Node ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextNode"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextNode"
+        },
+        "ContextNodeMappingId": {
+          "description": "Context Node Mapping ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextNodeMapping"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextNodeMapping"
+        },
+        "ContextNodeTagPrefix": {
+          "description": "Context Node Tag Prefix",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ContextNodeMapping": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextMappingId": {
+          "description": "Context Node Mapping ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextMapping"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextMapping"
+        },
+        "ContextNodeId": {
+          "description": "Context Node ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextNode"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextNode"
+        },
+        "InheritedFrom": {
+          "description": "Inherited From",
+          "type": "string"
+        },
+        "MappedContextDefinition": {
+          "description": "Mapped Context Definition Name",
+          "type": "string"
+        },
+        "MappedContextNode": {
+          "description": "Mapped Context Node",
+          "type": "string"
+        },
+        "Object": {
+          "description": "Object",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ContextTag": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextAttributeId": {
+          "description": "Context Attribute ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextAttribute"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextAttribute"
+        },
+        "ContextNodeId": {
+          "description": "Context Node ID",
+          "type": "reference",
+          "refersTo": [
+            "ContextNode"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContextNode"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        },
+        "InheritedFrom": {
+          "description": "Inherited From",
+          "type": "string"
+        },
+        "Title": {
+          "description": "Title",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ContextUseCaseMapping": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "AdditionalUseCaseInput": {
+          "description": "Additional Use Case Input",
+          "type": "textarea"
+        },
+        "ContextDefinitionName": {
+          "description": "Context Definition Name",
+          "type": "string"
+        },
+        "DeveloperName": {
+          "description": "Name",
+          "type": "string"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MappingName": {
+          "description": "Mapping Name",
+          "type": "string"
+        },
+        "MappingType": {
+          "description": "Mapping Type",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        },
+        "ReferenceObjectName": {
+          "description": "Reference Object Name",
+          "type": "string"
+        },
+        "ReferenceObjectRecordTypeId": {
+          "description": "Record Type ID",
+          "type": "reference",
+          "refersTo": [
+            "RecordType"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ReferenceObjectRecordType"
+        },
+        "TargetObjectCustomFieldName": {
+          "description": "Target Object Custom Field Name",
+          "type": "string"
+        },
+        "TargetObjectName": {
+          "description": "Target Object Name",
+          "type": "string"
+        },
+        "TargetObjectRecordTypeId": {
+          "description": "Record Type ID",
+          "type": "reference",
+          "refersTo": [
+            "RecordType"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "TargetObjectRecordType"
+        },
+        "UseCaseType": {
+          "description": "Use Case Type",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "ContractDocVerContentDoc": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContentDocumentId": {
+          "description": "Content Document ID",
+          "type": "reference",
+          "refersTo": [
+            "ContentDocument"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContentDocument"
+        },
+        "ContentVersion": {
+          "description": "Latest Content Version",
+          "type": "string"
+        },
+        "ContractDocumentVersionId": {
+          "description": "Contract Document Version ID",
+          "type": "reference",
+          "refersTo": [
+            "ContractDocumentVersion"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContractDocumentVersion"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DocumentSourceType": {
+          "description": "Document Source Type",
+          "type": "picklist"
+        },
+        "DocumentType": {
+          "description": "Document Type",
+          "type": "picklist"
+        },
+        "IsGeneratedDocCheckedIn": {
+          "description": "Is Generated Document Checked In",
+          "type": "boolean"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "RelatedCntrDocVerContentDocId": {
+          "description": "Related Contract Document Version Content Document ID",
+          "type": "reference",
+          "refersTo": [
+            "ContractDocVerContentDoc"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "RelatedCntrDocVerContentDoc"
+        }
+      },
+      "queryable": true
+    },
+    "ContractDocVersionSection": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContractDocumentVersionId": {
+          "description": "Contract Document Version ID",
+          "type": "reference",
+          "refersTo": [
+            "ContractDocumentVersion"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContractDocumentVersion"
+        },
+        "CreationProcessType": {
+          "description": "Creation Process Type",
+          "type": "picklist"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DisplayHeaderFontStyle": {
+          "description": "Display Header Font Style",
+          "type": "textarea"
+        },
+        "DocumentClauseId": {
+          "description": "Document Clause ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentClause"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentClause"
+        },
+        "DocumentTemplateSectionId": {
+          "description": "Document Template Section ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentTemplateSection"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentTemplateSection"
+        },
+        "HasReconciledRedlines": {
+          "description": "Has Reconciled Redlines",
+          "type": "boolean"
+        },
+        "IsBeginSplitSection": {
+          "description": "Begin Split Section",
+          "type": "boolean"
+        },
+        "IsEndSplitSection": {
+          "description": "End Split Section",
+          "type": "boolean"
+        },
+        "IsRedlinedSection": {
+          "description": "Is Redlined Section",
+          "type": "boolean"
+        },
+        "IsSectionStandard": {
+          "description": "Is Standard",
+          "type": "boolean"
+        },
+        "Level": {
+          "description": "Level",
+          "type": "int"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "ReconciledSectionContent": {
+          "description": "Reconciled Section Content",
+          "type": "textarea"
+        },
+        "SectionContent": {
+          "description": "Section Content",
+          "type": "textarea"
+        },
+        "Sequence": {
+          "description": "Sequence",
+          "type": "int"
+        },
+        "SignatureContent": {
+          "description": "Signature Content",
+          "type": "textarea"
+        },
+        "SubSequence": {
+          "description": "Sub Sequence",
+          "type": "int"
+        },
+        "TemplateSectionContent": {
+          "description": "Template Section Content",
+          "type": "textarea"
+        },
+        "TokenList": {
+          "description": "Token List",
+          "type": "textarea"
+        },
+        "Type": {
+          "description": "Type",
+          "type": "picklist"
+        },
+        "XmlContent": {
+          "description": "XML Content",
+          "type": "textarea"
+        }
+      },
+      "queryable": true
+    },
+    "ContractDocumentReview": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContractDocumentVersionId": {
+          "description": "Contract Document Version ID",
+          "type": "reference",
+          "refersTo": [
+            "ContractDocumentVersion"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContractDocumentVersion"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "ExternalReviewerEmail": {
+          "description": "External Reviewer Email",
+          "type": "string"
+        },
+        "ExternalReviewerIdentifier": {
+          "description": "External Reviewer Identifier",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "UnresolvedCommentCount": {
+          "description": "Unresolved Comment Count",
+          "type": "int"
+        }
+      },
+      "queryable": true
+    },
+    "ContractDocumentVersion": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContractId": {
+          "description": "Contract ID",
+          "type": "reference",
+          "refersTo": [
+            "Contract"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Contract"
+        },
+        "CreatedByFullName": {
+          "description": "Created By Full Name",
+          "type": "string"
+        },
+        "CreationProcessType": {
+          "description": "Creation Process Type",
+          "type": "picklist"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DocConversionResourceName": {
+          "description": "Document Conversion Resource Name",
+          "type": "string"
+        },
+        "DocumentTemplateId": {
+          "description": "Document Template ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentTemplate"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentTemplate"
+        },
+        "HasNewTemplateVersionAvl": {
+          "description": "New Template Version Available",
+          "type": "boolean"
+        },
+        "HasReconRedlinedSection": {
+          "description": "Contains Reconciled Redlined Section",
+          "type": "boolean"
+        },
+        "HasRedlinedSection": {
+          "description": "Contains Redlined Section",
+          "type": "boolean"
+        },
+        "IsDocumentVersionLocked": {
+          "description": "Document Version Locked",
+          "type": "boolean"
+        },
+        "IsLockedByCurrentUser": {
+          "description": "Locked By Current User",
+          "type": "boolean"
+        },
+        "IsSectionInfoStoredInDoc": {
+          "description": "Is Section Info Stored In Doc",
+          "type": "boolean"
+        },
+        "LockType": {
+          "description": "Lock Type",
+          "type": "picklist"
+        },
+        "LockedById": {
+          "description": "User ID",
+          "type": "reference",
+          "refersTo": [
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "LockedBy"
+        },
+        "LockedByUserName": {
+          "description": "Locked By User Name",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "NonStandardSectionCount": {
+          "description": "Non Standard Section Count",
+          "type": "int"
+        },
+        "ReconRedlinedSectionCount": {
+          "description": "Reconciled Redlined Section Count",
+          "type": "int"
+        },
+        "RedlinedSectionCount": {
+          "description": "Redlined Section Count",
+          "type": "int"
+        },
+        "ShouldBypassStateMdlTrnst": {
+          "description": "Bypass State Model Transition",
+          "type": "boolean"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "VersionNumber": {
+          "description": "Version Number",
+          "type": "int"
+        }
+      },
+      "queryable": true
+    },
+    "ContractStatus": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ApiName": {
+          "description": "API Name",
+          "type": "string"
+        },
+        "IsDefault": {
+          "description": "Is Default",
+          "type": "boolean"
+        },
+        "MasterLabel": {
+          "description": "Master Label",
+          "type": "string"
+        },
+        "SortOrder": {
+          "description": "Sort Order",
+          "type": "int"
+        },
+        "StatusCode": {
+          "description": "Status Code",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "ContractType": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "DeveloperName": {
+          "description": "Name",
+          "type": "string"
+        },
+        "IsDefault": {
+          "description": "Is Default",
+          "type": "boolean"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        },
+        "SubTypes": {
+          "description": "Sub Types",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ContractTypeConfig": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ConfigType": {
+          "description": "Config Type",
+          "type": "picklist"
+        },
+        "ConfigValue": {
+          "description": "Config Value",
+          "type": "textarea"
+        },
+        "ContractTypeId": {
+          "description": "Contract Type ID",
+          "type": "reference",
+          "refersTo": [
+            "ContractType"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContractType"
+        },
+        "UsageType": {
+          "description": "Usage Type",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "DocGenBtchStsChgEvent": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "BatchProcessIdentifier": {
+          "description": "Batch Process Identifier",
+          "type": "string"
+        },
+        "EventUuid": {
+          "description": "Event Uuid",
+          "type": "string"
+        },
+        "ReplayId": {
+          "description": "Replay ID",
+          "type": "string"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        }
+      },
+      "queryable": false
+    },
+    "DocGenProcStsChgEvent": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "DocGenProcessIdentifier": {
+          "description": "Document Generation Process Identifier",
+          "type": "string"
+        },
+        "Error": {
+          "description": "Error",
+          "type": "string"
+        },
+        "EventUuid": {
+          "description": "Event Uuid",
+          "type": "string"
+        },
+        "PdfDocumentIdentifier": {
+          "description": "PDF Document Identifier",
+          "type": "string"
+        },
+        "ReferenceObject": {
+          "description": "Reference Object",
+          "type": "string"
+        },
+        "ReplayId": {
+          "description": "Replay ID",
+          "type": "string"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "WordDocumentIdentifier": {
+          "description": "Word Document Identifier",
+          "type": "string"
+        }
+      },
+      "queryable": false
+    },
+    "DocGenerationBatchProcess": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "Category": {
+          "description": "Category",
+          "type": "picklist"
+        },
+        "CompletionDate": {
+          "description": "Completion Date",
+          "type": "datetime"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        },
+        "FailedRequestCount": {
+          "description": "Failed Request Count",
+          "type": "int"
+        },
+        "InProgressRequestCount": {
+          "description": "In Progress Request Count",
+          "type": "int"
+        },
+        "IsAutoCompleteEnabled": {
+          "description": "Auto Complete Enabled",
+          "type": "boolean"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "SuccessfulRequestCount": {
+          "description": "Successful Request Count",
+          "type": "int"
+        },
+        "TotalRequestCount": {
+          "description": "Total Request Count",
+          "type": "int"
+        }
+      },
+      "queryable": true
+    },
+    "DocumentAuthoredContent": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "Checksum": {
+          "description": "Checksum",
+          "type": "string"
+        },
+        "Content": {
+          "description": "Content",
+          "type": "textarea"
+        },
+        "ContentGenerationSource": {
+          "description": "Content Generation Source",
+          "type": "picklist"
+        },
+        "ContentType": {
+          "description": "Content Type",
+          "type": "picklist"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DocAuthoredContentIdentifier": {
+          "description": "Document Authored Content Identifier",
+          "type": "string"
+        },
+        "IsLibraryAdditionRequested": {
+          "description": "Library Addition Requested",
+          "type": "boolean"
+        },
+        "IsReviewed": {
+          "description": "Reviewed",
+          "type": "boolean"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "ParentContentId": {
+          "description": "Parent Content ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentAuthoredContent"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ParentContent"
+        },
+        "ReferenceObjectId": {
+          "description": "Reference Object ID",
+          "type": "reference",
+          "refersTo": [
+            "ContractDocumentVersion",
+            "DocumentTemplate"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ReferenceObject"
+        },
+        "ReferenceObjectRecordType": {
+          "description": "Reference Object Record Type",
+          "type": "picklist"
+        },
+        "StandardContentObjectId": {
+          "description": "Document Clause ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentClause"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "StandardContentObject"
+        },
+        "StandardContentObjectType": {
+          "description": "Standard Content Object Type",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "DocumentClause": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ClauseTemplateVersionIdentifier": {
+          "description": "Clause Template Version Identifier",
+          "type": "string"
+        },
+        "Content": {
+          "description": "Content",
+          "type": "textarea"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        },
+        "DocumentClauseSetId": {
+          "description": "Document Clause Set ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentClauseSet"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentClauseSet"
+        },
+        "Format": {
+          "description": "Format",
+          "type": "picklist"
+        },
+        "IsAlternateClause": {
+          "description": "Is Alternate Clause",
+          "type": "boolean"
+        },
+        "IsEligibleForTerms": {
+          "description": "Eligible for Terms",
+          "type": "boolean"
+        },
+        "Language": {
+          "description": "Language",
+          "type": "picklist"
+        },
+        "LatestClauseTemplateIdentifier": {
+          "description": "Latest Clause Template Identifier",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "Version": {
+          "description": "Version",
+          "type": "int"
+        }
+      },
+      "queryable": true
+    },
+    "DocumentClauseContentToken": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DefaultValue": {
+          "description": "Default Value",
+          "type": "string"
+        },
+        "DocumentClauseId": {
+          "description": "Document Clause ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentClause"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentClause"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "TokenType": {
+          "description": "Token Type",
+          "type": "picklist"
+        },
+        "ValueType": {
+          "description": "Value Type",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "DocumentEnvelope": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContractDocumentVersionId": {
+          "description": "Contract Document Version ID",
+          "type": "reference",
+          "refersTo": [
+            "ContractDocumentVersion"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ContractDocumentVersion"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DeliveredDateTime": {
+          "description": "Delivered Date Time",
+          "type": "datetime"
+        },
+        "EnvelopeIdentifier": {
+          "description": "Envelope Identifier",
+          "type": "string"
+        },
+        "EnvelopeMessageContent": {
+          "description": "Envelope Message",
+          "type": "textarea"
+        },
+        "EnvelopeSubject": {
+          "description": "Envelope Subject",
+          "type": "string"
+        },
+        "EnvelopeUri": {
+          "description": "Envelope URI",
+          "type": "string"
+        },
+        "FinalStatusDateTime": {
+          "description": "Final Status Date Time",
+          "type": "datetime"
+        },
+        "FinalStatusReason": {
+          "description": "Final Status Reason",
+          "type": "string"
+        },
+        "LastSyncDateTime": {
+          "description": "Last Sync Date Time",
+          "type": "datetime"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "ReferenceObjectId": {
+          "description": "ReferenceObject ID",
+          "type": "reference",
+          "refersTo": [
+            "Account",
+            "AccountBillingAccount",
+            "AccountingPeriod",
+            "AdAvailabilityViewConfig",
+            "ApprovalSubmission",
+            "ApprovalSubmissionDetail",
+            "ApprovalWorkItem",
+            "ApprovalWorkItemCondition",
+            "ApprovalWorkItemCriteria",
+            "Assessment",
+            "AssessmentDefinition",
+            "AssessmentEnvelope",
+            "AssessmentEnvelopeItem",
+            "AssessmentQuestion",
+            "AssessmentQuestionAssignment",
+            "AssessmentQuestionResponse",
+            "AssessmentQuestionSet",
+            "AssessmentQuestionVersion",
+            "AssessmentSavedSession",
+            "AssessmentSignature",
+            "Asset",
+            "AssetActionSrcPriceAdjustment",
+            "AssetContractRelationship",
+            "AssetRelationship",
+            "AttrPicklistExcludedValue",
+            "AttributeAdjustmentCondition",
+            "AttributeBasedAdjRule",
+            "AttributeBasedAdjustment",
+            "AttributeCategory",
+            "AttributeCategoryAttribute",
+            "AttributeDefinition",
+            "AttributePicklist",
+            "AttributePicklistValue",
+            "AuthFormRequestRecord",
+            "AuthorizationFormText",
+            "BatchJob",
+            "BatchJobPart",
+            "BatchJobPartFailedRecord",
+            "BillingAccount",
+            "BillingMilestonePlan",
+            "BillingMilestonePlanItem",
+            "BindingObjUsageRsrcPlcy",
+            "BindingObjectCustomExt",
+            "BindingObjectRateAdjustment",
+            "BindingObjectRateCardEntry",
+            "BsgRelationship",
+            "BundleBasedAdjustment",
+            "BusinessMilestone",
+            "BusinessProfile",
+            "BuyerAccount",
+            "BuyerGroup",
+            "CalcMatrixColumnRange",
+            "CalcProcStepRelationship",
+            "CalculationMatrix",
+            "CalculationMatrixColumn",
+            "CalculationMatrixRow",
+            "CalculationMatrixVersion",
+            "CalculationProcedure",
+            "CalculationProcedureStep",
+            "CalculationProcedureVariable",
+            "CalculationProcedureVersion",
+            "Campaign",
+            "Case",
+            "CaseParticipant",
+            "CaseProceeding",
+            "CaseProceedingParticipant",
+            "CaseProceedingResult",
+            "ChannelProgram",
+            "ChannelProgramLevel",
+            "ChannelProgramMember",
+            "CollaborationGroup",
+            "CollectionPlan",
+            "CollectionPlanItem",
+            "CollectionPlanReason",
+            "CommSubscription",
+            "CommSubscriptionChannelType",
+            "CommSubscriptionConsent",
+            "CommSubscriptionTiming",
+            "Contact",
+            "ContentDocument",
+            "ContentLink",
+            "ContentSource",
+            "Contract",
+            "ContractItemPrice",
+            "ContractItemPriceAdjTier",
+            "ContractLineItem",
+            "CostBook",
+            "CostBookEntry",
+            "Coupon",
+            "CreditMemo",
+            "CreditMemoInvApplication",
+            "CreditMemoLine",
+            "CreditMemoLineTax",
+            "Dashboard",
+            "DebitMemo",
+            "DebitMemoLine",
+            "DebitMemoLineTax",
+            "DelegatedAccount",
+            "DeliveryEstimationSetup",
+            "DevopsEnvDeployment",
+            "DevopsEnvDeploymentMbr",
+            "DevopsEnvironment",
+            "DevopsRequestInfo",
+            "Dispute",
+            "DisputeItem",
+            "DocChkItemValidatedTarget",
+            "DocGenerationQueryResult",
+            "DocumentChecklistItem",
+            "DocumentClauseContentToken",
+            "DocumentClauseSet",
+            "DocumentDecisionRequirement",
+            "EngagementAttendee",
+            "EngagementChannelType",
+            "EngagementInteraction",
+            "EngagementTopic",
+            "EnhancedLetterhead",
+            "Entitlement",
+            "EntityMilestone",
+            "ExpressionSet",
+            "ExpressionSetConstraintObj",
+            "ExpressionSetVersion",
+            "FulfillmentOrder",
+            "FulfillmentOrderItemAdjustment",
+            "FulfillmentOrderItemTax",
+            "FulfillmentOrderLineItem",
+            "FulfillmentTaskAssignmentRule",
+            "GoalAssignment",
+            "GoalDefinition",
+            "Image",
+            "IndexRate",
+            "InfoAuthRequestForm",
+            "InfoAuthorizationRequest",
+            "IntegrationProviderDcsnRqmt",
+            "IntegrationProviderExecution",
+            "Invoice",
+            "InvoiceDocument",
+            "InvoiceLine",
+            "InvoiceLineRelationship",
+            "InvoiceLineTax",
+            "Lead",
+            "LegalEntity",
+            "LegalEntyAccountingPeriod",
+            "LinkedArticle",
+            "Location",
+            "LocationGroup",
+            "LocationShippingCarrierMethod",
+            "MerchantAccount",
+            "MessagingSession",
+            "MultipartyInfoAuthRequest",
+            "ObjectStateDefinition",
+            "ObjectStateTransition",
+            "ObjectStateValue",
+            "Obligation",
+            "OmniComponentErrorLog",
+            "OmniDataPack",
+            "OmniGlobalAutoNumber",
+            "OmniProcess",
+            "OmniProcessAsmtQuestionVer",
+            "OmniProcessTransientData",
+            "OmniScriptSavedSession",
+            "OmniUiCard",
+            "OperatingHours",
+            "OperatingHoursHoliday",
+            "Opportunity",
+            "Order",
+            "OrderAction",
+            "OrderAdjustmentGroup",
+            "OrderAdjustmentGroupSummary",
+            "OrderChangeLog",
+            "OrderDeliveryGroup",
+            "OrderDeliveryGroupSummary",
+            "OrderDeliveryMethod",
+            "OrderItem",
+            "OrderItemAdjustmentLineItem",
+            "OrderItemAdjustmentLineSummary",
+            "OrderItemDetail",
+            "OrderItemRateAdjustment",
+            "OrderItemRateCardEntry",
+            "OrderItemRelationship",
+            "OrderItemSummary",
+            "OrderItemTaxLineItem",
+            "OrderItemTaxLineItemSummary",
+            "OrderItemUsageRsrcGrant",
+            "OrderItemUsageRsrcPlcy",
+            "OrderPaymentSummary",
+            "OrderSummary",
+            "OrderSummaryAdditionalInfo",
+            "OutboundEngmtContentRsrc",
+            "PartnerFundAllocation",
+            "PartnerFundClaim",
+            "PartnerFundRequest",
+            "PartnerMarketingBudget",
+            "PartyConsent",
+            "Payment",
+            "PersonLifeEvent",
+            "PickTicket",
+            "PickTicketProduct",
+            "PriceAdjustmentSchedule",
+            "PriceAdjustmentTier",
+            "PriceBookEntryDerivedPrice",
+            "PriceBookRateCard",
+            "PriceRevisionPolicy",
+            "PricingAdjBatchJob",
+            "PricingAdjBatchJobLog",
+            "PricingAPIExecution",
+            "PricingProcessExecution",
+            "ProdtAttrMappedScope",
+            "ProdtAttrScope",
+            "Product2",
+            "ProductAttributeDefinition",
+            "ProductCatalog",
+            "ProductCategory",
+            "ProductCategoryDisqual",
+            "ProductCategoryQualification",
+            "ProductClassification",
+            "ProductClassificationAttr",
+            "ProductComponentGroup",
+            "ProductComponentGrpOverride",
+            "ProductConfigurationFlow",
+            "ProductConfigurationRule",
+            "ProductDisqualification",
+            "ProductQualification",
+            "ProductRampSegment",
+            "ProductRelComponentOverride",
+            "ProductSellingModel",
+            "ProductUsageGrant",
+            "ProductUsageResource",
+            "ProductUsageResourcePolicy",
+            "Promotion",
+            "PromotionMarketSegment",
+            "PromotionPartyUsage",
+            "PromotionQualifier",
+            "PromotionSegment",
+            "PromotionSegmentBuyerGroup",
+            "PromotionSegmentSalesStore",
+            "PromotionTarget",
+            "PromotionTier",
+            "QuotLineItmUsageRsrcPlcy",
+            "QuotLineItmUseRsrcGrant",
+            "Quote",
+            "QuoteAction",
+            "QuoteLineDetail",
+            "QuoteLineRateAdjustment",
+            "QuoteLineRateCardEntry",
+            "QuoteLineRelationship",
+            "RateAdjustmentByAttribute",
+            "RateAdjustmentByTier",
+            "RateCard",
+            "RateCardEntry",
+            "RatingFrequencyPolicy",
+            "RatingRequest",
+            "RatingRequestBatchJob",
+            "ReceivedDocument",
+            "ReceivedDocumentType",
+            "RecordAlert",
+            "RecordAlertActionableTarget",
+            "Report",
+            "ReturnOrder",
+            "ReturnOrderLineItem",
+            "RuleLibrary",
+            "RuleLibraryVersion",
+            "SalesChannel",
+            "SalesContractLine",
+            "ServiceContract",
+            "ServiceResource",
+            "Shipment",
+            "ShipmentItem",
+            "ShippingCarrier",
+            "ShippingCarrierMethod",
+            "SocialPost",
+            "Solution",
+            "Topic",
+            "TransactionUsageEntitlement",
+            "UnitOfMeasureClass",
+            "UsageBillingPeriodItem",
+            "UsageCmtAssetRelatedObj",
+            "UsageCommitmentPolicy",
+            "UsageEntitlementAccount",
+            "UsageEntitlementBucket",
+            "UsageEntitlementEntry",
+            "UsageGrantRenewalPolicy",
+            "UsageGrantRolloverPolicy",
+            "UsageOveragePolicy",
+            "UsagePrdGrantBindingPolicy",
+            "UsageResource",
+            "UsageResourceBillingPolicy",
+            "UsageResourcePolicy",
+            "VideoCall",
+            "VoiceCall",
+            "WorkOrder",
+            "WorkOrderLineItem",
+            "WorkPlan",
+            "WorkPlanTemplate",
+            "WorkPlanTemplateEntry",
+            "WorkStep",
+            "WorkStepTemplate"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ReferenceObject"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "StatusChangeDateTime": {
+          "description": "Status Change Date Time",
+          "type": "datetime"
+        },
+        "Vendor": {
+          "description": "Vendor",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "DocumentGenerationProcess": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "AdditionalMetadata": {
+          "description": "Additional Metadata",
+          "type": "textarea"
+        },
+        "ContextTokenProcessingType": {
+          "description": "Context Token Processing Type",
+          "type": "picklist"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DataRaptorInput": {
+          "description": "Data Mapper Input",
+          "type": "textarea"
+        },
+        "DocGenAdditionalInput": {
+          "description": "DocGen Additional Input",
+          "type": "textarea"
+        },
+        "DocGenAdditionalInputType": {
+          "description": "DocGen Additional Input Type",
+          "type": "picklist"
+        },
+        "DocGenApiVersionType": {
+          "description": "Doc Generation API Version Type",
+          "type": "picklist"
+        },
+        "DocGenerationBatchProcessId": {
+          "description": "Document Generation Batch Process ID",
+          "type": "reference",
+          "refersTo": [
+            "DocGenerationBatchProcess"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocGenerationBatchProcess"
+        },
+        "DocumentInputType": {
+          "description": "Document Input Type",
+          "type": "picklist"
+        },
+        "DocumentTemplateId": {
+          "description": "Document Template ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentTemplate"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentTemplate"
+        },
+        "EstimatedDocumentSize": {
+          "description": "Estimated Document Size",
+          "type": "int"
+        },
+        "HasDocGenFontSource": {
+          "description": "Doc Generation Font Source",
+          "type": "boolean"
+        },
+        "IsLocalizationEnabled": {
+          "description": "Localization Enabled",
+          "type": "boolean"
+        },
+        "IsSharedExternally": {
+          "description": "Shared Externally",
+          "type": "boolean"
+        },
+        "IsTocUpdateRequired": {
+          "description": "Table of Contents Update Required",
+          "type": "boolean"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "PdfDocIdentifiersList": {
+          "description": "PDF Document Identifiers List",
+          "type": "string"
+        },
+        "ReferenceObject": {
+          "description": "Reference Object",
+          "type": "string"
+        },
+        "RequestText": {
+          "description": "Request Text",
+          "type": "string"
+        },
+        "ResponseText": {
+          "description": "Response Text",
+          "type": "string"
+        },
+        "ShouldUseLargeFileSizeProc": {
+          "description": "Use Large File Size Processing",
+          "type": "boolean"
+        },
+        "SourceObjectId": {
+          "description": "Source Object ID",
+          "type": "reference",
+          "refersTo": [
+            "ContractDocumentVersion"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "SourceObject"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "TokenData": {
+          "description": "Token Data",
+          "type": "textarea"
+        },
+        "TokenDataContentDocumentId": {
+          "description": "Content Document ID",
+          "type": "reference",
+          "refersTo": [
+            "ContentDocument"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "TokenDataContentDocument"
+        },
+        "Type": {
+          "description": "Type",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "DocumentGenerationSetting": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "BatchDocGnrnPctLimitPerHour": {
+          "description": "Batch Docgen Percent Limit Per Hour",
+          "type": "percent"
+        },
+        "DeveloperName": {
+          "description": "Name",
+          "type": "string"
+        },
+        "DocumentTemplateLibraryName": {
+          "description": "Document Template Library Name",
+          "type": "string"
+        },
+        "GenerationMechanism": {
+          "description": "Generation Mechanism",
+          "type": "picklist"
+        },
+        "GuestAccessNamedCredential": {
+          "description": "Guest Access Named Credential",
+          "type": "string"
+        },
+        "InProgDocGenRqstTmot": {
+          "description": "InProgress DocGen Request Time Out (hrs)",
+          "type": "int"
+        },
+        "IsBatchDocGnrnEnabled": {
+          "description": "Enable Batch Document Generation",
+          "type": "boolean"
+        },
+        "IsInProgRqstTmotEnab": {
+          "description": "Enable InProgress DocGen Request Time Out",
+          "type": "boolean"
+        },
+        "IsServerSideDocGenEnabled": {
+          "description": "Enable Server-Side Document Generation",
+          "type": "boolean"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        },
+        "PreviewType": {
+          "description": "Preview Type",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "DocumentTemplate": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContextDefinitionName": {
+          "description": "Context Definition Name",
+          "type": "string"
+        },
+        "ContextFilterName": {
+          "description": "Context Filter Name",
+          "type": "string"
+        },
+        "ContextMappingName": {
+          "description": "Context Mapping Name",
+          "type": "string"
+        },
+        "ContextTransformationName": {
+          "description": "Context Transformation Name",
+          "type": "string"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "CustomClassName": {
+          "description": "Custom Class Name",
+          "type": "string"
+        },
+        "DefaultFontStyle": {
+          "description": "Default Font Style",
+          "type": "textarea"
+        },
+        "DocumentConversionResourceName": {
+          "description": "Document Conversion Resource Name",
+          "type": "string"
+        },
+        "DocumentGenerationMechanism": {
+          "description": "Document Generation Mechanism",
+          "type": "picklist"
+        },
+        "ExtractOmniDataTransformName": {
+          "description": "Extract Omni Data Transform Name",
+          "type": "string"
+        },
+        "GlobalKey": {
+          "description": "Global Key",
+          "type": "string"
+        },
+        "HasBatchableSection": {
+          "description": "Batchable Section Available",
+          "type": "boolean"
+        },
+        "IsActive": {
+          "description": "Active",
+          "type": "boolean"
+        },
+        "IsSectionProcessed": {
+          "description": "Section Processed",
+          "type": "boolean"
+        },
+        "LastEmbeddedTmplSectionKey": {
+          "description": "Last Embedded Template Section Key",
+          "type": "string"
+        },
+        "MapperOmniDataTransformName": {
+          "description": "Mapper Omni Data Transform Name",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "Namespace": {
+          "description": "Namespace",
+          "type": "string"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "SectionHeaderFontStyle": {
+          "description": "Section Header Font Style",
+          "type": "textarea"
+        },
+        "SectionHeaderFontStyleValue": {
+          "description": "Section Header Font Style Value",
+          "type": "textarea"
+        },
+        "ShouldDisplayUnmappedToken": {
+          "description": "Display Unmapped Token",
+          "type": "boolean"
+        },
+        "ShouldExtractEmbeddedTmplToken": {
+          "description": "Extract Embedded Template Token",
+          "type": "boolean"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "TargetTokenItemObject": {
+          "description": "Target Token Item Object",
+          "type": "multipicklist"
+        },
+        "TargetTokenObject": {
+          "description": "Target Token Object",
+          "type": "multipicklist"
+        },
+        "TokenList": {
+          "description": "Token List",
+          "type": "textarea"
+        },
+        "TokenMappingMethodType": {
+          "description": "Token Mapping Method Type",
+          "type": "picklist"
+        },
+        "TokenMappingType": {
+          "description": "Token Mapping Type",
+          "type": "picklist"
+        },
+        "Type": {
+          "description": "Type",
+          "type": "picklist"
+        },
+        "UniqueName": {
+          "description": "Unique Name",
+          "type": "string"
+        },
+        "UsageType": {
+          "description": "Usage Type",
+          "type": "picklist"
+        },
+        "VersionNumber": {
+          "description": "Version",
+          "type": "int"
+        },
+        "XmlRelationshipMetadata": {
+          "description": "Xml Relationship Metadata",
+          "type": "textarea"
+        }
+      },
+      "queryable": true
+    },
+    "DocumentTemplateConfig": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "DeveloperName": {
+          "description": "Name",
+          "type": "string"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "DocumentTemplateSection": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "AccessType": {
+          "description": "Access Type",
+          "type": "picklist"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DisplayConditionExpression": {
+          "description": "Display Condition Expression",
+          "type": "textarea"
+        },
+        "DocumentTemplateClauseId": {
+          "description": "Document Clause ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentClause"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentTemplateClause"
+        },
+        "DocumentTemplateId": {
+          "description": "Document Template ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentTemplate"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentTemplate"
+        },
+        "EmbeddedDocumentTemplateId": {
+          "description": "Document Template ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentTemplate"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "EmbeddedDocumentTemplate"
+        },
+        "EmbeddedKey": {
+          "description": "Embedded Key",
+          "type": "string"
+        },
+        "HasSectionNumberReset": {
+          "description": "Reset Section Number",
+          "type": "boolean"
+        },
+        "IsBatchable": {
+          "description": "Batchable",
+          "type": "boolean"
+        },
+        "IsDisplayOnNewPage": {
+          "description": "Display on New Page",
+          "type": "boolean"
+        },
+        "IsNewLineAfterSectionEnabled": {
+          "description": "Add New Line After Section",
+          "type": "boolean"
+        },
+        "IsSectionNumberDisplayEnabled": {
+          "description": "Section Number Display",
+          "type": "boolean"
+        },
+        "IsTableHeaderRepeatable": {
+          "description": "Table Header Repeatable",
+          "type": "boolean"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "ReferenceClassName": {
+          "description": "Reference Class Name",
+          "type": "string"
+        },
+        "SectionContent": {
+          "description": "Section Content",
+          "type": "textarea"
+        },
+        "SectionSequenceNumber": {
+          "description": "Section Sequence Number",
+          "type": "double"
+        },
+        "SectionType": {
+          "description": "Section Type",
+          "type": "picklist"
+        },
+        "SectionTypeItemFontStyle": {
+          "description": "Section Type Item Font Style",
+          "type": "textarea"
+        },
+        "SectionTypeItemFontValue": {
+          "description": "Section Type Item Font Style Value",
+          "type": "textarea"
+        },
+        "SectionTypeSignatureContent": {
+          "description": "Section Type Signature Content",
+          "type": "textarea"
+        },
+        "ShouldDisplayHeaderContentInline": {
+          "description": "Display Header Content Inline",
+          "type": "boolean"
+        },
+        "ShouldDisplayHeaderName": {
+          "description": "Display Header Name",
+          "type": "boolean"
+        },
+        "ShouldGenerateEmbeddedKey": {
+          "description": "Generate Embedded Key",
+          "type": "boolean"
+        },
+        "TokenList": {
+          "description": "Token List",
+          "type": "textarea"
+        },
+        "TotalSectionConditionCount": {
+          "description": "Total Section Condition Count",
+          "type": "int"
+        }
+      },
+      "queryable": true
+    },
+    "ESignatureConfig": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ConfigType": {
+          "description": "Config Type",
+          "type": "picklist"
+        },
+        "ConfigValue": {
+          "description": "Config Value",
+          "type": "string"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "string"
+        },
+        "DeveloperName": {
+          "description": "Name",
+          "type": "string"
+        },
+        "GroupType": {
+          "description": "Config Group",
+          "type": "picklist"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        },
+        "Vendor": {
+          "description": "Vendor",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "ESignatureEnvelopeConfig": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "DeveloperName": {
+          "description": "Name",
+          "type": "string"
+        },
+        "ExpirationPeriod": {
+          "description": "Expiration Period",
+          "type": "int"
+        },
+        "ExpirationWarningPeriod": {
+          "description": "Expiration Warning Period",
+          "type": "int"
+        },
+        "FirstReminderPeriod": {
+          "description": "First Reminder Period",
+          "type": "int"
+        },
+        "IsExpirationEnabled": {
+          "description": "Expiration Enabled",
+          "type": "boolean"
+        },
+        "IsReminderEnabled": {
+          "description": "Reminder Enabled",
+          "type": "boolean"
+        },
+        "IsVendorDefaultNtfcnEnabled": {
+          "description": "Vendor Default Notification Enabled",
+          "type": "boolean"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        },
+        "ReminderIntervalPeriod": {
+          "description": "Reminder Interval Period",
+          "type": "int"
+        },
+        "TargetObjectName": {
+          "description": "Target Object Name",
+          "type": "picklist"
+        },
+        "Vendor": {
+          "description": "Vendor",
+          "type": "picklist"
+        },
+        "VendorAccountIdentifier": {
+          "description": "Vendor Account Identifier",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "ExternalDocStorageConfig": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "DeveloperName": {
+          "description": "Name",
+          "type": "string"
+        },
+        "DocumentPath": {
+          "description": "Document Path",
+          "type": "textarea"
+        },
+        "ExternalDocStorageIdentifier": {
+          "description": "External Document Storage Identifier",
+          "type": "string"
+        },
+        "Language": {
+          "description": "Master Language",
+          "type": "picklist"
+        },
+        "MasterLabel": {
+          "description": "Label",
+          "type": "string"
+        },
+        "NamedCredentialId": {
+          "description": "Named Credential ID",
+          "type": "reference",
+          "refersTo": [
+            "NamedCredential"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "NamedCredential"
+        },
+        "NamespacePrefix": {
+          "description": "Namespace Prefix",
+          "type": "string"
+        },
+        "RecordTypeId": {
+          "description": "Record Type ID",
+          "type": "reference",
+          "refersTo": [
+            "RecordType"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "RecordType"
+        },
+        "StorageDriveType": {
+          "description": "Storage Drive Type",
+          "type": "picklist"
+        },
+        "TargetObject": {
+          "description": "Target Object",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "GeneratedDocumentSection": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DisplayHeaderFontStyle": {
+          "description": "Display Header Font Style",
+          "type": "textarea"
+        },
+        "DocumentTemplateClauseId": {
+          "description": "Document Clause ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentClause"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentTemplateClause"
+        },
+        "DocumentTemplateSectionId": {
+          "description": "Document Template Section ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentTemplateSection"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentTemplateSection"
+        },
+        "GeneratedDocumentId": {
+          "description": "Generated Document ID",
+          "type": "reference",
+          "refersTo": [
+            "GeneratedDocument"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "GeneratedDocument"
+        },
+        "IsBeginSplitSection": {
+          "description": "Begin Split Section",
+          "type": "boolean"
+        },
+        "IsEndSplitSection": {
+          "description": "End Split Section",
+          "type": "boolean"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "SectionContent": {
+          "description": "Section Content",
+          "type": "textarea"
+        },
+        "SectionOrder": {
+          "description": "Section Order",
+          "type": "double"
+        },
+        "SectionTypeSignatureContent": {
+          "description": "Section Type Signature Content",
+          "type": "textarea"
+        },
+        "SplitSectionSequenceNumber": {
+          "description": "Split Section Sequence Number",
+          "type": "double"
+        },
+        "TemplateSectionContent": {
+          "description": "Template Section Content",
+          "type": "textarea"
+        },
+        "TokenList": {
+          "description": "Token List",
+          "type": "textarea"
+        },
+        "XmlContent": {
+          "description": "XML Content",
+          "type": "textarea"
+        }
+      },
+      "queryable": true
+    },
+    "Obligation": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "AssigneeUserId": {
+          "description": "User ID",
+          "type": "reference",
+          "refersTo": [
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "AssigneeUser"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        },
+        "EndDate": {
+          "description": "End Date",
+          "type": "date"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "OtherPartyAccountId": {
+          "description": "Account ID",
+          "type": "reference",
+          "refersTo": [
+            "Account"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "OtherPartyAccount"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "Party": {
+          "description": "Party",
+          "type": "picklist"
+        },
+        "ReferenceContractId": {
+          "description": "Contract ID",
+          "type": "reference",
+          "refersTo": [
+            "Contract"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ReferenceContract"
+        },
+        "ReferenceObjectId": {
+          "description": "Reference Object ID",
+          "type": "reference",
+          "refersTo": [
+            "Contract"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "ReferenceObject"
+        },
+        "StartDate": {
+          "description": "Start Date",
+          "type": "date"
+        },
+        "State": {
+          "description": "State",
+          "type": "picklist"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "StatusChangeReason": {
+          "description": "Status Change Reason",
+          "type": "string"
+        },
+        "Type": {
+          "description": "Type",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    },
+    "QuoteClause": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ClauseContent": {
+          "description": "Clause Content",
+          "type": "textarea"
+        },
+        "ContentFormatting": {
+          "description": "Content Formatting",
+          "type": "picklist"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "DocumentClauseId": {
+          "description": "Document Clause ID",
+          "type": "reference",
+          "refersTo": [
+            "DocumentClause"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "DocumentClause"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "QuoteId": {
+          "description": "Quote ID",
+          "type": "reference",
+          "refersTo": [
+            "Quote"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Quote"
+        },
+        "Reason": {
+          "description": "Reason",
+          "type": "string"
+        }
+      },
+      "queryable": true
+    },
+    "SalesContractLine": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "ContractId": {
+          "description": "Contract ID",
+          "type": "reference",
+          "refersTo": [
+            "Contract"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Contract"
+        },
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "Description": {
+          "description": "Description",
+          "type": "textarea"
+        },
+        "EffectiveEndDateTime": {
+          "description": "Effective End Date Time",
+          "type": "datetime"
+        },
+        "EffectiveStartDateTime": {
+          "description": "Effective Start Date Time",
+          "type": "datetime"
+        },
+        "LineItemNumber": {
+          "description": "Line Item Number",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Sales Contract Line Name",
+          "type": "string"
+        },
+        "OpportunityProductId": {
+          "description": "Line Item ID",
+          "type": "reference",
+          "refersTo": [
+            "OpportunityLineItem"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "OpportunityProduct"
+        },
+        "OrderProductId": {
+          "description": "Order Product ID",
+          "type": "reference",
+          "refersTo": [
+            "OrderItem"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "OrderProduct"
+        },
+        "OriginalLineItemId": {
+          "description": "Sales Contract Line ID",
+          "type": "reference",
+          "refersTo": [
+            "SalesContractLine"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "OriginalLineItem"
+        },
+        "Product2Id": {
+          "description": "Product ID",
+          "type": "reference",
+          "refersTo": [
+            "Product2"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Product2"
+        },
+        "ProductCode": {
+          "description": "Product Code",
+          "type": "textarea"
+        },
+        "Quantity": {
+          "description": "Quantity",
+          "type": "double"
+        },
+        "QuoteLineItemId": {
+          "description": "Quote Line Item ID",
+          "type": "reference",
+          "refersTo": [
+            "QuoteLineItem"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "QuoteLineItem"
+        },
+        "Status": {
+          "description": "Status",
+          "type": "picklist"
+        },
+        "TotalPrice": {
+          "description": "Total Price",
+          "type": "currency"
+        },
+        "UnitOfMeasureId": {
+          "description": "Unit of Measure ID",
+          "type": "reference",
+          "refersTo": [
+            "UnitOfMeasure"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "UnitOfMeasure"
+        },
+        "UnitPrice": {
+          "description": "Unit Price",
+          "type": "currency"
+        }
+      },
+      "queryable": true
+    },
+    "UserEsignVendorIdentifier": {
+      "domain": "Contracts & CLM",
+      "domainShort": "Contracts",
+      "fields": {
+        "CurrencyIsoCode": {
+          "description": "Currency ISO Code",
+          "type": "picklist"
+        },
+        "ExternalUserIdentifier": {
+          "description": "External User Identifier",
+          "type": "string"
+        },
+        "Name": {
+          "description": "Name",
+          "type": "string"
+        },
+        "OwnerId": {
+          "description": "Owner ID",
+          "type": "reference",
+          "refersTo": [
+            "Group",
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "Owner"
+        },
+        "UserId": {
+          "description": "User ID",
+          "type": "reference",
+          "refersTo": [
+            "User"
+          ],
+          "relationshipType": "reference",
+          "relationshipName": "User"
+        },
+        "Vendor": {
+          "description": "Vendor",
+          "type": "picklist"
+        },
+        "VendorType": {
+          "description": "Vendor Type",
+          "type": "picklist"
+        }
+      },
+      "queryable": true
+    }
+  },
+  "relationships": [
+    {
+      "source": "ContextAttribute",
+      "target": "ContextAttribute",
+      "field": "AggregateSrcContextAttrId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextAttribute",
+      "target": "ContextNode",
+      "field": "ContextNodeId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextAttributeMapping",
+      "target": "ContextAttribute",
+      "field": "ContextAttributeId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextAttributeMapping",
+      "target": "ContextNodeMapping",
+      "field": "ContextNodeMappingId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextDefinitionReference",
+      "target": "ContextDefinition",
+      "field": "ContextDefinitionId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextDefinitionVersion",
+      "target": "ContextDefinition",
+      "field": "ContextDefinitionId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextMapping",
+      "target": "ContextDefinitionVersion",
+      "field": "ContextDefinitionVersionId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextMappingIntent",
+      "target": "ContextMapping",
+      "field": "ContextMappingId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextNode",
+      "target": "ContextNode",
+      "field": "CanonicalNodeId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextNode",
+      "target": "ContextDefinitionVersion",
+      "field": "ContextDefinitionVersionId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextNodeAttrDictionary",
+      "target": "ContextNode",
+      "field": "ContextNodeId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextNodeAttrDictionary",
+      "target": "ContextNodeMapping",
+      "field": "ContextNodeMappingId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextNodeMapping",
+      "target": "ContextMapping",
+      "field": "ContextMappingId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextNodeMapping",
+      "target": "ContextNode",
+      "field": "ContextNodeId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextTag",
+      "target": "ContextAttribute",
+      "field": "ContextAttributeId",
+      "type": "reference"
+    },
+    {
+      "source": "ContextTag",
+      "target": "ContextNode",
+      "field": "ContextNodeId",
+      "type": "reference"
+    },
+    {
+      "source": "Contract",
+      "target": "ContractDocumentVersion",
+      "field": "ContractDocumentVersionId",
+      "type": "reference"
+    },
+    {
+      "source": "Contract",
+      "target": "PriceBook2",
+      "field": "Pricebook2Id",
+      "type": "reference"
+    },
+    {
+      "source": "ContractDocVerContentDoc",
+      "target": "ContractDocumentVersion",
+      "field": "ContractDocumentVersionId",
+      "type": "reference"
+    },
+    {
+      "source": "ContractDocVerContentDoc",
+      "target": "ContractDocVerContentDoc",
+      "field": "RelatedCntrDocVerContentDocId",
+      "type": "reference"
+    },
+    {
+      "source": "ContractDocVersionSection",
+      "target": "ContractDocumentVersion",
+      "field": "ContractDocumentVersionId",
+      "type": "reference"
+    },
+    {
+      "source": "ContractDocVersionSection",
+      "target": "DocumentClause",
+      "field": "DocumentClauseId",
+      "type": "reference"
+    },
+    {
+      "source": "ContractDocVersionSection",
+      "target": "DocumentTemplateSection",
+      "field": "DocumentTemplateSectionId",
+      "type": "reference"
+    },
+    {
+      "source": "ContractDocumentReview",
+      "target": "ContractDocumentVersion",
+      "field": "ContractDocumentVersionId",
+      "type": "reference"
+    },
+    {
+      "source": "ContractDocumentVersion",
+      "target": "Contract",
+      "field": "ContractId",
+      "type": "reference"
+    },
+    {
+      "source": "ContractDocumentVersion",
+      "target": "DocumentTemplate",
+      "field": "DocumentTemplateId",
+      "type": "reference"
+    },
+    {
+      "source": "ContractTypeConfig",
+      "target": "ContractType",
+      "field": "ContractTypeId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentAuthoredContent",
+      "target": "DocumentAuthoredContent",
+      "field": "ParentContentId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentAuthoredContent",
+      "target": "ContractDocumentVersion",
+      "field": "ReferenceObjectId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentAuthoredContent",
+      "target": "DocumentTemplate",
+      "field": "ReferenceObjectId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentAuthoredContent",
+      "target": "DocumentClause",
+      "field": "StandardContentObjectId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentClause",
+      "target": "DocumentClauseSet",
+      "field": "DocumentClauseSetId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentClauseContentToken",
+      "target": "DocumentClause",
+      "field": "DocumentClauseId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentEnvelope",
+      "target": "ContractDocumentVersion",
+      "field": "ContractDocumentVersionId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentGenerationProcess",
+      "target": "DocGenerationBatchProcess",
+      "field": "DocGenerationBatchProcessId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentGenerationProcess",
+      "target": "DocumentTemplate",
+      "field": "DocumentTemplateId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentGenerationProcess",
+      "target": "ContractDocumentVersion",
+      "field": "SourceObjectId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentTemplateSection",
+      "target": "DocumentClause",
+      "field": "DocumentTemplateClauseId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentTemplateSection",
+      "target": "DocumentTemplate",
+      "field": "DocumentTemplateId",
+      "type": "reference"
+    },
+    {
+      "source": "DocumentTemplateSection",
+      "target": "DocumentTemplate",
+      "field": "EmbeddedDocumentTemplateId",
+      "type": "reference"
+    },
+    {
+      "source": "ExternalDocStorageConfig",
+      "target": "NamedCredential",
+      "field": "NamedCredentialId",
+      "type": "reference"
+    },
+    {
+      "source": "GeneratedDocumentSection",
+      "target": "DocumentClause",
+      "field": "DocumentTemplateClauseId",
+      "type": "reference"
+    },
+    {
+      "source": "GeneratedDocumentSection",
+      "target": "DocumentTemplateSection",
+      "field": "DocumentTemplateSectionId",
+      "type": "reference"
+    },
+    {
+      "source": "ObjectStateActionDefinition",
+      "target": "OmniProcess",
+      "field": "ReferenceObjectId",
+      "type": "reference"
+    },
+    {
+      "source": "Obligation",
+      "target": "Account",
+      "field": "OtherPartyAccountId",
+      "type": "reference"
+    },
+    {
+      "source": "Obligation",
+      "target": "Contract",
+      "field": "ReferenceContractId",
+      "type": "reference"
+    },
+    {
+      "source": "Obligation",
+      "target": "Contract",
+      "field": "ReferenceObjectId",
+      "type": "reference"
+    },
+    {
+      "source": "QuoteClause",
+      "target": "DocumentClause",
+      "field": "DocumentClauseId",
+      "type": "reference"
+    },
+    {
+      "source": "QuoteClause",
+      "target": "Quote",
+      "field": "QuoteId",
+      "type": "reference"
+    },
+    {
+      "source": "SalesContractLine",
+      "target": "Contract",
+      "field": "ContractId",
+      "type": "reference"
+    },
+    {
+      "source": "SalesContractLine",
+      "target": "OrderItem",
+      "field": "OrderProductId",
+      "type": "reference"
+    },
+    {
+      "source": "SalesContractLine",
+      "target": "SalesContractLine",
+      "field": "OriginalLineItemId",
+      "type": "reference"
+    },
+    {
+      "source": "SalesContractLine",
+      "target": "Product2",
+      "field": "Product2Id",
+      "type": "reference"
+    },
+    {
+      "source": "SalesContractLine",
+      "target": "QuoteLineItem",
+      "field": "QuoteLineItemId",
+      "type": "reference"
+    },
+    {
+      "source": "SalesContractLine",
+      "target": "UnitOfMeasure",
+      "field": "UnitOfMeasureId",
+      "type": "reference"
+    }
+  ]
+}

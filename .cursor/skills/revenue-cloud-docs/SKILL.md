@@ -243,6 +243,7 @@ To add an area, follow **Add an area** in the [snapshot tool README](../../../sc
 
 ## Cross-reference with related skills
 
+- **[`salesforce-contracts`](../salesforce-contracts/SKILL.md)** — dedicated setup, query, clause, template, and lifecycle workflows for Salesforce Contracts CLM. Use this alongside the snapshots when a task needs configuration or org-data guidance.
 - **[`release-enablement`](../release-enablement/SKILL.md)** — for authoring Hands-On exercises per release. The snapshot is a primary input to that workflow.
 - **[`revenue-cloud-data-model`](../revenue-cloud-data-model/SKILL.md)** — for object/field reference, ERDs, and schema details. Use this when the Help docs are thin (Data Model articles, image-only content).
 - **[`doc-consistency`](../doc-consistency/SKILL.md)** — pre-merge consistency checks. When the snapshot reveals product renames or terminology shifts, propagate them through internal docs that reference the Help articles.
