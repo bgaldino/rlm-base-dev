@@ -479,9 +479,10 @@ trusting a green:
   shim `python`, which is precisely the class the shell rules spend two hundred checks refusing.
   Both are pinned to a commit SHA with a `# vX.Y.Z` comment, as the ESAG GitHub Actions Security
   Guide requires, and Dependabot (`.github/dependabot.yml`) proposes updates to the pins. The
-  suite accepts only a full 40-hex SHA, here and for every `uses:` in `.github/workflows` (a
-  separate check), so a tag can't come back even while the repository's "require full-length
-  commit SHA" setting is off. (The first version of the rule compared the whole `uses:` string
+  suite accepts only a full 40-hex SHA here, and `tests/test_workflow_pins.py` (in
+  `yaml_offline_suites`) requires one for every `uses` in `.github/workflows`, reading the parsed
+  YAML rather than the source text, so a tag can't come back even while the repository's
+  "require full-length commit SHA" setting is off. (The first version of the rule compared the whole `uses:` string
   against `@v6` and refused the *stronger* pin; the second accepted a tag or a SHA.)
   What remains is accepted rather than solved: a compromise of the pinned commit itself. The job
   holds `contents: read` plus `pull-requests: read` and no repository secrets, so its only
@@ -531,7 +532,7 @@ file (about 3), and `agent_tooling`. Measured 2026-10-11 on a workstation where 
 ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
-Verified by `tests/test_pr_gate.py` (722 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (712 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
