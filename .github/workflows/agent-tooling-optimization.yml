@@ -80,7 +80,8 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
         with:
           fetch-depth: 0
-          # The push below passes the token explicitly, so no credential is persisted.
+          # The git calls below (ls-remote, fetch, push --delete) pass the token explicitly, so no
+          # credential is persisted.
           persist-credentials: false
 
       - name: Set up Python
@@ -107,7 +108,7 @@ jobs:
             .agents/context/rule-skill-coverage.md
           if-no-files-found: warn
 
-      - name: Push the refreshed artifacts and open, update or close the drift issue
+      - name: Publish the refreshed artifacts and open, update or close the drift issue
         # No third-party action: the ESAG guide doesn't allow personal-account actions (this was
         # peter-evans/create-pull-request). git and gh only, with the job's own token, which
         # reaches git through a credential helper reading the environment (not argv or a URL).
@@ -183,8 +184,11 @@ jobs:
             exit 0
           fi
 
+          # A local commit only to compare trees with the last refresh; it is never pushed. The
+          # published commit is created through the API below, so GitHub signs it.
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          base_sha=$(git rev-parse HEAD)
           git switch -C "$BRANCH"
           git add -- "${paths[@]}"
           git commit -q -m "chore: refresh agent tooling artifacts"
@@ -206,18 +210,51 @@ jobs:
               exit 0
             fi
           fi
-          # The branch is generated output, rebuilt from the default branch on every drifted run.
-          git "${git_auth[@]}" push --force origin "HEAD:refs/heads/${BRANCH}"
+          # The branch is generated output, rebuilt from the default branch on every drifted run. It is
+          # published through the API rather than `git push`: a commit made with createCommitOnBranch is
+          # signed by GitHub, and the default branch's ruleset requires signed commits, unsigned ones on
+          # the PR branch included (todo 238). The commit is built on a temporary branch started at the
+          # default branch's commit, and the real branch then moves straight to it. Pointing the real
+          # branch at the base first would leave it with no diff in between (or for good, if the commit
+          # failed), which can close a pull request opened from it.
+          tmp_branch="${BRANCH}-tmp-${GITHUB_RUN_ID:-$$}"
+          gh api -X POST "repos/${REPO}/git/refs" -f ref="refs/heads/${tmp_branch}" -f sha="$base_sha" >/dev/null
+          trap 'gh api -X DELETE "repos/${REPO}/git/refs/heads/${tmp_branch}" >/dev/null 2>&1 || true' EXIT
+          # One jq call reads the files itself (no file content on a command line); a missing path
+          # is a deletion.
+          changes=$(for p in "${paths[@]}"; do
+                      if [ -e "$p" ]; then
+                        jq -n --arg path "$p" --rawfile body "$p" '{add: {path: $path, contents: ($body | @base64)}}'
+                      else
+                        jq -n --arg path "$p" '{del: {path: $path}}'
+                      fi
+                    done | jq -s '{additions: [.[].add | select(.)], deletions: [.[].del | select(.)]}')
+          commit=$(jq -n --arg repo "$REPO" --arg branch "$tmp_branch" --arg head "$base_sha" --argjson changes "$changes" '{
+              query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+              variables: {input: {branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                                  expectedHeadOid: $head,
+                                  message: {headline: "chore: refresh agent tooling artifacts"},
+                                  fileChanges: $changes}}}' \
+                   | gh api graphql --input - --jq '.data.createCommitOnBranch.commit.oid')
+          if [ -z "$commit" ]; then
+            echo "::error::createCommitOnBranch returned no commit"; exit 1
+          fi
+          if branch_state; then
+            gh api -X PATCH "repos/${REPO}/git/refs/heads/${BRANCH}" -f sha="$commit" -F force=true >/dev/null
+          else
+            gh api -X POST "repos/${REPO}/git/refs" -f ref="refs/heads/${BRANCH}" -f sha="$commit" >/dev/null
+          fi
+          echo "Published ${commit} to ${BRANCH} (signed by GitHub)."
 
           # The labels may not exist (a fresh repository, the mirror); --force creates or updates.
           gh label create automation -R "$REPO" --color ededed --force >/dev/null
           gh label create agent-tooling -R "$REPO" --color 0e8a16 --force >/dev/null
           compare="${GITHUB_SERVER_URL}/${REPO}/compare/${BASE}...${BRANCH}?expand=1"
-          body="The committed agent tooling artifacts drifted from the repository. The deep-checks job regenerated them with \`analyze_agent_tooling.py all\` and pushed the result to \`${BRANCH}\`.
+          body="The committed agent tooling artifacts drifted from the repository. The deep-checks job regenerated them with \`analyze_agent_tooling.py all\` and published the result to \`${BRANCH}\`.
 
           **Open the pull request:** ${compare}
 
-          Actions can't open pull requests in this repository, so a maintainer opens it from that link. Run: ${RUN_URL}"
+          Actions can't open pull requests in this repository, so a maintainer opens it from that link. A refresh the job publishes doesn't start CI on a pull request already open from the branch (GitHub doesn't trigger workflows for its own token), so re-run the checks there after a refresh. Run: ${RUN_URL}"
           existing=$(open_issue)
           if [ -n "$existing" ]; then
             gh issue comment "$existing" -R "$REPO" --body "Refreshed again: ${compare} (run ${RUN_URL})"
