@@ -302,7 +302,10 @@ Registry with [`.github/workflows/docker-publish.yml`](../.github/workflows/dock
 - **On a tag:** push `image-v<version>` (e.g. `git tag image-v262.0 && git push origin image-v262.0`).
 
 It builds `linux/amd64` + `linux/arm64` and pushes to
-`ghcr.io/<owner>/rlm-base:<tag>` and `:latest`. Make the package **public**
+`ghcr.io/<owner>/rlm-base:<tag>`. A weekly scheduled rebuild also runs.
+`:latest` moves only on the weekly rebuild, on an `image-v*` tag push, and on a
+manual run tagged `latest` (which must build both platforms). A manual run with
+any other tag, such as a test build, publishes only that tag. Make the package **public**
 (Packages → rlm-base → Package settings → Change visibility) so users can pull
 without authenticating; otherwise they run `docker login ghcr.io` first. Then:
 
