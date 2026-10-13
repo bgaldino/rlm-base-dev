@@ -51,6 +51,71 @@ Verify the toolchain before you start (no org required):
 cci task run validate_setup
 ```
 
+### Sign your commits
+
+`main`, `preview/*` and `release/*` accept only **signed, verified** commits. GitHub checks the
+commits on your PR branch when it tests the merge, so unsigned commits there can block it, even a
+squash merge. Set this up once, before your first commit.
+
+A commit shows as **Verified** only when its committer email (normally your `user.email`) is a
+verified email on your GitHub account, and the signing key is registered on that same account as
+a *signing* key. SSH signing (git 2.34+) is the simplest:
+
+```sh
+# Use a verified email from GitHub → Settings → Emails. The <id>+<user>@users.noreply.github.com
+# address shown there works, and keeps your real email private.
+git config --global user.email "<verified-email>"
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/id_ed25519.pub   # any SSH public key of yours
+git config --global commit.gpgsign true
+```
+
+No SSH key yet? `ssh-keygen -t ed25519 -C "<verified-email>"` creates `~/.ssh/id_ed25519`.
+
+Then register the same key as a **signing key**: GitHub → Settings → SSH and GPG keys →
+New SSH key → Key type **Signing Key**. A key added for authentication doesn't count. With the
+GitHub CLI:
+
+```sh
+gh auth refresh -h github.com -s admin:ssh_signing_key
+gh ssh-key add ~/.ssh/id_ed25519.pub --type signing --title "signing"
+```
+
+If your key has a passphrase, load it into `ssh-agent` first, or commits made by tools and AI
+agents will fail.
+
+- **Scope it if you need to.** If other repositories use a different identity, put the settings in
+  a separate file (without `--global`, e.g. `git config --file ~/.gitconfig-rlm …`) and load it for
+  one folder from `~/.gitconfig`. The trailing `/` matches everything below the folder, and `/i`
+  makes the match case-insensitive, which suits macOS:
+
+  ```ini
+  [includeIf "gitdir/i:/path/to/your/repos/"]
+  	path = ~/.gitconfig-rlm
+  ```
+- **Check for a local override.** A value in the repository's own `.git/config` wins over your
+  global setting, so a stray `user.email`, `gpg.format` or `commit.gpgsign=false` there quietly breaks
+  signing. `git config --list --show-scope | grep -E 'user\.|gpg|signingkey'` shows where each value
+  comes from.
+- **GPG and S/MIME also work:** see GitHub's
+  [commit signature verification](https://docs.github.com/authentication/managing-commit-signature-verification) docs.
+- **Commits made in the GitHub web UI** are signed automatically.
+
+Check your setup: after you push, each commit in the PR's **Commits** tab should show
+**Verified**. To re-sign commits you already pushed to your branch, in place, without moving it
+onto a newer base. Set `base` to your PR's base branch first: replaying from any other branch would
+re-sign that branch's commits too and add them to your PR.
+
+```sh
+base=main            # or preview/<n>, release/<n>: the branch your PR targets
+git fetch upstream
+git rebase --exec 'git commit --amend --no-edit --no-verify -S' "$(git merge-base HEAD "upstream/$base")"
+git push --force-with-lease
+```
+
+This rewrites your branch as a straight line. If you merged the base branch into it, redo that as a
+rebase instead.
+
 ## 4. Create a Branch
 
 Create a new branch for your work:
@@ -238,6 +303,7 @@ A maintainer merges your PR after approval and green checks.
 
 - Fork the repo, clone your fork, add the upstream remote.
 - Set up the toolchain and run `validate_setup`.
+- Set up commit signing: unsigned commits can't merge.
 - Create a branch — never commit to `main`.
 - Make changes following `AGENTS.md`; update the docs your change touches.
 - Run the validations for what you changed.
