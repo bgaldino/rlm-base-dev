@@ -10,6 +10,9 @@ on:
   pull_request_review:
     types: [submitted]
 
+# No default token permissions; each job grants only what it uses.
+permissions: {}
+
 jobs:
   claude:
     if: |

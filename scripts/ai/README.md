@@ -479,7 +479,7 @@ trusting a green:
   shim `python`, which is precisely the class the shell rules spend two hundred checks refusing.
   Both are pinned to a commit SHA with a `# vX.Y.Z` comment, as the ESAG GitHub Actions Security
   Guide requires, and Dependabot (`.github/dependabot.yml`) proposes updates to the pins. The
-  suite accepts only a full 40-hex SHA here, and `tests/test_workflow_pins.py` (in
+  suite accepts only a full 40-hex SHA here, and `tests/test_workflow_policy.py` (in
   `yaml_offline_suites`) requires one for every `uses` in `.github/workflows`, reading the parsed
   YAML rather than the source text, so a tag can't come back even while the repository's
   "require full-length commit SHA" setting is off. (The first version of the rule compared the whole `uses:` string

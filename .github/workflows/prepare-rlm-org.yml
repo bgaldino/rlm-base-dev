@@ -126,10 +126,16 @@ jobs:
           cci task run validate_setup
 
       - name: Authenticate Dev Hub
+        # The secret reaches the script through env, not interpolation (which would write it
+        # into the generated script file), and its file is owner-only and removed on any exit.
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
         run: |
-          echo "${{ secrets.SFDX_AUTH_URL }}" > /tmp/sfdx-auth-url.txt
-          sf org login sfdx-url --sfdx-url-file /tmp/sfdx-auth-url.txt --set-default-dev-hub --alias devhub
-          rm /tmp/sfdx-auth-url.txt
+          umask 077
+          auth_file="$(mktemp)"
+          trap 'rm -f "$auth_file"' EXIT
+          printf '%s\n' "$SFDX_AUTH_URL" > "$auth_file"
+          sf org login sfdx-url --sfdx-url-file "$auth_file" --set-default-dev-hub --alias devhub
 
       # CumulusCI 4.10.1 reads the scratch-org token with `sf org auth
       # show-access-token` when `sf org display` redacts it, so no step needs

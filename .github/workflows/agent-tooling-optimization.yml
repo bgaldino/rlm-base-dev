@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       deep_checks:
-        description: "Regenerate report/scorecard/coverage artifacts (installs PyYAML) and open an update PR if they drift"
+        description: "Regenerate report/scorecard/coverage artifacts (installs PyYAML) and, if they drift, push them to a branch and open an issue linking the PR to create"
         required: false
         default: false
         type: boolean
@@ -68,16 +68,18 @@ jobs:
     if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deep_checks == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # contents: write to push the refreshed artifacts to the automation branch; issues: write
+    # to open or update the drift issue. Actions can't create pull requests in this repository
+    # (the ESAG guide requires that setting off), so a maintainer opens the PR from the issue.
     permissions:
       contents: write
-      pull-requests: write
+      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
         with:
           fetch-depth: 0
-          # create-pull-request supplies its own token via `token:`, so the
-          # persisted credential is unnecessary here too.
+          # The push below passes the token explicitly, so no credential is persisted.
           persist-credentials: false
 
       - name: Set up Python
@@ -104,24 +106,42 @@ jobs:
             .agents/context/rule-skill-coverage.md
           if-no-files-found: warn
 
-      - name: Open or update optimization pull request
-        # Third-party, write-scoped action — pinned to a full commit SHA (not the
-        # mutable v8 tag) to limit supply-chain blast radius. Bump via Dependabot.
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
-        with:
-          token: ${{ github.token }}
-          branch: automation/agent-tooling-optimization
-          delete-branch: true
-          title: "chore: refresh agent tooling artifacts"
-          commit-message: "chore: refresh agent tooling artifacts"
-          body: |
-            ## Summary
-            - Regenerated the agent tooling report, scorecard, and rule/skill
-              coverage matrix via `analyze_agent_tooling.py all`.
-            - Opened automatically because the committed artifacts drifted from
-              the current repository state.
+      - name: Push the refreshed artifacts and open or update the drift issue
+        # No third-party action: the ESAG guide doesn't allow personal-account actions (this was
+        # peter-evans/create-pull-request). git and gh only, with the job's own token.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.event.repository.default_branch }}
+          BRANCH: automation/agent-tooling-optimization
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          paths=(docs/analysis/tooling-optimization-report.md
+                 .agents/context/tooling-scorecard.json
+                 .agents/context/rule-skill-coverage.md)
+          if git diff --quiet -- "${paths[@]}" && [ -z "$(git ls-files --others --exclude-standard -- "${paths[@]}")" ]; then
+            echo "No drift in the committed artifacts."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add -- "${paths[@]}"
+          git commit -q -m "chore: refresh agent tooling artifacts"
+          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${BRANCH}"
 
-            ## Validation
-            - Baseline gate: `python scripts/ai/analyze_agent_tooling.py check`
-            - Deep checks: `python scripts/ai/analyze_agent_tooling.py check --full-generated-reference-checks`
-          labels: automation, agent-tooling
+          title="Agent tooling artifacts drifted"
+          compare="https://github.com/${REPO}/compare/${BASE}...${BRANCH}?expand=1"
+          body="The committed agent tooling artifacts drifted from the repository. The deep-checks job regenerated them with \`analyze_agent_tooling.py all\` and pushed the result to \`${BRANCH}\`.
+
+          **Open the pull request:** ${compare}
+
+          Actions can't open pull requests in this repository, so a maintainer opens it from that link. Run: ${RUN_URL}"
+          existing=$(gh issue list -R "$REPO" --state open --label automation --label agent-tooling \
+                       --search "in:title \"${title}\"" --json number -q '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" -R "$REPO" --body "Refreshed again: ${compare} (run ${RUN_URL})"
+          else
+            gh issue create -R "$REPO" --title "$title" --label automation --label agent-tooling --body "$body"
+          fi

@@ -1,7 +1,16 @@
-"""Every action in every workflow is pinned to a full commit SHA (offline, needs PyYAML).
+"""Workflow security policy, from the ESAG GitHub Actions Security Guide (offline, needs PyYAML).
 
-The ESAG GitHub Actions Security Guide requires SHA pins, and the repository setting that
-enforces them server-side ("require full-length commit SHA") can be switched off, and doesn't
+Every workflow in .github/workflows must:
+
+1. pin every action to a full commit SHA;
+2. use only actions from an allowed owner (GitHub-authored, verified creators, or approved);
+3. declare a top-level `permissions:` block, so a job that doesn't name its own starts with
+   nothing rather than the repository default;
+4. keep `${{ }}` expressions out of `run:` scripts. Values reach a script through `env:`, so
+   neither untrusted input nor a secret is interpolated into the script text (script injection,
+   or a secret written into the generated script file).
+
+Repository settings enforce some of this server-side, but they can be switched off and don't
 travel with the code to the SalesforceLabs mirror. This suite is the in-repo guard that still
 fails a PR then.
 
@@ -16,7 +25,7 @@ whether it's a step's action or a job's reusable workflow, and its value must be
 
 Anything else, including a non-string value, is unpinned.
 
-Run: python tests/test_workflow_pins.py
+Run: python tests/test_workflow_policy.py
 """
 import os
 import re
@@ -28,6 +37,11 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 WORKFLOWS = os.path.join(REPO, ".github", "workflows")
 FULL_SHA_USE = re.compile(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}")
 DIGEST = re.compile(r"docker://[^@\s]+@sha256:[0-9a-f]{64}")
+# Owners whose actions may be used. `actions` and `github` are GitHub-authored; `docker` is a
+# Marketplace verified creator. `anthropics/claude-code-action` is in use pending approval
+# (#ask-enterprise-security, per the guide); remove it here if that approval is refused.
+ALLOWED_OWNERS = {"actions", "github", "docker", "anthropics"}
+EXPRESSION = re.compile(r"\$\{\{")
 
 _passed = _total = 0
 
@@ -59,6 +73,28 @@ def uses_values(node, path="$"):
             yield from uses_values(item, f"{path}[{i}]")
 
 
+def owner(value: str) -> str:
+    return value.split("/", 1)[0] if isinstance(value, str) and "/" in value else ""
+
+
+def disallowed_in(doc):
+    return [f"{where}: {value!r}" for where, value in uses_values(doc)
+            if isinstance(value, str) and not value.startswith(("./", "docker://"))
+            and owner(value) not in ALLOWED_OWNERS]
+
+
+def run_scripts(doc):
+    """Every (path, script) of a step's `run:` in a parsed workflow."""
+    for job_name, job in ((doc or {}).get("jobs") or {}).items():
+        for i, step in enumerate((job or {}).get("steps") or []):
+            if isinstance(step, dict) and "run" in step:
+                yield f"jobs.{job_name}.steps[{i}] ({step.get('name', '')})", str(step["run"])
+
+
+def interpolating_in(doc):
+    return [where for where, script in run_scripts(doc) if EXPRESSION.search(script)]
+
+
 def unpinned_in(text: str):
     return [f"{where}: {value!r}" for where, value in uses_values(yaml.safe_load(text))
             if not pinned(value)]
@@ -75,8 +111,14 @@ for name in names:
     except yaml.YAMLError as exc:
         check(f"{name} parses", False, exc)
         continue
-    found = list(uses_values(yaml.safe_load(text)))
+    doc = yaml.safe_load(text)
+    found = list(uses_values(doc))
     check(f"{name}: {len(found)} `uses`, all pinned", not bad, bad)
+    check(f"{name}: every action from an allowed owner", not disallowed_in(doc), disallowed_in(doc))
+    check(f"{name}: a top-level permissions block", isinstance(doc, dict) and "permissions" in doc,
+          "add `permissions: {}` (or the least the workflow needs) at the top level")
+    check(f"{name}: no ${{{{ }}}} interpolated into a run script", not interpolating_in(doc),
+          interpolating_in(doc))
 
 print("\nThe rule reads the parsed key, however YAML spells it")
 SHA = "c" * 40
@@ -104,6 +146,17 @@ for label, doc, ok in (
     found = list(uses_values(yaml.safe_load(doc)))
     check(f"that rule {'accepts' if ok else 'rejects'} {label}",
           bool(found) and (not unpinned_in(doc)) is ok, doc.strip())
+
+print("\nThe other rules reject what they exist to reject")
+check("an action from a personal account is disallowed",
+      bool(disallowed_in({"steps": [{"uses": f"peter-evans/create-pull-request@{SHA}"}]})))
+check("a GitHub-authored action is allowed",
+      not disallowed_in({"steps": [{"uses": f"actions/checkout@{SHA}"}]}))
+check("an expression in a run script is caught",
+      bool(interpolating_in({"jobs": {"j": {"steps": [{"run": 'echo "${{ github.event.issue.title }}"'}]}}})))
+check("the same value through env is not",
+      not interpolating_in({"jobs": {"j": {"steps": [{"env": {"T": "${{ github.event.issue.title }}"},
+                                                      "run": 'echo "$T"'}]}}}))
 
 print(f"\n{_passed}/{_total} checks passed")
 sys.exit(0 if _passed == _total else 1)
