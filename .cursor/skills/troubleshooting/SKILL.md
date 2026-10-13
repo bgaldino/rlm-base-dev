@@ -185,11 +185,13 @@ in the org config.
 
 ### `ProductRelatedComponent` rows fail: "bundle or set levels would exceed 3"
 
-**Cause:** The `qb-pcm` plan's deepest bundle (the Q-Rack server config) nests
-6 products across 5 component links, but a fresh scratch org defaults the PCM
-`MaxBundleDepth` org value to 3. SFDMU reports each failing row and the build
-carries on, so the load finishes "successfully" with the deep bundle silently
-truncated at level 3 — nothing else in the log calls this out.
+**Cause:** The `qb-pcm` plan's deepest bundle (**QuantumBit - OmniRack DC42
+Series**, `PROD-455868158`) nests 6 products across 5 component links —
+`PROD-455868158` → `PROD-1008704562` → `PROD-356310368` → `PROD-1472536093`
+→ `PROD-384361183` → `PROD-1956857281` — but a fresh scratch org defaults the
+PCM `MaxBundleDepth` org value to 3. SFDMU reports each failing row and the
+build carries on, so the load finishes "successfully" with the deep bundle
+silently truncated at level 3 — nothing else in the log calls this out.
 
 **Fix:** Every tracked scratch org definition's `features` array carries
 `MaxBundleDepth:5` (the max this org value supports). Live-verified in
