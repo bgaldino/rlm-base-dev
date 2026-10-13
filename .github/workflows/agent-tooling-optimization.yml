@@ -147,7 +147,7 @@ jobs:
             if [ -n "$existing" ]; then
               gh issue close "$existing" -R "$REPO" --comment "The artifacts are current again as of ${RUN_URL}; closing."
             fi
-            if git ls-remote --exit-code "${git_auth[@]}" origin "refs/heads/${BRANCH}" >/dev/null 2>&1; then
+            if git "${git_auth[@]}" ls-remote --exit-code origin "refs/heads/${BRANCH}" >/dev/null 2>&1; then
               git "${git_auth[@]}" push origin --delete "$BRANCH"
             fi
             exit 0
