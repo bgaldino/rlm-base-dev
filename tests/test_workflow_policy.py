@@ -14,7 +14,9 @@ Every workflow in .github/workflows must:
    file). An expression in an action input (`with:`) may reference only allowlisted contexts
    (secrets, step outputs, runner/matrix/vars/env/needs/inputs, and `github` fields no outside
    contributor sets), because an input reaches an action as text it may run or follow, a prompt
-   included, and the attacker-controlled fields can't be listed completely. Every local action
+   included, and the attacker-controlled fields can't be listed completely. `env.NAME` is
+   resolved to its definition, and matrix values and job outputs are held to the same rule, so
+   none of them launders an untrusted value; what can't be resolved fails closed. Every local action
    reachable from a workflow (`uses: ./path`, followed through other local actions), and any
    under `.github/actions/`, is held to the same rules; a `./` reference with nothing behind it
    fails.
@@ -58,7 +60,22 @@ EXPRESSION = re.compile(r"\$\{\{")
 # messages, in dotted, indexed or bracketed form) never ends. Writers-only `inputs`, step
 # outputs, secrets and runner/matrix/vars/env/needs values are allowed; of `github`, only fields
 # no outside contributor sets.
-EXPR = re.compile(r"\$\{\{(.*?)\}\}", re.DOTALL)
+def expressions(text: str):
+    """The body of each `${{ … }}`, ending at the first `}}` outside a '…' string literal."""
+    out, i = [], 0
+    while True:
+        start = text.find("${{", i)
+        if start < 0:
+            return out
+        j, quoted = start + 3, False
+        while j < len(text):
+            if text[j] == "'":
+                quoted = not quoted  # '' (an escaped quote) toggles twice
+            elif not quoted and text.startswith("}}", j):
+                break
+            j += 1
+        out.append(text[start + 3:j])
+        i = j + 2
 CONTEXT_REF = re.compile(r"(?<![\w.'\"])([A-Za-z_][\w-]*)((?:\.[\w-]+|\[[^\]]*\])*)")
 SAFE_ROOTS = {"secrets", "steps", "runner", "env", "matrix", "vars", "needs", "inputs", "job",
               "strategy"}
@@ -68,7 +85,8 @@ SAFE_GITHUB = {"repository", "repository_owner", "repository_id", "run_id", "run
                "event.pull_request.number", "event.number", "event.repository.default_branch",
                "event.repository.full_name", "event.repository.name"}
 FUNCTIONS = {"format", "contains", "startsWith", "endsWith", "join", "toJSON", "fromJSON",
-             "hashFiles", "success", "always", "cancelled", "failure", "true", "false", "null"}
+             "hashFiles", "success", "always", "cancelled", "failure", "true", "false", "null",
+             "NaN", "Infinity"}
 
 _passed = _total = 0
 
@@ -173,32 +191,101 @@ def run_scripts(doc):
             yield label + " with.script", str((step.get("with") or {}).get("script", ""))
 
 
-def unsafe_references(value: str):
-    """Context references in `${{ }}` expressions that aren't on the allowlist."""
+def _strings(node):
+    """Every string anywhere in a parsed YAML value."""
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for value in node.values():
+            yield from _strings(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _strings(value)
+
+
+def _layer(node):
+    """An `env:` block as a lookup layer: a mapping, or None when absent."""
+    return node if isinstance(node, dict) or node is None else str(node)
+
+
+def unsafe_references(value, env=()):
+    """Context references in `${{ }}` expressions that aren't on the allowlist.
+
+    `env` is the env blocks visible to the expression, outermost first (workflow, job, step).
+    `env.NAME` resolves to the innermost definition, which is held to the same rule against the
+    blocks outside it, as GitHub evaluates it; so an env variable can't launder an untrusted
+    value. What the check can't resolve fails closed: indexing into `env`, an `env:` that is
+    itself an expression, and any `[...]` index that isn't a literal, a number or `*` (it would
+    pick which secret or output reaches the input). A name no block defines passes: a script can
+    set it through $GITHUB_ENV, which is beyond what a static check can follow."""
     out = []
-    for expression in EXPR.findall(str(value)):
+    for expression in expressions(str(value)):
         code = re.sub(r"'(?:[^']|'')*'", "''", expression)  # string literals aren't references
         for root, rest in CONTEXT_REF.findall(code):
             if root in FUNCTIONS or root.isdigit():
                 continue
-            if root == "github":
+            if any(index not in ("''", "*") and not index.isdigit()
+                   for index in re.findall(r"\[([^\]]*)\]", rest)):
+                out.append(root + rest)
+            elif root == "github":
                 field = rest[1:] if rest.startswith(".") else rest
-                if "[" in rest or field not in SAFE_GITHUB:
+                if field not in SAFE_GITHUB:
                     out.append(f"github{rest}")
+            elif root == "env" and env:
+                name = rest[1:].split(".", 1)[0] if rest.startswith(".") else None
+                for k in range(len(env) - 1, -1, -1):
+                    layer = env[k]
+                    if name is None or isinstance(layer, str):
+                        out.append(f"env{rest} (unresolvable)")
+                        break
+                    if layer and name in layer:
+                        out += [f"env.{name} -> {r}" for r in unsafe_references(layer[name], env[:k])]
+                        break
             elif root not in SAFE_ROOTS:
                 out.append(root + rest)
     return out
 
 
 def untrusted_inputs_in(doc):
-    """Steps whose `with:` inputs reference a context that isn't known to be safe."""
+    """Values that reach an action or a job from a context not known to be safe: a step's
+    `with:`, a reusable-workflow job's `with:`, and a job's `strategy` (matrix values) and
+    `outputs` (read downstream as `needs.<job>.outputs`). A step output written by a script
+    is trusted: what a script prints is beyond what a static check can follow."""
+    doc = doc if isinstance(doc, dict) else {}
+    top = [_layer(doc.get("env"))]
     out = []
-    for where, step in steps_of(doc):
+
+    def scan(where, block, env):
+        if isinstance(block, str):
+            block = {"": block}
+        for key, value in block.items() if isinstance(block, dict) else []:
+            bad = [r for text in _strings(value) for r in unsafe_references(text, env)]
+            if bad:
+                out.append(f"{where}.{key}: {bad}" if key != "" else f"{where}: {bad}")
+
+    if isinstance(doc.get("env"), str):
+        scan("env", doc["env"], ())
+    for job_name, job in (doc.get("jobs") or {}).items():
+        if not isinstance(job, dict):
+            continue
+        where = f"jobs.{job_name}"
+        if isinstance(job.get("env"), str):
+            scan(f"{where}.env", job["env"], top)
+        job_env = top + [_layer(job.get("env"))]
+        scan(f"{where}.with", job.get("with"), top)  # a reusable-workflow call
+        scan(f"{where}.strategy", job.get("strategy"), ())
+        scan(f"{where}.outputs", job.get("outputs"), job_env)
+        for i, step in enumerate(job.get("steps") or []):
+            if isinstance(step, dict):
+                if isinstance(step.get("env"), str):
+                    scan(f"{where}.steps[{i}].env", step["env"], job_env)
+                scan(f"{where}.steps[{i}].with", step.get("with"), job_env + [_layer(step.get("env"))])
+    runs = doc.get("runs") if isinstance(doc.get("runs"), dict) else {}
+    for i, step in enumerate(runs.get("steps") or []):
         if isinstance(step, dict):
-            for key, value in (step.get("with") or {}).items():
-                bad = unsafe_references(value)
-                if bad:
-                    out.append(f"{where}.with.{key}: {bad}")
+            if isinstance(step.get("env"), str):
+                scan(f"runs.steps[{i}].env", step["env"], ())
+            scan(f"runs.steps[{i}].with", step.get("with"), [_layer(step.get("env"))])
     return out
 
 
@@ -342,10 +429,53 @@ for label, value, ok in (("a PR number", "${{ github.event.pull_request.number }
                         ("head_ref inside format()", "${{ format('{0}', github.head_ref) }}", False),
                         ("bracket access", "${{ github['head_ref'] }}", False),
                         ("github.ref_name", "${{ github.ref_name }}", False),
-                        ("an unlisted event field", "${{ github.event.pull_request.head.repo.default_branch }}", False)):
+                        ("an unlisted event field", "${{ github.event.pull_request.head.repo.default_branch }}", False),
+                        ("a literal NaN", "${{ NaN }}", True),
+                        ("}} inside a string literal", "${{ format('}}{0}', github.head_ref) }}", False)):
     found = untrusted_inputs_in({"jobs": {"j": {"steps": [{"uses": f"actions/x@{SHA}",
                                                            "with": {"prompt": value}}]}}})
     check(f"an action input with {label} is {'allowed' if ok else 'refused'}", (not found) is ok, value)
+check("an untrusted value laundered through env into an action input is caught",
+      bool(untrusted_inputs_in({"env": {"T": "${{ github.event.issue.title }}"},
+                                "jobs": {"j": {"steps": [{"uses": f"actions/x@{SHA}",
+                                                          "with": {"prompt": "${{ env.T }}"}}]}}})))
+check("a safe value through env into an action input is allowed",
+      not untrusted_inputs_in({"jobs": {"j": {"env": {"R": "${{ github.repository }}"},
+                                              "steps": [{"uses": f"actions/x@{SHA}",
+                                                         "with": {"repo": "${{ env.R }}"}}]}}}))
+check("a reusable-workflow job's with: is checked",
+      bool(untrusted_inputs_in({"jobs": {"j": {"uses": "./.github/workflows/x.yml",
+                                               "with": {"t": "${{ github.event.issue.title }}"}}}})))
+def flagged(doc):
+    return bool(untrusted_inputs_in(doc))
+
+
+def job(**fields):
+    return {"jobs": {"j": fields}}
+
+
+def step(**fields):
+    return [dict({"uses": f"actions/x@{SHA}"}, **fields)]
+
+
+TITLE = "${{ github.event.issue.title }}"
+check("a step env re-reading a job env of the same name is resolved through the job's",
+      flagged(job(env={"X": TITLE}, steps=step(env={"X": "${{ env.X }}"}, **{"with": {"p": "${{ env.X }}"}}))))
+check("env indexed with ['X'] fails closed",
+      flagged(job(env={"T": TITLE}, steps=step(**{"with": {"p": "${{ env['T'] }}"}}))))
+check("a context reference inside [...] fails closed",
+      flagged(job(steps=step(**{"with": {"p": "${{ secrets[github.head_ref] }}"}}))))
+check("a literal index is allowed",
+      not flagged(job(steps=step(**{"with": {"p": "${{ steps.a.outputs['x'] }}"}}))))
+check("an env: written as an expression fails closed",
+      flagged(job(env="${{ fromJSON(github.event.issue.body) }}",
+                  steps=step(**{"with": {"p": "${{ env.T }}"}}))))
+check("an untrusted matrix value is caught",
+      flagged(job(strategy={"matrix": {"t": [TITLE]}}, steps=step(**{"with": {"p": "${{ matrix.t }}"}}))))
+check("an untrusted job output is caught",
+      flagged(job(outputs={"t": TITLE}, steps=[])))
+check("a job output from a step output is allowed",
+      not flagged(job(outputs={"t": "${{ steps.a.outputs.t }}"}, steps=[])))
 check("the same value through env is not",
       not interpolating_in({"jobs": {"j": {"steps": [{"env": {"T": "${{ github.event.issue.title }}"},
                                                       "run": 'echo "$T"'}]}}}))

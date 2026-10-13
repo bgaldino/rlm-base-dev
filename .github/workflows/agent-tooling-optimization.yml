@@ -120,6 +120,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
+          shopt -s inherit_errexit   # a failing gh inside $(open_issue) fails the step
           paths=(docs/analysis/tooling-optimization-report.md
                  .agents/context/tooling-scorecard.json
                  .agents/context/rule-skill-coverage.md)
@@ -188,9 +189,19 @@ jobs:
           git add -- "${paths[@]}"
           git commit -q -m "chore: refresh agent tooling artifacts"
           # Unchanged since the last push (the drift isn't merged yet): nothing to push or say.
-          # (A depth-1 fetch; if the branch vanished meanwhile, fall through and push.)
-          if branch_state && git "${git_auth[@]}" fetch -q --depth=1 origin "refs/heads/${BRANCH}"; then
-            if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ] && [ -n "$(open_issue)" ]; then
+          # A depth-1 fetch. If it fails and the branch is gone, push; if the branch is still
+          # there, the failure is real (network, auth), so stop rather than push blindly.
+          fetched=0
+          if branch_state; then
+            if git "${git_auth[@]}" fetch -q --depth=1 origin "refs/heads/${BRANCH}"; then
+              fetched=1
+            elif branch_state; then
+              echo "::error::could not fetch ${BRANCH}"; exit 1
+            fi
+          fi
+          if [ "$fetched" = 1 ]; then
+            existing=$(open_issue)   # outside the condition, so a failure isn't read as "none"
+            if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ] && [ -n "$existing" ]; then
               echo "The automation branch already holds this refresh; nothing new."
               exit 0
             fi
