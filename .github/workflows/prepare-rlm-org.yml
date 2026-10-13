@@ -19,9 +19,8 @@ on:
   pull_request:
     types: [labeled]
 
-permissions:
-  contents: read
-  pull-requests: write
+# No default token permissions; the job grants only what it uses.
+permissions: {}
 
 # Serialize runs that target the same scratch-org alias: per-PR for
 # label-triggered runs, per-ref for workflow_dispatch. Prevents two jobs from
@@ -46,6 +45,9 @@ jobs:
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: read
+      pull-requests: write   # removes the ci:prepare-org trigger label (gh pr edit)
     env:
       # Dispatch uses the provided inputs; label-triggered PR runs derive a
       # per-PR alias and default to the `dev` scratch config.

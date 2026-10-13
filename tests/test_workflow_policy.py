@@ -4,11 +4,13 @@ Every workflow in .github/workflows must:
 
 1. pin every action to a full commit SHA;
 2. use only actions from an allowed owner (GitHub-authored, verified creators, or approved);
-3. declare a top-level `permissions:` block, so a job that doesn't name its own starts with
-   nothing rather than the repository default;
-4. keep `${{ }}` expressions out of `run:` scripts. Values reach a script through `env:`, so
-   neither untrusted input nor a secret is interpolated into the script text (script injection,
-   or a secret written into the generated script file).
+3. declare a top-level `permissions:` mapping (or `read-all`) with no write scope, so a job
+   that doesn't name its own starts read-only or with nothing; `write-all`, an empty value and a
+   top-level write all fail;
+4. keep `${{ }}` expressions out of scripts: `run:`, and the `script` of `actions/github-script`.
+   Values reach a script through `env:`, so neither untrusted input nor a secret is interpolated
+   into the script text (script injection, or a secret written into the generated script
+   file). Composite actions under `.github/actions/` are held to the same rules.
 
 Repository settings enforce some of this server-side, but they can be switched off and don't
 travel with the code to the SalesforceLabs mirror. This suite is the in-repo guard that still
@@ -40,7 +42,9 @@ DIGEST = re.compile(r"docker://[^@\s]+@sha256:[0-9a-f]{64}")
 # Owners whose actions may be used. `actions` and `github` are GitHub-authored; `docker` is a
 # Marketplace verified creator. `anthropics/claude-code-action` is in use pending approval
 # (#ask-enterprise-security, per the guide); remove it here if that approval is refused.
-ALLOWED_OWNERS = {"actions", "github", "docker", "anthropics"}
+ALLOWED_OWNERS = {"actions", "github", "docker", "anthropics"}  # compared case-insensitively
+# `docker://` images skip the owner list, so each must be approved by name (none are in use).
+ALLOWED_IMAGES: set = set()
 EXPRESSION = re.compile(r"\$\{\{")
 
 _passed = _total = 0
@@ -74,21 +78,57 @@ def uses_values(node, path="$"):
 
 
 def owner(value: str) -> str:
-    return value.split("/", 1)[0] if isinstance(value, str) and "/" in value else ""
+    return value.split("/", 1)[0].lower() if isinstance(value, str) and "/" in value else ""
+
+
+def allowed(value) -> bool:
+    if not isinstance(value, str):
+        return False
+    if value.startswith("./"):
+        return True
+    if value.startswith("docker://"):
+        return value[len("docker://"):].split("@", 1)[0] in ALLOWED_IMAGES
+    return owner(value) in ALLOWED_OWNERS
 
 
 def disallowed_in(doc):
-    return [f"{where}: {value!r}" for where, value in uses_values(doc)
-            if isinstance(value, str) and not value.startswith(("./", "docker://"))
-            and owner(value) not in ALLOWED_OWNERS]
+    return [f"{where}: {value!r}" for where, value in uses_values(doc) if not allowed(value)]
+
+
+def permissions_problem(doc):
+    """Why a workflow's top-level permissions aren't least-privilege, or None."""
+    if not isinstance(doc, dict) or "permissions" not in doc:
+        return "no top-level permissions block; add `permissions: {}` or the least it needs"
+    value = doc["permissions"]
+    if value == "read-all" or value == {}:
+        return None
+    if not isinstance(value, dict):
+        return f"top-level permissions is {value!r}; use a mapping, `{{}}` or `read-all`"
+    writes = sorted(k for k, v in value.items() if v != "read" and v != "none")
+    return f"top-level write scopes {writes}; grant them in the job that needs them" if writes else None
+
+
+def steps_of(doc):
+    """(path, step) for every step: a workflow's jobs, or a composite action's runs.steps."""
+    doc = doc or {}
+    for job_name, job in (doc.get("jobs") or {}).items():
+        for i, step in enumerate((job or {}).get("steps") or []):
+            yield f"jobs.{job_name}.steps[{i}]", step
+    for i, step in enumerate(((doc.get("runs") or {}).get("steps")) or []):
+        yield f"runs.steps[{i}]", step
 
 
 def run_scripts(doc):
-    """Every (path, script) of a step's `run:` in a parsed workflow."""
-    for job_name, job in ((doc or {}).get("jobs") or {}).items():
-        for i, step in enumerate((job or {}).get("steps") or []):
-            if isinstance(step, dict) and "run" in step:
-                yield f"jobs.{job_name}.steps[{i}] ({step.get('name', '')})", str(step["run"])
+    """Every (path, script) a step runs: `run:`, or the `script` of actions/github-script."""
+    for where, step in steps_of(doc):
+        if not isinstance(step, dict):
+            continue
+        label = f"{where} ({step.get('name', '')})"
+        if "run" in step:
+            yield label, str(step["run"])
+        uses = step.get("uses")
+        if isinstance(uses, str) and uses.lower().startswith("actions/github-script@"):
+            yield label + " with.script", str((step.get("with") or {}).get("script", ""))
 
 
 def interpolating_in(doc):
@@ -100,10 +140,16 @@ def unpinned_in(text: str):
             if not pinned(value)]
 
 
-print("\nEvery action in every workflow is pinned to a full commit SHA")
+print("\nEvery workflow (and local composite action) meets the policy")
+ACTIONS = os.path.join(REPO, ".github", "actions")
 names = sorted(n for n in os.listdir(WORKFLOWS) if n.endswith((".yml", ".yaml")))
 check("there are workflows to check", bool(names), WORKFLOWS)
-for name in names:
+local_actions = []
+for root, _, files in os.walk(ACTIONS) if os.path.isdir(ACTIONS) else []:
+    local_actions += [os.path.relpath(os.path.join(root, f), WORKFLOWS) for f in files
+                      if f in ("action.yml", "action.yaml")]
+for name in names + sorted(local_actions):
+    composite = name in local_actions
     with open(os.path.join(WORKFLOWS, name), encoding="utf-8") as fh:
         text = fh.read()
     try:
@@ -115,8 +161,9 @@ for name in names:
     found = list(uses_values(doc))
     check(f"{name}: {len(found)} `uses`, all pinned", not bad, bad)
     check(f"{name}: every action from an allowed owner", not disallowed_in(doc), disallowed_in(doc))
-    check(f"{name}: a top-level permissions block", isinstance(doc, dict) and "permissions" in doc,
-          "add `permissions: {}` (or the least the workflow needs) at the top level")
+    if not composite:  # a composite action has no token of its own
+        check(f"{name}: least-privilege top-level permissions", permissions_problem(doc) is None,
+              permissions_problem(doc))
     check(f"{name}: no ${{{{ }}}} interpolated into a run script", not interpolating_in(doc),
           interpolating_in(doc))
 
@@ -154,6 +201,21 @@ check("a GitHub-authored action is allowed",
       not disallowed_in({"steps": [{"uses": f"actions/checkout@{SHA}"}]}))
 check("an expression in a run script is caught",
       bool(interpolating_in({"jobs": {"j": {"steps": [{"run": 'echo "${{ github.event.issue.title }}"'}]}}})))
+check("an expression in a github-script script is caught",
+      bool(interpolating_in({"jobs": {"j": {"steps": [{"uses": f"actions/github-script@{SHA}",
+                                                       "with": {"script": "core.info('${{ github.event.issue.title }}')"}}]}}})))
+check("an expression in a composite action's step is caught",
+      bool(interpolating_in({"runs": {"using": "composite",
+                                      "steps": [{"run": "echo ${{ inputs.x }}", "shell": "bash"}]}})))
+for label, perms, ok in (("`{}`", {}, True), ("`read-all`", "read-all", True),
+                         ("read scopes", {"contents": "read", "pull-requests": "read"}, True),
+                         ("`write-all`", "write-all", False), ("an empty value", None, False),
+                         ("a top-level write scope", {"contents": "write"}, False)):
+    check(f"top-level permissions {label} {'pass' if ok else 'fail'}",
+          (permissions_problem({"permissions": perms}) is None) is ok, perms)
+check("an owner's case doesn't matter", not disallowed_in({"steps": [{"uses": f"Actions/checkout@{SHA}"}]}))
+check("an unapproved docker:// image is disallowed",
+      bool(disallowed_in({"steps": [{"uses": "docker://alpine@sha256:" + "a" * 64}]})))
 check("the same value through env is not",
       not interpolating_in({"jobs": {"j": {"steps": [{"env": {"T": "${{ github.event.issue.title }}"},
                                                       "run": 'echo "$T"'}]}}}))

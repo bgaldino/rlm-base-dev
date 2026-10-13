@@ -106,13 +106,15 @@ jobs:
             .agents/context/rule-skill-coverage.md
           if-no-files-found: warn
 
-      - name: Push the refreshed artifacts and open or update the drift issue
+      - name: Push the refreshed artifacts and open, update or close the drift issue
         # No third-party action: the ESAG guide doesn't allow personal-account actions (this was
-        # peter-evans/create-pull-request). git and gh only, with the job's own token.
+        # peter-evans/create-pull-request). git and gh only, with the job's own token, which
+        # reaches git through a credential helper reading the environment (not argv or a URL).
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           BASE: ${{ github.event.repository.default_branch }}
+          REF_NAME: ${{ github.ref_name }}
           BRANCH: automation/agent-tooling-optimization
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -120,26 +122,55 @@ jobs:
           paths=(docs/analysis/tooling-optimization-report.md
                  .agents/context/tooling-scorecard.json
                  .agents/context/rule-skill-coverage.md)
+          title="Agent tooling artifacts drifted"
+          git_auth=(-c credential.helper=
+                    -c 'credential.helper=!f() { echo username=x-access-token; echo "password=${GH_TOKEN}"; }; f')
+          open_issue() {
+            gh issue list -R "$REPO" --state open --search "in:title \"${title}\"" --json number,title \
+              --jq ".[] | select(.title == \"${title}\") | .number" | head -1
+          }
+          drifted=1
           if git diff --quiet -- "${paths[@]}" && [ -z "$(git ls-files --others --exclude-standard -- "${paths[@]}")" ]; then
-            echo "No drift in the committed artifacts."
+            drifted=0
+          fi
+
+          # The automation branch and the issue describe the default branch, so only a run on it
+          # writes anything; a dispatch from another branch just reports.
+          if [ "$REF_NAME" != "$BASE" ]; then
+            echo "Run on ${REF_NAME}, not ${BASE}: drifted=${drifted}. Nothing pushed or filed."
             exit 0
           fi
+
+          if [ "$drifted" = 0 ]; then
+            echo "No drift in the committed artifacts."
+            existing=$(open_issue)
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" -R "$REPO" --comment "The artifacts are current again as of ${RUN_URL}; closing."
+            fi
+            if git ls-remote --exit-code "${git_auth[@]}" origin "refs/heads/${BRANCH}" >/dev/null 2>&1; then
+              git "${git_auth[@]}" push origin --delete "$BRANCH"
+            fi
+            exit 0
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -C "$BRANCH"
           git add -- "${paths[@]}"
           git commit -q -m "chore: refresh agent tooling artifacts"
-          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${BRANCH}"
+          # The branch is generated output, rebuilt from the default branch on every drifted run.
+          git "${git_auth[@]}" push --force origin "HEAD:refs/heads/${BRANCH}"
 
-          title="Agent tooling artifacts drifted"
+          # The labels may not exist (a fresh repository, the mirror); --force creates or updates.
+          gh label create automation -R "$REPO" --color ededed --force >/dev/null
+          gh label create agent-tooling -R "$REPO" --color 0e8a16 --force >/dev/null
           compare="https://github.com/${REPO}/compare/${BASE}...${BRANCH}?expand=1"
           body="The committed agent tooling artifacts drifted from the repository. The deep-checks job regenerated them with \`analyze_agent_tooling.py all\` and pushed the result to \`${BRANCH}\`.
 
           **Open the pull request:** ${compare}
 
           Actions can't open pull requests in this repository, so a maintainer opens it from that link. Run: ${RUN_URL}"
-          existing=$(gh issue list -R "$REPO" --state open --label automation --label agent-tooling \
-                       --search "in:title \"${title}\"" --json number -q '.[0].number // empty')
+          existing=$(open_issue)
           if [ -n "$existing" ]; then
             gh issue comment "$existing" -R "$REPO" --body "Refreshed again: ${compare} (run ${RUN_URL})"
           else

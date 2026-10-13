@@ -66,10 +66,7 @@ jobs:
           case "$EVENT_NAME" in
             workflow_dispatch)
               tag="$INPUT_TAG"
-              platforms="$INPUT_PLATFORMS"
-              [[ "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]] || { echo "::error::invalid tag: $tag"; exit 1; }
-              [[ "$platforms" =~ ^[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?(,[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?)*$ ]] \
-                || { echo "::error::invalid platforms: $platforms"; exit 1; } ;;
+              platforms="$INPUT_PLATFORMS" ;;
             schedule)
               # Weekly run: date-stamped tag for history, plus :latest (added below).
               tag="$(date -u +%Y%m%d)"
@@ -78,6 +75,12 @@ jobs:
               tag="${GITHUB_REF_NAME#image-v}"
               platforms="linux/amd64,linux/arm64" ;;
           esac
+          # Validated for every event (a pushed tag like `image-v` would give an empty one) before
+          # anything reaches $GITHUB_OUTPUT; the rejected value isn't echoed, so it can't forge a
+          # workflow command.
+          [[ "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]] || { echo "::error::invalid image tag"; exit 1; }
+          [[ "$platforms" =~ ^[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?(,[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?)*$ ]] \
+            || { echo "::error::invalid platforms"; exit 1; }
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
 
