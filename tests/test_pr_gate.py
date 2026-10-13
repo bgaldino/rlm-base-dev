@@ -660,7 +660,7 @@ else:
     check("prepare-rlm-org.yml exists to compare pins against", False, "file missing")
 
 # The repo-wide pin rule (every `uses` in every workflow is a full SHA) lives in
-# tests/test_workflow_pins.py, which reads the parsed YAML; it runs in yaml_offline_suites.
+# tests/test_workflow_policy.py, which reads the parsed YAML; it runs in yaml_offline_suites.
 print("\nThe workflow that runs the gate cannot be quietly defanged")
 # The gate is only as real as the job that invokes it, and every way of disabling that job
 # leaves a green PR behind — which is the exact failure #264-58 exists to fix, one level up.

@@ -19,9 +19,8 @@ on:
   pull_request:
     types: [labeled]
 
-permissions:
-  contents: read
-  pull-requests: write
+# No default token permissions; the job grants only what it uses.
+permissions: {}
 
 # Serialize runs that target the same scratch-org alias: per-PR for
 # label-triggered runs, per-ref for workflow_dispatch. Prevents two jobs from
@@ -46,6 +45,9 @@ jobs:
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: read
+      pull-requests: write   # removes the ci:prepare-org trigger label (gh pr edit)
     env:
       # Dispatch uses the provided inputs; label-triggered PR runs derive a
       # per-PR alias and default to the `dev` scratch config.
@@ -126,10 +128,16 @@ jobs:
           cci task run validate_setup
 
       - name: Authenticate Dev Hub
+        # The secret reaches the script through env, not interpolation (which would write it
+        # into the generated script file), and its file is owner-only and removed on any exit.
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
         run: |
-          echo "${{ secrets.SFDX_AUTH_URL }}" > /tmp/sfdx-auth-url.txt
-          sf org login sfdx-url --sfdx-url-file /tmp/sfdx-auth-url.txt --set-default-dev-hub --alias devhub
-          rm /tmp/sfdx-auth-url.txt
+          umask 077
+          auth_file="$(mktemp)"
+          trap 'rm -f "$auth_file"' EXIT
+          printf '%s\n' "$SFDX_AUTH_URL" > "$auth_file"
+          sf org login sfdx-url --sfdx-url-file "$auth_file" --set-default-dev-hub --alias devhub
 
       # CumulusCI 4.10.1 reads the scratch-org token with `sf org auth
       # show-access-token` when `sf org display` redacts it, so no step needs

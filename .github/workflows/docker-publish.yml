@@ -39,6 +39,9 @@ concurrency:
   group: docker-publish-${{ github.ref }}
   cancel-in-progress: true
 
+# No default token permissions; each job grants only what it uses.
+permissions: {}
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -51,13 +54,19 @@ jobs:
 
       - name: Set image coordinates
         id: meta
+        # Dispatch inputs arrive through env, never interpolated into the script, and are
+        # validated before they reach $GITHUB_OUTPUT (a newline there would add an output).
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          INPUT_PLATFORMS: ${{ github.event.inputs.platforms }}
         run: |
           owner="${GITHUB_REPOSITORY_OWNER,,}"   # lowercase for GHCR
           echo "image=ghcr.io/${owner}/rlm-base" >> "$GITHUB_OUTPUT"
-          case "${{ github.event_name }}" in
+          case "$EVENT_NAME" in
             workflow_dispatch)
-              tag="${{ github.event.inputs.tag }}"
-              platforms="${{ github.event.inputs.platforms }}" ;;
+              tag="$INPUT_TAG"
+              platforms="$INPUT_PLATFORMS" ;;
             schedule)
               # Weekly run: date-stamped tag for history, plus :latest (added below).
               tag="$(date -u +%Y%m%d)"
@@ -66,6 +75,12 @@ jobs:
               tag="${GITHUB_REF_NAME#image-v}"
               platforms="linux/amd64,linux/arm64" ;;
           esac
+          # Validated for every event (a pushed tag like `image-v` would give an empty one) before
+          # anything reaches $GITHUB_OUTPUT; the rejected value isn't echoed, so it can't forge a
+          # workflow command.
+          [[ "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$ ]] || { echo "::error::invalid image tag"; exit 1; }
+          [[ "$platforms" =~ ^[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?(,[a-z0-9]+/[a-z0-9]+(/[a-z0-9]+)?)*$ ]] \
+            || { echo "::error::invalid platforms"; exit 1; }
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
 
@@ -96,10 +111,13 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Summary
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+          TAG: ${{ steps.meta.outputs.tag }}
         run: |
-          echo "### Published \`${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Published \`${IMAGE}:${TAG}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Pull with:" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo "RLM_IMAGE=${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }} ./docker/rlm pull" >> "$GITHUB_STEP_SUMMARY"
+          echo "RLM_IMAGE=${IMAGE}:${TAG} ./docker/rlm pull" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

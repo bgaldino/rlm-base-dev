@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       deep_checks:
-        description: "Regenerate report/scorecard/coverage artifacts (installs PyYAML) and open an update PR if they drift"
+        description: "Regenerate report/scorecard/coverage artifacts (installs PyYAML) and, if they drift, push them to a branch and open an issue linking the PR to create"
         required: false
         default: false
         type: boolean
@@ -68,16 +68,19 @@ jobs:
     if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deep_checks == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # contents: write to push the refreshed artifacts to the automation branch; issues: write
+    # to open or update the drift issue. Actions can't create pull requests in this repository
+    # (the ESAG guide requires that setting off), so a maintainer opens the PR from the issue.
     permissions:
       contents: write
-      pull-requests: write
+      issues: write
+      pull-requests: read   # gh pr list: is an open PR using the automation branch?
     steps:
       - name: Checkout repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
         with:
           fetch-depth: 0
-          # create-pull-request supplies its own token via `token:`, so the
-          # persisted credential is unnecessary here too.
+          # The push below passes the token explicitly, so no credential is persisted.
           persist-credentials: false
 
       - name: Set up Python
@@ -104,24 +107,120 @@ jobs:
             .agents/context/rule-skill-coverage.md
           if-no-files-found: warn
 
-      - name: Open or update optimization pull request
-        # Third-party, write-scoped action — pinned to a full commit SHA (not the
-        # mutable v8 tag) to limit supply-chain blast radius. Bump via Dependabot.
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
-        with:
-          token: ${{ github.token }}
-          branch: automation/agent-tooling-optimization
-          delete-branch: true
-          title: "chore: refresh agent tooling artifacts"
-          commit-message: "chore: refresh agent tooling artifacts"
-          body: |
-            ## Summary
-            - Regenerated the agent tooling report, scorecard, and rule/skill
-              coverage matrix via `analyze_agent_tooling.py all`.
-            - Opened automatically because the committed artifacts drifted from
-              the current repository state.
+      - name: Push the refreshed artifacts and open, update or close the drift issue
+        # No third-party action: the ESAG guide doesn't allow personal-account actions (this was
+        # peter-evans/create-pull-request). git and gh only, with the job's own token, which
+        # reaches git through a credential helper reading the environment (not argv or a URL).
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.event.repository.default_branch }}
+          REF_NAME: ${{ github.ref_name }}
+          BRANCH: automation/agent-tooling-optimization
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          shopt -s inherit_errexit   # a failing gh inside $(open_issue) fails the step
+          paths=(docs/analysis/tooling-optimization-report.md
+                 .agents/context/tooling-scorecard.json
+                 .agents/context/rule-skill-coverage.md)
+          title="Agent tooling artifacts drifted"
+          git_auth=(-c credential.helper=
+                    -c 'credential.helper=!f() { echo username=x-access-token; echo "password=${GH_TOKEN}"; }; f')
+          # A label filter first (search lags behind a just-created issue), then search by title for
+          # one whose label was removed; exact title either way.
+          open_issue() {
+            local found
+            found=$(gh issue list -R "$REPO" --state open --label agent-tooling --limit 100 --json number,title \
+                      --jq ".[] | select(.title == \"${title}\") | .number" | head -1)
+            if [ -z "$found" ]; then
+              found=$(gh issue list -R "$REPO" --state open --search "in:title \"${title}\"" --limit 100 \
+                        --json number,title --jq ".[] | select(.title == \"${title}\") | .number" | head -1)
+            fi
+            echo "$found"
+          }
+          # 0 = the automation branch exists, 2 = it doesn't; anything else is an error, not "absent".
+          branch_state() {
+            local rc=0
+            git "${git_auth[@]}" ls-remote --exit-code origin "refs/heads/${BRANCH}" >/dev/null || rc=$?
+            if [ "$rc" != 0 ] && [ "$rc" != 2 ]; then
+              echo "::error::git ls-remote failed (exit ${rc})"; exit 1
+            fi
+            return "$rc"
+          }
+          drifted=1
+          if git diff --quiet -- "${paths[@]}" && [ -z "$(git ls-files --others --exclude-standard -- "${paths[@]}")" ]; then
+            drifted=0
+          fi
 
-            ## Validation
-            - Baseline gate: `python scripts/ai/analyze_agent_tooling.py check`
-            - Deep checks: `python scripts/ai/analyze_agent_tooling.py check --full-generated-reference-checks`
-          labels: automation, agent-tooling
+          # The automation branch and the issue describe the default branch, so only a run on it
+          # writes anything; a dispatch from another branch just reports.
+          if [ "$REF_NAME" != "$BASE" ]; then
+            if [ "$drifted" = 1 ]; then
+              echo "::warning::The artifacts drift on ${REF_NAME}. Nothing pushed or filed: only a run on ${BASE} does that."
+            else
+              echo "No drift on ${REF_NAME}. Nothing pushed or filed (not ${BASE})."
+            fi
+            exit 0
+          fi
+
+          if [ "$drifted" = 0 ]; then
+            echo "No drift in the committed artifacts."
+            existing=$(open_issue)
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" -R "$REPO" --comment "The artifacts are current again as of ${RUN_URL}; closing."
+            fi
+            # Delete the stale branch, unless a maintainer has opened a PR from it: deleting the
+            # branch would close that PR without warning.
+            if branch_state; then
+              open_prs=$(gh pr list -R "$REPO" --head "$BRANCH" --state open --json number --jq 'length')
+              if [ "$open_prs" = 0 ]; then
+                git "${git_auth[@]}" push origin --delete "$BRANCH"
+              else
+                echo "Leaving ${BRANCH}: an open pull request uses it."
+              fi
+            fi
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add -- "${paths[@]}"
+          git commit -q -m "chore: refresh agent tooling artifacts"
+          # Unchanged since the last push (the drift isn't merged yet): nothing to push or say.
+          # A depth-1 fetch. If it fails and the branch is gone, push; if the branch is still
+          # there, the failure is real (network, auth), so stop rather than push blindly.
+          fetched=0
+          if branch_state; then
+            if git "${git_auth[@]}" fetch -q --depth=1 origin "refs/heads/${BRANCH}"; then
+              fetched=1
+            elif branch_state; then
+              echo "::error::could not fetch ${BRANCH}"; exit 1
+            fi
+          fi
+          if [ "$fetched" = 1 ]; then
+            existing=$(open_issue)   # outside the condition, so a failure isn't read as "none"
+            if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ] && [ -n "$existing" ]; then
+              echo "The automation branch already holds this refresh; nothing new."
+              exit 0
+            fi
+          fi
+          # The branch is generated output, rebuilt from the default branch on every drifted run.
+          git "${git_auth[@]}" push --force origin "HEAD:refs/heads/${BRANCH}"
+
+          # The labels may not exist (a fresh repository, the mirror); --force creates or updates.
+          gh label create automation -R "$REPO" --color ededed --force >/dev/null
+          gh label create agent-tooling -R "$REPO" --color 0e8a16 --force >/dev/null
+          compare="${GITHUB_SERVER_URL}/${REPO}/compare/${BASE}...${BRANCH}?expand=1"
+          body="The committed agent tooling artifacts drifted from the repository. The deep-checks job regenerated them with \`analyze_agent_tooling.py all\` and pushed the result to \`${BRANCH}\`.
+
+          **Open the pull request:** ${compare}
+
+          Actions can't open pull requests in this repository, so a maintainer opens it from that link. Run: ${RUN_URL}"
+          existing=$(open_issue)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" -R "$REPO" --body "Refreshed again: ${compare} (run ${RUN_URL})"
+          else
+            gh issue create -R "$REPO" --title "$title" --label automation --label agent-tooling --body "$body"
+          fi
