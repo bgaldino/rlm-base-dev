@@ -474,18 +474,21 @@ trusting a green:
   the commits that edit this file. Refer to the directives by name in commit messages, never in
   their bracketed form. File contents are unaffected — the scan reads commit messages only, which
   is why the bracketed list above is safe to keep here.
-* **The two actions may be pinned by tag, and are.** `actions/checkout@v6` and
-  `actions/setup-python@v6` both move with every 6.x release — the suite accepts either a release tag
-  or a full 40-hex commit SHA, so switching to a SHA is a one-line edit that needs no rule change
-  (the first version of that rule compared the whole `uses:` string and refused the *stronger* pin), and they execute in the workspace
-  immediately before the gate — so a repointed tag could patch the scripts or shim `python`,
-  which is precisely the class the shell rules spend two hundred checks refusing. It is accepted
-  rather than solved: first-party actions, a public repo, `contents: read` plus
-  `pull-requests: read`, and no repository secrets in scope — the job's only credential is the
-  read-scoped `GITHUB_TOKEN`, which is not nothing but cannot write — so the exposure is integrity
-  under an `actions`-org compromise. Also note `setup-python` legitimately prepends to `PATH`, which is
-  the same class the `$GITHUB_PATH` rule forbids in a `run:` line — permitted only because it
-  arrives through `uses:`.
+* **The two actions are pinned to full commit SHAs.** `actions/checkout` and `actions/setup-python`
+  run in the workspace immediately before the gate, so a repointed tag could patch the scripts or
+  shim `python`, which is precisely the class the shell rules spend two hundred checks refusing.
+  Both are pinned to a commit SHA with a `# vX.Y.Z` comment, as the ESAG GitHub Actions Security
+  Guide requires, and Dependabot (`.github/dependabot.yml`) proposes updates to the pins. The
+  suite accepts only a full 40-hex SHA here, and `tests/test_workflow_pins.py` (in
+  `yaml_offline_suites`) requires one for every `uses` in `.github/workflows`, reading the parsed
+  YAML rather than the source text, so a tag can't come back even while the repository's
+  "require full-length commit SHA" setting is off. (The first version of the rule compared the whole `uses:` string
+  against `@v6` and refused the *stronger* pin; the second accepted a tag or a SHA.)
+  What remains is accepted rather than solved: a compromise of the pinned commit itself. The job
+  holds `contents: read` plus `pull-requests: read` and no repository secrets, so its only
+  credential is the read-scoped `GITHUB_TOKEN`, which is not nothing but cannot write. Also note
+  `setup-python` legitimately prepends to `PATH`, which is the same class the `$GITHUB_PATH` rule
+  forbids in a `run:` line — permitted only because it arrives through `uses:`.
 * **`merge_group` runs are not equivalent to a PR run.** A merge-queue run has no base ref, so it
   selects `--all` and skips the branch-scope step: FOREIGN/STACKED do not run there. It is wired
   anyway because a required check that never runs in a merge queue deadlocks the queue, and the
@@ -529,7 +532,7 @@ file (about 3), and `agent_tooling`. Measured 2026-10-11 on a workstation where 
 ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
-Verified by `tests/test_pr_gate.py` (711 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (712 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the

@@ -395,7 +395,8 @@ CHECKS = [
              "tests/test_fulfillment_scope_tolerance.py",
              "tests/test_skill_manifest_audit.py",
              "tests/test_prepare_constraints_validation.py",
-             "tests/test_doc_snapshot_presets.py"],  # run in sequence
+             "tests/test_doc_snapshot_presets.py",
+             "tests/test_workflow_pins.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
         # usage product to that dataset invalidates the assertion, so it has to select this.
@@ -411,7 +412,10 @@ CHECKS = [
                   "tests/test_prepare_constraints_validation.py",
                   # The doc snapshot CLI reads presets.yaml through PyYAML; its offline
                   # suite lives here rather than in STDLIB_SUITES for that reason.
-                  "scripts/doc_snapshot/", "tests/test_doc_snapshot_presets.py"],
+                  "scripts/doc_snapshot/", "tests/test_doc_snapshot_presets.py",
+                  # Every `uses` in every workflow must be a full commit SHA; the suite parses the
+                  # YAML, so any workflow change selects it.
+                  ".github/workflows/", "tests/test_workflow_pins.py"],
         deps=["PyYAML"], gating=True,
     ),
     dict(

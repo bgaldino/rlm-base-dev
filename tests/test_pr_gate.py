@@ -659,6 +659,8 @@ if os.path.exists(prepare):
 else:
     check("prepare-rlm-org.yml exists to compare pins against", False, "file missing")
 
+# The repo-wide pin rule (every `uses` in every workflow is a full SHA) lives in
+# tests/test_workflow_pins.py, which reads the parsed YAML; it runs in yaml_offline_suites.
 print("\nThe workflow that runs the gate cannot be quietly defanged")
 # The gate is only as real as the job that invokes it, and every way of disabling that job
 # leaves a green PR behind — which is the exact failure #264-58 exists to fix, one level up.
@@ -2984,11 +2986,12 @@ if os.path.exists(workflow):
     JOB_STEPS = ["Checkout repository", "Set up Python", "Resolve the base ref",
                  "Install only what the selection needs", "Run the gate", "Branch scope"]
     JOB_USES = {"Checkout repository": "actions/checkout", "Set up Python": "actions/setup-python"}
-    # Tag or full commit SHA, and the SHA is the one to prefer: pinning to a 40-hex commit is how a
-    # movable tag stops being trusted, and the first version of this rule compared the whole `uses:`
-    # string against `@v6` — refusing the stronger pin while admitting the weaker one, for a rule
-    # whose stated purpose is that neither action can patch the tree.
-    REF = re.compile(r"^(v\d+(?:\.\d+){0,2}|[0-9a-f]{40})$")
+    # A full commit SHA only. A tag can be repointed, which is how a pinned action stops being
+    # trusted; the ESAG GitHub Actions Security Guide requires SHA pins, and the repository's
+    # "require full-length commit SHA" setting refuses anything else at "Set up job". (The first
+    # version of this rule compared the whole `uses:` string against `@v6`, refusing the stronger
+    # pin; the second accepted a tag or a SHA.)
+    REF = re.compile(r"^[0-9a-f]{40}$")
 
     def pinned_use(value):
         """Split a `uses:` into its action and whether the ref is a tag or a commit SHA.
@@ -3332,10 +3335,10 @@ if os.path.exists(workflow):
     used = {s.get("name"): s["uses"] for s in job_steps if "uses" in s}
     check("and uses only the two pinned actions, neither of which patches the tree (JOB_USES)",
           {n: pinned_use(v)[0] for n, v in used.items()} == JOB_USES, used)
-    check("each pinned to a release tag or a commit SHA, so what runs before the gate is not a "
-          "moving target",
+    check("each pinned to a full commit SHA, so what runs before the gate is not a moving target",
           all(pinned_use(v)[1] for v in used.values()), used)
-    for label, spelling, ok in (("a release tag", "actions/checkout@v6", True),
+    for label, spelling, ok in (("a release tag", "actions/checkout@v6", False),
+                                ("a short SHA", "actions/checkout@" + "a" * 12, False),
                                 ("a full commit SHA", "actions/checkout@" + "a" * 40, True),
                                 ("a branch name", "actions/checkout@main", False),
                                 ("no ref at all", "actions/checkout", False)):
@@ -5130,7 +5133,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 711
+EXPECTED = 712
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

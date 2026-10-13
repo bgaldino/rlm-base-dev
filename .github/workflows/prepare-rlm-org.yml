@@ -68,15 +68,15 @@ jobs:
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ci:prepare-org" || true
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6.1.0
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: "3.13"
 
       - name: Set up Node.js 24.16.0
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
         with:
           # Pinned to an exact 24.x minor. node-version "24" floats to "latest 24.x",
           # which moved 24.16.0 → 24.17.0; on 24.17.0 the npm-installed sf CLI exits 13
@@ -87,7 +87,7 @@ jobs:
           node-version: "24.16.0"
 
       - name: Cache npm download cache
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25  # v5.1.0
         with:
           path: ~/.npm
           key: npm-cache-${{ runner.os }}-node24
