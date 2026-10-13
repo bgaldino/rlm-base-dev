@@ -198,8 +198,9 @@ Machine-specific settings (a path that differs per workstation, such as the Chro
 Testing overrides in [local-installation.md](local-installation.md#chrome-for-testing-managed-workstations))
 go in `.env.local`, which git ignores. `.envrc` loads it as dotenv: `KEY="value"` lines with
 `$VAR` expansion, and never runs it as shell. direnv doesn't ask to approve a file loaded that
-way, so it's restricted to values: a line like `X=$(cmd)` is rejected, not run. `.envrc` itself
-is tracked, so git overwrites local edits to it, and `direnv allow` is needed again when it changes.
+way, so it holds values only: a `$(cmd)` is kept as literal text, not run. Quote any value
+with spaces, because one unparsable line stops the whole file from loading. `.envrc` itself is
+tracked, so git overwrites local edits to it, and `direnv allow` is needed again when it changes.
 
 ### Verify
 
