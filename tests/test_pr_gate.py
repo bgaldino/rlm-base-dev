@@ -3995,6 +3995,9 @@ NOT_INPUTS = {
     "tests/test_pr_gate.py": {
         "datasets/sfdmu": "a path built inside a throwaway repo, not read from this one",
         ".git/config": "the config of a throwaway repo standing in for REPO_ROOT (todo 237)",
+        # Exists only where the checkout uses per-worktree config (actions/checkout does), which is why
+        # this passed locally and failed in CI until it was declared.
+        ".git/config.worktree": "the per-worktree config of the same throwaway repo (todo 237)",
     },
     "tests/test_skill_manifest_audit.py": {
         # .agents/artifacts is gitignored, so it can never appear in a PR diff — nothing
