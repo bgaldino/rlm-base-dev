@@ -50,6 +50,7 @@ Usage:
 """
 
 import argparse
+import difflib
 import os
 import shutil
 import subprocess
@@ -96,6 +97,61 @@ ADVISORY_HEAD = 20
 
 # Per-check wall-clock ceiling. Generous: the slowest real check is ~8s.
 CHECK_TIMEOUT = 900
+
+# A fixture whose git command reaches this repository instead of its throwaway one (an inherited
+# GIT_DIR from a git hook, or a cwd that isn't a repository yet) writes to the developer's .git/config,
+# and the change outlives the run. An early test_branch_scope.py fixture wrote `user.name test` and
+# `user.email t@example.com` there, and every commit for two months carried them (todo 237). Each
+# git-using suite drops the hook variables at startup, which is the fix: a leak can also stage files
+# into this repo's index or commit onto its branch, and only the suites can prevent that. The gate
+# doesn't read the environment, so it can't drop them itself; what it can do is fail a check that
+# leaves the config changed, the symptom that outlives the run.
+
+
+def repo_config_path():
+    """The config file this repository's git commands write: .git/config, or for a linked worktree
+    (whose .git is a file naming its gitdir) the main repository's, found through `commondir`. File
+    reads only. None when there's no repository to read."""
+    dot_git = os.path.join(REPO_ROOT, ".git")
+    if os.path.isdir(dot_git):
+        return os.path.join(dot_git, "config")
+    try:
+        with open(dot_git, encoding="utf-8") as fh:
+            line = fh.readline().strip()
+        if not line.startswith("gitdir:"):
+            return None
+        gitdir = os.path.join(REPO_ROOT, line[len("gitdir:"):].strip())
+        common = gitdir
+        if os.path.isfile(os.path.join(gitdir, "commondir")):
+            with open(os.path.join(gitdir, "commondir"), encoding="utf-8") as fh:
+                common = os.path.join(gitdir, fh.read().strip())
+        return os.path.join(os.path.normpath(common), "config")
+    except OSError:
+        return None
+
+
+def repo_config_bytes():
+    """The bytes of repo_config_path(), or None when it can't be read."""
+    path = repo_config_path()
+    try:
+        with open(path, "rb") as fh:
+            return fh.read()
+    except (OSError, TypeError):
+        return None
+
+
+def config_change_note(before, after):
+    """A note for a check during which the repository's config changed, with the diff, or ""."""
+    if before is None or after == before:
+        return ""
+    diff = difflib.unified_diff((before or b"").decode("utf-8", "replace").splitlines(),
+                                (after or b"").decode("utf-8", "replace").splitlines(),
+                                "config before", "config after", lineterm="")
+    return ("\nThe repository's .git/config changed while this check ran. A fixture git command may"
+            " have reached the real repository (or something else wrote it meanwhile, such as"
+            " `git push -u`). Restore it by hand; the change is not reverted for you.\n"
+            + "\n".join(diff) + "\n")
+
 
 # name, command, path prefixes that select it, extra pip deps, gating, note.
 # `suffixes` is for a check that reads the whole repo rather than a subtree: prefixes cannot
@@ -764,6 +820,7 @@ def run(cmd):
     # keeps the two from disagreeing again if it is ever re-added.
     if argv and argv[0] in ("python", "python3"):
         argv[0] = sys.executable
+    config_before = repo_config_bytes()
     started = time.time()
     try:
         # Bounded, so one hung check cannot burn the whole CI job's budget with no output.
@@ -772,7 +829,8 @@ def run(cmd):
     except subprocess.TimeoutExpired:
         # A timeout stays a check failure, not a tool error: a check that hangs is a property
         # of the change under test, unlike an interpreter that will not start.
-        return 1, (f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}"), time.time() - started
+        return 1, (f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}"
+                   + config_change_note(config_before, repo_config_bytes())), time.time() - started
     except OSError as exc:
         die(f"could not run {argv[0]!r}: {exc}")
     # `subprocess` reports a child killed by a signal as *negative* (-9 for SIGKILL). Left negative
@@ -786,7 +844,14 @@ def run(cmd):
     # check that never reached one. The contract is kept where the exit code is chosen; the two halves
     # are noted in each other's comments because neither is sufficient alone.
     code = 2 if proc.returncode < 0 else proc.returncode
-    return code, proc.stdout + proc.stderr, time.time() - started
+    out = proc.stdout + proc.stderr
+    # A check that rewrites the repository's config is a failure of that check, whatever it
+    # printed: the change outlives the run and silently alters every later commit.
+    note = config_change_note(config_before, repo_config_bytes())
+    if note:
+        code = max(code, 1)
+        out += note
+    return code, out, time.time() - started
 
 
 def run_cci_reference_drift():

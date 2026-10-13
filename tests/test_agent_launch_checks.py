@@ -2,6 +2,7 @@
 
 Run with Python 3.10+; no org, network, PyYAML, or agent client required.
 """
+import os
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,18 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts" / "ai"))
 import analyze_agent_tooling as analyzer
 import pr_gate
+
+# Run as if outside any git hook. A hook exports GIT_DIR and friends, which would aim every fixture
+# and every script under test at this repository instead of a throwaway one; one fixture once wrote
+# its identity into the developer's .git/config that way (todo 237).
+# GIT_CONFIG* would inject config into every fixture, past GIT_CONFIG_GLOBAL/SYSTEM; the ceiling
+# and discovery variables only narrow where git looks, so they stay.
+for _var in [v for v in os.environ
+             if v in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                      "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+                      "GIT_NAMESPACE", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT")
+             or v.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))]:
+    os.environ.pop(_var)
 
 
 class LaunchChecks(unittest.TestCase):
