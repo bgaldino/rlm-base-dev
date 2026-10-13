@@ -6,7 +6,8 @@ Every workflow in .github/workflows must:
 2. use only actions from an allowed owner (GitHub-authored, verified creators, or approved);
 3. declare a top-level `permissions:` mapping (or `read-all`) with no write scope, so a job
    that doesn't name its own starts read-only or with nothing; `write-all`, an empty value and a
-   top-level write all fail;
+   top-level write all fail. A job's own block may name the write scopes it uses, but not
+   `write-all` or an empty value;
 4. keep `${{ }}` expressions out of scripts: `run:`, and the `script` of `actions/github-script`.
    Values reach a script through `env:`, so neither untrusted input nor a secret is interpolated
    into the script text (script injection, or a secret written into the generated script
@@ -108,6 +109,25 @@ def permissions_problem(doc):
     return f"top-level write scopes {writes}; grant them in the job that needs them" if writes else None
 
 
+def job_permissions_problems(doc):
+    """Jobs whose own permissions aren't scoped. A job may grant the specific scopes it uses
+    (`contents: write`), which is the point of keeping the top level empty; a blanket
+    `write-all`, an empty value, or anything but a mapping or `read-all` fails."""
+    out = []
+    for job_name, job in ((doc or {}).get("jobs") or {}).items():
+        if not isinstance(job, dict) or "permissions" not in job:
+            continue  # inherits the top level, which permissions_problem() already holds
+        value = job["permissions"]
+        if value == "read-all" or isinstance(value, dict):
+            bad = sorted(k for k, v in (value.items() if isinstance(value, dict) else [])
+                         if v not in ("read", "write", "none"))
+            if bad:
+                out.append(f"jobs.{job_name}.permissions: unknown levels for {bad}")
+            continue
+        out.append(f"jobs.{job_name}.permissions is {value!r}; name the scopes the job uses")
+    return out
+
+
 def steps_of(doc):
     """(path, step) for every step: a workflow's jobs, or a composite action's runs.steps."""
     doc = doc or {}
@@ -164,6 +184,8 @@ for name in names + sorted(local_actions):
     if not composite:  # a composite action has no token of its own
         check(f"{name}: least-privilege top-level permissions", permissions_problem(doc) is None,
               permissions_problem(doc))
+        check(f"{name}: every job's own permissions are scoped", not job_permissions_problems(doc),
+              job_permissions_problems(doc))
     check(f"{name}: no ${{{{ }}}} interpolated into a run script", not interpolating_in(doc),
           interpolating_in(doc))
 
@@ -213,6 +235,13 @@ for label, perms, ok in (("`{}`", {}, True), ("`read-all`", "read-all", True),
                          ("a top-level write scope", {"contents": "write"}, False)):
     check(f"top-level permissions {label} {'pass' if ok else 'fail'}",
           (permissions_problem({"permissions": perms}) is None) is ok, perms)
+for label, perms, ok in (("named write scopes", {"contents": "write", "issues": "write"}, True),
+                         ("`read-all`", "read-all", True), ("`write-all`", "write-all", False),
+                         ("an empty value", None, False), ("an unknown level", {"contents": "admin"}, False)):
+    check(f"job-level permissions {label} {'pass' if ok else 'fail'}",
+          (not job_permissions_problems({"jobs": {"j": {"permissions": perms}}})) is ok, perms)
+check("a job without its own permissions inherits the top level and passes",
+      not job_permissions_problems({"jobs": {"j": {"steps": []}}}))
 check("an owner's case doesn't matter", not disallowed_in({"steps": [{"uses": f"Actions/checkout@{SHA}"}]}))
 check("an unapproved docker:// image is disallowed",
       bool(disallowed_in({"steps": [{"uses": "docker://alpine@sha256:" + "a" * 64}]})))
