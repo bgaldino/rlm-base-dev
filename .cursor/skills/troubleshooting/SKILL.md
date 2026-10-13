@@ -183,6 +183,27 @@ the org auth is token-only (no username).
 **Fix:** Use `cci org connect` instead of JWT-only auth, or set the username
 in the org config.
 
+### `ProductRelatedComponent` rows fail: "bundle or set levels would exceed 3"
+
+**Cause:** The `qb-pcm` plan's deepest bundle (the Q-Rack server config) nests
+6 products across 5 component links, but a fresh scratch org defaults the PCM
+`MaxBundleDepth` org value to 3. SFDMU reports each failing row and the build
+carries on, so the load finishes "successfully" with the deep bundle silently
+truncated at level 3 — nothing else in the log calls this out.
+
+**Fix:** Every tracked scratch org definition's `features` array carries
+`MaxBundleDepth:5` (the max this org value supports). Live-verified in
+[PR #516](https://github.com/bgaldino/rlm-base-dev/pull/516): a fresh scratch
+org built from an updated shape loaded all 234/234 `ProductRelatedComponent`
+rows with no depth error in the log. If you hit this on an org *not* built
+from a tracked `orgs/**/*.json` or `config/project-scratch-def.json` file
+(e.g. a hand-rolled scratch def, or an org shape/sandbox outside this repo's
+provisioning), add the same feature value — scratch orgs otherwise default to
+depth 3, and this org value has no Setup UI or Metadata API surface to raise
+after the fact (it is `scratchOrgFeatureOptOut="SUPPORT_ONLY"` in Core's UDD,
+so a persistent org without it needs a Salesforce Support case, not a repo
+change).
+
 ---
 
 ## Metadata Deploy Errors

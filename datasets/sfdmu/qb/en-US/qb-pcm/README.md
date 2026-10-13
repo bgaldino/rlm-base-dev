@@ -89,6 +89,14 @@ Core product records (313 products) with product-level attribute overrides, 9 se
 
 Product bundle structure: relationship types define roles (e.g., "Bundle to Bundle Component"), component groups organize child products within a parent, and `ProductRelatedComponent` maps the actual parent-child relationships with quantities, sequences, and pricing inclusion rules.
 
+The QB-QRack-750 bundle nests 6 products across 5 component links — one level
+past the PCM `MaxBundleDepth` org value's default of 3. Every tracked scratch
+org definition (`orgs/**/*.json`, `config/project-scratch-def.json`) sets
+`MaxBundleDepth:5` in its `features` array so this bundle loads in full; see
+`.cursor/skills/troubleshooting/SKILL.md` → **SFDMU Data Loading Errors** for
+the failure mode and live-verification evidence if it loads short on an org
+not provisioned from this repo.
+
 ### Catalogs and Categories (Objects 21-23)
 
 Product catalog structure with categories (supporting hierarchy via `ParentCategoryId`) and product-to-category assignments. One self-reference exists: "Network Adapter" (`ParentCategory.Code = PCIe`).
