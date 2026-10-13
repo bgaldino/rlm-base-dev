@@ -194,6 +194,11 @@ cd path/to/rlm-base-dev
 direnv allow              # one-time per workstation per .envrc revision
 ```
 
+Machine-specific settings (a path that differs per workstation, such as the Chrome for
+Testing overrides in [local-installation.md](local-installation.md#chrome-for-testing-managed-workstations))
+go in `.envrc.local`, which `.envrc` sources and git ignores. `.envrc` itself is tracked, so
+git overwrites local edits to it. `direnv allow` is needed again whenever either file changes.
+
 ### Verify
 
 ```bash
