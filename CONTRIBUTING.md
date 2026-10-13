@@ -103,11 +103,13 @@ agents will fail.
 
 Check your setup: after you push, each commit in the PR's **Commits** tab should show
 **Verified**. To re-sign commits you already pushed to your branch, in place, without moving it
-onto a newer base (use your PR's base branch, `main` unless it targets `preview/<n>` or `release/<n>`):
+onto a newer base. Set `base` to your PR's base branch first: replaying from any other branch would
+re-sign that branch's commits too and add them to your PR.
 
 ```sh
+base=main            # or preview/<n>, release/<n>: the branch your PR targets
 git fetch upstream
-git rebase --exec 'git commit --amend --no-edit --no-verify -S' "$(git merge-base HEAD upstream/main)"
+git rebase --exec 'git commit --amend --no-edit --no-verify -S' "$(git merge-base HEAD "upstream/$base")"
 git push --force-with-lease
 ```
 
