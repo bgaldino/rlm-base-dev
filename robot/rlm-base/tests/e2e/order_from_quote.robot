@@ -31,7 +31,7 @@ ${ORDER_ID}             ${EMPTY}
 
 Order From Quote
     [Documentation]    Adds products via Browse Catalogs, creates and activates an Order,
-    ...    then verifies Assets exist on the Account.
+    ...    then verifies the Order produced Assets.
     [Tags]    e2e    requires_qb
     Skip If    "${QB}" == "false"    Requires qb=true for QuantumBit product catalog
 
@@ -60,8 +60,7 @@ Order From Quote
     Activate Order    ${ORDER_ID}
 
     # Verify assets (async — poll until at least 1 asset exists)
-    Wait Until Keyword Succeeds    ${ASYNC_TIMEOUT}    ${ASYNC_POLL_INTERVAL}
-    ...    Verify Assets Exist On Account    ${ACCOUNT_ID}
+    Wait For Assets From Order    ${ORDER_ID}
     Navigate To Account    ${ACCOUNT_ID}
     Click Record Page Tab    Assets
     Capture Step Screenshot    05_assets_tab

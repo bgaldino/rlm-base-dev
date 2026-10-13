@@ -585,3 +585,98 @@ class SalesforceAPI:
         if not records:
             raise AssertionError(f"No records found for: {soql}")
         return records[0].get("Id", records[0].get("id", ""))
+
+    # ── Revenue Cloud actions ────────────────────────────────────────
+
+    @staticmethod
+    def _json_or_none(resp, empty):
+        """Parse a response body, returning ``empty`` for a blank or non-JSON one
+        (e.g. an HTML 502 page), so the caller reports the status and text instead
+        of a JSONDecodeError."""
+        if not resp.content:
+            return empty
+        try:
+            return resp.json()
+        except ValueError:
+            return empty
+
+    @keyword
+    def reprice_quote_via_api(self, quote_id):
+        """Force a full reprice of a Quote through Place Sales Transaction.
+
+        Sends a header-only PATCH graph with ``pricingPref: Force`` (the 264 dev
+        guide's "update a quote" shape). Tax runs as it does from the UI, so a
+        successful reprice ends at CompletedWithTax. Used once, to recover a quote
+        the platform left in a failed CalculationStatus; the caller then waits for
+        the status to settle again.
+
+        Args:
+            quote_id: Quote Id.
+
+        Returns:
+            The Place Sales Transaction response body.
+        """
+        self._validate_salesforce_id(quote_id)
+        self._ensure_authenticated()
+        payload = {
+            "pricingPref": "Force",
+            "configurationPref": {"configurationMethod": "Skip"},
+            "graph": {
+                "graphId": "e2eReprice",
+                "records": [{
+                    "referenceId": "refQuote",
+                    "record": {"attributes": {"type": "Quote", "method": "PATCH",
+                                              "id": quote_id}},
+                }],
+            },
+        }
+        resp = requests.post(
+            f"{self._instance_url}/services/data/{self.API_VERSION}"
+            "/connect/rev/sales-transaction/actions/place",
+            headers=self._headers(),
+            json=payload,
+            timeout=self.REQUEST_TIMEOUT,
+        )
+        body = self._json_or_none(resp, {})
+        if resp.status_code not in (200, 201, 202) or (
+                isinstance(body, dict) and body.get("isSuccess") is False):
+            raise AssertionError(
+                f"Reprice of Quote {quote_id} failed: {resp.status_code} {resp.text[:500]}"
+            )
+        _logger.info("Repriced Quote %s: %s", quote_id, resp.text[:300])
+        return body
+
+    @keyword
+    def assetize_order_via_api(self, order_id):
+        """Request assetization of an activated Order directly.
+
+        Calls the ``createOrUpdateAssetFromOrder`` standard invocable action (264
+        dev guide, "Create or Update Asset From Order Action"), which needs the
+        Assetize Order permission set (granted through the RLM_PSL permission set
+        group). Used once, when activation produced no
+        Assets; the caller keeps polling for them.
+
+        Args:
+            order_id: Order Id.
+
+        Returns:
+            The action's ``requestId``.
+        """
+        self._validate_salesforce_id(order_id)
+        self._ensure_authenticated()
+        resp = requests.post(
+            f"{self._instance_url}/services/data/{self.API_VERSION}"
+            "/actions/standard/createOrUpdateAssetFromOrder",
+            headers=self._headers(),
+            json={"inputs": [{"orderId": order_id}]},
+            timeout=self.REQUEST_TIMEOUT,
+        )
+        body = self._json_or_none(resp, [])
+        result = body[0] if isinstance(body, list) and body and isinstance(body[0], dict) else {}
+        if resp.status_code != 200 or not result.get("isSuccess"):
+            raise AssertionError(
+                f"Assetization of Order {order_id} failed: {resp.status_code} {resp.text[:500]}"
+            )
+        request_id = (result.get("outputValues") or {}).get("requestId")
+        _logger.info("Requested assetization of Order %s: %s", order_id, request_id)
+        return request_id

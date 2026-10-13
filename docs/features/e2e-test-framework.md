@@ -26,7 +26,7 @@ Revenue Cloud App
   -> Configure Bundle Line (row actions -> Configure -> tick option -> Save & Exit)
   -> Create Order (Select Single Order -> Finish)
   -> Activate Order (confirm dialog)
-  -> Verify Assets on Account (async poll)
+  -> Wait For Assets From Order (async poll, scoped to the order)
   -> Verify Renewal Opportunity Includes Product (async poll)   <- the issue #63 detector
 ```
 
@@ -221,7 +221,7 @@ Test steps are composed from high-level keywords in E2ECommon.robot:
 | `Reset Test Account` | Navigate to Account, run Reset Account flow |
 | `Create Opportunity From Account` | QuickAction + API lookup, returns Id |
 | `Create Quote From Opportunity` | QuickAction flow + API lookup, returns Id |
-| `Add Products Via Browse Catalogs` | Full catalog workflow (Price Book modal, catalog select, search, add, save) |
+| `Add Products Via Browse Catalogs` | Full catalog workflow (Price Book modal, catalog select, search, add, save). Retried once from a fresh page if no line is saved |
 | `Create Order From Quote` | Create Order flow with single order selection, returns Id |
 | `Activate Order` | Click Activate, confirm dialog, poll for status |
 | `Confirm Modal Action` | Generic Aura modal footer button click with retry |
@@ -234,9 +234,51 @@ Salesforce platform operations (Order activation, Asset creation) are asynchrono
 
 - **Record creation** — `Wait For Related Record Via API` polls a SOQL query until a record appears
 - **Field value** — `Wait For Field Value Via API` polls until a field matches the expected value
-- **Asset verification** — `Verify Assets Exist On Account` polls until asset count > 0
+- **Asset verification** — `Wait For Assets From Order` polls until an asset action records one of the order's products as its source, so assets from an earlier run don't count
+- **Quote pricing** — `Wait For Quote Calculation` polls `Quote.CalculationStatus` (180s, every 5s)
+  until it settles. It runs before Browse Catalogs, after the configurator, and before Create Order
+  and New Contract (these need a priced quote). `RLM_CreateOrdersFromQuote` no longer checks the
+  status itself, so starting Create Order mid-reprice fails with "the calculation status of the
+  quote is invalid".
 
 Default: 180s timeout, 10s poll interval.
+
+#### Platform transients: one retry, logged
+
+On a fresh 264 build, Revenue Cloud intermittently fails a step the test did nothing wrong in.
+Each such step is retried once, logged as a Robot `WARN` (with the first attempt's error where there is one) so the
+rate stays visible in the report, and a second failure fails the test. Each pricing wait reprices
+at most once; the reprice that clears a quote before a retry doesn't reprice again:
+
+| Symptom | Retry |
+|---------|-------|
+| Quote ends `SaveFailedOrIncomplete`, `TaxCalculationFailed` or another `*Failed` status | `Wait For Quote Calculation` reprices once (Place Sales Transaction, `pricingPref: Force`) and waits again |
+| Browse Catalogs lists no products ("Something went wrong when calculating product prices"), or an Add saves nothing | `Add Products Via Browse Catalogs` reprices the quote, checks the API, then repeats the catalog pass from a fresh page |
+| Configurator shows "Something went wrong while hydrating the context", or Save & Exit saves no option line | `Configure Bundle Line` reprices the quote, checks the API (a late save means the first pass landed), then repeats the configurator pass from a fresh page |
+| Create Order produces no Order within 45s (`createOrdersFromQuote` gack, 264.8.101) | `Create Order From Quote` reruns the flow once (the single-order method creates the order synchronously, so 45s with none means the attempt failed) |
+| New Contract flow shows "The contract could not be created" | `Create Contract From Quote` reruns the flow, only when that message is on screen |
+| No assets from the order 90s after activation (no assetization job started) | `Wait For Assets From Order` calls `createOrUpdateAssetFromOrder` once and keeps waiting (needs Assetize Order, granted via `RLM_PSL`; a refusal is logged and the wait goes on) |
+
+A failed catalog or configurator step leaves the quote failed too (`SaveFailedOrIncomplete`), and
+repeating the step onto it fails the same way, so those two retries start by repricing the quote
+(`pricingPref: Force`) and waiting for it to settle.
+
+Right after Save & Exit, `CalculationStatus` can still read the previous `CompletedWithTax`, so
+`Configure Bundle Line` doesn't trust it alone: the pass only counts once the API shows the option's
+quote line. That proves the save landed, not that repricing started; what lets repricing begin
+before Create Order checks the status again is time (a fixed 8s, then the navigation), so a reprice
+that starts much later would still be missed. The recovery reprice itself is synchronous (Place
+Sales Transaction returned with the quote repriced in every one of ~500 probe calls), so the status
+read after it is the new one.
+
+Residual risks: if a catalog Add that looked lost saves more than about a minute later, after the
+retry's API check, the retried pass adds the bundle a second time. And when `order_from_quote.robot`
+is given a `QUOTE_ID` that already carries the product, that existing line satisfies the retry's
+API check, so a failed catalog pass isn't retried and adds nothing.
+
+The one detailed error captured so far (live 2026-10-13, from a repeated-reprice probe through
+the API) was `ContextBuilderException: Lifecycle hook 'postContextCommit' failed in strict mode:
+Index: 0`.
 
 ### Price Book Modal Race Condition
 
@@ -302,7 +344,7 @@ _My Internal Keyword
     ...            }
     ...            return found;
     ...        }
-    ...        // Your component-specific logic here
+    ...        /* Your component-specific logic here */
     ...        return 'result';
     ...    })()
 ```
@@ -375,13 +417,13 @@ robot_my_test:
 | `Click Browse Catalogs` | | Clicks Browse Catalogs, handles Price Book modal |
 | `Select Catalog By Name` | catalog_name | Ensures the catalog is active. The current UI lands **pre-selected** with a combobox — only the legacy radio path clicks Next |
 | `Search Product In Catalog` | product_name | Types product name + presses Enter |
-| `Add Product By Name` | product_name | Clicks Add on the matching product row — this **writes the quote lines immediately** |
-| `Click Save Quote In Catalog` | | Commits and closes. ⚠ There is **no "Save Quote" button** in the current UI; the lines are already written, so this clicks **Close** (legacy Save Quote is still tried first) |
+| `Add Product By Name` | product_name | Clicks Add in the matching product's own row (the rows sit several shadow roots deep; there is no page-wide fallback). The line is saved asynchronously, not at the click |
+| `Click Save Quote In Catalog` | quote_id, product_name | Commits and closes. Clicks legacy **Save Quote** if present, otherwise **Close**. It waits up to 60s, via the API, for the product's saved quote line: after Save Quote, or before Close, since closing before the save lands discards it |
 
 ### Bundle Configurator
 | Keyword | Arguments | Description |
 |---------|-----------|-------------|
-| `Configure Bundle Line` | quote_id, line_name, option_name, tab_label= | Opens the configurator on a bundle **parent** line, ticks an option, commits with **Save & Exit** |
+| `Configure Bundle Line` | quote_id, line_name, option_name, tab_label= | Opens the configurator on a bundle **parent** line, ticks an option, commits with **Save & Exit**, then waits for the option's quote line (via the API) and a priced quote. Retried once from a fresh page |
 
 ⚠ The configurator is reached from the **row-level actions dropdown on the right of each line**
 ("Show Actions" → Configure) — not a gear icon. **Configure the bundle parent only.** The DOM
@@ -394,6 +436,8 @@ not join across them here — async menu render, shadow-boundary text) is docume
 |---------|-----------|-------------|
 | `Wait For Field Value Via API` | sobject, record_id, field_name, expected_value | Polls until field matches |
 | `Wait For Related Record Via API` | soql | Polls until SOQL returns a record, returns Id |
+| `Wait For Assets From Order` | order_id, first_wait=90s | Polls until an asset action records one of the order's products as its source; after `first_wait`, requests assetization once directly, then keeps polling |
+| `Wait For Quote Calculation` | quote_id, require_priced=False, timeout=180s, reprice=True | Polls `Quote.CalculationStatus` until settled; with `require_priced`, until `CompletedWithPricing`, `CompletedWithTax` or `TaxCalculationSuccess`. A failed status gets one reprice (unless `reprice` is off), then fails |
 | `Lookup Test Account` | | Queries Account by TEST_ACCOUNT_NAME, sets ACCOUNT_ID |
 
 ### Utilities
