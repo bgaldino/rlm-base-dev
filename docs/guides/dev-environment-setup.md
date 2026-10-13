@@ -185,6 +185,8 @@ if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
 fi
 unset _NVM_PREFIX
 
+# Per-workstation overrides: values only, read as dotenv (see below).
+dotenv_if_exists .env.local
 ```
 
 ### First-time activation
