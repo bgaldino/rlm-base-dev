@@ -183,6 +183,34 @@ the org auth is token-only (no username).
 **Fix:** Use `cci org connect` instead of JWT-only auth, or set the username
 in the org config.
 
+### `ProductRelatedComponent` rows fail: "bundle or set levels would exceed 3"
+
+**Cause:** The `qb-pcm` plan's deepest bundle (**QuantumBit - OmniRack DC42
+Series**, `PROD-455868158`) nests 6 products across 5 component links —
+`PROD-455868158` → `PROD-1008704562` → `PROD-356310368` → `PROD-1472536093`
+→ `PROD-384361183` → `PROD-1956857281` — but a fresh scratch org defaults the
+PCM `MaxBundleDepth` org value to 3. SFDMU reports each failing row and the
+build carries on, so the load finishes "successfully" with the deep bundle
+silently truncated at level 3 — nothing else in the log calls this out.
+
+**Fix:** Every scratch org definition with a `features` array
+(`orgs/*.json`, `orgs/internal/*.json`, `config/project-scratch-def.json`)
+carries `MaxBundleDepth:5` (the max this org value supports). Live-verified
+in [PR #516](https://github.com/bgaldino/rlm-base-dev/pull/516): a fresh
+scratch org built from an updated shape loaded all 234/234
+`ProductRelatedComponent` rows with no depth error in the log. If you hit
+this on an org *not* built from one of those files — a hand-rolled scratch
+def, an org shape/sandbox outside this repo's provisioning, **or a
+`tso`/`pde` build from an `orgs/tfid/*.json` template** (those are template
+pointers only, with no `features` array, so this fix does not reach them;
+whether the template's source org has `MaxBundleDepth` raised is a separate,
+unverified question) — add the same feature value where a `features` array
+exists, or raise the org value directly where it doesn't. Scratch orgs
+otherwise default to depth 3, and this org value has no Setup UI or Metadata
+API surface to raise after the fact (it is
+`scratchOrgFeatureOptOut="SUPPORT_ONLY"` in Core's UDD, so a persistent org
+without it needs a Salesforce Support case, not a repo change).
+
 ---
 
 ## Metadata Deploy Errors
