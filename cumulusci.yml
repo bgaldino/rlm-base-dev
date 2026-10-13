@@ -18,6 +18,9 @@ orgs:
     dev:
       config_file: orgs/dev.json
       days: 30
+    dev-r0:
+      config_file: orgs/internal/dev-r0.json
+      days: 30
     dev-r1:
       config_file: orgs/internal/dev-r1.json
       days: 30
@@ -41,6 +44,9 @@ orgs:
       days: 30
     ent:
       config_file: orgs/ent.json
+      days: 30
+    ent-r0:
+      config_file: orgs/internal/ent-r0.json
       days: 30
     ent-r1:
       config_file: orgs/internal/ent-r1.json

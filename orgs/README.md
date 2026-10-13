@@ -11,7 +11,7 @@ Most files are wired to a CCI org alias under `orgs:` in `cumulusci.yml`
 | File | Wired to a CCI alias? |
 |------|----------------------|
 | `beta.json`, `dev.json`, `ent.json` | Yes (`beta`, `dev`, `ent`) |
-| `orgs/internal/*.json` | Yes (`dev-r1`, `dev-sb0`, `ent-r1`, `ent-sb0`, `ent-sdb*`, `ent-datacloud`) |
+| `orgs/internal/*.json` | Yes (`dev-r0`, `dev-r1`, `dev-sb0`, `ent-r0`, `ent-r1`, `ent-sb0`, `ent-sdb*`, `ent-datacloud`) |
 | `feature.json`, `release.json` | Not under `orgs:` — these are CumulusCI's built-in org names, resolved by convention |
 | `dev-mfg.json`, `dev-mfg-previous.json` | **No** — ad hoc only |
 
