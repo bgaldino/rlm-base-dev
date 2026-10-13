@@ -40,10 +40,12 @@ on:
     # scheduled workflows after 60 days of repo inactivity.
     - cron: "0 7 * * 1"
 
-# Queued, not cancelled: a manual test build started during the weekly run would otherwise cancel
-# it, and :latest would miss that week's refresh.
+# The runs that move :latest (the schedule, and a manual run tagged latest) share one group; every
+# other manual tag, and each tag push, gets its own. A group holds one running and one pending run,
+# and a newer pending run replaces the older, so a test build in the same group as the weekly run
+# could drop that week's :latest refresh even without cancel-in-progress. Queued, not cancelled.
 concurrency:
-  group: docker-publish-${{ github.ref }}
+  group: docker-publish-${{ github.ref }}-${{ github.event_name == 'schedule' && 'latest' || github.event.inputs.tag || 'tag-push' }}
   cancel-in-progress: false
 
 # No default token permissions; each job grants only what it uses.

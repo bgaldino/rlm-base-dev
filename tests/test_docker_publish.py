@@ -125,5 +125,16 @@ tags = str(build.get("with", {}).get("tags", ""))
 check("the build step takes its tags only from the coordinates step",
       tags.strip() == "${{ steps.meta.outputs.tags }}", tags)
 
+print("\nConcurrency")
+# A group holds one running and one pending run, and a newer pending run replaces the older. The
+# runs that move :latest share a group so nothing else can replace a pending weekly publish; the
+# key is pinned because its effect only shows up in GitHub's scheduler, which nothing here runs.
+group = str((doc.get("concurrency") or {}).get("group", ""))
+check("only the runs that move :latest share a concurrency group (the schedule and a manual latest)",
+      group == "docker-publish-${{ github.ref }}-${{ github.event_name == 'schedule' && 'latest' "
+               "|| github.event.inputs.tag || 'tag-push' }}", group)
+check("and runs queue rather than cancel each other",
+      (doc.get("concurrency") or {}).get("cancel-in-progress") is False, doc.get("concurrency"))
+
 print(f"\n{_passed}/{_total} checks passed")
 sys.exit(0 if _passed == _total else 1)
