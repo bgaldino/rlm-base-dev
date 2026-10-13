@@ -217,9 +217,11 @@ jobs:
           # default branch's commit, and the real branch then moves straight to it. Pointing the real
           # branch at the base first would leave it with no diff in between (or for good, if the commit
           # failed), which can close a pull request opened from it.
-          tmp_branch="${BRANCH}-tmp-${GITHUB_RUN_ID:-$$}"
-          gh api -X POST "repos/${REPO}/git/refs" -f ref="refs/heads/${tmp_branch}" -f sha="$base_sha" >/dev/null
+          # Named per run attempt: a re-run keeps GITHUB_RUN_ID, so a ref left by a killed attempt
+          # would otherwise block the retry. The clean-up is armed before the ref exists.
+          tmp_branch="${BRANCH}-tmp-${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
           trap 'gh api -X DELETE "repos/${REPO}/git/refs/heads/${tmp_branch}" >/dev/null 2>&1 || true' EXIT
+          gh api -X POST "repos/${REPO}/git/refs" -f ref="refs/heads/${tmp_branch}" -f sha="$base_sha" >/dev/null
           # One jq call reads the files itself (no file content on a command line); a missing path
           # is a deletion.
           changes=$(for p in "${paths[@]}"; do
@@ -254,10 +256,10 @@ jobs:
 
           **Open the pull request:** ${compare}
 
-          Actions can't open pull requests in this repository, so a maintainer opens it from that link. A refresh the job publishes doesn't start CI on a pull request already open from the branch (GitHub doesn't trigger workflows for its own token), so re-run the checks there after a refresh. Run: ${RUN_URL}"
+          Actions can't open pull requests in this repository, so a maintainer opens it from that link. A refresh the job publishes doesn't start CI on a pull request already open from the branch (GitHub doesn't trigger workflows for its own token, and re-running an old check run tests the old commit), so close and reopen that pull request to run the checks on the new commit. Run: ${RUN_URL}"
           existing=$(open_issue)
           if [ -n "$existing" ]; then
-            gh issue comment "$existing" -R "$REPO" --body "Refreshed again: ${compare} (run ${RUN_URL})"
+            gh issue comment "$existing" -R "$REPO" --body "Refreshed again: ${compare} (run ${RUN_URL}). If a pull request is already open from \`${BRANCH}\`, close and reopen it so the checks run on the new commit."
           else
             gh issue create -R "$REPO" --title "$title" --label automation --label agent-tooling --body "$body"
           fi
