@@ -5085,12 +5085,16 @@ try:
     append = ("import sys; open(sys.argv[1], 'a').write('[user]\\n\\tname = test\\n')")
     wrote, wrote_out, _ = pr_gate.run([sys.executable, "-c", append,
                                        os.path.join(config_root, ".git", "config")])
+    # extensions.worktreeConfig makes a per-worktree file live; creating it is a change too.
+    per_wt, _, _ = pr_gate.run([sys.executable, "-c", append,
+                                os.path.join(config_root, ".git", "config.worktree")])
 finally:
     pr_gate.REPO_ROOT = prior_root
     shutil.rmtree(config_root, ignore_errors=True)
 check("a check that leaves .git/config alone passes", quiet == 0, quiet)
+check("a check that creates the per-worktree config.worktree fails too", per_wt == 1, per_wt)
 check("a check that writes to the repository's .git/config fails, and shows the change",
-      wrote == 1 and ".git/config" in wrote_out and "+\tname = test" in wrote_out,
+      wrote == 1 and "config" in wrote_out and "+\tname = test" in wrote_out,
       (wrote, wrote_out[-300:]))
 # A linked worktree's .git is a file, and its git commands write the main repository's config:
 # the guard follows gitdir and commondir there rather than going quiet.
@@ -5104,13 +5108,16 @@ try:
         "commit", "-q", "--allow-empty", "-m", "seed")
     git(main_repo, "worktree", "add", "-q", linked)
     pr_gate.REPO_ROOT = linked
-    found = pr_gate.repo_config_path()
+    found = pr_gate.repo_config_paths()
+    linked_gitdir = git(linked, "rev-parse", "--absolute-git-dir").stdout.strip()
 finally:
     pr_gate.REPO_ROOT = prior_root
     shutil.rmtree(wt_root, ignore_errors=True)
-check("in a linked worktree the guard watches the main repository's config",
-      found is not None and os.path.realpath(found) == os.path.realpath(os.path.join(main_repo, ".git", "config")),
-      found)
+check("in a linked worktree the guard watches the main repository's config and its own "
+      "config.worktree",
+      [os.path.realpath(f) for f in found]
+      == [os.path.realpath(os.path.join(main_repo, ".git", "config")),
+          os.path.realpath(os.path.join(linked_gitdir, "config.worktree"))], found)
 
 # And the same class one layer *up*, which is where it was actually still open. `run()` normalises a
 # signal-killed child to 2 and its comment calls that "the definition of a tool error in this file's
@@ -5187,7 +5194,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 715
+EXPECTED = 716
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

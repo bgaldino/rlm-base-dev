@@ -108,49 +108,57 @@ CHECK_TIMEOUT = 900
 # leaves the config changed, the symptom that outlives the run.
 
 
-def repo_config_path():
-    """The config file this repository's git commands write: .git/config, or for a linked worktree
-    (whose .git is a file naming its gitdir) the main repository's, found through `commondir`. File
-    reads only. None when there's no repository to read."""
+def repo_config_paths():
+    """The config files this repository's git commands can write: the shared config (.git/config, or
+    for a linked worktree, whose .git is a file naming its gitdir, the main repository's, found
+    through `commondir`) and this worktree's own config.worktree, which `extensions.worktreeConfig`
+    makes live. File reads only. Empty when there's no repository to read."""
     dot_git = os.path.join(REPO_ROOT, ".git")
     if os.path.isdir(dot_git):
-        return os.path.join(dot_git, "config")
+        return [os.path.join(dot_git, "config"), os.path.join(dot_git, "config.worktree")]
     try:
         with open(dot_git, encoding="utf-8") as fh:
             line = fh.readline().strip()
         if not line.startswith("gitdir:"):
-            return None
-        gitdir = os.path.join(REPO_ROOT, line[len("gitdir:"):].strip())
+            return []
+        gitdir = os.path.normpath(os.path.join(REPO_ROOT, line[len("gitdir:"):].strip()))
         common = gitdir
         if os.path.isfile(os.path.join(gitdir, "commondir")):
             with open(os.path.join(gitdir, "commondir"), encoding="utf-8") as fh:
-                common = os.path.join(gitdir, fh.read().strip())
-        return os.path.join(os.path.normpath(common), "config")
+                common = os.path.normpath(os.path.join(gitdir, fh.read().strip()))
+        return [os.path.join(common, "config"), os.path.join(gitdir, "config.worktree")]
     except OSError:
-        return None
+        return []
 
 
 def repo_config_bytes():
-    """The bytes of repo_config_path(), or None when it can't be read."""
-    path = repo_config_path()
-    try:
-        with open(path, "rb") as fh:
-            return fh.read()
-    except (OSError, TypeError):
-        return None
+    """{path: bytes} for repo_config_paths(), None for one that doesn't exist (so creating it counts as
+    a change)."""
+    out = {}
+    for path in repo_config_paths():
+        try:
+            with open(path, "rb") as fh:
+                out[path] = fh.read()
+        except OSError:
+            out[path] = None
+    return out
 
 
 def config_change_note(before, after):
-    """A note for a check during which the repository's config changed, with the diff, or ""."""
-    if before is None or after == before:
+    """A note for a check during which a repository config file changed, with the diffs, or ""."""
+    changed = [path for path in before if after.get(path) != before[path]]
+    if not changed:
         return ""
-    diff = difflib.unified_diff((before or b"").decode("utf-8", "replace").splitlines(),
-                                (after or b"").decode("utf-8", "replace").splitlines(),
-                                "config before", "config after", lineterm="")
-    return ("\nThe repository's .git/config changed while this check ran. A fixture git command may"
-            " have reached the real repository (or something else wrote it meanwhile, such as"
-            " `git push -u`). Restore it by hand; the change is not reverted for you.\n"
-            + "\n".join(diff) + "\n")
+    diffs = []
+    for path in changed:
+        name = os.path.basename(path)
+        diffs += difflib.unified_diff((before[path] or b"").decode("utf-8", "replace").splitlines(),
+                                      (after.get(path) or b"").decode("utf-8", "replace").splitlines(),
+                                      f"{name} before", f"{name} after", lineterm="")
+    return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in changed) + ")"
+            " changed while this check ran. A fixture git command may have reached the real"
+            " repository (or something else wrote it meanwhile, such as `git push -u`). Restore it by"
+            " hand; the change is not reverted for you.\n" + "\n".join(diffs) + "\n")
 
 
 # name, command, path prefixes that select it, extra pip deps, gating, note.

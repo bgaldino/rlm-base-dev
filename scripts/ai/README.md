@@ -535,7 +535,7 @@ file (about 3), and `agent_tooling`. Measured 2026-10-11 on a workstation where 
 ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
-Verified by `tests/test_pr_gate.py` (715 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (716 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
