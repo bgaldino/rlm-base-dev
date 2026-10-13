@@ -37,6 +37,18 @@ sys.path.insert(0, str(REPO / "scripts"))
 
 import repo_paths as rp  # noqa: E402
 
+# Run as if outside any git hook. A hook exports GIT_DIR and friends, which would aim every fixture
+# and every script under test at this repository instead of a throwaway one; one fixture once wrote
+# its identity into the developer's .git/config that way (todo 237).
+# GIT_CONFIG* would inject config into every fixture, past GIT_CONFIG_GLOBAL/SYSTEM; the ceiling
+# and discovery variables only narrow where git looks, so they stay.
+for _var in [v for v in os.environ
+             if v in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                      "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+                      "GIT_NAMESPACE", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT")
+             or v.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))]:
+    os.environ.pop(_var)
+
 GIT_ENV = {k: v for k, v in os.environ.items()
            if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")}
 GIT_ENV.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull,

@@ -15,6 +15,7 @@ import io
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -25,6 +26,18 @@ sys.path.insert(0, os.path.join(REPO, "scripts", "ai"))
 
 import pr_gate  # noqa: E402
 import check_plan_readme_consistency  # noqa: E402
+
+# Run as if outside any git hook. A hook exports GIT_DIR and friends, which would aim every fixture
+# and every script under test at this repository instead of a throwaway one; one fixture once wrote
+# its identity into the developer's .git/config that way (todo 237).
+# GIT_CONFIG* would inject config into every fixture, past GIT_CONFIG_GLOBAL/SYSTEM; the ceiling
+# and discovery variables only narrow where git looks, so they stay.
+for _var in [v for v in os.environ
+             if v in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                      "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+                      "GIT_NAMESPACE", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT")
+             or v.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))]:
+    os.environ.pop(_var)
 
 PASSED = 0
 FAILED = []
@@ -3981,6 +3994,10 @@ print("\nEvery file a check reads can select that check")
 NOT_INPUTS = {
     "tests/test_pr_gate.py": {
         "datasets/sfdmu": "a path built inside a throwaway repo, not read from this one",
+        ".git/config": "the config of a throwaway repo standing in for REPO_ROOT (todo 237)",
+        # Exists only where the checkout uses per-worktree config (actions/checkout does), which is why
+        # this passed locally and failed in CI until it was declared.
+        ".git/config.worktree": "the per-worktree config of the same throwaway repo (todo 237)",
     },
     "tests/test_skill_manifest_audit.py": {
         # .agents/artifacts is gitignored, so it can never appear in a PR diff — nothing
@@ -4769,7 +4786,9 @@ def fingerprint(text):
 
 VERDICT_REGIONS = {
     # region: (fingerprint, what it decides)
-    "run()": ("0085e7acf27b", "the exit code, stdout and duration of one command"),
+    # Repinned for todo 237: a check that leaves the repository's .git/config changed now fails (code
+    # raised to at least 1, with a message). The comparison is a local file read, the same on every host.
+    "run()": ("30ce6447552c", "the exit code, stdout and duration of one command"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
@@ -5058,6 +5077,51 @@ check("an unspawnable command is a tool error (exit 2), not a traceback",
 check("a timeout stays a check failure, since a hanging check is the change's own doing",
       re.search(r'except subprocess\.TimeoutExpired:.*?return 1,', source, re.S) is not None)
 
+# todo 237: a check that rewrites the repository's .git/config fails. Exercised on a throwaway repo
+# standing in for REPO_ROOT, with a positive control.
+config_root = tempfile.mkdtemp()
+prior_root = pr_gate.REPO_ROOT
+try:
+    git(config_root, "init", "-q", "-b", "base")
+    pr_gate.REPO_ROOT = config_root
+    quiet, _, _ = pr_gate.run([sys.executable, "-c", "pass"])
+    append = ("import sys; open(sys.argv[1], 'a').write('[user]\\n\\tname = test\\n')")
+    wrote, wrote_out, _ = pr_gate.run([sys.executable, "-c", append,
+                                       os.path.join(config_root, ".git", "config")])
+    # extensions.worktreeConfig makes a per-worktree file live; creating it is a change too.
+    per_wt, _, _ = pr_gate.run([sys.executable, "-c", append,
+                                os.path.join(config_root, ".git", "config.worktree")])
+finally:
+    pr_gate.REPO_ROOT = prior_root
+    shutil.rmtree(config_root, ignore_errors=True)
+check("a check that leaves .git/config alone passes", quiet == 0, quiet)
+check("a check that creates the per-worktree config.worktree fails too", per_wt == 1, per_wt)
+check("a check that writes to the repository's .git/config fails, and shows the change",
+      wrote == 1 and "config" in wrote_out and "+\tname = test" in wrote_out,
+      (wrote, wrote_out[-300:]))
+# A linked worktree's .git is a file, and its git commands write the main repository's config:
+# the guard follows gitdir and commondir there rather than going quiet.
+wt_root = tempfile.mkdtemp()
+prior_root = pr_gate.REPO_ROOT
+try:
+    main_repo, linked = os.path.join(wt_root, "main"), os.path.join(wt_root, "linked")
+    os.mkdir(main_repo)
+    git(main_repo, "init", "-q", "-b", "base")
+    git(main_repo, "-c", "user.email=t@example.com", "-c", "user.name=t",
+        "commit", "-q", "--allow-empty", "-m", "seed")
+    git(main_repo, "worktree", "add", "-q", linked)
+    pr_gate.REPO_ROOT = linked
+    found = pr_gate.repo_config_paths()
+    linked_gitdir = git(linked, "rev-parse", "--absolute-git-dir").stdout.strip()
+finally:
+    pr_gate.REPO_ROOT = prior_root
+    shutil.rmtree(wt_root, ignore_errors=True)
+check("in a linked worktree the guard watches the main repository's config and its own "
+      "config.worktree",
+      [os.path.realpath(f) for f in found]
+      == [os.path.realpath(os.path.join(main_repo, ".git", "config")),
+          os.path.realpath(os.path.join(linked_gitdir, "config.worktree"))], found)
+
 # And the same class one layer *up*, which is where it was actually still open. `run()` normalises a
 # signal-killed child to 2 and its comment calls that "the definition of a tool error in this file's
 # 0/1/2 contract" — but the booking loop sent 1 and 2 down one branch, so an OOM-killed suite was
@@ -5133,7 +5197,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 712
+EXPECTED = 716
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
