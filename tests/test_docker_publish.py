@@ -61,7 +61,8 @@ def parse_outputs(text):
     return out
 
 
-doc = yaml.safe_load(open(WORKFLOW, encoding="utf-8"))
+with open(WORKFLOW, encoding="utf-8") as fh:
+    doc = yaml.safe_load(fh)
 steps = doc["jobs"]["build-and-push"]["steps"]
 meta = next(s for s in steps if s.get("id") == "meta")
 build = next(s for s in steps if str(s.get("uses", "")).startswith("docker/build-push-action@"))
@@ -76,7 +77,8 @@ def coordinates(event, tag="", platforms="", ref_name="main"):
                GITHUB_OUTPUT=out_path)
     # GitHub runs a `run:` step on Linux as `bash -e {0}`.
     proc = subprocess.run(["bash", "-e", "-c", meta["run"]], env=env, capture_output=True, text=True)
-    outputs = parse_outputs(open(out_path, encoding="utf-8").read())
+    with open(out_path, encoding="utf-8") as fh:
+        outputs = parse_outputs(fh.read())
     os.unlink(out_path)
     return proc.returncode, outputs, proc.stdout + proc.stderr
 
@@ -97,6 +99,9 @@ code, out, log = coordinates("push", ref_name="image-v262.1")
 check("an image-v* tag push publishes only its version, so a patch line can't move :latest back",
       code == 0 and out.get("tags") == [f"{IMAGE}:262.1"] and out.get("latest") == "no",
       (code, out, log))
+code, out, log = coordinates("push", ref_name="image-vlatest")
+check("an image-vlatest tag push fails rather than publishing :latest around the rule",
+      code != 0 and "tags" not in out and "can't publish :latest" in log, (code, out, log))
 code, out, log = coordinates("workflow_dispatch", tag="phase3-test", platforms="linux/amd64")
 check("a manual test build publishes only its own tag (the 2026-10-12 case)",
       code == 0 and out.get("tags") == [f"{IMAGE}:phase3-test"] and out.get("latest") == "no",

@@ -83,6 +83,8 @@ jobs:
               platforms="linux/amd64,linux/arm64" ;;
             *)  # tag push (image-v*)
               tag="${GITHUB_REF_NAME#image-v}"
+              # `latest` is reserved for the schedule and a default-branch manual run.
+              [ "$tag" != latest ] || { echo "::error::image-vlatest can't publish :latest"; exit 1; }
               platforms="linux/amd64,linux/arm64" ;;
           esac
           # Validated for every event (a pushed tag like `image-v` would give an empty one) before
