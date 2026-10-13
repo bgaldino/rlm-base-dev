@@ -125,9 +125,19 @@ jobs:
           title="Agent tooling artifacts drifted"
           git_auth=(-c credential.helper=
                     -c 'credential.helper=!f() { echo username=x-access-token; echo "password=${GH_TOKEN}"; }; f')
+          # A label filter, not search (search lags behind a just-created issue), then exact title.
           open_issue() {
-            gh issue list -R "$REPO" --state open --search "in:title \"${title}\"" --json number,title \
+            gh issue list -R "$REPO" --state open --label agent-tooling --limit 100 --json number,title \
               --jq ".[] | select(.title == \"${title}\") | .number" | head -1
+          }
+          # 0 = the automation branch exists, 2 = it doesn't; anything else is an error, not "absent".
+          branch_state() {
+            local rc=0
+            git "${git_auth[@]}" ls-remote --exit-code origin "refs/heads/${BRANCH}" >/dev/null || rc=$?
+            if [ "$rc" != 0 ] && [ "$rc" != 2 ]; then
+              echo "::error::git ls-remote failed (exit ${rc})"; exit 1
+            fi
+            return "$rc"
           }
           drifted=1
           if git diff --quiet -- "${paths[@]}" && [ -z "$(git ls-files --others --exclude-standard -- "${paths[@]}")" ]; then
@@ -137,7 +147,11 @@ jobs:
           # The automation branch and the issue describe the default branch, so only a run on it
           # writes anything; a dispatch from another branch just reports.
           if [ "$REF_NAME" != "$BASE" ]; then
-            echo "Run on ${REF_NAME}, not ${BASE}: drifted=${drifted}. Nothing pushed or filed."
+            if [ "$drifted" = 1 ]; then
+              echo "::warning::The artifacts drift on ${REF_NAME}. Nothing pushed or filed: only a run on ${BASE} does that."
+            else
+              echo "No drift on ${REF_NAME}. Nothing pushed or filed (not ${BASE})."
+            fi
             exit 0
           fi
 
@@ -147,8 +161,15 @@ jobs:
             if [ -n "$existing" ]; then
               gh issue close "$existing" -R "$REPO" --comment "The artifacts are current again as of ${RUN_URL}; closing."
             fi
-            if git "${git_auth[@]}" ls-remote --exit-code origin "refs/heads/${BRANCH}" >/dev/null 2>&1; then
-              git "${git_auth[@]}" push origin --delete "$BRANCH"
+            # Delete the stale branch, unless a maintainer has opened a PR from it: deleting the
+            # branch would close that PR without warning.
+            if branch_state; then
+              open_prs=$(gh pr list -R "$REPO" --head "$BRANCH" --state open --json number --jq 'length')
+              if [ "$open_prs" = 0 ]; then
+                git "${git_auth[@]}" push origin --delete "$BRANCH"
+              else
+                echo "Leaving ${BRANCH}: an open pull request uses it."
+              fi
             fi
             exit 0
           fi
@@ -158,13 +179,21 @@ jobs:
           git switch -C "$BRANCH"
           git add -- "${paths[@]}"
           git commit -q -m "chore: refresh agent tooling artifacts"
+          # Unchanged since the last push (the drift isn't merged yet): nothing to push or say.
+          if branch_state; then
+            git "${git_auth[@]}" fetch -q origin "refs/heads/${BRANCH}"
+            if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ] && [ -n "$(open_issue)" ]; then
+              echo "The automation branch already holds this refresh; nothing new."
+              exit 0
+            fi
+          fi
           # The branch is generated output, rebuilt from the default branch on every drifted run.
           git "${git_auth[@]}" push --force origin "HEAD:refs/heads/${BRANCH}"
 
           # The labels may not exist (a fresh repository, the mirror); --force creates or updates.
           gh label create automation -R "$REPO" --color ededed --force >/dev/null
           gh label create agent-tooling -R "$REPO" --color 0e8a16 --force >/dev/null
-          compare="https://github.com/${REPO}/compare/${BASE}...${BRANCH}?expand=1"
+          compare="${GITHUB_SERVER_URL}/${REPO}/compare/${BASE}...${BRANCH}?expand=1"
           body="The committed agent tooling artifacts drifted from the repository. The deep-checks job regenerated them with \`analyze_agent_tooling.py all\` and pushed the result to \`${BRANCH}\`.
 
           **Open the pull request:** ${compare}

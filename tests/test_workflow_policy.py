@@ -11,7 +11,10 @@ Every workflow in .github/workflows must:
 4. keep `${{ }}` expressions out of scripts: `run:`, and the `script` of `actions/github-script`.
    Values reach a script through `env:`, so neither untrusted input nor a secret is interpolated
    into the script text (script injection, or a secret written into the generated script
-   file). Composite actions under `.github/actions/` are held to the same rules.
+   file). Action inputs (`with:`) may not carry an attacker-controlled event value (an issue,
+   comment or review title or body, a branch name, a commit message): those reach an action as
+   text it may run or follow, a prompt included. Every local composite action a workflow uses
+   (`uses: ./path`), and any under `.github/actions/`, is held to the same rules.
 
 Repository settings enforce some of this server-side, but they can be switched off and don't
 travel with the code to the SalesforceLabs mirror. This suite is the in-repo guard that still
@@ -47,6 +50,13 @@ ALLOWED_OWNERS = {"actions", "github", "docker", "anthropics"}  # compared case-
 # `docker://` images skip the owner list, so each must be approved by name (none are in use).
 ALLOWED_IMAGES: set = set()
 EXPRESSION = re.compile(r"\$\{\{")
+# Event fields an outside contributor controls, as GitHub's security hardening guide lists them.
+UNTRUSTED = re.compile(
+    r"\$\{\{[^}]*github\.(?:head_ref|event\.(?:"
+    r"(?:issue|pull_request|discussion)\.(?:title|body)|(?:comment|review|review_comment)\.body"
+    r"|pages\.[^.}\s]+\.page_name|commits\.[^}\s]*\.(?:message|author\.(?:email|name))"
+    r"|head_commit\.(?:message|author\.(?:email|name))|pull_request\.head\.(?:ref|label)"
+    r"|workflow_run\.(?:head_branch|head_commit\.message)))")
 
 _passed = _total = 0
 
@@ -151,6 +161,17 @@ def run_scripts(doc):
             yield label + " with.script", str((step.get("with") or {}).get("script", ""))
 
 
+def untrusted_inputs_in(doc):
+    """Steps whose `with:` inputs carry an attacker-controlled event value."""
+    out = []
+    for where, step in steps_of(doc):
+        if isinstance(step, dict):
+            for key, value in (step.get("with") or {}).items():
+                if UNTRUSTED.search(str(value)):
+                    out.append(f"{where}.with.{key}")
+    return out
+
+
 def interpolating_in(doc):
     return [where for where, script in run_scripts(doc) if EXPRESSION.search(script)]
 
@@ -168,6 +189,16 @@ local_actions = []
 for root, _, files in os.walk(ACTIONS) if os.path.isdir(ACTIONS) else []:
     local_actions += [os.path.relpath(os.path.join(root, f), WORKFLOWS) for f in files
                       if f in ("action.yml", "action.yaml")]
+# And every local action a workflow uses, wherever it lives (`uses: ./tools/setup`).
+for name in names:
+    with open(os.path.join(WORKFLOWS, name), encoding="utf-8") as fh:
+        for _, ref in uses_values(yaml.safe_load(fh.read())):
+            if isinstance(ref, str) and ref.startswith("./"):
+                for filename in ("action.yml", "action.yaml"):
+                    path = os.path.join(REPO, ref[2:], filename)
+                    rel = os.path.relpath(path, WORKFLOWS)
+                    if os.path.isfile(path) and rel not in local_actions:
+                        local_actions.append(rel)
 for name in names + sorted(local_actions):
     composite = name in local_actions
     with open(os.path.join(WORKFLOWS, name), encoding="utf-8") as fh:
@@ -188,6 +219,8 @@ for name in names + sorted(local_actions):
               job_permissions_problems(doc))
     check(f"{name}: no ${{{{ }}}} interpolated into a run script", not interpolating_in(doc),
           interpolating_in(doc))
+    check(f"{name}: no attacker-controlled event value in an action input",
+          not untrusted_inputs_in(doc), untrusted_inputs_in(doc))
 
 print("\nThe rule reads the parsed key, however YAML spells it")
 SHA = "c" * 40
@@ -245,6 +278,17 @@ check("a job without its own permissions inherits the top level and passes",
 check("an owner's case doesn't matter", not disallowed_in({"steps": [{"uses": f"Actions/checkout@{SHA}"}]}))
 check("an unapproved docker:// image is disallowed",
       bool(disallowed_in({"steps": [{"uses": "docker://alpine@sha256:" + "a" * 64}]})))
+for label, value, ok in (("a PR number", "${{ github.event.pull_request.number }}", True),
+                        ("the repository", "${{ github.repository }}", True),
+                        ("a step output", "${{ steps.meta.outputs.tag }}", True),
+                        ("a comment body", "review ${{ github.event.comment.body }}", False),
+                        ("an issue title", "${{ github.event.issue.title }}", False),
+                        ("a PR head ref", "${{ github.event.pull_request.head.ref }}", False),
+                        ("github.head_ref", "${{ github.head_ref }}", False),
+                        ("a commit message", "${{ github.event.head_commit.message }}", False)):
+    found = untrusted_inputs_in({"jobs": {"j": {"steps": [{"uses": f"actions/x@{SHA}",
+                                                           "with": {"prompt": value}}]}}})
+    check(f"an action input with {label} is {'allowed' if ok else 'refused'}", (not found) is ok, value)
 check("the same value through env is not",
       not interpolating_in({"jobs": {"j": {"steps": [{"env": {"T": "${{ github.event.issue.title }}"},
                                                       "run": 'echo "$T"'}]}}}))
