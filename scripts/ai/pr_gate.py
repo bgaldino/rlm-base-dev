@@ -414,8 +414,8 @@ CHECKS = [
                   # suite lives here rather than in STDLIB_SUITES for that reason.
                   "scripts/doc_snapshot/", "tests/test_doc_snapshot_presets.py",
                   # The workflow security policy (SHA pins, allowed owners, permissions, no
-                  # interpolation in run:) parses the YAML, so any workflow change selects it.
-                  ".github/workflows/", "tests/test_workflow_policy.py"],
+                  # interpolation in run:) parses the YAML, so any workflow or local-action change selects it.
+                  ".github/workflows/", ".github/actions/", "tests/test_workflow_policy.py"],
         deps=["PyYAML"], gating=True,
     ),
     dict(
