@@ -373,7 +373,7 @@
         <isViewedAsPlainText>true</isViewedAsPlainText>
         <text>Activated order {!$Record.OrderNumber} couldn&apos;t sync quote {!$Record.QuoteId} to this opportunity, so the opportunity wasn&apos;t closed.
 
-Check that Asynchronous Opportunity Sync is turned on in Revenue Settings, then sync the quote to the opportunity manually. The opportunity closes as Closed Won when the sync succeeds.
+Fix the cause in the error below (for example, products already on this opportunity from a different price book, or Asynchronous Opportunity Sync turned off in Revenue Settings), then sync the quote to the opportunity manually. The opportunity closes as Closed Won when the sync succeeds.
 
 Error: {!SyncError}</text>
     </textTemplates>
