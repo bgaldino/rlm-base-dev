@@ -9,7 +9,8 @@
 #   5. CCI — pipx (reinstall is required after any Python patch bump)
 #   6. sf plugins (SFDMU, etc.)
 #   7. Gate interpreter — <main checkout>/.venv, if it exists (rebuilt after a
-#      Python patch bump, then pr_gate.py's requirements reinstalled)
+#      Python patch bump, then pr_gate.py's requirements reinstalled; a venv
+#      left unusable fails the script after step 8)
 #   8. cci task run validate_setup
 #
 # Designed to be idempotent. Re-run after any tool emits a "new version" notice.
@@ -137,6 +138,10 @@ sf plugins update || warn "sf plugins update failed"
 # pr_gate.py's requirements, which pick up any DEPS change. Only an existing
 # venv is touched: creating it is a setup step (local-installation.md, Step 6).
 # A $RLM_GATE_PYTHON override points somewhere else and is left alone.
+# A venv this step clears or installs into must end up usable. validate_setup
+# only warns about the gate interpreter, so a failure here fails the script
+# (after validate_setup has run) instead of ending in "Done".
+GATE_FAILED=""
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 GIT_COMMON_DIR="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
 if [ -n "${RLM_GATE_PYTHON:-}" ]; then
@@ -154,9 +159,15 @@ else
     log "Gate interpreter: installing pr_gate.py requirements into $GATE_VENV"
     # Unquoted on purpose: one requirement per line, split into pip arguments.
     # shellcheck disable=SC2046
-    "$GATE_VENV/bin/python" -m pip install --upgrade \
-      $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all) \
-      || warn "Gate interpreter: pip install failed — see docs/guides/dev-environment-setup.md (Troubleshooting)"
+    if ! "$GATE_VENV/bin/python" -m pip install --upgrade \
+        $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all); then
+      GATE_FAILED="pip install into $GATE_VENV failed"
+    # The same probe the Stop hook and validate_setup run: every pr_gate.py
+    # dependency imports, and the Python is new enough for every check.
+    elif ! (cd "$REPO_ROOT" && "$PY_TARGET_BIN" scripts/ai/gate_python.py >/dev/null); then
+      GATE_FAILED="$GATE_VENV still can't run every pr_gate.py check"
+    fi
+    [ -z "$GATE_FAILED" ] || warn "Gate interpreter: $GATE_FAILED — see docs/guides/dev-environment-setup.md (Troubleshooting)"
   else
     log "Gate interpreter: $GATE_VENV not found — create it per docs/guides/local-installation.md (Step 6)"
   fi
@@ -166,4 +177,5 @@ fi
 log "Running validate_setup"
 cci task run validate_setup
 
+[ -z "$GATE_FAILED" ] || die "Gate interpreter: $GATE_FAILED, so the local gate (scripts/ai/pr_gate.py) can't run all its checks"
 log "Done."

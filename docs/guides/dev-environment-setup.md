@@ -73,7 +73,9 @@ the loop Stop hook (`.claude/hooks/stop_gate.py`) and the `validate_setup` "Gate
 interpreter" check all find it through `scripts/ai/gate_python.py`; set
 `$RLM_GATE_PYTHON` to point them at a venv kept elsewhere. It is separate from the
 pipx venv that runs `cci`: pipx's copy of CumulusCI doesn't count, because the gate
-imports `cumulusci` itself.
+imports `cumulusci` itself. `.envrc` doesn't activate it either, so run the gate as
+`"$(python3 scripts/ai/gate_python.py)" scripts/ai/pr_gate.py --base origin/main`, not
+with a bare `python`.
 
 ### Shell config responsibilities
 
@@ -263,7 +265,9 @@ The script handles:
 8. Gate interpreter — if `<main checkout>/.venv` exists, rebuilds it with
    `python -m venv --clear` when its Python isn't the current 3.13 patch (a
    patch bump breaks its python symlink the same way as the pipx venv), then
-   reinstalls `pr_gate.py --requirements --all` into it
+   reinstalls `pr_gate.py --requirements --all` into it. If the install fails,
+   or `gate_python.py` still finds the venv unusable, the script exits
+   nonzero after `validate_setup` (which only warns about it)
 9. `cci task run validate_setup` — verifies every check still passes,
    including the "Gate interpreter" warning check
 

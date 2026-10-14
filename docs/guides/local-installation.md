@@ -187,6 +187,12 @@ pip --version
 python scripts/ai/gate_python.py       # prints the interpreter path; names anything missing
 ```
 
+Run the gate under this interpreter, not under whatever `python` is first on `PATH`. `.envrc` selects the pyenv Python but does not activate `.venv`, and from a git worktree `.venv/bin/python` is not a relative path that exists. `gate_python.py` resolves the right interpreter from any checkout:
+
+```bash
+"$(python3 scripts/ai/gate_python.py)" scripts/ai/pr_gate.py --base origin/main
+```
+
 > **Install the gate requirements even if you install CumulusCI via pipx (recommended, Step 7).** pipx keeps CCI in its own isolated environment, so the CCI you run day to day doesn't come from this venv. The gate does: without `cumulusci` and the other requirements here, `pr_gate.py` reports `MISSING-DEP` for a check whose dependency is absent, and a change to any `.md` file fails the gate for a setup reason. When `DEPS` in `scripts/ai/pr_gate.py` changes, rerun the install command above (`scripts/bash/update-toolchain.sh` does this for you).
 
 To deactivate the venv when you're done:

@@ -298,6 +298,12 @@ python scripts/ai/pr_gate.py --list              # the matrix: check, gating, de
 python scripts/ai/pr_gate.py --requirements --base origin/main   # pip deps the selection needs
 ```
 
+Locally, run it under the **gate interpreter** — the main checkout's `.venv`, which
+`gate_python.py` resolves (also from a worktree) and checks:
+`"$(python3 scripts/ai/gate_python.py)" scripts/ai/pr_gate.py --base origin/main`. A bare
+`python` from pyenv lacks the gate's dependencies, so checks that need them report
+`MISSING-DEP`. Setup: [local-installation.md, Step 6](../../docs/guides/local-installation.md#step-6--create-and-activate-a-virtual-environment-venv).
+
 Selection lives here rather than in a workflow's `paths:` filter because the two ways of not
 running fail in opposite directions. A workflow skipped by path filtering reports nothing, so a
 check required on it stays **Pending** and blocks the merge indefinitely; a job or step skipped

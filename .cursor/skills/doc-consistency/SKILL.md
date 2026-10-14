@@ -194,8 +194,9 @@ Understanding where truth lives prevents duplication drift.
 ## Verification Commands
 
 ```bash
-python scripts/ai/pr_gate.py --base origin/<base>          # all of the below, selected by your diff
-                                                         # (<base>: the PR's base — main unless preview/* or release/*)
+"$(python3 scripts/ai/gate_python.py)" scripts/ai/pr_gate.py --base origin/<base>
+                                                         # all of the below, selected by your diff, under the gate
+                                                         # interpreter (<base>: the PR's base — main unless preview/* or release/*)
 python scripts/ai/generate_cci_reference.py              # regenerate references
 git diff .cursor/skills/cci-orchestration/               # should show only intended changes
 python scripts/validate_sfdmu_v5_datasets.py             # plan v5 compliance — should PASS (0 Critical, 0 High) on a clean tree
