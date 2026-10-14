@@ -124,8 +124,8 @@ brew uninstall node   # safe after nvm is installed and default is set
 **Python 3.12 or 3.13 is recommended for CumulusCI** — both are stable and tested with CCI 4.x. Python 3.14 is very new (released October 2025) and has known dependency compatibility issues. Avoid it for CCI.
 
 ```bash
-# Install pyenv
-brew install pyenv
+# Install pyenv, plus OpenSSL 3 for the Python 3.13 build (see the note below)
+brew install pyenv openssl@3
 
 # Add pyenv to your interactive shell (~/.zshrc)
 echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
@@ -148,6 +148,8 @@ pyenv global "$PYTHON_VERSION"
 # Verify
 python --version   # Should show the latest 3.13.x patch
 ```
+
+> **Keep `openssl@3` installed.** Python 3.13 needs OpenSSL 3, but Homebrew is migrating to OpenSSL 4: plain `openssl` is now OpenSSL 4 and `pyenv` depends on it. Install `openssl@3` before `pyenv install` (the 3.13 build definition prefers it and otherwise falls back to Homebrew's default `openssl`), and leave it installed. Installing it by name marks it *installed on request*, so `brew upgrade` won't remove it later — if it does go missing, `cci` fails at startup with `Library not loaded: /opt/homebrew/opt/openssl@3/lib/libssl.3.dylib`. See [the troubleshooting entry](dev-environment-setup.md#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration) for the cause and why the toolchain can't move to OpenSSL 4 yet.
 
 > **Using multiple Python versions?** You can install additional versions alongside (for example, another 3.12.x or 3.13.x patch) and switch per-project with a `.python-version` file. Keep whichever version you use for CCI consistent with what you pass to `pipx install cumulusci --python`.
 
