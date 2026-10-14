@@ -393,7 +393,7 @@ The following table shows the sequence of all permission-related steps across th
 | 24.3 | `prepare_constraints` > `assign_permission_sets` | `RLM_Constraints` | `tso` + `constraints` |
 | 25.1 | `prepare_guidedselling` > `assign_permission_sets` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
 | 25.3 | `prepare_guidedselling` > `assign_permission_sets` | `RLM_Guided_Selling` | `guidedselling` |
-| 28.2 | `prepare_large_stx` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
+| 28.3 | `prepare_large_stx` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
 | 29.5 | `prepare_personas` > `assign_personas_sales_rep_psg` | `RLM_Sales_Representative` PSG (salesrep user) | `personas` |
 | 29.6 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
 | 29.7 | `prepare_personas` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |

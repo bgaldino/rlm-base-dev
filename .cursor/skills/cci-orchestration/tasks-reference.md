@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**256 tasks** across **9 groups**.
+**257 tasks** across **9 groups**.
 
 ---
 
@@ -794,7 +794,7 @@
 
 ## Revenue Lifecycle Management
 
-*166 task(s)*
+*167 task(s)*
 
 ### `activate_agents`
 
@@ -1707,6 +1707,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_large_stx`
+
+---
+
+### `deploy_post_large_stx_settings`
+
+**Description:** Turn on Large Transaction Processing and the other large-deal Revenue Settings before deploy_post_large_stx; its Apex needs the setting on to compile
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_large_stx_settings`
 
 ---
 

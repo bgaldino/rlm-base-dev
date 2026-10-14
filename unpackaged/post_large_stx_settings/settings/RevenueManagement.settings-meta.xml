@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RevenueManagementSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <!--
-      Large Sales Transaction override (deployed by deploy_post_large_stx only when
-      large_stx=true). Settings deploys MERGE field-by-field, so this updates only the
+      Large Sales Transaction override (deployed by deploy_post_large_stx_settings, step 1
+      of prepare_large_stx, only when large_stx=true, and before the post_large_stx bundle). Settings deploys MERGE field-by-field, so this updates only the
       fields below; the full RevenueManagement settings come from unpackaged/pre/1_settings
-      (which sets enableFullEscalationHydration=true). deploy_post_large_stx runs after the
+      (which sets enableFullEscalationHydration=true). prepare_large_stx runs after the
       pre phase, so this flips enableFullEscalationHydration to false for large-deal orgs.
       Verified on rlm-base__large-stx: after deploy the org shows
       enableFullEscalationHydration=false with all other RevenueManagement fields intact.
@@ -15,10 +15,13 @@
     -->
     <enableFullEscalationHydration>false</enableFullEscalationHydration>
     <!-- Large Transaction Processing on for large-deal orgs. pre/1_settings sets it false
-         for every build; this bundle turns it back on. It must be on before this bundle's
-         flows, classes and RLM_LargeSalesTransaction permission set use Quote/Order
-         IsLargeDeal: with it off the field exists but is read-only (describe: createable
-         and updateable false), and with it on both are true. Verified by toggling on a
-         264.7 org, 2026-10-14. -->
+         for every build; this turns it back on. It is a separate deploy because the
+         post_large_stx Apex, flows and RLM_LargeSalesTransaction permission set need it on
+         first:
+         - Quote/Order.IsLargeDeal are read-only while it's off (describe: createable and
+           updateable false);
+         - Order.PreprocessingStatus doesn't exist while it's off.
+         In one combined deploy the classes compiled before the setting applied and failed
+         (harness, ent-r1 264.7, 2026-10-14). -->
     <enableLargeTransaction>true</enableLargeTransaction>
 </RevenueManagementSettings>
