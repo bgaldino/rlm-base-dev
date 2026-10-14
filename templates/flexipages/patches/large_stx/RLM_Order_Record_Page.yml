@@ -9,14 +9,17 @@ patches:
   - type: insert_action
     after: "Edit"
     actions:
-      # Show only for large-deal Draft orders that have not completed preprocessing.
+      # Show for Draft orders that have not completed preprocessing. The component
+      # self-gates and no-ops for orders that aren't large deals.
+      # There's no IsLargeDeal criterion: on 264 (ent-r1, 264.7, 2026-10-14) a visibility
+      # rule or formula referencing IsLargeDeal fails to deploy ("Field IsLargeDeal does
+      # not exist") without the LargeTransactionPilot perm, even with enableLargeTransaction
+      # on. The field works in SOQL, in Apex and as a record field. Restore the criterion
+      # once that deploys.
       # RLM_Preprocessing_Complete__c is a formula (LEFT(PreprocessingStatus,1)="C"),
       # which is billing-agnostic: complete is "CNNN" (billing off) or "CCCC" (on).
       - name: "Order.RLM_Prepare_For_Activation"
         visibility:
-          - field: "Record.IsLargeDeal"
-            operator: "EQUAL"
-            value: "true"
           - field: "Record.Status"
             operator: "EQUAL"
             value: "Draft"
