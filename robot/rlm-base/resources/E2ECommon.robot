@@ -1212,7 +1212,7 @@ Configure Bundle Line
     ...    recurred on an immediate retry, so the retry first clears the quote
     ...    (``_Clear Quote Calculation``).
     ...    ⚠ A pass only counts once the API shows ${option_name}'s quote line. CalculationStatus
-    ...    alone can't tell: right after "Save & Exit" it still reads the previous CompletedWithTax.
+    ...    alone can't tell: right after "Save & Exit" it still reads the previous settled status.
     ...    The line proves the save landed, not that repricing has started; the fixed sleep before
     ...    the pricing wait, and the time until Create Order, are what let repricing begin. That
     ...    guard is timing-based: a reprice that starts much later would still be missed.

@@ -193,7 +193,7 @@ Verified against `dev-sb0` (Release 260 / API v66.0) with all records present.
 
 This plan depends on the following having been loaded/deployed first:
 
-- **Core expression sets** — `RLM_DefaultPricingProcedure` must exist (deployed by `activate_and_deploy_expression_sets` in step 17 of `prepare_rlm_org`)
+- **Core expression sets** — `RLM_DefaultPricingProcedure` must exist (deployed by `activate_and_deploy_expression_sets` in step 18 of `prepare_rlm_org`)
 - **Context definitions** — `RLM_SalesTransactionContext` must exist for Connect API context resolution (deployed by `extend_context_definitions` in `prepare_core`)
 
 This plan deploys its own prerequisite expression sets (`RLM_Price_Distribution_Procedure`, `RLM_Revenue_Management_Recalc_Procedure`) in step 1 of the flow.

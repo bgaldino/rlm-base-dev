@@ -36,16 +36,16 @@ CCI output, then jump to the relevant section below.
 | 1 (prepare_core) | PSLs, PSGs, context defs, deploy_pre | [Permission & PSG Errors](#permission--psg-errors), [Context Definition Errors](#context-definition-errors) |
 | 2–3 | Decision tables, expression sets | [Decision Table Errors](#decision-table-errors), [Expression Set Errors](#expression-set-errors) |
 | 5 (deploy_full) | Metadata deploy (force-app) | [Metadata Deploy Errors](#metadata-deploy-errors) |
-| 9–11 | Product/pricing data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
-| 12 (prepare_docgen) | DocGen | [DocGen Errors](#docgen-errors) |
-| 13 (prepare_dro) | DRO data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
-| 14–15 | Tax/billing data + activation | [Billing & Tax Errors](#billing--tax-errors) |
-| 18 (prepare_rating) | Rating/rates data + activation | [Rating & Rates Errors](#rating--rates-errors) |
+| 8–9 (prepare_product_data, prepare_pricing_data) | Product/pricing data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
+| 10 (prepare_docgen) | DocGen | [DocGen Errors](#docgen-errors) |
+| 11 (prepare_dro) | DRO data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
+| 12–13 (prepare_tax, prepare_billing) | Tax/billing data + activation | [Billing & Tax Errors](#billing--tax-errors) |
+| 17 (prepare_rating) | Rating/rates data + activation | [Rating & Rates Errors](#rating--rates-errors) |
 | *(post-build, runtime)* | Recording/rating usage, commitments, drawdown | [Usage & Consumption Errors](#usage--consumption-errors) |
 | 22 (prepare_prm) | PRM community + data | [PRM & Community Errors](#prm--community-errors) |
 | 24 (prepare_constraints) | Constraints + CML import | [Constraints / CML Errors](#constraints--cml-errors) |
-| 29 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
-| 30 | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
+| 30 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
+| 33 (refresh_all_decision_tables) | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
 
 ---
 

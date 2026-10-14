@@ -18,10 +18,33 @@
     <enableGroupRampMultiSchedulePref>true</enableGroupRampMultiSchedulePref>
     <enableGroupRampPref>true</enableGroupRampPref>
     <enableGroupRampTrialSegmentPref>true</enableGroupRampTrialSegmentPref>
+    <!-- enableLargeTransaction (Large Transaction Processing, 264) is deliberately NOT set
+         here, although every scratch-def settings block sets it false. That's the one
+         exception to the "keep in sync" rule. The scratch defs make new orgs start with it
+         off. post_large_stx_settings (prepare_large_stx step 1) turns it on when
+         large_stx=true. Setting false here would turn it off again whenever deploy_pre is
+         re-run on a large-deal org. That deploy succeeds silently, removes
+         Order.PreprocessingStatus and makes Quote/Order.IsLargeDeal read-only, while the
+         post_large_stx formula and Apex still depend on them (live, ent-r1 264.7,
+         2026-10-14).
+         It needs no scratch feature: it deployed true and false on a 264.7 org without
+         LargeTransactionPilot. Enabling it also turns on the product details API cache,
+         which can't be turned off while this is on. It's separate from
+         IndustriesPricingSettings.enableLargeTransactionPricing (pre/2_settings, false),
+         a pricing-engine pref that turns off pricing waterfall, waterfall persistence,
+         debug logs and parallelization when enabled from Setup. -->
     <enableRampDeal>true</enableRampDeal>
     <enableRevInstPricingDefaultPref>true</enableRevInstPricingDefaultPref>
     <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
     <enableRevenueAdjustment>true</enableRevenueAdjustment>
+    <!-- Sales Price Amendments (264): lets a rep set a new Sales Price when amending an
+         asset; the amended line gets a credit detail line for the old price and a charge
+         detail line for the new one. Help says new orgs default to on, but a fresh 264.7
+         scratch org had it off. RLM_DefaultPricingProcedure needs no change: do NOT add
+         Help's "LastTransaction: InputUnitPrice -> NetUnitPrice" step, which is what
+         #486 removed. A price decrease needs estimated tax off (pre/2_settings
+         IncludeEstTaxInQuoteCPQ). Keep in sync with the scratch-def settings blocks. -->
+    <enableSalesPriceAmendments>true</enableSalesPriceAmendments>
     <!-- Two fields are deliberately absent — enableScaleAttributes and
          persistChunkSizeOverride. 264 dropped them from the RevenueManagementSettings
          schema, and a 264 org rejects the whole file with "Element {}<field> invalid at

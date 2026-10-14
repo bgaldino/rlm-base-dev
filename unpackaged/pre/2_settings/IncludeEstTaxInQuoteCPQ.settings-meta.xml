@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <IncludeEstTaxInQuoteCPQSettings xmlns="http://soap.sforce.com/2006/04/metadata">
-    <enableQuoteEstimatedTaxCPQ>true</enableQuoteEstimatedTaxCPQ>
+    <!-- "Add Estimated Taxes to Quotes and Orders" is off by default. With it on, a Sales
+         Price Amendment that lowers the price fails with "TaxAmount can't have a negative
+         value" (label AmountNegative; {0} can also be TotalAmount, TotalAmountWithTax or
+         ExemptAmount). Estimated tax always goes to the engine as a Debit, and the amended
+         line's total is a credit. Core's engine-response validator rejects a negative tax,
+         total or total-with-tax amount on a Debit response. Returning 0 tax from the mock
+         adapter did not clear it, because its totals were still negative. Tax is skipped
+         only when a line has a negative quantity, and then for the whole transaction.
+         Verified on a 264.7 org, 2026-10-14. This setting covers quotes and orders; invoice
+         tax goes through Billing's tax path. -->
+    <enableQuoteEstimatedTaxCPQ>false</enableQuoteEstimatedTaxCPQ>
 </IncludeEstTaxInQuoteCPQSettings>

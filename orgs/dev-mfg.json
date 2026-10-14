@@ -86,7 +86,9 @@
     },
     "revenueManagementSettings": {
       "enableAdvancedDetailLinePricing": true,
-      "enableCoreCPQ": true
+      "enableCoreCPQ": true,
+      "enableLargeTransaction": false,
+      "enableSalesPriceAmendments": true
     },
     "productConfiguratorSettings": {
       "enableProductConfigurator": true
