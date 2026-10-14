@@ -342,7 +342,7 @@ Node LTS refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
 scripts/bash/update-toolchain.sh
 ```
 
-It walks `brew update && brew upgrade` → latest patch in your pinned Python line → latest LTS Node → `sf update` → CCI reinstall/upgrade → `sf plugins update` → `cci task run validate_setup`. Major-line pins (e.g. Python 3.13, Node `lts/*`) are configured at the top of the script.
+It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade` → latest patch in your pinned Python line (stopping if it can't import `ssl`) → latest LTS Node → `sf update` → CCI reinstall/upgrade → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins (e.g. Python 3.13, Node `lts/*`) are configured at the top of the script.
 
 For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](dev-environment-setup.md).
 
