@@ -297,7 +297,7 @@ The script handles:
 2. `pyenv install --skip-existing $(pyenv latest -k 3.13)` — installs newest
    patch in the pinned major.minor line, **only if** there's a newer one —
    then stops, before touching Node, if that Python can't import `ssl`
-3. `nvm install --lts --reinstall-packages-from=current --latest-npm` —
+3. `nvm install 'lts/*' --reinstall-packages-from=current --latest-npm` —
    keeps `sf` and other npm globals carried forward
 4. `sf update` — uses the CLI's built-in updater
 5. `pipx install --force cumulusci` (if Python patch bumped) **or**
@@ -536,9 +536,27 @@ ship one. CCI invokes `python`, so this won't break anything. If you need
 the pyenv `python3` specifically, use `pyenv exec python3`.
 
 ### Node TLS errors behind a corporate CA (`NODE_EXTRA_CA_CERTS`)
-Symptom: `npm`, `sf` or `nvm install` fail with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`
-or `SELF_SIGNED_CERT_IN_CHAIN`, or Node prints `Warning: Ignoring extra certs from
+Symptom: `npm` or `sf` fail with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` or
+`SELF_SIGNED_CERT_IN_CHAIN`, or Node prints `Warning: Ignoring extra certs from
 … load failed`.
+
+`NODE_EXTRA_CA_CERTS` applies only to Node.js processes. `nvm install`
+downloads Node, and the version index it resolves versions from, with `curl`
+(or `wget` if `curl` is missing), and neither reads it. nvm fetches that index
+silently, so a certificate problem shows only as a version that isn't found:
+``Version '' (with LTS filter) not found - try `nvm ls-remote --lts` …`` for
+`lts/*` (what `update-toolchain.sh` installs), or
+``Version '24' not found - try `nvm ls-remote` …`` for an explicit version
+such as `24` (nvm prints the version as you typed it).
+To see the real error, run `curl -sSI https://nodejs.org/dist/index.tab`.
+
+For nvm's downloads, fix the trust for `curl` (`CURL_CA_BUNDLE`; nvm runs curl with `-q`,
+so `~/.curlrc` is ignored) or `wget` (`ca_certificate` in `~/.wgetrc`), not
+`NODE_EXTRA_CA_CERTS`. Unlike `NODE_EXTRA_CA_CERTS`, those two *replace* the
+default trust rather than adding to it, so point them at a full bundle (for
+example a copy of `/etc/ssl/cert.pem` with your corporate CAs appended), not at
+the Node extras file below. The npm steps that run under the new Node afterwards
+(`--reinstall-packages-from`, `--latest-npm`) do use `NODE_EXTRA_CA_CERTS`.
 
 `NODE_EXTRA_CA_CERTS` takes **one** PEM file. A colon-separated list of files is
 treated as a single path that doesn't exist: Node warns (only once it opens its
