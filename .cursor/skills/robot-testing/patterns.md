@@ -24,7 +24,7 @@ robot/rlm-base/
 │       ├── enable_timeline.robot
 │       └── reorder_app_launcher.robot
 ├── resources/
-│   ├── E2ECommon.robot               # ~1250 lines — main E2E keywords
+│   ├── E2ECommon.robot               # main E2E keywords
 │   ├── SetupToggles.robot            # ~380 lines — setup toggle keywords
 │   ├── SalesforceAPI.py              # REST API keywords (SOQL, DML)
 │   ├── ChromeOptionsHelper.py        # Headless Chrome options
@@ -211,6 +211,30 @@ _My Helper Keyword
 Return `'page_not_ready'` from JS for: element absent, inner shadow not yet rendered (`lbc_not_found`,
 `btn_not_found`), or no pills/content found at all.
 
+### Platform transients — one logged retry of the whole step
+
+Render retries (above) wait for the page. A different failure class is the platform itself failing
+a step the test did nothing wrong in: a quote left `SaveFailedOrIncomplete`, a catalog with no
+products, "Something went wrong while hydrating the context", "The contract could not be created".
+Waiting longer never clears these, and a fresh attempt usually does. E2ECommon handles them with
+**one** retry of the whole step. Most steps run a `_<Step> Once` keyword under `Run Keyword And
+Ignore Error`, then once more unwrapped; `Wait For Quote Calculation` reprices inside the keyword,
+`Create Contract From Quote` reruns only when the flow's error is on screen, `Create Order From
+Quote` reruns only when no Order exists 45s later, and `Wait For Assets From Order` requests
+assetization once. Each:
+
+- logs a Robot `WARN` (with the first attempt's error where there is one), so the report still
+  shows how often, and how, the platform failed;
+- checks the API before repeating a step that creates or changes data, so a save that landed late
+  isn't repeated (a save landing after that check still can be), and a configurator pass on an
+  unchanged configuration doesn't meet a disabled "Save & Exit";
+- treats success as **API state**, not UI state or `CalculationStatus` alone (right after a save,
+  the status still reads the previous `CompletedWithTax`);
+- never nests recoveries: the reprice that clears a quote before a retry doesn't reprice again.
+
+See `Wait For Quote Calculation`, `Add Products Via Browse Catalogs`, `Configure Bundle Line`,
+`Create Order From Quote`, `Create Contract From Quote` and `Wait For Assets From Order`, and the table in `docs/features/e2e-test-framework.md` → Async Polling.
+
 ---
 
 ## LWC Reactivity — Native Setter
@@ -251,7 +275,7 @@ Most interaction keywords try strategies in order:
 | Browse Catalogs | `Click Browse Catalogs`, `Select Catalog By Name`, `Search Product In Catalog`, `Add Product By Name` |
 | Composite | `Reset Test Account`, `Create Opportunity From Account`, `Create Quote From Opportunity`, `Create Order From Quote`, `Activate Order` |
 | Bundle Configurator | `Configure Bundle Line` (+ internals `_Open Line Action Menu`, `_Click Line Action`, `_Select Configurator Tab`, `_Select Configurator Option`, `_Commit Configurator`) |
-| Async | `Wait For Field Value Via API`, `Wait For Related Record Via API`, `Verify Renewal Opportunity Includes Product` |
+| Async | `Wait For Field Value Via API`, `Wait For Related Record Via API`, `Wait For Quote Calculation`, `Wait For Assets From Order`, `Verify Renewal Opportunity Includes Product` |
 | Utilities | `Capture Step Screenshot`, `Dismiss Toast If Present`, `Pause For Recording If Enabled` |
 
 ---

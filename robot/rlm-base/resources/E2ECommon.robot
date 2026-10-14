@@ -19,6 +19,10 @@ ${PAUSE_FOR_RECORDING}      false
 ${PAGE_LOAD_TIMEOUT}        30s
 ${LIGHTNING_RENDER_WAIT}    3s
 ${SCREENSHOT_COUNTER}       ${0}
+# Quote.CalculationStatus groups (264 picklist). Any value ending in "Failed" also counts as
+# failed; see Wait For Quote Calculation.
+@{QUOTE_CALC_FAILED}        SaveFailedOrIncomplete    QuoteRequestPartiallySaved    PartialSaveSuccess
+@{QUOTE_CALC_PRICED}        CompletedWithPricing    CompletedWithTax    TaxCalculationSuccess
 
 *** Keywords ***
 
@@ -438,6 +442,11 @@ Advance Through Flow Screens
     ...    no more flow buttons are found. Handles flows with 1 or more screens.
     ...    Fails if the flow/modal is still open after max_screens iterations to
     ...    surface stuck or unexpectedly deep flows rather than silently continuing.
+    ...
+    ...    ⚠ The broad search looks only inside the open flow/modal, never the whole page. Live
+    ...    2026-10-13: when the Create Order picker's radio hadn't registered, Finish couldn't
+    ...    advance, and a page-wide search for "Create Order" found the RECORD PAGE's Create
+    ...    Order button behind the modal, relaunching the flow ten times until max_screens.
     [Arguments]    ${max_screens}=${10}
     FOR    ${i}    IN RANGE    ${max_screens}
         Capture Step Screenshot    flow_screen_${i}
@@ -481,8 +490,23 @@ Advance Through Flow Screens
         ...                }
         ...            }
         ...        }
-        ...        /* 3. Broad search — all buttons including shadow DOM */
-        ...        var allBtns = findAllButtons(document);
+        ...        /* 3. Broad search, scoped to the open flow/modal (shadow DOM included) */
+        ...        function deepAll(root, sel, out, depth) {
+        ...            if (depth > 30) return out;
+        ...            var els = root.querySelectorAll(sel);
+        ...            for (var i = 0; i < els.length; i++) { out.push(els[i]); }
+        ...            var all = root.querySelectorAll('*');
+        ...            for (var j = 0; j < all.length; j++) {
+        ...                if (all[j].shadowRoot) { deepAll(all[j].shadowRoot, sel, out, depth + 1); }
+        ...            }
+        ...            return out;
+        ...        }
+        ...        var containers = deepAll(document, 'flowruntime-flow, section.slds-modal, div.modal-container', [], 0);
+        ...        var allBtns = [];
+        ...        for (var c = 0; c < containers.length; c++) {
+        ...            allBtns = allBtns.concat(findAllButtons(containers[c]));
+        ...            if (containers[c].shadowRoot) { allBtns = allBtns.concat(findAllButtons(containers[c].shadowRoot)); }
+        ...        }
         ...        for (var i = 0; i < allBtns.length; i++) {
         ...            if (allBtns[i].offsetParent === null) continue;
         ...            var txt = allBtns[i].textContent.trim();
@@ -520,13 +544,21 @@ Select Order Creation Method
     ...    order-creation-method-picker and clicks Next/Finish.
     ...    The picker uses radio inputs inside runtime_rca-order-creation-method-picker
     ...    which is nested in shadow DOM.
+    ...    ⚠ A click is not a selection. Live 2026-10-13: the radio click returned success while the
+    ...    tile stayed unselected, so Finish couldn't advance. The radio must read back `checked`
+    ...    (falling back to its label), or the step fails and retries.
     Wait Until Keyword Succeeds    15s    3s    _Select Single Order Radio Via JS
     Sleep    2s    reason=Allow selection to register
+    # Again after the settle: the LWC picker can re-render the radio unchecked after the click, and
+    # the read-back above is synchronous. The keyword returns early when it is still checked.
+    Wait Until Keyword Succeeds    15s    3s    _Select Single Order Radio Via JS
     # Click Finish to advance past the picker screen
     Save Modal    Finish
 
 _Select Single Order Radio Via JS
-    [Documentation]    Internal keyword — finds and clicks the Create Single Order radio via JS.
+    [Documentation]    Internal keyword — selects the Create Single Order radio via JS, and succeeds
+    ...    only when the radio reads back `checked` (otherwise returns `not_checked`, which retries).
+    ...    Returns early, without clicking, when it is already checked.
     ${result}=    Execute JavaScript
     ...    return (function(){
     ...        function deepQueryAll(root, selector) {
@@ -547,26 +579,33 @@ _Select Single Order Radio Via JS
     ...            }
     ...            return found;
     ...        }
-    ...        /* Find radio with value="CreateSingleOrder" */
+    ...        /* Find radio with value="CreateSingleOrder"; only a radio left CHECKED counts */
     ...        var radios = deepQueryAll(document, 'input[value="CreateSingleOrder"]');
     ...        for (var i = 0; i < radios.length; i++) {
+    ...            if (radios[i].checked) { return 'selected'; }
     ...            radios[i].click();
-    ...            return 'selected';
+    ...            if (radios[i].checked) { return 'selected'; }
+    ...            var root = radios[i].getRootNode();
+    ...            var lbl = radios[i].id && root.querySelector ? root.querySelector('label[for="' + radios[i].id + '"]') : null;
+    ...            if (lbl) { lbl.click(); if (radios[i].checked) { return 'selected_by_label'; } }
+    ...            return 'not_checked';
     ...        }
     ...        /* Fallback: find the visual picker div with data-id="single-order" */
     ...        var pickers = deepQueryAll(document, 'div[data-id="single-order"]');
     ...        for (var i = 0; i < pickers.length; i++) {
     ...            var radio = pickers[i].querySelector('input[type="radio"]');
-    ...            if (radio) { radio.click(); return 'selected_by_picker'; }
+    ...            if (!radio) continue;
+    ...            if (!radio.checked) { radio.click(); }
     ...            var label = pickers[i].querySelector('label');
-    ...            if (label) { label.click(); return 'selected_by_label'; }
+    ...            if (!radio.checked && label) { label.click(); }
+    ...            return radio.checked ? 'selected_by_picker' : 'not_checked';
     ...        }
     ...        return 'not_found';
     ...    })()
     Log    Select Order Creation Method JS result: ${result}
-    IF    "${result}" == "not_found"
+    IF    "${result}" == "not_found" or "${result}" == "not_checked"
         Capture Step Screenshot    order_method_not_found
-        Fail    msg=Create Single Order radio not found (will retry).
+        Fail    msg=Create Single Order radio not selected (${result}) (will retry).
     END
 
 # ── Browse Catalogs ────────────────────────────────────────────────
@@ -944,63 +983,67 @@ Add Product By Name
     Sleep    3s    reason=Allow product to be added
 
 _Click Add Button For Product
-    [Documentation]    Internal keyword — finds the product row and clicks its Add button via JS.
+    [Documentation]    Internal keyword — finds the product's row and clicks the Add button in that
+    ...    same row via JS.
+    ...
+    ...    ⚠ The row is NOT reachable with a plain `document.querySelectorAll`. Live DOM
+    ...    2026-10-13: `runtime_industries_cpq-product-row` sits eight shadow roots deep (flow
+    ...    runtime → `runtime_revenue_products-prd-lst-container` →
+    ...    `runtime_industries_cpq-product-list-page` → `runtime_industries_cpq-product-data-table`
+    ...    → a table cell), and the product title (`title="<name>"`) and its Add button
+    ...    (`name="Add"`, `title="Add"`) both live inside that row's shadow tree. The search
+    ...    descends every shadow root to find the rows, then matches title and button within one row.
+    ...    ⚠ There is deliberately no "first Add button on the page" fallback. The previous version
+    ...    used one, and since its row lookup never matched, every run clicked whichever Add
+    ...    rendered first, product-agnostic. A row that isn't found now fails and is retried.
     [Arguments]    ${product_name}
     ${result}=    Execute JavaScript
     ...    return (function(name){
-    ...        function findAllButtons(root) {
-    ...            var btns = [];
+    ...        function deepAll(root, sel, out, depth) {
+    ...            if (depth > 30) return out;
+    ...            var els = root.querySelectorAll(sel);
+    ...            for (var i = 0; i < els.length; i++) { out.push(els[i]); }
     ...            var all = root.querySelectorAll('*');
-    ...            for (var i = 0; i < all.length; i++) {
-    ...                if (all[i].tagName === 'BUTTON') btns.push(all[i]);
-    ...                if (all[i].shadowRoot) btns = btns.concat(findAllButtons(all[i].shadowRoot));
+    ...            for (var j = 0; j < all.length; j++) {
+    ...                if (all[j].shadowRoot) { deepAll(all[j].shadowRoot, sel, out, depth + 1); }
     ...            }
-    ...            return btns;
+    ...            return out;
     ...        }
-    ...        /* Find product rows */
-    ...        var rows = document.querySelectorAll('runtime_industries_cpq-product-row');
+    ...        function isTitle(el) {
+    ...            if (el.getAttribute('title') === name) return true;
+    ...            return el.childElementCount === 0 && (el.textContent || '').trim() === name;
+    ...        }
+    ...        var rows = deepAll(document, 'runtime_industries_cpq-product-row', [], 0);
+    ...        if (rows.length === 0) { return 'no_product_rows'; }
     ...        for (var i = 0; i < rows.length; i++) {
     ...            var root = rows[i].shadowRoot || rows[i];
-    ...            var titleEl = root.querySelector('div[title="' + name + '"]');
-    ...            if (!titleEl) {
-    ...                /* fallback: check text content */
-    ...                var divs = root.querySelectorAll('div.heading-style, div[data-id]');
-    ...                for (var d = 0; d < divs.length; d++) {
-    ...                    if (divs[d].textContent.trim() === name) { titleEl = divs[d]; break; }
+    ...            var inRow = deepAll(root, '*', [], 0);
+    ...            var titled = false;
+    ...            for (var t = 0; t < inRow.length; t++) { if (isTitle(inRow[t])) { titled = true; break; } }
+    ...            if (!titled) continue;
+    ...            var btns = deepAll(root, 'button', [], 0);
+    ...            for (var b = 0; b < btns.length; b++) {
+    ...                if (btns[b].getAttribute('name') === 'Add' || btns[b].getAttribute('title') === 'Add' ||
+    ...                    (btns[b].textContent || '').trim() === 'Add') {
+    ...                    if (btns[b].disabled || btns[b].getAttribute('aria-disabled') === 'true') { return 'add_button_disabled'; }
+    ...                    btns[b].click();
+    ...                    return 'added:' + name;
     ...                }
     ...            }
-    ...            if (titleEl) {
-    ...                var btns = findAllButtons(root);
-    ...                for (var b = 0; b < btns.length; b++) {
-    ...                    if (btns[b].getAttribute('name') === 'Add' ||
-    ...                        btns[b].textContent.trim() === 'Add') {
-    ...                        btns[b].click();
-    ...                        return 'added:' + name;
-    ...                    }
-    ...                }
-    ...                return 'add_button_not_found';
-    ...            }
+    ...            return 'add_button_not_found';
     ...        }
-    ...        /* Fallback: search all visible Add buttons near product name text */
-    ...        var allBtns = findAllButtons(document);
-    ...        for (var i = 0; i < allBtns.length; i++) {
-    ...            if ((allBtns[i].getAttribute('name') === 'Add' || allBtns[i].textContent.trim() === 'Add')
-    ...                && allBtns[i].getAttribute('title') === 'Add') {
-    ...                allBtns[i].click();
-    ...                return 'added_fallback';
-    ...            }
-    ...        }
-    ...        return 'not_found';
+    ...        return 'product_row_not_found:' + rows.length + '_rows';
     ...    })(arguments[0])
     ...    ARGUMENTS    ${product_name}
     Log    Add Product JS result: ${result}
-    IF    "${result}" == "not_found" or "${result}" == "add_button_not_found"
+    IF    not $result.startswith("added:")
         Capture Step Screenshot    add_product_not_found
-        Fail    msg=Product "${product_name}" or its Add button not found (will retry).
+        Fail    msg=Product "${product_name}" row or its Add button not ready (${result}) (will retry).
     END
 
 Click Save Quote In Catalog
-    [Documentation]    Clicks the "Save Quote" button in the Browse Catalogs modal if present.
+    [Documentation]    Saves the Browse Catalogs selection, then confirms ${product_name} is a saved
+    ...    line on ${quote_id} before moving on. Clicks the "Save Quote" button if present.
     ...    Waits for the button to become enabled before clicking. The button has
     ...    data-id="objectActionButton" and title="Save Quote".
     ...
@@ -1010,6 +1053,19 @@ Click Save Quote In Catalog
     ...    (NOT the enablement wait below) before falling back to auto-save/Close — a button
     ...    that is present but slow to enable must still get the full enablement wait, not be
     ...    mistaken for an absent one and have its modal closed unsaved.
+    ...
+    ...    ⚠ "Auto-saves" is not immediate. Live 2026-10-13: the modal showed the product added
+    ...    ("View Quote Lines (1)", green check on the card) while the Quote Summary behind it was
+    ...    still USD 0.00, and closing ~5s after the click left the Quote with ZERO lines. The
+    ...    failure then surfaced a minute later as `line_not_found` in Configure Bundle Line. So on
+    ...    the auto-save path the modal stays open until the API shows the line saved, and on the
+    ...    Save Quote path the line is checked the same way after the save.
+    [Arguments]    ${quote_id}    ${product_name}
+    SalesforceAPI.Validate Salesforce Id    ${quote_id}
+    ${product_id}=    SalesforceAPI.Find Product By Name    ${product_name}
+    SalesforceAPI.Validate Salesforce Id    ${product_id}
+    ${line_soql}=    Set Variable
+    ...    SELECT Id FROM QuoteLineItem WHERE QuoteId = '${quote_id}' AND Product2Id = '${product_id}' LIMIT 1
     ${present}=    Set Variable    no
     FOR    ${i}    IN RANGE    5
         ${present}=    _Save Quote Button Present
@@ -1019,10 +1075,24 @@ Click Save Quote In Catalog
     IF    "${present}" == "yes"
         Wait Until Keyword Succeeds    30s    2s    _Click Save Quote Via JS
         Sleep    5s    reason=Allow quote to save and modal to close
+        _Wait For Saved Quote Line    ${line_soql}    ${quote_id}    ${product_name}
     ELSE
-        Log    Save Quote button not present — Browse Catalogs auto-saves; closing modal instead.
+        Log    Save Quote button not present — Browse Catalogs auto-saves; waiting for the line to save before closing.
+        _Wait For Saved Quote Line    ${line_soql}    ${quote_id}    ${product_name}
         Wait Until Keyword Succeeds    30s    3s    _Click Close Browse Catalogs Modal
-        Sleep    3s    reason=Allow modal to close and quote to reflect the addition
+        Sleep    3s    reason=Allow modal to close and the quote page to refresh
+    END
+
+_Wait For Saved Quote Line
+    [Documentation]    Internal keyword — polls the API for the saved quote line, failing with a
+    ...    screenshot and a message that names the quote and product. (For a QUOTE_ID passed into
+    ...    order_from_quote.robot that already carries the product, this passes at once.)
+    [Arguments]    ${line_soql}    ${quote_id}    ${product_name}
+    ${saved}=    Run Keyword And Return Status
+    ...    Wait For Related Record Via API    ${line_soql}    timeout=60s    interval=3s
+    IF    not ${saved}
+        Capture Step Screenshot    quote_line_not_saved
+        Fail    msg=Browse Catalogs showed "${product_name}" added, but no saved quote line appeared on ${quote_id} within 60s.
     END
 
 _Save Quote Button Present
@@ -1133,7 +1203,45 @@ Configure Bundle Line
     ...    modal tabs and the modal footer each miss on their first attempt and succeed on a
     ...    later one. Screenshots from those attempts are suffixed `_retry` — seeing
     ...    `configurator_tab_retry.png` in a results folder does NOT mean the run failed.
+    ...
+    ...    ⚠ The whole configurator pass is retried once from a fresh page. Live 2026-10-13,
+    ...    intermittently: the configurator opened on "Something went wrong while hydrating the
+    ...    context. We couldn't process your request. Try again." and rendered no tabs. Selecting
+    ...    the option is idempotent (``already_selected``), so a second pass after a commit that
+    ...    did land is harmless. The hydration error came right after a failed pricing call and
+    ...    recurred on an immediate retry, so the retry first clears the quote
+    ...    (``_Clear Quote Calculation``).
+    ...    ⚠ A pass only counts once the API shows ${option_name}'s quote line. CalculationStatus
+    ...    alone can't tell: right after "Save & Exit" it still reads the previous CompletedWithTax.
+    ...    The line proves the save landed, not that repricing has started; the fixed sleep before
+    ...    the pricing wait, and the time until Create Order, are what let repricing begin. That
+    ...    guard is timing-based: a reprice that starts much later would still be missed.
+    ...    Before the retry pass the API is checked again: a line that saved late means the first
+    ...    commit landed, and a second pass on an unchanged configuration could find "Save & Exit"
+    ...    disabled.
+    ...    Live 2026-10-13: Save & Exit hadn't saved the option, the order was created without it,
+    ...    and the renewal Opportunity came out one line short, so the renewal check timed out
+    ...    3 minutes later with nothing pointing at the configurator.
     [Arguments]    ${quote_id}    ${line_name}    ${option_name}    ${tab_label}=${EMPTY}
+    ${configured}    ${reason}=    Run Keyword And Ignore Error
+    ...    _Configure Bundle Line Once    ${quote_id}    ${line_name}    ${option_name}    ${tab_label}
+    IF    "${configured}" == "FAIL"
+        Capture Step Screenshot    configurator_failed_retrying
+        Log    Configuring "${line_name}" on ${quote_id} failed (${reason}); retrying once from a fresh page.    WARN
+        _Clear Quote Calculation    ${quote_id}
+        ${saved_late}=    _Quote Has Product Line    ${quote_id}    ${option_name}
+        IF    not ${saved_late}
+            _Configure Bundle Line Once    ${quote_id}    ${line_name}    ${option_name}    ${tab_label}
+        END
+    END
+    Sleep    8s    reason=Allow the configuration to commit and repricing to start
+    Wait For Quote Calculation    ${quote_id}    require_priced=${True}
+    Capture Step Screenshot    configurator_saved
+
+_Configure Bundle Line Once
+    [Documentation]    Internal keyword — one configurator pass for Configure Bundle Line: open the
+    ...    line's configurator, pick the tab and option, and commit with "Save & Exit".
+    [Arguments]    ${quote_id}    ${line_name}    ${option_name}    ${tab_label}
     Navigate To Quote    ${quote_id}
     Sleep    3s    reason=Let the ag-Grid line-items grid finish rendering before we inspect it
     Capture Step Screenshot    before_line_action_open
@@ -1147,8 +1255,14 @@ Configure Bundle Line
     Wait Until Keyword Succeeds    60s    3s    _Select Configurator Option    ${option_name}
     Capture Step Screenshot    configurator_option_selected
     Wait Until Keyword Succeeds    30s    3s    _Commit Configurator
-    Sleep    8s    reason=Allow the configuration to commit and the quote to reprice
-    Capture Step Screenshot    configurator_saved
+    Wait Until Keyword Succeeds    60s    3s    _Quote Should Have Product Line    ${quote_id}    ${option_name}
+
+_Quote Should Have Product Line
+    [Documentation]    Internal keyword — fails (for retry) until ${quote_id} has a line for ${product_name}.
+    [Arguments]    ${quote_id}    ${product_name}
+    ${found}=    _Quote Has Product Line    ${quote_id}    ${product_name}
+    Should Be True    ${found}
+    ...    msg=No saved "${product_name}" line on ${quote_id} yet (will retry).
 
 _Open Line Action Menu
     [Documentation]    Internal keyword — opens the row-level actions dropdown for a quote line.
@@ -1562,6 +1676,31 @@ Create Quote From Opportunity
 Add Products Via Browse Catalogs
     [Documentation]    Opens Browse Catalogs on a Quote, selects a catalog, searches for a product,
     ...    adds it, and saves the quote. Handles the Choose Price Book modal if it appears.
+    ...
+    ...    ⚠ One retry, from a fresh page. Live 2026-10-13, intermittently: the catalog listed no
+    ...    products ("Something went wrong when calculating product prices"), or an Add click
+    ...    that reported success saved nothing (the card stayed at "View Quote Lines (0)",
+    ...    USD 0). The quote is then left SaveFailedOrIncomplete, and a second add onto it fails
+    ...    the same way, so the retry first clears it (``_Clear Quote Calculation``), then checks
+    ...    the API so a line that saved late isn't added twice, and only then reopens the catalog.
+    [Arguments]    ${quote_id}    ${catalog_name}    ${product_name}
+    Wait For Quote Calculation    ${quote_id}
+    ${added}    ${reason}=    Run Keyword And Ignore Error
+    ...    _Add Product Via Browse Catalogs Once    ${quote_id}    ${catalog_name}    ${product_name}
+    IF    "${added}" == "FAIL"
+        Log    Browse Catalogs didn't save "${product_name}" on ${quote_id} (${reason}); retrying once from a fresh page.    WARN
+        _Clear Quote Calculation    ${quote_id}
+        ${saved_late}=    _Quote Has Product Line    ${quote_id}    ${product_name}
+        IF    not ${saved_late}
+            _Add Product Via Browse Catalogs Once    ${quote_id}    ${catalog_name}    ${product_name}
+        END
+    END
+    Capture Step Screenshot    products_added
+    Sleep    5s    reason=Allow pricing to process
+
+_Add Product Via Browse Catalogs Once
+    [Documentation]    Internal keyword — one pass of Add Products Via Browse Catalogs: open the
+    ...    catalog, search, add, save, and wait for the saved line.
     [Arguments]    ${quote_id}    ${catalog_name}    ${product_name}
     Navigate To Quote    ${quote_id}
     Click Browse Catalogs
@@ -1569,14 +1708,59 @@ Add Products Via Browse Catalogs
     Search Product In Catalog    ${product_name}
     Add Product By Name    ${product_name}
     Sleep    2s    reason=Allow product addition to register
-    Click Save Quote In Catalog
-    Capture Step Screenshot    products_added
-    Sleep    5s    reason=Allow pricing to process
+    Click Save Quote In Catalog    ${quote_id}    ${product_name}
+
+_Quote Has Product Line
+    [Documentation]    Internal keyword — True if ${quote_id} has a line for ${product_name}.
+    [Arguments]    ${quote_id}    ${product_name}
+    SalesforceAPI.Validate Salesforce Id    ${quote_id}
+    ${product_id}=    SalesforceAPI.Find Product By Name    ${product_name}
+    SalesforceAPI.Validate Salesforce Id    ${product_id}
+    ${rows}=    SalesforceAPI.Query Records
+    ...    SELECT Id FROM QuoteLineItem WHERE QuoteId = '${quote_id}' AND Product2Id = '${product_id}' LIMIT 1
+    ${found}=    Evaluate    len($rows) > 0
+    RETURN    ${found}
 
 Create Order From Quote
     [Documentation]    Creates a single Order from a Quote via the Create Order flow.
     ...    Selects "Create Single Order" and advances through the flow.
     ...    Returns the new Order Id found via API.
+    ...
+    ...    ⚠ Retried once when no Order appears. Live 2026-10-13 on 264.8.101, intermittently:
+    ...    createOrdersFromQuote gacked ("An error occurred... error ID: 343818103-482580",
+    ...    IndexOutOfBoundsException in AdvancedQuoteToOrderHeaderCreationUtil) and created nothing.
+    ...    The single-order method creates the order synchronously inside the flow, so 45s with no
+    ...    Order on the quote means the attempt failed; only then is the flow run again.
+    [Arguments]    ${quote_id}
+    SalesforceAPI.Validate Salesforce Id    ${quote_id}
+    Wait For Quote Calculation    ${quote_id}    require_priced=${True}
+    # An Order already on the quote (a QUOTE_ID reused from an earlier run) must not count as
+    # this attempt's, or a failed attempt would go unnoticed and the old Order be returned.
+    ${earlier}=    SalesforceAPI.Query Records
+    ...    SELECT CreatedDate FROM Order WHERE QuoteId = '${quote_id}' ORDER BY CreatedDate DESC LIMIT 1
+    ${newer_than}=    Set Variable    ${EMPTY}
+    IF    $earlier
+        ${since}=    Evaluate    $earlier[0]['CreatedDate'][:19] + 'Z'
+        Should Match Regexp    ${since}    ^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$
+        ...    msg=Quote ${quote_id}'s earlier Order has no usable CreatedDate: ${earlier}
+        ${newer_than}=    Set Variable    ${SPACE}AND CreatedDate > ${since}
+    END
+    ${order_soql}=    Set Variable
+    ...    SELECT Id FROM Order WHERE QuoteId = '${quote_id}'${newer_than} ORDER BY CreatedDate DESC LIMIT 1
+    ${flow}    ${reason}=    Run Keyword And Ignore Error    _Run Create Order Flow    ${quote_id}
+    ${created}=    Run Keyword And Return Status
+    ...    Wait For Related Record Via API    ${order_soql}    timeout=45s    interval=3s
+    IF    not ${created}
+        Capture Step Screenshot    create_order_failed_retrying
+        Log    Create Order on ${quote_id} produced no Order (flow: ${flow} ${reason}); retrying once.    WARN
+        _Run Create Order Flow    ${quote_id}
+    END
+    ${order_id}=    Wait For Related Record Via API    ${order_soql}
+    Log    Created Order: ${order_id}
+    RETURN    ${order_id}
+
+_Run Create Order Flow
+    [Documentation]    Internal keyword — runs the Quote's Create Order flow with "Create Single Order".
     [Arguments]    ${quote_id}
     Navigate To Quote    ${quote_id}
     Click Highlights Panel Action    Create Order
@@ -1584,11 +1768,6 @@ Create Order From Quote
     Select Order Creation Method
     Advance Through Flow Screens
     Dismiss Toast If Present
-    SalesforceAPI.Validate Salesforce Id    ${quote_id}
-    ${order_id}=    Wait For Related Record Via API
-    ...    SELECT Id FROM Order WHERE QuoteId = '${quote_id}' ORDER BY CreatedDate DESC LIMIT 1
-    Log    Created Order: ${order_id}
-    RETURN    ${order_id}
 
 Activate Order
     [Documentation]    Navigates to an Order, clicks Activate, confirms the dialog,
@@ -1669,6 +1848,99 @@ Wait For Field Value Via API
     [Arguments]    ${sobject}    ${record_id}    ${field_name}    ${expected_value}    ${timeout}=${ASYNC_TIMEOUT}    ${interval}=${ASYNC_POLL_INTERVAL}
     Wait Until Keyword Succeeds    ${timeout}    ${interval}
     ...    SalesforceAPI.Verify Field Value Via API    ${sobject}    ${record_id}    ${field_name}    ${expected_value}
+
+Wait For Quote Calculation
+    [Documentation]    Waits until ${quote_id}'s CalculationStatus has settled, failing at once on a
+    ...    failed status. With ``require_priced``, settled means a @{QUOTE_CALC_PRICED} value,
+    ...    which is what Create Order and Create Contract need.
+    ...
+    ...    ⚠ RLM_CreateOrdersFromQuote no longer gates on this (#353 removed the gate, whose
+    ...    `Completed` value is no longer on the picklist), so a test that starts Create Order while
+    ...    the quote is still pricing gets "We couldn't create an order for this quote because the
+    ...    calculation status of the quote is invalid". The flow then never closes (it looks stuck)
+    ...    and no order, assets or renewal follow. Live 2026-10-13, from the flow error emails. Fixed
+    ...    sleeps after configuring the bundle aren't enough when pricing runs long.
+    ...
+    ...    ⚠ The platform intermittently leaves a quote failed for no reason in the test's control
+    ...    (SaveFailedOrIncomplete after a configurator save, TaxCalculationFailed after a catalog
+    ...    add; PricingApiExecution rows show Failure with no detail). Live 2026-10-13 on a fresh
+    ...    264 build: in about a third of runs, with or without the approval-flags overlay. A fresh
+    ...    reprice clears it, so a failed status gets ONE reprice (Place Sales Transaction,
+    ...    pricingPref Force) and a second wait. It's logged as a WARN so the rate stays visible;
+    ...    a second failure fails the test.
+    ...    With ``require_priced``, CompletedWithoutPricing counts as failed too: the next step
+    ...    needs prices.
+    ...
+    ...    The recovery reprice is synchronous: Place Sales Transaction returned with the quote
+    ...    already repriced in every one of ~500 probe calls (2026-10-13), so the status read right
+    ...    after it is the new one. ``reprice=${False}`` turns the recovery off, for callers that
+    ...    just repriced.
+    [Arguments]    ${quote_id}    ${require_priced}=${False}    ${timeout}=180s    ${reprice}=${True}
+    SalesforceAPI.Validate Salesforce Id    ${quote_id}
+    ${status}=    Wait Until Keyword Succeeds    ${timeout}    5s
+    ...    _Quote Calculation Settled    ${quote_id}    ${require_priced}
+    ${failed}=    _Is Failed Calculation Status    ${status}    ${require_priced}
+    IF    ${failed} and ${reprice}
+        Log    Quote ${quote_id} calculation ended ${status}; repricing once.    WARN
+        Capture Step Screenshot    quote_calculation_failed_repricing
+        SalesforceAPI.Reprice Quote Via API    ${quote_id}
+        ${status}=    Wait Until Keyword Succeeds    ${timeout}    5s
+        ...    _Quote Calculation Settled    ${quote_id}    ${require_priced}
+        ${failed}=    _Is Failed Calculation Status    ${status}    ${require_priced}
+    END
+    IF    ${failed}
+        Capture Step Screenshot    quote_calculation_failed
+        Fail    msg=Quote ${quote_id} calculation failed, also after a reprice: CalculationStatus=${status}.
+    END
+    RETURN    ${status}
+
+_Quote Calculation Settled
+    [Documentation]    Internal keyword — returns CalculationStatus once it's settled (or failed), and
+    ...    fails, so the caller retries, while it's queued or in progress. Under ``require_priced``
+    ...    a settled but unpriced status is returned as failed (CompletedWithoutPricing) or
+    ...    retried (NotStarted, ImportQLISuccess), since pricing may not have started yet.
+    [Arguments]    ${quote_id}    ${require_priced}
+    ${quote}=    SalesforceAPI.Query Record By Id    Quote    ${quote_id}    fields=CalculationStatus
+    ${status}=    Evaluate    $quote['CalculationStatus'] or 'NotStarted'
+    Log    Quote ${quote_id} CalculationStatus: ${status}
+    ${failed}=    _Is Failed Calculation Status    ${status}    ${require_priced}
+    IF    ${failed}
+        RETURN    ${status}
+    END
+    ${busy}=    Evaluate    'Queued' in $status or $status.endswith('InProgress') or $status.endswith('InProcess') or $status in ('Saving', 'TaxCalculationWaiting')
+    IF    ${busy}
+        Fail    msg=Quote ${quote_id} is still calculating (${status}) (will retry).
+    END
+    IF    ${require_priced} and $status not in $QUOTE_CALC_PRICED
+        Fail    msg=Quote ${quote_id} isn't priced yet (${status}) (will retry).
+    END
+    RETURN    ${status}
+
+_Clear Quote Calculation
+    [Documentation]    Internal keyword — reprices ${quote_id} (Place Sales Transaction, pricingPref
+    ...    Force) and waits for it to settle, so a step retried after a platform failure starts
+    ...    from a freshly calculated quote rather than one left SaveFailedOrIncomplete or with a
+    ...    broken context.
+    ...    It doesn't fail the step: a reprice that errors, or a quote that stays failed, is logged
+    ...    as a WARN and the retry goes ahead, so the step's own failure is what gets reported.
+    [Arguments]    ${quote_id}
+    ${repriced}    ${detail}=    Run Keyword And Ignore Error    SalesforceAPI.Reprice Quote Via API    ${quote_id}
+    IF    "${repriced}" == "FAIL"
+        Log    Repricing ${quote_id} before the retry failed: ${detail}    WARN
+        RETURN
+    END
+    ${cleared}    ${detail}=    Run Keyword And Ignore Error
+    ...    Wait For Quote Calculation    ${quote_id}    reprice=${False}
+    IF    "${cleared}" == "FAIL"
+        Log    Quote ${quote_id} didn't recover before the retry: ${detail}    WARN
+    END
+
+_Is Failed Calculation Status
+    [Documentation]    Internal keyword — True for a failed CalculationStatus: any ``*Failed`` value, a
+    ...    @{QUOTE_CALC_FAILED} value, or, under ``require_priced``, CompletedWithoutPricing.
+    [Arguments]    ${status}    ${require_priced}
+    ${failed}=    Evaluate    $status.endswith('Failed') or $status in $QUOTE_CALC_FAILED or ($require_priced and $status == 'CompletedWithoutPricing')
+    RETURN    ${failed}
 
 Wait For Related Record Via API
     [Documentation]    Polls a SOQL query until at least one record is returned.
@@ -1764,15 +2036,29 @@ Create Contract From Quote
     ...    the renewal term itself: that would hide a regression in the flow. Setting
     ...    ``Order.ContractId`` directly is not a substitute either: it creates no
     ...    AssetContractRelationship rows and fails the same way.
+    ...
+    ...    ⚠ Retried once, but only when the flow says so. Live 2026-10-13, intermittently, on a
+    ...    priced quote: "The contract could not be created. Your contract couldn't be created. Ask
+    ...    your Salesforce admin to turn on context definitions and ensure they're mapped to
+    ...    contracts." and no Contract. The same quote succeeds on a second try. The retry runs
+    ...    only when that message is on screen, so a contract that's merely slow to appear is
+    ...    never created twice.
     [Arguments]    ${quote_id}
     SalesforceAPI.Validate Salesforce Id    ${quote_id}
-    Navigate To Quote    ${quote_id}
-    Click Highlights Panel Action    New Contract
-    Sleep    5s    reason=Allow RLM_CreateContractFromQuote flow to initialize
-    Wait Until Keyword Succeeds    30s    3s    _Click Flow Navigation Button    Create
-    Capture Step Screenshot    contract_flow_submitted
-    ${contract_id}=    Wait For Related Record Via API
+    Wait For Quote Calculation    ${quote_id}    require_priced=${True}
+    ${contract_soql}=    Set Variable
     ...    SELECT Id FROM Contract WHERE SourceQuoteId = '${quote_id}' ORDER BY CreatedDate DESC LIMIT 1
+    _Submit New Contract Flow    ${quote_id}
+    ${created}=    Run Keyword And Return Status
+    ...    Wait For Related Record Via API    ${contract_soql}    timeout=45s    interval=3s
+    IF    not ${created}
+        ${flow_failed}=    _Page Shows Text    The contract could not be created
+        IF    ${flow_failed}
+            Log    New Contract on ${quote_id} failed in the flow; retrying once.    WARN
+            _Submit New Contract Flow    ${quote_id}
+        END
+    END
+    ${contract_id}=    Wait For Related Record Via API    ${contract_soql}
     # The test bundle is a 12-month Annual subscription: 12 months, renewed as 1 Annual term.
     SalesforceAPI.Verify Field Value Via API    Contract    ${contract_id}    ContractTerm    12
     ${renewal_term}=    SalesforceAPI.Query Field Value    Contract    ${contract_id}    RenewalTerm2
@@ -1786,6 +2072,37 @@ Create Contract From Quote
     ...    msg=Could not activate Contract ${contract_id}: ${result.stdout}
     Log    Created and activated Contract ${contract_id} from Quote ${quote_id}
     RETURN    ${contract_id}
+
+_Submit New Contract Flow
+    [Documentation]    Internal keyword — runs the Quote's ``New Contract`` action and clicks the
+    ...    flow's Create button.
+    [Arguments]    ${quote_id}
+    Navigate To Quote    ${quote_id}
+    Click Highlights Panel Action    New Contract
+    Sleep    5s    reason=Allow RLM_CreateContractFromQuote flow to initialize
+    Wait Until Keyword Succeeds    30s    3s    _Click Flow Navigation Button    Create
+    Capture Step Screenshot    contract_flow_submitted
+
+_Page Shows Text
+    [Documentation]    Internal keyword — True if ${text} appears anywhere on the page, including
+    ...    inside shadow roots (``Page Should Contain`` doesn't look there, and flow screens
+    ...    render inside them).
+    [Arguments]    ${text}
+    ${found}=    Execute JavaScript
+    ...    return (function(text){
+    ...        function walk(root, depth) {
+    ...            if (depth > 30) return false;
+    ...            if ((root.textContent || '').indexOf(text) >= 0) return true;
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var i = 0; i < all.length; i++) {
+    ...                if (all[i].shadowRoot && walk(all[i].shadowRoot, depth + 1)) return true;
+    ...            }
+    ...            return false;
+    ...        }
+    ...        return walk(document.documentElement, 0);
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${text}
+    RETURN    ${found}
 
 _Click Flow Navigation Button
     [Documentation]    Internal keyword. Clicks the button labelled ${label} inside the
@@ -1811,13 +2128,42 @@ _Click Flow Navigation Button
     Should Be Equal    ${result}    clicked    msg=Flow button "${label}" not found
     Sleep    3s    reason=Allow flow to process
 
-Verify Assets Exist On Account
-    [Documentation]    Checks that at least 1 Asset exists on the Account. Fails if not (for retry).
-    [Arguments]    ${account_id}
-    ${asset_count}=    SalesforceAPI.Get Asset Count For Account    ${account_id}
-    Log    Asset count: ${asset_count}
-    Should Be True    ${asset_count} > 0
-    ...    msg=No assets yet on Account ${account_id} (will retry).
+Wait For Assets From Order
+    [Documentation]    Waits for ${order_id}'s activation to produce Assets.
+    ...
+    ...    ⚠ Assetization is asynchronous and, intermittently, never starts. Live 2026-10-13: an
+    ...    order activated at 20:04Z produced no AssetizationAsyncJob tracker at all in 3 minutes,
+    ...    while every other activation that day produced assets within 2 seconds. So after
+    ...    ${first_wait} with no assets, assetization is requested once directly (the documented
+    ...    ``createOrUpdateAssetFromOrder`` invocable action), with a WARN, and the wait continues.
+    ...    The action needs the Assetize Order permission set, which builds grant through the
+    ...    RLM_PSL permission set group; if the run user lacks it, the refusal is logged and the
+    ...    wait simply continues.
+    ...    The check is scoped to ${order_id} (assets whose AssetActionSource points at its order
+    ...    products), so assets left by an earlier run can't satisfy it.
+    [Arguments]    ${order_id}    ${first_wait}=90s
+    SalesforceAPI.Validate Salesforce Id    ${order_id}
+    # Run the query once outside the retry, so a query the org rejects fails here at once
+    # instead of being polled as "no assets yet" and triggering a direct assetization.
+    ${soql}=    _Order Asset Source Soql    ${order_id}
+    SalesforceAPI.Query Records    ${soql}
+    ${found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    ${first_wait}    ${ASYNC_POLL_INTERVAL}
+    ...    SalesforceAPI.Verify Related Record Exists    ${soql}
+    IF    not ${found}
+        Log    No assets ${first_wait} after activating ${order_id}; requesting assetization directly.    WARN
+        ${requested}    ${detail}=    Run Keyword And Ignore Error    SalesforceAPI.Assetize Order Via API    ${order_id}
+        IF    "${requested}" == "FAIL"
+            Log    Direct assetization was refused (needs Assetize Order, granted via RLM_PSL): ${detail}    WARN
+        END
+        Wait Until Keyword Succeeds    ${ASYNC_TIMEOUT}    ${ASYNC_POLL_INTERVAL}
+        ...    SalesforceAPI.Verify Related Record Exists    ${soql}
+    END
+
+_Order Asset Source Soql
+    [Documentation]    Internal keyword — SOQL for an asset action whose source is one of
+    ...    ${order_id}'s order products (validated by the caller).
+    [Arguments]    ${order_id}
+    RETURN    SELECT Id FROM AssetActionSource WHERE ReferenceEntityItemId IN (SELECT Id FROM OrderItem WHERE OrderId = '${order_id}') LIMIT 1
 
 Verify Renewal Opportunity Includes Product
     [Documentation]    Asserts the renewal Opportunity produced on order activation carries a
@@ -1842,8 +2188,14 @@ Verify Renewal Opportunity Includes Product
     ...    was created from. Without this, the query would also match an OpportunityLineItem
     ...    synced onto the SOURCE Opportunity from the Quote (standard Quote-Opportunity line
     ...    sync), which would pass this assertion even if the renewal flow never fired —
-    ...    defeating the point of the check. Callers reset the account first (Reset Test
-    ...    Account), so a renewal Opportunity left over from an earlier run can't satisfy it.
+    ...    defeating the point of the check.
+    ...
+    ...    ⚠ Reset Test Account does NOT remove earlier renewal Opportunities. Live 2026-10-13: the
+    ...    contract-first test's renewal (ContractId set) survived the next run's reset, and the
+    ...    next no-contract test matched it before its own flow had fired, failing on
+    ...    ContractId 800… != None. So the query also requires the renewal Opportunity to have been
+    ...    created at or after ${order_id}'s ActivatedDate (server time, so local clock skew can't
+    ...    matter): only the renewal this activation produced can satisfy it.
     ...
     ...    Then checks the fields the flow copies onto the Opportunity it creates: ContractId and
     ...    CurrencyIsoCode must equal ${order_id}'s (in the no-contract test both ContractIds are
@@ -1856,8 +2208,14 @@ Verify Renewal Opportunity Includes Product
     SalesforceAPI.Validate Salesforce Id    ${order_id}
     ${product_id}=    SalesforceAPI.Find Product By Name    ${product_name}
     SalesforceAPI.Validate Salesforce Id    ${product_id}
+    ${activated}=    SalesforceAPI.Query Record By Id    Order    ${order_id}    fields=ActivatedDate
+    Should Be True    $activated['ActivatedDate']
+    ...    msg=Order ${order_id} has no ActivatedDate, so its renewal can't be told apart from an earlier one.
+    ${since}=    Evaluate    $activated['ActivatedDate'][:19] + 'Z'
+    Should Match Regexp    ${since}    ^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$
+    ...    msg=Order ${order_id} ActivatedDate isn't a timestamp: ${activated}[ActivatedDate]
     ${line_id}=    Wait For Related Record Via API
-    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Type = 'Existing Business' AND OpportunityId != '${source_opportunity_id}' AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
+    ...    SELECT Id FROM OpportunityLineItem WHERE Opportunity.AccountId = '${account_id}' AND Opportunity.Type = 'Existing Business' AND OpportunityId != '${source_opportunity_id}' AND Opportunity.CreatedDate >= ${since} AND Product2Id = '${product_id}' ORDER BY CreatedDate DESC LIMIT 1
     Log    Renewal opportunity line for ${product_name}: ${line_id}
     ${line}=    SalesforceAPI.Query Record By Id    OpportunityLineItem    ${line_id}    fields=OpportunityId
     ${renewal}=    SalesforceAPI.Query Record By Id    Opportunity    ${line}[OpportunityId]

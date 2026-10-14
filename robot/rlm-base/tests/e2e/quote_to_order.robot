@@ -105,7 +105,7 @@ Run Quote To Order Flow
     END
 
     # Create Order
-    Pause For Recording If Enabled    Products added. About to Create Order.
+    Pause For Recording If Enabled    Bundle configured. About to Create Order.
     ${order_id}=    Create Order From Quote    ${QUOTE_ID}
     Set Suite Variable    ${ORDER_ID}    ${order_id}
     IF    ${with_contract}
@@ -119,8 +119,7 @@ Run Quote To Order Flow
     Activate Order    ${ORDER_ID}
 
     # Verify assets (async — poll until at least 1 asset exists)
-    Wait Until Keyword Succeeds    ${ASYNC_TIMEOUT}    ${ASYNC_POLL_INTERVAL}
-    ...    Verify Assets Exist On Account    ${ACCOUNT_ID}
+    Wait For Assets From Order    ${ORDER_ID}
     Navigate To Account    ${ACCOUNT_ID}
     Click Record Page Tab    Assets
     Capture Step Screenshot    05_assets_tab
