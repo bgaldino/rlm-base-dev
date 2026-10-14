@@ -298,7 +298,9 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
     is **still in flight**; wait for `CompletedWithTax`.
   - **`taxPref: "Skip"`:** terminal on any org.
   - The platform also skips tax when any line has a **negative quantity**, so a
-    reduction is terminal at `CompletedWithPricing` even with estimated tax on.
+    quantity reduction (a negative-quantity line) is terminal at `CompletedWithPricing`
+    even with estimated tax on. A price-lowering amendment instead fails with
+    `AmountNegative` while estimated tax is on.
   - Robust pollers accept both values as settled; see `E2ECommon.robot`
     `@{QUOTE_CALC_PRICED}`.
 - **Settled — failure (terminal):** any `…Failed` — `TaxCalculationFailed`,
