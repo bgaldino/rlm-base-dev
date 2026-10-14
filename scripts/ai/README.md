@@ -298,6 +298,13 @@ python scripts/ai/pr_gate.py --list              # the matrix: check, gating, de
 python scripts/ai/pr_gate.py --requirements --base origin/main   # pip deps the selection needs
 ```
 
+Any `python` can start it. When that interpreter lacks a selected check's dependency, the
+gate re-runs itself under the **gate interpreter**, the main checkout's `.venv` (also from a
+worktree), which `gate_python.py` resolves and probes. It prints a `note:` line saying so. If
+the gate interpreter is missing or incomplete, the note says why and the run continues, so
+`MISSING-DEP` reports what's absent. CI installs the selection's requirements into its own
+interpreter, so it never re-runs. Setup: [local-installation.md, Step 6](../../docs/guides/local-installation.md#step-6--create-and-activate-a-virtual-environment-venv).
+
 Selection lives here rather than in a workflow's `paths:` filter because the two ways of not
 running fail in opposite directions. A workflow skipped by path filtering reports nothing, so a
 check required on it stays **Pending** and blocks the merge indefinitely; a job or step skipped
@@ -535,7 +542,7 @@ file (about 3), and `agent_tooling`. Measured 2026-10-11 on a workstation where 
 ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
-Verified by `tests/test_pr_gate.py` (716 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (728 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the

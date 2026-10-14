@@ -772,6 +772,65 @@ class GatePython(unittest.TestCase):
             finally:
                 del os.environ["RLM_GATE_PYTHON"]
 
+    def test_carry_over_lists_what_a_rebuild_must_put_back(self):
+        # update-toolchain.sh reinstalls this after `venv --clear`. Read from site-packages, not
+        # from the venv's Python, which is usually gone by then.
+        sys.path.insert(0, str(REPO / "scripts" / "ai"))
+        import gate_python
+
+        def dist(site, name, version, requires=(), direct=None):
+            info = site / f"{name}-{version}.dist-info"
+            info.mkdir()
+            (info / "METADATA").write_text(
+                f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
+                + "".join(f"Requires-Dist: {r}\n" for r in requires))
+            if direct:
+                (info / "direct_url.json").write_text(json.dumps(direct))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            venv = Path(tmp) / ".venv"
+            site = venv / "lib" / "python3.9" / "site-packages"
+            site.mkdir(parents=True)
+            dist(site, "top", "1.0", ["dep_one>=1", 'only-extra; extra == "x"'])
+            dist(site, "dep-one", "2.0")
+            dist(site, "only_extra", "3.0")
+            dist(site, "local", "0.1",
+                 direct={"url": "file:///some%20dir/local", "dir_info": {"editable": True}})
+            dist(site, "fromgit", "0.2", direct={"url": "https://example.com/o/fromgit",
+                                                 "vcs_info": {"vcs": "git", "commit_id": "abc123"}})
+            dist(site, "cyc-a", "1", ["cyc-b"])
+            dist(site, "cyc-b", "1", ["cyc-a"])
+            dist(site, "pip", "24.0")
+            self.assertEqual(gate_python.carry_over(venv), [
+                "cyc-a==1",                                        # a cycle nothing requires: one member
+                "fromgit @ git+https://example.com/o/fromgit@abc123",
+                "-e /some dir/local",
+                "only_extra==3.0",                                 # required only through an extra
+                "top==1.0",
+            ])                                                     # dep-one is top's; pip is never listed
+            self.assertEqual(gate_python.carry_over(Path(tmp) / "absent"), [])
+
+    def test_carry_over_survives_one_unreadable_distribution(self):
+        # A half-written direct_url.json must cost only its own provenance, not the whole list.
+        sys.path.insert(0, str(REPO / "scripts" / "ai"))
+        import gate_python
+        with tempfile.TemporaryDirectory() as tmp:
+            venv = Path(tmp) / ".venv"
+            site = venv / "lib" / "python3.13" / "site-packages"
+            for name in ("good", "torn"):
+                info = site / f"{name}-1.0.dist-info"
+                info.mkdir(parents=True)
+                (info / "METADATA").write_text(f"Metadata-Version: 2.1\nName: {name}\nVersion: 1.0\n")
+            (site / "torn-1.0.dist-info" / "direct_url.json").write_text('{"url": "file:///x", "dir_')
+            self.assertEqual(gate_python.carry_over(venv), ["good==1.0", "torn==1.0"])
+
+    def test_carry_over_usage_errors_never_print_an_interpreter(self):
+        script = REPO / "scripts" / "ai" / "gate_python.py"
+        for args in (["--carry-over"], ["--carry-over", ""], ["--carry-over", "a", "b"], ["--bogus"]):
+            run = subprocess.run([sys.executable, str(script), *args], cwd=REPO,
+                                 capture_output=True, text=True)
+            self.assertEqual((run.returncode, run.stdout), (2, ""), args)
+
 
 if __name__ == "__main__":
     unittest.main()
