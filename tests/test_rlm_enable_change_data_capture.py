@@ -181,8 +181,9 @@ def check_query_failure_is_soft(_):
         try:
             make_task(fake, raise_on_failure=True)._run_task()
             check(f"query failure ({status}) raises with raise_on_failure", False)
-        except Exception:
-            check(f"query failure ({status}) raises with raise_on_failure", True)
+        except Exception as exc:
+            check(f"query failure ({status}) raises with raise_on_failure",
+                  "Could not read" in str(exc), str(exc)[:80])
 
 
 def check_create_exception_is_soft(_):

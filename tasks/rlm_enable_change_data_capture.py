@@ -51,8 +51,9 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
     """Select CDC entities on the ChangeEvents channel, skipping what's already selected.
 
     Each missing entity is created as a ``PlatformEventChannelMember`` through the Tooling
-    API. A rejected selection (allocation used up, entity not supported) is logged as a
-    warning and the build continues, unless ``raise_on_failure`` is set.
+    API. Any failure (a rejected selection such as allocation used up or entity not
+    supported, a failed query, or an HTTP or network error) is logged as a warning and the
+    build continues, unless ``raise_on_failure`` is set.
     """
 
     task_options = {
@@ -69,7 +70,8 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
         },
         "raise_on_failure": {
             "description": (
-                "If True, raise when the platform rejects a selection. Default: False: "
+                "If True, raise on any failure (rejected selection, failed query, HTTP or "
+                "network error). Default: False: "
                 "warn and continue, because a missing selection only disables STLE "
                 "auto-refresh."
             ),
@@ -119,7 +121,9 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
         try:
             selected = self._selected_entities()
         except request_error as exc:
-            self._fail(f"Could not read the org's Change Data Capture selections: {exc}")
+            response = getattr(exc, "response", None)
+            body = f" {response.text[:300]}" if response is not None and getattr(response, "text", "") else ""
+            self._fail(f"Could not read the org's Change Data Capture selections: {exc}{body}")
             return
         on_channel = selected.get(CHANNEL, set())
         # Only change events count toward the CDC allocation; members of custom
