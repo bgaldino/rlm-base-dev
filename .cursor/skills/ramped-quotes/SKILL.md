@@ -287,12 +287,20 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
   lists `TaxCalculationSuccess` — treat both as success); `CompletedWithoutPricing`
   (settled, but pricing was **skipped** — not a priced result, so do not report
   prices from it).
-- **`CompletedWithPricing` — settled *only when tax is skipped*.** It means pricing
-  is complete and **tax is now calculating** (order/quote field reference). The
-  examples here omit `taxPref`, and `taxPref` defaults to **running** tax
-  (`connect_requests_place_sales_transaction_input.htm.md`), so in this flow
-  `CompletedWithPricing` is **still in-flight** — wait for `CompletedWithTax`. It is
-  terminal only if you passed `taxPref: "Skip"` (then no `CompletedWithTax` follows).
+- **`CompletedWithPricing` — settled *when tax doesn't run*.** Pricing is done; on
+  an org that calculates estimated tax, tax runs next. Which applies depends on the org:
+  - **Foundations default build:** estimated tax on quotes and orders is **off**
+    (`unpackaged/pre/2_settings/IncludeEstTaxInQuoteCPQ.settings-meta.xml`). Tax never
+    runs, so `CompletedWithPricing` is **terminal**. Live 264.7, 2026-10-14: quotes
+    stopped there with no `taxPref`.
+  - **Estimated tax on and `taxPref` omitted:** `taxPref` defaults to running tax
+    (`connect_requests_place_sales_transaction_input.htm.md`), so `CompletedWithPricing`
+    is **still in flight**; wait for `CompletedWithTax`.
+  - **`taxPref: "Skip"`:** terminal on any org.
+  - The platform also skips tax when any line has a **negative quantity**, so a
+    reduction is terminal at `CompletedWithPricing` even with estimated tax on.
+  - Robust pollers accept both values as settled; see `E2ECommon.robot`
+    `@{QUOTE_CALC_PRICED}`.
 - **Settled — failure (terminal):** any `…Failed` — `TaxCalculationFailed`,
   `PriceCalculationFailed`, `SaveFailedOrIncomplete`, `ConfigurationFailed`,
   `ReconciliationFailed`, `GroupRampConfigurationFailed`, `PstBaseStepFailed`,
@@ -457,7 +465,8 @@ skill's routing.
    active `PricebookEntry` in the account currency (no per-product ramp flag needed
    for group ramps).
 2. `placeSalesTransaction` create → Quote + "Year 1" group + one line (365-day
-   window; resolve a `BillingTreatmentId`). Poll to `CompletedWithTax`.
+   window; resolve a `BillingTreatmentId`). Poll until settled: `CompletedWithPricing`
+   on a default Foundations build, `CompletedWithTax` where estimated tax is on.
 3. `placeSalesTransaction` `EditGroup` on the Year-1 group (`IsRamped=true`,
    `SegmentType=Yearly`). Poll. In multi-schedule mode read the groups back to get
    the top-level `RampScheduleGroup` id.

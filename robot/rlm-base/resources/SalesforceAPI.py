@@ -606,7 +606,8 @@ class SalesforceAPI:
 
         Sends a header-only PATCH graph with ``pricingPref: Force`` (the 264 dev
         guide's "update a quote" shape). Tax runs as it does from the UI, so a
-        successful reprice ends at CompletedWithTax. Used once, to recover a quote
+        successful reprice ends at CompletedWithTax where estimated tax is on, and
+        at CompletedWithPricing on a default build, which has it off. Used once, to recover a quote
         the platform left in a failed CalculationStatus; the caller then waits for
         the status to settle again.
 

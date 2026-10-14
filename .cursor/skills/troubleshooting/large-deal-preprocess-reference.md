@@ -37,7 +37,9 @@ transactionally at each step):
 
 - **Terminal success (large deal):** `CompletedWithPricing` (tax is architecturally
   skipped for large deals — there is no `CompletedWithPricingAndTax`; the tax-complete
-  value, for non-large deals, is `CompletedWithTax`). Also terminal: `CompletedWithoutPricing`.
+  value, for non-large deals, is `CompletedWithTax` — only where estimated tax is on; a
+  default Foundations build turns it off, so non-large deals also end at
+  `CompletedWithPricing`). Also terminal: `CompletedWithoutPricing`.
 - **In-progress (wait):** `NotStarted`, `ContextHydrationInProgress`, `QueuedForConfiguration`,
   `ConfigurationInProgress`, `QueuedForPricing`, `QueuedForPricingAndSaving`,
   `PriceCalculationInProgress`, `TaxCalculationWaiting`, `QueuedForSaving`, `Saving`,
