@@ -51,21 +51,39 @@ class FakeResponse:
             raise RuntimeError(f"HTTP {self.status_code}")
 
 
-class FakeRequests:
-    """Answers the selection query, then each create with the next queued status."""
+class FakeRequestException(Exception):
+    pass
 
-    def __init__(self, selected, create_statuses):
+
+class FakeRequests:
+    """Answers the selection query, then each create with the next queued status.
+
+    A status of "raise" makes that call raise FakeRequestException, standing in for a
+    network error.
+    """
+
+    def __init__(self, selected, create_statuses, query_status=200):
         self.selected = selected
         self.create_statuses = list(create_statuses)
+        self.query_status = query_status
         self.posts = []
 
     def get(self, url, headers=None, params=None, timeout=None):
+        if self.query_status == "raise":
+            raise FakeRequestException("connection reset")
         rows = [{"EventChannel": ch, "SelectedEntity": e} for ch, e in self.selected]
-        return FakeResponse(200, {"records": rows})
+        resp = FakeResponse(self.query_status, {"records": rows})
+        if self.query_status >= 400:
+            def raise_http():
+                raise FakeRequestException(f"HTTP {self.query_status}")
+            resp.raise_for_status = raise_http
+        return resp
 
     def post(self, url, headers=None, json=None, timeout=None):
         self.posts.append(json)
         status = self.create_statuses.pop(0) if self.create_statuses else 201
+        if status == "raise":
+            raise FakeRequestException("read timed out")
         text = "" if status in (200, 201) else '[{"errorCode":"LIMIT_EXCEEDED"}]'
         return FakeResponse(status, text=text)
 
@@ -82,7 +100,8 @@ class Log:
 
 
 def make_task(fake, entities=None, raise_on_failure=False):
-    sys.modules["requests"] = types.SimpleNamespace(get=fake.get, post=fake.post)
+    sys.modules["requests"] = types.SimpleNamespace(
+        get=fake.get, post=fake.post, RequestException=FakeRequestException)
     task = EnableChangeDataCapture.__new__(EnableChangeDataCapture)
     task.entities = entities or ["Quote", "Order"]
     task.allocation = 5
@@ -148,6 +167,50 @@ def check_raise_on_failure(_):
     check("raise_on_failure raises with the platform error", raised)
 
 
+def check_query_failure_is_soft(_):
+    for status in (500, "raise"):
+        fake = FakeRequests([], [], query_status=status)
+        task = make_task(fake)
+        raised = False
+        try:
+            task._run_task()
+        except Exception:
+            raised = True
+        check(f"query failure ({status}) warns, no raise", not raised and task.logger.warnings and fake.posts == [])
+        fake = FakeRequests([], [], query_status=status)
+        try:
+            make_task(fake, raise_on_failure=True)._run_task()
+            check(f"query failure ({status}) raises with raise_on_failure", False)
+        except Exception:
+            check(f"query failure ({status}) raises with raise_on_failure", True)
+
+
+def check_create_exception_is_soft(_):
+    fake = FakeRequests([], ["raise", 201])
+    task = make_task(fake)
+    task._run_task()
+    check("create exception warns and the next entity is still tried",
+          len(fake.posts) == 2 and any("read timed out" in m for m in task.logger.warnings))
+
+
+def check_custom_channel_members_not_counted(_):
+    custom = [("RLM_Custom__chn", f"Evt{i}__e") for i in range(5)]
+    fake = FakeRequests(custom, [201, 201])
+    task = make_task(fake)
+    task._run_task()
+    check("custom-channel platform events don't trigger the allocation warning",
+          not any("may exceed" in m for m in task.logger.warnings))
+
+
+def check_option_parsing(_):
+    task = EnableChangeDataCapture.__new__(EnableChangeDataCapture)
+    task.options = {"entities": "Quote, Order,Case", "allocation": "7", "raise_on_failure": "True"}
+    task._parse_options()
+    check("entities from a comma string", task.entities == ["Quote", "Order", "Case"], str(task.entities))
+    check("allocation parsed as int", task.allocation == 7)
+    check("raise_on_failure parsed from 'True'", task.raise_on_failure is True)
+
+
 def main():
     checks = (
         check_change_event_names,
@@ -156,6 +219,10 @@ def main():
         check_partial_adds_only_missing,
         check_full_allocation_warns_not_fails,
         check_raise_on_failure,
+        check_query_failure_is_soft,
+        check_create_exception_is_soft,
+        check_custom_channel_members_not_counted,
+        check_option_parsing,
     )
     for fn in checks:
         try:

@@ -12,10 +12,11 @@ uses its allocation, so this task:
 
 * reads the org's current selections through the Tooling API,
 * adds only the requested entities that aren't selected yet,
-* warns and continues, without failing the build, if the platform rejects a selection (for
-  example because the allocation is used up).
+* warns and continues, without failing the build, if anything goes wrong: the platform
+  rejects a selection (for example because the allocation is used up), or the query or a
+  create fails with an HTTP or network error.
 
-Set ``raise_on_failure`` to make a rejected selection fatal.
+Set ``raise_on_failure`` to make those failures fatal.
 """
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
@@ -78,6 +79,9 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
+        self._parse_options()
+
+    def _parse_options(self):
         self.entities = process_list_arg(self.options.get("entities")) or list(DEFAULT_ENTITIES)
         self.allocation = int(self.options.get("allocation") or DEFAULT_ALLOCATION)
         self.raise_on_failure = process_bool_arg(self.options.get("raise_on_failure", False))
@@ -111,9 +115,19 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
     def _run_task(self):
         import requests
 
-        selected = self._selected_entities()
+        request_error = getattr(requests, "RequestException", Exception)
+        try:
+            selected = self._selected_entities()
+        except request_error as exc:
+            self._fail(f"Could not read the org's Change Data Capture selections: {exc}")
+            return
         on_channel = selected.get(CHANNEL, set())
-        all_entities = set().union(*selected.values()) if selected else set()
+        # Only change events count toward the CDC allocation; members of custom
+        # platform-event channels can select other event types.
+        all_entities = {
+            e for entities in selected.values() for e in entities
+            if e and e.endswith("ChangeEvent")
+        }
         missing = [e for e in self.entities if change_event_name(e) not in on_channel]
         already = [e for e in self.entities if e not in missing]
         if already:
@@ -137,23 +151,30 @@ class EnableChangeDataCapture(BaseSalesforceApiTask):
                 "FullName": f"{CHANNEL}_{event}",
                 "Metadata": {"eventChannel": CHANNEL, "selectedEntity": event},
             }
-            resp = requests.post(
-                self._tooling_url("sobjects/PlatformEventChannelMember/"),
-                headers=self._headers(),
-                json=body,
-                timeout=60,
-            )
+            try:
+                resp = requests.post(
+                    self._tooling_url("sobjects/PlatformEventChannelMember/"),
+                    headers=self._headers(),
+                    json=body,
+                    timeout=60,
+                )
+            except request_error as exc:
+                failures.append(f"{entity}: {type(exc).__name__}: {exc}")
+                continue
             if resp.status_code in (200, 201):
                 self.logger.info(f"Selected {entity} for Change Data Capture ({event}).")
             else:
                 failures.append(f"{entity}: HTTP {resp.status_code} {resp.text[:300]}")
 
         if failures:
-            message = (
+            self._fail(
                 "Could not select some entities for Change Data Capture; STLE auto-refresh "
                 "won't work for them. Free up a CDC selection (Setup > Change Data Capture) "
-                "and rerun this task. " + " | ".join(failures)
+                "or retry, then rerun this task. " + " | ".join(failures)
             )
-            if self.raise_on_failure:
-                raise CumulusCIException(message)
-            self.logger.warning(message)
+
+    def _fail(self, message):
+        """Raise when raise_on_failure is set; otherwise warn so the build continues."""
+        if self.raise_on_failure:
+            raise CumulusCIException(message)
+        self.logger.warning(message)
