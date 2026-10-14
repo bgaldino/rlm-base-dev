@@ -31,6 +31,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **nvm** | `brew install nvm` | Node version manager | latest |
 | **Node.js** | `nvm install --lts` | JavaScript runtime for `sf` CLI | major LTS line (`lts/*`) |
 | **pyenv** | `brew install pyenv` | Python version manager | latest |
+| **OpenSSL 3** | `brew install openssl@3` | TLS library the pyenv Python 3.13 builds link against | `openssl@3`; keep installed — see [OpenSSL 4 migration](#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration) |
 | **Python** | `pyenv install $(pyenv latest -k 3.13)` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
 | **pipx** | `$(pyenv prefix)/bin/python3 -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
 | **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4` (snowfakery 4.x requirement) |
@@ -317,6 +318,42 @@ dies. The update script handles this; manually:
 pipx install --force cumulusci --python "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3"
 pipx inject --force cumulusci "setuptools>=75.4"
 ```
+
+### `cci` breaks after `brew upgrade` (Homebrew OpenSSL 4 migration)
+Symptom — after `brew upgrade` (or `scripts/bash/update-toolchain.sh`, which
+runs it), every `cci` command dies at startup:
+
+```
+ImportError: dlopen(.../lib-dynload/_ssl.cpython-313-darwin.so, 0x0002):
+Library not loaded: /opt/homebrew/opt/openssl@3/lib/libssl.3.dylib
+```
+
+Cause — Homebrew is migrating formulae to OpenSSL 4
+([Homebrew/homebrew-core#278366](https://github.com/Homebrew/homebrew-core/issues/278366)).
+`openssl@4` is now the default `openssl`, `openssl@3` is keg-only, and the
+`pyenv` formula depends on `openssl@4`. A pyenv Python 3.13 built earlier
+still links `/opt/homebrew/opt/openssl@3`, but Homebrew doesn't know that,
+so once nothing it tracks needs `openssl@3`, `brew upgrade`'s automatic
+cleanup/autoremove deletes it. CumulusCI imports `ssl` at startup, so `cci`
+breaks before any task runs. (`validate_setup` can't detect it for the
+same reason.)
+
+Fix — reinstall it explicitly:
+
+```bash
+brew install openssl@3
+```
+
+That marks `openssl@3` *installed on request*, so autoremove keeps it from
+then on. Confirm with `brew info openssl@3` (shows `Installed (on request)`)
+and `cci version`.
+
+Why not rebuild on OpenSSL 4 — the toolchain can't move yet. CumulusCI 4.10.1
+requires Python `<3.14`, and CPython 3.13 does not support OpenSSL 4 (support
+landed in 3.14.6+ and 3.15). Keep `openssl@3` installed until the Python line
+moves past 3.13 (see [Bumping a major line](#bumping-a-major-line)). The
+Docker image (`python:3.13-slim-bookworm`) uses Debian's OpenSSL and is
+unaffected.
 
 ### `python3` resolves to `/usr/bin/python3` instead of pyenv shim
 Cosmetic — `python` (no `3`) resolves correctly because the system doesn't
