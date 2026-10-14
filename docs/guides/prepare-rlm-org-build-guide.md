@@ -85,6 +85,8 @@ The 35 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 6. **Rule library creation** (`breconfig` flag) — Creates pricing rule libraries and, when `dro` is also enabled, the DRO rule library. Skipped in default builds where `breconfig: false`.
 
+7. **Change Data Capture for Quote and Order** (`enable_change_data_capture`, last step of `prepare_core`) — In 264 this is the only setup needed for the Sales Transaction Line Editor and the Transaction Summary to refresh on their own when a flow, an Apex trigger or an Agentforce action changes the open quote or order. Only the user who caused the change sees the auto-refresh. To pick up other changes, such as another user's edit, select Refresh from the line editor's dropdown menu. Child objects don't need CDC. The task adds only the entities that aren't already selected. If the org's CDC allocation is used up (five entities without the CDC add-on), it logs a warning and the build continues without auto-refresh.
+
 **`prepare_decision_tables`** (Step 2) activates a specific set of decision tables — but only on scratch orgs. On sandboxes or persistent orgs, this step runs but skips activation, since those orgs are expected to already have their decision tables in place. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation.
 
 **`prepare_expression_sets`** (Step 3) deactivates existing expression sets, validates that pricing schedule prerequisites are in place, and deploys expression sets in draft state across org types. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 18) after all dependent data is in place.
