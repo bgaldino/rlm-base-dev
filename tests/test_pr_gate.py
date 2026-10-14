@@ -4793,7 +4793,10 @@ VERDICT_REGIONS = {
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
     # made that a deliberate edit rather than a quiet one, which is exactly its purpose.
-    "the booking loop and main()'s return": ("a88508e61f7f", "which verdicts reach the exit code"),
+    # Repinned when the script entry point became `main(reexec=True)`: run by path, the gate re-runs
+    # itself under the gate interpreter when this one lacks a selected check's dependency. The booking
+    # loop and every return are untouched; CI installs the selection's deps, so it never re-runs.
+    "the booking loop and main()'s return": ("4b9962703135", "which verdicts reach the exit code"),
 }
 observed = {
     "run()": fingerprint(body_of(gate_src, "def run(", "the command runner")),
@@ -4806,6 +4809,70 @@ for region, (pinned, decides) in VERDICT_REGIONS.items():
           f"hosted runner (a tool-cache path, a mounted volume) is invisible to every behavioural "
           f"fixture here, so this region changes only by updating VERDICT_REGIONS deliberately",
           observed[region] == pinned, f"observed {observed[region]}, pinned {pinned}")
+
+print("\nRe-running under the gate interpreter")
+# Run by path, the gate replaces itself with the gate interpreter when this one lacks a selected
+# check's dependency. Driven in-process with the resolver and os.execv stubbed, so nothing execs.
+import gate_python  # noqa: E402
+
+FAKE_CHECK = {"name": "fake", "deps": ["cumulusci"], "gating": True}
+# Not a repo path: a stand-in interpreter that is never run, spelled without a literal path.
+FAKE_GATE = os.path.join(os.sep, "x", ".venv", "bin", "python")
+
+
+def reexec_outcome(missing, problems_result, here=None):
+    """(exec argv or None, printed text, whether the resolver was consulted) for one scenario."""
+    calls, consulted = [], []
+    saved = (pr_gate.missing_deps, gate_python.problems, os.execv, sys.executable)
+    buf = io.StringIO()
+    try:
+        pr_gate.missing_deps = lambda check: list(missing)
+        gate_python.problems = lambda start: consulted.append(start) or problems_result
+        os.execv = lambda path, argv: calls.append(argv)
+        if here:
+            sys.executable = here
+        with redirect_stdout(buf):
+            pr_gate.reexec_under_gate_interpreter([FAKE_CHECK], ["--base", "origin/main"])
+    finally:
+        pr_gate.missing_deps, gate_python.problems, os.execv, sys.executable = saved
+    return (calls[0] if calls else None), buf.getvalue(), bool(consulted)
+
+
+argv, out, consulted = reexec_outcome([], (pathlib.Path(FAKE_GATE), []))
+check("nothing missing: no re-run, and the resolver is not even consulted",
+      argv is None and not consulted, (argv, consulted))
+argv, out, _ = reexec_outcome(["cumulusci"], (pathlib.Path(FAKE_GATE), ["lacks: cumulusci"]))
+check("a dependency missing and the gate interpreter unusable: no re-run, and the reason is printed "
+      "so the MISSING-DEP that follows is explained", argv is None and "lacks: cumulusci" in out, out)
+argv, out, _ = reexec_outcome(["cumulusci"], (pathlib.Path(FAKE_GATE), []))
+check("a dependency missing and a usable gate interpreter elsewhere: re-run under it with the same "
+      "arguments, marked --no-reexec so the re-run can never loop",
+      argv == [FAKE_GATE, os.path.abspath(pr_gate.__file__), "--base", "origin/main",
+               "--no-reexec"], argv)
+argv, out, _ = reexec_outcome(["cumulusci"], (pathlib.Path(FAKE_GATE), []),
+                              here=FAKE_GATE)
+check("already the gate interpreter: no re-run (its own probe decides what's missing)", argv is None, argv)
+
+# A selected check with a missing dependency is exactly the case that would re-run from the script;
+# in-process it must book MISSING-DEP instead of replacing the test runner.
+prior = (pr_gate.reexec_under_gate_interpreter, pr_gate.CHECKS, pr_gate.missing_deps)
+reran = []
+try:
+    pr_gate.reexec_under_gate_interpreter = lambda *a: reran.append(a)
+    pr_gate.CHECKS = [dict(FAKE_CHECK, triggers=["README.md"], cmd=[])]
+    pr_gate.missing_deps = lambda check: ["cumulusci"]
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as fh:
+        fh.write("README.md\n")
+    code, out = main_with(["--changed-files-from", fh.name])
+    os.unlink(fh.name)
+finally:
+    pr_gate.reexec_under_gate_interpreter, pr_gate.CHECKS, pr_gate.missing_deps = prior
+check("main() driven in-process never re-runs, even with a selected dependency missing: only the "
+      "script entry point passes reexec=True", not reran and "MISSING-DEP" in out and code == 1,
+      (reran, code, out[-300:]))
+check("the script entry point is the only caller that asks for a re-run",
+      re.search(r'if __name__ == "__main__":\s*\n\s*sys\.exit\(main\(reexec=True\)\)', gate_src) is not None
+      and gate_src.count("reexec=True") == 1)
 
 print("\nCommand-line contract")
 code, out = run_gate("--list")
@@ -5197,7 +5264,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 716
+EXPECTED = 722
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

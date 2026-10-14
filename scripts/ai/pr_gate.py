@@ -47,6 +47,15 @@ Usage:
     python scripts/ai/pr_gate.py --all                    # ignore selection, run everything
     python scripts/ai/pr_gate.py --list                   # print the matrix, run nothing
     python scripts/ai/pr_gate.py --requirements --base X  # extra pip deps the selection needs
+
+Run as a script, the gate re-runs itself under the gate interpreter (the main checkout's
+`.venv`, resolved by `gate_python.py`) when this interpreter lacks a selected check's
+dependency and that one has them all. On a workstation `python` is the pyenv Python, which
+`.envrc` selects and which never had the gate's packages, so a bare `python
+scripts/ai/pr_gate.py` would otherwise report MISSING-DEP for a setup reason. CI installs
+the selection's requirements into its own interpreter, so nothing is missing there and
+nothing re-runs. With no usable gate interpreter the run continues here, and MISSING-DEP
+reports what's absent.
 """
 
 import argparse
@@ -56,6 +65,7 @@ import shutil
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -927,7 +937,34 @@ def run_sequence(cmds):
     return worst, "\n".join(chunks), total
 
 
-def main():
+def reexec_under_gate_interpreter(selected, argv):
+    """Replace this process with the gate interpreter when it can run what this one can't.
+
+    Returns (having printed why) when nothing is missing, or when the gate interpreter is
+    unusable too, so the caller reports MISSING-DEP as before. Called only from the script
+    entry point: the suite drives main() in-process with `missing_deps` patched, and an
+    exec there would replace the test runner.
+    """
+    if not any(missing_deps(c) for c in selected):
+        return
+    try:
+        import gate_python  # stdlib-only sibling; scripts/ai is sys.path[0] when run by path
+        python, problems = gate_python.problems(Path(REPO_ROOT))
+    except Exception as exc:  # a resolver bug must not take the gate down with it
+        print(f"note: could not resolve the gate interpreter ({exc}); running here", flush=True)
+        return
+    if problems:
+        print("note: this interpreter lacks a selected check's dependency, and the gate "
+              f"interpreter can't stand in: {'; '.join(problems)}. Set it up per "
+              "docs/guides/local-installation.md (Step 6).", flush=True)
+        return
+    if os.path.abspath(str(python)) == os.path.abspath(sys.executable):
+        return
+    print(f"note: re-running under the gate interpreter {python}", flush=True)
+    os.execv(str(python), [str(python), os.path.abspath(__file__), *argv, "--no-reexec"])
+
+
+def main(reexec=False):
     ap = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--base", help="git ref to diff against (e.g. origin/main)")
@@ -936,6 +973,8 @@ def main():
     ap.add_argument("--list", action="store_true", help="print the matrix and exit")
     ap.add_argument("--requirements", action="store_true",
                     help="print pip deps the selection needs, one per line, then exit")
+    ap.add_argument("--no-reexec", action="store_true",
+                    help="never re-run under the gate interpreter (the re-run passes this)")
     args = ap.parse_args()
 
     if args.list:
@@ -980,6 +1019,9 @@ def main():
         for line in emitted:
             print(line)
         return 0
+
+    if reexec and not args.no_reexec:
+        reexec_under_gate_interpreter(selected, sys.argv[1:])
 
     orphans = unlisted_suites()
     if files is not None:
@@ -1108,4 +1150,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(reexec=True))

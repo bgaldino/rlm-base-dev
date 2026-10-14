@@ -181,11 +181,11 @@ python scripts/ai/generate_cci_reference.py                         # after cumu
 
 ## Pre-merge checklists for AI agents
 
-Before opening or updating a PR, **run `"$(python3 scripts/ai/gate_python.py)" scripts/ai/pr_gate.py --base origin/<base>` first**
+Before opening or updating a PR, **run `python scripts/ai/pr_gate.py --base origin/<base>` first**
 (`<base>`: `main`, or the `preview/*`/`release/*` branch it targets).
 Every selected check gates; missing dependencies fail rather
 than skip. Inspect every result, including skips. Run locally even though CI
-runs the same gate. Procedures and
+runs the same gate. Detailed procedures, generator behavior and enforcement
 history: [.cursor/skills/audit-review/merge-and-review-procedures.md](.cursor/skills/audit-review/merge-and-review-procedures.md).
 
 ### Required CI check

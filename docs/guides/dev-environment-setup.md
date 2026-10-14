@@ -73,9 +73,9 @@ the loop Stop hook (`.claude/hooks/stop_gate.py`) and the `validate_setup` "Gate
 interpreter" check all find it through `scripts/ai/gate_python.py`; set
 `$RLM_GATE_PYTHON` to point them at a venv kept elsewhere. It is separate from the
 pipx venv that runs `cci`: pipx's copy of CumulusCI doesn't count, because the gate
-imports `cumulusci` itself. `.envrc` doesn't activate it either, so run the gate as
-`"$(python3 scripts/ai/gate_python.py)" scripts/ai/pr_gate.py --base origin/main`, not
-with a bare `python`.
+imports `cumulusci` itself. `.envrc` doesn't activate it either. It doesn't need to:
+started under any `python`, `pr_gate.py` re-runs itself under the gate interpreter when
+that interpreter lacks a selected check's dependency.
 
 ### Shell config responsibilities
 
@@ -264,9 +264,12 @@ The script handles:
 7. `sf plugins update`
 8. Gate interpreter — if `<main checkout>/.venv` exists, rebuilds it with
    `python -m venv --clear` when its Python isn't the current 3.13 patch (a
-   patch bump breaks its python symlink the same way as the pipx venv), then
-   reinstalls `pr_gate.py --requirements --all` into it. If the install fails,
-   or `gate_python.py` still finds the venv unusable, the script exits
+   patch bump breaks its python symlink the same way as the pipx venv). Before
+   clearing, it lists the venv's other packages (the doc snapshot tooling, Robot
+   requirements, …) and reinstalls them afterwards; if any fail to reinstall it
+   warns and keeps the list. Then it reinstalls `pr_gate.py --requirements --all`.
+   A `$RLM_GATE_PYTHON` override is probed but not managed. If the install fails,
+   or `gate_python.py` still finds the gate interpreter unusable, the script exits
    nonzero after `validate_setup` (which only warns about it)
 9. `cci task run validate_setup` — verifies every check still passes,
    including the "Gate interpreter" warning check
@@ -312,7 +315,7 @@ For a clean macOS workstation, in order:
    cd rlm-base-dev
    direnv allow
    # Gate interpreter (skip if you already created it in Step 6 of the installation guide)
-   python -m venv .venv
+   "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv
    .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
    cci task run validate_setup
    ```
@@ -409,11 +412,15 @@ Python is wrong or its symlink is broken:
 ```
 
 ```bash
+.venv/bin/python -m pip freeze > /tmp/gate-venv-packages.txt   # what else it holds; skip if its python is broken
 "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv --clear .venv
+.venv/bin/python -m pip install -r /tmp/gate-venv-packages.txt
 ```
 
-After a rebuild, run the install command again. `scripts/bash/update-toolchain.sh`
-does both.
+`--clear` empties the whole venv, so the `pip freeze` list is how anything else
+you installed there comes back. After a rebuild, run the install command again.
+`scripts/bash/update-toolchain.sh` does all of this, including recovering
+package names from a venv whose Python is already gone.
 
 ### `python3` resolves to `/usr/bin/python3` instead of pyenv shim
 Cosmetic — `python` (no `3`) resolves correctly because the system doesn't

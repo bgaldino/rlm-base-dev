@@ -171,8 +171,9 @@ From the repository cloned in Step 5, create a project-specific virtual environm
 This `.venv` is also the **gate interpreter**: the Python that runs the pre-merge gate (`scripts/ai/pr_gate.py`). The loop Stop hook (`.claude/hooks/stop_gate.py`) and the `validate_setup` "Gate interpreter" check look for it at `<main checkout>/.venv/bin/python`, and a git worktree resolves to the main checkout's `.venv`. (`$RLM_GATE_PYTHON` overrides this path if you keep the venv somewhere else.) Create it with Python 3.13, which is what CI uses, and install the gate's requirements into it:
 
 ```bash
-# From the repo root (uses the Python 3.13 that pyenv points to after Step 4)
-python -m venv .venv
+# From the repo root. Named explicitly, so the venv is on 3.13 even if pyenv's global
+# (or a .python-version) selects another version; `python` alone would use that one.
+"$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv
 
 # Install everything pr_gate.py needs to run all of its checks (including cumulusci)
 .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
@@ -187,11 +188,7 @@ pip --version
 python scripts/ai/gate_python.py       # prints the interpreter path; names anything missing
 ```
 
-Run the gate under this interpreter, not under whatever `python` is first on `PATH`. `.envrc` selects the pyenv Python but does not activate `.venv`, and from a git worktree `.venv/bin/python` is not a relative path that exists. `gate_python.py` resolves the right interpreter from any checkout:
-
-```bash
-"$(python3 scripts/ai/gate_python.py)" scripts/ai/pr_gate.py --base origin/main
-```
+You don't need to activate it to run the gate. `.envrc` selects the pyenv Python and doesn't activate `.venv`, so `python scripts/ai/pr_gate.py --base origin/main` starts under the pyenv Python. When that interpreter lacks a selected check's dependency, the gate re-runs itself under this `.venv` (also from a git worktree) and prints a `note:` line saying so. If the venv is missing or incomplete, the note names the problem and the affected checks report `MISSING-DEP`.
 
 > **Install the gate requirements even if you install CumulusCI via pipx (recommended, Step 7).** pipx keeps CCI in its own isolated environment, so the CCI you run day to day doesn't come from this venv. The gate does: without `cumulusci` and the other requirements here, `pr_gate.py` reports `MISSING-DEP` for a check whose dependency is absent, and a change to any `.md` file fails the gate for a setup reason. When `DEPS` in `scripts/ai/pr_gate.py` changes, rerun the install command above (`scripts/bash/update-toolchain.sh` does this for you).
 

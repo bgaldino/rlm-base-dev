@@ -5,7 +5,8 @@ The gate fails a check whose dependency is missing (MISSING-DEP), which is right
 wrong as a surprise: on a workstation whose only CumulusCI venv lacks `textual`, every
 build-harness change fails the gate for a setup reason, not a code reason. So there is one
 declared gate interpreter, found the same way by every caller (the Claude Code Stop hook in
-`.claude/hooks/stop_gate.py` and `cci task run validate_setup`):
+`.claude/hooks/stop_gate.py`, `cci task run validate_setup`, `pr_gate.py` itself when it
+re-runs under it, and `scripts/bash/update-toolchain.sh`):
 
 1. `$RLM_GATE_PYTHON`, if set — for a venv kept somewhere else.
 2. `<main checkout>/.venv/bin/python` — the default. A git worktree resolves to the main
@@ -25,6 +26,7 @@ the shell has (macOS ships 3.9), and only the gate interpreter itself needs 3.11
 
 Usage:
     python3 scripts/ai/gate_python.py      # print the interpreter; exit 1 with the reason if unusable
+    python3 scripts/ai/gate_python.py --default-venv   # print <main checkout>/.venv; exit 1 outside git
 
 Exit codes: 0 = usable · 1 = missing or incomplete.
 """
@@ -74,15 +76,21 @@ def checkout_root(start: Path) -> Optional[Path]:
     return Path(out.stdout.strip()) if out.returncode == 0 and out.stdout.strip() else None
 
 
+def default_venv(start: Path) -> Optional[Path]:
+    """The default gate venv, `<main checkout>/.venv`, whether or not $RLM_GATE_PYTHON is set."""
+    root = main_checkout(start)
+    return None if root is None else root / ".venv"
+
+
 def resolve(start: Path) -> Tuple[Optional[Path], str]:
     """(interpreter, where it came from). The interpreter is None when nothing is configured."""
     override = os.environ.get(ENV_VAR)
     if override:
         return Path(override), f"${ENV_VAR}"
-    root = main_checkout(start)
-    if root is None:
+    venv = default_venv(start)
+    if venv is None:
         return None, "not inside a git checkout"
-    return root / ".venv" / "bin" / "python", f"{root}/.venv"
+    return venv / "bin" / "python", str(venv)
 
 
 def problems(start: Path) -> Tuple[Optional[Path], List[str]]:
@@ -127,6 +135,13 @@ def problems(start: Path) -> Tuple[Optional[Path], List[str]]:
 
 
 def main() -> int:
+    if sys.argv[1:] == ["--default-venv"]:
+        venv = default_venv(Path.cwd())
+        if venv is None:
+            print("not inside a git checkout", file=sys.stderr)
+            return 1
+        print(venv)
+        return 0
     python, found = problems(Path.cwd())
     if found:
         for line in found:
