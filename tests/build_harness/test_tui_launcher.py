@@ -70,6 +70,7 @@ def test_tui_launcher_loads_dotenv_local_without_overriding_env(tmp_path) -> Non
                 '# workstation overrides',
                 'CHROME_BINARY="$HOME/Chrome for Testing"',
                 'CHROMEDRIVER_PATH="/already/set/by/shell"',
+                'EMPTY_OVERRIDE="file value must not apply"',
                 'EVIL="$(touch should-not-run)"',
                 "",
             ]
@@ -83,12 +84,16 @@ def test_tui_launcher_loads_dotenv_local_without_overriding_env(tmp_path) -> Non
         "\n".join(
             [
                 "#!/usr/bin/env bash",
+                # The launcher must run dotenv expansion through this venv
+                # interpreter, so -c delegates to the real python3 instead of
+                # exiting early.
                 'if [[ "${1:-}" == "-c" ]]; then',
-                "  exit 0",
+                '  exec python3 "$@"',
                 "fi",
                 'if [[ "${1:-}" == "-m" && "${2:-}" == "scripts.build_harness.tui" ]]; then',
                 '  printf "CHROME_BINARY=%s\\n" "$CHROME_BINARY"',
                 '  printf "CHROMEDRIVER_PATH=%s\\n" "$CHROMEDRIVER_PATH"',
+                '  printf "EMPTY_OVERRIDE=[%s]\\n" "${EMPTY_OVERRIDE-<unset>}"',
                 '  printf "EVIL=%s\\n" "${EVIL-<unset>}"',
                 "  exit 0",
                 "fi",
@@ -105,6 +110,7 @@ def test_tui_launcher_loads_dotenv_local_without_overriding_env(tmp_path) -> Non
     env.pop("CHROME_BINARY", None)
     env.pop("EVIL", None)
     env["CHROMEDRIVER_PATH"] = "/already/set/by/shell"
+    env["EMPTY_OVERRIDE"] = ""
 
     result = subprocess.run(
         [str(launcher)],
@@ -117,6 +123,7 @@ def test_tui_launcher_loads_dotenv_local_without_overriding_env(tmp_path) -> Non
     assert result.returncode == 0, result.stderr
     assert f"CHROME_BINARY={home}/Chrome for Testing" in result.stdout
     assert "CHROMEDRIVER_PATH=/already/set/by/shell" in result.stdout
+    assert "EMPTY_OVERRIDE=[]" in result.stdout
     assert "EVIL=<unset>" in result.stdout
     assert "skipping EVIL" in result.stderr
     assert not (tmp_path / "should-not-run").exists()

@@ -141,7 +141,7 @@ fi
 # A terminal that only ran `direnv allow` — or never reloaded — does not
 # export it, and Robot then drives stock Chrome. Load it here so ./tui-cci
 # applies workstation overrides itself. Values already set in the environment
-# win, so an explicit export is left alone.
+# win — including ones exported empty — so an explicit export is left alone.
 load_dotenv_local() {
   local file="$ROOT_DIR/.env.local"
   [[ -f "$file" ]] || return 0
@@ -156,7 +156,7 @@ load_dotenv_local() {
     fi
     key="${BASH_REMATCH[1]}"
     raw="${BASH_REMATCH[2]}"
-    if [[ -n "${!key:-}" ]]; then
+    if [[ -n "${!key+x}" ]]; then
       continue
     fi
     if [[ "$raw" == \'*\' ]]; then
@@ -169,7 +169,7 @@ load_dotenv_local() {
         echo "[tui-cci] skipping ${key}: .env.local cannot run commands" >&2
         continue
       fi
-      value="$(python3 -c 'import os,sys; print(os.path.expandvars(sys.stdin.read()), end="")' <<<"$raw")"
+      value="$("$VENV_PYTHON" -c 'import os,sys; print(os.path.expandvars(sys.stdin.read()), end="")' <<<"$raw")"
     fi
     export "${key}=${value}"
   done <"$file"
