@@ -18,10 +18,28 @@
     <enableGroupRampMultiSchedulePref>true</enableGroupRampMultiSchedulePref>
     <enableGroupRampPref>true</enableGroupRampPref>
     <enableGroupRampTrialSegmentPref>true</enableGroupRampTrialSegmentPref>
+    <!-- Large Transaction Processing (264 Revenue Settings toggle) is off by default for
+         now. It needs no scratch feature: on a 264.7 org whose definition has no
+         LargeTransactionPilot feature, this field deployed as true and as false and read
+         back each time (2026-10-14). Enabling it also turns on the product details API
+         cache, which can't be turned off while this is on. This is separate from
+         IndustriesPricingSettings.enableLargeTransactionPricing (pre/2_settings, false),
+         a pricing-engine pref that turns off pricing waterfall, waterfall persistence,
+         debug logs and parallelization when enabled from Setup. Keep in sync with the
+         scratch-def settings blocks. -->
+    <enableLargeTransaction>false</enableLargeTransaction>
     <enableRampDeal>true</enableRampDeal>
     <enableRevInstPricingDefaultPref>true</enableRevInstPricingDefaultPref>
     <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
     <enableRevenueAdjustment>true</enableRevenueAdjustment>
+    <!-- Sales Price Amendments (264): lets a rep set a new Sales Price when amending an
+         asset; the amended line gets a credit detail line for the old price and a charge
+         detail line for the new one. Help says new orgs default to on, but a fresh 264.7
+         scratch org had it off. RLM_DefaultPricingProcedure needs no change: do NOT add
+         Help's "LastTransaction: InputUnitPrice -> NetUnitPrice" step, which is what
+         #486 removed. A price decrease needs estimated tax off (pre/2_settings
+         IncludeEstTaxInQuoteCPQ). Keep in sync with the scratch-def settings blocks. -->
+    <enableSalesPriceAmendments>true</enableSalesPriceAmendments>
     <!-- Two fields are deliberately absent — enableScaleAttributes and
          persistChunkSizeOverride. 264 dropped them from the RevenueManagementSettings
          schema, and a 264 org rejects the whole file with "Element {}<field> invalid at

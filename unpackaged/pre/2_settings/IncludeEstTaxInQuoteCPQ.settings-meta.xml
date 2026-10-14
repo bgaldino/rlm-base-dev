@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <IncludeEstTaxInQuoteCPQSettings xmlns="http://soap.sforce.com/2006/04/metadata">
-    <enableQuoteEstimatedTaxCPQ>true</enableQuoteEstimatedTaxCPQ>
+    <!-- "Add Estimated Taxes to Quotes and Orders" is off by default. With it on, a
+         Sales Price Amendment that lowers the price fails with "tax amount cannot be
+         negative": the amended line nets to a credit, and the mock tax adapter
+         (pre/4_tax RLM_MockTaxAdapter) returns 10% of it. Returning 0 tax for negative
+         lines from the adapter did not clear the error. Verified on a 264.7 org,
+         2026-10-14. Billing tax on invoices is unaffected. -->
+    <enableQuoteEstimatedTaxCPQ>false</enableQuoteEstimatedTaxCPQ>
 </IncludeEstTaxInQuoteCPQSettings>

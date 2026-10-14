@@ -14,4 +14,11 @@
       explicit value is unnecessary. Add it back if a future release shows otherwise.
     -->
     <enableFullEscalationHydration>false</enableFullEscalationHydration>
+    <!-- Large Transaction Processing on for large-deal orgs. pre/1_settings sets it false
+         for every build; this bundle turns it back on. It must be on before this bundle's
+         flows, classes and RLM_LargeSalesTransaction permission set use Quote/Order
+         IsLargeDeal: with it off the field exists but is read-only (describe: createable
+         and updateable false), and with it on both are true. Verified by toggling on a
+         264.7 org, 2026-10-14. -->
+    <enableLargeTransaction>true</enableLargeTransaction>
 </RevenueManagementSettings>
