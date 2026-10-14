@@ -32,7 +32,7 @@ Two directions are checked, because drift and omission are different failures:
    satisfy the claim this one makes.
 
    Grants are identified by the task's **class**, not its name. Name-keying on
-   `assign_permission_set*` missed `assign_personas_sales_rep_psg` (28.5), which
+   `assign_permission_set*` missed `assign_personas_sales_rep_psg` (29.5), which
    grants a PSG through the same class as the documented 1.11 and 1.13 -- exactly
    the omission this direction exists to catch -- and it would also miss any task
    that gets renamed without changing what it grants.
@@ -95,7 +95,7 @@ COMPLETENESS_HEADING = "## Assignment Order in `prepare_rlm_org`"
 
 # Steps that grant something, keyed by the task's implementing class rather than
 # its name. Name-keying missed a real grant: `assign_personas_sales_rep_psg` (step
-# 28.5) assigns the `RLM_Sales_Representative` PSG through the same
+# 29.5) assigns the `RLM_Sales_Representative` PSG through the same
 # `AssignPermissionSetGroupsTolerant` class as the documented 1.11 and 1.13, but
 # does not start with `assign_permission_set`, so it was absent from a table
 # claiming to list them all and the check said nothing. A task can also be renamed
