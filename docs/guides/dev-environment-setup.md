@@ -198,9 +198,10 @@ direnv allow              # one-time per workstation per .envrc revision
 
 Machine-specific settings (a path that differs per workstation, such as the Chrome for
 Testing overrides in [local-installation.md](local-installation.md#chrome-for-testing-managed-workstations))
-go in `.env.local`, which git ignores. `.envrc` loads it as dotenv: `KEY="value"` lines with
+go in `.env.local`, which git ignores. `.envrc` loads it as dotenv, and `./tui-cci` loads the same file for variables the shell has not already set: `KEY="value"` lines with
 `$VAR` expansion, and never runs it as shell. direnv doesn't ask to approve a file loaded that
-way, so it holds values only: a `$(cmd)` is kept as literal text, not run. Quote any value
+way, so it holds values only: direnv keeps a `$(cmd)` as literal text and `./tui-cci` skips
+that variable, so neither runs it. Quote any value
 with spaces, because one unparsable line stops the whole file from loading. `.envrc` itself is
 tracked, so git overwrites local edits to it, and `direnv allow` is needed again when it changes.
 

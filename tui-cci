@@ -136,12 +136,33 @@ if [[ "$UPGRADE" -eq 1 ]] || ! deps_satisfied; then
   stamp_requirements
 fi
 
+# .env.local is gitignored dotenv. direnv loads it when the shell hook has
+# exported .envrc. A terminal that only ran `direnv allow` — or never reloaded
+# — does not export it, and Robot then drives stock Chrome. Load it here so
+# ./tui-cci applies workstation overrides itself. dotenv_local.py parses it the
+# way direnv does; values already set in the environment win — including ones
+# exported empty — so an explicit export is left alone.
+load_dotenv_local() {
+  local file="$ROOT_DIR/.env.local"
+  [[ -f "$file" ]] || return 0
+  local key value
+  while IFS= read -r -d '' key && IFS= read -r -d '' value; do
+    # The file must not replace a variable this launcher itself relies on.
+    if [[ -n "${!key+x}" ]]; then
+      continue
+    fi
+    export "${key}=${value}"
+  done < <("$VENV_PYTHON" "$ROOT_DIR/scripts/build_harness/tui/dotenv_local.py" "$file")
+}
+
 cd "$ROOT_DIR"
+load_dotenv_local
 if [[ "$DEBUG_LAUNCH" -eq 1 ]]; then
   echo "[tui-cci] root=$ROOT_DIR"
   echo "[tui-cci] venv=$VENV_DIR"
   echo "[tui-cci] python=$VENV_PYTHON"
   echo "[tui-cci] term=${TERM:-<unset>}"
+  echo "[tui-cci] CHROME_BINARY=${CHROME_BINARY:-<unset>}"
 fi
 
 set +e

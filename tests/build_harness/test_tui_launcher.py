@@ -53,3 +53,82 @@ def test_tui_launcher_reports_nonzero_exit(tmp_path) -> None:
     combined_output = f"{result.stdout}\n{result.stderr}"
     assert "[tui-cci] TUI exited with code 7" in combined_output
     assert "[tui-cci] Re-run with --debug-launch for startup diagnostics." in combined_output
+
+
+def test_tui_launcher_loads_dotenv_local_without_overriding_env(tmp_path) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    source_launcher = repo_root / "tui-cci"
+    launcher = tmp_path / "tui-cci"
+    launcher.write_text(source_launcher.read_text(encoding="utf-8"), encoding="utf-8")
+    _make_executable(launcher)
+    parser = Path("scripts", "build_harness", "tui", "dotenv_local.py")
+    (tmp_path / parser).parent.mkdir(parents=True)
+    (tmp_path / parser).write_text((repo_root / parser).read_text(encoding="utf-8"), encoding="utf-8")
+
+    home = tmp_path / "home"
+    home.mkdir()
+    (tmp_path / ".env.local").write_text(
+        "\n".join(
+            [
+                '# workstation overrides',
+                'CHROME_BINARY="$HOME/Chrome for Testing" # managed build',
+                'export CHROMEDRIVER_PATH = "/from/file"',
+                'EMPTY_OVERRIDE="file value must not apply"',
+                'EVIL="$(touch should-not-run)"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    venv_python = tmp_path / ".harness" / "tui-venv" / "bin" / "python"
+    venv_python.parent.mkdir(parents=True)
+    venv_python.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                'if [[ "${1:-}" == "-c" ]]; then',
+                "  exit 0",
+                "fi",
+                # The launcher must parse .env.local with this venv interpreter,
+                # so the parser script runs on the real python3.
+                'if [[ "${1:-}" == *.py ]]; then',
+                '  exec python3 "$@"',
+                "fi",
+                'if [[ "${1:-}" == "-m" && "${2:-}" == "scripts.build_harness.tui" ]]; then',
+                '  printf "CHROME_BINARY=%s\\n" "$CHROME_BINARY"',
+                '  printf "CHROMEDRIVER_PATH=%s\\n" "$CHROMEDRIVER_PATH"',
+                '  printf "EMPTY_OVERRIDE=[%s]\\n" "${EMPTY_OVERRIDE-<unset>}"',
+                '  printf "EVIL=%s\\n" "${EVIL-<unset>}"',
+                "  exit 0",
+                "fi",
+                "exit 0",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    _make_executable(venv_python)
+
+    env = os.environ.copy()
+    env["TUI_CCI_SKIP_TTY_CHECK"] = "1"
+    env["HOME"] = str(home)
+    env.pop("CHROME_BINARY", None)
+    env.pop("EVIL", None)
+    env["CHROMEDRIVER_PATH"] = "/already/set/by/shell"
+    env["EMPTY_OVERRIDE"] = ""
+
+    result = subprocess.run(
+        [str(launcher)],
+        cwd=tmp_path,
+        env=env,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert f"CHROME_BINARY={home}/Chrome for Testing" in result.stdout
+    assert "CHROMEDRIVER_PATH=/already/set/by/shell" in result.stdout
+    assert "EMPTY_OVERRIDE=[]" in result.stdout
+    assert "EVIL=<unset>" in result.stdout
+    assert "skipping EVIL" in result.stderr
+    assert not (tmp_path / "should-not-run").exists()

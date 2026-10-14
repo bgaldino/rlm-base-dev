@@ -446,7 +446,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    export CHROMEDRIVER_PATH="$HOME/.cache/cft/chromedriver/mac_arm-154.0.8037.92/chromedriver-mac-arm64/chromedriver"
    ```
 
-   Both variables are unset by default, and nothing changes when they are unset. On machines that need them, put them in `.env.local` at the repo root as `KEY="value"` lines without `export` (`$HOME` expands; quote the value, since the Chrome path has spaces and one unparsable line stops the file from loading). It's gitignored, and the tracked `.envrc` loads it as dotenv. Don't add them to `.envrc` itself: it's tracked, so git overwrites local edits to it.
+   Both variables are unset by default, and nothing changes when they are unset. On machines that need them, put them in `.env.local` at the repo root as `KEY="value"` lines without `export` (`$HOME` expands; quote the value, since the Chrome path has spaces and one unparsable line stops the file from loading). It's gitignored. The tracked `.envrc` loads it as dotenv, and `./tui-cci` loads the same file for any variable the shell has not already set. Don't add them to `.envrc` itself: it's tracked, so git overwrites local edits to it.
 
 3. **Install SFDMU (v5.6.4+):**
    ```bash
