@@ -81,7 +81,7 @@ expected terminal state, confirmed by core automation tests.
 ## Diagnosing a failure (queries)
 
 ```bash
-sf data query --target-org $ORG -q "SELECT Status, CalculationStatus, ValidationResult, PreprocessingStatus FROM Order WHERE Id='<id>'"   # add ,RLM_Preprocessing_Complete__c only on a large_stx-deployed org (the custom field ships with that feature)
+sf data query --target-org $ORG -q "SELECT Status, CalculationStatus, ValidationResult, PreprocessingStatus FROM Order WHERE Id='<id>'"   # needs a large_stx org: PreprocessingStatus exists only while enableLargeTransaction is on (off in a default build); RLM_Preprocessing_Complete__c ships with post_large_stx
 sf data query --target-org $ORG -q "SELECT Category, ErrorCode, ErrorMessage, ConfiguratorErrorMessage FROM RevenueTransactionErrorLog WHERE PrimaryRecordId='<id>' ORDER BY CreatedDate"
 sf data query --target-org $ORG -q "SELECT JobType, Status, CreatedDate FROM AsyncOperationTracker WHERE ReferenceEntityId='<id>' ORDER BY CreatedDate"
 ```

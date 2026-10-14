@@ -125,7 +125,7 @@ _FENCE = re.compile(r"^\s*(?:```|~~~)")
 #
 #   `prepare_agents` step 10      -> step 10 *inside* prepare_agents
 #   step 2 of `prepare_ux`        -> same, reversed
-#   `prepare_large_stx` at step 27 -> prepare_large_stx *is* step 27 of the root
+#   `prepare_large_stx` at step 28 -> prepare_large_stx *is* step 28 of the root
 #
 # The flow name must be backticked and adjacent, which is what keeps ordinary
 # "step 3" prose from being read as a citation.

@@ -308,8 +308,8 @@
     <!--
         Quote.IsLargeDeal is a STANDARD field that is read-only (not editable,
         so editable FLS can't be granted) unless
-        RevenueManagementSettings.enableLargeTransaction is on. Builds set that
-        false in pre/1_settings, and only post_large_stx_settings turns it on. It is granted
+        RevenueManagementSettings.enableLargeTransaction is on. Scratch orgs are
+        created with it false, and only post_large_stx_settings turns it on. It is granted
         to the persona via the
         RLM_LargeSalesTransaction PermissionSet (unpackaged/post_large_stx),
         which is deployed AND assigned to the salesrep user only when both

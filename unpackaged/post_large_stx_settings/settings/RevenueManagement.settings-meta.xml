@@ -14,8 +14,9 @@
       explicit value is unnecessary. Add it back if a future release shows otherwise.
     -->
     <enableFullEscalationHydration>false</enableFullEscalationHydration>
-    <!-- Large Transaction Processing on for large-deal orgs. pre/1_settings sets it false
-         for every build; this turns it back on. It is a separate deploy because the
+    <!-- Large Transaction Processing on for large-deal orgs. Scratch orgs are created with it
+         false (every scratch-def settings block), and pre/1_settings deliberately leaves it
+         unset; this turns it on. It is a separate deploy because the
          post_large_stx Apex, flows and RLM_LargeSalesTransaction permission set need it on
          first:
          - Quote/Order.IsLargeDeal are read-only while it's off (describe: createable and

@@ -18,16 +18,21 @@
     <enableGroupRampMultiSchedulePref>true</enableGroupRampMultiSchedulePref>
     <enableGroupRampPref>true</enableGroupRampPref>
     <enableGroupRampTrialSegmentPref>true</enableGroupRampTrialSegmentPref>
-    <!-- Large Transaction Processing (264 Revenue Settings toggle) is off by default for
-         now. It needs no scratch feature: on a 264.7 org whose definition has no
-         LargeTransactionPilot feature, this field deployed as true and as false and read
-         back each time (2026-10-14). Enabling it also turns on the product details API
-         cache, which can't be turned off while this is on. This is separate from
+    <!-- enableLargeTransaction (Large Transaction Processing, 264) is deliberately NOT set
+         here, although every scratch-def settings block sets it false. That's the one
+         exception to the "keep in sync" rule. The scratch defs make new orgs start with it
+         off. post_large_stx_settings (prepare_large_stx step 1) turns it on when
+         large_stx=true. Setting false here would turn it off again whenever deploy_pre is
+         re-run on a large-deal org. That deploy succeeds silently, removes
+         Order.PreprocessingStatus and makes Quote/Order.IsLargeDeal read-only, while the
+         post_large_stx formula and Apex still depend on them (live, ent-r1 264.7,
+         2026-10-14).
+         It needs no scratch feature: it deployed true and false on a 264.7 org without
+         LargeTransactionPilot. Enabling it also turns on the product details API cache,
+         which can't be turned off while this is on. It's separate from
          IndustriesPricingSettings.enableLargeTransactionPricing (pre/2_settings, false),
          a pricing-engine pref that turns off pricing waterfall, waterfall persistence,
-         debug logs and parallelization when enabled from Setup. Keep in sync with the
-         scratch-def settings blocks. -->
-    <enableLargeTransaction>false</enableLargeTransaction>
+         debug logs and parallelization when enabled from Setup. -->
     <enableRampDeal>true</enableRampDeal>
     <enableRevInstPricingDefaultPref>true</enableRevInstPricingDefaultPref>
     <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
