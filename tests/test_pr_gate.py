@@ -4491,6 +4491,51 @@ check("the gate reads no environment variable under any spelling — attribute, 
       "variable, and only with a reason a CI-only behaviour change is acceptable)",
       not unallowed, sorted(unallowed))
 
+# The rule above reads pr_gate.py's own source, so a sibling module it imports is a way around it:
+# `import gate_python` reaches $RLM_GATE_PYTHON without an `environ` node here. Every such import is
+# declared, with the one function allowed to make it and the reason the behaviour it steers is
+# acceptable — the same bargain ENV_READS_OK asks for, made visible instead of inherited.
+SIBLING_IMPORTS_OK = {
+    # $RLM_GATE_PYTHON picks the interpreter the gate re-runs under, and only when this interpreter
+    # lacks a selected check's dependency. CI installs the selection's deps, so it never gets here,
+    # and the verdicts still come from the same checks run against the same tree.
+    "gate_python": "reexec_under_gate_interpreter",
+}
+siblings = {path.stem for path in pathlib.Path(os.path.join(REPO, "scripts", "ai")).glob("*.py")}
+
+
+def sibling_imports_in(tree):
+    """(module, enclosing top-level function or '<module>', line) for each import of a sibling."""
+    owner_of = {}
+    for fn in tree.body:
+        if isinstance(fn, ast.FunctionDef):
+            for inner in ast.walk(fn):
+                owner_of[id(inner)] = fn.name
+    found = []
+    for node in ast.walk(tree):
+        names = ([a.name for a in node.names] if isinstance(node, ast.Import)
+                 else [node.module] if isinstance(node, ast.ImportFrom) and node.module else [])
+        found += [(name, owner_of.get(id(node), "<module>"), node.lineno)
+                  for name in names if name.split(".")[0] in siblings]
+    return found
+
+
+sibling_imports = sibling_imports_in(gate_tree)
+# Positive controls: an undeclared sibling import, and the declared one moved to module level.
+check("that rule can actually see a sibling import, at module level or inside a function",
+      [n for n, *_ in sibling_imports_in(ast.parse("import check_branch_scope\n"
+                                                   "def f():\n    from gate_python import resolve\n"))]
+      == ["check_branch_scope", "gate_python"])
+check("and a declared module imported outside its declared function is refused",
+      not all(SIBLING_IMPORTS_OK.get(n) == o
+              for n, o, _ in sibling_imports_in(ast.parse("import gate_python\n"))))
+check("pr_gate.py imports a sibling script only where SIBLING_IMPORTS_OK declares it, so an environment "
+      "read it inherits that way is named here with a reason, like one made directly",
+      all(SIBLING_IMPORTS_OK.get(n) == owner for n, owner, _ in sibling_imports), sibling_imports)
+check("and the declared gate_python import is still where the map says, so the map cannot go stale",
+      ("gate_python", "reexec_under_gate_interpreter") in {(n, o) for n, o, _ in sibling_imports},
+      sibling_imports)
+
 # `sys.argv` is the other input that differs between the two populations, and it differs for free: the
 # workflow invokes `python scripts/ai/pr_gate.py`, every fixture here imports the module. So
 # `os.path.basename(sys.argv[0]) != "pr_gate.py"` is an if-in-CI with no environment read in it. argparse
@@ -4820,7 +4865,7 @@ FAKE_CHECK = {"name": "fake", "deps": ["cumulusci"], "gating": True}
 FAKE_GATE = os.path.join(os.sep, "x", ".venv", "bin", "python")
 
 
-def reexec_outcome(missing, problems_result, here=None):
+def reexec_outcome(missing, problems_result, here=None, exec_error=None):
     """(exec argv or None, printed text, whether the resolver was consulted) for one scenario."""
     calls, consulted = [], []
     saved = (pr_gate.missing_deps, gate_python.problems, os.execv, sys.executable)
@@ -4828,7 +4873,11 @@ def reexec_outcome(missing, problems_result, here=None):
     try:
         pr_gate.missing_deps = lambda check: list(missing)
         gate_python.problems = lambda start: consulted.append(start) or problems_result
-        os.execv = lambda path, argv: calls.append(argv)
+        def fake_execv(path, argv):
+            if exec_error:
+                raise exec_error
+            calls.append(argv)
+        os.execv = fake_execv
         if here:
             sys.executable = here
         with redirect_stdout(buf):
@@ -4852,6 +4901,15 @@ check("a dependency missing and a usable gate interpreter elsewhere: re-run unde
 argv, out, _ = reexec_outcome(["cumulusci"], (pathlib.Path(FAKE_GATE), []),
                               here=FAKE_GATE)
 check("already the gate interpreter: no re-run (its own probe decides what's missing)", argv is None, argv)
+try:
+    argv, out, _ = reexec_outcome(["cumulusci"], (pathlib.Path(FAKE_GATE), []),
+                                  exec_error=PermissionError(13, "denied"))
+    exec_escaped = None
+except OSError as exc:
+    argv, out, exec_escaped = None, "", exc
+check("an interpreter that can't be exec'd (gone or not executable since the probe) is a note and an "
+      "in-process run, never a traceback whose exit 1 reads as a verdict",
+      exec_escaped is None and "could not start" in out, (exec_escaped, out))
 
 # A selected check with a missing dependency is exactly the case that would re-run from the script;
 # in-process it must book MISSING-DEP instead of replacing the test runner.
@@ -5264,7 +5322,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 722
+EXPECTED = 727
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

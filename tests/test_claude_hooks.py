@@ -773,5 +773,43 @@ class GatePython(unittest.TestCase):
                 del os.environ["RLM_GATE_PYTHON"]
 
 
+    def test_carry_over_lists_what_a_rebuild_must_put_back(self):
+        # update-toolchain.sh reinstalls this after `venv --clear`. Read from site-packages, not
+        # from the venv's Python, which is usually gone by then.
+        sys.path.insert(0, str(REPO / "scripts" / "ai"))
+        import gate_python
+
+        def dist(site, name, version, requires=(), direct=None):
+            info = site / f"{name}-{version}.dist-info"
+            info.mkdir()
+            (info / "METADATA").write_text(
+                f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n"
+                + "".join(f"Requires-Dist: {r}\n" for r in requires))
+            if direct:
+                (info / "direct_url.json").write_text(json.dumps(direct))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            venv = Path(tmp) / ".venv"
+            site = venv / "lib" / "python3.9" / "site-packages"
+            site.mkdir(parents=True)
+            dist(site, "top", "1.0", ["dep_one>=1", 'only-extra; extra == "x"'])
+            dist(site, "dep-one", "2.0")
+            dist(site, "only_extra", "3.0")
+            dist(site, "local", "0.1",
+                 direct={"url": "file:///some%20dir/local", "dir_info": {"editable": True}})
+            dist(site, "fromgit", "0.2", direct={"url": "https://example.com/o/fromgit",
+                                                 "vcs_info": {"vcs": "git", "commit_id": "abc123"}})
+            dist(site, "cyc-a", "1", ["cyc-b"])
+            dist(site, "cyc-b", "1", ["cyc-a"])
+            dist(site, "pip", "24.0")
+            self.assertEqual(gate_python.carry_over(venv), [
+                "cyc-a==1",                                        # a cycle nothing requires: one member
+                "fromgit @ git+https://example.com/o/fromgit@abc123",
+                "-e /some dir/local",
+                "only_extra==3.0",                                 # required only through an extra
+                "top==1.0",
+            ])                                                     # dep-one is top's; pip is never listed
+            self.assertEqual(gate_python.carry_over(Path(tmp) / "absent"), [])
+
 if __name__ == "__main__":
     unittest.main()

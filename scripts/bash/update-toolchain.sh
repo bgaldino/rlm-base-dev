@@ -157,30 +157,37 @@ elif [ -d "$GATE_VENV" ]; then
   if [ "$GATE_PY_VERSION" != "$PY_TARGET" ]; then
     # --clear empties the whole venv, and the gate's packages are rarely all
     # it holds (the doc snapshot tooling and Robot requirements often live
-    # here too). List the rest first, then put it back.
+    # here too). gate_python.py lists its top-level packages first, reading
+    # site-packages itself so this works even when the venv's Python is gone.
     GATE_KEEP="$(mktemp "${TMPDIR:-/tmp}/gate-venv-packages.XXXXXX")"
-    if [ -n "$GATE_PY_VERSION" ]; then
-      "$GATE_VENV/bin/python" -m pip freeze --exclude-editable >"$GATE_KEEP" 2>/dev/null \
-        || warn "Gate interpreter: couldn't list the packages in $GATE_VENV — only the gate's come back"
-    else
-      # Its Python is gone, so pip can't list anything. The names (not the
-      # versions) are still in the dist-info directories.
-      for d in "$GATE_VENV"/lib/python*/site-packages/*.dist-info; do
-        if [ -d "$d" ]; then basename "$d" .dist-info | sed 's/-[^-]*$//'; fi
-      done | grep -v -i -x -E 'pip|setuptools|wheel' >"$GATE_KEEP" || true
-    fi
+    gate_python --carry-over "$GATE_VENV" >"$GATE_KEEP" \
+      || warn "Gate interpreter: couldn't list the packages in $GATE_VENV — only the gate's come back"
     log "Gate interpreter: rebuilding $GATE_VENV on Python $PY_TARGET (was ${GATE_PY_VERSION:-unusable})"
     "$PY_TARGET_BIN" -m venv --clear "$GATE_VENV"
     if [ -s "$GATE_KEEP" ]; then
       log "Gate interpreter: reinstalling the $(wc -l <"$GATE_KEEP" | tr -d ' ') package(s) it held"
-      if "$GATE_VENV/bin/python" -m pip install -r "$GATE_KEEP"; then
-        rm -f "$GATE_KEEP"
-      else
-        warn "Gate interpreter: not every package it held came back — the list is in $GATE_KEEP"
+      # All at once first. pip resolves a requirements file all-or-nothing,
+      # so on failure go one at a time, retrying a pin that won't install on
+      # this Python unpinned, and lose only what really can't come back.
+      if ! "$GATE_VENV/bin/python" -m pip install -r "$GATE_KEEP"; then
+        GATE_LOST=""
+        # fd 3, so a pip that reads stdin can't swallow the rest of the list.
+        while IFS= read -r req <&3; do
+          case "$req" in
+            "") continue ;;
+            "-e "*) "$GATE_VENV/bin/python" -m pip install -e "${req#-e }" && continue ;;
+            *) "$GATE_VENV/bin/python" -m pip install "$req" && continue
+               case "$req" in
+                 *==*) "$GATE_VENV/bin/python" -m pip install "${req%%==*}" && continue ;;
+               esac ;;
+          esac
+          GATE_LOST="${GATE_LOST:+$GATE_LOST, }$req"
+        done 3<"$GATE_KEEP"
+        [ -z "$GATE_LOST" ] \
+          || warn "Gate interpreter: these didn't come back: $GATE_LOST (full list: $GATE_KEEP)"
       fi
-    else
-      rm -f "$GATE_KEEP"
     fi
+    [ -n "${GATE_LOST:-}" ] || rm -f "$GATE_KEEP"
   fi
   log "Gate interpreter: installing pr_gate.py requirements into $GATE_VENV"
   # Unquoted on purpose: one requirement per line, split into pip arguments.

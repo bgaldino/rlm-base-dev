@@ -265,9 +265,13 @@ The script handles:
 8. Gate interpreter — if `<main checkout>/.venv` exists, rebuilds it with
    `python -m venv --clear` when its Python isn't the current 3.13 patch (a
    patch bump breaks its python symlink the same way as the pipx venv). Before
-   clearing, it lists the venv's other packages (the doc snapshot tooling, Robot
-   requirements, …) and reinstalls them afterwards; if any fail to reinstall it
-   warns and keeps the list. Then it reinstalls `pr_gate.py --requirements --all`.
+   clearing, `gate_python.py --carry-over` lists the venv's top-level packages (the
+   doc snapshot tooling, Robot requirements, editable installs, …), reading
+   site-packages directly so it works when the venv's Python is already gone. They
+   are reinstalled afterwards, one at a time if the batch fails, and a pin that
+   won't install on the new Python is retried unpinned. Anything that still can't
+   come back is named in a warning, and the list is kept. Then it reinstalls
+   `pr_gate.py --requirements --all`.
    A `$RLM_GATE_PYTHON` override is probed but not managed. If the install fails,
    or `gate_python.py` still finds the gate interpreter unusable, the script exits
    nonzero after `validate_setup` (which only warns about it)
@@ -412,15 +416,16 @@ Python is wrong or its symlink is broken:
 ```
 
 ```bash
-.venv/bin/python -m pip freeze > /tmp/gate-venv-packages.txt   # what else it holds; skip if its python is broken
+python3 scripts/ai/gate_python.py --carry-over .venv > /tmp/gate-venv-packages.txt   # works with its python broken
 "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv --clear .venv
 .venv/bin/python -m pip install -r /tmp/gate-venv-packages.txt
 ```
 
-`--clear` empties the whole venv, so the `pip freeze` list is how anything else
-you installed there comes back. After a rebuild, run the install command again.
-`scripts/bash/update-toolchain.sh` does all of this, including recovering
-package names from a venv whose Python is already gone.
+`--clear` empties the whole venv, so the `--carry-over` list (its top-level
+packages, pinned, plus editable and VCS installs) is how anything else you
+installed there comes back. After a rebuild, run the install command again.
+`scripts/bash/update-toolchain.sh` does all of this, and installs package by
+package when the list won't install in one go.
 
 ### `python3` resolves to `/usr/bin/python3` instead of pyenv shim
 Cosmetic — `python` (no `3`) resolves correctly because the system doesn't

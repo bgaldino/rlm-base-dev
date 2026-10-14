@@ -27,6 +27,7 @@ the shell has (macOS ships 3.9), and only the gate interpreter itself needs 3.11
 Usage:
     python3 scripts/ai/gate_python.py      # print the interpreter; exit 1 with the reason if unusable
     python3 scripts/ai/gate_python.py --default-venv   # print <main checkout>/.venv; exit 1 outside git
+    python3 scripts/ai/gate_python.py --carry-over VENV  # requirements that restore VENV's own packages
 
 Exit codes: 0 = usable · 1 = missing or incomplete.
 """
@@ -34,10 +35,12 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
+from urllib.parse import unquote, urlparse
 
 ENV_VAR = "RLM_GATE_PYTHON"
 
@@ -134,7 +137,78 @@ def problems(start: Path) -> Tuple[Optional[Path], List[str]]:
     return python, found
 
 
+def _norm(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def carry_over(venv: Path) -> List[str]:
+    """Requirements that put back what `venv` holds, for `scripts/bash/update-toolchain.sh` to
+    reinstall after it rebuilds the gate venv with `venv --clear`.
+
+    Read from the venv's site-packages by the *calling* interpreter, so it works when the
+    venv's own Python is gone (the usual reason for the rebuild). Only top-level packages
+    are listed — nothing else in the venv requires them — each pinned as installed, so their
+    dependencies resolve afresh instead of being frozen as if someone asked for them.
+    Editable installs come back as `-e <path>` and VCS installs at their commit. A cycle with
+    nothing outside it requiring it is kept whole rather than lost.
+    """
+    from importlib import metadata  # 3.8+; local so the hook's import of this module stays cheap
+
+    sites = [str(p) for p in sorted(venv.glob("lib/python*/site-packages"))]
+    dists: Dict[str, "metadata.Distribution"] = {}
+    for dist in metadata.distributions(path=sites):
+        name = dist.metadata["Name"]
+        if name and _norm(name) not in ("pip", "setuptools", "wheel"):
+            dists.setdefault(_norm(name), dist)
+    needs: Dict[str, Set[str]] = {}
+    for key, dist in dists.items():
+        needs[key] = set()
+        for req in dist.requires or []:
+            spec, _, marker = req.partition(";")
+            if "extra" in marker:  # optional: required only when someone asked for that extra
+                continue
+            head = re.match(r"\s*([A-Za-z0-9][A-Za-z0-9._-]*)", spec)
+            if head and _norm(head.group(1)) in dists:
+                needs[key].add(_norm(head.group(1)))
+    required = set().union(*needs.values()) if needs else set()
+    keep = [k for k in dists if k not in required]
+    reached: Set[str] = set()
+    stack = list(keep)
+    while stack:
+        key = stack.pop()
+        if key not in reached:
+            reached.add(key)
+            stack.extend(needs[key])
+    # Whatever no top-level package reaches sits in a dependency cycle; keep one member of each.
+    for key in sorted(dists):
+        if key not in reached:
+            keep.append(key)
+            stack = [key]
+            while stack:
+                k = stack.pop()
+                if k not in reached:
+                    reached.add(k)
+                    stack.extend(needs[k])
+    lines = []
+    for key in sorted(keep):
+        dist = dists[key]
+        direct = json.loads(dist.read_text("direct_url.json") or "{}")
+        url, vcs = direct.get("url", ""), direct.get("vcs_info") or {}
+        if direct.get("dir_info", {}).get("editable") and url.startswith("file://"):
+            lines.append(f"-e {unquote(urlparse(url).path)}")
+        elif vcs.get("vcs") and url:
+            lines.append(f"{dist.metadata['Name']} @ {vcs['vcs']}+{url}@{vcs.get('commit_id', '')}"
+                         .rstrip("@"))
+        else:
+            lines.append(f"{dist.metadata['Name']}=={dist.version}")
+    return lines
+
+
 def main() -> int:
+    if len(sys.argv) == 3 and sys.argv[1] == "--carry-over":
+        for line in carry_over(Path(sys.argv[2])):
+            print(line)
+        return 0
     if sys.argv[1:] == ["--default-venv"]:
         venv = default_venv(Path.cwd())
         if venv is None:
