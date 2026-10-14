@@ -80,7 +80,19 @@ that interpreter lacks a selected check's dependency.
 
 ### Shell config responsibilities
 
-Each file does one job. No duplication.
+Each file does one job. No duplication, except a line that re-asserts a setting
+something later overrides: Homebrew's `brew shellenv` in `~/.zprofile` (after
+macOS `path_helper`), and an export repeated after a tool-managed block that
+resets it (see [the `NODE_EXTRA_CA_CERTS` entry](#node-tls-errors-behind-a-corporate-ca-node_extra_ca_certs) in §6).
+
+The templates below show only this toolchain's lines. Your rc files may also hold
+**tool-managed blocks**: sections that another tool writes and keeps up to date,
+usually between marker comments such as `# >>> tool >>>` … `# <<< tool <<<` or
+`# tool-managed-start` … `# tool-managed-end`. Managed workstations commonly add
+them for corporate certificates, proxies, PATH entries or telemetry. Leave them
+where the tool put them and don't edit inside them: the tool rewrites them on its
+next update, and moving one to another file can break what it configures. Add
+this toolchain's lines around them instead.
 
 #### `~/.zshenv` — runs in **every** shell
 Must be **fast** (~70ms target). No interactive features.
@@ -132,10 +144,40 @@ command -v direnv >/dev/null 2>&1 && eval "$(direnv export zsh 2>/dev/null)"
 #### `~/.zprofile` — runs in **login** shells only
 
 `.zshenv` already runs for every shell (including login), so it handles
-Homebrew setup. `.zprofile` is reserved for login-only extras.
+Homebrew, nvm and pyenv setup. `.zprofile` is for login-only extras, plus a
+`brew shellenv` block that puts Homebrew first again: on macOS, `/etc/zprofile` runs
+`path_helper` after `~/.zshenv`, and in login shells (a new Terminal window)
+that moves `/usr/bin` and the other system paths ahead of everything
+`~/.zshenv` prepended. On Apple silicon the Homebrew installer suggests this same
+line (on Intel, `/usr/local/bin` is already in `/etc/paths`; the block is harmless
+there). It puts
+Homebrew first, ahead of nvm's Node and pyenv's shims as well: if Homebrew has
+its own `node` or `python3` (often installed as another formula's dependency),
+login shells resolve those instead. When you `cd` into the repo, `.envrc` puts
+the pyenv shims and nvm's Node first again. A login shell that *starts* in the
+repo (an IDE terminal opened at the repo root, a restored Terminal tab) keeps the
+system order, because direnv already loaded `.envrc` from `~/.zshenv`, before
+`path_helper` ran, and has nothing new to apply. Don't fix that with
+`direnv reload` or by `cd`-ing out and back in: both restore the PATH direnv
+recorded before `/etc/zprofile`, which drops everything `path_helper` added
+(every `/etc/paths.d` entry, where managed workstations add their own, and,
+depending on how the terminal was launched, `/usr/sbin` and `/sbin`) and anything
+`~/.zprofile` or `~/.zshrc` added. Open the terminal outside the repo and `cd`
+in, which keeps every entry and only adds the shims and moves nvm's Node first,
+or use `python` (which
+already resolves to the shim) or `pyenv exec python3`. Don't
+keep a Homebrew `node` (see the installation guide's Step 3); for `python3`, see
+[`python3` resolves to `/usr/bin/python3`](#python3-resolves-to-usrbinpython3-instead-of-pyenv-shim).
 
 ```sh
-# Login-only PATH additions (Homebrew + nvm + pyenv all live in .zshenv).
+# Put Homebrew ahead of the system paths again after /etc/zprofile's path_helper.
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+# Login-only PATH additions (nvm and pyenv live in .zshenv).
 export PATH="$PATH:$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 ```
 
@@ -151,7 +193,9 @@ _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
   . "$_NVM_PREFIX/etc/bash_completion.d/nvm"
 unset _NVM_PREFIX
 
-# Project / org env vars (Anthropic, Vertex, etc.) go here
+# Your own interactive-only settings go here; exports that scripts, IDEs and
+# Claude Code need belong in ~/.zshenv. Tool-managed blocks (see above) stay
+# as the tool wrote them, before or after this.
 ```
 
 ### Why this layout
@@ -253,7 +297,7 @@ The script handles:
 2. `pyenv install --skip-existing $(pyenv latest -k 3.13)` — installs newest
    patch in the pinned major.minor line, **only if** there's a newer one —
    then stops, before touching Node, if that Python can't import `ssl`
-3. `nvm install --lts --reinstall-packages-from=current --latest-npm` —
+3. `nvm install 'lts/*' --reinstall-packages-from=current --latest-npm` —
    keeps `sf` and other npm globals carried forward
 4. `sf update` — uses the CLI's built-in updater
 5. `pipx install --force cumulusci` (if Python patch bumped) **or**
@@ -316,9 +360,35 @@ For a clean macOS workstation, in order:
    pyenv + Python 3.13.x, the gate interpreter `.venv` (Step 6), pipx,
    CumulusCI, sf CLI, and SFDMU.
 2. **Add direnv** — `brew install direnv`.
-3. **Restructure shell configs** — replace `~/.zshenv`, `~/.zprofile`,
-   `~/.zshrc` with the templates in §2 above. Save backups first
-   (`cp ~/.zshenv ~/.zshenv.bak.$(date +%Y%m%d)` etc.).
+3. **Restructure shell configs** — merge the templates in §2 into `~/.zshenv`,
+   `~/.zprofile` and `~/.zshrc`. Don't replace the files wholesale.
+   1. Save backups first (`cp ~/.zshenv ~/.zshenv.bak.$(date +%Y%m%d)` etc.;
+      skip a file that doesn't exist yet — `~/.zprofile` often doesn't on Intel).
+   2. Remove what Steps 3–4 of the installation guide appended; the §2
+      templates replace all of it:
+      - in both `~/.zshenv` and `~/.zshrc`, the `NVM_DIR` and `PYENV_ROOT` exports, the pyenv `PATH`
+        line and `eval "$(pyenv init -)"`;
+      - in `~/.zshrc`, the one-line `nvm.sh` source, and the nvm
+        `bash_completion` line (or keep that in place of the template's
+        equivalent);
+      - in `~/.zshenv`, the whole `# Bootstrap Homebrew in non-interactive
+        shells` section: the `if ! command -v brew …` block and the
+        `if command -v brew …` block after it that sets `NVM_PREFIX` and
+        sources `nvm.sh`, through its closing `fi`.
+
+      The ``# Created by `pipx` on <date>`` comment and the PATH line after it,
+      which `pipx ensurepath` (Step 7) appends to `~/.zshrc` and/or `~/.zprofile`,
+      are redundant with the `~/.zshenv` template; remove them or leave them. If you
+      added the `brew shellenv` line the Homebrew installer suggests to
+      `~/.zprofile`, keep it in place of the §2 `~/.zprofile` template's
+      `brew shellenv` block (same effect; the template explains why it's
+      needed). Without one, sub-step 3 adds the template block. Neither is a
+      tool-managed block.
+   3. Add the §2 template lines, and keep everything else, especially any
+      **tool-managed block** (see §2), unchanged.
+   4. Check with `diff ~/.zshrc ~/.zshrc.bak.<date>` (and the other two): only
+      toolchain lines should differ (a file you just created has no backup to
+      diff against).
 4. **Clone and activate** —
    ```bash
    gh repo clone bgaldino/rlm-base-dev
@@ -330,16 +400,19 @@ For a clean macOS workstation, in order:
    cci task run validate_setup
    ```
 5. **Restart your terminal app** (and Claude Code, IDEs) so they regenerate
-   any cached shell snapshot from the new configs.
+   any cached shell snapshot from the new configs. Open the new window outside
+   the repo, then `cd` in: a restored tab that reopens in the repo starts with
+   the system PATH order (see §2, `~/.zprofile`).
 6. **Managed workstation only: Chrome for Testing.** If stock Chrome can't
    drive Salesforce Setup pages on this machine, install Chrome for Testing and
    put `CHROME_BINARY` and `CHROMEDRIVER_PATH` in `.env.local` at the repo root
    (gitignored; `.envrc` and `./tui-cci` both load it), per
    [local-installation.md](local-installation.md#chrome-for-testing-managed-workstations).
    Don't put them in `.envrc` or your shell profile: `.envrc` is tracked, and
-   `.env.local` keeps per-machine paths with the checkout they belong to. From
-   a new terminal (direnv exports `.env.local` on entering the repo), rerun
-   `cci task run validate_setup`; it reports the overrides as
+   `.env.local` keeps per-machine paths with the checkout they belong to. Open
+   a new terminal outside the repo and `cd` in (direnv exports `.env.local` on
+   entering the repo), then rerun `cci task run validate_setup`; it reports the
+   overrides as
    `(from CHROME_BINARY)` and `(from CHROMEDRIVER_PATH)`.
 
 ---
@@ -450,9 +523,77 @@ installed there comes back. After a rebuild, run the install command again.
 package when the list won't install in one go.
 
 ### `python3` resolves to `/usr/bin/python3` instead of pyenv shim
-Cosmetic — `python` (no `3`) resolves correctly because the system doesn't
+Cause — outside the repo this is by design: there's no global `pyenv init`, so
+no pyenv shim is on PATH. Inside the repo it happens in a login shell that
+*started* there: direnv added the shims from `~/.zshenv`, then macOS
+`path_helper` (run from `/etc/zprofile`) moved `/usr/bin` ahead of them, and the
+`brew shellenv` block in `~/.zprofile` put Homebrew first, so a Homebrew
+`python3` (`/opt/homebrew/bin/python3`) can win the same way (see §2,
+`~/.zprofile`). Open a terminal outside the repo and `cd` in instead; don't use
+`direnv reload` or `cd` out and back in here, for the reason in §2 (`~/.zprofile`): it drops system and
+managed PATH entries. Cosmetic — `python` (no `3`) resolves correctly because the system doesn't
 ship one. CCI invokes `python`, so this won't break anything. If you need
 the pyenv `python3` specifically, use `pyenv exec python3`.
+
+### Node TLS errors behind a corporate CA (`NODE_EXTRA_CA_CERTS`)
+Symptom: `npm` or `sf` fail with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` or
+`SELF_SIGNED_CERT_IN_CHAIN`, or Node prints `Warning: Ignoring extra certs from
+… load failed`.
+
+`NODE_EXTRA_CA_CERTS` applies only to Node.js processes. `nvm install`
+downloads Node, and the version index it resolves versions from, with `curl`
+(or `wget` if `curl` is missing), and neither reads it. nvm fetches that index
+silently, so a certificate problem shows only as a version that isn't found:
+``Version '' (with LTS filter) not found - try `nvm ls-remote --lts` …`` for
+`lts/*` (what `update-toolchain.sh` installs), or
+``Version '24' not found - try `nvm ls-remote` …`` for an explicit version
+such as `24` (nvm prints the version as you typed it).
+To see the real error, run `curl -sSI https://nodejs.org/dist/index.tab`.
+
+For nvm's downloads, fix the trust for `curl` (`CURL_CA_BUNDLE`; nvm runs curl with `-q`,
+so `~/.curlrc` is ignored) or `wget` (`ca_certificate` in `~/.wgetrc`), not
+`NODE_EXTRA_CA_CERTS`. Unlike `NODE_EXTRA_CA_CERTS`, those two *replace* the
+default trust rather than adding to it, so point them at a full bundle (for
+example a copy of `/etc/ssl/cert.pem` with your corporate CAs appended), not at
+the Node extras file below. The npm steps that run under the new Node afterwards
+(`--reinstall-packages-from`, `--latest-npm`) do use `NODE_EXTRA_CA_CERTS`.
+
+`NODE_EXTRA_CA_CERTS` takes **one** PEM file. A colon-separated list of files is
+treated as a single path that doesn't exist: Node warns (only once it opens its
+first TLS connection) and loads none of them. If your workstation provides more
+than one bundle, combine them into a single file and point the variable at that:
+
+```bash
+mkdir -p ~/.config/certs
+# awk 1 ends every file with a newline; a plain cat can join two certificates on
+# one line, and OpenSSL then skips the second without an error.
+awk 1 /path/to/first-bundle.pem /path/to/second-bundle.pem > ~/.config/certs/node-extra-ca.pem
+```
+
+Put `export NODE_EXTRA_CA_CERTS="$HOME/.config/certs/node-extra-ca.pem"` in
+`~/.zshenv`, so non-interactive shells (Claude Code, IDEs, tools that launch `sf`)
+get it too. If a tool-managed block (see §2) in any of the three files sets the
+variable after your export, it overrides it: in every shell for a block in
+`~/.zshenv`, in login shells (every new Terminal window) for one in
+`~/.zprofile`, and in interactive shells for one in `~/.zshrc`. Repeat the
+export after that block. Rebuild the combined file whenever a source bundle
+changes, and check both kinds of shell from a clean environment (without
+`env -i`, the check inherits the value your current terminal already exported):
+
+```bash
+env -i HOME="$HOME" zsh -c   'echo $NODE_EXTRA_CA_CERTS'   # non-interactive (Claude Code, IDE tasks)
+env -i HOME="$HOME" zsh -lic 'echo $NODE_EXTRA_CA_CERTS'   # login + interactive (a Terminal window)
+```
+
+Then verify with a TLS request from a new terminal (an open one still has the
+old value), which surfaces the warning:
+
+```bash
+node -e 'require("https").get("https://registry.npmjs.org/", r => console.log(r.statusCode))'
+```
+
+This plain `https.get` doesn't use `HTTPS_PROXY`, so behind an explicit proxy a
+timeout here says nothing about the CA setup; check for the warning instead.
 
 ### `direnv` doesn't activate when cd'ing in
 - Did you `direnv allow` in the project? (Run from inside the dir.)
