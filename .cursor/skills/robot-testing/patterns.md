@@ -229,7 +229,7 @@ assetization once. Each:
   isn't repeated (a save landing after that check still can be), and a configurator pass on an
   unchanged configuration doesn't meet a disabled "Save & Exit";
 - treats success as **API state**, not UI state or `CalculationStatus` alone (right after a save,
-  the status still reads the previous `CompletedWithTax`);
+  the status still reads the previous settled status);
 - never nests recoveries: the reprice that clears a quote before a retry doesn't reprice again.
 
 See `Wait For Quote Calculation`, `Add Products Via Browse Catalogs`, `Configure Bundle Line`,

@@ -3,7 +3,7 @@
     <!--
       Large Sales Transaction override (deployed by deploy_post_large_stx only when
       large_stx=true). Settings deploys MERGE field-by-field, so this updates only the
-      field below; the full RevenueManagement settings come from unpackaged/pre/1_settings
+      fields below; the full RevenueManagement settings come from unpackaged/pre/1_settings
       (which sets enableFullEscalationHydration=true). deploy_post_large_stx runs after the
       pre phase, so this flips enableFullEscalationHydration to false for large-deal orgs.
       Verified on rlm-base__large-stx: after deploy the org shows

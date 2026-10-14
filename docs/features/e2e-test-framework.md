@@ -263,7 +263,7 @@ A failed catalog or configurator step leaves the quote failed too (`SaveFailedOr
 repeating the step onto it fails the same way, so those two retries start by repricing the quote
 (`pricingPref: Force`) and waiting for it to settle.
 
-Right after Save & Exit, `CalculationStatus` can still read the previous `CompletedWithTax`, so
+Right after Save & Exit, `CalculationStatus` can still read the previous settled status (`CompletedWithPricing`, or `CompletedWithTax` where estimated tax is on), so
 `Configure Bundle Line` doesn't trust it alone: the pass only counts once the API shows the option's
 quote line. That proves the save landed, not that repricing started; what lets repricing begin
 before Create Order checks the status again is time (a fixed 8s, then the navigation), so a reprice
