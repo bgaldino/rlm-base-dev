@@ -136,43 +136,23 @@ if [[ "$UPGRADE" -eq 1 ]] || ! deps_satisfied; then
   stamp_requirements
 fi
 
-# .env.local is gitignored dotenv (KEY="value", $VAR expansion, no command
-# substitution). direnv loads it when the shell hook has exported .envrc.
-# A terminal that only ran `direnv allow` — or never reloaded — does not
-# export it, and Robot then drives stock Chrome. Load it here so ./tui-cci
-# applies workstation overrides itself. Values already set in the environment
-# win — including ones exported empty — so an explicit export is left alone.
+# .env.local is gitignored dotenv. direnv loads it when the shell hook has
+# exported .envrc. A terminal that only ran `direnv allow` — or never reloaded
+# — does not export it, and Robot then drives stock Chrome. Load it here so
+# ./tui-cci applies workstation overrides itself. dotenv_local.py parses it the
+# way direnv does; values already set in the environment win — including ones
+# exported empty — so an explicit export is left alone.
 load_dotenv_local() {
   local file="$ROOT_DIR/.env.local"
   [[ -f "$file" ]] || return 0
-  local line key raw value
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
-    [[ -z "$line" || "$line" == \#* ]] && continue
-    if [[ ! "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
-      echo "[tui-cci] skipping unparsable .env.local line" >&2
-      continue
-    fi
-    key="${BASH_REMATCH[1]}"
-    raw="${BASH_REMATCH[2]}"
+  local key value
+  while IFS= read -r -d '' key && IFS= read -r -d '' value; do
+    # The file must not replace a variable this launcher itself relies on.
     if [[ -n "${!key+x}" ]]; then
       continue
     fi
-    if [[ "$raw" == \'*\' ]]; then
-      value="${raw:1:$((${#raw} - 2))}"
-    else
-      if [[ "$raw" == \"*\" ]]; then
-        raw="${raw:1:$((${#raw} - 2))}"
-      fi
-      if [[ "$raw" == *'$('* || "$raw" == *'`'* ]]; then
-        echo "[tui-cci] skipping ${key}: .env.local cannot run commands" >&2
-        continue
-      fi
-      value="$("$VENV_PYTHON" -c 'import os,sys; print(os.path.expandvars(sys.stdin.read()), end="")' <<<"$raw")"
-    fi
     export "${key}=${value}"
-  done <"$file"
+  done < <("$VENV_PYTHON" "$ROOT_DIR/scripts/build_harness/tui/dotenv_local.py" "$file")
 }
 
 cd "$ROOT_DIR"

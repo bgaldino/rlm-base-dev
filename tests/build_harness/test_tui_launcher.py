@@ -61,6 +61,9 @@ def test_tui_launcher_loads_dotenv_local_without_overriding_env(tmp_path) -> Non
     launcher = tmp_path / "tui-cci"
     launcher.write_text(source_launcher.read_text(encoding="utf-8"), encoding="utf-8")
     _make_executable(launcher)
+    parser = Path("scripts", "build_harness", "tui", "dotenv_local.py")
+    (tmp_path / parser).parent.mkdir(parents=True)
+    (tmp_path / parser).write_text((repo_root / parser).read_text(encoding="utf-8"), encoding="utf-8")
 
     home = tmp_path / "home"
     home.mkdir()
@@ -68,8 +71,8 @@ def test_tui_launcher_loads_dotenv_local_without_overriding_env(tmp_path) -> Non
         "\n".join(
             [
                 '# workstation overrides',
-                'CHROME_BINARY="$HOME/Chrome for Testing"',
-                'CHROMEDRIVER_PATH="/already/set/by/shell"',
+                'CHROME_BINARY="$HOME/Chrome for Testing" # managed build',
+                'export CHROMEDRIVER_PATH = "/from/file"',
                 'EMPTY_OVERRIDE="file value must not apply"',
                 'EVIL="$(touch should-not-run)"',
                 "",
@@ -84,10 +87,12 @@ def test_tui_launcher_loads_dotenv_local_without_overriding_env(tmp_path) -> Non
         "\n".join(
             [
                 "#!/usr/bin/env bash",
-                # The launcher must run dotenv expansion through this venv
-                # interpreter, so -c delegates to the real python3 instead of
-                # exiting early.
                 'if [[ "${1:-}" == "-c" ]]; then',
+                "  exit 0",
+                "fi",
+                # The launcher must parse .env.local with this venv interpreter,
+                # so the parser script runs on the real python3.
+                'if [[ "${1:-}" == *.py ]]; then',
                 '  exec python3 "$@"',
                 "fi",
                 'if [[ "${1:-}" == "-m" && "${2:-}" == "scripts.build_harness.tui" ]]; then',
