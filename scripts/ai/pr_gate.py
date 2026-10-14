@@ -55,9 +55,10 @@ dependency and that one has them all. On a workstation `python` is the pyenv Pyt
 scripts/ai/pr_gate.py` would otherwise report MISSING-DEP for a setup reason. CI installs
 the selection's requirements into its own interpreter, so nothing is missing there and
 nothing re-runs. With no usable gate interpreter the run continues here, and MISSING-DEP
-reports what's absent. `$RLM_GATE_PYTHON`, read by `gate_python.py`, names the gate
-interpreter; it is the one environment variable that reaches the gate, it chooses only the
-interpreter, and only on that missing-dependency path (tests/test_pr_gate.py pins both).
+reports what's absent. `gate_python.py` reads `$RLM_GATE_PYTHON` to name the gate
+interpreter, an environment read this file inherits by importing it. tests/test_pr_gate.py
+pins that import to `reexec_under_gate_interpreter`, so the variable can choose the
+interpreter on that missing-dependency path and nowhere else.
 """
 
 import argparse

@@ -4505,7 +4505,11 @@ siblings = {path.stem for path in pathlib.Path(os.path.join(REPO, "scripts", "ai
 
 
 def sibling_imports_in(tree):
-    """(module, enclosing top-level function or '<module>', line) for each import of a sibling."""
+    """(module, enclosing top-level function or '<module>', line) for each import of a sibling.
+
+    Every spelling, as the env rule above learned to: the import statements, and the dynamic
+    `importlib.import_module("x")` / `__import__("x")` with the name as a literal.
+    """
     owner_of = {}
     for fn in tree.body:
         if isinstance(fn, ast.FunctionDef):
@@ -4515,6 +4519,11 @@ def sibling_imports_in(tree):
     for node in ast.walk(tree):
         names = ([a.name for a in node.names] if isinstance(node, ast.Import)
                  else [node.module] if isinstance(node, ast.ImportFrom) and node.module else [])
+        if (isinstance(node, ast.Call) and node.args and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, str)
+                and (getattr(node.func, "attr", None) == "import_module"
+                     or getattr(node.func, "id", None) in ("__import__", "import_module"))):
+            names = [node.args[0].value]
         found += [(name, owner_of.get(id(node), "<module>"), node.lineno)
                   for name in names if name.split(".")[0] in siblings]
     return found
@@ -4526,6 +4535,10 @@ check("that rule can actually see a sibling import, at module level or inside a 
       [n for n, *_ in sibling_imports_in(ast.parse("import check_branch_scope\n"
                                                    "def f():\n    from gate_python import resolve\n"))]
       == ["check_branch_scope", "gate_python"])
+check("and a dynamic import of a sibling is seen too, under either spelling",
+      [n for n, *_ in sibling_imports_in(ast.parse(
+          "import importlib\ndef f():\n    importlib.import_module('check_branch_scope')\n"
+          "def g():\n    __import__('gate_python')\n"))] == ["check_branch_scope", "gate_python"])
 check("and a declared module imported outside its declared function is refused",
       not all(SIBLING_IMPORTS_OK.get(n) == o
               for n, o, _ in sibling_imports_in(ast.parse("import gate_python\n"))))
@@ -5322,7 +5335,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 727
+EXPECTED = 728
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

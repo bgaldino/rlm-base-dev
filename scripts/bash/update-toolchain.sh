@@ -160,11 +160,22 @@ elif [ -d "$GATE_VENV" ]; then
     # here too). gate_python.py lists its top-level packages first, reading
     # site-packages itself so this works even when the venv's Python is gone.
     GATE_KEEP="$(mktemp "${TMPDIR:-/tmp}/gate-venv-packages.XXXXXX")"
-    gate_python --carry-over "$GATE_VENV" >"$GATE_KEEP" \
-      || warn "Gate interpreter: couldn't list the packages in $GATE_VENV — only the gate's come back"
-    log "Gate interpreter: rebuilding $GATE_VENV on Python $PY_TARGET (was ${GATE_PY_VERSION:-unusable})"
-    "$PY_TARGET_BIN" -m venv --clear "$GATE_VENV"
-    if [ -s "$GATE_KEEP" ]; then
+    GATE_REBUILD=1
+    if ! gate_python --carry-over "$GATE_VENV" >"$GATE_KEEP"; then
+      if [ -n "$GATE_PY_VERSION" ]; then
+        # It still runs, so clearing it would destroy what can't be listed for
+        # nothing. Leave it on its old patch; the gate requirements still go in.
+        warn "Gate interpreter: couldn't list the packages in $GATE_VENV — left on Python $GATE_PY_VERSION instead of rebuilding it"
+        GATE_REBUILD=0
+      else
+        warn "Gate interpreter: couldn't list the packages in $GATE_VENV, and its Python is gone — rebuilding; only the gate's packages come back"
+      fi
+    fi
+    [ "$GATE_REBUILD" -eq 0 ] || {
+      log "Gate interpreter: rebuilding $GATE_VENV on Python $PY_TARGET (was ${GATE_PY_VERSION:-unusable})"
+      "$PY_TARGET_BIN" -m venv --clear "$GATE_VENV"
+    }
+    if [ "$GATE_REBUILD" -eq 1 ] && [ -s "$GATE_KEEP" ]; then
       log "Gate interpreter: reinstalling the $(wc -l <"$GATE_KEEP" | tr -d ' ') package(s) it held"
       # All at once first. pip resolves a requirements file all-or-nothing,
       # so on failure go one at a time, retrying a pin that won't install on

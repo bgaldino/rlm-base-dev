@@ -772,7 +772,6 @@ class GatePython(unittest.TestCase):
             finally:
                 del os.environ["RLM_GATE_PYTHON"]
 
-
     def test_carry_over_lists_what_a_rebuild_must_put_back(self):
         # update-toolchain.sh reinstalls this after `venv --clear`. Read from site-packages, not
         # from the venv's Python, which is usually gone by then.
@@ -810,6 +809,28 @@ class GatePython(unittest.TestCase):
                 "top==1.0",
             ])                                                     # dep-one is top's; pip is never listed
             self.assertEqual(gate_python.carry_over(Path(tmp) / "absent"), [])
+
+    def test_carry_over_survives_one_unreadable_distribution(self):
+        # A half-written direct_url.json must cost only its own provenance, not the whole list.
+        sys.path.insert(0, str(REPO / "scripts" / "ai"))
+        import gate_python
+        with tempfile.TemporaryDirectory() as tmp:
+            venv = Path(tmp) / ".venv"
+            site = venv / "lib" / "python3.13" / "site-packages"
+            for name in ("good", "torn"):
+                info = site / f"{name}-1.0.dist-info"
+                info.mkdir(parents=True)
+                (info / "METADATA").write_text(f"Metadata-Version: 2.1\nName: {name}\nVersion: 1.0\n")
+            (site / "torn-1.0.dist-info" / "direct_url.json").write_text('{"url": "file:///x", "dir_')
+            self.assertEqual(gate_python.carry_over(venv), ["good==1.0", "torn==1.0"])
+
+    def test_carry_over_usage_errors_never_print_an_interpreter(self):
+        script = REPO / "scripts" / "ai" / "gate_python.py"
+        for args in (["--carry-over"], ["--carry-over", ""], ["--carry-over", "a", "b"], ["--bogus"]):
+            run = subprocess.run([sys.executable, str(script), *args], cwd=REPO,
+                                 capture_output=True, text=True)
+            self.assertEqual((run.returncode, run.stdout), (2, ""), args)
+
 
 if __name__ == "__main__":
     unittest.main()

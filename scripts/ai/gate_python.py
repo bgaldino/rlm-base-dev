@@ -29,7 +29,8 @@ Usage:
     python3 scripts/ai/gate_python.py --default-venv   # print <main checkout>/.venv; exit 1 outside git
     python3 scripts/ai/gate_python.py --carry-over VENV  # requirements that restore VENV's own packages
 
-Exit codes: 0 = usable · 1 = missing or incomplete.
+Exit codes: 0 = usable (or the flag's output printed) · 1 = missing or incomplete, or not in a
+git checkout · 2 = usage error.
 """
 from __future__ import annotations
 
@@ -154,16 +155,25 @@ def carry_over(venv: Path) -> List[str]:
     """
     from importlib import metadata  # 3.8+; local so the hook's import of this module stays cheap
 
+    # One unreadable distribution costs only itself: an exception here would lose the whole list,
+    # and the caller clears the venv next.
     sites = [str(p) for p in sorted(venv.glob("lib/python*/site-packages"))]
     dists: Dict[str, "metadata.Distribution"] = {}
     for dist in metadata.distributions(path=sites):
-        name = dist.metadata["Name"]
+        try:
+            name = dist.metadata["Name"]
+        except Exception:
+            continue
         if name and _norm(name) not in ("pip", "setuptools", "wheel"):
             dists.setdefault(_norm(name), dist)
     needs: Dict[str, Set[str]] = {}
     for key, dist in dists.items():
         needs[key] = set()
-        for req in dist.requires or []:
+        try:
+            requires = dist.requires or []
+        except Exception:
+            requires = []
+        for req in requires:
             spec, _, marker = req.partition(";")
             if "extra" in marker:  # optional: required only when someone asked for that extra
                 continue
@@ -192,7 +202,12 @@ def carry_over(venv: Path) -> List[str]:
     lines = []
     for key in sorted(keep):
         dist = dists[key]
-        direct = json.loads(dist.read_text("direct_url.json") or "{}")
+        try:
+            direct = json.loads(dist.read_text("direct_url.json") or "{}")
+        except (OSError, ValueError):  # half-written by an interrupted install: pin it instead
+            direct = {}
+        if not isinstance(direct, dict):
+            direct = {}
         url, vcs = direct.get("url", ""), direct.get("vcs_info") or {}
         if direct.get("dir_info", {}).get("editable") and url.startswith("file://"):
             lines.append(f"-e {unquote(urlparse(url).path)}")
@@ -204,12 +219,24 @@ def carry_over(venv: Path) -> List[str]:
     return lines
 
 
+USAGE = "usage: gate_python.py [--default-venv | --carry-over VENV]"
+
+
 def main() -> int:
-    if len(sys.argv) == 3 and sys.argv[1] == "--carry-over":
-        for line in carry_over(Path(sys.argv[2])):
+    args = sys.argv[1:]
+    if args[:1] == ["--carry-over"]:
+        # Exactly one non-empty VENV. Anything else falling through to the probe would print the
+        # interpreter path where a caller expects requirements.
+        if len(args) != 2 or not args[1]:
+            print(USAGE, file=sys.stderr)
+            return 2
+        for line in carry_over(Path(args[1])):
             print(line)
         return 0
-    if sys.argv[1:] == ["--default-venv"]:
+    if args and args != ["--default-venv"]:
+        print(USAGE, file=sys.stderr)
+        return 2
+    if args == ["--default-venv"]:
         venv = default_venv(Path.cwd())
         if venv is None:
             print("not inside a git checkout", file=sys.stderr)
