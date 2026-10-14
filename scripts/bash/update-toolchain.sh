@@ -8,7 +8,9 @@
 #   4. sf CLI — npm-installed under the active nvm Node
 #   5. CCI — pipx (reinstall is required after any Python patch bump)
 #   6. sf plugins (SFDMU, etc.)
-#   7. cci task run validate_setup
+#   7. Gate interpreter — <main checkout>/.venv, if it exists (rebuilt after a
+#      Python patch bump, then pr_gate.py's requirements reinstalled)
+#   8. cci task run validate_setup
 #
 # Designed to be idempotent. Re-run after any tool emits a "new version" notice.
 # Major-line pins live in this script (PY_LINE, NODE_LINE) — edit them to bump.
@@ -126,7 +128,41 @@ log "CCI: ensuring setuptools>=75.4"
 log "sf plugins: update"
 sf plugins update || warn "sf plugins update failed"
 
-# ── 7. Verify ───────────────────────────────────────────────────────────────
+# ── 7. Gate interpreter (<main checkout>/.venv) ─────────────────────────────
+# scripts/ai/pr_gate.py, the loop Stop hook and validate_setup's "Gate
+# interpreter" check all run under <main checkout>/.venv (see
+# scripts/ai/gate_python.py). Like the pipx venv, its python is a symlink into
+# one pyenv patch dir, so rebuild it when it isn't on $PY_TARGET (this also
+# covers a symlink broken by an uninstalled patch). Then reinstall
+# pr_gate.py's requirements, which pick up any DEPS change. Only an existing
+# venv is touched: creating it is a setup step (local-installation.md, Step 6).
+# A $RLM_GATE_PYTHON override points somewhere else and is left alone.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+GIT_COMMON_DIR="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+if [ -n "${RLM_GATE_PYTHON:-}" ]; then
+  log "Gate interpreter: \$RLM_GATE_PYTHON is set ($RLM_GATE_PYTHON) — not managed here"
+elif [ -z "$GIT_COMMON_DIR" ]; then
+  warn "Gate interpreter: $REPO_ROOT is not a git checkout — skipping"
+else
+  GATE_VENV="$(dirname "$GIT_COMMON_DIR")/.venv"
+  if [ -d "$GATE_VENV" ]; then
+    GATE_PY_VERSION="$("$GATE_VENV/bin/python" -c 'import platform; print(platform.python_version())' 2>/dev/null || true)"
+    if [ "$GATE_PY_VERSION" != "$PY_TARGET" ]; then
+      log "Gate interpreter: rebuilding $GATE_VENV on Python $PY_TARGET (was ${GATE_PY_VERSION:-unusable})"
+      "$PY_TARGET_BIN" -m venv --clear "$GATE_VENV"
+    fi
+    log "Gate interpreter: installing pr_gate.py requirements into $GATE_VENV"
+    # Unquoted on purpose: one requirement per line, split into pip arguments.
+    # shellcheck disable=SC2046
+    "$GATE_VENV/bin/python" -m pip install --upgrade \
+      $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all) \
+      || warn "Gate interpreter: pip install failed — see docs/guides/dev-environment-setup.md (Troubleshooting)"
+  else
+    log "Gate interpreter: $GATE_VENV not found — create it per docs/guides/local-installation.md (Step 6)"
+  fi
+fi
+
+# ── 8. Verify ───────────────────────────────────────────────────────────────
 log "Running validate_setup"
 cci task run validate_setup
 

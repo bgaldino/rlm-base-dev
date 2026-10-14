@@ -16,6 +16,10 @@ Create the default with (Python 3.13 matches CI):
     python3.13 -m venv .venv
     .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
 
+The setup guides carry the same steps: docs/guides/local-installation.md (Step 6) and
+docs/guides/dev-environment-setup.md, whose update script (scripts/bash/update-toolchain.sh)
+rebuilds the venv after a Python patch bump and reinstalls these requirements.
+
 Stdlib only and Python 3.9-safe on purpose: the hook imports this under whatever `python3`
 the shell has (macOS ships 3.9), and only the gate interpreter itself needs 3.11+.
 

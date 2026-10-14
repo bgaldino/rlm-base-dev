@@ -37,6 +37,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4` (snowfakery 4.x requirement) |
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
 | **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5.6.4+ required (enforced by `cci task run validate_setup`) |
+| **Gate interpreter (`.venv`)** | `python3.13 -m venv .venv` + `.venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)` (main checkout root) | Runs `scripts/ai/pr_gate.py` locally, in the loop Stop hook, and for the `validate_setup` "Gate interpreter" check | Python `3.13` (matches CI); packages from `pr_gate.py`'s `DEPS` (CumulusCI pinned to CI's version) |
 | **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
 | **Doc snapshot tooling** *(optional)* | `pip install -r scripts/doc_snapshot/requirements.txt && python -m playwright install chromium` (in any venv) | Refresh the Salesforce Help / Dev Guide corpus under `docs/salesforce/` (`python -m scripts.doc_snapshot`; see its [README](../../scripts/doc_snapshot/README.md)) | versions in `requirements.txt`; only needed to re-snapshot docs |
 
@@ -62,7 +63,17 @@ ends up with the same layered structure — not the same exact patch versions.
 ~/.local/bin/                        pipx-installed CLIs (cci, etc.)
 
 <project>/.envrc                     direnv config — per-project pyenv + nvm pins
+<project>/.venv/                     gate interpreter — Python 3.13 venv with pr_gate.py's requirements
 ```
+
+`<project>/.venv` lives in the **main checkout** only. A git worktree (including
+Claude Code's `.claude/worktrees/*` and the loop's `.loop/wt-*`) resolves to the
+main checkout's `.venv`, so one venv serves every worktree. `scripts/ai/pr_gate.py`,
+the loop Stop hook (`.claude/hooks/stop_gate.py`) and the `validate_setup` "Gate
+interpreter" check all find it through `scripts/ai/gate_python.py`; set
+`$RLM_GATE_PYTHON` to point them at a venv kept elsewhere. It is separate from the
+pipx venv that runs `cci`: pipx's copy of CumulusCI doesn't count, because the gate
+imports `cumulusci` itself.
 
 ### Shell config responsibilities
 
@@ -249,7 +260,21 @@ The script handles:
    (`.github/workflows/prepare-rlm-org.yml`) installs the same
    `setuptools>=75.4` with no upper bound, now that it pins CCI 4.10.1.
 7. `sf plugins update`
-8. `cci task run validate_setup` — verifies all 12 checks still pass
+8. Gate interpreter — if `<main checkout>/.venv` exists, rebuilds it with
+   `python -m venv --clear` when its Python isn't the current 3.13 patch (a
+   patch bump breaks its python symlink the same way as the pipx venv), then
+   reinstalls `pr_gate.py --requirements --all` into it
+9. `cci task run validate_setup` — verifies every check still passes,
+   including the "Gate interpreter" warning check
+
+**When `DEPS` in `scripts/ai/pr_gate.py` changes** (a check gains a new
+package, or the CumulusCI pin moves), the gate interpreter needs the new
+requirements. Rerun the script, or just the install step:
+
+```bash
+.venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
+python3 scripts/ai/gate_python.py      # prints the interpreter; exit 1 names what's missing
+```
 
 ### Bumping a major line
 
@@ -258,7 +283,8 @@ When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
 1. Edit `PY_LINE` / `NODE_LINE` at the top of `scripts/bash/update-toolchain.sh`
 2. Edit the `pyenv latest <line>` call in `.envrc`
 3. Run the script. It installs the new line, reinstalls CCI under the new
-   Python, and verifies via `validate_setup`.
+   Python, rebuilds the gate interpreter `.venv` on it, and verifies via
+   `validate_setup`.
 4. Commit `.envrc` + the script changes.
 5. Optionally `pyenv uninstall <old.line>.x` and `nvm uninstall <old-node>`.
 
@@ -270,7 +296,8 @@ For a clean macOS workstation, in order:
 
 1. **System bootstrap** — follow the [local installation guide](local-installation.md#macos-environment-setup-homebrew--pyenv--nvm), *macOS Environment Setup*,
    Steps 1–11. That installs Homebrew, git, gh, GCM, nvm + Node LTS,
-   pyenv + Python 3.13.x, pipx, CumulusCI, sf CLI, and SFDMU.
+   pyenv + Python 3.13.x, the gate interpreter `.venv` (Step 6), pipx,
+   CumulusCI, sf CLI, and SFDMU.
 2. **Add direnv** — `brew install direnv`.
 3. **Restructure shell configs** — replace `~/.zshenv`, `~/.zprofile`,
    `~/.zshrc` with the templates in §2 above. Save backups first
@@ -280,6 +307,9 @@ For a clean macOS workstation, in order:
    gh repo clone bgaldino/rlm-base-dev
    cd rlm-base-dev
    direnv allow
+   # Gate interpreter (skip if you already created it in Step 6 of the installation guide)
+   python -m venv .venv
+   .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
    cci task run validate_setup
    ```
 5. **Restart your terminal app** (and Claude Code, IDEs) so they regenerate
@@ -355,6 +385,31 @@ landed in 3.14.6+ and 3.15). Keep `openssl@3` installed until the Python line
 moves past 3.13 (see [Bumping a major line](#bumping-a-major-line)). The
 Docker image (`python:3.13-slim-bookworm`) uses Debian's OpenSSL and is
 unaffected.
+
+### `pr_gate.py` reports `MISSING-DEP`, or `validate_setup` warns "Gate interpreter"
+The gate interpreter (`<main checkout>/.venv`, see §2) is missing, is on the
+wrong Python, or lacks a package that `pr_gate.py`'s `DEPS` now lists. A common
+case: the venv predates a new dependency (CumulusCI was added for the
+`doc_build_steps` check, so any `.md` change hits it). `gate_python.py` names
+the problem:
+
+```bash
+python3 scripts/ai/gate_python.py
+```
+
+From the main checkout root, install what's missing, or rebuild the venv if its
+Python is wrong or its symlink is broken:
+
+```bash
+.venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
+```
+
+```bash
+"$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv --clear .venv
+```
+
+After a rebuild, run the install command again. `scripts/bash/update-toolchain.sh`
+does both.
 
 ### `python3` resolves to `/usr/bin/python3` instead of pyenv shim
 Cosmetic — `python` (no `3`) resolves correctly because the system doesn't
