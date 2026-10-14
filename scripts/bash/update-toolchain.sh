@@ -2,8 +2,10 @@
 # update-toolchain.sh — refresh the local dev toolchain for rlm-base-dev.
 #
 # Updates, in order:
-#   1. Homebrew packages (direnv, nvm, pyenv, pipx, etc.)
-#   2. Python — latest patch in the 3.13 line (via pyenv)
+#   1. Homebrew packages (direnv, nvm, pyenv, pipx, etc.), keeping openssl@3
+#      installed on request first
+#   2. Python — latest patch in the 3.13 line (via pyenv); stops if it can't
+#      import ssl
 #   3. Node — latest LTS (via nvm), carrying npm globals forward
 #   4. sf CLI — npm-installed under the active nvm Node
 #   5. CCI — pipx (reinstall is required after any Python patch bump)
@@ -37,6 +39,15 @@ die()  { printf '\n\033[1;31m[fail]\033[0m  %s\n' "$*" >&2; exit 1; }
 command -v brew >/dev/null || die "brew not found — install Homebrew from https://brew.sh first"
 log "Homebrew: update + upgrade"
 brew update
+# Keep openssl@3 before upgrading. The pyenv Python 3.13 builds link it, but
+# Homebrew now defaults to openssl@4 and pyenv depends on that, so once nothing
+# Homebrew tracks needs openssl@3, upgrade's autoremove deletes it and every
+# `cci` dies at startup (docs/guides/dev-environment-setup.md, "OpenSSL 4
+# migration"). Marking it installed on request is what keeps it; a machine set
+# up before that step was documented has it as a dependency only.
+brew list --versions openssl@3 >/dev/null 2>&1 || brew install openssl@3
+brew tab --installed-on-request openssl@3 >/dev/null \
+  || die "couldn't mark openssl@3 installed on request (brew tab), so brew upgrade could remove it"
 brew upgrade
 
 # ── 2. Python (pyenv) ───────────────────────────────────────────────────────
@@ -57,6 +68,15 @@ else
 fi
 PY_TARGET="$(pyenv latest "$PY_LINE")"
 export PYENV_VERSION="$PY_TARGET"
+PY_TARGET_BIN="$(pyenv prefix "$PY_TARGET")/bin/python3"
+[ -x "$PY_TARGET_BIN" ] || die "Target Python not found: $PY_TARGET_BIN"
+# CumulusCI imports ssl at startup, so a Python that can't would only fail
+# later, after the Node and sf steps, inside pipx and validate_setup. Stop
+# here, before any of them, with Python's own error.
+# openssl@3 is in place by now (step 1), so a failure means this Python was
+# built against another OpenSSL, or its install is broken: rebuild it.
+"$PY_TARGET_BIN" -c 'import ssl' \
+  || die "Python $PY_TARGET can't import ssl (error above) — rebuild it with 'pyenv install --force $PY_TARGET' while openssl@3 is installed; see docs/guides/dev-environment-setup.md (OpenSSL 4 migration)"
 
 # ── 3. Node (nvm) ───────────────────────────────────────────────────────────
 export NVM_DIR="$HOME/.nvm"
@@ -90,8 +110,6 @@ fi
 # may have been uninstalled). `command -v pipx` would still succeed in that
 # case but invocations would fail with a broken interpreter. Reinstalling pipx
 # under the current target Python (idempotent) repairs this proactively.
-PY_TARGET_BIN="$(pyenv prefix "$PY_TARGET")/bin/python3"
-[ -x "$PY_TARGET_BIN" ] || die "Target Python not found: $PY_TARGET_BIN"
 log "pipx: refresh under Python $PY_TARGET"
 "$PY_TARGET_BIN" -m pip install --user --upgrade pipx
 "$PY_TARGET_BIN" -m pipx ensurepath >/dev/null 2>&1 || true

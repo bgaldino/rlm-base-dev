@@ -38,6 +38,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
 | **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5.6.4+ required (enforced by `cci task run validate_setup`) |
 | **Gate interpreter (`.venv`)** | `"$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv` + `.venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)` (main checkout root) | Runs `scripts/ai/pr_gate.py` locally, in the loop Stop hook, and for the `validate_setup` "Gate interpreter" check | Python `3.13` (matches CI); packages from `pr_gate.py`'s `DEPS` (CumulusCI pinned to CI's version) |
+| **Chrome for Testing** *(managed workstations only)* | `npx -y @puppeteer/browsers install chrome@<v>` + `chromedriver@<v>` (same version, `--path ~/.cache/cft`) | Browser for the Robot setup tasks where stock Chrome crashes on Setup pages | any CfT version, browser and driver identical; paths go in `.env.local` ([local-installation.md](local-installation.md#chrome-for-testing-managed-workstations)) |
 | **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
 | **Doc snapshot tooling** *(optional)* | `pip install -r scripts/doc_snapshot/requirements.txt && python -m playwright install chromium` (in any venv) | Refresh the Salesforce Help / Dev Guide corpus under `docs/salesforce/` (`python -m scripts.doc_snapshot`; see its [README](../../scripts/doc_snapshot/README.md)) | versions in `requirements.txt`; only needed to re-snapshot docs |
 
@@ -247,9 +248,11 @@ scripts/bash/update-toolchain.sh
 
 The script handles:
 
-1. `brew update && brew upgrade`
+1. `brew update`, then `brew upgrade` once `openssl@3` is installed and
+   marked installed on request (see [OpenSSL 4 migration](#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration))
 2. `pyenv install --skip-existing $(pyenv latest -k 3.13)` — installs newest
-   patch in the pinned major.minor line, **only if** there's a newer one
+   patch in the pinned major.minor line, **only if** there's a newer one —
+   then stops, before touching Node, if that Python can't import `ssl`
 3. `nvm install --lts --reinstall-packages-from=current --latest-npm` —
    keeps `sf` and other npm globals carried forward
 4. `sf update` — uses the CLI's built-in updater
@@ -328,6 +331,16 @@ For a clean macOS workstation, in order:
    ```
 5. **Restart your terminal app** (and Claude Code, IDEs) so they regenerate
    any cached shell snapshot from the new configs.
+6. **Managed workstation only: Chrome for Testing.** If stock Chrome can't
+   drive Salesforce Setup pages on this machine, install Chrome for Testing and
+   put `CHROME_BINARY` and `CHROMEDRIVER_PATH` in `.env.local` at the repo root
+   (gitignored; `.envrc` and `./tui-cci` both load it), per
+   [local-installation.md](local-installation.md#chrome-for-testing-managed-workstations).
+   Don't put them in `.envrc` or your shell profile: `.envrc` is tracked, and
+   `.env.local` keeps per-machine paths with the checkout they belong to. From
+   a new terminal (direnv exports `.env.local` on entering the repo), rerun
+   `cci task run validate_setup`; it reports the overrides as
+   `(from CHROME_BINARY)` and `(from CHROMEDRIVER_PATH)`.
 
 ---
 
@@ -387,11 +400,17 @@ Fix — reinstall it explicitly:
 
 ```bash
 brew install openssl@3
+brew tab --installed-on-request openssl@3
 ```
 
-That marks `openssl@3` *installed on request*, so autoremove keeps it from
-then on. Confirm with `brew info openssl@3` (shows `Installed (on request)`)
-and `cci version`.
+The second line marks `openssl@3` *installed on request* even when it was
+already present as a dependency, so autoremove keeps it from then on.
+`scripts/bash/update-toolchain.sh` runs both before `brew upgrade`. If the
+target Python still can't import `ssl` after that, the script stops with
+Python's own error and a `pyenv install --force <version>` hint: with
+`openssl@3` present, that Python was built against another OpenSSL or its
+install is broken. Confirm with
+`brew info openssl@3` (shows `Installed (on request)`) and `cci version`.
 
 Why not rebuild on OpenSSL 4 — the toolchain can't move yet. CumulusCI 4.10.1
 requires Python `<3.14`, and CPython 3.13 does not support OpenSSL 4 (support
