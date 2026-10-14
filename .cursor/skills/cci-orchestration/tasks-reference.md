@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**257 tasks** across **9 groups**.
+**258 tasks** across **9 groups**.
 
 ---
 
@@ -794,7 +794,7 @@
 
 ## Revenue Lifecycle Management
 
-*167 task(s)*
+*168 task(s)*
 
 ### `activate_agents`
 
@@ -1828,6 +1828,14 @@
 **Options:**
 
 - `path`: `unpackaged/pre`
+
+---
+
+### `enable_change_data_capture`
+
+**Description:** Select Quote and Order for Change Data Capture (264 STLE and Transaction Summary auto-refresh), adding only what's missing and warning instead of failing if the CDC allocation is used up
+
+**Class:** `tasks.rlm_enable_change_data_capture.EnableChangeDataCapture`
 
 ---
 

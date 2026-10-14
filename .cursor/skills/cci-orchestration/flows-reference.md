@@ -326,6 +326,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 14. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
 15. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
 16. **flow** `assign_feature_permission_sets`
+17. **task** `enable_change_data_capture`
 
 ---
 

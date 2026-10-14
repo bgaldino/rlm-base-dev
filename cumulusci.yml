@@ -1411,6 +1411,11 @@ tasks:
       ContentDocument content. Run after deploy_post_docgen + activate_docgen_templates.
     class_path: tasks.rlm_docgen.FixDocumentTemplateBinaries
 
+  enable_change_data_capture:
+    group: Revenue Lifecycle Management
+    description: Select Quote and Order for Change Data Capture (264 STLE and Transaction Summary auto-refresh), adding only what's missing and warning instead of failing if the CDC allocation is used up
+    class_path: tasks.rlm_enable_change_data_capture.EnableChangeDataCapture
+
   deploy_post_constraints:
     description: Deploy Constraints Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -3437,6 +3442,8 @@ flows:
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
       16:
         flow: assign_feature_permission_sets
+      17:
+        task: enable_change_data_capture
 
   assign_feature_psls:
     group: Revenue Lifecycle Management
