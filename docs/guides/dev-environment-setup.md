@@ -270,7 +270,10 @@ The script handles:
    site-packages directly so it works when the venv's Python is already gone. They
    are reinstalled afterwards, one at a time if the batch fails, and a pin that
    won't install on the new Python is retried unpinned. Anything that still can't
-   come back is named in a warning, and the list is kept. Then it reinstalls
+   come back is named in a warning, and the list is kept. If the packages can't be
+   listed while the old Python still runs, the venv is left on its old patch with a
+   warning rather than cleared (rerun once the cause is fixed); it is rebuilt anyway
+   only when that Python is already gone. Then it reinstalls
    `pr_gate.py --requirements --all`.
    A `$RLM_GATE_PYTHON` override is probed but not managed. If the install fails,
    or `gate_python.py` still finds the gate interpreter unusable, the script exits
