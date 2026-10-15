@@ -89,16 +89,29 @@ OLD_NODE="$(nvm current 2>/dev/null || echo none)"
 log "Node: installing $NODE_LINE (current: $OLD_NODE)"
 # Drive install from NODE_LINE so changes at the top of this script take effect.
 # `lts/*` resolves to the active LTS line; explicit majors (e.g. `24`) also work.
-# --reinstall-packages-from=current carries `sf` and other globals forward.
-nvm install "$NODE_LINE" --reinstall-packages-from=current --latest-npm
+nvm install "$NODE_LINE" --latest-npm
 nvm alias default "$NODE_LINE" >/dev/null
 NEW_NODE="$(nvm current)"
+# Carry `sf` and other globals forward, only when the version changed. Passing
+# --reinstall-packages-from=current to `nvm install` instead fails (exit 2) on a
+# re-run where Node is already on the latest LTS.
+if [ "$NEW_NODE" != "$OLD_NODE" ] && [ "${OLD_NODE#v}" != "$OLD_NODE" ]; then
+  log "Node: reinstalling global packages from $OLD_NODE"
+  nvm reinstall-packages "$OLD_NODE" \
+    || warn "couldn't carry npm globals over from $OLD_NODE — reinstall them under $NEW_NODE by hand"
+fi
 log "Node: now on $NEW_NODE"
 
 # ── 4. sf CLI ───────────────────────────────────────────────────────────────
-log "sf CLI: update channel"
-if command -v sf >/dev/null 2>&1; then
-  sf update || warn "sf update failed — try: npm install -g @salesforce/cli@latest"
+# sf lives in nvm's npm globals, and `sf update` refuses npm-based installs
+# ("not updatable") while still exiting 0, so update it through npm.
+if [ -d "$(npm root -g)/@salesforce/cli" ]; then
+  log "sf CLI: npm install -g @salesforce/cli@latest (was $(sf --version 2>/dev/null | head -1 | cut -d' ' -f1))"
+  npm install -g @salesforce/cli@latest || warn "sf CLI update failed — try: npm install -g @salesforce/cli@latest"
+  log "sf CLI: now $(sf --version 2>/dev/null | head -1 | cut -d' ' -f1)"
+elif command -v sf >/dev/null 2>&1; then
+  log "sf CLI: installer-based install at $(command -v sf) — sf update"
+  sf update || warn "sf update failed"
 else
   warn "sf not found on PATH for $NEW_NODE — installing"
   npm install -g @salesforce/cli@latest
@@ -120,12 +133,33 @@ log "pipx: refresh under Python $PY_TARGET"
 # this works even from a minimal env where ~/.local/bin isn't yet on PATH.
 PIPX=( "$PY_TARGET_BIN" -m pipx )
 
-cci_reinstall() {
-  log "CCI: reinstalling under Python $PY_TARGET"
-  "${PIPX[@]}" install --force cumulusci --python "$PY_TARGET_BIN"
+CCI_VENV="$("${PIPX[@]}" environment --value PIPX_LOCAL_VENVS)/cumulusci" \
+  || die "couldn't resolve pipx's venv directory (pipx environment --value PIPX_LOCAL_VENVS)"
+
+# The Python patch CCI's venv actually runs, or empty if it's missing or broken.
+cci_python() {
+  "$CCI_VENV/bin/python" -c 'import platform, ssl; print(platform.python_version())' 2>/dev/null || true
 }
 
-if [ "$PY_UPGRADED" -eq 1 ] || ! "${PIPX[@]}" list --short 2>/dev/null | grep -q '^cumulusci'; then
+cci_reinstall() {
+  log "CCI: reinstalling under Python $PY_TARGET"
+  # `pipx reinstall` rebuilds the venv on the new interpreter and keeps injected
+  # packages. `pipx install --force --python` doesn't: pipx 1.17 ignores --python
+  # with --force and rebuilds the venv in place, still linked to the old patch.
+  # Test the venv directory, not `pipx list`: that exits 1 when any venv is
+  # broken, and omits a venv whose interpreter is gone, which is this case.
+  if [ -d "$CCI_VENV" ]; then
+    "${PIPX[@]}" reinstall cumulusci --python "$PY_TARGET_BIN"
+  else
+    "${PIPX[@]}" install cumulusci --python "$PY_TARGET_BIN"
+  fi
+  [ "$(cci_python)" = "$PY_TARGET" ] \
+    || die "CCI's venv isn't running Python $PY_TARGET after the reinstall — see docs/guides/dev-environment-setup.md (pipx venv broken after Python patch bump)"
+}
+
+# Decide on the venv's real interpreter, not on whether this run bumped Python,
+# so a re-run after a failed reinstall repairs it.
+if [ "$PY_UPGRADED" -eq 1 ] || [ "$(cci_python)" != "$PY_TARGET" ]; then
   cci_reinstall
 else
   log "CCI: upgrade in place"

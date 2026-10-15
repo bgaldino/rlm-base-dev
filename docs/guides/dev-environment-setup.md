@@ -43,7 +43,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **Python** | `pyenv install $(pyenv latest -k 3.13)` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
 | **pipx** | `$(pyenv prefix)/bin/python3 -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
 | **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4` (snowfakery 4.x requirement) |
-| **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
+| **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (`npm install -g @salesforce/cli@latest`; `sf update` refuses npm installs) |
 | **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5.6.4+ required (enforced by `cci task run validate_setup`) |
 | **Gate interpreter (`.venv`)** | `"$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv` + `.venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)` (main checkout root) | Runs `scripts/ai/pr_gate.py` locally, in the loop Stop hook, and for the `validate_setup` "Gate interpreter" check | Python `3.13` (matches CI); packages from `pr_gate.py`'s `DEPS` (CumulusCI pinned to CI's version) |
 | **Chrome for Testing** *(managed workstations only)* | `npx -y @puppeteer/browsers install chrome@<v>` + `chromedriver@<v>` (same version, `--path ~/.cache/cft`) | Browser for the Robot setup tasks where stock Chrome crashes on Setup pages | any CfT version, browser and driver identical; paths go in `.env.local` ([local-installation.md](local-installation.md#chrome-for-testing-managed-workstations)) |
@@ -311,12 +311,15 @@ The script handles:
 2. `pyenv install --skip-existing $(pyenv latest -k 3.13)` — installs newest
    patch in the pinned major.minor line, **only if** there's a newer one —
    then stops, before touching Node, if that Python can't import `ssl`
-3. `nvm install 'lts/*' --reinstall-packages-from=current --latest-npm` —
-   keeps `sf` and other npm globals carried forward
-4. `sf update` — uses the CLI's built-in updater
-5. `pipx install --force cumulusci` (if Python patch bumped) **or**
-   `pipx upgrade cumulusci` — required because patch upgrades break the
-   venv's python symlink
+3. `nvm install 'lts/*' --latest-npm`, then, only if the version changed,
+   `nvm reinstall-packages <old>` — carries `sf` and other npm globals forward
+4. `npm install -g @salesforce/cli@latest` — `sf` is an npm global under nvm's
+   Node, and `sf update` refuses npm-based installs (it falls back to `sf update`
+   only for an installer-based `sf`)
+5. `pipx reinstall cumulusci --python <new patch>` (if Python patch bumped, or
+   CCI's venv isn't running that patch) **or** `pipx upgrade cumulusci` —
+   required because patch upgrades break the venv's python symlink. The script
+   then checks the venv really runs the new patch
 6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
    requires modern setuptools. The historical `<71` pin (older docs)
    is **incompatible**; see the [local installation guide](local-installation.md#step-7--install-cumulusci), *Note on setuptools*. Note CI
@@ -455,14 +458,20 @@ fixing `~/.zshenv`.
 The CCI venv's python is a symlink to a specific pyenv patch dir
 (`~/.pyenv/versions/<old-patch>/bin/python3`). Installing a newer patch
 doesn't replace the old one, but if you uninstall the old patch the venv
-dies. The update script handles this; manually:
+dies. A venv rebuilt in place (its `pyvenv.cfg` names the new patch while
+`bin/python3.13` still links to the old one) fails instead with
+`ImportError: dlopen(…/lib-dynload/….so …): symbol not found in flat namespace`.
+That's what `pipx install --force --python` leaves on pipx 1.17, which ignores
+`--python` when `--force` is passed. The update script handles this; manually:
 
 ```bash
 # Refresh pipx under the new patch (in case pipx's own shebang was tied
 # to the old patch), then reinstall CCI under it.
 "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m pip install --user --upgrade pipx
-pipx install --force cumulusci --python "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3"
+pipx reinstall cumulusci --python "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3"
 pipx inject --force cumulusci "setuptools>=75.4"
+# The Python version line must name the new patch
+cci version
 ```
 
 ### `cci` breaks after `brew upgrade` (Homebrew OpenSSL 4 migration)
@@ -572,7 +581,9 @@ so `~/.curlrc` is ignored) or `wget` (`ca_certificate` in `~/.wgetrc`), not
 default trust rather than adding to it, so point them at a full bundle (for
 example a copy of `/etc/ssl/cert.pem` with your corporate CAs appended), not at
 the Node extras file below. The npm steps that run under the new Node afterwards
-(`--reinstall-packages-from`, `--latest-npm`) do use `NODE_EXTRA_CA_CERTS`.
+(`--latest-npm`, `nvm reinstall-packages`, and the
+`npm install -g @salesforce/cli@latest` that updates `sf`) do use
+`NODE_EXTRA_CA_CERTS`.
 
 `NODE_EXTRA_CA_CERTS` takes **one** PEM file. A colon-separated list of files is
 treated as a single path that doesn't exist: Node warns (only once it opens its
