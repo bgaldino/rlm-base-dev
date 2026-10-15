@@ -34,9 +34,9 @@ configured tasks; Salesforce CLI (`sf`) inspects and operates on the target org.
    verified unique portable keys; stop on ambiguous matches.
 4. Load prerequisites and parents before children. Validate decomposition and
    dependency graphs, dependency direction, scopes, and condition resources.
-5. For CSVs, read [csv-and-sfdmu.md](csv-and-sfdmu.md) and the
-   [SFDMU skill](../sfdmu-data-plans/SKILL.md). Use 5.6.4+, non-destructive matching,
-   and a scoped plan rather than copying the whole `qb-dro` dataset.
+5. For datasets, use [csv-and-sfdmu.md](csv-and-sfdmu.md) for DRO object and
+   relationship patterns; follow the [SFDMU skill](../sfdmu-data-plans/SKILL.md)
+   for syntax, operation safety, extraction, and validation. Keep changes scoped.
 6. For an existing org, capture before-state and review a field-level delta.
    Explicit clears need verified null semantics; omitted fields mean preserve.
 7. Inspect condition JSON and rule-library/context alignment. Verify generated
@@ -51,8 +51,7 @@ configured tasks; Salesforce CLI (`sf`) inspects and operates on the target org.
   operation approval; use non-destructive Upsert for new configuration datasets.
 - Do not match target records using source-org IDs or autonumber Names. Do not
   write internal RuleSet artifacts directly to manufacture condition wiring.
-- Do not use `$$` composite notation in lookup-reference CSV columns. It is
-  valid only for the matching columns described in the SFDMU skill.
+- Follow the SFDMU skill's restrictions for matching keys and lookup references.
 - Do not assume creating a context extension selects it in DRO settings, that
   a custom tag is String because its value looks like an ID, or that credentials
   exist merely because an integration provider was deployed.

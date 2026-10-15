@@ -45,6 +45,27 @@ convention-unique across the records the loader can match. For autonumber object
 prove a semantic composite identifies one row; if no safe key exists, use a
 targeted ID-based update after discovery rather than claiming portable Upsert.
 
+## CSV Relationship Headers
+
+Use these relationship names as starting points when authoring CSVs. Confirm each
+relationship in the target describe and use a simple, unique parent key for lookup
+resolution. The SFDMU skill owns general CSV syntax and matching-key rules.
+
+| CSV relationship header | Lookup field(s) |
+| --- | --- |
+| `SourceProduct.StockKeepingUnit`, `DestinationProduct.StockKeepingUnit` | `ProductFulfillmentDecompRule.SourceProductId`, `.DestinationProductId` |
+| `SourceProductClassification.Name` | `ProductFulfillmentDecompRule.SourceProductClassificationId` |
+| `StepDefinitionGroup.Name` | `FulfillmentStepDefinition.StepDefinitionGroupId` |
+| `AmendGroup.Name`, `CancelledGroup.Name` | `FulfillmentStepDefinition.AmendGroupId`, `.CancelledGroupId` |
+| `IntegrationDefinitionName.DeveloperName` | `FulfillmentStepDefinition.IntegrationDefinitionNameId` |
+| `FulfillmentStepDefinition.Name`, `DependsOnStepDefinition.Name` | `FulfillmentStepDependencyDef.FulfillmentStepDefinitionId`, `.DependsOnStepDefinitionId` (dependent, predecessor) |
+| `FulfillmentStepDefnGroup.Name` | `ProductFulfillmentScenario.FulfillmentStepDefnGroupId` |
+| `Product.StockKeepingUnit`, `ProductClassification.Name` | `ProductFulfillmentScenario.ProductId`, `.ProductClassificationId` |
+| `FulfillmentWorkspace.Name`, `FulfillmentStepDefinitionGroup.Name` | `FulfillmentWorkspaceItem.FulfillmentWorkspaceId`, `.FulfillmentStepDefinitionGroupId` |
+| `DecompositionRule.Name`, `ListMappingGroup.Name` | `ProductDecompEnrichmentRule.DecompositionRuleId`, `.ListMappingGroupId` |
+| `ValueTransformGroup.Name` | `ValTfrm.ValueTransformGroupId` |
+| `IntegrationDefinition.DeveloperName` | `FulfillmentFalloutRule` / `FulfillmentStepJeopardyRule.IntegrationDefinitionId` |
+
 ## Setup and External Dependencies
 
 | Dependency | Relationship/check | Route |
@@ -63,8 +84,8 @@ targeted ID-based update after discovery rather than claiming portable Upsert.
 | Runtime record | Relationship used for inspection |
 | --- | --- |
 | `SalesTransactionFulfillReq` | `ReferenceObjectId` → transaction; `PlanId` → `FulfillmentPlan`; `PreviousRequestId` → prior request |
-| `FulfillmentOrder` / `FulfillmentOrderLineItem` | Inspect order linkage on target; line `FulfillmentOrderId`, `OrderItemId`, `Product2Id`, `FulfillmentAssetId` track decomposition |
-| `FulfillmentLineSourceRel` | `FulfilmentOrderLineId` → generated `FulfillmentOrderLineItem`; `SourceLineItemId` → `OrderItem` or another `FulfillmentOrderLineItem`; inspect this relationship to establish decomposition lineage |
+| `FulfillmentOrder` / `FulfillmentOrderLineItem` | Inspect order linkage on target; line `FulfillmentOrderId`, `OrderItemId`, `Product2Id`, `FulfillmentAssetId` track fulfillment. `OrderItemId` can be null for generated technical lines; use the source relationship for lineage |
+| `FulfillmentLineSourceRel` | `FulfilmentOrderLineId` → generated `FulfillmentOrderLineItem`; `SourceLineItemId` → `OrderItem` or another `FulfillmentOrderLineItem`; this is the authoritative lineage when `FulfillmentOrderLineItem.OrderItemId` is null |
 | `FulfillmentStep` | `FulfillmentPlanId`, `FulfillmentStepDefinitionId` link runtime step to plan/template |
 | `FulfillmentStepDependency` | `FulfillmentStepId`, `DependsOnStepId`, `DependencyDefinitionId` link instantiated dependent/predecessor and definition |
 | `FulfillmentStepSource` | `StepId` → step; `SourceLineItemId` → source, including `OrderItem`/`FulfillmentOrderLineItem` |

@@ -7,13 +7,9 @@ registries: resolve both to the same username/org ID before loading. Do not prin
 access tokens; CLI commands take aliases/usernames, never tokens. Read
 [CCI orchestration](../cci-orchestration/SKILL.md) for registry/task mechanics.
 
-In a Git worktree, CCI may fail project discovery because `.git` is a file.
-The installed runtime supports environment overrides: set
-`CUMULUSCI_AUTO_DETECT=1`, `CUMULUSCI_REPO_ROOT` to this checkout's absolute root,
-`CUMULUSCI_REPO_URL` to its verified origin URL, and `CUMULUSCI_REPO_BRANCH` to
-its current feature branch. Use `CUMULUSCI_REPO_COMMIT` if an operation needs
-the current commit. These select the actual checkout; do not replace its Git
-metadata or point at another checkout just to make a command resolve.
+If CCI cannot discover the checkout, follow the worktree/project-discovery
+guidance in [CCI orchestration](../cci-orchestration/SKILL.md); do not alter Git
+metadata or point CCI at another checkout.
 
 ```bash
 SF_ORG="your-sf-alias-or-username"
@@ -84,10 +80,13 @@ the scope, restore the intended product fields and repair the step references.
 ### Decomposed Line Items
 
 The order's commercial `OrderItem` and the UI's **Decomposed Line Items** are
-different records. A decomposition rule maps a commercial product to a technical
+different records. A quote/order bundle can first expand into commercial component
+`OrderItem` records; that catalog expansion is separate from DRO's technical
+decomposition. A DRO decomposition rule maps a commercial product to a technical
 `Product2`; submission generates `FulfillmentOrderLineItem` records and source
-relationships. A fulfillment scenario alone can select steps without generating
-technical outputs. Do not insert runtime lines to fill an empty UI panel.
+relationships. Count and inspect both layers independently. A fulfillment scenario
+alone can select steps without generating technical outputs. Do not insert runtime
+lines to fill an empty UI panel.
 
 1. Specify the required technical outcomes and expected lines per source line.
    Reuse suitable technical products; create new ones through an upstream
@@ -121,9 +120,12 @@ destination settings after loading. Help's **None** choice means default behavio
 not a literal `None` API picklist value.
 
 On an authorized fresh test order, verify generated product IDs, quantities,
-source relationships, steps, and edges—not just counts. Configuration changes
-do not retrofit a submitted plan. Respect a user's choice to test manually and
-report runtime generation as unverified until evidence is available. See the
+source relationships, steps, and edges—not just counts. `FulfillmentOrderLineItem.OrderItemId`
+can be null on generated technical lines; use `FulfillmentLineSourceRel` to trace
+each fulfillment line to its source `OrderItem` or prior fulfillment line.
+Configuration changes do not retrofit a submitted plan. Respect a user's choice
+to test manually and report runtime generation as unverified until evidence is
+available. See the
 [CSV extension](csv-and-sfdmu.md#worked-decomposition-extension) and
 [technical-product sources](examples-and-grounding.md#captured-article-map).
 

@@ -1,52 +1,24 @@
 # DRO CSV Authoring and SFDMU Loading
 
-Read the [SFDMU data-plan skill](../sfdmu-data-plans/SKILL.md) first; it owns v5
-syntax, operation safety, empty-file behavior and extraction edge cases. This
-reference adds DRO-specific selection and a minimal worked dataset.
+This reference covers DRO object selection, relationship headers, loader routing,
+and a worked dataset. The [SFDMU data-plan skill](../sfdmu-data-plans/SKILL.md)
+owns general plan syntax, operation safety, CSV conventions, extraction behavior,
+and validation. Follow it for those mechanics instead of duplicating its rules here.
 
 ## Dataset Contract
 
-Use `datasets/sfdmu/<family>/<locale>/<plan>/` for tracked datasets, following the
-nearest catalog family. Include `export.json`, a CSV per file-backed writable object,
-and a README describing prerequisites, operations, matching keys, counts, load
-sequence, verification and known limits. A plan contains configuration, not
-runtime orders/plans/steps. Do not put a temporary target-org delta in tracked
-source unless it represents intended fresh-build configuration.
+Place reusable datasets under
+`datasets/sfdmu/<family>/<locale>/<plan>/`, following the nearest catalog family.
+They describe configuration, not runtime orders, plans, or steps. Keep a plan
+narrow to its intended configuration graph; a technical product belongs in an
+upstream PCM plan unless its creation is explicitly in scope. Follow the SFDMU
+skill and `AGENTS.md` for file layout, README, key-selection, and operation rules.
 
-ReadOnly references resolve from the target and do not generally require a source
-CSV; the SFDMU skill documents live evidence for that behavior. Keep illustrative
-lookup CSVs only when useful or needed by the selected supported loader mechanism.
-Do not create empty reference files merely to satisfy a checker. Match CSV filename
-case exactly to the query's FROM object, including per-pass overrides.
-
-Choose keys by querying source and target uniqueness. Namespace chosen Names
-when matching by Name so independent plans cannot accidentally update each other.
-Use Upsert for configuration, Update for existing product settings, ReadOnly for
-external lookup records. New technical products belong to an upstream PCM plan
-or an explicitly scoped catalog creation change. Never copy full catalog rows
-just to include a single product lookup.
-
-| Relationship CSV header | Lookup ID field |
-| --- | --- |
-| `SourceProduct.StockKeepingUnit`, `DestinationProduct.StockKeepingUnit` | `ProductFulfillmentDecompRule.SourceProductId`, `.DestinationProductId` |
-| `SourceProductClassification.Name` | Decomposition `.SourceProductClassificationId` |
-| `StepDefinitionGroup.Name` | Step `.StepDefinitionGroupId` |
-| `AmendGroup.Name`, `CancelledGroup.Name` | Step `.AmendGroupId`, `.CancelledGroupId` |
-| `IntegrationDefinitionName.DeveloperName` | Step `.IntegrationDefinitionNameId` |
-| `FulfillmentStepDefinition.Name`, `DependsOnStepDefinition.Name` | Dependency's dependent and predecessor IDs |
-| `FulfillmentStepDefnGroup.Name` | Scenario `.FulfillmentStepDefnGroupId` |
-| `Product.StockKeepingUnit`, `ProductClassification.Name` | Scenario `.ProductId`, `.ProductClassificationId` |
-| `FulfillmentWorkspace.Name`, `FulfillmentStepDefinitionGroup.Name` | Workspace-item parent IDs |
-| `DecompositionRule.Name`, `ListMappingGroup.Name` | Enrichment `.DecompositionRuleId`, `.ListMappingGroupId` |
-| `ValueTransformGroup.Name` | Transform `.ValueTransformGroupId` |
-| `IntegrationDefinition.DeveloperName` | Fallout/jeopardy `.IntegrationDefinitionId` |
-
-Confirm each relationship name in target describe and ensure reference objects
-are available to SFDMU. Query ID fields in `export.json`; portable CSVs use their
-relationship headers. Traversal fields used in external IDs must also be queried.
-Do not use a `$$` parent composite as a child lookup reference. If a simple parent
-key cannot be made unique, use another verified single-field key or a targeted
-API operation instead of guessing which parent SFDMU will choose.
+Use the [CSV relationship-header map](objects-and-relationships.md#csv-relationship-headers)
+for DRO lookups. Confirm fields and `referenceTo` values with target describes;
+query the lookup ID and relationship traversal needed by the plan. A relationship
+header is for resolving a parent, not a substitute for selecting a safe matching
+key. If no portable unique parent key exists, use a targeted API operation.
 
 ## Worked Minimal Dataset — Not Live-Verified
 
@@ -162,10 +134,9 @@ FulfillmentWorkspace.Name,FulfillmentStepDefinitionGroup.Name,ShowOrder,$$Fulfil
 Example DRO Workspace,Example DRO Delivery,1,Example DRO Workspace;Example DRO Delivery
 ```
 
-The workspace item uses a portable composite matching column; its two **lookup**
-columns remain simple references. `deleteOldData` is intentionally absent.
-The semicolon is the matching-key value delimiter; commas delimit CSV columns.
-Quote cells containing commas/newlines/quotes using standard CSV escaping.
+The workspace item's `$$` column is its matching key; its parent lookup columns
+are ordinary single-field references. Follow the SFDMU skill for delimiter,
+escaping, empty-file, and destructive-operation rules.
 
 For two eligible order lines, expect four steps: Ready and Delivered for each
 line, with each Delivered depending on its corresponding Ready. Verify actual
@@ -264,15 +235,14 @@ For default user assignment, the existing loader supports
 using the same placeholder. Follow the shipped `qb-dro` schema for this mode;
 the loader substitutes the target org user's Name in a temporary copy.
 Verify uniqueness of that Name in the target, not only the resolved username.
-ReadOnly references do not generally need source CSVs. For user assignment, use
-`AssignedToId$User` in typed query syntax and `AssignedTo.Name` in the CSV.
+ReadOnly references do not generally need source CSVs. For this user lookup, the
+query uses `AssignedToId$User` and the CSV uses `AssignedTo.Name`.
 
 An explicit assignee, execution user, or queue needs its own verified target
 mapping. User Names need not be unique; choose another supported unique key when
 necessary. A queue is `Group` with `Type='Queue'`, not a separate data SObject.
-Validate membership and eligibility. Polymorphic fields require typed SFDMU query
-notation (the shipped user example uses `AssignedToId$User`); follow the SFDMU
-polymorphic guidance and simulation before mixing User/Group destinations.
+Validate membership and eligibility. For mixed User/Group destinations, follow
+the SFDMU polymorphic-field guidance and simulate before loading.
 Default-user replacement is not a general queue/RunAsUser remapping mechanism.
 
 ## Validate, Simulate and Load
@@ -283,9 +253,6 @@ Use shell variables with concrete values, from the repository root:
 DRO_PLAN="datasets/sfdmu/your-family/en-US/your-dro-plan"
 CCI_ORG="your-cci-alias"
 SF_ORG="your-sf-alias-or-username"
-python scripts/ai/generate_plan_readme.py "$DRO_PLAN"
-python scripts/ai/check_plan_readme_consistency.py --strict "$DRO_PLAN"
-python scripts/validate_sfdmu_v5_datasets.py
 cci task run insert_qb_dro_data --org "$CCI_ORG" \
   -o pathtoexportjson "$DRO_PLAN" -o targetusername "$SF_ORG" \
   -o dynamic_assigned_to_user "" -o simulation true
@@ -307,31 +274,37 @@ cci task run insert_qb_dro_data --org "$CCI_ORG" \
   -o dynamic_assigned_to_user "" -o simulation ""
 ```
 
-Require zero Critical/High validator findings and zero strict README errors/warnings.
-Inspect simulation and live logs, row-error/missing-reference files, per-object
-counts and target read-back. If a record failed, fix its cause before dependent
-records; do not treat a successful process exit as sufficient.
+If the target is authenticated only in the SF CLI and has no CCI alias, direct
+`sf sfdmu run` can be used for a dataset that needs no CCI-side preprocessing.
+Use the same reviewed plan path and SF alias for simulation and load; do not pass
+or log access tokens. Resolve any SFDMU production-style host confirmation by
+verifying the target identity first. This fallback does not perform the CCI
+loader's dynamic assignee substitution or other task-side processing.
 
-Use diagnostics generated by the **current run**, not stale `source/`, `target/`
-or report files inherited from earlier loads/extracts. Inspect target CSV `Errors`
-where present and reconcile final records against expected values. A missing-parent
-report from an early pass may be transient: verify the final lookup IDs before
-declaring permanent failure. Conversely, unresolved references or actual target-row
-errors remain failures even when the process exits zero. Preserve current failure
-reports before temporary files are removed; do not assume automatic archival in
-this checkout's CCI loader.
+Run the shared validators and README checks described in the SFDMU skill and
+`AGENTS.md`. The DRO-specific acceptance check is target read-back of the intended
+configuration and relationships after loading; simulation is only a preflight.
 
-In a disposable org, record IDs/keys/values after the first load and repeat the
-same load. Require stable identities/counts and intended field values, with no
-delete/reinsert churn. The existing `test_qb_dro_idempotency` can be overridden
-with `pathtoexportjson`, but its documented default-user limitation applies;
-two explicit loader runs plus read-back cover dynamic assignment. Follow
+When the test order is created with the Transaction Data Harness, run its `plan`
+command before creating records. If a product has multiple active PricebookEntry
+selling models, pin the intended `selling_model` in the scenario YAML; the harness
+cannot choose safely from several valid models. Inspect the resolved product,
+pricebook, account and target stage before continuing.
+
+If SFDMU classifies the target host as production and requests `--canmodify`,
+verify the authenticated org identity and authorization first; simulation does
+not bypass this identity guard. For idempotency, use a disposable org and verify
+stable record identities and intended relationships after two loads. The existing
+`test_qb_dro_idempotency` can be overridden with `pathtoexportjson`, but its
+documented default-user limitation applies; two explicit loader runs plus read-back
+cover dynamic assignment. Follow
 [updates-and-runtime.md](updates-and-runtime.md) for used orgs and null clears.
 
 ## Extract Existing Configuration
 
-Use a reviewed export plan that includes all fields needed for the intended
-round trip; the shipped plan omits some condition/advanced fields.
+Use the [SFDMU extraction guidance](../sfdmu-data-plans/SKILL.md) for a reviewed
+export plan and generic post-processing. For DRO, include condition/advanced
+fields omitted by the shipped plan and preserve custom fields during processing.
 
 ```bash
 cci task run extract_qb_dro_data --org "$CCI_ORG" \
@@ -339,10 +312,8 @@ cci task run extract_qb_dro_data --org "$CCI_ORG" \
   -o referenceplandir none -o run_post_process true
 ```
 
-Explicit output prevents writing extraction results over authored CSVs;
-`referenceplandir none` prevents automatic alignment to the QB schema from
-dropping a custom dataset's fields. Review `processed/` output, composite
-matching columns, normalized relationship headers, condition JSON, missing
-references and portable identities. Extract custom scopes separately with the
-scope task and retrieve required metadata through supported surfaces. No data
-extract is a complete backup of settings, secrets or external-system effects.
+Use a separate output directory and `referenceplandir none` so the QB schema does
+not drop custom fields. Review normalized DRO relationship headers, condition JSON,
+and portable identities. Extract custom scopes separately and retrieve required
+metadata through supported surfaces; data extraction does not capture settings,
+secrets, or external-system effects.

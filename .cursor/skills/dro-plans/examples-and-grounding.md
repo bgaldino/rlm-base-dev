@@ -64,6 +64,29 @@ and verify generated source relationships. Review source and destination scenari
 eligibility to prevent duplicate work. The worked example is not live-verified;
 follow the evidence report below for each target.
 
+### Live QuantumBit Bundle Smoke
+
+A separate API 68.0 smoke test verified this decomposition pattern against a
+target org. An isolated Add scenario on the commercial service bundle was composed
+alongside the existing scenarios on its two technical destinations. The transaction
+harness expanded the configurable bundle into commercial `OrderItem` components;
+after activation, DRO generated two technical `FulfillmentOrderLineItem` records.
+Their `OrderItemId` values were null, while `FulfillmentLineSourceRel` linked each
+back to the source bundle line. This confirms why commercial bundle expansion and
+DRO technical decomposition must be inspected separately.
+
+The composed plan contained eight steps, including the two new bundle-level
+milestones and the existing project and finance work. Runtime dependency records
+linked each configured dependent step to its intended predecessor. DRO reported
+decomposition and composition complete, and the harness completed its activation,
+billing-schedule, and asset checkpoints. The plan remained InProgress because
+the two added milestones auto-completed but existing manual and billing steps
+remained open. This verifies configuration, composition, and order activation in
+that target; it does not verify end-to-end fulfillment, repeat-load idempotency,
+or portability to another org. The temporary dataset was loaded directly through
+SFDMU after simulation because no CCI alias was available; CCI-only preprocessing
+such as dynamic assignee replacement was not exercised.
+
 ## Checks When Using the Examples
 
 | What to check | How to handle it |
