@@ -47,7 +47,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5.6.4+ required (enforced by `cci task run validate_setup`) |
 | **Gate interpreter (`.venv`)** | `"$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv` + `.venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)` (main checkout root) | Runs `scripts/ai/pr_gate.py` locally, in the loop Stop hook, and for the `validate_setup` "Gate interpreter" check | Python `3.13` (matches CI); packages from `pr_gate.py`'s `DEPS` (CumulusCI pinned to CI's version) |
 | **Chrome for Testing** *(managed workstations only)* | `npx -y @puppeteer/browsers install chrome@<v>` + `chromedriver@<v>` (same version, `--path ~/.cache/cft`) | Browser for the Robot setup tasks where stock Chrome crashes on Setup pages | any CfT version, browser and driver identical; paths go in `.env.local` ([local-installation.md](local-installation.md#chrome-for-testing-managed-workstations)) |
-| **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
+| **gh, git, GCM** | `brew install gh git; brew install --cask git-credential-manager` | Source control + PR workflow | latest |
 | **Doc snapshot tooling** *(optional)* | `pip install -r scripts/doc_snapshot/requirements.txt && python -m playwright install chromium` (in any venv) | Refresh the Salesforce Help / Dev Guide corpus under `docs/salesforce/` (`python -m scripts.doc_snapshot`; see its [README](../../scripts/doc_snapshot/README.md)) | versions in `requirements.txt`; only needed to re-snapshot docs |
 
 **Pin philosophy:**
@@ -306,8 +306,10 @@ scripts/bash/update-toolchain.sh
 
 The script handles:
 
-1. `brew update`, then `brew upgrade` once `openssl@3` is installed and
-   marked installed on request (see [OpenSSL 4 migration](#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration))
+1. `brew update`, then `brew upgrade --formula` once `openssl@3` is installed and
+   marked installed on request (see [OpenSSL 4 migration](#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration)).
+   Casks (Git Credential Manager, Docker Desktop, Chrome) aren't upgraded: a `.pkg`
+   cask needs sudo, which would stop the run. Upgrade them with `brew upgrade --cask`
 2. `pyenv install --skip-existing $(pyenv latest -k 3.13)` — installs newest
    patch in the pinned major.minor line, **only if** there's a newer one —
    then stops, before touching Node, if that Python can't import `ssl`.
@@ -323,7 +325,11 @@ The script handles:
    patch aren't affected either way: they record its path, and break only if that
    patch is uninstalled
 3. `nvm install 'lts/*' --latest-npm`, then, only if the version changed,
-   `nvm reinstall-packages <old>` — carries `sf` and other npm globals forward
+   `nvm reinstall-packages <old>` — carries `sf` and other npm globals forward.
+   `<old>` is the active Node. When another `node` is ahead of nvm's on PATH,
+   it's nvm's `default` alias instead, or without one the newest Node nvm has
+   installed. nvm comes from Homebrew (`brew --prefix nvm`) or, failing that,
+   nvm's own installer (`$NVM_DIR/nvm.sh`, or `$XDG_CONFIG_HOME/nvm/nvm.sh`)
 4. `npm install -g @salesforce/cli@latest` — `sf` is an npm global under nvm's
    Node, and `sf update` refuses npm-based installs (it falls back to `sf update`
    only for an installer-based `sf`)
@@ -619,7 +625,10 @@ no pyenv shim is on PATH. Inside the repo it happens in a login shell that
 `path_helper` (run from `/etc/zprofile`) moved `/usr/bin` ahead of them, and the
 `brew shellenv` block in `~/.zprofile` put Homebrew first, so a Homebrew
 `python3` (`/opt/homebrew/bin/python3`) can win the same way (see §2,
-`~/.zprofile`). Open a terminal outside the repo and `cd` in instead; don't use
+`~/.zprofile`). So can the python.org installer's: it adds a
+`/Library/Frameworks/Python.framework/Versions/3.x/bin` PATH line to
+`~/.zprofile`, outside any tool-managed block. Remove that line if nothing else
+needs that Python. Open a terminal outside the repo and `cd` in instead; don't use
 `direnv reload` or `cd` out and back in here, for the reason in §2 (`~/.zprofile`): it drops system and
 managed PATH entries. Cosmetic — `python` (no `3`) resolves correctly because the system doesn't
 ship one. CCI invokes `python`, so this won't break anything. If you need
