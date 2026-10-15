@@ -326,9 +326,10 @@ The script handles:
    patch is uninstalled
 3. `nvm install 'lts/*' --latest-npm`, then, only if the version changed,
    `nvm reinstall-packages <old>` — carries `sf` and other npm globals forward.
-   `<old>` is the active Node, or the newest one nvm has installed when another
-   `node` is ahead of nvm's on PATH. nvm comes from Homebrew (`brew --prefix nvm`)
-   or, failing that, nvm's own installer (`$NVM_DIR/nvm.sh`, or `$XDG_CONFIG_HOME/nvm/nvm.sh`)
+   `<old>` is the active Node. When another `node` is ahead of nvm's on PATH,
+   it's nvm's `default` alias instead, or without one the newest Node nvm has
+   installed. nvm comes from Homebrew (`brew --prefix nvm`) or, failing that,
+   nvm's own installer (`$NVM_DIR/nvm.sh`, or `$XDG_CONFIG_HOME/nvm/nvm.sh`)
 4. `npm install -g @salesforce/cli@latest` — `sf` is an npm global under nvm's
    Node, and `sf update` refuses npm-based installs (it falls back to `sf update`
    only for an installer-based `sf`)

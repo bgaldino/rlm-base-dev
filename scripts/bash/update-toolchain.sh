@@ -161,9 +161,11 @@ fi
 
 OLD_NODE="$(nvm current 2>/dev/null || echo none)"
 # Where to carry npm globals from. `nvm current` isn't a version when another
-# node is ahead of nvm's on PATH ("system"), so fall back to the newest Node nvm
-# has installed; that's the one whose globals the user has been running.
+# node is ahead of nvm's on PATH ("system"), so use nvm's `default` alias, the
+# Node new shells get and whose globals the user relies on, and only without one
+# the newest Node nvm has installed.
 CARRY_FROM="$OLD_NODE"
+[ "${CARRY_FROM#v}" != "$CARRY_FROM" ] || CARRY_FROM="$(nvm version default 2>/dev/null || true)"
 [ "${CARRY_FROM#v}" != "$CARRY_FROM" ] || CARRY_FROM="$(nvm version node 2>/dev/null || true)"
 log "Node: installing $NODE_LINE (current: $OLD_NODE)"
 # Drive install from NODE_LINE so changes at the top of this script take effect.
