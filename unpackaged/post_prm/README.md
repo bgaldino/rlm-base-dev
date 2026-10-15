@@ -48,7 +48,7 @@ ownership details.
 ### Permission Sets (2)
 
 - `RLM_PRM.permissionset-meta.xml` - Grants access to the baseline PRM channel-program fields
-- `RLM_Partner_Community_User_Perm_Set.permissionset-meta.xml` - Comprehensive permissions for partner community users (107KB). It holds no grants for the Quote and QuoteLineItem estimated-tax fields, which exist only with estimated tax on. With `quote_est_tax: true`, `deploy_post_prm` splices them in at the `<!-- QUOTE_EST_TAX_GRANTS -->` marker (the grants are in `cumulusci.yml`; see `tasks/rlm_deploy_with_fragments.py`); keep that marker
+- `RLM_Partner_Community_User_Perm_Set.permissionset-meta.xml` - Comprehensive permissions for partner community users (107KB). It holds no grants for the Quote and QuoteLineItem estimated-tax fields, which exist only with estimated tax on. With `quote_est_tax` and `tax` both true, `deploy_post_prm` splices them in at the `<!-- QUOTE_EST_TAX_GRANTS -->` marker (the grants are in `cumulusci.yml`; see `tasks/rlm_deploy_with_fragments.py`); keep that marker. The fields exist only after `prepare_tax` step 5 turns estimated tax on, so `deploy_post_prm` checks that `Quote.TotalPriceWithTax` exists first and deploys without the grants (with a warning) if it doesn't. Run `prepare_tax` before a standalone `prepare_prm` to get them
 
 ### Profile
 

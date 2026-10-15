@@ -10,9 +10,10 @@
          only when a line has a negative quantity, and then for the whole transaction.
          Verified on a 264.7 org, 2026-10-14. This setting covers quotes and orders; invoice
          tax goes through Billing's tax path.
-         Deployed by deploy_quote_est_tax_settings (prepare_core step 18), which writes true
-         instead when quote_est_tax is on. It's kept out of unpackaged/pre so a re-run of
-         deploy_pre, or ensure_pricing_schedules' redeploy of pre/2_settings, can't turn it
-         back off on an org built with the flag. -->
+         Deployed by deploy_quote_est_tax_settings: off in prepare_core step 18, unless
+         quote_est_tax and tax are both on, in which case prepare_tax step 5 writes true after
+         the tax engine and policies exist (Help: set those up before enabling it). It's kept
+         out of unpackaged/pre so a re-run of deploy_pre, or ensure_pricing_schedules'
+         redeploy of pre/2_settings, can't turn it back off on an org built with the flags. -->
     <enableQuoteEstimatedTaxCPQ>false</enableQuoteEstimatedTaxCPQ>
 </IncludeEstTaxInQuoteCPQSettings>

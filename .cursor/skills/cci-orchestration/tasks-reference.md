@@ -1833,14 +1833,15 @@
 
 ### `deploy_quote_est_tax_settings`
 
-**Description:** Set estimated tax on quotes and orders (IncludeEstTaxInQuoteCPQ) to off, or on with quote_est_tax; on creates the Quote and QuoteLineItem tax fields
+**Description:** Set estimated tax on quotes and orders (IncludeEstTaxInQuoteCPQ) to off, or on with quote_est_tax and tax; on creates the Quote and QuoteLineItem tax fields
 
 **Class:** `tasks.rlm_deploy_with_fragments.DeployWithFragments`
 
 **Options:**
 
 - `path`: `unpackaged/post_quote_est_tax_settings`
-- `flag`: `quote_est_tax`
+- `flag`: `quote_est_tax,tax`
+- `require_on`: `SELECT COUNT() FROM TaxPolicy WHERE Status = 'Active'`
 - `fragments`: `[{'path': 'settings/IncludeEstTaxInQuoteCPQ.settings', 'marker': '<enableQuoteEstimatedTaxCPQ>false</enableQuoteEstim...`
 
 ---
@@ -3205,14 +3206,15 @@
 
 ### `deploy_post_prm`
 
-**Description:** Deploy Partner Relationship Management Metadata (with quote_est_tax, partners also get read access to the estimated-tax fields; see unpackaged/post_prm/README.md)
+**Description:** Deploy Partner Relationship Management Metadata (with quote_est_tax and tax, partners also get read access to the estimated-tax fields; see unpackaged/post_prm/README.md)
 
 **Class:** `tasks.rlm_deploy_with_fragments.DeployWithFragments`
 
 **Options:**
 
 - `path`: `unpackaged/post_prm`
-- `flag`: `quote_est_tax`
+- `flag`: `quote_est_tax,tax`
+- `require_on`: `SELECT COUNT() FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName = 'Quote' AND QualifiedApiName = 'TotalPr...`
 - `fragments`: `[{'path': 'permissionsets/RLM_Partner_Community_User_Perm_Set.permissionset', 'marker': '<!-- QUOTE_EST_TAX_GRANTS --...`
 
 ---

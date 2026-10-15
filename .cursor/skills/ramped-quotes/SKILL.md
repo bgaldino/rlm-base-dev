@@ -290,8 +290,8 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
 - **`CompletedWithPricing` — settled *when tax doesn't run*.** Pricing is done; on
   an org that calculates estimated tax, tax runs next. Which applies depends on the org:
   - **Foundations default build:** estimated tax on quotes and orders is **off**
-    (`unpackaged/post_quote_est_tax_settings/`; the `quote_est_tax` flag turns it
-    on). Tax never
+    (`unpackaged/post_quote_est_tax_settings/`; the `quote_est_tax` flag, with `tax`,
+    turns it on). Tax never
     runs, so `CompletedWithPricing` is **terminal**. Live 264.7, 2026-10-14: quotes
     stopped there with no `taxPref`.
   - **Estimated tax on and `taxPref` omitted:** `taxPref` defaults to running tax

@@ -43,7 +43,7 @@
          scratch org had it off. RLM_DefaultPricingProcedure needs no change: do NOT add
          Help's "LastTransaction: InputUnitPrice -> NetUnitPrice" step, which is what
          #486 removed. A price decrease needs estimated tax off (quote_est_tax
-         false; unpackaged/post_quote_est_tax_settings). Keep in sync with the scratch-def settings blocks. -->
+         or tax false; unpackaged/post_quote_est_tax_settings). Keep in sync with the scratch-def settings blocks. -->
     <enableSalesPriceAmendments>true</enableSalesPriceAmendments>
     <!-- Two fields are deliberately absent — enableScaleAttributes and
          persistChunkSizeOverride. 264 dropped them from the RevenueManagementSettings

@@ -16,11 +16,27 @@ unconditionally; with it on, the grants belong there. Two simpler routes don't w
 
 Each fragment names a file in the deploy package, in Metadata API layout (for example
 ``permissionsets/RLM_Partner_Community_User_Perm_Set.permissionset``), a marker that
-must appear in it exactly once, and the text that replaces it. With ``flag`` on, the
-text is spliced in, indented to the marker's column, and the result must parse as XML.
-With it off the bundle deploys unchanged, but the markers are still checked, so a lost
-marker fails both kinds of build. The splice happens in the deploy zip; repo files are
-never modified.
+must appear in it exactly once, and the text that replaces it.
+
+``flag`` names one or more project custom flags ("quote_est_tax,tax"): the first is the
+feature, the rest what it needs, and a feature that's on without them is logged as a
+warning. With every one on, the text is spliced in, indented to the marker's column, and
+the result must parse as XML. Otherwise the bundle deploys unchanged, but the markers are
+still checked, so a lost marker fails the deploy either way. A step that deploy_when
+skips deploys and checks nothing; the offline suite (tests/test_deploy_with_fragments.py)
+checks every marker on each gate run. The splice happens in the deploy zip; repo files
+are never modified.
+
+``deploy_when`` lets two flow steps share one task and one flag list: ``off`` deploys
+only while the flags aren't all on, ``on`` only once they are, ``always`` (the default)
+every time. quote_est_tax uses it to deploy the setting off early in prepare_core and on
+only after prepare_tax has created the tax engine.
+
+``require_on`` is a SOQL COUNT() query that must find at least one record before a
+splicing deploy runs. If it finds none, the bundle deploys unspliced with a warning,
+as if a flag were off, and the build goes on. Estimated tax uses it twice: the setting
+requires an active tax policy, which Help says must exist first, and the partner grants
+require the fields the setting creates, so the two can't disagree.
 """
 import io
 import xml.etree.ElementTree as ET
@@ -29,7 +45,7 @@ import zipfile
 try:
     from cumulusci.core.exceptions import CumulusCIException, TaskOptionsError
     from cumulusci.core.source_transforms.transforms import SourceTransform
-    from cumulusci.core.utils import process_bool_arg
+    from cumulusci.core.utils import process_bool_arg, process_list_arg
     from cumulusci.tasks.salesforce import Deploy
 except ImportError:
     Deploy = object
@@ -39,6 +55,12 @@ except ImportError:
 
     def process_bool_arg(value):
         return value if isinstance(value, bool) else str(value).lower() in ("true", "1", "yes")
+
+    def process_list_arg(value):
+        # Like CumulusCI's: keeps empty items ("a," -> ["a", ""]), which flag_states rejects.
+        if value is None or isinstance(value, list):
+            return value
+        return [v.strip() for v in str(value).split(",")]
 
 
 def check_marker(text, marker, name):
@@ -105,15 +127,43 @@ def with_splice(transforms, fragments, apply):
     return list(transforms) + [SpliceFragmentsTransform(fragments, apply)]
 
 
-def flag_value(project_config, flag):
-    """The project custom flag ``flag`` as a bool; fails if cumulusci.yml doesn't define it.
+def flag_states(project_config, flag):
+    """{name: bool} for the project custom flags ``flag`` names ("a,b" or a list).
 
-    Accepts the strings a runtime override can pass ("false", "True").
+    Fails on an empty name or one cumulusci.yml doesn't define, so a typo can't read as
+    "off". Values may be the strings a command-line override passes ("false", "True").
     """
-    value = project_config.lookup(f"project__custom__{flag}") if flag else None
-    if value is None:
-        raise TaskOptionsError(f"flag {flag!r} isn't a project custom flag in cumulusci.yml")
-    return process_bool_arg(value)
+    names = [str(n).strip() for n in (process_list_arg(flag) or [])]
+    if not names or not all(names):
+        raise TaskOptionsError(f"flag must name one or more project custom flags, comma-separated: {flag!r}")
+    states = {}
+    for name in names:
+        value = project_config.lookup(f"project__custom__{name}")
+        if value is None:
+            raise TaskOptionsError(f"flag {name!r} isn't a project custom flag in cumulusci.yml")
+        states[name] = process_bool_arg(value)
+    return states
+
+
+def missing_prerequisites(states):
+    """The prerequisite flags that are off while the first (feature) flag is on.
+
+    The first flag named is the feature (quote_est_tax), the rest what it needs (tax);
+    a feature left off is the normal case and not worth a warning.
+    """
+    names = list(states)
+    return [n for n in names[1:] if not states[n]] if states[names[0]] else []
+
+
+DEPLOY_WHEN = ("always", "on", "off")
+
+
+def should_deploy(deploy_when, splice_on):
+    """Whether a ``deploy_when`` step deploys, given whether every flag is on."""
+    # ⚠ Strings only: unquoted YAML off/on load as booleans, and False must not read as "always".
+    if not isinstance(deploy_when, str) or deploy_when not in DEPLOY_WHEN:
+        raise TaskOptionsError(f"deploy_when must be one of {', '.join(DEPLOY_WHEN)}: {deploy_when!r}")
+    return deploy_when == "always" or (deploy_when == "on") == splice_on
 
 
 def parse_fragments(fragments):
@@ -134,8 +184,16 @@ class DeployWithFragments(Deploy):
     task_options = {
         **getattr(Deploy, "task_options", {}),
         "flag": {
-            "description": "Project custom flag (project -> custom in cumulusci.yml) that turns the splice on",
+            "description": "Project custom flags that must all be on for the splice, comma-separated, feature first and then what it needs: quote_est_tax,tax",
             "required": True,
+        },
+        "require_on": {
+            "description": "SOQL COUNT() query that must find a record before a splicing deploy (e.g. an active TaxPolicy)",
+            "required": False,
+        },
+        "deploy_when": {
+            "description": "always (default), on (deploy only when every flag is on) or off (only when they aren't)",
+            "required": False,
         },
         "fragments": {
             "description": (
@@ -149,5 +207,37 @@ class DeployWithFragments(Deploy):
 
     def _init_options(self, kwargs):
         super()._init_options(kwargs)
-        self.splice_on = flag_value(self.project_config, self.options.get("flag"))
-        self.transforms = with_splice(self.transforms, parse_fragments(self.options.get("fragments")), self.splice_on)
+        self.flag_states = flag_states(self.project_config, self.options.get("flag"))
+        self.splice_on = all(self.flag_states.values())
+        value = self.options.get("deploy_when")
+        self.deploy_when = "always" if value is None else value
+        should_deploy(self.deploy_when, self.splice_on)  # validates the option early
+        self.fragments = parse_fragments(self.options.get("fragments"))
+        # The splice transform is added in _run_task, once require_on has been checked.
+        self.base_transforms = list(self.transforms)
+
+    def _run_task(self):
+        names = ", ".join(self.flag_states)
+        if not should_deploy(self.deploy_when, self.splice_on):
+            # Nothing is deployed, so nothing (markers included) is checked by this step.
+            other = "on" if self.deploy_when == "off" else "off"
+            self.logger.info(f"Skipped: {names} {'all on' if self.splice_on else 'not all on'}, so the "
+                             f"deploy_when={other} step of this task deploys instead")
+            return
+        apply = self.splice_on
+        soql = self.options.get("require_on")
+        if soql and apply:
+            try:
+                count = self.org_config.salesforce_client.query(soql)["totalSize"]
+            except Exception as e:  # noqa: BLE001 - simple_salesforce raises several types
+                raise CumulusCIException(f"require_on query failed ({soql!r}): {e}") from e
+            if count < 1:
+                self.logger.warning(f"Not splicing: nothing matches {soql!r}, which the splice requires; "
+                                    "deploying the bundle unchanged")
+                apply = False
+        self.transforms = with_splice(self.base_transforms, self.fragments, apply)
+        missing = missing_prerequisites(self.flag_states)
+        if missing:
+            self.logger.warning(f"{next(iter(self.flag_states))} is on but {', '.join(missing)} is off, "
+                                f"so it has no effect ({names} must all be on)")
+        return super()._run_task()

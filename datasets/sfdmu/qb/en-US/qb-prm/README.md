@@ -16,7 +16,7 @@ This plan is executed as **step 8** of the `prepare_prm` flow (when `prm=true` a
 |------|-----------------------------------|------------------------------|-------------|
 | 1    | `create_partner_central`          | —                            | Create Partner Central community |
 | 2    | `patch_network_email_for_deploy`  | `prm_exp_bundle` and `tso`   | Replace placeholder email in rlm.network-meta.xml with Network's actual EmailSenderAddress (immutable) |
-| 3    | `deploy_post_prm`                 | `prm_exp_bundle` and `tso`   | Deploy PRM Experience Bundle metadata (with `quote_est_tax`, also the partner permission set's Quote and QuoteLineItem estimated-tax grants) |
+| 3    | `deploy_post_prm`                 | `prm_exp_bundle` and `tso`   | Deploy PRM Experience Bundle metadata (with `quote_est_tax` and `tax`, also the partner permission set's Quote and QuoteLineItem estimated-tax grants) |
 | 5    | `revert_network_email_after_deploy` | `prm_exp_bundle` and `tso` | Restore placeholder email in rlm.network-meta.xml |
 | 6    | `publish_community`               | —                            | Publish the Partner Central community |
 | 7    | `assign_permission_sets`          | `prm_exp_bundle` and `tso`   | Assign `RLM_PRM` permission set |

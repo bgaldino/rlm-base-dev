@@ -101,7 +101,7 @@ Reverse dependency order (children before parents):
 
 | Step | Sub-flow | What happens |
 |------|---------|--------------|
-| 1 | prepare_core | PSLs, PSGs, context defs, deploy_pre; then estimated tax off, or on with `quote_est_tax` (before prepare_prm grants its fields) |
+| 1 | prepare_core | PSLs, PSGs, context defs, deploy_pre; then estimated tax off (unless `quote_est_tax` and `tax`; prepare_tax turns it on after the tax engine, before prepare_prm grants its fields) |
 | 2 | prepare_decision_tables | DT lifecycle |
 | 3 | prepare_expression_sets | ES lifecycle |
 | 4 | prepare_payments | Payments webhook + metadata |
@@ -112,7 +112,7 @@ Reverse dependency order (children before parents):
 | 9 | prepare_pricing_data | Pricing |
 | 10 | prepare_docgen | DocGen |
 | 11 | prepare_dro | DRO + fulfillment scope |
-| 12 | prepare_tax | Tax |
+| 12 | prepare_tax | Tax engine, data, activation; then estimated tax on (when `quote_est_tax` and `tax`) |
 | 13 | prepare_billing | Billing |
 | 14 | prepare_collections | Collections & Recovery: matrix + post_collections + case flow (when `collections`) |
 | 15 | prepare_analytics | CRM Analytics replication |

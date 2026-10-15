@@ -328,6 +328,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 16. **flow** `assign_feature_permission_sets`
 17. **task** `enable_change_data_capture`
 18. **task** `deploy_quote_est_tax_settings`
+   - `deploy_when`: `off`
 
 ---
 
@@ -676,6 +677,8 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 2. **task** `insert_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb`
 3. **task** `insert_q3_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
 4. **task** `activate_tax_records`  `when: project_config.project__custom__tax`
+5. **task** `deploy_quote_est_tax_settings`
+   - `deploy_when`: `on`
 
 ---
 
