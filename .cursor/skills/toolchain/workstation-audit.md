@@ -12,7 +12,7 @@ replaced by `<redacted>`. npm itself refuses to print a setting whose URL
 contains a password (a proxy or registry), and the audit reports that as
 `set (credentials hidden)`.
 
-Pasting these into an interactive zsh? Run `setopt interactivecomments` first: macOS
+Pasting these into an interactive zsh? Run `setopt interactivecomments` first:
 zsh treats `#` as a command otherwise. Agents running commands non-interactively
 aren't affected.
 
@@ -95,15 +95,17 @@ The fix is to open terminals outside the repo, never `direnv reload`
 ## 6. Corporate CA (managed workstations)
 
 ```bash
-env -i HOME="$HOME" TERM=xterm zsh -c   'echo "[$NODE_EXTRA_CA_CERTS]"'   # non-interactive
-env -i HOME="$HOME" TERM=xterm zsh -lic 'echo "[$NODE_EXTRA_CA_CERTS]"'   # a Terminal window
+# non-interactive
+env -i HOME="$HOME" TERM=xterm zsh -c   'echo "[$NODE_EXTRA_CA_CERTS]"'
+# a Terminal window
+env -i HOME="$HOME" TERM=xterm zsh -lic 'echo "[$NODE_EXTRA_CA_CERTS]"'
 env -i HOME="$HOME" TERM=xterm zsh -lic \
   'echo "[TLS_REJECT=$NODE_TLS_REJECT_UNAUTHORIZED][HTTPS_PROXY=${HTTPS_PROXY:+set}][https_proxy=${https_proxy:+set}][HTTP_PROXY=${HTTP_PROXY:+set}][http_proxy=${http_proxy:+set}]"'
 # The real check, in a fresh Terminal-window shell opened outside the repo (as in
 # audit §5): npm's own proxy settings, one attempt.
 repo="$PWD"
 (cd /tmp && env -i HOME="$HOME" TERM=xterm zsh -lic \
-  'cd "${1:?repo path missing}" && eval "$(direnv export zsh 2>/dev/null)" && for k in ca cafile strict-ssl registry proxy https-proxy; do v=$(npm config get "$k" 2>&1); case "$v" in *"is protected"*) v="set (credentials hidden)";; esac; echo "$k=$v"; done | sed -E "s#(://)[^/@]+@#\\1<redacted>@#" && npm ping --fetch-retries=0 --loglevel=notice 2>&1 | sed -E "s#(://)[^/@]+@#\\1<redacted>@#"' zsh "$repo")
+  'cd "${1:?repo path missing}" && eval "$(direnv export zsh 2>/dev/null)" && for k in ca cafile strict-ssl registry proxy https-proxy; do v=$(npm config get "$k" 2>&1); case "$v" in *"is protected"*) v="set (credentials hidden)";; esac; echo "$k=$v"; done | sed -E "s#(://)[^/@]+@#\\1<redacted>@#g" && npm ping --fetch-retries=0 --loglevel=notice 2>&1 | sed -E "s#(://)[^/@]+@#\\1<redacted>@#g"' zsh "$repo")
 
 # Only when the ca/cafile row below sends you here: the guide's direct probe, in the
 # same kind of fresh shell, passed as an argument (its quotes can't be spliced in).

@@ -23,6 +23,10 @@ ends up with the same layered structure — not the same exact patch versions.
 > **AI agents:** read the [toolchain skill](../../.cursor/skills/toolchain/SKILL.md)
 > before auditing or changing a workstation. It covers the read-only audit, the
 > safety rules, and cross-workstation verification.
+>
+> **Pasting commands into an interactive zsh?** Run `setopt interactivecomments`
+> first. Without it zsh treats `#` as a command, so a comment line can run or
+> swallow the commands after it.
 
 ---
 
@@ -256,7 +260,8 @@ dotenv_if_exists .env.local
 
 ```bash
 cd path/to/rlm-base-dev
-direnv allow              # one-time per workstation per .envrc revision
+# one-time per workstation per .envrc revision
+direnv allow
 ```
 
 Machine-specific settings (a path that differs per workstation, such as the Chrome for
@@ -271,11 +276,16 @@ tracked, so git overwrites local edits to it, and `direnv allow` is needed again
 ### Verify
 
 ```bash
-python --version          # → Python 3.13.x  (whatever latest installed patch is)
-pyenv version             # → 3.13.x (set by PYENV_VERSION environment variable)
-node --version            # → v24.x (latest LTS)
-cci --version             # → CumulusCI 4.x
-sf --version              # → @salesforce/cli/2.x
+# → Python 3.13.x  (whatever latest installed patch is)
+python --version
+# → 3.13.x (set by PYENV_VERSION environment variable)
+pyenv version
+# → v24.x (latest LTS)
+node --version
+# → CumulusCI 4.x
+cci --version
+# → @salesforce/cli/2.x
+sf --version
 ```
 
 ### Adapting to another project
@@ -338,7 +348,8 @@ requirements. Rerun the script, or just the install step:
 
 ```bash
 .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
-python3 scripts/ai/gate_python.py      # prints the interpreter; exit 1 names what's missing
+# prints the interpreter; exit 1 names what's missing
+python3 scripts/ai/gate_python.py
 ```
 
 ### Bumping a major line
@@ -515,7 +526,8 @@ Python is wrong or its symlink is broken:
 ```
 
 ```bash
-python3 scripts/ai/gate_python.py --carry-over .venv > /tmp/gate-venv-packages.txt   # works with its python broken
+# works with its python broken
+python3 scripts/ai/gate_python.py --carry-over .venv > /tmp/gate-venv-packages.txt
 "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv --clear .venv
 .venv/bin/python -m pip install -r /tmp/gate-venv-packages.txt
 ```
@@ -585,8 +597,10 @@ changes, and check both kinds of shell from a clean environment (without
 `env -i`, the check inherits the value your current terminal already exported):
 
 ```bash
-env -i HOME="$HOME" zsh -c   'echo $NODE_EXTRA_CA_CERTS'   # non-interactive (Claude Code, IDE tasks)
-env -i HOME="$HOME" zsh -lic 'echo $NODE_EXTRA_CA_CERTS'   # login + interactive (a Terminal window)
+# non-interactive (Claude Code, IDE tasks)
+env -i HOME="$HOME" zsh -c   'echo $NODE_EXTRA_CA_CERTS'
+# login + interactive (a Terminal window)
+env -i HOME="$HOME" zsh -lic 'echo $NODE_EXTRA_CA_CERTS'
 ```
 
 Then verify from a new terminal (an open one still has the old value). Use npm,
@@ -594,15 +608,17 @@ because it connects the way `npm` and `sf` installs do, through npm's own proxy
 settings:
 
 ```bash
-npm config get ca cafile strict-ssl registry
+# Redact any user:password@ or token@ in URLs before they reach the terminal.
+redact() { sed -E 's#(://)[^/@]+@#\1<redacted>@#g'; }
 # expect: ca=null, cafile=null, strict-ssl=true, registry=https://…
-npm ping --fetch-retries=0 --loglevel=notice        # one attempt, no retries
+npm config get ca cafile strict-ssl registry 2>&1 | redact
+# one attempt, no retries
+npm ping --fetch-retries=0 --loglevel=notice 2>&1 | redact
 ```
 
 If npm answers "The registry option is protected", the registry URL contains a
 password. Read the other keys one at a time, and take the registry's scheme
-(`https://` or `http://`) from `npm ping`'s `PING <url>` line, where npm masks the
-password; the username still shows, so don't paste that line anywhere.
+(`https://` or `http://`) from `npm ping`'s `PING <url>` line.
 
 First, read the config. Each of these makes `PONG` prove less than it seems:
 
@@ -644,9 +660,9 @@ over a minute even without retries.
 On a workstation with no explicit proxy, a direct Node probe tests
 `NODE_EXTRA_CA_CERTS` itself. "No explicit proxy" means none of `HTTPS_PROXY`,
 `https_proxy`, `HTTP_PROXY` or `http_proxy` is set (npm uses the `HTTP_*` ones for
-HTTPS too), and `npm config get proxy` and `npm config get https-proxy` each print
-`null`. An "is protected" error from either means a proxy with a password is set.
-The probe targets `registry.npmjs.org`, not npm's configured registry:
+HTTPS too), and `npm config get proxy` and `npm config get https-proxy` (piped
+through `redact` as above) each print `null`. An "is protected" error from either
+means a proxy with a password is set. The probe targets `registry.npmjs.org`, not npm's configured registry:
 
 ```bash
 node -e 'setTimeout(() => { console.log("timeout"); process.exit(2) }, 15000); require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }).on("error", e => { console.log(e.code || e.message); process.exit(1) })'
@@ -688,7 +704,8 @@ Fix — upgrade CumulusCI to 4.10.1 or later, which falls back to
 `sf org auth show-access-token` when the token is redacted:
 
 ```bash
-pipx upgrade cumulusci && cci version   # expect 4.10.1+
+# expect 4.10.1+
+pipx upgrade cumulusci && cci version
 ```
 
 If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1

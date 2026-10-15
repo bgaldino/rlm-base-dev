@@ -7,6 +7,10 @@ Before cloning, run the bootstrap commands from your chosen workspace directory.
 After cloning, run commands from the repository root unless a step says otherwise.
 For a containerized toolchain, use the [Docker guide](../../docker/README.md).
 
+> **Pasting commands into an interactive zsh?** Run `setopt interactivecomments`
+> first. Without it zsh treats `#` as a command, so a comment line can run or
+> swallow the commands after it.
+
 - [macOS bootstrap](#macos-environment-setup-homebrew--pyenv--nvm)
 - [Required software and Salesforce access](#prerequisites)
 - [Installation and headless browser setup](#installation)
@@ -106,7 +110,8 @@ nvm install --lts
 nvm alias default 'lts/*'
 
 # Verify
-node --version   # Should show an LTS release >=22 (the build workflow uses Node 24)
+# Should show an LTS release >=22 (the build workflow uses Node 24)
+node --version
 npm --version
 ```
 
@@ -114,7 +119,8 @@ npm --version
 
 If you already have `brew install node` and want to migrate to nvm, remove the Homebrew version after installing nvm — it is no longer needed:
 ```bash
-brew uninstall node   # safe after nvm is installed and default is set
+# safe after nvm is installed and default is set
+brew uninstall node
 ```
 
 ### Step 4 — Install pyenv and Python
@@ -146,7 +152,8 @@ pyenv install "$PYTHON_VERSION"
 pyenv global "$PYTHON_VERSION"
 
 # Verify
-python --version   # Should show the latest 3.13.x patch
+# Should show the latest 3.13.x patch
+python --version
 ```
 
 > **The `echo … >>` lines in Steps 3 and 4 append**, so run each block once: running one again adds another copy of its lines. Even run once, Step 4 puts `eval "$(pyenv init -)"` in both `~/.zshenv` and `~/.zshrc`, so interactive shells run it twice, a known cause of [pyenv rehash lock errors](dev-environment-setup.md#pyenv-cannot-rehash-couldnt-acquire-lock). Appending leaves any existing content alone, including blocks another tool manages (for example a corporate certificate or proxy block on a managed workstation). If you later restructure your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), that layout replaces the lines from Steps 3 and 4, including both `pyenv init` lines; merge it in rather than replacing the files.
@@ -185,9 +192,11 @@ source .venv/bin/activate
 
 # Your prompt should now show (.venv) prefix
 # Verify
-python --version                       # Python 3.13.x
+# Python 3.13.x
+python --version
 pip --version
-python scripts/ai/gate_python.py       # prints the interpreter path; names anything missing
+# prints the interpreter path; names anything missing
+python scripts/ai/gate_python.py
 ```
 
 You don't need to activate it to run the gate. `.envrc` selects the pyenv Python and doesn't activate `.venv`, so `python scripts/ai/pr_gate.py --base origin/main` starts under the pyenv Python. When that interpreter lacks a selected check's dependency, the gate re-runs itself under this `.venv` (also from a git worktree) and prints a `note:` line saying so. If the venv is missing or incomplete, the note names the problem and the affected checks report `MISSING-DEP`.
@@ -219,7 +228,8 @@ export PATH="$HOME/.local/bin:$PATH"
 pipx install cumulusci --python "$(pyenv prefix)/bin/python3"
 
 # Verify
-cci version   # Should show CumulusCI 4.x running on Python 3.13.x
+# Should show CumulusCI 4.x running on Python 3.13.x
+cci version
 ```
 
 > **Note on setuptools:** Earlier versions of this guide instructed `pipx inject cumulusci "setuptools<71"` to work around a `pkg_resources` issue in `pyfilesystem2`. This pin is **no longer needed or valid** — modern CumulusCI (4.8+) with snowfakery 4.x requires `setuptools>=75.4`, making the `<71` pin incompatible. If you have an older CCI install with the pin, remove it: `pipx inject --force cumulusci "setuptools>=75.4"`.
@@ -240,7 +250,8 @@ Install `@salesforce/cli` via npm using the nvm-managed Node from Step 3. This i
 npm install -g @salesforce/cli
 
 # Verify (must be 2.x or later)
-sf --version   # Check CLI >=2 and Node LTS >=22; platform/architecture and patch versions vary
+# Check CLI >=2 and Node LTS >=22; platform/architecture and patch versions vary
+sf --version
 ```
 
 > **Why npm instead of Homebrew?** The Homebrew `sf` formula and `--cask sf` cask bundle their own copy of Node.js independently of nvm. This creates redundant Node installations and potential version conflicts. Installing via npm ties sf to your nvm-managed Node version, giving you a single Node installation to manage.
@@ -451,7 +462,8 @@ For the full architecture — shell config responsibilities, the per-project `.e
    Optional. Most machines run the Robot tasks on stock Chrome. On some managed workstations, stock headless Chrome crashes on Salesforce Setup pages (the root cause is not confirmed; it has only been seen on managed machines): the Robot step (e.g. `enable_document_builder_toggle` in `prepare_docgen`) fails with `Unable to receive message from renderer`, even though Chrome loads other sites. [Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/) is a separate Chrome build that does not touch your regular install, and it loads those pages. Install a browser and a driver of the **same version** (`npx` ships with Node.js):
 
    ```bash
-   CFT_VERSION=154.0.8037.92   # any Chrome for Testing version; keep browser and driver identical
+   # any Chrome for Testing version; keep browser and driver identical
+   CFT_VERSION=154.0.8037.92
    npx -y @puppeteer/browsers install "chrome@$CFT_VERSION" --path ~/.cache/cft
    npx -y @puppeteer/browsers install "chromedriver@$CFT_VERSION" --path ~/.cache/cft
    ```
@@ -474,7 +486,8 @@ For the full architecture — shell config responsibilities, the per-project `.e
    ```bash
    sf --version
    cci version
-   sf plugins list  # Should show sfdmu 5.6.4 or later
+   # Should show sfdmu 5.6.4 or later
+   sf plugins list
    ```
    **Headless robot env — no org or flow required:** With pipx, run the command below. For project-venv CCI, use the [venv validation command](#step-11--verify-the-full-setup) after installing its requirements:
    ```bash

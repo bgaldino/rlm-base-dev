@@ -29,7 +29,7 @@ when every listed workstation has reported a pass.
 
 ## Procedure (each workstation)
 
-Pasting into an interactive zsh? Run `setopt interactivecomments` first: macOS zsh
+Pasting into an interactive zsh? Run `setopt interactivecomments` first: zsh
 treats `#` as a command otherwise, which breaks lines with comments.
 
 1. **Start clean.** In the main checkout, `git status --short` must be empty. If it
@@ -45,7 +45,8 @@ treats `#` as a command otherwise, which breaks lines with comments.
    stop and add `upstream` first, since everything below trusts this remote.
    ```bash
    remote=$(git remote | grep -x upstream || echo origin)
-   echo "canonical remote: $remote -> $(git remote get-url "$remote")"
+   # The URL is shown with any user:password@ or token@ redacted.
+   echo "canonical remote: $remote -> $(git remote get-url "$remote" | sed -E 's#(://)[^/@]+@#\1<redacted>@#g')"
    git fetch "$remote"
    # A canonical-repo branch is in that fetch. Don't fetch and run a fork's PR head
    # here (step 1); step 3 refuses it anyway.
@@ -74,7 +75,7 @@ treats `#` as a command otherwise, which breaks lines with comments.
        echo "OK: at the pinned commit, which is on a canonical branch"
        direnv status | grep 'Found RC allowed'; true
      else
-       echo "STOP: $sha isn't on a canonical branch, or the switch failed. Don't continue." >&2; false
+       echo "STOP: $sha isn't on a canonical branch, the remote couldn't be reached, or the switch failed. Don't continue." >&2; false
      fi
    fi
    ```
