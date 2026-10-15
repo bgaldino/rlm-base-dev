@@ -325,6 +325,16 @@ The script handles:
    is **incompatible**; see the [local installation guide](local-installation.md#step-7--install-cumulusci), *Note on setuptools*. Note CI
    (`.github/workflows/prepare-rlm-org.yml`) installs the same
    `setuptools>=75.4` with no upper bound, now that it pins CCI 4.10.1.
+   Then `pipx inject --force cumulusci -r robot/requirements.txt`: CCI 4.10.1
+   declares `selenium<4` and `robotframework-seleniumlibrary<6`, so
+   `pipx upgrade cumulusci` downgrades the Robot packages, and this puts the
+   repo's pins back. `validate_setup` checks a version floor for selenium only,
+   so it wouldn't catch an old SeleniumLibrary.
+   CCI's pin covers only its own Salesforce Robot library, which this repo
+   doesn't use; the repo's suites need selenium 4, and CI's build runs CCI
+   4.10.1 with these pins. So `pipx runpip cumulusci check` reporting
+   `cumulusci 4.10.1 has requirement selenium<4` and
+   `… robotframework-seleniumlibrary<6` is expected: leave it.
 7. `sf plugins update`
 8. Gate interpreter — if `<main checkout>/.venv` exists, rebuilds it with
    `python -m venv --clear` when its Python isn't the current 3.13 patch (a
@@ -470,6 +480,7 @@ That's what `pipx install --force --python` leaves on pipx 1.17, which ignores
 "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m pip install --user --upgrade pipx
 pipx reinstall cumulusci --python "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3"
 pipx inject --force cumulusci "setuptools>=75.4"
+pipx inject --force cumulusci -r robot/requirements.txt
 # The Python version line must name the new patch
 cci version
 ```
@@ -717,12 +728,14 @@ Fix — upgrade CumulusCI to 4.10.1 or later, which falls back to
 ```bash
 # expect 4.10.1+
 pipx upgrade cumulusci && cci version
+# CCI's own pins downgrade selenium; put the repo's Robot pins back
+pipx inject --force cumulusci -r robot/requirements.txt
 ```
 
 If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1
 (it needs Python 3.11–3.13); rebuild it on a supported interpreter with
-`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` or
-`scripts/bash/update-toolchain.sh`.
+`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` and the same
+Robot re-inject, or `scripts/bash/update-toolchain.sh`.
 
 CI (`.github/workflows/prepare-rlm-org.yml`) pins 4.10.1. The repo no longer
 exports the old `SF_TEMP_SHOW_SECRETS=true` shim for CumulusCI (a few scripts

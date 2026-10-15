@@ -61,7 +61,7 @@ Run this first — it checks everything:
 
 | Check | Fix |
 |-------|-----|
-| Python < 3.11 | Install Python 3.12 or 3.13 via `pyenv` (3.11 is the repo floor: CumulusCI 4.10.1 needs `>=3.11,<3.14`). Then rebuild CCI on it: `pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` |
+| Python < 3.11 | Install Python 3.12 or 3.13 via `pyenv` (3.11 is the repo floor: CumulusCI 4.10.1 needs `>=3.11,<3.14`). Then rebuild CCI on it: `pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"`, then `pipx inject --force cumulusci -r robot/requirements.txt` |
 | CumulusCI not found | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | SF CLI < v2 | `npm install -g @salesforce/cli` (NOT `brew install sf`) |
 | SFDMU plugin missing/outdated | Auto-fixed by default (`auto_fix=true`). Manual: `sf plugins install sfdmu` |
@@ -70,7 +70,7 @@ Run this first — it checks everything:
 | Chrome/ChromeDriver missing | Install Chrome; `pip install webdriver-manager` |
 | Chrome/ChromeDriver versions mismatch, a browser override has no `CHROMEDRIVER_PATH`, or an override path is not executable or does not run cleanly (wrong architecture, nonzero `--version` exit) | Install the matching driver and point `CHROMEDRIVER_PATH` at it, or fix/unset `CHROME_BINARY` / `CHROME_BIN` / `CHROMEDRIVER_PATH` |
 | Robot step dies with "Unable to receive message from renderer" on a Setup page (managed workstations) | Chrome for Testing via `CHROME_BINARY` + `CHROMEDRIVER_PATH`; see `docs/guides/local-installation.md` → Chrome for Testing |
-| urllib3 < 2.6.3 (CVE) | `pipx inject cumulusci urllib3>=2.6.3` |
+| urllib3 < 2.6.3 (CVE) | `pipx inject cumulusci "urllib3>=2.6.3"` |
 
 ### `sf` or `node` not found in IDE / CI
 
@@ -114,11 +114,12 @@ cci org info beta         # shows username, instance URL
 **Cause:** CumulusCI 4.10.0 and earlier parse `sf org display` for the access
 token, and sf CLI 2.136.8+ (the May 27, 2026 change, forcedotcom/cli#3560) **redacts** it. CCI sends a bogus header.
 
-**Fix:** upgrade CumulusCI to **4.10.1 or later** (`pipx upgrade cumulusci`), which
-falls back to `sf org auth show-access-token`. If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1
+**Fix:** upgrade CumulusCI to **4.10.1 or later** (`pipx upgrade cumulusci`, then
+`pipx inject --force cumulusci -r robot/requirements.txt`, since CCI's own pins
+downgrade selenium), which falls back to `sf org auth show-access-token`. If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1
 (it needs Python 3.11–3.13); rebuild it on a supported interpreter with
-`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` or
-`scripts/bash/update-toolchain.sh`. The repo no longer exports
+`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` and the same
+Robot re-inject, or `scripts/bash/update-toolchain.sh`. The repo no longer exports
 `SF_TEMP_SHOW_SECRETS` for CumulusCI (`.envrc`, Docker, CI); a few scripts still set it on
 their own `sf` calls. On an older CCI you can still set it for a one-off.
 **Do not** delete or recreate the org — and never `cci org remove` a scratch org

@@ -8,7 +8,8 @@
 #      import ssl
 #   3. Node — latest LTS (via nvm), carrying npm globals forward
 #   4. sf CLI — npm-installed under the active nvm Node
-#   5. CCI — pipx (reinstall is required after any Python patch bump)
+#   5. CCI — pipx (reinstall is required after any Python patch bump), then
+#      robot/requirements.txt re-injected (CCI's own pins downgrade selenium)
 #   6. sf plugins (SFDMU, etc.)
 #   7. Gate interpreter — <main checkout>/.venv, if it exists (rebuilt after a
 #      Python patch bump with its other packages carried over, then
@@ -23,6 +24,7 @@ set -euo pipefail
 
 PY_LINE="3.13"
 NODE_LINE="lts/*"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Ensure pipx-managed bins (cci, snowfakery, etc.) are findable. pipx
 # ensurepath only updates shell rc files for future shells; we need PATH in
@@ -178,6 +180,18 @@ fi
 log "CCI: ensuring setuptools>=75.4"
 "${PIPX[@]}" inject --force cumulusci "setuptools>=75.4"
 
+# CCI 4.10.1 declares selenium<4 and SeleniumLibrary<6. `pipx upgrade` above
+# re-resolves CCI without its injected packages, so it moves them down (selenium
+# 3.141.0); a reinstall re-injects what was injected before. That pin is for CCI's
+# own Salesforce Robot library, which this repo doesn't use. The repo's suites
+# need selenium 4 (they build drivers with Service), and selenium 3 fails under
+# urllib3 2. CI's build already runs CCI 4.10.1 with robot/requirements.txt.
+# Re-apply those pins here: validate_setup floor-checks only selenium, so a
+# SeleniumLibrary left on 5.x would pass it silently.
+log "CCI: re-applying robot/requirements.txt"
+"${PIPX[@]}" inject --force cumulusci -r "$REPO_ROOT/robot/requirements.txt" \
+  || warn "couldn't inject robot/requirements.txt — run: pipx inject --force cumulusci -r robot/requirements.txt (validate_setup only flags selenium below 4.10)"
+
 # ── 6. sf plugins ───────────────────────────────────────────────────────────
 log "sf plugins: update"
 sf plugins update || warn "sf plugins update failed"
@@ -196,7 +210,6 @@ sf plugins update || warn "sf plugins update failed"
 # validate_setup only warns about it, so a failure here fails the script
 # (after validate_setup has run) instead of ending in "Done".
 GATE_FAILED=""
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 gate_python() { (cd "$REPO_ROOT" && "$PY_TARGET_BIN" scripts/ai/gate_python.py "$@"); }
 
 if [ -n "${RLM_GATE_PYTHON:-}" ]; then

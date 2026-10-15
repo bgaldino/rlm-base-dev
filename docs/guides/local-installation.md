@@ -308,8 +308,9 @@ macOS, or your distribution's Chromium package on Linux.
 
 **CCI installed with pipx:** Robot dependency auto-fix targets the pipx CumulusCI
 environment via `pipx inject cumulusci --force -r robot/requirements.txt`.
-With the default `auto_fix_robot=true`, missing or outdated Robot Framework,
-selenium (4.10+), SeleniumLibrary, and webdriver-manager can be installed there:
+With the default `auto_fix_robot=true`, it runs when Robot Framework,
+SeleniumLibrary or webdriver-manager is missing, or selenium is missing or below
+4.10 (only selenium has a version check):
 
 ```bash
 cci task run validate_setup
@@ -355,7 +356,7 @@ Node LTS refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
 scripts/bash/update-toolchain.sh
 ```
 
-It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade` → latest patch in your pinned Python line (stopping if it can't import `ssl`) → latest LTS Node → `sf` via `npm install -g` → CCI reinstall/upgrade → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins (e.g. Python 3.13, Node `lts/*`) are configured at the top of the script.
+It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade` → latest patch in your pinned Python line (stopping if it can't import `ssl`) → latest LTS Node → `sf` via `npm install -g` → CCI reinstall/upgrade → Robot pins re-injected → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins (e.g. Python 3.13, Node `lts/*`) are configured at the top of the script.
 
 For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](dev-environment-setup.md).
 
@@ -443,7 +444,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
      ```
      If you use a project virtual environment: `python -m pip install --upgrade -r robot/requirements.txt` inside the venv. Use the [venv validation command](#step-11--verify-the-full-setup) with pipx auto-fixes disabled. If you previously installed these globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework selenium webdriver-manager`.
 
-     > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. The `robot/requirements.txt` pins `selenium>=4.10,<5`. If selenium is older, update the requirements in the environment running CCI. Validator auto-upgrade targets pipx only; venv users should run `python -m pip install --upgrade -r robot/requirements.txt` inside the venv.
+     > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. The `robot/requirements.txt` pins `selenium>=4.50.0,<5`. If selenium is older than that pin, update the requirements in the environment running CCI. Validator auto-upgrade targets pipx only; venv users should run `python -m pip install --upgrade -r robot/requirements.txt` inside the venv.
 
    2. **Chrome or Chromium** — Robot tasks run headless by default and require Chrome or Chromium. (Use `BROWSER=firefox` to run with Firefox instead.)
      - **macOS:** Install [Google Chrome](https://www.google.com/chrome/) or `brew install chromium`

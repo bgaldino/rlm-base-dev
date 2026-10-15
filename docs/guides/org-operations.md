@@ -324,7 +324,7 @@ Chrome launches and the driver connects, but the renderer dies when the Robot st
 
 ### Document Builder: "Timeout value connect was &lt;object object at ...&gt;"
 
-This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. This project requires `selenium>=4.10`, which does not have this issue — if you see this error, an older selenium may still be installed in the environment running CCI. For pipx, upgrade it:
+This is a Selenium 3.x / urllib3 2.x compatibility issue. Selenium 3.x passes `socket._GLOBAL_DEFAULT_TIMEOUT` (a sentinel `object()`) to `urllib3.PoolManager`, which urllib3 2.x rejects. This project requires `selenium>=4.10`, which does not have this issue — if you see this error, an older selenium may still be installed in the environment running CCI. A `pipx upgrade cumulusci` can cause this: CCI 4.10.1 declares `selenium<4`, so the upgrade moves selenium back to 3.141.0. For pipx, put the repo's selenium back:
 
 ```bash
 pipx inject cumulusci --force -r robot/requirements.txt
