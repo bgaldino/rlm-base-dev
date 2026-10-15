@@ -370,16 +370,22 @@ The script handles:
    never rebuilds it, so it keeps the patch it was made with. In every checkout of
    the repository (main and each worktree) the script gives an existing one the gate
    venv's treatment: rebuilt on pyenv's current patch, its packages carried over.
-   `./tui-cci` reinstalls its own requirements on its next run if any are missing
+   `./tui-cci` reinstalls its own requirements on its next run if any are missing.
+   A venv (TUI or gate) that a process is running from, such as a `./tui-cci`
+   session open in another worktree, is left as it is and named, and the run ends
+   nonzero: rerun once that process has exited
 10. `cci task run validate_setup` — verifies every check still passes,
    including the "Gate interpreter" warning check
 
 A step that fails without stopping the run (the npm-globals carry-over, the sf
 update, the Robot re-inject, `sf plugins update`, the gate interpreter, the TUI
-venvs and their carried-over packages, `validate_setup` itself) is listed again
-at the end, and
+venvs and their carried-over packages, a venv left because it's in use,
+`validate_setup` itself) is listed again at the end, and
 the script exits nonzero instead of printing `Done`. That holds even when
 `validate_setup` passed: it can't see every missing update.
+
+A `pyenv global` left on an older patch (step 2) isn't a failure, but its warning
+is repeated just before `Done` so it isn't lost above the run's output.
 
 **When `DEPS` in `scripts/ai/pr_gate.py` changes** (a check gains a new
 package, or the CumulusCI pin moves), the gate interpreter needs the new

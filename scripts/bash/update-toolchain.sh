@@ -274,7 +274,8 @@ refresh_venv() {
   # worktree, a gate run) breaks that process's next import. Leave it. This sees
   # processes started by the venv's path, which is how tui-cci and the gate
   # start theirs; one started from an activated shell as plain `python` isn't.
-  if pgrep -f -- "$venv/bin/" >/dev/null 2>&1; then
+  # pgrep takes a regex: escape the path so `(`, `+`, `[` … in it match literally.
+  if pgrep -f -- "$(printf '%s' "$venv/bin/" | sed 's/[][\\.*^$+?(){}|]/\\&/g')" >/dev/null 2>&1; then
     fail_later "$label: $venv needs a rebuild onto Python $PY_TARGET (it's on ${version:-an unusable Python}), but a process is running from it — left; rerun once it has exited"
     return 0
   fi
