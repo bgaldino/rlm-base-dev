@@ -9,8 +9,9 @@ This starts a fresh non-interactive and a fresh login-interactive zsh with xtrac
 zsh itself reports every assignment to the variable, already expanded, from every startup
 file it reads (/etc/zsh*, ZDOTDIR, sourced files). It then checks what each shell actually
 exports (printenv) and that the exported file holds every certificate of every assigned
-bundle (by SHA-256 of each certificate's DER bytes). zsh only: bash startup files are out
-of scope.
+bundle (by SHA-256 of each certificate's DER bytes), and that OpenSSL parses the exported
+file whole: two bundles joined without a newline read fine as text, but Node stops at the
+broken END line and drops the rest. zsh only: bash startup files are out of scope.
 
 Read-only. Only trace lines that assign NODE_EXTRA_CA_CERTS are parsed, and of the trace
 only those assigned paths are printed (home as ~), with certificate counts; never file
@@ -27,6 +28,7 @@ import hashlib
 import os
 import re
 import shlex
+import ssl
 import subprocess
 import sys
 import tempfile
@@ -96,6 +98,22 @@ def fingerprints(path):
     return out
 
 
+def loadable(path):
+    """How many certificates OpenSSL loads from the file, or None if it rejects it.
+
+    Node reads NODE_EXTRA_CA_CERTS with OpenSSL and stops at the first PEM error (two
+    bundles joined without a newline give "bad end line"), keeping only the
+    certificates before it. Python's loader rejects the whole file instead, so this is
+    the stricter test; it can also reject a block Node would skip, such as an encrypted key.
+    """
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    try:
+        ctx.load_verify_locations(cafile=path)
+    except (ssl.SSLError, OSError, ValueError):
+        return None
+    return ctx.cert_store_stats().get("x509", 0)
+
+
 def run_shell(home, flags):
     """(exported value or None if zsh failed, assigned paths) for a fresh traced zsh."""
     script = 'printf "\\n%s%s\\n" "' + SENTINEL + '" "$(printenv NODE_EXTRA_CA_CERTS)"'
@@ -115,7 +133,7 @@ def run_shell(home, flags):
 
 def evaluate(home, assigned, values):
     """(status, lines) for the assigned bundles and each shell's exported value."""
-    lines, fail = [], False
+    lines, fail, good = [], False, []
     if any(v is None for v in values.values()):
         lines = [f"FAIL: zsh {f} didn't run (zsh missing, or no finish within two minutes)"
                  for f, v in values.items() if v is None]
@@ -136,17 +154,25 @@ def evaluate(home, assigned, values):
         elif not os.path.isfile(value):
             lines.append(f"FAIL: {label} exports {tilde(value, home)}, which doesn't exist")
             fail = True
-        elif not fingerprints(value):
+        elif not (certs := fingerprints(value)):
             lines.append(f"FAIL: {label} exports {tilde(value, home)}, which holds no PEM certificates")
             fail = True
+        elif (loadable(value) or 0) < len(certs):
+            lines.append(f"FAIL: {label} exports {tilde(value, home)}, which OpenSSL can't fully parse "
+                         "(e.g. two bundles joined without a newline); Node loses part or all of it")
+            fail = True
         else:
-            lines.append(f"ok: {label} exports {tilde(value, home)} ({len(fingerprints(value))} certs)")
+            lines.append(f"ok: {label} exports {tilde(value, home)} ({len(certs)} certs)")
+            good.append(certs)
     distinct = {v for v in values.values() if v}
     if len(distinct) > 1:
         lines.append("FAIL: the two shells export different files")
         fail = True
-    good = [v for v in values.values() if v and ":" not in v and os.path.isfile(v)]
-    effective = fingerprints(good[0]) if good else set()
+    if not good:
+        if assigned:
+            lines.append("note: bundle coverage not checked: no shell exports a file Node can load whole")
+        return (1 if fail else 0), lines
+    effective = good[0]
     for path in assigned:
         if not os.path.isfile(path):
             lines.append(f"note: {tilde(path, home)} is assigned but doesn't exist")
@@ -155,6 +181,8 @@ def evaluate(home, assigned, values):
         if not certs:
             lines.append(f"note: {tilde(path, home)} is assigned but holds no PEM certificates")
             continue
+        if (loadable(path) or 0) < len(certs):
+            lines.append(f"note: {tilde(path, home)} is assigned but OpenSSL can't fully parse it")
         missing = len(certs - effective)
         if missing:
             lines.append(f"FAIL: {tilde(path, home)}: {missing} of its {len(certs)} certs aren't in the exported file")

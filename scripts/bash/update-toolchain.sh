@@ -16,7 +16,7 @@
 #   5. CCI — pipx (reinstall is required after any Python patch bump), then
 #      robot/requirements.txt re-injected (CCI's own pins downgrade selenium).
 #      pipx's own scripts are rewritten for the new patch, and other pipx apps
-#      still on another Python are named, not changed
+#      still on an older 3.13 patch are named, not changed
 #   6. sf plugins (SFDMU, etc.)
 #   7. Gate interpreter — <main checkout>/.venv, if it exists (rebuilt after a
 #      Python patch bump, or when it isn't built on pyenv's Python, with its
@@ -422,13 +422,16 @@ while IFS= read -r wt <&4; do
 done 4< <(git -C "$REPO_ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
 log "TUI venv: $TUI_SEEN found, each on pyenv's Python $PY_TARGET unless a warning above says otherwise"
 
-# Other pipx apps are the owner's, so only name the ones on another Python: they
-# break when that interpreter is uninstalled. Repeated before "Done".
+# Other pipx apps are the owner's, so only name the ones on a superseded patch of
+# this line: they break when that patch is uninstalled. An app kept on another
+# line (3.12, 3.14) or a non-pyenv Python is a choice, not stale. Repeated
+# before "Done".
 for v in "$(dirname "$CCI_VENV")"/*/; do
   v="${v%/}"
   [ -f "$v/pyvenv.cfg" ] || continue
   [ "$(venv_base "$v")" = "$PY_TARGET_BASE" ] && continue
   v_home="$(venv_home "$v")"
+  case "$v_home" in */versions/"$PY_LINE".*) ;; *) continue ;; esac
   notice_later "pipx app $(basename "$v") is on ${v_home:-an unknown Python}, not $PY_TARGET. Before uninstalling that Python: pipx reinstall $(basename "$v") --python \"$PY_TARGET_BIN\""
 done
 

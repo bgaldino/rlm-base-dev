@@ -5,7 +5,6 @@ bundle, the later one wins, and Node loses the other's certificates while a regi
 a public certificate still answers. The zsh cases run only where zsh exists.
 Stdlib only. Run with: python tests/test_check_node_ca.py
 """
-import base64
 import contextlib
 import io
 import os
@@ -20,13 +19,79 @@ sys.path.insert(0, str(REPO / "scripts" / "ai"))
 import check_node_ca as cnc  # noqa: E402
 
 
-def pem(*payloads):
-    """A PEM file body with one fake certificate per payload (only the DER bytes are hashed)."""
-    out = []
-    for p in payloads:
-        b64 = base64.b64encode(p.encode()).decode()
-        out.append("-----BEGIN CERTIFICATE-----\n" + b64 + "\n-----END CERTIFICATE-----\n")
-    return "".join(out)
+# Six self-signed test certificates (CN "check-node-ca test 1..6"). OpenSSL loads them
+# without checking expiry or chain, so they don't go stale; no private key is kept.
+CERTS = [
+    """-----BEGIN CERTIFICATE-----
+MIIBdTCCARqgAwIBAgIUQ0445JMrMM9Nb2l/qwBuTqDnPMgwCgYIKoZIzj0EAwIw
+HzEdMBsGA1UEAwwUY2hlY2stbm9kZS1jYSB0ZXN0IDEwIBcNMjYxMDE1MTkwNTE4
+WhgPMjEyNjA5MjExOTA1MThaMB8xHTAbBgNVBAMMFGNoZWNrLW5vZGUtY2EgdGVz
+dCAxMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaYm89yEiQ4cbMfZlj3oWHo7D
+P/DjvR8YtV3MqzCE1Y+/XQnLo96uOYtWAyX8I9mQX4eAn478XTjFXw9BA+BoYaMy
+MDAwHQYDVR0OBBYEFKgq87KY5xJT023tI19hwm1r5ZDvMA8GA1UdEwEB/wQFMAMB
+Af8wCgYIKoZIzj0EAwIDSQAwRgIhALxn4GUe9OoqV3MyRDsZEwwmBzQbcunFIR2G
+sGMBsNcsAiEAws5tByZ4chE8AE0dLBTT0LNYv5Wcz7vSk/uN2AsSBmc=
+-----END CERTIFICATE-----\n""",
+    """-----BEGIN CERTIFICATE-----
+MIIBczCCARqgAwIBAgIUQDT6xQiYrWWtYC0nNcnwzWv4Zd4wCgYIKoZIzj0EAwIw
+HzEdMBsGA1UEAwwUY2hlY2stbm9kZS1jYSB0ZXN0IDIwIBcNMjYxMDE1MTkwNTE4
+WhgPMjEyNjA5MjExOTA1MThaMB8xHTAbBgNVBAMMFGNoZWNrLW5vZGUtY2EgdGVz
+dCAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE0Y7w/qiSEeeij8RERtjOqAWz
+f1xAeWc12f4IMRmYVUC5jq5a+aXu+byeVV1umxevmKUxOlY7rgsGdystz9x/UKMy
+MDAwHQYDVR0OBBYEFMLHhR2ClTqjHvT04MClgzwq/Ru7MA8GA1UdEwEB/wQFMAMB
+Af8wCgYIKoZIzj0EAwIDRwAwRAIgAcwVBYvITY/ow1QBQpzNYRJyyIg8k/Ic/yX8
+taDiNd4CIGK4QTk7w/1JDCy5NdMCxN5gIKDwyzbmj5ubAP4W1KGy
+-----END CERTIFICATE-----\n""",
+    """-----BEGIN CERTIFICATE-----
+MIIBczCCARqgAwIBAgIUdOnfeECk06XAMHE911+XQKg08BMwCgYIKoZIzj0EAwIw
+HzEdMBsGA1UEAwwUY2hlY2stbm9kZS1jYSB0ZXN0IDMwIBcNMjYxMDE1MTkwNTE4
+WhgPMjEyNjA5MjExOTA1MThaMB8xHTAbBgNVBAMMFGNoZWNrLW5vZGUtY2EgdGVz
+dCAzMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUXKpEMGo7psEmvN5hP0RmM86
+ZKTDT5Dl1hj7HCnaDZuOjgQeQcnlsPHQ9VpfbSfs2Ux8WGlISvi8qJESL+5JvKMy
+MDAwHQYDVR0OBBYEFJWSurOiyRl0hMIjNdgmYhOqgMggMA8GA1UdEwEB/wQFMAMB
+Af8wCgYIKoZIzj0EAwIDRwAwRAIgBuU1Y9ilHCniyW4DqQR511i5zseqUm/kys/v
+ehzUfGMCICl3nn6EAg08Y60RGssUl9HNgSGW1WZ8r9c/rfiSu/2a
+-----END CERTIFICATE-----\n""",
+    """-----BEGIN CERTIFICATE-----
+MIIBdDCCARqgAwIBAgIUJ6P4vD0IM4E+nRMtIdm1Qve0YvowCgYIKoZIzj0EAwIw
+HzEdMBsGA1UEAwwUY2hlY2stbm9kZS1jYSB0ZXN0IDQwIBcNMjYxMDE1MTkwNTE4
+WhgPMjEyNjA5MjExOTA1MThaMB8xHTAbBgNVBAMMFGNoZWNrLW5vZGUtY2EgdGVz
+dCA0MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEYY6VfEYKjk28E31br1YINLY+
+7YxYsrlSHVD7PXxX+YDXXbV6G3jL14Cv7aQoS7Y3PR8glLovPGD+Lwlnhpz3raMy
+MDAwHQYDVR0OBBYEFLwO1cYmOfzc3RIfC4we6M9O+IUHMA8GA1UdEwEB/wQFMAMB
+Af8wCgYIKoZIzj0EAwIDSAAwRQIhAM50E45/KZo2FwKgOi9OJdsvnYoXwu8AsFsN
+Ml/23+P1AiAR9Qu2YUB14w7zAjMWRo7CiZ+o5n/WF86J+KTGrE0yPg==
+-----END CERTIFICATE-----\n""",
+    """-----BEGIN CERTIFICATE-----
+MIIBdTCCARqgAwIBAgIUa0EU9KedUIDfKcFanHFnuzbe9IswCgYIKoZIzj0EAwIw
+HzEdMBsGA1UEAwwUY2hlY2stbm9kZS1jYSB0ZXN0IDUwIBcNMjYxMDE1MTkwNTE4
+WhgPMjEyNjA5MjExOTA1MThaMB8xHTAbBgNVBAMMFGNoZWNrLW5vZGUtY2EgdGVz
+dCA1MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEoBz6TQybics2wV/DPTF+kHnC
+/tHSCWb68pY22lI4+2lPlgFhuQDjwImKaFs5ugY88G398iVHMeXaHvPuWtq/W6My
+MDAwHQYDVR0OBBYEFI9GtvhMBocTmL6PPhhB8tCKDGEZMA8GA1UdEwEB/wQFMAMB
+Af8wCgYIKoZIzj0EAwIDSQAwRgIhANnpNjDeyrZpYXaq8ezlSxUINB5oDeo/sr1N
+COKHGpQkAiEA2pe91+ld6vk4xPU71PZhaBUUY++G7vMgadcCw/FzsEU=
+-----END CERTIFICATE-----\n""",
+    """-----BEGIN CERTIFICATE-----
+MIIBczCCARqgAwIBAgIUSIE7hx5r3t9xraGVdLzRz1BGviUwCgYIKoZIzj0EAwIw
+HzEdMBsGA1UEAwwUY2hlY2stbm9kZS1jYSB0ZXN0IDYwIBcNMjYxMDE1MTkwNTE4
+WhgPMjEyNjA5MjExOTA1MThaMB8xHTAbBgNVBAMMFGNoZWNrLW5vZGUtY2EgdGVz
+dCA2MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEB6fm7DM6tzMoJmkgix73C/ee
+bjwVw+RyV0TTwF5lLiM84opmI0lShw0jaqGqgj4MCn6kgV+vxKwJn4ZkbJZtYKMy
+MDAwHQYDVR0OBBYEFIXcWp2EPiex/Nr89kY8+v4gUU4WMA8GA1UdEwEB/wQFMAMB
+Af8wCgYIKoZIzj0EAwIDRwAwRAIgcsqFSoPSCOUmADCMK0AnyYyuSscQDwosEKFe
+TyUIVgICIDFv/nr/dW74OGXbNtyJVUu5Lj76E4SZLHEYjr26u7zS
+-----END CERTIFICATE-----\n""",
+]
+NAMES = {}
+
+
+def pem(*names):
+    """A PEM file body with one real certificate per name; the same name gives the same cert."""
+    for n in names:
+        if n not in NAMES:
+            NAMES[n] = CERTS[len(NAMES)]
+    return "".join(NAMES[n] for n in names)
 
 
 class Home(unittest.TestCase):
@@ -107,6 +172,19 @@ class Evaluate(Home):
         status, lines = cnc.evaluate(self.home, [], {"-c": empty, "-lic": empty})
         self.assertEqual(status, 1)
         self.assertTrue(any("holds no PEM certificates" in l for l in lines))
+
+    def test_exported_file_openssl_rejects_fails(self):
+        joined = self.write("joined.pem", pem("c1", "c2", "shared").rstrip("\n") + pem("t1"))
+        status, lines = cnc.evaluate(self.home, [self.corp, self.tool], {"-c": joined, "-lic": joined})
+        self.assertEqual(status, 1)
+        self.assertTrue(any("OpenSSL can't fully parse" in l and l.startswith("FAIL") for l in lines), lines)
+        self.assertIn("note: bundle coverage not checked: no shell exports a file Node can load whole", lines)
+
+    def test_assigned_bundle_openssl_rejects_is_noted(self):
+        joined = self.write("joined.pem", pem("c1").rstrip("\n") + pem("t1"))
+        status, lines = cnc.evaluate(self.home, [joined, self.combined], {"-c": self.combined, "-lic": self.combined})
+        self.assertEqual(status, 0, lines)
+        self.assertTrue(any(l.startswith("note:") and "OpenSSL" in l for l in lines), lines)
 
     def test_shells_disagree_fails(self):
         status, lines = cnc.evaluate(self.home, [], {"-c": self.combined, "-lic": self.tool})

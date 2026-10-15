@@ -338,7 +338,7 @@ The script handles:
    required because patch upgrades break the venv's python symlink. The script
    then checks the venv really runs the new patch. It also rewrites pipx's own
    scripts in `~/.local/bin` (pipx, userpath, argcomplete) for the new patch, and
-   names any other pipx app still on another Python without changing it. Before
+   names any other pipx app still on an older 3.13 patch without changing it. Before
    `pyenv uninstall` of an old patch, run the toolchain audit's "Other users of an
    older patch" row (`.cursor/skills/toolchain/workstation-audit.md` §2)
 6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
@@ -746,9 +746,11 @@ Then read the ping result:
   `ERR_TLS_CERT_ALTNAME_INVALID` is a hostname mismatch.
 - Any other code (`ECONNREFUSED`, `ECONNRESET`, `ENETUNREACH`, `ENOTFOUND`,
   `ETIMEDOUT`, …) is a network or proxy problem and says nothing about the CA.
-- `Warning: Ignoring extra certs from … load failed` means the file path is wrong
-  or not a single PEM file. Node prints it when it first sets up TLS, so on a
-  connection that fails before then there's no warning either way.
+- `Warning: Ignoring extra certs from … load failed` means the file path is wrong,
+  it isn't a single PEM file, or two bundles were joined without a newline between
+  them (`bad end line`; Node keeps only the certificates before the join). Node
+  prints it when it first sets up TLS, so on a connection that fails before then
+  there's no warning either way.
 
 A connection that's refused fails at once. One that's silently dropped can take
 over a minute even without retries.
