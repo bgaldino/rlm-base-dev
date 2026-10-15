@@ -100,7 +100,7 @@ for any agent.
 |-------|-------|-------|
 | Shell init | `~/.zshenv` (every shell), `~/.zprofile` (login), `~/.zshrc` (interactive) | Layout in [dev-environment-setup.md §2](../../../docs/guides/dev-environment-setup.md#2-system-layout) |
 | Per-project activation | `.envrc` (tracked) + `.env.local` (gitignored, dotenv) | direnv; `./tui-cci` also loads `.env.local` |
-| Python | pyenv, latest 3.13 patch; `openssl@3` kept | pipx CumulusCI venv and `.venv` each pin one patch |
+| Python | pyenv, latest 3.13 patch; `openssl@3` kept | pipx CumulusCI venv, `.venv` and each `.harness/tui-venv` pin one patch; `pyenv global` follows the line only from an old patch with no packages of its own |
 | Gate interpreter | `<main checkout>/.venv` | Found by `scripts/ai/gate_python.py`; `pr_gate.py` re-runs under it when its own interpreter lacks a selected check's dependency |
 | Node / sf / SFDMU | nvm `lts/*`; `sf` under it; `sfdmu` plugin ≥ 5.6.4 | |
 | Robot browser | stock Chrome, or Chrome for Testing via `.env.local` | Where stock Chrome fails on Setup pages |
