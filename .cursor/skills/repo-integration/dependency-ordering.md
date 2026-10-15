@@ -11,7 +11,7 @@ control order):
 |-----|---------|-----------|
 | `1_objects/` | Custom fields | Fields must exist before PSGs/DTs that reference them |
 | `2_settings/` | Org settings | Features must be enabled before metadata that uses them |
-| `3_permissionsetgroups/` | PSGs | PSG metadata deploys here; references PSLs from `force-app/` |
+| `3_permissionsetgroups/` | PSGs, plus repo-owned permission sets they include | PSG metadata deploys here; references PSLs from `force-app/`. A permission set a PSG includes (e.g. `RLM_BillingAccountFieldAccess`) lives in this folder so it deploys in the same bundle |
 | `5_decisiontables/` | Decision table definitions | Must exist before expression sets or flows reference them |
 
 ### Profile strip-and-build
