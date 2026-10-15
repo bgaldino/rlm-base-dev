@@ -125,7 +125,7 @@ source relationships, steps, and edges—not just counts. Configuration changes
 do not retrofit a submitted plan. Respect a user's choice to test manually and
 report runtime generation as unverified until evidence is available. See the
 [CSV extension](csv-and-sfdmu.md#worked-decomposition-extension) and
-[technical-product sources](examples-and-grounding.md#authoritative-article-map).
+[technical-product sources](examples-and-grounding.md#captured-article-map).
 
 ## 3. Conditions and Rule Libraries
 
