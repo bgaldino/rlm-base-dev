@@ -93,7 +93,10 @@ treats `#` as a command otherwise, which breaks lines with comments.
    managed workstation always run it; it can be n.a. only when audit §6's own
    conditions for that hold.
 5. **Only if the owner explicitly agrees,** run `update-toolchain.sh` and repeat the
-   audit. It upgrades the whole machine. Prove it left the shell files alone:
+   audit. It upgrades the whole machine. When the owner runs it, use a standalone
+   terminal app rather than an IDE's integrated terminal: an agent can read the
+   integrated one, including anything typed at a prompt. Prove it left the shell
+   files alone:
    ```bash
    shasum ~/.zshenv ~/.zprofile ~/.zshrc 2>/dev/null > /tmp/rc.before
    scripts/bash/update-toolchain.sh

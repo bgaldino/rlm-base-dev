@@ -2,14 +2,17 @@
 # update-toolchain.sh — refresh the local dev toolchain for rlm-base-dev.
 #
 # Updates, in order:
-#   1. Homebrew packages (direnv, nvm, pyenv, pipx, etc.), keeping openssl@3
-#      installed on request first
+#   1. Homebrew formulae (direnv, nvm, pyenv, pipx, etc.), keeping openssl@3
+#      installed on request first. Casks (Git Credential Manager, Docker
+#      Desktop, Chrome) aren't upgraded: a .pkg cask needs sudo, which would
+#      stop the run. Upgrade them yourself with `brew upgrade --cask`
 #   2. Python — latest patch in the 3.13 line (via pyenv); stops if it can't
 #      import ssl. pyenv's global follows it from an older 3.13 patch that holds
 #      no packages of its own; anything else is left alone, with a warning when
 #      it's an older patch that does
-#   3. Node — latest LTS (via nvm), carrying npm globals forward
-#   4. sf CLI — npm-installed under the active nvm Node
+#   3. Node — latest LTS (via nvm: Homebrew's, or nvm's own installer's),
+#      carrying npm globals forward
+#   4. sf CLI — npm install -g when npm-installed, else `sf update`
 #   5. CCI — pipx (reinstall is required after any Python patch bump), then
 #      robot/requirements.txt re-injected (CCI's own pins downgrade selenium)
 #   6. sf plugins (SFDMU, etc.)
@@ -67,7 +70,11 @@ brew update
 brew list --versions openssl@3 >/dev/null 2>&1 || brew install openssl@3
 brew tab --installed-on-request openssl@3 >/dev/null \
   || die "couldn't mark openssl@3 installed on request (brew tab), so brew upgrade could remove it"
-brew upgrade
+# Formulae only. A cask (Docker Desktop, say) can need sudo, which a run with no
+# terminal can't answer; brew then exits nonzero and set -e would end the whole
+# update in this step, before anything the toolchain needs. A formula that fails
+# is recorded and the run carries on.
+brew upgrade --formula || fail_later "brew upgrade --formula failed (output above) — rerun it by hand"
 
 # ── 2. Python (pyenv) ───────────────────────────────────────────────────────
 command -v pyenv >/dev/null || die "pyenv not found"
@@ -135,13 +142,29 @@ else
 fi
 
 # ── 3. Node (nvm) ───────────────────────────────────────────────────────────
-export NVM_DIR="$HOME/.nvm"
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+# Homebrew's nvm first; else nvm's own installer, which puts nvm.sh in $NVM_DIR
+# ($XDG_CONFIG_HOME/nvm when that variable was set at install time).
+NVM_SH=""
 NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
-[ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ] || die "nvm.sh not found via 'brew --prefix nvm' — is nvm installed?"
-# shellcheck disable=SC1091
-. "$NVM_PREFIX/nvm.sh"
+if [ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ]; then
+  NVM_SH="$NVM_PREFIX/nvm.sh"
+elif [ -s "$NVM_DIR/nvm.sh" ]; then
+  NVM_SH="$NVM_DIR/nvm.sh"
+elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then
+  NVM_DIR="$XDG_CONFIG_HOME/nvm"
+  NVM_SH="$NVM_DIR/nvm.sh"
+fi
+[ -n "$NVM_SH" ] || die "nvm.sh not found via 'brew --prefix nvm', in $NVM_DIR or under \$XDG_CONFIG_HOME/nvm — is nvm installed?"
+# shellcheck disable=SC1090
+. "$NVM_SH"
 
 OLD_NODE="$(nvm current 2>/dev/null || echo none)"
+# Where to carry npm globals from. `nvm current` isn't a version when another
+# node is ahead of nvm's on PATH ("system"), so fall back to the newest Node nvm
+# has installed; that's the one whose globals the user has been running.
+CARRY_FROM="$OLD_NODE"
+[ "${CARRY_FROM#v}" != "$CARRY_FROM" ] || CARRY_FROM="$(nvm version node 2>/dev/null || true)"
 log "Node: installing $NODE_LINE (current: $OLD_NODE)"
 # Drive install from NODE_LINE so changes at the top of this script take effect.
 # `lts/*` resolves to the active LTS line; explicit majors (e.g. `24`) also work.
@@ -151,10 +174,10 @@ NEW_NODE="$(nvm current)"
 # Carry `sf` and other globals forward, only when the version changed. Passing
 # --reinstall-packages-from=current to `nvm install` instead fails (exit 2) on a
 # re-run where Node is already on the latest LTS.
-if [ "$NEW_NODE" != "$OLD_NODE" ] && [ "${OLD_NODE#v}" != "$OLD_NODE" ]; then
-  log "Node: reinstalling global packages from $OLD_NODE"
-  nvm reinstall-packages "$OLD_NODE" \
-    || fail_later "couldn't carry npm globals over from $OLD_NODE — reinstall them under $NEW_NODE by hand"
+if [ "$NEW_NODE" != "$CARRY_FROM" ] && [ "${CARRY_FROM#v}" != "$CARRY_FROM" ]; then
+  log "Node: reinstalling global packages from $CARRY_FROM"
+  nvm reinstall-packages "$CARRY_FROM" \
+    || fail_later "couldn't carry npm globals over from $CARRY_FROM — reinstall them under $NEW_NODE by hand"
 fi
 log "Node: now on $NEW_NODE"
 
