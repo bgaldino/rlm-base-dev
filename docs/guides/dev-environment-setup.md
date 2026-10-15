@@ -338,17 +338,20 @@ The script handles:
 7. `sf plugins update`
 8. Gate interpreter — if `<main checkout>/.venv` exists, rebuilds it with
    `python -m venv --clear` when its Python isn't the current 3.13 patch (a
-   patch bump breaks its python symlink the same way as the pipx venv). Before
+   patch bump breaks its python symlink the same way as the pipx venv), or isn't
+   pyenv's: its `pyvenv.cfg` `home` names another base, such as Homebrew's
+   `python@3.13`, which passes a patch check only while the versions match. Before
    clearing, `gate_python.py --carry-over` lists the venv's top-level packages (the
    doc snapshot tooling, Robot requirements, editable installs, …), reading
    site-packages directly so it works when the venv's Python is already gone. They
    are reinstalled afterwards, one at a time if the batch fails, and a pin that
    won't install on the new Python is retried unpinned. Anything that still can't
    come back is named, the list is kept, and the script exits nonzero. If the
-   packages can't be listed while the old Python still runs, the venv is left on its
-   old patch rather than cleared (rerun once the cause is fixed); it is rebuilt anyway
-   only when that Python is already gone. Both of those also end the run nonzero. Then it reinstalls
-   `pr_gate.py --requirements --all`.
+   packages can't be listed while the old Python still runs, the venv is left as it
+   is (old patch or old base) rather than cleared (rerun once the cause is fixed); it
+   is rebuilt anyway only when that Python is already gone. Both of those also end
+   the run nonzero, as does a rebuilt venv whose `home` still isn't pyenv's. Then it
+   reinstalls `pr_gate.py --requirements --all`.
    A `$RLM_GATE_PYTHON` override is probed but not managed. If the install fails,
    or `gate_python.py` still finds the gate interpreter unusable, the script exits
    nonzero after `validate_setup` (which only warns about it)

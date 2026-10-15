@@ -25,9 +25,9 @@ Guide links: **DES** = [dev-environment-setup.md](../../../docs/guides/dev-envir
 | Check | Command | Expect | Fix |
 |-------|---------|--------|-----|
 | Validator, no auto-fix | `cci task run validate_setup -o auto_fix false -o auto_fix_robot false` | A `Passed` count and no `Failed` line. Each `Warnings` entry is a finding to report (for example a missing gate interpreter), not a broken setup | The failing or warning line names the tool. A `selenium` fail right after a `pipx upgrade cumulusci` is CCI's own `selenium<4` pin: `pipx inject --force cumulusci -r robot/requirements.txt` |
-| Gate interpreter | `python3 scripts/ai/gate_python.py; echo "exit $?"` | A `.venv/bin/python` path, exit 0 | [DES: `MISSING-DEP`](../../../docs/guides/dev-environment-setup.md#pr_gatepy-reports-missing-dep-or-validate_setup-warns-gate-interpreter) |
+| Gate interpreter | `python3 scripts/ai/gate_python.py; echo "exit $?"` | A `.venv/bin/python` path (or `$RLM_GATE_PYTHON`, if set), exit 0 | [DES: `MISSING-DEP`](../../../docs/guides/dev-environment-setup.md#pr_gatepy-reports-missing-dep-or-validate_setup-warns-gate-interpreter) |
 | `.envrc` allowed | `direnv status \| grep 'Found RC allowed'` | `allowed 0` (0 means allowed, on direnv 2.33+) | `direnv allow` from the repo root |
-| Signing | `git config --get commit.gpgsign; git config --get gpg.format; git config --get user.signingkey` | `true`; for `ssh`, a key file that exists (expand a leading `~` before `test -f`) or a literal `key::…`/`ssh-…` key; for GPG (`gpg.format` unset), a key, or none if gpg's default key for your email signs | [CONTRIBUTING.md → Sign your commits](../../../CONTRIBUTING.md#sign-your-commits) |
+| Signing | `git config --get commit.gpgsign; git config --get gpg.format; git config --get user.signingkey` | `true`; for `ssh`, a key file that exists (expand a leading `~` before `test -f`) or a literal `key::…`/`ssh-…` key; for GPG (`gpg.format` unset or `openpgp`), a key, or none if gpg's default key for your email signs; for S/MIME (`gpg.format` `x509`), a key `gpgsm` can use | [CONTRIBUTING.md → Sign your commits](../../../CONTRIBUTING.md#sign-your-commits) |
 
 Plain `validate_setup` auto-fixes by default: it can install or update the SFDMU
 plugin and `pipx inject` the Robot packages. Use the flags above whenever you are
@@ -43,7 +43,7 @@ pins a patch (CumulusCI's pipx venv, `.venv`) must equal the installed one.
 | Patch is current | `pyenv versions --bare; pyenv latest -k 3.13` | The latest known 3.13 patch is installed | `update-toolchain.sh` (ask first) |
 | `.envrc` resolves it | `direnv exec . python3 --version` | That patch | `direnv allow`; a stale `PYENV_VERSION` in an old shell |
 | CCI's Python | `cci version` → `Python version:` line | The installed patch | [DES: pipx venv broken after a patch bump](../../../docs/guides/dev-environment-setup.md#pipx-venv-broken-after-python-patch-bump) |
-| Gate venv's Python | `.venv/bin/python -V` | The installed patch | The gate-interpreter step of `update-toolchain.sh` rebuilds it |
+| Gate venv's Python | `.venv/bin/python -V; grep '^home' .venv/pyvenv.cfg` | The installed patch, and a `home` under `~/.pyenv/versions/<that patch>/`. A Homebrew `home` (`/opt/homebrew/…`) passes the patch check only while the two versions match | The gate-interpreter step of `update-toolchain.sh` rebuilds it on pyenv's Python. If `$RLM_GATE_PYTHON` is set, check that interpreter instead; the script probes it but doesn't manage it |
 | `openssl@3` kept | `brew info openssl@3 \| grep -i 'on request'` | `Installed (on request)` | [DES: OpenSSL 4 migration](../../../docs/guides/dev-environment-setup.md#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration) |
 | Linkage | `otool -L "$(pyenv prefix "$(pyenv latest 3.13)")"/lib/python3.13/lib-dynload/_ssl*.so \| grep ssl` | `…/openssl@3/lib/libssl.3.dylib` | Same entry |
 | CCI's ssl | `"$(pipx environment --value PIPX_LOCAL_VENVS)/cumulusci/bin/python" -c 'import ssl; print(ssl.OPENSSL_VERSION)'` | OpenSSL 3.x | Same entry |
@@ -78,10 +78,9 @@ reads all of `~/.zshenv`, `~/.zprofile` and `~/.zshrc`, as a Terminal window doe
 ```bash
 # Terminal opened OUTSIDE the repo, then cd in (the recommended way).
 # Capture the repo path first: $PWD inside the subshell is already /tmp.
-# (Breaks only if the repo path contains a single quote.)
 repo="$PWD"
 (cd /tmp && env -i HOME="$HOME" TERM=xterm zsh -lic \
-  "cd '$repo' && eval \"\$(direnv export zsh 2>/dev/null)\" && command -v python3 node")
+  'cd "${1:?repo path missing}" && eval "$(direnv export zsh 2>/dev/null)" && command -v python3 node' zsh "$repo")
 
 # Terminal that STARTS in the repo (an IDE terminal, a restored tab)
 env -i HOME="$HOME" TERM=xterm zsh -lic 'command -v python3 node'

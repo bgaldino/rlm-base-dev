@@ -12,14 +12,17 @@ re-runs under it, and `scripts/bash/update-toolchain.sh`):
 2. `<main checkout>/.venv/bin/python` — the default. A git worktree resolves to the main
    checkout's `.venv`, so a loop builder in `.loop/wt-*` uses the same interpreter.
 
-Create the default with (Python 3.13 matches CI):
+Create the default with pyenv's Python 3.13 (matches CI). Not a bare `python3.13`: where
+Homebrew's bin comes first on PATH that's Homebrew's python@3.13, and the update script then
+rebuilds the venv on pyenv's. The commands:
 
-    python3.13 -m venv .venv
+    "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m venv .venv
     .venv/bin/python -m pip install $(.venv/bin/python scripts/ai/pr_gate.py --requirements --all)
 
 The setup guides carry the same steps: docs/guides/local-installation.md (Step 6) and
 docs/guides/dev-environment-setup.md, whose update script (scripts/bash/update-toolchain.sh)
-rebuilds the venv after a Python patch bump and reinstalls these requirements.
+rebuilds the venv after a Python patch bump, or when it isn't built on pyenv's Python, and
+reinstalls these requirements.
 
 Stdlib only and Python 3.9-safe on purpose: the hook imports this under whatever `python3`
 the shell has (macOS ships 3.9), and only the gate interpreter itself needs 3.11+.

@@ -22,7 +22,7 @@ when every listed workstation has reported a pass.
    **managed** (see [`managed-workstations.md`](managed-workstations.md)). Cover both
    kinds when the change touches shell setup, certificates or PATH.
 3. **Decide what each machine proves:** the full audit, or a named subset, and
-   whether the owner agrees to run `update-toolchain.sh` (step 4 below).
+   whether the owner agrees to run `update-toolchain.sh` (step 5 below).
 4. **Choose where reports go.** A private place (a maintainer tracker, or a direct
    message) can take full reports. A public issue gets only the redacted form (see
    *Report*).
@@ -112,12 +112,13 @@ Result: PASS | FAIL (<check>) | INCONCLUSIVE (<check>: <reason>)
 Network: <managed network / VPN on | off network>
 
 check                          | result | evidence
-validate_setup (no auto-fix)   | pass   | Passed 14; no Failed; warnings: none
-gate interpreter               | pass   | ~/<repo>/.venv/bin/python
+validate_setup (no auto-fix)   | pass   | Passed <n>; no Failed; warnings: none
+gate interpreter               | pass   | <repo>/.venv/bin/python (home: ~/.pyenv/versions/3.13.x/bin), or $RLM_GATE_PYTHON
+signing                        | pass   | commit.gpgsign true; <ssh: key file exists, or a literal key; gpg (format unset or openpgp): key set, or gpg's default key; x509: a key gpgsm can use>
 python patch (pyenv/CCI/venv)  | pass   | 3.13.x / 3.13.x / 3.13.x (latest known 3.13.x)
 openssl@3                      | pass   | Installed (on request); _ssl links openssl@3
-node / sf / sfdmu              | pass   | v24.x (nvm) / 2.x / 5.x (≥ 5.6.4)
-.envrc + .env.local            | pass   | allowed; keys: <names only>
+node / sf / sfdmu              | pass   | v<LTS ≥ 22>.x (nvm) / 2.x / 5.x (≥ 5.6.4)
+.envrc + .env.local            | pass   | allowed; keys: <names only, or no .env.local>
 PATH (cd in from outside)      | pass   | pyenv shim, nvm node
 NODE_EXTRA_CA_CERTS            | n.a.   | plain workstation; no corporate CA needed
 update-toolchain.sh            | n.a.   | not run (owner declined)

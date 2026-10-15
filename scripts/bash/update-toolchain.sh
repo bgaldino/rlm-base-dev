@@ -12,7 +12,8 @@
 #      robot/requirements.txt re-injected (CCI's own pins downgrade selenium)
 #   6. sf plugins (SFDMU, etc.)
 #   7. Gate interpreter — <main checkout>/.venv, if it exists (rebuilt after a
-#      Python patch bump with its other packages carried over, then
+#      Python patch bump, or when it isn't built on pyenv's Python, with its
+#      other packages carried over, then
 #      pr_gate.py's requirements reinstalled); a $RLM_GATE_PYTHON override is
 #      probed only. A gate interpreter left unusable fails the script after step 8
 #   8. cci task run validate_setup
@@ -227,7 +228,14 @@ elif ! GATE_VENV="$(gate_python --default-venv)"; then
   warn "Gate interpreter: $REPO_ROOT is not a git checkout — skipping"
 elif [ -d "$GATE_VENV" ]; then
   GATE_PY_VERSION="$("$GATE_VENV/bin/python" -c 'import platform; print(platform.python_version())' 2>/dev/null || true)"
-  if [ "$GATE_PY_VERSION" != "$PY_TARGET" ]; then
+  # The base interpreter matters as well as the patch: a venv built on Homebrew's
+  # python@3.13 passes the patch check while the two happen to match, then breaks
+  # or drifts when they don't. pyvenv.cfg's `home` names the base; compare the
+  # resolved directories so a symlinked PYENV_ROOT still matches.
+  GATE_HOME="$(sed -n 's/^home *= *//p' "$GATE_VENV/pyvenv.cfg" 2>/dev/null | head -1 || true)"
+  GATE_BASE="$([ -n "$GATE_HOME" ] && cd "$GATE_HOME" 2>/dev/null && pwd -P || true)"
+  GATE_BASE_WANT="$(cd "$(dirname "$PY_TARGET_BIN")" && pwd -P)"
+  if [ "$GATE_PY_VERSION" != "$PY_TARGET" ] || [ "$GATE_BASE" != "$GATE_BASE_WANT" ]; then
     # --clear empties the whole venv, and the gate's packages are rarely all
     # it holds (the doc snapshot tooling and Robot requirements often live
     # here too). gate_python.py lists its top-level packages first, reading
@@ -238,15 +246,21 @@ elif [ -d "$GATE_VENV" ]; then
       if [ -n "$GATE_PY_VERSION" ]; then
         # It still runs, so clearing it would destroy what can't be listed for
         # nothing. Leave it on its old patch; the gate requirements still go in.
-        fail_later "Gate interpreter: couldn't list the packages in $GATE_VENV — left on Python $GATE_PY_VERSION instead of rebuilding it; rerun once the cause is fixed"
+        fail_later "Gate interpreter: couldn't list the packages in $GATE_VENV — left on Python $GATE_PY_VERSION from ${GATE_HOME:-an unknown base} instead of rebuilding it; rerun once the cause is fixed"
         GATE_REBUILD=0
       else
         fail_later "Gate interpreter: couldn't list the packages in $GATE_VENV, and its Python is gone — rebuilt with only the gate's packages; reinstall any others"
       fi
     fi
     [ "$GATE_REBUILD" -eq 0 ] || {
-      log "Gate interpreter: rebuilding $GATE_VENV on Python $PY_TARGET (was ${GATE_PY_VERSION:-unusable})"
+      log "Gate interpreter: rebuilding $GATE_VENV on pyenv's Python $PY_TARGET (was ${GATE_PY_VERSION:-unusable} from ${GATE_HOME:-an unknown base})"
       "$PY_TARGET_BIN" -m venv --clear "$GATE_VENV"
+      # If the new venv still doesn't record pyenv's directory (a framework build
+      # can name Python.framework instead), say so rather than rebuild every run.
+      GATE_HOME="$(sed -n 's/^home *= *//p' "$GATE_VENV/pyvenv.cfg" 2>/dev/null | head -1 || true)"
+      GATE_BASE="$([ -n "$GATE_HOME" ] && cd "$GATE_HOME" 2>/dev/null && pwd -P || true)"
+      [ "$GATE_BASE" = "$GATE_BASE_WANT" ] \
+        || fail_later "Gate interpreter: rebuilt $GATE_VENV, but its pyvenv.cfg home (${GATE_HOME:-none}) still isn't $GATE_BASE_WANT, so every run will rebuild it; see docs/guides/dev-environment-setup.md (Troubleshooting)"
     }
     if [ "$GATE_REBUILD" -eq 1 ] && [ -s "$GATE_KEEP" ]; then
       log "Gate interpreter: reinstalling the $(wc -l <"$GATE_KEEP" | tr -d ' ') package(s) it held"
