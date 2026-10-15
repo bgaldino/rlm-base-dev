@@ -344,16 +344,22 @@ The script handles:
    site-packages directly so it works when the venv's Python is already gone. They
    are reinstalled afterwards, one at a time if the batch fails, and a pin that
    won't install on the new Python is retried unpinned. Anything that still can't
-   come back is named in a warning, and the list is kept. If the packages can't be
-   listed while the old Python still runs, the venv is left on its old patch with a
-   warning rather than cleared (rerun once the cause is fixed); it is rebuilt anyway
-   only when that Python is already gone. Then it reinstalls
+   come back is named, the list is kept, and the script exits nonzero. If the
+   packages can't be listed while the old Python still runs, the venv is left on its
+   old patch rather than cleared (rerun once the cause is fixed); it is rebuilt anyway
+   only when that Python is already gone. Both of those also end the run nonzero. Then it reinstalls
    `pr_gate.py --requirements --all`.
    A `$RLM_GATE_PYTHON` override is probed but not managed. If the install fails,
    or `gate_python.py` still finds the gate interpreter unusable, the script exits
    nonzero after `validate_setup` (which only warns about it)
 9. `cci task run validate_setup` — verifies every check still passes,
    including the "Gate interpreter" warning check
+
+A step that fails without stopping the run (the npm-globals carry-over, the sf
+update, the Robot re-inject, `sf plugins update`, the gate interpreter and its
+carried-over packages, `validate_setup` itself) is listed again at the end, and
+the script exits nonzero instead of printing `Done`. That holds even when
+`validate_setup` passed: it can't see every missing update.
 
 **When `DEPS` in `scripts/ai/pr_gate.py` changes** (a check gains a new
 package, or the CumulusCI pin moves), the gate interpreter needs the new

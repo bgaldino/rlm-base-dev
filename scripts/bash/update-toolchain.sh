@@ -17,6 +17,9 @@
 #      probed only. A gate interpreter left unusable fails the script after step 8
 #   8. cci task run validate_setup
 #
+# A step that fails without stopping the run is listed again at the end, and
+# the script exits nonzero rather than printing "Done".
+#
 # Designed to be idempotent. Re-run after any tool emits a "new version" notice.
 # Major-line pins live in this script (PY_LINE, NODE_LINE) — edit them to bump.
 
@@ -36,6 +39,11 @@ export PATH="$HOME/.local/bin:$PATH"
 log()  { printf '\n\033[1;34m[update]\033[0m %s\n' "$*"; }
 warn() { printf '\n\033[1;33m[warn]\033[0m  %s\n' "$*" >&2; }
 die()  { printf '\n\033[1;31m[fail]\033[0m  %s\n' "$*" >&2; exit 1; }
+# A step that didn't do its job, but needn't stop the steps after it. The script
+# still fails at the end, after validate_setup: validate_setup can pass with an
+# update missing, so "Done" would claim more than happened.
+STEP_FAILED=()
+fail_later() { warn "$*"; STEP_FAILED+=("$*"); }
 
 # ── 1. Homebrew ─────────────────────────────────────────────────────────────
 command -v brew >/dev/null || die "brew not found — install Homebrew from https://brew.sh first"
@@ -100,7 +108,7 @@ NEW_NODE="$(nvm current)"
 if [ "$NEW_NODE" != "$OLD_NODE" ] && [ "${OLD_NODE#v}" != "$OLD_NODE" ]; then
   log "Node: reinstalling global packages from $OLD_NODE"
   nvm reinstall-packages "$OLD_NODE" \
-    || warn "couldn't carry npm globals over from $OLD_NODE — reinstall them under $NEW_NODE by hand"
+    || fail_later "couldn't carry npm globals over from $OLD_NODE — reinstall them under $NEW_NODE by hand"
 fi
 log "Node: now on $NEW_NODE"
 
@@ -109,11 +117,11 @@ log "Node: now on $NEW_NODE"
 # ("not updatable") while still exiting 0, so update it through npm.
 if [ -d "$(npm root -g)/@salesforce/cli" ]; then
   log "sf CLI: npm install -g @salesforce/cli@latest (was $(sf --version 2>/dev/null | head -1 | cut -d' ' -f1))"
-  npm install -g @salesforce/cli@latest || warn "sf CLI update failed — try: npm install -g @salesforce/cli@latest"
+  npm install -g @salesforce/cli@latest || fail_later "sf CLI update failed — try: npm install -g @salesforce/cli@latest"
   log "sf CLI: now $(sf --version 2>/dev/null | head -1 | cut -d' ' -f1)"
 elif command -v sf >/dev/null 2>&1; then
   log "sf CLI: installer-based install at $(command -v sf) — sf update"
-  sf update || warn "sf update failed"
+  sf update || fail_later "sf update failed"
 else
   warn "sf not found on PATH for $NEW_NODE — installing"
   npm install -g @salesforce/cli@latest
@@ -190,11 +198,11 @@ log "CCI: ensuring setuptools>=75.4"
 # SeleniumLibrary left on 5.x would pass it silently.
 log "CCI: re-applying robot/requirements.txt"
 "${PIPX[@]}" inject --force cumulusci -r "$REPO_ROOT/robot/requirements.txt" \
-  || warn "couldn't inject robot/requirements.txt — run: pipx inject --force cumulusci -r robot/requirements.txt (validate_setup only flags selenium below 4.10)"
+  || fail_later "couldn't inject robot/requirements.txt — run: pipx inject --force cumulusci -r robot/requirements.txt (validate_setup only flags selenium below 4.10)"
 
 # ── 6. sf plugins ───────────────────────────────────────────────────────────
 log "sf plugins: update"
-sf plugins update || warn "sf plugins update failed"
+sf plugins update || fail_later "sf plugins update failed"
 
 # ── 7. Gate interpreter (<main checkout>/.venv) ─────────────────────────────
 # scripts/ai/pr_gate.py, the loop Stop hook and validate_setup's "Gate
@@ -230,10 +238,10 @@ elif [ -d "$GATE_VENV" ]; then
       if [ -n "$GATE_PY_VERSION" ]; then
         # It still runs, so clearing it would destroy what can't be listed for
         # nothing. Leave it on its old patch; the gate requirements still go in.
-        warn "Gate interpreter: couldn't list the packages in $GATE_VENV — left on Python $GATE_PY_VERSION instead of rebuilding it"
+        fail_later "Gate interpreter: couldn't list the packages in $GATE_VENV — left on Python $GATE_PY_VERSION instead of rebuilding it; rerun once the cause is fixed"
         GATE_REBUILD=0
       else
-        warn "Gate interpreter: couldn't list the packages in $GATE_VENV, and its Python is gone — rebuilding; only the gate's packages come back"
+        fail_later "Gate interpreter: couldn't list the packages in $GATE_VENV, and its Python is gone — rebuilt with only the gate's packages; reinstall any others"
       fi
     fi
     [ "$GATE_REBUILD" -eq 0 ] || {
@@ -260,7 +268,7 @@ elif [ -d "$GATE_VENV" ]; then
           GATE_LOST="${GATE_LOST:+$GATE_LOST, }$req"
         done 3<"$GATE_KEEP"
         [ -z "$GATE_LOST" ] \
-          || warn "Gate interpreter: these didn't come back: $GATE_LOST (full list: $GATE_KEEP)"
+          || fail_later "Gate interpreter: these didn't come back: $GATE_LOST (full list: $GATE_KEEP)"
       fi
     fi
     [ -n "${GATE_LOST:-}" ] || rm -f "$GATE_KEEP"
@@ -283,7 +291,12 @@ fi
 
 # ── 8. Verify ───────────────────────────────────────────────────────────────
 log "Running validate_setup"
-cci task run validate_setup
+cci task run validate_setup || fail_later "validate_setup failed (output above)"
 
-[ -z "$GATE_FAILED" ] || die "Gate interpreter: $GATE_FAILED, so the local gate (scripts/ai/pr_gate.py) can't run all its checks"
+[ -z "$GATE_FAILED" ] || STEP_FAILED+=("Gate interpreter: $GATE_FAILED, so the local gate (scripts/ai/pr_gate.py) can't run all its checks")
+# Count first: expanding an empty array trips `set -u` on bash 3.2 (macOS /bin/bash).
+if [ "${#STEP_FAILED[@]}" -gt 0 ]; then
+  for msg in "${STEP_FAILED[@]}"; do warn "$msg"; done
+  die "${#STEP_FAILED[@]} step(s) failed (listed above)"
+fi
 log "Done."
