@@ -24,7 +24,7 @@ Guide links: **DES** = [dev-environment-setup.md](../../../docs/guides/dev-envir
 
 | Check | Command | Expect | Fix |
 |-------|---------|--------|-----|
-| Validator, no auto-fix | `cci task run validate_setup -o auto_fix false -o auto_fix_robot false` | A `Passed` count and no `Failed` line. Each `Warnings` entry is a finding to report (for example a missing gate interpreter), not a broken setup | The failing or warning line names the tool |
+| Validator, no auto-fix | `cci task run validate_setup -o auto_fix false -o auto_fix_robot false` | A `Passed` count and no `Failed` line. Each `Warnings` entry is a finding to report (for example a missing gate interpreter), not a broken setup | The failing or warning line names the tool. A `selenium` fail right after a `pipx upgrade cumulusci` is CCI's own `selenium<4` pin: `pipx inject --force cumulusci -r robot/requirements.txt` |
 | Gate interpreter | `python3 scripts/ai/gate_python.py; echo "exit $?"` | A `.venv/bin/python` path, exit 0 | [DES: `MISSING-DEP`](../../../docs/guides/dev-environment-setup.md#pr_gatepy-reports-missing-dep-or-validate_setup-warns-gate-interpreter) |
 | `.envrc` allowed | `direnv status \| grep 'Found RC allowed'` | `allowed 0` (0 means allowed, on direnv 2.33+) | `direnv allow` from the repo root |
 | Signing | `git config --get commit.gpgsign; git config --get gpg.format; git config --get user.signingkey` | `true`; for `ssh`, a key file that exists (expand a leading `~` before `test -f`) or a literal `key::…`/`ssh-…` key; for GPG (`gpg.format` unset), a key, or none if gpg's default key for your email signs | [CONTRIBUTING.md → Sign your commits](../../../CONTRIBUTING.md#sign-your-commits) |
