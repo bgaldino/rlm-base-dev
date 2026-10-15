@@ -336,7 +336,11 @@ The script handles:
 5. `pipx reinstall cumulusci --python <new patch>` (if Python patch bumped, or
    CCI's venv isn't running that patch) **or** `pipx upgrade cumulusci` —
    required because patch upgrades break the venv's python symlink. The script
-   then checks the venv really runs the new patch
+   then checks the venv really runs the new patch. It also rewrites pipx's own
+   scripts in `~/.local/bin` (pipx, userpath, argcomplete) for the new patch, and
+   names any other pipx app still on an older 3.13 patch without changing it. Before
+   `pyenv uninstall` of an old patch, run the toolchain audit's "Other users of an
+   older patch" row (`.cursor/skills/toolchain/workstation-audit.md` §2)
 6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
    requires modern setuptools. The historical `<71` pin (older docs)
    is **incompatible**; see the [local installation guide](local-installation.md#step-7--install-cumulusci), *Note on setuptools*. Note CI
@@ -625,10 +629,15 @@ no pyenv shim is on PATH. Inside the repo it happens in a login shell that
 `path_helper` (run from `/etc/zprofile`) moved `/usr/bin` ahead of them, and the
 `brew shellenv` block in `~/.zprofile` put Homebrew first, so a Homebrew
 `python3` (`/opt/homebrew/bin/python3`) can win the same way (see §2,
-`~/.zprofile`). So can the python.org installer's: it adds a
-`/Library/Frameworks/Python.framework/Versions/3.x/bin` PATH line to
-`~/.zprofile`, outside any tool-managed block. Remove that line if nothing else
-needs that Python. Open a terminal outside the repo and `cd` in instead; don't use
+`~/.zprofile`). So can the python.org installer's, in two ways: a
+`/Library/Frameworks/Python.framework/Versions/3.x/bin` PATH line in
+`~/.zprofile`, outside any tool-managed block, and a `/usr/local/bin/python3`
+symlink, which `path_helper` also puts ahead of the shims. Remove the PATH line if
+nothing else needs that Python. python.org ships no uninstaller, and deleting the
+framework leaves the symlinks dangling (still ahead of the shims): run
+`ls -l /usr/local/bin/python3*` and delete only the links that point into
+`/Library/Frameworks/Python.framework` (on Intel Macs `/usr/local/bin` is also
+Homebrew's). Open a terminal outside the repo and `cd` in instead; don't use
 `direnv reload` or `cd` out and back in here, for the reason in §2 (`~/.zprofile`): it drops system and
 managed PATH entries. Cosmetic — `python` (no `3`) resolves correctly because the system doesn't
 ship one. CCI invokes `python`, so this won't break anything. If you need
@@ -688,7 +697,9 @@ env -i HOME="$HOME" zsh -c   'echo $NODE_EXTRA_CA_CERTS'
 env -i HOME="$HOME" zsh -lic 'echo $NODE_EXTRA_CA_CERTS'
 ```
 
-Then verify from a new terminal (an open one still has the old value). Use npm,
+`python3 scripts/ai/check_node_ca.py` checks the result: it fails when a bundle
+any startup file assigns isn't in the file both shells export. Then verify from a
+new terminal (an open one still has the old value). Use npm,
 because it connects the way `npm` and `sf` installs do, through npm's own proxy
 settings:
 
@@ -735,9 +746,11 @@ Then read the ping result:
   `ERR_TLS_CERT_ALTNAME_INVALID` is a hostname mismatch.
 - Any other code (`ECONNREFUSED`, `ECONNRESET`, `ENETUNREACH`, `ENOTFOUND`,
   `ETIMEDOUT`, …) is a network or proxy problem and says nothing about the CA.
-- `Warning: Ignoring extra certs from … load failed` means the file path is wrong
-  or not a single PEM file. Node prints it when it first sets up TLS, so on a
-  connection that fails before then there's no warning either way.
+- `Warning: Ignoring extra certs from … load failed` means the file path is wrong,
+  it isn't a single PEM file, or two bundles were joined without a newline between
+  them (`bad end line`; Node keeps only the certificates before the join). Node
+  prints it when it first sets up TLS, so on a connection that fails before then
+  there's no warning either way.
 
 A connection that's refused fails at once. One that's silently dropped can take
 over a minute even without retries.
