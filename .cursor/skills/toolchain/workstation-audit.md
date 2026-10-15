@@ -91,7 +91,7 @@ env -i HOME="$HOME" TERM=xterm zsh -c   'echo "[$NODE_EXTRA_CA_CERTS]"'   # non-
 env -i HOME="$HOME" TERM=xterm zsh -lic 'echo "[$NODE_EXTRA_CA_CERTS]"'   # a Terminal window
 # TLS probe in a fresh Terminal-window shell that opens outside the repo and cds
 # in, so it tests nvm's Node (as in audit §5); it exits on its own within 15 s.
-probe='const q = require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }); q.on("error", e => { console.log(e.code || e.message); process.exit(1) }); q.setTimeout(15000, () => { console.log("timeout"); process.exit(2) })'
+probe='setTimeout(() => { console.log("timeout"); process.exit(2) }, 15000); require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }).on("error", e => { console.log(e.code || e.message); process.exit(1) })'
 repo="$PWD"
 (cd /tmp && env -i HOME="$HOME" TERM=xterm zsh -lic \
   'cd "$2" && eval "$(direnv export zsh 2>/dev/null)" && node -e "$1"' zsh "$probe" "$repo")
@@ -104,6 +104,7 @@ repo="$PWD"
 | The two values differ | A later block overrides the export in one shell type |
 | Empty in the non-interactive check only | The export lives in `~/.zprofile` or `~/.zshrc`; non-interactive tools don't get it |
 | `Warning: Ignoring extra certs from …` | The path is wrong or not a single file |
+| The probe prints an error code (`UNABLE_TO_GET_ISSUER_CERT_LOCALLY`, `SELF_SIGNED_CERT_IN_CHAIN`) | Node still doesn't trust the corporate CA: the file lacks the right certificate, or the variable isn't set in that shell |
 | The probe prints `timeout` | Behind an explicit proxy this says nothing about the CA; judge by the warning |
 
 Empty in both, with the probe passing, is fine on a workstation that needs no extra

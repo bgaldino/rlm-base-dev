@@ -593,12 +593,16 @@ Then verify with a TLS request from a new terminal (an open one still has the
 old value), which surfaces the warning:
 
 ```bash
-node -e 'const q = require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }); q.on("error", e => { console.log(e.code || e.message); process.exit(1) }); q.setTimeout(15000, () => { console.log("timeout"); process.exit(2) })'
+node -e 'setTimeout(() => { console.log("timeout"); process.exit(2) }, 15000); require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }).on("error", e => { console.log(e.code || e.message); process.exit(1) })'
 ```
 
-It prints the status code and exits, or prints `timeout` after 15 seconds
-(`process.exit`: without it, Node keeps the connection open and the command
-doesn't return).
+It prints the status code (exit 0), or the error code if the request fails (such
+as `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`; exit 1), or `timeout` after 15 seconds
+(exit 2). The timer is a plain `setTimeout`, so it bounds every stage, a stalled
+DNS lookup or TCP connect included. The `process.exit` calls matter too: the
+pending timer and the connection the unread response holds open would otherwise
+keep Node running, so even a successful request would wait 15 seconds and then
+print `timeout`.
 
 This plain `https.get` doesn't use `HTTPS_PROXY`, so behind an explicit proxy a
 timeout here says nothing about the CA setup; check for the warning instead.
