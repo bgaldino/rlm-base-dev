@@ -45,6 +45,7 @@ pins a patch (CumulusCI's pipx venv, `.venv`) must equal the installed one.
 | `.envrc` resolves it | `direnv exec . python3 --version` | That patch | `direnv allow`; a stale `PYENV_VERSION` in an old shell |
 | CCI's Python | `cci version` → `Python version:` line | The installed patch | [DES: pipx venv broken after a patch bump](../../../docs/guides/dev-environment-setup.md#pipx-venv-broken-after-python-patch-bump) |
 | TUI venvs' Python | `git worktree list --porcelain \| sed -n 's/^worktree //p' \| while IFS= read -r v; do [ -d "$v/.harness/tui-venv" ] && echo "$("$v/.harness/tui-venv/bin/python" -V 2>&1) $v"; done` | The installed patch for each (none is fine: `./tui-cci` creates one on first run) | The TUI-venv step of `update-toolchain.sh` rebuilds them |
+| Other users of an older patch | `(setopt nullglob 2>/dev/null \|\| shopt -s nullglob; cur="$(pyenv latest 3.13)"; for v in "$(pipx environment --value PIPX_LOCAL_VENVS)"/*/; do h=$(sed -n 's/^home *= *//p' "$v/pyvenv.cfg"); case "$h" in *"/versions/$cur/"*) ;; *"/versions/3.13."*) echo "pipx $(basename "$v"): $(printf %s "$h" \| sed "s#$HOME#~#")";; esac; done; for f in ~/.local/bin/*; do l=$(head -c 300 "$f" 2>/dev/null \| LC_ALL=C sed -n '1{/^#!/p;}'); case "$l" in *"/versions/3.13."*) case "$l" in *"/versions/$cur/"*) ;; *) echo "script $(basename "$f"): $(printf %s "$l" \| sed "s#$HOME#~#")";; esac;; esac; done)` | Nothing printed. Anything listed runs on a superseded 3.13 patch and breaks when that patch is uninstalled; check this before any `pyenv uninstall`. Apps kept on another line (3.12, 3.14) or a non-pyenv Python aren't listed: that's a choice, not drift | A pipx app: `pipx reinstall <app> --python "$(pyenv prefix "$cur")/bin/python3"`. A script in `~/.local/bin`: `update-toolchain.sh` rewrites pipx's own (pipx, userpath, argcomplete); for another, `"$(pyenv prefix "$cur")/bin/python3" -m pip install --user --force-reinstall --no-deps <package>` |
 | Gate venv's Python | `.venv/bin/python -V; grep '^home' .venv/pyvenv.cfg` | The installed patch, and a `home` under `~/.pyenv/versions/<that patch>/`. A Homebrew `home` (`/opt/homebrew/…`) passes the patch check only while the two versions match | The gate-interpreter step of `update-toolchain.sh` rebuilds it on pyenv's Python. If `$RLM_GATE_PYTHON` is set, check that interpreter instead; the script probes it but doesn't manage it |
 | `openssl@3` kept | `brew info openssl@3 \| grep -i 'on request'` | `Installed (on request)` | [DES: OpenSSL 4 migration](../../../docs/guides/dev-environment-setup.md#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration) |
 | Linkage | `otool -L "$(pyenv prefix "$(pyenv latest 3.13)")"/lib/python3.13/lib-dynload/_ssl*.so \| grep ssl` | `…/openssl@3/lib/libssl.3.dylib` | Same entry |
@@ -89,7 +90,8 @@ env -i HOME="$HOME" TERM=xterm zsh -lic 'command -v python3 node'
 ```
 
 Expect the first to print `~/.pyenv/shims/python3` and nvm's `node`. The second
-printing `/usr/bin/python3` is the documented started-in-repo case, not a fault.
+printing `/usr/bin/python3`, or a Homebrew or python.org `python3`, is the
+documented started-in-repo case, not a fault.
 The fix is to open terminals outside the repo, never `direnv reload`
 ([DES §2, `~/.zprofile`](../../../docs/guides/dev-environment-setup.md#zprofile--runs-in-login-shells-only)).
 
@@ -100,6 +102,10 @@ The fix is to open terminals outside the repo, never `direnv reload`
 env -i HOME="$HOME" TERM=xterm zsh -c   'echo "[$NODE_EXTRA_CA_CERTS]"'
 # a Terminal window
 env -i HOME="$HOME" TERM=xterm zsh -lic 'echo "[$NODE_EXTRA_CA_CERTS]"'
+# Every bundle a shell file assigns to the variable must be in the file both shells
+# export (two tool-managed blocks can each set their own; the later one wins).
+# Read-only: prints paths and certificate counts. Exit 0 pass, 1 fail, 3 n.a.
+python3 scripts/ai/check_node_ca.py
 env -i HOME="$HOME" TERM=xterm zsh -lic \
   'echo "[TLS_REJECT=$NODE_TLS_REJECT_UNAUTHORIZED][HTTPS_PROXY=${HTTPS_PROXY:+set}][https_proxy=${https_proxy:+set}][HTTP_PROXY=${HTTP_PROXY:+set}][http_proxy=${http_proxy:+set}]"'
 # The real check, in a fresh Terminal-window shell opened outside the repo (as in
@@ -119,7 +125,9 @@ If you run these as separate shell calls, set `repo=<path to the main checkout>`
 
 | Result | Meaning |
 |--------|---------|
-| Both values are the same single existing file; `TLS_REJECT` empty or anything but `0`; `ca=null`, `cafile=null`, `strict-ssl=true`, an `https://` registry; `npm ping` prints `PONG` (or an HTTP code such as `E404`) with no warning; run on the managed network | Pass. Record the network ("on VPN", "office"). Off the managed network the inspecting proxy isn't in the path, so the corporate CA wasn't exercised: record **inconclusive (off network)** instead. A macOS system proxy or PAC file is invisible to npm and Node, so if inspection only happens through one, this check can't see it: note that |
+| `check_node_ca.py` prints `N.A.` (exit 3) | No zsh startup file assigns `NODE_EXTRA_CA_CERTS` and no shell exports it. On a plain workstation that needs no corporate CA, record n.a.; on a managed one it's a **Fail**: the CA isn't set up at all |
+| `check_node_ca.py` prints any `FAIL:` line | **Fail**, even if `npm ping` passes (a registry with a public certificate doesn't need the corporate CA). Most often `<bundle>: N of its M certs aren't in the exported file`: two blocks set the variable and the later one wins. "can't fully parse" usually means two bundles were joined without a newline between them (rejoin them with `awk 1`). "exports nothing", "colon-separated" and "different files" are the rows below; "didn't run" / "no zsh ran" means zsh is missing or a shell didn't finish within two minutes (for example a background job from a startup file holding its output open). For the two-blocks case: combine the bundles into one file, export it from `~/.zshenv`, and repeat the export after the blocks ([DES: Node TLS errors behind a corporate CA](../../../docs/guides/dev-environment-setup.md#node-tls-errors-behind-a-corporate-ca-node_extra_ca_certs)) |
+| `check_node_ca.py` prints `PASS`; both values are the same single existing file; `TLS_REJECT` empty or anything but `0`; `ca=null`, `cafile=null`, `strict-ssl=true`, an `https://` registry; `npm ping` prints `PONG` (or an HTTP code such as `E404`) with no warning; run on the managed network | Pass. Record the network ("on VPN", "office"). Off the managed network the inspecting proxy isn't in the path, so the corporate CA wasn't exercised: record **inconclusive (off network)** instead. A macOS system proxy or PAC file is invisible to npm and Node, so if inspection only happens through one, this check can't see it: note that |
 | `registry=set (credentials hidden)` | Read the registry's scheme from `npm ping`'s `PING <url>` line (redacted): `https://` can satisfy the Pass row, `http://` is the next row |
 | `strict-ssl=false`, or an `http://` registry | **Inconclusive**: npm doesn't check certificates, so `PONG` proves nothing about the CA |
 | `TLS_REJECT=0` | **Fail**: npm still verifies, but `sf` and other Node processes don't. Remove the variable |
@@ -127,7 +135,7 @@ If you run these as separate shell calls, set `repo=<path to the main checkout>`
 | The two values differ | Fail: a later block overrides the export in one shell type |
 | Empty in the non-interactive check only | Fail: the export lives in `~/.zprofile` or `~/.zshrc`, so non-interactive tools don't get it |
 | `ca` or `cafile` is set | npm uses only that trust store, so `PONG` verifies npm's trust, not `NODE_EXTRA_CA_CERTS`. If the workstation has no explicit proxy (all four proxy variables above empty, npm's `proxy`/`https-proxy` null; npm also uses `HTTP_PROXY`/`http_proxy` for HTTPS), run the direct-probe command from the block above on the managed network (a fresh shell, not the agent's own, which can carry an older value). **Pass** if it prints an HTTP status and the other Pass conditions hold; **Fail** on a certificate code. Otherwise **Inconclusive (`cafile` set; `NODE_EXTRA_CA_CERTS` unverified)** |
-| `Warning: Ignoring extra certs from …` | Fail: the path is wrong or not a single file (even if `PONG` follows) |
+| `Warning: Ignoring extra certs from …` | Fail: the path is wrong, it isn't a single file, or two bundles were joined without a newline (`bad end line`), even if `PONG` follows |
 | `npm error code` with a certificate code (`UNABLE_TO_GET_ISSUER_CERT_LOCALLY`, `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, `SELF_SIGNED_CERT_IN_CHAIN`, `DEPTH_ZERO_SELF_SIGNED_CERT`, …) | On the managed network, **Fail**: npm and Node don't trust the corporate CA. The file lacks the right certificate, or the variable isn't set in that shell (or npm's `ca`/`cafile`, if set, lacks it). Off the managed network, a captive portal or other proxy can cause this too: **inconclusive (off network)** |
 | `CERT_HAS_EXPIRED` / `CERT_NOT_YET_VALID`, or `ERR_TLS_CERT_ALTNAME_INVALID` | Fail, but not fixed by adding a CA: a stale bundle or the system clock, or a hostname mismatch |
 | Any other code (`ECONNREFUSED`, `ECONNRESET`, `ENETUNREACH`, `ENOTFOUND`, `ETIMEDOUT`, …) | **Inconclusive**: a network or proxy problem, not a CA verdict. Record it with the code |
