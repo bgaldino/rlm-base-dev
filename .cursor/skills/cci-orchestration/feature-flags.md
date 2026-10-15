@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **86 configuration values**, **40 YAML anchors** under `project.custom`.
+**42 feature flags**, **86 configuration values**, **40 YAML anchors** under `project.custom`.
 
 ---
 
@@ -46,6 +46,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 23 flow step(s) |
+| `quote_est_tax` | `False` | — |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |

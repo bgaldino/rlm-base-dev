@@ -31,6 +31,7 @@
     { "path": "unpackaged/post_prm" },
     { "path": "unpackaged/post_procedureplans" },
     { "path": "unpackaged/post_quantumbit" },
+    { "path": "unpackaged/post_quote_est_tax_settings" },
     { "path": "unpackaged/post_setup_guide" },
     { "path": "unpackaged/post_tso" },
     { "path": "unpackaged/post_utils" },
