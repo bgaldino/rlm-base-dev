@@ -258,6 +258,15 @@ sf plugins update || fail_later "sf plugins update failed"
 # symlinked PYENV_ROOT still matches. LABEL starts every message.
 PY_TARGET_BASE="$(cd "$(dirname "$PY_TARGET_BIN")" && pwd -P)"
 venv_home() { sed -n 's/^home *= *//p' "$1/pyvenv.cfg" 2>/dev/null | head -1 || true; }
+# A process started from the venv is running (a ./tui-cci session in another
+# worktree, a gate run). Clearing or upgrading packages under it breaks its next
+# import, so neither happens while this is true. It sees processes started by the
+# venv's path, which is how tui-cci and the gate start theirs; one started from
+# an activated shell as plain `python` isn't. pgrep takes a regex, so the path is
+# escaped for `(`, `+`, `[` … in it to match literally.
+venv_in_use() {
+  pgrep -f -- "$(printf '%s' "$1/bin/" | sed 's/[][\\.*^$+?(){}|]/\\&/g')" >/dev/null 2>&1
+}
 venv_base() {
   local home
   home="$(venv_home "$1")"
@@ -270,14 +279,11 @@ refresh_venv() {
   if [ "$version" = "$PY_TARGET" ] && [ "$(venv_base "$venv")" = "$PY_TARGET_BASE" ]; then
     return 0
   fi
-  # Clearing a venv under a running process (a ./tui-cci session in another
-  # worktree, a gate run) breaks that process's next import. Leave it. This sees
-  # processes started by the venv's path, which is how tui-cci and the gate
-  # start theirs; one started from an activated shell as plain `python` isn't.
-  # pgrep takes a regex: escape the path so `(`, `+`, `[` … in it match literally.
-  if pgrep -f -- "$(printf '%s' "$venv/bin/" | sed 's/[][\\.*^$+?(){}|]/\\&/g')" >/dev/null 2>&1; then
+  # Returns 1 when it's left for being in use, so the caller makes no other
+  # change to it either.
+  if venv_in_use "$venv"; then
     fail_later "$label: $venv needs a rebuild onto Python $PY_TARGET (it's on ${version:-an unusable Python}), but a process is running from it — left; rerun once it has exited"
-    return 0
+    return 1
   fi
   # --clear empties the whole venv, so list what it holds first.
   keep="$(mktemp "${TMPDIR:-/tmp}/venv-packages.XXXXXX")"
@@ -344,17 +350,24 @@ if [ -n "${RLM_GATE_PYTHON:-}" ]; then
 elif ! GATE_VENV="$(gate_python --default-venv)"; then
   warn "Gate interpreter: $REPO_ROOT is not a git checkout — skipping"
 elif [ -d "$GATE_VENV" ]; then
-  refresh_venv "$GATE_VENV" "Gate interpreter"
-  log "Gate interpreter: installing pr_gate.py requirements into $GATE_VENV"
-  # Unquoted on purpose: one requirement per line, split into pip arguments.
-  # shellcheck disable=SC2046
-  if ! "$GATE_VENV/bin/python" -m pip install --upgrade \
-      $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all); then
-    GATE_FAILED="pip install into $GATE_VENV failed"
-  # The same probe the Stop hook and validate_setup run: every pr_gate.py
-  # dependency imports, and the Python is new enough for every check.
-  elif ! gate_python >/dev/null; then
-    GATE_FAILED="$GATE_VENV still can't run every pr_gate.py check"
+  if ! refresh_venv "$GATE_VENV" "Gate interpreter"; then
+    : # in use and due a rebuild: left untouched, and the failure is already recorded
+  elif venv_in_use "$GATE_VENV"; then
+    # Current, but a gate run is using it: `pip install --upgrade` could replace a
+    # package under that run, so its requirements wait for the next run.
+    fail_later "Gate interpreter: a process is running from $GATE_VENV — its pr_gate.py requirements weren't reinstalled; rerun once it has exited"
+  else
+    log "Gate interpreter: installing pr_gate.py requirements into $GATE_VENV"
+    # Unquoted on purpose: one requirement per line, split into pip arguments.
+    # shellcheck disable=SC2046
+    if ! "$GATE_VENV/bin/python" -m pip install --upgrade \
+        $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all); then
+      GATE_FAILED="pip install into $GATE_VENV failed"
+    # The same probe the Stop hook and validate_setup run: every pr_gate.py
+    # dependency imports, and the Python is new enough for every check.
+    elif ! gate_python >/dev/null; then
+      GATE_FAILED="$GATE_VENV still can't run every pr_gate.py check"
+    fi
   fi
 else
   log "Gate interpreter: $GATE_VENV not found — create it per docs/guides/local-installation.md (Step 6)"
@@ -371,7 +384,7 @@ TUI_SEEN=0
 while IFS= read -r wt <&4; do
   [ -d "$wt/.harness/tui-venv" ] || continue
   TUI_SEEN=$((TUI_SEEN + 1))
-  refresh_venv "$wt/.harness/tui-venv" "TUI venv"
+  refresh_venv "$wt/.harness/tui-venv" "TUI venv" || true  # in use: recorded, left
 done 4< <(git -C "$REPO_ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
 log "TUI venv: $TUI_SEEN found, each on pyenv's Python $PY_TARGET unless a warning above says otherwise"
 

@@ -372,8 +372,9 @@ The script handles:
    venv's treatment: rebuilt on pyenv's current patch, its packages carried over.
    `./tui-cci` reinstalls its own requirements on its next run if any are missing.
    A venv (TUI or gate) that a process is running from, such as a `./tui-cci`
-   session open in another worktree, is left as it is and named, and the run ends
-   nonzero: rerun once that process has exited
+   session open in another worktree or a gate run, isn't changed at all, neither
+   rebuilt nor (for the gate venv) given its `pr_gate.py` requirements. It's named,
+   and the run ends nonzero: rerun once that process has exited
 10. `cci task run validate_setup` — verifies every check still passes,
    including the "Gate interpreter" warning check
 
