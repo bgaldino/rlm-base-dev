@@ -338,9 +338,11 @@ The script handles:
    required because patch upgrades break the venv's python symlink. The script
    then checks the venv really runs the new patch. It also rewrites pipx's own
    scripts in `~/.local/bin` (pipx, userpath, argcomplete) for the new patch, and
-   names any other pipx app still on an older 3.13 patch without changing it. Before
+   names any other pipx app still on an older 3.13 patch without changing it. It
+   also names [pipx's shared venv](#pipxs-shared-venv-is-on-another-python) when
+   that is on another Python, which no pipx command moves. Before
    `pyenv uninstall` of an old patch, run the toolchain audit's "Other users of an
-   older patch" row (`.cursor/skills/toolchain/workstation-audit.md` §2)
+   older patch" and "pipx shared venv" rows (`.cursor/skills/toolchain/workstation-audit.md` §2)
 6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
    requires modern setuptools. The historical `<71` pin (older docs)
    is **incompatible**; see the [local installation guide](local-installation.md#step-7--install-cumulusci), *Note on setuptools*. Note CI
@@ -395,8 +397,9 @@ venvs and their carried-over packages, a venv left because it's in use,
 the script exits nonzero instead of printing `Done`. That holds even when
 `validate_setup` passed: it can't see every missing update.
 
-A `pyenv global` left on an older patch (step 2) isn't a failure, but its warning
-is repeated just before `Done` so it isn't lost above the run's output.
+A `pyenv global` left on an older patch (step 2) isn't a failure, and neither is a
+pipx app or pipx's shared venv on another Python (step 5), but their warnings are
+repeated just before `Done` so they aren't lost above the run's output.
 
 **When `DEPS` in `scripts/ai/pr_gate.py` changes** (a check gains a new
 package, or the CumulusCI pin moves), the gate interpreter needs the new
@@ -424,7 +427,12 @@ When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
    must not name it ([the troubleshooting entry](#pyenv-version-313x-is-not-installed-set-by-pyenvversion)),
    and anything you pip-installed into it goes with it
    (`python3 scripts/ai/gate_python.py --carry-over "$(pyenv root)/versions/<old>"`
-   lists those).
+   lists those). Check pipx's shared venv too
+   (`sed -n 's/^home *= *//p' "$(pipx environment --value PIPX_SHARED_LIBS)/pyvenv.cfg"`).
+   It stays on the Python that first ran pipx, and the script's CCI reinstall
+   doesn't move it. If it's on the old line, uninstalling that Python leaves every
+   pipx venv without pip, so move it first, by the *Another line* route in
+   [pipx's shared venv is on another Python](#pipxs-shared-venv-is-on-another-python).
 
 ---
 
@@ -548,6 +556,83 @@ pipx inject --force cumulusci -r robot/requirements.txt
 # The Python version line must name the new patch
 cci version
 ```
+
+### pipx's shared venv is on another Python
+pipx's shared venv (`pipx environment --value PIPX_SHARED_LIBS`, usually
+`~/.local/pipx/shared`) holds the pip that every pipx venv, CCI's included, uses for
+installs, injects and upgrades. Each venv reaches it through a `pipx_shared.pth` file
+that names the shared venv's `lib/pythonX.Y/site-packages`. pipx builds the shared
+venv on whichever Python first ran pipx, and rebuilds it only once that Python is
+gone. A patch bump, `pipx reinstall`, `update-toolchain.sh` and `pipx upgrade-shared`
+(which only upgrades pip in place and has no `--python`) all leave it where it is. So
+it can still be on a patch or a line you are about to uninstall, even when every venv
+already runs the current patch. `update-toolchain.sh` names it at the end of a run,
+and so does the toolchain audit's "pipx shared venv" row
+(`.cursor/skills/toolchain/workstation-audit.md` §2). To look by hand:
+
+```bash
+s="$(pipx environment --value PIPX_SHARED_LIBS)"
+sed -n 's/^home *= *//p' "$s/pyvenv.cfg"; ls "$s/lib"
+grep -H '' "$(pipx environment --value PIPX_LOCAL_VENVS)"/*/lib/python*/site-packages/pipx_shared.pth
+```
+
+The first line is the shared venv's Python, the second its `pythonX.Y`, and the rest
+says where each app's pip comes from. An app on 3.13 whose `.pth` names another
+`lib` still works, because pip is pure Python, but it loses pip once the shared venv
+is rebuilt. A `.pth` naming a directory that's gone means `pipx inject` and
+`pipx upgrade` already fail for that app. An app you keep on another line on purpose
+always loads pip from another `lib`; that's expected.
+
+pipx rebuilds the shared venv on `PIPX_DEFAULT_PYTHON` when that is set, and on the
+Python running pipx otherwise, so the commands below unset it. (`printenv
+PIPX_DEFAULT_PYTHON` shows whether it is set; `pipx environment` always prints an
+interpreter for it, the fallback when it isn't.) Pick the route by where the shared venv is:
+
+- **An older 3.13 patch under pyenv** (`lib` is `python3.13`) that nothing else needs
+  (§4, [Bumping a major line](#bumping-a-major-line), step 5): uninstall that patch,
+  then run `env -u PIPX_DEFAULT_PYTHON "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m pipx upgrade-shared`.
+  pipx treats a shared venv whose Python is missing as invalid, prints `creating shared
+  libraries...` and rebuilds it on the interpreter running pipx. The `.pth` files stay
+  valid, because the path still ends in `python3.13`.
+- **Already on the current patch, with some `.pth` naming a directory that's gone**
+  (it was rebuilt after its old line was uninstalled): reinstall just those apps,
+  `pipx reinstall <app> --python "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3"`.
+  For `cumulusci`, re-run the two injections in the block below afterwards.
+- **Another line** (`lib` isn't `python3.13`), a Python outside pyenv (a pipx first run
+  from Homebrew's Python), or an old Python that must stay: a rebuild alone would leave
+  every venv's `.pth` on the old `lib/pythonX.Y`, so they'd lose pip. Reinstall every
+  pipx venv instead. Note first which apps you keep on another Python
+  (`pipx list` names the Python each one was installed with): `reinstall-all` moves them
+  all to 3.13. From the main checkout:
+
+  ```bash
+  PY="$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3"
+  ph="$(pipx environment --value PIPX_HOME)"; s="$(pipx environment --value PIPX_SHARED_LIBS)"
+  bk="$HOME/pipx-backup-$(date +%Y%m%d-%H%M%S)"
+  for v in "$ph"/venvs/*/; do "$v/bin/python" -c 'import importlib.metadata as m; print("\n".join(sorted(f"{d.name}=={d.version}" for d in m.distributions())))' > "$bk-$(basename "$v").before"; done
+  [ ! -e "$bk" ] && cp -a "$ph" "$bk" && mv "$s" "$bk-shared-old" && env -u PIPX_DEFAULT_PYTHON "$PY" -m pipx reinstall-all --python "$PY"
+  "$PY" -m pipx inject --force cumulusci "setuptools>=75.4"
+  "$PY" -m pipx inject --force cumulusci -r robot/requirements.txt
+  ```
+
+  The backup, the move and the reinstall are chained, so a failed copy stops before
+  anything changes. Moving `shared` aside makes pipx recreate it on `$PY`. Then rerun
+  the checks above, and diff each venv's package list against its `$bk-<app>.before`
+  file. `reinstall-all` re-resolves unpinned packages, so expect a few patch bumps, not
+  missing packages. `cci version` must name the current patch. Put an app you keep on
+  another Python back with `pipx reinstall <app> --python <its Python>`. If it can't be
+  installed on 3.13, `reinstall-all` reports it failed, and it is no longer installed
+  (a reinstall uninstalls first): `pipx install <package> --python <its Python>`, then
+  `pipx inject` the packages listed under `injected_packages` in
+  `"$bk"/venvs/<app>/pipx_metadata.json`. To roll everything back,
+  `rm -rf "$ph"`, then `mv "$bk" "$ph"`, and `rm -rf "$s" && mv "$bk-shared-old" "$s"` if
+  the shared venv lives outside `$ph`.
+
+Don't delete the shared venv outright: the first two routes need no deletion, and the
+third keeps it and a full backup. `pipx run` caches can sit on an old Python too. They
+live in `pipx environment --value PIPX_VENV_CACHEDIR`, and some setups use
+`~/.local/pipx/.cache` instead. They are disposable, and pipx expires them itself;
+pipx has no command to clear them.
 
 ### `cci` breaks after `brew upgrade` (Homebrew OpenSSL 4 migration)
 Symptom — after `brew upgrade` (or `scripts/bash/update-toolchain.sh`, which

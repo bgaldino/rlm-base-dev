@@ -16,7 +16,8 @@
 #   5. CCI — pipx (reinstall is required after any Python patch bump), then
 #      robot/requirements.txt re-injected (CCI's own pins downgrade selenium).
 #      pipx's own scripts are rewritten for the new patch, and other pipx apps
-#      still on an older 3.13 patch are named, not changed
+#      still on an older 3.13 patch are named, not changed. So is pipx's shared
+#      venv on another Python, and an app whose pip comes from another Python
 #   6. sf plugins (SFDMU, etc.)
 #   7. Gate interpreter — <main checkout>/.venv, if it exists (rebuilt after a
 #      Python patch bump, or when it isn't built on pyenv's Python, with its
@@ -433,6 +434,33 @@ for v in "$(dirname "$CCI_VENV")"/*/; do
   v_home="$(venv_home "$v")"
   case "$v_home" in */versions/"$PY_LINE".*) ;; *) continue ;; esac
   notice_later "pipx app $(basename "$v") is on ${v_home:-an unknown Python}, not $PY_TARGET. Before uninstalling that Python: pipx reinstall $(basename "$v") --python \"$PY_TARGET_BIN\""
+done
+
+# pipx's shared venv holds the pip every pipx venv uses for installs, injects and
+# upgrades. pipx builds it on whichever Python first ran pipx and rebuilds it only
+# once that Python is gone, so nothing above moves it (`pipx upgrade-shared` only
+# upgrades pip in place). Each venv's pipx_shared.pth names the shared venv's
+# lib/pythonX.Y, so a rebuild on another line leaves it pointing at nothing. The
+# fix depends on whether the old Python must stay, so it's only named here. An app
+# kept on another line always loads pip from another lib (there's one shared venv),
+# so only a missing directory is named for it.
+PIPX_SHARED="$("${PIPX[@]}" environment --value PIPX_SHARED_LIBS 2>/dev/null || true)"
+SHARED_DOC="docs/guides/dev-environment-setup.md (pipx's shared venv is on another Python)"
+if [ -f "$PIPX_SHARED/pyvenv.cfg" ] && [ "$(venv_base "$PIPX_SHARED")" != "$PY_TARGET_BASE" ]; then
+  notice_later "pipx's shared venv (the pip every pipx app uses) is on $(venv_home "$PIPX_SHARED"), not $PY_TARGET, and no pipx command moves it while that Python is installed. Don't uninstall that Python before reading $SHARED_DOC"
+fi
+for v in "$(dirname "$CCI_VENV")"/*/; do
+  v="${v%/}"
+  for pth in "$v"/lib/python*/site-packages/pipx_shared.pth; do
+    [ -f "$pth" ] || continue
+    shared_site="$(head -1 "$pth")"
+    own_lib="$(basename "$(dirname "$(dirname "$pth")")")"  # pythonX.Y
+    if [ ! -d "$shared_site" ]; then
+      notice_later "pipx app $(basename "$v") loads pip from $shared_site, which doesn't exist, so pipx inject and upgrade fail for it. See $SHARED_DOC"
+    elif [ "$own_lib" = "python$PY_LINE" ] && [ "$(basename "$(dirname "$shared_site")")" != "$own_lib" ]; then
+      notice_later "pipx app $(basename "$v") runs $own_lib but loads pip from $shared_site, another Python's site-packages. It works now, but loses pip once the shared venv is rebuilt. See $SHARED_DOC"
+    fi
+  done
 done
 
 # ── 9. Verify ───────────────────────────────────────────────────────────────
