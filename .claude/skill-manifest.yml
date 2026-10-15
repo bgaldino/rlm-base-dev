@@ -245,6 +245,21 @@ foundations:
       caveats:
         - "Local-only tooling; run artifacts under .harness/ are not tracked"
 
+    - id: toolchain
+      path: .cursor/skills/toolchain/SKILL.md
+      purpose: "Local developer toolchain: read-only workstation audit, setup and update via the guides and update-toolchain.sh, managed-workstation handling (tool-managed shell blocks, macOS login PATH order, corporate CA files, Chrome for Testing) and cross-workstation verification"
+      consumed_by_pmos: []
+      provenance: hand-authored from the 2026-10 toolchain hardening (PRs 539, 547-551)
+      sub_skills:
+        - .cursor/skills/toolchain/workstation-audit.md
+        - .cursor/skills/toolchain/managed-workstations.md
+        - .cursor/skills/toolchain/verification-handoff.md
+      tooling:
+        - scripts/bash/update-toolchain.sh
+        - scripts/ai/gate_python.py
+      caveats:
+        - "macOS + zsh + Homebrew; the containerized toolchain (docker/README.md) is separate"
+
     - id: todo-tracker
       path: .cursor/skills/todo-tracker/SKILL.md
       purpose: "Durable work items across three workstations and multiple agents: the claim-before-you-work protocol whose push is the lock, enforced closeout, and the public-issue vs private-pack split"
