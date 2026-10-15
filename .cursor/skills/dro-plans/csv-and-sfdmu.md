@@ -57,8 +57,9 @@ an Add scenario, a group and a workspace. Milestones avoid assigning a fabricate
 user or invoking an external system. Operator completion is needed to test their
 execution; this example does not implement provisioning.
 
-The API/picklist values below match the captured 264 schema; verify them in the
-target. Direct fulfillment needs no source→technical decomposition rule here.
+The API/picklist values below illustrate the repository schema snapshot; verify
+them against the target release and org. Direct fulfillment needs no
+source→technical decomposition rule here.
 If the order sells another commercial product, add the actual decomposition
 rule and test its outputs before relying on this technical-product scenario.
 

@@ -2,8 +2,8 @@
 
 ## Source Hierarchy
 
-Use target org describes/settings and observed runtime results as ground truth
-for pre-GA Release 264. The captured Help corpus explains administrator behavior;
+Use target org describes/settings and observed runtime results as ground truth.
+The linked Salesforce Help corpus explains administrator behavior;
 the Developer Guide explains APIs/deployment; the ERD and schema capture provide
 object relationships. Neither a sample CSV nor an old README establishes a
 universal platform rule. Read [revenue-cloud-docs](../revenue-cloud-docs/SKILL.md)
@@ -23,8 +23,6 @@ The [qb-dro dataset](../../../datasets/sfdmu/qb/en-US/qb-dro/README.md) contains
 the main populated example: decomposition rules, groups, steps, dependencies,
 scenarios, workspaces, fallout and jeopardy rules. Inspect its files to discover
 the current configuration.
-The [q3-dro dataset](../../../datasets/sfdmu/q3/en-US/q3-dro/README.md) currently
-has empty orchestration CSVs and is not evidence of a functioning Q3 plan.
 
 `prepare_dro` manages custom scopes before its family-specific dataset load and
 performs additional build-wide operations. Context extension and rule-library
@@ -52,37 +50,37 @@ lines, the worked CSV example uses LineItem on both steps and their dependency.
 A callout can run independently when it has no dependency edges; chain only the
 steps whose business prerequisites require it.
 
-### Generic Services Decomposition
+### QuantumBit Decomposition Reference
 
-A commercial services line can produce a technical Project Service item, with
-an optional second Billing Setup item. The
-[worked decomposition extension](csv-and-sfdmu.md#worked-decomposition-extension)
-shows technical-product creation, source/destination references, a decomposition
-rule, and a scenario selecting the technical item's step group.
+The shipped QuantumBit `qb-dro` records show `QuantumBit Services Project`
+(`QB-BDL-SRVC`) decomposing to `Project Service` (`QB-DRO-PROJ`) and `Finance`
+(`QB-DRO-BILL`). This is a repository example, not a required product design.
+The [worked decomposition extension](csv-and-sfdmu.md#worked-decomposition-extension)
+shows the general source/destination relationships and scenario binding pattern;
+replace its illustrative keys with unique records from the target catalog.
 
-Choose technical outcomes from the requested fulfillment work. Reuse catalog
-products when suitable, preserve commercial pricing and usage configuration,
-and verify the generated source relationships. Adding a technical scenario while
-leaving the same work on the commercial scenario can compose duplicate work;
-review eligibility before deploying. These examples have no live verification
-claim; follow the evidence report below for each target.
+Reuse suitable catalog products, preserve commercial pricing and usage settings,
+and verify generated source relationships. Review source and destination scenario
+eligibility to prevent duplicate work. The worked example is not live-verified;
+follow the evidence report below for each target.
 
 ## Checks When Using the Examples
 
 | What to check | How to handle it |
 | --- | --- |
-| Captured 264 step `Scope` includes `Custom`; its object guide lists only Plan/Bundle/LineItem/CrossPlan | Use target picklists; do not reject Custom from incomplete documentation |
+| The captured schema and object guide disagree on supported step `Scope` values | Use target picklists; do not reject values from incomplete documentation |
 | Captured step/scenario `UsageType` includes `Fulfillment`, whereas the step object guide lists `OrderFulfillment`; scenario Action capture uses `No Change` while guide lists `NoChange` | Use exact target API values, not guessed label normalization |
 | Captured step rule lookups include `Ruleset` and `ExpressionSet`; object guide lists only `ExpressionSet` | Inspect actual `referenceTo` and generated condition references |
 | Several shipped/placeholder rules match by autonumber Name | Do not copy that matching strategy; establish a semantic identity or use targeted target-ID updates |
 | Shipped export omits some condition, execution-user and advanced fields | Extend a reviewed export plan before claiming a complete round trip; do not align away custom fields |
-| Fresh 264 `SalesTransactionItemGroup` is Lookup; custom scopes require String | Verify tag datatype. A custom String attribute/tag/mapping is needed for group-based scope; selecting the RLM context alone does not fix the datatype |
+| A context field used to group custom scopes has an incompatible datatype | Verify tag datatype. A custom String attribute/tag/mapping is needed where required; selecting a context alone does not correct datatype |
 | Repository creates `RLM_SalesTransactionContext` but the QB README records selected-context assignment as outstanding | Discover actual DRO settings; extension creation is not proof of selection |
 
-## Authoritative Article Map
+## Captured Article Map
 
-These references cover Release 264. Each article links to its Salesforce source.
-Check the target release's documentation when behavior is uncertain.
+The local links below point to the repository's captured Salesforce documentation.
+They are a reference snapshot, not a live-org verification; use the matching release
+articles and target describes when behavior differs or the target uses another release.
 
 | Topic | Local source |
 | --- | --- |

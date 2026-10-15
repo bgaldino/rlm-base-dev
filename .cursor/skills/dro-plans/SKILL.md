@@ -26,8 +26,8 @@ configured tasks; Salesforce CLI (`sf`) inspects and operates on the target org.
 ## Quick Rules
 
 1. Discover the target org's settings, schema, configuration, and runtime usage
-   before writing. Release 264/API 68 is the reference; target evidence wins over
-   pre-GA documentation and shipped sample values.
+   before writing. Use documentation for the target's release; target describes
+   and observed behavior resolve any mismatch.
 2. Author configuration records, not `FulfillmentPlan` or `FulfillmentStep`
    records. DRO generates runtime records when an order is submitted.
 3. Resolve products, groups, steps, providers, users, queues, and attributes by
@@ -108,8 +108,8 @@ also record shared consumers, affected active requests, and recovery boundaries.
 - **Existing workflow extension:** "Insert a readiness milestone before
   provisioning." Check dependency scope and cycles, update the intended edges,
   preserve shared/in-flight behavior, and verify the new predecessor relationship.
-- **Decomposed order products:** "Make each services line generate a Project
-  Service fulfillment item." Follow [decomposed line items](authoring-and-deployment.md#decomposed-line-items)
+- **Decomposed order products:** "Make each eligible source line generate its
+  intended technical fulfillment item." Follow [decomposed line items](authoring-and-deployment.md#decomposed-line-items)
   and the [CSV extension](csv-and-sfdmu.md#worked-decomposition-extension).
   Create or resolve the technical destination, add its source rule, and bind the
   intended step group without composing the same work twice.
@@ -122,8 +122,10 @@ For **this skill's maintenance**, run from the repository root:
 python scripts/ai/analyze_agent_tooling.py check
 python scripts/ai/skill_manifest.py --check
 python scripts/ai/skill_manifest.py --list-skills foundations
-python scripts/ai/pr_gate.py --base origin/264
 ```
+
+Run the repository PR gate using the base-ref procedure documented in
+[`AGENTS.md`](../../../AGENTS.md).
 
 Stage new discovery symlinks before checking Git modes, as required by
 [skill-authoring](../skill-authoring/SKILL.md). Follow

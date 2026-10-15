@@ -52,14 +52,15 @@ For example, after confirming provider clearance and `StepType=ManualTask` are
 compatible with the target's validation and existing dependencies:
 
 ```http
-PATCH /services/data/v68.0/sobjects/FulfillmentStepDefinition/<target-step-id>
+PATCH /services/data/v<api-version>/sobjects/FulfillmentStepDefinition/<target-step-id>
 Content-Type: application/json
 
 {"StepType":"ManualTask","IntegrationDefinitionNameId":null}
 ```
 
-Authenticate through an existing authorized API session, with the target's
-supported API version. Do not expose tokens or put them in `sf` CLI arguments.
+Replace `<api-version>` with a version supported by the target org. Authenticate
+through an existing authorized API session. Do not expose tokens or put them
+in `sf` CLI arguments.
 Read back both fields and check that dependent relationships remain intact.
 If state propagation restricts a step-type change, plan the required propagation
 change explicitly; do not clear unrelated behavior merely to make the write pass.
@@ -99,13 +100,14 @@ including restores. Record recovery steps actually performed and remaining work.
 
 Design-time edits do not by themselves constitute an amendment of a submitted order.
 Use an authorized test order to establish future-plan composition; inspect existing
-requests separately. The following routes are grounded in the captured 264 guide:
+requests separately. The following routes are grounded in the linked documentation
+snapshot; check the matching release guide and target API version before use:
 
 | Intent | Supported route and guard |
 | --- | --- |
-| Submit an order for decomposition/orchestration | Existing submission Flow, or `POST /services/data/v68.0/actions/standard/submitSalesTransaction`; read the action input contract before constructing a request |
-| Freeze an in-flight transaction | `POST /services/data/v68.0/actions/standard/freezeSalesTransaction`, with `salesTransactionId`; inspect plan until Frozen or a terminal failure/timeout |
-| Unfreeze | `POST /services/data/v68.0/actions/standard/unfreezeSalesTransaction`; read current input contract and inspect resulting state |
+| Submit an order for decomposition/orchestration | Existing submission Flow, or `POST /services/data/v<api-version>/actions/standard/submitSalesTransaction`; read the action input contract before constructing a request |
+| Freeze an in-flight transaction | `POST /services/data/v<api-version>/actions/standard/freezeSalesTransaction`, with `salesTransactionId`; inspect plan until Frozen or a terminal failure/timeout |
+| Unfreeze | `POST /services/data/v<api-version>/actions/standard/unfreezeSalesTransaction`; read current input contract and inspect resulting state |
 | Amend/cancel in-flight fulfillment | Supported supplemental-order/submission workflow; inspect configured amend/cancel groups and PONR before submitting |
 | Retry an AutoTask/callout, complete an eligible step | Available actions in the orchestration-plan UI; inspect step state/eligibility and action result; do not invent an undocumented REST route |
 

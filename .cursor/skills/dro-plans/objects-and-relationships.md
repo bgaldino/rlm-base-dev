@@ -2,8 +2,8 @@
 
 Use this graph to choose configuration, not as a mandate to populate every
 object. Schema sources are the [DRO domain](../revenue-cloud-data-model/domains/dro.md),
-[ERD](../../../docs/erds/erd-data.json), and
-[264 describe capture](../../../scripts/erd/schema_diff/264-schema.json).
+[ERD](../../../docs/erds/erd-data.json), and the schema capture matching the
+target release under `scripts/erd/schema_diff/`. These captures are release-specific.
 Use target describes to confirm writeability, required fields, lookup targets,
 picklists, and autonumber behavior. Capture fields are keyed by field name.
 

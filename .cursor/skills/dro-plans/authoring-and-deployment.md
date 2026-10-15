@@ -89,9 +89,9 @@ different records. A decomposition rule maps a commercial product to a technical
 relationships. A fulfillment scenario alone can select steps without generating
 technical outputs. Do not insert runtime lines to fill an empty UI panel.
 
-1. Specify the technical outcomes, such as Project Service and Billing Setup,
-   and expected lines per source line. Reuse suitable technical products; create
-   new ones through an upstream catalog dataset or explicitly scoped creation.
+1. Specify the required technical outcomes and expected lines per source line.
+   Reuse suitable technical products; create new ones through an upstream
+   catalog dataset or explicitly scoped creation.
    Keep their pricing/usage significance separate from the commercial product.
 2. Confirm destinations are active. Choose assetizability, decomposition scope,
    and quantity behavior deliberately. `OrderLineItem` with `AlwaysOne` is a
