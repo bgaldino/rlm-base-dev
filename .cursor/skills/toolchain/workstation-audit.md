@@ -94,7 +94,7 @@ The fix is to open terminals outside the repo, never `direnv reload`
 env -i HOME="$HOME" TERM=xterm zsh -c   'echo "[$NODE_EXTRA_CA_CERTS]"'   # non-interactive
 env -i HOME="$HOME" TERM=xterm zsh -lic 'echo "[$NODE_EXTRA_CA_CERTS]"'   # a Terminal window
 env -i HOME="$HOME" TERM=xterm zsh -lic \
-  'echo "[TLS_REJECT=$NODE_TLS_REJECT_UNAUTHORIZED][HTTPS_PROXY=${HTTPS_PROXY:+set}][https_proxy=${https_proxy:+set}]"'
+  'echo "[TLS_REJECT=$NODE_TLS_REJECT_UNAUTHORIZED][HTTPS_PROXY=${HTTPS_PROXY:+set}][https_proxy=${https_proxy:+set}][HTTP_PROXY=${HTTP_PROXY:+set}][http_proxy=${http_proxy:+set}]"'
 # The real check, in a fresh Terminal-window shell opened outside the repo (as in
 # audit §5): npm's own proxy settings, one attempt.
 repo="$PWD"
@@ -112,14 +112,14 @@ If you run these as separate shell calls, set `repo=<path to the main checkout>`
 
 | Result | Meaning |
 |--------|---------|
-| Both values are the same single existing file; `TLS_REJECT` empty or anything but `0`; `ca=null`, `cafile=null`, `strict-ssl=true`, an `https://` registry; `npm ping` prints `PONG` (or an HTTP code such as `E404`) with no warning; run on the managed network | Pass. Record the network ("on VPN", "office"). Off the managed network the inspecting proxy isn't in the path, so the corporate CA wasn't exercised: record **inconclusive (off network)** instead |
+| Both values are the same single existing file; `TLS_REJECT` empty or anything but `0`; `ca=null`, `cafile=null`, `strict-ssl=true`, an `https://` registry; `npm ping` prints `PONG` (or an HTTP code such as `E404`) with no warning; run on the managed network | Pass. Record the network ("on VPN", "office"). Off the managed network the inspecting proxy isn't in the path, so the corporate CA wasn't exercised: record **inconclusive (off network)** instead. A macOS system proxy or PAC file is invisible to npm and Node, so if inspection only happens through one, this check can't see it: note that |
 | `registry=set (credentials hidden)` | Read the registry's scheme from `npm ping`'s `PING <url>` line (redacted): `https://` can satisfy the Pass row, `http://` is the next row |
 | `strict-ssl=false`, or an `http://` registry | **Inconclusive**: npm doesn't check certificates, so `PONG` proves nothing about the CA |
 | `TLS_REJECT=0` | **Fail**: npm still verifies, but `sf` and other Node processes don't. Remove the variable |
 | A value contains `:` | Fail: a colon-joined list, so Node loads none of it |
 | The two values differ | Fail: a later block overrides the export in one shell type |
 | Empty in the non-interactive check only | Fail: the export lives in `~/.zprofile` or `~/.zshrc`, so non-interactive tools don't get it |
-| `ca` or `cafile` is set | npm uses only that trust store, so `PONG` verifies npm's trust, not `NODE_EXTRA_CA_CERTS`. If the workstation has no explicit proxy (both proxy values above empty, npm's `proxy`/`https-proxy` null), run the direct-probe command from the block above on the managed network (a fresh shell, not the agent's own, which can carry an older value). **Pass** if it prints an HTTP status and the other Pass conditions hold; **Fail** on a certificate code. Otherwise **Inconclusive (`cafile` set; `NODE_EXTRA_CA_CERTS` unverified)** |
+| `ca` or `cafile` is set | npm uses only that trust store, so `PONG` verifies npm's trust, not `NODE_EXTRA_CA_CERTS`. If the workstation has no explicit proxy (all four proxy variables above empty, npm's `proxy`/`https-proxy` null; npm also uses `HTTP_PROXY`/`http_proxy` for HTTPS), run the direct-probe command from the block above on the managed network (a fresh shell, not the agent's own, which can carry an older value). **Pass** if it prints an HTTP status and the other Pass conditions hold; **Fail** on a certificate code. Otherwise **Inconclusive (`cafile` set; `NODE_EXTRA_CA_CERTS` unverified)** |
 | `Warning: Ignoring extra certs from …` | Fail: the path is wrong or not a single file (even if `PONG` follows) |
 | `npm error code` with a certificate code (`UNABLE_TO_GET_ISSUER_CERT_LOCALLY`, `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, `SELF_SIGNED_CERT_IN_CHAIN`, `DEPTH_ZERO_SELF_SIGNED_CERT`, …) | On the managed network, **Fail**: npm and Node don't trust the corporate CA. The file lacks the right certificate, or the variable isn't set in that shell (or npm's `ca`/`cafile`, if set, lacks it). Off the managed network, a captive portal or other proxy can cause this too: **inconclusive (off network)** |
 | `CERT_HAS_EXPIRED` / `CERT_NOT_YET_VALID`, or `ERR_TLS_CERT_ALTNAME_INVALID` | Fail, but not fixed by adding a CA: a stale bundle or the system clock, or a hostname mismatch |

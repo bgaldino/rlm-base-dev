@@ -641,12 +641,12 @@ Then read the ping result:
 A connection that's refused fails at once. One that's silently dropped can take
 over a minute even without retries.
 
-On a workstation with no explicit proxy (neither `HTTPS_PROXY` nor `https_proxy`
-set, and `npm config get proxy` and `npm config get https-proxy` each print `null`;
-npm refuses to print a proxy URL that contains a password, and that error also
-means a proxy is set), a direct Node probe
-tests `NODE_EXTRA_CA_CERTS` itself. It targets `registry.npmjs.org`, not npm's
-configured registry:
+On a workstation with no explicit proxy, a direct Node probe tests
+`NODE_EXTRA_CA_CERTS` itself. "No explicit proxy" means none of `HTTPS_PROXY`,
+`https_proxy`, `HTTP_PROXY` or `http_proxy` is set (npm uses the `HTTP_*` ones for
+HTTPS too), and `npm config get proxy` and `npm config get https-proxy` each print
+`null`. An "is protected" error from either means a proxy with a password is set.
+The probe targets `registry.npmjs.org`, not npm's configured registry:
 
 ```bash
 node -e 'setTimeout(() => { console.log("timeout"); process.exit(2) }, 15000); require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }).on("error", e => { console.log(e.code || e.message); process.exit(1) })'

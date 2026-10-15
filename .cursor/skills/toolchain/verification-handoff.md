@@ -10,7 +10,14 @@ when every listed workstation has reported a pass.
 
 1. **Pin the commit.** Normally that's the merge commit on `main`. To test a change
    that could break machines (for example `update-toolchain.sh`) *before* it lands,
-   pin the PR's head SHA instead and say so in the brief.
+   pin the PR's head SHA instead and say so in the brief. Only do that when the
+   code is trusted: the audit runs repository code (`validate_setup`,
+   `gate_python.py`, `.envrc`, `update-toolchain.sh` if agreed, and the agent hooks
+   and instructions an agent loads from the checkout, this file included), and
+   that code can read anything the workstation's user can. A branch in the canonical
+   repository that a maintainer wrote or has reviewed in full is trusted. **Never
+   run another person's fork PR head on a workstation that holds credentials.** Verify it after
+   merge, or in a disposable environment with no secrets.
 2. **List the workstations and their kind:** **plain** (no IT management) or
    **managed** (see [`managed-workstations.md`](managed-workstations.md)). Cover both
    kinds when the change touches shell setup, certificates or PATH.
@@ -33,12 +40,17 @@ when every listed workstation has reported a pass.
    ```bash
    remote=$(git remote | grep -x upstream || echo origin)
    git fetch "$remote"
-   # A PR from a fork isn't in that fetch; for a pinned PR head, also:
-   git fetch "$remote" "pull/<n>/head"
+   # A pinned PR head on a canonical-repo branch is in that fetch. Don't fetch and
+   # run a fork's PR head here (step 1).
    ```
 3. **Check out the pinned commit without moving any branch:**
    ```bash
-   git switch --detach <sha>
+   # Stop unless the commit is on a branch of the canonical repository. That rules
+   # out fork PR heads, including any fetched as <remote>/pr/<n> by a pull/* refspec.
+   # It doesn't prove review, which is the brief's job.
+   remote=$(git remote | grep -x upstream || echo origin)
+   git branch -r --contains <sha> | grep -v "^ *$remote/pr/" | grep -q "^ *$remote/" && git switch --detach <sha> \
+     || echo "not on a canonical branch (or the switch failed): stop here"
    [ "$(git rev-parse HEAD)" = "$(git rev-parse '<sha>^{commit}')" ] && echo "at the pinned commit"
    direnv status | grep 'Found RC allowed'
    ```
@@ -104,7 +116,8 @@ Proposed fixes: <check> → <guide section>
 
 Keep the brief short and self-contained:
 
-- What changed (a PR or commit), and the pinned SHA.
+- What changed (a PR or commit), the pinned SHA, and why it's trusted: merged to
+  `main`, or a canonical-repo branch you wrote or reviewed in full.
 - Which workstation it is for, and its kind.
 - "Follow `.cursor/skills/toolchain/verification-handoff.md` at that commit, return
   the report, and change nothing without asking me."
