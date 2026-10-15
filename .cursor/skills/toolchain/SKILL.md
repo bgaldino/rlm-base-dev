@@ -46,7 +46,8 @@ for any agent.
 ## DO NOT
 
 - **DO NOT** print, `cat` or paste rc files (`~/.zshrc`, `~/.zshenv`, `~/.zprofile`),
-  `.env.local`, or `env` output. They often hold tokens. Search for the specific
+  `.env.local`, or `env` output. They often hold tokens, and proxy or registry URLs
+  can hold a username and password. Search for the specific
   names you need (`grep -n 'NODE_EXTRA_CA_CERTS' ~/.zshrc`) and redact values. If a
   secret is exposed anyway, say so and recommend rotating it.
 - **DO NOT** run `scripts/bash/update-toolchain.sh`, `brew upgrade`, `pyenv install`,

@@ -596,8 +596,13 @@ settings:
 ```bash
 npm config get ca cafile strict-ssl registry
 # expect: ca=null, cafile=null, strict-ssl=true, registry=https://…
-npm ping --fetch-retries=0        # one attempt, no retries
+npm ping --fetch-retries=0 --loglevel=notice        # one attempt, no retries
 ```
+
+If npm answers "The registry option is protected", the registry URL contains a
+password. Read the other keys one at a time, and take the registry's scheme
+(`https://` or `http://`) from `npm ping`'s `PING <url>` line, where npm masks the
+password; the username still shows, so don't paste that line anywhere.
 
 First, read the config. Each of these makes `PONG` prove less than it seems:
 
@@ -637,7 +642,9 @@ A connection that's refused fails at once. One that's silently dropped can take
 over a minute even without retries.
 
 On a workstation with no explicit proxy (neither `HTTPS_PROXY` nor `https_proxy`
-set, and `npm config get proxy https-proxy` prints `null` for both), a direct Node probe
+set, and `npm config get proxy` and `npm config get https-proxy` each print `null`;
+npm refuses to print a proxy URL that contains a password, and that error also
+means a proxy is set), a direct Node probe
 tests `NODE_EXTRA_CA_CERTS` itself. It targets `registry.npmjs.org`, not npm's
 configured registry:
 

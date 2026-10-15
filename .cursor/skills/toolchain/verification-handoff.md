@@ -91,7 +91,8 @@ Proposed fixes: <check> → <guide section>
 
 **Redact every report:**
 - Write home paths as `~`.
-- Never include tokens, rc-file contents or `.env.local` values. Key names are enough.
+- Never include tokens, rc-file contents, `.env.local` values or proxy or registry
+  credentials. Key names, "proxy set", and URLs with `user:pass@` redacted are enough.
 
 **For a public place, also:**
 - Use a generic label ("maintainer workstation 2", "contributor laptop") rather

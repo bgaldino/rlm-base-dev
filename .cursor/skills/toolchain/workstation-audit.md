@@ -5,8 +5,12 @@ repo and then `cd`'d into it. Nothing here installs, upgrades or edits. Report e
 check as pass, fail, inconclusive or not applicable, with the evidence line, then propose fixes,
 each linked to the guide section that covers it.
 
-Never print whole rc files, `.env.local` or `env`: they can hold tokens. The
-commands below print only key names, versions and paths.
+Never print whole rc files, `.env.local` or `env`: they can hold tokens. Proxy
+URLs can hold a username and password too. The commands below print only key
+names, versions, paths, whether a proxy is set, and URLs with any credentials
+replaced by `<redacted>`. npm itself refuses to print a setting whose URL
+contains a password (a proxy or registry), and the audit reports that as
+`set (credentials hidden)`.
 
 Guide links: **DES** = [dev-environment-setup.md](../../../docs/guides/dev-environment-setup.md),
 **LI** = [local-installation.md](../../../docs/guides/local-installation.md).
@@ -90,12 +94,12 @@ The fix is to open terminals outside the repo, never `direnv reload`
 env -i HOME="$HOME" TERM=xterm zsh -c   'echo "[$NODE_EXTRA_CA_CERTS]"'   # non-interactive
 env -i HOME="$HOME" TERM=xterm zsh -lic 'echo "[$NODE_EXTRA_CA_CERTS]"'   # a Terminal window
 env -i HOME="$HOME" TERM=xterm zsh -lic \
-  'echo "[TLS_REJECT=$NODE_TLS_REJECT_UNAUTHORIZED][HTTPS_PROXY=$HTTPS_PROXY][https_proxy=$https_proxy]"'
+  'echo "[TLS_REJECT=$NODE_TLS_REJECT_UNAUTHORIZED][HTTPS_PROXY=${HTTPS_PROXY:+set}][https_proxy=${https_proxy:+set}]"'
 # The real check, in a fresh Terminal-window shell opened outside the repo (as in
 # audit §5): npm's own proxy settings, one attempt.
 repo="$PWD"
 (cd /tmp && env -i HOME="$HOME" TERM=xterm zsh -lic \
-  'cd "${1:?repo path missing}" && eval "$(direnv export zsh 2>/dev/null)" && npm config get ca cafile strict-ssl registry proxy https-proxy && npm ping --fetch-retries=0' zsh "$repo")
+  'cd "${1:?repo path missing}" && eval "$(direnv export zsh 2>/dev/null)" && for k in ca cafile strict-ssl registry proxy https-proxy; do v=$(npm config get "$k" 2>&1); case "$v" in *"is protected"*) v="set (credentials hidden)";; esac; echo "$k=$v"; done | sed -E "s#(://)[^/@]+@#\\1<redacted>@#" && npm ping --fetch-retries=0 --loglevel=notice 2>&1 | sed -E "s#(://)[^/@]+@#\\1<redacted>@#"' zsh "$repo")
 
 # Only when the ca/cafile row below sends you here: the guide's direct probe, in the
 # same kind of fresh shell, passed as an argument (its quotes can't be spliced in).
@@ -109,6 +113,7 @@ If you run these as separate shell calls, set `repo=<path to the main checkout>`
 | Result | Meaning |
 |--------|---------|
 | Both values are the same single existing file; `TLS_REJECT` empty or anything but `0`; `ca=null`, `cafile=null`, `strict-ssl=true`, an `https://` registry; `npm ping` prints `PONG` (or an HTTP code such as `E404`) with no warning; run on the managed network | Pass. Record the network ("on VPN", "office"). Off the managed network the inspecting proxy isn't in the path, so the corporate CA wasn't exercised: record **inconclusive (off network)** instead |
+| `registry=set (credentials hidden)` | Read the registry's scheme from `npm ping`'s `PING <url>` line (redacted): `https://` can satisfy the Pass row, `http://` is the next row |
 | `strict-ssl=false`, or an `http://` registry | **Inconclusive**: npm doesn't check certificates, so `PONG` proves nothing about the CA |
 | `TLS_REJECT=0` | **Fail**: npm still verifies, but `sf` and other Node processes don't. Remove the variable |
 | A value contains `:` | Fail: a colon-joined list, so Node loads none of it |
@@ -124,7 +129,7 @@ If several rows match, **Fail** wins over **Inconclusive**, and both win over Pa
 
 Empty in both is a **pass** (or n.a.) only on a workstation that needs no extra
 CA, shown by every other Pass condition holding, the managed network included.
-`npm ping --fetch-retries=0` makes one attempt, but a silently dropped connection
+`npm ping --fetch-retries=0 --loglevel=notice` makes one attempt, but a silently dropped connection
 can still take over a minute: let it finish and record the code. Fixes:
 [DES: Node TLS errors behind a corporate CA](../../../docs/guides/dev-environment-setup.md#node-tls-errors-behind-a-corporate-ca-node_extra_ca_certs).
 
