@@ -36,20 +36,31 @@ when every listed workstation has reported a pass.
    git stash push -u -m toolchain-verify
    ```
 2. **Fetch the canonical repository.** That's `upstream` on a fork (CONTRIBUTING.md),
-   otherwise `origin`:
+   otherwise `origin`. Confirm the printed URL is the canonical repository
+   (`bgaldino/rlm-base-dev`, or its current location per CONTRIBUTING.md) before
+   going on. On a fork clone without an `upstream` remote, this prints the fork:
+   stop and add `upstream` first, since everything below trusts this remote.
    ```bash
    remote=$(git remote | grep -x upstream || echo origin)
+   echo "canonical remote: $remote -> $(git remote get-url "$remote")"
    git fetch "$remote"
-   # A pinned PR head on a canonical-repo branch is in that fetch. Don't fetch and
-   # run a fork's PR head here (step 1).
+   # A canonical-repo branch is in that fetch. Don't fetch and run a fork's PR head
+   # here (step 1); step 3 refuses it anyway.
    ```
 3. **Check out the pinned commit without moving any branch:**
    ```bash
-   # Stop unless the commit is on a branch of the canonical repository. That rules
-   # out fork PR heads, including any fetched as <remote>/pr/<n> by a pull/* refspec.
-   # It doesn't prove review, which is the brief's job.
-   remote=$(git remote | grep -x upstream || echo origin)
-   git branch -r --contains <sha> | grep -v "^ *$remote/pr/" | grep -q "^ *$remote/" && git switch --detach <sha> \
+   # Stop unless the commit is on a branch of the canonical repository. This asks
+   # the remote for its real branch tips (refs/heads/*), so local tracking-ref names
+   # can't fool it: fork PR heads fetched under any name (pr/<n>, pull/<n>/head, …)
+   # don't count. It doesn't prove review, which is the brief's job.
+   remote=$(git remote | grep -x upstream || echo origin)   # the remote confirmed in step 2
+   git cat-file -e '<sha>^{commit}' 2>/dev/null \
+     || echo "commit <sha> isn't here: re-fetch (step 2) or check the SHA"
+   ok=""
+   for tip in $(git ls-remote --heads "$remote" | cut -f1); do
+     git merge-base --is-ancestor <sha> "$tip" 2>/dev/null && { ok=1; break; }
+   done
+   [ -n "$ok" ] && git switch --detach <sha> \
      || echo "not on a canonical branch (or the switch failed): stop here"
    [ "$(git rev-parse HEAD)" = "$(git rev-parse '<sha>^{commit}')" ] && echo "at the pinned commit"
    direnv status | grep 'Found RC allowed'
