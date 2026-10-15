@@ -589,23 +589,69 @@ env -i HOME="$HOME" zsh -c   'echo $NODE_EXTRA_CA_CERTS'   # non-interactive (Cl
 env -i HOME="$HOME" zsh -lic 'echo $NODE_EXTRA_CA_CERTS'   # login + interactive (a Terminal window)
 ```
 
-Then verify with a TLS request from a new terminal (an open one still has the
-old value), which surfaces the warning:
+Then verify from a new terminal (an open one still has the old value). Use npm,
+because it connects the way `npm` and `sf` installs do, through npm's own proxy
+settings:
+
+```bash
+npm config get ca cafile strict-ssl registry
+# expect: ca=null, cafile=null, strict-ssl=true, registry=https://…
+npm ping --fetch-retries=0        # one attempt, no retries
+```
+
+First, read the config. Each of these makes `PONG` prove less than it seems:
+
+- **`strict-ssl=false`:** npm skips certificate checking, so `PONG` proves nothing
+  about the CA.
+- **`NODE_TLS_REJECT_UNAUTHORIZED=0`:** npm still verifies (its `strict-ssl` takes
+  precedence), but `sf` and other Node processes don't. A `PONG` doesn't vouch for
+  them. Node warns when it's `0`.
+- **An `http://` registry:** there's no TLS to test.
+- **`ca` or `cafile` set:** npm uses only that trust store. `PONG` then proves npm's
+  trust, not `NODE_EXTRA_CA_CERTS`, which `sf` and other Node processes use. Verify
+  the variable with the direct probe below, where it applies.
+
+Then read the ping result:
+
+- `PONG`, or an HTTP-level code such as `E404` or `E403`, means the TLS handshake
+  succeeded and npm trusts the certificate this network path presented. It
+  exercises the corporate CA only if the path runs through the inspecting proxy, so
+  run it on the managed network (VPN on, if that's how the proxy is reached). The
+  check uses the configured registry, which may be an internal mirror.
+- `npm error code <CODE>` with a certificate code means the CA setup is wrong.
+  Examples are `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`,
+  `UNABLE_TO_VERIFY_LEAF_SIGNATURE` (common behind a TLS-inspecting proxy),
+  `SELF_SIGNED_CERT_IN_CHAIN` and `DEPTH_ZERO_SELF_SIGNED_CERT`: the file lacks
+  the right certificate, or the variable isn't set in that shell (or, if set,
+  npm's `ca`/`cafile` lacks it).
+- Adding a CA won't fix two kinds of certificate error. `CERT_HAS_EXPIRED` and
+  `CERT_NOT_YET_VALID` point at a stale bundle or the system clock, and
+  `ERR_TLS_CERT_ALTNAME_INVALID` is a hostname mismatch.
+- Any other code (`ECONNREFUSED`, `ECONNRESET`, `ENETUNREACH`, `ENOTFOUND`,
+  `ETIMEDOUT`, …) is a network or proxy problem and says nothing about the CA.
+- `Warning: Ignoring extra certs from … load failed` means the file path is wrong
+  or not a single PEM file. Node prints it when it first sets up TLS, so on a
+  connection that fails before then there's no warning either way.
+
+A connection that's refused fails at once. One that's silently dropped can take
+over a minute even without retries.
+
+On a workstation with no explicit proxy (neither `HTTPS_PROXY` nor `https_proxy`
+set, and `npm config get proxy https-proxy` prints `null` for both), a direct Node probe
+tests `NODE_EXTRA_CA_CERTS` itself. It targets `registry.npmjs.org`, not npm's
+configured registry:
 
 ```bash
 node -e 'setTimeout(() => { console.log("timeout"); process.exit(2) }, 15000); require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }).on("error", e => { console.log(e.code || e.message); process.exit(1) })'
 ```
 
-It prints the status code (exit 0), or the error code if the request fails (such
-as `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`; exit 1), or `timeout` after 15 seconds
-(exit 2). The timer is a plain `setTimeout`, so it bounds every stage, a stalled
-DNS lookup or TCP connect included. The `process.exit` calls matter too: the
-pending timer and the connection the unread response holds open would otherwise
-keep Node running, so even a successful request would wait 15 seconds and then
-print `timeout`.
-
-This plain `https.get` doesn't use `HTTPS_PROXY`, so behind an explicit proxy a
-timeout here says nothing about the CA setup; check for the warning instead.
+It prints an HTTP status (exit 0), an error code (exit 1) or `timeout` (exit 2),
+read the same way as the npm codes above. The timer is a plain `setTimeout`, so
+it bounds every stage, a stalled DNS lookup or TCP connect included. The
+`process.exit` calls matter too: the pending timer and the connection the unread
+response holds open would otherwise keep Node running, so even a successful
+request would wait 15 seconds and then print `timeout`. The probe connects
+directly, so behind an explicit proxy use `npm ping` instead.
 
 ### `direnv` doesn't activate when cd'ing in
 - Did you `direnv allow` in the project? (Run from inside the dir.)

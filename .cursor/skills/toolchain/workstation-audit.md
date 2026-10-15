@@ -2,7 +2,7 @@
 
 Run from the repo root of the **main checkout**, in a terminal opened outside the
 repo and then `cd`'d into it. Nothing here installs, upgrades or edits. Report each
-check as pass, fail or not applicable, with the evidence line, then propose fixes,
+check as pass, fail, inconclusive or not applicable, with the evidence line, then propose fixes,
 each linked to the guide section that covers it.
 
 Never print whole rc files, `.env.local` or `env`: they can hold tokens. The
@@ -89,30 +89,50 @@ The fix is to open terminals outside the repo, never `direnv reload`
 ```bash
 env -i HOME="$HOME" TERM=xterm zsh -c   'echo "[$NODE_EXTRA_CA_CERTS]"'   # non-interactive
 env -i HOME="$HOME" TERM=xterm zsh -lic 'echo "[$NODE_EXTRA_CA_CERTS]"'   # a Terminal window
-# TLS probe in a fresh Terminal-window shell that opens outside the repo and cds
-# in, so it tests nvm's Node (as in audit §5); it exits on its own within 15 s.
-probe='setTimeout(() => { console.log("timeout"); process.exit(2) }, 15000); require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }).on("error", e => { console.log(e.code || e.message); process.exit(1) })'
+env -i HOME="$HOME" TERM=xterm zsh -lic \
+  'echo "[TLS_REJECT=$NODE_TLS_REJECT_UNAUTHORIZED][HTTPS_PROXY=$HTTPS_PROXY][https_proxy=$https_proxy]"'
+# The real check, in a fresh Terminal-window shell opened outside the repo (as in
+# audit §5): npm's own proxy settings, one attempt.
 repo="$PWD"
 (cd /tmp && env -i HOME="$HOME" TERM=xterm zsh -lic \
-  'cd "$2" && eval "$(direnv export zsh 2>/dev/null)" && node -e "$1"' zsh "$probe" "$repo")
+  'cd "${1:?repo path missing}" && eval "$(direnv export zsh 2>/dev/null)" && npm config get ca cafile strict-ssl registry proxy https-proxy && npm ping --fetch-retries=0' zsh "$repo")
+
+# Only when the ca/cafile row below sends you here: the guide's direct probe, in the
+# same kind of fresh shell, passed as an argument (its quotes can't be spliced in).
+probe='setTimeout(() => { console.log("timeout"); process.exit(2) }, 15000); require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }).on("error", e => { console.log(e.code || e.message); process.exit(1) })'
+(cd /tmp && env -i HOME="$HOME" TERM=xterm zsh -lic \
+  'cd "${1:?repo path missing}" && eval "$(direnv export zsh 2>/dev/null)" && node -e "$2"' zsh "$repo" "$probe")
 ```
+
+If you run these as separate shell calls, set `repo=<path to the main checkout>` in each one first; without it they stop with "repo path missing".
 
 | Result | Meaning |
 |--------|---------|
-| Both values are the same single existing file; the probe prints `200` with no warning | Pass |
-| A value contains `:` | A colon-joined list: Node loads none of it |
-| The two values differ | A later block overrides the export in one shell type |
-| Empty in the non-interactive check only | The export lives in `~/.zprofile` or `~/.zshrc`; non-interactive tools don't get it |
-| `Warning: Ignoring extra certs from …` | The path is wrong or not a single file |
-| The probe prints an error code (`UNABLE_TO_GET_ISSUER_CERT_LOCALLY`, `SELF_SIGNED_CERT_IN_CHAIN`) | Node still doesn't trust the corporate CA: the file lacks the right certificate, or the variable isn't set in that shell |
-| The probe prints `timeout` | Behind an explicit proxy this says nothing about the CA; judge by the warning |
+| Both values are the same single existing file; `TLS_REJECT` empty or anything but `0`; `ca=null`, `cafile=null`, `strict-ssl=true`, an `https://` registry; `npm ping` prints `PONG` (or an HTTP code such as `E404`) with no warning; run on the managed network | Pass. Record the network ("on VPN", "office"). Off the managed network the inspecting proxy isn't in the path, so the corporate CA wasn't exercised: record **inconclusive (off network)** instead |
+| `strict-ssl=false`, or an `http://` registry | **Inconclusive**: npm doesn't check certificates, so `PONG` proves nothing about the CA |
+| `TLS_REJECT=0` | **Fail**: npm still verifies, but `sf` and other Node processes don't. Remove the variable |
+| A value contains `:` | Fail: a colon-joined list, so Node loads none of it |
+| The two values differ | Fail: a later block overrides the export in one shell type |
+| Empty in the non-interactive check only | Fail: the export lives in `~/.zprofile` or `~/.zshrc`, so non-interactive tools don't get it |
+| `ca` or `cafile` is set | npm uses only that trust store, so `PONG` verifies npm's trust, not `NODE_EXTRA_CA_CERTS`. If the workstation has no explicit proxy (both proxy values above empty, npm's `proxy`/`https-proxy` null), run the direct-probe command from the block above on the managed network (a fresh shell, not the agent's own, which can carry an older value). **Pass** if it prints an HTTP status and the other Pass conditions hold; **Fail** on a certificate code. Otherwise **Inconclusive (`cafile` set; `NODE_EXTRA_CA_CERTS` unverified)** |
+| `Warning: Ignoring extra certs from …` | Fail: the path is wrong or not a single file (even if `PONG` follows) |
+| `npm error code` with a certificate code (`UNABLE_TO_GET_ISSUER_CERT_LOCALLY`, `UNABLE_TO_VERIFY_LEAF_SIGNATURE`, `SELF_SIGNED_CERT_IN_CHAIN`, `DEPTH_ZERO_SELF_SIGNED_CERT`, …) | On the managed network, **Fail**: npm and Node don't trust the corporate CA. The file lacks the right certificate, or the variable isn't set in that shell (or npm's `ca`/`cafile`, if set, lacks it). Off the managed network, a captive portal or other proxy can cause this too: **inconclusive (off network)** |
+| `CERT_HAS_EXPIRED` / `CERT_NOT_YET_VALID`, or `ERR_TLS_CERT_ALTNAME_INVALID` | Fail, but not fixed by adding a CA: a stale bundle or the system clock, or a hostname mismatch |
+| Any other code (`ECONNREFUSED`, `ECONNRESET`, `ENETUNREACH`, `ENOTFOUND`, `ETIMEDOUT`, …) | **Inconclusive**: a network or proxy problem, not a CA verdict. Record it with the code |
 
-Empty in both, with the probe passing, is fine on a workstation that needs no extra
-CA. Fixes: [DES: Node TLS errors behind a corporate CA](../../../docs/guides/dev-environment-setup.md#node-tls-errors-behind-a-corporate-ca-node_extra_ca_certs).
+If several rows match, **Fail** wins over **Inconclusive**, and both win over Pass.
+
+Empty in both is a **pass** (or n.a.) only on a workstation that needs no extra
+CA, shown by every other Pass condition holding, the managed network included.
+`npm ping --fetch-retries=0` makes one attempt, but a silently dropped connection
+can still take over a minute: let it finish and record the code. Fixes:
+[DES: Node TLS errors behind a corporate CA](../../../docs/guides/dev-environment-setup.md#node-tls-errors-behind-a-corporate-ca-node_extra_ca_certs).
 
 ## Report format
 
-One row per check: `check | pass/fail/n.a. | evidence`. End with the proposed
+One row per check: `check | pass/fail/inconclusive/n.a. | evidence`. Give an
+inconclusive result its reason, for example "inconclusive (ETIMEDOUT); CA
+unverified" or "inconclusive (strict-ssl=false)". End with the proposed
 fixes, each linked to its guide section, and anything you could not check. For a
 multi-workstation round, use the report in
 [`verification-handoff.md`](verification-handoff.md).

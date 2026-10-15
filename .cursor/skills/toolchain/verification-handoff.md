@@ -51,8 +51,10 @@ when every listed workstation has reported a pass.
    `direnv status` the same way), and `git stash pop` restores anything set aside
    in step 1.
 4. **Open a new terminal outside the repo, then `cd` in.** Run the read-only audit
-   in [`workstation-audit.md`](workstation-audit.md), sections 1–6. Skip audit §6
-   on a workstation that needs no corporate CA, and say so.
+   in [`workstation-audit.md`](workstation-audit.md), sections 1–6. On a **plain**
+   workstation that needs no corporate CA you may skip audit §6, and say so. On a
+   managed workstation always run it; it can be n.a. only when audit §6's own
+   conditions for that hold.
 5. **Only if the owner explicitly agrees,** run `update-toolchain.sh` and repeat the
    audit. It upgrades the whole machine. Prove it left the shell files alone:
    ```bash
@@ -67,7 +69,10 @@ when every listed workstation has reported a pass.
 
 ```text
 Workstation: <label>   Kind: plain | managed   Date: <YYYY-MM-DD>   Commit: <short SHA>
-Result: PASS | FAIL
+Result: PASS | FAIL (<check>) | INCONCLUSIVE (<check>: <reason>)
+        (FAIL takes precedence over INCONCLUSIVE; list every fail and inconclusive check;
+         n.a. rows don't count against PASS; only PASS verifies)
+Network: <managed network / VPN on | off network>
 
 check                          | result | evidence
 validate_setup (no auto-fix)   | pass   | Passed 14; no Failed; warnings: none
@@ -77,7 +82,7 @@ openssl@3                      | pass   | Installed (on request); _ssl links ope
 node / sf / sfdmu              | pass   | v24.x (nvm) / 2.x / 5.x (≥ 5.6.4)
 .envrc + .env.local            | pass   | allowed; keys: <names only>
 PATH (cd in from outside)      | pass   | pyenv shim, nvm node
-NODE_EXTRA_CA_CERTS            | n.a.   | not needed on this machine
+NODE_EXTRA_CA_CERTS            | n.a.   | plain workstation; no corporate CA needed
 update-toolchain.sh            | n.a.   | not run (owner declined)
 
 Not checked: <anything skipped and why>
