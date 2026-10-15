@@ -49,6 +49,10 @@ die()  { printf '\n\033[1;31m[fail]\033[0m  %s\n' "$*" >&2; exit 1; }
 # update missing, so "Done" would claim more than happened.
 STEP_FAILED=()
 fail_later() { warn "$*"; STEP_FAILED+=("$*"); }
+# Something the owner should act on that isn't a failure (the run still ends in
+# "Done"). Repeated at the end too, so it isn't lost above a long run's output.
+NOTICES=()
+notice_later() { warn "$*"; NOTICES+=("$*"); }
 
 # ── 1. Homebrew ─────────────────────────────────────────────────────────────
 command -v brew >/dev/null || die "brew not found — install Homebrew from https://brew.sh first"
@@ -119,12 +123,12 @@ elif [[ "$PY_GLOBAL" =~ $PY_LINE_RE ]] \
     pyenv global "$PY_TARGET"
     log "Python: pyenv global $PY_GLOBAL -> $PY_TARGET ($PY_GLOBAL isn't installed)"
   elif ! PY_GLOBAL_PKGS="$(gate_python --carry-over "$(pyenv root)/versions/$PY_GLOBAL")"; then
-    warn "Python: pyenv global stays $PY_GLOBAL — couldn't list the packages installed into it, so switching could hide some. Check, then run 'pyenv global $PY_TARGET' yourself"
+    notice_later "Python: pyenv global stays $PY_GLOBAL — couldn't list the packages installed into it, so switching could hide some. Check, then run 'pyenv global $PY_TARGET' yourself"
   elif [ -z "$PY_GLOBAL_PKGS" ]; then
     pyenv global "$PY_TARGET"
     log "Python: pyenv global $PY_GLOBAL -> $PY_TARGET (it held no packages of its own)"
   else
-    warn "Python: pyenv global stays $PY_GLOBAL — it holds packages installed into it directly: $(printf '%s\n' "$PY_GLOBAL_PKGS" | paste -sd ',' - | sed 's/,/, /g'). Reinstall the ones you still use under $PY_TARGET (or with pipx), then run 'pyenv global $PY_TARGET'. Don't uninstall $PY_GLOBAL before that"
+    notice_later "Python: pyenv global stays $PY_GLOBAL — it holds packages installed into it directly: $(printf '%s\n' "$PY_GLOBAL_PKGS" | paste -sd ',' - | sed 's/,/, /g'). Reinstall the ones you still use under $PY_TARGET (or with pipx), then run 'pyenv global $PY_TARGET'. Don't uninstall $PY_GLOBAL before that"
   fi
 else
   log "Python: pyenv global is ${PY_GLOBAL:-unset} — not an older $PY_LINE patch, so left alone"
@@ -266,6 +270,14 @@ refresh_venv() {
   if [ "$version" = "$PY_TARGET" ] && [ "$(venv_base "$venv")" = "$PY_TARGET_BASE" ]; then
     return 0
   fi
+  # Clearing a venv under a running process (a ./tui-cci session in another
+  # worktree, a gate run) breaks that process's next import. Leave it. This sees
+  # processes started by the venv's path, which is how tui-cci and the gate
+  # start theirs; one started from an activated shell as plain `python` isn't.
+  if pgrep -f -- "$venv/bin/" >/dev/null 2>&1; then
+    fail_later "$label: $venv needs a rebuild onto Python $PY_TARGET (it's on ${version:-an unusable Python}), but a process is running from it — left; rerun once it has exited"
+    return 0
+  fi
   # --clear empties the whole venv, so list what it holds first.
   keep="$(mktemp "${TMPDIR:-/tmp}/venv-packages.XXXXXX")"
   if ! gate_python --carry-over "$venv" >"$keep"; then
@@ -368,6 +380,9 @@ cci task run validate_setup || fail_later "validate_setup failed (output above)"
 
 [ -z "$GATE_FAILED" ] || STEP_FAILED+=("Gate interpreter: $GATE_FAILED, so the local gate (scripts/ai/pr_gate.py) can't run all its checks")
 # Count first: expanding an empty array trips `set -u` on bash 3.2 (macOS /bin/bash).
+if [ "${#NOTICES[@]}" -gt 0 ]; then
+  for msg in "${NOTICES[@]}"; do warn "$msg"; done
+fi
 if [ "${#STEP_FAILED[@]}" -gt 0 ]; then
   for msg in "${STEP_FAILED[@]}"; do warn "$msg"; done
   die "${#STEP_FAILED[@]} step(s) failed (listed above)"

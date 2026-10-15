@@ -406,7 +406,7 @@ When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
    Before uninstalling a Python, check nothing still uses it: `pyenv global`
    must not name it ([the troubleshooting entry](#pyenv-version-313x-is-not-installed-set-by-pyenvversion)),
    and anything you pip-installed into it goes with it
-   (`python3 scripts/ai/gate_python.py --carry-over ~/.pyenv/versions/<old>`
+   (`python3 scripts/ai/gate_python.py --carry-over "$(pyenv root)/versions/<old>"`
    lists those).
 
 ---
