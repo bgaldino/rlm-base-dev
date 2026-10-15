@@ -116,6 +116,9 @@ validate_setup (no auto-fix)   | pass   | Passed <n>; no Failed; warnings: none
 gate interpreter               | pass   | <repo>/.venv/bin/python (home: ~/.pyenv/versions/3.13.x/bin), or $RLM_GATE_PYTHON
 signing                        | pass   | commit.gpgsign true; <ssh: key file exists, or a literal key; gpg (format unset or openpgp): key set, or gpg's default key; x509: a key gpgsm can use>
 python patch (pyenv/CCI/venv)  | pass   | 3.13.x / 3.13.x / 3.13.x (latest known 3.13.x)
+pyenv global                   | pass   | 3.13.x (the installed patch), or <a deliberate other choice>; if an older
+                               |        | 3.13 patch: the packages --carry-over lists for it
+TUI venvs                      | pass   | 3.13.x in each checkout that has one, or none
 openssl@3                      | pass   | Installed (on request); _ssl links openssl@3
 node / sf / sfdmu              | pass   | v<LTS ≥ 22>.x (nvm) / 2.x / 5.x (≥ 5.6.4)
 .envrc + .env.local            | pass   | allowed; keys: <names only, or no .env.local>

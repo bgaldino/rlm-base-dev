@@ -5,7 +5,9 @@
 #   1. Homebrew packages (direnv, nvm, pyenv, pipx, etc.), keeping openssl@3
 #      installed on request first
 #   2. Python — latest patch in the 3.13 line (via pyenv); stops if it can't
-#      import ssl
+#      import ssl. pyenv's global follows it from an older 3.13 patch that holds
+#      no packages of its own; anything else is left alone, with a warning when
+#      it's an older patch that does
 #   3. Node — latest LTS (via nvm), carrying npm globals forward
 #   4. sf CLI — npm-installed under the active nvm Node
 #   5. CCI — pipx (reinstall is required after any Python patch bump), then
@@ -15,8 +17,10 @@
 #      Python patch bump, or when it isn't built on pyenv's Python, with its
 #      other packages carried over, then
 #      pr_gate.py's requirements reinstalled); a $RLM_GATE_PYTHON override is
-#      probed only. A gate interpreter left unusable fails the script after step 8
-#   8. cci task run validate_setup
+#      probed only. A gate interpreter left unusable fails the script after step 9
+#   8. Build-harness TUI venvs — <checkout>/.harness/tui-venv in every worktree,
+#      rebuilt the same way, so an old Python patch can be uninstalled
+#   9. cci task run validate_setup
 #
 # A step that fails without stopping the run is listed again at the end, and
 # the script exits nonzero rather than printing "Done".
@@ -45,6 +49,10 @@ die()  { printf '\n\033[1;31m[fail]\033[0m  %s\n' "$*" >&2; exit 1; }
 # update missing, so "Done" would claim more than happened.
 STEP_FAILED=()
 fail_later() { warn "$*"; STEP_FAILED+=("$*"); }
+# Something the owner should act on that isn't a failure (the run still ends in
+# "Done"). Repeated at the end too, so it isn't lost above a long run's output.
+NOTICES=()
+notice_later() { warn "$*"; NOTICES+=("$*"); }
 
 # ── 1. Homebrew ─────────────────────────────────────────────────────────────
 command -v brew >/dev/null || die "brew not found — install Homebrew from https://brew.sh first"
@@ -88,6 +96,43 @@ PY_TARGET_BIN="$(pyenv prefix "$PY_TARGET")/bin/python3"
 # built against another OpenSSL, or its install is broken: rebuild it.
 "$PY_TARGET_BIN" -c 'import ssl' \
   || die "Python $PY_TARGET can't import ssl (error above) — rebuild it with 'pyenv install --force $PY_TARGET' while openssl@3 is installed; see docs/guides/dev-environment-setup.md (OpenSSL 4 migration)"
+
+# scripts/ai/gate_python.py: resolves and probes the gate interpreter (step 7),
+# and --carry-over lists the packages a Python environment holds of its own,
+# reading site-packages directly, so it works when that environment's Python is
+# gone. Steps 2, 7 and 8 all use it.
+gate_python() { (cd "$REPO_ROOT" && "$PY_TARGET_BIN" scripts/ai/gate_python.py "$@"); }
+
+# pyenv's global version (~/.pyenv/version) is the `python` every shell gets
+# outside a project that pins its own. It moves with the line, as step 3 moves
+# nvm's default Node, but only from an older patch of $PY_LINE, and only when
+# that interpreter holds no packages of its own: anything pip-installed straight
+# into it would disappear from `python` and the pyenv shims after the switch.
+# Virtualenvs built on it are unaffected either way (they record its path), so
+# none of them needs rebuilding for this. A global set to `system`, another
+# line or several versions is a deliberate choice and is left alone.
+PY_GLOBAL="$(pyenv global 2>/dev/null | paste -sd ' ' - || true)"
+PY_LINE_RE="^${PY_LINE//./\\.}\\.[0-9]+$"
+if [ "$PY_GLOBAL" = "$PY_TARGET" ]; then
+  log "Python: pyenv global is $PY_TARGET"
+elif [[ "$PY_GLOBAL" =~ $PY_LINE_RE ]] \
+    && [ "$(printf '%s\n%s\n' "$PY_GLOBAL" "$PY_TARGET" | sort -V | head -1)" = "$PY_GLOBAL" ]; then
+  if [ ! -d "$(pyenv root)/versions/$PY_GLOBAL" ]; then
+    # Already uninstalled: every shell outside a pinned project gets "version
+    # not installed", so moving it on is a repair with nothing to lose.
+    pyenv global "$PY_TARGET"
+    log "Python: pyenv global $PY_GLOBAL -> $PY_TARGET ($PY_GLOBAL isn't installed)"
+  elif ! PY_GLOBAL_PKGS="$(gate_python --carry-over "$(pyenv root)/versions/$PY_GLOBAL")"; then
+    notice_later "Python: pyenv global stays $PY_GLOBAL — couldn't list the packages installed into it, so switching could hide some. Check, then run 'pyenv global $PY_TARGET' yourself"
+  elif [ -z "$PY_GLOBAL_PKGS" ]; then
+    pyenv global "$PY_TARGET"
+    log "Python: pyenv global $PY_GLOBAL -> $PY_TARGET (it held no packages of its own)"
+  else
+    notice_later "Python: pyenv global stays $PY_GLOBAL — it holds packages installed into it directly: $(printf '%s\n' "$PY_GLOBAL_PKGS" | paste -sd ',' - | sed 's/,/, /g'). Reinstall the ones you still use under $PY_TARGET (or with pipx), then run 'pyenv global $PY_TARGET'. Don't uninstall $PY_GLOBAL before that"
+  fi
+else
+  log "Python: pyenv global is ${PY_GLOBAL:-unset} — not an older $PY_LINE patch, so left alone"
+fi
 
 # ── 3. Node (nvm) ───────────────────────────────────────────────────────────
 export NVM_DIR="$HOME/.nvm"
@@ -205,110 +250,153 @@ log "CCI: re-applying robot/requirements.txt"
 log "sf plugins: update"
 sf plugins update || fail_later "sf plugins update failed"
 
+# Rebuild a venv on pyenv's $PY_TARGET when it runs another Python, or one not
+# built from pyenv's directory, carrying the packages it holds over. Both the
+# patch and the base matter: a venv on Homebrew's python@3.13 passes a patch
+# check while the two happen to match, then breaks or drifts when they don't.
+# pyvenv.cfg's `home` names the base; resolved directories are compared so a
+# symlinked PYENV_ROOT still matches. LABEL starts every message.
+PY_TARGET_BASE="$(cd "$(dirname "$PY_TARGET_BIN")" && pwd -P)"
+venv_home() { sed -n 's/^home *= *//p' "$1/pyvenv.cfg" 2>/dev/null | head -1 || true; }
+# A process started from the venv is running (a ./tui-cci session in another
+# worktree, a gate run). Clearing or upgrading packages under it breaks its next
+# import, so neither happens while this is true. It sees processes started by the
+# venv's path, which is how tui-cci and the gate start theirs; one started from
+# an activated shell as plain `python` isn't. pgrep takes a regex, so the path is
+# escaped for `(`, `+`, `[` … in it to match literally.
+venv_in_use() {
+  pgrep -f -- "$(printf '%s' "$1/bin/" | sed 's/[][\\.*^$+?(){}|]/\\&/g')" >/dev/null 2>&1
+}
+venv_base() {
+  local home
+  home="$(venv_home "$1")"
+  if [ -n "$home" ]; then (cd "$home" 2>/dev/null && pwd -P) || true; fi
+}
+refresh_venv() {
+  local venv="$1" label="$2" version home keep lost="" req rebuild=1
+  version="$("$venv/bin/python" -c 'import platform; print(platform.python_version())' 2>/dev/null || true)"
+  home="$(venv_home "$venv")"
+  if [ "$version" = "$PY_TARGET" ] && [ "$(venv_base "$venv")" = "$PY_TARGET_BASE" ]; then
+    return 0
+  fi
+  # Returns 1 when it's left for being in use, so the caller makes no other
+  # change to it either.
+  if venv_in_use "$venv"; then
+    fail_later "$label: $venv needs a rebuild onto Python $PY_TARGET (it's on ${version:-an unusable Python}), but a process is running from it — left; rerun once it has exited"
+    return 1
+  fi
+  # --clear empties the whole venv, so list what it holds first.
+  keep="$(mktemp "${TMPDIR:-/tmp}/venv-packages.XXXXXX")"
+  if ! gate_python --carry-over "$venv" >"$keep"; then
+    if [ -n "$version" ]; then
+      # It still runs, so clearing it would destroy what can't be listed for
+      # nothing. Leave it on its old patch.
+      fail_later "$label: couldn't list the packages in $venv — left on Python $version from ${home:-an unknown base} instead of rebuilding it; rerun once the cause is fixed"
+      rebuild=0
+    else
+      fail_later "$label: couldn't list the packages in $venv, and its Python is gone — rebuilt without them; reinstall any you need"
+    fi
+  fi
+  if [ "$rebuild" -eq 1 ]; then
+    log "$label: rebuilding $venv on pyenv's Python $PY_TARGET (was ${version:-unusable} from ${home:-an unknown base})"
+    "$PY_TARGET_BIN" -m venv --clear "$venv"
+    # If the new venv still doesn't record pyenv's directory (a framework build
+    # can name Python.framework instead), say so rather than rebuild every run.
+    [ "$(venv_base "$venv")" = "$PY_TARGET_BASE" ] \
+      || fail_later "$label: rebuilt $venv, but its pyvenv.cfg home ($(venv_home "$venv")) still isn't $PY_TARGET_BASE, so every run will rebuild it; see docs/guides/dev-environment-setup.md (Troubleshooting)"
+    if [ -s "$keep" ]; then
+      log "$label: reinstalling the $(wc -l <"$keep" | tr -d ' ') package(s) it held"
+      # All at once first. pip resolves a requirements file all-or-nothing,
+      # so on failure go one at a time, retrying a pin that won't install on
+      # this Python unpinned, and lose only what really can't come back.
+      if ! "$venv/bin/python" -m pip install -r "$keep"; then
+        # fd 3, so a pip that reads stdin can't swallow the rest of the list.
+        while IFS= read -r req <&3; do
+          case "$req" in
+            "") continue ;;
+            "-e "*) "$venv/bin/python" -m pip install -e "${req#-e }" && continue ;;
+            *) "$venv/bin/python" -m pip install "$req" && continue
+               case "$req" in
+                 *==*) "$venv/bin/python" -m pip install "${req%%==*}" && continue ;;
+               esac ;;
+          esac
+          lost="${lost:+$lost, }$req"
+        done 3<"$keep"
+        [ -z "$lost" ] \
+          || fail_later "$label: these didn't come back: $lost (full list: $keep)"
+      fi
+    fi
+  fi
+  [ -n "$lost" ] || rm -f "$keep"
+}
+
 # ── 7. Gate interpreter (<main checkout>/.venv) ─────────────────────────────
 # scripts/ai/pr_gate.py, the loop Stop hook and validate_setup's "Gate
 # interpreter" check all run under <main checkout>/.venv. gate_python.py
 # resolves and probes it for every one of them, so this step asks it too
 # rather than restating where the venv lives. Like the pipx venv, its python
-# is a symlink into one pyenv patch dir, so rebuild it when it isn't on
+# is a symlink into one pyenv patch dir, so it's rebuilt when it isn't on
 # $PY_TARGET (this also covers a symlink broken by an uninstalled patch). Then
-# reinstall pr_gate.py's requirements, which pick up any DEPS change. Only an
-# existing venv is managed: creating it is a setup step (local-installation.md,
+# pr_gate.py's requirements are reinstalled, which picks up any DEPS change. Only
+# an existing venv is managed: creating it is a setup step (local-installation.md,
 # Step 6). A $RLM_GATE_PYTHON override is someone else's to manage, but it is
 # still probed. Whichever venv is the gate interpreter must end up usable:
 # validate_setup only warns about it, so a failure here fails the script
 # (after validate_setup has run) instead of ending in "Done".
 GATE_FAILED=""
-gate_python() { (cd "$REPO_ROOT" && "$PY_TARGET_BIN" scripts/ai/gate_python.py "$@"); }
-
 if [ -n "${RLM_GATE_PYTHON:-}" ]; then
   log "Gate interpreter: \$RLM_GATE_PYTHON is set ($RLM_GATE_PYTHON) — probing it, not managing it"
   gate_python >/dev/null || GATE_FAILED="\$RLM_GATE_PYTHON ($RLM_GATE_PYTHON) can't run every pr_gate.py check"
 elif ! GATE_VENV="$(gate_python --default-venv)"; then
   warn "Gate interpreter: $REPO_ROOT is not a git checkout — skipping"
 elif [ -d "$GATE_VENV" ]; then
-  GATE_PY_VERSION="$("$GATE_VENV/bin/python" -c 'import platform; print(platform.python_version())' 2>/dev/null || true)"
-  # The base interpreter matters as well as the patch: a venv built on Homebrew's
-  # python@3.13 passes the patch check while the two happen to match, then breaks
-  # or drifts when they don't. pyvenv.cfg's `home` names the base; compare the
-  # resolved directories so a symlinked PYENV_ROOT still matches.
-  GATE_HOME="$(sed -n 's/^home *= *//p' "$GATE_VENV/pyvenv.cfg" 2>/dev/null | head -1 || true)"
-  GATE_BASE="$([ -n "$GATE_HOME" ] && cd "$GATE_HOME" 2>/dev/null && pwd -P || true)"
-  GATE_BASE_WANT="$(cd "$(dirname "$PY_TARGET_BIN")" && pwd -P)"
-  if [ "$GATE_PY_VERSION" != "$PY_TARGET" ] || [ "$GATE_BASE" != "$GATE_BASE_WANT" ]; then
-    # --clear empties the whole venv, and the gate's packages are rarely all
-    # it holds (the doc snapshot tooling and Robot requirements often live
-    # here too). gate_python.py lists its top-level packages first, reading
-    # site-packages itself so this works even when the venv's Python is gone.
-    GATE_KEEP="$(mktemp "${TMPDIR:-/tmp}/gate-venv-packages.XXXXXX")"
-    GATE_REBUILD=1
-    if ! gate_python --carry-over "$GATE_VENV" >"$GATE_KEEP"; then
-      if [ -n "$GATE_PY_VERSION" ]; then
-        # It still runs, so clearing it would destroy what can't be listed for
-        # nothing. Leave it on its old patch; the gate requirements still go in.
-        fail_later "Gate interpreter: couldn't list the packages in $GATE_VENV — left on Python $GATE_PY_VERSION from ${GATE_HOME:-an unknown base} instead of rebuilding it; rerun once the cause is fixed"
-        GATE_REBUILD=0
-      else
-        fail_later "Gate interpreter: couldn't list the packages in $GATE_VENV, and its Python is gone — rebuilt with only the gate's packages; reinstall any others"
-      fi
+  if ! refresh_venv "$GATE_VENV" "Gate interpreter"; then
+    : # in use and due a rebuild: left untouched, and the failure is already recorded
+  elif venv_in_use "$GATE_VENV"; then
+    # Current, but a gate run is using it: `pip install --upgrade` could replace a
+    # package under that run, so its requirements wait for the next run.
+    fail_later "Gate interpreter: a process is running from $GATE_VENV — its pr_gate.py requirements weren't reinstalled; rerun once it has exited"
+  else
+    log "Gate interpreter: installing pr_gate.py requirements into $GATE_VENV"
+    # Unquoted on purpose: one requirement per line, split into pip arguments.
+    # shellcheck disable=SC2046
+    if ! "$GATE_VENV/bin/python" -m pip install --upgrade \
+        $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all); then
+      GATE_FAILED="pip install into $GATE_VENV failed"
+    # The same probe the Stop hook and validate_setup run: every pr_gate.py
+    # dependency imports, and the Python is new enough for every check.
+    elif ! gate_python >/dev/null; then
+      GATE_FAILED="$GATE_VENV still can't run every pr_gate.py check"
     fi
-    [ "$GATE_REBUILD" -eq 0 ] || {
-      log "Gate interpreter: rebuilding $GATE_VENV on pyenv's Python $PY_TARGET (was ${GATE_PY_VERSION:-unusable} from ${GATE_HOME:-an unknown base})"
-      "$PY_TARGET_BIN" -m venv --clear "$GATE_VENV"
-      # If the new venv still doesn't record pyenv's directory (a framework build
-      # can name Python.framework instead), say so rather than rebuild every run.
-      GATE_HOME="$(sed -n 's/^home *= *//p' "$GATE_VENV/pyvenv.cfg" 2>/dev/null | head -1 || true)"
-      GATE_BASE="$([ -n "$GATE_HOME" ] && cd "$GATE_HOME" 2>/dev/null && pwd -P || true)"
-      [ "$GATE_BASE" = "$GATE_BASE_WANT" ] \
-        || fail_later "Gate interpreter: rebuilt $GATE_VENV, but its pyvenv.cfg home (${GATE_HOME:-none}) still isn't $GATE_BASE_WANT, so every run will rebuild it; see docs/guides/dev-environment-setup.md (Troubleshooting)"
-    }
-    if [ "$GATE_REBUILD" -eq 1 ] && [ -s "$GATE_KEEP" ]; then
-      log "Gate interpreter: reinstalling the $(wc -l <"$GATE_KEEP" | tr -d ' ') package(s) it held"
-      # All at once first. pip resolves a requirements file all-or-nothing,
-      # so on failure go one at a time, retrying a pin that won't install on
-      # this Python unpinned, and lose only what really can't come back.
-      if ! "$GATE_VENV/bin/python" -m pip install -r "$GATE_KEEP"; then
-        GATE_LOST=""
-        # fd 3, so a pip that reads stdin can't swallow the rest of the list.
-        while IFS= read -r req <&3; do
-          case "$req" in
-            "") continue ;;
-            "-e "*) "$GATE_VENV/bin/python" -m pip install -e "${req#-e }" && continue ;;
-            *) "$GATE_VENV/bin/python" -m pip install "$req" && continue
-               case "$req" in
-                 *==*) "$GATE_VENV/bin/python" -m pip install "${req%%==*}" && continue ;;
-               esac ;;
-          esac
-          GATE_LOST="${GATE_LOST:+$GATE_LOST, }$req"
-        done 3<"$GATE_KEEP"
-        [ -z "$GATE_LOST" ] \
-          || fail_later "Gate interpreter: these didn't come back: $GATE_LOST (full list: $GATE_KEEP)"
-      fi
-    fi
-    [ -n "${GATE_LOST:-}" ] || rm -f "$GATE_KEEP"
-  fi
-  log "Gate interpreter: installing pr_gate.py requirements into $GATE_VENV"
-  # Unquoted on purpose: one requirement per line, split into pip arguments.
-  # shellcheck disable=SC2046
-  if ! "$GATE_VENV/bin/python" -m pip install --upgrade \
-      $("$GATE_VENV/bin/python" "$REPO_ROOT/scripts/ai/pr_gate.py" --requirements --all); then
-    GATE_FAILED="pip install into $GATE_VENV failed"
-  # The same probe the Stop hook and validate_setup run: every pr_gate.py
-  # dependency imports, and the Python is new enough for every check.
-  elif ! gate_python >/dev/null; then
-    GATE_FAILED="$GATE_VENV still can't run every pr_gate.py check"
   fi
 else
   log "Gate interpreter: $GATE_VENV not found — create it per docs/guides/local-installation.md (Step 6)"
 fi
 [ -z "$GATE_FAILED" ] || warn "Gate interpreter: $GATE_FAILED — see docs/guides/dev-environment-setup.md (Troubleshooting)"
 
-# ── 8. Verify ───────────────────────────────────────────────────────────────
+# ── 8. Build-harness TUI venvs (<checkout>/.harness/tui-venv) ───────────────
+# ./tui-cci creates its venv once and never rebuilds it, so it stays on the
+# Python patch it was made with, and uninstalling that patch breaks it (tui-cci
+# then misreports it as "Python < 3.11"). Each checkout of this repository,
+# main or worktree, has its own, so every one gets the gate venv's treatment.
+# tui-cci reinstalls its own requirements on its next run if any are missing.
+TUI_SEEN=0
+while IFS= read -r wt <&4; do
+  [ -d "$wt/.harness/tui-venv" ] || continue
+  TUI_SEEN=$((TUI_SEEN + 1))
+  refresh_venv "$wt/.harness/tui-venv" "TUI venv" || true  # in use: recorded, left
+done 4< <(git -C "$REPO_ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
+log "TUI venv: $TUI_SEEN found, each on pyenv's Python $PY_TARGET unless a warning above says otherwise"
+
+# ── 9. Verify ───────────────────────────────────────────────────────────────
 log "Running validate_setup"
 cci task run validate_setup || fail_later "validate_setup failed (output above)"
 
 [ -z "$GATE_FAILED" ] || STEP_FAILED+=("Gate interpreter: $GATE_FAILED, so the local gate (scripts/ai/pr_gate.py) can't run all its checks")
 # Count first: expanding an empty array trips `set -u` on bash 3.2 (macOS /bin/bash).
+if [ "${#NOTICES[@]}" -gt 0 ]; then
+  for msg in "${NOTICES[@]}"; do warn "$msg"; done
+fi
 if [ "${#STEP_FAILED[@]}" -gt 0 ]; then
   for msg in "${STEP_FAILED[@]}"; do warn "$msg"; done
   die "${#STEP_FAILED[@]} step(s) failed (listed above)"

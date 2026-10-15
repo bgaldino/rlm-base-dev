@@ -310,7 +310,18 @@ The script handles:
    marked installed on request (see [OpenSSL 4 migration](#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration))
 2. `pyenv install --skip-existing $(pyenv latest -k 3.13)` — installs newest
    patch in the pinned major.minor line, **only if** there's a newer one —
-   then stops, before touching Node, if that Python can't import `ssl`
+   then stops, before touching Node, if that Python can't import `ssl`.
+   It also moves `pyenv global` (`~/.pyenv/version`, the `python` you get
+   outside a project that pins its own) along the line, as step 3 moves nvm's
+   default Node, but only from an older 3.13 patch, and only when that old
+   interpreter holds no packages of its own (`gate_python.py --carry-over` reads
+   its site-packages). Packages pip-installed straight into it would disappear
+   from `python` and the shims after a switch, so then it leaves the global where
+   it is and warns, naming them: reinstall the ones you use under the new patch
+   (or with pipx), then `pyenv global <new patch>`. A global set to `system`,
+   another line or several versions is left alone. Virtualenvs built on the old
+   patch aren't affected either way: they record its path, and break only if that
+   patch is uninstalled
 3. `nvm install 'lts/*' --latest-npm`, then, only if the version changed,
    `nvm reinstall-packages <old>` — carries `sf` and other npm globals forward
 4. `npm install -g @salesforce/cli@latest` — `sf` is an npm global under nvm's
@@ -355,14 +366,27 @@ The script handles:
    A `$RLM_GATE_PYTHON` override is probed but not managed. If the install fails,
    or `gate_python.py` still finds the gate interpreter unusable, the script exits
    nonzero after `validate_setup` (which only warns about it)
-9. `cci task run validate_setup` — verifies every check still passes,
+9. Build-harness TUI venvs — `./tui-cci` creates `.harness/tui-venv` once and
+   never rebuilds it, so it keeps the patch it was made with. In every checkout of
+   the repository (main and each worktree) the script gives an existing one the gate
+   venv's treatment: rebuilt on pyenv's current patch, its packages carried over.
+   `./tui-cci` reinstalls its own requirements on its next run if any are missing.
+   A venv (TUI or gate) that a process is running from, such as a `./tui-cci`
+   session open in another worktree or a gate run, isn't changed at all, neither
+   rebuilt nor (for the gate venv) given its `pr_gate.py` requirements. It's named,
+   and the run ends nonzero: rerun once that process has exited
+10. `cci task run validate_setup` — verifies every check still passes,
    including the "Gate interpreter" warning check
 
 A step that fails without stopping the run (the npm-globals carry-over, the sf
-update, the Robot re-inject, `sf plugins update`, the gate interpreter and its
-carried-over packages, `validate_setup` itself) is listed again at the end, and
+update, the Robot re-inject, `sf plugins update`, the gate interpreter, the TUI
+venvs and their carried-over packages, a venv left because it's in use,
+`validate_setup` itself) is listed again at the end, and
 the script exits nonzero instead of printing `Done`. That holds even when
 `validate_setup` passed: it can't see every missing update.
+
+A `pyenv global` left on an older patch (step 2) isn't a failure, but its warning
+is repeated just before `Done` so it isn't lost above the run's output.
 
 **When `DEPS` in `scripts/ai/pr_gate.py` changes** (a check gains a new
 package, or the CumulusCI pin moves), the gate interpreter needs the new
@@ -381,10 +405,16 @@ When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
 1. Edit `PY_LINE` / `NODE_LINE` at the top of `scripts/bash/update-toolchain.sh`
 2. Edit the `pyenv latest <line>` call in `.envrc`
 3. Run the script. It installs the new line, reinstalls CCI under the new
-   Python, rebuilds the gate interpreter `.venv` on it, and verifies via
-   `validate_setup`.
+   Python, rebuilds the gate interpreter `.venv` and the TUI venvs on it, and
+   verifies via `validate_setup`. It doesn't move `pyenv global` to a new line:
+   that's yours to change.
 4. Commit `.envrc` + the script changes.
 5. Optionally `pyenv uninstall <old.line>.x` and `nvm uninstall <old-node>`.
+   Before uninstalling a Python, check nothing still uses it: `pyenv global`
+   must not name it ([the troubleshooting entry](#pyenv-version-313x-is-not-installed-set-by-pyenvversion)),
+   and anything you pip-installed into it goes with it
+   (`python3 scripts/ai/gate_python.py --carry-over "$(pyenv root)/versions/<old>"`
+   lists those).
 
 ---
 
@@ -472,6 +502,21 @@ Claude Code captures a shell snapshot at startup. If it was launched from
 Spotlight/Dock (minimal PATH), the snapshot misses your shell config. Fix:
 launch Claude Code from a terminal, **or** restart Claude Code after
 fixing `~/.zshenv`.
+
+### `pyenv: version '3.13.x' is not installed (set by ~/.pyenv/version)`
+Every `python` outside a project that pins its own fails like this when `pyenv
+global` names a patch that was uninstalled. `update-toolchain.sh` repairs it on
+its next run (it moves a global naming a missing 3.13 patch to the current one);
+by hand:
+
+```bash
+pyenv global "$(pyenv latest 3.13)"
+```
+
+To avoid it, check `pyenv global` before `pyenv uninstall`. The script moves the
+global along the 3.13 line on its own only when the old interpreter holds no
+packages of its own, and otherwise warns and names them
+([§4, update routine step 2](#update-routine)).
 
 ### `pipx` venv broken after Python patch bump
 The CCI venv's python is a symlink to a specific pyenv patch dir
