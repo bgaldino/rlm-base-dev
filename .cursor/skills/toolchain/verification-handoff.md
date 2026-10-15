@@ -29,6 +29,9 @@ when every listed workstation has reported a pass.
 
 ## Procedure (each workstation)
 
+Pasting into an interactive zsh? Run `setopt interactivecomments` first: macOS zsh
+treats `#` as a command otherwise, which breaks lines with comments.
+
 1. **Start clean.** In the main checkout, `git status --short` must be empty. If it
    isn't, ask the owner. Never commit their work (it could land on `main`) or
    discard it. With their OK, set it aside, untracked files included:
@@ -47,23 +50,33 @@ when every listed workstation has reported a pass.
    # A canonical-repo branch is in that fetch. Don't fetch and run a fork's PR head
    # here (step 1); step 3 refuses it anyway.
    ```
-3. **Check out the pinned commit without moving any branch:**
+3. **Check out the pinned commit without moving any branch.** Continue to step 4
+   only if this prints `OK`. Any `STOP` (exit status 1) ends the procedure: report
+   it, and still run `git stash pop` if you set work aside in step 1. A STOP never
+   moves HEAD.
    ```bash
-   # Stop unless the commit is on a branch of the canonical repository. This asks
-   # the remote for its real branch tips (refs/heads/*), so local tracking-ref names
+   # Only a commit on a branch of the canonical repository is trusted. This asks the
+   # remote for its real branch tips (refs/heads/*), so local tracking-ref names
    # can't fool it: fork PR heads fetched under any name (pr/<n>, pull/<n>/head, …)
    # don't count. It doesn't prove review, which is the brief's job.
-   remote=$(git remote | grep -x upstream || echo origin)   # the remote confirmed in step 2
-   git cat-file -e '<sha>^{commit}' 2>/dev/null \
-     || echo "commit <sha> isn't here: re-fetch (step 2) or check the SHA"
-   ok=""
-   for tip in $(git ls-remote --heads "$remote" | cut -f1); do
-     git merge-base --is-ancestor <sha> "$tip" 2>/dev/null && { ok=1; break; }
-   done
-   [ -n "$ok" ] && git switch --detach <sha> \
-     || echo "not on a canonical branch (or the switch failed): stop here"
-   [ "$(git rev-parse HEAD)" = "$(git rev-parse '<sha>^{commit}')" ] && echo "at the pinned commit"
-   direnv status | grep 'Found RC allowed'
+   sha=<sha>
+   # The remote confirmed in step 2:
+   remote=$(git remote | grep -x upstream || echo origin)
+   if ! git cat-file -e "$sha^{commit}" 2>/dev/null; then
+     echo "STOP: commit $sha isn't here. Re-fetch (step 2) or check the SHA." >&2; false
+   else
+     ok=""
+     for tip in $(git ls-remote --heads "$remote" | cut -f1); do
+       git merge-base --is-ancestor "$sha" "$tip" 2>/dev/null && { ok=1; break; }
+     done
+     if [ -n "$ok" ] && git switch -q --detach "$sha" \
+        && [ "$(git rev-parse HEAD)" = "$(git rev-parse "$sha^{commit}")" ]; then
+       echo "OK: at the pinned commit, which is on a canonical branch"
+       direnv status | grep 'Found RC allowed'; true
+     else
+       echo "STOP: $sha isn't on a canonical branch, or the switch failed. Don't continue." >&2; false
+     fi
+   fi
    ```
    direnv approves `.envrc` by its content, so if the pinned commit changed it, it
    is now blocked (`allowed` isn't 0) and the audit's direnv, Python and PATH checks

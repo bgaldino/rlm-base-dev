@@ -12,6 +12,10 @@ replaced by `<redacted>`. npm itself refuses to print a setting whose URL
 contains a password (a proxy or registry), and the audit reports that as
 `set (credentials hidden)`.
 
+Pasting these into an interactive zsh? Run `setopt interactivecomments` first: macOS
+zsh treats `#` as a command otherwise. Agents running commands non-interactively
+aren't affected.
+
 Guide links: **DES** = [dev-environment-setup.md](../../../docs/guides/dev-environment-setup.md),
 **LI** = [local-installation.md](../../../docs/guides/local-installation.md).
 "Audit §N" means a section of this file.
