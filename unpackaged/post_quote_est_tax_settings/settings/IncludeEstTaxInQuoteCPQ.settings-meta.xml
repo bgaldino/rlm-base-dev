@@ -9,6 +9,10 @@
          adapter did not clear it, because its totals were still negative. Tax is skipped
          only when a line has a negative quantity, and then for the whole transaction.
          Verified on a 264.7 org, 2026-10-14. This setting covers quotes and orders; invoice
-         tax goes through Billing's tax path. -->
+         tax goes through Billing's tax path.
+         Deployed by deploy_quote_est_tax_settings (prepare_core step 18), which writes true
+         instead when quote_est_tax is on. It's kept out of unpackaged/pre so a re-run of
+         deploy_pre, or ensure_pricing_schedules' redeploy of pre/2_settings, can't turn it
+         back off on an org built with the flag. -->
     <enableQuoteEstimatedTaxCPQ>false</enableQuoteEstimatedTaxCPQ>
 </IncludeEstTaxInQuoteCPQSettings>

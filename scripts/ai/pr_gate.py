@@ -474,7 +474,8 @@ CHECKS = [
              "tests/test_prepare_constraints_validation.py",
              "tests/test_doc_snapshot_presets.py",
              "tests/test_workflow_policy.py",
-             "tests/test_docker_publish.py"],  # run in sequence
+             "tests/test_docker_publish.py",
+             "tests/test_deploy_with_fragments.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
         # usage product to that dataset invalidates the assertion, so it has to select this.
@@ -495,7 +496,13 @@ CHECKS = [
                   # interpolation in run:) parses the YAML, so any workflow or local-action change selects it.
                   ".github/workflows/", ".github/actions/", "tests/test_workflow_policy.py",
                   # docker-publish's :latest rule runs the workflow's own coordinates script.
-                  "tests/test_docker_publish.py"],
+                  "tests/test_docker_publish.py",
+                  # quote_est_tax: the partner permission set and the setting must deploy with
+                  # the flag off and on, and no other settings file (unpackaged/pre, a scratch
+                  # def) may set enableQuoteEstimatedTaxCPQ behind the flag's back.
+                  "tests/test_deploy_with_fragments.py", "unpackaged/pre/", "unpackaged/post_prm/",
+                  "unpackaged/post_quote_est_tax_settings/", "orgs/", "force-app/main/default/settings/",
+                  "templates/"],
         deps=["PyYAML"], gating=True,
     ),
     dict(

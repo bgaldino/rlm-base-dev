@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**258 tasks** across **9 groups**.
+**259 tasks** across **9 groups**.
 
 ---
 
@@ -794,7 +794,7 @@
 
 ## Revenue Lifecycle Management
 
-*168 task(s)*
+*169 task(s)*
 
 ### `activate_agents`
 
@@ -1828,6 +1828,20 @@
 **Options:**
 
 - `path`: `unpackaged/pre`
+
+---
+
+### `deploy_quote_est_tax_settings`
+
+**Description:** Set estimated tax on quotes and orders (IncludeEstTaxInQuoteCPQ) to off, or on with quote_est_tax; on creates the Quote and QuoteLineItem tax fields
+
+**Class:** `tasks.rlm_deploy_with_fragments.DeployWithFragments`
+
+**Options:**
+
+- `path`: `unpackaged/post_quote_est_tax_settings`
+- `flag`: `quote_est_tax`
+- `fragments`: `[{'path': 'settings/IncludeEstTaxInQuoteCPQ.settings', 'marker': '<enableQuoteEstimatedTaxCPQ>false</enableQuoteEstim...`
 
 ---
 
@@ -3191,13 +3205,15 @@
 
 ### `deploy_post_prm`
 
-**Description:** Deploy Partner Relationship Management Metadata
+**Description:** Deploy Partner Relationship Management Metadata (with quote_est_tax, partners also get read access to the estimated-tax fields; see unpackaged/post_prm/README.md)
 
-**Class:** `cumulusci.tasks.salesforce.Deploy`
+**Class:** `tasks.rlm_deploy_with_fragments.DeployWithFragments`
 
 **Options:**
 
 - `path`: `unpackaged/post_prm`
+- `flag`: `quote_est_tax`
+- `fragments`: `[{'path': 'permissionsets/RLM_Partner_Community_User_Perm_Set.permissionset', 'marker': '<!-- QUOTE_EST_TAX_GRANTS --...`
 
 ---
 

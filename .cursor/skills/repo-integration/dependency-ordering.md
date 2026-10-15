@@ -101,7 +101,7 @@ Reverse dependency order (children before parents):
 
 | Step | Sub-flow | What happens |
 |------|---------|--------------|
-| 1 | prepare_core | PSLs, PSGs, context defs, deploy_pre |
+| 1 | prepare_core | PSLs, PSGs, context defs, deploy_pre; then estimated tax off, or on with `quote_est_tax` (before prepare_prm grants its fields) |
 | 2 | prepare_decision_tables | DT lifecycle |
 | 3 | prepare_expression_sets | ES lifecycle |
 | 4 | prepare_payments | Payments webhook + metadata |

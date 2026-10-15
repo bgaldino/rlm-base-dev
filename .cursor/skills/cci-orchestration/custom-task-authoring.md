@@ -431,6 +431,7 @@ tasks:
 | `rlm_assign_permission_set_groups.py` | `AssignPermissionSetGroupsTolerant` | PSG assignment with warning tolerance |
 | `rlm_sync_pricing_data.py` | `SyncPricingData` | Sync pricing data |
 | `rlm_reconfigure_expression_set.py` | `ReconfigureExpressionSet` | Reconfigure autoproc expression sets |
+| `rlm_deploy_with_fragments.py` | `DeployWithFragments`, `SpliceFragmentsTransform` | Deploy a bundle with text spliced in at markers when a project flag is on (flag-dependent permission set grants and settings) |
 | `rlm_deactivate_changed_decision_tables.py` | `DeactivateChangedDecisionTables` | Check-only deploy active repo DTs; deactivate and deploy only those a structural change blocks |
 | `rlm_cml.py` | `ExportCML`, `ImportCML`, `ValidateCML` | Constraint Model Language operations |
 | `rlm_bre.py` | `ExportBRE` | BRE Rule Library export (SOQL → CSV + metadata retrieve) |
