@@ -296,7 +296,7 @@ that topic.
 
 | I need to... | Skill File (relative to repo root) |
 |-------------|-------------------------------------|
-| Set up / replicate / update the local dev toolchain | `docs/guides/dev-environment-setup.md` |
+| Set up / replicate / update the local dev toolchain | `.cursor/skills/toolchain/SKILL.md` |
 | Run the containerized toolchain (Docker image + `rlm` wrapper + devcontainer) | `docker/README.md` |
 | Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |

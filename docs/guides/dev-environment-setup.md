@@ -19,6 +19,10 @@ ends up with the same layered structure — not the same exact patch versions.
 > [local installation guide](local-installation.md#macos-environment-setup-homebrew--pyenv--nvm)
 > (Steps 1–11). This doc describes the **target
 > architecture** and **ongoing maintenance** once those are in place.
+>
+> **AI agents:** read the [toolchain skill](../../.cursor/skills/toolchain/SKILL.md)
+> before auditing or changing a workstation. It covers the read-only audit, the
+> safety rules, and cross-workstation verification.
 
 ---
 
@@ -589,8 +593,12 @@ Then verify with a TLS request from a new terminal (an open one still has the
 old value), which surfaces the warning:
 
 ```bash
-node -e 'require("https").get("https://registry.npmjs.org/", r => console.log(r.statusCode))'
+node -e 'const q = require("https").get("https://registry.npmjs.org/", r => { console.log(r.statusCode); process.exit(0) }); q.on("error", e => { console.log(e.code || e.message); process.exit(1) }); q.setTimeout(15000, () => { console.log("timeout"); process.exit(2) })'
 ```
+
+It prints the status code and exits, or prints `timeout` after 15 seconds
+(`process.exit`: without it, Node keeps the connection open and the command
+doesn't return).
 
 This plain `https.get` doesn't use `HTTPS_PROXY`, so behind an explicit proxy a
 timeout here says nothing about the CA setup; check for the warning instead.

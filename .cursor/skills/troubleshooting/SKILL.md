@@ -3,17 +3,21 @@ name: troubleshooting
 description: >-
   Diagnose Revenue Cloud Foundations build, metadata deployment, data load, and local
   toolchain failures. Use when a CCI flow step fails, SFDMU loads misbehave, permissions
-  or activation block deployment, or usage and rating results are unexpected.
+  or activation block deployment, or usage and rating results are unexpected. To audit,
+  update or verify the toolchain itself, use toolchain.
 ---
 
 # Troubleshooting & Common Errors
 
 Use this skill when diagnosing failures in the rlm-base-dev build pipeline,
-data loading, metadata deployment, or local environment setup.
+data loading, metadata deployment, or local environment setup. To audit, update
+or verify the local toolchain itself (shell config, PATH order, corporate CA,
+`update-toolchain.sh`), use the [toolchain skill](../toolchain/SKILL.md).
 
 ## Quick Rules
 
-1. Run `cci task run validate_setup` first — it checks everything.
+1. Run `cci task run validate_setup` first — it checks everything. When only
+   diagnosing, add `-o auto_fix false -o auto_fix_robot false` so it changes nothing.
 2. CCI alias `beta` ≠ SF CLI alias `rlm-base__beta`. Never mix them.
 3. SFDMU load fails → check stdout for specific object error.
 4. Duplicates on re-run → missing `$$` composite key column in CSV.
