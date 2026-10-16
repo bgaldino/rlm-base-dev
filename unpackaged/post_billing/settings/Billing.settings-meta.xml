@@ -19,6 +19,15 @@
     <enablePaymentApplicationToPostedInvoices>true</enablePaymentApplicationToPostedInvoices>
     <enablePaymentSchedulesAndItemsCreation>true</enablePaymentSchedulesAndItemsCreation>
     <enableTransactionJournalCreation>true</enableTransactionJournalCreation>
-    <enableTransactionsApplicationToInvoices>true</enableTransactionsApplicationToInvoices>
+    <!-- Credit, Payment, and Refund Application: false = Line Level, true = Header Level
+         (org pref InvHeaderLvlSettlement). The Metadata API reference says true "applies
+         balances of credit memos to invoices" (the header). Live 264, 2026-10-15: with false,
+         applyPayment rejects an invoice id ("Credit Application Level is Invoice Line"). Line Level applies
+         credit memo and payment lines to invoice lines (CreditMemoLineInvoiceLine,
+         PaymentLineInvoiceLine) instead of to the invoice header. Changing it on an org that
+         already has invoices causes tax summary differences (Help: billing tax summary
+         difference). Re-running prepare_billing on an existing org switches it to Line Level;
+         its earlier header-level applications stay as they are. -->
+    <enableTransactionsApplicationToInvoices>false</enableTransactionsApplicationToInvoices>
     <enableTrxnAmountsStorageInCorpCurrency>true</enableTrxnAmountsStorageInCorpCurrency>
 </BillingSettings>

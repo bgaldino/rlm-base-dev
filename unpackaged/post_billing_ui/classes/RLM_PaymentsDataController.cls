@@ -113,26 +113,48 @@ public with sharing class RLM_PaymentsDataController {
             if (item.PaymentScheduleId != null) scheduleIds.add(item.PaymentScheduleId);
         }
         
-        // Invoices from PaymentLineInvoice (when payment exists and is applied to invoices)
+        // Invoices from PaymentLineInvoice (Header Level applications). An unapply adds an
+        // Unapplied row and flags the original (HasBeenUnapplied; UnappliedStatus on the line
+        // object), so both are left out. A user without read on these objects or fields keeps
+        // the rest of the summary.
         Map<Id, List<InvoiceWrapper>> paymentInvoiceMap = new Map<Id, List<InvoiceWrapper>>();
         if (!paymentIds.isEmpty()) {
-            List<PaymentLineInvoice> paymentLines = [
-                SELECT Id, PaymentId, InvoiceId, Amount,
-                       Invoice.Id, Invoice.InvoiceNumber, Invoice.DocumentNumber,
-                       Invoice.TotalAmount, Invoice.Balance, Invoice.Status,
-                       Invoice.DueDate, Invoice.InvoiceDate, Invoice.CurrencyIsoCode
-                FROM PaymentLineInvoice
-                WHERE PaymentId IN :paymentIds
-                WITH USER_MODE ORDER BY Invoice.InvoiceNumber
-            ];
-            for (PaymentLineInvoice pli : paymentLines) {
-                if (!paymentInvoiceMap.containsKey(pli.PaymentId)) {
-                    paymentInvoiceMap.put(pli.PaymentId, new List<InvoiceWrapper>());
-                }
-                paymentInvoiceMap.get(pli.PaymentId).add(new InvoiceWrapper(pli));
+            try {
+                addHeaderLevelApplications(paymentInvoiceMap, [
+                    SELECT Id, PaymentId, InvoiceId, Amount,
+                           Invoice.Id, Invoice.InvoiceNumber, Invoice.DocumentNumber,
+                           Invoice.TotalAmount, Invoice.Balance, Invoice.Status,
+                           Invoice.DueDate, Invoice.InvoiceDate, Invoice.CurrencyIsoCode
+                    FROM PaymentLineInvoice
+                    WHERE PaymentId IN :paymentIds AND Type != 'Unapplied' AND HasBeenUnapplied != 'Yes'
+                    WITH USER_MODE ORDER BY Invoice.InvoiceNumber
+                ]);
+            } catch (QueryException e) {
+                System.debug(LoggingLevel.WARN, 'Header-level payment applications not readable: ' + e.getMessage());
             }
         }
-        
+
+        // Invoices from PaymentLineInvoiceLine: with Billing Settings' Credit, Payment, and
+        // Refund Application at Line Level (the Foundations default), payment lines apply to
+        // invoice lines rather than the invoice.
+        // A user without read on PaymentLineInvoiceLine keeps the header-level view rather than
+        // losing the whole summary.
+        if (!paymentIds.isEmpty()) {
+            try {
+                addLineLevelApplications(paymentInvoiceMap, [
+                    SELECT PaymentId, Amount,
+                           InvoiceLine.Invoice.Id, InvoiceLine.Invoice.InvoiceNumber, InvoiceLine.Invoice.DocumentNumber,
+                           InvoiceLine.Invoice.TotalAmount, InvoiceLine.Invoice.Balance, InvoiceLine.Invoice.Status,
+                           InvoiceLine.Invoice.DueDate, InvoiceLine.Invoice.InvoiceDate, InvoiceLine.Invoice.CurrencyIsoCode
+                    FROM PaymentLineInvoiceLine
+                    WHERE PaymentId IN :paymentIds AND Type != 'Unapplied' AND UnappliedStatus != 'Yes'
+                    WITH USER_MODE ORDER BY InvoiceLine.Invoice.InvoiceNumber
+                ]);
+            } catch (QueryException e) {
+                System.debug(LoggingLevel.WARN, 'Line-level payment applications not readable: ' + e.getMessage());
+            }
+        }
+
         // Invoice from Payment Schedule's Reference Entity (PS -> Reference Entity = Invoice)
         Map<Id, Id> scheduleToInvoiceId = new Map<Id, Id>();
         if (!scheduleIds.isEmpty()) {
@@ -163,7 +185,7 @@ public with sharing class RLM_PaymentsDataController {
             }
         }
         
-        // Build invoice list per PSI: from PaymentLineInvoice + from Schedule Reference Entity (if not already included)
+        // Build invoice list per PSI: from PaymentLineInvoice / PaymentLineInvoiceLine + from Schedule Reference Entity (if not already included)
         for (PaymentScheduleItem item : items) {
             String status = item.Status;
             if (!statusSummaryMap.containsKey(status)) continue;
@@ -184,6 +206,55 @@ public with sharing class RLM_PaymentsDataController {
         return statusSummaryMap.values();
     }
     
+    // One entry per payment and invoice: a payment applied to the same invoice more than once
+    // is listed once, with the amounts summed.
+    @TestVisible
+    private static void addHeaderLevelApplications(Map<Id, List<InvoiceWrapper>> paymentInvoiceMap,
+                                                   List<PaymentLineInvoice> rows) {
+        Map<String, InvoiceWrapper> byKey = new Map<String, InvoiceWrapper>();
+        for (PaymentLineInvoice pli : rows) {
+            String key = pli.PaymentId + ':' + pli.InvoiceId;
+            InvoiceWrapper existing = byKey.get(key);
+            if (existing != null) {
+                if (pli.Amount != null) existing.appliedAmount = (existing.appliedAmount == null ? 0 : existing.appliedAmount) + pli.Amount;
+                continue;
+            }
+            InvoiceWrapper iw = new InvoiceWrapper(pli);
+            byKey.put(key, iw);
+            if (!paymentInvoiceMap.containsKey(pli.PaymentId)) {
+                paymentInvoiceMap.put(pli.PaymentId, new List<InvoiceWrapper>());
+            }
+            paymentInvoiceMap.get(pli.PaymentId).add(iw);
+        }
+    }
+
+    // Sum line-level applications into one entry per payment and invoice. An invoice already
+    // listed from a header-level PaymentLineInvoice row (applied before a switch to Line Level)
+    // gets the line amounts added to that entry, so it's listed once with the total applied.
+    @TestVisible
+    private static void addLineLevelApplications(Map<Id, List<InvoiceWrapper>> paymentInvoiceMap,
+                                                 List<PaymentLineInvoiceLine> lines) {
+        Map<String, InvoiceWrapper> byKey = new Map<String, InvoiceWrapper>();
+        for (Id paymentId : paymentInvoiceMap.keySet()) {
+            for (InvoiceWrapper iw : paymentInvoiceMap.get(paymentId)) byKey.put(paymentId + ':' + iw.id, iw);
+        }
+        for (PaymentLineInvoiceLine plil : lines) {
+            Invoice inv = plil.InvoiceLine == null ? null : plil.InvoiceLine.Invoice;
+            if (inv == null || inv.Id == null) continue; // invoice not readable
+            String key = plil.PaymentId + ':' + inv.Id;
+            InvoiceWrapper iw = byKey.get(key);
+            if (iw == null) {
+                iw = new InvoiceWrapper(inv);
+                byKey.put(key, iw);
+                if (!paymentInvoiceMap.containsKey(plil.PaymentId)) {
+                    paymentInvoiceMap.put(plil.PaymentId, new List<InvoiceWrapper>());
+                }
+                paymentInvoiceMap.get(plil.PaymentId).add(iw);
+            }
+            if (plil.Amount != null) iw.appliedAmount = (iw.appliedAmount == null ? 0 : iw.appliedAmount) + plil.Amount;
+        }
+    }
+
     public class PaymentStatusSummary {
         @AuraEnabled public String status { get; set; }
         @AuraEnabled public Decimal totalRequestedAmount { get; set; }

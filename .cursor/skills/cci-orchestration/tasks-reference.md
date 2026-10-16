@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**259 tasks** across **9 groups**.
+**261 tasks** across **9 groups**.
 
 ---
 
@@ -794,7 +794,7 @@
 
 ## Revenue Lifecycle Management
 
-*169 task(s)*
+*171 task(s)*
 
 ### `activate_agents`
 
@@ -1260,6 +1260,18 @@
 
 ---
 
+### `create_default_invoice_email_template`
+
+**Description:** Create the "Default Invoice Email Template" (Lightning HTML template on Invoice, org public folder) that Billing Settings creates only from the Setup UI toggle, never from a Metadata API deploy. Same name, labels and merge fields as Core's; skips when an Invoice template with that name or developer name exists (it uses the developer name RLM_Default_Invoice_Email_Template if a non-Invoice template holds the usual one, matches either, and stops with an error if non-Invoice templates hold both). deploy_billing_email_template_settings then selects it.
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/createDefaultInvoiceEmailTemplate.apex`
+
+---
+
 ### `create_docgen_library`
 
 **Description:** Create DocGen Library
@@ -1514,6 +1526,19 @@
 
 ---
 
+### `deploy_billing_email_template_settings`
+
+**Description:** Select the Default Invoice Email Template (created by create_default_invoice_email_template) as Billing Settings' default email template (defaultEmailTemplate)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_billing_email_template_settings`
+- `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//BillingSettings/defaultEmailTemplate[text()="__D...`
+
+---
+
 ### `deploy_billing_id_settings`
 
 **Description:** Deploy Billing Settings with org-specific record IDs (resolved via XPath transform queries at deploy time)
@@ -1529,7 +1554,7 @@
 
 ### `deploy_billing_template_id_settings`
 
-**Description:** NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with auto-generated template IDs (resolved after deploy_billing_template_settings triggers template auto-creation). Sets defaultEmailTemplate, defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings auto-default these values; explicit deployment is not required.
+**Description:** NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with the invoice template IDs resolved from the org: defaultEmailTemplate, defaultInvPreviewTemplate and defaultInvoiceDocTemplate. Billing defaults the preview and document templates itself; prepare_billing selects the email template with deploy_billing_email_template_settings.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1542,7 +1567,7 @@
 
 ### `deploy_billing_template_settings`
 
-**Description:** Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
+**Description:** Re-enable Invoice Email/PDF toggles to trigger auto-creation of the default invoice preview and document templates (cycle step 3); the email template is created by create_default_invoice_email_template
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1652,7 +1677,7 @@
 
 ### `deploy_post_billing_ui`
 
-**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set (field access + Apex class access + RunFlow). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
+**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set (field access, read on the objects the payments view queries, Apex class access, RunFlow). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

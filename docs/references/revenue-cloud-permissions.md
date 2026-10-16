@@ -384,7 +384,7 @@ The following table shows the sequence of all permission-related steps across th
 | 7.9 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 7.11 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_RenewalQuotes` | `quantumbit` |
 | 10.10 | `prepare_docgen` > `assign_permission_sets` | `RLM_DocGen` | `docgen` |
-| 13.12 | `prepare_billing` > `assign_permission_sets` | `RLM_BillingUI` | `billing_ui` |
+| 13.14 | `prepare_billing` > `assign_permission_sets` | `RLM_BillingUI` | `billing_ui` |
 | 20.1 | `prepare_tso` > `assign_permission_set_groups` | Copilot + Catalog PSGs (4) | `tso` |
 | 20.4 | `prepare_tso` > `assign_permission_sets` | TSO permission sets (8) | `tso` |
 | 22.7 | `prepare_prm` > `assign_permission_sets` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |

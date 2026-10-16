@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 10 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 8 flow step(s) |
-| `billing` | `True` | 20 flow step(s) |
+| `billing` | `True` | 22 flow step(s) |
 | `billing_portal` | `False` | 5 flow step(s) |
 | `billing_portal_deploy` | `True` | 3 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
@@ -103,7 +103,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing` step 7 → `activate_billing_records`
 - `prepare_billing` step 9 → `deploy_billing_id_settings`
 - `prepare_billing` step 10 → `deploy_billing_template_settings`
-- `prepare_billing` step 13 → `apply_context_billing_order`
+- `prepare_billing` step 11 → `create_default_invoice_email_template`
+- `prepare_billing` step 12 → `deploy_billing_email_template_settings`
+- `prepare_billing` step 15 → `apply_context_billing_order`
 - `prepare_billing_portal` step 1 → `create_billing_portal`
 - `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
 - `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
@@ -129,9 +131,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `billing_ui` (default: `True`)
 
 - `prepare_billing` step 8 → `enable_timeline`
-- `prepare_billing` step 11 → `deploy_post_billing_ui`
-- `prepare_billing` step 12 → `assign_permission_sets`
-- `prepare_billing` step 13 → `apply_context_billing_order`
+- `prepare_billing` step 13 → `deploy_post_billing_ui`
+- `prepare_billing` step 14 → `assign_permission_sets`
+- `prepare_billing` step 15 → `apply_context_billing_order`
 
 ### `breconfig` (default: `False`)
 

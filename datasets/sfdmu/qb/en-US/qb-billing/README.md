@@ -20,9 +20,11 @@ This plan is executed as **step 1** of the `prepare_billing` flow (when `billing
 | 8    | `enable_timeline`                       | billing_ui+!tso    | Enables industries_common:timeline (required before billing_ui flexipages). Skipped on TSO builds (Timeline enabled via metadata). |
 | 9    | `deploy_billing_id_settings`            | billing            | Deploys `post_billing_id_settings` — sets GL accounts, legal entity, treatment, tax IDs |
 | 10   | `deploy_billing_template_settings`      | billing            | Re-enables Invoice Email/PDF toggles (cycled off in step 9 to avoid template ID errors) |
-| 11   | `deploy_post_billing_ui`                | billing_ui         | Deploys Billing UI LWC components, Apex, fields, permset from `unpackaged/post_billing_ui` |
-| 12   | `assign_permission_sets`                | billing_ui         | Assigns `RLM_BillingUI` permission set to the running user                              |
-| 13   | `apply_context_billing_order`           | billing+billing_ui | Patches `RLM_BillingContext` Order node — maps `BillingArrangement__std` → `RLM_Billing_Arrangement__c` and `BillingProfile__std` → `RLM_Billing_Profile__c` |
+| 11   | `create_default_invoice_email_template` | billing            | Creates the Default Invoice Email Template, which Billing makes only from the Setup toggle (`createDefaultInvoiceEmailTemplate.apex`; skips if it exists) |
+| 12   | `deploy_billing_email_template_settings` | billing           | Selects it as Billing Settings' default email template (`post_billing_email_template_settings`) |
+| 13   | `deploy_post_billing_ui`                | billing_ui         | Deploys Billing UI LWC components, Apex, fields, permset from `unpackaged/post_billing_ui` |
+| 14   | `assign_permission_sets`                | billing_ui         | Assigns `RLM_BillingUI` permission set to the running user                              |
+| 15   | `apply_context_billing_order`           | billing+billing_ui | Patches `RLM_BillingContext` Order node — maps `BillingArrangement__std` → `RLM_Billing_Arrangement__c` and `BillingProfile__std` → `RLM_Billing_Profile__c` |
 
 ### Task Definition
 
@@ -198,7 +200,7 @@ All external IDs use portable, human-readable fields:
 
 ## Billing Context Plan (`apply_context_billing_order`)
 
-Step 13 of `prepare_billing` patches the `RLM_BillingContext` context definition using the plan at `datasets/context_plans/Billing/contexts/billing_order_attributes.json`. It adds two attribute mappings to the `OrderEntitiesMapping` mapping on the `BillingTransaction` node:
+Step 15 of `prepare_billing` patches the `RLM_BillingContext` context definition using the plan at `datasets/context_plans/Billing/contexts/billing_order_attributes.json`. It adds two attribute mappings to the `OrderEntitiesMapping` mapping on the `BillingTransaction` node:
 
 | Context Attribute         | sObject | sObjectField               | Purpose |
 |---------------------------|---------|----------------------------|---------|
@@ -208,7 +210,7 @@ Step 13 of `prepare_billing` patches the `RLM_BillingContext` context definition
 **Notes:**
 - `SavedPaymentMethod__std` is intentionally excluded — the platform already has an inherited mapping for this attribute; adding a custom one fails with `INVALID_INPUT: An Inherited mapping for ContextAttribute: SavedPaymentMethod already exists.`
 - Task verification logs `hasHydrationDetail: false` for both `__std` attributes — this is a **known false negative**. The Connect API GET does not expose hydration records for `__std` attributes in `contextAttrHydrationDetailList`; the records exist and are confirmed via Tooling API.
-- This patch is `prepare_billing` step 13 → `apply_context_billing_order` — build step **13.13** — and it is the step gated by `billing AND billing_ui`. It needs both because `RLM_Billing_Arrangement__c` and `RLM_Billing_Profile__c` are Order fields deployed two steps earlier at `prepare_billing` step 11 → `deploy_post_billing_ui` (build step 13.11), which `billing_ui` alone gates. (`prepare_billing` step 12 → `assign_permission_sets`, also `billing_ui` only.)
+- This patch is `prepare_billing` step 15 → `apply_context_billing_order` — build step **13.15** — and it is the step gated by `billing AND billing_ui`. It needs both because `RLM_Billing_Arrangement__c` and `RLM_Billing_Profile__c` are Order fields deployed two steps earlier at `prepare_billing` step 13 → `deploy_post_billing_ui` (build step 13.13), which `billing_ui` alone gates. (`prepare_billing` step 14 → `assign_permission_sets`, also `billing_ui` only.)
 
 ## Dependencies
 

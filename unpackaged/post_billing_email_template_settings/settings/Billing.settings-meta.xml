@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BillingSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- Selects the Default Invoice Email Template that create_default_invoice_email_template
+         (prepare_billing step 11) creates; deploy_billing_email_template_settings resolves the
+         placeholder to its Id, matching it the same way the create step does (name or developer
+         name). Kept apart from post_billing_template_id_settings so a missing
+         preview or document template can't stop this one being selected. -->
+    <defaultEmailTemplate>__DEFAULT_EMAIL_TEMPLATE_ID__</defaultEmailTemplate>
+</BillingSettings>
