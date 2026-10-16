@@ -11,7 +11,9 @@ import contextlib
 import io
 import os
 import re
+import subprocess
 import sys
+import tempfile
 import time
 import unittest
 from pathlib import Path
@@ -179,11 +181,24 @@ class Run(unittest.TestCase):
 
     @staticmethod
     def alive(pid):
+        """Running, not just present: a killed child reparented to a PID 1 that doesn't
+        reap (some containers) stays a zombie, and os.kill(pid, 0) still succeeds."""
         try:
             os.kill(pid, 0)
         except OSError:
             return False
-        return True
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                return f.read().rsplit(")", 1)[1].split()[0] != "Z"
+        except (OSError, IndexError):
+            pass  # no procfs (macOS): ask ps
+        try:
+            stat = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)],
+                                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                  text=True, timeout=10).stdout.strip()
+        except (OSError, subprocess.TimeoutExpired):
+            return True
+        return bool(stat) and not stat.startswith("Z")
 
     def wait_gone(self, pid):
         deadline = time.monotonic() + 5
@@ -215,6 +230,30 @@ class Run(unittest.TestCase):
         self.assertFalse(ok)
         pid = int(next(l for l in out.splitlines() if l.startswith("child="))[6:])
         self.assertTrue(self.wait_gone(pid), "the background sleep survived the timeout")
+
+    def test_interrupt_stops_the_check_group(self):
+        # The group runs in its own session, so Ctrl-C at the terminal never reaches it:
+        # run() has to stop it before the KeyboardInterrupt leaves.
+        with tempfile.TemporaryDirectory() as tmp:
+            pidfile = os.path.join(tmp, "pid")
+            real = ta.time.monotonic
+            calls = []
+
+            def interrupt_in_loop():
+                calls.append(1)
+                if len(calls) > 1 and os.path.exists(pidfile) and os.path.getsize(pidfile):
+                    raise KeyboardInterrupt
+                return real()
+
+            ta.time.monotonic = interrupt_in_loop
+            try:
+                with self.assertRaises(KeyboardInterrupt):
+                    self.run_one(f'sleep 30 & echo $! > "{pidfile}"; wait', timeout=60)
+            finally:
+                ta.time.monotonic = real
+            with open(pidfile) as f:
+                pid = int(f.read())
+        self.assertTrue(self.wait_gone(pid), "the background sleep survived the interrupt")
 
     def test_output_held_after_the_shell_exits_is_stopped(self):
         # A background job from a startup file can hold the output open after the shell

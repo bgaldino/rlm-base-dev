@@ -211,7 +211,9 @@ def run(check, shell, repo, timeout, grace=HELD_OUTPUT_GRACE):
     The shell leads its own process group, so a timeout stops everything it started
     (npm, cci, the fresh zsh shells), not just the shell. A process left holding the
     output open after the shell has exited (a background job from a startup file) is
-    stopped after `grace` seconds instead of holding the check until the timeout.
+    stopped after `grace` seconds instead of holding the check until the timeout. An
+    interrupt (Ctrl-C) stops the group too, since its own session doesn't get the
+    terminal's SIGINT.
     """
     print(f"== §{check.section} {check.id}: {check.title}", flush=True)
     try:
@@ -224,25 +226,32 @@ def run(check, shell, repo, timeout, grace=HELD_OUTPUT_GRACE):
         return False
     deadline = time.monotonic() + timeout
     exited_at = None
-    while True:
-        try:
-            out, _ = proc.communicate(timeout=0.5)
-            break
-        except subprocess.TimeoutExpired:
-            now = time.monotonic()
-            if exited_at is None and proc.poll() is not None:
-                exited_at = now
-            if now >= deadline:
-                kill_group(proc)
-                finish(proc.communicate()[0])
-                print(f"[timeout after {timeout}s]", flush=True)
-                return False
-            if exited_at is not None and now - exited_at >= grace:
-                kill_group(proc)
-                finish(proc.communicate()[0])
-                print(f"[exit {proc.returncode}; stopped what it left holding its output "
-                      f"{grace}s after it exited]", flush=True)
-                return True
+    try:
+        while True:
+            try:
+                out, _ = proc.communicate(timeout=0.5)
+                break
+            except subprocess.TimeoutExpired:
+                now = time.monotonic()
+                if exited_at is None and proc.poll() is not None:
+                    exited_at = now
+                if now >= deadline:
+                    kill_group(proc)
+                    finish(proc.communicate()[0])
+                    print(f"[timeout after {timeout}s]", flush=True)
+                    return False
+                if exited_at is not None and now - exited_at >= grace:
+                    kill_group(proc)
+                    finish(proc.communicate()[0])
+                    print(f"[exit {proc.returncode}; stopped what it left holding its "
+                          f"output {grace}s after it exited]", flush=True)
+                    return True
+    except BaseException:
+        # Ctrl-C (or anything else) mid-check: the group is in its own session, so the
+        # terminal's SIGINT never reached it. Stop and reap it before the interrupt leaves.
+        kill_group(proc)
+        proc.communicate()
+        raise
     finish(out)
     print(f"[exit {proc.returncode}]", flush=True)
     return True
