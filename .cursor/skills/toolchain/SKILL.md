@@ -22,9 +22,10 @@ for any agent.
 
 ## Quick Rules
 
-1. **Audit before you change anything.** Run the read-only audit in
-   [`workstation-audit.md`](workstation-audit.md) and report what it found. The
-   user decides what gets fixed.
+1. **Audit before you change anything.** Run the read-only audit with
+   `python3 scripts/ai/toolchain_audit.py --section N` (or `--all`), read each
+   result against its row in [`workstation-audit.md`](workstation-audit.md), and
+   report what it found. The user decides what gets fixed.
 2. **The guides are the source of truth.** Point to the guide section that covers a
    fix instead of improvising one; if the guide is wrong, fix the guide in the same
    change.
@@ -45,6 +46,10 @@ for any agent.
 
 ## DO NOT
 
+- **DO NOT** run anything copied out of `workstation-audit.md`'s tables. Their
+  columns are the check's id, what to expect and where the fix is documented; every
+  audit command is in `scripts/ai/toolchain_audit.py`
+  (`--show <id>` prints one without running it).
 - **DO NOT** print, `cat` or paste rc files (`~/.zshrc`, `~/.zshenv`, `~/.zprofile`),
   `.env.local`, or `env` output. They often hold tokens, and proxy or registry URLs
   can hold a username and password. Search for the specific
@@ -85,8 +90,9 @@ for any agent.
 ## Sub-files
 
 - [`workstation-audit.md`](workstation-audit.md) — read this before changing or
-  vouching for a workstation: every check, its command, the expected result and
-  where the fix is documented.
+  vouching for a workstation: every check, the expected result and where the fix
+  is documented. The commands run from `scripts/ai/toolchain_audit.py`, one section
+  or check at a time.
 - [`managed-workstations.md`](managed-workstations.md) — read this on a machine with
   IT-managed configuration: what to look for, what not to touch, and which guide
   section covers each case.
@@ -101,6 +107,7 @@ for any agent.
 | Shell init | `~/.zshenv` (every shell), `~/.zprofile` (login), `~/.zshrc` (interactive) | Layout in [dev-environment-setup.md §2](../../../docs/guides/dev-environment-setup.md#2-system-layout) |
 | Per-project activation | `.envrc` (tracked) + `.env.local` (gitignored, dotenv) | direnv; `./tui-cci` also loads `.env.local` |
 | Python | pyenv, latest 3.13 patch; `openssl@3` kept | pipx CumulusCI venv, `.venv` and each `.harness/tui-venv` pin one patch; `pyenv global` follows the line only from an old patch with no packages of its own |
+| Audit | `scripts/ai/toolchain_audit.py` | Read-only; runs each check of `workstation-audit.md` and prints the evidence, judging nothing |
 | Gate interpreter | `<main checkout>/.venv` | Found by `scripts/ai/gate_python.py`; `pr_gate.py` re-runs under it when its own interpreter lacks a selected check's dependency |
 | Node / sf / SFDMU | nvm, the major line pinned in `.nvmrc` (24); `sf` under it; `sfdmu` plugin ≥ 5.6.4 | Moving to a new major is a deliberate PR: `.nvmrc`, the Dockerfile's `NODE_MAJOR`, CI and `engines` together |
 | Robot browser | stock Chrome, or Chrome for Testing via `.env.local` | Where stock Chrome fails on Setup pages |
@@ -108,7 +115,8 @@ for any agent.
 
 ## Examples
 
-**"Check my setup."** Run [`workstation-audit.md`](workstation-audit.md) read-only.
+**"Check my setup."** Run `python3 scripts/ai/toolchain_audit.py --section 1`, then
+sections 2–6, and read the output against [`workstation-audit.md`](workstation-audit.md).
 Report a table of check, result and evidence, and list fixes as proposals with the
 guide section for each. Change nothing.
 
@@ -117,7 +125,9 @@ guide section for each. Change nothing.
 `brew install openssl@3 && brew tab --installed-on-request openssl@3`, then confirm
 with `cci version`.
 
-**"npm fails with `SELF_SIGNED_CERT_IN_CHAIN` on my work laptop."** Run [audit §6](workstation-audit.md#6-corporate-ca-managed-workstations).
+**"npm fails with `SELF_SIGNED_CERT_IN_CHAIN` on my work laptop."** Run
+`python3 scripts/ai/toolchain_audit.py --section 6` and read it against
+[audit §6](workstation-audit.md#6-corporate-ca-managed-workstations).
 Look for a colon-joined value, an export only in `~/.zshrc`, or a later block
 overriding it, and propose the fix from the guide's CA entry. Re-run audit §6 to
 confirm.
@@ -131,6 +141,9 @@ the procedure and collect one report per machine.
 - `cci task run validate_setup -o auto_fix false -o auto_fix_robot false` reports no
   `Failed` line, and any `Warnings` are reported as findings (no org needed).
 - `python3 scripts/ai/gate_python.py` prints the gate interpreter and exits 0.
+- `python tests/test_toolchain_audit.py` passes after any change to the audit doc or
+  `scripts/ai/toolchain_audit.py`: every row names a check the script has, no table
+  cell holds a command, and the script runs nothing that changes the machine.
 - For any change to this skill or the guides, all of these pass:
   - `python scripts/ai/analyze_agent_tooling.py check`;
   - `python scripts/ai/skill_manifest.py --check` (when the manifest changed);

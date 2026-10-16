@@ -351,8 +351,9 @@ The script handles:
    names any other pipx app still on an older 3.13 patch without changing it. It
    also names [pipx's shared venv](#pipxs-shared-venv-is-on-another-python) when
    that is on another Python, which no pipx command moves. Before
-   `pyenv uninstall` of an old patch, run the toolchain audit's "Other users of an
-   older patch" and "pipx shared venv" rows (`.cursor/skills/toolchain/workstation-audit.md` §2)
+   `pyenv uninstall` of an old patch, run the toolchain audit's two checks for it
+   (`.cursor/skills/toolchain/workstation-audit.md` §2):
+   `python3 scripts/ai/toolchain_audit.py --check older-patch-users --check pipx-shared-venv`
 6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
    requires modern setuptools. The historical `<71` pin (older docs)
    is **incompatible**; see the [local installation guide](local-installation.md#step-7--install-cumulusci), *Note on setuptools*. Note CI
@@ -575,6 +576,26 @@ pipx inject --force cumulusci -r robot/requirements.txt
 cci version
 ```
 
+### A pipx app or a script in `~/.local/bin` is on an older 3.13 patch
+The toolchain audit's `older-patch-users` check
+(`python3 scripts/ai/toolchain_audit.py --check older-patch-users`) lists each pipx
+app and each script in `~/.local/bin` that runs on a 3.13 patch older than the
+latest installed one. Each keeps working until that patch is uninstalled, then
+breaks. `update-toolchain.sh` moves CCI and rewrites pipx's own scripts (pipx,
+userpath, argcomplete); any other pipx app it names without changing it. Move each
+one listed before you uninstall the old patch, then re-run the check: it must print
+nothing.
+
+```bash
+cur="$(pyenv latest 3.13)"
+# A pipx app: rebuild its venv on the current patch (pipx keeps injected packages).
+# For cumulusci, use "pipx venv broken after Python patch bump" above instead.
+pipx reinstall <app> --python "$(pyenv prefix "$cur")/bin/python3"
+# Any other script in ~/.local/bin: reinstall the package that owns it with the
+# current patch's pip, which rewrites its shebang. --no-deps leaves its dependencies alone.
+"$(pyenv prefix "$cur")/bin/python3" -m pip install --user --force-reinstall --no-deps <package>
+```
+
 ### pipx's shared venv is on another Python
 pipx's shared venv (`pipx environment --value PIPX_SHARED_LIBS`, usually
 `~/.local/pipx/shared`) holds the pip that every pipx venv, CCI's included, uses for
@@ -585,8 +606,8 @@ gone. A patch bump, `pipx reinstall`, `update-toolchain.sh` and `pipx upgrade-sh
 (which only upgrades pip in place and has no `--python`) all leave it where it is. So
 it can still be on a patch or a line you are about to uninstall, even when every venv
 already runs the current patch. `update-toolchain.sh` names it at the end of a run,
-and so does the toolchain audit's "pipx shared venv" row
-(`.cursor/skills/toolchain/workstation-audit.md` §2). To look by hand:
+and so does the toolchain audit's `pipx-shared-venv` check
+(`python3 scripts/ai/toolchain_audit.py --check pipx-shared-venv`). To look by hand:
 
 ```bash
 s="$(pipx environment --value PIPX_SHARED_LIBS)"
