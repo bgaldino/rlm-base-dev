@@ -10,8 +10,8 @@
 #      import ssl. pyenv's global follows it from an older 3.13 patch that holds
 #      no packages of its own; anything else is left alone, with a warning when
 #      it's an older patch that does
-#   3. Node — latest LTS (via nvm: Homebrew's, or nvm's own installer's),
-#      carrying npm globals forward
+#   3. Node — latest patch of the major line pinned in .nvmrc (via nvm:
+#      Homebrew's, or nvm's own installer's), carrying npm globals forward
 #   4. sf CLI — npm install -g when npm-installed, else `sf update`
 #   5. CCI — pipx (reinstall is required after any Python patch bump), then
 #      robot/requirements.txt re-injected (CCI's own pins downgrade selenium).
@@ -32,13 +32,19 @@
 # the script exits nonzero rather than printing "Done".
 #
 # Designed to be idempotent. Re-run after any tool emits a "new version" notice.
-# Major-line pins live in this script (PY_LINE, NODE_LINE) — edit them to bump.
+# Major-line pins: PY_LINE lives in this script; the Node line lives in .nvmrc.
 
 set -euo pipefail
 
 PY_LINE="3.13"
-NODE_LINE="lts/*"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# The Node major line, from .nvmrc: the single source shared with .envrc, the
+# Dockerfile's NODE_MAJOR, CI's setup-node and package.json's engines. A bare
+# major only: `lts/*` would jump a major the day the next one becomes LTS.
+NODE_LINE="$(tr -d '[:space:]' < "$REPO_ROOT/.nvmrc" 2>/dev/null || true)"
+case "$NODE_LINE" in
+  ''|*[!0-9]*) printf '\n\033[1;31m[fail]\033[0m  .nvmrc must hold a bare Node major (e.g. 24), found "%s"\n' "$NODE_LINE" >&2; exit 1 ;;
+esac
 
 # Ensure pipx-managed bins (cci, snowfakery, etc.) are findable. pipx
 # ensurepath only updates shell rc files for future shells; we need PATH in
@@ -171,8 +177,8 @@ CARRY_FROM="$OLD_NODE"
 [ "${CARRY_FROM#v}" != "$CARRY_FROM" ] || CARRY_FROM="$(nvm version default 2>/dev/null || true)"
 [ "${CARRY_FROM#v}" != "$CARRY_FROM" ] || CARRY_FROM="$(nvm version node 2>/dev/null || true)"
 log "Node: installing $NODE_LINE (current: $OLD_NODE)"
-# Drive install from NODE_LINE so changes at the top of this script take effect.
-# `lts/*` resolves to the active LTS line; explicit majors (e.g. `24`) also work.
+# Drive install from NODE_LINE (.nvmrc) so a bump there takes effect: the newest
+# patch of that major, which also becomes nvm's `default` alias for new shells.
 nvm install "$NODE_LINE" --latest-npm
 nvm alias default "$NODE_LINE" >/dev/null
 NEW_NODE="$(nvm current)"

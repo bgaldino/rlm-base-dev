@@ -56,7 +56,7 @@ pins a patch (CumulusCI's pipx venv, `.venv`) must equal the installed one.
 
 | Check | Command | Expect |
 |-------|---------|--------|
-| Node from nvm | `command -v node; node -v` | Under `~/.nvm/versions/node/`, an LTS ≥ 22 |
+| Node from nvm | `command -v node; node -v` | Under `~/.nvm/versions/node/`, a v24.x: the major in `.nvmrc` (24). `validate_setup` fails an older major and warns on a newer one |
 | sf | `sf --version; npm ls -g --depth=0 @salesforce/cli` | An npm-installed sf (listed by `npm ls -g`) runs under that Node. An installer-based sf (not listed, usually `/usr/local/bin/sf`) runs its own bundled Node, which is fine; the update script runs `sf update` for it |
 | SFDMU | `sf plugins \| grep -i sfdmu` | 5.6.4 or later |
 

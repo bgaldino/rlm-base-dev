@@ -14,7 +14,7 @@
     "lint:fix": "eslint \"force-app/**/lwc/**/*.js\" \"unpackaged/**/lwc/**/*.js\" --fix"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "devDependencies": {
     "@salesforce/eslint-config-lwc": "^4.1.2",
