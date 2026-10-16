@@ -167,10 +167,11 @@ def writes_nvm_to_startup_file(text):
         if not STARTUP_FILE_WRITE.search(line):
             continue
         written = line
-        heredoc = re.search(r"<<-?\s*\\?['\"]?(\w+)", line)
+        heredoc = re.search(r"<<-?\s*\\?['\"]?([^\s'\"<>;&|]+)", line)
         if heredoc:
-            end = next((j for j in range(i + 1, len(lines)) if lines[j].strip() == heredoc.group(1)),
-                       len(lines))
+            # The body ends at its terminator, or at the code fence when a guide leaves it out.
+            end = next((j for j in range(i + 1, len(lines))
+                        if lines[j].strip() in (heredoc.group(1), "```")), len(lines))
             written = "\n".join(lines[i:end])
         if re.search(r"nvm", written, re.I):
             found.append(line.strip())
@@ -317,6 +318,8 @@ class Parsers(unittest.TestCase):
         for text in ("echo 'eval \"$(pyenv init -)\"' >> ~/.zshenv\n",
                      "cat >> ~/.zshrc <<'EOF'\neval x\nEOF\nnvm install 24\n",
                      "cp ~/.zshenv ~/.zshenv.bak  # before the NVM block\n",
+                     "cat >> ~/.zshrc <<'END-RC'\neval x\nEND-RC\nnvm install 24\n",
+                     "```bash\ncat >> ~/.zshrc <<EOF\neval x\n```\nnvm install 24\n",
                      "echo 'nvm use' > /tmp/notes\n"):
             with self.subTest(text=text):
                 self.assertEqual(writes_nvm_to_startup_file(text), [])
@@ -379,9 +382,10 @@ class NodeLine(unittest.TestCase):
                                  f"{rel} still names a Node line below .nvmrc's")
 
     def test_guides_load_nvm_one_way(self):
-        # The installation guide once echoed its own nvm lines, with auto-use, into both rc files:
-        # ~0.1s more per shell on one workstation, nvm's Node twice on PATH in interactive shells, and a nested
-        # shell kept the repo's Node only by nvm's auto-use. The ~/.zshenv NVM block is the one way.
+        # The installation guide once echoed its own nvm lines, with auto-use, into both rc
+        # files: ~0.1s more per shell on one workstation, nvm's Node twice on PATH in interactive
+        # shells, and a nested shell kept the repo's Node only by nvm's auto-use. The ~/.zshenv
+        # NVM block is the one way.
         files = sorted(set(STALE_SCAN_FILES + GUIDE_FILES))
         self.assertIn("docs/guides/cci-sf-cli-token-workaround.md", files, "no guides found")
         for rel in files:
