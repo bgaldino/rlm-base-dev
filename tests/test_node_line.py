@@ -190,6 +190,26 @@ def writes_pyenv_to_startup_file(text):
     return writes_to_startup_file(text, r"pyenv")
 
 
+PYENV_INIT = re.compile(r"\bpyenv\s+init\b")
+
+
+def active_pyenv_init(text):
+    """Code lines (not comments) that run `pyenv init`."""
+    return [line for line in code_lines(text) if PYENV_INIT.search(line)]
+
+
+def startup_templates():
+    """The rc-file templates in dev-environment-setup.md §2, by file: the first ```sh block
+    under each `#### \`~/.zshenv\``, `~/.zprofile` and `~/.zshrc` heading."""
+    guide = read("docs/guides/dev-environment-setup.md")
+    templates = {}
+    for name in ("~/.zshenv", "~/.zprofile", "~/.zshrc"):
+        heading = guide.index(f"#### `{name}`")
+        start = guide.index("```sh\n", heading) + len("```sh\n")
+        templates[name] = guide[start:guide.index("```", start)]
+    return templates
+
+
 NVM_SH_TEST = re.compile(r'\[ -s "([^"]*/nvm\.sh)" \]')
 
 
@@ -336,6 +356,12 @@ class Parsers(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(writes_nvm_to_startup_file(text), [])
 
+    def test_active_pyenv_init(self):
+        self.assertEqual(active_pyenv_init('eval "$(pyenv init -)"\n'), ['eval "$(pyenv init -)"'])
+        self.assertEqual(active_pyenv_init('  eval "$(pyenv  init - zsh)"\n'), ['eval "$(pyenv  init - zsh)"'])
+        self.assertEqual(active_pyenv_init("# No global `pyenv init` here.\n"
+                                           'export PATH="$PYENV_ROOT/bin:$PATH"\n'), [])
+
     def test_writes_pyenv_to_startup_file(self):
         # The installation guide's old Step 4: three lines into each of ~/.zshrc and ~/.zshenv.
         old_step = "".join(f"echo '{line}' >> ~/.{rc}\n" for rc in ("zshrc", "zshenv") for line in (
@@ -451,6 +477,18 @@ class NodeLine(unittest.TestCase):
                       "local-installation.md Step 4 must name the template's pyenv block")
         self.assertIn("# pyenv binary on PATH", read("docs/guides/dev-environment-setup.md"),
                       "the ~/.zshenv template's pyenv block, which Step 4 names, is gone")
+
+    def test_startup_templates_run_no_pyenv_init(self):
+        # The scan above only sees commands that write into an rc file; the §2 templates are
+        # the rc files' code itself, so a `pyenv init` added to one of them would bring the
+        # global init back for everyone who copies it. .envrc puts pyenv's shims on PATH per
+        # project instead.
+        templates = startup_templates()
+        self.assertIn("# pyenv binary on PATH", templates["~/.zshenv"])
+        for name, code in list(templates.items()) + [(".envrc", read(".envrc"))]:
+            with self.subTest(file=name):
+                self.assertEqual(active_pyenv_init(code), [],
+                                 f"the {name} template must not run `pyenv init`")
 
     def test_envrc_has_no_default_fallback(self):
         # Falling back to nvm's `default` would silently select an older line when .nvmrc's
