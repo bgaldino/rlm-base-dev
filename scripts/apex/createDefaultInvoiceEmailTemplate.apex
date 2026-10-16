@@ -69,10 +69,24 @@ String html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta 
     + 'ion.Name}}}</strong></p></td></tr></table></td></tr></table></body></html>';
 // The developer name is unique across all templates: if another (non-Invoice) template holds
 // it, use a prefixed one, which the lookups above and in deploy_billing_email_template_settings
-// also match.
-String developerName = 'Default_Invoice_Email_Template';
-if (![SELECT Id FROM EmailTemplate WHERE DeveloperName = :developerName LIMIT 1].isEmpty()) {
-    developerName = 'RLM_Default_Invoice_Email_Template';
+// also match. Only these two names are matched, so when non-Invoice templates hold both, stop
+// with a clear error rather than pick a name a rerun wouldn't find.
+List<String> candidates = new List<String>{ 'Default_Invoice_Email_Template', 'RLM_Default_Invoice_Email_Template' };
+Set<String> taken = new Set<String>();
+for (EmailTemplate t : [SELECT DeveloperName FROM EmailTemplate WHERE DeveloperName IN :candidates]) {
+    taken.add(t.DeveloperName);
+}
+String developerName;
+for (String candidate : candidates) {
+    if (!taken.contains(candidate)) {
+        developerName = candidate;
+        break;
+    }
+}
+if (developerName == null) {
+    throw new IllegalArgumentException('Can\'t create the Default Invoice Email Template: templates that aren\'t on '
+        + 'Invoice already use both developer names (' + String.join(candidates, ', ') + '). Rename one of them, '
+        + 'then rerun create_default_invoice_email_template.');
 }
 EmailTemplate template = new EmailTemplate(
     Name = templateName,

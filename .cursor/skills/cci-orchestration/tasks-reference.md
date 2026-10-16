@@ -1262,7 +1262,7 @@
 
 ### `create_default_invoice_email_template`
 
-**Description:** Create the "Default Invoice Email Template" (Lightning HTML template on Invoice, org public folder) that Billing Settings creates only from the Setup UI toggle, never from a Metadata API deploy. Same name, labels and merge fields as Core's; skips when an Invoice template with that name or developer name exists (it uses the developer name RLM_Default_Invoice_Email_Template if a non-Invoice template holds the usual one, and matches either). deploy_billing_email_template_settings then selects it.
+**Description:** Create the "Default Invoice Email Template" (Lightning HTML template on Invoice, org public folder) that Billing Settings creates only from the Setup UI toggle, never from a Metadata API deploy. Same name, labels and merge fields as Core's; skips when an Invoice template with that name or developer name exists (it uses the developer name RLM_Default_Invoice_Email_Template if a non-Invoice template holds the usual one, matches either, and stops with an error if non-Invoice templates hold both). deploy_billing_email_template_settings then selects it.
 
 **Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
 
