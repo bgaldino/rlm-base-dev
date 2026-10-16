@@ -125,8 +125,10 @@ fi
 export PATH="$HOME/.local/bin:$PATH"
 
 # NVM — function definitions + default node bin on PATH (no slow `nvm use`).
-# `brew --prefix nvm` resolves to /opt/homebrew/opt/nvm (Apple Silicon)
-# or /usr/local/opt/nvm (Intel) — works on both architectures.
+# nvm.sh is found the way the repo's .envrc finds it: Homebrew's first, via
+# `brew --prefix nvm` (/opt/homebrew/opt/nvm on Apple Silicon, /usr/local/opt/nvm
+# on Intel), else nvm's own installer's, in $NVM_DIR ($XDG_CONFIG_HOME/nvm when
+# that variable was set at install time). An inherited $NVM_DIR is kept.
 #
 # We skip the full `nvm use default` activation cycle (slow) and just resolve
 # `default` to a concrete vX.Y.Z via nvm's public API, then prepend that bin
@@ -137,8 +139,8 @@ export PATH="$HOME/.local/bin:$PATH"
 # | tail -1`): installing the next major early would then move every shell to it.
 #
 # When $DIRENV_DIR is set and PATH already holds an nvm Node, move that Node's
-# dir (the first one) back to the front instead: this shell was started from
-# one that already loaded a project's .envrc (an agent's, IDE task's or
+# bin dir (the first one) back to the front instead: this shell was started
+# from one that already loaded a project's .envrc (an agent's, IDE task's or
 # script's `zsh -c`), and it inherits that PATH, with .envrc's `nvm use` Node
 # first, or this block's `default` from the parent for a project that doesn't
 # pin Node. The `direnv export` below sees the .envrc already loaded and
@@ -146,41 +148,49 @@ export PATH="$HOME/.local/bin:$PATH"
 # pinned line. Skipping isn't enough either: the lines above (`brew shellenv`,
 # ~/.local/bin) have already moved their dirs ahead of the inherited Node, and
 # a `node` there (a Homebrew one, or a tool's shim such as DevBar's
-# ~/.local/bin/node on managed workstations) would win. Without an nvm Node on
-# PATH there is nothing to keep, so `default` goes first as usual. Either way
-# the chosen dir moves to the front rather than being added again, so nested
-# shells don't accumulate copies of it; the rest of PATH keeps its order. The
-# loops split PATH with parameter expansion, which works in zsh and sh alike.
-export NVM_DIR="$HOME/.nvm"
+# ~/.local/bin/node on managed workstations) would win. This needs no nvm.sh,
+# so it also runs where none is found. Without an nvm Node on PATH there is
+# nothing to keep, so `default` goes first as usual. Either way the chosen dir
+# moves to the front rather than being added again, so nested shells don't
+# accumulate copies of it; the rest of PATH, empty entries included, keeps its
+# order. The loops split PATH with parameter expansion, which works in zsh and
+# sh alike.
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+_NVM_SH=""
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
-  . "$_NVM_PREFIX/nvm.sh" --no-use
-  _NVM_BIN=""
-  if [ -n "${DIRENV_DIR:-}" ]; then
-    _NVM_LEFT="$PATH:"
-    while [ -n "$_NVM_LEFT" ] && [ -z "$_NVM_BIN" ]; do
-      _NVM_D="${_NVM_LEFT%%:*}" _NVM_LEFT="${_NVM_LEFT#*:}"
-      case "$_NVM_D" in "$NVM_DIR"/versions/node/*) _NVM_BIN="$_NVM_D" ;; esac
-    done
-  fi
-  if [ -z "$_NVM_BIN" ]; then
-    _NVM_VER="$(nvm version default 2>/dev/null)"
-    if [ -n "$_NVM_VER" ] && [ "$_NVM_VER" != "N/A" ] && \
-       [ -d "$NVM_DIR/versions/node/$_NVM_VER/bin" ]; then
-      _NVM_BIN="$NVM_DIR/versions/node/$_NVM_VER/bin"
-    fi
-  fi
-  if [ -n "$_NVM_BIN" ]; then
-    _NVM_REST="" _NVM_LEFT="$PATH:"
-    while [ -n "$_NVM_LEFT" ]; do
-      _NVM_D="${_NVM_LEFT%%:*}" _NVM_LEFT="${_NVM_LEFT#*:}"
-      [ "$_NVM_D" = "$_NVM_BIN" ] || _NVM_REST="${_NVM_REST:+$_NVM_REST:}$_NVM_D"
-    done
-    export PATH="$_NVM_BIN${_NVM_REST:+:$_NVM_REST}"
-  fi
-  unset _NVM_VER _NVM_BIN _NVM_REST _NVM_LEFT _NVM_D
+  _NVM_SH="$_NVM_PREFIX/nvm.sh"
+elif [ -s "$NVM_DIR/nvm.sh" ]; then
+  _NVM_SH="$NVM_DIR/nvm.sh"
+elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then
+  export NVM_DIR="$XDG_CONFIG_HOME/nvm"
+  _NVM_SH="$NVM_DIR/nvm.sh"
 fi
-unset _NVM_PREFIX
+[ -n "$_NVM_SH" ] && . "$_NVM_SH" --no-use
+_NVM_BIN=""
+if [ -n "${DIRENV_DIR:-}" ]; then
+  _NVM_LEFT="$PATH:"
+  while [ -n "$_NVM_LEFT" ] && [ -z "$_NVM_BIN" ]; do
+    _NVM_D="${_NVM_LEFT%%:*}" _NVM_LEFT="${_NVM_LEFT#*:}"
+    case "$_NVM_D" in "$NVM_DIR"/versions/node/*/bin) _NVM_BIN="$_NVM_D" ;; esac
+  done
+fi
+if [ -z "$_NVM_BIN" ] && [ -n "$_NVM_SH" ]; then
+  _NVM_VER="$(nvm version default 2>/dev/null)"
+  if [ -n "$_NVM_VER" ] && [ "$_NVM_VER" != "N/A" ] && \
+     [ -d "$NVM_DIR/versions/node/$_NVM_VER/bin" ]; then
+    _NVM_BIN="$NVM_DIR/versions/node/$_NVM_VER/bin"
+  fi
+fi
+if [ -n "$_NVM_BIN" ]; then
+  _NVM_REST="" _NVM_LEFT="$PATH:"
+  while [ -n "$_NVM_LEFT" ]; do
+    _NVM_D="${_NVM_LEFT%%:*}" _NVM_LEFT="${_NVM_LEFT#*:}"
+    [ "$_NVM_D" = "$_NVM_BIN" ] || _NVM_REST="$_NVM_REST:$_NVM_D"
+  done
+  export PATH="$_NVM_BIN$_NVM_REST"
+fi
+unset _NVM_PREFIX _NVM_SH _NVM_VER _NVM_BIN _NVM_REST _NVM_LEFT _NVM_D
 
 # pyenv binary on PATH — but NO global init. Per-project init via direnv.
 export PYENV_ROOT="$HOME/.pyenv"
