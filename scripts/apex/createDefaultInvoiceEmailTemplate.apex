@@ -7,11 +7,13 @@
 // Core makes, so a later UI toggle doesn't create a duplicate. deploy_billing_email_template_settings
 // then sets it as BillingSettings.defaultEmailTemplate.
 String templateName = 'Default Invoice Email Template';
-// Also match the developer name: a renamed copy keeps it, and inserting a second one fails.
-// deploy_billing_email_template_settings resolves the template with the same condition.
+// Also match the developer names, ours or the fallback below: a renamed copy keeps it, and
+// inserting a second one fails. deploy_billing_email_template_settings resolves the template
+// with the same condition.
 List<EmailTemplate> existing = [
     SELECT Id FROM EmailTemplate
-    WHERE (Name = :templateName OR DeveloperName = 'Default_Invoice_Email_Template')
+    WHERE (Name = :templateName
+           OR DeveloperName IN ('Default_Invoice_Email_Template', 'RLM_Default_Invoice_Email_Template'))
       AND RelatedEntityType = 'Invoice'
     LIMIT 1
 ];
@@ -66,7 +68,8 @@ String html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta 
     + 'ize: 17px; font-weight: 400; line-height: 26px; color: #000000; margin: 0;">Thank you,<br><strong>{{{Organizat'
     + 'ion.Name}}}</strong></p></td></tr></table></td></tr></table></body></html>';
 // The developer name is unique across all templates: if another (non-Invoice) template holds
-// it, use a prefixed one. deploy_billing_email_template_settings matches ours by name too.
+// it, use a prefixed one, which the lookups above and in deploy_billing_email_template_settings
+// also match.
 String developerName = 'Default_Invoice_Email_Template';
 if (![SELECT Id FROM EmailTemplate WHERE DeveloperName = :developerName LIMIT 1].isEmpty()) {
     developerName = 'RLM_Default_Invoice_Email_Template';
