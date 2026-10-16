@@ -10,6 +10,11 @@ line"), and this suite fails the gate until they agree. It also refuses a float 
 covers the lines that tell a person which Node to install (the setup guides, the skills, the
 `validate_setup` hint), so a bump can't leave the guides installing the old line.
 
+`.envrc` must find nvm where update-toolchain.sh does (Homebrew's, then nvm's own installer's
+in `$NVM_DIR` or `$XDG_CONFIG_HOME/nvm`), or a workstation with the installer's nvm never gets
+the pin, and the guide's `.envrc` template must carry the same code. The block also runs here
+against fake nvm installs, to show which one it picks and what it says when there is none.
+
 Each rule is a function over text, with a positive control beside the real-file check, so a
 parser that matches nothing can't pass by finding nothing to compare.
 Stdlib only. Run with: python tests/test_node_line.py
@@ -18,7 +23,9 @@ import json
 import logging
 import os
 import re
+import shutil
 import stat
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -125,6 +132,37 @@ def floats_on_lts(text):
             if not line.lstrip().startswith("#") and re.search(r"lts/|--lts\b", line)]
 
 
+NVM_SH_TEST = re.compile(r'\[ -s "([^"]*/nvm\.sh)" \]')
+
+
+def nvm_sh_candidates(text):
+    """The nvm.sh paths a script tests with `[ -s … ]`, in order; a leading `_` on a variable
+    name is dropped, so .envrc's `$_NVM_PREFIX` compares equal to the update script's `$NVM_PREFIX`."""
+    return [p.replace("$_", "$") for p in NVM_SH_TEST.findall(text)]
+
+
+def section(text, start, end):
+    """The lines from the one containing `start` up to (not including) the one containing `end`."""
+    lines = text.splitlines()
+    first = next(i for i, line in enumerate(lines) if start in line)
+    last = next(i for i, line in enumerate(lines[first:], first) if end in line)
+    return "\n".join(lines[first:last]) + "\n"
+
+
+def code_lines(text):
+    """Non-blank, non-comment lines, stripped: the code two copies of a block must share."""
+    return [line.strip() for line in text.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")]
+
+
+def envrc_node_block():
+    return section(read(".envrc"), "# ── Node via nvm", "# ── Per-workstation")
+
+
+def guide_node_block():
+    return section(read("docs/guides/dev-environment-setup.md"), "# Node via nvm", "# Per-workstation")
+
+
 def read(rel):
     return (REPO / rel).read_text(encoding="utf-8")
 
@@ -183,6 +221,22 @@ class Parsers(unittest.TestCase):
                      "Node, but only from an older 3.13 patch\n", "Node 24.16.0 is pinned\n"):
             with self.subTest(text=text):
                 self.assertEqual(lower_majors(text, 24), [])
+
+    def test_nvm_sh_candidates(self):
+        script = ('NVM_PREFIX="$(brew --prefix nvm)"\n'
+                  'if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then x\n'
+                  'elif [ -s "$NVM_DIR/nvm.sh" ]; then y\n'
+                  'elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then z\n'
+                  '[ -s "$NVM_PREFIX/etc/bash_completion.d/nvm" ]\n')
+        self.assertEqual(nvm_sh_candidates(script), [
+            "$NVM_PREFIX/nvm.sh", "$NVM_DIR/nvm.sh", "$XDG_CONFIG_HOME/nvm/nvm.sh"])
+        self.assertEqual(nvm_sh_candidates('[ -s "$(brew --prefix nvm)/etc/x" ]\n'), [])
+
+    def test_section_and_code_lines(self):
+        text = "a\n# ── Node\n  # note\n\n  x=1\n# ── Next\nb\n"
+        block = section(text, "# ── Node", "# ── Next")
+        self.assertEqual(block, "# ── Node\n  # note\n\n  x=1\n")
+        self.assertEqual(code_lines(block), ["x=1"])
 
     def test_lts_float(self):
         self.assertEqual(floats_on_lts("# don't use lts/* here\nnvm use\n"), [])
@@ -244,8 +298,22 @@ class NodeLine(unittest.TestCase):
     def test_envrc_has_no_default_fallback(self):
         # Falling back to nvm's `default` would silently select an older line when .nvmrc's
         # isn't installed; .envrc warns instead (and validate_setup fails a lower major).
-        self.assertNotRegex(read(".envrc"), r"nvm use[^\n]*\bdefault\b",
-                            ".envrc must not fall back to nvm's default alias")
+        for name, text in ((".envrc", read(".envrc")), ("the guide's .envrc", guide_node_block())):
+            with self.subTest(file=name):
+                self.assertNotRegex(text, r"nvm use[^\n]*\bdefault\b",
+                                    f"{name} must not fall back to nvm's default alias")
+
+    def test_envrc_finds_nvm_like_the_update_script(self):
+        # Homebrew's nvm alone would leave a workstation with nvm's own installer outside the pin.
+        envrc = nvm_sh_candidates(envrc_node_block())
+        self.assertEqual(envrc, nvm_sh_candidates(read("scripts/bash/update-toolchain.sh")),
+                         ".envrc must test for nvm.sh where update-toolchain.sh does, in its order")
+        self.assertIn("$NVM_PREFIX/nvm.sh", envrc, ".envrc must look for Homebrew's nvm")
+        self.assertIn("$NVM_DIR/nvm.sh", envrc, ".envrc must look for nvm's own installer's nvm")
+
+    def test_guide_template_mirrors_envrc(self):
+        self.assertEqual(code_lines(guide_node_block()), code_lines(envrc_node_block()),
+                         "dev-environment-setup.md's .envrc template must carry .envrc's Node code")
 
     def test_nothing_floats_on_lts(self):
         for rel in (".envrc", "scripts/bash/update-toolchain.sh"):
@@ -256,6 +324,95 @@ class NodeLine(unittest.TestCase):
     def test_update_script_reads_nvmrc(self):
         self.assertRegex(read("scripts/bash/update-toolchain.sh"), r'NODE_LINE="\$\(.*\.nvmrc',
                          "update-toolchain.sh must read NODE_LINE from .nvmrc")
+
+
+FAKE_NVM_SH = """\
+echo "sourced $NVM_DIR ${1:-}" >> "$NVM_LOG"
+nvm() { echo "nvm $*" >> "$NVM_LOG"; [ -n "${FAKE_NODE_INSTALLED:-}" ]; }
+"""
+
+
+@unittest.skipUnless(shutil.which("bash"), "needs bash, which direnv runs .envrc under")
+class EnvrcNodeBlock(unittest.TestCase):
+    """.envrc's Node block run under bash against fake nvm installs: which nvm.sh it sources,
+    the NVM_DIR it leaves, what it tells nvm, and what it prints."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.log = self.root / "nvm.log"
+        (self.root / "repo").mkdir()
+        (self.root / "repo" / ".nvmrc").write_text("24\n")
+        (self.root / "bin").mkdir()
+
+    def fake_nvm(self, rel):
+        path = self.root / rel
+        path.mkdir(parents=True, exist_ok=True)
+        (path / "nvm.sh").write_text(FAKE_NVM_SH)
+        return str(path)
+
+    def fake_brew(self, prefix):
+        brew = self.root / "bin" / "brew"
+        brew.write_text(f"#!/bin/sh\n[ \"$*\" = '--prefix nvm' ] && echo '{prefix}'\n")
+        brew.chmod(brew.stat().st_mode | stat.S_IXUSR)
+
+    def run_block(self, installed=True, **env):
+        script = self.root / "block.sh"
+        script.write_text(envrc_node_block() + 'echo "NVM_DIR=$NVM_DIR"\n')
+        full_env = {"PATH": f"{self.root / 'bin'}:/usr/bin:/bin", "HOME": str(self.root / "home"),
+                    "NVM_LOG": str(self.log), **env}
+        if installed:
+            full_env["FAKE_NODE_INSTALLED"] = "1"
+        result = subprocess.run(["bash", str(script)], cwd=self.root / "repo", env=full_env,
+                                capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        log = self.log.read_text().splitlines() if self.log.exists() else []
+        return result.stdout.strip(), result.stderr, log
+
+    def test_installer_nvm_in_nvm_dir(self):
+        nvm_dir = self.fake_nvm("custom-nvm")
+        out, err, log = self.run_block(NVM_DIR=nvm_dir)
+        self.assertEqual(log, [f"sourced {nvm_dir} --no-use", "nvm use --silent"])
+        self.assertEqual(out, f"NVM_DIR={nvm_dir}")
+        self.assertEqual(err, "")
+
+    def test_installer_nvm_in_default_dir(self):
+        nvm_dir = self.fake_nvm("home/.nvm")
+        out, err, log = self.run_block()
+        self.assertEqual(log, [f"sourced {nvm_dir} --no-use", "nvm use --silent"])
+        self.assertEqual(out, f"NVM_DIR={nvm_dir}")
+
+    def test_installer_nvm_under_xdg_config_home(self):
+        nvm_dir = self.fake_nvm("config/nvm")
+        out, err, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
+        self.assertEqual(log, [f"sourced {nvm_dir} --no-use", "nvm use --silent"])
+        self.assertEqual(out, f"NVM_DIR={nvm_dir}")
+
+    def test_order_is_brew_then_nvm_dir_then_xdg(self):
+        nvm_dir = self.fake_nvm("home/.nvm")
+        self.fake_nvm("config/nvm")
+        _, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
+        self.assertEqual(log[0], f"sourced {nvm_dir} --no-use")
+        self.log.unlink()
+        self.fake_brew(self.fake_nvm("brew/opt/nvm"))
+        out, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
+        # Homebrew's nvm.sh wins, but nvm still keeps its versions in $NVM_DIR.
+        self.assertEqual(log, [f"sourced {nvm_dir} --no-use", "nvm use --silent"])
+        self.assertEqual(out, f"NVM_DIR={nvm_dir}")
+
+    def test_uninstalled_line_warns_without_falling_back(self):
+        self.fake_nvm("home/.nvm")
+        _, err, log = self.run_block(installed=False)
+        self.assertEqual(log[1:], ["nvm use --silent"])
+        self.assertIn("Node 24 (from .nvmrc) isn't installed", err)
+
+    def test_no_nvm_names_the_guide(self):
+        out, err, log = self.run_block()
+        self.assertEqual(log, [])
+        self.assertEqual(len(err.splitlines()), 1, err)
+        self.assertIn("nvm not found", err)
+        self.assertIn("docs/guides/local-installation.md, Step 3", err)
 
 
 class ValidateSetupNode(unittest.TestCase):
