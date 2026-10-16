@@ -5,6 +5,12 @@ ${TEST_PRODUCT_NAME}        QuantumBit Complete Solution
 ${TEST_PRODUCT_QUANTITY}    1
 ${TEST_ACCOUNT_NAME}        Global Media
 
+# Bundle configurator — the optional component selected on the bundle PARENT.
+# Software Maintenance is non-default (IsDefaultComponent=false), so it is only ever on the
+# quote if the configurator was actually driven. It is also the product from issue #63.
+${TEST_BUNDLE_OPTION_NAME}  Software Maintenance
+${TEST_BUNDLE_OPTION_TAB}   Maintenance & Support
+
 # Async operation timeouts
 ${ASYNC_TIMEOUT}            180s
 ${ASYNC_POLL_INTERVAL}      10s

@@ -32,7 +32,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Optional
 
-from .auth import SfRestClient
+from .auth import SfApiError, SfRestClient
 from .term import Term
 
 log = logging.getLogger("txn_data_harness.discovery")
@@ -169,6 +169,7 @@ class Product:
     # lazily by ``attach_usage_bindings`` once the caller knows which products
     # need them (avoids extra SOQL on non-usage scenarios).
     usage_bindings: list[UsageResourceBinding] = field(default_factory=list)
+    currency_iso_code: Optional[str] = None
 
     @property
     def is_qb(self) -> bool:
@@ -238,6 +239,17 @@ class OrgContext:
 def _sql_escape(value: str) -> str:
     """Escape single quotes for literal interpolation into SOQL."""
     return value.replace("\\", "\\\\").replace("'", "\\'")
+
+
+def _query_id_batches(client: SfRestClient, template: str, ids: list[str]) -> list[dict]:
+    """Query all ids in bounded GET URLs without truncating discovery results."""
+    unique_ids = list(dict.fromkeys(ids))
+    rows = []
+    # 100 Salesforce ids leave ample URL space for projections and encoding.
+    for offset in range(0, len(unique_ids), 100):
+        quoted = ",".join(f"'{_sql_escape(value)}'" for value in unique_ids[offset:offset + 100])
+        rows.extend(client.query(template.replace("{ids}", quoted)))
+    return rows
 
 
 def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) -> list[Account]:
@@ -334,13 +346,12 @@ def _account_currency_map(
     cache_key = _org_cache_key(client)
     if cache_key is not None and _MULTI_CURRENCY_BY_ORG.get(cache_key) is False:
         return {}
-    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
     try:
-        rows = client.query(
-            f"SELECT Id, CurrencyIsoCode FROM Account WHERE Id IN ({quoted})"
+        rows = _query_id_batches(
+            client, "SELECT Id, CurrencyIsoCode FROM Account WHERE Id IN ({ids})", account_ids
         )
     except Exception as exc:  # noqa: BLE001
-        if "INVALID_FIELD" in str(exc):
+        if _missing_currency_field(exc):
             if cache_key is not None:
                 _MULTI_CURRENCY_BY_ORG[cache_key] = False
             return {}
@@ -381,9 +392,9 @@ def _resolve_account_addresses(
     """
     if not account_ids:
         return {}
-    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
-    rows = client.query(
-        f"SELECT Id, {', '.join(_ADDRESS_FIELDS)} FROM Account WHERE Id IN ({quoted})"
+    rows = _query_id_batches(
+        client, f"SELECT Id, {', '.join(_ADDRESS_FIELDS)} FROM Account WHERE Id IN ({{ids}})",
+        account_ids,
     )
     out: dict[str, tuple[Optional[PostalAddress], Optional[PostalAddress]]] = {}
     for r in rows:
@@ -424,10 +435,9 @@ def _resolve_default_contact_id(
     """
     if not account_ids:
         return {}
-    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
-    rows = client.query(
-        f"SELECT Id, AccountId FROM Contact WHERE AccountId IN ({quoted}) "
-        f"ORDER BY CreatedDate DESC"
+    rows = _query_id_batches(
+        client, "SELECT Id, AccountId FROM Contact WHERE AccountId IN ({ids}) "
+        "ORDER BY CreatedDate DESC", account_ids,
     )
     by_account: dict[str, str] = {}
     for r in rows:
@@ -543,14 +553,22 @@ def resolve_account(client: SfRestClient, name: str) -> Account:
     )
 
 
+def _missing_currency_field(exc: Exception) -> bool:
+    # SfApiError's formatted string includes the SOQL request path, which
+    # always mentions CurrencyIsoCode even when a different field failed.
+    message = exc.body if isinstance(exc, SfApiError) else str(exc)
+    return "INVALID_FIELD" in message and "CurrencyIsoCode" in message
+
+
 def discover_products(
     client: SfRestClient,
     sku: Optional[str] = None,
-    limit: int = 25,
+    limit: Optional[int] = 25,
+    product_id: Optional[str] = None,
 ) -> list[Product]:
     """Return billable products (active PBE on the standard pricebook)."""
     soql = (
-        "SELECT Id, UnitPrice, Product2Id, Product2.Name, "
+        "SELECT Id, CurrencyIsoCode, UnitPrice, Product2Id, Product2.Name, "
         "Product2.StockKeepingUnit, ProductSellingModel.SellingModelType, "
         "ProductSellingModel.Name, "
         "ProductSellingModel.PricingTerm, ProductSellingModel.PricingTermUnit "
@@ -560,9 +578,20 @@ def discover_products(
     )
     if sku:
         soql += f" AND Product2.StockKeepingUnit = '{_sql_escape(sku)}'"
-    soql += f" LIMIT {int(limit)}"
+    if product_id:
+        soql += f" AND Product2Id = '{_sql_escape(product_id)}'"
+    if limit is not None:
+        soql += f" LIMIT {int(limit)}"
+    try:
+        rows = client.query(soql)
+    except Exception as exc:
+        # CurrencyIsoCode is absent on single-currency orgs. Do not hide
+        # permissions, transport failures, or other missing-field errors.
+        if not _missing_currency_field(exc):
+            raise
+        rows = client.query(soql.replace("Id, CurrencyIsoCode, UnitPrice", "Id, UnitPrice"))
     products: list[Product] = []
-    for r in client.query(soql):
+    for r in rows:
         p = r.get("Product2") or {}
         psm = r.get("ProductSellingModel") or {}
         products.append(Product(
@@ -571,6 +600,7 @@ def discover_products(
             sku=p.get("StockKeepingUnit"),
             pricebook_entry_id=r["Id"],
             unit_price=r.get("UnitPrice"),
+            currency_iso_code=r.get("CurrencyIsoCode"),
             selling_model_type=psm.get("SellingModelType"),
             selling_model_name=psm.get("Name"),
             pricing_term=psm.get("PricingTerm"),
@@ -583,8 +613,11 @@ def discover_products(
 
 def resolve_product(
     client: SfRestClient,
-    sku: str,
+    sku: Optional[str],
     selling_model: Optional[str] = None,
+    currency: Optional[str] = None,
+    pricebook_entry_id: Optional[str] = None,
+    product_id: Optional[str] = None,
 ) -> Product:
     """Resolve a single billable product by SKU (active PBE on standard PB).
 
@@ -593,16 +626,36 @@ def resolve_product(
     happens and the caller hasn't pinned ``selling_model``, this fails with
     the candidate names rather than silently returning whichever PBE the SOQL
     happens to return first. Pass ``selling_model`` (matching
-    ``ProductSellingModel.Name``) to disambiguate.
+    ``ProductSellingModel.Name``) to disambiguate. ``currency`` filters by
+    PricebookEntry.CurrencyIsoCode before selling-model selection; callers use
+    the account currency unless config pins another one. A stored PBE id lets
+    manifest resume preserve the exact original selection.
     """
-    # Query without LIMIT so we can detect ambiguity. Bound generously to
-    # protect against runaway SKU/PBE setups; real catalogs see < 5.
-    candidates = discover_products(client, sku=sku, limit=25)
+    # Query every PBE for this SKU: seven currencies times four models already
+    # exceeds the old 25-row cap.
+    if not sku and not product_id:
+        raise DiscoveryError("Product resolution requires a SKU or Product2 id")
+    # Persisted identity survives SKU edits; the old SKU is diagnostic only.
+    candidates = discover_products(
+        client, sku=None if product_id else sku, limit=None, product_id=product_id)
+    sku = sku or f"<Product2 {product_id}>"
     if not candidates:
         raise DiscoveryError(
             f"product SKU '{sku}' has no active PricebookEntry on the standard "
             f"pricebook (check the product/pricebook setup)"
         )
+    if pricebook_entry_id is not None:
+        candidates = [p for p in candidates if p.pricebook_entry_id == pricebook_entry_id]
+        if not candidates:
+            raise DiscoveryError(f"product SKU '{sku}' no longer has active PBE '{pricebook_entry_id}'")
+    if currency is not None:
+        matches = [p for p in candidates if p.currency_iso_code == currency]
+        if not matches:
+            available = ", ".join(sorted({p.currency_iso_code or "<single-currency>" for p in candidates}))
+            raise DiscoveryError(
+                f"product SKU '{sku}' has no active PBE in currency '{currency}' "
+                f"(available: {available})")
+        candidates = matches
     if selling_model is not None:
         matches = [p for p in candidates if p.selling_model_name == selling_model]
         if not matches:
@@ -674,9 +727,8 @@ def discover_any_accounts(
     if not rows:
         return []
     account_ids = [r["Id"] for r in rows]
-    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
-    ba_rows = client.query(
-        f"SELECT Id, AccountId FROM BillingAccount WHERE AccountId IN ({quoted})"
+    ba_rows = _query_id_batches(
+        client, "SELECT Id, AccountId FROM BillingAccount WHERE AccountId IN ({ids})", account_ids
     )
     ba_by_account: dict[str, str] = {r["AccountId"]: r["Id"] for r in ba_rows}
     contact_by_account = _resolve_default_contact_id(client, account_ids)
@@ -734,7 +786,6 @@ def discover_usage_bindings(
     """
     if not product_ids:
         return {}
-    quoted = ",".join(f"'{_sql_escape(pid)}'" for pid in product_ids)
     soql = (
         "SELECT ProductId, UsageResourceId, "
         "UsageResource.Code, UsageResource.Name, "
@@ -742,10 +793,10 @@ def discover_usage_bindings(
         "UsageResource.DefaultUnitOfMeasureId, "
         "UsageResource.DefaultUnitOfMeasure.UnitCode, "
         "UsageResource.DefaultUnitOfMeasure.Name "
-        f"FROM ProductUsageResource WHERE ProductId IN ({quoted})"
+        "FROM ProductUsageResource WHERE ProductId IN ({ids})"
     )
     by_product: dict[str, list[UsageResourceBinding]] = {}
-    for r in client.query(soql):
+    for r in _query_id_batches(client, soql, product_ids):
         ur = r.get("UsageResource") or {}
         duom = ur.get("DefaultUnitOfMeasure") or {}
         binding = UsageResourceBinding(

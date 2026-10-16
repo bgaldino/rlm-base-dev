@@ -111,13 +111,17 @@ agents256*/**
 unpackaged/*bak/**
 # Demo data generator runtime manifests (one per run; not source)
 scripts/txn_data_harness/out/
-# Cross-repo skill manifest + shared slash commands are tracked artifacts;
-# everything else under .claude/ (settings.local.json, worktrees/, launch.json)
-# stays local. Pattern is .claude/* (not .claude/) so the negations below work —
-# git refuses to re-include a file whose parent directory itself is ignored.
+# Cross-repo skill manifest, shared slash commands, skill links, shared settings
+# and hooks are tracked; everything else under .claude/ (settings.local.json,
+# worktrees/, launch.json) stays local. Pattern is .claude/* (not .claude/) so the
+# negations below work — git refuses to re-include a file whose parent directory
+# itself is ignored.
 .claude/*
 !.claude/skill-manifest.yml
 !.claude/commands/
+!.claude/skills/
+!.claude/settings.json
+!.claude/hooks/
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**
 # Raw, unmodified org metadata/data extractions for drift comparison (never committed)
@@ -138,6 +142,7 @@ docs/erds/erd-data.json.bak*
 # these intermediates are local-only artifacts.
 docs/erds/orphan-candidates*.md
 unpackaged/post_ux/drift_report.json
+unpackaged/post_ux/retrieve_scope.json
 tmp-metadata/
 .cursor/plans/**
 retrieved_rlm_bundle/
@@ -166,6 +171,10 @@ docs/analysis/*-core-code-*.md
 
 # Build harness artifacts
 .harness/
+
+# Agent loop run folders, builder worktrees and the kill switch (.loop/STOP);
+# see .claude/hooks/
+.loop/
 scripts/build_harness/tui/settings.local.json
 .rescan_tmp/
 
@@ -174,3 +183,6 @@ scripts/build_harness/tui/settings.local.json
 # these AiEvaluationDefinition metadata files into the default package dir on
 # each run (force-overwritten); they should never be committed.
 force-app/main/default/aiEvaluationDefinitions/
+
+# Per-workstation overrides that .envrc loads as dotenv (machine-specific paths).
+.env.local

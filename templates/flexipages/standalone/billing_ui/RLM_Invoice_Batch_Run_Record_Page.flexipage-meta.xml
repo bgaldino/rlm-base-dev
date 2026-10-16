@@ -213,7 +213,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.BillingBatchSchedulerId</fieldItem>
                 <identifier>ibr0a_BillingBatchSchedulerId_1</identifier>
@@ -233,7 +233,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.Status</fieldItem>
                 <identifier>ibr0a_Status_3</identifier>
@@ -267,7 +267,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.RecoveryStatus</fieldItem>
                 <identifier>ibr0b_RecoveryStatus_2</identifier>
@@ -305,7 +305,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>required</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.StartTime</fieldItem>
                 <identifier>ibr1a_StartTime_0</identifier>
@@ -551,7 +551,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.CreatedById</fieldItem>
                 <identifier>ibr4a_CreatedById_0</identifier>
@@ -561,7 +561,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.CreatedDate</fieldItem>
                 <identifier>ibr4a_CreatedDate_1</identifier>
@@ -575,7 +575,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.LastModifiedById</fieldItem>
                 <identifier>ibr4b_LastModifiedById_0</identifier>
@@ -585,7 +585,7 @@
             <fieldInstance>
                 <fieldInstanceProperties>
                     <name>uiBehavior</name>
-                    <value>none</value>
+                    <value>readonly</value>
                 </fieldInstanceProperties>
                 <fieldItem>Record.LastModifiedDate</fieldItem>
                 <identifier>ibr4b_LastModifiedDate_1</identifier>

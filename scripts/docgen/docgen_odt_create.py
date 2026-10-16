@@ -226,7 +226,7 @@ def create_odt(spec, org, dry_run=False):
 
     print(f"Creating ODT: {odt_name} (Type={odt_body['Type']})")
     result = sf_api(
-        "POST", "/services/data/v67.0/sobjects/OmniDataTransform", odt_body, org, dry_run
+        "POST", "/services/data/v68.0/sobjects/OmniDataTransform", odt_body, org, dry_run
     )
 
     if not result:
@@ -257,7 +257,7 @@ def create_odt(spec, org, dry_run=False):
 
         result = sf_api(
             "POST",
-            "/services/data/v67.0/sobjects/OmniDataTransformItem",
+            "/services/data/v68.0/sobjects/OmniDataTransformItem",
             body,
             org,
             dry_run,

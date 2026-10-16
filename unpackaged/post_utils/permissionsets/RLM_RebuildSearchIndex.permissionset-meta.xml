@@ -32,8 +32,10 @@
       below), so the endpoint applies that user's own catalog permissions. This
       set deliberately does NOT grant those — re-granting PCM administration to
       every assignee would be a far wider privilege than the component needs, and
-      builds already assign the standard Revenue Cloud PCM sets where they apply
-      (rlm_pcm_ps_api_names). A user without them degrades honestly rather than
+      builds already assign the standard Revenue Cloud PCM sets via the RLM_PCM
+      PSG (ProductCatalogManagementAdministrator/Viewer) and RLM_CFG PSG
+      (IndustriesConfiguratorPlatformApi, ProductConfigurationRulesDesigner)
+      where they apply. A user without them degrades honestly rather than
       silently: buildResultMap returns isSuccess=false with the endpoint's own
       status code and body, which the component surfaces.
     -->

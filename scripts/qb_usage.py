@@ -428,7 +428,7 @@ def cmd_orchestrate(args):
         """Data Processing Engine jobs still working, after journals go quiet.
 
         Zero pending journals means AGGREGATED, not RATED -- rating finishes in DPE
-        jobs (Create_Liable_Summary_v3, Create Ratable Summary For ...). Returning 0
+        jobs (Create_Liable_Summary_v4, Create Ratable Summary For ...). Returning 0
         while those run tells automation the pipeline is settled when it is not, and
         anything that validates on that signal reads a half-rated org as a failure.
 

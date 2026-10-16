@@ -10,6 +10,7 @@
     { "path": "unpackaged/post_approvals" },
     { "path": "unpackaged/post_billing" },
     { "path": "unpackaged/post_billing_id_settings" },
+    { "path": "unpackaged/post_billing_portal" },
     { "path": "unpackaged/post_billing_template_id_settings" },
     { "path": "unpackaged/post_billing_template_settings" },
     { "path": "unpackaged/post_billing_ui" },
@@ -23,12 +24,15 @@
     { "path": "unpackaged/post_exp_customer" },
     { "path": "unpackaged/post_guidedselling" },
     { "path": "unpackaged/post_large_stx" },
+    { "path": "unpackaged/post_large_stx_settings" },
     { "path": "unpackaged/post_payments" },
     { "path": "unpackaged/post_payments_settings" },
     { "path": "unpackaged/post_personas" },
     { "path": "unpackaged/post_prm" },
     { "path": "unpackaged/post_procedureplans" },
     { "path": "unpackaged/post_quantumbit" },
+    { "path": "unpackaged/post_quote_est_tax_settings" },
+    { "path": "unpackaged/post_setup_guide" },
     { "path": "unpackaged/post_tso" },
     { "path": "unpackaged/post_utils" },
     { "path": "unpackaged/post_ux" },
@@ -37,5 +41,5 @@
   "name": "rlm-base",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "67.0"
+  "sourceApiVersion": "68.0"
 }

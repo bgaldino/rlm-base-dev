@@ -1,3 +1,11 @@
+---
+name: txn-data-harness
+description: >-
+  Plan, generate, inspect, continue, verify, and clean up Revenue Cloud transaction demo
+  data with the Transaction Data Harness. Use for harness scenarios, run manifests,
+  lifecycle checkpoints, smoke runs, and separate usage-upload and rating stages.
+---
+
 # Transaction Data Harness — Sales Demo Data Workflows
 
 Use this skill when a user asks to plan, generate, inspect, continue, verify, or

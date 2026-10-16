@@ -225,6 +225,12 @@ Neither documented remediation (`retriggerEntlCreaProc`,
 `refreshUsageEntitlementBucket`) changes anything, and nothing errors. Tracked as a
 platform issue.
 
+**Re-checked on 264 — still blocked.** On a freshly built 264 org both model types
+were sold and linked against a `QB-DB` anchor, and every entitlement stayed at
+`PENDING` (`CommitmentQuantity` 2 rows, `CommitmentSpend` 3) with zero buckets, while
+the anchor's own entitlements on that same org reached `PROCESSED`. Do not plan a 264
+demo around this scenario.
+
 ---
 
 ## Selling a commitment is THREE steps

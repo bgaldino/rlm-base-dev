@@ -12,10 +12,11 @@ Working document tracking what enablement artifacts exist across releases, what'
 | `254/` *(label only)* | 254 | Spring '25 | Exercises only (PDF) |
 | `256/` *(label only)* | 256 | Summer '25 | Exercises only (PDF) |
 | `258/` *(label only)* | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
-| `260/` | 260 | Spring '26 | **Prior GA** — 10 per-release `.md` drafts complete |
-| `262/` | 262 | Summer '26 | **Current development cycle** — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
+| `260/` | 260 | Spring '26 | Reference — 10 per-release `.md` drafts complete |
+| `262/` | 262 | Summer '26 | **Prior GA reference** — feature index + Help snapshot (935 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
+| `264/` | 264 | Winter '27 | **Current release cycle** — scaffold only. The 264 feature index is populated from the Help corpus; authoring is blocked on tier verification; the Revenue release notes are captured (PR #480) and cross-referenced into it, with note-backed rows provisionally GA, Invoice Risk Scoring Pilot and three note-less New rows tier-unknown until confirmed at GA (feature freeze 2026-08-14; GA waves 2026-09-05 → 2026-10-10) |
 
-> *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/` and `262/` exist as real per-release directories.
+> *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/`, `262/`, and `264/` exist as real per-release directories.
 
 Most "Overview" links in the journey map point out to Salesforce Help; we author **Hands-On Exercises only**.
 
@@ -25,19 +26,21 @@ Most "Overview" links in the journey map point out to Salesforce Help; we author
 
 Legend: ✅ have it · ⚠️ partial/draft · ❌ missing · — not in journey map for that release
 
-| Functional Area              | 262 (Su'26) Target | 260 (Sp'26) | 258 (W'26) | 256 (Su'25) | 254 (Sp'25) | 252 (W'25) | 248 (Sp'24) |
-|------------------------------|---|---|---|---|---|---|---|
-| Context Service              | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | — | — | — | — |
-| Product Catalog Management   | ⏳ pending (master pilot drafted) | ⚠️ draft v0.2 | ⚠️ draft | ✅ | ✅ | ✅ | ✅ |
-| Salesforce Pricing           | ⏳ pending (master pilot drafted) | ⚠️ draft v0.5 | ⚠️ draft | ✅ | ✅ | ✅ | ✅ |
-| Configuration / Configurator | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (filename "Product Configurator") | ✅ | ✅ | ✅ | — |
-| Transaction Management       | ⏳ pending | ⚠️ draft v0.3 | ⚠️ draft | ✅ | ✅ | ✅ | — |
-| Dynamic Revenue Orchestration| ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft | ✅ | ✅ | ✅ | — |
-| Usage Management             | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft | ✅ | ✅ | ✅ | — |
-| Invoice Management           | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | ✅ | ✅ | ✅ | — |
-| Revenue Cloud Billing        | ⏳ pending | ⚠️ draft v0.1 | ❌ | ✅ | ✅ | — | — |
-| Advanced Approvals           | ⏳ pending | ⚠️ draft v0.1 | ❌ in 258 (journey map shows it) | — (overview-only in Su'25) | ✅ Release Overview only | ✅ | — |
-| CLM / Contracts              | — (dropped in W'26 and later) | — | — (dropped in W'26) | — | ✅ | ✅ | — |
+| Functional Area              | 264 (W'27) | 262 (Su'26) | 260 (Sp'26) | 258 (W'26) | 256 (Su'25) | 254 (Sp'25) | 252 (W'25) | 248 (Sp'24) |
+|------------------------------|---|---|---|---|---|---|---|---|
+| Context Service              | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | — | — | — | — |
+| Product Catalog Management   | ❌ not started | ⏳ pending (master pilot drafted) | ⚠️ draft v0.2 | ⚠️ draft | ✅ | ✅ | ✅ | ✅ |
+| Salesforce Pricing           | ❌ not started | ⏳ pending (master pilot drafted) | ⚠️ draft v0.5 | ⚠️ draft | ✅ | ✅ | ✅ | ✅ |
+| Configuration / Configurator | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (filename "Product Configurator") | ✅ | ✅ | ✅ | — |
+| Transaction Management       | ❌ not started | ⏳ pending | ⚠️ draft v0.3 | ⚠️ draft | ✅ | ✅ | ✅ | — |
+| Dynamic Revenue Orchestration| ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft | ✅ | ✅ | ✅ | — |
+| Usage Management             | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft | ✅ | ✅ | ✅ | — |
+| Invoice Management           | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | ✅ | ✅ | ✅ | — |
+| Revenue Cloud Billing        | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ❌ | ✅ | ✅ | — | — |
+| Advanced Approvals           | ❌ not started | ⏳ pending | ⚠️ draft v0.1 | ❌ in 258 (journey map shows it) | — (overview-only in Su'25) | ✅ Release Overview only | ✅ | — |
+| CLM / Contracts              | — (dropped in W'26 and later) | — (dropped in W'26 and later) | — | — (dropped in W'26) | — | ✅ | ✅ | — |
+
+Every 264 cell is `❌ not started` by design: authoring is gated on tier (GA/Beta/Pilot) verification. The Help-derived 264 feature index is cross-referenced against the captured 264 release notes. No note is labelled Beta or Pilot, so rows backed by a release note are provisionally GA. Invoice Risk Scoring is Pilot (Help titles), and three New rows with no note (Billing Start Month and Next Billing Date Override, Exclude From Billing, Custom Dynamic Addition Screen Flow) have no known tier; every tier still needs confirming on a live org at GA.
 
 ### Per-release SE/partner artifacts (non-extract)
 
@@ -46,6 +49,7 @@ In addition to the per-area Hands-On extracts tracked above, `docs/enablement/{v
 | File | Release | Status | Source |
 |---|---|---|---|
 | [`262/qb-demo-script.md`](262/qb-demo-script.md) | 262 | 🚧 Draft (preview release) | Generated 2026-05-24 via [`.cursor/skills/qb-demo-script/SKILL.md`](../../.cursor/skills/qb-demo-script/SKILL.md); pending SME pass for Setup-UI verification, Known-Bugs population, image capture, Slack canvas publish |
+| `264/qb-demo-script.md` | 264 | ❌ not started | Same skill; author once a 264 org shape is verified |
 
 ### Notes on draft state of 258 PDFs
 
@@ -107,10 +111,10 @@ Sorts cleanly by version, area is unambiguous, type suffix lets both kinds coexi
    - (a) migrate exercises that still reference older data shapes (Acme, Laptop Pro) onto the QuantumBit catalog?
    - (b) update QuantumBit-aligned exercises to reflect changes within QB itself (new products, restructured bundles, renamed fields)?
    - (c) both?
-2. ~~**Target release** — Is Winter '26 (258) the deliverable…~~ — **Resolved 2026-05-22.** 262 (Summer '26) is the current development cycle; 260 (Spring '26) is the prior GA reference. Master exercises target 262; 260 per-release extracts remain in the catalog as the prior-release authoring output.
+2. ~~**Target release** — Is Winter '26 (258) the deliverable…~~ — **Resolved 2026-05-22.** 262 (Summer '26) is the current development cycle; 260 (Spring '26) is the prior GA reference. Master exercises target 262; 260 per-release extracts remain in the catalog as the prior-release authoring output. **(Superseded 2026-09-16 by the 264 cutover: `main` now carries the 264 / Winter '27 preview line; 262 is the prior GA reference on the `262` maintenance branch. See the version-mapping table above.)** <!-- release-ref: allow -->
 3. **Advanced Approvals** for 258 — needs to be authored from scratch? The journey map includes it, but no draft exists in the 258 folder. (Lower priority now that 260 has a `.md` draft.)
 4. **Recordings** — Winter '26 page in the journey map omits the "Recording" links every prior release had. Intentional (no recordings this cycle), or TODO?
 
 ---
 
-*Last updated: 2026-05-28*
+*Last updated: 2026-09-16 — synced the active-release rows to the 264 cutover: `main` now carries the 264 / Winter '27 preview (pre-GA) line, and 262 is the prior GA reference on the `262` maintenance branch. Prior: 2026-08-13 — added the 264 (Winter '27) column and per-release directory with the `264` branch cut.* <!-- release-ref: allow -->

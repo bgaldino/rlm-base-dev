@@ -1,5 +1,5 @@
 {
-  "apiVersion": "67.0",
+  "apiVersion": "68.0",
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
@@ -29,21 +29,21 @@
           "excluded": false
         },
         {
-          "query": "SELECT Name, ReferenceRecordAccessType, RefRecordLayoutFieldValue, Description, ObjectStateDefinitionId FROM ObjectStateValue",
+          "query": "SELECT Name, ReferenceRecordAccessType, RefRecordLayoutFieldValue, Description, ObjectStateDefinitionId, ObjectStateDefinition.Name FROM ObjectStateValue",
           "operation": "Upsert",
-          "externalId": "Name",
+          "externalId": "Name;ObjectStateDefinition.Name",
           "excluded": false
         },
         {
-          "query": "SELECT CustomPermissionId, Description, Name, ObjectStateDefinitionId, FromStateId, ToStateId FROM ObjectStateTransition",
+          "query": "SELECT CustomPermissionId, Description, Name, ObjectStateDefinitionId, ObjectStateDefinition.Name, FromStateId, ToStateId FROM ObjectStateTransition",
           "operation": "Upsert",
-          "externalId": "Name",
+          "externalId": "Name;ObjectStateDefinition.Name",
           "excluded": false
         },
         {
-          "query": "SELECT IsActive, DisplaySequence, Name, ObjectStateActionDefinitionId, ObjectStateDefinitionId, ObjectStateTransitionId FROM ObjectStateTransitionAction",
+          "query": "SELECT IsActive, DisplaySequence, Name, ObjectStateActionDefinitionId, ObjectStateDefinitionId, ObjectStateDefinition.Name, ObjectStateTransitionId FROM ObjectStateTransitionAction",
           "operation": "Upsert",
-          "externalId": "Name",
+          "externalId": "Name;ObjectStateDefinition.Name",
           "excluded": false
         }
       ]

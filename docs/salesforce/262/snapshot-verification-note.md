@@ -1,7 +1,7 @@
 # 262 Help-Corpora Verification Note
 
 Final verification of the captured Salesforce Help / Developer-Guide snapshots under
-`docs/salesforce/262/`, ahead of the 264 branch cut. This is the known-good baseline the
+`docs/salesforce/262/`, ahead of the Release 264 cutover. This is the known-good baseline the
 264 refresh (`revenue-cloud-docs` skill → *Refresh workflow* → `diff -u`) reads against.
 
 **Verified:** 2026-08-04 (todo pack 100). Owning skill: `.cursor/skills/revenue-cloud-docs/SKILL.md`.

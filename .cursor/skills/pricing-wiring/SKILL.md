@@ -1,3 +1,12 @@
+---
+name: pricing-wiring
+description: >-
+  Wire Revenue Cloud pricing recipes, recipe-table mappings, procedure plans, and
+  feature overlays in dependency order. Use when pricing changes span these layers; use
+  expression-sets for procedure authoring and decision-tables for lookup definition or
+  refresh work.
+---
+
 # Pricing Dependency and Layering Skill
 
 Use this skill when adding or changing pricing behavior that spans:
@@ -215,7 +224,7 @@ rules — is owned by a dedicated skill:
 > (task-level entry point). **Exhaustive reference:**
 > `docs/references/expression-set-connect-api-reference.md` (object/ID model,
 > OAS-confirmed schema enums, every known error + resolution, verification
-> checklist). Both pinned to **Release 262 / API v67.0**.
+> checklist). Both pinned to **Release 264 / API v68.0**.
 
 **What stays a pricing concern (this section):** *where* that CRUD slots into the
 pricing layering and flow order, and the pricing-specific facts the Expression

@@ -89,6 +89,30 @@ Core product records (313 products) with product-level attribute overrides, 9 se
 
 Product bundle structure: relationship types define roles (e.g., "Bundle to Bundle Component"), component groups organize child products within a parent, and `ProductRelatedComponent` maps the actual parent-child relationships with quantities, sequences, and pricing inclusion rules.
 
+The deepest chain in this plan is the **QuantumBit - OmniRack DC42 Series**
+bundle (`PROD-455868158`): `PROD-455868158` (OmniRack DC42 Series) →
+`PROD-1008704562` (Network Fabric) → `PROD-356310368`
+(Aggregation/Spine Switches) → `PROD-1472536093` (128x 100GbE Spine) →
+`PROD-384361183` (Generic Component B) → `PROD-1956857281` (Kensington Lock
+Anchor). The first five are `Type=Bundle` in `Product2.csv`; the last is a
+plain leaf product, not itself a bundle. That is **5 bundle levels** — two
+past the PCM `MaxBundleDepth` org value's default of 3, and exactly the
+value's hard ceiling (see `orgs/README.md`). Every scratch org definition
+with a `features` array (every `orgs/*.json` and `orgs/internal/*.json`,
+plus `config/project-scratch-def.json` — **not** `orgs/tfid/*.json`, which
+are template pointers with no `features` array; see below) sets
+`MaxBundleDepth:5` so this bundle loads in full; see
+`.cursor/skills/troubleshooting/SKILL.md` → **SFDMU Data Loading Errors** for
+the failure mode and live-verification evidence if it loads short on an org
+not provisioned from this repo. A build from a `tso`/`pde` TFID template is
+**not** covered by this mechanism — whether that template's source org
+itself has `MaxBundleDepth` raised is unverified; if a TSO/PDE build hits
+this error, that is the first thing to check. (`QB-QRack-750`, documented
+above under **Self-Referencing Objects**, is a *flat* bundle — its depth is
+2, not 5; its "2-level hierarchy" there refers to `ProductComponentGroup`
+nesting, a separate concept from the `ProductRelatedComponent`
+product-to-product nesting `MaxBundleDepth` governs.)
+
 ### Catalogs and Categories (Objects 21-23)
 
 Product catalog structure with categories (supporting hierarchy via `ParentCategoryId`) and product-to-category assignments. One self-reference exists: "Network Adapter" (`ParentCategory.Code = PCIe`).
@@ -308,10 +332,10 @@ That task runs the load twice and fails if any object's record count increases o
 
 **Validated (2026-04-02)** — idempotency confirmed against rlmtrialtest (260 org). All 26 processed objects pass with zero record count increase on second run (the 2 excluded objects, ProductComponentGrpOverride and ProductRelComponentOverride, are not processed).
 
-## 260 Schema Validation Notes
+## Schema Validation Notes
 
-- **API Version**: `67.0` (Release 262)
-- **Validated (2026-04-02)** against rlmtrialtest org (Release 260); 262 re-validation pending
+- **Configured API Version**: `68.0` (Release 264)
+- **Last live validation (2026-04-02)**: against rlmtrialtest org (Release 260); 264 re-validation pending (no 264 run yet)
 - Self-referencing objects: ProductComponentGroup hierarchy validated — SFDMU handles multi-pass automatically with simple `ParentGroup.Code` reference
 - ProductCategory self-reference (Network Adapter → PCIe) validated
 - ProductClassification: all 18 records are root-level (no hierarchy yet)

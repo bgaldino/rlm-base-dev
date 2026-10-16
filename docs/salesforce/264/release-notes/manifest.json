@@ -1,0 +1,1183 @@
+{
+  "release": "264",
+  "release_name": "Winter '27",
+  "area": "revenue",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&type=5&release=264",
+  "root_article_id": "release-notes.rn_revenue.htm",
+  "article_id_prefix": "release-notes.rn_",
+  "snapshot_started": "2026-09-30",
+  "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
+  "areas": [
+    {
+      "area": "revenue",
+      "root_article_id": "release-notes.rn_revenue.htm",
+      "article_id_prefix": "release-notes.rn_",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&type=5&release=264",
+      "last_updated": "2026-09-30T09:44:17Z",
+      "stats": {
+        "discovered": 127,
+        "captured": 127,
+        "pending": 0,
+        "errored": 0,
+        "total_captured_body_chars": 158327
+      },
+      "last_run_discovered": {
+        "kept": 127,
+        "before_prefix_filter": 1599
+      },
+      "snapshot_started": "2026-09-30"
+    }
+  ],
+  "articles": [
+    {
+      "article_id": "release-notes.rn_adv_approvals_approval_delegation.htm",
+      "title": "Keep Approval Workflows Moving with Advanced Approval Delegation",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_advanced_approvals.htm",
+      "body_length": 564,
+      "file": "articles/release-notes.rn_adv_approvals_approval_delegation.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_adv_approvals_new_changed_objects.htm",
+      "title": "New Objects in Advanced Approvals",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_advanced_approvals.htm",
+      "body_length": 192,
+      "file": "articles/release-notes.rn_adv_approvals_new_changed_objects.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_adv_approvals_slack_notifications.htm",
+      "title": "Extend Slack Approval Notifications to Group and Queue Members",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_advanced_approvals.htm",
+      "body_length": 907,
+      "file": "articles/release-notes.rn_adv_approvals_slack_notifications.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_adv_approvals_work_item_sharing.htm",
+      "title": "Limit Approval Work Item Visibility to Keep Review Steps Confidential",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_advanced_approvals.htm",
+      "body_length": 655,
+      "file": "articles/release-notes.rn_adv_approvals_work_item_sharing.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_advanced_approvals.htm",
+      "title": "Advanced Approvals",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 1943,
+      "file": "articles/release-notes.rn_advanced_approvals.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing.htm",
+      "title": "Billing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 3878,
+      "file": "articles/release-notes.rn_billing.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_api_updates.htm",
+      "title": "Orchestrate Cart-to-Cash Checkout Flow With a Single API Call",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 556,
+      "file": "articles/release-notes.rn_billing_api_updates.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_catch_up_bill_runs.htm",
+      "title": "Advance Migrated Billing Schedules Without Rebilling by Using Catch-Up Bill Runs",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_invoices.htm",
+      "body_length": 871,
+      "file": "articles/release-notes.rn_billing_catch_up_bill_runs.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_change_frequency_arc.htm",
+      "title": "Change Billing Frequency on Active Subscriptions Anytime",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
+      "body_length": 866,
+      "file": "articles/release-notes.rn_billing_change_frequency_arc.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_changed_metadata_types.htm",
+      "title": "Changed Metadata Types in Billing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 414,
+      "file": "articles/release-notes.rn_billing_changed_metadata_types.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_collections.htm",
+      "title": "Collections",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 688,
+      "file": "articles/release-notes.rn_billing_collections.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_collections_specialist_console.htm",
+      "title": "Prioritize and Act on Overdue Invoices in the Collections Specialist Console",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_collections.htm",
+      "body_length": 892,
+      "file": "articles/release-notes.rn_billing_collections_specialist_console.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_dynamic_sequence_patterns.htm",
+      "title": "Generate Context-Rich Sequence Patterns with Dynamic Fields",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_invoices.htm",
+      "body_length": 920,
+      "file": "articles/release-notes.rn_billing_dynamic_sequence_patterns.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_extend_tax_engine.htm",
+      "title": "Extend the Revenue Standard Tax Engine to Match Your Tax Rules",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_tax_management.htm",
+      "body_length": 1159,
+      "file": "articles/release-notes.rn_billing_extend_tax_engine.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_features_with_salesforce_go.htm",
+      "title": "Configure Billing Features Faster",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_rev_salesforce_go.htm",
+      "body_length": 1511,
+      "file": "articles/release-notes.rn_billing_features_with_salesforce_go.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_forecast.htm",
+      "title": "Preview Future Invoice Charges with Billing Forecast",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_invoices.htm",
+      "body_length": 1236,
+      "file": "articles/release-notes.rn_billing_forecast.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_future_dated_suspensions.htm",
+      "title": "Honor Future-Dated Billing Suspensions During Invoicing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
+      "body_length": 976,
+      "file": "articles/release-notes.rn_billing_future_dated_suspensions.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_generate_invoice_documents_batch.htm",
+      "title": "Generate Invoice Documents Automatically During Invoice Batch Runs",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_invoices.htm",
+      "body_length": 852,
+      "file": "articles/release-notes.rn_billing_generate_invoice_documents_batch.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_generate_invoices_across_accounts.htm",
+      "title": "Generate Invoices Across Accounts for Owned and Billed Charges",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_invoices.htm",
+      "body_length": 972,
+      "file": "articles/release-notes.rn_billing_generate_invoices_across_accounts.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_invoice_aging_summaries.htm",
+      "title": "Prioritize Collections with Invoice Aging Summaries on Accounts",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_customer360.htm",
+      "body_length": 926,
+      "file": "articles/release-notes.rn_billing_invoice_aging_summaries.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_invoices.htm",
+      "title": "Invoice Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 2731,
+      "file": "articles/release-notes.rn_billing_invoices.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_issue_credits_as_refunds.htm",
+      "title": "Refund Available Credit Balances to Customer Accounts",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_payments_refunds.htm",
+      "body_length": 1107,
+      "file": "articles/release-notes.rn_billing_issue_credits_as_refunds.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_lockbox_reconciliation.htm",
+      "title": "Reconcile Payment Advice and Bank Data with Lockbox Processing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_payments_refunds.htm",
+      "body_length": 834,
+      "file": "articles/release-notes.rn_billing_lockbox_reconciliation.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_new_changed_connect_rest_apis.htm",
+      "title": "New and Changed Connect REST APIs in Billing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 2380,
+      "file": "articles/release-notes.rn_billing_new_changed_connect_rest_apis.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_new_changed_invocable_actions.htm",
+      "title": "New and Changed Invocable Actions in Billing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 672,
+      "file": "articles/release-notes.rn_billing_new_changed_invocable_actions.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_payments_refunds.htm",
+      "title": "Payments and Refunds",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 3078,
+      "file": "articles/release-notes.rn_billing_payments_refunds.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_price_uplifts_for_multiyear_ramp_dealsxml.htm",
+      "title": "Automate Compound Price Uplifts for Multiyear Ramp Deals",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
+      "body_length": 1339,
+      "file": "articles/release-notes.rn_billing_price_uplifts_for_multiyear_ramp_dealsxml.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_regional_payment_methods.htm",
+      "title": "Accept Regional Payment Methods in the Self-Service Billing Portal Through Native Gateways",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_payments_refunds.htm",
+      "body_length": 712,
+      "file": "articles/release-notes.rn_billing_regional_payment_methods.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_review_split_invoices.htm",
+      "title": "Review All Impacted Split Invoices Before Posting, Voiding, or Deleting",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_customer360.htm",
+      "body_length": 825,
+      "file": "articles/release-notes.rn_billing_review_split_invoices.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_save_digital_wallets.htm",
+      "title": "Save Digital Wallets for Future Invoice Payments",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_payments_refunds.htm",
+      "body_length": 658,
+      "file": "articles/release-notes.rn_billing_save_digital_wallets.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_schedule_timelines.htm",
+      "title": "Visualize Billing Schedule Lifecycles with Timelines",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_customer360.htm",
+      "body_length": 646,
+      "file": "articles/release-notes.rn_billing_schedule_timelines.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_schedules_arrangements.htm",
+      "title": "Billing Schedules and Billing Arrangements",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 2910,
+      "file": "articles/release-notes.rn_billing_schedules_arrangements.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_self_service_components_lwr.htm",
+      "title": "Add Billing Self-Service Components in LWR Experience Cloud Sites",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_payments_refunds.htm",
+      "body_length": 1276,
+      "file": "articles/release-notes.rn_billing_self_service_components_lwr.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_send_l2_l3_data_native.htm",
+      "title": "Send Level 2 and Level 3 Payment Data Through a Native Payment Gateway",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_payments_refunds.htm",
+      "body_length": 722,
+      "file": "articles/release-notes.rn_billing_send_l2_l3_data_native.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_target_date_flexibility.htm",
+      "title": "Set Invoice Target Dates by Calendar Day or Billing Period Count",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_invoices.htm",
+      "body_length": 882,
+      "file": "articles/release-notes.rn_billing_target_date_flexibility.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_tax_management.htm",
+      "title": "Tax Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 466,
+      "file": "articles/release-notes.rn_billing_tax_management.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_term_units.htm",
+      "title": "Bill Every Few Weeks, Months, or Years Instead of Every Term",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
+      "body_length": 700,
+      "file": "articles/release-notes.rn_billing_term_units.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_track_ramp_deal_details.htm",
+      "title": "Track Ramp Deal Details on Billing Schedules",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
+      "body_length": 411,
+      "file": "articles/release-notes.rn_billing_track_ramp_deal_details.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_weekly_cycle.htm",
+      "title": "Support Flexible Billing With Weekly Cadences",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
+      "body_length": 534,
+      "file": "articles/release-notes.rn_billing_weekly_cycle.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_contracts_new_connect_rest_apis.htm",
+      "title": "New Connect REST APIs in Salesforce Contracts",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_contracts.htm",
+      "body_length": 1329,
+      "file": "articles/release-notes.rn_contracts_new_connect_rest_apis.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_customer360.htm",
+      "title": "Customer 360",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 1666,
+      "file": "articles/release-notes.rn_customer360.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_backdated_future_dated_amendments.htm",
+      "title": "Orchestrate Backdated and Future-Dated Contract Changes Automatically",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "body_length": 1090,
+      "file": "articles/release-notes.rn_dro_backdated_future_dated_amendments.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_clone_fulfillment_workspaces.htm",
+      "title": "Clone and Reuse Fulfillment Workspaces",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "body_length": 862,
+      "file": "articles/release-notes.rn_dro_clone_fulfillment_workspaces.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_custom_fulfillment_scopes.htm",
+      "title": "Align Fulfillment Dependencies by Using Custom Scopes",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "body_length": 965,
+      "file": "articles/release-notes.rn_dro_custom_fulfillment_scopes.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_enhanced_decomposition_viewer.htm",
+      "title": "Navigate Orders Easily with the Enhanced Decomposition Viewer",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "body_length": 655,
+      "file": "articles/release-notes.rn_dro_enhanced_decomposition_viewer.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_fulfill_ramped_asset_amendments.htm",
+      "title": "Streamline Fulfillment of Ramped Asset Amendments",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "body_length": 523,
+      "file": "articles/release-notes.rn_dro_fulfill_ramped_asset_amendments.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_hightech_orch_with_salesforce_go.htm",
+      "title": "Orchestrate High Tech Order Scenarios by Using a Prebuilt Template",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_rev_salesforce_go.htm",
+      "body_length": 671,
+      "file": "articles/release-notes.rn_dro_hightech_orch_with_salesforce_go.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_new_and_changed_objects.htm",
+      "title": "Changed Objects in Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "body_length": 563,
+      "file": "articles/release-notes.rn_dro_new_and_changed_objects.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_optimize_multiyear_orchestration.htm",
+      "title": "Automate Multiyear Ramp Deal Orchestration with Sequenced Steps",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "body_length": 783,
+      "file": "articles/release-notes.rn_dro_optimize_multiyear_orchestration.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_staged_assetization_ramped_products.htm",
+      "title": "Eliminate Fulfillment Delays by Using Staged Assetization for Ramped Products",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "body_length": 957,
+      "file": "articles/release-notes.rn_dro_staged_assetization_ramped_products.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "title": "Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 3659,
+      "file": "articles/release-notes.rn_dynamic_revenue_orchestrator.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_large_txn.htm",
+      "title": "Large Transactions and Quote Processing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 2797,
+      "file": "articles/release-notes.rn_large_txn.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_large_txn_apply_configuration_rules.htm",
+      "title": "Apply Configuration Rules Across 15,000 Line Items",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_large_txn.htm",
+      "body_length": 537,
+      "file": "articles/release-notes.rn_large_txn_apply_configuration_rules.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_large_txn_generate_documents_for_quotes_with_15_000.htm",
+      "title": "Generate Documents for Quotes with 15,000 Line Items",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_large_txn.htm",
+      "body_length": 668,
+      "file": "articles/release-notes.rn_large_txn_generate_documents_for_quotes_with_15_000.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_large_txn_price_quotes_and_orders.htm",
+      "title": "Price Quotes and Orders with Up to 15,000 Lines",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_large_txn.htm",
+      "body_length": 515,
+      "file": "articles/release-notes.rn_large_txn_price_quotes_and_orders.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_large_txn_recover_faster_from_quote_and_order_calculation_errors.htm",
+      "title": "Recover Faster from Quote and Order Calculation Errors",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_large_txn.htm",
+      "body_length": 651,
+      "file": "articles/release-notes.rn_large_txn_recover_faster_from_quote_and_order_calculation_errors.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_large_txn_speed_up_large_quote_operations_with_automatic_context_reuse.htm",
+      "title": "Speed Up Large Quote Operations with Automatic Context Reuse",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_large_txn.htm",
+      "body_length": 526,
+      "file": "articles/release-notes.rn_large_txn_speed_up_large_quote_operations_with_automatic_context_reuse.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_large_txn_sync_large_quotes_to_opportunities.htm",
+      "title": "Sync Large Quotes to Opportunities Without Interruption",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_large_txn.htm",
+      "body_length": 621,
+      "file": "articles/release-notes.rn_large_txn_sync_large_quotes_to_opportunities.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_large_txn_transform_context_data_in_large_transactions.htm",
+      "title": "Transform Context Data in Large Transactions",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_large_txn.htm",
+      "body_length": 832,
+      "file": "articles/release-notes.rn_large_txn_transform_context_data_in_large_transactions.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_new_changed_billing_objects.htm",
+      "title": "New and Changed Objects for Billing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 7641,
+      "file": "articles/release-notes.rn_new_changed_billing_objects.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_pricing_avoid_integration_parsing_errors_from_pricing_api_decimal_values.htm",
+      "title": "Avoid Integration Parsing Errors from Pricing API Decimal Values",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_pricing.htm",
+      "body_length": 421,
+      "file": "articles/release-notes.rn_pricing_avoid_integration_parsing_errors_from_pricing_api_decimal_values.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_pricing_keep_calculated_values_in_context_with_local_list_variables.htm",
+      "title": "Keep Calculated Values in Context with Local List Variables",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_pricing.htm",
+      "body_length": 834,
+      "file": "articles/release-notes.rn_pricing_keep_calculated_values_in_context_with_local_list_variables.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_pricing_prorate_with_short-term_and_high-velocity_sales_models.htm",
+      "title": "Prorate with High-Velocity and Short-Term Sales Models",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_pricing.htm",
+      "body_length": 900,
+      "file": "articles/release-notes.rn_pricing_prorate_with_short-term_and_high-velocity_sales_models.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_pricing_reduce_pricing_errors_and_improve_deal_transparency_on_ramp_deals.htm",
+      "title": "Reduce Pricing Errors and Improve Deal Transparency on Ramp Deals",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_pricing.htm",
+      "body_length": 1252,
+      "file": "articles/release-notes.rn_pricing_reduce_pricing_errors_and_improve_deal_transparency_on_ramp_deals.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_pricing_tailor_pricing_rules_for_multiple_industry_clouds.htm",
+      "title": "Tailor Pricing Rules for Multiple Industry Clouds",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_pricing.htm",
+      "body_length": 847,
+      "file": "articles/release-notes.rn_pricing_tailor_pricing_rules_for_multiple_industry_clouds.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_changed_connect_rest_api_response_body.htm",
+      "title": "Changed Connect REST APIs in Product Catalog Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 507,
+      "file": "articles/release-notes.rn_product_catalog_changed_connect_rest_api_response_body.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_discover_products_faster_using_price_book_filters.htm",
+      "title": "Discover Products Faster by Using Price Book Filters",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 828,
+      "file": "articles/release-notes.rn_product_catalog_discover_products_faster_using_price_book_filters.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_display_order_attributes.htm",
+      "title": "Simplify Product Configuration with Custom Attribute and Category Ordering",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 789,
+      "file": "articles/release-notes.rn_product_catalog_display_order_attributes.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_find_products_with_prefix_matching_and_partial_search.htm",
+      "title": "Find Products with Prefix Matching and Partial Search",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 922,
+      "file": "articles/release-notes.rn_product_catalog_find_products_with_prefix_matching_and_partial_search.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_get_accurate_product_details_with_automated_product_cache_management.htm",
+      "title": "Get Accurate Product Details with Automated Product Cache Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 651,
+      "file": "articles/release-notes.rn_product_catalog_get_accurate_product_details_with_automated_product_cache_management.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_get_faster_product_pricing_with_list_price_caching.htm",
+      "title": "Get Faster Product Pricing with List Price Caching",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 756,
+      "file": "articles/release-notes.rn_product_catalog_get_faster_product_pricing_with_list_price_caching.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_guide_sales_reps_through_product_setups_with_dynamic_ui_controls.htm",
+      "title": "Guide Sales Reps Through Product Setup with Dynamic UI Controls",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 894,
+      "file": "articles/release-notes.rn_product_catalog_guide_sales_reps_through_product_setups_with_dynamic_ui_controls.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_management.htm",
+      "title": "Product Catalog Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 4413,
+      "file": "articles/release-notes.rn_product_catalog_management.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_see_instant_updates_in_product_discovery_while_building_quotes.htm",
+      "title": "See Instant Updates in Product Discovery While Building Quotes",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 773,
+      "file": "articles/release-notes.rn_product_catalog_see_instant_updates_in_product_discovery_while_building_quotes.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_configurator.htm",
+      "title": "Product Configurator",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 2561,
+      "file": "articles/release-notes.rn_product_configurator.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_configurator_allowQuantityChange.htm",
+      "title": "Let Constraint Rules Assign Child Product Quantities in Bundles",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_configurator.htm",
+      "body_length": 1143,
+      "file": "articles/release-notes.rn_product_configurator_allowQuantityChange.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_configurator_changed_connect_rest_api_request_body.htm",
+      "title": "Changed Connect REST API in Product Configurator",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_configurator.htm",
+      "body_length": 465,
+      "file": "articles/release-notes.rn_product_configurator_changed_connect_rest_api_request_body.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_configurator_changed_object.htm",
+      "title": "Changed Object in Product Configurator",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_configurator.htm",
+      "body_length": 378,
+      "file": "articles/release-notes.rn_product_configurator_changed_object.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_configurator_flow_updates.htm",
+      "title": "Updates in Default Product Configurator Flow",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_configurator.htm",
+      "body_length": 1999,
+      "file": "articles/release-notes.rn_product_configurator_flow_updates.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_configurator_guardrails_annotation.htm",
+      "title": "Prevent Constraint Conflicts When Sharing Attributes and Relations",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_configurator.htm",
+      "body_length": 737,
+      "file": "articles/release-notes.rn_product_configurator_guardrails_annotation.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_configurator_instance_quantity.htm",
+      "title": "Enforce Per-Bundle Product Requirements Regardless of Order Size",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_configurator.htm",
+      "body_length": 805,
+      "file": "articles/release-notes.rn_product_configurator_instance_quantity.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_configurator_optimize_performance.htm",
+      "title": "Optimize Performance for Revenue Management (Release Update)",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_configurator.htm",
+      "body_length": 1653,
+      "file": "articles/release-notes.rn_product_configurator_optimize_performance.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_promotions.htm",
+      "title": "Promotions in Revenue Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 795,
+      "file": "articles/release-notes.rn_promotions.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_ramp_deals.htm",
+      "title": "Ramp Deals",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 976,
+      "file": "articles/release-notes.rn_ramp_deals.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_rev_agentforce.htm",
+      "title": "Agentforce for Revenue Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 385,
+      "file": "articles/release-notes.rn_rev_agentforce.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_rev_agentforce_approvals_agent.htm",
+      "title": "Accelerate Approval Decisions with Approval Agent",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_rev_agentforce.htm",
+      "body_length": 638,
+      "file": "articles/release-notes.rn_rev_agentforce_approvals_agent.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_rev_salesforce_go.htm",
+      "title": "Simplify Revenue Cloud Feature Discovery and Setup",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 1122,
+      "file": "articles/release-notes.rn_rev_salesforce_go.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_revenue.htm",
+      "title": "Revenue Management",
+      "status": "captured",
+      "area": "revenue",
+      "body_length": 7539,
+      "file": "articles/release-notes.rn_revenue.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_revenue_increase_sales_with_promotions.htm",
+      "title": "Increase Sales with Promotions in Revenue Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_promotions.htm",
+      "body_length": 1175,
+      "file": "articles/release-notes.rn_revenue_increase_sales_with_promotions.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_revenue_promotions_new_changed_objects.htm",
+      "title": "New and Changed Objects for Promotions in Revenue Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_promotions.htm",
+      "body_length": 880,
+      "file": "articles/release-notes.rn_revenue_promotions_new_changed_objects.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_runtime_industries_cpq_namespace.htm",
+      "title": "runtime_industries_cpq Namespace",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 2582,
+      "file": "articles/release-notes.rn_runtime_industries_cpq_namespace.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_contracts.htm",
+      "title": "Salesforce Contracts",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 4068,
+      "file": "articles/release-notes.rn_salesforce_contracts.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_contracts_add_clauses_to_quotes.htm",
+      "title": "Add Clauses to Quotes from Your Clause Library",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_contracts.htm",
+      "body_length": 704,
+      "file": "articles/release-notes.rn_salesforce_contracts_add_clauses_to_quotes.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_contracts_govcloud_support.htm",
+      "title": "Author Contracts in Government Cloud",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_contracts.htm",
+      "body_length": 631,
+      "file": "articles/release-notes.rn_salesforce_contracts_govcloud_support.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_contracts_newandchanged_objects.htm",
+      "title": "New and Changed Objects in Document Generation and Contracts",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_contracts.htm",
+      "body_length": 2138,
+      "file": "articles/release-notes.rn_salesforce_contracts_newandchanged_objects.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_contracts_track_recipient_signing_progress.htm",
+      "title": "Track Recipient Signing Progress for Document Envelopes",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_contracts.htm",
+      "body_length": 629,
+      "file": "articles/release-notes.rn_salesforce_contracts_track_recipient_signing_progress.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_cpq_and_advanced_approvals_managed_package.htm",
+      "title": "Review and Complete Actions for Salesforce CPQ and Advanced Approvals Managed Package Security Enhancements",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 858,
+      "file": "articles/release-notes.rn_salesforce_cpq_and_advanced_approvals_managed_package.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_document_generation.htm",
+      "title": "Salesforce Document Generation",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 1600,
+      "file": "articles/release-notes.rn_salesforce_document_generation.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_document_generation_clause_merge_placeholder_tokens.htm",
+      "title": "Populate Clause Content with Merge and Placeholder Tokens",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_document_generation.htm",
+      "body_length": 609,
+      "file": "articles/release-notes.rn_salesforce_document_generation_clause_merge_placeholder_tokens.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_document_generation_clause_tokens_runtime_resolution.htm",
+      "title": "Eliminate Manual Template Updates When Clause Content Changes",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_document_generation.htm",
+      "body_length": 832,
+      "file": "articles/release-notes.rn_salesforce_document_generation_clause_tokens_runtime_resolution.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_document_generation_rich_text_tables.htm",
+      "title": "Generate Documents That Include Tables in Rich Text Fields",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_document_generation.htm",
+      "body_length": 636,
+      "file": "articles/release-notes.rn_salesforce_document_generation_rich_text_tables.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_pricing.htm",
+      "title": "Salesforce Pricing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 3163,
+      "file": "articles/release-notes.rn_salesforce_pricing.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_pricing_new_changed_connect_rest_apis.htm",
+      "title": "New and Changed Connect REST APIs in Salesforce Pricing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_pricing.htm",
+      "body_length": 1502,
+      "file": "articles/release-notes.rn_salesforce_pricing_new_changed_connect_rest_apis.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_sf_contracts_document_playbooks.htm",
+      "title": "Apply Contract Governance Policies Consistently with Document Playbooks",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_contracts.htm",
+      "body_length": 1208,
+      "file": "articles/release-notes.rn_sf_contracts_document_playbooks.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_sf_contracts_eliminate_privileges_runtime_users.htm",
+      "title": "Protect Sensitive Setup Data by Removing Elevated Permissions from Runtime Users",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_contracts.htm",
+      "body_length": 707,
+      "file": "articles/release-notes.rn_sf_contracts_eliminate_privileges_runtime_users.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_sf_contracts_lpp_licenses.htm",
+      "title": "Use Salesforce Contracts with Lightning Platform Licenses",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_contracts.htm",
+      "body_length": 1355,
+      "file": "articles/release-notes.rn_sf_contracts_lpp_licenses.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_sf_contracts_risk_analysis.htm",
+      "title": "Reduce Contract Risks by Analyzing Every Redline with AI",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_contracts.htm",
+      "body_length": 1824,
+      "file": "articles/release-notes.rn_sf_contracts_risk_analysis.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management.htm",
+      "title": "Transaction Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 4883,
+      "file": "articles/release-notes.rn_transaction_management.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_backdate_asset_transactions.htm",
+      "title": "Gain Transaction Flexibility with Backdated Asset Changes",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 573,
+      "file": "articles/release-notes.rn_transaction_management_backdate_asset_transactions.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_backdated_arc_for_ramps.htm",
+      "title": "Backdate Amendments, Renewals, and Cancellations for Ramp Deals to Adjust Billing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_ramp_deals.htm",
+      "body_length": 937,
+      "file": "articles/release-notes.rn_transaction_management_backdated_arc_for_ramps.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_changed_connect_rest_apis.htm",
+      "title": "Changed Connect REST API in Transaction Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 577,
+      "file": "articles/release-notes.rn_transaction_management_changed_connect_rest_apis.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_dynamic_forms_for_quote_line_items_and_order_products.htm",
+      "title": "Build Focused Quote Line Item and Order Product Pages with Dynamic Forms",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 550,
+      "file": "articles/release-notes.rn_transaction_management_dynamic_forms_for_quote_line_items_and_order_products.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_filter_transactions_by_product_name_in_the_sales_transaction_line_editor.htm",
+      "title": "Accelerate Transaction Updates with Advanced Filters",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 713,
+      "file": "articles/release-notes.rn_transaction_management_filter_transactions_by_product_name_in_the_sales_transaction_line_editor.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_new_invocable_action_in_transaction_management.htm",
+      "title": "New Invocable Action in Transaction Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 536,
+      "file": "articles/release-notes.rn_transaction_management_new_invocable_action_in_transaction_management.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_prevent_cross_industry_pricing_errors_with_subtype.htm",
+      "title": "Limit a Procedure Plan to a Specific Industry",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 913,
+      "file": "articles/release-notes.rn_transaction_management_prevent_cross_industry_pricing_errors_with_subtype.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_ramp_deal_compound_uplift.htm",
+      "title": "Apply Compound Price Uplifts to Multiyear Ramp Deals to Adjust Pricing Over Time",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_ramp_deals.htm",
+      "body_length": 1463,
+      "file": "articles/release-notes.rn_transaction_management_ramp_deal_compound_uplift.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_stle_enhance_autorefresh.htm",
+      "title": "Edit Accurate Quotes and Orders in Sales Transaction Line Editor with Autorefresh",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 1969,
+      "file": "articles/release-notes.rn_transaction_management_stle_enhance_autorefresh.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_stle_enhance_button_groups.htm",
+      "title": "Organize Sales Transaction Line Editor Actions into Button Groups for Efficient Editing",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 1797,
+      "file": "articles/release-notes.rn_transaction_management_stle_enhance_button_groups.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_sync_quote_to_opportunity.htm",
+      "title": "Sync Quote to Opportunity",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 1189,
+      "file": "articles/release-notes.rn_transaction_management_sync_quote_to_opportunity.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_update_quote_and_order_prices_with_price_amendments.htm",
+      "title": "Gain Pricing Flexibility with Price Amendments",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 644,
+      "file": "articles/release-notes.rn_transaction_management_update_quote_and_order_prices_with_price_amendments.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_managment_preserve_original_time_zones_for_asset_lifecycle_changes.htm",
+      "title": "Maintain Time Zone Accuracy for Asset Lifecycle Changes",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 507,
+      "file": "articles/release-notes.rn_transaction_managment_preserve_original_time_zones_for_asset_lifecycle_changes.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_um_new_and_changes_objects.htm",
+      "title": "New and Changed Objects in Usage Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_um_usage_management.htm",
+      "body_length": 1279,
+      "file": "articles/release-notes.rn_um_new_and_changes_objects.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_um_renew_active_usage_assets_early.htm",
+      "title": "Adapt Subscriptions When Customer Needs Change",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_um_usage_management.htm",
+      "body_length": 774,
+      "file": "articles/release-notes.rn_um_renew_active_usage_assets_early.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_um_renew_expired_usage_assets.htm",
+      "title": "Win Back Customers by Restoring Lapsed Subscriptions",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_um_usage_management.htm",
+      "body_length": 709,
+      "file": "articles/release-notes.rn_um_renew_expired_usage_assets.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_um_renew_ramped_usage_assets_early.htm",
+      "title": "Respond to Growth with Early Ramp Renewal",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_um_usage_management.htm",
+      "body_length": 689,
+      "file": "articles/release-notes.rn_um_renew_ramped_usage_assets_early.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_um_update_overridden_flows_with_dpe_v4.htm",
+      "title": "Prevent Usage Summary Failures by Updating Overridden Flows",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_um_usage_management.htm",
+      "body_length": 511,
+      "file": "articles/release-notes.rn_um_update_overridden_flows_with_dpe_v4.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_um_usage_management.htm",
+      "title": "Usage Management",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 1658,
+      "file": "articles/release-notes.rn_um_usage_management.htm.md"
+    }
+  ],
+  "last_updated": "2026-09-30T09:44:17Z",
+  "stats": {
+    "discovered": 127,
+    "captured": 127,
+    "pending": 0,
+    "errored": 0,
+    "total_captured_body_chars": 158327
+  }
+}

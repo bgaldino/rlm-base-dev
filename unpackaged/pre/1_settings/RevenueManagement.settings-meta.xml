@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <RevenueManagementSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <enableAdvCreateOrdersFromQuote>true</enableAdvCreateOrdersFromQuote>
-    <!-- Advanced Detail Line Pricing is intentionally disabled: it is not required for the
-         base RLM configuration and changes pricing/totals behavior. Keep false here and in
-         every scratch-def settings block (config/project-scratch-def.json, orgs/*.json, and
-         orgs/internal/*.json) so deployed metadata and new scratch orgs stay in sync. -->
-    <enableAdvancedDetailLinePricing>false</enableAdvancedDetailLinePricing>
+    <!-- Advanced Detail Line Pricing is enabled by default: it is required for group-ramp
+         COMPOUND uplift (264 Help "Set Up Ramp Deals with Standard or Compound Price Uplifts"
+         — compound is hidden from the Ramp Uplift Type picklist when ADLP is off) and the
+         RLM_DefaultPricingProcedure now carries the compound PriceRevision BKM that binds the
+         ADLP detail-line uplift attributes. It changes pricing/totals behavior, so keep this
+         true here and in every scratch-def settings block (config/project-scratch-def.json,
+         orgs/*.json, and orgs/internal/*.json) so deployed metadata and new scratch orgs stay
+         in sync. -->
+    <enableAdvancedDetailLinePricing>true</enableAdvancedDetailLinePricing>
     <enableAsIsRenewals>true</enableAsIsRenewals>
     <enableAutoAddDerivedAsset>true</enableAutoAddDerivedAsset>
     <enableCoreCPQ>true</enableCoreCPQ>
@@ -14,16 +18,52 @@
     <enableGroupRampMultiSchedulePref>true</enableGroupRampMultiSchedulePref>
     <enableGroupRampPref>true</enableGroupRampPref>
     <enableGroupRampTrialSegmentPref>true</enableGroupRampTrialSegmentPref>
+    <!-- enableLargeTransaction (Large Transaction Processing, 264) is deliberately NOT set
+         here, although every scratch-def settings block sets it false. That's the one
+         exception to the "keep in sync" rule. The scratch defs make new orgs start with it
+         off. post_large_stx_settings (prepare_large_stx step 1) turns it on when
+         large_stx=true. Setting false here would turn it off again whenever deploy_pre is
+         re-run on a large-deal org. That deploy succeeds silently, removes
+         Order.PreprocessingStatus and makes Quote/Order.IsLargeDeal read-only, while the
+         post_large_stx formula and Apex still depend on them (live, ent-r1 264.7,
+         2026-10-14).
+         It needs no scratch feature: it deployed true and false on a 264.7 org without
+         LargeTransactionPilot. Enabling it also turns on the product details API cache,
+         which can't be turned off while this is on. It's separate from
+         IndustriesPricingSettings.enableLargeTransactionPricing (pre/2_settings, false),
+         a pricing-engine pref that turns off pricing waterfall, waterfall persistence,
+         debug logs and parallelization when enabled from Setup. -->
     <enableRampDeal>true</enableRampDeal>
     <enableRevInstPricingDefaultPref>true</enableRevInstPricingDefaultPref>
     <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
     <enableRevenueAdjustment>true</enableRevenueAdjustment>
-    <enableScaleAttributes>true</enableScaleAttributes>
+    <!-- Sales Price Amendments (264): lets a rep set a new Sales Price when amending an
+         asset; the amended line gets a credit detail line for the old price and a charge
+         detail line for the new one. Help says new orgs default to on, but a fresh 264.7
+         scratch org had it off. RLM_DefaultPricingProcedure needs no change: do NOT add
+         Help's "LastTransaction: InputUnitPrice -> NetUnitPrice" step, which is what
+         #486 removed. A price decrease needs estimated tax off (quote_est_tax
+         or tax false; unpackaged/post_quote_est_tax_settings). Keep in sync with the scratch-def settings blocks. -->
+    <enableSalesPriceAmendments>true</enableSalesPriceAmendments>
+    <!-- Two fields are deliberately absent — enableScaleAttributes and
+         persistChunkSizeOverride. 264 dropped them from the RevenueManagementSettings
+         schema, and a 264 org rejects the whole file with "Element {}<field> invalid at
+         this location in type DeclarativeMetadataForSettings", taking every other setting
+         here down with it. Keep them out of the scratch-def settings blocks too
+         (config/project-scratch-def.json, orgs/*.json, orgs/internal/*.json), where their
+         presence makes org creation report status 68 / ProblemDeployingSettings while
+         still exiting 0 — so the shell looks successful and you get an org with no
+         revenue settings.
+
+         enableGroupRampTrialSegmentPref is NOT one of them: it survives at 264 and stays
+         set here. Verified 2026-08-13 on a freshly built 264 scratch org (not an upgraded
+         262 org): a `Settings:RevenueManagement` retrieve at v68.0 returns
+         enableGroupRampTrialSegmentPref, and org creation from a def carrying it succeeds
+         with status 0 once only the two fields above are removed. -->
     <enableTransactionCloning>true</enableTransactionCloning>
     <enableTransactionProcessor>true</enableTransactionProcessor>
     <groupsEnabled>true</groupsEnabled>
     <hidePriceRefreshNtfcn>false</hidePriceRefreshNtfcn>
-    <persistChunkSizeOverride>true</persistChunkSizeOverride>
     <relaxUniqueCipValidation>true</relaxUniqueCipValidation>
     <skipOrgSttPricing>false</skipOrgSttPricing>
 </RevenueManagementSettings>

@@ -83,14 +83,15 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | `with_opportunity` | bool | `false` | **`sales_txn_quote` only.** Prepend an Opportunity the quote links to. (`target_stage: opportunity_created` implies one even if this is false.) Rejected at parse time for `sales_txn_order` (R262 `Order` has no `OpportunityId` field) and `invoice_ingestion` (no Opportunity step). |
 | `opportunity_stage` | string | first open | **`sales_txn_quote` only.** Pin the Opportunity `StageName`. Must be a valid **open** stage in the org or the run errors with the valid list. Rejected at parse time for `sales_txn_order` and `invoice_ingestion`. |
 | `product` | string | auto (QB-preferred) | Product **SKU** for a single-product pool. Shorthand for a one-entry `products:` list. |
-| `products` | list | — | The line **pool**: a list of `{sku, quantity?, discount?}` entries. Each transaction places a **random non-empty subset** of the pool as **multiple** quote lines (a 3-entry pool yields 1–3 lines; if the dice exclude everything, one entry is forced so every quote has ≥1 line). Per-entry `quantity`/`discount` override the scenario-level values for that entry. |
+| `products` | list | — | The line **pool**: a list of entries with `sku` and optional per-product fields documented below, including `quantity`, `discount`, `selling_model`, and `currency`. Each transaction places a **random non-empty subset** of the pool as **multiple** quote lines (a 3-entry pool yields 1–3 lines; if the dice exclude everything, one entry is forced so every quote has ≥1 line). Per-entry `quantity`/`discount` override the scenario-level values for that entry. |
 | `quantity` | int ≥ 1, or `[min, max]` | `1` | Line quantity. A scalar fixes it; a `[min, max]` range draws an integer **per line** (so a pool/`count > 1` yields a spread). A `products[].quantity` overrides this for that entry. |
 | `count` | int ≥ 1 | `1` | How many times to run this shape. |
 | `discount` | number or `[min, max]` | none | Line-discount **percent** (0..100). A scalar (`10`) fixes it; a range draws a value **per line** (so `count > 1` yields a spread). May sit on the scenario or on a `products[]` entry (per-product wins, like `quantity`). |
 | `start_date` | date / range / window | today | The quote line **StartDate** (the platform anchors the line's `EndDate` off this + the term). One date is drawn **per transaction** and applied to all of that quote's lines, so a range spreads quotes over time. Forms: exact (`"2026-03-15"`, `today`, `"+30"`/`"-15"` relative days); range list `["2026-01-01", "+90"]` or map `{from:…, to:…}`; window `{around: <anchor>, plus_or_minus: N}` (anchor ± N days, anchor defaults to today). |
 | `term` | int, or `{count, unit}` | PSM default → `{12, Months}` | Subscription cadence for **TermDefined** lines only. Drives `QuoteLineItem.SubscriptionTerm` / `SubscriptionTermUnit`; the platform derives `EndDate` from those + `StartDate`. A bare int (`term: 36`) overrides count only — unit follows the resolved PSM. A map (`{count: 3, unit: Annual}`) sets both; `unit` must match the resolved PSM's `PricingTermUnit`. Picklist: `Months`, `Quarterly`, `Semi-Annual`, `Annual`. Alias: `Years -> Annual`. Range 1–120. Rejected on `Evergreen` / `OneTime` products. Falls back through line → scenario → `ProductSellingModel.PricingTerm` → `(12, Months)`. May sit on the scenario (default for all lines) or on a `products[]` entry (per-line wins). |
 | `end_date` | ISO date, int (days), or `"<n><unit>"` | unset (platform derives) | **Optional** explicit `EndDate` override for **TermDefined** lines only. Requires an accompanying `term:` — a cadence is still needed for `SubscriptionTerm` / billing-schedule derivation. Forms: absolute (`"2027-01-14"` or a YAML date), bare int = days (`364`), suffixed offset (`"364d"`, `"12mo"`, `"3q"`, `"1y"`). Supported units: `d` (days), `mo` (calendar months, day-clamped), `q` (3 months), `y` (12 months). Bare `"m"` is **rejected** as ambiguous. Forward-only (zero/negative reject). Range 1d–20y. The override is resolved against the line's drawn `StartDate` at place time, so a scenario-level `end_date:` co-terms every line on the quote to the same calendar anchor. The platform honors the explicit date and prorates `PricingTermCount` against the actual span (~0.27% drift vs the derived 365/366-day default). |
-| `selling_model` | string | auto | Pin the `ProductSellingModel.Name` for SKUs that have **multiple** active PBEs (e.g. one Annual + one Quarterly). Required only when a SKU is ambiguous; the resolver errors with the candidate list otherwise. Omit when the SKU has a single active PBE on the standard pricebook (the common case). |
+| `selling_model` | string | unpinned | Exact `ProductSellingModel.Name`; applied after currency filtering. Set on the scenario or per `products[]` entry. Multiple PBEs remaining in the selected currency require a model pin; duplicate PBEs with the same currency/model remain an error. |
+| `currency` | three-letter ISO code | account currency | **Sales transaction kinds:** selects the PBE currency and transaction header currency. Set in `defaults`, on the scenario, or per `products[]` entry (entry wins). Codes are normalized to uppercase; an explicit `null` returns to the account default. Every product in a pool must resolve to the same currency. Missing currency/model combinations fail before writes. On single-currency orgs omit this pin; `CurrencyIsoCode` is absent. Invoice ingestion keeps its separate `invoice.currency` option. |
 
 The table above lists every field the parser understands. Which fields are
 *valid* on a given scenario depends on its [`kind`](#fields-by-kind), spelled
@@ -288,7 +289,7 @@ them.
 ```yaml
 # 3-year deal -- explicit (count, unit). Unit must match the PSM bound to
 # the PBE (i.e. the SKU must actually be sold under an Annual selling model;
-# pin selling_model: if the SKU has more than one).
+# pin selling_model: if multiple models remain in the selected currency).
 - sku: QB-LIC-CLOUD
   term: {count: 3, unit: Annual}
 
@@ -319,7 +320,7 @@ Rules:
   `createOrderFromQuote` rejects `EndDate` (and `SubscriptionTerm`) on those
   selling models. Omit the key entirely; the line places without a term.
 - **Multi-PBE SKUs.** If a SKU has more than one active PBE on the standard
-  pricebook, the resolver fails fast with the candidate `ProductSellingModel`
+  pricebook after filtering by the selected/account currency, the resolver fails fast with the candidate `ProductSellingModel`
   names — set `selling_model:` to disambiguate.
 
 See [`13-multi-year-terms.yaml`](13-multi-year-terms.yaml) for a worked example
@@ -518,3 +519,28 @@ verify rated output by SOQL (see the harness guide).
 - [`../../../docs/guides/txn-data-harness.md`](../../../docs/guides/txn-data-harness.md)
   — operational how-to: verification SOQL, cleanup recipes, troubleshooting.
 - [`../CONTRACTS.md`](../CONTRACTS.md) — the live-verified lifecycle contracts.
+
+### Multi-currency product selection
+
+The account's currency is used unless a currency is pinned. For example, to
+plan a EUR transaction for an account whose default is USD:
+
+```yaml
+scenarios:
+  - account: "<account name>"
+    product: QB-API-FLEX
+    currency: EUR
+    target_stage: quote_placed
+    count: 1
+```
+
+On QuantumBit builds, the existing `RLM_Default_Opportunity_Currency` flow
+forces new Opportunities into the account currency. Keep the account currency
+with `with_opportunity: true`; for a cross-currency quote, omit the optional
+Opportunity. A currency pin does not bypass org automation.
+
+Run `cli plan` first; it prints the selected currency and PBE id. All options
+in a product pool must use one currency, even though a run draws a subset.
+New manifests retain PBE id, selling model, and currency so `cli step` resumes
+the original selection. Older manifests without those fields use the account
+currency and fail if the product remains ambiguous.

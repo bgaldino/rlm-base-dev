@@ -26,5 +26,9 @@ Use the helper `scripts/ai/pr_review.py`.
    `python scripts/ai/pr_review.py verify $ARGUMENTS` → must report **0
    unresolved**. If any remain, handle them and re-run.
 
+4. **Only then request the next round** (`@codex review` comment, Copilot
+   re-request). Never request a review while any thread is open: it races the
+   fixes still in flight and reviews a head that is about to change.
+
 Never leave a thread open: branches headed for `main` mirror to the internal
 Salesforce repo for audit, which re-raises any open thread.

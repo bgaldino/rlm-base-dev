@@ -1,6 +1,6 @@
 # DRO — Dynamic Revenue Orchestration
 
-27 objects managing fulfillment plans, step definitions, decomposition rules, and orchestration workflows.
+32 objects managing fulfillment plans, step definitions, decomposition rules, and orchestration workflows.
 
 ## Design-Time Objects (Configuration)
 

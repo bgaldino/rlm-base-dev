@@ -1,0 +1,11 @@
+{
+  "activeViewId" : "25b8f071-8a4e-44c2-9ee2-4e1df093019a",
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "configurationTags" : [ ],
+  "devName" : "View_Pymnt_Confirmation",
+  "id" : "327e952f-62c9-408b-9066-99bbce97246a",
+  "label" : "Invoice Payment Status",
+  "routeType" : "rlm-pymnt-confirmation",
+  "type" : "route",
+  "urlPrefix" : "rlm-pymnt-confirmation"
+}

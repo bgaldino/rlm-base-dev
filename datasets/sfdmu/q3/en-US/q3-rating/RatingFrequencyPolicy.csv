@@ -1,4 +1,4 @@
-Product.StockKeepingUnit,RatingDelayDuration,RatingPeriod,UsageResource.Code
-,3,Daily,
-,,Monthly,
-,,Monthly,
+RatingDelayDuration,RatingPeriod
+3,Daily
+,Monthly
+,Monthly

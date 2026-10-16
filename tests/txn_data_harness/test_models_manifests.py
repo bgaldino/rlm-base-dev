@@ -34,6 +34,10 @@ def test_line_item_manifest_record_includes_optional_proration(term_product) -> 
     ).to_manifest_record()
     assert rec == {
         "sku": "QB-API-FLEX",
+        "product_id": term_product.id,
+        "pricebook_entry_id": "01uTERM",
+        "currency": None,
+        "selling_model": "Term Monthly",
         "quantity": 2,
         "discount_percent": 10,
         "period_boundary": "Anniversary",

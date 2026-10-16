@@ -24,6 +24,7 @@ configures handlers.
 """
 
 import logging
+from ._schema import existing_step_differences
 from copy import deepcopy
 from typing import List, Optional
 
@@ -74,7 +75,7 @@ def overlay_labels(overlay: dict) -> dict:
 
       * a top-level ``"labels": {"StepName": "Readable Label"}`` block (canonical,
         same shape as ``relabel_expression_set.py --labels-file``), and/or
-      * a ``"label"`` field on an individual ``addSteps`` entry (self-describing —
+      * a ``"label"`` field on an individual ``addSteps`` or ``updateSteps`` entry (self-describing —
         travels with a sliced step; stripped from the Connect send by
         :data:`OVERLAY_ONLY_STEP_KEYS`).
 
@@ -86,9 +87,10 @@ def overlay_labels(overlay: dict) -> dict:
     top = overlay.get("labels")
     if isinstance(top, dict):
         out.update({k: v for k, v in top.items() if isinstance(v, str)})
-    for step in overlay.get("addSteps", []) or []:
-        if isinstance(step, dict) and isinstance(step.get("label"), str) and step.get("name"):
-            out[step["name"]] = step["label"]
+    for operation in ("addSteps", "updateSteps"):
+        for step in overlay.get(operation, []) or []:
+            if isinstance(step, dict) and isinstance(step.get("label"), str) and step.get("name"):
+                out[step["name"]] = step["label"]
     return out
 
 
@@ -170,7 +172,13 @@ def add_steps(steps: list, to_add: list, *, logger=None, error_cls=OverlayError)
             (s for s in steps if s.get("name") == step_def["name"]), None
         )
         if existing:
-            _log(logger, "info", "Step '%s' already exists, skipping add.", step_def["name"])
+            differences = existing_step_differences(step_def, existing)
+            if differences:
+                raise error_cls(
+                    f"addSteps target '{step_def['name']}' already exists with different "
+                    f"content ({', '.join(differences)}); use updateSteps to change it."
+                )
+            _log(logger, "info", "Step '%s' already matches the requested content.", step_def["name"])
             continue
 
         # Read placement WITHOUT mutating the caller's overlay dict: the
@@ -243,6 +251,8 @@ def add_steps(steps: list, to_add: list, *, logger=None, error_cls=OverlayError)
 def update_steps(steps: list, to_update: list, *, logger=None, error_cls=OverlayError) -> list:
     for update_def in to_update:
         name = update_def["name"]
+        if "placement" in update_def:
+            raise error_cls(f"updateSteps target '{name}' cannot use placement; use reorderSteps.")
         target = next((s for s in steps if s.get("name") == name), None)
         if not target:
             # Raise rather than warn-and-continue: a missing target means the
@@ -250,7 +260,7 @@ def update_steps(steps: list, to_update: list, *, logger=None, error_cls=Overlay
             # reported as success. Fail loudly so a typo'd name is caught.
             raise error_cls(f"updateSteps target '{name}' not found in the definition.")
         for key, value in update_def.items():
-            if key == "name":
+            if key in ("name", "label"):
                 continue
             target[key] = value
         _log(logger, "info", "Updated step '%s'.", name)

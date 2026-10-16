@@ -78,7 +78,7 @@ The credential is piped straight host→container (never written to host disk or
 shown in a terminal), used by `sf`, and shredded. Drop `--devhub` (and use a
 different alias) to import a regular org you want to customize.
 
-`rlm build` creates a scratch org and runs the full 34-step `prepare_rlm_org`
+`rlm build` creates a scratch org and runs the full 35-step `prepare_rlm_org`
 flow. It can take a while. If a step fails (usually transient), just run
 `./docker/rlm resume` to continue from where it stopped.
 
@@ -282,8 +282,7 @@ Design decisions worth knowing:
   browser reaches `localhost:1717` but the page hangs. The dependable path is
   `rlm login --auth-url`, which imports an existing SFDX auth URL via stdin and
   needs no callback. `SF_USE_GENERIC_UNIX_KEYCHAIN=true` stores tokens as files
-  (no OS keyring); `SF_TEMP_SHOW_SECRETS=true` keeps CCI's scratch-org creation
-  working (see `docs/guides/dev-environment-setup.md` §6).
+  (no OS keyring).
 - **Builds route through the build harness.** `rlm build` writes a one-off
   scenario for `scripts/build_harness/harness.py` and runs it with
   `--keep-orgs`. That's the maintained way to apply `project.custom` flag
@@ -303,7 +302,12 @@ Registry with [`.github/workflows/docker-publish.yml`](../.github/workflows/dock
 - **On a tag:** push `image-v<version>` (e.g. `git tag image-v262.0 && git push origin image-v262.0`).
 
 It builds `linux/amd64` + `linux/arm64` and pushes to
-`ghcr.io/<owner>/rlm-base:<tag>` and `:latest`. Make the package **public**
+`ghcr.io/<owner>/rlm-base:<tag>`. A weekly scheduled rebuild also runs.
+`:latest` moves only on the weekly rebuild and on a manual run tagged `latest`
+from the default branch (which must build both platforms). A manual run with any
+other tag, such as a test build, publishes only that tag, and so does an
+`image-v*` tag push: a patch tag on an older release line must not move
+`:latest` back. Make the package **public**
 (Packages → rlm-base → Package settings → Change visibility) so users can pull
 without authenticating; otherwise they run `docker login ghcr.io` first. Then:
 

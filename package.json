@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Salesforce Revenue Lifecycle Management Base",
+  "license": "Apache-2.0",
   "scripts": {
     "test": "sfdx-lwc-jest",
     "test:watch": "sfdx-lwc-jest --watch",

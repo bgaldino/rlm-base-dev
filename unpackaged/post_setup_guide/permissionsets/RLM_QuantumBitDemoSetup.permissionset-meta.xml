@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+      Grants render access to the QuantumBitDemoSetup Visualforce page, which is
+      surfaced on RLM_Home_Page_Default (via the quantumbit UX patch). Without a
+      grant, a permission-set-only (non-admin) user sees an insufficient-privileges
+      component where the guide should render — the same gap RLM_RebuildSearchIndex
+      closed for its section of the Home-page accordion.
+
+      Least privilege by construction: the page is static markup (no Apex
+      controller, no SOQL/DML, no session loopback), so it needs ONLY page access —
+      no classAccesses, and deliberately no ApiEnabled (the broad system permission
+      the admin-tool sets like RLM_ExpressionSetManager / RLM_RebuildSearchIndex
+      carry for their $Api.Session_ID loopback, which this page does not use).
+
+      Ships in post_setup_guide and deploys with deploy_post_setup_guide (quantumbit
+      flow). The salesrep persona grant is wired in prepare_personas; see the note
+      there.
+    -->
+    <pageAccesses>
+        <apexPage>QuantumBitDemoSetup</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM QuantumBit Demo Setup</label>
+</PermissionSet>

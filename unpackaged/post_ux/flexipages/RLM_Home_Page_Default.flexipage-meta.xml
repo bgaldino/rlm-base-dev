@@ -136,6 +136,24 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentInstanceProperties>
+                    <name>height</name>
+                    <value>2040</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>pageName</name>
+                    <value>QuantumBitDemoSetup</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showLabel</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:visualforcePage</componentName>
+                <identifier>flexipage_visualforcePage</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
                 <componentName>home:assistant</componentName>
                 <identifier>home_assistant</identifier>
             </componentInstance>

@@ -1,0 +1,11 @@
+{
+  "activeViewId" : "7eb17846-495e-42fb-9add-21a017515e7d",
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "configurationTags" : [ ],
+  "devName" : "View_Billing_Help_Center",
+  "id" : "fc9b56c3-7d52-491d-be1c-d5d269336bf4",
+  "label" : "Help Center",
+  "routeType" : "billing-help-center",
+  "type" : "route",
+  "urlPrefix" : "billing-help-center"
+}

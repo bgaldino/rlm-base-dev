@@ -12,7 +12,9 @@ any deactivation**, so a bad overlay never leaves a version toggled off:
 1. Validate the overlay shape.
 2. GET the live definition and cross-check placement/update/reorder/remove
    targets against it (a typo'd target fails locally).
-3. Simulate the merge on that snapshot and validate the merged graph.
+3. Simulate the merge on that snapshot and validate the merged graph. Existing
+   addSteps entries must match; use updateSteps for edits and reorderSteps for
+   movement. Content conflicts fail before lifecycle writes.
 4. Align ``ResourceInitializationType``.
 5. Only then: deactivate (with the procedure-plan cascade) → re-GET → merge →
    validate → PATCH → verify → reactivate. A failed PATCH leaves the version
@@ -58,6 +60,7 @@ from scripts.expression_sets._overlay import (  # noqa: E402
     OverlayError,
     apply_overlay,
     overlay_labels,
+    find_version,
 )
 from scripts.expression_sets._payload import (  # noqa: E402
     normalize_html_entities,
@@ -68,14 +71,16 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     resolve_definition_id,
     resolve_expression_set_id,
     resolve_version_by_es_id,
+    list_versions,
 )
 from scripts.expression_sets._schema import (  # noqa: E402
     validate_definition,
+    overlay_step_content_errors,
     validate_overlay_against_definition,
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
-    capture_labels,
-    restore_labels_after_clobber,
+    capture_version_labels,
+    restore_version_labels,
 )
 
 
@@ -91,7 +96,9 @@ def _report(result, label):
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Apply a declarative overlay to a live BRE Expression Set. "
-                    "MUTATING (preview by default; --confirm to apply).",
+                    "MUTATING (preview by default; --confirm to apply). "
+                    "addSteps accepts only absent or matching steps; use updateSteps "
+                    "to change an existing step.",
     )
     parser.add_argument(
         "--target-org", required=True,
@@ -186,22 +193,31 @@ def main(argv=None) -> int:
                f"{'PREVIEW' if preview else 'CONFIRM'}")
 
         # A full-graph Connect PATCH resets step labels to their spaceless names
-        # (Connect has no label field). Capture the readable labels it is about to
-        # clobber (best-effort, non-fatal) so they can be re-applied afterwards,
-        # merged with any labels the overlay itself carries (for its new steps).
-        # --no-preserve-labels opts out (then this is just informational).
-        version_api_name_live = esv.get("ApiName")
-        captured = capture_labels(
-            transport, version_api_name_live, eprint,
-            es_def_id=es_def_id, version_number=esv.get("VersionNumber"),
-        ) if preserve_labels else {}
-        ov_labels = overlay_labels(overlay) if preserve_labels else {}
-        restore_map = {**captured, **ov_labels} if preserve_labels else {}
-        if preserve_labels and restore_map:
-            eprint(f"Will restore {len(restore_map)} step label(s) after the PATCH "
-                   f"(captured {len(captured)}, overlay-supplied "
-                   f"{len(ov_labels)}) via a second "
-                   f"deactivate→relabel→reactivate cycle. --no-preserve-labels to skip.")
+        # (Connect has no label field) on EVERY version it sends, which is every
+        # version of the set. Capture each version's readable labels (best-effort,
+        # non-fatal) so they can be re-applied afterwards. The overlay's own labels
+        # go only to the version it edits: --version can name a draft while
+        # another version is active, and esv (active-first) is only the version
+        # the lifecycle toggles. --no-preserve-labels opts out.
+        versions = list_versions(es_id, target_org=args.target_org,
+                                 api_version=args.api_version) or [esv]
+        label_esv = esv
+        if version_api_name and version_api_name != esv.get("ApiName"):
+            label_esv = next((v for v in versions
+                              if v.get("ApiName") == version_api_name), None)
+            if label_esv is None and preserve_labels:
+                eprint(f"Note: no ExpressionSetVersion named '{version_api_name}'; "
+                       "the overlay's step labels will not be applied.")
+        ov_labels = overlay_labels(overlay) if preserve_labels and label_esv else {}
+        restore_maps = capture_version_labels(
+            transport, versions if preserve_labels else [], eprint,
+            es_def_id=es_def_id, extra_labels=ov_labels, extra_version=label_esv,
+        )
+        if restore_maps:
+            eprint(f"Will restore step labels on {len(restore_maps)} version(s) after "
+                   f"the PATCH ({sum(len(m) for _, _, m in restore_maps)} label(s), "
+                   f"overlay-supplied {len(ov_labels)}) via a relabel cycle per "
+                   f"version. --no-preserve-labels to skip.")
         elif not preserve_labels:
             eprint("--no-preserve-labels: step labels the Connect PATCH clobbers "
                    "will NOT be restored (run relabel_expression_set.py to fix).")
@@ -226,7 +242,7 @@ def main(argv=None) -> int:
             engine.patch_definition(es_id, patch_payload)
             engine.log(f"PATCHed expression set {es_id}.")
             if verify and not preview:
-                _verify(engine, es_id, overlay, version_api_name)
+                _verify(engine, es_id, overlay, version_api_name, patch_payload)
 
         engine.run_mutation(
             es_def_id=es_def_id, esv=esv, mutate=mutate,
@@ -240,13 +256,13 @@ def main(argv=None) -> int:
         # overlay already applied, so a restore failure is reported, not raised —
         # but it IS surfaced at the CLI boundary (exit code + JSON) so an operator
         # never reads "Successfully applied" over a version whose labels are stale.
-        if preserve_labels and restore_map and activate_after:
-            restore_result = restore_labels_after_clobber(
-                engine, es_id=es_id, es_def_id=es_def_id,
-                version_api_name=version_api_name_live,
-                name_to_label=restore_map, cascade=cascade,
-            )
-        elif preserve_labels and restore_map and not activate_after:
+        # Inactive versions (drafts) are relabelled in place, even with
+        # --no-activate; the version the lifecycle toggled needs the reactivation.
+        restore_result = restore_version_labels(
+            engine, restore_maps, es_id=es_id, es_def_id=es_def_id, cascade=cascade,
+            skip_version_id=None if activate_after else esv.get("Id"),
+        )
+        if restore_result.pop("skipped"):
             eprint("Note: --no-activate set — leaving labels un-restored (relabel "
                    "needs to reactivate). Run relabel_expression_set.py when ready.")
 
@@ -261,9 +277,9 @@ def main(argv=None) -> int:
         eprint(f"\nSuccessfully applied overlay {args.overlay} to {es_api_name}.")
     else:
         eprint(f"\nApplied overlay {args.overlay} to {es_api_name}, but step-label "
-               f"RESTORE FAILED ({restore_result.get('error')}). The overlay is live; "
-               f"only the readable labels are stale. Re-run relabel_expression_set.py "
-               f"--expression-set {es_api_name} to restore them.")
+               f"RESTORE FAILED ({restore_result.get('error')}). Check version and "
+               f"procedure-plan activation states, then re-run "
+               f"relabel_expression_set.py --expression-set {es_api_name} if needed.")
     if args.json:
         print(json.dumps({"action": "apply_overlay", "expressionSet": es_api_name,
                           "expressionSetId": es_id, "dryRun": preview,
@@ -271,30 +287,19 @@ def main(argv=None) -> int:
     return 0 if restore_ok else 1
 
 
-def _verify(engine: LifecycleEngine, es_id: str, overlay: dict, version_api_name):
-    """Confirm added steps are present and removed steps are gone after the PATCH."""
+def _verify(engine: LifecycleEngine, es_id: str, overlay: dict, version_api_name, expected):
+    """Verify the full step graph in the target version, rejecting unexpected steps."""
     definition = engine.get_definition(es_id)
     versions = definition.get("versions") or []
-    version = None
-    if version_api_name:
-        version = next((v for v in versions if v.get("apiName") == version_api_name), None)
-    if version is None and versions:
-        version = versions[0]
-    if version is None:
-        raise LifecycleError(
-            "Verification failed: post-PATCH definition returned no versions."
-        )
-    names = {s.get("name") for s in (version.get("steps") or []) if isinstance(s, dict)}
-
-    missing = [s["name"] for s in overlay.get("addSteps", []) if s.get("name") not in names]
-    if missing:
-        raise LifecycleError(f"Verification failed: added step(s) not present: {missing}.")
-    still_there = [s["name"] for s in overlay.get("removeSteps", []) if s.get("name") in names]
-    if still_there:
-        raise LifecycleError(
-            f"Verification failed: removed step(s) still present: {still_there}."
-        )
-    engine.log("Verified overlay applied (added present, removed absent).")
+    if not versions:
+        raise LifecycleError("Verification failed: post-PATCH definition returned no versions.")
+    version = find_version(versions, version_api_name, error_cls=LifecycleError)
+    expected_version = find_version(expected.get("versions", []), version_api_name,
+                                    error_cls=LifecycleError)
+    errors = overlay_step_content_errors(overlay, expected_version, version)
+    if errors:
+        raise LifecycleError("Verification failed: " + "; ".join(errors))
+    engine.log("Verified overlay step content and removals against the merged payload.")
 
 
 if __name__ == "__main__":

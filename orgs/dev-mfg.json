@@ -1,5 +1,5 @@
 {
-  "orgName": "Salesforce Agentforce Revenue Management",
+  "orgName": "Salesforce Revenue Cloud",
   "country": "US",
   "edition": "Enterprise",
   "features": [
@@ -20,6 +20,7 @@
     "DisclosureFramework",
     "CGAnalytics",
     "InsightsPlatform",
+    "MaxBundleDepth:5",
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "B2BCommerce",
@@ -84,7 +85,10 @@
       "enableRatingWaterfallPersistence": true
     },
     "revenueManagementSettings": {
-      "enableCoreCPQ": true
+      "enableAdvancedDetailLinePricing": true,
+      "enableCoreCPQ": true,
+      "enableLargeTransaction": false,
+      "enableSalesPriceAmendments": true
     },
     "productConfiguratorSettings": {
       "enableProductConfigurator": true

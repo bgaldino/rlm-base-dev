@@ -6,6 +6,12 @@ operations, and verify record state without relying on the UI.
 
 Authentication is obtained via ``sf org display --json`` using the
 ORG_ALIAS variable, which provides an access token and instance URL.
+Since the May 2026 Salesforce CLI security change (forcedotcom/cli#3560,
+sf 2.136.8+), ``sf org display`` redacts ``result.accessToken`` to a
+placeholder unless ``SF_TEMP_SHOW_SECRETS=true`` is set; when the value it
+returns is not a real token, the library falls back to
+``sf org auth show-access-token --json``, which never redacts. The token is
+never logged or included in an error message.
 """
 
 import json
@@ -19,14 +25,43 @@ from robot.libraries.BuiltIn import BuiltIn
 
 _logger = logging.getLogger(__name__)
 
+# Real Salesforce access tokens are "<Org Id>!<...>", and every Org Id starts
+# with the "00D" key prefix. Matching that, rather than the "[REDACTED]"
+# wording, keeps the check stable if sf changes the placeholder text.
+_REAL_TOKEN_PREFIX = "00D"
+
+
+def _looks_like_a_real_token(token):
+    return isinstance(token, str) and token.startswith(_REAL_TOKEN_PREFIX)
+
+
+def _result_object(data, command, org_alias):
+    """Return the ``result`` object of an sf ``--json`` response.
+
+    A non-object top level reads as an empty result, so the caller's
+    instanceUrl or usable-token check fails with its own message. A non-object
+    ``result`` raises, rather than an AttributeError from ``.get()``.
+    """
+    result = data.get("result") if isinstance(data, dict) else None
+    if result is None:
+        return {}
+    if not isinstance(result, dict):
+        raise AssertionError(
+            f"{command} returned an unexpected JSON shape for org alias '{org_alias}'."
+        )
+    return result
+
 
 class SalesforceAPI:
     """Keyword library for Salesforce REST API operations in E2E tests."""
 
     ROBOT_LIBRARY_SCOPE = "TEST"
 
-    # API version matching the project (Spring '26 / v66.0)
-    API_VERSION = "v66.0"
+    # Kept in step with the project's API version; the constant below is the single
+    # source of truth. Naming the version in this comment too put it out of the bump
+    # script's reach (a version inside prose is not a quoted literal), so the comment
+    # went stale against the line it describes.
+    API_VERSION = "v68.0"
 
     # Default timeout (seconds) for all outbound REST requests.
     # Prevents CI runners from blocking indefinitely on network stalls.
@@ -56,26 +91,92 @@ class SalesforceAPI:
                 text=True,
                 timeout=self.REQUEST_TIMEOUT,
             )
-        except subprocess.TimeoutExpired as exc:
+        except subprocess.TimeoutExpired:
+            # `from None`: TimeoutExpired keeps the captured stdout, which holds
+            # the token when SF_TEMP_SHOW_SECRETS is on.
             raise AssertionError(
                 f"sf org display timed out after {self.REQUEST_TIMEOUT} seconds "
                 f"for org alias '{org_alias}'. This likely indicates a hung sf CLI "
                 "auth refresh or a stalled network connection."
-            ) from exc
+            ) from None
         if result.returncode != 0:
             raise AssertionError(
-                f"sf org display failed (rc={result.returncode}): {result.stderr}"
+                f"sf org display failed for org alias '{org_alias}' "
+                f"(rc={result.returncode}): {result.stderr}"
             )
-        data = json.loads(result.stdout)
-        org_result = data.get("result", {})
-        self._access_token = org_result.get("accessToken")
-        self._instance_url = (org_result.get("instanceUrl") or "").rstrip("/")
-        if not self._access_token or not self._instance_url:
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            # `from None`: with SF_TEMP_SHOW_SECRETS on, this stdout holds the
+            # token, and the decode error keeps it in `.doc`.
             raise AssertionError(
-                "sf org display did not return accessToken or instanceUrl. "
+                f"sf org display returned non-JSON output for org alias '{org_alias}'."
+            ) from None
+        org_result = _result_object(data, "sf org display", org_alias)
+        access_token = org_result.get("accessToken")
+        instance_url = (org_result.get("instanceUrl") or "").rstrip("/")
+        if not instance_url:
+            raise AssertionError(
+                f"sf org display did not return instanceUrl for org alias '{org_alias}'. "
                 f"Keys present: {list(org_result.keys())}"
             )
+        if not _looks_like_a_real_token(access_token):
+            _logger.info(
+                "sf org display returned a redacted or missing accessToken; "
+                "falling back to sf org auth show-access-token"
+            )
+            access_token = self._fetch_access_token(org_alias)
+        self._access_token = access_token
+        self._instance_url = instance_url
         _logger.info("Authenticated to %s", self._instance_url)
+
+    def _fetch_access_token(self, org_alias):
+        """Return a usable access token via ``sf org auth show-access-token``.
+
+        That command is sf's supported way to request the token deliberately
+        and is never redacted (``--json`` also skips its confirmation prompt).
+        """
+        try:
+            result = subprocess.run(
+                ["sf", "org", "auth", "show-access-token",
+                 "-o", org_alias, "--json"],
+                capture_output=True,
+                text=True,
+                timeout=self.REQUEST_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            # `from None`: TimeoutExpired keeps the captured stdout, which is the
+            # credential here.
+            raise AssertionError(
+                "sf org auth show-access-token timed out after "
+                f"{self.REQUEST_TIMEOUT} seconds for org alias '{org_alias}'."
+            ) from None
+        if result.returncode != 0:
+            # Neither stream goes into the error: this command prints the
+            # credential on stdout, and a partial or failed run could too.
+            raise AssertionError(
+                f"sf org auth show-access-token failed for org alias '{org_alias}' "
+                f"(rc={result.returncode}). Run `sf org auth show-access-token "
+                f"-o {org_alias}` to see why."
+            )
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            # `from None`: the decode error holds the raw stdout in `.doc`,
+            # which must not ride along in the exception chain.
+            raise AssertionError(
+                "sf org auth show-access-token --json returned non-JSON output "
+                f"for org alias '{org_alias}'."
+            ) from None
+        token = _result_object(
+            data, "sf org auth show-access-token", org_alias
+        ).get("accessToken")
+        if not _looks_like_a_real_token(token):
+            raise AssertionError(
+                "sf org auth show-access-token did not return a usable access "
+                f"token for org alias '{org_alias}'."
+            )
+        return token
 
     def _headers(self):
         """Return HTTP headers for REST API calls."""
@@ -484,3 +585,99 @@ class SalesforceAPI:
         if not records:
             raise AssertionError(f"No records found for: {soql}")
         return records[0].get("Id", records[0].get("id", ""))
+
+    # ── Revenue Cloud actions ────────────────────────────────────────
+
+    @staticmethod
+    def _json_or_none(resp, empty):
+        """Parse a response body, returning ``empty`` for a blank or non-JSON one
+        (e.g. an HTML 502 page), so the caller reports the status and text instead
+        of a JSONDecodeError."""
+        if not resp.content:
+            return empty
+        try:
+            return resp.json()
+        except ValueError:
+            return empty
+
+    @keyword
+    def reprice_quote_via_api(self, quote_id):
+        """Force a full reprice of a Quote through Place Sales Transaction.
+
+        Sends a header-only PATCH graph with ``pricingPref: Force`` (the 264 dev
+        guide's "update a quote" shape). Tax runs as it does from the UI, so a
+        successful reprice ends at CompletedWithTax where estimated tax is on, and
+        at CompletedWithPricing on a default build, which has it off. Used once, to recover a quote
+        the platform left in a failed CalculationStatus; the caller then waits for
+        the status to settle again.
+
+        Args:
+            quote_id: Quote Id.
+
+        Returns:
+            The Place Sales Transaction response body.
+        """
+        self._validate_salesforce_id(quote_id)
+        self._ensure_authenticated()
+        payload = {
+            "pricingPref": "Force",
+            "configurationPref": {"configurationMethod": "Skip"},
+            "graph": {
+                "graphId": "e2eReprice",
+                "records": [{
+                    "referenceId": "refQuote",
+                    "record": {"attributes": {"type": "Quote", "method": "PATCH",
+                                              "id": quote_id}},
+                }],
+            },
+        }
+        resp = requests.post(
+            f"{self._instance_url}/services/data/{self.API_VERSION}"
+            "/connect/rev/sales-transaction/actions/place",
+            headers=self._headers(),
+            json=payload,
+            timeout=self.REQUEST_TIMEOUT,
+        )
+        body = self._json_or_none(resp, {})
+        if resp.status_code not in (200, 201, 202) or (
+                isinstance(body, dict) and body.get("isSuccess") is False):
+            raise AssertionError(
+                f"Reprice of Quote {quote_id} failed: {resp.status_code} {resp.text[:500]}"
+            )
+        _logger.info("Repriced Quote %s: %s", quote_id, resp.text[:300])
+        return body
+
+    @keyword
+    def assetize_order_via_api(self, order_id):
+        """Request assetization of an activated Order directly.
+
+        Calls the ``createOrUpdateAssetFromOrder`` standard invocable action (264
+        dev guide, "Create or Update Asset From Order Action"), which needs the
+        Assetize Order permission set (granted through the RLM_PSL permission set
+        group). Used once, when activation produced no
+        Assets; the caller keeps polling for them.
+
+        Args:
+            order_id: Order Id.
+
+        Returns:
+            The action's ``requestId``.
+        """
+        self._validate_salesforce_id(order_id)
+        self._ensure_authenticated()
+        resp = requests.post(
+            f"{self._instance_url}/services/data/{self.API_VERSION}"
+            "/actions/standard/createOrUpdateAssetFromOrder",
+            headers=self._headers(),
+            json={"inputs": [{"orderId": order_id}]},
+            timeout=self.REQUEST_TIMEOUT,
+        )
+        body = self._json_or_none(resp, [])
+        result = body[0] if isinstance(body, list) and body and isinstance(body[0], dict) else {}
+        if resp.status_code != 200 or not result.get("isSuccess"):
+            raise AssertionError(
+                f"Assetization of Order {order_id} failed: {resp.status_code} {resp.text[:500]}"
+            )
+        request_id = (result.get("outputValues") or {}).get("requestId")
+        _logger.info("Requested assetization of Order %s: %s", order_id, request_id)
+        return request_id

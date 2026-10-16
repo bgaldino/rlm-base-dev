@@ -23,9 +23,34 @@ reliably. This utility supports two safety modes:
   --safe-only   Remove only orphans matching the "PDF artifact" pattern
                 (empty description AND no refersTo). 100% safe to remove.
 
-  --aggressive  Remove any orphan field. Use only after cross-validating
-                against multiple orgs (e.g., 260 baseline + 262 + ent-pde
-                + tso). Pass --orgs <alias1>,<alias2>,... to verify.
+  --aggressive  Remove any orphan field. Requires --orgs with two or more
+                DISTINCT orgs on the TARGET RELEASE. Do NOT hold the org shape
+                constant — prefer COMPLEMENTARY shapes/feature sets.
+
+                Why the release and the shape pull in opposite directions:
+                find_orphans() keeps a field when it is present in ANY queried
+                org (`present_in_any`, below). Adding an org can therefore only
+                ever SHRINK the orphan set — a second org rescues gated fields
+                from deletion and can never contribute a new one. So:
+
+                  * Wrong release — actively misleads. A field added in 264 is
+                    absent from a 262 org for reasons that have nothing to do
+                    with removal, and 262's own extra fields aren't the ERD's
+                    subject. Keep the release fixed.
+                  * Same shape — adds nothing and reads as if it did. A field
+                    gated out of `ent` is absent from both `ent` orgs, so
+                    "two orgs agreed" is not corroboration; the second org
+                    could not have disagreed. Complementary shapes (ent + pde,
+                    features on + off) are what can actually disprove an
+                    orphan.
+
+                And note the ceiling on this whole approach: absence is never
+                positive evidence of removal, only a failure to contradict it.
+                A feature neither org enables looks removed in both, however
+                many orgs you add. Positive evidence is the release diff
+                (present in the N-1 snapshot, absent in N) or canonical Core
+                UDD source. Have one of those before --aggressive --apply;
+                treat org absence as a candidate filter, not a verdict.
 
 Usage:
     # Show candidates without modifying anything
@@ -39,9 +64,19 @@ Usage:
     python scripts/erd/cleanup_orphan_erd_fields.py --org rlm-base__ent-sb0 \\
         --safe-only --apply
 
-    # Cross-validate against multiple orgs before aggressive removal
-    python scripts/erd/cleanup_orphan_erd_fields.py --orgs ent-r1,rlm-base__ent-sb0 \\
+    # Cross-validate before aggressive removal. Same release, COMPLEMENTARY shapes.
+    # A cross-release pair (the old ent-r1,rlm-base__ent-sb0 example) makes a field
+    # added in the release you did not build look identical to a removed one; a
+    # same-shape pair simply cannot disagree, so it corroborates nothing.
+    python scripts/erd/cleanup_orphan_erd_fields.py \\
+        --orgs rlm-base__264ent,rlm-base__264pde \\
         --aggressive --dry-run
+
+    # NB: the 264 refresh used 264merged + 264fresh, which are BOTH Enterprise.
+    # Its orphan verdicts therefore rest on a pair that could not disagree about a
+    # shape-gated field. Nothing was deleted on that basis — the 8 retirements came
+    # from the 262->264 release diff and the remaining 58 were kept and classified —
+    # but do not cite that pass as a model for --aggressive --apply.
 
     # Include custom (__c) fields in the comparison — only when intentionally
     # validating an extended ERD snapshot that contains deployed RLM_*__c or
@@ -351,11 +386,16 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--org", help="Single org alias to query")
-    parser.add_argument("--orgs", help="Comma-separated org aliases for cross-validation")
+    parser.add_argument("--orgs",
+                        help="Comma-separated org aliases for cross-validation. Same "
+                             "release, complementary shapes — same-shape pairs cannot "
+                             "disagree about a shape-gated field.")
     parser.add_argument("--safe-only", action="store_true",
                         help="Only act on pdf_artifact orphans (empty description)")
     parser.add_argument("--aggressive", action="store_true",
-                        help="Act on all orphan types. Requires --orgs (multiple).")
+                        help="Act on all orphan types. Requires --orgs with 2+ distinct "
+                             "aliases; confirm removal against the release diff or Core "
+                             "source before --apply, since absence is not proof.")
     # --apply and --dry-run are explicitly mutually exclusive. Earlier
     # revisions left both as bare flags, so a user who passed
     # `--apply --dry-run` (e.g. wrapper script that always appends
@@ -392,8 +432,21 @@ def main():
     else:
         parser.error("--org or --orgs is required")
 
-    if args.aggressive and len(org_aliases) < 2:
-        parser.error("--aggressive requires multiple orgs via --orgs (cross-validation)")
+    if args.aggressive:
+        # Count *distinct* aliases. `--orgs a,a` satisfies a length check while giving
+        # one org two votes, so a single describe would look like two independent
+        # confirmations — and --aggressive deletes fields on the strength of them.
+        if len(set(org_aliases)) < 2:
+            parser.error(
+                "--aggressive requires at least two DISTINCT orgs via --orgs "
+                f"(cross-validation); got {len(set(org_aliases))}: "
+                f"{','.join(sorted(set(org_aliases))) or '(none)'}. Use the target "
+                "release with COMPLEMENTARY shapes (e.g. an ent org plus a pde org) — "
+                "orphans are unioned across orgs, so two orgs of the same shape cannot "
+                "disagree about a shape-gated field and corroborate nothing. Absence "
+                "across orgs is still only a candidate filter: confirm removal against "
+                "the release diff or Core UDD source before --apply."
+            )
 
     if not args.apply:
         args.dry_run = True

@@ -1,3 +1,11 @@
+---
+name: apex-security-hardening
+description: >-
+  Harden Apex entry points with USER_MODE CRUD/FLS enforcement and self-sufficient
+  permission sets. Use when reviewing SOQL or DML security, deriving least-privilege
+  grants from code, or verifying deployed permission-set access.
+---
+
 # Apex Security Hardening — USER_MODE / CRUD-FLS + Permission-Set Self-Sufficiency
 
 > Canonical workflow for making Apex (and the permission set that backs it)

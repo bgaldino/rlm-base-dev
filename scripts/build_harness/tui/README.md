@@ -31,6 +31,10 @@ Or use the root wrapper:
 ./tui-cci
 ```
 
+The wrapper loads gitignored `.env.local` at the repo root before starting the
+TUI, for variables the shell has not already set. That is how `CHROME_BINARY`
+and `CHROMEDRIVER_PATH` reach Robot when the direnv hook has not exported them.
+
 ## Settings
 
 The TUI reads `scripts/build_harness/tui/settings.json` on startup for defaults,

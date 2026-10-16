@@ -10,8 +10,10 @@ Documentation     Adds products to a Quote, creates and activates an Order, and 
 ...
 ...               Requires a fully provisioned org with qb=true (run prepare_rlm_org first).
 ...
-...               Run via CCI (no QUOTE_ID override; will create a new Quote if needed):
-...                 cci task run robot_order_from_quote --org beta
+...               Run via CCI (no QUOTE_ID override; will create a new Quote if needed).
+...               The robot_* tasks reject --org (issue #320) — select the org first:
+...                 cci org default beta
+...                 cci task run robot_order_from_quote
 ...               Run Robot directly with an existing Quote:
 ...                 robot --variable QUOTE_ID:<id> robot/rlm-base/tests/e2e/order_from_quote.robot
 Resource          ../../resources/E2ECommon.robot
@@ -29,7 +31,7 @@ ${ORDER_ID}             ${EMPTY}
 
 Order From Quote
     [Documentation]    Adds products via Browse Catalogs, creates and activates an Order,
-    ...    then verifies Assets exist on the Account.
+    ...    then verifies the Order produced Assets.
     [Tags]    e2e    requires_qb
     Skip If    "${QB}" == "false"    Requires qb=true for QuantumBit product catalog
 
@@ -58,8 +60,7 @@ Order From Quote
     Activate Order    ${ORDER_ID}
 
     # Verify assets (async — poll until at least 1 asset exists)
-    Wait Until Keyword Succeeds    ${ASYNC_TIMEOUT}    ${ASYNC_POLL_INTERVAL}
-    ...    Verify Assets Exist On Account    ${ACCOUNT_ID}
+    Wait For Assets From Order    ${ORDER_ID}
     Navigate To Account    ${ACCOUNT_ID}
     Click Record Page Tab    Assets
     Capture Step Screenshot    05_assets_tab

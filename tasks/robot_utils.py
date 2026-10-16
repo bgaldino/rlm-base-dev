@@ -10,7 +10,7 @@ MIN_URLLIB3_VERSION = (2, 6, 3)
 _URLLIB3_FIX = (
     "Upgrade urllib3 in this environment "
     '(e.g. pip install "urllib3>=2.6.3" or pip install -r robot/requirements.txt). '
-    "See README Troubleshooting for details."
+    "See docs/guides/org-operations.md#troubleshooting for details."
 )
 
 _URLLIB3_ROOT_CAUSE = (

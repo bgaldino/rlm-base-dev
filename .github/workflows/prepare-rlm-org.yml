@@ -19,9 +19,8 @@ on:
   pull_request:
     types: [labeled]
 
-permissions:
-  contents: read
-  pull-requests: write
+# No default token permissions; the job grants only what it uses.
+permissions: {}
 
 # Serialize runs that target the same scratch-org alias: per-PR for
 # label-triggered runs, per-ref for workflow_dispatch. Prevents two jobs from
@@ -46,11 +45,20 @@ jobs:
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: read
+      pull-requests: write   # removes the ci:prepare-org trigger label (gh pr edit)
     env:
       # Dispatch uses the provided inputs; label-triggered PR runs derive a
       # per-PR alias and default to the `dev` scratch config.
       ORG_ALIAS: ${{ inputs.org_alias || format('pr{0}-ci', github.event.pull_request.number) }}
       SCRATCH_CONFIG: ${{ inputs.scratch_config || 'dev' }}
+      # The npm-installed CLI writes "Warning: @salesforce/cli update available" to
+      # *stderr* on every invocation. That is not merely noise: a task that reports a
+      # failure from stderr can end up printing the notice where the cause should be,
+      # which is how the #264-59 `sf agent activate` failure arrived with no
+      # diagnosable message at all. Job-scoped so it also applies during the build.
+      SF_SKIP_NEW_VERSION_CHECK: "true"
     steps:
       - name: Remove trigger label (re-apply to re-run)
         if: github.event_name == 'pull_request'
@@ -62,33 +70,38 @@ jobs:
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ci:prepare-org" || true
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: "3.13"
 
       - name: Set up Node.js 24.16.0
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
         with:
           # Pinned to an exact 24.x minor. node-version "24" floats to "latest 24.x",
           # which moved 24.16.0 → 24.17.0; on 24.17.0 the npm-installed sf CLI exits 13
           # on `sf org login` ("Detected unsettled top-level await" in the CLI entrypoint).
           # 24.16.0 is the last-known-good — Prepare RLM Org succeeded on it 2026-06-11
           # (run 27314890121). Re-float to "24" once a newer 24.x or sf CLI release restores
-          # compatibility (tracked alongside check-cci-token-fix.yml).
+          # compatibility.
           node-version: "24.16.0"
 
       - name: Cache npm download cache
-        uses: actions/cache@v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: ~/.npm
           key: npm-cache-${{ runner.os }}-node24
 
       - name: Install sf CLI and SFDMU plugin
         run: |
-          npm install -g @salesforce/cli@2.127.2
+          # 2.147.7 (was 2.127.2, pinned 2026-06). The 264 build reaches
+          # `prepare_agents` → `sf agent activate`, part of the authoring-bundle
+          # path this release moved to; 2.127.2 predates that work and failed there
+          # while 2.147.7 completes the same flow locally. Keep this within one or
+          # two minors of what developers run, since the agent commands are moving.
+          npm install -g @salesforce/cli@2.147.7
           yes | sf plugins install sfdmu@5.8.0
           sf --version
           sf plugins
@@ -96,8 +109,8 @@ jobs:
       - name: Install CumulusCI and dependencies
         run: |
           python -m venv .venv
-          .venv/bin/pip install --upgrade pip "setuptools>=75.4,<77"
-          .venv/bin/pip install "cumulusci==4.8.1"
+          .venv/bin/pip install --upgrade pip "setuptools>=75.4"
+          .venv/bin/pip install "cumulusci==4.10.1"
           .venv/bin/pip install -r robot/requirements.txt
           echo "$(pwd)/.venv/bin" >> $GITHUB_PATH
           .venv/bin/cci version
@@ -115,33 +128,29 @@ jobs:
           cci task run validate_setup
 
       - name: Authenticate Dev Hub
-        run: |
-          echo "${{ secrets.SFDX_AUTH_URL }}" > /tmp/sfdx-auth-url.txt
-          sf org login sfdx-url --sfdx-url-file /tmp/sfdx-auth-url.txt --set-default-dev-hub --alias devhub
-          rm /tmp/sfdx-auth-url.txt
-
-      # SF_TEMP_SHOW_SECRETS is scoped to ONLY the steps where CumulusCI reads a
-      # scratch-org access token via `sf org display --json`. The May 2026 CLI
-      # change (forcedotcom/cli#3560) redacts tokens, so CCI reads "[REDACTED]"
-      # and fails with INVALID_AUTH_HEADER on scratch creation / org info / the
-      # flow's REST calls. Temporary shim (Salesforce removes it in Summer '26
-      # once CCI uses `sf org auth show-access-token`); kept OFF the checkout /
-      # build / setup steps so a token can't leak from unrelated JSON. Mirrors `.envrc`.
-      - name: Create scratch org
+        # The secret reaches the script through env, not interpolation (which would write it
+        # into the generated script file), and its file is owner-only and removed on any exit.
         env:
-          SF_TEMP_SHOW_SECRETS: "true"
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          umask 077
+          auth_file="$(mktemp)"
+          trap 'rm -f "$auth_file"' EXIT
+          printf '%s\n' "$SFDX_AUTH_URL" > "$auth_file"
+          sf org login sfdx-url --sfdx-url-file "$auth_file" --set-default-dev-hub --alias devhub
+
+      # CumulusCI 4.10.1 reads the scratch-org token with `sf org auth
+      # show-access-token` when `sf org display` redacts it, so no step needs
+      # SF_TEMP_SHOW_SECRETS (see docs/guides/cci-sf-cli-token-workaround.md).
+      - name: Create scratch org
         run: |
           cci org scratch "$SCRATCH_CONFIG" "$ORG_ALIAS" --default
 
       - name: Run prepare_rlm_org
-        env:
-          SF_TEMP_SHOW_SECRETS: "true"  # CCI reads the scratch token for REST throughout the flow
         run: |
           cci flow run prepare_rlm_org --org "$ORG_ALIAS"
 
       - name: Delete scratch org
         if: always()
-        env:
-          SF_TEMP_SHOW_SECRETS: "true"  # CCI reads org info to delete the scratch
         run: |
           cci org scratch_delete "$ORG_ALIAS" || true

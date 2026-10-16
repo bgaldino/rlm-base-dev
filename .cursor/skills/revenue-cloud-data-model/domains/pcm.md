@@ -1,6 +1,6 @@
 # PCM — Product Catalog Management
 
-11 core objects managing the product catalog: products, attributes, classifications, bundles, categories, and qualifications.
+33 objects managing the product catalog: products, attributes, classifications, bundles, categories, and qualifications.
 
 ## Objects
 

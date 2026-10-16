@@ -11,7 +11,7 @@ Per-area inventory of features in Summer '26 / Release 262, extracted from the S
 | `solution-overview-summer-26-rca.pdf` | Internal Solution Overview deck — Revenue Cloud Advanced (97 pp, CONFIDENTIAL, gitignored) |
 | `solution-overview-summer-26-billing.pdf` | Internal Solution Overview deck — Revenue Cloud Billing (48 pp, CONFIDENTIAL, gitignored) |
 | `salesforce-release-notes-summer-26-2026-05-07.pdf` | Full Salesforce Release Notes (996 pp, public — preview status, gitignored). Revenue Management section starts at p 720. |
-| [`help/`](help/) | Per-article Salesforce Help portal snapshot for 262 (935 articles across 11 RC areas; captured 2026-05-11 / 2026-05-12, collections 2026-06-21, via `tasks/rlm_snapshot_help.py`). Replaces the older PDF compendium as the grep-friendly, diffable AI grounding source. See the `revenue-cloud-docs` skill. |
+| [`help/`](help/) | Per-article Salesforce Help portal snapshot for 262 (935 articles across 11 RC areas; captured 2026-05-11 / 2026-05-12, collections 2026-06-21, via `tasks/rlm_snapshot_help.py`, since replaced by `scripts/doc_snapshot/`). Replaces the older PDF compendium as the grep-friendly, diffable AI grounding source. See the `revenue-cloud-docs` skill. |
 
 > **Branding note for 262:** Solution Overview decks still use "Revenue Cloud Advanced" / "Revenue Cloud Billing". The Spring '26 rebrand to "Agentforce Revenue Management" continues to propagate.
 
