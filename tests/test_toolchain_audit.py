@@ -388,12 +388,15 @@ class Run(unittest.TestCase):
             return False
         if os.path.isdir("/proc/self"):
             # procfs is the authority: a missing entry is a task released since kill().
+            # Any other read or parse failure proves nothing, so ask ps instead.
             try:
                 with open(f"/proc/{pid}/stat") as f:
                     return f.read().rsplit(")", 1)[1].split()[0] not in ("Z", "X")
-            except (OSError, IndexError):
+            except (FileNotFoundError, ProcessLookupError):
                 return False
-        # No procfs (macOS): ask ps.
+            except (OSError, IndexError):
+                pass
+        # No procfs (macOS), or procfs couldn't say: ask ps.
         try:
             stat = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)],
                                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
