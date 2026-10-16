@@ -1,0 +1,81 @@
+<template>
+    <lightning-card title={componentTitle} icon-name="utility:moneybag">
+        <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
+            <template lwc:if={isLoadingMethods}>
+                <lightning-spinner alternative-text="Loading saved payment methods"></lightning-spinner>
+            </template>
+            <template lwc:elseif={needsGatewayConfiguration}>
+                <div class="slds-text-color_error" role="alert">
+                    Set an active Payment Gateway ID or unique name in Lightning App Builder.
+                </div>
+            </template>
+            <template lwc:elseif={loadError}>
+                <div class="slds-text-color_error" role="alert">{loadError}</div>
+            </template>
+            <template lwc:else>
+                <template lwc:if={showPaymentTypeSwitcher}>
+                    <lightning-radio-group
+                        class="slds-var-m-bottom_small"
+                        name="paymentTypeFilter"
+                        label="Saved method type"
+                        options={paymentTypeOptions}
+                        value={paymentTypeFilter}
+                        type="button"
+                        onchange={handlePaymentTypeChange}>
+                    </lightning-radio-group>
+                </template>
+                <template lwc:if={hasMethods}>
+                    <lightning-combobox
+                        name="savedPaymentMethod"
+                        label="Saved payment method"
+                        value={selectedMethodId}
+                        options={methodOptions}
+                        onchange={handleMethodChange}
+                        required>
+                    </lightning-combobox>
+                    <lightning-input
+                        class="slds-var-m-top_small"
+                        type="number"
+                        name="amount"
+                        label="Amount"
+                        value={amount}
+                        currency-code={currencyIsoCode}
+                        min="0.01"
+                        max="100000"
+                        step="0.01"
+                        formatter="currency"
+                        onchange={handleAmountChange}
+                        required>
+                    </lightning-input>
+                    <template lwc:if={currencyIsoCode}>
+                        <div class="slds-text-body_small slds-var-m-top_x-small">
+                            Currency: {currencyIsoCode}
+                        </div>
+                    </template>
+                    <lightning-button
+                        class="slds-var-m-top_medium"
+                        variant="brand"
+                        label={buttonLabel}
+                        onclick={handleSale}
+                        disabled={isSaleDisabled}>
+                    </lightning-button>
+                </template>
+                <template lwc:else>
+                    <p>No active saved {paymentTypeLabel} methods are available for this Account and gateway.</p>
+                </template>
+            </template>
+            <template lwc:if={isSubmitting}>
+                <lightning-spinner alternative-text="Submitting payment"></lightning-spinner>
+            </template>
+            <template lwc:if={saleResult}>
+                <div class={saleResultClass} role="status">
+                    <span>Payment {saleResult.paymentNumber} was created with status {saleResult.status}.</span>
+                    <a class="slds-var-m-left_x-small" href={paymentUrl}>View Payment</a>
+                </div>
+            </template>
+            <template lwc:if={saleError}>
+                <div class="slds-text-color_error slds-var-m-top_medium" role="alert">{saleError}</div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

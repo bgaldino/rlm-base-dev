@@ -373,7 +373,7 @@ The following table shows the sequence of all permission-related steps across th
 | 1.12 | `prepare_core` > `assign_permission_set_groups_tolerant` | `RLM_TSO` PSG | `tso` |
 | 1.16.1 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
 | 1.16.2 | `prepare_core` > `assign_feature_permission_sets` > `assign_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
-| 4.8 | `prepare_payments` > `assign_permission_sets` | `RLM_Payments` | `payments` |
+| 4.10 | `prepare_payments` > `assign_permission_sets` | `RLM_Payments` | `payments` |
 | 7.2.3 | `prepare_quantumbit` > `prepare_approvals` > `assign_permission_sets` | `RLM_Approvals` | `quantumbit` + `approvals` |
 | 7.4 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_QuantumBit` | `quantumbit` |
 | 7.5 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_ExpressionSetManager` | `quantumbit` |

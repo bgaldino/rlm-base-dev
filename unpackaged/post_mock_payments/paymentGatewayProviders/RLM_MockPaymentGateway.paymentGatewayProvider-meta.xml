@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PaymentGatewayProvider xmlns="http://soap.sforce.com/2006/04/metadata">
+    <masterLabel>RLM Mock Payment Gateway</masterLabel>
+    <apexAdapter>RLM_MockPaymentGatewayAdapter</apexAdapter>
+    <comments>Synchronous callout-free mock gateway for Billing tests.</comments>
+    <idempotencySupported>No</idempotencySupported>
+</PaymentGatewayProvider>

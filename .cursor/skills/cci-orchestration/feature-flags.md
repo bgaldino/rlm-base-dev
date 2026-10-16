@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **86 configuration values**, **40 YAML anchors** under `project.custom`.
+**42 feature flags**, **86 configuration values**, **40 YAML anchors** under `project.custom`.
 
 ---
 
@@ -34,7 +34,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `guidedselling` | `True` | 5 flow step(s) |
 | `inapp` | `False` | 3 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
-| `payments` | `True` | 8 flow step(s) |
+| `mock_payments` | `False` | 2 flow step(s) |
+| `payments` | `True` | 10 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 13 flow step(s) |
 | `prm` | `True` | 24 flow step(s) |
@@ -233,6 +234,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_large_stx` step 4 → `seed_large_deal_billing_treatment`
 - `prepare_personas` step 7 → `assign_permission_sets`
 
+### `mock_payments` (default: `False`)
+
+- `prepare_payments` step 8 → `deploy_post_mock_payments`
+- `prepare_payments` step 9 → `ensure_mock_payment_gateway`
+
 ### `payments` (default: `True`)
 
 - `prepare_payments` step 1 → `create_payments_webhook`
@@ -242,7 +248,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_payments` step 5 → `publish_community`
 - `prepare_payments` step 6 → `deploy_post_payments_settings`
 - `prepare_payments` step 7 → `deploy_post_payments_ext`
-- `prepare_payments` step 8 → `assign_permission_sets`
+- `prepare_payments` step 8 → `deploy_post_mock_payments`
+- `prepare_payments` step 9 → `ensure_mock_payment_gateway`
+- `prepare_payments` step 10 → `assign_permission_sets`
 
 ### `personas` (default: `True`)
 

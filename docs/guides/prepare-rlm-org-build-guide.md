@@ -101,6 +101,8 @@ The 35 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 **Payments** (Step 4, `prepare_payments`, conditional on `payments` flag) — Creates the Experience Cloud site that serves as the payments webhook endpoint, then deploys the site metadata and settings and publishes the Experience Cloud community. The webhook site must be created early because it takes time to provision and later steps depend on it. The site metadata in the repository uses a placeholder username to avoid storing real usernames in source control — right before deployment that placeholder is swapped for the org's actual username, and immediately after deployment it's restored. Nothing sensitive ever gets committed. If `payments` is off, every task inside this step is simply skipped.
 
+The optional synchronous mock gateway is separately controlled by `mock_payments` (default `false`) and requires `payments` to be enabled. Its setup and saved-method seeding instructions are in the [mock Billing payment gateway guide](mock-billing-payment-gateway.md).
+
 **`deploy_full`** (Step 5) — This is the single largest step in the build. It deploys the core SFDX package from `force-app/main/default`. The `unpackaged/pre/` bundle is deployed earlier (before this step), and `unpackaged/post_*/` bundles (payments, billing portal, PRM, TSO, etc.) are deployed in their respective sub-flows later in the sequence. This single step pushes hundreds of metadata components to the org.
 
 **Price adjustment schedule activation** (Step 6, scratch orgs only) — Activates price adjustment schedules that control how pricing rules apply discounts, markups, and other adjustments. These must be active before pricing data can be loaded.

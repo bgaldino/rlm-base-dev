@@ -105,6 +105,7 @@ project:
     billing_portal: false     # Self-Service Billing Portal community
     billing_portal_deploy: true  # Deploy post_billing_portal site content (requires billing_portal)
     payments: true            # Payments
+    mock_payments: false      # Opt-in synchronous mock payment gateway for Billing tests
     approvals: true           # Approvals
     tax: true                 # Tax engine
     calmdelete: true          # CALM Delete
@@ -1724,7 +1725,7 @@ tasks:
   deploy_post_payments_ext:
     group: Revenue Lifecycle Management
     description: >
-      Deploy Payments UI extensions from unpackaged/post_payments_ext: the
+      Deploy Payments extension metadata from unpackaged/post_payments_ext: the
       RLM_RefundController Apex class (native ConnectApi.Payments.refund, no
       callout) and its test, the rlmRefundButton LWC (Issue Refund on Payment
       records), and the RLM_Payments permission set (Apex class access). Kept in
@@ -1734,6 +1735,27 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_payments_ext
+
+  ensure_mock_payment_gateway:
+    group: Revenue Lifecycle Management
+    description: Provision the opt-in RLM mock payment gateway and test merchant account.
+    class_path: tasks.rlm_mock_payments.MockPaymentGateway
+    options:
+      operation: ensure
+
+  deploy_post_mock_payments:
+    group: Revenue Lifecycle Management
+    description: Deploy the opt-in synchronous mock payment adapter, named credential, and provider metadata.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_mock_payments
+
+  seed_mock_saved_payment_methods:
+    group: Data Management - Test Data
+    description: Create mock payment scenario methods for one explicitly supplied Account ID.
+    class_path: tasks.rlm_mock_payments.MockPaymentGateway
+    options:
+      operation: seed
 
   ensure_pricing_schedules:
     description: Ensure pricing schedules exist before expression sets
@@ -4317,6 +4339,12 @@ flows:
         task: deploy_post_payments_ext
         when: project_config.project__custom__payments
       8:
+        task: deploy_post_mock_payments
+        when: project_config.project__custom__payments and project_config.project__custom__mock_payments
+      9:
+        task: ensure_mock_payment_gateway
+        when: project_config.project__custom__payments and project_config.project__custom__mock_payments
+      10:
         task: assign_permission_sets
         when: project_config.project__custom__payments
         options:

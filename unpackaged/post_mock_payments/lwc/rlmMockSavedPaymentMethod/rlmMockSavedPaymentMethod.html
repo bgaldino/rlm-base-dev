@@ -1,0 +1,112 @@
+<template>
+    <lightning-card title={componentTitle} icon-name="utility:payment_gateway">
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <div class="slds-grid slds-grid_align-end slds-m-bottom_x-small">
+                <lightning-button-icon
+                    icon-name="utility:refresh"
+                    alternative-text="Reset form"
+                    title="Reset form"
+                    onclick={handleReset}
+                    disabled={isSaving}>
+                </lightning-button-icon>
+            </div>
+            <div class="slds-text-body_small slds-m-bottom_medium">
+                Payment details are tokenized before your payment method is saved.
+            </div>
+            <template lwc:if={needsGatewayConfiguration}>
+                <div class="slds-text-color_error slds-m-bottom_small" role="alert">
+                    Set an active Payment Gateway ID or unique name in Lightning App Builder.
+                </div>
+            </template>
+
+            <template lwc:if={showPaymentTypeSwitcher}>
+                <lightning-radio-group
+                    name="paymentMethodType"
+                    label="Payment method type"
+                    options={paymentMethodTypeOptions}
+                    value={paymentMethodType}
+                    type="button"
+                    onchange={handleChange}>
+                </lightning-radio-group>
+            </template>
+
+            <template lwc:if={showOutcomeSelector}>
+                <lightning-combobox
+                    class="slds-m-top_small"
+                    name="scenario"
+                    label="Payment response"
+                    value={scenario}
+                    options={scenarioOptions}
+                    onchange={handleChange}
+                    required>
+                </lightning-combobox>
+            </template>
+
+            <lightning-input class="slds-m-top_small" name="accountHolderName" label={accountHolderNameLabel} value={accountHolderName} onchange={handleChange} required></lightning-input>
+            <lightning-input name="accountHolderEmail" type="email" label="Account holder email" value={accountHolderEmail} onchange={handleChange} required></lightning-input>
+
+            <template lwc:if={isCard}>
+                <lightning-input name="cardNumber" type="text" label="Card number" value={cardNumber} inputmode="numeric" autocomplete="off" onchange={handleChange} required></lightning-input>
+                <lightning-input name="cvv" type="password" label="Security code" value={cvv} maxlength="4" autocomplete="off" onchange={handleChange} required></lightning-input>
+
+                <div class="slds-grid slds-gutters">
+                    <div class="slds-col">
+                        <lightning-input name="expiryMonth" type="number" label="Expiration month" min="1" max="12" value={expiryMonth} onchange={handleChange} required></lightning-input>
+                    </div>
+                    <div class="slds-col">
+                        <lightning-input name="expiryYear" type="number" label="Expiration year" min={minimumExpiryYear} value={expiryYear} onchange={handleChange} required></lightning-input>
+                    </div>
+                </div>
+            </template>
+
+            <template lwc:if={isAch}>
+                <lightning-input name="bankAccountNumber" type="text" label="Bank account number" value={bankAccountNumber} readonly></lightning-input>
+                <lightning-input name="bankRoutingNumber" type="text" label="Routing number" value={bankRoutingNumber} readonly></lightning-input>
+                <div class="slds-grid slds-gutters">
+                    <div class="slds-col">
+                        <lightning-combobox name="bankAccountType" label="Bank account type" value={bankAccountType} options={bankAccountTypeOptions} onchange={handleChange} required></lightning-combobox>
+                    </div>
+                    <div class="slds-col">
+                        <lightning-combobox name="bankAccountHolderType" label="Account holder type" value={bankAccountHolderType} options={bankAccountHolderTypeOptions} onchange={handleChange} required></lightning-combobox>
+                    </div>
+                </div>
+            </template>
+
+            <lightning-input name="billingStreet" label="Billing street" value={billingStreet} onchange={handleChange} required></lightning-input>
+            <div class="slds-grid slds-gutters">
+                <div class="slds-col">
+                    <lightning-input name="billingCity" label="City" value={billingCity} onchange={handleChange} required></lightning-input>
+                </div>
+                <div class="slds-col">
+                    <lightning-input name="billingState" label="State / Province" value={billingState} onchange={handleChange} required></lightning-input>
+                </div>
+            </div>
+            <div class="slds-grid slds-gutters">
+                <div class="slds-col">
+                    <lightning-input name="billingPostalCode" label="Postal code" value={billingPostalCode} onchange={handleChange} required></lightning-input>
+                </div>
+                <div class="slds-col">
+                    <lightning-input name="billingCountry" label="Country / Region" value={billingCountry} maxlength="80" onchange={handleChange} required></lightning-input>
+                </div>
+            </div>
+
+            <lightning-input
+                class="slds-m-top_small"
+                type="checkbox"
+                name="saveAsDefault"
+                label="Save as default payment method"
+                checked={saveAsDefault}
+                onchange={handleChange}>
+            </lightning-input>
+
+            <div class="slds-m-top_medium slds-grid slds-grid_align-end">
+                <lightning-button
+                    variant="brand"
+                    label={buttonLabel}
+                    onclick={handleCreate}
+                    disabled={isDisabled}>
+                </lightning-button>
+            </div>
+        </div>
+    </lightning-card>
+</template>

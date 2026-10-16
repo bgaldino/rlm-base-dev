@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**258 tasks** across **9 groups**.
+**261 tasks** across **10 groups**.
 
 ---
 
@@ -699,6 +699,22 @@
 
 ---
 
+## Data Management - Test Data
+
+*1 task(s)*
+
+### `seed_mock_saved_payment_methods`
+
+**Description:** Create mock payment scenario methods for one explicitly supplied Account ID.
+
+**Class:** `tasks.rlm_mock_payments.MockPaymentGateway`
+
+**Options:**
+
+- `operation`: `seed`
+
+---
+
 ## E2E Testing
 
 *5 task(s)*
@@ -794,7 +810,7 @@
 
 ## Revenue Lifecycle Management
 
-*168 task(s)*
+*170 task(s)*
 
 ### `activate_agents`
 
@@ -1722,9 +1738,21 @@
 
 ---
 
+### `deploy_post_mock_payments`
+
+**Description:** Deploy the opt-in synchronous mock payment adapter, named credential, and provider metadata.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_mock_payments`
+
+---
+
 ### `deploy_post_payments_ext`
 
-**Description:** Deploy Payments UI extensions from unpackaged/post_payments_ext: the RLM_RefundController Apex class (native ConnectApi.Payments.refund, no callout) and its test, the rlmRefundButton LWC (Issue Refund on Payment records), and the RLM_Payments permission set (Apex class access). Kept in a separate dir from unpackaged/post_payments so it can deploy without re-deploying the immutable Payments_Webhook CustomSite. The Payment record page that hosts the button deploys via assemble_and_deploy_ux (payments flag).
+**Description:** Deploy Payments extension metadata from unpackaged/post_payments_ext: the RLM_RefundController Apex class (native ConnectApi.Payments.refund, no callout) and its test, the rlmRefundButton LWC (Issue Refund on Payment records), and the RLM_Payments permission set (Apex class access). Kept in a separate dir from unpackaged/post_payments so it can deploy without re-deploying the immutable Payments_Webhook CustomSite. The Payment record page that hosts the button deploys via assemble_and_deploy_ux (payments flag).
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1877,6 +1905,18 @@
 
 - `suite`: `robot/rlm-base/tests/setup/enable_timeline.robot`
 - `outputdir`: `robot/rlm-base/results`
+
+---
+
+### `ensure_mock_payment_gateway`
+
+**Description:** Provision the opt-in RLM mock payment gateway and test merchant account.
+
+**Class:** `tasks.rlm_mock_payments.MockPaymentGateway`
+
+**Options:**
+
+- `operation`: `ensure`
 
 ---
 

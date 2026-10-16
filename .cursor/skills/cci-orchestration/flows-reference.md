@@ -434,7 +434,9 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
    - `name`: `Payments Webhook`
 6. **task** `deploy_post_payments_settings`  `when: project_config.project__custom__payments`
 7. **task** `deploy_post_payments_ext`  `when: project_config.project__custom__payments`
-8. **task** `assign_permission_sets`  `when: project_config.project__custom__payments`
+8. **task** `deploy_post_mock_payments`  `when: project_config.project__custom__payments and project_config.project__custom__mock_payments`
+9. **task** `ensure_mock_payment_gateway`  `when: project_config.project__custom__payments and project_config.project__custom__mock_payments`
+10. **task** `assign_permission_sets`  `when: project_config.project__custom__payments`
    - `api_names`: `['RLM_Payments']`
 
 ---
