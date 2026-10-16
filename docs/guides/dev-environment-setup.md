@@ -381,12 +381,14 @@ The script handles:
 2. `pyenv install --skip-existing $(pyenv latest -k 3.13)` — installs newest
    patch in the pinned major.minor line, **only if** there's a newer one —
    then stops, before touching Node, if that Python can't import `ssl`.
-   It also moves `pyenv global` (`~/.pyenv/version`, the `python` you get
-   outside a project that pins its own) along the line, as step 3 moves nvm's
+   It also moves `pyenv global` (`~/.pyenv/version`: what `pyenv exec`,
+   `pyenv prefix` and pyenv's shims resolve to outside a project that pins its
+   own; with §2's layout no shims are on PATH outside the repo, so a bare
+   `python` there isn't pyenv's at all) along the line, as step 3 moves nvm's
    default Node, but only from an older 3.13 patch, and only when that old
    interpreter holds no packages of its own (`gate_python.py --carry-over` reads
    its site-packages). Packages pip-installed straight into it would disappear
-   from `python` and the shims after a switch, so then it leaves the global where
+   from `pyenv exec python` and the shims after a switch, so then it leaves the global where
    it is and warns, naming them: reinstall the ones you use under the new patch
    (or with pipx), then `pyenv global <new patch>`. A global set to `system`,
    another line or several versions is left alone. Virtualenvs built on the old
@@ -614,8 +616,11 @@ launch Claude Code from a terminal, **or** restart Claude Code after
 fixing `~/.zshenv`.
 
 ### `pyenv: version '3.13.x' is not installed (set by ~/.pyenv/version)`
-Every `python` outside a project that pins its own fails like this when `pyenv
-global` names a patch that was uninstalled. `update-toolchain.sh` repairs it on
+Outside a project that pins its own, `pyenv exec`, `pyenv prefix` (as in the
+installation guide's Step 7) and any pyenv shim fail like this when `pyenv global`
+names a patch that was uninstalled. With §2's layout a bare `python` outside the
+repo isn't pyenv's, so it doesn't show this error; a shell that still runs a
+global `pyenv init` does. `update-toolchain.sh` repairs it on
 its next run (it moves a global naming a missing 3.13 patch to the current one);
 by hand:
 
