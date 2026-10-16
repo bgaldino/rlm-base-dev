@@ -129,7 +129,7 @@ pyenv global                   | pass   | 3.13.x (the installed patch), or <a de
 TUI venvs                      | pass   | 3.13.x in each checkout that has one, or none
 pipx shared venv               | pass   | on 3.13.x, lib python3.13; every app's pipx_shared.pth matches
 openssl@3                      | pass   | Installed (on request); _ssl links openssl@3
-node / sf / sfdmu              | pass   | v<LTS ≥ 22>.x (nvm) / 2.x / 5.x (≥ 5.6.4)
+node / sf / sfdmu              | pass   | v24.x (nvm; the line in .nvmrc) / 2.x / 5.x (≥ 5.6.4)
 .envrc + .env.local            | pass   | allowed; keys: <names only, or no .env.local>
 PATH (cd in from outside)      | pass   | pyenv shim, nvm node
 NODE_EXTRA_CA_CERTS            | n.a.   | plain workstation; no corporate CA needed

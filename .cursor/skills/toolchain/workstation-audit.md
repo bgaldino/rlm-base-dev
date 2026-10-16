@@ -79,7 +79,7 @@ pins a patch (CumulusCI's pipx venv, `.venv`) must equal the installed one.
 
 | Check | Expect |
 |-------|--------|
-| `node`: Node from nvm | Under `~/.nvm/versions/node/`, an LTS ≥ 22 |
+| `node`: Node from nvm | Under `~/.nvm/versions/node/`, a v24.x: the major in `.nvmrc` (24). `validate_setup` fails an older major and warns on a newer one |
 | `sf`: sf | An npm-installed sf (listed by the `npm ls -g` part) runs under that Node. An installer-based sf (not listed, usually `/usr/local/bin/sf`) runs its own bundled Node, which is fine; the update script updates it with sf's own updater |
 | `sfdmu`: SFDMU | 5.6.4 or later |
 

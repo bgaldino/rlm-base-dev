@@ -37,7 +37,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **Homebrew** | macOS pkg installer (one-time) | Package manager for everything below | latest |
 | **direnv** | `brew install direnv` | Per-project env activation on `cd` | latest |
 | **nvm** | `brew install nvm` | Node version manager | latest |
-| **Node.js** | `nvm install --lts` | JavaScript runtime for `sf` CLI | major LTS line (`lts/*`) |
+| **Node.js** | `nvm install 24` | JavaScript runtime for `sf` CLI | major line pinned in `.nvmrc` (`24`) |
 | **pyenv** | `brew install pyenv` | Python version manager | latest |
 | **OpenSSL 3** | `brew install openssl@3` | TLS library the pyenv Python 3.13 builds link against | `openssl@3`; keep installed — see [OpenSSL 4 migration](#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration) |
 | **Python** | `pyenv install $(pyenv latest -k 3.13)` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
@@ -53,9 +53,14 @@ ends up with the same layered structure — not the same exact patch versions.
 **Pin philosophy:**
 - **Major line, not minor.** Patch versions move forward automatically. Bumping
   a major line (Python 3.13 → 3.14, Node 24 → 26) is a deliberate, tested
-  change tracked in `scripts/bash/update-toolchain.sh`.
+  change: Python's line is `PY_LINE` in `scripts/bash/update-toolchain.sh`, and
+  Node's is `.nvmrc`, which the Dockerfile's `NODE_MAJOR`, CI's setup-node and
+  `package.json`'s `engines` must match (`tests/test_node_line.py` checks it).
+  Don't float Node on `lts/*`: it would jump a major the day the next one
+  becomes LTS, with no test step.
 - **pyenv and nvm are version managers, not version pickers.** Let them
-  resolve the latest installed patch via `pyenv latest 3.13` and `nvm use 'lts/*'` (quote the glob so zsh doesn't expand it).
+  resolve the latest installed patch via `pyenv latest 3.13` and a bare
+  `nvm use`, which reads `.nvmrc`.
 
 ---
 
@@ -125,8 +130,8 @@ export PATH="$HOME/.local/bin:$PATH"
 #
 # We skip the full `nvm use default` activation cycle (slow) and just resolve
 # `default` to a concrete vX.Y.Z via nvm's public API, then prepend that bin
-# dir. `nvm version default` handles any alias chain — including glob aliases
-# like `lts/*` (which `update-toolchain.sh` and `nvm install --lts` set) —
+# dir. `nvm version default` handles any alias chain — a major such as `24`
+# (which `update-toolchain.sh` sets from `.nvmrc`) or a glob such as `lts/*` —
 # without depending on nvm's internal alias-cache file layout.
 export NVM_DIR="$HOME/.nvm"
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
@@ -242,13 +247,15 @@ if command -v pyenv >/dev/null 2>&1; then
   unset _PY_RESOLVED
 fi
 
-# Node via nvm — track active LTS line. brew --prefix nvm resolves to
-# /opt/homebrew/opt/nvm (Apple Silicon) or /usr/local/opt/nvm (Intel).
+# Node via nvm — the major line pinned in .nvmrc; a bare `nvm use` reads it.
+# brew --prefix nvm resolves to /opt/homebrew/opt/nvm (Apple Silicon) or
+# /usr/local/opt/nvm (Intel).
 export NVM_DIR="$HOME/.nvm"
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
   . "$_NVM_PREFIX/nvm.sh" --no-use
-  nvm use --silent lts/\* >/dev/null 2>&1 || nvm use --silent default >/dev/null 2>&1
+  nvm use --silent >/dev/null 2>&1 \
+    || echo ".envrc: Node $(cat .nvmrc 2>/dev/null) (from .nvmrc) isn't installed. Run 'nvm install' here, or scripts/bash/update-toolchain.sh." >&2
 fi
 unset _NVM_PREFIX
 
@@ -280,7 +287,7 @@ tracked, so git overwrites local edits to it, and `direnv allow` is needed again
 python --version
 # → 3.13.x (set by PYENV_VERSION environment variable)
 pyenv version
-# → v24.x (latest LTS)
+# → v24.x (the line pinned in .nvmrc)
 node --version
 # → CumulusCI 4.x
 cci --version
@@ -324,7 +331,10 @@ The script handles:
    another line or several versions is left alone. Virtualenvs built on the old
    patch aren't affected either way: they record its path, and break only if that
    patch is uninstalled
-3. `nvm install 'lts/*' --latest-npm`, then, only if the version changed,
+3. `nvm install <line> --latest-npm` with `<line>` read from `.nvmrc` (`24`;
+   the script stops if `.nvmrc` doesn't hold a bare major), then
+   `nvm alias default <line>`, so new shells outside the repo get it too.
+   Then, only if the version changed,
    `nvm reinstall-packages <old>` — carries `sf` and other npm globals forward.
    `<old>` is the active Node. When another `node` is ahead of nvm's on PATH,
    it's nvm's `default` alias instead, or without one the newest Node nvm has
@@ -416,13 +426,21 @@ python3 scripts/ai/gate_python.py
 
 When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
 
-1. Edit `PY_LINE` / `NODE_LINE` at the top of `scripts/bash/update-toolchain.sh`
-2. Edit the `pyenv latest <line>` call in `.envrc`
+1. Python: edit `PY_LINE` at the top of `scripts/bash/update-toolchain.sh`.
+   Node: edit `.nvmrc`, and in the same change the Dockerfile's `NODE_MAJOR`,
+   CI's `node-version` in `prepare-rlm-org.yml`, `engines.node` in
+   `package.json`, and the lines that tell people which Node to install (both
+   setup guides, the toolchain and troubleshooting skills, the `validate_setup`
+   hint). `tests/test_node_line.py` fails the gate until they all agree
+2. Python: edit the `pyenv latest <line>` call in `.envrc` (Node needs no
+   `.envrc` change: its bare `nvm use` reads `.nvmrc`)
 3. Run the script. It installs the new line, reinstalls CCI under the new
    Python, rebuilds the gate interpreter `.venv` and the TUI venvs on it, and
    verifies via `validate_setup`. It doesn't move `pyenv global` to a new line:
    that's yours to change.
-4. Commit `.envrc` + the script changes.
+4. Commit the line change (`.envrc` and the script for Python; `.nvmrc` and its
+   three companions for Node). A Python `.envrc` edit means every workstation
+   runs `direnv allow` once.
 5. Optionally `pyenv uninstall <old.line>.x` and `nvm uninstall <old-node>`.
    Before uninstalling a Python, check nothing still uses it: `pyenv global`
    must not name it ([the troubleshooting entry](#pyenv-version-313x-is-not-installed-set-by-pyenvversion)),
@@ -758,10 +776,11 @@ Symptom: `npm` or `sf` fail with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` or
 downloads Node, and the version index it resolves versions from, with `curl`
 (or `wget` if `curl` is missing), and neither reads it. nvm fetches that index
 silently, so a certificate problem shows only as a version that isn't found:
-``Version '' (with LTS filter) not found - try `nvm ls-remote --lts` …`` for
-`lts/*` (what `update-toolchain.sh` installs), or
 ``Version '24' not found - try `nvm ls-remote` …`` for an explicit version
-such as `24` (nvm prints the version as you typed it).
+such as `24` (what `update-toolchain.sh` installs, from `.nvmrc`; nvm prints the
+version as you typed it), or
+``Version '' (with LTS filter) not found - try `nvm ls-remote --lts` …`` for
+`lts/*`.
 To see the real error, run `curl -sSI https://nodejs.org/dist/index.tab`.
 
 For nvm's downloads, fix the trust for `curl` (`CURL_CA_BUNDLE`; nvm runs curl with `-q`,

@@ -229,21 +229,56 @@ class ValidateSetup(BaseTask):
         except ImportError:
             return self._fail(label, "not importable in current environment")
 
+    def _pinned_node_major(self) -> Optional[int]:
+        """The Node major line in the repo's .nvmrc, or None without a readable bare major."""
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        try:
+            with open(os.path.join(repo_root, ".nvmrc"), encoding="utf-8") as fh:
+                value = fh.read().strip()
+        except OSError:
+            return None
+        return int(value) if re.fullmatch(r"\d+", value) else None
+
     def _check_node(self) -> Dict[str, str]:
+        """Node runs, and its major is the line pinned in .nvmrc.
+
+        A lower major FAILs: it's below package.json's engines floor, and it's what a shell gets
+        when .envrc couldn't select the pinned line and the shell's own default is an old Node.
+        A higher major WARNs: it may work (a deliberate test of the next line), but the
+        toolchain is verified on the pinned one.
+        """
         label = "Node.js"
         try:
             result = subprocess.run(
                 ["node", "--version"], capture_output=True, text=True, timeout=10
             )
-            if result.returncode == 0:
-                return self._ok(label, result.stdout.strip())
-            return self._warn(label, "installed but returned a non-zero exit code")
+            if result.returncode != 0:
+                return self._warn(label, "installed but returned a non-zero exit code")
+            version = result.stdout.strip()
+            pinned = self._pinned_node_major()
+            m = re.match(r"v?(\d+)\.", version)
+            if pinned is None or not m:
+                return self._ok(label, version)
+            major = int(m.group(1))
+            if major < pinned:
+                return self._fail(
+                    label,
+                    f"{version} is below the Node line pinned in .nvmrc ({pinned}). Run `nvm install {pinned}` "
+                    "(or scripts/bash/update-toolchain.sh), then `direnv allow` in the repo if .envrc is blocked.",
+                )
+            if major > pinned:
+                return self._warn(
+                    label,
+                    f"{version}, not the line pinned in .nvmrc ({pinned}). It may work, but the toolchain is "
+                    f"verified on {pinned}: `nvm use` in the repo selects it.",
+                )
+            return self._ok(label, version)
         except FileNotFoundError:
             return self._warn(
                 label,
                 "not found — Node.js is required to run the npm-installed sf CLI and its plugins (including SFDMU). "
                 "Download from https://nodejs.org or use a version manager such as nvm "
-                "(on macOS: brew install nvm && nvm install --lts).",
+                "(on macOS: brew install nvm && nvm install 24, the line pinned in .nvmrc).",
             )
         except Exception as exc:
             return self._warn(label, f"check failed: {exc}")
