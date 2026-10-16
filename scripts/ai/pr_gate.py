@@ -479,7 +479,9 @@ CHECKS = [
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
                   "tasks/expression_set_schema.py", "tasks/rlm_community.py",
-                  "scripts/expression_sets/", "scripts/cml/",
+                  "scripts/expression_sets/", "scripts/cml/", "scripts/recycle_bin/",
+                  "scripts/sf_token.py",
+                  "tests/test_empty_recycle_bin.py",
                   "tests/test_expression_set_schema.py",
                   "tests/test_rlm_cml_import_failure.py",
                   "tests/test_rlm_cml_validate.py",
@@ -671,6 +673,7 @@ STDLIB_SUITES = [
 # dependency is declared and installed rather than inherited by luck from another check's transitive
 # tree. Kept as a separate list so `STDLIB_SUITES` means what it says.
 REQUESTS_SUITES = [
+    "tests/test_empty_recycle_bin.py",
     "tests/test_expression_set_schema.py",
     "tests/test_rlm_cml_import_failure.py",
     "tests/test_rlm_cml_validate.py",
