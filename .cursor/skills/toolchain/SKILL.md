@@ -102,7 +102,7 @@ for any agent.
 | Per-project activation | `.envrc` (tracked) + `.env.local` (gitignored, dotenv) | direnv; `./tui-cci` also loads `.env.local` |
 | Python | pyenv, latest 3.13 patch; `openssl@3` kept | pipx CumulusCI venv, `.venv` and each `.harness/tui-venv` pin one patch; `pyenv global` follows the line only from an old patch with no packages of its own |
 | Gate interpreter | `<main checkout>/.venv` | Found by `scripts/ai/gate_python.py`; `pr_gate.py` re-runs under it when its own interpreter lacks a selected check's dependency |
-| Node / sf / SFDMU | nvm `lts/*`; `sf` under it; `sfdmu` plugin ≥ 5.6.4 | |
+| Node / sf / SFDMU | nvm, the major line pinned in `.nvmrc` (24); `sf` under it; `sfdmu` plugin ≥ 5.6.4 | Moving to a new major is a deliberate PR: `.nvmrc`, the Dockerfile's `NODE_MAJOR`, CI and `engines` together |
 | Robot browser | stock Chrome, or Chrome for Testing via `.env.local` | Where stock Chrome fails on Setup pages |
 | Updates | `scripts/bash/update-toolchain.sh` | Changes the whole machine; ask first |
 

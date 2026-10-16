@@ -85,7 +85,10 @@ jobs:
           # on `sf org login` ("Detected unsettled top-level await" in the CLI entrypoint).
           # 24.16.0 is the last-known-good — Prepare RLM Org succeeded on it 2026-06-11
           # (run 27314890121). Re-float to "24" once a newer 24.x or sf CLI release restores
-          # compatibility.
+          # compatibility. Both now have (forcedotcom/cli#3586: Node 24.18.0, and sf 2.142.1
+          # moved jsforce to native fetch), but moving this pin needs a live Prepare RLM Org
+          # run to verify. Whatever it moves to stays on the major line pinned in .nvmrc
+          # (tests/test_node_line.py checks they agree).
           node-version: "24.16.0"
 
       - name: Cache npm download cache

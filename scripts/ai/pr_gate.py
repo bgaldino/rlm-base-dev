@@ -379,6 +379,16 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="node_line",
+        cmd=["python", "tests/test_node_line.py"],
+        # Every file that names the Node major line, so bumping any one alone runs the check that
+        # they still agree with .nvmrc. Its own check rather than a STDLIB_SUITES entry: a Dockerfile
+        # or workflow edit should cost this sub-second suite, not the whole offline bundle.
+        triggers=[".nvmrc", ".envrc", "package.json", "docker/Dockerfile", ".github/workflows/",
+                  "scripts/bash/update-toolchain.sh", "tests/test_node_line.py"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="doc_build_steps",
         cmd=["python", "tests/test_doc_build_steps.py"],
         # The suite walks every .md in the repo, so any .md must be able to select it.

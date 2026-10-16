@@ -71,7 +71,7 @@ gh auth login
 
 > **Why nvm over `brew install node`?** Homebrew installs a single Node version system-wide. nvm lets you pin projects to specific Node versions and keeps global npm packages (like `@salesforce/cli`) tied to the version they were installed with.
 >
-> **Node.js 22 or later required:** The repository npm tooling declares `engines.node: >=22` in `package.json`. Use an LTS release meeting that floor; the build workflow uses Node 24.
+> **Node.js 24, the line pinned in `.nvmrc`:** the repo's `.envrc` selects it with a bare `nvm use`, `package.json` declares `engines.node: >=24`, and the Docker image and the build workflow use Node 24 too. The line moves only by a deliberate change to `.nvmrc` (see [Bumping a major line](dev-environment-setup.md#bumping-a-major-line)).
 
 ```bash
 # Install nvm via Homebrew
@@ -103,14 +103,14 @@ echo 'fi' >> ~/.zshenv
 # Reload your shell
 source ~/.zshrc
 
-# Install the latest LTS version of Node.js
-nvm install --lts
+# Install the repo's Node line (the major in .nvmrc) — the newest 24.x
+nvm install 24
 
-# Set LTS as the default for all new shells
-nvm alias default 'lts/*'
+# Make it the default for all new shells
+nvm alias default 24
 
 # Verify
-# Should show an LTS release >=22 (the build workflow uses Node 24)
+# Should show v24.x
 node --version
 npm --version
 ```
@@ -358,7 +358,7 @@ Node LTS refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
 scripts/bash/update-toolchain.sh
 ```
 
-It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade --formula` (casks are yours to upgrade) → latest patch in your pinned Python line (stopping if it can't import `ssl`) → latest LTS Node → `sf` via `npm install -g`, or `sf update` for an installer-based `sf` → CCI reinstall/upgrade → Robot pins re-injected → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins (e.g. Python 3.13, Node `lts/*`) are configured at the top of the script.
+It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade --formula` (casks are yours to upgrade) → latest patch in your pinned Python line (stopping if it can't import `ssl`) → the newest patch of the Node line in `.nvmrc` → `sf` via `npm install -g`, or `sf update` for an installer-based `sf` → CCI reinstall/upgrade → Robot pins re-injected → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins: Python's (3.13) is at the top of the script, Node's (24) is `.nvmrc`.
 
 For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](dev-environment-setup.md).
 
@@ -406,8 +406,8 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Documentation: https://help.sfdmu.com/
 
 7. **Node.js** — required by the `sf` CLI and SFDMU plugin
-   - Use an LTS release **22 or later**, matching `package.json`; the build workflow uses Node 24
-   - Installation (macOS): `brew install nvm` then `nvm install --lts` (recommended) — see Step 3 in the macOS setup guide
+   - Use **Node 24**, the line pinned in `.nvmrc` (`package.json` declares `engines.node: >=24`; the Docker image and the build workflow use 24)
+   - Installation (macOS): `brew install nvm` then `nvm install 24` (recommended) — see Step 3 in the macOS setup guide
    - Verify: `node --version`
 
 8. **Python** (for custom tasks and the repo's AI/schema-diff scripts)

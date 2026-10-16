@@ -65,7 +65,7 @@ Run this first — it checks everything:
 | CumulusCI not found | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | SF CLI < v2 | `npm install -g @salesforce/cli` (NOT `brew install sf`) |
 | SFDMU plugin missing/outdated | Auto-fixed by default (`auto_fix=true`). Manual: `sf plugins install sfdmu` |
-| Node.js not found | `nvm install --lts && nvm alias default lts/*` |
+| Node.js not found | `nvm install 24 && nvm alias default 24` (the line pinned in `.nvmrc`) |
 | Robot Framework deps missing | Auto-fixed by default. Manual: `pipx inject cumulusci --force -r robot/requirements.txt` |
 | Chrome/ChromeDriver missing | Install Chrome; `pip install webdriver-manager` |
 | Chrome/ChromeDriver versions mismatch, a browser override has no `CHROMEDRIVER_PATH`, or an override path is not executable or does not run cleanly (wrong architecture, nonzero `--version` exit) | Install the matching driver and point `CHROMEDRIVER_PATH` at it, or fix/unset `CHROME_BINARY` / `CHROME_BIN` / `CHROMEDRIVER_PATH` |
