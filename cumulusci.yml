@@ -1548,7 +1548,8 @@ tasks:
       2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text),
       2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
       the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set
-      (field access + Apex class access + RunFlow). Flexipages for billing_ui are
+      (field access, read on the objects the payments view queries, Apex class access,
+      RunFlow). Flexipages for billing_ui are
       deployed via assemble_and_deploy_ux (billing_ui feature flag).
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
@@ -1589,13 +1590,40 @@ tasks:
                 replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8500' LIMIT 1
                 api: rest
 
+  create_default_invoice_email_template:
+    group: Revenue Lifecycle Management
+    description: >
+      Create the "Default Invoice Email Template" (Lightning HTML template on Invoice, org
+      public folder) that Billing Settings creates only from the Setup UI toggle, never from a
+      Metadata API deploy. Same name, labels and merge fields as Core's; skips when an Invoice
+      template with that name or developer name exists (it uses the developer name
+      RLM_Default_Invoice_Email_Template if a non-Invoice template holds the usual one,
+      matches either, and stops with an error if non-Invoice templates hold both).
+      deploy_billing_email_template_settings then selects it.
+    class_path: tasks.rlm_apex_file.FileBasedAnonymousApexTask
+    options:
+      path: scripts/apex/createDefaultInvoiceEmailTemplate.apex
+
+  deploy_billing_email_template_settings:
+    group: Revenue Lifecycle Management
+    description: Select the Default Invoice Email Template (created by create_default_invoice_email_template) as Billing Settings' default email template (defaultEmailTemplate)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_billing_email_template_settings
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //BillingSettings/defaultEmailTemplate[text()="__DEFAULT_EMAIL_TEMPLATE_ID__"]
+                replace_record_id_query: SELECT Id FROM EmailTemplate WHERE (Name = 'Default Invoice Email Template' OR DeveloperName IN ('Default_Invoice_Email_Template', 'RLM_Default_Invoice_Email_Template')) AND RelatedEntityType = 'Invoice' ORDER BY CreatedDate LIMIT 1
+                api: rest
+
   deploy_billing_template_id_settings:
     description: >
-      NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with
-      auto-generated template IDs (resolved after deploy_billing_template_settings
-      triggers template auto-creation). Sets defaultEmailTemplate,
-      defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings
-      auto-default these values; explicit deployment is not required.
+      NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with the invoice
+      template IDs resolved from the org: defaultEmailTemplate, defaultInvPreviewTemplate and
+      defaultInvoiceDocTemplate. Billing defaults the preview and document templates itself;
+      prepare_billing selects the email template with deploy_billing_email_template_settings.
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
@@ -1605,7 +1633,7 @@ tasks:
           options:
             patterns:
               - xpath: //BillingSettings/defaultEmailTemplate[text()="__DEFAULT_EMAIL_TEMPLATE_ID__"]
-                replace_record_id_query: SELECT Id FROM EmailTemplate WHERE Name = 'Default Invoice Email Template' ORDER BY CreatedDate DESC LIMIT 1
+                replace_record_id_query: SELECT Id FROM EmailTemplate WHERE (Name = 'Default Invoice Email Template' OR DeveloperName IN ('Default_Invoice_Email_Template', 'RLM_Default_Invoice_Email_Template')) AND RelatedEntityType = 'Invoice' ORDER BY CreatedDate LIMIT 1
                 api: rest
               - xpath: //BillingSettings/defaultInvPreviewTemplate[text()="__DEFAULT_INV_PREVIEW_TEMPLATE_ID__"]
                 replace_record_id_query: SELECT Id FROM DocumentTemplate WHERE Name = 'DefaultInvoicePreviewTemplate' LIMIT 1
@@ -1615,7 +1643,7 @@ tasks:
                 api: rest
 
   deploy_billing_template_settings:
-    description: Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
+    description: Re-enable Invoice Email/PDF toggles to trigger auto-creation of the default invoice preview and document templates (cycle step 3); the email template is created by create_default_invoice_email_template
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
@@ -3885,18 +3913,26 @@ flows:
         task: deploy_billing_template_settings
         when: project_config.project__custom__billing
       11:
+        # Billing Settings' "Select Default Email Template" stays empty after a Metadata API
+        # deploy: Core creates the template only from the Setup UI toggle.
+        task: create_default_invoice_email_template
+        when: project_config.project__custom__billing
+      12:
+        task: deploy_billing_email_template_settings
+        when: project_config.project__custom__billing
+      13:
         task: deploy_post_billing_ui
         when: project_config.project__custom__billing_ui
-      12:
+      14:
         task: assign_permission_sets
         when: project_config.project__custom__billing_ui
         options:
           api_names:
             - RLM_BillingUI
-      13:
+      15:
         task: apply_context_billing_order
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui
-      14:
+      16:
         flow: prepare_billing_portal
 
   prepare_prm:
