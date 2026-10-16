@@ -132,12 +132,28 @@ export PATH="$HOME/.local/bin:$PATH"
 # `default` to a concrete vX.Y.Z via nvm's public API, then prepend that bin
 # dir. `nvm version default` handles any alias chain — a major such as `24`
 # (which `update-toolchain.sh` sets from `.nvmrc`) or a glob such as `lts/*` —
-# without depending on nvm's internal alias-cache file layout.
+# without depending on nvm's internal alias-cache file layout. Never prepend
+# the newest installed version instead (`ls "$NVM_DIR/versions/node" | sort -V
+# | tail -1`): installing the next major early would then move every shell to it.
+#
+# Skip the prepend when $DIRENV_DIR is set and PATH already holds an nvm Node:
+# this shell was started from one that already loaded a project's .envrc (an
+# agent's, IDE task's or script's `zsh -c`), and it inherits that PATH, with
+# .envrc's `nvm use` Node first, or this block's `default` from the parent for
+# a project that doesn't pin Node. The `direnv export` below sees the .envrc
+# already loaded and changes nothing, so a Node prepended here would win over
+# the project's pinned line. Without an nvm Node on PATH there is nothing to
+# keep, so `default` goes first as usual. The `brew shellenv` above still moves
+# Homebrew's bin first in that shell, so keep no Homebrew `node`
+# (local-installation.md, Step 3).
 export NVM_DIR="$HOME/.nvm"
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
   . "$_NVM_PREFIX/nvm.sh" --no-use
   _NVM_VER="$(nvm version default 2>/dev/null)"
+  if [ -n "${DIRENV_DIR:-}" ]; then
+    case ":$PATH:" in *":$NVM_DIR/versions/node/"*) _NVM_VER="" ;; esac
+  fi
   if [ -n "$_NVM_VER" ] && [ "$_NVM_VER" != "N/A" ] && \
      [ -d "$NVM_DIR/versions/node/$_NVM_VER/bin" ]; then
     export PATH="$NVM_DIR/versions/node/$_NVM_VER/bin:$PATH"

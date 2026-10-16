@@ -30,6 +30,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
@@ -425,7 +426,8 @@ class EnvrcNodeBlock(unittest.TestCase):
 
 
 class ValidateSetupNode(unittest.TestCase):
-    """validate_setup's Node check enforces the .nvmrc line: lower FAILs, higher WARNs."""
+    """validate_setup's Node check enforces the .nvmrc line: lower FAILs, higher WARNs, and so
+    does an nvm `default` alias that resolves to another major (skipped without nvm)."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -435,6 +437,7 @@ class ValidateSetupNode(unittest.TestCase):
         self.task = object.__new__(ValidateSetup)
         self.task.logger = logging.getLogger("validate_setup_node_test")
         self.task._pinned_node_major = lambda: 24
+        self.task._nvm_default_version = lambda: None  # no nvm, unless a test says otherwise
 
     def run_with_node(self, version_line):
         node = Path(self.tmp.name) / "node"
@@ -462,6 +465,71 @@ class ValidateSetupNode(unittest.TestCase):
     def test_missing_node_warns(self):
         os.environ["PATH"] = self.tmp.name
         self.assertEqual(self.task._check_node()["status"], WARN)
+
+    def test_nvm_default_on_the_pinned_major_passes(self):
+        self.task._nvm_default_version = lambda: "v24.15.0"
+        self.assertEqual(self.run_with_node("v24.22.0")["status"], PASS)
+
+    def test_nvm_default_on_another_major_warns_with_the_fix(self):
+        for default in ("v26.12.0", "v22.20.0", "N/A", ""):
+            with self.subTest(default=default):
+                self.task._nvm_default_version = lambda d=default: d
+                result = self.run_with_node("v24.22.0")
+                self.assertEqual(result["status"], WARN)
+                self.assertIn("nvm's default alias resolves to", result["detail"])
+                self.assertIn("update-toolchain.sh", result["detail"])
+
+    def test_nvm_default_note_joins_the_other_verdicts(self):
+        self.task._nvm_default_version = lambda: "v26.12.0"
+        result = self.run_with_node("v26.12.0")
+        self.assertEqual(result["status"], WARN)
+        self.assertIn("Also, nvm's default alias resolves to v26.12.0", result["detail"])
+        self.assertEqual(self.run_with_node("v22.20.0")["status"], FAIL)
+
+    def test_nvm_default_lookup_failure_is_quiet(self):
+        def broken():
+            raise subprocess.TimeoutExpired("bash", 30)
+        self.task._nvm_default_version = broken
+        self.assertEqual(self.run_with_node("v24.22.0")["status"], PASS)
+
+    def fake_nvm_sh(self, rel):
+        path = Path(self.tmp.name) / rel / "nvm.sh"
+        path.parent.mkdir(parents=True)
+        path.write_text(f'nvm() {{ [ "$*" = "version default" ] && echo "v26.12.0 via {rel}"; }}\n')
+        return path.parent
+
+    def nvm_env(self, **extra):
+        """os.environ without nvm or Homebrew settings and with no brew on PATH, plus `extra`."""
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("NVM_DIR", "XDG_CONFIG_HOME", "HOMEBREW_PREFIX")}
+        env.update(PATH="/usr/bin:/bin", **extra)
+        return mock.patch.dict(os.environ, env, clear=True)
+
+    def test_nvm_default_version_sources_nvm_from_nvm_dir(self):
+        # No Homebrew, so nvm comes from $NVM_DIR, as .envrc would find it.
+        task = object.__new__(ValidateSetup)
+        nvm_dir = self.fake_nvm_sh("nvm")
+        with self.nvm_env(NVM_DIR=str(nvm_dir)):
+            self.assertEqual(task._nvm_default_version(), "v26.12.0 via nvm")
+        with self.nvm_env(NVM_DIR=str(Path(self.tmp.name) / "none")):
+            self.assertIsNone(task._nvm_default_version())
+
+    def test_nvm_default_version_prefers_homebrew_from_homebrew_prefix(self):
+        # $HOMEBREW_PREFIX (exported by `brew shellenv`) finds Homebrew's nvm without starting brew.
+        task = object.__new__(ValidateSetup)
+        nvm_dir = self.fake_nvm_sh("nvm")
+        self.fake_nvm_sh("brew/opt/nvm")
+        with self.nvm_env(NVM_DIR=str(nvm_dir), HOMEBREW_PREFIX=str(Path(self.tmp.name) / "brew")):
+            self.assertEqual(task._nvm_default_version(), "v26.12.0 via brew/opt/nvm")
+
+    def test_nvm_default_version_survives_a_failing_source(self):
+        # Homebrew's nvm.sh returns 1 when it can't create $NVM_DIR's symlinks, after nvm loaded.
+        task = object.__new__(ValidateSetup)
+        nvm_dir = self.fake_nvm_sh("nvm")
+        with open(nvm_dir / "nvm.sh", "a") as fh:
+            fh.write("false\n")
+        with self.nvm_env(NVM_DIR=str(nvm_dir)):
+            self.assertEqual(task._nvm_default_version(), "v26.12.0 via nvm")
 
     def test_pinned_major_reads_the_real_nvmrc(self):
         self.assertEqual(object.__new__(ValidateSetup)._pinned_node_major(), nvmrc_major(read(".nvmrc")))

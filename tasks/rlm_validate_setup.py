@@ -239,13 +239,72 @@ class ValidateSetup(BaseTask):
             return None
         return int(value) if re.fullmatch(r"\d+", value) else None
 
+    def _nvm_default_version(self) -> Optional[str]:
+        """What nvm's `default` alias resolves to (`v24.22.0`, or `N/A`), or None without nvm.
+
+        nvm.sh is found where .envrc and update-toolchain.sh look: Homebrew's, then nvm's own
+        installer's in $NVM_DIR (default ~/.nvm), then $XDG_CONFIG_HOME/nvm.
+        """
+        nvm_dir = os.environ.get("NVM_DIR") or os.path.expanduser("~/.nvm")
+        candidates = []
+        # `brew shellenv` exports HOMEBREW_PREFIX; reading it saves starting Homebrew.
+        homebrew = os.environ.get("HOMEBREW_PREFIX")
+        prefix = os.path.join(homebrew, "opt", "nvm") if homebrew else ""
+        if not prefix and shutil.which("brew"):
+            try:
+                prefix = subprocess.run(
+                    ["brew", "--prefix", "nvm"], capture_output=True, text=True, timeout=20
+                ).stdout.strip()
+            except (OSError, subprocess.TimeoutExpired):
+                prefix = ""
+        if prefix:
+            candidates.append((os.path.join(prefix, "nvm.sh"), nvm_dir))
+        candidates.append((os.path.join(nvm_dir, "nvm.sh"), nvm_dir))
+        xdg = os.environ.get("XDG_CONFIG_HOME")
+        if xdg:
+            candidates.append((os.path.join(xdg, "nvm", "nvm.sh"), os.path.join(xdg, "nvm")))
+        found = next(((sh, d) for sh, d in candidates if os.path.isfile(sh) and os.path.getsize(sh)), None)
+        if not found or not shutil.which("bash"):
+            return None
+        nvm_sh, nvm_dir = found
+        result = subprocess.run(
+            # `;`, not `&&`: Homebrew's nvm.sh returns 1 when it can't create $NVM_DIR or its
+            # symlinks there, after nvm's functions are already loaded.
+            ["bash", "-c", '. "$1" --no-use; nvm version default', "bash", nvm_sh],
+            capture_output=True, text=True, timeout=30, env={**os.environ, "NVM_DIR": nvm_dir},
+        )
+        version = result.stdout.strip().splitlines()
+        return version[-1].strip() if version else None
+
+    def _nvm_default_note(self, pinned: int) -> Optional[str]:
+        """Why nvm's `default` alias needs fixing, or None when it resolves to the pinned major
+        (or nvm isn't installed: the Node check itself covers that)."""
+        try:
+            default = self._nvm_default_version()
+        except Exception:
+            return None
+        if default is None:
+            return None
+        m = re.match(r"v?(\d+)\.", default)
+        if m and int(m.group(1)) == pinned:
+            return None
+        return (
+            f"nvm's default alias resolves to {default or 'nothing'}, not the line pinned in .nvmrc "
+            f"({pinned}): shells outside the repo run that Node, and so does a shell started from a repo "
+            f"shell when ~/.zshenv prepends it without the $DIRENV_DIR check in the template "
+            f"(docs/guides/dev-environment-setup.md). Run scripts/bash/update-toolchain.sh, which points "
+            f"the alias at .nvmrc's line."
+        )
+
     def _check_node(self) -> Dict[str, str]:
         """Node runs, and its major is the line pinned in .nvmrc.
 
         A lower major FAILs: it's below package.json's engines floor, and it's what a shell gets
         when .envrc couldn't select the pinned line and the shell's own default is an old Node.
         A higher major WARNs: it may work (a deliberate test of the next line), but the
-        toolchain is verified on the pinned one.
+        toolchain is verified on the pinned one. nvm's `default` alias resolving to another
+        major WARNs too (skipped when nvm isn't installed): the repo shell is right, but a
+        shell outside it, or one whose startup file prepends `default`, isn't.
         """
         label = "Node.js"
         try:
@@ -266,12 +325,15 @@ class ValidateSetup(BaseTask):
                     f"{version} is below the Node line pinned in .nvmrc ({pinned}). Run `nvm install {pinned}` "
                     "(or scripts/bash/update-toolchain.sh), then `direnv allow` in the repo if .envrc is blocked.",
                 )
+            note = self._nvm_default_note(pinned)
             if major > pinned:
                 return self._warn(
                     label,
                     f"{version}, not the line pinned in .nvmrc ({pinned}). It may work, but the toolchain is "
-                    f"verified on {pinned}: `nvm use` in the repo selects it.",
+                    f"verified on {pinned}: `nvm use` in the repo selects it." + (f" Also, {note}" if note else ""),
                 )
+            if note:
+                return self._warn(label, f"{version}; but {note}")
             return self._ok(label, version)
         except FileNotFoundError:
             return self._warn(
