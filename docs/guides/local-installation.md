@@ -71,7 +71,7 @@ gh auth login
 
 > **Why nvm over `brew install node`?** Homebrew installs a single Node version system-wide. nvm lets you pin projects to specific Node versions and keeps global npm packages (like `@salesforce/cli`) tied to the version they were installed with.
 >
-> **Node.js 24, the line pinned in `.nvmrc`:** the repo's `.envrc` selects it with a bare `nvm use` (with Homebrew's nvm, or one from nvm's own installer in `$NVM_DIR`), `package.json` declares `engines.node: >=24`, and the Docker image and the build workflow use Node 24 too. The line moves only by a deliberate change to `.nvmrc` (see [Bumping a major line](dev-environment-setup.md#bumping-a-major-line)).
+> **Node.js 24, the line pinned in `.nvmrc`:** the repo's `.envrc` selects it with a bare `nvm use` (with Homebrew's nvm, or one from nvm's own installer in `$NVM_DIR` or `$XDG_CONFIG_HOME/nvm`), `package.json` declares `engines.node: >=24`, and the Docker image and the build workflow use Node 24 too. The line moves only by a deliberate change to `.nvmrc` (see [Bumping a major line](dev-environment-setup.md#bumping-a-major-line)).
 
 ```bash
 # Install nvm via Homebrew

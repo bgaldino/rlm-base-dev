@@ -144,8 +144,12 @@ def nvm_sh_candidates(text):
 def section(text, start, end):
     """The lines from the one containing `start` up to (not including) the one containing `end`."""
     lines = text.splitlines()
-    first = next(i for i, line in enumerate(lines) if start in line)
-    last = next(i for i, line in enumerate(lines[first:], first) if end in line)
+    first = next((i for i, line in enumerate(lines) if start in line), None)
+    if first is None:
+        raise ValueError(f"no line contains the start marker {start!r}")
+    last = next((i for i, line in enumerate(lines[first:], first) if end in line), None)
+    if last is None:
+        raise ValueError(f"no line after {start!r} contains the end marker {end!r}")
     return "\n".join(lines[first:last]) + "\n"
 
 
@@ -237,6 +241,10 @@ class Parsers(unittest.TestCase):
         block = section(text, "# ── Node", "# ── Next")
         self.assertEqual(block, "# ── Node\n  # note\n\n  x=1\n")
         self.assertEqual(code_lines(block), ["x=1"])
+        with self.assertRaisesRegex(ValueError, "start marker"):
+            section(text, "# ── Gone", "# ── Next")
+        with self.assertRaisesRegex(ValueError, "end marker"):
+            section(text, "# ── Node", "# ── Gone")
 
     def test_lts_float(self):
         self.assertEqual(floats_on_lts("# don't use lts/* here\nnvm use\n"), [])
@@ -327,15 +335,15 @@ class NodeLine(unittest.TestCase):
 
 
 FAKE_NVM_SH = """\
-echo "sourced $NVM_DIR ${1:-}" >> "$NVM_LOG"
+echo "sourced ${BASH_SOURCE[0]} ${1:-}" >> "$NVM_LOG"
 nvm() { echo "nvm $*" >> "$NVM_LOG"; [ -n "${FAKE_NODE_INSTALLED:-}" ]; }
 """
 
 
 @unittest.skipUnless(shutil.which("bash"), "needs bash, which direnv runs .envrc under")
 class EnvrcNodeBlock(unittest.TestCase):
-    """.envrc's Node block run under bash against fake nvm installs: which nvm.sh it sources,
-    the NVM_DIR it leaves, what it tells nvm, and what it prints."""
+    """.envrc's Node block run under bash against fake nvm installs: which nvm.sh it sources
+    (each fake logs its own path), the NVM_DIR it leaves, what it tells nvm, and what it prints."""
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -373,32 +381,33 @@ class EnvrcNodeBlock(unittest.TestCase):
     def test_installer_nvm_in_nvm_dir(self):
         nvm_dir = self.fake_nvm("custom-nvm")
         out, err, log = self.run_block(NVM_DIR=nvm_dir)
-        self.assertEqual(log, [f"sourced {nvm_dir} --no-use", "nvm use --silent"])
+        self.assertEqual(log, [f"sourced {nvm_dir}/nvm.sh --no-use", "nvm use --silent"])
         self.assertEqual(out, f"NVM_DIR={nvm_dir}")
         self.assertEqual(err, "")
 
     def test_installer_nvm_in_default_dir(self):
         nvm_dir = self.fake_nvm("home/.nvm")
         out, err, log = self.run_block()
-        self.assertEqual(log, [f"sourced {nvm_dir} --no-use", "nvm use --silent"])
+        self.assertEqual(log, [f"sourced {nvm_dir}/nvm.sh --no-use", "nvm use --silent"])
         self.assertEqual(out, f"NVM_DIR={nvm_dir}")
 
     def test_installer_nvm_under_xdg_config_home(self):
         nvm_dir = self.fake_nvm("config/nvm")
         out, err, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
-        self.assertEqual(log, [f"sourced {nvm_dir} --no-use", "nvm use --silent"])
+        self.assertEqual(log, [f"sourced {nvm_dir}/nvm.sh --no-use", "nvm use --silent"])
         self.assertEqual(out, f"NVM_DIR={nvm_dir}")
 
     def test_order_is_brew_then_nvm_dir_then_xdg(self):
         nvm_dir = self.fake_nvm("home/.nvm")
         self.fake_nvm("config/nvm")
         _, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
-        self.assertEqual(log[0], f"sourced {nvm_dir} --no-use")
+        self.assertEqual(log[:1], [f"sourced {nvm_dir}/nvm.sh --no-use"])
         self.log.unlink()
-        self.fake_brew(self.fake_nvm("brew/opt/nvm"))
+        brew_nvm = self.fake_nvm("brew/opt/nvm")
+        self.fake_brew(brew_nvm)
         out, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
         # Homebrew's nvm.sh wins, but nvm still keeps its versions in $NVM_DIR.
-        self.assertEqual(log, [f"sourced {nvm_dir} --no-use", "nvm use --silent"])
+        self.assertEqual(log, [f"sourced {brew_nvm}/nvm.sh --no-use", "nvm use --silent"])
         self.assertEqual(out, f"NVM_DIR={nvm_dir}")
 
     def test_uninstalled_line_warns_without_falling_back(self):

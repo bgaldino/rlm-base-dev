@@ -268,7 +268,7 @@ if [ -n "$_NVM_SH" ]; then
   nvm use --silent >/dev/null 2>&1 \
     || echo ".envrc: Node $(cat .nvmrc 2>/dev/null) (from .nvmrc) isn't installed. Run 'nvm install' here, or scripts/bash/update-toolchain.sh." >&2
 else
-  echo ".envrc: nvm not found (Homebrew's, \$NVM_DIR/nvm.sh or \$XDG_CONFIG_HOME/nvm/nvm.sh), so .nvmrc's Node line isn't applied. Install nvm: docs/guides/local-installation.md, Step 3." >&2
+  echo ".envrc: nvm not found (via 'brew --prefix nvm', in \$NVM_DIR or in \$XDG_CONFIG_HOME/nvm), so .nvmrc's Node line isn't applied. Install it (docs/guides/local-installation.md, Step 3), or put Homebrew on PATH if your nvm comes from Homebrew." >&2
 fi
 unset _NVM_PREFIX _NVM_SH
 
