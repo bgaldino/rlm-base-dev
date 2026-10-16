@@ -166,11 +166,22 @@ Objects in the `objects` array must be ordered **parent → child**. SFDMU delet
 ## SOQL Query Rules
 
 - ORDER BY fields must appear in the SELECT clause
+- Every Upsert/Update matching-key component, including relationship traversals,
+  must be present in SELECT; don't assume querying the parent ID substitutes for
+  a traversal used by `externalId`.
 - Relationship traversal columns in SOQL must match CSV header expectations
 - Use relationship notation for lookup references: `Parent.Field` not `ParentId`
 
 ## CSV Conventions
 
+- Match CSV filename case exactly to the query's FROM object, including pass
+  overrides. A case-insensitive local filesystem can hide a mismatch that fails
+  on Linux; `Account.csv` and `account.csv` are not interchangeable.
+- With `excludeIdsFromCSVFiles: true`, omit `Id` from portable CSV headers even
+  when SELECT includes it for internal matching. Validate the exported projection,
+  not a literal copy of the SOQL field list.
+- Verify that single-field key values are unique, non-null and not made equivalent
+  by the target field's numeric coercion. A convenient Name is not inherently unique.
 - `$$` composite key columns: header format `$$Field1$Parent.Field2` — values must match exactly
 - Empty CSVs: must have `excluded: true` in export.json to prevent destructive delete
 - After extraction, run `scripts/post_process_extraction.py` to add `$$` columns (SFDMU v5 doesn't write them during extraction)
@@ -210,6 +221,13 @@ If lookup updates are unexpectedly skipped:
     reference-traversal query fields.
 
 ## Multi-Pass Architecture
+
+Prefer one shape: top-level `objects` for a single pass, or `objectSets` for multiple
+passes. If both arrays are nonempty, SFDMU prepends top-level `objects` as a new
+first pass—it does not discard them in favor of `objectSets`. This changes pass
+numbering and override-file selection. Do not declare the same target object twice
+within one effective pass, including case variants; one intentional declaration
+must express that pass's operation and fields. Across-pass repetition is valid.
 
 Some plans use multiple objectSets (passes) to handle circular dependencies or activation ordering:
 - **Pass 1**: Insert records in Draft/Inactive status
