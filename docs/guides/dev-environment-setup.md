@@ -426,8 +426,10 @@ When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
 
 1. Python: edit `PY_LINE` at the top of `scripts/bash/update-toolchain.sh`.
    Node: edit `.nvmrc`, and in the same change the Dockerfile's `NODE_MAJOR`,
-   CI's `node-version` in `prepare-rlm-org.yml` and `engines.node` in
-   `package.json` (`tests/test_node_line.py` fails the gate until they agree)
+   CI's `node-version` in `prepare-rlm-org.yml`, `engines.node` in
+   `package.json`, and the lines that tell people which Node to install (both
+   setup guides, the toolchain and troubleshooting skills, the `validate_setup`
+   hint). `tests/test_node_line.py` fails the gate until they all agree
 2. Python: edit the `pyenv latest <line>` call in `.envrc` (Node needs no
    `.envrc` change: its bare `nvm use` reads `.nvmrc`)
 3. Run the script. It installs the new line, reinstalls CCI under the new

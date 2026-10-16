@@ -6,7 +6,9 @@
 neither Docker nor Actions reads `.nvmrc` unless told to. Bumping the line is a deliberate
 change to all of them at once (docs/guides/dev-environment-setup.md, "Bumping a major
 line"), and this suite fails the gate until they agree. It also refuses a float back to
-`lts/*`, which would jump a major the day the next one becomes LTS, with no test step.
+`lts/*`, which would jump a major the day the next one becomes LTS, with no test step. And it
+covers the lines that tell a person which Node to install (the setup guides, the skills, the
+`validate_setup` hint), so a bump can't leave the guides installing the old line.
 
 Each rule is a function over text, with a positive control beside the real-file check, so a
 parser that matches nothing can't pass by finding nothing to compare.
@@ -47,7 +49,7 @@ def setup_node_lines(text):
         for later in lines[i + 1:]:
             if re.match(r"\s*- ", later):
                 break
-            m = re.match(r"\s*node-version(-file)?:\s*[\"']?([^\"'#\s]+)", later)
+            m = re.match(r"\s*node-version(-file)?:\s*[\"']?([^\"'#]+?)[\"']?\s*(?:#.*)?$", later)
             if m:
                 entry = (i + 1, "file" if m.group(1) else "version", m.group(2))
                 break
@@ -60,6 +62,31 @@ def engines_floor_major(package_json_text):
     spec = (json.loads(package_json_text).get("engines") or {}).get("node", "")
     m = re.search(r">=\s*v?(\d+)", spec)
     return int(m.group(1)) if m else None
+
+
+# The phrasings the guides, skills and validate_setup hint use to name the line. Each instruction
+# file must match at least one, so a reworded line drops out loudly instead of silently.
+INSTRUCTION_FILES = (
+    "docs/guides/local-installation.md",
+    "docs/guides/dev-environment-setup.md",
+    ".cursor/skills/troubleshooting/SKILL.md",
+    ".cursor/skills/toolchain/SKILL.md",
+    "tasks/rlm_validate_setup.py",
+)
+INSTRUCTION_PATTERNS = (
+    r"nvm (?:install|alias default) (\d+)\b",
+    r"\.nvmrc`? \(`?(\d+)`?",
+    r"Node(?:\.js)? (\d+), the line pinned",
+    r"Node's \((\d+)\) is `\.nvmrc`",
+    r"Use \*\*Node (\d+)\*\*",
+    r"\bv(\d+)\.x \(the line pinned",
+    r"Should show v(\d+)\.x",
+)
+
+
+def instructed_majors(text):
+    """Every Node major an instruction names, in the phrasings above."""
+    return [int(m) for pat in INSTRUCTION_PATTERNS for m in re.findall(pat, text)]
 
 
 def floats_on_lts(text):
@@ -105,6 +132,13 @@ class Parsers(unittest.TestCase):
         self.assertIsNone(engines_floor_major('{"engines": {"node": "^24"}}'))
         self.assertIsNone(engines_floor_major("{}"))
 
+    def test_instructions(self):
+        text = ("nvm install 26\nnvm alias default 26\n| `.nvmrc` (`26`) |\n"
+                "Node.js 26, the line pinned\nNode's (26) is `.nvmrc`\nUse **Node 26**\n"
+                "→ v26.x (the line pinned\n# Should show v26.x\n")
+        self.assertEqual(instructed_majors(text), [26] * 8)
+        self.assertEqual(instructed_majors("Node 24 → 26 is a deliberate change\n"), [])
+
     def test_lts_float(self):
         self.assertEqual(floats_on_lts("# don't use lts/* here\nnvm use\n"), [])
         self.assertEqual(floats_on_lts("  nvm use --silent lts/\\* >/dev/null\n"),
@@ -136,6 +170,9 @@ class NodeLine(unittest.TestCase):
             with self.subTest(workflow=wf.name, line=line):
                 if kind == "file":
                     self.assertEqual(value, ".nvmrc", "node-version-file must be .nvmrc")
+                elif value.startswith("${{"):
+                    self.fail(f"node-version {value} is an expression this check can't resolve: "
+                              "use node-version-file: .nvmrc, or a literal version on its line")
                 else:
                     self.assertRegex(value, r"^\d+", "node-version must name a version")
                     self.assertEqual(int(value.split(".")[0]), self.major,
@@ -144,6 +181,14 @@ class NodeLine(unittest.TestCase):
     def test_engines_floor_matches(self):
         self.assertEqual(engines_floor_major(read("package.json")), self.major,
                          "package.json engines.node must be >=<.nvmrc major>")
+
+    def test_instructions_match(self):
+        for rel in INSTRUCTION_FILES:
+            with self.subTest(file=rel):
+                majors = instructed_majors(read(rel))
+                self.assertTrue(majors, f"{rel} no longer names the Node line in a known phrasing")
+                self.assertEqual(set(majors), {self.major},
+                                 f"{rel} tells people to install a Node line other than .nvmrc's")
 
     def test_nothing_floats_on_lts(self):
         for rel in (".envrc", "scripts/bash/update-toolchain.sh"):
