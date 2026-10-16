@@ -200,12 +200,15 @@ def active_pyenv_init(text):
 
 def startup_templates():
     """The rc-file templates in dev-environment-setup.md §2, by file: the first ```sh block
-    under each `#### \`~/.zshenv\``, `~/.zprofile` and `~/.zshrc` heading."""
+    under each ~/.zshenv, ~/.zprofile and ~/.zshrc heading ("#### `~/.zshenv` ...")."""
     guide = read("docs/guides/dev-environment-setup.md")
     templates = {}
     for name in ("~/.zshenv", "~/.zprofile", "~/.zshrc"):
         heading = guide.index(f"#### `{name}`")
-        start = guide.index("```sh\n", heading) + len("```sh\n")
+        # Stop at the next Markdown heading (`## `, `### `, `#### `), not at a `#` comment
+        # inside the template's own code.
+        nxt = re.compile(r"\n#{2,4} ").search(guide, heading + 1)
+        start = guide.index("```sh\n", heading, nxt.start() if nxt else len(guide)) + len("```sh\n")
         templates[name] = guide[start:guide.index("```", start)]
     return templates
 
@@ -487,8 +490,8 @@ class NodeLine(unittest.TestCase):
         self.assertIn("# pyenv binary on PATH", templates["~/.zshenv"])
         for name, code in list(templates.items()) + [(".envrc", read(".envrc"))]:
             with self.subTest(file=name):
-                self.assertEqual(active_pyenv_init(code), [],
-                                 f"the {name} template must not run `pyenv init`")
+                where = name if name == ".envrc" else f"dev-environment-setup.md §2's {name} template"
+                self.assertEqual(active_pyenv_init(code), [], f"{where} must not run `pyenv init`")
 
     def test_envrc_has_no_default_fallback(self):
         # Falling back to nvm's `default` would silently select an older line when .nvmrc's

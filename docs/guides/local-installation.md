@@ -378,10 +378,10 @@ The validator does not install Salesforce CLI, Node.js, Python, or a browser.
 **Verify Claude Code can see your tools** by asking it to run:
 
 ```bash
-node --version && sf --version && cci version && python --version
+node --version && sf --version && cci version && pyenv exec python --version
 ```
 
-If any command returns "not found", check that `~/.zshenv` contains the blocks from the §2 `~/.zshenv` template (Steps 3 and 4 copy the Homebrew, NVM and pyenv ones), then **restart Claude Code** so it picks up the updated PATH.
+If any command returns "not found", check that `~/.zshenv` contains the blocks from the §2 `~/.zshenv` template (Steps 3 and 4 copy the Homebrew, NVM and pyenv ones), then **restart Claude Code** so it picks up the updated PATH. A bare `python --version` reports pyenv's Python only inside the repo, once direnv is set up ([dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation)); before that, or outside the repo, it reports macOS's `/usr/bin/python3` or nothing. That's by design (there's no global `pyenv init`), so don't add one to fix it.
 
 **After any PATH change** (new nvm version, new pyenv version, new pipx install), restart Claude Code — it inherits the PATH from the shell that launched it and does not reload `~/.zshenv` mid-session.
 
