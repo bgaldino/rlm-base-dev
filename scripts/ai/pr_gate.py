@@ -389,6 +389,10 @@ CHECKS = [
                   # The instructions that name the line, which the suite also compares.
                   "docs/guides/local-installation.md", "docs/guides/dev-environment-setup.md",
                   ".cursor/skills/troubleshooting/SKILL.md", ".cursor/skills/toolchain/SKILL.md",
+                  ".cursor/skills/toolchain/workstation-audit.md",
+                  ".cursor/skills/toolchain/verification-handoff.md",
+                  ".cursor/skills/toolchain/managed-workstations.md",
+                  "README.md", "CONTRIBUTING.md", "docker/README.md",
                   "tasks/rlm_validate_setup.py"],
         deps=[], gating=True,
     ),

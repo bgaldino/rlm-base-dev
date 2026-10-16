@@ -15,11 +15,19 @@ parser that matches nothing can't pass by finding nothing to compare.
 Stdlib only. Run with: python tests/test_node_line.py
 """
 import json
+import logging
+import os
 import re
+import stat
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
+
+from tasks.rlm_validate_setup import FAIL, PASS, WARN, ValidateSetup  # noqa: E402
 
 
 def nvmrc_major(text):
@@ -71,15 +79,32 @@ INSTRUCTION_FILES = (
     "docs/guides/dev-environment-setup.md",
     ".cursor/skills/troubleshooting/SKILL.md",
     ".cursor/skills/toolchain/SKILL.md",
+    ".cursor/skills/toolchain/workstation-audit.md",
+    ".cursor/skills/toolchain/verification-handoff.md",
     "tasks/rlm_validate_setup.py",
 )
+# Where a stale floor ("Node LTS >=22", "release **22 or later**", "an LTS ≥ 22") could survive a
+# bump: every instruction file above plus the docs that describe the toolchain without an install
+# line. Phrasings vary, so this rule isn't phrase-bound: any major written near "Node", "LTS",
+# "engines" or an nvm command that is *lower* than .nvmrc's fails. A higher one is allowed, for
+# forward-looking text such as "when Node 26 becomes LTS".
+STALE_SCAN_FILES = INSTRUCTION_FILES + (
+    ".cursor/skills/toolchain/managed-workstations.md",
+    "README.md",
+    "CONTRIBUTING.md",
+    "docker/README.md",
+)
+NODE_MAJOR_NEAR = re.compile(
+    r"(?:Node(?:\.js)?|LTS|engines(?:\.node)?|nvm (?:install|alias default|use))"
+    r"[^|`\n]{0,40}?(?<![\d.])(\d{2})(?![\d])")
 INSTRUCTION_PATTERNS = (
     r"nvm (?:install|alias default) (\d+)\b",
     r"\.nvmrc`? \(`?(\d+)`?",
     r"Node(?:\.js)? (\d+), the line pinned",
+    r"Node (\d+) \(the line pinned in",
     r"Node's \((\d+)\) is `\.nvmrc`",
     r"Use \*\*Node (\d+)\*\*",
-    r"\bv(\d+)\.x \(the line pinned",
+    r"\bv(\d+)\.x \((?:nvm; )?the line",
     r"Should show v(\d+)\.x",
 )
 
@@ -87,6 +112,11 @@ INSTRUCTION_PATTERNS = (
 def instructed_majors(text):
     """Every Node major an instruction names, in the phrasings above."""
     return [int(m) for pat in INSTRUCTION_PATTERNS for m in re.findall(pat, text)]
+
+
+def lower_majors(text, major):
+    """Majors below `major` written near a Node word: a stale floor left behind by a bump."""
+    return [int(n) for n in NODE_MAJOR_NEAR.findall(text) if int(n) < major]
 
 
 def floats_on_lts(text):
@@ -143,6 +173,17 @@ class Parsers(unittest.TestCase):
         self.assertEqual(instructed_majors(text), [26] * 8)
         self.assertEqual(instructed_majors("Node 24 → 26 is a deliberate change\n"), [])
 
+    def test_lower_majors(self):
+        for text in ("# Check CLI >=2 and Node LTS >=22\n", "use an LTS Node.js release **22 or later**\n",
+                     "| Node from nvm | `node -v` | an LTS ≥ 22 |\n", "v<LTS ≥ 22>.x (nvm)\n",
+                     "engines.node: >=22\n", "nvm install 22\n"):
+            with self.subTest(text=text):
+                self.assertEqual(lower_majors(text, 24), [22])
+        for text in ("Node 24 → 26 is deliberate\n", "when Node 26 becomes LTS\n",
+                     "Node, but only from an older 3.13 patch\n", "Node 24.16.0 is pinned\n"):
+            with self.subTest(text=text):
+                self.assertEqual(lower_majors(text, 24), [])
+
     def test_lts_float(self):
         self.assertEqual(floats_on_lts("# don't use lts/* here\nnvm use\n"), [])
         self.assertEqual(floats_on_lts("  nvm use --silent lts/\\* >/dev/null\n"),
@@ -194,6 +235,18 @@ class NodeLine(unittest.TestCase):
                 self.assertEqual(set(majors), {self.major},
                                  f"{rel} tells people to install a Node line other than .nvmrc's")
 
+    def test_no_stale_lower_major(self):
+        for rel in STALE_SCAN_FILES:
+            with self.subTest(file=rel):
+                self.assertEqual(lower_majors(read(rel), self.major), [],
+                                 f"{rel} still names a Node line below .nvmrc's")
+
+    def test_envrc_has_no_default_fallback(self):
+        # Falling back to nvm's `default` would silently select an older line when .nvmrc's
+        # isn't installed; .envrc warns instead (and validate_setup fails a lower major).
+        self.assertNotRegex(read(".envrc"), r"nvm use[^\n]*\bdefault\b",
+                            ".envrc must not fall back to nvm's default alias")
+
     def test_nothing_floats_on_lts(self):
         for rel in (".envrc", "scripts/bash/update-toolchain.sh"):
             with self.subTest(file=rel):
@@ -203,6 +256,49 @@ class NodeLine(unittest.TestCase):
     def test_update_script_reads_nvmrc(self):
         self.assertRegex(read("scripts/bash/update-toolchain.sh"), r'NODE_LINE="\$\(.*\.nvmrc',
                          "update-toolchain.sh must read NODE_LINE from .nvmrc")
+
+
+class ValidateSetupNode(unittest.TestCase):
+    """validate_setup's Node check enforces the .nvmrc line: lower FAILs, higher WARNs."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.saved_path = os.environ.get("PATH", "")
+        self.addCleanup(os.environ.__setitem__, "PATH", self.saved_path)
+        self.task = object.__new__(ValidateSetup)
+        self.task.logger = logging.getLogger("validate_setup_node_test")
+        self.task._pinned_node_major = lambda: 24
+
+    def run_with_node(self, version_line):
+        node = Path(self.tmp.name) / "node"
+        node.write_text(f"#!/bin/sh\necho '{version_line}'\n")
+        node.chmod(node.stat().st_mode | stat.S_IXUSR)
+        os.environ["PATH"] = f"{self.tmp.name}{os.pathsep}/usr/bin:/bin"
+        return self.task._check_node()
+
+    def test_pinned_major_passes(self):
+        self.assertEqual(self.run_with_node("v24.22.0")["status"], PASS)
+
+    def test_lower_major_fails_with_the_fix(self):
+        result = self.run_with_node("v22.20.0")
+        self.assertEqual(result["status"], FAIL)
+        self.assertIn("nvm install 24", result["detail"])
+
+    def test_higher_major_warns(self):
+        self.assertEqual(self.run_with_node("v26.12.0")["status"], WARN)
+
+    def test_unreadable_version_or_no_pin_passes(self):
+        self.assertEqual(self.run_with_node("weird")["status"], PASS)
+        self.task._pinned_node_major = lambda: None
+        self.assertEqual(self.run_with_node("v18.0.0")["status"], PASS)
+
+    def test_missing_node_warns(self):
+        os.environ["PATH"] = self.tmp.name
+        self.assertEqual(self.task._check_node()["status"], WARN)
+
+    def test_pinned_major_reads_the_real_nvmrc(self):
+        self.assertEqual(object.__new__(ValidateSetup)._pinned_node_major(), nvmrc_major(read(".nvmrc")))
 
 
 if __name__ == "__main__":

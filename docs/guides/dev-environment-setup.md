@@ -254,7 +254,8 @@ export NVM_DIR="$HOME/.nvm"
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
   . "$_NVM_PREFIX/nvm.sh" --no-use
-  nvm use --silent >/dev/null 2>&1 || nvm use --silent default >/dev/null 2>&1
+  nvm use --silent >/dev/null 2>&1 \
+    || echo ".envrc: Node $(cat .nvmrc 2>/dev/null) (from .nvmrc) isn't installed. Run 'nvm install' here, or scripts/bash/update-toolchain.sh." >&2
 fi
 unset _NVM_PREFIX
 

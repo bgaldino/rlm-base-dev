@@ -252,7 +252,7 @@ Install `@salesforce/cli` via npm using the nvm-managed Node from Step 3. This i
 npm install -g @salesforce/cli
 
 # Verify (must be 2.x or later)
-# Check CLI >=2 and Node LTS >=22; platform/architecture and patch versions vary
+# Check CLI >=2 and Node 24 (the line pinned in .nvmrc); platform/architecture and patch versions vary
 sf --version
 ```
 
@@ -388,7 +388,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Configured automatically after installation
 
 4. **Salesforce CLI** (`sf` CLI)
-   - Version 2.x or later; use an LTS Node.js release **22 or later** to meet this repository's npm engine requirement
+   - Version 2.x or later; use Node.js 24, the line pinned in `.nvmrc`, to meet this repository's npm engine requirement (`engines.node: >=24`)
    - Installation (macOS): `npm install -g @salesforce/cli` — see https://developer.salesforce.com/tools/salesforcecli
    - Verify: `sf --version`
 
