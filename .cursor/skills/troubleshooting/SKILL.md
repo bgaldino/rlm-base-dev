@@ -74,10 +74,16 @@ Run this first — it checks everything:
 
 ### `sf` or `node` not found in IDE / CI
 
-**Cause:** `~/.zshenv` is missing nvm/pyenv init blocks. Non-interactive
-shells (IDE terminals, CI runners) don't source `~/.zshrc`.
+**Cause:** `~/.zshenv` doesn't load nvm or put pyenv on PATH. Non-interactive
+shells (IDE tasks, CI runners, Claude Code's Bash tool) don't source `~/.zshrc`.
 
-**Fix:** Add both nvm and pyenv init to `~/.zshenv` AND `~/.zshrc`.
+**Fix:** Merge the `~/.zshenv` template's Homebrew, NVM and pyenv blocks from
+`docs/guides/dev-environment-setup.md` §2, in its order: the NVM block finds
+Homebrew's nvm through `brew`, which a non-login shell has only from the Homebrew
+block (`~/.zshrc` needs only the nvm completion lines). Don't add an `nvm.sh`
+source line of your own to `~/.zshrc` or `~/.zshenv`: without `--no-use`, nvm's
+auto-use runs in every shell, and a line in both files loads nvm twice in an
+interactive shell.
 
 ### "Org not found" or "auth failed" errors
 

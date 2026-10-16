@@ -74,34 +74,53 @@ gh auth login
 > **Node.js 24, the line pinned in `.nvmrc`:** the repo's `.envrc` selects it with a bare `nvm use` (with Homebrew's nvm, or one from nvm's own installer in `$NVM_DIR` or `$XDG_CONFIG_HOME/nvm`), `package.json` declares `engines.node: >=24`, and the Docker image and the build workflow use Node 24 too. The line moves only by a deliberate change to `.nvmrc` (see [Bumping a major line](dev-environment-setup.md#bumping-a-major-line)).
 
 ```bash
-# Install nvm via Homebrew
+# Install nvm via Homebrew, and create the directory nvm keeps Node versions in
 brew install nvm
+mkdir -p ~/.nvm
+```
 
-# Add nvm to your interactive shell (~/.zshrc)
-echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc
-echo '[ -s "$(brew --prefix nvm)/nvm.sh" ] && \. "$(brew --prefix nvm)/nvm.sh"' >> ~/.zshrc
-echo '[ -s "$(brew --prefix nvm)/etc/bash_completion.d/nvm" ] && \. "$(brew --prefix nvm)/etc/bash_completion.d/nvm"' >> ~/.zshrc
+nvm is a shell function, so a startup file has to load it in every shell, including the
+non-interactive ones that IDE tasks, scripts and Claude Code's Bash tool start. Don't
+`echo` lines of your own into `~/.zshenv` or `~/.zshrc`: copy them from the templates in
+[dev-environment-setup.md §2](dev-environment-setup.md#shell-config-responsibilities).
+Their `~/.zshenv` NVM block loads nvm without switching Node (`--no-use`), puts nvm's
+`default` Node first, and in a shell started from the repo keeps the repo's Node instead.
 
-# Also add nvm to ~/.zshenv so non-interactive shells see it
-# (required for IDE tools, CI runners, and Claude Code which spawn non-interactive shells)
-# Homebrew is often only on PATH in login shells (~/.zprofile); fall back to known absolute
-# locations so this works in non-interactive shells that never source ~/.zprofile.
-echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshenv
-echo '# Bootstrap Homebrew in non-interactive shells' >> ~/.zshenv
-echo 'if ! command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
-echo '  for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do' >> ~/.zshenv
-echo '    [ -x "$_brew" ] && eval "$($_brew shellenv)" && break' >> ~/.zshenv
-echo '  done' >> ~/.zshenv
-echo 'fi' >> ~/.zshenv
-echo 'if command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
-echo '  NVM_PREFIX="$(brew --prefix nvm 2>/dev/null)"' >> ~/.zshenv
-echo '  if [ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ]; then' >> ~/.zshenv
-echo '    \. "$NVM_PREFIX/nvm.sh"' >> ~/.zshenv
-echo '  fi' >> ~/.zshenv
-echo 'fi' >> ~/.zshenv
+1. Back up the two files (one that doesn't exist yet is skipped):
 
-# Reload your shell
-source ~/.zshrc
+   ```bash
+   for f in ~/.zshenv ~/.zshrc; do [ -f "$f" ] && cp "$f" "$f.bak.$(date +%Y%m%d)"; done
+   ```
+
+2. In `~/.zshenv`, add two blocks from the
+   [`~/.zshenv` template](dev-environment-setup.md#zshenv--runs-in-every-shell), in this
+   order: the Homebrew block at its top (`if [ -x /opt/homebrew/bin/brew ]` through its
+   `fi`; skip it if `~/.zshenv` already runs `brew shellenv`), then the NVM block
+   (`# NVM —` through the `unset _NVM_PREFIX …` line). The NVM block finds Homebrew's nvm
+   through `brew`, so the Homebrew block has to come first. Lines you merge later go where
+   the template has them: the pipx `~/.local/bin` line goes between these two blocks,
+   because the NVM block keeps nvm's Node ahead of anything prepended before it, not after.
+3. In `~/.zshrc`, add the nvm completion lines from the
+   [`~/.zshrc` template](dev-environment-setup.md#zshrc--runs-in-interactive-shells-only)
+   (`# nvm completions` through `unset _NVM_PREFIX`). `~/.zshrc` needs nothing else for
+   nvm: `~/.zshenv` already runs for interactive shells.
+
+Copy the lines exactly, and add them around any tool-managed block rather than inside it.
+The rest of the templates gets merged after the bootstrap, in
+[dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation),
+step 3.
+
+> **Set up from an earlier version of this step?** It appended its own nvm lines to both
+> files: in `~/.zshrc` an `NVM_DIR` export, an `nvm.sh` source line and a completion line,
+> and in `~/.zshenv` an `NVM_DIR` export and a `# Bootstrap Homebrew in non-interactive
+> shells` section. Those load nvm with its auto-use, which slows every shell, and an
+> interactive shell loads it twice, putting nvm's Node on PATH twice. Remove them (the
+> nvm items in [§5, step 3](dev-environment-setup.md#5-replicating-on-a-new-workstation)'s
+> list; leave the pyenv lines until that merge), then add the blocks above.
+
+```bash
+# Load the new ~/.zshenv into this shell
+source ~/.zshenv
 
 # Install the repo's Node line (the major in .nvmrc) — the newest 24.x
 nvm install 24
@@ -158,7 +177,7 @@ python --version
 
 > **`pyenv global` is the `python` every shell gets outside a project that pins its own.** `scripts/bash/update-toolchain.sh` moves it to each new 3.13 patch, but only when the old one holds no packages you pip-installed straight into it; otherwise it warns and leaves it. Prefer pipx or a virtualenv for tools, so that move stays automatic ([dev-environment-setup.md §4](dev-environment-setup.md#update-routine)).
 
-> **The `echo … >>` lines in Steps 3 and 4 append**, so run each block once: running one again adds another copy of its lines. Even run once, Step 4 puts `eval "$(pyenv init -)"` in both `~/.zshenv` and `~/.zshrc`, so interactive shells run it twice, a known cause of [pyenv rehash lock errors](dev-environment-setup.md#pyenv-cannot-rehash-couldnt-acquire-lock). Appending leaves any existing content alone, including blocks another tool manages (for example a corporate certificate or proxy block on a managed workstation). If you later restructure your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), that layout replaces the lines from Steps 3 and 4, including both `pyenv init` lines; merge it in rather than replacing the files.
+> **The `echo … >>` lines in Step 4 append**, so run that block once: running it again adds another copy of its lines. Even run once, Step 4 puts `eval "$(pyenv init -)"` in both `~/.zshenv` and `~/.zshrc`, so interactive shells run it twice, a known cause of [pyenv rehash lock errors](dev-environment-setup.md#pyenv-cannot-rehash-couldnt-acquire-lock). Appending leaves any existing content alone, including blocks another tool manages (for example a corporate certificate or proxy block on a managed workstation). If you later restructure your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), that layout replaces Step 4's lines, including both `pyenv init` lines, and keeps the blocks Step 3 copied from its templates; merge it in rather than replacing the files.
 
 > **Keep `openssl@3` installed.** Python 3.13 needs OpenSSL 3, but Homebrew is migrating to OpenSSL 4: plain `openssl` is now OpenSSL 4 and `pyenv` depends on it. Install `openssl@3` before `pyenv install` (the 3.13 build definition prefers it and otherwise falls back to Homebrew's default `openssl`), and leave it installed. Installing it by name marks it *installed on request*, so `brew upgrade` won't remove it later — if it does go missing, `cci` fails at startup with `Library not loaded: /opt/homebrew/opt/openssl@3/lib/libssl.3.dylib`. See [the troubleshooting entry](dev-environment-setup.md#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration) for the cause and why the toolchain can't move to OpenSSL 4 yet.
 
@@ -337,7 +356,7 @@ The validator does not install Salesforce CLI, Node.js, Python, or a browser.
 
 ### Using Claude Code with this project
 
-[Claude Code](https://claude.com/claude-code) spawns **non-interactive shells**, so don't rely on `~/.zshrc` for anything it needs: depending on how it was launched it may not see that file, or may see a snapshot taken when it started. Without `~/.zshenv`, Claude Code's Bash tool cannot find nvm-managed Node (`sf`, `node`) or pyenv-managed Python (`python`, `cci`). Steps 3 and 4 above add the required init blocks to `~/.zshenv` — if you skipped those additions, add them now. (If you restructured your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), the §2 `~/.zshenv` template provides this instead, deliberately without `pyenv init`; don't add the Step 4 lines back.)
+[Claude Code](https://claude.com/claude-code) spawns **non-interactive shells**, so don't rely on `~/.zshrc` for anything it needs: depending on how it was launched it may not see that file, or may see a snapshot taken when it started. Without `~/.zshenv`, Claude Code's Bash tool cannot find nvm-managed Node (`sf`, `node`) or pyenv-managed Python (`python`, `cci`). Step 3 above copies the §2 Homebrew and NVM blocks into `~/.zshenv`, and Step 4 adds pyenv's init lines there — if you skipped either, do it now. (If you restructured your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), the §2 `~/.zshenv` template provides this instead, deliberately without `pyenv init`; don't add the Step 4 lines back.)
 
 **Verify Claude Code can see your tools** by asking it to run:
 
@@ -345,7 +364,7 @@ The validator does not install Salesforce CLI, Node.js, Python, or a browser.
 node --version && sf --version && cci version && python --version
 ```
 
-If any command returns "not found", check that `~/.zshenv` contains the nvm and pyenv init blocks (see Steps 3 and 4), or the §2 `~/.zshenv` template if you restructured, then **restart Claude Code** so it picks up the updated PATH.
+If any command returns "not found", check that `~/.zshenv` contains the Homebrew and NVM blocks (Step 3) and the pyenv init lines (Step 4), or the §2 `~/.zshenv` template if you restructured, then **restart Claude Code** so it picks up the updated PATH.
 
 **After any PATH change** (new nvm version, new pyenv version, new pipx install), restart Claude Code — it inherits the PATH from the shell that launched it and does not reload `~/.zshenv` mid-session.
 
