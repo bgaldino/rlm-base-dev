@@ -21,15 +21,20 @@ Usage:
   python3 scripts/ai/toolchain_audit.py --show older-patch-users   # print, don't run
 
 On-request checks (the direct Node probe) run only when named with --check.
+Each check runs in its own process group: a timeout stops everything it started.
 Exit status: 0 every selected check ran, 1 one couldn't start or timed out, 2 usage.
 Stdlib only and Python 3.9-safe.
 """
 import argparse
 import os
 import shutil
+import signal
 import subprocess
 import sys
+import time
 from collections import namedtuple
+
+from check_node_ca import tilde
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SECTIONS = {
@@ -43,9 +48,10 @@ SECTIONS = {
 # validate_setup and npm ping are the slow ones; a silently dropped connection can hold
 # npm ping for over a minute.
 DEFAULT_TIMEOUT = 600
+# Seconds to wait, once the shell has exited, for whatever it left holding its output.
+HELD_OUTPUT_GRACE = 10
 
-Check = namedtuple("Check", "section id title on_request command")
-Check.__new__.__defaults__ = (False, "")
+Check = namedtuple("Check", "section id title on_request command", defaults=(False, ""))
 
 # The commands are the spec: keep them read-only, and keep each one a single run that
 # needs nothing set by another (sections 5 and 6 capture the repo path themselves).
@@ -153,44 +159,91 @@ def command(check):
 
 
 def pick_shell(requested):
+    """The shell to run the checks in, or None when the requested one isn't on PATH."""
     if requested:
-        found = shutil.which(requested)
-        if not found:
-            sys.exit(f"toolchain_audit: shell not found: {requested}")
-        return found
+        return shutil.which(requested)
     return shutil.which("zsh") or shutil.which("bash") or "/bin/sh"
 
 
 def select(args):
-    by_id = {c.id: c for c in CHECKS}
-    unknown = [i for i in args.check if i not in by_id]
-    if unknown:
-        sys.exit(f"toolchain_audit: unknown check id(s): {', '.join(unknown)} (see --list)")
     sections = set(SECTIONS) if args.all else set(args.section)
     named = set(args.check)
     return [c for c in CHECKS
             if c.id in named or (c.section in sections and not c.on_request)]
 
 
-def run(check, shell, repo, timeout):
+def main_checkout(repo):
+    """The main checkout when `repo` is a linked worktree, else None.
+
+    The audit belongs to the main checkout: `.venv` and `.env.local` live there, so a
+    worktree reports them missing. git can't answer (not a checkout, too old for
+    --path-format) means no note rather than a guess.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "-C", repo, "rev-parse", "--path-format=absolute",
+             "--git-dir", "--git-common-dir"],
+            stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    lines = proc.stdout.splitlines()
+    if proc.returncode != 0 or len(lines) != 2:
+        return None
+    git_dir, common_dir = (os.path.realpath(line) for line in lines)
+    return os.path.dirname(common_dir) if git_dir != common_dir else None
+
+
+def finish(out):
+    sys.stdout.write(out if not out or out.endswith("\n") else out + "\n")
+
+
+def kill_group(proc):
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except OSError:
+        pass  # already gone
+
+
+def run(check, shell, repo, timeout, grace=HELD_OUTPUT_GRACE):
+    """Run one check and print its output; False when it timed out or couldn't start.
+
+    The shell leads its own process group, so a timeout stops everything it started
+    (npm, cci, the fresh zsh shells), not just the shell. A process left holding the
+    output open after the shell has exited (a background job from a startup file) is
+    stopped after `grace` seconds instead of holding the check until the timeout.
+    """
     print(f"== §{check.section} {check.id}: {check.title}", flush=True)
     try:
-        proc = subprocess.run([shell, "-c", command(check)], cwd=repo,
-                              stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, text=True, errors="replace",
-                              timeout=timeout)
-    except subprocess.TimeoutExpired as exc:
-        out = exc.output or ""
-        if isinstance(out, bytes):
-            out = out.decode(errors="replace")
-        sys.stdout.write(out if not out or out.endswith("\n") else out + "\n")
-        print(f"[timeout after {timeout}s]", flush=True)
-        return False
+        proc = subprocess.Popen([shell, "-c", command(check)], cwd=repo,
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True, errors="replace",
+                                start_new_session=True)
     except OSError as exc:
         print(f"[could not start: {exc}]", flush=True)
         return False
-    out = proc.stdout
-    sys.stdout.write(out if not out or out.endswith("\n") else out + "\n")
+    deadline = time.monotonic() + timeout
+    exited_at = None
+    while True:
+        try:
+            out, _ = proc.communicate(timeout=0.5)
+            break
+        except subprocess.TimeoutExpired:
+            now = time.monotonic()
+            if exited_at is None and proc.poll() is not None:
+                exited_at = now
+            if now >= deadline:
+                kill_group(proc)
+                finish(proc.communicate()[0])
+                print(f"[timeout after {timeout}s]", flush=True)
+                return False
+            if exited_at is not None and now - exited_at >= grace:
+                kill_group(proc)
+                finish(proc.communicate()[0])
+                print(f"[exit {proc.returncode}; stopped what it left holding its output "
+                      f"{grace}s after it exited]", flush=True)
+                return True
+    finish(out)
     print(f"[exit {proc.returncode}]", flush=True)
     return True
 
@@ -211,27 +264,42 @@ def main(argv=None):
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
                         help=f"seconds per check (default {DEFAULT_TIMEOUT})")
     args = parser.parse_args(argv)
+    by_id = {c.id: c for c in CHECKS}
 
     if args.list:
-        for c in CHECKS:
-            note = "  (on request: name it with --check)" if c.on_request else ""
-            print(f"§{c.section}  {c.id:<22} {c.title}{note}")
+        for section, name in SECTIONS.items():
+            print(f"§{section} {name}")
+            for c in CHECKS:
+                if c.section == section:
+                    note = "  (on request: name it with --check)" if c.on_request else ""
+                    print(f"    {c.id:<22} {c.title}{note}")
         return 0
     if args.show:
-        match = [c for c in CHECKS if c.id == args.show]
-        if not match:
+        if args.show not in by_id:
             parser.error(f"unknown check id: {args.show} (see --list)")
-        print(command(match[0]))
+        print(command(by_id[args.show]))
         return 0
     if not (args.section or args.check or args.all):
         parser.error("choose --section N, --check ID, --all or --list")
+    unknown = [i for i in args.check if i not in by_id]
+    if unknown:
+        parser.error(f"unknown check id(s): {', '.join(unknown)} (see --list)")
+    if args.timeout <= 0:
+        parser.error("--timeout must be a positive number of seconds")
 
     repo = os.path.abspath(args.repo)
     if not os.path.isfile(os.path.join(repo, "scripts", "ai", "gate_python.py")):
         parser.error(f"not an rlm-base-dev checkout: {repo}")
     shell = pick_shell(args.shell)
-    print(f"# toolchain audit: repo {repo.replace(os.path.expanduser('~'), '~', 1)}, "
-          f"shell {shell}", flush=True)
+    if not shell:
+        parser.error(f"shell not found: {args.shell}")
+    home = os.path.expanduser("~")
+    print(f"# toolchain audit: repo {tilde(repo, home)}, shell {shell}", flush=True)
+    primary = main_checkout(repo)
+    if primary:
+        print(f"# note: this is a linked worktree. The audit is meant for the main checkout "
+              f"({tilde(primary, home)}), where .venv and .env.local live: run it there or pass "
+              f"--repo", flush=True)
     ok = True
     for check in select(args):
         ok = run(check, shell, repo, args.timeout) and ok

@@ -19,7 +19,8 @@ runs one check; `--list` names every check by section. Each check prints a
 command in its own zsh (bash if zsh is missing) from the repo root and judges
 nothing: read each check's output against its row below. An exit status isn't a
 verdict either (`git config --get` exits 1 for an unset key). Allow a few minutes
-for `--all`: `validate_setup` and `npm ping` are slow.
+for `--all`: `validate_setup` and `npm ping` are slow. Run from a linked worktree, it
+says so in its first lines and names the main checkout, the one to audit.
 
 **Never run anything from the tables below.** Their columns are the check's id,
 what to expect and where the fix is documented. A fix is a proposal for the owner,
@@ -63,7 +64,7 @@ pins a patch (CumulusCI's pipx venv, `.venv`) must equal the installed one.
 |-------|--------|-----|
 | `patch-current`: patch is current | The latest known 3.13 patch (the last line) is among the installed versions | [The update script](../../../docs/guides/dev-environment-setup.md#update-routine) (ask first) |
 | `pyenv-global`: `pyenv global` | The installed patch, or a deliberate other choice (`system`, another line). An older 3.13 patch is a finding: the output after the global's name lists the packages pip-installed into it, which are why the update script left it (none listed means it hasn't been run since). Never uninstall the version the global names | Reinstall those packages under the current patch (or with pipx), then move the global to it: [DES: version not installed](../../../docs/guides/dev-environment-setup.md#pyenv-version-313x-is-not-installed-set-by-pyenvversion) |
-| `envrc-python`: `.envrc` resolves it | That patch | `.envrc` not allowed (`envrc-allowed`), or a stale `PYENV_VERSION` in an old shell |
+| `envrc-python`: `.envrc` resolves it | That patch | If `envrc-allowed` fails, its fix. Otherwise a stale `PYENV_VERSION` in an old shell: open a new terminal outside the repo and `cd` in ([DES §3, verify](../../../docs/guides/dev-environment-setup.md#verify)) |
 | `cci-python`: CCI's Python | The `Python version:` line names the installed patch | [DES: pipx venv broken after a patch bump](../../../docs/guides/dev-environment-setup.md#pipx-venv-broken-after-python-patch-bump) |
 | `tui-venvs`: TUI venvs' Python | The installed patch for each checkout listed (none is fine: `./tui-cci` creates one on first run). The exit status is 1 whenever the last checkout listed has none: ignore it | The update script's TUI-venv step rebuilds them ([DES §4, update routine step 9](../../../docs/guides/dev-environment-setup.md#update-routine)) |
 | `older-patch-users`: other users of an older patch | Nothing printed. Anything listed runs on a superseded 3.13 patch and breaks when that patch is uninstalled; check this before uninstalling any pyenv version. Apps kept on another line (3.12, 3.14) or a non-pyenv Python aren't listed: that's a choice, not drift | [DES: a pipx app or a script in `~/.local/bin` is on an older 3.13 patch](../../../docs/guides/dev-environment-setup.md#a-pipx-app-or-a-script-in-localbin-is-on-an-older-313-patch) |

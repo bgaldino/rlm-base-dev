@@ -9,8 +9,10 @@ Stdlib only. Run with: python tests/test_toolchain_audit.py
 """
 import contextlib
 import io
+import os
 import re
 import sys
+import time
 import unittest
 from pathlib import Path
 
@@ -103,7 +105,6 @@ class ScriptChecks(unittest.TestCase):
     def test_ids_unique_and_sections_known(self):
         ids = [c.id for c in ta.CHECKS]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertTrue({c.section for c in ta.CHECKS} <= set(ta.SECTIONS))
         self.assertEqual({c.section for c in ta.CHECKS}, set(ta.SECTIONS))
 
     def test_commands_are_read_only(self):
@@ -162,17 +163,33 @@ class Selection(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(run_main()[0], 2)
             self.assertEqual(run_main("--show", "nope")[0], 2)
-        code, _ = run_main("--check", "nope")
-        self.assertNotEqual(code, 0)
+            # 1 means a check timed out or couldn't start, so a typo must not exit 1.
+            self.assertEqual(run_main("--check", "nope")[0], 2)
+            self.assertEqual(run_main("--check", "signing", "--shell", "no-such-shell-x")[0], 2)
+            self.assertEqual(run_main("--check", "signing", "--timeout", "0")[0], 2)
 
 
 class Run(unittest.TestCase):
-    def run_one(self, command, timeout=30):
+    def run_one(self, command, timeout=30, grace=ta.HELD_OUTPUT_GRACE):
         check = ta.Check(1, "probe", "Probe", command=command)
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            ok = ta.run(check, ta.pick_shell(None), str(REPO), timeout)
+            ok = ta.run(check, ta.pick_shell(None), str(REPO), timeout, grace=grace)
         return ok, out.getvalue()
+
+    @staticmethod
+    def alive(pid):
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+
+    def wait_gone(self, pid):
+        deadline = time.monotonic() + 5
+        while self.alive(pid) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        return not self.alive(pid)
 
     def test_output_and_exit_status_are_evidence(self):
         ok, out = self.run_one('printf one; echo two >&2; echo "cwd=$(pwd)"; exit 3')
@@ -189,7 +206,26 @@ class Run(unittest.TestCase):
     def test_timeout_is_reported(self):
         ok, out = self.run_one("echo started; sleep 5", timeout=1)
         self.assertFalse(ok)
+        self.assertIn("started", out)
         self.assertIn("[timeout after 1s]", out)
+
+    def test_timeout_stops_what_the_shell_started(self):
+        # A grandchild (npm, cci, a fresh zsh) must not outlive a timed-out check.
+        ok, out = self.run_one('sleep 30 & echo "child=$!"; wait', timeout=1)
+        self.assertFalse(ok)
+        pid = int(next(l for l in out.splitlines() if l.startswith("child="))[6:])
+        self.assertTrue(self.wait_gone(pid), "the background sleep survived the timeout")
+
+    def test_output_held_after_the_shell_exits_is_stopped(self):
+        # A background job from a startup file can hold the output open after the shell
+        # exits; the check ends after the grace period, not at the timeout.
+        start = time.monotonic()
+        ok, out = self.run_one('sleep 30 & echo "child=$!"; exit 4', timeout=60, grace=1)
+        self.assertTrue(ok)
+        self.assertLess(time.monotonic() - start, 20)
+        self.assertIn("[exit 4; stopped what it left holding its output", out)
+        pid = int(next(l for l in out.splitlines() if l.startswith("child="))[6:])
+        self.assertTrue(self.wait_gone(pid))
 
 
 if __name__ == "__main__":
