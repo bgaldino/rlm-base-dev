@@ -55,11 +55,9 @@ Key technology stack:
 `unpackaged/post_*/` holds feature bundles. `templates/` is the UX source
 (step 30); `unpackaged/post_ux/` is generated output.
 
-Data lives under `datasets/`; utility scripts under `scripts/`; offline tests
-under `tests/`; Robot suites under `robot/rlm-base/`. `datasets/bre/` and
-`datasets/dx/` are runtime extraction output, not tracked source. See the
-[repository map](docs/references/repository-layout.md), [org definitions](orgs/README.md),
-[TFID guide](orgs/tfid/README.md), and **Script Reference**.
+Paths: `datasets/`, `scripts/`, `tests/`, `robot/rlm-base/`. `datasets/bre/` and
+`datasets/dx/` are untracked runtime output. See the [repository map](docs/references/repository-layout.md),
+[org definitions](orgs/README.md), [TFID guide](orgs/tfid/README.md), and **Script Reference**.
 
 ## DO NOT — Safety Guards
 
