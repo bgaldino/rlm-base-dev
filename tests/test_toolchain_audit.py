@@ -378,30 +378,42 @@ class Run(unittest.TestCase):
 
     @staticmethod
     def alive(pid):
-        """Running, not just present: a killed child reparented to a PID 1 that doesn't
-        reap (some containers) stays a zombie, and os.kill(pid, 0) still succeeds."""
+        """Running, not just present. os.kill(pid, 0) succeeds for a killed child that
+        isn't fully gone: a zombie (Z) under a PID 1 that doesn't reap (some containers),
+        and, while the reaper releases it, a dead task (X). Counting X as running made
+        wait_gone flake on Linux CI right after the kill."""
         try:
             os.kill(pid, 0)
         except OSError:
             return False
-        try:
-            with open(f"/proc/{pid}/stat") as f:
-                return f.read().rsplit(")", 1)[1].split()[0] != "Z"
-        except (OSError, IndexError):
-            pass  # no procfs (macOS): ask ps
+        if os.path.isdir("/proc/self"):
+            # procfs is the authority: a missing entry is a task released since kill().
+            # Any other read or parse failure proves nothing, so ask ps instead.
+            try:
+                with open(f"/proc/{pid}/stat") as f:
+                    return f.read().rsplit(")", 1)[1].split()[0] not in ("Z", "X")
+            except (FileNotFoundError, ProcessLookupError):
+                return False
+            except (OSError, IndexError):
+                pass
+        # No procfs (macOS), or procfs couldn't say: ask ps.
         try:
             stat = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)],
                                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                   text=True, timeout=10).stdout.strip()
         except (OSError, subprocess.TimeoutExpired):
             return True
-        return bool(stat) and not stat.startswith("Z")
+        return bool(stat) and stat[0] not in "ZX"
 
     def wait_gone(self, pid):
+        # A process that stopped running doesn't come back: decide on the sample that
+        # saw it stop, not on a second one.
         deadline = time.monotonic() + 5
-        while self.alive(pid) and time.monotonic() < deadline:
+        while time.monotonic() < deadline:
+            if not self.alive(pid):
+                return True
             time.sleep(0.05)
-        return not self.alive(pid)
+        return False
 
     def test_output_and_exit_status_are_evidence(self):
         ok, out = self.run_one('printf one; echo two >&2; echo "cwd=$(pwd)"; exit 3')
