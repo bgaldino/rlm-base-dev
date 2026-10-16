@@ -104,6 +104,8 @@ such as dynamic assignee replacement was not exercised.
 The local links below point to the repository's captured Salesforce documentation.
 They are a reference snapshot, not a live-org verification; use the matching release
 articles and target describes when behavior differs or the target uses another release.
+The `264` in these paths is the snapshot captured when this table was written; substitute
+the active release from `.claude/skill-manifest.yml` (`salesforce_release_active`).
 
 | Topic | Local source |
 | --- | --- |

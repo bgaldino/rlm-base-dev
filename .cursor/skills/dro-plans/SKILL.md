@@ -26,8 +26,8 @@ configured tasks; Salesforce CLI (`sf`) inspects and operates on the target org.
 ## Quick Rules
 
 1. Discover the target org's settings, schema, configuration, and runtime usage
-   before writing. Use documentation for the target's release; target describes
-   and observed behavior resolve any mismatch.
+   before writing. Use documentation for the target's release; if it disagrees
+   with the target's describe output or observed behavior, the target wins.
 2. Author configuration records, not `FulfillmentPlan` or `FulfillmentStep`
    records. DRO generates runtime records when an order is submitted.
 3. Resolve products, groups, steps, providers, users, queues, and attributes by
