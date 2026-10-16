@@ -387,7 +387,8 @@ CHECKS = [
         triggers=[".nvmrc", ".envrc", "package.json", "docker/Dockerfile", ".github/workflows/",
                   "scripts/bash/update-toolchain.sh", "tests/test_node_line.py",
                   # The instructions that name the line, which the suite also compares. Every
-                  # guide, since the suite also checks none of them loads nvm a second way.
+                  # guide, since the suite also checks none of them loads nvm a second way or
+                  # writes pyenv lines into a shell startup file.
                   "docs/guides/",
                   ".cursor/skills/troubleshooting/SKILL.md", ".cursor/skills/toolchain/SKILL.md",
                   ".cursor/skills/toolchain/workstation-audit.md",

@@ -119,11 +119,13 @@ PY_TARGET_BIN="$(pyenv prefix "$PY_TARGET")/bin/python3"
 # gone. Steps 2, 7 and 8 all use it.
 gate_python() { (cd "$REPO_ROOT" && "$PY_TARGET_BIN" scripts/ai/gate_python.py "$@"); }
 
-# pyenv's global version (~/.pyenv/version) is the `python` every shell gets
-# outside a project that pins its own. It moves with the line, as step 3 moves
-# nvm's default Node, but only from an older patch of $PY_LINE, and only when
-# that interpreter holds no packages of its own: anything pip-installed straight
-# into it would disappear from `python` and the pyenv shims after the switch.
+# pyenv's global version (~/.pyenv/version) is what `pyenv exec`, `pyenv prefix`
+# and pyenv's shims resolve to outside a project that pins its own. (With the
+# guide's layout no shims are on PATH outside the repo, so a bare `python` there
+# isn't pyenv's.) It moves with the line, as step 3 moves nvm's default Node, but
+# only from an older patch of $PY_LINE, and only when that interpreter holds no
+# packages of its own: anything pip-installed straight into it would disappear
+# from `pyenv exec python` and the shims after the switch.
 # Virtualenvs built on it are unaffected either way (they record its path), so
 # none of them needs rebuilding for this. A global set to `system`, another
 # line or several versions is a deliberate choice and is left alone.
@@ -134,8 +136,8 @@ if [ "$PY_GLOBAL" = "$PY_TARGET" ]; then
 elif [[ "$PY_GLOBAL" =~ $PY_LINE_RE ]] \
     && [ "$(printf '%s\n%s\n' "$PY_GLOBAL" "$PY_TARGET" | sort -V | head -1)" = "$PY_GLOBAL" ]; then
   if [ ! -d "$(pyenv root)/versions/$PY_GLOBAL" ]; then
-    # Already uninstalled: every shell outside a pinned project gets "version
-    # not installed", so moving it on is a repair with nothing to lose.
+    # Already uninstalled: `pyenv exec`/`pyenv prefix` outside a pinned project
+    # get "version not installed", so moving it on is a repair with nothing to lose.
     pyenv global "$PY_TARGET"
     log "Python: pyenv global $PY_GLOBAL -> $PY_TARGET ($PY_GLOBAL isn't installed)"
   elif ! PY_GLOBAL_PKGS="$(gate_python --carry-over "$(pyenv root)/versions/$PY_GLOBAL")"; then
