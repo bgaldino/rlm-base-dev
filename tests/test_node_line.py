@@ -19,7 +19,9 @@ The setup guides must not teach a second way to load nvm: no line that sources `
 without `--no-use` (nvm's auto-use then runs in every shell, and a shell started from the repo
 can lose the repo's Node), and no `echo`/heredoc that writes nvm lines into a shell startup
 file. The one way is the `~/.zshenv` NVM block in dev-environment-setup.md §2, which the
-installation guide's Step 3 points to rather than copying.
+installation guide's Step 3 points to rather than copying. pyenv gets the same rule: no command
+writes pyenv lines (`pyenv init` above all) into a startup file. The `~/.zshenv` template's pyenv
+block puts only pyenv's `bin` on PATH, with no global init, and Step 4 points to it.
 
 Each rule is a function over text, with a positive control beside the real-file check, so a
 parser that matches nothing can't pass by finding nothing to compare.
@@ -157,9 +159,9 @@ def sources_nvm_with_auto_use(text):
             if NVM_SH_SOURCE.search(line) and "--no-use" not in line]
 
 
-def writes_nvm_to_startup_file(text):
-    """Commands that write nvm lines into a shell startup file: a line redirected or `tee`d to
-    one that mentions nvm, or one that appends a heredoc (`cat >> ~/.zshenv <<'EOF'`) whose
+def writes_to_startup_file(text, tool):
+    """Commands that write `tool`'s lines into a shell startup file: a line redirected or `tee`d
+    to one that mentions it, or one that appends a heredoc (`cat >> ~/.zshenv <<'EOF'`) whose
     body does."""
     lines = text.splitlines()
     found = []
@@ -173,9 +175,19 @@ def writes_nvm_to_startup_file(text):
             end = next((j for j in range(i + 1, len(lines))
                         if lines[j].strip() in (heredoc.group(1), "```")), len(lines))
             written = "\n".join(lines[i:end])
-        if re.search(r"nvm", written, re.I):
+        if re.search(tool, written, re.I):
             found.append(line.strip())
     return found
+
+
+def writes_nvm_to_startup_file(text):
+    """Commands that write nvm lines into a shell startup file."""
+    return writes_to_startup_file(text, r"nvm")
+
+
+def writes_pyenv_to_startup_file(text):
+    """Commands that write pyenv lines (`PYENV_ROOT`, `pyenv init`) into a shell startup file."""
+    return writes_to_startup_file(text, r"pyenv")
 
 
 NVM_SH_TEST = re.compile(r'\[ -s "([^"]*/nvm\.sh)" \]')
@@ -324,6 +336,26 @@ class Parsers(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(writes_nvm_to_startup_file(text), [])
 
+    def test_writes_pyenv_to_startup_file(self):
+        # The installation guide's old Step 4: three lines into each of ~/.zshrc and ~/.zshenv.
+        old_step = "".join(f"echo '{line}' >> ~/.{rc}\n" for rc in ("zshrc", "zshenv") for line in (
+            'export PYENV_ROOT="$HOME/.pyenv"',
+            '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"',
+            'eval "$(pyenv init -)"'))
+        self.assertEqual(len(writes_pyenv_to_startup_file(old_step)), 6)
+        for text in ("echo 'eval \"$(pyenv init - zsh)\"' >>\"$HOME/.zprofile\"\n",
+                     "pyenv init - | tee -a ~/.bashrc\n",
+                     "cat >> ~/.zshrc <<'EOF'\nexport PATH=x\neval \"$(pyenv init -)\"\nEOF\n"):
+            with self.subTest(text=text):
+                self.assertEqual(len(writes_pyenv_to_startup_file(text)), 1)
+        for text in ("echo 'export NVM_DIR=\"$HOME/.nvm\"' >> ~/.zshenv\n",
+                     "cat >> ~/.zshenv <<'EOF'\nexport NVM_DIR=x\nEOF\npyenv install 3.13\n",
+                     "cp ~/.zshenv ~/.zshenv.bak  # before the pyenv block\n",
+                     "don't add `eval \"$(pyenv init -)\"` to `~/.zshenv`\n",
+                     "pyenv init - > /tmp/notes\n"):
+            with self.subTest(text=text):
+                self.assertEqual(writes_pyenv_to_startup_file(text), [])
+
     def test_lts_float(self):
         self.assertEqual(floats_on_lts("# don't use lts/* here\nnvm use\n"), [])
         self.assertEqual(floats_on_lts("  nvm use --silent lts/\\* >/dev/null\n"),
@@ -400,6 +432,25 @@ class NodeLine(unittest.TestCase):
         self.assertIn("dev-environment-setup.md#zshenv--runs-in-every-shell",
                       section(read("docs/guides/local-installation.md"), "### Step 3", "### Step 4"),
                       "local-installation.md Step 3 must point to the ~/.zshenv template")
+
+    def test_guides_write_no_pyenv_lines(self):
+        # The installation guide's Step 4 once echoed PYENV_ROOT, pyenv's PATH line and
+        # `eval "$(pyenv init -)"` into both rc files, so every interactive shell ran pyenv init
+        # twice: the cause of stale .pyenv-shim locks. The ~/.zshenv template's pyenv block has
+        # no global init; .envrc puts the shims on PATH per project.
+        files = sorted(set(STALE_SCAN_FILES + GUIDE_FILES))
+        for rel in files:
+            with self.subTest(file=rel):
+                self.assertEqual(writes_pyenv_to_startup_file(read(rel)), [],
+                                 f"{rel} writes pyenv lines into a shell startup file; point to the "
+                                 "pyenv block of the ~/.zshenv template in dev-environment-setup.md §2")
+        step4 = section(read("docs/guides/local-installation.md"), "### Step 4", "### Step 5")
+        self.assertIn("dev-environment-setup.md#zshenv--runs-in-every-shell", step4,
+                      "local-installation.md Step 4 must point to the ~/.zshenv template")
+        self.assertIn("# pyenv binary on PATH", step4,
+                      "local-installation.md Step 4 must name the template's pyenv block")
+        self.assertIn("# pyenv binary on PATH", read("docs/guides/dev-environment-setup.md"),
+                      "the ~/.zshenv template's pyenv block, which Step 4 names, is gone")
 
     def test_envrc_has_no_default_fallback(self):
         # Falling back to nvm's `default` would silently select an older line when .nvmrc's

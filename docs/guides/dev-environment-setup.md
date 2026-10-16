@@ -530,12 +530,15 @@ For a clean macOS workstation, in order:
    `~/.zprofile` and `~/.zshrc`. Don't replace the files wholesale.
    1. Save backups first (`cp ~/.zshenv ~/.zshenv.bak.$(date +%Y%m%d)` etc.;
       skip a file that doesn't exist yet — `~/.zprofile` often doesn't on Intel).
-   2. Remove what Step 4 of the installation guide appended, and what an
-      earlier version of its Step 3 appended (the current Step 3 copies the §2
-      blocks instead; keep those); the §2 templates replace all of it:
+   2. Remove what an earlier Step 3 and an earlier Step 4 of the installation
+      guide appended (the current Steps 3 and 4 copy the §2 blocks instead; keep
+      those); the §2 templates replace all of it:
       - in both `~/.zshenv` and `~/.zshrc`, the `NVM_DIR` and `PYENV_ROOT` exports, the pyenv `PATH`
         line and `eval "$(pyenv init -)"` (the plain `export NVM_DIR="$HOME/.nvm"`,
-        not the NVM block's `${NVM_DIR:-$HOME/.nvm}` one);
+        not the NVM block's `${NVM_DIR:-$HOME/.nvm}` one, and the
+        `[[ -d $PYENV_ROOT/bin ]] && …` line, not the pyenv block's
+        `[ -d "$PYENV_ROOT/bin" ] && …` one; keep that block's own
+        `PYENV_ROOT` export, under its `# pyenv binary on PATH` comment);
       - in `~/.zshrc`, the one-line `nvm.sh` source, and the nvm
         `bash_completion` line (or keep that in place of the template's
         equivalent);
@@ -556,10 +559,10 @@ For a clean macOS workstation, in order:
       **tool-managed block** (see §2), unchanged. Keep the template's order:
       in `~/.zshenv`, no directory that can hold a `node` (Homebrew's bin,
       `~/.local/bin`) is prepended after the NVM block, or that `node` wins
-      over nvm's. The current Step 3 already
-      added the `~/.zshenv` Homebrew and NVM blocks and the `~/.zshrc` nvm
-      completion lines; don't add a second copy, and put the pipx line between
-      those two blocks.
+      over nvm's. The current Steps 3 and 4 already
+      added the `~/.zshenv` Homebrew, NVM and pyenv blocks and the `~/.zshrc` nvm
+      completion lines; don't add a second copy, put the pipx line between
+      the Homebrew and NVM blocks, and the direnv line after the pyenv block.
    4. Check with `diff ~/.zshrc ~/.zshrc.bak.<date>` (and the other two): only
       toolchain lines should differ (a file you just created has no backup to
       diff against).
