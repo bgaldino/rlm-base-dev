@@ -34,8 +34,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `guidedselling` | `True` | 5 flow step(s) |
 | `inapp` | `False` | 3 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
-| `mock_payments` | `False` | 2 flow step(s) |
-| `payments` | `True` | 10 flow step(s) |
+| `mock_payments` | `False` | 3 flow step(s) |
+| `payments` | `True` | 11 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 13 flow step(s) |
 | `prm` | `True` | 24 flow step(s) |
@@ -238,6 +238,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 - `prepare_payments` step 8 → `deploy_post_mock_payments`
 - `prepare_payments` step 9 → `ensure_mock_payment_gateway`
+- `prepare_payments` step 11 → `assign_permission_sets`
 
 ### `payments` (default: `True`)
 
@@ -251,6 +252,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_payments` step 8 → `deploy_post_mock_payments`
 - `prepare_payments` step 9 → `ensure_mock_payment_gateway`
 - `prepare_payments` step 10 → `assign_permission_sets`
+- `prepare_payments` step 11 → `assign_permission_sets`
 
 ### `personas` (default: `True`)
 

@@ -438,6 +438,8 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 9. **task** `ensure_mock_payment_gateway`  `when: project_config.project__custom__payments and project_config.project__custom__mock_payments`
 10. **task** `assign_permission_sets`  `when: project_config.project__custom__payments`
    - `api_names`: `['RLM_Payments']`
+11. **task** `assign_permission_sets`  `when: project_config.project__custom__payments and project_config.project__custom__mock_payments`
+   - `api_names`: `['RLM_MockSavedPaymentMethods']`
 
 ---
 
