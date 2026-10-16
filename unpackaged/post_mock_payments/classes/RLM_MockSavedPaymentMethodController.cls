@@ -44,22 +44,17 @@ public with sharing class RLM_MockSavedPaymentMethodController {
             billingCountry
         );
 
-        List<Account> accounts = [
-            SELECT Id
-            FROM Account
-            WHERE Id = :accountId
-            WITH USER_MODE
-            LIMIT 1
-        ];
-        if (accounts.isEmpty()) {
-            throw new AuraHandledException(
-                'You must have access to the Account to add a payment method.'
-            );
-        }
+        RLM_MockPaymentControllerSupport.validateAccountAccess(
+            accountId,
+            'You must have access to the Account to add a payment method.'
+        );
 
         // Read gateway configuration in user mode too; the feature permission
         // set grants only the fields needed to validate this selected gateway.
-        PaymentGateway gateway = getMockGateway(paymentGatewayId);
+        PaymentGateway gateway = RLM_MockPaymentControllerSupport.getActiveGateway(
+            paymentGatewayId,
+            true
+        );
         if (gateway.MerchantAccountId == null) {
             throw new AuraHandledException('The configured Payment Gateway has no Merchant Account.');
         }
@@ -252,51 +247,6 @@ public with sharing class RLM_MockSavedPaymentMethodController {
             String.isBlank(billingCountry)) {
             throw new AuraHandledException('Complete the billing address.');
         }
-    }
-
-    private static PaymentGateway getMockGateway(String paymentGatewayIdentifier) {
-        if (String.isBlank(paymentGatewayIdentifier)) {
-            throw new AuraHandledException(
-                'Set an active Payment Gateway record ID or unique name in the component properties.'
-            );
-        }
-        Id gatewayId;
-        try {
-            gatewayId = Id.valueOf(paymentGatewayIdentifier);
-        } catch (Exception e) {
-            List<PaymentGateway> namedGateways = [
-                SELECT Id, MerchantAccountId
-                FROM PaymentGateway
-                WHERE PaymentGatewayName = :paymentGatewayIdentifier
-                    AND Status = 'Active'
-                WITH USER_MODE
-                LIMIT 2
-            ];
-            if (namedGateways.size() != 1) {
-                throw new AuraHandledException(
-                    'The configured Payment Gateway name must match exactly one active gateway.'
-                );
-            }
-            return namedGateways[0];
-        }
-        if (gatewayId == null || gatewayId.getSObjectType() != PaymentGateway.SObjectType) {
-            throw new AuraHandledException(
-                'Set an active Payment Gateway record ID or unique name in the component properties.'
-            );
-        }
-        // The CCI setup task validates the provider through Tooling API. Apex
-        // uses the unique org-specific PaymentGateway ID selected in Builder.
-        List<PaymentGateway> gateways = [
-            SELECT Id, MerchantAccountId
-            FROM PaymentGateway
-            WHERE Id = :gatewayId AND Status = 'Active'
-            WITH USER_MODE
-            LIMIT 1
-        ];
-        if (gateways.isEmpty()) {
-            throw new AuraHandledException('The configured active Payment Gateway was not found.');
-        }
-        return gateways[0];
     }
 
 }

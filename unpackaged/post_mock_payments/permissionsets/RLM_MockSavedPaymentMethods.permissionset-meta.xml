@@ -8,6 +8,10 @@
         <apexClass>RLM_MockPaymentSaleController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_MockPaymentControllerSupport</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Mock Saved Payment Methods</label>
     <objectPermissions>

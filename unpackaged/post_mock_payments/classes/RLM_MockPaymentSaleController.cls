@@ -43,8 +43,14 @@ public with sharing class RLM_MockPaymentSaleController {
         Id accountId,
         String paymentGatewayId
     ) {
-        validateAccountId(accountId);
-        PaymentGateway gateway = getMockGateway(paymentGatewayId);
+        RLM_MockPaymentControllerSupport.validateAccountAccess(
+            accountId,
+            'You must have access to the Account to view its saved payment methods.'
+        );
+        PaymentGateway gateway = RLM_MockPaymentControllerSupport.getActiveGateway(
+            paymentGatewayId,
+            false
+        );
         List<SavedPaymentMethod> methods = [
             SELECT Id, Name, NickName, Last4, ExpiryMonth, ExpiryYear, Type,
                 BankAccountType
@@ -80,7 +86,10 @@ public with sharing class RLM_MockPaymentSaleController {
         Id savedPaymentMethodId,
         Decimal amount
     ) {
-        validateAccountId(accountId);
+        RLM_MockPaymentControllerSupport.validateAccountAccess(
+            accountId,
+            'You must have access to the Account to create a payment.'
+        );
         if (savedPaymentMethodId == null ||
             savedPaymentMethodId.getSObjectType() != SavedPaymentMethod.SObjectType) {
             throw new AuraHandledException('Select an active saved payment method.');
@@ -91,7 +100,10 @@ public with sharing class RLM_MockPaymentSaleController {
             );
         }
 
-        PaymentGateway gateway = getMockGateway(paymentGatewayId);
+        PaymentGateway gateway = RLM_MockPaymentControllerSupport.getActiveGateway(
+            paymentGatewayId,
+            false
+        );
         List<SavedPaymentMethod> methods = [
             SELECT Id, ReferenceOwnerId, PaymentGatewayId, Status
             FROM SavedPaymentMethod
@@ -155,66 +167,4 @@ public with sharing class RLM_MockPaymentSaleController {
         return result;
     }
 
-    private static void validateAccountId(Id accountId) {
-        if (accountId == null || accountId.getSObjectType() != Account.SObjectType) {
-            throw new AuraHandledException('Open this component on an Account record.');
-        }
-        List<Account> accounts = [
-            SELECT Id
-            FROM Account
-            WHERE Id = :accountId
-            WITH USER_MODE
-            LIMIT 1
-        ];
-        if (accounts.isEmpty()) {
-            throw new AuraHandledException(
-                'You must have access to the Account to create a payment.'
-            );
-        }
-    }
-
-    private static PaymentGateway getMockGateway(String paymentGatewayIdentifier) {
-        if (String.isBlank(paymentGatewayIdentifier)) {
-            throw new AuraHandledException(
-                'Set an active Payment Gateway record ID or unique name in the component properties.'
-            );
-        }
-        Id gatewayId;
-        try {
-            gatewayId = Id.valueOf(paymentGatewayIdentifier);
-        } catch (Exception e) {
-            List<PaymentGateway> namedGateways = [
-                SELECT Id
-                FROM PaymentGateway
-                WHERE PaymentGatewayName = :paymentGatewayIdentifier
-                    AND Status = 'Active'
-                WITH USER_MODE
-                LIMIT 2
-            ];
-            if (namedGateways.size() != 1) {
-                throw new AuraHandledException(
-                    'The configured Payment Gateway name must match exactly one active gateway.'
-                );
-            }
-            return namedGateways[0];
-        }
-        if (gatewayId == null || gatewayId.getSObjectType() != PaymentGateway.SObjectType) {
-            throw new AuraHandledException(
-                'Set an active Payment Gateway record ID or unique name in the component properties.'
-            );
-        }
-        // PaymentGatewayProvider is provisioned and checked by the CCI setup
-        // task through Tooling API; Builder passes this gateway's unique ID.
-        List<PaymentGateway> gateways = [
-            SELECT Id
-            FROM PaymentGateway
-            WHERE Id = :gatewayId AND Status = 'Active'
-            WITH USER_MODE
-            LIMIT 1
-        ];
-        if (gateways.isEmpty()) {
-            throw new AuraHandledException('The configured active Payment Gateway was not found.');
-        }
-        return gateways[0];
-    }
 }

@@ -35,6 +35,17 @@ SCENARIOS = {
     "Invalid": "MOCK:INVALID",
     "Gateway Error": "MOCK:ERROR",
 }
+REQUIRED_SEEDED_METHOD_FIELDS = (
+    "AccountHolderName",
+    "AccountHolderEmail",
+    "ExpiryMonth",
+    "ExpiryYear",
+    "BillingStreet",
+    "BillingCity",
+    "BillingState",
+    "BillingPostalCode",
+    "BillingCountry",
+)
 
 
 class MockPaymentGateway(BaseSalesforceApiTask):
@@ -470,35 +481,9 @@ class MockPaymentGateway(BaseSalesforceApiTask):
             previous = existing_by_name.get(record_name)
             complete_name = record_name + " Complete"
             complete = existing_by_name.get(complete_name)
-            if complete and all(
-                complete.get(field)
-                for field in (
-                    "AccountHolderName",
-                    "AccountHolderEmail",
-                    "ExpiryMonth",
-                    "ExpiryYear",
-                    "BillingStreet",
-                    "BillingCity",
-                    "BillingState",
-                    "BillingPostalCode",
-                    "BillingCountry",
-                )
-            ):
+            if self._is_complete_seeded_method(complete):
                 continue
-            if previous and all(
-                previous.get(field)
-                for field in (
-                    "AccountHolderName",
-                    "AccountHolderEmail",
-                    "ExpiryMonth",
-                    "ExpiryYear",
-                    "BillingStreet",
-                    "BillingCity",
-                    "BillingState",
-                    "BillingPostalCode",
-                    "BillingCountry",
-                )
-            ):
+            if self._is_complete_seeded_method(previous):
                 continue
             # SavedPaymentMethod records aren't updateable. If an earlier version
             # of this task already created a sparse scenario, add a complete
@@ -583,6 +568,13 @@ class MockPaymentGateway(BaseSalesforceApiTask):
             )
         self.logger.info(
             f"Created {created} mock saved payment method(s) for Account {account_id}; existing scenarios were kept."
+        )
+
+    @staticmethod
+    def _is_complete_seeded_method(method: Dict[str, Any] | None) -> bool:
+        return bool(
+            method
+            and all(method.get(field) for field in REQUIRED_SEEDED_METHOD_FIELDS)
         )
 
     @staticmethod
