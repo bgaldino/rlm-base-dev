@@ -175,12 +175,15 @@ class Run(unittest.TestCase):
         return ok, out.getvalue()
 
     def test_output_and_exit_status_are_evidence(self):
-        ok, out = self.run_one('printf one; echo two >&2; pwd; exit 3')
+        ok, out = self.run_one('printf one; echo two >&2; echo "cwd=$(pwd)"; exit 3')
         self.assertTrue(ok)
         lines = out.splitlines()
         self.assertEqual(lines[0], "== §1 probe: Probe")
         self.assertIn("two", out)
-        self.assertIn(str(REPO), out)
+        # The shell can report a logical path (macOS links /var to /private/var), so
+        # compare resolved paths on both sides.
+        cwd = next(line[len("cwd="):] for line in lines if line.startswith("cwd="))
+        self.assertEqual(Path(cwd).resolve(), REPO.resolve())
         self.assertEqual(lines[-1], "[exit 3]")
 
     def test_timeout_is_reported(self):
