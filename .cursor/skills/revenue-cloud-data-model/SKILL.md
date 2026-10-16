@@ -194,7 +194,7 @@ For cross-domain FK mappings: [cross-domain-relationships.md](cross-domain-relat
 
 ## Querying the Data Model
 
-Use `scripts/ai/query_erd.py` for targeted lookups against the full 263-object schema:
+Use `scripts/ai/query_erd.py` for targeted lookups across the Revenue Cloud baseline and Contracts CLM extension:
 
 ```bash
 python scripts/ai/query_erd.py describe Product2         # fields, relationships, domain
@@ -210,6 +210,7 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 ## Source Data
 
 - `docs/erds/erd-data.json` — canonical machine-readable schema (263 objects, 4,252 fields, 674 relationships, custom fields excluded)
+- `docs/erds/contracts-erd-data.json` — separately sourced Contracts CLM viewer extension; see its 264 schema provenance before treating feature-gated visibility as universal
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
 - `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the **expected** feature-gated baseline (9 objects unfindable in a default RLM scratch profile, **0** objects with field gaps, **58** ERD-side fields absent from a stock org — the feature-gated / cross-cloud set carried forward from the 262 pass). Use this file as the diff target for new validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps absolute. The 262 baseline was 33 objects and 822 fields. The object figure fell to 0 because `--patch` added every field the org had; the field figure fell to 58 through deliberate removal (orphan-cleanup batches plus the 8 fields 264 retired), because `--patch` only ever adds and cannot reduce it. Trust the generated report over any count quoted in prose.

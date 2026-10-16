@@ -47,6 +47,34 @@ End-to-end workflow for keeping `docs/erds/erd-data.json` aligned to canonical R
 | `scripts/erd/orphan_batch_helper.py` | Batch workflow helper (prepare/apply/validate cycles) | Multiple |
 | `scripts/ai/query_erd.py` | Query ERD content (describe/relationships/domain/path/search) | Stdout |
 
+### Contracts CLM extension
+
+The Revenue Cloud release-diff baseline stays in `docs/erds/erd-data.json`.
+The viewer merges that dataset with `docs/erds/contracts-erd-data.json`, whose
+48-object describe union is preserved in `scripts/erd/schema_diff/264-clm-schema.json`.
+The extension is separate because the committed 262 snapshot did not select
+this CLM object set; adding those keys to a 264-only diff would make older CLM
+objects look like release additions. The current 264 snapshot is cross-checked
+against four API v68.0 prepared Enterprise orgs, with feature-gated visibility
+differences recorded in its metadata.
+
+For a later CLM release, keep the object selection stable and release-aligned:
+
+```bash
+python scripts/erd/schema_diff/extract_schema.py --org <prepared_alias> \
+  --objects scripts/erd/schema_diff/clm-object-list.txt \
+  --output /tmp/<release>-clm-schema.json
+```
+
+Cross-check the same-release extract in a second prepared org and compare the
+schema before updating the committed snapshot. For feature-gated fields, use a
+complementary org shape where available and union only positively observed
+fields/targets; absence alone does not prove retirement. Update the extension
+data from the reviewed snapshot, then run `python scripts/erd/build_erds.py` to
+refresh the combined viewer. Keep these CLM diffs separate from the 262→264
+Revenue Cloud baseline until there is a previous-release CLM snapshot with the
+same explicit object selection.
+
 ## Common Workflows
 
 ### A. Refresh ERD after a release upgrade

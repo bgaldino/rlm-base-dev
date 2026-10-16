@@ -13,37 +13,34 @@ pipeline and work with any AI coding agent.
 
 ### `query_erd.py`
 
-CLI tool for querying the Revenue Cloud data model stored in
-`docs/erds/erd-data.json` — Release 264 (Winter '27, API v68.0): 263
-objects, 4,252 platform fields, 674 verified relationship edges (custom
-fields excluded). The same JSON also exposes 1,148 reference fields in
-total — see the "Reference Fields" line in `query_erd.py stats` for the
-distinction. Avoids loading the 30K-line JSON file directly into AI
-context.
+CLI tool for querying the integrated Revenue Cloud and Contracts CLM model.
+It combines `docs/erds/erd-data.json` with the separately sourced
+`docs/erds/contracts-erd-data.json` — Release 264 (Winter '27, API v68.0):
+303 objects, 4,698 platform fields, 729 verified relationship edges across
+10 domains (custom fields excluded). The combined view also exposes 1,220
+reference fields — see the "Reference Fields" line in `query_erd.py stats`.
+Avoids loading the schema JSON files directly into AI context.
 
-⚠ **These figures are hardcoded prose with no generator behind them**, so a refresh
-staled every copy at once — the 262→264 pass missed this file, and `stats` printed
-264 figures while the line above still said 262. Four files carry them:
+The integrated count is hardcoded prose and is checked against both source datasets
+and the checked-in viewer. The Revenue Cloud base counts remain documented in the
+data-model and ERD reference pages; this CLI describes the combined viewer model.
+
+The core Revenue Cloud counts remain documented in the reference files below; this file describes the combined viewer model:
 
 | File | Carries | Gated by `tests/test_erd_doc_counts.py` |
 |---|---|---|
-| `scripts/ai/README.md` (this file) | objects, fields, relationships, **and `1,148` reference fields** | the triple, yes; `1,148`, **no** |
+| `scripts/ai/README.md` (this file) | combined viewer objects, fields, relationships, and reference fields | the combined triple and reference-field total, yes |
 | `docs/erds/README.md` | objects, fields, relationships | yes, prose **and** the Statistics bullets |
 | `.cursor/skills/revenue-cloud-data-model/SKILL.md` | objects, fields, relationships | yes |
 | `.cursor/skills/schema-validation/SKILL.md` | objects, fields, relationships | yes |
 
-**`python tests/test_erd_doc_counts.py` now gates the triple in all four**, per site
-rather than in aggregate, so a file that reworded or renamed its citation fails instead
-of quietly leaving the audit. The wrapped citation above — `263` on one line, `objects,
-4,252 platform fields…` on the next — is exactly the shape that escaped the first
-version of that check, so keep the phrase within three lines. Still unchecked, and
-still needing the manual sweep: the **`1,148` reference-field total**, which this file
-and `.cursor/skills/schema-validation/SKILL.md` both carry (the table above used to call
-this file its only copy — it is not, and a reader who trusted that would sweep one of the
-two); the org-describe pair (254 objects / 3,913 fields); and the orphan/gap baselines.
+`python tests/test_erd_doc_counts.py` checks the base citations in the three core
+reference pages and checks this file's combined viewer total against both JSON sources.
+Reference-field totals and the org-describe pair remain separate figures from the
+viewer totals; do not substitute one for another.
 
-`query_erd.py stats` is the generated source for all of them — reconcile against it,
-not against another doc.
+`query_erd.py stats` is the generated source for the integrated viewer counts —
+reconcile against it, not against another doc.
 
 ```bash
 python scripts/ai/query_erd.py describe Product2         # fields, relationships, domain

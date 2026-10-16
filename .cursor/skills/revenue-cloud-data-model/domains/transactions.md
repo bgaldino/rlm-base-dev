@@ -84,6 +84,20 @@ FulfillmentOrder ← FulfillmentOrderLineItem (FulfillmentOrderId, master-detail
 OrderItem ← FulfillmentOrderLineItem (OrderItemId)
 ```
 
+## Contract Lifecycle Management
+
+Salesforce Contracts (CLM) adds clause-library and contract-lifecycle objects
+to the core `Contract` record. The 264 Contracts deployment guide lists
+`ClauseCatgConfiguration` → `DocumentClauseSet` → `DocumentClause` as the
+clause migration dependency order. State behavior is represented by
+`ObjectStateDefinition`, `ObjectStateValue`, `ObjectStateTransition`, and
+their action records. See the [Salesforce Contracts skill](../../salesforce-contracts/SKILL.md)
+for query recipes and the release-specific Help and developer-guide snapshots.
+
+The standard ERD is not a complete Salesforce Contracts schema reference.
+Discover the target org's objects and fields with `sf sobject describe` before
+writing SOQL; CLM licensing and release differences affect what is available.
+
 ## SFDMU Data Plans
 
 - `scratch_data` — base Account and Contact records
