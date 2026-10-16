@@ -88,10 +88,15 @@ treats `#` as a command otherwise, which breaks lines with comments.
    `direnv status` the same way), and `git stash pop` restores anything set aside
    in step 1.
 4. **Open a new terminal outside the repo, then `cd` in.** Run the read-only audit
-   in [`workstation-audit.md`](workstation-audit.md), sections 1–6. On a **plain**
-   workstation that needs no corporate CA you may skip audit §6, and say so. On a
-   managed workstation always run it; it can be n.a. only when audit §6's own
-   conditions for that hold.
+   and read each result against its row in [`workstation-audit.md`](workstation-audit.md):
+   ```bash
+   python3 scripts/ai/toolchain_audit.py --all
+   ```
+   Run nothing from the audit's tables: they hold what to expect and where each fix
+   is documented, not commands. On a **plain** workstation that needs no corporate CA
+   you may skip audit §6 (`--section 1` through `--section 5` instead of `--all`),
+   and say so. On a managed workstation always run it; it can be n.a. only when
+   audit §6's own conditions for that hold.
 5. **Only if the owner explicitly agrees,** run `update-toolchain.sh` and repeat the
    audit. It upgrades the whole machine. When the owner runs it, use a standalone
    terminal app rather than an IDE's integrated terminal: an agent can read the

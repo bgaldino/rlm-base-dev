@@ -268,6 +268,7 @@ foundations:
       tooling:
         - scripts/bash/update-toolchain.sh
         - scripts/ai/gate_python.py
+        - scripts/ai/toolchain_audit.py
       caveats:
         - "macOS + zsh + Homebrew; the containerized toolchain (docker/README.md) is separate"
 
