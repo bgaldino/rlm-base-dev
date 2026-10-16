@@ -1,3 +1,12 @@
+---
+name: expression-sets
+description: >-
+  Inspect and author Revenue Cloud BRE Expression Sets through Connect or Metadata APIs,
+  including step and variable overlays and activation lifecycle. Use for pricing,
+  qualification, discovery, rating, or constraint procedures; use pricing-wiring for
+  integration sequencing.
+---
+
 # Expression Sets — Programmatic CRUD & Overlay Authoring
 
 Use this skill when reading or mutating a BRE **Expression Set** (pricing
@@ -12,9 +21,12 @@ Expression Sets back more than pricing — Revenue Cloud uses **six**
 so this skill is generic to the Expression Set engine. For where Expression Set
 CRUD fits into the **pricing** layering model (recipes, recipe-table mappings,
 procedure plans, context definitions), read
-`.cursor/skills/pricing-wiring/SKILL.md`.
+`.cursor/skills/pricing-wiring/SKILL.md`. A procedure can **consume a decision
+table**'s output via a `GetOutputsFromDecisionTable` step (with a `DecisionTable`
+parameter) — to inspect, author, or manage those tables see
+`.cursor/skills/decision-tables/SKILL.md`.
 
-> **Pinned to Release 262 / API v67.0.** Re-verify enums and behavior on the
+> **Pinned to Release 264 / API v68.0.** Re-verify enums and behavior on the
 > target release at merge time. This `SKILL.md` is the task-level entry point;
 > deep detail lives in three companion files (read on demand):
 > - **`authoring-and-overlays.md`** — building/applying overlays, capturing a
@@ -117,10 +129,15 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
    referenced name into one of three scopes (version variable → `addVariables`;
    custom external dep → `externalDependencies`; standard context → nothing).
 7. **Mutations run deactivate → modify → reactivate**, in a guarded `finally`;
-   the tasks enforce this, including the procedure-plan cascade. **Label
-   preservation runs a second deactivate→relabel→reactivate cycle** after the
-   Connect PATCH, adding 30-60s for large procedures (90+ steps). Use
-   `--no-preserve-labels` to skip if speed is critical.
+   the tasks enforce this, including the procedure-plan cascade. The CCI task
+   restores labels before reactivation in that same inactive window; its Connect
+   PATCH sends `enabled:false` so the PATCH cannot reactivate first. The
+   standalone toolkit still restores labels in a second lifecycle cycle. In
+   `tasks/rlm_expression_set_connect.py`, preservation lives in
+   `_run_connect_mutation`, so every Connect PATCH gets it. Opt out with
+   `--no-preserve-labels` (toolkit) or `-o preserve_labels false` (CCI). Give an
+   overlay's new or updated steps readable labels with a per-step `label` (or a top-level
+   `labels` map); without one they show the spaceless `name`.
 8. **Test Connect CRUD on a disposable clone** (POST-create a renamed copy),
    never the shipped procedure — except for an intentional, approved change.
 9. **Step `name` ≠ `label`.** `name` is the spaceless API-Name identifier (and the
@@ -187,8 +204,10 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
 | Author/modify a procedure in git (source-controlled) | `metadata-vs-connect.md` → Metadata API authoring |
 | The Connect mutation lifecycle, verb-specific field rules, GET gotchas | `metadata-vs-connect.md` |
 | Capture a known-good element from one org and add it to another | `authoring-and-overlays.md` |
+| Understand/inspect/diff **compound ramp uplift** (the `PriceRevision` compound flag, prerequisites, `RampUpliftType`-on-group rule) | [Compound ramp uplift](#compound-ramp-uplift) |
 | Classify a step's dependency scopes; remove a step safely | `authoring-and-overlays.md` |
 | Where ES CRUD fits in the **pricing** setup order (recipes, plans, context) | `.cursor/skills/pricing-wiring/SKILL.md` |
+| The **decision table** a `GetOutputsFromDecisionTable` step consumes (inspect / author / lifecycle) | `.cursor/skills/decision-tables/SKILL.md` |
 | Object/ID model, full schema enums, **every error + resolution**, verification checklist | Detail file: `docs/references/expression-set-connect-api-reference.md` |
 | An opaque Connect failure (a code/message you don't recognize) | Reference doc → **Known errors & conditions** section |
 | Writing the Python task class itself | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
@@ -288,7 +307,13 @@ Common options on the mutation tasks: `dry_run` (log without mutating),
 Every Connect mutation runs **deactivate → PATCH/POST → reactivate** in a guarded
 `finally` (an enabled version can't be modified/deleted), including the
 `ProcedurePlanDefinitionVersion` cascade; a failed PATCH is **left deactivated and
-raised** (non-atomic). Verb-specific field rules (version `id` omit-on-create /
+raised** (non-atomic), but the cascaded procedure plans are **reactivated** — an
+inactive plan silently skips its procedures — once the version is confirmed off.
+They stay off under `activate_after=false`, or when the version can't be
+confirmed off (a failed PATCH can re-enable a half-written version; don't
+restore a plan over it). Each record the run left inactive is reported with its
+restore command, except a version a failed PATCH may have half-written: re-import
+it before reactivating. Verb-specific field rules (version `id` omit-on-create /
 keep-on-replace, `contextDefinitions[].id`, immutable `resourceInitializationType`,
 `usageType`), the GET serializer gotchas (alphabetical top-level order,
 per-parent `sequenceNumber`, HTML-escaped string leaves), and the **Metadata API**
@@ -309,6 +334,127 @@ not functional** — a `removeSteps` that reactivates can still leave a consumer
 orphaned and silently misbehave. The full slicing table, the three-scope
 classifier, the `externalDependencies` block shape, and safe-removal guidance
 live in **`authoring-and-overlays.md`**.
+
+---
+
+## <a name="compound-ramp-uplift"></a>Compound ramp uplift
+
+Compound ramp uplift (each ramp segment's price uplifts on the *prior segment's*
+factor, not the list price) is a **group-ramp + pricing-procedure** capability.
+The procedure element is this skill's turf; the rest is Revenue Settings + a
+**group** ramp deal. It is **not** a line field you set — `RampUpliftType` is
+read-only on `QuoteLineItem`/`OrderItem` (Place API, Apex, and Tooling all reject
+a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
+
+**Five prerequisites** (Salesforce Help: *"Compound Uplift in Ramp Deals"*,
+*"Create Ramp Deals with Standard or Compound Price Uplifts"*):
+
+1. **Revenue Settings → Advanced Detail Line Pricing = ON** — this repo now defaults it
+   **ON** (`unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`,
+   `enableAdvancedDetailLinePricing=true`), so compound is available (it is hidden from the
+   Ramp Uplift Type picklist only when ADLP is off). The 264 Help's hand-authoring path
+   (*Compound Uplift for Ramp Deals* → *Use Advanced Transaction Detail Line Pricing to Map
+   Custom Fields*) — clone the template, add a map line item mapping
+   `ItemApplUnitPriceUpliftPct__std` → `itemDetailApplUnitPriceUpliftPct__std`, sync the
+   context — is **not required in this repo**: the tracked `RLM_DefaultPricingProcedure`
+   already ships the ramp-path compound `PriceRevision` (prerequisite 4), and the bound
+   ramp attributes plus the `itemDetailApplUnitPriceUpliftPct__std` target are
+   **standard/inherited** from base `SalesTransactionContext`, so no clone, no map line,
+   and no context sync are needed (verified on a fresh 264 build). Off ⇒ standard
+   (list-based) uplift only; turning it off *after* compound quotes/orders/assets exist
+   corrupts pricing, amendments, renewals.
+2. **Ramp Deals for *Groups*** (a group ramp), **not** the line-level ramp path.
+   A single-line `createRampDeal` yields ungrouped segments
+   (`QuoteLineGroupId=null`) — no group to hold the uplift mode, so it can never
+   compound.
+3. **`RampUpliftType='Compound'` on the ramp group** — with *Multiple Ramp Schedules
+   Per Transaction* on (the repo default), set it on the **top-level `RampScheduleGroup`**;
+   with it off, on the single ramp segment group. On individual segment groups and
+   lines the type is **read-only**. It cascades to every ramped line in the schedule.
+4. **A fully-configured ramp `PriceRevision` element** — `IsCompoundUpliftEnabled=true`
+   (UI *"Enable Compound Uplift"*) is *necessary but not sufficient*. Per the 264 Help
+   (*Use the Price Revision Element in a Pricing Procedure*), the checkbox appears
+   **only after a lookup table is selected**, and exposes bindings that must all be set:
+
+   | Binding | Rule (blank / wrong ⇒) |
+   |---|---|
+   | **Ramp Identifier** | Groups a ramp's segments so they compound independently; lines with no Ramp Identifier price independently |
+   | **Base Price Multiplier** | Blank ⇒ 1 for a new sale; for amend/renew, the ramp's compounded multiplier from the prior transaction |
+   | **Uplift Method** | **Blank ⇒ silently *standard* (no compounding)** — this is the quiet failure mode |
+   | **Effective From** / **Effective To** | Segment date range; **every segment needs a *unique* Effective From** — a missing or duplicated one **fails pricing for the entire ramp group**, not just that segment |
+
+   Note: changing/removing the lookup table auto-clears `IsCompoundUpliftEnabled`. The 264
+   Help says compound "requires a newly-created procedure" — that is a **UI-authoring**
+   limitation (the builder won't let you enable compound uplift on an existing procedure);
+   deploying the full expression-set metadata bypasses it. The tracked
+   `RLM_DefaultPricingProcedure` in this repo **now ships two** `PriceRevision` BKMs — the
+   long-standing **non-ramp** step, **and** the **ramp-path** compound step (migrated from
+   the old `FormulaBasedPricing` `Uplift` BKM by metadata deploy). Compound ramp uplift
+   therefore works on the tracked default out of the box; no clone is needed:
+
+   | BKM step (parent filter) | Kind in tracked default | Drives |
+   |---|---|---|
+   | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` under *Apply price revision for lines with subscription and without derived pricing* | `PriceRevision` (present) | non-ramp price revision |
+   | `Uplift` under *Apply uplifts to ramped subscriptions items during amendment* (filter requires `IsLineGroupRamped__std=true` AND `ItemRampIdentifier IS NOT NULL`) | `PriceRevision` with `IsCompoundUpliftEnabled=true` (migrated from `FormulaBasedPricing`) | **compound** ramp uplift when `RampUpliftType=Compound`; flat when `Standard` |
+
+5. **`UnitPriceUplift` (per-year %) set per segment** (writeable). First segment
+   is the baseline (applied uplift = its own line uplift, usually 0); a 0% segment
+   is a *carryover* (prior cumulative multiplier preserved, not reset).
+
+Compounding math (in **percent units**, matching `UnitPriceUplift` /
+`ApplUnitPriceUpliftPct`):
+`applied%(n) = [(1 + applied%(n-1)/100) × (1 + unitUplift%(n)/100) − 1] × 100`, and
+`NetUnitPrice(n) = base × (1 + applied%(n)/100)`. The `× 100` converts the
+compounded multiplier back to a percentage — uplifts 5% then 3% give `applied% =
+8.15` (not `0.0815`), i.e. `NetUnitPrice = base × 1.0815`.
+
+**Unsupported for compound** (264 Help, *Considerations for Ramp Deals*): a SKU
+using **CPI renewal uplift**, **usage-based pricing**, or **derived pricing** can't
+compound. Compound also **resets on renewal** (new term's Year 1 is the new
+baseline); pre-Winter '27 records use standard uplift.
+
+### Inspect / research (read-only)
+
+```bash
+# 0. Discover the org's ACTIVE pricing procedure first — RLM_DefaultPricingProcedure
+#    is the template default, but an org may run a different one. Never assume the name.
+#    --versions is REQUIRED to mark the active version ([ACTIVE]); without it the tool
+#    prints set names only (list_expression_sets.py) and can't tell active from draft.
+python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> \
+    --type PricingProcedure --versions
+# Is compound enabled, and what feeds the rate? Inspect the SELECTED procedure for a
+# ramp-path PriceRevision BKM (the ramp branch is "Applyupliftstoramped…") and read
+# IsCompoundUpliftEnabled + its Rate input. NOTE the tracked RLM_DefaultPricingProcedure
+# NOW ships one there (IsCompoundUpliftEnabled=true), so compound works out of the box; an
+# ABSENT ramp-path PriceRevision is the signal that compound uplift is not configured on
+# that procedure (e.g. a custom procedure that predates the migration). Use the
+# DeveloperName discovered above.
+python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> \
+    --developer-name <PRICING_PROCEDURE> --params
+
+# Do live compound ramps exist? (any Compound row = yes)
+sf data query --target-org <sf_alias> -q \
+  "SELECT RampUpliftType, COUNT(Id) FROM QuoteLineGroup GROUP BY RampUpliftType"
+
+# Segment breakdown for one quote (verify the compounding numerically):
+sf data query --target-org <sf_alias> -q "SELECT SegmentName, IsPrimarySegment, \
+  StartDate, EndDate, UnitPrice, NetUnitPrice, UnitPriceUplift, \
+  ApplUnitPriceUpliftPct, RampUpliftType FROM QuoteLineItem \
+  WHERE QuoteId='<id>' AND RampUpliftType='Compound' ORDER BY StartDate NULLS FIRST"
+```
+
+Diff the ramp path org-vs-org with `diff_expression_set.py` (compare
+`IsCompoundUpliftEnabled` and the `Rate`/`Subtotal` bindings on the ramp
+`PriceRevision`). Building the compound-capable ramp quote end-to-end (a **group**
+ramp via `placeSalesTransaction` create → `groupRampAction: EditGroup` → clone, then
+per-segment `UnitPriceUplift` + `RampUpliftType='Compound'` on the group) is a
+transaction-building task, outside this skill — see
+`.cursor/skills/ramped-quotes/SKILL.md`. (Do **not** use the line-level
+`createRampDeal` or the legacy `/commerce/…/ramp-deals` API — neither produces the
+group that holds the compound uplift mode.) Ground behavior in the tracked 264 Help
+snapshots: `docs/salesforce/264/help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md`,
+`ind.qocal_ramp_deal_compound_uplift_sales_reps.htm.md`, and
+`ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm.md`.
 
 ---
 
@@ -410,6 +556,9 @@ Checklist:
 - **Pricing layering model (recipes, recipe-table mappings, procedure plans,
   context definitions) — where ES CRUD fits in pricing setup:**
   `.cursor/skills/pricing-wiring/SKILL.md`
+- **Decision tables a procedure consumes (`GetOutputsFromDecisionTable` step) —
+  inspect / author / lifecycle + the async-refresh data layer:**
+  `.cursor/skills/decision-tables/SKILL.md`
 - **Connect CRUD tasks:** `tasks/rlm_expression_set_connect.py`; pre-flight
   validator `tasks/expression_set_schema.py`; tests
   `tests/test_expression_set_schema.py`.

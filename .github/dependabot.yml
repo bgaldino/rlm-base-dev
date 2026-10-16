@@ -1,0 +1,87 @@
+# Dependabot version updates for rlm-base-dev.
+#
+# Required by the ESAG GitHub Actions Security Guide (Dependabot version updates
+# keep actions patched). Security updates are a separate repo setting: they run
+# whether or not this file exists, and the `cooldown` blocks below don't apply to them.
+#
+# Every entry waits 7 days before proposing a release, so a compromised or
+# broken release has time to be pulled before it reaches a PR.
+
+version: 2
+
+updates:
+  # Workflows in .github/workflows. Dependabot also updates SHA-pinned actions
+  # and their `# vX.Y.Z` comments, so pinning later doesn't need a config change.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+      include: scope
+    # Minor and patch bumps arrive grouped; each major bump gets its own PR, so a breaking
+    # release (including for the write-scoped actions) is reviewed on its own.
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # LWC tooling in package.json (all devDependencies). There's no lockfile, and
+  # every range uses ^, so expect PRs only for major-version bumps.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      npm-dev:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  # Python helper tooling. Most specs are open-ended (>=), so Dependabot only
+  # opens a PR when a release falls outside a cap (robot/requirements.txt has
+  # <7, <8, <5). The CumulusCI pin lives in scripts/ai/pr_gate.py (PINS), where
+  # Dependabot can't see it, so CumulusCI upgrades are made there by hand.
+  - package-ecosystem: pip
+    directories:
+      - /robot
+      - /scripts/build_harness/tui
+      - /scripts/doc_snapshot
+      - /scripts/docgen
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      python:
+        patterns: ["*"]
+
+  # Build-environment image (docker/Dockerfile, FROM python:3.13-slim-bookworm).
+  # Minor bumps (3.13 -> 3.14) are ignored on purpose: the workflows also pin
+  # python-version 3.13, so change the Python version deliberately in all of
+  # them at once.
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    ignore:
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]

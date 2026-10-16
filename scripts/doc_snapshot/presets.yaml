@@ -1,0 +1,223 @@
+# Doc snapshot presets — one block per Salesforce release.
+#
+# Read by scripts/doc_snapshot/presets.py; run them with
+#
+#   python -m scripts.doc_snapshot list [--release 264]
+#   python -m scripts.doc_snapshot help --release 264 --area pricing
+#   python -m scripts.doc_snapshot dev-guide --release 264 --guide industries
+#   python -m scripts.doc_snapshot run --release 264
+#
+# Schema:
+#
+#   releases:
+#     "<release_version>":            # quoted: a path component, not a number
+#       release_name: "<e.g. Winter '27>"
+#       help:                         # help.salesforce.com portal areas
+#         <preset>:                   # `area` defaults to the preset key
+#           root_article_id: ...      # required
+#           article_id_prefix: ...    # required
+#           area / output_dir / subtree_only / expect_min_articles / ...  (optional)
+#       dev_guide:                    # developer.salesforce.com atlas guides
+#         <preset>:
+#           deliverable / doc_version / sections / output_dir / ...       (optional)
+#
+# Any option the tool accepts may appear on a preset; a CLI flag of the same
+# name (kebab-case, e.g. --expect-min-articles) overrides it for one run.
+# Add a release with `python -m scripts.doc_snapshot bootstrap --from <r> --to <new>`.
+# Options, floors and the add-an-area recipe: scripts/doc_snapshot/README.md.
+#
+# FINDING A ROOT ARTICLE ID
+#
+# Help-portal article IDs are not stable across release reorgs, and the obvious
+# guess is often wrong (Usage Management's root is ind.um_usage_management.htm,
+# not ind.usage_management.htm). If a discover run fails (or finds suspiciously
+# few articles), start from the Revenue Lifecycle Management parent
+# (ind.revenue_lifecycle_management.htm), walk its sidebar, and copy the id=
+# param of the area's link into root_article_id / article_id_prefix. Validate a
+# root without a full capture with `--mode discover`.
+#
+# The Help portal uses short prefixes that differ from data-model domain names:
+# Rate Management → ind.rm_*, Usage Management → ind.um_*, Transaction
+# Management → ind.qocal_* (Quote/Order/Contract/Asset/Lifecycle all share one
+# prefix, so one preset covers them all).
+#
+# READING THE RESULT
+#
+# A thin-but-nonzero discovery only fails when the preset sets
+# expect_min_articles, so on a preset without one, read the "Discovered N unique
+# articles" line yourself. See "Reading the result" in the README.
+
+releases:
+
+  # -------------------------------------------------------------------------
+  # Spring '26 (260) — kept for the 260-vs-262 diff work.
+  # -------------------------------------------------------------------------
+  "260":
+    release_name: "Spring '26"
+    help:
+      billing:
+        root_article_id: ind.billing.htm
+        article_id_prefix: ind.billing
+
+  # -------------------------------------------------------------------------
+  # Summer '26 (262) — frozen corpus; presets kept so it stays reproducible.
+  # Coverage and counts: docs/salesforce/262/help/index.md.
+  # Ordered to mirror the data-model domain flow: Catalog → Pricing → Rating →
+  # Configuration → Transaction lifecycle → Fulfillment → Usage → Billing →
+  # Agents → Approvals → Collections.
+  # -------------------------------------------------------------------------
+  "262":
+    release_name: "Summer '26"
+    help:
+      pcm:
+        root_article_id: ind.product_catalog_introduction.htm
+        article_id_prefix: ind.product_catalog
+      pricing:
+        root_article_id: ind.pricing_salesforce_pricing.htm
+        article_id_prefix: ind.pricing
+      # Rating and usage are separate areas because the data model treats Rate
+      # Management and Usage Management as separate domains (see
+      # .cursor/skills/revenue-cloud-data-model/SKILL.md):
+      #   - Rate Management: RateCard, RateCardEntry, AssetRateCardEntry,
+      #     AssetRateAdjustment, Rating Procedure (ExpressionSetDefinition),
+      #     the Ratable / Liable Summary part of the rating pipeline.
+      #   - Usage Management: TransactionUsageEntitlement, UsageEntitlement*,
+      #     ProductUsageResource, ProductUsageGrant, UsageResource,
+      #     UsageSummary, TransactionJournal, Usage Agent, Drawdown Policies,
+      #     Digital Wallets.
+      rating:
+        root_article_id: ind.rm_rate_management.htm
+        article_id_prefix: ind.rm
+      configurator:
+        root_article_id: ind.product_configurator_introduction.htm
+        article_id_prefix: ind.product_configurator
+      transaction_mgmt:
+        root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
+        article_id_prefix: ind.qocal
+      dro:
+        root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
+        article_id_prefix: ind.dro
+      usage:
+        root_article_id: ind.um_usage_management.htm
+        article_id_prefix: ind.um
+      billing:
+        root_article_id: ind.billing.htm
+        article_id_prefix: ind.billing
+      # Agentforce for Revenue Management — topic-reference articles for the
+      # subagents: Product Selection and Product
+      # Description Generation (PCM), Quote Management (Transaction Mgmt),
+      # Consumption Management (Usage — the "Usage/Consumption Agent" lives
+      # here, not in the usage area), Invoice Line Explanation, Billing
+      # Collections Management and Billing Inquiries (Billing). Area-specific
+      # agent how-to articles live under each area's own prefix.
+      agents:
+        root_article_id: ind.rev_agent_overview.htm
+        article_id_prefix: ind.rev_agent
+      approvals:
+        root_article_id: ind.approvals_advanced_approvals.htm
+        article_id_prefix: ind.approvals
+      # Collections and Recovery — Collection Plans and Reasons, dunning /
+      # treatment flows, Promise to Pay, write-offs, late fees, and the
+      # Create-Case-for-Collection automation. The Create Case flow
+      # (unpackaged/post_collections) invokes a BRE Decision Matrix
+      # (DetermineCaseReasonAndRelatedAttributes) authored per this area.
+      collections:
+        root_article_id: ind.collections.htm
+        article_id_prefix: ind.collections
+    dev_guide:
+      # Full Revenue Cloud Developer Guide. Add --section "Constraint Modeling
+      # Language" (title or page_id) to capture a single section.
+      rlm:
+        deliverable: revenue_lifecycle_management_dev_guide
+      # RC-relevant sections of the Industries Common Resources Developer Guide.
+      # Most of the full guide covers other Industries clouds; these sections go
+      # to a separate corpus so they never clobber the RLM dev guide. follow_links stays off (its default when
+      # `sections` is set) so an out-of-scope link can't pull other sections in.
+      # Use page_ids for sections whose titles contain commas (batch).
+      industries:
+        deliverable: industries_reference
+        output_dir: docs/salesforce/262/dev-guide-industries
+        sections: &industries_sections
+          - business_rules_engine
+          - context_service_overview
+          - omnistudio_overview
+          - discovery_framework
+          - batch
+          - decision_explainer
+          - collections_objects
+          - action_launcher
+          - timeline
+
+  # -------------------------------------------------------------------------
+  # Winter '27 (264) — the active line.
+  #
+  # A help preset with expect_min_articles has been verified for this release
+  # and captured; one without a floor has not been verified yet, so check its
+  # discovery count and compare a few articles against 262 before capturing.
+  # The dev guides need doc_version set (see the README).
+  # -------------------------------------------------------------------------
+  "264":
+    release_name: "Winter '27"
+    help:
+      pcm:
+        root_article_id: ind.product_catalog_introduction.htm
+        article_id_prefix: ind.product_catalog
+        expect_min_articles: 53
+      pricing:
+        root_article_id: ind.pricing_salesforce_pricing.htm
+        article_id_prefix: ind.pricing
+        expect_min_articles: 55
+      rating:
+        root_article_id: ind.rm_rate_management.htm
+        article_id_prefix: ind.rm
+        expect_min_articles: 17
+      configurator:
+        root_article_id: ind.product_configurator_introduction.htm
+        article_id_prefix: ind.product_configurator
+        expect_min_articles: 38
+      transaction_mgmt:
+        root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
+        article_id_prefix: ind.qocal
+        expect_min_articles: 85
+      dro:
+        root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
+        article_id_prefix: ind.dro
+        expect_min_articles: 35
+      usage:
+        root_article_id: ind.um_usage_management.htm
+        article_id_prefix: ind.um
+        expect_min_articles: 26
+      billing:
+        root_article_id: ind.billing.htm
+        article_id_prefix: ind.billing
+        expect_min_articles: 85
+      agents:
+        root_article_id: ind.rev_agent_overview.htm
+        article_id_prefix: ind.rev_agent
+        expect_min_articles: 6
+      approvals:
+        root_article_id: ind.approvals_advanced_approvals.htm
+        article_id_prefix: ind.approvals
+        expect_min_articles: 17
+      collections:            # no floor yet: not verified for 264 (see header)
+        root_article_id: ind.collections.htm
+        article_id_prefix: ind.collections
+      # Revenue Management section of the release notes. Every release-notes
+      # article shares the release-notes.rn_ prefix, so subtree_only keeps just
+      # the Revenue section under its root.
+      release_notes:
+        area: revenue
+        root_article_id: release-notes.rn_revenue.htm
+        article_id_prefix: release-notes.rn_
+        subtree_only: true
+        output_dir: docs/salesforce/264/release-notes
+        expect_min_articles: 60
+    dev_guide:
+      rlm:
+        deliverable: revenue_lifecycle_management_dev_guide
+        doc_version: "264.0"
+      industries:
+        deliverable: industries_reference
+        doc_version: "264.0"
+        output_dir: docs/salesforce/264/dev-guide-industries
+        sections: *industries_sections

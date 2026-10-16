@@ -1,6 +1,7 @@
 # Approvals Domain
 
-1 core object for managing approval workflow submissions.
+3 objects: one core record for approval workflow submissions, plus the two
+supporting records the `qb-approvals` data plan loads against.
 
 ## Objects
 

@@ -1,3 +1,12 @@
+---
+name: odt-authoring
+description: >-
+  Design, validate, execute, compare, and debug OmniDataTransform (ODT) Extract and
+  Transform mappers. Use for query hierarchies, joins, output JSON, empty results, or
+  malformed arrays; use document-generation for .docx templates and DocumentTemplate
+  lifecycle.
+---
+
 # OmniDataTransform (ODT) Authoring
 
 Use this skill for OmniDataTransform design and troubleshooting independent of

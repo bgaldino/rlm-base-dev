@@ -1,9 +1,10 @@
 # Context Service — PATCH payload shapes
 
 > Live-verified accept-shapes for the Context Service Connect and SObject REST
-> mutation endpoints (Salesforce Release 262 / API v67.0). Each rule below is
-> grounded in an observed platform error and its resolution — re-verify edge
-> behavior on the target release at merge time.
+> mutation endpoints. Endpoints target **Release 264 / API v68.0**; every shape
+> below was **live-verified on Release 262 / API v67.0 and has not been
+> re-verified on 264**. Each rule is grounded in an observed platform error and
+> its resolution — re-verify edge behavior on the target release at merge time.
 >
 > **Audience:** authors of `scripts/context_service/*`, the production
 > `manage_context_definition` task, and anyone hand-crafting Context Service
@@ -74,7 +75,11 @@ on active versions.
 > we have *already* merged siblings into that body, and firing a payload the
 > platform rejects after the merge risks the exact silent sibling-loss the merge
 > exists to prevent. A **POST** stays log-only (no siblings to lose; the platform
-> rejects a bad POST loudly).
+> rejects a bad POST loudly). The CCI task (`tasks/rlm_context_service.py`,
+> `manage_context_definition` and the `apply_context_*` tasks) imports the
+> same merge helpers for layer (1), so plans sharing a node mapping (Approvals,
+> PrmPricing and ConstraintEngineNodeStatus on `SalesTransactionItem`) keep
+> each other's rows; it does not run the layer (2) pre-flight.
 
 **Body:**
 

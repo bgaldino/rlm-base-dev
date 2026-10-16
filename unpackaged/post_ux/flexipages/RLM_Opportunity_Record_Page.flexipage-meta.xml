@@ -16,6 +16,36 @@
                             <value>Delete</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>Opportunity.RLM_CreateQuoteFromRenewalOpp</value>
+                            <visibilityRule>
+                                <criteria>
+                                    <leftValue>{!Record.Type}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>Existing Business</rightValue>
+                                </criteria>
+                                <criteria>
+                                    <leftValue>{!Record.IsClosed}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>false</rightValue>
+                                </criteria>
+                            </visibilityRule>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>Opportunity.RLM_ConsolidateRenewalOpportunities</value>
+                            <visibilityRule>
+                                <criteria>
+                                    <leftValue>{!Record.Type}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>Existing Business</rightValue>
+                                </criteria>
+                                <criteria>
+                                    <leftValue>{!Record.IsClosed}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>false</rightValue>
+                                </criteria>
+                            </visibilityRule>
+                        </valueListItems>
+                        <valueListItems>
                             <value>Clone</value>
                         </valueListItems>
                         <valueListItems>
@@ -303,6 +333,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.Pricebook2Id</fieldItem>
                 <identifier>RecordPricebook2IdField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>readonly</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.ContractId</fieldItem>
+                <identifier>RecordContractIdField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-379a08d2-56c6-4b14-8728-9914dd6403b5</name>

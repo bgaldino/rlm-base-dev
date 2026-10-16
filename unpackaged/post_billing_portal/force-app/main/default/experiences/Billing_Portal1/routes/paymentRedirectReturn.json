@@ -1,0 +1,11 @@
+{
+  "activeViewId" : "95372db0-fff2-416d-87c5-9a84f5685d32",
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "configurationTags" : [ ],
+  "devName" : "View_Pymnt_Redirect_Return",
+  "id" : "a2361bfd-df2a-4a87-83d3-612b1979f3fc",
+  "label" : "Payment Redirect Return",
+  "routeType" : "rlm-pymnt-redirect-return",
+  "type" : "route",
+  "urlPrefix" : "rlm-pymnt-redirect-return"
+}

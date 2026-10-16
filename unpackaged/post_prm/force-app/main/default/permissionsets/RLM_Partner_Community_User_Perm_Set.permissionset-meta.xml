@@ -1245,6 +1245,16 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>OrderItem.RLM_Approval_Level_Calc__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>OrderItem.RLM_Approval__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>OrderItem.RoundedLineAmount</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -1948,16 +1958,10 @@
         <field>Quote.TotalPrice</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>Quote.TotalPriceWithTax</field>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <editable>false</editable>
-        <field>Quote.TotalTaxAmount</field>
-        <readable>true</readable>
-    </fieldPermissions>
+    <!-- The Quote and QuoteLineItem tax fields exist only with estimated tax on. With
+         quote_est_tax and tax on, deploy_post_prm replaces the marker below with read grants for
+         them (cumulusci.yml); otherwise it stays a comment. Keep the marker. -->
+    <!-- QUOTE_EST_TAX_GRANTS -->
     <fieldPermissions>
         <editable>true</editable>
         <field>Quote.ValidationResult</field>

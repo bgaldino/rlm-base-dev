@@ -290,6 +290,10 @@ Unsupported expressions fail open (`True`) to avoid silently skipping steps, mat
 `--upgrade` to force dependency refresh. It sets `TERM=xterm-256color` only
 for interactive TTY launches when `TERM` is missing or `dumb`, and always
 `cd`s to repo root before launching `python -m scripts.build_harness.tui`.
+Before launch it loads gitignored `.env.local` (dotenv: `KEY="value"`, `$VAR`
+expansion, no command substitution) for any variable the shell has not already
+set, so Chrome for Testing overrides apply even when the direnv hook never
+exported them.
 
 ### Scenario workspaces
 

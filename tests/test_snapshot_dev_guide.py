@@ -1,10 +1,10 @@
-"""Unit tests for tasks/rlm_snapshot_dev_guide.py — the multi-section TOC walk.
+"""Unit tests for scripts/doc_snapshot/dev_guide.py — the multi-section TOC walk.
 
 Exercises `_flatten_toc` (and indirectly `_find_section`/`_node_page_id`) without
-a browser or CumulusCI runtime: the method takes the TOC + section filters as
-arguments and uses no task state, so an instance built with `__new__` suffices.
+a browser or Playwright install: the method takes the TOC + section filters as
+arguments and uses no instance state, so an instance built with `__new__` suffices.
 
-Run:  <cci-venv-python> tests/test_snapshot_dev_guide.py
+Run:  python3 tests/test_snapshot_dev_guide.py   (stdlib only)
 """
 
 import os
@@ -12,12 +12,10 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from tasks.rlm_snapshot_dev_guide import SnapshotSalesforceDevGuide  # noqa: E402
-
-try:
-    from cumulusci.core.exceptions import TaskOptionsError
-except ImportError:  # stdlib-only fallback mirrors the task module
-    TaskOptionsError = Exception
+from scripts.doc_snapshot.dev_guide import (  # noqa: E402
+    DevGuideSnapshot,
+    OptionsError,
+)
 
 
 _passed = _total = 0
@@ -53,8 +51,9 @@ TOC = [
 
 
 def _task():
-    # _flatten_toc uses no self.options/state, so bypass CumulusCI __init__.
-    return SnapshotSalesforceDevGuide.__new__(SnapshotSalesforceDevGuide)
+    # _flatten_toc uses no self.options/state, so bypass __init__'s option
+    # normalization; checks that need options set them directly.
+    return DevGuideSnapshot.__new__(DevGuideSnapshot)
 
 
 def main():
@@ -91,8 +90,8 @@ def main():
     try:
         t._flatten_toc(TOC, ["does_not_exist"])
         check("unknown section raises", False)
-    except TaskOptionsError:
-        check("unknown section raises TaskOptionsError", True)
+    except OptionsError:
+        check("unknown section raises OptionsError", True)
 
     # _select_to_capture restricts the capture set to the requested sections
     # (parallel multi-section path; filter given as page_id and as title).
@@ -112,6 +111,53 @@ def main():
     sel_refresh = {p["page_id"] for p in t2._select_to_capture(manifest, "refresh")}
     check("_select_to_capture refresh re-includes captured requested-section pages",
           "context_service_overview.htm" in sel_refresh and "noise.htm" not in sel_refresh)
+
+    # _check_doc_version_change: a version bump on a manifest with captured pages
+    # must be rejected under capture/all (they'd skip those pages and mislabel
+    # them), allowed under refresh (recaptures everything), and allowed under
+    # discover (never fetches page bodies).
+    captured_manifest = {"pages": [
+        {"page_id": "a.htm", "status": "captured"},
+        {"page_id": "b.htm", "status": "pending"},
+    ]}
+    t3 = _task()
+    t3.options = {"doc_version": "264.0"}
+    for mode in ("capture", "all"):
+        try:
+            t3._check_doc_version_change(captured_manifest, "262.0", mode)
+            check(f"doc_version change raises under mode={mode}", False)
+        except OptionsError:
+            check(f"doc_version change raises under mode={mode}", True)
+    for mode in ("refresh", "discover"):
+        try:
+            t3._check_doc_version_change(captured_manifest, "262.0", mode)
+            check(f"doc_version change allowed under mode={mode}", True)
+        except OptionsError:
+            check(f"doc_version change allowed under mode={mode}", False)
+    # Same version requested, or nothing captured yet, or no prior version at
+    # all (first-ever run): none of these are a "change", so never raise.
+    check("same doc_version is not a change",
+          t3._check_doc_version_change(captured_manifest, "264.0", "capture") is None)
+    pending_only = {"pages": [{"page_id": "a.htm", "status": "pending"}]}
+    check("no captured pages yet is not a mislabel risk",
+          t3._check_doc_version_change(pending_only, "262.0", "capture") is None)
+    check("no previously-recorded version is a first run, not a change",
+          t3._check_doc_version_change(captured_manifest, None, "capture") is None)
+
+    # _may_record_doc_version: discover must NOT launder a version bump past the
+    # guard by writing it to the manifest while old-version pages sit captured —
+    # that would make a later capture/all run see "no change" and skip them.
+    check("discover defers recording a version bump over captured pages",
+          t3._may_record_doc_version(captured_manifest, "262.0", "discover") is False)
+    check("discover may record when nothing is captured yet",
+          t3._may_record_doc_version(pending_only, "262.0", "discover") is True)
+    check("discover may record the same version",
+          t3._may_record_doc_version(captured_manifest, "264.0", "discover") is True)
+    check("discover may record on a first-ever run",
+          t3._may_record_doc_version(captured_manifest, None, "discover") is True)
+    check("capture/all/refresh always record (guard already vetted them)",
+          all(t3._may_record_doc_version(captured_manifest, "262.0", m)
+              for m in ("capture", "all", "refresh")))
 
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1

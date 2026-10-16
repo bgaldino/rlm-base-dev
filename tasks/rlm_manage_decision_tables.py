@@ -142,7 +142,7 @@ class ManageDecisionTables(BaseTask):
         if not api_version or Salesforce is None:
             # ⚠ Say so. A fix that silently degrades is the "stops the damage but does
             # not propagate the signal" shape REVIEW.md calls out. Unreachable in this
-            # repo today (cumulusci.yml pins api_version: "67.0", a truthy string), which
+            # repo today (cumulusci.yml pins api_version: "68.0", a truthy string), which
             # is precisely why it would go unnoticed if it ever became reachable.
             self.logger.warning(
                 "No project api_version pin available; falling back to the org's latest "

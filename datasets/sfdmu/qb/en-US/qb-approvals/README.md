@@ -64,6 +64,6 @@ change is required for a normal new step family.
 After changing this plan, run:
 
 ```bash
-python scripts/ai/check_plan_readme_consistency.py datasets/sfdmu/qb/en-US/qb-approvals
+python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/qb/en-US/qb-approvals
 python scripts/validate_sfdmu_v5_datasets.py
 ```

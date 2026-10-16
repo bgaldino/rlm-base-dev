@@ -1,0 +1,42 @@
+{
+  "appPageId" : "c93f357c-8cf4-4b23-9a70-0bc5ac2f7648",
+  "componentName" : "siteforce:sldsOneColLayout",
+  "dataProviders" : [ ],
+  "id" : "b30f8224-4def-499b-ae22-df41a7e96f28",
+  "label" : "User Profile",
+  "regions" : [ {
+    "components" : [ {
+      "componentAttributes" : {
+        "richTextValue" : "<h1><span style=\"color: #2D2D2D;font-size: 21px;\">My Profile</span>   </h1>"
+      },
+      "componentName" : "forceCommunity:richTextInline",
+      "id" : "b3753b88-d5ec-4847-9136-eb44569cbe28",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    }, {
+      "componentAttributes" : {
+        "id" : "{!recordId}"
+      },
+      "componentName" : "forceCommunity:userProfileDetail",
+      "id" : "9a317a00-978f-478b-920d-1d4170d8d339",
+      "renderPriority" : "NEUTRAL",
+      "renditionMap" : { },
+      "type" : "component"
+    } ],
+    "id" : "72b55ad1-1f98-495f-b58d-62ce5e5d21c7",
+    "regionName" : "header",
+    "type" : "region"
+  }, {
+    "id" : "e3c96383-9dc0-48db-817a-c5f32404bd28",
+    "regionName" : "content",
+    "type" : "region"
+  }, {
+    "id" : "3d3e4c91-dd9c-4d84-b2b5-4798f56f9650",
+    "regionName" : "footer",
+    "type" : "region"
+  } ],
+  "themeLayoutType" : "Inner",
+  "type" : "view",
+  "viewType" : "detail-005"
+}

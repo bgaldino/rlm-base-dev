@@ -10,6 +10,7 @@ Usage in robot file:
 """
 
 import logging
+import os
 
 import requests
 from selenium import webdriver
@@ -30,6 +31,11 @@ def get_visible_chrome_options(debug_port=DEFAULT_CDP_PORT):
         with remote debugging enabled.
     """
     options = webdriver.ChromeOptions()
+
+    # Same alternate-binary override as ChromeOptionsHelper (e.g. Chrome for Testing)
+    chrome_binary = os.environ.get("CHROME_BINARY") or os.environ.get("CHROME_BIN")
+    if chrome_binary:
+        options.binary_location = chrome_binary
 
     # No --headless flag — Chrome runs visibly
     options.add_argument("--no-sandbox")

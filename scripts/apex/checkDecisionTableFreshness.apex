@@ -72,7 +72,7 @@ if (detail.isEmpty()) {
 } else {
     System.debug(LoggingLevel.ERROR, 'Tables that are not fresh:\n' + String.join(detail, '\n'));
     System.debug(LoggingLevel.ERROR,
-        'Refresh with: cci task run refresh_all_decision_tables --org <alias>\n'
+        'Refresh with: cci flow run refresh_all_decision_tables --org <alias>\n'
         + '⚠ "Not comparable" is NOT a failure — it means this check refused to guess, '
         + 'usually because a source criterion could not be faithfully reproduced. Compare '
         + 'those by hand. Only "Stale" is a positive finding.');
@@ -83,6 +83,6 @@ if (strict && stale != null && !stale.isEmpty()) {
     throw new DecisionTableFreshnessException(
         stale.size() + ' decision table(s) are stale and were expected to be fresh: '
         + String.join(stale, ', ')
-        + '. Run refresh_all_decision_tables, or drop strict mode if a later data load '
+        + '. Run cci flow run refresh_all_decision_tables --org <alias>, or drop strict mode if a later data load '
         + 'is expected to make them stale.');
 }

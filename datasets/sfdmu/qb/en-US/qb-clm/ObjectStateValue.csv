@@ -1,25 +1,25 @@
-Description,Name,ObjectStateDefinition.Name,ReferenceRecordAccessType,RefRecordLayoutFieldValue
-,Draft,Contract LifeCycle Management,,ReadOnly
-,In Approval Process,Contract LifeCycle Management,,ReadOnly
-,Activated,Contract LifeCycle Management,,ReadOnly
-,Rejected,Contract LifeCycle Management,,ReadOnly
-,Negotiating,Contract LifeCycle Management,,ReadOnly
-,Awaiting Signature,Contract LifeCycle Management,,ReadOnly
-,Signature Declined,Contract LifeCycle Management,,ReadOnly
-,Signed,Contract LifeCycle Management,,ReadOnly
-,Canceled,Contract LifeCycle Management,,ReadOnly
-,Contract Expired,Contract LifeCycle Management,,ReadOnly
-,Contract Terminated,Contract LifeCycle Management,,ReadOnly
-,Activated,Legal,null,ReadOnly
-,Rejected,Legal,null,ReadOnly
-,Negotiating,Legal,null,ReadOnly
-,Awaiting Signature,Legal,null,ReadOnly
-,Draft,Legal,null,ReadOnly
-,In Approval Process,Legal,null,ReadOnly
-,Contract Terminated,Legal,null,ReadOnly
-,Signature Declined,Legal,null,ReadOnly
-,Signed,Legal,null,ReadOnly
-,Canceled,Legal,null,ReadOnly
-,Contract Expired,Legal,null,ReadOnly
-,CustomLegalS1,Legal,ReadOnly,null
-,CustomLegalS2,Legal,ReadOnly,null
+$$Name$ObjectStateDefinition.Name,Description,Name,ObjectStateDefinition.Name,ReferenceRecordAccessType,RefRecordLayoutFieldValue
+Draft;Contract LifeCycle Management,,Draft,Contract LifeCycle Management,,ReadOnly
+In Approval Process;Contract LifeCycle Management,,In Approval Process,Contract LifeCycle Management,,ReadOnly
+Activated;Contract LifeCycle Management,,Activated,Contract LifeCycle Management,,ReadOnly
+Rejected;Contract LifeCycle Management,,Rejected,Contract LifeCycle Management,,ReadOnly
+Negotiating;Contract LifeCycle Management,,Negotiating,Contract LifeCycle Management,,ReadOnly
+Awaiting Signature;Contract LifeCycle Management,,Awaiting Signature,Contract LifeCycle Management,,ReadOnly
+Signature Declined;Contract LifeCycle Management,,Signature Declined,Contract LifeCycle Management,,ReadOnly
+Signed;Contract LifeCycle Management,,Signed,Contract LifeCycle Management,,ReadOnly
+Canceled;Contract LifeCycle Management,,Canceled,Contract LifeCycle Management,,ReadOnly
+Contract Expired;Contract LifeCycle Management,,Contract Expired,Contract LifeCycle Management,,ReadOnly
+Contract Terminated;Contract LifeCycle Management,,Contract Terminated,Contract LifeCycle Management,,ReadOnly
+Activated;Legal,,Activated,Legal,null,ReadOnly
+Rejected;Legal,,Rejected,Legal,null,ReadOnly
+Negotiating;Legal,,Negotiating,Legal,null,ReadOnly
+Awaiting Signature;Legal,,Awaiting Signature,Legal,null,ReadOnly
+Draft;Legal,,Draft,Legal,null,ReadOnly
+In Approval Process;Legal,,In Approval Process,Legal,null,ReadOnly
+Contract Terminated;Legal,,Contract Terminated,Legal,null,ReadOnly
+Signature Declined;Legal,,Signature Declined,Legal,null,ReadOnly
+Signed;Legal,,Signed,Legal,null,ReadOnly
+Canceled;Legal,,Canceled,Legal,null,ReadOnly
+Contract Expired;Legal,,Contract Expired,Legal,null,ReadOnly
+CustomLegalS1;Legal,,CustomLegalS1,Legal,ReadOnly,null
+CustomLegalS2;Legal,,CustomLegalS2,Legal,ReadOnly,null

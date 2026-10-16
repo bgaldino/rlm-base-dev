@@ -24,7 +24,7 @@ git log --oneline -5
 git status --short | head -20
 ```
 
-Expected branch: typically a `feat/enablement-*` or `feat/skills-and-enablement-*` feature branch (initial 260-cycle authoring happened on `feat/enablement-260-master-exercises`; subsequent cycles use a `feat/...-to-{version}` branch). If on `main` or a release branch (`262`, `260`, …), check whether the user wants to switch — enablement work happens on a feature branch.
+Expected branch: typically a `feat/enablement-*` or `feat/skills-and-enablement-*` feature branch (initial 260-cycle authoring happened on `feat/enablement-260-master-exercises`; subsequent cycles use a `feat/...-to-{version}` branch). If on `main`, a `preview/<n>` or a `release/<n>` branch, check whether the user wants to switch — enablement work happens on a feature branch.
 
 If you see commits with messages starting `feat(enablement):` or `docs(enablement):`, you're in the right place.
 
@@ -39,7 +39,7 @@ Read these three files end-to-end before doing anything else:
 Optional (read when you encounter the relevant edge case):
 
 - **[`authoring-patterns.md`](authoring-patterns.md)** — 11 patterns for handling edge cases (upgrade guidance, known issues, sub-features, cross-area features, scenario threading, version-aware section metadata, license-scope split, etc.)
-- **[`docs/salesforce/{260,262}/feature-index.md`](../../../docs/salesforce/260/feature-index.md)** — per-release feature inventories
+- **[`docs/salesforce/{260,262,264}/feature-index.md`](../../../docs/salesforce/260/feature-index.md)** — per-release feature inventories (264 is Help-derived, New vs Expanded, no tier column yet; see its header)
 
 ### 3. Check what's drafted vs pending
 
@@ -80,15 +80,15 @@ Then ask the user what they'd like to do next. **Do not start authoring or editi
 | Capability | Why |
 |---|---|
 | **File system** for the repo | Always required |
-| **Chrome MCP** | If you need to capture content from `help.salesforce.com` (the Help portal is a SPA — `WebFetch` won't work; only Chrome with a recursive shadow-DOM walker) |
+| **Snapshot tool** | To capture `help.salesforce.com` content, use `python -m scripts.doc_snapshot help --release {version} --area <area|release_notes>` (see `scripts/doc_snapshot/README.md`). The Help portal is a SPA, so `WebFetch` won't work |
 | **Bash / shell** | For `git`, `pdftotext` extraction from master Help PDFs, etc. |
-| **Web tools** (WebSearch, WebFetch) | For finding URLs and lightly-trafficked pages; the SPA Help portal needs Chrome |
+| **Web tools** (WebSearch, WebFetch) | For finding URLs and lightly-trafficked pages; the SPA Help portal needs the snapshot tool |
 
 The user may need to re-grant these on the new workstation. If you don't have a tool you expect, ask the user before assuming the tool is unavailable.
 
 ## Critical do-nots when picking up
 
-1. **DO NOT push to `main` directly.** Enablement work always uses a feature branch. Per `AGENTS.md`: never `git push origin main` or force-push main without explicit user approval.
+1. **DO NOT push to `main`, `preview/*` or `release/*` directly.** Enablement work always uses a feature branch plus a PR, and per `AGENTS.md` rule 8 that has **no approval exception** — "get it approved" is not a route to a direct push. Explicit user approval is required only for the separate, rarer act of *force-pushing* one of those branches: PRs are routinely stacked on them, so rewriting one invalidates every one of them.
 2. **DO NOT amend or rewrite commits that have been pushed.** If the feature branch has been pushed (`git log @{upstream}` shows commits), amending changes the SHA and breaks anyone tracking the branch. New commits only.
 3. **DO NOT assume the user uploaded source PDFs (Solution Overview decks, master Help PDF) on this workstation.** Those are CONFIDENTIAL or 130 MB — typically NOT in the repo. The captured markdown summaries in `docs/salesforce/{version}/feature-index.md` are usually sufficient for authoring; only ask for re-uploads if you genuinely need a section that wasn't captured.
 4. **DO NOT invent customer or product names.** Customers come from `scratch_data` (Infinitech, Global Media). Partners from `qb-prm` (Robot Resellers). Bundles + products from `qb-pcm`. Constraint models from `qb-constraints` (QuantumBitComplete, Server2). See QB Scenario Reference for the canonical list.

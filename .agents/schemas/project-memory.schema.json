@@ -25,24 +25,17 @@
     "repository": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "project_name", "default_branch", "active_work_branch", "source_format", "salesforce_release"],
+      "required": ["name", "project_name", "default_branch", "active_work_branch", "source_format", "salesforce_release_source"],
       "properties": {
         "name": { "type": "string", "minLength": 1 },
         "project_name": { "type": "string", "minLength": 1 },
         "default_branch": { "type": "string", "minLength": 1 },
         "active_work_branch": { "type": "string", "minLength": 1 },
         "source_format": { "type": "string", "enum": ["sfdx"] },
-        "salesforce_release": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["number", "name", "api_version", "prior_ga_release", "prior_ga_api_version"],
-          "properties": {
-            "number": { "type": "string", "pattern": "^[0-9]+$" },
-            "name": { "type": "string", "minLength": 1 },
-            "api_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
-            "prior_ga_release": { "type": "string", "pattern": "^[0-9]+$" },
-            "prior_ga_api_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" }
-          }
+        "salesforce_release_source": {
+          "type": "string",
+          "description": "Where the active and prior-GA release and API version are recorded. They are not restated here, so a cutover has one place to update.",
+          "pattern": "^\\.claude/skill-manifest\\.yml"
         }
       }
     },

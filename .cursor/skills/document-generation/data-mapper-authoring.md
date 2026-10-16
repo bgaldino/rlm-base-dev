@@ -52,7 +52,7 @@ EOF
 
 sf api request rest --method POST \
   --body @/tmp/odt_body.json \
-  "/services/data/v67.0/sobjects/OmniDataTransform" \
+  "/services/data/v68.0/sobjects/OmniDataTransform" \
   --target-org myOrg
 ```
 
@@ -88,7 +88,7 @@ EOF
 
 sf api request rest --method POST \
   --body @/tmp/item_body.json \
-  "/services/data/v67.0/sobjects/OmniDataTransformItem" \
+  "/services/data/v68.0/sobjects/OmniDataTransformItem" \
   --target-org myOrg
 ```
 
@@ -101,7 +101,7 @@ EOF
 
 sf api request rest --method PATCH \
   --body @/tmp/patch.json \
-  "/services/data/v67.0/sobjects/OmniDataTransformItem/0kdxxxxxxxxx" \
+  "/services/data/v68.0/sobjects/OmniDataTransformItem/0kdxxxxxxxxx" \
   --target-org myOrg
 ```
 
@@ -142,7 +142,7 @@ for item in source_items:
     with open("/tmp/odt_item_body.json", "w") as f:
         json.dump(record, f)
 
-    cmd = f'sf api request rest --method POST --body @/tmp/odt_item_body.json "/services/data/v67.0/sobjects/OmniDataTransformItem" --target-org {TARGET_ORG}'
+    cmd = f'sf api request rest --method POST --body @/tmp/odt_item_body.json "/services/data/v68.0/sobjects/OmniDataTransformItem" --target-org {TARGET_ORG}'
     subprocess.run(cmd, shell=True, capture_output=True, text=True)
 ```
 
@@ -179,7 +179,7 @@ def wire_template(template_id, extract_name, transform_name, target_org):
     def patch(body):
         with open("/tmp/patch.json", "w") as f:
             json.dump(body, f)
-        cmd = f'sf api request rest --method PATCH --body @/tmp/patch.json "/services/data/v67.0/sobjects/DocumentTemplate/{template_id}" --target-org {target_org}'
+        cmd = f'sf api request rest --method PATCH --body @/tmp/patch.json "/services/data/v68.0/sobjects/DocumentTemplate/{template_id}" --target-org {target_org}'
         subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
     # Deactivate
@@ -222,7 +222,7 @@ def retoggle_odt(odt_id, target_org):
     for body in [{"IsActive": False}, {"IsActive": True}]:
         with open("/tmp/patch.json", "w") as f:
             json.dump(body, f)
-        cmd = f'sf api request rest --method PATCH --body @/tmp/patch.json "/services/data/v67.0/sobjects/OmniDataTransform/{odt_id}" --target-org {target_org}'
+        cmd = f'sf api request rest --method PATCH --body @/tmp/patch.json "/services/data/v68.0/sobjects/OmniDataTransform/{odt_id}" --target-org {target_org}'
         subprocess.run(cmd, shell=True, capture_output=True, text=True)
 ```
 

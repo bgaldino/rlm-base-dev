@@ -15,7 +15,8 @@ alwaysApply: false
 - **Commit a behavioral change to a wrapped Robot Framework suite — or to this wrapper
   itself — validated only by `robot --dryrun`** (applies when this task runs `robot` via
   subprocess / imports `tasks.robot_utils`). Dryrun never launches a browser — verify in a
-  **live scratch org** first (`cci task run <robot_task> --org <alias>`), or keep the PR
+  **live scratch org** first (robot_* tasks reject `--org`, issue #320 — `cci org default
+  <alias>` then `cci task run <robot_task>`), or keep the PR
   blocked (`blocked: needs-live-verification`). See AGENTS.md DO NOT #9 and
   `robot-testing/SKILL.md` → Verification.
 
@@ -76,7 +77,7 @@ def _run_task(self):
         "Authorization": f"Bearer {self.org_config.access_token}",
         "Content-Type": "application/json",
     }
-    url = f"{self.org_config.instance_url}/services/data/v67.0/query/"
+    url = f"{self.org_config.instance_url}/services/data/v68.0/query/"
     resp = requests.get(url, headers=headers, params={"q": soql})
     resp.raise_for_status()
 ```
@@ -105,7 +106,7 @@ tso = self.project_config.project__custom__tso
 - **Logging** — `self.logger.info()`, `.warning()`, `.error()`
 - **Errors** — `TaskOptionsError` for config, `CommandException` for runtime
 - **Non-fatal tasks** — catch + `self.logger.warning()` (see `StampGitCommit`)
-- **API version** — use `v67.0` (Summer '26 / Release 262) in REST URLs. The branch's `cumulusci.yml` `api_version` is the source of truth; sync REST URL examples to it on each release upgrade.
+- **API version** — use `v68.0` (Winter '27 / Release 264) in REST URLs. The branch's `cumulusci.yml` `api_version` is the source of truth; sync REST URL examples to it on each release upgrade (`python scripts/ai/bump_api_version.py` does the sweep).
 
 ## Registration in cumulusci.yml
 

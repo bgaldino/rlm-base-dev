@@ -1,0 +1,557 @@
+---
+page_id: sforce_api_objects_debitmemo.htm
+title: DebitMemo
+source_url: https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_objects_debitmemo.htm
+release: 264
+release_name: Winter '27
+deliverable: revenue_lifecycle_management_dev_guide
+section: Billing
+parent_page: billing_std_objects_parent.htm
+fetched_at: 2026-08-24
+---
+
+Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
+
+# DebitMemo
+
+      Represents the document used to charge an additional amount to a buyer by a
+         seller. An invoice is generated for the debit memo in the next invoice run. This
+      object is available in API version 65.0 and later.
+
+      
+
+## Supported Calls
+
+         
+         
+
+            `create()`, `delete()`, `describeLayout()`, `describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`, `search()`, `update()`, `upsert()`
+         
+
+      
+
+      
+
+## Special Access Rules
+
+         
+         
+
+You need Revenue Cloud Billing license and one of these permission sets to access this
+            object.
+
+         
+            
+- Billing Admin permission set
+
+            
+- Billing Operations User permission set
+
+            
+- Payments Admin permission set
+
+            
+- Payments Operation User permission set
+
+            
+- Credit Memo Operations User permission set
+
+         
+
+      
+
+      
+
+## Fields
+
+         
+         
+
+               
+               
+               
+                  
+                     
+
+                     
+
+                  
+
+               
+
+               
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+- 
+- 
+- 
+- 
+- 
+- 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+
+: 
+
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+- 
+- 
+- 
+- 
+- 
+- 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+
+                  
+
+                  
+                     
+
+                     
+
+: 
+
+: 
+
+: 
+: 
+
+                  
+
+               
+
+            
+| Field | Details |
+| --- | --- |
+| AccountId | **Type** reference **Properties** Create, Filter, Group, Sort, Update **Description** The account that’s related to the debit memo record. This field is a relationship field. **Relationship Name** Account **Refers To** Account |
+| CorpCrcyCnvTotChargeAmt | **Type** double **Properties** Filter, Nillable, Sort, Update **Description** The total charge amount of the debit memo in corporate currency. |
+| CorporateCurrencyCvsnDate | **Type** date **Properties** Filter, Group, Nillable, Sort, Update **Description** The exchange date that’s used to convert the debit memo amounts into corporate currency. |
+| CorporateCurrencyCvsnRate | **Type** double **Properties** Filter, Nillable, Sort, Update **Description** The exchange rate that’s used to convert the debit memo amounts into corporate currency. |
+| CorporateCurrencyIsoCode | **Type** string **Properties** Filter, Group, Nillable, Sort, Update **Description** The currency ISO code of the corporate currency. |
+| Description | **Type** string **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The description of the debit memo. |
+| DocumentNumber | **Type** string **Properties** Autonumber, Defaulted on create, Filter, idLookup, Sort **Description** An autogenerated number assigned to the debit memo record. |
+| FuncCrcyCnvTotChargeAmt | **Type** double **Properties** Filter, Nillable, Sort, Update **Description** The total charge amount value in functional currency. Available in API version 66.0 and later. |
+| FunctionalCurrencyCvsnDate | **Type** date **Properties** Filter, Group, Nillable, Sort, Update **Description** The exchange date that’s used to convert the total charge amount value into functional currency. Available in API version 66.0 and later. |
+| FunctionalCurrencyCvsnRate | **Type** double **Properties** Filter, Nillable, Sort, Update **Description** The exchange rate that’s used to convert the total charge amount value into functional currency. Available in API version 66.0 and later. |
+| FunctionalCurrencyIsoCode | **Type** string **Properties** Filter, Group, Nillable, Sort, Update **Description** The ISO code of the functional currency. Available in API version 66.0 and later. |
+| InvoiceGenerationStatus | **Type** picklist **Properties** Create, Filter, Group, Restricted picklist, Sort, Update **Description** The status of invoice generation for the debit memo. Valid values are: `Draft Invoice Generated` `None` `Posted Invoice Generated` `Processing` `Ready for Invoice Generation` `Not Applicable`—Available in API version 66.0 and later. |
+| InvoiceMatchingRefKeyId | **Type** reference **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** Indicates the product or Asset ID. This key, combined with the account, currency, and legal entity, is used to find a matching invoice. The invoice lines converted from debit memo lines are then added to this matched invoice. This field is a polymorphic relationship field. **Relationship Name** InvoiceMatchingRefKey **Refers To** Asset, Product2 |
+| InvoiceMatchingRefName | **Type** string **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** Indicates the product's name. This text, combined with the account, currency, and legal entity, is used to find a matching invoice. The invoice lines converted from debit memo lines are then added to this matched invoice. |
+| IsManuallyProcessed | **Type** boolean **Properties** Create, Defaulted on create, Filter, Group, Sort, Update **Description** Indicates whether the debit memo lines of the debit memo are converted to invoice lines manually (`true`) or not (`false`). The default value is `false`. |
+| LastReferencedDate | **Type** dateTime **Properties** Filter, Nillable, Sort **Description** The timestamp when the current user last accessed a debit memo address group record indirectly, for example, through a list view or related record. |
+| LastViewedDate | **Type** dateTime **Properties** Filter, Nillable, Sort **Description** The timestamp when the current user last viewed a debit memo address record. If this value is null, it’s possible that the user only accessed the debit memo address record or a related list view (LastReferencedDate), but not viewed the debit memo address record itself. |
+| LegalEntityId | **Type** reference **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The legal entity record that's related to the debit memo. This field is a relationship field. **Relationship Name** LegalEntity **Refers To** LegalEntity |
+| NextBillingDate | **Type** date **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The date indicates when the next billing period begins for the debit memo. This date is used to determine when invoices are created for the debit memos. When the invoice scheduler or API evaluates debit memos to generate invoices, those with a next billing date on or before the user-specified target date are included in the invoice batch run. |
+| OwnerId | **Type** reference **Properties** Create, Defaulted on create, Filter, Group, Sort, Update **Description** The ID of the owner of this object. This field is a polymorphic relationship field. **Relationship Name** Owner **Refers To** Group, User |
+| PostedDate | **Type** date **Properties** Filter, Group, Nillable, Sort **Description** The date when the debit memo is posted. |
+| ReasonCode | **Type** picklist **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** Specifies a dynamic picklist of reasons for generating debit memos. |
+| ReferenceRecord | **Type** reference **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The record ID associated with the debit memo record. The record ID is a credit memo record. Available in API version 66.0 and later. This field is a polymorphic relationship field. **Relationship Name** InvoiceMatchingRefKey **Refers To** Credit Memo |
+| Status | **Type** picklist **Properties** Create, Filter, Group, Restricted picklist, Sort, Update **Description** The status of the debit memo. Valid values are: `Canceled` `Draft` `Posted` `Void` `Pending`—Available in API version 66.0 and later. `Error`—Available in API version 66.0 and later. |
+| TotalAmount | **Type** currency **Properties** Filter, Nillable, Sort **Description** The sum of the debit memo’s TotalLineAmount and TotalAdjustmentAmount field values. Available in API version 66.0 and later. This field is a calculated field. |
+| TotalChargeAmount | **Type** currency **Properties** Filter, Nillable, Sort **Description** The sum of the charge amount field values of the debit memo lines. This field is a calculated field. |
+| TotalTaxAmount | **Type** currency **Properties** Filter, Nillable, Sort **Description** The sum of the TotalAmount field values for the debit memo’s tax lines. Available in API version 66.0 and later. This field is a calculated field. |
+
+      
+
+      
+
+## Associated Objects
+
+         
+         
+
+This object has the following associated objects. If the API version isn’t specified,
+            they’re available in the same API versions as this object. Otherwise, they’re available
+            in the specified API version and later.
+
+         
+            
+               
+
+**[DebitMemoFeed](./sforce_api_associated_objects_feed.htm.md)**
+
+               
+: Feed tracking is available for the object.
+
+            
+            
+               
+
+**[DebitMemoHistory](./sforce_api_associated_objects_history.htm.md)**
+
+               
+: History is available for tracked fields of the object.
+
+            
+            
+               
+
+**[DebitMemoOwnerSharingRule](./sforce_api_associated_objects_ownersharingrule.htm.md)**
+
+               
+: Sharing rules are available for the object.
+
+            
+            
+               
+
+**[DebitMemoShare](./sforce_api_associated_objects_share.htm.md)**
+
+               
+: Sharing is available for the object.

@@ -8,16 +8,17 @@ SFDMU data plan for QuantumBit (QB) Dynamic Revenue Orchestrator (DRO) configura
 
 ### Flow: `prepare_dro`
 
-This plan is executed as **step 1** of the `prepare_dro` flow (when `dro=true`, `qb=true`).
+This plan is executed as **step 2** of the `prepare_dro` flow (when `dro=true`, `qb=true`).
 
 | Step | Task                             | Description                                            |
 |------|----------------------------------|--------------------------------------------------------|
-| 1    | `insert_qb_dro_data`            | Runs this SFDMU plan (single pass, dynamic user)       |
-| 4    | `update_product_fulfillment_decomp_rules` | **Temporary fix (260 bug)** — see below |
+| 1    | `manage_fulfillment_scope_cnfg` | Creates custom scope configuration before loading references |
+| 2    | `insert_qb_dro_data`            | Runs this SFDMU plan (single pass, dynamic user)       |
+| 5    | `update_product_fulfillment_decomp_rules` | **Temporary fix (260 bug)** — see below |
 
-**Note:** Unlike billing and tax, DRO records do not have a status lifecycle. Step 4 runs an Apex update as a temporary fix for a 260 bug (see below). A separate `create_dro_rule_library` task (in `prepare_core`) creates the DRO Rule Library record.
+**Note:** The DRO configuration in this plan does not require record activation. Step 5 runs an Apex update as a temporary fix for a 260 bug (see below). A separate `create_dro_rule_library` task (in `prepare_core`) creates the DRO Rule Library record.
 
-**Step 4 — Missing ExecuteOnRuleId (Known 260 Bug):** Rule is created on UPDATE of ProductFulfillmentDecompRule via Platform APIs and is NOT created on INSERT (same applies for ProductFulfillmentScenario, FulfillmentStepDefinition, FulfillmentTaskAssignmentRule). If a condition was set at creation time, ExecuteOnRuleId (the ruleset) is not generated — the rule fires in decomposition but the orchestration plan won't pick it up properly. Fix: Edit and re-save the PFDR record after creation to trigger ruleset generation. (Confirmed in #rlm-office-hours)
+**Step 5 — Missing ExecuteOnRuleId (Known 260 Bug):** Rule is created on UPDATE of ProductFulfillmentDecompRule via Platform APIs and is NOT created on INSERT (same applies for ProductFulfillmentScenario, FulfillmentStepDefinition, FulfillmentTaskAssignmentRule). If a condition was set at creation time, ExecuteOnRuleId (the ruleset) is not generated — the rule fires in decomposition but the orchestration plan won't pick it up properly. Fix: Edit and re-save the PFDR record after creation to trigger ruleset generation. (Confirmed in #rlm-office-hours)
 
 ### Task Definition
 
@@ -30,6 +31,55 @@ insert_qb_dro_data:
 ```
 
 ## Data Plan Overview
+
+`Provision Licensing/Features` is a manual task, so its integration-provider field
+must remain empty. A populated `IntegrationDefinitionName` is rejected for
+`StepType=ManualTask`, preventing the step and its three dependent relationships
+from loading. The tenant-provisioning callout remains on
+`Stage New Tenant for Provisioning - Platform`.
+
+`Activate Tokens` uses `LineItem` scope with no custom fulfillment scope.
+Technical products formerly using `Group_Identifier` use `Ramp_Identifier`
+for decomposition. The scope reads `ItemRampIdentifier`; when a line has no
+ramp identifier, its configured fallback is `LineItem`. Group-based scoping is
+not used: fresh 264 contexts type `SalesTransactionItemGroup` as Lookup, while
+custom fulfillment scopes require String.
+
+**Custom decomposition scope tags must resolve to String attributes.** In
+`CustomFulfillmentScopeCnfg`, `ItemContextTag` must reference a context tag whose
+underlying context attribute has the `STRING` data type. A Lookup attribute is
+not accepted, even when its runtime value is a record ID represented as text.
+This requirement applies when the scope is used by a product's
+`CustomDecompositionScope`, as well as by a step's `CustomFulfillmentScope`.
+
+Verified on a fresh Release 264 org:
+`SalesTransactionItemGroup` is `LOOKUP` in both `SalesTransactionContext__stdctx`
+and `RLM_SalesTransactionContext`. Selecting the RLM context alone therefore
+does not make the original `Group_Identifier` configuration valid. A group-based
+custom scope needs a separate String attribute/tag and must reference that tag;
+`Ramp_Identifier` already references the String tag `ItemRampIdentifier`.
+
+### Existing orgs and verification limits
+
+Removing `Group_Identifier` from the tooling seed does not delete an existing
+scope record. Verify that the eight affected technical products use
+`Ramp_Identifier`, that `Activate Tokens` has `Scope=LineItem` and an empty
+`CustomFulfillmentScope`, and that the manual `Provision Licensing/Features`
+step has no integration provider. Confirm that all 10 step definitions and
+9 dependency definitions are present; a successful loader exit alone does not
+prove every record loaded. The live repair used targeted API updates, so it
+does not establish that a full SFDMU reload clears old values on existing orgs.
+
+Release 264 live verification confirmed decomposition and plan composition
+after these repairs, including the restored provisioning step and dependencies.
+End-to-end fulfillment remains unverified: the tenant-provisioning callout
+requires the `RLM` named credential, which was absent in the verification
+environment. Manual steps also require operator completion.
+
+The build currently creates `RLM_SalesTransactionContext` but does not select it
+in DRO Context Definition Settings. Automating and verifying that assignment
+is outstanding work; this data correction does not implement it. Experimental
+group-string fields, mappings, and permission grants are not part of this plan.
 
 The plan uses a **single SFDMU pass** with 17 objects (13 loaded + 3 ReadOnly lookups + 1 excluded). No activation is required.
 

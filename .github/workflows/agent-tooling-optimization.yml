@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       deep_checks:
-        description: "Regenerate report/scorecard/coverage artifacts (installs PyYAML) and open an update PR if they drift"
+        description: "Regenerate report/scorecard/coverage artifacts (installs PyYAML) and, if they drift, push them to a branch and open an issue linking the PR to create"
         required: false
         default: false
         type: boolean
@@ -44,13 +44,13 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # Read-only gate never pushes, so do not leave the token in .git/config.
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: "3.13"
 
@@ -68,20 +68,24 @@ jobs:
     if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deep_checks == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # contents: write to push the refreshed artifacts to the automation branch; issues: write
+    # to open or update the drift issue. Actions can't create pull requests in this repository
+    # (the ESAG guide requires that setting off), so a maintainer opens the PR from the issue.
     permissions:
       contents: write
-      pull-requests: write
+      issues: write
+      pull-requests: read   # gh pr list: is an open PR using the automation branch?
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
-          # create-pull-request supplies its own token via `token:`, so the
-          # persisted credential is unnecessary here too.
+          # The git calls below (ls-remote, fetch, push --delete) pass the token explicitly, so no
+          # credential is persisted.
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: "3.13"
 
@@ -95,7 +99,7 @@ jobs:
         run: python scripts/ai/analyze_agent_tooling.py all
 
       - name: Upload tooling artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: agent-tooling-artifacts
           path: |
@@ -104,24 +108,158 @@ jobs:
             .agents/context/rule-skill-coverage.md
           if-no-files-found: warn
 
-      - name: Open or update optimization pull request
-        # Third-party, write-scoped action — pinned to a full commit SHA (not the
-        # mutable v8 tag) to limit supply-chain blast radius. Bump via Dependabot.
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
-        with:
-          token: ${{ github.token }}
-          branch: automation/agent-tooling-optimization
-          delete-branch: true
-          title: "chore: refresh agent tooling artifacts"
-          commit-message: "chore: refresh agent tooling artifacts"
-          body: |
-            ## Summary
-            - Regenerated the agent tooling report, scorecard, and rule/skill
-              coverage matrix via `analyze_agent_tooling.py all`.
-            - Opened automatically because the committed artifacts drifted from
-              the current repository state.
+      - name: Publish the refreshed artifacts and open, update or close the drift issue
+        # No third-party action: the ESAG guide doesn't allow personal-account actions (this was
+        # peter-evans/create-pull-request). git and gh only, with the job's own token, which
+        # reaches git through a credential helper reading the environment (not argv or a URL).
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.event.repository.default_branch }}
+          REF_NAME: ${{ github.ref_name }}
+          BRANCH: automation/agent-tooling-optimization
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          shopt -s inherit_errexit   # a failing gh inside $(open_issue) fails the step
+          paths=(docs/analysis/tooling-optimization-report.md
+                 .agents/context/tooling-scorecard.json
+                 .agents/context/rule-skill-coverage.md)
+          title="Agent tooling artifacts drifted"
+          git_auth=(-c credential.helper=
+                    -c 'credential.helper=!f() { echo username=x-access-token; echo "password=${GH_TOKEN}"; }; f')
+          # A label filter first (search lags behind a just-created issue), then search by title for
+          # one whose label was removed; exact title either way.
+          open_issue() {
+            local found
+            found=$(gh issue list -R "$REPO" --state open --label agent-tooling --limit 100 --json number,title \
+                      --jq ".[] | select(.title == \"${title}\") | .number" | head -1)
+            if [ -z "$found" ]; then
+              found=$(gh issue list -R "$REPO" --state open --search "in:title \"${title}\"" --limit 100 \
+                        --json number,title --jq ".[] | select(.title == \"${title}\") | .number" | head -1)
+            fi
+            echo "$found"
+          }
+          # 0 = the automation branch exists, 2 = it doesn't; anything else is an error, not "absent".
+          branch_state() {
+            local rc=0
+            git "${git_auth[@]}" ls-remote --exit-code origin "refs/heads/${BRANCH}" >/dev/null || rc=$?
+            if [ "$rc" != 0 ] && [ "$rc" != 2 ]; then
+              echo "::error::git ls-remote failed (exit ${rc})"; exit 1
+            fi
+            return "$rc"
+          }
+          drifted=1
+          if git diff --quiet -- "${paths[@]}" && [ -z "$(git ls-files --others --exclude-standard -- "${paths[@]}")" ]; then
+            drifted=0
+          fi
 
-            ## Validation
-            - Baseline gate: `python scripts/ai/analyze_agent_tooling.py check`
-            - Deep checks: `python scripts/ai/analyze_agent_tooling.py check --full-generated-reference-checks`
-          labels: automation, agent-tooling
+          # The automation branch and the issue describe the default branch, so only a run on it
+          # writes anything; a dispatch from another branch just reports.
+          if [ "$REF_NAME" != "$BASE" ]; then
+            if [ "$drifted" = 1 ]; then
+              echo "::warning::The artifacts drift on ${REF_NAME}. Nothing pushed or filed: only a run on ${BASE} does that."
+            else
+              echo "No drift on ${REF_NAME}. Nothing pushed or filed (not ${BASE})."
+            fi
+            exit 0
+          fi
+
+          if [ "$drifted" = 0 ]; then
+            echo "No drift in the committed artifacts."
+            existing=$(open_issue)
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" -R "$REPO" --comment "The artifacts are current again as of ${RUN_URL}; closing."
+            fi
+            # Delete the stale branch, unless a maintainer has opened a PR from it: deleting the
+            # branch would close that PR without warning.
+            if branch_state; then
+              open_prs=$(gh pr list -R "$REPO" --head "$BRANCH" --state open --json number --jq 'length')
+              if [ "$open_prs" = 0 ]; then
+                git "${git_auth[@]}" push origin --delete "$BRANCH"
+              else
+                echo "Leaving ${BRANCH}: an open pull request uses it."
+              fi
+            fi
+            exit 0
+          fi
+
+          # A local commit only to compare trees with the last refresh; it is never pushed. The
+          # published commit is created through the API below, so GitHub signs it.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          base_sha=$(git rev-parse HEAD)
+          git switch -C "$BRANCH"
+          git add -- "${paths[@]}"
+          git commit -q -m "chore: refresh agent tooling artifacts"
+          # Unchanged since the last push (the drift isn't merged yet): nothing to push or say.
+          # A depth-1 fetch. If it fails and the branch is gone, push; if the branch is still
+          # there, the failure is real (network, auth), so stop rather than push blindly.
+          fetched=0
+          if branch_state; then
+            if git "${git_auth[@]}" fetch -q --depth=1 origin "refs/heads/${BRANCH}"; then
+              fetched=1
+            elif branch_state; then
+              echo "::error::could not fetch ${BRANCH}"; exit 1
+            fi
+          fi
+          if [ "$fetched" = 1 ]; then
+            existing=$(open_issue)   # outside the condition, so a failure isn't read as "none"
+            if [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ] && [ -n "$existing" ]; then
+              echo "The automation branch already holds this refresh; nothing new."
+              exit 0
+            fi
+          fi
+          # The branch is generated output, rebuilt from the default branch on every drifted run. It is
+          # published through the API rather than `git push`: a commit made with createCommitOnBranch is
+          # signed by GitHub, and the default branch's ruleset requires signed commits, unsigned ones on
+          # the PR branch included (todo 238). The commit is built on a temporary branch started at the
+          # default branch's commit, and the real branch then moves straight to it. Pointing the real
+          # branch at the base first would leave it with no diff in between (or for good, if the commit
+          # failed), which can close a pull request opened from it.
+          # Named per run attempt: a re-run keeps GITHUB_RUN_ID, so a ref left by a killed attempt
+          # would otherwise block the retry. The clean-up is armed before the ref exists.
+          tmp_branch="${BRANCH}-tmp-${GITHUB_RUN_ID:-$$}-${GITHUB_RUN_ATTEMPT:-1}"
+          trap 'gh api -X DELETE "repos/${REPO}/git/refs/heads/${tmp_branch}" >/dev/null 2>&1 || true' EXIT
+          gh api -X POST "repos/${REPO}/git/refs" -f ref="refs/heads/${tmp_branch}" -f sha="$base_sha" >/dev/null
+          # One jq call reads the files itself (no file content on a command line); a missing path
+          # is a deletion.
+          changes=$(for p in "${paths[@]}"; do
+                      if [ -e "$p" ]; then
+                        jq -n --arg path "$p" --rawfile body "$p" '{add: {path: $path, contents: ($body | @base64)}}'
+                      else
+                        jq -n --arg path "$p" '{del: {path: $path}}'
+                      fi
+                    done | jq -s '{additions: [.[].add | select(.)], deletions: [.[].del | select(.)]}')
+          commit=$(jq -n --arg repo "$REPO" --arg branch "$tmp_branch" --arg head "$base_sha" --argjson changes "$changes" '{
+              query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+              variables: {input: {branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                                  expectedHeadOid: $head,
+                                  message: {headline: "chore: refresh agent tooling artifacts"},
+                                  fileChanges: $changes}}}' \
+                   | gh api graphql --input - --jq '.data.createCommitOnBranch.commit.oid')
+          if [ -z "$commit" ]; then
+            echo "::error::createCommitOnBranch returned no commit"; exit 1
+          fi
+          if branch_state; then
+            gh api -X PATCH "repos/${REPO}/git/refs/heads/${BRANCH}" -f sha="$commit" -F force=true >/dev/null
+          else
+            gh api -X POST "repos/${REPO}/git/refs" -f ref="refs/heads/${BRANCH}" -f sha="$commit" >/dev/null
+          fi
+          echo "Published ${commit} to ${BRANCH} (signed by GitHub)."
+
+          # The labels may not exist (a fresh repository, the mirror); --force creates or updates.
+          gh label create automation -R "$REPO" --color ededed --force >/dev/null
+          gh label create agent-tooling -R "$REPO" --color 0e8a16 --force >/dev/null
+          compare="${GITHUB_SERVER_URL}/${REPO}/compare/${BASE}...${BRANCH}?expand=1"
+          body="The committed agent tooling artifacts drifted from the repository. The deep-checks job regenerated them with \`analyze_agent_tooling.py all\` and published the result to \`${BRANCH}\`.
+
+          **Open the pull request:** ${compare}
+
+          Actions can't open pull requests in this repository, so a maintainer opens it from that link. A refresh the job publishes doesn't start CI on a pull request already open from the branch (GitHub doesn't trigger workflows for its own token, and re-running an old check run tests the old commit), so close and reopen that pull request to run the checks on the new commit. Run: ${RUN_URL}"
+          existing=$(open_issue)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" -R "$REPO" --body "Refreshed again: ${compare} (run ${RUN_URL}). If a pull request is already open from \`${BRANCH}\`, close and reopen it so the checks run on the new commit."
+          else
+            gh issue create -R "$REPO" --title "$title" --label automation --label agent-tooling --body "$body"
+          fi

@@ -77,15 +77,34 @@ Key behaviors:
 | Option | Value | Description |
 |--------|-------|-------------|
 | `developerName` | `RLM_Quote_Pricing_Procedure_Plan` | PPD DeveloperName |
-| `name` | `RC Quote Pricing Procedure Plan` | PPD label |
+| `name` | `RLM_Quote_Pricing_Procedure_Plan` | PPD label |
 | `primaryObject` | `Quote` | Target object |
-| `processType` | `RevenueCloud` | Process type |
+| `processType` | `Default` | Process type — see the 264 note below |
+| `subType` | `RevenueCloud` | Revenue Cloud identity (new in 264) |
 | `versionActive` | `false` | PPDV created inactive |
 | `context_definition_label` | `RLM_SalesTransactionContext` | Context definition to resolve |
 | `versionReadContextMapping` | `QuoteEntitiesMapping` | Read context mapping |
 | `versionSaveContextMapping` | `QuoteEntitiesMapping` | Save context mapping |
 | `versionEffectiveFrom` | `2026-01-01T00:00:00.000Z` | Version effective-from date |
 | `versionRank` | `1` | Version rank |
+
+> **Release 264 — `processType` / `subType` pairing.** Through 262 a Revenue Cloud
+> procedure plan was identified by `ProcessType: RevenueCloud` with no subtype. 264 moved
+> that identity into the new `SubType` field and rejects the 262 shape outright with
+> *"Specify a valid subtype"*. The accepted pair is **`processType: Default` +
+> `subType: RevenueCloud`**.
+>
+> Note the platform's own remediation text contradicts itself here — it offers
+> *"Process Type to Revenue Cloud with no Subtype"* as an alternative, but that is the
+> 262 shape and it still fails. Do not restore `processType: RevenueCloud` on the strength
+> of that message.
+>
+> `ProcedurePlanDefinition.csv` is a `Readonly` snapshot — SFDMU queries the target org and
+> never writes this object — so its `ProcessType` column is descriptive only and cannot
+> affect a load. It nonetheless carried the stale `RevenueCloud` extract, which read as a
+> contradiction of the pairing above; it now reads `Default`. `SubType` is deliberately
+> **not** added to the `Readonly` query: the field does not exist before 264, and adding it
+> would break this plan's extract against a 262 org on the way back to `main`.
 
 ## Activation Task
 
@@ -174,7 +193,7 @@ Verified against `dev-sb0` (Release 260 / API v66.0) with all records present.
 
 This plan depends on the following having been loaded/deployed first:
 
-- **Core expression sets** — `RLM_DefaultPricingProcedure` must exist (deployed by `activate_and_deploy_expression_sets` in step 17 of `prepare_rlm_org`)
+- **Core expression sets** — `RLM_DefaultPricingProcedure` must exist (deployed by `activate_and_deploy_expression_sets` in step 18 of `prepare_rlm_org`)
 - **Context definitions** — `RLM_SalesTransactionContext` must exist for Connect API context resolution (deployed by `extend_context_definitions` in `prepare_core`)
 
 This plan deploys its own prerequisite expression sets (`RLM_Price_Distribution_Procedure`, `RLM_Revenue_Management_Recalc_Procedure`) in step 1 of the flow.

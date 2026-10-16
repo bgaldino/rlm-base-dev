@@ -24,14 +24,24 @@ Map the argument to a subcommand:
   is what makes a simultaneous claim collide instead of duplicating a day of work.
   If it refuses or the push is rejected, someone else holds it — pull, re-read, pick
   something else. Never work a claimed item in parallel.
-- **`release <id>`** — `index.py release <id>`. Do this whenever you stop, not only
-  when you finish.
+- **`release <id>`** — `index.py release <id>`. Release only for an actual
+  handoff, abandonment, or explicit decision to park the item for another owner.
+  Record remaining work and the branch/uncommitted-change locations in the pack
+  log first. Keep the same claim through implementation, CI, review rounds,
+  follow-up fixes, and approval waits; ending a turn or pass is not a release event.
+  Record the current PR/head, review/CI state, and next action without resetting
+  the claim timestamp. Before releasing an apparently stale claim, check the pack
+  log and linked PR for ongoing ownership and record the evidence and reason.
 - **`close <id>`** — **rewrite the body first**: replace *What and why* with an
   **Outcome** (what was delivered and where), keep *Already established*, and add
   durable findings plus any follow-on work split out. Then `index.py close <id>`. It
   refuses a pack with no `## Outcome` section — that refusal means the rewrite has
-  not been done, so do it rather than passing `--force`. Close on **acceptance, not
-  merge**. If the pack names a `github_issue`, close that too, citing the PR or commit.
+  not been done, so do it rather than passing `--force`. Close on **agreed
+  acceptance**: honor any user-required review, merge-approval, or landing gate;
+  green checks alone do not satisfy those gates. When acceptance does not require
+  landing, close on verified delivery and state that it is unmerged. `close`
+  clears the claim; do not release it separately between review and acceptance.
+  If the pack names a `github_issue`, close that too, citing the PR or commit.
 
 Two rules worth repeating because breaking them is silent:
 

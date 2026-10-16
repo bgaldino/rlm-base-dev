@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <IndustriesConstraintsSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <enableAdvancedConfigurator>true</enableAdvancedConfigurator>
+    <!-- Constraint Instance Quantity (264; the toggle is on the Revenue Settings page but
+         the field lives here): the constraint engine returns child quantities per parent
+         instance instead of the total across instances. Required for the CML
+         allowQuantityChange annotation. Without it, Q-Rack 750 (Server2 model) quotes with
+         parent quantity 2 or 3 fail with "Cannot have a fractional quantity". Verified on a
+         264.7 org, 2026-10-13. -->
+    <enableConstraintInstanceQtyAccess>true</enableConstraintInstanceQtyAccess>
 </IndustriesConstraintsSettings>

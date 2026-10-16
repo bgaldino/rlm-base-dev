@@ -1,11 +1,23 @@
+---
+name: troubleshooting
+description: >-
+  Diagnose Revenue Cloud Foundations build, metadata deployment, data load, and local
+  toolchain failures. Use when a CCI flow step fails, SFDMU loads misbehave, permissions
+  or activation block deployment, or usage and rating results are unexpected. To audit,
+  update or verify the toolchain itself, use toolchain.
+---
+
 # Troubleshooting & Common Errors
 
 Use this skill when diagnosing failures in the rlm-base-dev build pipeline,
-data loading, metadata deployment, or local environment setup.
+data loading, metadata deployment, or local environment setup. To audit, update
+or verify the local toolchain itself (shell config, PATH order, corporate CA,
+`update-toolchain.sh`), use the [toolchain skill](../toolchain/SKILL.md).
 
 ## Quick Rules
 
-1. Run `cci task run validate_setup` first — it checks everything.
+1. Run `cci task run validate_setup` first — it checks everything. When only
+   diagnosing, add `-o auto_fix false -o auto_fix_robot false` so it changes nothing.
 2. CCI alias `beta` ≠ SF CLI alias `rlm-base__beta`. Never mix them.
 3. SFDMU load fails → check stdout for specific object error.
 4. Duplicates on re-run → missing `$$` composite key column in CSV.
@@ -20,7 +32,7 @@ data loading, metadata deployment, or local environment setup.
 
 ## Quick Diagnosis: Which Step Failed?
 
-The `prepare_rlm_org` flow runs 34 steps. Identify the failing step from
+The `prepare_rlm_org` flow runs 35 steps. Identify the failing step from
 CCI output, then jump to the relevant section below.
 
 | Step Range | Category | Section |
@@ -28,16 +40,16 @@ CCI output, then jump to the relevant section below.
 | 1 (prepare_core) | PSLs, PSGs, context defs, deploy_pre | [Permission & PSG Errors](#permission--psg-errors), [Context Definition Errors](#context-definition-errors) |
 | 2–3 | Decision tables, expression sets | [Decision Table Errors](#decision-table-errors), [Expression Set Errors](#expression-set-errors) |
 | 5 (deploy_full) | Metadata deploy (force-app) | [Metadata Deploy Errors](#metadata-deploy-errors) |
-| 9–11 | Product/pricing data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
-| 12 (prepare_docgen) | DocGen | [DocGen Errors](#docgen-errors) |
-| 13 (prepare_dro) | DRO data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
-| 14–15 | Tax/billing data + activation | [Billing & Tax Errors](#billing--tax-errors) |
-| 18 (prepare_rating) | Rating/rates data + activation | [Rating & Rates Errors](#rating--rates-errors) |
+| 8–9 (prepare_product_data, prepare_pricing_data) | Product/pricing data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
+| 10 (prepare_docgen) | DocGen | [DocGen Errors](#docgen-errors) |
+| 11 (prepare_dro) | DRO data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
+| 12–13 (prepare_tax, prepare_billing) | Tax/billing data + activation | [Billing & Tax Errors](#billing--tax-errors) |
+| 17 (prepare_rating) | Rating/rates data + activation | [Rating & Rates Errors](#rating--rates-errors) |
 | *(post-build, runtime)* | Recording/rating usage, commitments, drawdown | [Usage & Consumption Errors](#usage--consumption-errors) |
 | 22 (prepare_prm) | PRM community + data | [PRM & Community Errors](#prm--community-errors) |
 | 24 (prepare_constraints) | Constraints + CML import | [Constraints / CML Errors](#constraints--cml-errors) |
-| 29 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
-| 30 | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
+| 30 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
+| 33 (refresh_all_decision_tables) | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
 
 ---
 
@@ -49,14 +61,16 @@ Run this first — it checks everything:
 
 | Check | Fix |
 |-------|-----|
-| Python < 3.10 | Install Python 3.12 or 3.13 via `pyenv` (3.10 is the repo floor; 3.12/3.13 are recommended for CumulusCI) |
+| Python < 3.11 | Install Python 3.12 or 3.13 via `pyenv` (3.11 is the repo floor: CumulusCI 4.10.1 needs `>=3.11,<3.14`). Then rebuild CCI on it: `pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"`, then `pipx inject --force cumulusci -r robot/requirements.txt` |
 | CumulusCI not found | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | SF CLI < v2 | `npm install -g @salesforce/cli` (NOT `brew install sf`) |
 | SFDMU plugin missing/outdated | Auto-fixed by default (`auto_fix=true`). Manual: `sf plugins install sfdmu` |
 | Node.js not found | `nvm install --lts && nvm alias default lts/*` |
 | Robot Framework deps missing | Auto-fixed by default. Manual: `pipx inject cumulusci --force -r robot/requirements.txt` |
 | Chrome/ChromeDriver missing | Install Chrome; `pip install webdriver-manager` |
-| urllib3 < 2.6.3 (CVE) | `pipx inject cumulusci urllib3>=2.6.3` |
+| Chrome/ChromeDriver versions mismatch, a browser override has no `CHROMEDRIVER_PATH`, or an override path is not executable or does not run cleanly (wrong architecture, nonzero `--version` exit) | Install the matching driver and point `CHROMEDRIVER_PATH` at it, or fix/unset `CHROME_BINARY` / `CHROME_BIN` / `CHROMEDRIVER_PATH` |
+| Robot step dies with "Unable to receive message from renderer" on a Setup page (managed workstations) | Chrome for Testing via `CHROME_BINARY` + `CHROMEDRIVER_PATH`; see `docs/guides/local-installation.md` → Chrome for Testing |
+| urllib3 < 2.6.3 (CVE) | `pipx inject cumulusci "urllib3>=2.6.3"` |
 
 ### `sf` or `node` not found in IDE / CI
 
@@ -97,16 +111,20 @@ cci org info beta         # shows username, instance URL
 `INVALID_AUTH_HEADER` (or "Expired session"), even on a brand-new org — but
 `sf data query --target-org USERNAME` reaches the same org fine.
 
-**Cause:** CumulusCI 4.10 parses `sf org display` for the access token, and
-sf CLI >= 2.13.0 now **redacts** it. CCI sends a bogus header.
+**Cause:** CumulusCI 4.10.0 and earlier parse `sf org display` for the access
+token, and sf CLI 2.136.8+ (the May 27, 2026 change, forcedotcom/cli#3560) **redacts** it. CCI sends a bogus header.
 
-**Fix:** set `SF_TEMP_SHOW_SECRETS=true`. The repo's tracked `.envrc` already exports
-it, so **direnv users are covered automatically** inside the repo; otherwise prefix a
-command for a one-off, or for a durable / Dock-launched-IDE setup use `~/.zshenv` + a
-LaunchAgent. **Do not** delete or recreate the org — and never `cci org remove` a
-scratch org (it deletes it).
-Full guide, including the durable setup, the security tradeoff, and **how to
-check for / remove the workaround once an official fix ships**:
+**Fix:** upgrade CumulusCI to **4.10.1 or later** (`pipx upgrade cumulusci`, then
+`pipx inject --force cumulusci -r robot/requirements.txt`, since CCI's own pins
+downgrade selenium), which falls back to `sf org auth show-access-token`. If your pipx CumulusCI was built on Python 3.10, `pipx upgrade` can't install 4.10.1
+(it needs Python 3.11–3.13); rebuild it on a supported interpreter with
+`pipx reinstall cumulusci --python "$(pyenv prefix)/bin/python3"` and the same
+Robot re-inject, or `scripts/bash/update-toolchain.sh`. The repo no longer exports
+`SF_TEMP_SHOW_SECRETS` for CumulusCI (`.envrc`, Docker, CI); a few scripts still set it on
+their own `sf` calls. On an older CCI you can still set it for a one-off.
+**Do not** delete or recreate the org — and never `cci org remove` a scratch org
+(it deletes it).
+Full guide, including how to remove a personal copy of the flag:
 [cci-sf-cli-token-workaround.md](../../../docs/guides/cci-sf-cli-token-workaround.md).
 
 ### `NonScratchOrgError` ("This command works with only scratch orgs")
@@ -169,6 +187,34 @@ the org auth is token-only (no username).
 
 **Fix:** Use `cci org connect` instead of JWT-only auth, or set the username
 in the org config.
+
+### `ProductRelatedComponent` rows fail: "bundle or set levels would exceed 3"
+
+**Cause:** The `qb-pcm` plan's deepest bundle (**QuantumBit - OmniRack DC42
+Series**, `PROD-455868158`) nests 6 products across 5 component links —
+`PROD-455868158` → `PROD-1008704562` → `PROD-356310368` → `PROD-1472536093`
+→ `PROD-384361183` → `PROD-1956857281` — but a fresh scratch org defaults the
+PCM `MaxBundleDepth` org value to 3. SFDMU reports each failing row and the
+build carries on, so the load finishes "successfully" with the deep bundle
+silently truncated at level 3 — nothing else in the log calls this out.
+
+**Fix:** Every scratch org definition with a `features` array
+(`orgs/*.json`, `orgs/internal/*.json`, `config/project-scratch-def.json`)
+carries `MaxBundleDepth:5` (the max this org value supports). Live-verified
+in [PR #516](https://github.com/bgaldino/rlm-base-dev/pull/516): a fresh
+scratch org built from an updated shape loaded all 234/234
+`ProductRelatedComponent` rows with no depth error in the log. If you hit
+this on an org *not* built from one of those files — a hand-rolled scratch
+def, an org shape/sandbox outside this repo's provisioning, **or a
+`tso`/`pde` build from an `orgs/tfid/*.json` template** (those are template
+pointers only, with no `features` array, so this fix does not reach them;
+whether the template's source org has `MaxBundleDepth` raised is a separate,
+unverified question) — add the same feature value where a `features` array
+exists, or raise the org value directly where it doesn't. Scratch orgs
+otherwise default to depth 3, and this org value has no Setup UI or Metadata
+API surface to raise after the fact (it is
+`scratchOrgFeatureOptOut="SUPPORT_ONLY"` in Core's UDD, so a persistent org
+without it needs a Salesforce Support case, not a repo change).
 
 ---
 
@@ -286,11 +332,18 @@ cci task run manage_decision_tables -o operation refresh -o developer_names "Tab
 
 ### Active decision tables block deploy
 
-**Cause:** Metadata API can't overwrite active decision tables.
+**Cause:** Metadata API can't apply a *structural* change to an active decision
+table ("Can't edit an active Decision Table"). Unchanged and non-structural
+redeploys succeed.
 
-**Fix:** The flow handles this via `exclude_active_decision_tables` before
-deploy and `restore_decision_tables` after. If the exclusion step fails,
-manually deactivate the blocking tables:
+**Fix:** The flow handles this with `deactivate_changed_decision_tables` (before
+`deploy_pre`) and `deactivate_changed_post_prm_pricing_decision_tables` (before the
+PRM table deploy): each check-only deploys the repo's active tables, deactivates
+only those the platform rejects, and deploys them at once, which reactivates them. If
+that deploy fails it tries to reactivate them and fails the step; a table it could not
+reactivate is logged as an error with the `manage_decision_tables` activate command. It deactivates
+nothing while the check-only deploy reports any other failure — read its warnings and
+fix those first. To deactivate by hand:
 ```bash
 cci task run manage_decision_tables -o operation deactivate -o developer_names "Table_Name" --org beta
 ```
@@ -315,6 +368,29 @@ cci task run manage_decision_tables -o operation deactivate -o developer_names "
 **Fix:** The `updateExpressionSetVersions.apex` script sets Rank before
 activating. If you hit this manually, use Tooling API to update the version's
 Rank field first.
+
+### Prices look plausible, but a procedure change did not take effect
+
+**Symptom:** quotes price without error and the numbers look reasonable, but a
+step you know is in the procedure (a new formula, a constant control such as
+`777`) does not land.
+
+**Cause:** check `ProcedurePlanDefinitionVersion.IsActive` **first**. An inactive
+procedure plan is skipped: pricing falls back to the Revenue Settings default
+procedure and none of the plan's other procedures run. Measured on 264, a
+discounted quote line still priced correctly with the plan off, but produced 3
+`PricingProcessExecution` rows instead of 9. A failed expression-set import
+used to leave the plan in this state (pack 170). By contrast, an active plan
+whose expression-set version is inactive fails loudly: "Ensure that this
+procedure has at least one active version."
+
+**Fix:** first read the failure's health report. If it says the
+expression-set version is **not confirmed inactive** after a failed PATCH, the
+version may be half-written: inspect it and deactivate it before touching the
+plan, because an active plan would route pricing to it. Then query the plan
+(`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`) and reactivate it with `sf data update record --target-org <sf_alias_or_username>
+--sobject ProcedurePlanDefinitionVersion --record-id <1Cv...> --values "IsActive=true"`, and re-check with a constant
+control. Do not conclude "pricing works" from a plausible number.
 
 ---
 
@@ -441,7 +517,10 @@ sf data query -q "SELECT Id, Name, UsageModelType, EntitlementProcessingStatus F
 ```
 
 ⚠ Entitlements for `CommitmentQuantity` / `CommitmentSpend` products are **known to
-stay `PENDING`** in 262 — a platform issue, not a data defect. `Commit` works.
+stay `PENDING`** — a platform issue, not a data defect. **Re-verified on a fresh 264 org
+(2026-08-14): still unfixed in 264.** `QB-QTY-CMT` and `QB-MTY-CMT` stay `PENDING` while
+`Anchor` and `Commit` assets reach `PROCESSED`. Use a `Commit` model type
+(e.g. `QB-CMT-TKN-FLAT`) instead — it processes correctly on both releases.
 
 ---
 
@@ -537,7 +616,7 @@ sf data query -q "SELECT Id, Name, UrlPathPrefix FROM Network" --target-org rlm-
 
 **Fix:** Run it manually:
 ```bash
-cci task run revert_network_email_after_deploy --org beta
+cci task run revert_network_email_after_deploy
 ```
 Or reset the file: `git checkout -- unpackaged/post_prm/force-app/main/default/networks/rlm.network-meta.xml`
 
@@ -616,8 +695,8 @@ cci task run assemble_and_deploy_ux -o deploy false
 # Clear source tracking corruption
 rm -rf .sf/orgs/<org-id>/localSourceTracking
 
-# Validate CML constraint model
-cci task run validate_cml -o data_dir datasets/constraints/qb/QuantumBitComplete --org beta
+# Validate each CML model's shipped blob against its own ESC rows (no org needed)
+cci task run validate_cml -o data_dirs "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
 ```
 
 ---

@@ -23,6 +23,7 @@ No CumulusCI or org imports here on purpose: this module is unit-testable and
 reusable from a plain ``python`` invocation.
 """
 import re
+import html
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Set
@@ -191,6 +192,7 @@ class Issue:
     severity: Severity
     location: str
     message: str
+    code: Optional[str] = None
 
 
 @dataclass
@@ -202,8 +204,8 @@ class ValidationResult:
         self.issues.append(Issue(Severity.ERROR, location, message))
         self.passed = False
 
-    def warn(self, location: str, message: str) -> None:
-        self.issues.append(Issue(Severity.WARNING, location, message))
+    def warn(self, location: str, message: str, *, code: Optional[str] = None) -> None:
+        self.issues.append(Issue(Severity.WARNING, location, message, code))
 
     @property
     def errors(self) -> List[Issue]:
@@ -280,6 +282,7 @@ def _validate_params(
                 "PATCH/POST or the engine's value parser rejects it (\"Syntax "
                 "error. Found '&'\"). The import/overlay tasks do this "
                 "automatically unless normalize_html_entities:false.",
+                code="html_entities",
             )
 
 
@@ -341,6 +344,7 @@ def _validate_step(
                 "contains HTML entities (raw GET output); HTML-unescape before "
                 "PATCH/POST (handled by the import/overlay tasks unless "
                 "normalize_html_entities:false).",
+                code="html_entities",
             )
     adv = step.get("advancedCondition")
     if isinstance(adv, dict):
@@ -351,6 +355,7 @@ def _validate_step(
                     "contains HTML entities (raw GET output); HTML-unescape "
                     "before PATCH/POST (handled by the import/overlay tasks "
                     "unless normalize_html_entities:false).",
+                    code="html_entities",
                 )
 
 
@@ -483,6 +488,7 @@ def validate_definition(defn: dict) -> ValidationResult:
             "emitted by the Connect GET output and don't need to be hand-maintained on "
             "an input payload (tolerated by a PATCH full-graph replace; the import task "
             "doesn't require them).",
+            code="output_only_fields",
         )
 
     versions = defn.get("versions")
@@ -509,6 +515,7 @@ def validate_definition(defn: dict) -> ValidationResult:
                 "version carries an 'id' — required for a Connect PATCH-replace "
                 "but must be omitted on a POST-create (the import task strips it "
                 "automatically when creating a new expression set).",
+                code="version_id",
             )
 
         steps = version.get("steps", [])
@@ -623,6 +630,11 @@ def validate_overlay(overlay: dict) -> ValidationResult:
                         f"{op}[{i}]",
                         "reorderSteps entry requires an integer sequenceNumber.",
                     )
+            if op == "updateSteps" and isinstance(item, dict) and "placement" in item:
+                result.error(
+                    f"{op}[{i}].placement",
+                    "updateSteps cannot use placement; use reorderSteps.",
+                )
 
     add_vars = overlay.get("addVariables", [])
     if not isinstance(add_vars, list):
@@ -665,8 +677,53 @@ def validate_overlay(overlay: dict) -> ValidationResult:
 
     _validate_external_dependencies(overlay.get("externalDependencies"), result)
     _warn_undeclared_external_dependencies(overlay, result)
+    _validate_labels_block(overlay.get("labels"), result)
+    _validate_step_labels(overlay, result)
 
     return result
+
+
+def _validate_labels_block(labels, result: "ValidationResult") -> None:
+    """Validate the optional top-level ``labels`` block: a ``{name: label}`` map.
+
+    Readable step labels the overlay ships for the post-PATCH Tooling relabel
+    (Connect has no label field). Both keys and values must be strings; anything
+    else is an error so a malformed labels block fails the overlay rather than
+    silently dropping a label.
+    """
+    if labels is None:
+        return
+    if not isinstance(labels, dict):
+        result.error("labels", "must be an object of {step name: label}.")
+        return
+    bad = sorted(
+        k for k, v in labels.items()
+        if not isinstance(k, str) or not isinstance(v, str)
+    )
+    if bad:
+        result.error(
+            "labels",
+            f"every entry must be a string name → string label; bad entr(ies): {bad}.",
+        )
+
+
+def _validate_step_labels(overlay: dict, result: "ValidationResult") -> None:
+    """Validate the optional per-step ``label`` on ``addSteps``/``updateSteps``.
+
+    Like the ``labels`` block, a per-step label is overlay-only (stripped from the
+    Connect payload) and feeds the post-PATCH relabel, which keeps string labels
+    only. A non-string label is an error rather than a silently dropped label.
+    """
+    for operation in ("addSteps", "updateSteps"):
+        steps = overlay.get(operation)
+        if not isinstance(steps, list):
+            continue  # a non-list operation is already reported by validate_overlay
+        for i, step in enumerate(steps):
+            if isinstance(step, dict) and "label" in step and not isinstance(step["label"], str):
+                result.error(
+                    f"{operation}[{i}].label",
+                    f"must be a string; got {type(step['label']).__name__}.",
+                )
 
 
 # Suffixes that mark a reference as a CUSTOM, org-specific external dependency
@@ -795,6 +852,71 @@ def _warn_undeclared_external_dependencies(
         )
 
 
+def step_content_differences(expected, actual, path="step"):
+    """Compare requested fields, allowing GET-only fields and named-list ordering.
+
+    HTML entities are transport encoding, not formula changes, and an empty
+    string reads back as null (e.g. a step ``description``), so the two compare
+    equal. Missing non-empty fields, changed values, missing/extra list members
+    and duplicate names fail.
+    Overlay-only placement/label keys must be removed by the caller.
+    """
+    if isinstance(expected, dict):
+        if not isinstance(actual, dict):
+            return [path]
+        return [p for key, value in expected.items()
+                for p in step_content_differences(value, actual.get(key), f"{path}.{key}")]
+    if isinstance(expected, list):
+        if not isinstance(actual, list) or len(expected) != len(actual):
+            return [path]
+        if expected and all(isinstance(v, dict) and v.get("name") for v in expected):
+            names = [v["name"] for v in expected]
+            got = {v.get("name"): v for v in actual if isinstance(v, dict)}
+            if len(set(names)) != len(names) or len(got) != len(actual) or set(got) != set(names):
+                return [path]
+            return [p for value in expected for p in step_content_differences(
+                value, got[value["name"]], f"{path}[{value['name']}]")]
+        return [p for i, (want, got) in enumerate(zip(expected, actual))
+                for p in step_content_differences(want, got, f"{path}[{i}]")]
+    if isinstance(expected, str) and isinstance(actual, str):
+        expected, actual = html.unescape(expected), html.unescape(actual)
+    if path.endswith(".description") and expected in ("", None) and actual in ("", None):
+        return []
+    return [] if expected == actual else [path]
+
+
+def existing_step_differences(step_def, existing):
+    """Compare an add replay, excluding metadata and computed top-level sequence."""
+    requested = {k: v for k, v in step_def.items() if k not in ("placement", "label")}
+    if not step_def.get("parentStep"):
+        requested.pop("sequenceNumber", None)
+    return step_content_differences(requested, existing)
+
+
+def overlay_step_content_errors(overlay, expected_version, actual_version):
+    """Check the final step graph against the merged payload, plus removals."""
+    errors = []
+    expected = {s["name"]: s for s in expected_version.get("steps", [])}
+    actual = actual_version.get("steps", [])
+    # A full-graph PATCH must preserve exactly this set of step names, even
+    # for a variable-only overlay or removal of the last step.
+    for step in actual:
+        name = step.get("name")
+        if name not in expected:
+            errors.append(f"unexpected step '{name}' is present in the target version")
+    for name in sorted(expected):
+        matches = [s for s in actual if s.get("name") == name]
+        if len(matches) != 1 or name not in expected:
+            errors.append(f"step '{name}' must occur exactly once in the target version")
+            continue
+        errors.extend(step_content_differences(expected[name], matches[0], f"step[{name}]"))
+    for step in overlay.get("removeSteps", []):
+        name = step["name"]
+        if name not in expected and any(s.get("name") == name for s in actual):
+            errors.append(f"removed step '{name}' is still present")
+    return errors
+
+
 def validate_overlay_against_definition(
     overlay: dict, definition: dict, version_api_name: Optional[str] = None
 ) -> ValidationResult:
@@ -829,7 +951,10 @@ def validate_overlay_against_definition(
     # (e.g. chaining ListGroup blocks one after another). Checking only against
     # the pre-existing steps would reject every chained-placement overlay.
     added_so_far: Set[str] = set()
-    for i, step in enumerate(overlay.get("addSteps", []) or []):
+    add_steps = overlay.get("addSteps", []) or []
+    if not isinstance(add_steps, list):
+        add_steps = []  # reported by validate_overlay
+    for i, step in enumerate(add_steps):
         placement = step.get("placement") if isinstance(step, dict) else None
         if isinstance(placement, dict):
             for key in ("afterStep", "beforeStep"):

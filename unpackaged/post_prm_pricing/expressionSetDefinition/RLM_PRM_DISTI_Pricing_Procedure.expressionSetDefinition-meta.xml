@@ -8,6 +8,7 @@
     <label>RLM PRM DISTI Pricing Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
+    <usageSubtype>RevenueCloud</usageSubtype>
     <versions>
         <fullName>RLM_PRM_DISTI_Pricing_Procedure_V1</fullName>
         <decimalScale>2</decimalScale>

@@ -65,6 +65,38 @@ private without sharing class RLM_AccountUtilitiesTest {
         return a;
     }
 
+    private static Id seedAccountWithContracts() {
+        Account account = newAccount();
+        Product2 product = new Product2(
+            Name = 'RLM Reset Test Product',
+            IsActive = true
+        );
+        insert product;
+
+        Date contractStart = Date.today().addDays(-7);
+        Contract priced = new Contract(
+            AccountId = account.Id,
+            StartDate = contractStart,
+            ContractTerm = 12,
+            Status = 'Draft'
+        );
+        Contract unpriced = new Contract(
+            AccountId = account.Id,
+            StartDate = contractStart,
+            ContractTerm = 12,
+            Status = 'Draft'
+        );
+        insert new List<Contract>{ priced, unpriced };
+
+        SObject cip = Schema.getGlobalDescribe().get('ContractItemPrice').newSObject();
+        cip.put('ContractId', priced.Id);
+        cip.put('ItemId', product.Id);
+        cip.put('StartDate', System.now());
+        cip.put('Price', 100.0);
+        insert cip;
+        return account.Id;
+    }
+
     private static RLM_AccountUtilities.InputVariables request(
         Id accountId, Boolean deleteAssets, Boolean deleteFulfillment, Boolean deleteBilling
     ) {
@@ -230,6 +262,84 @@ private without sharing class RLM_AccountUtilitiesTest {
             0,
             [SELECT COUNT() FROM Asset WHERE AccountId = :a.Id],
             'DeleteAssets=true must remove the asset'
+        );
+    }
+
+    // ------------------------------------------ contracted-price preservation
+
+    private static Boolean contractItemPriceAvailable() {
+        return Schema.getGlobalDescribe().containsKey('ContractItemPrice');
+    }
+
+    @IsTest
+    static void preserveOnKeepsPricedContract() {
+        if (!contractItemPriceAvailable()) return;
+        Id accountId = seedAccountWithContracts();
+        RLM_AccountUtilities.InputVariables iv = request(accountId, true, true, true);
+        iv.PreserveContractsWithContractedPrices = true;
+
+        System.assertEquals(
+            2,
+            [SELECT COUNT() FROM Contract WHERE AccountId = :accountId],
+            'PRECONDITION: both contracts must exist before the reset runs'
+        );
+
+        Test.startTest();
+        run(iv);
+        Test.stopTest();
+
+        System.assertEquals(
+            1,
+            [SELECT COUNT() FROM Contract WHERE AccountId = :accountId],
+            'Only the contract with a contracted price should remain'
+        );
+        System.assertEquals(
+            1,
+            Database.countQuery(
+                'SELECT COUNT() FROM ContractItemPrice WHERE Contract.AccountId = \'' +
+                String.escapeSingleQuotes(accountId) + '\''),
+            'The contracted price must survive with its contract'
+        );
+    }
+
+    @IsTest
+    static void preserveOffDeletesAllContracts() {
+        if (!contractItemPriceAvailable()) return;
+        Id accountId = seedAccountWithContracts();
+        RLM_AccountUtilities.InputVariables iv = request(accountId, true, true, true);
+        iv.PreserveContractsWithContractedPrices = false;
+
+        Test.startTest();
+        run(iv);
+        Test.stopTest();
+
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM Contract WHERE AccountId = :accountId],
+            'Preserve=false must retain the legacy delete-all behavior'
+        );
+        System.assertEquals(
+            0,
+            Database.countQuery(
+                'SELECT COUNT() FROM ContractItemPrice WHERE Contract.AccountId = \'' +
+                String.escapeSingleQuotes(accountId) + '\''),
+            'Contracted prices must cascade-delete with their contracts'
+        );
+    }
+
+    @IsTest
+    static void omittedPreserveFlagDeletesAllContracts() {
+        if (!contractItemPriceAvailable()) return;
+        Id accountId = seedAccountWithContracts();
+
+        Test.startTest();
+        run(request(accountId, true, true, true));
+        Test.stopTest();
+
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM Contract WHERE AccountId = :accountId],
+            'A null preserve flag must behave like preserve=false'
         );
     }
 

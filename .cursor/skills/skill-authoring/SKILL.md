@@ -1,3 +1,12 @@
+---
+name: skill-authoring
+description: >-
+  Create, update, split, register, and validate AI-agent skills in Revenue Cloud
+  Foundations. Use when editing skill entry points or sub-files, authoring discovery
+  metadata, maintaining skill indexes, or checking tool-agnostic consumption and Cursor
+  rule parity.
+---
+
 # Skill Authoring — Lifecycle and Registration
 
 Use this skill when creating, changing, splitting, registering, or testing an
@@ -23,6 +32,7 @@ agent that can read repository files.
    some tasks need.
 5. **Register new skills everywhere agents discover them** — update
    `.cursor/skills/README.md`, `AGENTS.md`, and `.claude/skill-manifest.yml`;
+   add matching directory links in `.agents/skills/` and `.claude/skills/`;
    update `.github/copilot-instructions.md` only when Copilot's entry-point
    guidance changes.
 6. **Add Cursor rules only for file-pattern reminders** — rules are for
@@ -99,7 +109,7 @@ Read this skill before making skill-lifecycle changes, including:
 | Task | Use this skill? | Notes |
 |------|-----------------|-------|
 | Create a new `.cursor/skills/<name>/SKILL.md` | Yes | Also update skill indexes and manifest. |
-| Add a sub-file under an existing skill | Yes | Link it from the parent skill and `AGENTS.md` Skill Sub-Files table when it is broadly useful. |
+| Add a sub-file under an existing skill | Yes | Link it from the parent `SKILL.md`, which is the only place sub-files are registered. Do **not** add it to `AGENTS.md`. |
 | Add or change `.cursor/rules/*.mdc` | Yes | Confirm the rule mirrors a skill or repository-wide source. |
 | Add one universal safety guard | Usually no | Put universal rules directly in `AGENTS.md`; update a skill only if the detailed workflow changes. |
 | Add examples/checklists for one task area | Yes | Prefer skill content over `AGENTS.md` detail. |
@@ -150,6 +160,62 @@ or optional, add a linked sub-file rather than a new top-level skill.
 
 ## Required Sections for Skills
 
+### Discovery metadata
+
+Every top-level `SKILL.md` must start with YAML frontmatter containing `name`
+and `description`, following the [Agent Skills specification](https://agentskills.io/specification):
+
+```yaml
+---
+name: skill-name
+description: >-
+  Describe the capability and when an agent should select this skill.
+---
+```
+
+- **`name`**: match the parent directory exactly; use 1–64 lowercase letters,
+  digits, or hyphens, with no leading, trailing, or consecutive hyphens.
+- **`description`**: a non-empty string of at most 1,024 characters. Describe
+  both the capability and concrete task triggers. Distinguish adjacent skills
+  where their scopes overlap; keep detailed procedures in the body.
+- The stdlib-only repository gate accepts plain or quoted single-line strings
+  and folded/literal blocks (`>`, `>-`, `|`, `|-`, with `+` also accepted).
+  Use JSON-compatible double quotes or YAML single quotes; use a block for
+  multiline text; folded blocks use one uniformly indented paragraph, and literal
+  blocks support paragraph breaks. Required discovery fields must be unique top-level keys.
+  Other YAML types, aliases and complex scalar syntax are outside this portable
+  subset. This is a repository authoring constraint, not the full YAML specification.
+- Preserve existing skill names and directories when adding metadata. Put
+  frontmatter on the entry point; reference sub-files do not need it.
+- Frontmatter enables metadata-based discovery in compatible tools. It does
+  not replace the indexes and manifest below or configure native discovery
+  paths for every agent.
+
+### Native discovery links
+
+Keep skill content under `.cursor/skills/<name>/`. For each top-level skill,
+track a relative directory symlink in both `.agents/skills/` and
+`.claude/skills/`, targeting `../../.cursor/skills/<name>`. Link the whole
+directory so supporting files remain available; do not copy skill bodies.
+When adding or retiring a skill, update both link sets in the same change.
+
+For a new skill, run from the repository root, replacing `skill-name`:
+
+```sh
+ln -s ../../.cursor/skills/skill-name .agents/skills/skill-name
+ln -s ../../.cursor/skills/skill-name .claude/skills/skill-name
+```
+
+Verify both paths resolve after a fresh Git checkout and are tracked as
+symlinks (mode `120000` in `git ls-files -s`). Check the client's native
+listing for missing or duplicate entries, then invoke one representative
+skill. Record the tested client/version and any unavailable clients rather
+than claiming universal support. See
+[the discovery guide](../../../docs/guides/agent-skill-discovery.md) for
+client verification and the catalog fallback.
+
+### Instruction body
+
 Every top-level `SKILL.md` should include these sections near the top, in this
 order where practical:
 
@@ -196,8 +262,14 @@ Sub-file rules:
    artifact that already belongs elsewhere.
 2. Link the sub-file from the parent `SKILL.md` with a clear "read this when..."
    condition.
-3. Add the sub-file to `AGENTS.md` Skill Sub-Files when it is broadly useful or
-   likely to be selected directly by non-Cursor agents.
+3. Describe it in the parent `SKILL.md`'s own sub-file list. That list is the
+   only registry — `AGENTS.md` carries no second-level index, so a sub-file that
+   is not described by its parent is effectively undiscoverable. **Write the
+   filename as a code span (`` `sub-file.md` ``) or a Markdown link** — those are
+   the two forms `analyze_agent_tooling.py check` recognizes as registration, so
+   a name mentioned only in running prose fails the gate. A path relative to the
+   skill directory, to `.cursor/skills/`, or to the repo root all work, as does a
+   glob (`` `domains/*.md` ``) for a whole sub-directory.
 4. Keep sub-files one level deep when possible. Avoid nested reference chains.
 5. If a sub-file is generated, mark it as generated and document the command
    that refreshes it.
@@ -223,12 +295,22 @@ rule.
 Update `AGENTS.md` for:
 
 - New top-level skill rows in **AI Agent Skill Index**.
-- New broadly useful sub-file rows in **Skill Sub-Files**.
-- New or changed Cursor rules in **File-Specific Rules**.
+- A new *directory* of helper scripts, as one row in **Script Reference** naming
+  the owning skill — never the individual commands.
 - New universal safety guards or project-wide conventions.
 
-Keep `AGENTS.md` concise. It routes agents and defines global rules; it should
-not duplicate the full skill body.
+Do **not** update `AGENTS.md` for a new sub-file (the parent `SKILL.md` owns
+that) or a new Cursor rule (`.cursor/skills/README.md` owns that).
+
+Keep `AGENTS.md` concise. It routes agents and defines global rules; detailed
+procedures belong in owning skills. This repository's working ceiling is
+**25,000 bytes**, measured with `wc -c AGENTS.md`. This is a repository target,
+not a universal model context limit. Codex's default `project_doc_max_bytes`
+is **32 KiB (32,768 bytes)** for the combined project instruction chain;
+nested instruction files also consume that budget. Other clients have their
+own loading behavior. Preserve headroom and universal safety rules; move
+history and detailed procedures to linked guides before growing the root file.
+See the [Codex instruction-loading reference](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
 
 ### `.claude/skill-manifest.yml`
 
@@ -288,9 +370,9 @@ Then include:
 
 After adding a rule:
 
-1. Add it to `.cursor/skills/README.md` File-Specific Rules table.
-2. Add it to `AGENTS.md` File-Specific Rules table.
-3. Confirm it does not replace the skill; it should only route or remind.
+1. Add it to the `.cursor/skills/README.md` File-Specific Rules table, which is
+   the canonical list. `AGENTS.md` points at it and needs no edit.
+2. Confirm it does not replace the skill; it should only route or remind.
 
 ---
 
@@ -298,9 +380,27 @@ After adding a rule:
 
 Run these checks before committing a new or materially changed skill:
 
+Run `python scripts/ai/analyze_agent_tooling.py check` first. It gates discovery
+metadata, native link targets/Git modes, local navigation file targets and the
+root byte ceiling alongside the existing baseline checks. Stage new symlinks
+before checking their Git modes. See [scope and exclusions](../../../scripts/ai/README.md)
+for link syntax and private-reference handling. Static checks complement the
+client smoke tests below; they do not establish native client discovery.
+
+
 1. **Discovery from repository entry points**
-   - Confirm `AGENTS.md` lists the skill or sub-file.
+   - Parse the entry point's YAML frontmatter. Check that `name` matches the
+     directory and that both fields meet the constraints above. Read the
+     description alone to confirm it identifies when to choose this skill.
+   - For a **top-level skill**: confirm `AGENTS.md` Skill Index lists it.
+   - For a **sub-file**: confirm the parent `SKILL.md` describes it. That is the
+     only registry — `AGENTS.md` deliberately has no second-level index, so a
+     sub-file its parent omits cannot be found from any entry point. This is
+     enforced: `python scripts/ai/analyze_agent_tooling.py check` fails on any
+     sub-file its parent does not name.
    - Confirm `.cursor/skills/README.md` lists top-level skills.
+   - Confirm both native discovery link sets match the canonical skill
+     directories and resolve to them, including their supporting files.
    - Confirm `.github/copilot-instructions.md` still points agents to
      `AGENTS.md` and `.cursor/skills/*/SKILL.md`.
 2. **Manifest resolution**
@@ -342,9 +442,9 @@ User request: "Add more detailed Robot shadow DOM patterns."
 Do:
 
 1. Add or update `.cursor/skills/robot-testing/setup-ui-shadow-dom.md`.
-2. Link it from `.cursor/skills/robot-testing/SKILL.md` with a read condition.
-3. Add or update the `AGENTS.md` Skill Sub-Files row.
-4. Do not create a separate top-level skill unless the workflow needs separate
+2. Link it from `.cursor/skills/robot-testing/SKILL.md` with a read condition,
+   and describe it in that skill's own sub-file list. Nothing goes in `AGENTS.md`.
+3. Do not create a separate top-level skill unless the workflow needs separate
    routing.
 
 ### Example 3 — Add a Cursor rule
@@ -356,7 +456,8 @@ Do:
 
 1. Add or update a `.cursor/rules/*.mdc` rule for `.cursor/skills/**/*.md`.
 2. Keep the rule short and point to this skill plus doc-consistency.
-3. Update `AGENTS.md` and `.cursor/skills/README.md` rule tables.
+3. Update the File-Specific Rules table in `.cursor/skills/README.md` — its sole
+   owner. `AGENTS.md` only points at it and must not regrow a copy.
 4. Verify non-Cursor agents can get the same instructions from this skill.
 
 ## Validation Checks
@@ -372,7 +473,10 @@ python scripts/validate_sfdmu_v5_datasets.py
 Also review:
 
 - `git diff --stat` for unintended generated or runtime files.
-- `AGENTS.md` Skill Index, Skill Sub-Files, and File-Specific Rules tables.
+- `AGENTS.md` Skill Index and Script Reference tables, plus `wc -c AGENTS.md`
+  against the 25,000-byte repository ceiling; check a fresh client session for
+  truncation after changing root instructions.
 - `.cursor/skills/README.md` Skill Router and File-Specific Rules tables.
+- The parent `SKILL.md`'s own sub-file list, for any sub-file you added.
 - `.github/copilot-instructions.md` quick-start and entry-point guidance.
 - `.claude/skill-manifest.yml` path validity for any new manifest entry.

@@ -21,7 +21,7 @@ if (!decisionTables.isEmpty()) {
     for (DecisionTable dt : decisionTables) {
         try {
             HttpRequest req = new HttpRequest();
-            req.setEndpoint(baseUrl + '/services/data/v60.0/tooling/sobjects/DecisionTable/' + dt.Id);
+            req.setEndpoint(baseUrl + '/services/data/v68.0/tooling/sobjects/DecisionTable/' + dt.Id);
             req.setMethod('PATCH');
             req.setHeader('Authorization', 'Bearer ' + sessionId);
             req.setHeader('Content-Type', 'application/json');

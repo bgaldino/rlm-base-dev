@@ -1,0 +1,70 @@
+---
+page_id: connect_requests_context_nodes_input.htm
+title: Context Nodes Input
+source_url: https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_context_nodes_input.htm
+release: 264
+release_name: Winter '27
+deliverable: industries_reference
+section: Context Service
+parent_page: context_service_apis_requests.htm
+fetched_at: 2026-08-24
+---
+
+Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
+
+# Context Nodes Input 
+
+Input representation of context node.
+
+**JSON example**
+
+: 
+
+```
+{
+    "contextNodes": [
+        {
+            "name": "Node_0",
+            "attributes": {
+                "contextAttributes": [
+                    {
+                        "dataType": "STRING",
+                        "fieldType": "INPUT",
+                        "name": "Attribute_1"
+                    }
+                ]
+            },
+            "childNodes": {
+                "contextNodes": [
+                    {
+                        "name": "Node_1",
+                        "attributes": {
+                            "contextAttributes": [
+                                {
+                                    "dataType": "NUMBER",
+                                    "fieldType": "INPUT",
+                                    "name": "Attribute_2"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
+```
+
+**Properties**
+
+: 
+
+| Name | Type | Description | Required or Optional | Available Version |
+| --- | --- | --- | --- | --- |
+| `attributes` | [Context Attributes Input](./connect_requests_context_attributes_input.htm.md)[] | List of context attributes. | Optional | 59.0 |
+| `childNodes` | [Context Nodes Input](#)[] | List of child context nodes. | Optional | 59.0 |
+| `contextNodeId` | String | ID of the context node. | Required | 59.0 |
+| `isTransposable` | Boolean | Specifies if the context node is used for the transposable feature (`true`) or not (`false`). | Optional | 59.0 |
+| `name` | String | Name of the context node. | Required | 59.0 |
+| `parentNodeId` | String | ID of (parent) context node. | Optional | 59.0 |
+| `tags` | [Context Tag Input](./connect_requests_context_tag_input.htm.md)[] | List of context tags. | Optional | 59.0 |

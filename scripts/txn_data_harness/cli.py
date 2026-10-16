@@ -108,7 +108,7 @@ def _format_inspect_text(summary: dict) -> str:
     return "\n".join(lines)
 
 
-def _lines_from_manifest(client: SfRestClient, manifest) -> list[LineItem]:
+def _lines_from_manifest(client: SfRestClient, manifest, currency=None) -> list[LineItem]:
     """Rebuild ``LineItem``s from a manifest, including any resolved usage spec.
 
     ``LineItem.to_manifest_record`` writes the resolved usage targets (with
@@ -118,10 +118,14 @@ def _lines_from_manifest(client: SfRestClient, manifest) -> list[LineItem]:
     lines: list[LineItem] = []
     for rec in manifest.lines:
         sku = rec.get("sku")
-        if not sku:
+        if not sku and not rec.get("product_id"):
             continue
         lines.append(
-            LineItem.from_manifest_record(rec, resolve_product(client, sku))
+            LineItem.from_manifest_record(rec, resolve_product(
+                client, sku, selling_model=rec.get("selling_model"),
+                currency=rec.get("currency", currency),
+                pricebook_entry_id=rec.get("pricebook_entry_id"),
+                product_id=rec.get("product_id")))
         )
     return lines
 
@@ -273,14 +277,21 @@ def _build_step_context(
             invoice_spec=None,
         )
 
-    # PST path
-    try:
-        specs = load_scenarios(args)
-        resolved = [handler.resolve(client, ctx, s) for s in specs]
-        default_lines = draw_lines(resolved[0].options) if resolved else []
-    except ConfigError:
-        default_lines = []
-    lines = _lines_from_manifest(client, manifest) or default_lines
+    # Persisted selection wins; do not run unrelated default discovery first.
+    lines = _lines_from_manifest(client, manifest, account.currency_iso_code)
+    if not lines:
+        try:
+            specs = load_scenarios(args)
+            resolved = [handler.resolve(client, ctx, s) for s in specs]
+            lines = draw_lines(resolved[0].options) if resolved else []
+        except ConfigError:
+            lines = []
+    if lines:
+        from dataclasses import replace
+        currencies = {line.product.currency_iso_code for line in lines}
+        if len(currencies) > 1:
+            raise ConfigError("Manifest lines must use the same currency")
+        account = replace(account, currency_iso_code=lines[0].product.currency_iso_code)
     if not lines and args.to_stage not in {"invoice_draft", "invoice_posted"}:
         raise LifecycleError(
             "step", "no manifest lines or config product lines to use"

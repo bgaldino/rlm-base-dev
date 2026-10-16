@@ -12,16 +12,50 @@ public class RLM_QuoteModelUtility {
         SalesContext.SalesTransaction.CurrencyIsoCode = q.CurrencyIsoCode;
         SalesContext.SalesTransaction.SalesTransactionItem = new List<SalesTransactionItemModel>();
 
+        // Bulkified (pack 083): query the child objects ONCE for the whole quote and
+        // group them by quote-line id, instead of issuing two SOQL queries per line
+        // inside the loop — the per-line form hit `Too many SOQL queries: 101` on a
+        // ~50-line quote. ORDER BY Id preserves the same per-line row ordering the
+        // previous unordered per-line queries returned (the model is consumed
+        // downstream in order).
+        Set<Id> qlIds = new Set<Id>();
+        for(QuoteLineItem ql: qls){
+            qlIds.add(ql.Id);
+        }
+
+        Map<Id, List<QuoteLineItemAttribute>> attsByLine = new Map<Id, List<QuoteLineItemAttribute>>();
+        for(QuoteLineItemAttribute qlAtt : [SELECT QuoteLineItemId, AttributeName, AttributeValue
+                                            FROM QuoteLineItemAttribute
+                                            WHERE QuoteLineItemId IN :qlIds
+                                            ORDER BY Id]){
+            if(!attsByLine.containsKey(qlAtt.QuoteLineItemId)){
+                attsByLine.put(qlAtt.QuoteLineItemId, new List<QuoteLineItemAttribute>());
+            }
+            attsByLine.get(qlAtt.QuoteLineItemId).add(qlAtt);
+        }
+
+        Map<Id, List<QuoteLineRelationship>> relsByLine = new Map<Id, List<QuoteLineRelationship>>();
+        for(QuoteLineRelationship qlr : [SELECT  AssociatedQuoteLineId, AssociatedQuoteLine.ProductSellingModelId, AssociatedQuoteLine.Product2Id,
+                                            AssociatedQuoteLinePricing, MainQuoteLineId, MainQuoteLine.ProductSellingModelId, MainQuoteLine.Product2Id
+                                         FROM QuoteLineRelationship
+                                         WHERE AssociatedQuoteLineId IN :qlIds
+                                         ORDER BY Id]){
+            if(!relsByLine.containsKey(qlr.AssociatedQuoteLineId)){
+                relsByLine.put(qlr.AssociatedQuoteLineId, new List<QuoteLineRelationship>());
+            }
+            relsByLine.get(qlr.AssociatedQuoteLineId).add(qlr);
+        }
+
         for(QuoteLineItem ql: qls){
             SalesTransactionItemModel item = new SalesTransactionItemModel();
 
-            List<QuoteLineItemAttribute> qlAtts = [SELECT QuoteLineItemId, AttributeName, AttributeValue
-                                                    FROM QuoteLineItemAttribute 
-                                                    WHERE QuoteLineItemId =: ql.Id];
-                                                    
-            List<QuoteLineRelationship> qlRs =  [SELECT  AssociatedQuoteLineId, AssociatedQuoteLine.ProductSellingModelId, AssociatedQuoteLine.Product2Id,
-                                                    AssociatedQuoteLinePricing, MainQuoteLineId, MainQuoteLine.ProductSellingModelId, MainQuoteLine.Product2Id
-                                                     FROM QuoteLineRelationship WHERE AssociatedQuoteLineId =: ql.Id];
+            List<QuoteLineItemAttribute> qlAtts = attsByLine.containsKey(ql.Id)
+                                                    ? attsByLine.get(ql.Id)
+                                                    : new List<QuoteLineItemAttribute>();
+
+            List<QuoteLineRelationship> qlRs = relsByLine.containsKey(ql.Id)
+                                                    ? relsByLine.get(ql.Id)
+                                                    : new List<QuoteLineRelationship>();
 
             item.SalesTransactionItemParent = ql.QuoteId;
             item.price_water_fall = '';

@@ -72,7 +72,7 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>67.0</apiVersion>
+    <apiVersion>68.0</apiVersion>
     <assignments>
         <description>Terminal fault sink. This flow runs after save on the record being activated, so an unhandled fault would roll back the activation itself — blocking a user from activating a contract because a decision table could not be refreshed, which is far worse than the stale table this flow exists to prevent. Capturing the message here ends the flow quietly instead. Nothing durable is written: this variable is not persisted, and the fault case that produces it — an invalid or inactive table API name — resolves to no table record, so it leaves no trace on DecisionTable either. Detect it by comparing each table&apos;s LastSyncDate against its own source, which is the only check that holds for every failure shape; see the Runtime-created pricing rows section of the pricing-wiring skill.</description>
         <name>Absorb_Refresh_Fault</name>

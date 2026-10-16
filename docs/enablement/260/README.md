@@ -2,7 +2,7 @@
 
 This directory contains the Hands-On Exercise catalog for Salesforce Revenue Cloud **Release 260 / Spring '26 / API v66.0**.
 
-> **Branch context:** On `main` (Release 262) this directory is the **prior-release reference**. 262 (Summer '26) extracts will live in `docs/enablement/262/` once the master pilots and the 262 feature index are stable. The master sources of truth live in `docs/enablement/master/`.
+> **Release context:** which release each branch carries is in [README → Branch Information](../../../README.md#branch-information). This 260 (Spring '26) directory is a **historical prior-release reference**. 262 (Summer '26) per-area Hands-On extracts will land in `docs/enablement/262/` (which already holds the 262 QB demo script) once the master pilots and the 262 feature index are stable. The master sources of truth live in `docs/enablement/master/`.
 
 ## Scope
 
