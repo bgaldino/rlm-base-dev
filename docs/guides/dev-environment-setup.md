@@ -139,7 +139,7 @@ export PATH="$HOME/.local/bin:$PATH"
 # | tail -1`): installing the next major early would then move every shell to it.
 #
 # When $DIRENV_DIR is set and PATH already holds an nvm Node, move that Node's
-# bin dir (the first one) back to the front instead: this shell was started
+# bin dir (the first one that holds a `node`) back to the front instead: this shell was started
 # from one that already loaded a project's .envrc (an agent's, IDE task's or
 # script's `zsh -c`), and it inherits that PATH, with .envrc's `nvm use` Node
 # first, or this block's `default` from the parent for a project that doesn't
@@ -172,7 +172,9 @@ if [ -n "${DIRENV_DIR:-}" ]; then
   _NVM_LEFT="$PATH:"
   while [ -n "$_NVM_LEFT" ] && [ -z "$_NVM_BIN" ]; do
     _NVM_D="${_NVM_LEFT%%:*}" _NVM_LEFT="${_NVM_LEFT#*:}"
-    case "$_NVM_D" in "$NVM_DIR"/versions/node/*/bin) _NVM_BIN="$_NVM_D" ;; esac
+    case "$_NVM_D" in
+      "$NVM_DIR"/versions/node/*/bin) [ -x "$_NVM_D/node" ] && _NVM_BIN="$_NVM_D" ;;
+    esac
   done
 fi
 if [ -z "$_NVM_BIN" ] && [ -n "$_NVM_SH" ]; then

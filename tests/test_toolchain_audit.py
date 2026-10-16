@@ -348,13 +348,16 @@ class NodeChecks(unittest.TestCase):
         block.write_text(zshenv_nvm_block())
         nvm24 = self.home / ".nvm/versions/node/v24.0.0/bin"
         nvm26 = self.home / ".nvm/versions/node/v26.0.0/bin"
+        # A package's bin dir under an nvm version, ahead of the Node bin: not the one to keep.
+        pkg = self.home / ".nvm/versions/node/v24.0.0/lib/node_modules/pkg/bin"
+        pkg.mkdir(parents=True)
         env = dict(self.env, DIRENV_DIR=f"-{self.repo}",
-                   PATH=f":/opt/x:{nvm24}::{self.bin}:/usr/bin:/bin:{nvm26}")
+                   PATH=f":/opt/x:{pkg}:{nvm24}::{self.bin}:/usr/bin:/bin:{nvm26}")
         for shell in ("zsh", "sh"):
             out = subprocess.run([shell, "-c", f'. "{block}"; . "{block}"; echo "$PATH"'],
                                  env=env, stdout=subprocess.PIPE, text=True, check=True,
                                  timeout=60).stdout.strip()
-            self.assertEqual(out, f"{nvm24}::/opt/x::{self.bin}:/usr/bin:/bin:{nvm26}", shell)
+            self.assertEqual(out, f"{nvm24}::/opt/x:{pkg}::{self.bin}:/usr/bin:/bin:{nvm26}", shell)
 
     def test_nvm_default_shows_the_alias_and_what_it_resolves_to(self):
         self.zshenv("")
