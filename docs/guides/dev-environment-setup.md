@@ -248,16 +248,29 @@ if command -v pyenv >/dev/null 2>&1; then
 fi
 
 # Node via nvm — the major line pinned in .nvmrc; a bare `nvm use` reads it.
-# brew --prefix nvm resolves to /opt/homebrew/opt/nvm (Apple Silicon) or
-# /usr/local/opt/nvm (Intel).
-export NVM_DIR="$HOME/.nvm"
+# nvm.sh is found as update-toolchain.sh step 3 finds it: Homebrew's first
+# (brew --prefix nvm resolves to /opt/homebrew/opt/nvm on Apple Silicon or
+# /usr/local/opt/nvm on Intel), else nvm's own installer's in $NVM_DIR, or
+# $XDG_CONFIG_HOME/nvm when that was set at install time.
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+_NVM_SH=""
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
-  . "$_NVM_PREFIX/nvm.sh" --no-use
+  _NVM_SH="$_NVM_PREFIX/nvm.sh"
+elif [ -s "$NVM_DIR/nvm.sh" ]; then
+  _NVM_SH="$NVM_DIR/nvm.sh"
+elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then
+  export NVM_DIR="$XDG_CONFIG_HOME/nvm"
+  _NVM_SH="$NVM_DIR/nvm.sh"
+fi
+if [ -n "$_NVM_SH" ]; then
+  . "$_NVM_SH" --no-use
   nvm use --silent >/dev/null 2>&1 \
     || echo ".envrc: Node $(cat .nvmrc 2>/dev/null) (from .nvmrc) isn't installed. Run 'nvm install' here, or scripts/bash/update-toolchain.sh." >&2
+else
+  echo ".envrc: nvm not found (via 'brew --prefix nvm', in \$NVM_DIR or in \$XDG_CONFIG_HOME/nvm), so .nvmrc's Node line isn't applied. Install it (docs/guides/local-installation.md, Step 3), or put Homebrew on PATH if your nvm comes from Homebrew." >&2
 fi
-unset _NVM_PREFIX
+unset _NVM_PREFIX _NVM_SH
 
 # Per-workstation overrides: values only, read as dotenv (see below).
 dotenv_if_exists .env.local
@@ -339,7 +352,8 @@ The script handles:
    `<old>` is the active Node. When another `node` is ahead of nvm's on PATH,
    it's nvm's `default` alias instead, or without one the newest Node nvm has
    installed. nvm comes from Homebrew (`brew --prefix nvm`) or, failing that,
-   nvm's own installer (`$NVM_DIR/nvm.sh`, or `$XDG_CONFIG_HOME/nvm/nvm.sh`)
+   nvm's own installer (`$NVM_DIR/nvm.sh`, or `$XDG_CONFIG_HOME/nvm/nvm.sh`);
+   `.envrc` finds it the same way
 4. `npm install -g @salesforce/cli@latest` — `sf` is an npm global under nvm's
    Node, and `sf update` refuses npm-based installs (it falls back to `sf update`
    only for an installer-based `sf`)
