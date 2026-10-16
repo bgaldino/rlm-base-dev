@@ -136,29 +136,49 @@ export PATH="$HOME/.local/bin:$PATH"
 # the newest installed version instead (`ls "$NVM_DIR/versions/node" | sort -V
 # | tail -1`): installing the next major early would then move every shell to it.
 #
-# Skip the prepend when $DIRENV_DIR is set and PATH already holds an nvm Node:
-# this shell was started from one that already loaded a project's .envrc (an
-# agent's, IDE task's or script's `zsh -c`), and it inherits that PATH, with
-# .envrc's `nvm use` Node first, or this block's `default` from the parent for
-# a project that doesn't pin Node. The `direnv export` below sees the .envrc
-# already loaded and changes nothing, so a Node prepended here would win over
-# the project's pinned line. Without an nvm Node on PATH there is nothing to
-# keep, so `default` goes first as usual. The `brew shellenv` above still moves
-# Homebrew's bin first in that shell, so keep no Homebrew `node`
-# (local-installation.md, Step 3).
+# When $DIRENV_DIR is set and PATH already holds an nvm Node, move that Node's
+# dir (the first one) back to the front instead: this shell was started from
+# one that already loaded a project's .envrc (an agent's, IDE task's or
+# script's `zsh -c`), and it inherits that PATH, with .envrc's `nvm use` Node
+# first, or this block's `default` from the parent for a project that doesn't
+# pin Node. The `direnv export` below sees the .envrc already loaded and
+# changes nothing, so a Node prepended here would win over the project's
+# pinned line. Skipping isn't enough either: the lines above (`brew shellenv`,
+# ~/.local/bin) have already moved their dirs ahead of the inherited Node, and
+# a `node` there (a Homebrew one, or a tool's shim such as DevBar's
+# ~/.local/bin/node on managed workstations) would win. Without an nvm Node on
+# PATH there is nothing to keep, so `default` goes first as usual. Either way
+# the chosen dir moves to the front rather than being added again, so nested
+# shells don't accumulate copies of it; the rest of PATH keeps its order. The
+# loops split PATH with parameter expansion, which works in zsh and sh alike.
 export NVM_DIR="$HOME/.nvm"
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
   . "$_NVM_PREFIX/nvm.sh" --no-use
-  _NVM_VER="$(nvm version default 2>/dev/null)"
+  _NVM_BIN=""
   if [ -n "${DIRENV_DIR:-}" ]; then
-    case ":$PATH:" in *":$NVM_DIR/versions/node/"*) _NVM_VER="" ;; esac
+    _NVM_LEFT="$PATH:"
+    while [ -n "$_NVM_LEFT" ] && [ -z "$_NVM_BIN" ]; do
+      _NVM_D="${_NVM_LEFT%%:*}" _NVM_LEFT="${_NVM_LEFT#*:}"
+      case "$_NVM_D" in "$NVM_DIR"/versions/node/*) _NVM_BIN="$_NVM_D" ;; esac
+    done
   fi
-  if [ -n "$_NVM_VER" ] && [ "$_NVM_VER" != "N/A" ] && \
-     [ -d "$NVM_DIR/versions/node/$_NVM_VER/bin" ]; then
-    export PATH="$NVM_DIR/versions/node/$_NVM_VER/bin:$PATH"
+  if [ -z "$_NVM_BIN" ]; then
+    _NVM_VER="$(nvm version default 2>/dev/null)"
+    if [ -n "$_NVM_VER" ] && [ "$_NVM_VER" != "N/A" ] && \
+       [ -d "$NVM_DIR/versions/node/$_NVM_VER/bin" ]; then
+      _NVM_BIN="$NVM_DIR/versions/node/$_NVM_VER/bin"
+    fi
   fi
-  unset _NVM_VER
+  if [ -n "$_NVM_BIN" ]; then
+    _NVM_REST="" _NVM_LEFT="$PATH:"
+    while [ -n "$_NVM_LEFT" ]; do
+      _NVM_D="${_NVM_LEFT%%:*}" _NVM_LEFT="${_NVM_LEFT#*:}"
+      [ "$_NVM_D" = "$_NVM_BIN" ] || _NVM_REST="${_NVM_REST:+$_NVM_REST:}$_NVM_D"
+    done
+    export PATH="$_NVM_BIN${_NVM_REST:+:$_NVM_REST}"
+  fi
+  unset _NVM_VER _NVM_BIN _NVM_REST _NVM_LEFT _NVM_D
 fi
 unset _NVM_PREFIX
 

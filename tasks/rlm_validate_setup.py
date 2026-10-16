@@ -291,7 +291,7 @@ class ValidateSetup(BaseTask):
         return (
             f"nvm's default alias resolves to {default or 'nothing'}, not the line pinned in .nvmrc "
             f"({pinned}): shells outside the repo run that Node, and so does a shell started from a repo "
-            f"shell when ~/.zshenv prepends it without the $DIRENV_DIR check in the template "
+            f"shell when ~/.zshenv prepends it without the template's inherited-Node check "
             f"(docs/guides/dev-environment-setup.md). Run scripts/bash/update-toolchain.sh, which points "
             f"the alias at .nvmrc's line."
         )
