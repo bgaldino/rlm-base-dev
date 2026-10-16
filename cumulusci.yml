@@ -266,6 +266,9 @@ project:
       - RLM_ExpressionSetManager
       - RLM_DecisionTableManager
       - RLM_RebuildSearchIndex
+      - RLM_UsageUploader
+      - RLM_UsageOrchestration
+      - RLM_UsageDatatables
       - RLM_RenewalQuotes
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
@@ -342,6 +345,36 @@ project:
       # access, the RLM_SessionId page and ApiEnabled — no object permissions,
       # because the class runs no SOQL and no DML.
       - RLM_RebuildSearchIndex
+
+    ps_usage_uploader: &ps_usage_uploader
+      # Usage Uploader (post_utils, deployed via deploy_post_utils). Grants
+      # class access to RLM_UsageUploaderController (inserts TransactionJournal
+      # for usage upload with user-mode DML, reads usage-related objects with
+      # user-mode SOQL). Needs TransactionJournal CREATE plus comprehensive
+      # field-level READ grants across all queried fields (Asset, Product2,
+      # ProductUsageResource, UsageResource, UnitOfMeasure, AssetRateCardEntry,
+      # RateCard, RateCardEntry, RateAdjustmentByTier, TransactionUsageEntitlement,
+      # UsageEntitlementBucket). All queries use WITH USER_MODE and DML uses
+      # AccessLevel.USER_MODE. No pageAccesses or ApiEnabled (controller does
+      # not call getApiSessionId()).
+      - RLM_UsageUploader
+
+    ps_usage_orchestration: &ps_usage_orchestration
+      # Usage Orchestration (post_utils, deployed via deploy_post_utils). Grants
+      # class access to RLM_UsageOrchestrationController (starts client-specified
+      # autolaunched flows for usage orchestration). Controller accepts a
+      # client-controlled flow API name and launches arbitrary autolaunched flows.
+      # No object or field permissions required (controller performs no SOQL/DML).
+      # Assign only to users who should be able to launch arbitrary flows.
+      - RLM_UsageOrchestration
+
+    ps_usage_datatables: &ps_usage_datatables
+      # Usage Datatables component (post_utils, deployed via deploy_post_utils).
+      # Grants class access to RLM_UsageDataController plus READ on usage objects
+      # and fields for the rlmUsageDataTable LWC. Third usage-area component;
+      # previously deploy-only, now assigned to close the persona gap on all three
+      # usage LWCs in one PR (#318, #319).
+      - RLM_UsageDatatables
 
     ps_renewal_quotes: &ps_renewal_quotes
       # Renewal quick actions (post_utils, deployed via deploy_post_utils in the
@@ -3681,11 +3714,34 @@ flows:
         options:
           api_names: *ps_rebuild_search_index
       9:
+        # Fifth, sixth, and seventh: the two usage controllers
+        # (RLM_UsageOrchestrationController, RLM_UsageUploaderController) and the
+        # usage datatables viewer (RLM_UsageDataController). Same persona gap —
+        # all three were deployed by deploy_post_utils but never assigned anywhere
+        # in the repo, so their LWC components worked only for an admin. Split
+        # into separate sets per #318 review: Orchestration controller accepts
+        # client-controlled flow names (arbitrary flow launch capability). The
+        # tso flow assigns all three via rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_usage_uploader
+      10:
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_usage_orchestration
+      11:
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_usage_datatables
+      12:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
           api_names: *ps_calmdelete
-      10:
+      13:
         # Ship the QuantumBit Demo Setup guide (Visualforce page). It is
         # referenced by pageName on the RLM_Home_Page_Default flexipage, which is
         # assembled/deployed later by assemble_and_deploy_ux (prepare_ux, step 30
@@ -3693,7 +3749,7 @@ flows:
         # at step 7, well before UX assembly.
         task: deploy_post_setup_guide
         when: project_config.project__custom__quantumbit
-      11:
+      14:
         # The renewal quick actions deploy_post_utils (step 1) places on the
         # opportunity page call RLM_RenewalAssetLock; without this a non-admin sees
         # Generate Renewal Quote and Consolidate Renewals but faults running them.
