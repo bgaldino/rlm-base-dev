@@ -1,4 +1,4 @@
-"""Provision the opt-in mock payment gateway and seed test saved methods."""
+"""Provision the opt-in mock payment gateway and its test configuration."""
 
 from __future__ import annotations
 
@@ -28,6 +28,8 @@ GATEWAY_PROVIDER_PAYMENT_METHOD_TYPES = {
     "card": "CardPaymentMethod",
     "us_bank_account": "AlternativePaymentMethod",
 }
+
+
 class MockPaymentGateway(BaseSalesforceApiTask):
     """Provision the opt-in mock payment gateway and merchant account."""
 
@@ -171,7 +173,8 @@ class MockPaymentGateway(BaseSalesforceApiTask):
                 token,
                 instance,
                 version,
-                "SELECT Id, PaymentGatewayProviderId, MerchantCredentialId, MerchantAccountId, Status "
+                "SELECT Id, PaymentGatewayProviderId, MerchantCredentialId, MerchantAccountId, "
+                "GatewayMode, PaymentStatus, Status "
                 f"FROM PaymentGateway WHERE PaymentGatewayName = '{GATEWAY_NAME}'",
             ),
             "mock payment gateway",
@@ -180,12 +183,14 @@ class MockPaymentGateway(BaseSalesforceApiTask):
             "PaymentGatewayProviderId": provider_id,
             "MerchantCredentialId": credential["Id"],
             "MerchantAccountId": merchant,
+            "GatewayMode": "Test",
+            "PaymentStatus": "Enabled",
             "Status": "Active",
         }
         if gateway:
             if any(gateway.get(key) != value for key, value in expected.items()):
                 raise TaskOptionsError(
-                    "An existing RLM Mock Payments gateway has conflicting provider, credential, merchant, or status."
+                    "An existing RLM Mock Payments gateway has conflicting provider, credential, merchant, mode, payment, or status settings."
                 )
             gateway_id = gateway["Id"]
         else:
@@ -197,8 +202,6 @@ class MockPaymentGateway(BaseSalesforceApiTask):
                 {
                     "PaymentGatewayName": GATEWAY_NAME,
                     **expected,
-                    "GatewayMode": "Test",
-                    "PaymentStatus": "Enabled",
                 },
             )
         method_set = self._ensure_payment_method_set(
@@ -247,7 +250,7 @@ class MockPaymentGateway(BaseSalesforceApiTask):
             token,
             instance,
             version,
-            "SELECT Id, PaymentInstrumentType FROM MerchAccPaymentMethodType "
+            "SELECT Id, PaymentInstrumentType, SortOrder FROM MerchAccPaymentMethodType "
             f"WHERE PaymentMethodSetId = '{self._escape(method_set_id)}'",
         )
         by_type: Dict[str, List[Dict[str, Any]]] = {}
@@ -271,6 +274,10 @@ class MockPaymentGateway(BaseSalesforceApiTask):
                         "PaymentInstrumentType": payment_type,
                         "SortOrder": sort_order,
                     },
+                )
+            elif matches[0]["SortOrder"] != sort_order:
+                raise TaskOptionsError(
+                    f"The RLM mock payment method set has a conflicting sort order for {payment_type}."
                 )
         return PAYMENT_METHOD_SET_KEY
 
@@ -328,15 +335,23 @@ class MockPaymentGateway(BaseSalesforceApiTask):
                 token,
                 instance,
                 version,
-                "SELECT Id, Mode, Status FROM MerchantAccount "
+                "SELECT Id, Mode, Status, PaymentStatus, PayoutStatus FROM MerchantAccount "
                 f"WHERE Name = '{MERCHANT_NAME}'",
             ),
             "mock merchant account",
         )
         if merchant:
-            if merchant["Mode"] != "Test" or merchant["Status"] != "Active":
+            if any(
+                merchant.get(field) != value
+                for field, value in {
+                    "Mode": "Test",
+                    "Status": "Active",
+                    "PaymentStatus": "Enabled",
+                    "PayoutStatus": "Disabled",
+                }.items()
+            ):
                 raise TaskOptionsError(
-                    "An existing RLM Mock Merchant has conflicting mode or status."
+                    "An existing RLM Mock Merchant has conflicting mode, payment, payout, or status settings."
                 )
             return merchant["Id"]
         return self._create(
