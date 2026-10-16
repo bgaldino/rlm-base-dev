@@ -549,7 +549,11 @@ function filterDPFields() {
     if (q && total > 0) {
       var hdr = sec.querySelector('.sec-h');
       var origText = hdr.textContent.replace(/\s*\(\d+\/\d+\)/, '').replace(/\s*\(\d+\)/, '').replace(/\s*▼/, '');
-      hdr.innerHTML = origText + ' (' + visible + '/' + total + ') <span class="ar">&#9660;</span>';
+      var ar = document.createElement('span');
+      ar.className = 'ar';
+      ar.textContent = '\u25BC';
+      hdr.textContent = origText + ' (' + visible + '/' + total + ') ';
+      hdr.appendChild(ar);
     }
   });
 }

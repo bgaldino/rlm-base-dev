@@ -96,7 +96,7 @@ Eight directions are checked, because these fail independently:
 8. **Every other figure derived from the data matches it** — the excluded-core
    total and the raw-label count that the definition above quotes to justify
    itself, and the object total where prose states it outside the triple phrasing
-   ("covering N objects", "the full N-object schema"). Each is checked *and*
+   ("covering N objects"). Each is checked *and*
    required to still be cited, so a rewording drops out loudly. These were found
    by listing every numeral in these docs that the data can justify and
    subtracting the gated ones; three earlier rounds each surfaced one more loose
