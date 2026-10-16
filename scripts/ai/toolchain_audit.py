@@ -104,6 +104,21 @@ otool -L "$(pyenv prefix "$(pyenv latest 3.13)")"/lib/python3.13/lib-dynload/_ss
     Check(3, "node", "Node from nvm", command=r"""
 command -v node; node -v
 """),
+    Check(3, "nvm-default", "nvm's default alias", command=r"""
+echo ".nvmrc: $(cat .nvmrc)"
+NVM_DIR="${NVM_DIR:-$HOME/.nvm}"; s=""; p="$(brew --prefix nvm 2>/dev/null)"
+if [ -n "$p" ] && [ -s "$p/nvm.sh" ]; then s="$p/nvm.sh"; elif [ -s "$NVM_DIR/nvm.sh" ]; then s="$NVM_DIR/nvm.sh"
+elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then NVM_DIR="$XDG_CONFIG_HOME/nvm"; s="$NVM_DIR/nvm.sh"; fi
+[ -n "$s" ] || { echo "nvm not found"; exit 0; }
+export NVM_DIR; . "$s" --no-use
+echo "default -> $(nvm_alias default 2>/dev/null || echo '(unset)') -> $(nvm version default 2>&1)"
+"""),
+    Check(3, "node-nested-shell", "Node in a shell started from a repo shell", command=r"""
+repo="$PWD"
+show='echo "$(node -v 2>&1); nvm Node dirs on PATH: $(print -rl -- $path | grep /versions/node/ | sed "s#^$HOME#~#" | paste -sd " " -)"'
+(cd /tmp && env -i HOME="$HOME" TERM=xterm zsh -c \
+  'cd "${1:?repo path missing}" && eval "$(direnv export zsh 2>/dev/null)" && printf "repo shell (.envrc %s): " "${${DIRENV_DIR:+loaded}:-NOT loaded}" && eval "$2" && printf "nested shell: " && zsh -c "$2"' zsh "$repo" "$show")
+"""),
     Check(3, "sf", "sf", command=r"""
 sf --version; npm ls -g --depth=0 @salesforce/cli
 """),

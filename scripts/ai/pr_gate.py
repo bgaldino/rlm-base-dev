@@ -449,6 +449,9 @@ CHECKS = [
                   "force-app/", "unpackaged/",
                   ".agents/", ".claude/", ".cursor/", "docs/references/",
                   "AGENTS.md", "CLAUDE.md", "README.md",
+                  # tests/test_toolchain_audit.py runs the guide's ~/.zshenv NVM block against the
+                  # audit's nested-shell check, so an edit to the template must run it.
+                  "docs/guides/dev-environment-setup.md",
                   # Loaded by path (spec loader) from tests/test_robot_salesforce_api_auth.py,
                   # so the import-coverage rule cannot see it; named here so an edit to the
                   # library runs its auth suite. tests/test_validate_setup_chrome.py loads the

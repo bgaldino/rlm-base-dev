@@ -425,7 +425,8 @@ class EnvrcNodeBlock(unittest.TestCase):
 
 
 class ValidateSetupNode(unittest.TestCase):
-    """validate_setup's Node check enforces the .nvmrc line: lower FAILs, higher WARNs."""
+    """validate_setup's Node check enforces the .nvmrc line: lower FAILs, higher WARNs, and so
+    does an nvm `default` alias that resolves to another major (skipped without nvm)."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -435,6 +436,7 @@ class ValidateSetupNode(unittest.TestCase):
         self.task = object.__new__(ValidateSetup)
         self.task.logger = logging.getLogger("validate_setup_node_test")
         self.task._pinned_node_major = lambda: 24
+        self.task._nvm_default_version = lambda: None  # no nvm, unless a test says otherwise
 
     def run_with_node(self, version_line):
         node = Path(self.tmp.name) / "node"
@@ -462,6 +464,50 @@ class ValidateSetupNode(unittest.TestCase):
     def test_missing_node_warns(self):
         os.environ["PATH"] = self.tmp.name
         self.assertEqual(self.task._check_node()["status"], WARN)
+
+    def test_nvm_default_on_the_pinned_major_passes(self):
+        self.task._nvm_default_version = lambda: "v24.15.0"
+        self.assertEqual(self.run_with_node("v24.22.0")["status"], PASS)
+
+    def test_nvm_default_on_another_major_warns_with_the_fix(self):
+        for default in ("v26.12.0", "v22.20.0", "N/A", ""):
+            with self.subTest(default=default):
+                self.task._nvm_default_version = lambda d=default: d
+                result = self.run_with_node("v24.22.0")
+                self.assertEqual(result["status"], WARN)
+                self.assertIn("nvm's default alias resolves to", result["detail"])
+                self.assertIn("update-toolchain.sh", result["detail"])
+
+    def test_nvm_default_note_joins_the_other_verdicts(self):
+        self.task._nvm_default_version = lambda: "v26.12.0"
+        result = self.run_with_node("v26.12.0")
+        self.assertEqual(result["status"], WARN)
+        self.assertIn("Also, nvm's default alias resolves to v26.12.0", result["detail"])
+        self.assertEqual(self.run_with_node("v22.20.0")["status"], FAIL)
+
+    def test_nvm_default_lookup_failure_is_quiet(self):
+        def broken():
+            raise subprocess.TimeoutExpired("bash", 30)
+        self.task._nvm_default_version = broken
+        self.assertEqual(self.run_with_node("v24.22.0")["status"], PASS)
+
+    def test_nvm_default_version_sources_nvm_from_nvm_dir(self):
+        # No brew on PATH, so nvm comes from $NVM_DIR, as .envrc would find it.
+        nvm_dir = Path(self.tmp.name) / "nvm"
+        nvm_dir.mkdir()
+        (nvm_dir / "nvm.sh").write_text(
+            'nvm() { [ "$*" = "version default" ] && echo "v26.12.0 from $NVM_DIR"; }\n')
+        task = object.__new__(ValidateSetup)
+        saved = {k: os.environ.get(k) for k in ("NVM_DIR", "XDG_CONFIG_HOME")}
+        for k, v in saved.items():
+            self.addCleanup(lambda k=k, v=v: os.environ.__setitem__(k, v) if v is not None
+                            else os.environ.pop(k, None))
+        os.environ["PATH"] = "/usr/bin:/bin"
+        os.environ.pop("XDG_CONFIG_HOME", None)
+        os.environ["NVM_DIR"] = str(nvm_dir)
+        self.assertEqual(task._nvm_default_version(), f"v26.12.0 from {nvm_dir}")
+        os.environ["NVM_DIR"] = str(Path(self.tmp.name) / "none")
+        self.assertIsNone(task._nvm_default_version())
 
     def test_pinned_major_reads_the_real_nvmrc(self):
         self.assertEqual(object.__new__(ValidateSetup)._pinned_node_major(), nvmrc_major(read(".nvmrc")))

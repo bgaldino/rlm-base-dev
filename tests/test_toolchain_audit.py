@@ -11,6 +11,7 @@ import contextlib
 import io
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -169,6 +170,95 @@ class Selection(unittest.TestCase):
             self.assertEqual(run_main("--check", "nope")[0], 2)
             self.assertEqual(run_main("--check", "signing", "--shell", "no-such-shell-x")[0], 2)
             self.assertEqual(run_main("--check", "signing", "--timeout", "0")[0], 2)
+
+
+GUIDE = REPO / "docs" / "guides" / "dev-environment-setup.md"
+
+
+def zshenv_nvm_block():
+    """The NVM block of the guide's ~/.zshenv template: from `# NVM —` to the pyenv block."""
+    text = GUIDE.read_text()
+    start = text.index("# NVM —")
+    return text[start:text.index("# pyenv binary", start)]
+
+
+@unittest.skipUnless(shutil.which("zsh") and shutil.which("direnv"), "needs zsh and direnv")
+class NodeChecks(unittest.TestCase):
+    """The §3 Node checks run against a scratch HOME: fake Node installs under its ~/.nvm, a
+    fake nvm.sh, and a scratch repo whose .envrc is allowed in the scratch HOME's direnv."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.home = Path(tmp.name).resolve() / "home"
+        self.repo = Path(tmp.name).resolve() / "repo"
+        self.bin = Path(tmp.name).resolve() / "bin"
+        for d in (self.repo, self.bin):
+            d.mkdir(parents=True)
+        for version in ("v24.0.0", "v26.0.0"):
+            node = self.home / ".nvm" / "versions" / "node" / version / "bin" / "node"
+            node.parent.mkdir(parents=True)
+            node.write_text(f"#!/bin/sh\necho {version}\n")
+            node.chmod(0o755)
+        (self.repo / ".nvmrc").write_text("24\n")
+        # .envrc's `nvm use` stands in as PATH_add of the pinned line's bin dir.
+        (self.repo / ".envrc").write_text('PATH_add "$HOME/.nvm/versions/node/v24.0.0/bin"\n')
+        self.env = {"HOME": str(self.home), "PATH": f"{self.bin}:/usr/bin:/bin"}
+        os.symlink(shutil.which("direnv"), self.bin / "direnv")
+
+    def fake_nvm(self, default):
+        """nvm.sh in $NVM_DIR whose `default` alias names `default` and resolves to v26.0.0."""
+        (self.home / ".nvm" / "nvm.sh").write_text(
+            f'nvm_alias() {{ echo {default}; }}\n'
+            'nvm() { [ "$1" = version ] && echo v26.0.0; }\n')
+
+    def zshenv(self, nvm_block):
+        (self.home / ".zshenv").write_text(
+            f'export PATH="{self.bin}:/usr/bin:/bin:$PATH"\n{nvm_block}\n'
+            'eval "$(direnv export zsh 2>/dev/null)"\n')
+        subprocess.run(["direnv", "allow", str(self.repo)], env=self.env, check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+
+    def run_check(self, check_id):
+        check = next(c for c in ta.CHECKS if c.id == check_id)
+        return subprocess.run(["zsh", "-c", ta.command(check)], cwd=self.repo, env=self.env,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                              timeout=60).stdout
+
+    def nested(self, out):
+        lines = {line.split(":", 1)[0]: line for line in out.splitlines() if ": v" in line}
+        repo = next(v for k, v in lines.items() if k.startswith("repo shell"))
+        self.assertIn("(.envrc loaded)", repo)
+        return repo.split(": ", 1)[1], lines["nested shell"].split(": ", 1)[1]
+
+    def test_nested_shell_fails_on_a_newest_installed_prepend(self):
+        # osaka's old line: the nested shell re-prepends the newest Node, and direnv, seeing
+        # .envrc already loaded, doesn't put the pinned line back in front.
+        self.zshenv('export PATH="$HOME/.nvm/versions/node/$(ls "$HOME/.nvm/versions/node" '
+                    '| sort -V | tail -1)/bin:$PATH"')
+        repo, nested = self.nested(self.run_check("node-nested-shell"))
+        self.assertTrue(repo.startswith("v24.0.0;"), repo)
+        self.assertTrue(nested.startswith("v26.0.0;"), nested)
+
+    def test_nested_shell_passes_on_the_guide_template(self):
+        # The template prepends `default` (here v26, the worst case) in a fresh shell, but not
+        # in one that inherits a loaded .envrc, so the nested shell's Node dirs are unchanged.
+        self.fake_nvm("node")
+        brew = self.bin / "brew"
+        brew.write_text(f"#!/bin/sh\n[ \"$*\" = '--prefix nvm' ] && echo '{self.home / '.nvm'}'\n")
+        brew.chmod(0o755)
+        self.zshenv(zshenv_nvm_block())
+        repo, nested = self.nested(self.run_check("node-nested-shell"))
+        self.assertTrue(repo.startswith("v24.0.0;"), repo)
+        self.assertEqual(nested, repo)
+
+    def test_nvm_default_shows_the_alias_and_what_it_resolves_to(self):
+        self.zshenv("")
+        self.assertIn("nvm not found", self.run_check("nvm-default"))
+        self.fake_nvm("node")
+        out = self.run_check("nvm-default")
+        self.assertIn(".nvmrc: 24", out)
+        self.assertIn("default -> node -> v26.0.0", out)
 
 
 class Run(unittest.TestCase):
