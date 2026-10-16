@@ -247,15 +247,18 @@ class ValidateSetup(BaseTask):
         """
         nvm_dir = os.environ.get("NVM_DIR") or os.path.expanduser("~/.nvm")
         candidates = []
-        if shutil.which("brew"):
+        # `brew shellenv` exports HOMEBREW_PREFIX; reading it saves starting Homebrew.
+        homebrew = os.environ.get("HOMEBREW_PREFIX")
+        prefix = os.path.join(homebrew, "opt", "nvm") if homebrew else ""
+        if not prefix and shutil.which("brew"):
             try:
                 prefix = subprocess.run(
                     ["brew", "--prefix", "nvm"], capture_output=True, text=True, timeout=20
                 ).stdout.strip()
             except (OSError, subprocess.TimeoutExpired):
                 prefix = ""
-            if prefix:
-                candidates.append((os.path.join(prefix, "nvm.sh"), nvm_dir))
+        if prefix:
+            candidates.append((os.path.join(prefix, "nvm.sh"), nvm_dir))
         candidates.append((os.path.join(nvm_dir, "nvm.sh"), nvm_dir))
         xdg = os.environ.get("XDG_CONFIG_HOME")
         if xdg:
@@ -265,7 +268,9 @@ class ValidateSetup(BaseTask):
             return None
         nvm_sh, nvm_dir = found
         result = subprocess.run(
-            ["bash", "-c", '. "$1" --no-use && nvm version default', "bash", nvm_sh],
+            # `;`, not `&&`: Homebrew's nvm.sh returns 1 when it can't create $NVM_DIR or its
+            # symlinks there, after nvm's functions are already loaded.
+            ["bash", "-c", '. "$1" --no-use; nvm version default', "bash", nvm_sh],
             capture_output=True, text=True, timeout=30, env={**os.environ, "NVM_DIR": nvm_dir},
         )
         version = result.stdout.strip().splitlines()

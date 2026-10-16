@@ -143,7 +143,10 @@ the procedure and collect one report per machine.
 - `python3 scripts/ai/gate_python.py` prints the gate interpreter and exits 0.
 - `python tests/test_toolchain_audit.py` passes after any change to the audit doc or
   `scripts/ai/toolchain_audit.py`: every row names a check the script has, no table
-  cell holds a command, and the script runs nothing that changes the machine.
+  cell holds a command, and the script runs nothing that changes the machine. It also
+  runs the §3 Node checks against a scratch HOME, with the guide's `~/.zshenv` NVM
+  block, so a template edit that lets a nested shell change Node fails it (skipped
+  without zsh and direnv).
 - For any change to this skill or the guides, all of these pass:
   - `python scripts/ai/analyze_agent_tooling.py check`;
   - `python scripts/ai/skill_manifest.py --check` (when the manifest changed);

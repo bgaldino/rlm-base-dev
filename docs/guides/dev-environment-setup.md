@@ -140,7 +140,9 @@ export PATH="$HOME/.local/bin:$PATH"
 # that already loaded a project's .envrc (an agent's, IDE task's or script's
 # `zsh -c`), and it inherits that PATH, with .envrc's `nvm use` Node first.
 # The `direnv export` below sees the .envrc already loaded and changes nothing,
-# so a Node prepended here would win over the project's pinned line.
+# so a Node prepended here would win over the project's pinned line. The
+# `brew shellenv` above still moves Homebrew's bin first in that shell, so
+# keep no Homebrew `node` (local-installation.md, Step 3).
 export NVM_DIR="$HOME/.nvm"
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then

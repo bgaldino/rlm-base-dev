@@ -237,8 +237,8 @@ class NodeChecks(unittest.TestCase):
         self.zshenv('export PATH="$HOME/.nvm/versions/node/$(ls "$HOME/.nvm/versions/node" '
                     '| sort -V | tail -1)/bin:$PATH"')
         repo, nested = self.nested(self.run_check("node-nested-shell"))
-        self.assertTrue(repo.startswith("v24.0.0;"), repo)
-        self.assertTrue(nested.startswith("v26.0.0;"), nested)
+        self.assertTrue(repo.startswith("v24.0.0 from ~/.nvm/versions/node/v24.0.0/bin/node;"), repo)
+        self.assertTrue(nested.startswith("v26.0.0 from ~/.nvm/versions/node/v26.0.0/bin/node;"), nested)
 
     def test_nested_shell_passes_on_the_guide_template(self):
         # The template prepends `default` (here v26, the worst case) in a fresh shell, but not
@@ -249,8 +249,20 @@ class NodeChecks(unittest.TestCase):
         brew.chmod(0o755)
         self.zshenv(zshenv_nvm_block())
         repo, nested = self.nested(self.run_check("node-nested-shell"))
-        self.assertTrue(repo.startswith("v24.0.0;"), repo)
+        self.assertTrue(repo.startswith("v24.0.0 from ~/.nvm/versions/node/v24.0.0/bin/node;"), repo)
         self.assertEqual(nested, repo)
+
+    def test_nested_shell_shows_a_homebrew_node_ahead_of_nvm(self):
+        # `brew shellenv` moves Homebrew's bin first in every shell; a Homebrew `node` there
+        # wins in the nested shell even with the guarded template, and the check names its path.
+        brew_bin = self.home / "homebrew" / "bin"
+        brew_bin.mkdir(parents=True)
+        (brew_bin / "node").write_text("#!/bin/sh\necho v26.0.0\n")
+        (brew_bin / "node").chmod(0o755)
+        self.zshenv(f'export PATH="{brew_bin}:$PATH"\n{zshenv_nvm_block()}')
+        repo, nested = self.nested(self.run_check("node-nested-shell"))
+        self.assertTrue(repo.startswith("v24.0.0 from ~/.nvm/versions/node/v24.0.0/bin/node;"), repo)
+        self.assertTrue(nested.startswith("v26.0.0 from ~/homebrew/bin/node;"), nested)
 
     def test_nvm_default_shows_the_alias_and_what_it_resolves_to(self):
         self.zshenv("")

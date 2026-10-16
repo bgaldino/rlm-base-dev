@@ -111,11 +111,12 @@ if [ -n "$p" ] && [ -s "$p/nvm.sh" ]; then s="$p/nvm.sh"; elif [ -s "$NVM_DIR/nv
 elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then NVM_DIR="$XDG_CONFIG_HOME/nvm"; s="$NVM_DIR/nvm.sh"; fi
 [ -n "$s" ] || { echo "nvm not found"; exit 0; }
 export NVM_DIR; . "$s" --no-use
-echo "default -> $(nvm_alias default 2>/dev/null || echo '(unset)') -> $(nvm version default 2>&1)"
+if typeset -f nvm_alias >/dev/null; then a="$(nvm_alias default 2>/dev/null)" || a="(unset)"; else a="(this nvm has no nvm_alias)"; fi
+echo "default -> $a -> $(nvm version default 2>&1)"
 """),
     Check(3, "node-nested-shell", "Node in a shell started from a repo shell", command=r"""
 repo="$PWD"
-show='echo "$(node -v 2>&1); nvm Node dirs on PATH: $(print -rl -- $path | grep /versions/node/ | sed "s#^$HOME#~#" | paste -sd " " -)"'
+show='echo "$(node -v 2>&1) from $(command -v node | sed "s#^$HOME#~#"); nvm Node dirs on PATH: $(print -rl -- $path | grep /versions/node/ | sed "s#^$HOME#~#" | paste -sd " " -)"'
 (cd /tmp && env -i HOME="$HOME" TERM=xterm zsh -c \
   'cd "${1:?repo path missing}" && eval "$(direnv export zsh 2>/dev/null)" && printf "repo shell (.envrc %s): " "${${DIRENV_DIR:+loaded}:-NOT loaded}" && eval "$2" && printf "nested shell: " && zsh -c "$2"' zsh "$repo" "$show")
 """),
