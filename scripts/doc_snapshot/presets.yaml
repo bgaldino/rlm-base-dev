@@ -179,6 +179,13 @@ releases:
         root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
         article_id_prefix: ind.qocal
         expect_min_articles: 85
+      salesforce_contracts:
+        # Salesforce Contracts has its own Help tree, separate from the
+        # Revenue Cloud transaction-mgmt (ind.qocal_*) content.
+        root_article_id: ind.sf_contracts_salesforce_contracts_overview_2.htm
+        article_id_prefix: ind.sf_contracts
+        expect_min_articles: 400
+        wait_ms: 6000
       dro:
         root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
         article_id_prefix: ind.dro
@@ -216,6 +223,10 @@ releases:
       rlm:
         deliverable: revenue_lifecycle_management_dev_guide
         doc_version: "264.0"
+      contracts:
+        deliverable: clm_developer_guide
+        doc_version: "264.0"
+        output_dir: docs/salesforce/264/dev-guide-contracts
       industries:
         deliverable: industries_reference
         doc_version: "264.0"

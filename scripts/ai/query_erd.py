@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Query the Revenue Cloud ERD data model (docs/erds/erd-data.json).
+"""Query the combined Revenue Cloud and Contracts CLM ERD data model.
 
 Usage:
     python scripts/ai/query_erd.py describe Product2
@@ -16,18 +16,39 @@ from collections import defaultdict
 from pathlib import Path
 
 ERD_PATH = Path(__file__).resolve().parent.parent.parent / "docs" / "erds" / "erd-data.json"
+CLM_ERD_PATH = ERD_PATH.with_name("contracts-erd-data.json")
 
 
 def load_erd():
     try:
         with open(ERD_PATH) as f:
-            return json.load(f)
+            erd = json.load(f)
+        if CLM_ERD_PATH.exists():
+            with open(CLM_ERD_PATH) as f:
+                clm = json.load(f)
+            collisions = set(erd.get("objects", {})) & set(clm.get("objects", {}))
+            if collisions:
+                raise ValueError(f"CLM extension duplicates base objects: {sorted(collisions)}")
+            erd["objects"].update(clm.get("objects", {}))
+            seen = {(r["source"], r["target"], r["field"])
+                    for r in erd.get("relationships", [])}
+            for rel in clm.get("relationships", []):
+                key = (rel["source"], rel["target"], rel["field"])
+                if key not in seen:
+                    erd.setdefault("relationships", []).append(rel)
+                    seen.add(key)
+            erd["metadata"]["clmExtension"] = clm.get("metadata", {})
+            erd["metadata"]["viewerTitle"] = "Revenue Cloud + Contracts CLM"
+        return erd
     except FileNotFoundError:
         print(f"Error: ERD data file not found at {ERD_PATH}")
         print("Ensure docs/erds/erd-data.json exists in the repository root.")
         sys.exit(1)
     except json.JSONDecodeError as e:
         print(f"Error: Failed to parse {ERD_PATH}: {e}")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Error: Invalid ERD extension: {e}")
         sys.exit(1)
 
 
@@ -83,6 +104,8 @@ def cmd_describe(erd, obj_name):
     print(f"\n{obj_name_match}")
     print(f"  Domain: {domain} ({domain_short})")
     print(f"  Fields: {len(fields)} total ({len(ref_fields)} relationships, {len(data_fields)} data)")
+    if "queryable" in obj_data:
+        print(f"  SOQL-queryable: {'yes' if obj_data['queryable'] else 'no'}")
     print(f"  Standard: {obj_data.get('isStandard', obj_data.get('is_standard', 'unknown'))}")
 
     if ref_fields:
@@ -269,8 +292,8 @@ def cmd_stats(erd):
     # `relationships[]`, not the on-the-fly reference-field tally. Earlier
     # versions printed the field tally (1,135) as "Total Relationships",
     # which conflated reference-fields with verified edges and disagreed
-    # with `stats.totalRelationships` (674) set by
-    # cleanup_orphan_erd_fields.py.
+    # with `stats.totalRelationships` in the source datasets. The Contracts CLM
+    # extension contributes only edges that are not already in the base graph.
     total_rels = len(erd.get("relationships", []))
 
     # Read release/version from the JSON metadata block (added by the 262
@@ -281,7 +304,8 @@ def cmd_stats(erd):
     label = meta.get("releaseLabel")
     api = meta.get("apiVersion")
     if release and label and api:
-        header = f"Revenue Cloud Data Model — Release {release} ({label}, API v{api})"
+        title = meta.get("viewerTitle", "Revenue Cloud Data Model")
+        header = f"{title} — Release {release} ({label}, API v{api})"
     else:
         header = "Revenue Cloud Data Model"
     print(f"\n{header}\n")

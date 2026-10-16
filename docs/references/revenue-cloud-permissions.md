@@ -114,7 +114,7 @@ Defined as a YAML anchor (`TableauEinsteinUserPsl`) but not assigned in any stan
 
 ## Permission Set Groups (PSGs)
 
-PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 9, then assigned to the running user at step 10 (build steps 1.9 and 1.10; `tso` adds a second recalculate/assign pair at 1.11 and 1.12).
+PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. A few PSGs also include a repo-owned permission set from the same folder, which fills a field-access gap in the standard ones (see `RLM_RCB` below). The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 9, then assigned to the running user at step 10 (build steps 1.9 and 1.10; `tso` adds a second recalculate/assign pair at 1.11 and 1.12).
 
 ### Core PSGs (`rlm_psg_api_names`) -- Always Assigned
 
@@ -144,9 +144,9 @@ The primary lifecycle PSG. Bundles the essential RLM API permission sets for quo
 | `RevLifecycleManagementTaxConfiguration` | Tax configuration |
 | `RevLifecycleManagementUsageDesignUser` | Usage design |
 
-#### RLM_RCB -- Revenue Cloud Billing Advanced (16 permission sets)
+#### RLM_RCB -- Revenue Cloud Billing Advanced (17 permission sets)
 
-Billing super-user PSG covering invoicing, payments, credit memos, tax, collections, and accounting.
+Billing super-user PSG covering invoicing, payments, credit memos, tax, collections, and accounting. Sixteen are Salesforce-managed. The seventh, `RLM_BillingAccountFieldAccess`, is repo-owned and deploys from the same folder.
 
 | Permission Set | Purpose |
 |---|---|
@@ -166,6 +166,7 @@ Billing super-user PSG covering invoicing, payments, credit memos, tax, collecti
 | `RevenueLifecycleManagementBillingTaxAdmin` | Billing tax admin |
 | `RevenueLifecycleManagementBillingVoidPostedInvoiceApi` | Void invoice API |
 | `RevenueLifecycleManagementCreateBillingScheduleFromBillingTransactionApi` | Billing schedule API |
+| `RLM_BillingAccountFieldAccess` (repo-owned) | Read/edit FLS on `BillingAccount` Shipping Address, Bill Day of Month, Payment Term and Bill To Contact. The standard Billing permission sets omit the first three and make Bill To Contact read-only, so fresh 264 orgs hide them from the Billing Account form even though the standard layout includes them |
 
 #### RLM_NGP -- Salesforce Pricing (4 permission sets)
 
@@ -415,11 +416,11 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `RLM_Sales_Representative` | RLM Sales Representative | `BRERuntime`, `CLMRuntimeUser`, `CorePricingRunTimeUser`, `DocGenUser`, `DocumentBuilderUser`, `DROOrderSubmitInitiateUser`, `IndustriesConfiguratorPlatformApi`, `Microsoft365WordUser`, `ObligationUser`, `ProductCatalogManagementViewer`, `ProductDiscoveryUser`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCoreCPQAssetization`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementInitiateAmendmentApi`, `RevLifecycleManagementInitiateCancellationApi`, `RevLifecycleManagementInitiateRenewalApi`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser`, `UsageManagementRunTimeUser` |
 | `RLM_Sales_Operations` | RLM Sales Operations | `BRERuntime`, `CLMRuntimeUser`, `CorePricingRunTimeUser`, `DocGenUser`, `DocumentBuilderUser`, `DROOrderSubmitInitiateUser`, `IndustriesConfiguratorPlatformApi`, `Microsoft365WordUser`, `ObligationUser`, `ProductCatalogManagementViewer`, `ProductDiscoveryUser`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCoreCPQAssetization`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementInitiateAmendmentApi`, `RevLifecycleManagementInitiateCancellationApi`, `RevLifecycleManagementInitiateRenewalApi`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser`, `UsageManagementRunTimeUser` |
 | `RLM_Product_and_Pricing_Admin` | RLM Product and Pricing Admin | `AdvancedConfiguratorDesigner`, `BREDesigner`, `BRERuntime`, `CorePricingAdmin`, `CorePricingDesignTimeUser`, `CorePricingManager`, `CorePricingRunTimeUser`, `IndustriesConfiguratorPlatformApi`, `ProductCatalogManagementAdministrator`, `ProductCatalogManagementViewer`, `ProductConfigurationRulesDesigner`, `ProductDetailsApiCache`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi` |
-| `RLM_Billing_Admin` | RLM Billing Admin | `RevenueLifecycleManagementBillingAdmin` |
-| `RLM_Billing_Operations` | RLM Billing Operations | `RevenueLifecycleManagementBillingOperations` |
+| `RLM_Billing_Admin` | RLM Billing Admin | `RevenueLifecycleManagementBillingAdmin`, `RLM_BillingAccountFieldAccess` |
+| `RLM_Billing_Operations` | RLM Billing Operations | `RevenueLifecycleManagementBillingOperations`, `RLM_BillingAccountFieldAccess` |
 | `RLM_Accounting_Admin` | RLM Accounting Admin | `RevenueLifecycleManagementAccountingAdmin` |
 | `RLM_Tax_Admin` | RLM Tax Admin | `RevenueLifecycleManagementBillingTaxAdmin` |
-| `RLM_Credit_Memo_Operations` | RLM Credit Memo Operations | `RevenueLifecycleManagementBillingCreditMemoOperations` |
+| `RLM_Credit_Memo_Operations` | RLM Credit Memo Operations | `RevenueLifecycleManagementBillingCreditMemoOperations`, `RLM_BillingAccountFieldAccess` |
 | `RLM_DRO_Admin` | RLM DRO Admin | `DfoAdminUser` |
 | `RLM_Fulfillment_Designer` | RLM Fulfillment Designer | `DFODesignerUser` |
 | `RLM_Fulfillment_Manager` | RLM Fulfillment Manager | `DFOManagerOperatorUser` |

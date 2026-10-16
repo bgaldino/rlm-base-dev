@@ -1,0 +1,1802 @@
+{
+  "deliverable": "clm_developer_guide",
+  "release": "264",
+  "release_name": "Winter '27",
+  "doc_version": "264.0",
+  "guide_title": "Salesforce Contracts",
+  "source_meta_url": "https://developer.salesforce.com/docs/get_document/atlas.en-us.clm_developer_guide.meta",
+  "capture_method": "scripts/doc_snapshot dev-guide (Playwright + atlas content API)",
+  "snapshot_started": "2026-10-13",
+  "pages": [
+    {
+      "page_id": "actions_obj_search_contract_document.htm",
+      "title": "Search Contract Document Action",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_invocable_actions_parent.htm",
+      "status": "captured",
+      "body_length": 3220,
+      "file": "articles/actions_obj_search_contract_document.htm.md"
+    },
+    {
+      "page_id": "apex_class_ind_docgen_api_EnvelopeStatusScheduler.htm",
+      "title": "EnvelopeStatusScheduler Class",
+      "section": "Salesforce Contracts",
+      "parent_page": "apex_namespace_ind_docgen_api.htm",
+      "status": "captured",
+      "body_length": 1639,
+      "file": "articles/apex_class_ind_docgen_api_EnvelopeStatusScheduler.htm.md"
+    },
+    {
+      "page_id": "apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm",
+      "title": "DocGenPermsAndAccessChecksService Class",
+      "section": "Salesforce Contracts",
+      "parent_page": "apex_namespace_industries_docgen.htm",
+      "status": "captured",
+      "body_length": 6695,
+      "file": "articles/apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md"
+    },
+    {
+      "page_id": "apex_class_industries_docgen_DocumentGenerationProcess.htm",
+      "title": "DocumentGenerationProcess Class",
+      "section": "Salesforce Contracts",
+      "parent_page": "apex_namespace_industries_docgen.htm",
+      "status": "captured",
+      "body_length": 1921,
+      "file": "articles/apex_class_industries_docgen_DocumentGenerationProcess.htm.md"
+    },
+    {
+      "page_id": "apex_class_industries_docgen_DocumentTemplate.htm",
+      "title": "DocumentTemplate Class",
+      "section": "Salesforce Contracts",
+      "parent_page": "apex_namespace_industries_docgen.htm",
+      "status": "captured",
+      "body_length": 1629,
+      "file": "articles/apex_class_industries_docgen_DocumentTemplate.htm.md"
+    },
+    {
+      "page_id": "apex_interface_ind_docgen_api_OpenInterface.htm",
+      "title": "OpenInterface Interface",
+      "section": "Salesforce Contracts",
+      "parent_page": "apex_namespace_ind_docgen_api.htm",
+      "status": "captured",
+      "body_length": 2947,
+      "file": "articles/apex_interface_ind_docgen_api_OpenInterface.htm.md"
+    },
+    {
+      "page_id": "apex_interface_industries_clm_OpenInterface.htm",
+      "title": "OpenInterface Interface",
+      "section": "Salesforce Contracts",
+      "parent_page": "apex_namespace_industries_clm.htm",
+      "status": "captured",
+      "body_length": 2929,
+      "file": "articles/apex_interface_industries_clm_OpenInterface.htm.md"
+    },
+    {
+      "page_id": "apex_namespace_ind_docgen_api.htm",
+      "title": "ind_docgen_api Namespace",
+      "section": "Salesforce Contracts",
+      "parent_page": "salesforce_contracts_apex_reference.htm",
+      "status": "captured",
+      "body_length": 700,
+      "file": "articles/apex_namespace_ind_docgen_api.htm.md"
+    },
+    {
+      "page_id": "apex_namespace_industries_clm.htm",
+      "title": "industries_clm Namespace",
+      "section": "Salesforce Contracts",
+      "parent_page": "salesforce_contracts_apex_reference.htm",
+      "status": "captured",
+      "body_length": 623,
+      "file": "articles/apex_namespace_industries_clm.htm.md"
+    },
+    {
+      "page_id": "apex_namespace_industries_docgen.htm",
+      "title": "industries_docgen Namespace",
+      "section": "Salesforce Contracts",
+      "parent_page": "salesforce_contracts_apex_reference.htm",
+      "status": "captured",
+      "body_length": 1113,
+      "file": "articles/apex_namespace_industries_docgen.htm.md"
+    },
+    {
+      "page_id": "clm_api_rest_references.htm",
+      "title": "REST Reference",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_contracts_resources.htm",
+      "status": "captured",
+      "body_length": 953,
+      "file": "articles/clm_api_rest_references.htm.md"
+    },
+    {
+      "page_id": "clm_apis_requests.htm",
+      "title": "Request Bodies",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_api_rest_references.htm",
+      "status": "captured",
+      "body_length": 4647,
+      "file": "articles/clm_apis_requests.htm.md"
+    },
+    {
+      "page_id": "clm_apis_resources.htm",
+      "title": "Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_api_rest_references.htm",
+      "status": "captured",
+      "body_length": 3642,
+      "file": "articles/clm_apis_resources.htm.md"
+    },
+    {
+      "page_id": "clm_apis_responses.htm",
+      "title": "Response Bodies",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_api_rest_references.htm",
+      "status": "captured",
+      "body_length": 9507,
+      "file": "articles/clm_apis_responses.htm.md"
+    },
+    {
+      "page_id": "clm_flow_metadata_api.htm",
+      "title": "Flow for Salesforce Contracts",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_metadata_api_parent.htm",
+      "status": "captured",
+      "body_length": 1026,
+      "file": "articles/clm_flow_metadata_api.htm.md"
+    },
+    {
+      "page_id": "clm_intro.htm",
+      "title": "Salesforce Contracts",
+      "section": "Salesforce Contracts",
+      "parent_page": null,
+      "status": "captured",
+      "body_length": 2309,
+      "file": "articles/clm_intro.htm.md"
+    },
+    {
+      "page_id": "clm_invocable_actions_parent.htm",
+      "title": "Salesforce Contracts Standard Invocable Actions",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_intro.htm",
+      "status": "captured",
+      "body_length": 299,
+      "file": "articles/clm_invocable_actions_parent.htm.md"
+    },
+    {
+      "page_id": "clm_metadata_api_parent.htm",
+      "title": "Salesforce Contracts Metadata API Types",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_intro.htm",
+      "status": "captured",
+      "body_length": 2352,
+      "file": "articles/clm_metadata_api_parent.htm.md"
+    },
+    {
+      "page_id": "clm_objects_overview.htm",
+      "title": "Salesforce Contracts Standard Objects",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_intro.htm",
+      "status": "captured",
+      "body_length": 9935,
+      "file": "articles/clm_objects_overview.htm.md"
+    },
+    {
+      "page_id": "clm_tooling_api_parent.htm",
+      "title": "Salesforce Contracts Tooling API Objects",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_intro.htm",
+      "status": "captured",
+      "body_length": 670,
+      "file": "articles/clm_tooling_api_parent.htm.md"
+    },
+    {
+      "page_id": "connect_requests_content_link_data_sync_input.htm",
+      "title": "Content Link Data Sync Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1841,
+      "file": "articles/connect_requests_content_link_data_sync_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_content_link_details_input.htm",
+      "title": "Content Link Details Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 695,
+      "file": "articles/connect_requests_content_link_details_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_content_link_input.htm",
+      "title": "Content Link Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1417,
+      "file": "articles/connect_requests_content_link_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_contract_action_input.htm",
+      "title": "Contract Action Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1615,
+      "file": "articles/connect_requests_contract_action_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_contract_input.htm",
+      "title": "Contract Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 758,
+      "file": "articles/connect_requests_contract_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_contract_risk_analysis_input.htm",
+      "title": "Contract Risk Analysis Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 880,
+      "file": "articles/connect_requests_contract_risk_analysis_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_document_template_request.htm",
+      "title": "Document Template Request",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 5872,
+      "file": "articles/connect_requests_document_template_request.htm.md"
+    },
+    {
+      "page_id": "connect_requests_document_template_update_input.htm",
+      "title": "Document Template Update Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 5396,
+      "file": "articles/connect_requests_document_template_update_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_send_documents_reques.htm",
+      "title": "Envelope Documents Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 637,
+      "file": "articles/connect_requests_envelope_send_documents_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_send_email_notification_reques.htm",
+      "title": "Envelope Email Notification Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 445,
+      "file": "articles/connect_requests_envelope_send_email_notification_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_send_email_settings_reques.htm",
+      "title": "Envelope Email Settings Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 367,
+      "file": "articles/connect_requests_envelope_send_email_settings_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_send_notification_expirations_reques.htm",
+      "title": "Envelope Notification Expiration Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 774,
+      "file": "articles/connect_requests_envelope_send_notification_expirations_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_send_notification_reminders_reques.htm",
+      "title": "Envelope Notification Reminder Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 467,
+      "file": "articles/connect_requests_envelope_send_notification_reminders_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_send_notification_reques.htm",
+      "title": "Envelope Notification Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 756,
+      "file": "articles/connect_requests_envelope_send_notification_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_send_recipient_detail_reques.htm",
+      "title": "Envelope Recipient Details Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1612,
+      "file": "articles/connect_requests_envelope_send_recipient_detail_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_send_recipients_reques.htm",
+      "title": "Envelope Recipients Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 928,
+      "file": "articles/connect_requests_envelope_send_recipients_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_send_reques.htm",
+      "title": "Envelope Send Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 3688,
+      "file": "articles/connect_requests_envelope_send_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_envelope_void_reques.htm",
+      "title": "Envelope Void Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 523,
+      "file": "articles/connect_requests_envelope_void_reques.htm.md"
+    },
+    {
+      "page_id": "connect_requests_external_doc_creation_input.htm",
+      "title": "External Document Creation Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1129,
+      "file": "articles/connect_requests_external_doc_creation_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_external_document_metadata.htm",
+      "title": "External Document Metadata",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 466,
+      "file": "articles/connect_requests_external_document_metadata.htm.md"
+    },
+    {
+      "page_id": "connect_requests_extraction_context_attribute_mapping_input.htm",
+      "title": "Extraction Context Attribute Mapping Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 893,
+      "file": "articles/connect_requests_extraction_context_attribute_mapping_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_extraction_context_mapping_input.htm",
+      "title": "Extraction Context Mapping Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1418,
+      "file": "articles/connect_requests_extraction_context_mapping_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_extraction_context_use_case_mapping_input.htm",
+      "title": "Extraction Context Use Case Mapping Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1974,
+      "file": "articles/connect_requests_extraction_context_use_case_mapping_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_object_reference.htm",
+      "title": "Object Reference Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 386,
+      "file": "articles/connect_requests_object_reference.htm.md"
+    },
+    {
+      "page_id": "connect_requests_playbook_version_input.htm",
+      "title": "Playbook Version Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1271,
+      "file": "articles/connect_requests_playbook_version_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_save_external_document_input.htm",
+      "title": "Save External Document Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1699,
+      "file": "articles/connect_requests_save_external_document_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_section.htm",
+      "title": "Section Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 317,
+      "file": "articles/connect_requests_section.htm.md"
+    },
+    {
+      "page_id": "connect_requests_template_input.htm",
+      "title": "Template Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 1720,
+      "file": "articles/connect_requests_template_input.htm.md"
+    },
+    {
+      "page_id": "connect_requests_usages.htm",
+      "title": "Usages Input",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_requests.htm",
+      "status": "captured",
+      "body_length": 299,
+      "file": "articles/connect_requests_usages.htm.md"
+    },
+    {
+      "page_id": "connect_resources_cc_user_contract_doc_version.htm",
+      "title": "Contract Document Version for Customer Community User (GET)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_customer_community_user.htm",
+      "status": "captured",
+      "body_length": 1698,
+      "file": "articles/connect_resources_cc_user_contract_doc_version.htm.md"
+    },
+    {
+      "page_id": "connect_resources_checkin_doc_version.htm",
+      "title": "Check In Contract Document Version",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 663,
+      "file": "articles/connect_resources_checkin_doc_version.htm.md"
+    },
+    {
+      "page_id": "connect_resources_checkout_doc_version.htm",
+      "title": "Check Out Contract Document Version",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 2285,
+      "file": "articles/connect_resources_checkout_doc_version.htm.md"
+    },
+    {
+      "page_id": "connect_resources_clause_category_configurations.htm",
+      "title": "Clause Category List",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clause_library_resources.htm",
+      "status": "captured",
+      "body_length": 1421,
+      "file": "articles/connect_resources_clause_category_configurations.htm.md"
+    },
+    {
+      "page_id": "connect_resources_clause_library_resources.htm",
+      "title": "Clause Library Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_resources.htm",
+      "status": "captured",
+      "body_length": 1596,
+      "file": "articles/connect_resources_clause_library_resources.htm.md"
+    },
+    {
+      "page_id": "connect_resources_clm_resources.htm",
+      "title": "CLM Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_resources.htm",
+      "status": "captured",
+      "body_length": 6369,
+      "file": "articles/connect_resources_clm_resources.htm.md"
+    },
+    {
+      "page_id": "connect_resources_content_document_details.htm",
+      "title": "Content Document Details (GET, DELETE, PATCH)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 3223,
+      "file": "articles/connect_resources_content_document_details.htm.md"
+    },
+    {
+      "page_id": "connect_resources_contentlink_data_sync.htm",
+      "title": "Data Sync (POST)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_data_true_up_resources.htm",
+      "status": "captured",
+      "body_length": 2732,
+      "file": "articles/connect_resources_contentlink_data_sync.htm.md"
+    },
+    {
+      "page_id": "connect_resources_contentlink_load.htm",
+      "title": "Content Link Load (POST)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_data_true_up_resources.htm",
+      "status": "captured",
+      "body_length": 1526,
+      "file": "articles/connect_resources_contentlink_load.htm.md"
+    },
+    {
+      "page_id": "connect_resources_context_mapping_parent.htm",
+      "title": "Context Mapping Extraction Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_resources.htm",
+      "status": "captured",
+      "body_length": 2123,
+      "file": "articles/connect_resources_context_mapping_parent.htm.md"
+    },
+    {
+      "page_id": "connect_resources_contract_actions.htm",
+      "title": "Contract Actions",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 2183,
+      "file": "articles/connect_resources_contract_actions.htm.md"
+    },
+    {
+      "page_id": "connect_resources_contract_risk_analysis.htm",
+      "title": "Contract Document Risk Analysis",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 2772,
+      "file": "articles/connect_resources_contract_risk_analysis.htm.md"
+    },
+    {
+      "page_id": "connect_resources_contracts.htm",
+      "title": "Contracts (PATCH, POST)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 2035,
+      "file": "articles/connect_resources_contracts.htm.md"
+    },
+    {
+      "page_id": "connect_resources_contracts_resources.htm",
+      "title": "Salesforce Contracts Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_intro.htm",
+      "status": "captured",
+      "body_length": 372,
+      "file": "articles/connect_resources_contracts_resources.htm.md"
+    },
+    {
+      "page_id": "connect_resources_customer_community_user.htm",
+      "title": "Customer Community Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_resources.htm",
+      "status": "captured",
+      "body_length": 1904,
+      "file": "articles/connect_resources_customer_community_user.htm.md"
+    },
+    {
+      "page_id": "connect_resources_data_true_up_resources.htm",
+      "title": "Data True-Up Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_resources.htm",
+      "status": "captured",
+      "body_length": 1647,
+      "file": "articles/connect_resources_data_true_up_resources.htm.md"
+    },
+    {
+      "page_id": "connect_resources_design_document_template_resources.htm",
+      "title": "Design Document Template Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_resources.htm",
+      "status": "captured",
+      "body_length": 1176,
+      "file": "articles/connect_resources_design_document_template_resources.htm.md"
+    },
+    {
+      "page_id": "connect_resources_details_doc_version.htm",
+      "title": "Details of Contract Document Versions",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 2805,
+      "file": "articles/connect_resources_details_doc_version.htm.md"
+    },
+    {
+      "page_id": "connect_resources_doc_generation_process.htm",
+      "title": "Document Generation Process",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 1313,
+      "file": "articles/connect_resources_doc_generation_process.htm.md"
+    },
+    {
+      "page_id": "connect_resources_doc_template.htm",
+      "title": "Document Template",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 1749,
+      "file": "articles/connect_resources_doc_template.htm.md"
+    },
+    {
+      "page_id": "connect_resources_docgen_resources.htm",
+      "title": "E-signature Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_resources.htm",
+      "status": "captured",
+      "body_length": 3068,
+      "file": "articles/connect_resources_docgen_resources.htm.md"
+    },
+    {
+      "page_id": "connect_resources_document_clause_fields.htm",
+      "title": "Document Clause Fields",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clause_library_resources.htm",
+      "status": "captured",
+      "body_length": 2003,
+      "file": "articles/connect_resources_document_clause_fields.htm.md"
+    },
+    {
+      "page_id": "connect_resources_document_clause_sets.htm",
+      "title": "Document Clause Sets",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clause_library_resources.htm",
+      "status": "captured",
+      "body_length": 2316,
+      "file": "articles/connect_resources_document_clause_sets.htm.md"
+    },
+    {
+      "page_id": "connect_resources_document_playbook_contents.htm",
+      "title": "Document Playbook Contents (GET)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_document_playbook_resources.htm",
+      "status": "captured",
+      "body_length": 3262,
+      "file": "articles/connect_resources_document_playbook_contents.htm.md"
+    },
+    {
+      "page_id": "connect_resources_document_playbook_resources.htm",
+      "title": "Document Playbook Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_resources.htm",
+      "status": "captured",
+      "body_length": 1493,
+      "file": "articles/connect_resources_document_playbook_resources.htm.md"
+    },
+    {
+      "page_id": "connect_resources_document_playbook_version.htm",
+      "title": "Document Playbook Version (POST)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_document_playbook_resources.htm",
+      "status": "captured",
+      "body_length": 2642,
+      "file": "articles/connect_resources_document_playbook_version.htm.md"
+    },
+    {
+      "page_id": "connect_resources_document_recipient.htm",
+      "title": "Document Recipient (GET)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_customer_community_user.htm",
+      "status": "captured",
+      "body_length": 1544,
+      "file": "articles/connect_resources_document_recipient.htm.md"
+    },
+    {
+      "page_id": "connect_resources_document_template.htm",
+      "title": "Document Templates (GET, PATCH, POST)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_design_document_template_resources.htm",
+      "status": "captured",
+      "body_length": 16054,
+      "file": "articles/connect_resources_document_template.htm.md"
+    },
+    {
+      "page_id": "connect_resources_esign_documents_list.htm",
+      "title": "E-signature Document List",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_docgen_resources.htm",
+      "status": "captured",
+      "body_length": 1847,
+      "file": "articles/connect_resources_esign_documents_list.htm.md"
+    },
+    {
+      "page_id": "connect_resources_esign_envelope.htm",
+      "title": "E-signature Envelope",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_docgen_resources.htm",
+      "status": "captured",
+      "body_length": 5100,
+      "file": "articles/connect_resources_esign_envelope.htm.md"
+    },
+    {
+      "page_id": "connect_resources_esign_envelope_status.htm",
+      "title": "E-signature Envelope Status",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_docgen_resources.htm",
+      "status": "captured",
+      "body_length": 603,
+      "file": "articles/connect_resources_esign_envelope_status.htm.md"
+    },
+    {
+      "page_id": "connect_resources_esign_envelope_void.htm",
+      "title": "E-signature Envelope Void",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_docgen_resources.htm",
+      "status": "captured",
+      "body_length": 1062,
+      "file": "articles/connect_resources_esign_envelope_void.htm.md"
+    },
+    {
+      "page_id": "connect_resources_esign_notification_settings.htm",
+      "title": "E-signature Notification",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_docgen_resources.htm",
+      "status": "captured",
+      "body_length": 1431,
+      "file": "articles/connect_resources_esign_notification_settings.htm.md"
+    },
+    {
+      "page_id": "connect_resources_esign_recipients.htm",
+      "title": "E-signature Recipients",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_docgen_resources.htm",
+      "status": "captured",
+      "body_length": 1788,
+      "file": "articles/connect_resources_esign_recipients.htm.md"
+    },
+    {
+      "page_id": "connect_resources_esign_signer_roles.htm",
+      "title": "E-signature Signer Roles",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_docgen_resources.htm",
+      "status": "captured",
+      "body_length": 504,
+      "file": "articles/connect_resources_esign_signer_roles.htm.md"
+    },
+    {
+      "page_id": "connect_resources_external_document.htm",
+      "title": "External Documents (GET, POST)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_external_document_resources.htm",
+      "status": "captured",
+      "body_length": 3999,
+      "file": "articles/connect_resources_external_document.htm.md"
+    },
+    {
+      "page_id": "connect_resources_external_document_resources.htm",
+      "title": "External Document Resources",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_resources.htm",
+      "status": "captured",
+      "body_length": 1363,
+      "file": "articles/connect_resources_external_document_resources.htm.md"
+    },
+    {
+      "page_id": "connect_resources_external_document_review.htm",
+      "title": "External Document Review (GET)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_external_document_resources.htm",
+      "status": "captured",
+      "body_length": 1512,
+      "file": "articles/connect_resources_external_document_review.htm.md"
+    },
+    {
+      "page_id": "connect_resources_external_document_save.htm",
+      "title": "External Documents Save",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_external_document_resources.htm",
+      "status": "captured",
+      "body_length": 2207,
+      "file": "articles/connect_resources_external_document_save.htm.md"
+    },
+    {
+      "page_id": "connect_resources_extraction_context_mapping.htm",
+      "title": "Extraction Context Mapping (POST)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_context_mapping_parent.htm",
+      "status": "captured",
+      "body_length": 1993,
+      "file": "articles/connect_resources_extraction_context_mapping.htm.md"
+    },
+    {
+      "page_id": "connect_resources_extraction_context_mappings_get_delete_patch.htm",
+      "title": "Extraction Context Mappings (DELETE, GET, PATCH)",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_context_mapping_parent.htm",
+      "status": "captured",
+      "body_length": 2752,
+      "file": "articles/connect_resources_extraction_context_mappings_get_delete_patch.htm.md"
+    },
+    {
+      "page_id": "connect_resources_list_of_contract_actions.htm",
+      "title": "List of Contract Actions",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 604,
+      "file": "articles/connect_resources_list_of_contract_actions.htm.md"
+    },
+    {
+      "page_id": "connect_resources_lock_doc_version.htm",
+      "title": "Lock Document Version",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 620,
+      "file": "articles/connect_resources_lock_doc_version.htm.md"
+    },
+    {
+      "page_id": "connect_resources_template_doc_version.htm",
+      "title": "Contract Document Version Template",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 2298,
+      "file": "articles/connect_resources_template_doc_version.htm.md"
+    },
+    {
+      "page_id": "connect_resources_unlock_doc_version.htm",
+      "title": "Unlock Document Version",
+      "section": "Salesforce Contracts",
+      "parent_page": "connect_resources_clm_resources.htm",
+      "status": "captured",
+      "body_length": 613,
+      "file": "articles/connect_resources_unlock_doc_version.htm.md"
+    },
+    {
+      "page_id": "connect_responses_clause_categories_respons.htm",
+      "title": "Clause Library Category Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1105,
+      "file": "articles/connect_responses_clause_categories_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_clause_category_respons.htm",
+      "title": "Clause Category Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1100,
+      "file": "articles/connect_responses_clause_category_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_clause_library_category_respons.htm",
+      "title": "Clause Library Category Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 727,
+      "file": "articles/connect_responses_clause_library_category_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_connect_api._content_document_respons.htm",
+      "title": "Content Document Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 3070,
+      "file": "articles/connect_responses_connect_api._content_document_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_content_document.htm",
+      "title": "Content Document",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1238,
+      "file": "articles/connect_responses_content_document.htm.md"
+    },
+    {
+      "page_id": "connect_responses_content_document_list_respons.htm",
+      "title": "Content Document List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 966,
+      "file": "articles/connect_responses_content_document_list_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_content_link_data_sync_detail.htm",
+      "title": "Content Link Data Sync Detail",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1538,
+      "file": "articles/connect_responses_content_link_data_sync_detail.htm.md"
+    },
+    {
+      "page_id": "connect_responses_content_link_data_sync_output.htm",
+      "title": "Content Link Data Sync",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 2118,
+      "file": "articles/connect_responses_content_link_data_sync_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_content_link_detail.htm",
+      "title": "Content Link Detail",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1040,
+      "file": "articles/connect_responses_content_link_detail.htm.md"
+    },
+    {
+      "page_id": "connect_responses_content_link_list.htm",
+      "title": "Content Link List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1548,
+      "file": "articles/connect_responses_content_link_list.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_action_list_respns.htm",
+      "title": "Contract Action List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1314,
+      "file": "articles/connect_responses_contract_action_list_respns.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_action_respons.htm",
+      "title": "Contract Action Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 790,
+      "file": "articles/connect_responses_contract_action_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_document_version.htm",
+      "title": "Contract Document Version",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1460,
+      "file": "articles/connect_responses_contract_document_version.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_document_version_c_c.htm",
+      "title": "Contract Document Version CC Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 3247,
+      "file": "articles/connect_responses_contract_document_version_c_c.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_document_versions_list.htm",
+      "title": "Contract Document Versions List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 501,
+      "file": "articles/connect_responses_contract_document_versions_list.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_output_response.htm",
+      "title": "Contract List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 337,
+      "file": "articles/connect_responses_contract_output_response.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_risk_analysis_element_output.htm",
+      "title": "Contract Risk Analysis Element",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 6312,
+      "file": "articles/connect_responses_contract_risk_analysis_element_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_risk_analysis_error_output.htm",
+      "title": "Contract Risk Analysis Error",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 902,
+      "file": "articles/connect_responses_contract_risk_analysis_error_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_risk_analysis_finding_output.htm",
+      "title": "Contract Risk Analysis Finding",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 4004,
+      "file": "articles/connect_responses_contract_risk_analysis_finding_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_contract_risk_analysis_run_output.htm",
+      "title": "Contract Risk Analysis Run",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 5819,
+      "file": "articles/connect_responses_contract_risk_analysis_run_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_clause_fields_respons.htm",
+      "title": "Document Clause Fields Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 861,
+      "file": "articles/connect_responses_document_clause_fields_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_clause_set_list_respons.htm",
+      "title": "Document Clause Set List Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1244,
+      "file": "articles/connect_responses_document_clause_set_list_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_clause_set_respons.htm",
+      "title": "Document Clause Set Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1655,
+      "file": "articles/connect_responses_document_clause_set_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_generate.htm",
+      "title": "Document Generate",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 703,
+      "file": "articles/connect_responses_document_generate.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_generation_process_status.htm",
+      "title": "Document Generation Process Status",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 833,
+      "file": "articles/connect_responses_document_generation_process_status.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_list_respons.htm",
+      "title": "Document List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 316,
+      "file": "articles/connect_responses_document_list_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_recipient_status_c_c.htm",
+      "title": "Document Recipient Status",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 2728,
+      "file": "articles/connect_responses_document_recipient_status_c_c.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_respons.htm",
+      "title": "Document Record",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 2346,
+      "file": "articles/connect_responses_document_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_template.htm",
+      "title": "Document Template",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 288,
+      "file": "articles/connect_responses_document_template.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_template_child.htm",
+      "title": "Document Template Child",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 858,
+      "file": "articles/connect_responses_document_template_child.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_template_list.htm",
+      "title": "Document Template List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 631,
+      "file": "articles/connect_responses_document_template_list.htm.md"
+    },
+    {
+      "page_id": "connect_responses_document_template_parent.htm",
+      "title": "Document Template Parent",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1315,
+      "file": "articles/connect_responses_document_template_parent.htm.md"
+    },
+    {
+      "page_id": "connect_responses_envelope_send_respons.htm",
+      "title": "Envelope Details",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 362,
+      "file": "articles/connect_responses_envelope_send_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_envelope_status_list_respons.htm",
+      "title": "Envelope Status List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1638,
+      "file": "articles/connect_responses_envelope_status_list_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_envelope_status_respons.htm",
+      "title": "Envelope Status",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1070,
+      "file": "articles/connect_responses_envelope_status_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_envelope_void_respons.htm",
+      "title": "Envelope Void",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 740,
+      "file": "articles/connect_responses_envelope_void_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_external_doc_creation_output.htm",
+      "title": "External Document Creation Output",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1226,
+      "file": "articles/connect_responses_external_doc_creation_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_external_document_output.htm",
+      "title": "External Document Output",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1164,
+      "file": "articles/connect_responses_external_document_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_external_document_review_c_c.htm",
+      "title": "External Document Review CC",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1855,
+      "file": "articles/connect_responses_external_document_review_c_c.htm.md"
+    },
+    {
+      "page_id": "connect_responses_extraction_context_attribute_mapping.htm",
+      "title": "Extraction Context Attribute",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 2264,
+      "file": "articles/connect_responses_extraction_context_attribute_mapping.htm.md"
+    },
+    {
+      "page_id": "connect_responses_extraction_context_definition.htm",
+      "title": "Extraction Context Definition",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1209,
+      "file": "articles/connect_responses_extraction_context_definition.htm.md"
+    },
+    {
+      "page_id": "connect_responses_extraction_context_mapping.htm",
+      "title": "Extraction Context Mapping",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1035,
+      "file": "articles/connect_responses_extraction_context_mapping.htm.md"
+    },
+    {
+      "page_id": "connect_responses_extraction_context_mapping_output.htm",
+      "title": "Extraction Context Mapping",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 2782,
+      "file": "articles/connect_responses_extraction_context_mapping_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_extraction_context_mappings_output.htm",
+      "title": "Extraction Context Mappings",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1195,
+      "file": "articles/connect_responses_extraction_context_mappings_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_extraction_context_use_case_mapping.htm",
+      "title": "Extraction Context Use Case Mapping",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 2574,
+      "file": "articles/connect_responses_extraction_context_use_case_mapping.htm.md"
+    },
+    {
+      "page_id": "connect_responses_failed_content_link_list.htm",
+      "title": "Failed Content Link List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1118,
+      "file": "articles/connect_responses_failed_content_link_list.htm.md"
+    },
+    {
+      "page_id": "connect_responses_generic_output.htm",
+      "title": "Generic Output",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 381,
+      "file": "articles/connect_responses_generic_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_notification_expiration_respons.htm",
+      "title": "E-signature Notification Expiration",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 746,
+      "file": "articles/connect_responses_notification_expiration_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_notification_reminder_respons.htm",
+      "title": "E-signature Notification Reminder",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 595,
+      "file": "articles/connect_responses_notification_reminder_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_notification_setting_respons.htm",
+      "title": "E-signature Notification Settings",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1078,
+      "file": "articles/connect_responses_notification_setting_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_playbook_chunk.htm",
+      "title": "Playbook Chunk",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1548,
+      "file": "articles/connect_responses_playbook_chunk.htm.md"
+    },
+    {
+      "page_id": "connect_responses_playbook_contents_output.htm",
+      "title": "Playbook Contents",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1497,
+      "file": "articles/connect_responses_playbook_contents_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_playbook_version_details.htm",
+      "title": "Playbook Version Details",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 781,
+      "file": "articles/connect_responses_playbook_version_details.htm.md"
+    },
+    {
+      "page_id": "connect_responses_recipient_list_respons.htm",
+      "title": "Recipient List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1115,
+      "file": "articles/connect_responses_recipient_list_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_recipient_output.htm",
+      "title": "Recipients Response",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1796,
+      "file": "articles/connect_responses_recipient_output.htm.md"
+    },
+    {
+      "page_id": "connect_responses_recipient_respons.htm",
+      "title": "Recipient Details",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 499,
+      "file": "articles/connect_responses_recipient_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_save_external_document.htm",
+      "title": "Save External Document Output",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 641,
+      "file": "articles/connect_responses_save_external_document.htm.md"
+    },
+    {
+      "page_id": "connect_responses_signer_roles_respons.htm",
+      "title": "Signer Roles Details",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 640,
+      "file": "articles/connect_responses_signer_roles_respons.htm.md"
+    },
+    {
+      "page_id": "connect_responses_template_list.htm",
+      "title": "Template List",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 388,
+      "file": "articles/connect_responses_template_list.htm.md"
+    },
+    {
+      "page_id": "connect_responses_template_record.htm",
+      "title": "Template Record",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_apis_responses.htm",
+      "status": "captured",
+      "body_length": 1251,
+      "file": "articles/connect_responses_template_record.htm.md"
+    },
+    {
+      "page_id": "meta_clausecatgconfiguration.htm",
+      "title": "ClauseCatgConfiguration",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_metadata_api_parent.htm",
+      "status": "captured",
+      "body_length": 3288,
+      "file": "articles/meta_clausecatgconfiguration.htm.md"
+    },
+    {
+      "page_id": "meta_contextusecasemapping.htm",
+      "title": "ContextUseCaseMapping",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_metadata_api_parent.htm",
+      "status": "captured",
+      "body_length": 6379,
+      "file": "articles/meta_contextusecasemapping.htm.md"
+    },
+    {
+      "page_id": "meta_contracttype.htm",
+      "title": "ContractType",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_metadata_api_parent.htm",
+      "status": "captured",
+      "body_length": 5082,
+      "file": "articles/meta_contracttype.htm.md"
+    },
+    {
+      "page_id": "meta_documenttemplate.htm",
+      "title": "DocumentTemplate",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_metadata_api_parent.htm",
+      "status": "captured",
+      "body_length": 11776,
+      "file": "articles/meta_documenttemplate.htm.md"
+    },
+    {
+      "page_id": "meta_esignatureconfig.htm",
+      "title": "ESignatureConfig",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_metadata_api_parent.htm",
+      "status": "captured",
+      "body_length": 3582,
+      "file": "articles/meta_esignatureconfig.htm.md"
+    },
+    {
+      "page_id": "meta_esignatureenvelopeconfig.htm",
+      "title": "ESignatureEnvelopeConfig",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_metadata_api_parent.htm",
+      "status": "captured",
+      "body_length": 4545,
+      "file": "articles/meta_esignatureenvelopeconfig.htm.md"
+    },
+    {
+      "page_id": "meta_externaldocstorageconfig.htm",
+      "title": "ExternalDocStorageConfig",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_metadata_api_parent.htm",
+      "status": "captured",
+      "body_length": 4186,
+      "file": "articles/meta_externaldocstorageconfig.htm.md"
+    },
+    {
+      "page_id": "salesforce_contracts_apex_reference.htm",
+      "title": "Apex Reference",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_intro.htm",
+      "status": "captured",
+      "body_length": 1139,
+      "file": "articles/salesforce_contracts_apex_reference.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_clausecatgconfiguration.htm",
+      "title": "ClauseCatgConfiguration",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 3041,
+      "file": "articles/sforce_api_objects_clausecatgconfiguration.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_contextusecasemapping.htm",
+      "title": "ContextUseCaseMapping",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 6944,
+      "file": "articles/sforce_api_objects_contextusecasemapping.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_contractdocumentreview.htm",
+      "title": "ContractDocumentReview",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 3664,
+      "file": "articles/sforce_api_objects_contractdocumentreview.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_contractdocumentversion.htm",
+      "title": "ContractDocumentVersion",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 8908,
+      "file": "articles/sforce_api_objects_contractdocumentversion.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_contractdocvercontentdoc.htm",
+      "title": "ContractDocVerContentDoc",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 5374,
+      "file": "articles/sforce_api_objects_contractdocvercontentdoc.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_contractdocversionsection.htm",
+      "title": "ContractDocVersionSection",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 7793,
+      "file": "articles/sforce_api_objects_contractdocversionsection.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_contractextractionresult.htm",
+      "title": "ContractExtractionResult",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 6932,
+      "file": "articles/sforce_api_objects_contractextractionresult.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_contracttype.htm",
+      "title": "ContractType",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 2497,
+      "file": "articles/sforce_api_objects_contracttype.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_contracttypeconfig.htm",
+      "title": "ContractTypeConfig",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 5868,
+      "file": "articles/sforce_api_objects_contracttypeconfig.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_docgenbtchstschgevent.htm",
+      "title": "DocGenBtchStsChgEvent",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 2503,
+      "file": "articles/sforce_api_objects_docgenbtchstschgevent.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_docgenerationbatchprocess.htm",
+      "title": "DocGenerationBatchProcess",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 5172,
+      "file": "articles/sforce_api_objects_docgenerationbatchprocess.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_docgenprocstschgevent.htm",
+      "title": "DocGenProcStsChgEvent",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 3129,
+      "file": "articles/sforce_api_objects_docgenprocstschgevent.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentauthoredcontent.htm",
+      "title": "DocumentAuthoredContent",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 7065,
+      "file": "articles/sforce_api_objects_documentauthoredcontent.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentclause.htm",
+      "title": "DocumentClause",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 7430,
+      "file": "articles/sforce_api_objects_documentclause.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentclausecontenttoken.htm",
+      "title": "DocumentClauseContentToken",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 6496,
+      "file": "articles/sforce_api_objects_documentclausecontenttoken.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentclauseset.htm",
+      "title": "DocumentClauseSet",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 4183,
+      "file": "articles/sforce_api_objects_documentclauseset.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentenvelope.htm",
+      "title": "DocumentEnvelope",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 5253,
+      "file": "articles/sforce_api_objects_documentenvelope.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentgenerationprocess.htm",
+      "title": "DocumentGenerationProcess",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 9684,
+      "file": "articles/sforce_api_objects_documentgenerationprocess.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentgenerationsetting.htm",
+      "title": "DocumentGenerationSetting",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 7738,
+      "file": "articles/sforce_api_objects_documentgenerationsetting.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentplaybook.htm",
+      "title": "DocumentPlaybook",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 5867,
+      "file": "articles/sforce_api_objects_documentplaybook.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentplaybookassignment.htm",
+      "title": "DocumentPlaybookAssignment",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 6372,
+      "file": "articles/sforce_api_objects_documentplaybookassignment.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documentplaybookversion.htm",
+      "title": "DocumentPlaybookVersion",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 5952,
+      "file": "articles/sforce_api_objects_documentplaybookversion.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documenttemplate.htm",
+      "title": "DocumentTemplate",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 12097,
+      "file": "articles/sforce_api_objects_documenttemplate.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documenttemplateconfig.htm",
+      "title": "DocumentTemplateConfig",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 4636,
+      "file": "articles/sforce_api_objects_documenttemplateconfig.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_documenttemplatesection.htm",
+      "title": "DocumentTemplateSection",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 9780,
+      "file": "articles/sforce_api_objects_documenttemplatesection.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_esignatureconfig.htm",
+      "title": "ESignatureConfig",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 3599,
+      "file": "articles/sforce_api_objects_esignatureconfig.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_esignatureenvelopeconfig.htm",
+      "title": "ESignatureEnvelopeConfig",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 4321,
+      "file": "articles/sforce_api_objects_esignatureenvelopeconfig.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_externaldocstorageconfig.htm",
+      "title": "ExternalDocStorageConfig",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 4131,
+      "file": "articles/sforce_api_objects_externaldocstorageconfig.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_generateddocumentsection.htm",
+      "title": "GeneratedDocumentSection",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 4835,
+      "file": "articles/sforce_api_objects_generateddocumentsection.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_objectstateactiondefinition.htm",
+      "title": "ObjectStateActionDefinition",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 4274,
+      "file": "articles/sforce_api_objects_objectstateactiondefinition.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_objectstatetransitionaction.htm",
+      "title": "ObjectStateTransitionAction",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 4523,
+      "file": "articles/sforce_api_objects_objectstatetransitionaction.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_obligation.htm",
+      "title": "Obligation",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 6469,
+      "file": "articles/sforce_api_objects_obligation.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_quoteclause.htm",
+      "title": "QuoteClause",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 8198,
+      "file": "articles/sforce_api_objects_quoteclause.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_salescontractline.htm",
+      "title": "SalesContractLine",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 5885,
+      "file": "articles/sforce_api_objects_salescontractline.htm.md"
+    },
+    {
+      "page_id": "sforce_api_objects_useresignvendoridentifier.htm",
+      "title": "UserEsignVendorIdentifier",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_objects_overview.htm",
+      "status": "captured",
+      "body_length": 3077,
+      "file": "articles/sforce_api_objects_useresignvendoridentifier.htm.md"
+    },
+    {
+      "page_id": "tooling_api_objects_contracttypeconfig.htm",
+      "title": "ContractTypeConfig",
+      "section": "Salesforce Contracts",
+      "parent_page": "clm_tooling_api_parent.htm",
+      "status": "captured",
+      "body_length": 4318,
+      "file": "articles/tooling_api_objects_contracttypeconfig.htm.md"
+    }
+  ],
+  "last_updated": "2026-10-13T15:05:40Z",
+  "stats": {
+    "discovered": 198,
+    "captured": 198,
+    "pending": 0,
+    "errored": 0,
+    "total_captured_body_chars": 537356
+  }
+}
