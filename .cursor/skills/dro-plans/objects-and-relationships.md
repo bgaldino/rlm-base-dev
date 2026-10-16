@@ -87,7 +87,7 @@ resolution. The SFDMU skill owns general CSV syntax and matching-key rules.
 | `FulfillmentOrder` / `FulfillmentOrderLineItem` | Inspect order linkage on target; line `FulfillmentOrderId`, `OrderItemId`, `Product2Id`, `FulfillmentAssetId` track fulfillment. `OrderItemId` can be null for generated technical lines; use the source relationship for lineage |
 | `FulfillmentLineSourceRel` | `FulfilmentOrderLineId` → generated `FulfillmentOrderLineItem`; `SourceLineItemId` → `OrderItem` or another `FulfillmentOrderLineItem`; this is the authoritative lineage when `FulfillmentOrderLineItem.OrderItemId` is null |
 | `FulfillmentStep` | `FulfillmentPlanId`, `FulfillmentStepDefinitionId` link runtime step to plan/template |
-| `FulfillmentStepDependency` | `FulfillmentStepId`, `DependsOnStepId`, `DependencyDefinitionId` link instantiated dependent/predecessor and definition |
+| `FulfillmentStepDependency` | `DependentStepId` (dependent), `DependsOnStepId` (predecessor), `DependencyDefinitionId` (definition) link the instantiated steps and their definition |
 | `FulfillmentStepSource` | `StepId` → step; `SourceLineItemId` → source, including `OrderItem`/`FulfillmentOrderLineItem` |
 | `FulfillmentAsset` and attribute/relationship/state records | Inspect target schema for assetization and lineage |
 | `AssetFulfillmentDecomp` | `FulfillmentSourceAssetId`, `FulfillmentTargetAssetId` track decomposed asset linkage |
