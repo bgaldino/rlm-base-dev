@@ -15,6 +15,12 @@ in `$NVM_DIR` or `$XDG_CONFIG_HOME/nvm`), or a workstation with the installer's 
 the pin, and the guide's `.envrc` template must carry the same code. The block also runs here
 against fake nvm installs, to show which one it picks and what it says when there is none.
 
+The setup guides must not teach a second way to load nvm: no line that sources `nvm.sh`
+without `--no-use` (nvm's auto-use then runs in every shell, and a shell started from the repo
+can lose the repo's Node), and no `echo`/heredoc that writes nvm lines into a shell startup
+file. The one way is the `~/.zshenv` NVM block in dev-environment-setup.md §2, which the
+installation guide's Step 3 points to rather than copying.
+
 Each rule is a function over text, with a positive control beside the real-file check, so a
 parser that matches nothing can't pass by finding nothing to compare.
 Stdlib only. Run with: python tests/test_node_line.py
@@ -91,6 +97,9 @@ INSTRUCTION_FILES = (
     ".cursor/skills/toolchain/verification-handoff.md",
     "tasks/rlm_validate_setup.py",
 )
+# Every setup guide, where the nvm rc-file rules below also apply.
+GUIDE_FILES = tuple(sorted(p.relative_to(REPO).as_posix()
+                           for p in (REPO / "docs" / "guides").glob("*.md")))
 # Where a stale floor ("Node LTS >=22", "release **22 or later**", "an LTS ≥ 22") could survive a
 # bump: every instruction file above plus the docs that describe the toolchain without an install
 # line. Phrasings vary, so this rule isn't phrase-bound: any major written near "Node", "LTS",
@@ -131,6 +140,41 @@ def floats_on_lts(text):
     """Non-comment lines naming an `lts/` alias (`lts/*`, `lts/krypton`, `--lts`)."""
     return [line.strip() for line in text.splitlines()
             if not line.lstrip().startswith("#") and re.search(r"lts/|--lts\b", line)]
+
+
+# `. …nvm.sh` or `source …nvm.sh` as a command (start of line, after a separator or a quote),
+# stopping at a separator or a comment so `source ~/.zshrc  # loads nvm.sh` isn't one.
+NVM_SH_SOURCE = re.compile(r"""(?:^|[\s;&|('"])(?:\\?\.|source)\s+[^;&|#\n]*?nvm\.sh\b""")
+STARTUP_FILE = (r"(?:~|\$HOME|\$\{HOME\}|\$ZDOTDIR|\$\{ZDOTDIR[^}]*\})"
+                r"/\.(?:zshenv|zshrc|zprofile|bashrc|bash_profile|profile)\b")
+STARTUP_FILE_WRITE = re.compile(
+    rf"""(?:>>?\s*["']?{STARTUP_FILE}|\btee\s+(?:-a\s+)?["']?{STARTUP_FILE})""")
+
+
+def sources_nvm_with_auto_use(text):
+    """Lines that source `nvm.sh` without `--no-use`, which makes nvm switch Node on load."""
+    return [line.strip() for line in text.splitlines()
+            if NVM_SH_SOURCE.search(line) and "--no-use" not in line]
+
+
+def writes_nvm_to_startup_file(text):
+    """Commands that write nvm lines into a shell startup file: a line redirected or `tee`d to
+    one that mentions nvm, or one that appends a heredoc (`cat >> ~/.zshenv <<'EOF'`) whose
+    body does."""
+    lines = text.splitlines()
+    found = []
+    for i, line in enumerate(lines):
+        if not STARTUP_FILE_WRITE.search(line):
+            continue
+        written = line
+        heredoc = re.search(r"<<-?\s*\\?['\"]?(\w+)", line)
+        if heredoc:
+            end = next((j for j in range(i + 1, len(lines)) if lines[j].strip() == heredoc.group(1)),
+                       len(lines))
+            written = "\n".join(lines[i:end])
+        if re.search(r"nvm", written, re.I):
+            found.append(line.strip())
+    return found
 
 
 NVM_SH_TEST = re.compile(r'\[ -s "([^"]*/nvm\.sh)" \]')
@@ -247,6 +291,36 @@ class Parsers(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "end marker"):
             section(text, "# ── Node", "# ── Gone")
 
+    def test_sources_nvm_with_auto_use(self):
+        # The installation guide's old Step 3, in both of its forms.
+        old_step = ("echo '[ -s \"$(brew --prefix nvm)/nvm.sh\" ] && \\. \"$(brew --prefix nvm)/nvm.sh\"' >> ~/.zshrc\n"
+                    "echo '    \\. \"$NVM_PREFIX/nvm.sh\"' >> ~/.zshenv\n")
+        self.assertEqual(len(sources_nvm_with_auto_use(old_step)), 2)
+        for text in ("source ~/.nvm/nvm.sh\n", 'x && . "$NVM_DIR/nvm.sh"\n', "  source $HOME/.nvm/nvm.sh\n"):
+            with self.subTest(text=text):
+                self.assertEqual(len(sources_nvm_with_auto_use(text)), 1)
+        for text in ('[ -n "$_NVM_SH" ] && . "$_NVM_SH" --no-use\n',
+                     '\\. "$(brew --prefix nvm)/nvm.sh" --no-use\n',
+                     '[ -s "$NVM_DIR/nvm.sh" ] && x\n', "source ~/.zshrc  # loads nvm.sh\n",
+                     "the block that sources `nvm.sh`\n", "(`$NVM_DIR/nvm.sh`, or `~/.nvm/nvm.sh`)\n"):
+            with self.subTest(text=text):
+                self.assertEqual(sources_nvm_with_auto_use(text), [])
+
+    def test_writes_nvm_to_startup_file(self):
+        for text in ("echo 'export NVM_DIR=\"$HOME/.nvm\"' >> ~/.zshenv\n",
+                     "echo '  NVM_PREFIX=x' >>\"$HOME/.zshrc\"\n",
+                     "printf '%s\\n' 'nvm use' | tee -a ~/.zshrc\n",
+                     "cat >> ~/.zshenv <<'EOF'\nexport PATH=x\n. \"$NVM_DIR/nvm.sh\"\nEOF\n",
+                     "cat <<\\EOF >> \"${ZDOTDIR:-$HOME}/.zshenv\"\nexport NVM_DIR=x\nEOF\n"):
+            with self.subTest(text=text):
+                self.assertEqual(len(writes_nvm_to_startup_file(text)), 1)
+        for text in ("echo 'eval \"$(pyenv init -)\"' >> ~/.zshenv\n",
+                     "cat >> ~/.zshrc <<'EOF'\neval x\nEOF\nnvm install 24\n",
+                     "cp ~/.zshenv ~/.zshenv.bak  # before the NVM block\n",
+                     "echo 'nvm use' > /tmp/notes\n"):
+            with self.subTest(text=text):
+                self.assertEqual(writes_nvm_to_startup_file(text), [])
+
     def test_lts_float(self):
         self.assertEqual(floats_on_lts("# don't use lts/* here\nnvm use\n"), [])
         self.assertEqual(floats_on_lts("  nvm use --silent lts/\\* >/dev/null\n"),
@@ -303,6 +377,25 @@ class NodeLine(unittest.TestCase):
             with self.subTest(file=rel):
                 self.assertEqual(lower_majors(read(rel), self.major), [],
                                  f"{rel} still names a Node line below .nvmrc's")
+
+    def test_guides_load_nvm_one_way(self):
+        # The installation guide once echoed its own nvm lines, with auto-use, into both rc files:
+        # ~0.1s more per shell on one workstation, nvm's Node twice on PATH in interactive shells, and a nested
+        # shell kept the repo's Node only by nvm's auto-use. The ~/.zshenv NVM block is the one way.
+        files = sorted(set(STALE_SCAN_FILES + GUIDE_FILES))
+        self.assertIn("docs/guides/cci-sf-cli-token-workaround.md", files, "no guides found")
+        for rel in files:
+            with self.subTest(file=rel):
+                text = read(rel)
+                self.assertEqual(sources_nvm_with_auto_use(text), [],
+                                 f"{rel} sources nvm.sh without --no-use; point to the ~/.zshenv NVM "
+                                 "block in dev-environment-setup.md §2 instead")
+                self.assertEqual(writes_nvm_to_startup_file(text), [],
+                                 f"{rel} writes nvm lines into a shell startup file; point to the "
+                                 "templates in dev-environment-setup.md §2 instead")
+        self.assertIn("dev-environment-setup.md#zshenv--runs-in-every-shell",
+                      section(read("docs/guides/local-installation.md"), "### Step 3", "### Step 4"),
+                      "local-installation.md Step 3 must point to the ~/.zshenv template")
 
     def test_envrc_has_no_default_fallback(self):
         # Falling back to nvm's `default` would silently select an older line when .nvmrc's
