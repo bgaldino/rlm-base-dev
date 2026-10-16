@@ -87,4 +87,94 @@ private class RLM_PaymentsDataControllerTest {
         System.assert(found, 'An account with a PaymentScheduleItem should appear in the options.');
         System.assert(options.size() >= 2, 'Sentinel "All Accounts" plus the seeded account.');
     }
+
+    // PaymentLineInvoiceLine rows come only from the payment apply API, so the line-level merge
+    // is exercised with in-memory rows. JSON builds them with the read-only invoice fields set.
+    private static Id fakeId(Schema.SObjectType t, Integer n) {
+        return Id.valueOf(t.getDescribe().getKeyPrefix() + String.valueOf(n).leftPad(12, '0'));
+    }
+
+    private static PaymentLineInvoiceLine lineApplication(Id paymentId, Id invoiceId, Decimal amount) {
+        return (PaymentLineInvoiceLine) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+            'PaymentId' => paymentId,
+            'Amount' => amount,
+            'InvoiceLine' => new Map<String, Object>{
+                'Invoice' => new Map<String, Object>{
+                    'Id' => invoiceId, 'InvoiceNumber' => 'INV-' + invoiceId, 'TotalAmount' => 500, 'Balance' => 100
+                }
+            }
+        }), PaymentLineInvoiceLine.class);
+    }
+
+    @isTest
+    static void addLineLevelApplications_sumsLinesPerPaymentAndInvoice() {
+        Id pay = fakeId(Payment.SObjectType, 1);
+        Id inv1 = fakeId(Invoice.SObjectType, 1);
+        Id inv2 = fakeId(Invoice.SObjectType, 2);
+        Map<Id, List<RLM_PaymentsDataController.InvoiceWrapper>> m =
+            new Map<Id, List<RLM_PaymentsDataController.InvoiceWrapper>>();
+
+        RLM_PaymentsDataController.addLineLevelApplications(m, new List<PaymentLineInvoiceLine>{
+            lineApplication(pay, inv1, 250), lineApplication(pay, inv1, 150), lineApplication(pay, inv2, 50)
+        });
+
+        System.assertEquals(2, m.get(pay).size(), 'One entry per invoice.');
+        Map<Id, Decimal> applied = new Map<Id, Decimal>();
+        for (RLM_PaymentsDataController.InvoiceWrapper iw : m.get(pay)) applied.put(iw.id, iw.appliedAmount);
+        System.assertEquals(400, applied.get(inv1), 'Two lines of one invoice are summed.');
+        System.assertEquals(50, applied.get(inv2), 'A second invoice keeps its own total.');
+        System.assertEquals(100, m.get(pay)[0].balance, 'Invoice fields come from the related invoice.');
+    }
+
+    @isTest
+    static void addLineLevelApplications_addsToHeaderLevelEntry() {
+        Id pay = fakeId(Payment.SObjectType, 1);
+        Id inv = fakeId(Invoice.SObjectType, 1);
+        RLM_PaymentsDataController.InvoiceWrapper header = new RLM_PaymentsDataController.InvoiceWrapper(
+            (Invoice) JSON.deserialize(JSON.serialize(new Map<String, Object>{ 'Id' => inv, 'Balance' => 100 }), Invoice.class));
+        header.appliedAmount = 30;
+        Map<Id, List<RLM_PaymentsDataController.InvoiceWrapper>> m =
+            new Map<Id, List<RLM_PaymentsDataController.InvoiceWrapper>>{
+                pay => new List<RLM_PaymentsDataController.InvoiceWrapper>{ header }
+            };
+
+        RLM_PaymentsDataController.addLineLevelApplications(m, new List<PaymentLineInvoiceLine>{ lineApplication(pay, inv, 20) });
+
+        System.assertEquals(1, m.get(pay).size(), 'The invoice is listed once.');
+        System.assertEquals(50, m.get(pay)[0].appliedAmount, 'Header 30 plus line 20.');
+    }
+
+    @isTest
+    static void addHeaderLevelApplications_sumsRepeatApplicationsOfOneInvoice() {
+        Id pay = fakeId(Payment.SObjectType, 1);
+        Id inv = fakeId(Invoice.SObjectType, 1);
+        List<PaymentLineInvoice> rows = new List<PaymentLineInvoice>();
+        for (Decimal amount : new List<Decimal>{ 30, 45 }) {
+            rows.add((PaymentLineInvoice) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+                'PaymentId' => pay, 'InvoiceId' => inv, 'Amount' => amount,
+                'Invoice' => new Map<String, Object>{ 'Id' => inv, 'Balance' => 25, 'TotalAmount' => 100 }
+            }), PaymentLineInvoice.class));
+        }
+        Map<Id, List<RLM_PaymentsDataController.InvoiceWrapper>> m =
+            new Map<Id, List<RLM_PaymentsDataController.InvoiceWrapper>>();
+
+        RLM_PaymentsDataController.addHeaderLevelApplications(m, rows);
+
+        System.assertEquals(1, m.get(pay).size(), 'Two applications to one invoice are listed once.');
+        System.assertEquals(75, m.get(pay)[0].appliedAmount, '30 + 45.');
+        System.assertEquals(25, m.get(pay)[0].balance, 'Invoice fields come from the related invoice.');
+    }
+
+    @isTest
+    static void addLineLevelApplications_skipsRowsWithoutAReadableInvoice() {
+        Id pay = fakeId(Payment.SObjectType, 1);
+        PaymentLineInvoiceLine orphan = (PaymentLineInvoiceLine) JSON.deserialize(
+            JSON.serialize(new Map<String, Object>{ 'PaymentId' => pay, 'Amount' => 10 }), PaymentLineInvoiceLine.class);
+        Map<Id, List<RLM_PaymentsDataController.InvoiceWrapper>> m =
+            new Map<Id, List<RLM_PaymentsDataController.InvoiceWrapper>>();
+
+        RLM_PaymentsDataController.addLineLevelApplications(m, new List<PaymentLineInvoiceLine>{ orphan });
+
+        System.assert(m.isEmpty(), 'A row without its invoice is skipped, not a NullPointerException.');
+    }
 }

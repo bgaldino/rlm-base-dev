@@ -223,11 +223,13 @@ cci task run insert_quantumbit_product_image_data
 cci task run insert_billing_data
 ```
 
-The `prepare_billing` flow deploys Billing Settings in a 3-step cycle to properly configure ID-based fields and trigger default template auto-creation:
+The `prepare_billing` flow deploys Billing Settings in five steps: a three-step cycle (steps 1, 9 and 10) that configures ID-based fields and triggers auto-creation of the default invoice preview and document templates, then two steps (11 and 12) that create and select the email template, which the cycle doesn't create:
 
 1. **Step 1** (`deploy_post_billing`): Enable billing toggles (`enableInvoiceEmailDelivery`, `enableInvoicePdfGeneration` = `true`) and set `billingContextDefinition`
 2. **Step 9** (`deploy_billing_id_settings`): Set context mapping, DPE definition names, and record IDs via XPath transforms; disable invoice toggles (`false`)
 3. **Step 10** (`deploy_billing_template_settings`): Re-enable invoice toggles (`true`) to trigger Salesforce auto-creation of default invoice preview and document templates
+4. **Step 11** (`create_default_invoice_email_template`): Create the Default Invoice Email Template. Billing creates it only from the Setup toggle, never from a Metadata API deploy, so steps 9–10 leave Select Default Email Template empty
+5. **Step 12** (`deploy_billing_email_template_settings`): Select it as `defaultEmailTemplate`
 
 The ID fields (`defaultBillingTreatment`, `defaultLegalEntity`, `defaultTaxTreatment`) use XPath transform SOQL queries to resolve org-specific record IDs at deploy time. The `billingContextDefinition` must be deployed in step 1 (before step 9) because `billingContextSourceMapping` requires it to already be persisted.
 

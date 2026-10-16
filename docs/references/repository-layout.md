@@ -40,8 +40,9 @@ rlm-base-dev/
 │   │   └── 5_decisiontables/   # Decision tables (structural edits to active ones: deactivate_changed_decision_tables)
 │   ├── post_approvals/         # Approvals metadata
 │   ├── post_billing/           # Billing metadata (objects, flows, settings, quickActions)
+│   ├── post_billing_email_template_settings/ # Selects the Default Invoice Email Template (prepare_billing step 12)
 │   ├── post_billing_id_settings/ # Billing settings with org-specific record IDs (XPath transforms)
-│   ├── post_billing_template_settings/ # Re-enable invoice toggles (template auto-creation cycle step 3)
+│   ├── post_billing_template_settings/ # Re-enable invoice toggles (preview/document template auto-creation, cycle step 3)
 │   ├── post_billing_ui/        # Billing UI components, controllers, actions, and permissions
 │   ├── post_commerce/          # Commerce metadata
 │   ├── post_constraints/       # Constraints metadata
