@@ -122,9 +122,13 @@ class Parsers(unittest.TestCase):
               "    with:\n"
               "      node-version-file: .nvmrc\n"
               "  - uses: actions/setup-node@abc\n"
-              "  - run: echo node-version: 99\n")
+              "  - run: echo node-version: 99\n"
+              "  - uses: actions/setup-node@abc\n"
+              "    with:\n"
+              "      node-version: ${{ matrix.node }}  # from the matrix\n")
         self.assertEqual(setup_node_lines(wf), [
-            (2, "version", "24.16.0"), (6, "file", ".nvmrc"), (9, "version", "")])
+            (2, "version", "24.16.0"), (6, "file", ".nvmrc"), (9, "version", ""),
+            (11, "version", "${{ matrix.node }}")])
 
     def test_engines(self):
         self.assertEqual(engines_floor_major('{"engines": {"node": ">=24"}}'), 24)
