@@ -177,7 +177,7 @@ python --version
 
 > **`pyenv global` is the `python` every shell gets outside a project that pins its own.** `scripts/bash/update-toolchain.sh` moves it to each new 3.13 patch, but only when the old one holds no packages you pip-installed straight into it; otherwise it warns and leaves it. Prefer pipx or a virtualenv for tools, so that move stays automatic ([dev-environment-setup.md §4](dev-environment-setup.md#update-routine)).
 
-> **The `echo … >>` lines in Steps 3 and 4 append**, so run each block once: running one again adds another copy of its lines. Even run once, Step 4 puts `eval "$(pyenv init -)"` in both `~/.zshenv` and `~/.zshrc`, so interactive shells run it twice, a known cause of [pyenv rehash lock errors](dev-environment-setup.md#pyenv-cannot-rehash-couldnt-acquire-lock). Appending leaves any existing content alone, including blocks another tool manages (for example a corporate certificate or proxy block on a managed workstation). If you later restructure your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), that layout replaces the lines from Steps 3 and 4, including both `pyenv init` lines; merge it in rather than replacing the files.
+> **The `echo … >>` lines in Step 4 append**, so run that block once: running it again adds another copy of its lines. Even run once, Step 4 puts `eval "$(pyenv init -)"` in both `~/.zshenv` and `~/.zshrc`, so interactive shells run it twice, a known cause of [pyenv rehash lock errors](dev-environment-setup.md#pyenv-cannot-rehash-couldnt-acquire-lock). Appending leaves any existing content alone, including blocks another tool manages (for example a corporate certificate or proxy block on a managed workstation). If you later restructure your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), that layout replaces Step 4's lines, including both `pyenv init` lines, and keeps the blocks Step 3 copied from its templates; merge it in rather than replacing the files.
 
 > **Keep `openssl@3` installed.** Python 3.13 needs OpenSSL 3, but Homebrew is migrating to OpenSSL 4: plain `openssl` is now OpenSSL 4 and `pyenv` depends on it. Install `openssl@3` before `pyenv install` (the 3.13 build definition prefers it and otherwise falls back to Homebrew's default `openssl`), and leave it installed. Installing it by name marks it *installed on request*, so `brew upgrade` won't remove it later — if it does go missing, `cci` fails at startup with `Library not loaded: /opt/homebrew/opt/openssl@3/lib/libssl.3.dylib`. See [the troubleshooting entry](dev-environment-setup.md#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration) for the cause and why the toolchain can't move to OpenSSL 4 yet.
 
@@ -356,7 +356,7 @@ The validator does not install Salesforce CLI, Node.js, Python, or a browser.
 
 ### Using Claude Code with this project
 
-[Claude Code](https://claude.com/claude-code) spawns **non-interactive shells**, so don't rely on `~/.zshrc` for anything it needs: depending on how it was launched it may not see that file, or may see a snapshot taken when it started. Without `~/.zshenv`, Claude Code's Bash tool cannot find nvm-managed Node (`sf`, `node`) or pyenv-managed Python (`python`, `cci`). Steps 3 and 4 above add the required init blocks to `~/.zshenv` — if you skipped those additions, add them now. (If you restructured your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), the §2 `~/.zshenv` template provides this instead, deliberately without `pyenv init`; don't add the Step 4 lines back.)
+[Claude Code](https://claude.com/claude-code) spawns **non-interactive shells**, so don't rely on `~/.zshrc` for anything it needs: depending on how it was launched it may not see that file, or may see a snapshot taken when it started. Without `~/.zshenv`, Claude Code's Bash tool cannot find nvm-managed Node (`sf`, `node`) or pyenv-managed Python (`python`, `cci`). Step 3 above copies the §2 Homebrew and NVM blocks into `~/.zshenv`, and Step 4 adds pyenv's init lines there — if you skipped either, do it now. (If you restructured your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), the §2 `~/.zshenv` template provides this instead, deliberately without `pyenv init`; don't add the Step 4 lines back.)
 
 **Verify Claude Code can see your tools** by asking it to run:
 
@@ -364,7 +364,7 @@ The validator does not install Salesforce CLI, Node.js, Python, or a browser.
 node --version && sf --version && cci version && python --version
 ```
 
-If any command returns "not found", check that `~/.zshenv` contains the nvm and pyenv init blocks (see Steps 3 and 4), or the §2 `~/.zshenv` template if you restructured, then **restart Claude Code** so it picks up the updated PATH.
+If any command returns "not found", check that `~/.zshenv` contains the Homebrew and NVM blocks (Step 3) and the pyenv init lines (Step 4), or the §2 `~/.zshenv` template if you restructured, then **restart Claude Code** so it picks up the updated PATH.
 
 **After any PATH change** (new nvm version, new pyenv version, new pipx install), restart Claude Code — it inherits the PATH from the shell that launched it and does not reload `~/.zshenv` mid-session.
 
