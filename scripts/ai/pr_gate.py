@@ -296,7 +296,8 @@ CHECKS = [
         triggers=["docs/erds/", ".cursor/skills/revenue-cloud-data-model/",
                   ".cursor/skills/schema-validation/",
                   "scripts/ai/README.md", "tests/test_erd_doc_counts.py",
-                  "scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py"],
+                  "scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py",
+                  "scripts/erd/schema_diff/264-clm-schema.json"],
         deps=[], gating=True,
     ),
     dict(
