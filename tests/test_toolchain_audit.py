@@ -244,13 +244,28 @@ class NodeChecks(unittest.TestCase):
         # The template prepends `default` (here v26, the worst case) in a fresh shell, but not
         # in one that inherits a loaded .envrc, so the nested shell's Node dirs are unchanged.
         self.fake_nvm("node")
-        brew = self.bin / "brew"
-        brew.write_text(f"#!/bin/sh\n[ \"$*\" = '--prefix nvm' ] && echo '{self.home / '.nvm'}'\n")
-        brew.chmod(0o755)
+        self.fake_brew_nvm()
         self.zshenv(zshenv_nvm_block())
         repo, nested = self.nested(self.run_check("node-nested-shell"))
         self.assertTrue(repo.startswith("v24.0.0 from ~/.nvm/versions/node/v24.0.0/bin/node;"), repo)
         self.assertEqual(nested, repo)
+
+    def fake_brew_nvm(self):
+        brew = self.bin / "brew"
+        brew.write_text(f"#!/bin/sh\n[ \"$*\" = '--prefix nvm' ] && echo '{self.home / '.nvm'}'\n")
+        brew.chmod(0o755)
+
+    def test_template_keeps_default_when_no_nvm_node_was_inherited(self):
+        # $DIRENV_DIR alone doesn't skip the prepend: a shell that inherits it without any nvm
+        # Node on PATH (a parent that replaced PATH) still gets `default`.
+        self.fake_nvm("24")
+        self.fake_brew_nvm()
+        self.zshenv(zshenv_nvm_block())
+        env = dict(self.env, DIRENV_DIR=f"-{self.repo}")
+        out = subprocess.run(["zsh", "-c", "command -v node"], cwd="/tmp", env=env,
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+                             timeout=60).stdout.strip()
+        self.assertEqual(out, str(self.home / ".nvm/versions/node/v26.0.0/bin/node"))
 
     def test_nested_shell_shows_a_homebrew_node_ahead_of_nvm(self):
         # `brew shellenv` moves Homebrew's bin first in every shell; a Homebrew `node` there
