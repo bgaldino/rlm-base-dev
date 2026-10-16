@@ -55,11 +55,9 @@ Key technology stack:
 `unpackaged/post_*/` holds feature bundles. `templates/` is the UX source
 (step 30); `unpackaged/post_ux/` is generated output.
 
-Data lives under `datasets/`; utility scripts under `scripts/`; offline tests
-under `tests/`; Robot suites under `robot/rlm-base/`. `datasets/bre/` and
-`datasets/dx/` are runtime extraction output, not tracked source. See the
-[repository map](docs/references/repository-layout.md), [org definitions](orgs/README.md),
-[TFID guide](orgs/tfid/README.md), and **Script Reference** below for detail.
+Paths: `datasets/`, `scripts/`, `tests/`, `robot/rlm-base/`. `datasets/bre/` and
+`datasets/dx/` are untracked runtime output. See the [repository map](docs/references/repository-layout.md),
+[org definitions](orgs/README.md), [TFID guide](orgs/tfid/README.md), and **Script Reference**.
 
 ## DO NOT — Safety Guards
 
@@ -312,6 +310,7 @@ that topic.
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
 | Maintain the In-App Learning framework (`inapp` integration) | `.cursor/skills/inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
+| DRO plans | `.cursor/skills/dro-plans/SKILL.md` |
 | Build/rate/verify metered consumption demos (usage, commitments, drawdown) | `.cursor/skills/usage-consumption/SKILL.md` |
 | Build renewal-ready assets and lifecycle event history | `.cursor/skills/renewal-asset-creation/SKILL.md` |
 | Prepare DF Hands-On clone orgs and verify seeded data | `.cursor/skills/df-workshop-setup/SKILL.md` |

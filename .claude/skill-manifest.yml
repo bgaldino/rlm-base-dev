@@ -65,6 +65,17 @@ foundations:
   # Skills that Foundations holds canonically.
   # PMOS skills can read these via cross-repo resolution.
   skills:
+    - id: dro-plans
+      path: .cursor/skills/dro-plans/SKILL.md
+      purpose: "Author, load CSV/SFDMU, and maintain DRO order fulfillment configuration and handle affected in-flight plans"
+      consumed_by_pmos: []
+      sub_skills:
+        - .cursor/skills/dro-plans/objects-and-relationships.md
+        - .cursor/skills/dro-plans/authoring-and-deployment.md
+        - .cursor/skills/dro-plans/csv-and-sfdmu.md
+        - .cursor/skills/dro-plans/updates-and-runtime.md
+        - .cursor/skills/dro-plans/examples-and-grounding.md
+
     - id: revenue-cloud-data-model
       path: .cursor/skills/revenue-cloud-data-model/SKILL.md
       purpose: "Revenue Cloud object/field schema reference; backed by erd-data.json"
