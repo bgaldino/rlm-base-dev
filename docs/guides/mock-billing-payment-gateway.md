@@ -6,23 +6,16 @@ Enable both `payments` and `mock_payments` in the org’s CumulusCI project conf
 
 The setup task also creates the merchant account’s `RLM_Mock_Card_ACH` Payment Method Set Key, with `card` and `us_bank_account` (ACH) options, and registers matching payment-method-type mappings on the gateway provider. Select this key when configuring Salesforce-managed checkout, saved-payment-method, Scheduler, or Pay Now experiences that ask for a Payment Method Set Key. The Account-based mock components call Commerce Payments directly with an explicit gateway record ID and don’t require the key. Salesforce Billing’s payment scheduler uses its own Payment Gateway and Payment Type settings.
 
-To seed saved methods for an Account, run:
+The saved-method component’s optional **Payment response** selector exercises these outcomes:
 
-```bash
-cci task run seed_mock_saved_payment_methods --org <cci_alias> -o account_id <account_id>
-```
-
-The task creates one method for each deterministic card scenario plus a synthetic ACH checking method, and is safe to rerun. It does not set a default method. Each method uses a fake gateway token and includes test account-holder, billing-address, and payment-type metadata; no full card or bank account number is stored. Invoice and billing-profile address requirements are separate from the saved method’s optional billing address.
-
-| Saved method | Expected adapter behavior |
+| Selected outcome | Expected behavior |
 | --- | --- |
-| `RLM Mock Success` | Approve tokenization, authorization, sale, capture, refund, and reversal. |
-| `RLM Mock Decline` | Return a typed payment decline for authorization or sale; a later capture also declines. |
-| `RLM Mock Invalid` | Return a gateway error with status 400. |
-| `RLM Mock Gateway Error` | Return a gateway error with status 503. |
-| `RLM Mock ACH Success` | Active synthetic ACH checking method for testing bank-payment flows. |
+| `Success` | Tokenize successfully; subsequent payment operations succeed. |
+| `Decline` | Create the method successfully; authorization or sale returns a typed decline. |
+| `Invalid payment method` | Tokenization returns a gateway error with status 400. |
+| `Payment processing error` | Tokenization returns a gateway error with status 503. |
 
-The seed task fills only missing billing address fields on the selected test Account so the payment form can prefill them; it creates payment-method records but does not create invoices or initiate a Billing payment. When `prepare_payments` runs with both `payments` and `mock_payments` enabled, it deploys the mock bundle and assigns the `RLM_MockSavedPaymentMethods` permission set to the setup user. Add **RLM Saved Payment Method** to the Account record page to create additional methods. The component calls `ConnectApi.Payments.tokenizePaymentMethod`, which invokes the adapter’s `Tokenize` branch, then creates a Billing `SavedPaymentMethod` from the returned gateway token. Its Card / ACH switcher changes the entry fields and tokenization request. ACH requests include the account and holder types, routing number, email, a mock-only mandate, and WEB standard entry class code. Only synthetic test numbers are accepted; the full card or bank account number is sent transiently to Salesforce tokenization and is not stored by the component. The routing number, account type, holder type, and last four digits are saved as descriptive bank metadata. Replace this mock-only entry form with a gateway provider’s hosted fields or client SDK before using a real gateway.
+When `prepare_payments` runs with both `payments` and `mock_payments` enabled, it deploys the mock bundle and assigns the `RLM_MockSavedPaymentMethods` permission set to the setup user. Add **RLM Saved Payment Method** to the Account record page to create methods. The component calls `ConnectApi.Payments.tokenizePaymentMethod`, which invokes the adapter’s `Tokenize` branch, then creates a Billing `SavedPaymentMethod` from the returned gateway token. Its Card / ACH switcher changes the entry fields and tokenization request. ACH requests include the account and holder types, routing number, email, a mock-only mandate, and WEB standard entry class code. Only synthetic test numbers are accepted; the full card or bank account number is sent transiently to Salesforce tokenization and is not stored by the component. The routing number, account type, holder type, and last four digits are saved as descriptive bank metadata. Replace this mock-only entry form with a gateway provider’s hosted fields or client SDK before using a real gateway.
 
 To generate a payment record from an Account’s active saved methods, add **RLM Payment Sale** to the Account record page. Configure its **Payment Gateway Record ID** with the 18-character ID printed by `ensure_mock_payment_gateway`; this is the preferred unique per-org setting. The component also accepts a unique active Payment Gateway name for compatibility with existing pages. The CCI setup task verifies the provider and adapter when provisioning. The sale component lists active methods owned by the Account and attached to that gateway, with a Card / ACH filter. On submission, Apex calls `ConnectApi.Payments.sale()` with the selected `SavedPaymentMethod` ID and amount; Salesforce routes the Sale request through Commerce Payments to the configured adapter and creates the Payment record. In multicurrency orgs, the Account currency is passed to the sale request. The component rejects amounts above 100,000 and generates a unique idempotency key per submission. This standalone Payment Sale API flow creates a Payment; it does not apply the payment to a Billing invoice.
 

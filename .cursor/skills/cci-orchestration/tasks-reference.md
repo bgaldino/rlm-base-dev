@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**261 tasks** across **10 groups**.
+**260 tasks** across **9 groups**.
 
 ---
 
@@ -696,22 +696,6 @@
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes`
 - `use_extraction_roundtrip`: `False`
-
----
-
-## Data Management - Test Data
-
-*1 task(s)*
-
-### `seed_mock_saved_payment_methods`
-
-**Description:** Create mock payment scenario methods for one explicitly supplied Account ID.
-
-**Class:** `tasks.rlm_mock_payments.MockPaymentGateway`
-
-**Options:**
-
-- `operation`: `seed`
 
 ---
 
@@ -1913,10 +1897,6 @@
 **Description:** Provision the opt-in RLM mock payment gateway and test merchant account.
 
 **Class:** `tasks.rlm_mock_payments.MockPaymentGateway`
-
-**Options:**
-
-- `operation`: `ensure`
 
 ---
 

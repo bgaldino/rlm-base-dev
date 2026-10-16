@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any, Dict, List, Tuple
 
 import requests
@@ -29,37 +28,10 @@ GATEWAY_PROVIDER_PAYMENT_METHOD_TYPES = {
     "card": "CardPaymentMethod",
     "us_bank_account": "AlternativePaymentMethod",
 }
-SCENARIOS = {
-    "Success": "MOCK:SUCCESS",
-    "Decline": "MOCK:DECLINE",
-    "Invalid": "MOCK:INVALID",
-    "Gateway Error": "MOCK:ERROR",
-}
-REQUIRED_SEEDED_METHOD_FIELDS = (
-    "AccountHolderName",
-    "AccountHolderEmail",
-    "ExpiryMonth",
-    "ExpiryYear",
-    "BillingStreet",
-    "BillingCity",
-    "BillingState",
-    "BillingPostalCode",
-    "BillingCountry",
-)
-
-
 class MockPaymentGateway(BaseSalesforceApiTask):
-    """Ensure mock gateway configuration or seed saved methods for one account."""
+    """Provision the opt-in mock payment gateway and merchant account."""
 
     task_options = {
-        "operation": {
-            "description": "Operation: 'ensure' gateway setup or 'seed' saved methods.",
-            "required": True,
-        },
-        "account_id": {
-            "description": "Account ID required for the 'seed' operation.",
-            "required": False,
-        },
         "api_version": {
             "description": "Salesforce API version override.",
             "required": False,
@@ -67,13 +39,7 @@ class MockPaymentGateway(BaseSalesforceApiTask):
     }
 
     def _run_task(self) -> None:
-        operation = (self.options.get("operation") or "").strip().lower()
-        if operation == "ensure":
-            self._ensure_gateway()
-        elif operation == "seed":
-            self._seed_methods()
-        else:
-            raise TaskOptionsError("operation must be 'ensure' or 'seed'")
+        self._ensure_gateway()
 
     def _api_context(self) -> Tuple[str, str, str]:
         token = self.org_config.access_token
@@ -139,26 +105,6 @@ class MockPaymentGateway(BaseSalesforceApiTask):
                 f"Creating {object_name} failed ({response.status_code}): {response.text}"
             )
         return response.json()["id"]
-
-    def _update(
-        self,
-        token: str,
-        instance: str,
-        version: str,
-        object_name: str,
-        record_id: str,
-        record: Dict[str, Any],
-    ) -> None:
-        response = requests.patch(
-            self._url(instance, version, f"sobjects/{object_name}/{record_id}"),
-            headers=self._headers(token),
-            json=record,
-            timeout=30,
-        )
-        if not response.ok:
-            raise TaskOptionsError(
-                f"Updating {object_name} failed ({response.status_code}): {response.text}"
-            )
 
     @staticmethod
     def _escape(value: str) -> str:
@@ -407,174 +353,6 @@ class MockPaymentGateway(BaseSalesforceApiTask):
                 "PaymentStatus": "Enabled",
                 "PayoutStatus": "Disabled",
             },
-        )
-
-    def _seed_methods(self) -> None:
-        account_id = (self.options.get("account_id") or "").strip()
-        if not account_id or not account_id.startswith("001"):
-            raise TaskOptionsError("account_id must be an Account ID for the 'seed' operation.")
-
-        token, instance, version = self._api_context()
-        accounts = self._query(
-            token,
-            instance,
-            version,
-            "SELECT Id, BillingStreet, BillingCity, BillingState, BillingPostalCode, "
-            "BillingCountry FROM Account "
-            f"WHERE Id = '{self._escape(account_id)}'",
-        )
-        if not accounts:
-            raise TaskOptionsError("The supplied Account ID is not visible in this org.")
-        account = accounts[0]
-        default_billing_address = {
-            "BillingStreet": "1 Market St",
-            "BillingCity": "San Francisco",
-            "BillingState": "CA",
-            "BillingPostalCode": "94105",
-            "BillingCountry": "US",
-        }
-        missing_billing_fields = {
-            field: value
-            for field, value in default_billing_address.items()
-            if not account.get(field)
-        }
-        if missing_billing_fields:
-            self._update(
-                token,
-                instance,
-                version,
-                "Account",
-                account_id,
-                missing_billing_fields,
-            )
-            self.logger.info(
-                "Filled missing billing address fields on the selected test Account."
-            )
-
-        gateway = self._one(
-            self._query(
-                token,
-                instance,
-                version,
-                "SELECT Id, MerchantAccountId FROM PaymentGateway "
-                f"WHERE PaymentGatewayName = '{GATEWAY_NAME}' AND Status = 'Active'",
-            ),
-            "active mock payment gateway",
-        )
-        if not gateway or not gateway.get("MerchantAccountId"):
-            raise TaskOptionsError("Run ensure_mock_payment_gateway before seeding methods.")
-
-        existing = self._query(
-            token,
-            instance,
-            version,
-            "SELECT Id, Name, AccountHolderName, AccountHolderEmail, ExpiryMonth, "
-            "ExpiryYear, BillingStreet, BillingCity, BillingState, BillingPostalCode, "
-            "BillingCountry FROM SavedPaymentMethod "
-            f"WHERE ReferenceOwnerId = '{self._escape(account_id)}' "
-            f"AND PaymentGatewayId = '{gateway['Id']}'",
-        )
-        existing_by_name = {record.get("Name"): record for record in existing}
-        created = 0
-        for name, gateway_token in SCENARIOS.items():
-            record_name = f"RLM Mock {name}"
-            previous = existing_by_name.get(record_name)
-            complete_name = record_name + " Complete"
-            complete = existing_by_name.get(complete_name)
-            if self._is_complete_seeded_method(complete):
-                continue
-            if self._is_complete_seeded_method(previous):
-                continue
-            # SavedPaymentMethod records aren't updateable. If an earlier version
-            # of this task already created a sparse scenario, add a complete
-            # companion record with a distinct mock token instead of attempting
-            # an update or leaving the account without realistic billing data.
-            if previous:
-                record_name += " Complete"
-                gateway_token += ":COMPLETE"
-            self._create(
-                token,
-                instance,
-                version,
-                "SavedPaymentMethod",
-                {
-                    "Name": record_name,
-                    "ReferenceOwnerId": account_id,
-                    "PaymentGatewayId": gateway["Id"],
-                    "MerchantAccountId": gateway["MerchantAccountId"],
-                    "Status": "Active",
-                    "UsageType": "OffSession",
-                    "IsDefault": False,
-                    "IsMerchantCreated": True,
-                    "IsSharedWithinSameAccount": False,
-                    "Type": "card",
-                    "GatewayReference": f"mock-saved-{name.lower().replace(' ', '-')}",
-                    "GatewayToken": gateway_token,
-                    "Checksum": hashlib.sha256(gateway_token.encode()).hexdigest()[:63],
-                    "Last4": "4242",
-                    "Network": "Visa",
-                    "AccountHolderName": "RLM Billing Test",
-                    "AccountHolderEmail": "mock-billing-test@example.invalid",
-                    "ExpiryMonth": 12,
-                    "ExpiryYear": 2030,
-                    "NickName": "Visa" if name == "Success" else f"Visa · {name}",
-                    "BillingStreet": "1 Market St",
-                    "BillingCity": "San Francisco",
-                    "BillingState": "CA",
-                    "BillingPostalCode": "94105",
-                    "BillingCountry": "US",
-                },
-            )
-            created += 1
-        ach_record_name = "RLM Mock ACH Success"
-        if ach_record_name not in existing_by_name:
-            self._create(
-                token,
-                instance,
-                version,
-                "SavedPaymentMethod",
-                {
-                    "Name": ach_record_name,
-                    "ReferenceOwnerId": account_id,
-                    "PaymentGatewayId": gateway["Id"],
-                    "MerchantAccountId": gateway["MerchantAccountId"],
-                    "Status": "Active",
-                    "UsageType": "OffSession",
-                    "IsDefault": False,
-                    "IsMerchantCreated": True,
-                    "IsSharedWithinSameAccount": False,
-                    "Type": "us_bank_account",
-                    "BankName": "RLM Mock Bank",
-                    "BankCode": "000000000",
-                    "BankAccountType": "Checking",
-                    "BankAccountHolderType": "Individual",
-                    "GatewayReference": f"mock-ach-{account_id}",
-                    "GatewayToken": "MOCK:SUCCESS:ACH",
-                    "Checksum": hashlib.sha256(b"MOCK:SUCCESS:ACH").hexdigest()[:63],
-                    "Last4": "6789",
-                    "AccountHolderName": "RLM Billing Test",
-                    "AccountHolderEmail": "mock-billing-test@example.invalid",
-                    "NickName": "Checking account",
-                    "BillingStreet": "1 Market St",
-                    "BillingCity": "San Francisco",
-                    "BillingState": "CA",
-                    "BillingPostalCode": "94105",
-                    "BillingCountry": "US",
-                },
-            )
-            created += 1
-            self.logger.info(
-                f"Created a synthetic ACH test method for Account {account_id}."
-            )
-        self.logger.info(
-            f"Created {created} mock saved payment method(s) for Account {account_id}; existing scenarios were kept."
-        )
-
-    @staticmethod
-    def _is_complete_seeded_method(method: Dict[str, Any] | None) -> bool:
-        return bool(
-            method
-            and all(method.get(field) for field in REQUIRED_SEEDED_METHOD_FIELDS)
         )
 
     @staticmethod

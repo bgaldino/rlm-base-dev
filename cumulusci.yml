@@ -1740,8 +1740,6 @@ tasks:
     group: Revenue Lifecycle Management
     description: Provision the opt-in RLM mock payment gateway and test merchant account.
     class_path: tasks.rlm_mock_payments.MockPaymentGateway
-    options:
-      operation: ensure
 
   deploy_post_mock_payments:
     group: Revenue Lifecycle Management
@@ -1749,13 +1747,6 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_mock_payments
-
-  seed_mock_saved_payment_methods:
-    group: Data Management - Test Data
-    description: Create mock payment scenario methods for one explicitly supplied Account ID.
-    class_path: tasks.rlm_mock_payments.MockPaymentGateway
-    options:
-      operation: seed
 
   ensure_pricing_schedules:
     description: Ensure pricing schedules exist before expression sets
