@@ -256,7 +256,7 @@ class NodeChecks(unittest.TestCase):
         brew.chmod(0o755)
 
     def test_template_keeps_default_when_no_nvm_node_was_inherited(self):
-        # $DIRENV_DIR alone doesn't skip the prepend: a shell that inherits it without any nvm
+        # $DIRENV_DIR alone doesn't keep anything: a shell that inherits it without any nvm
         # Node on PATH (a parent that replaced PATH) still gets `default`.
         self.fake_nvm("24")
         self.fake_brew_nvm()
@@ -267,17 +267,97 @@ class NodeChecks(unittest.TestCase):
                              timeout=60).stdout.strip()
         self.assertEqual(out, str(self.home / ".nvm/versions/node/v26.0.0/bin/node"))
 
-    def test_nested_shell_shows_a_homebrew_node_ahead_of_nvm(self):
-        # `brew shellenv` moves Homebrew's bin first in every shell; a Homebrew `node` there
-        # wins in the nested shell even with the guarded template, and the check names its path.
-        brew_bin = self.home / "homebrew" / "bin"
-        brew_bin.mkdir(parents=True)
-        (brew_bin / "node").write_text("#!/bin/sh\necho v26.0.0\n")
-        (brew_bin / "node").chmod(0o755)
-        self.zshenv(f'export PATH="{brew_bin}:$PATH"\n{zshenv_nvm_block()}')
+    def node_ahead_of_nvm(self, bin_dir):
+        """A `node` (v26) in `bin_dir`, which ~/.zshenv prepends before the NVM block."""
+        bin_dir.mkdir(parents=True)
+        (bin_dir / "node").write_text("#!/bin/sh\necho v26.0.0\n")
+        (bin_dir / "node").chmod(0o755)
+        return f'export PATH="{bin_dir}:$PATH"\n'
+
+    def test_template_keeps_nvm_ahead_of_a_local_bin_node_shim(self):
+        # The template prepends ~/.local/bin before the NVM block, and managed workstations
+        # keep a tool's `node` shim there (DevBar's). A guard that only skipped the prepend let
+        # that shim win in the nested shell (bgaldino-ltmf746, pack 285): the block must move
+        # the inherited nvm Node back in front of it, without adding a second copy.
+        self.fake_nvm("24")
+        self.fake_brew_nvm()
+        self.zshenv(self.node_ahead_of_nvm(self.home / ".local" / "bin") + zshenv_nvm_block())
         repo, nested = self.nested(self.run_check("node-nested-shell"))
         self.assertTrue(repo.startswith("v24.0.0 from ~/.nvm/versions/node/v24.0.0/bin/node;"), repo)
-        self.assertTrue(nested.startswith("v26.0.0 from ~/homebrew/bin/node;"), nested)
+        self.assertEqual(nested, repo)
+
+    def test_template_keeps_nvm_ahead_of_a_shim_with_the_installers_nvm(self):
+        # scheck-ltmj0vv's shape: nvm from nvm's own installer ($NVM_DIR/nvm.sh, no Homebrew
+        # nvm) and a ~/.local/bin node shim. The block must find that nvm.sh too, and the
+        # reorder must not depend on it.
+        self.fake_nvm("24")
+        self.zshenv(self.node_ahead_of_nvm(self.home / ".local" / "bin") + zshenv_nvm_block())
+        repo, nested = self.nested(self.run_check("node-nested-shell"))
+        self.assertTrue(repo.startswith("v24.0.0 from ~/.nvm/versions/node/v24.0.0/bin/node;"), repo)
+        self.assertEqual(nested, repo)
+
+    def test_template_keeps_an_inherited_xdg_nvm_dir(self):
+        # An nvm installed under $XDG_CONFIG_HOME: .envrc exports that NVM_DIR and puts its Node
+        # first. The nested shell must keep the inherited NVM_DIR, so it recognises that Node,
+        # rather than resetting NVM_DIR to ~/.nvm and putting Homebrew nvm's default first.
+        xdg = self.home / ".config" / "nvm"
+        node = xdg / "versions" / "node" / "v24.0.0" / "bin" / "node"
+        node.parent.mkdir(parents=True)
+        node.write_text("#!/bin/sh\necho v24.0.0-xdg\n")
+        node.chmod(0o755)
+        (self.repo / ".envrc").write_text(f'export NVM_DIR="{xdg}"\nPATH_add "{node.parent}"\n')
+        self.fake_nvm("node")
+        self.fake_brew_nvm()
+        self.zshenv(self.node_ahead_of_nvm(self.home / ".local" / "bin") + zshenv_nvm_block())
+        out = self.run_check("node-nested-shell")
+        self.assertIn("nested shell: v24.0.0-xdg from ~/.config/nvm/versions/node/v24.0.0/bin/node;", out)
+
+    def test_template_keeps_nvm_ahead_of_a_homebrew_node(self):
+        # `brew shellenv` moves Homebrew's bin first in every shell; a Homebrew `node` there
+        # must not win in the nested shell either.
+        self.fake_nvm("24")
+        self.fake_brew_nvm()
+        self.zshenv(self.node_ahead_of_nvm(self.home / "homebrew" / "bin") + zshenv_nvm_block())
+        repo, nested = self.nested(self.run_check("node-nested-shell"))
+        self.assertEqual(nested, repo)
+
+    def test_nested_shell_shows_a_node_ahead_of_nvm_without_the_template(self):
+        # With no NVM block to put nvm's Node back, a `node` prepended before it wins in the
+        # nested shell, and the check names its path.
+        self.zshenv(self.node_ahead_of_nvm(self.home / ".local" / "bin"))
+        repo, nested = self.nested(self.run_check("node-nested-shell"))
+        self.assertTrue(repo.startswith("v24.0.0 from ~/.nvm/versions/node/v24.0.0/bin/node;"), repo)
+        self.assertTrue(nested.startswith("v26.0.0 from ~/.local/bin/node;"), nested)
+
+    def test_nested_shell_shows_a_duplicate_from_an_unconditional_default_prepend(self):
+        # bgaldino-ltmf746's hand-written block: `default` prepended in every shell. Here it's
+        # the pinned line, so Node is right, but the nested shell's list gains a second copy.
+        self.zshenv('export PATH="$HOME/.nvm/versions/node/v24.0.0/bin:$PATH"')
+        repo, nested = self.nested(self.run_check("node-nested-shell"))
+        self.assertEqual(nested.split(";")[0], repo.split(";")[0])
+        dirs = lambda out: out.split("on PATH:", 1)[1].split()
+        self.assertEqual(len(dirs(nested)), len(dirs(repo)) + 1, (repo, nested))
+
+    def test_template_block_is_idempotent(self):
+        # Run twice in one shell (a nested shell of a nested shell), the block leaves the
+        # inherited nvm Node dir in front, once, and the rest of PATH in order, empty entries
+        # (the current directory) included.
+        self.fake_nvm("24")
+        self.fake_brew_nvm()
+        block = self.home / "block.sh"
+        block.write_text(zshenv_nvm_block())
+        nvm24 = self.home / ".nvm/versions/node/v24.0.0/bin"
+        nvm26 = self.home / ".nvm/versions/node/v26.0.0/bin"
+        # A package's bin dir under an nvm version, ahead of the Node bin: not the one to keep.
+        pkg = self.home / ".nvm/versions/node/v24.0.0/lib/node_modules/pkg/bin"
+        pkg.mkdir(parents=True)
+        env = dict(self.env, DIRENV_DIR=f"-{self.repo}",
+                   PATH=f":/opt/x:{pkg}:{nvm24}::{self.bin}:/usr/bin:/bin:{nvm26}")
+        for shell in ("zsh", "sh"):
+            out = subprocess.run([shell, "-c", f'. "{block}"; . "{block}"; echo "$PATH"'],
+                                 env=env, stdout=subprocess.PIPE, text=True, check=True,
+                                 timeout=60).stdout.strip()
+            self.assertEqual(out, f"{nvm24}::/opt/x:{pkg}::{self.bin}:/usr/bin:/bin:{nvm26}", shell)
 
     def test_nvm_default_shows_the_alias_and_what_it_resolves_to(self):
         self.zshenv("")

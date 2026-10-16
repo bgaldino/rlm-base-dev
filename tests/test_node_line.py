@@ -320,6 +320,17 @@ class NodeLine(unittest.TestCase):
         self.assertIn("$NVM_PREFIX/nvm.sh", envrc, ".envrc must look for Homebrew's nvm")
         self.assertIn("$NVM_DIR/nvm.sh", envrc, ".envrc must look for nvm's own installer's nvm")
 
+    def test_zshenv_template_finds_nvm_like_envrc(self):
+        # The guide's ~/.zshenv NVM block once knew Homebrew's nvm only, so on a workstation
+        # with nvm's own installer it did nothing (pack 285).
+        guide = read("docs/guides/dev-environment-setup.md")
+        start = guide.index("# NVM —")
+        block = guide[start:guide.index("# pyenv binary", start)]
+        self.assertEqual(nvm_sh_candidates(block), nvm_sh_candidates(envrc_node_block()),
+                         "the ~/.zshenv template must test for nvm.sh where .envrc does, in its order")
+        self.assertIn('NVM_DIR="${NVM_DIR:-$HOME/.nvm}"', block,
+                      "the ~/.zshenv template must keep an inherited NVM_DIR")
+
     def test_guide_template_mirrors_envrc(self):
         self.assertEqual(code_lines(guide_node_block()), code_lines(envrc_node_block()),
                          "dev-environment-setup.md's .envrc template must carry .envrc's Node code")
