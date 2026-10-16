@@ -270,6 +270,29 @@ then polls. If it times out:
 **Fix:** Check Setup → Permission Set Groups → the failing PSG for conflict
 details. Remove conflicting permission set members.
 
+### A standard field is on the layout but missing from the form, describe and SOQL
+
+**Example:** in a fresh 264 org, New Billing Account shows only Primary Billing
+Address, with no Shipping Address, Bill Day of Month or Payment Term.
+`SELECT ShippingStreet FROM BillingAccount` fails with "No such column".
+
+**Cause:** missing FLS, not missing schema. Describe, data-API `FieldDefinition`
+and SOQL all hide fields the running user can't read. That makes a hidden field
+look as if it doesn't exist. The standard Billing permission sets don't grant
+these three fields, and fresh orgs don't always give profiles FLS on fields a
+release adds. Opening the object in Setup → Object Manager was seen to
+back-fill profile FLS, so an org you've browsed in Setup is no longer evidence.
+
+**Diagnose:**
+- Check the schema without the FLS filter: run
+  `sf data query --use-tooling-api -q "SELECT QualifiedApiName FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName='BillingAccount'"`.
+- Then compare `FieldPermissions` for the user's permission sets.
+
+**Fix:** grant FLS through a permission set, never a custom field. For
+BillingAccount the build does this with `RLM_BillingAccountFieldAccess` (in
+`RLM_RCB` and the billing persona PSGs). On an org built before that change,
+set the field's FLS in Setup, then hard-refresh Lightning.
+
 ---
 
 ## Context Definition Errors
