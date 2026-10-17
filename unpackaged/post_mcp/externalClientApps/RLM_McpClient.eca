@@ -4,5 +4,5 @@
     <description>MCP client for Revenue Cloud hosted and custom MCP servers.</description>
     <distributionState>Local</distributionState>
     <isProtected>false</isProtected>
-    <label>ClaudeMcpClientRC</label>
+    <label>RLM_McpClient</label>
 </ExternalClientApplication>

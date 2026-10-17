@@ -1,35 +1,32 @@
 /**
- * RampCloneSalesTransaction — @InvocableMethod wrapper over the clone Sales Transaction
- * Connect resource, so the clone/add-ramp-segment operation can be surfaced as a typed
- * tool on a custom MCP server through ApiSource=CLASSIC (invocable-action binding).
+ * RLM_CloneSalesTransaction — ASYNC-CAPABLE (v68.0).
+ *
+ * ASYNC-CAPABLE (264 / v68.0 baseline). The async members (input.contextId,
+ * options.contextId, output.trackerId) exist only from v68.0 / 264 on. Foundations is
+ * owned for this class: edits belong here. A user calling this
+ * through the CLASSIC action endpoint also needs class access; the RLM_McpSalesTransactions
+ * permission set grants it.
  *
  * WHY AN INVOCABLE AND NOT A CONNECT BINDING
  *   placeSalesTransaction carries @McpIntegration and can be bound declaratively as
  *   ApiSource=CONNECT. Clone does not, so the supported path for a custom server is an
  *   Apex invocable bound as ApiSource=CLASSIC at
- *   /actions/custom/apex/RampCloneSalesTransaction, which needs no @McpIntegration.
+ *   /actions/custom/apex/RLM_CloneSalesTransaction, which needs no @McpIntegration.
  *
- * WHY ConnectApi AND NOT A CALLOUT TO SELF
- *   The clone resource exposes an Apex surface, so no Named Credential is involved:
- *   ConnectApi.CloneSalesTransactionConnect.cloneSalesTransaction(
- *       CloneSalesTransactionInputRepresentation) -> CloneSalesTransactionOutputRepresentation
- *
- * SYNCHRONOUS ON THIS RELEASE — DO NOT ADD A TRACKER CONTRACT HERE
- *   Async clone is requested by passing a hydrated `contextId` whose sales-transaction
- *   header has IsLargeDeal=true, and is reported back as trackerId/trackerUrl. None of
- *   those three members exist on the 262 / v67.0 representations (verified by compile
- *   probe against a 262 org: `Variable does not exist` for input.contextId,
- *   options.contextId, and output.trackerId). So on this release the clone is always
- *   synchronous and there is nothing to poll. Tracker fields are deliberately absent
- *   from Result rather than present-and-always-null, because an always-null trackerId
- *   invites a caller — especially an LLM driving this as an MCP tool — to poll a handle
- *   that will never exist. The async-capable variant targets 264 / v68.0 and lives in
- *   the ramp-demo-kit repo; see .cursor/skills/mcp-integration/SKILL.md.
+ * ASYNC CONTRACT
+ *   Async clone is a server-side behavior triggered by passing a hydrated `contextId`
+ *   whose sales-transaction header has IsLargeDeal=true, with the org's two large-deal
+ *   gates open. It returns trackerId/trackerUrl IMMEDIATELY, before the work runs, so
+ *   this wrapper is deliberately non-blocking: it fires the clone and hands back the
+ *   tracker handle for the caller to poll on AsyncOperationTracker. When the async
+ *   conditions are not met the platform quietly runs synchronously instead — trackerId
+ *   and trackerUrl come back null and salesTransactionId is populated. Both cases are
+ *   reported faithfully, and isAsync tells the caller which one it got.
  */
-public with sharing class RampCloneSalesTransaction {
+public with sharing class RLM_CloneSalesTransaction {
 
     public class Request {
-        // The ramped QuoteLineGroup id(s) to clone. The Connect input accepts one.
+        // The QuoteLineGroup id(s) to clone. The Connect input accepts one.
         @InvocableVariable(required=true label='Record Ids')
         public List<String> recordIds;
 
@@ -37,9 +34,14 @@ public with sharing class RampCloneSalesTransaction {
         @InvocableVariable(required=true label='Sales Transaction Id')
         public String salesTransactionId;
 
-        // AllLines or RampedLinesOnly. Defaults to AllLines.
+        // AllLines or the platform RampedLinesOnly scope. Defaults to AllLines.
         @InvocableVariable(label='Line Scope')
         public String lineScope;
+
+        // Hydrated sales-transaction context id. Supplying this, with IsLargeDeal=true
+        // and the org gates open, is what triggers the async clone.
+        @InvocableVariable(label='Context Id')
+        public String contextId;
 
         // Optional target record type for the cloned segment.
         @InvocableVariable(label='Record Type Id')
@@ -50,12 +52,23 @@ public with sharing class RampCloneSalesTransaction {
         @InvocableVariable(label='Success')
         public Boolean success;
 
-        // Target header id. Populated on success.
+        // Target header id. Populated when the clone ran synchronously.
         @InvocableVariable(label='Sales Transaction Id')
         public String salesTransactionId;
 
+        // Non-null means async: poll AsyncOperationTracker on this id.
+        @InvocableVariable(label='Tracker Id')
+        public String trackerId;
+
+        @InvocableVariable(label='Tracker Url')
+        public String trackerUrl;
+
         @InvocableVariable(label='Request Id')
         public String requestId;
+
+        // Derived from trackerId, so a caller does not have to infer the mode.
+        @InvocableVariable(label='Is Async')
+        public Boolean isAsync;
 
         // Populated on failure, or when Connect reports errors alongside a response.
         @InvocableVariable(label='Error Message')
@@ -63,8 +76,8 @@ public with sharing class RampCloneSalesTransaction {
     }
 
     @InvocableMethod(
-        label='Clone Sales Transaction (Add Ramp Segment)'
-        description='Clones a ramped sales-transaction group to add a ramp segment. Synchronous: the clone is complete when this returns.'
+        label='Clone Sales Transaction'
+        description='Clones a sales transaction (or selected groups of it). Returns the async tracker handle when async clone is triggered; otherwise the clone is complete when this returns.'
         category='Revenue Cloud'
     )
     public static List<Result> cloneSegments(List<Request> requests) {
@@ -83,6 +96,7 @@ public with sharing class RampCloneSalesTransaction {
         if (req == null || String.isBlank(req.salesTransactionId)
                 || req.recordIds == null || req.recordIds.isEmpty()) {
             r.success = false;
+            r.isAsync = false;
             r.errorMessage = 'salesTransactionId and at least one recordId are required.';
             return r;
         }
@@ -91,6 +105,9 @@ public with sharing class RampCloneSalesTransaction {
                 new ConnectApi.CloneSalesTransactionInputRepresentation();
             input.salesTransactionId = req.salesTransactionId;
             input.recordIds = req.recordIds;
+            if (String.isNotBlank(req.contextId)) {
+                input.contextId = req.contextId;
+            }
 
             ConnectApi.CloneOptionsInputRepresentation options =
                 new ConnectApi.CloneOptionsInputRepresentation();
@@ -105,17 +122,22 @@ public with sharing class RampCloneSalesTransaction {
 
             r.success            = out.success;
             r.salesTransactionId = out.salesTransactionId;
+            r.trackerId          = out.trackerId;
+            r.trackerUrl         = out.trackerUrl;
             r.requestId          = out.requestId;
+            r.isAsync            = out.trackerId != null;
             if (out.errors != null && !out.errors.isEmpty()) {
                 r.errorMessage = serializeErrors(out.errors);
             }
         } catch (Exception e) {
             r.success = false;
+            r.isAsync = false;
             r.errorMessage = e.getTypeName() + ': ' + e.getMessage();
         }
         return r;
     }
 
+    @TestVisible
     private static ConnectApi.LineScopeEnum parseLineScope(String value) {
         // Case-insensitive; anything unrecognised falls back to AllLines.
         if (String.isBlank(value)) {

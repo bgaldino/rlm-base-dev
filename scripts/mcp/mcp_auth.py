@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Portable, one-click-per-workstation OAuth for the ramp-MCP planner (pack 094 / 093).
+"""Portable, one-click-per-workstation OAuth for the Revenue Cloud MCP client tooling.
 
 WHY THIS EXISTS
   The SF MCP gateway rejects the `sf` CLI's own session token (401 "Invalid token" —
@@ -7,19 +7,19 @@ WHY THIS EXISTS
   with the `mcp_api` OAuth scope, which the CLI connected app does not carry. So the
   ECA + user-OAuth path is genuinely required — there is no CLI-token shortcut.
 
-  What we CAN remove is repeating the browser dance. `ramp_planner.oauth()` requested
-  `refresh_token` scope but threw the refresh token away (access token in memory only),
-  so every run re-opened the browser. The ECA's refresh-token policy on this org is
-  SpecificLifetime / 8760 Days (~24 years), so a cached refresh token is effectively
-  permanent. This helper does the PKCE loopback ONCE, caches the refresh token, and
-  thereafter mints access tokens silently — the planner (and any build-automation
-  standup, pack 093) becomes non-interactive after a single per-workstation login.
+  What we CAN remove is repeating the browser dance. A client that keeps the access token
+  in memory only re-opens the browser on every run. The ECA's refresh-token policy is
+  SpecificLifetime / 365 Days (one year), so a cached refresh token lasts a year, after
+  which one fresh browser login is needed. This helper does the PKCE loopback ONCE, caches
+  the refresh token, and thereafter mints access tokens silently — scripts and the proxy
+  become non-interactive after a single per-workstation login (repeat yearly, when the
+  refresh token expires).
 
 STORAGE (portable, no new pip dependency)
   - macOS: the login Keychain via the `security` CLI (generic password).
-  - elsewhere (Linux / devcontainer): a 0600 file under $RAMP_AUTH_DIR or ~/.config/rlm-ramp.
-  The secret stored is the REFRESH TOKEN only (never the access token, never the
-  consumer secret). Cache key = org instance host + ECA consumer key, so multiple
+  - elsewhere (Linux / devcontainer): a 0600 file under $RLM_MCP_AUTH_DIR or ~/.config/rlm-mcp.
+  The secrets stored are the REFRESH TOKEN and the short-lived access token + expiry
+  (never the consumer secret). Cache key = org instance host + ECA consumer key, so multiple
   orgs / ECAs don't collide.
 
 TWO MODES
@@ -36,24 +36,29 @@ USAGE
   export SF_CID=...  SF_INSTANCE=https://<my>.salesforce.com     # SF_CSEC optional (PKCE)
 
   Multi-org: don't set these by hand. One alias resolves everything —
-      eval "$(python3 tools/ramp_org.py env <sf-alias>)"          # or RAMP_MCP_ORG=<alias>
-  which also namespaces RAMP_AUTH_DIR per org id, so two orgs never share a tool-list cache.
-  python3 tools/ramp_auth.py login       # one-time browser consent, caches refresh token
-  python3 tools/ramp_auth.py token        # prints a fresh access token (for scripts)
-  python3 tools/ramp_auth.py status       # is a refresh token cached for this org/ECA?
-  python3 tools/ramp_auth.py logout        # forget the cached refresh token
+      eval "$(python3 scripts/mcp/mcp_org.py env <sf-alias>)"          # or RLM_MCP_ORG=<alias>
+  which also namespaces RLM_MCP_AUTH_DIR per org id, so two orgs never share a tool-list cache.
+  python3 scripts/mcp/mcp_auth.py login       # one-time browser consent, caches refresh token
+  python3 scripts/mcp/mcp_auth.py token        # prints a fresh access token (for scripts)
+  python3 scripts/mcp/mcp_auth.py status       # is a refresh token cached for this org/ECA?
+  python3 scripts/mcp/mcp_auth.py logout        # forget the cached refresh token
 
-  As a library (what ramp_planner uses):
-      from ramp_auth import get_access_token
+  As a library (what scripts import):
+      from mcp_auth import get_access_token
       access = get_access_token()          # silent if cached; else prints OPEN_THIS_URL and waits
 """
-import base64, hashlib, http.server, json, os, secrets, socket, subprocess, sys, threading, time
+import base64, contextlib, hashlib, http.server, json, os, secrets, socket, subprocess, sys
+import tempfile, threading, time
+try:
+    import fcntl                      # POSIX only; the lock degrades to a no-op elsewhere
+except ImportError:                   # pragma: no cover (Windows)
+    fcntl = None
 import urllib.parse, urllib.request, urllib.error
 
 PORT   = int(os.environ.get("SF_PORT", "8080"))
 REDIR  = f"http://localhost:{PORT}/callback"
 SCOPE  = "mcp_api refresh_token api"
-SERVICE = "rlm-ramp-mcp"                      # keychain service / file namespace
+SERVICE = "rlm-mcp"                      # keychain service / file namespace
 
 # Auth mode. "" (default) = authorization_code + PKCE with a cached, rotating refresh token.
 # "client_credentials" = mint straight from consumer key + secret: no browser, no refresh
@@ -74,10 +79,11 @@ def _inst():
 def _cid_csec():
     """SF_CID is required; SF_CSEC is OPTIONAL.
 
-    The ECA sets `isConsumerSecretOptional=true`, so authorization_code + PKCE (S256)
-    completes with the consumer key alone — verified live on 264-upgrade with SF_CSEC
-    unset. Dropping the secret is what lets an org be selected by alias alone
-    (`RAMP_MCP_ORG`, see ramp_org.py) with no per-org secret in any config file.
+    The ECA sets `isConsumerSecretOptional=true` and `isSecretRequiredForRefreshToken=false`,
+    so authorization_code + PKCE (S256) AND the refresh grant complete with the consumer
+    key alone (no client_secret is sent when SF_CSEC is unset; see _drop_none) — verified
+    live on 264-upgrade with SF_CSEC unset. Dropping the secret is what lets an org be selected by alias alone
+    (`RLM_MCP_ORG`, see mcp_org.py) with no per-org secret in any config file.
     A secret is still honoured when supplied, for ECAs configured to require one.
     """
     cid, csec = os.environ.get("SF_CID"), os.environ.get("SF_CSEC")
@@ -105,9 +111,54 @@ def _is_macos():
 
 
 def _file_path():
-    d = os.environ.get("RAMP_AUTH_DIR") or os.path.expanduser("~/.config/rlm-ramp")
+    d = os.environ.get("RLM_MCP_AUTH_DIR") or os.path.expanduser("~/.config/rlm-mcp")
     os.makedirs(d, mode=0o700, exist_ok=True)
     return os.path.join(d, "refresh-tokens.json")
+
+
+def _write_private(path, text):
+    """Write `path` as 0600 from creation: mkstemp (O_EXCL, 0600) in the same dir, fsync,
+    atomic os.replace. Never a window at the umask mode, and a pre-existing looser file is
+    replaced, not rewritten in place."""
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".tmp-", suffix=".part")
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+@contextlib.contextmanager
+def _account_lock(account):
+    """Exclusive inter-process lock for one account's read -> refresh -> persist.
+
+    Refresh tokens ROTATE (single-use): two processes (proxy + CLI) crossing expiry together
+    would both spend the same token, the loser would get invalid_grant and delete the
+    freshly persisted credential. flock on a file under the cache dir serialises them;
+    callers must RE-READ the stored blob after acquiring it.
+    """
+    if fcntl is None:
+        yield
+        return
+    d = os.path.dirname(_file_path())             # also creates the 0700 cache dir
+    name = "refresh-%s.lock" % hashlib.sha256(account.encode()).hexdigest()[:16]
+    fd = os.open(os.path.join(d, name), os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
 
 
 def _raw_get(account):
@@ -139,10 +190,7 @@ def _raw_set(account, value):
         except Exception:
             data = {}
     data[account] = value
-    fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
-        json.dump(data, f)
-    os.chmod(p, 0o600)
+    _write_private(p, json.dumps(data))
 
 
 def _store_get(account):
@@ -177,9 +225,7 @@ def _store_del(account):
         except Exception:
             data = {}
         data.pop(account, None)
-        fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as f:
-            json.dump(data, f)
+        _write_private(p, json.dumps(data))
 
 
 # ---- OAuth ------------------------------------------------------------------
@@ -311,7 +357,8 @@ def _cc_token(inst, cid, csec, force=False):
     tok = _client_credentials(inst, cid, csec)
     at = tok.get("access_token")
     if not at:
-        sys.stderr.write(f"FATAL: client_credentials returned no access token: {tok}\n")
+        sys.stderr.write("FATAL: client_credentials returned no access token "
+                         f"(error={tok.get('error')!r})\n")
         raise SystemExit(5)
     try:
         ttl = int(tok.get("expires_in") or 1800)
@@ -351,18 +398,19 @@ def get_access_token(interactive=True, force=False):
     Otherwise (default) authorization_code + PKCE, minimizing refresh grants because this
     ECA rotates refresh tokens:
       1. Reuse the cached ACCESS token if it's still valid (>2 min headroom) — NO refresh, NO
-         rotation, no cross-process race. This is the hot path during a demo.
+         rotation, no cross-process race. This is the hot path.
       2. Else refresh with the cached refresh token, persist the rotated one + new access token.
       3. Else (no cache, or invalid_grant) browser login if interactive.
 
     `force` discards the cached access token and mints a new one — used by the proxy when the
-    gateway answers 401 mid-session (token aged out), so a long demo self-heals.
+    gateway answers 401 mid-session (token aged out), so a long session self-heals.
     """
     inst = _inst(); cid, csec = _cid_csec()
     if CLIENT_CREDENTIALS:
         return _cc_token(inst, cid, csec, force=force)
     acct = _account(inst, cid)
     blob = _store_get(acct)
+    stale = blob.get("access_token") if force else None
     if force:
         blob.pop("access_token", None)
         blob.pop("access_expiry", None)
@@ -373,29 +421,38 @@ def get_access_token(interactive=True, force=False):
     if at and exp and time.time() < (exp - 120):
         return at
 
-    # 2) refresh with the cached refresh token (rotates it — persist the new one).
-    rt = blob.get("refresh_token")
-    if rt:
-        tok, dead = _refresh(inst, cid, csec, rt)
-        if tok and tok.get("access_token"):
-            _persist(acct, blob, tok)
-            return tok["access_token"]
-        if dead:
-            sys.stderr.write("  cached refresh token is invalid (revoked/expired) — re-authenticating\n")
-            _store_del(acct)
-        elif not interactive:
-            sys.stderr.write("FATAL: refresh failed transiently (cache kept). Retry shortly, or run "
-                             "`ramp_auth.py login` if it persists.\n")
-            raise SystemExit(4)
+    # 2) refresh with the cached refresh token (rotates it — persist the new one). Serialised
+    #    across processes; the blob is RE-READ under the lock because another process may
+    #    have rotated the token (or minted a fresh access token) while we waited.
+    if blob.get("refresh_token"):
+        with _account_lock(acct):
+            blob = _store_get(acct)
+            at, exp = blob.get("access_token"), blob.get("access_expiry")
+            if at and exp and time.time() < (exp - 120) and at != stale:
+                return at                      # someone else already refreshed
+            rt = blob.get("refresh_token")
+            if rt:
+                tok, dead = _refresh(inst, cid, csec, rt)
+                if tok and tok.get("access_token"):
+                    _persist(acct, blob, tok)
+                    return tok["access_token"]
+                if dead:
+                    sys.stderr.write("  cached refresh token is invalid (revoked/expired) — re-authenticating\n")
+                    _store_del(acct)
+                elif not interactive:
+                    sys.stderr.write("FATAL: refresh failed transiently (cache kept). Retry shortly, or run "
+                                     "`mcp_auth.py login` if it persists.\n")
+                    raise SystemExit(4)
 
     # 3) browser login.
     if not interactive:
         sys.stderr.write("FATAL: no cached credential and interactive=False. "
-                         "Run `ramp_auth.py login` once on this workstation.\n")
+                         "Run `mcp_auth.py login` once on this workstation.\n")
         raise SystemExit(3)
     tok = _browser_login(inst, cid, csec)
     if not tok.get("access_token"):
-        sys.stderr.write(f"FATAL: login returned no access token: {tok}\n"); raise SystemExit(1)
+        sys.stderr.write("FATAL: login returned no access token "
+                         f"(error={tok.get('error')!r})\n"); raise SystemExit(1)
     if tok.get("refresh_token"):
         _persist(acct, {}, tok)
         print(f"  cached auth for {acct} ({'Keychain' if _is_macos() else _file_path()})", flush=True)
@@ -411,7 +468,7 @@ def main(argv):
     if CLIENT_CREDENTIALS and cmd in ("login", "logout"):
         # Nothing to log in to or forget — this mode holds no state between processes.
         print(f"SF_AUTH_MODE=client_credentials: '{cmd}' is a no-op (no cached credential).\n"
-              f"Verify instead with:  ramp_auth.py status")
+              f"Verify instead with:  mcp_auth.py status")
         return 0
     if cmd == "login":
         get_access_token(interactive=True)

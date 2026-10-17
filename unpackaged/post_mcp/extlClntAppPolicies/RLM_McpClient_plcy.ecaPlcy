@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExtlClntAppConfigurablePolicies xmlns="http://soap.sforce.com/2006/04/metadata">
-    <externalClientApplication>ClaudeMcpClientRC</externalClientApplication>
+    <externalClientApplication>RLM_McpClient</externalClientApplication>
     <isEnabled>true</isEnabled>
     <isOauthPluginEnabled>true</isOauthPluginEnabled>
-    <label>ClaudeMcpClientRC_plcy</label>
+    <label>RLM_McpClient_plcy</label>
     <startPage>None</startPage>
 </ExtlClntAppConfigurablePolicies>

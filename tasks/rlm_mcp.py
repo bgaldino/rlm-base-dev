@@ -1,13 +1,14 @@
 """
 Configure Salesforce MCP servers on an org via the Tooling API.
 
-Companion to the ``unpackaged/post_mcp`` metadata bundle. The bundle deploys the
-two pieces that ARE metadata — the ``ClaudeMcpClientRC`` External Client
-Application and the ``RampCloneSalesTransaction`` invocable — and this task does
+Companion to the ``unpackaged/post_mcp`` and ``unpackaged/post_mcp_custom`` metadata
+bundles. They deploy the pieces that ARE metadata — the ``RLM_McpClient`` External
+Client Application, and (custom server only) the ``RLM_CloneSalesTransaction``
+invocable and its ``RLM_McpSalesTransactions`` permission set — and this task does
 everything that is not:
 
   * activates the hosted Salesforce MCP servers (``McpServerAccess``)
-  * creates the custom ``rampdealsconnect`` server: ``McpServerDefinition``,
+  * creates the custom ``RLMSalesTransactions`` server: ``McpServerDefinition``,
     its ``McpServerToolDefinition`` tools, and their
     ``McpServerToolApiDefinition`` bindings, plus its own access record
 
@@ -15,18 +16,21 @@ Only ``McpServerDefinition`` is a deployable metadata type; the access records,
 tool definitions, and bindings are Tooling API records, so a metadata deploy
 cannot activate a server. That asymmetry is the whole reason this task exists.
 
-ORDERING THAT MATTERS: deploy ``unpackaged/post_mcp`` before running this, because
+The custom server is optional (``mcp_custom_server`` flag, or ``-o custom_server``):
+it is a stopgap until the hosted ``revenue-cloud`` server covers place and clone.
+
+ORDERING THAT MATTERS: deploy ``unpackaged/post_mcp_custom`` before running this, because
 the ``cloneSalesTransaction`` CLASSIC binding references the Apex invocable by
-path (``/actions/custom/apex/RampCloneSalesTransaction``). Creating the binding
+path (``/actions/custom/apex/RLM_CloneSalesTransaction``). Creating the binding
 first fails.
 
-Every write checks for an existing record first, so re-running is safe and
-reports ``already``. ``-o dry_run True`` reports intended changes and writes
-nothing.
+Prerequisites are resolved before the first write: with the custom server
+enabled, a missing invocable fails the task with nothing modified.
 
-Also here: ``DeployMcpOverlay``, which deploys the ``unpackaged/post_mcp_264``
-overlay only on orgs new enough to compile it. See that class for why the clone
-invocable exists in two copies.
+Every write checks for an existing record first, so re-running is safe and
+reports ``already``. An access record that exists but is inactive is reactivated;
+one linked to the wrong server fails instead of counting as done.
+``-o dry_run True`` reports intended changes and writes nothing.
 """
 from __future__ import annotations
 
@@ -38,10 +42,8 @@ try:
     from cumulusci.core.tasks import BaseTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
     from cumulusci.core.utils import process_bool_arg
-    from cumulusci.tasks.salesforce import Deploy
 except ImportError:  # pragma: no cover - offline import path
     BaseTask = object
-    Deploy = object
     TaskOptionsError = Exception
     CommandException = Exception
 
@@ -80,31 +82,47 @@ PLATFORM_HOSTED: Tuple[Tuple[str, str], ...] = (
     ("platform_headless_360", "headless-360"),
 )
 
-CUSTOM_SERVER_DEVELOPER_NAME = "rampdealsconnect"
-CUSTOM_SERVER_LABEL = "ramp-deals-connect"
-CUSTOM_SERVER_DESCRIPTION = "RampDealsBinding"
+# From the Tooling API rejection `No "<id>" identifier found for source "CONNECT"`:
+# the org's Connect catalog has no such identifier. (A bad operation on a known
+# identifier reads "found for identifier", so it stays a failure.)
+UNRESOLVED_IDENTIFIER_MARK = "identifier found for source"
+
+CUSTOM_SERVER_DEVELOPER_NAME = "RLMSalesTransactions"
+CUSTOM_SERVER_LABEL = "rlm-sales-transactions"
+CUSTOM_SERVER_DESCRIPTION = "Place and clone Revenue Cloud sales transactions"
 
 # (tool name, apiSource, apiIdentifier, operation). The two entries show both
 # binding styles: CONNECT hits a Connect API resource, CLASSIC hits an Apex
-# @InvocableMethod by action path.
+# @InvocableMethod by action path. A CONNECT identifier is the API's
+# "<domain>-<sub-domain>", lowercased; 264 re-catalogued place from
+# industries-revenue to Revenue/TransactionManagement.
 CUSTOM_TOOLS: Tuple[Tuple[str, str, str, str], ...] = (
     (
         "placeSalesTransaction",
         "CONNECT",
-        "industries-revenue",
+        "revenue-transactionmanagement",
         "placeSalesTransaction",
     ),
     (
         "cloneSalesTransaction",
         "CLASSIC",
-        "/actions/custom/apex/RampCloneSalesTransaction",
-        "RampCloneSalesTransaction",
+        "/actions/custom/apex/RLM_CloneSalesTransaction",
+        "RLM_CloneSalesTransaction",
     ),
 )
 
+# Bindings an earlier version of this task created, which no longer resolve. A tool
+# bound only to one of these is rebound rather than failed. (ToolId is unique on
+# McpServerToolApiDefinition, so the old binding is deleted before the new create.)
+LEGACY_BINDINGS: Dict[str, Tuple[Tuple[str, str, str], ...]] = {
+    "placeSalesTransaction": (
+        ("CONNECT", "industries-revenue", "placeSalesTransaction"),
+    ),
+}
+
 
 class ConfigureMcpServers(BaseTask):
-    """Activate hosted MCP servers and build the custom ramp-deals server."""
+    """Activate hosted MCP servers and build the custom sales-transactions server."""
 
     # Every operation here talks to an org. Without this, BaseTask.salesforce_task
     # defaults to False, cci offers no `--org` option, and the task can only ever
@@ -129,8 +147,9 @@ class ConfigureMcpServers(BaseTask):
         },
         "custom_server": {
             "description": (
-                "If false, skip the custom rampdealsconnect server and configure "
-                "only the hosted ones. Defaults to true."
+                "If false, skip the custom RLMSalesTransactions server and configure "
+                "only the hosted ones. Defaults to the mcp_custom_server feature flag "
+                "(true when the flag is absent)."
             ),
             "required": False,
         },
@@ -155,28 +174,35 @@ class ConfigureMcpServers(BaseTask):
         self.api_version = (
             self.options.get("api_version")
             or getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "67.0")
+            or getattr(self.project_config, "project__package__api_version", "68.0")
         )
 
         self.created: List[str] = []
         self.skipped: List[str] = []
         self.failed: List[str] = []
-
-        self._preflight()
+        self.warnings: List[str] = []
 
         wanted_hosted = list(CORE_HOSTED)
         if process_bool_arg(self.options.get("platform_servers") or False):
             wanted_hosted.extend(PLATFORM_HOSTED)
 
-        want_custom = process_bool_arg(
-            self.options.get("custom_server")
-            if self.options.get("custom_server") is not None
-            else True
-        )
+        # Absent flag counts as on, the historical default. prepare_mcp's `when:` reads an
+        # absent flag as off, so the flow relies on mcp_custom_server being declared.
+        want_custom = self.options.get("custom_server")
+        if want_custom is None:
+            want_custom = getattr(self.project_config, "project__custom__mcp_custom_server", None)
+        want_custom = process_bool_arg(True if want_custom is None else want_custom)
+
+        self._preflight()
 
         if operation == "list":
             self._list_surface(wanted_hosted, want_custom)
             return
+
+        # Resolve every prerequisite before the first write, so a missing one leaves
+        # the org untouched instead of half-configured.
+        if want_custom:
+            self._preflight_custom()
 
         self._ensure_hosted(wanted_hosted)
         if want_custom:
@@ -200,6 +226,19 @@ class ConfigureMcpServers(BaseTask):
                 "feature. Nothing here can be configured against it."
             )
 
+    def _preflight_custom(self):
+        """The CLASSIC binding references the clone invocable by action path, so the
+        class must already be deployed (deploy_post_mcp_custom) before anything is written."""
+        records = self._tooling_query(
+            "SELECT Id FROM ApexClass WHERE Name = 'RLM_CloneSalesTransaction'"
+        )
+        if not records:
+            raise CommandException(
+                "ApexClass RLM_CloneSalesTransaction is not on this org, and the "
+                "cloneSalesTransaction binding needs it. Run deploy_post_mcp_custom first, or "
+                "pass -o custom_server False. No records were modified."
+            )
+
     # ─── Hosted servers ─────────────────────────────────────────────────────
 
     def _ensure_hosted(self, wanted: List[Tuple[str, str]]):
@@ -207,18 +246,57 @@ class ConfigureMcpServers(BaseTask):
         existing = self._existing_access()
 
         for developer_name, label in wanted:
-            if developer_name in existing:
-                self.skipped.append(label)
-                self.logger.info(f"  already   {label}")
-                continue
-            self._tooling_create(
-                "McpServerAccess",
+            self._ensure_access(
+                existing.get(developer_name),
                 {
                     "DeveloperName": developer_name,
                     "MasterLabel": label,
                     "Active": True,
                 },
                 label,
+            )
+
+    def _ensure_access(
+        self,
+        current: Optional[Dict[str, Any]],
+        body: Dict[str, Any],
+        label: str,
+    ):
+        """
+        Create the access record, or reactivate it if it exists but is disabled.
+
+        Presence is not activation: a record switched off in Setup still exists, and
+        treating it as done would leave the server disabled forever.
+
+        A record is matched on DeveloperName and must also point at the expected
+        server: McpServerId is null for a hosted server and the definition's id for
+        a custom one. A record linked elsewhere activates the wrong server, so it
+        fails rather than counting as done; a changed label only warns.
+        """
+        if current is None:
+            self._tooling_create("McpServerAccess", body, label)
+            return
+        expected_server = body.get("McpServerId") or None
+        if (current.get("McpServerId") or None) != expected_server:
+            message = (
+                f"{label}: access {current.get('DeveloperName')} is linked to server "
+                f"{current.get('McpServerId') or 'none (hosted)'}, expected "
+                f"{expected_server or 'none (hosted)'}; fix or delete it in Setup"
+            )
+            self.failed.append(message)
+            self.logger.error(f"  FAILED    {message}")
+            return
+        if current.get("MasterLabel") and current["MasterLabel"] != body["MasterLabel"]:
+            self.logger.warning(
+                f"  label     {label}: org has '{current['MasterLabel']}', "
+                f"expected '{body['MasterLabel']}' (left as is)"
+            )
+        if current.get("Active"):
+            self.skipped.append(label)
+            self.logger.info(f"  already   {label}")
+        else:
+            self._tooling_update(
+                "McpServerAccess", current["Id"], {"Active": True}, f"reactivate {label}"
             )
 
     # ─── Custom server ──────────────────────────────────────────────────────
@@ -265,15 +343,19 @@ class ConfigureMcpServers(BaseTask):
                 f"WHERE McpServerId = '{server_id}'"
             )
         }
-        existing_bindings = {
-            (record.get("ApiSource"), record.get("Operation"))
-            for record in self._tooling_query(
-                "SELECT ApiSource, Operation FROM McpServerToolApiDefinition"
-            )
-        }
+        existing_bindings = self._bindings_by_tool(list(existing_tools.values()))
+        # CONNECT identifiers this org could not resolve; tools that depend on one
+        # are skipped with a warning rather than failing the build.
+        unresolved: set = set()
 
         for tool_name, api_source, api_identifier, operation in CUSTOM_TOOLS:
             tool_id = existing_tools.get(tool_name)
+            if (api_source, api_identifier) in unresolved and not tool_id:
+                self._warn(
+                    f"tool {tool_name} skipped: depends on CONNECT {api_identifier}, "
+                    f"which this org does not resolve"
+                )
+                continue
             if tool_id:
                 self.skipped.append(f"tool {tool_name}")
                 self.logger.info(f"  already   tool {tool_name}")
@@ -291,14 +373,60 @@ class ConfigureMcpServers(BaseTask):
                 )
 
             if not tool_id:
+                if self.dry_run:  # same totals as the no-server dry run
+                    self._note_would_create(f"binding {tool_name} ({api_source})")
                 continue
 
-            if (api_source, operation) in existing_bindings:
+            # Scoped to THIS tool: another server may bind the same
+            # (ApiSource, Operation), which says nothing about this tool.
+            bound = existing_bindings.get(tool_id, [])
+            if any(
+                b.get("ApiSource") == api_source
+                and b.get("Operation") == operation
+                and b.get("ApiIdentifier") == api_identifier
+                for b in bound
+            ):
                 self.skipped.append(f"binding {tool_name}")
                 self.logger.info(f"  already   binding {tool_name}")
                 continue
+            legacy = LEGACY_BINDINGS.get(tool_name, ())
+            if bound and all(
+                (b.get("ApiSource"), b.get("ApiIdentifier"), b.get("Operation")) in legacy
+                for b in bound
+            ):
+                if self.dry_run:
+                    self.skipped.append(f"binding {tool_name} (would rebind legacy)")
+                    self.logger.info(f"  would rebind  {tool_name} (legacy binding)")
+                    continue
+                if not all(
+                    self._tooling_delete(
+                        "McpServerToolApiDefinition",
+                        b["Id"],
+                        f"legacy binding {tool_name} "
+                        f"({b.get('ApiSource')} {b.get('ApiIdentifier')}), rebinding",
+                        on_failure=(
+                            f"could not delete legacy binding {tool_name} ({b['Id']}); the "
+                            f"server may stay unserved until it is deleted in Setup"
+                        ),
+                    )
+                    for b in bound
+                ):
+                    continue
+                bound = []
+            if bound:
+                found = "; ".join(
+                    f"{b.get('ApiSource')} {b.get('ApiIdentifier')} {b.get('Operation')}"
+                    for b in bound
+                )
+                message = (
+                    f"binding {tool_name}: tool is bound to [{found}], expected "
+                    f"{api_source} {api_identifier} {operation}; fix or delete it in Setup"
+                )
+                self.failed.append(message)
+                self.logger.error(f"  FAILED    {message}")
+                continue
 
-            self._tooling_create(
+            binding_id = self._tooling_create(
                 "McpServerToolApiDefinition",
                 {
                     "ToolId": tool_id,
@@ -307,19 +435,35 @@ class ConfigureMcpServers(BaseTask):
                     "Operation": operation,
                 },
                 f"binding {tool_name} ({api_source})",
+                # The org's Connect catalog does not list this identifier: not
+                # something this task can fix, so warn and skip the tool.
+                soft_error=(
+                    UNRESOLVED_IDENTIFIER_MARK if api_source == "CONNECT" else None
+                ),
             )
+            if not binding_id and not self.dry_run:
+                # A tool with no binding makes the gateway answer 500 for the WHOLE
+                # server (verified on 264), so an unbound tool must not be left behind.
+                hint = ""
+                if self._last_soft_error:
+                    unresolved.add((api_source, api_identifier))
+                    hint = f"; the org does not resolve CONNECT {api_identifier}"
+                self._tooling_delete(
+                    "McpServerToolDefinition",
+                    tool_id,
+                    f"tool {tool_name} (unbound, removed so the server stays served{hint})",
+                    on_failure=(
+                        f"could not delete unbound tool {tool_name} ({tool_id}); the gateway "
+                        f"returns 500 for the whole server until it is deleted in Setup"
+                    ),
+                )
 
     def _ensure_custom_access(self, server_id: str):
-        if CUSTOM_SERVER_DEVELOPER_NAME in self._existing_access():
-            self.skipped.append("custom access")
-            self.logger.info(f"  already   access {CUSTOM_SERVER_LABEL}")
-            return
-
         # For a CUSTOM server, DeveloperName must EQUAL the definition's
         # DeveloperName. The namespaced form used for hosted servers fails with
         # FIELD_INTEGRITY_EXCEPTION here.
-        self._tooling_create(
-            "McpServerAccess",
+        self._ensure_access(
+            self._existing_access().get(CUSTOM_SERVER_DEVELOPER_NAME),
             {
                 "DeveloperName": CUSTOM_SERVER_DEVELOPER_NAME,
                 "MasterLabel": CUSTOM_SERVER_LABEL,
@@ -351,6 +495,8 @@ class ConfigureMcpServers(BaseTask):
                     note = "managed"
                 elif developer_name in optional:
                     note = "opt-in — pass platform_servers True to manage it"
+                elif developer_name == CUSTOM_SERVER_DEVELOPER_NAME:
+                    note = "custom server (custom_server off; not removed)"
                 else:
                     note = "UNMANAGED — activated by hand; will not survive a rebuild"
                 self.logger.info(
@@ -377,21 +523,27 @@ class ConfigureMcpServers(BaseTask):
             f"WHERE McpServerId = '{server_id}'"
         )
         bindings: Dict[str, List[str]] = {}
-        for record in self._tooling_query(
-            "SELECT ToolId, ApiSource, ApiIdentifier FROM McpServerToolApiDefinition"
-        ):
-            bindings.setdefault(record["ToolId"], []).append(
-                f"{record.get('ApiSource')} {record.get('ApiIdentifier')}"
-            )
+        for tool_id, records in self._bindings_by_tool(
+            [tool["Id"] for tool in tools]
+        ).items():
+            bindings[tool_id] = [
+                f"{r.get('ApiSource')} {r.get('ApiIdentifier')}" for r in records
+            ]
         for tool in tools:
-            bound = "; ".join(bindings.get(tool["Id"], [])) or "NO BINDING"
+            bound = (
+                "; ".join(bindings.get(tool["Id"], []))
+                or "NO BINDING — the gateway fails the whole server until this is fixed"
+            )
             self.logger.info(f"  {tool['ToolName']:26} {bound}")
 
     def _report(self):
         self.logger.info(
             f"Summary: created {len(self.created)}  "
-            f"already/skipped {len(self.skipped)}  failed {len(self.failed)}"
+            f"already/skipped {len(self.skipped)}  warnings {len(self.warnings)}  "
+            f"failed {len(self.failed)}"
         )
+        for warning in self.warnings:
+            self.logger.warning(f"  WARNING {warning}")
         for failure in self.failed:
             self.logger.error(f"  FAILED  {failure}")
         if self.failed:
@@ -408,13 +560,27 @@ class ConfigureMcpServers(BaseTask):
             "Content-Type": "application/json",
         }
 
-    def _existing_access(self) -> Dict[str, str]:
+    def _existing_access(self) -> Dict[str, Dict[str, Any]]:
         return {
-            record["DeveloperName"]: record["Id"]
+            record["DeveloperName"]: record
             for record in self._tooling_query(
-                "SELECT Id, DeveloperName FROM McpServerAccess"
+                "SELECT Id, DeveloperName, MasterLabel, McpServerId, Active "
+                "FROM McpServerAccess"
             )
         }
+
+    def _bindings_by_tool(self, tool_ids: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+        """Bindings keyed by ToolId, queried only for the given tools."""
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
+        if not tool_ids:
+            return grouped
+        id_list = ", ".join(f"'{tool_id}'" for tool_id in tool_ids)
+        for record in self._tooling_query(
+            "SELECT Id, ToolId, ApiSource, ApiIdentifier, Operation "
+            f"FROM McpServerToolApiDefinition WHERE ToolId IN ({id_list})"
+        ):
+            grouped.setdefault(record["ToolId"], []).append(record)
+        return grouped
 
     def _custom_server_id(self) -> Optional[str]:
         records = self._tooling_query(
@@ -437,9 +603,64 @@ class ConfigureMcpServers(BaseTask):
         self.skipped.append(f"{label} (would create)")
         self.logger.info(f"  would create  {label}")
 
+    def _tooling_update(
+        self, sobject: str, record_id: str, body: Dict[str, Any], label: str
+    ) -> bool:
+        if self.dry_run:
+            self.skipped.append(f"{label} (would update)")
+            self.logger.info(f"  would update  {label}")
+            return False
+
+        url = (
+            f"{self.instance_url}/services/data/v{self.api_version}"
+            f"/tooling/sobjects/{sobject}/{record_id}"
+        )
+        response = requests.patch(url, headers=self._headers, json=body)
+        if response.status_code >= 400:
+            message = response.text[:200].replace("\n", " ")
+            self.failed.append(f"{label}: {message}")
+            self.logger.error(f"  FAILED    {label}: {message}")
+            return False
+
+        self.created.append(label)
+        self.logger.info(f"  updated   {label}  {record_id}")
+        return True
+
+    def _tooling_delete(
+        self, sobject: str, record_id: str, label: str, on_failure: str
+    ) -> bool:
+        if self.dry_run:
+            self.logger.info(f"  would delete  {label}")
+            return False
+
+        url = (
+            f"{self.instance_url}/services/data/v{self.api_version}"
+            f"/tooling/sobjects/{sobject}/{record_id}"
+        )
+        response = requests.delete(url, headers=self._headers)
+        if response.status_code >= 400:
+            message = response.text[:200].replace("\n", " ")
+            self.failed.append(f"{on_failure}: {message}")
+            self.logger.error(f"  FAILED    {on_failure}: {message}")
+            return False
+
+        self.logger.warning(f"  deleted   {label}  {record_id}")
+        return True
+
+    def _warn(self, message: str):
+        self.warnings.append(message)
+        self.logger.warning(f"  WARNING   {message}")
+
     def _tooling_create(
-        self, sobject: str, body: Dict[str, Any], label: str
+        self,
+        sobject: str,
+        body: Dict[str, Any],
+        label: str,
+        soft_error: Optional[str] = None,
     ) -> Optional[str]:
+        """Create a record. A rejection containing ``soft_error`` is a warning,
+        not a failure; ``_last_soft_error`` says which one happened."""
+        self._last_soft_error = False
         if self.dry_run:
             self._note_would_create(label)
             return None
@@ -451,6 +672,10 @@ class ConfigureMcpServers(BaseTask):
         response = requests.post(url, headers=self._headers, json=body)
         if response.status_code >= 400:
             message = response.text[:200].replace("\n", " ")
+            if soft_error and soft_error in response.text:
+                self._last_soft_error = True
+                self._warn(f"{label}: {message}")
+                return None
             self.failed.append(f"{label}: {message}")
             self.logger.error(f"  FAILED    {label}: {message}")
             return None
@@ -459,71 +684,3 @@ class ConfigureMcpServers(BaseTask):
         self.created.append(label)
         self.logger.info(f"  created   {label}  {record_id}")
         return record_id
-
-
-class DeployMcpOverlay(Deploy):
-    """
-    Deploy a release-gated MCP overlay, skipping orgs too old to compile it.
-
-    ``unpackaged/post_mcp`` carries the clone invocable compiled at 67.0 and
-    synchronous-only, because the async members do not exist on 262 / v67.0 — a compile
-    probe against a 262 org reports ``Variable does not exist`` for ``input.contextId``,
-    ``options.contextId``, and ``output.trackerId``, and ConnectApi input
-    representations reject ``JSON.serialize``/``deserialize``, so there is no reflective
-    way to reach them from a 67.0 class. ``unpackaged/post_mcp_264`` therefore carries a
-    second copy at 68.0 that adds the async path, and this task overlays it on any org
-    that can take it.
-
-    Without the version gate, a plain ``Deploy`` of the overlay would hard-fail every
-    262 org in the fleet; with it, a 262 org keeps the sync class and the flow moves on.
-    The reverse footgun matters just as much: because the overlay runs after the base
-    bundle, a v68 org ends up with the async class rather than being quietly downgraded
-    to the sync one.
-
-    Retire this the moment Foundations' baseline reaches 264 — promote the overlay copy
-    into ``unpackaged/post_mcp`` and delete this class, the task, and the parity test.
-    """
-
-    task_options = {
-        **getattr(Deploy, "task_options", {}),
-        "min_api_version": {
-            "description": (
-                "Minimum org API version required to compile this bundle. Below it, the "
-                "deploy is skipped with a log line instead of failing. Defaults to 68.0."
-            ),
-            "required": False,
-        },
-    }
-
-    def _run_task(self):
-        raw_minimum = self.options.get("min_api_version") or "68.0"
-        try:
-            minimum = float(raw_minimum)
-        except (TypeError, ValueError):
-            raise TaskOptionsError(
-                f"min_api_version must be a number like 68.0, got {raw_minimum!r}"
-            )
-
-        raw_org_version = self.org_config.latest_api_version
-        try:
-            org_version = float(raw_org_version)
-        except (TypeError, ValueError):
-            raise CommandException(
-                f"Could not read the org's API version (got {raw_org_version!r}), so "
-                f"whether it can compile {self.options.get('path')} is unknown. "
-                "Refusing to guess."
-            )
-
-        path = self.options.get("path")
-        if org_version < minimum:
-            self.logger.info(
-                f"Org is v{org_version:g}, below the v{minimum:g} this overlay needs — "
-                f"skipping {path}. The release-appropriate copy from the base bundle "
-                "stays in place."
-            )
-            return
-
-        self.logger.info(
-            f"Org is v{org_version:g}; deploying the v{minimum:g}+ overlay {path}."
-        )
-        return super()._run_task()

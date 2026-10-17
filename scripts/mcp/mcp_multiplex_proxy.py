@@ -1,29 +1,33 @@
 #!/usr/bin/env python3
-"""stdio→HTTP MCP MULTIPLEX proxy — fronts BOTH ramp servers behind one connector (pack 099).
+"""stdio→HTTP MCP MULTIPLEX proxy — fronts BOTH Revenue Cloud MCP servers behind one connector.
 
-WHY: the cohort demo (standard `industries/revenue-cloud`, 14 tools) and the native-groups
-path (`custom/rampdealsconnect`, placeSalesTransaction + cloneSalesTransaction) live on two
-different MCP servers on the same org. This proxy exposes ALL of their tools through a SINGLE
-Claude Code connector, routing each `tools/call` to the correct upstream by tool name, over
-ONE warm ramp_auth token. It is the multi-server sibling of mcp_proxy.py (which pins one).
+WHY: the standard `industries/revenue-cloud` server (14 tools) and the custom
+`custom/RLMSalesTransactions` server (placeSalesTransaction + cloneSalesTransaction) live on
+two different MCP servers on the same org. This proxy exposes ALL of their tools through a
+SINGLE Claude Code connector, routing each `tools/call` to the correct upstream by tool name,
+over ONE warm mcp_auth token. With the custom server off (RLM_MCP_CUSTOM_SERVER=0) there is
+one upstream, and write_connector_config.py skips this proxy except for client_credentials.
 
-NO-REGRESSION DESIGN (why a pure-cohort session pays nothing for the native path):
+LOW-OVERHEAD DESIGN (a session that only uses the standard tools pays nothing for the custom server):
   - `initialize` is answered LOCALLY (advertising only the `tools` capability) — no upstream
     round-trip, and Claude Code never calls prompts/resources list.
   - `tools/list` is served from the per-server DISK CACHE (toollist-<server>.json, written by
-    mcp_proxy.py / primed once) and MERGED — instant, no gateway hit at startup.
+    `--prime`) and MERGED — instant, no gateway hit on a warm start. A cold cache is fetched
+    live once and written back (see _fetch_toollist).
   - each upstream's MCP session (initialize → notifications/initialized) is opened LAZILY, on
-    the FIRST tools/call routed to it. A cohort-only run never opens the native upstream.
-So the only gateway traffic in a cohort run is the actual cohort tools/call — same as the
-single-server proxy. (Cohort e2e is LLM-bound; MCP is <10% of wall-clock — see AB-RECONCILIATION.)
+    the FIRST tools/call routed to it. A session that never calls a custom tool never opens
+    that upstream, so the only gateway traffic is the actual tools/call.
 
-CONFIG (.mcp.json / claude mcp add): one server entry, no SF_MCP_SERVER pin. The upstream set
-is fixed below (SERVERS) but overridable via SF_MCP_SERVERS (comma list of gateway suffixes).
+CONFIG (.mcp.json / claude mcp add): one server entry. write_connector_config.py writes it with
+SF_MCP_SERVERS fixed at write time (so a later RLM_MCP_CUSTOM_SERVER change needs a re-write).
+Run by hand without SF_MCP_SERVERS, the upstream set comes from mcp_org.servers_for: hosted +
+custom by default, hosted only with RLM_MCP_CUSTOM_SERVER=0. SF_MCP_SERVERS (comma list of
+gateway suffixes, for this SF_INSTANCE) overrides both.
   {
     "mcpServers": {
       "revenue-cloud": {
         "command": "python3",
-        "args": ["<abs>/tools/mcp_multiplex_proxy.py"],
+        "args": ["<abs>/scripts/mcp/mcp_multiplex_proxy.py"],
         "env": {
           "SF_INSTANCE": "https://<my>.salesforce.com",
           "SF_CID": "<ECA consumer key>", "SF_CSEC": "<ECA consumer secret>"
@@ -31,31 +35,35 @@ is fixed below (SERVERS) but overridable via SF_MCP_SERVERS (comma list of gatew
       }
     }
   }
-Prereq: `python3 tools/ramp_auth.py login` ONCE (warm refresh token). Then non-interactive.
+Prereq: `python3 scripts/mcp/mcp_auth.py login` ONCE (warm refresh token). Then non-interactive.
 
-Env: SF_INSTANCE SF_CID [SF_CSEC optional]  [SF_MCP_SERVERS=industries/revenue-cloud,custom/rampdealsconnect]
-     [SF_MCP_BASE | SF_MCP_BASES]
+Env: SF_INSTANCE SF_CID [SF_CSEC optional]  [RLM_MCP_CUSTOM_SERVER=0]  [SF_MCP_SERVERS=<a/b,c/d>]
+     [SF_MCP_BASE | SF_MCP_BASES]   default: org-pinned, derived from SF_INSTANCE (mcp_org.gateway_bases)
 """
 import json, os, sys, threading, urllib.request, urllib.error
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # ramp_auth is a sibling in tools/
-import ramp_auth  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # mcp_auth is a sibling in this directory
+import mcp_auth  # noqa: E402
+import mcp_org  # noqa: E402
 
 PROTOCOL = "2025-06-18"
 
 # The upstreams fronted by this one connector. Order = merge precedence for tools/list.
-SERVERS = ([s.strip() for s in os.environ["SF_MCP_SERVERS"].split(",") if s.strip()]
-           if os.environ.get("SF_MCP_SERVERS") else
-           ["industries/revenue-cloud", "custom/rampdealsconnect"])
+# Honours SF_MCP_SERVERS (for this SF_INSTANCE) and RLM_MCP_CUSTOM_SERVER.
+SERVERS = [s.strip() for s in mcp_org.servers_for(os.environ.get("SF_INSTANCE", "")).split(",")
+           if s.strip()]
 
-# Gateway host selection — same policy as mcp_proxy.py. Single candidate => no startup probe.
+# Gateway host selection. Single candidate => no startup probe. Without an explicit
+# SF_MCP_BASE(S), derive the org-pinned base (plus any fallback) from SF_INSTANCE.
 _BASES = ([os.environ["SF_MCP_BASE"].rstrip("/")] if os.environ.get("SF_MCP_BASE") else
-          [b.strip().rstrip("/") for b in os.environ["SF_MCP_BASES"].split(",")]
-          if os.environ.get("SF_MCP_BASES") else
-          ["https://api.salesforce.com/platform/mcp/v1"])
+          [b.strip().rstrip("/") for b in
+           (os.environ.get("SF_MCP_BASES")
+            or mcp_org.gateway_bases(os.environ.get("SF_INSTANCE", ""))).split(",")
+           if b.strip()])
 
 _base = None            # chosen gateway base (host), shared by all upstreams
 _access = None          # warm token, minted once
+_probe_failed = None    # (monotonic time, message) of the last failed host probe
 _sessions = {}          # server suffix -> Mcp-Session-Id (set when the upstream is opened)
 _opened = set()         # servers whose initialize+initialized handshake has run
 _route = None           # tool name -> server suffix (built from the merged cache)
@@ -102,24 +110,31 @@ def _token(force=False):
     global _access
     with _init_lock:
         if _access is None or force:
-            _access = ramp_auth.get_access_token(interactive=False, force=force)
+            try:
+                _access = mcp_auth.get_access_token(interactive=False, force=force)
+            except SystemExit as e:
+                # mcp_auth exits on a dead or unrefreshable token (it has already said why on
+                # stderr). In serve mode this runs in a handler thread, where SystemExit would
+                # end the thread with no JSON-RPC response and leave the client hanging.
+                raise RuntimeError(f"no usable access token (mcp_auth exit {e.code}); "
+                                   f"re-run mcp_auth.py login") from None
         return _access
 
 
-KIT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def _state_dir():
     """Where the tool-list cache lives.
 
-    A RELATIVE RAMP_AUTH_DIR resolves against the KIT ROOT, not the process cwd — a config
+    A RELATIVE RLM_MCP_AUTH_DIR resolves against the REPO ROOT, not the process cwd — a config
     file can then use a portable relative path without depending on how the client launched
     the server (the cwd of an MCP subprocess is client-defined and not guaranteed).
     """
-    d = os.environ.get("RAMP_AUTH_DIR") or os.path.expanduser("~/.config/rlm-ramp")
+    d = os.environ.get("RLM_MCP_AUTH_DIR") or os.path.expanduser("~/.config/rlm-mcp")
     d = os.path.expanduser(d)
     if not os.path.isabs(d):
-        d = os.path.join(KIT_ROOT, d)
+        d = os.path.join(REPO_ROOT, d)
     return d
 
 
@@ -139,34 +154,74 @@ def _pick_base():
         return _pick_base_locked()
 
 
+_LIVE_FETCH = True      # cold-cache live tools/list; off under --selftest
+PROBE_RETRY_AFTER = 30  # seconds before a failed host probe is retried
+
+
 def _pick_base_locked():
-    global _base
+    global _base, _probe_failed
     if _base:
         return _base
+    # Don't re-probe (and re-mint, rotating the refresh token) on every request after a failure.
+    if _probe_failed and _time.monotonic() - _probe_failed[0] < PROBE_RETRY_AFTER:
+        raise RuntimeError(_probe_failed[1])
+
+    def mint(force):
+        # Outside the per-base try below: a missing or dead token is an auth failure with its
+        # own message, not N "unreachable" hosts. Remembered like any failed probe.
+        global _probe_failed
+        try:
+            _token(force=force)
+        except RuntimeError as e:
+            _probe_failed = (_time.monotonic(), str(e))
+            log(f"ABORT: {e}")
+            raise
+
     if len(_BASES) == 1:
+        # No probe: a token problem surfaces from the first _http call instead.
         _base = _BASES[0]; log(f"host {_base} (pinned, no probe)")
         return _base
+    mint(False)
     # Multiple candidates: probe with the first upstream to disambiguate (e.g. on/off Zscaler).
-    for base in _BASES:
-        try:
-            st, _, _ = _http(f"{base}/{SERVERS[0]}",
-                             {"jsonrpc": "2.0", "id": 0, "method": "initialize",
-                              "params": {"protocolVersion": PROTOCOL, "capabilities": {},
-                                         "clientInfo": {"name": "cc-mux", "version": "1.0"}}},
-                             timeout=8)
-            if st == 200:
-                _base = base; log(f"host {base}")
-                return base
-        except Exception as e:
-            log(f"host {base} unreachable: {e}")
-    log("ABORT: no gateway host routed"); sys.exit(1)
+    # A base that answers 401 may just be the wrong base, so a probe does not re-mint per base
+    # (each re-mint spends and rotates the refresh token). When some base answered 401 and none
+    # answered 200, the token itself is suspect (revoked before expiry): re-mint once, re-probe.
+    for attempt in (1, 2):
+        statuses = []
+        for base in _BASES:
+            try:
+                st, _, _ = _http(f"{base}/{SERVERS[0]}",
+                                 {"jsonrpc": "2.0", "id": 0, "method": "initialize",
+                                  "params": {"protocolVersion": PROTOCOL, "capabilities": {},
+                                             "clientInfo": {"name": "rlm-mcp-mux", "version": "1.0"}}},
+                                 timeout=8, _retried=True)
+                statuses.append(st)
+                if st == 200:
+                    _base = base; log(f"host {base}")
+                    return base
+            except Exception as e:
+                statuses.append(None)
+                log(f"host {base} unreachable: {e}")
+        if attempt == 1 and 401 in statuses:
+            log("a host answered 401 and none answered 200; re-minting the token once")
+            mint(True)
+            continue
+        break
+    # Raise, not sys.exit: in serve mode this runs in a handler thread, where SystemExit
+    # would kill the thread without a JSON-RPC response and leave the client hanging.
+    seen = ", ".join(f"{b} -> {st or 'unreachable'}" for b, st in zip(_BASES, statuses))
+    hint = " (401 after a fresh token: re-run mcp_auth.py login)" if 401 in statuses else ""
+    message = f"no gateway host routed: {seen}{hint}"
+    log(f"ABORT: {message}")
+    _probe_failed = (_time.monotonic(), message)
+    raise RuntimeError(message)
 
 
 def _http(url, body, sid=None, timeout=200, _retried=False):
     """One HTTP POST to the gateway. Returns (status, response_sid, body_text).
 
     On 401 the token is re-minted ONCE and the call replayed. An access token can age out
-    mid-session (the proxy is long-lived — it outlives a token's lifetime on a long demo),
+    mid-session (the proxy is long-lived — it outlives a token's lifetime),
     and without this the first call after expiry fails the build instead of self-healing.
     """
     h = {"Authorization": f"Bearer {_token()}", "Content-Type": "application/json",
@@ -203,7 +258,7 @@ def _open_upstream(server):
     """LAZY per-upstream MCP handshake: initialize -> notifications/initialized. Runs once.
 
     The SF gateway returns an EMPTY body on tools/list / tools/call until `initialized` is sent
-    (live-confirmed, pack 091). We only pay this for a server the session actually uses.
+    (live-confirmed). We only pay this for a server the session actually uses.
     """
     with _init_lock:
         if server in _opened:
@@ -216,7 +271,7 @@ def _open_upstream_locked(server):
     url = f"{base}/{server}"
     st, sid, _ = _http(url, {"jsonrpc": "2.0", "id": 0, "method": "initialize",
                              "params": {"protocolVersion": PROTOCOL, "capabilities": {},
-                                        "clientInfo": {"name": "cc-mux", "version": "1.0"}}})
+                                        "clientInfo": {"name": "rlm-mcp-mux", "version": "1.0"}}})
     if st != 200:
         log(f"upstream {server}: initialize HTTP {st}"); return
     _sessions[server] = sid
@@ -229,9 +284,9 @@ def _open_upstream_locked(server):
 def _merged_toollist():
     """Merge each upstream's cached tools/list into one list, and build the name->server route.
 
-    Reads ONLY the disk cache (no gateway). A server with no cache yet contributes nothing and
-    logs a warning — prime it once via mcp_proxy.py or a probe. First writer of a name wins the
-    route (SERVERS order = precedence); the two ramp servers do not share tool names.
+    Reads the disk cache; a server with no cache is fetched live once (_fetch_toollist) and
+    contributes nothing if that fails, with a warning. First writer of a name wins the
+    route (SERVERS order = precedence); the two servers do not share tool names.
     """
     global _route
     with _init_lock:
@@ -241,18 +296,26 @@ def _merged_toollist():
 def _fetch_toollist(server):
     """Live tools/list from the gateway, used when the disk cache is cold.
 
-    WHY (this overrides the cache-only rule above): a cache-only tools/list means a
+    Disabled (returns None) when _LIVE_FETCH is False, which --selftest sets so it stays offline.
+
+    WHY: a cache-only tools/list would mean a
     workstation that never ran --prime advertises ZERO tools, and the client reports a
     connected-but-useless server — a silent failure. Falling back to a live fetch makes a
     config file self-sufficient: no priming step to forget, nothing to copy between machines.
     The cache still short-circuits this on every warm start, so the fast path is unchanged.
     """
-    _open_upstream(server)
-    if server not in _opened:
+    if not _LIVE_FETCH:
         return None
-    st, _, raw = _http(f"{_pick_base()}/{server}",
-                       {"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
-                       sid=_sessions.get(server))
+    try:
+        _open_upstream(server)
+        if server not in _opened:
+            return None
+        st, _, raw = _http(f"{_pick_base()}/{server}",
+                           {"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                           sid=_sessions.get(server))
+    except Exception as e:  # one unreachable upstream must not empty the merged list
+        log(f"WARN: live tools/list for {server} failed: {e}")
+        return None
     if st != 200:
         log(f"WARN: live tools/list for {server} failed HTTP {st}")
         return None
@@ -313,7 +376,7 @@ def handle(msg):
         return json.dumps({"jsonrpc": "2.0", "id": mid, "result": {
             "protocolVersion": PROTOCOL,
             "capabilities": {"tools": {"listChanged": False}},
-            "serverInfo": {"name": "revenue-cloud-mux", "version": "1.0.0"}}})
+            "serverInfo": {"name": "rlm-mcp-mux", "version": "1.0.0"}}})
 
     if method == "tools/list":
         return json.dumps({"jsonrpc": "2.0", "id": mid, "result": {"tools": _merged_toollist()}})
@@ -329,6 +392,13 @@ def handle(msg):
             return json.dumps({"jsonrpc": "2.0", "id": mid, "error": {
                 "code": -32601, "message": f"Unknown tool: {name}"}})
         _open_upstream(server)                       # lazy — first call to this upstream only
+        if server not in _opened:
+            # Handshake failed (logged by _open_upstream). The gateway answers an
+            # un-initialized session with an empty body / error, so don't send a call that
+            # is guaranteed to be invalid: tell the client now.
+            return json.dumps({"jsonrpc": "2.0", "id": mid, "error": {
+                "code": -32603,
+                "message": f"Upstream {server} could not be initialized; tools/call not sent"}})
         url = f"{_pick_base()}/{server}"
         tlog("HTTP>", mid, f"{name} -> {server}")
         st, _, raw = _http(url, msg, sid=_sessions.get(server))
@@ -343,7 +413,7 @@ def handle(msg):
 
 
 def main():
-    for k in ("SF_INSTANCE", "SF_CID"):   # SF_CSEC optional: PKCE, see ramp_auth._cid_csec
+    for k in ("SF_INSTANCE", "SF_CID"):   # SF_CSEC optional: PKCE, see mcp_auth._cid_csec
         if not os.environ.get(k):
             log(f"FATAL: {k} not set"); sys.exit(2)
     log(f"multiplexing {SERVERS} (threaded dispatch)")
@@ -351,7 +421,7 @@ def main():
     def _serve(msg):
         try:
             out = handle(msg)
-        except Exception as e:
+        except BaseException as e:  # incl. SystemExit: always answer, or the client hangs
             log(f"handler error: {e}")
             out = json.dumps({"jsonrpc": "2.0", "id": msg.get("id"),
                               "error": {"code": -32603, "message": f"multiplexer: {e}"}})
@@ -379,27 +449,28 @@ def main():
 def _prime():
     """Fetch tools/list from EACH upstream and write its disk cache. Run ONCE per workstation.
 
-    WHY THIS EXISTS: the multiplexer only READS the per-server tools/list caches (so a cohort-only
-    startup never hits the gateway). It does NOT populate a missing cache — that would reintroduce
-    the startup round-trip the no-regression design forbids. The single-server mcp_proxy.py writes
-    the cache for whatever server it's pinned to, so a workstation that only ran the COHORT setup
-    has `toollist-industries_revenue-cloud.json` but NOT the native one — and the native tools would
-    silently be absent from /mcp. This primes every server in SERVERS in one shot.
+    WHY THIS EXISTS: the multiplexer serves tools/list from the per-server caches, so a warm
+    start never hits the gateway. A cold cache costs a live fetch on the first tools/list
+    (_fetch_toollist); priming moves that round-trip off the client's startup and reports
+    per-server failures legibly. This primes every server in SERVERS in one shot.
 
     Idempotent: overwrites with a fresh fetch. Requires SF_INSTANCE/SF_CID/SF_CSEC + a warm token
-    (`ramp_auth.py login` once) + gateway reachability (Zscaler for test.api).
+    (`mcp_auth.py login` once) + gateway reachability (Zscaler for test.api).
     """
-    for k in ("SF_INSTANCE", "SF_CID"):   # SF_CSEC optional: PKCE, see ramp_auth._cid_csec
+    for k in ("SF_INSTANCE", "SF_CID"):   # SF_CSEC optional: PKCE, see mcp_auth._cid_csec
         if not os.environ.get(k):
             print(f"FATAL: {k} not set"); sys.exit(2)
-    base = _pick_base()
+    try:
+        base = _pick_base()
+    except RuntimeError as e:
+        print(f"FATAL: {e}"); sys.exit(1)
     ok = True
     for server in SERVERS:
         url = f"{base}/{server}"
         # handshake, then tools/list
         st, sid, _ = _http(url, {"jsonrpc": "2.0", "id": 0, "method": "initialize",
                                  "params": {"protocolVersion": PROTOCOL, "capabilities": {},
-                                            "clientInfo": {"name": "cc-mux-prime", "version": "1.0"}}})
+                                            "clientInfo": {"name": "rlm-mcp-mux-prime", "version": "1.0"}}})
         if st != 200:
             print(f"FAIL {server}: initialize HTTP {st}"); ok = False; continue
         _http(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid=sid)
@@ -422,7 +493,9 @@ def _prime():
         except OSError as e:
             print(f"FAIL {server}: fetched {n} tools but cache write blocked: {e}\n"
                   f"      sandbox? redirect the cache to a writable dir, e.g.:\n"
-                  f"        export RAMP_MCP_STATE=\"$PWD/.ramp/state\"  (then re-run --prime)\n"
+                  f"        export RLM_MCP_STATE=\"$PWD/.mcp-state/state\"\n"
+                  f"        eval \"$(python3 scripts/mcp/mcp_org.py env <sf-alias>)\"   # re-derives RLM_MCP_AUTH_DIR\n"
+                  f"        then re-run --prime (off macOS, also mcp_auth.py login: the token file moves too)\n"
                   f"      or skip priming if {_cache_path(server)} already has {n} tools.")
             ok = False
     print("PRIME", "OK" if ok else "FAIL")
@@ -432,6 +505,8 @@ def _prime():
 # ---- offline self-test (no gateway, no token) --------------------------------
 def _selftest():
     """Assert the merge + route table are correct from the disk caches. Exit 0 pass / 1 fail."""
+    global _LIVE_FETCH
+    _LIVE_FETCH = False  # offline: a cold cache is skipped, never fetched (and never opens one)
     ok = True
     tools = _merged_toollist()
     names = [t["name"] for t in tools]

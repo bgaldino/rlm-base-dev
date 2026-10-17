@@ -74,7 +74,7 @@ exercise guide for any other release (see **Discovery**).
 | Capture new workshop drift from the working org into the replay spec | Yes |
 | Confirm a clone is complete before it is templated (TrialForce/OrgFarm) | Yes — the verify-by-query audit |
 | Generic SFDMU data plan (not the workshop) | No → `sfdmu-data-plans/SKILL.md` |
-| Ramp-quote demo outside the workshop | No → ramp-demo-kit (artifacts) / `usage-consumption` |
+| Ramp-quote demo outside the workshop | No → `ramped-quotes` / `usage-consumption` |
 | Add/CRUD a pricing Expression Set (e.g. deactivate a procedure) | Use `expression-sets/SKILL.md` for the mechanism; this skill only decides *whether* to |
 
 ## Discovery — find the current release's drift set

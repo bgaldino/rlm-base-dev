@@ -428,13 +428,15 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 
 ### `prepare_mcp`
 
-Stand up the org-side MCP surface: deploy the ECA + clone invocable, overlay the async clone variant where the org supports it, then activate the servers. Every step is gated on the mcp feature flag. This leaves one manual step per person — the browser OAuth login — which no flow can do for them; see .cursor/skills/mcp-integration/SKILL.md.
+Stand up the org-side MCP surface: deploy the ECA, then (with the mcp_custom_server flag on) the clone invocable and its permission set, assign that permission set to the running user, and activate the servers. Every step is gated on the mcp feature flag. This leaves one manual step per person — the browser OAuth login — which no flow can do for them; see .cursor/skills/mcp-integration/SKILL.md.
 
 **Steps:**
 
 1. **task** `deploy_post_mcp`  `when: project_config.project__custom__mcp`
-2. **task** `deploy_post_mcp_264`  `when: project_config.project__custom__mcp`
-3. **task** `configure_mcp_servers`  `when: project_config.project__custom__mcp`
+2. **task** `deploy_post_mcp_custom`  `when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server`
+   - `api_names`: `['RLM_McpSalesTransactions']`
+4. **task** `configure_mcp_servers`  `when: project_config.project__custom__mcp`
 
 ---
 

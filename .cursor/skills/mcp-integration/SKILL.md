@@ -1,36 +1,36 @@
 ---
 name: mcp-integration
 description: >-
-  The MCP surface on a Foundations-built org — the hosted Salesforce MCP servers, the
-  custom ramp-deals-connect server and its two tool bindings, the External Client
-  Application that authenticates them, and the release-gated clone invocable behind the
-  CLASSIC-bound tool. Use when asked what MCP servers an org has, how to stand them up
-  on a new or rebuilt org, why the clone invocable exists in two copies, why an MCP
-  artifact is a Tooling API record instead of metadata, or when a server or tool is
-  missing after a rebuild. Foundations owns the org-side surface; the sibling
-  ramp-demo-kit owns the client tooling and the demos, reached through the cross-repo
-  skill manifest.
+  The MCP surface on a Foundations-built org and the client tooling that talks to it —
+  the hosted Salesforce MCP servers, the custom rlm-sales-transactions server and its two
+  tool bindings, the External Client Application (RLM_McpClient) that authenticates them,
+  the clone invocable behind the CLASSIC-bound tool, gateway endpoint URLs, and the
+  scripts/mcp/ login, proxy and connector-config tools. Use when asked what MCP servers
+  an org has, how to stand them up or connect a client, why a gateway call returns 401,
+  why the clone invocable needs a 264 org, why an MCP artifact is a Tooling API record
+  instead of metadata, or when a server or tool is missing after a rebuild.
 ---
 
 # MCP Integration
 
-Foundations builds the org **and** its MCP surface. The sibling **ramp-demo-kit** owns
-what runs on a workstation — the OAuth login, the multiplex proxy, the per-demo
-connector — plus the demos themselves. The dividing line is durability: anything that
-must survive an org rebuild lives here as source; anything per-person or per-laptop
-lives there.
-
-Resolve the kit's clone with `resolve_repo_root(m, 'ramp_demo_kit')`; its entry point is
-the root `CLAUDE.md`.
+Foundations builds the org **and** owns its whole MCP surface: the org-side artifacts
+(`unpackaged/post_mcp`, `unpackaged/post_mcp_custom`, `tasks/rlm_mcp.py`, the
+`prepare_mcp` flow) and the client
+tooling in `scripts/mcp/` (`mcp_org.py` org/env resolution, `mcp_auth.py` PKCE login,
+`mcp_multiplex_proxy.py`, `write_connector_config.py`). See `scripts/mcp/README.md`.
+Gateway-endpoint research credit: Sam Check (`feature/mcp-servers`).
 
 ## Quick Rules
 
 1. **`cci flow run prepare_mcp --org <alias>` stands up the whole org-side surface.**
-   It is step 34 of `prepare_rlm_org`, gated on the `mcp` feature flag, which defaults
-   to **off** — the flow cannot finish the job, because each person still runs their own
-   browser OAuth login.
-2. **Two of the three steps are not a metadata deploy.** Only `McpServerDefinition` is a
-   deployable metadata type. The activations (`McpServerAccess`) and the custom server's
+   It is step 35 of `prepare_rlm_org` (36 steps; `stamp_git_commit` follows),
+   gated on the `mcp` feature flag, which defaults to **off** — the flow cannot finish the
+   job, because each person still runs their own browser OAuth login.
+2. **`prepare_mcp` is metadata deploys, a permission set assignment and one Tooling API
+   step.** `deploy_post_mcp` deploys the ECA; `deploy_post_mcp_custom` deploys the clone
+   invocable and its permission set (`RLM_McpSalesTransactions`); `assign_permission_sets`
+   grants it to the running user; `configure_mcp_servers` is the non-metadata step. Of the MCP server record types, only `McpServerDefinition`
+   is deployable metadata. The activations (`McpServerAccess`) and the custom server's
    tools and bindings (`McpServerToolDefinition`, `McpServerToolApiDefinition`) are
    Tooling API records, which is why `configure_mcp_servers` exists at all.
 3. **`configure_mcp_servers` is idempotent and reports what it did.** Every write checks
@@ -38,120 +38,160 @@ the root `CLAUDE.md`.
    `-o dry_run True` to preview, and `-o platform_servers True` to also activate
    `sobject-all` and `headless-360` — off by default, because `sobject-all` grants
    read/write across every object in the org.
-4. **The clone invocable exists in two copies, on purpose.** `unpackaged/post_mcp`
-   carries the 67.0 synchronous copy; `unpackaged/post_mcp_264` overlays the 68.0
-   async-capable one on orgs that can compile it. See *Release Skew* below before
-   editing either.
-5. **Ordering is load-bearing.** The Apex must exist before the custom server, because
+4. **The clone invocable is one class at API 68.0.** `unpackaged/post_mcp_custom` carries the
+   async-capable copy (tracker contract); the baseline is release 264, so there is no
+   version gate or overlay. It does not compile on an older org. See *Release Skew*
+   below for the pre-264 history.
+5. **`configure_mcp_servers` resolves prerequisites before writing.** A missing clone
+   invocable fails the task with nothing modified, and an `McpServerAccess` linked to the
+   wrong server (`McpServerId` must be null for hosted, the definition id for custom)
+   fails rather than passing as `already`.
+6. **Ordering is load-bearing.** The Apex must exist before the custom server, because
    the `CLASSIC` binding references the invocable by action path. `prepare_mcp` runs
-   deploy → overlay → configure for that reason.
-6. **Auth is per person, not per package.** PKCE against the ECA, with a public consumer
+   deploy → configure for that reason.
+7. **Auth is per person, not per package.** PKCE against the ECA, with a public consumer
    key the tooling reads from the org — so there is no secret to distribute and nothing
-   to commit.
-7. **A rebuilt org keeps only what is in source.** Activations are org records. A server
+   to commit. Tools run as the authenticated user, so CRUD/FLS/sharing apply.
+8. **The custom server is optional and temporary.** It exists until the hosted
+   `revenue-cloud` server covers place and clone (and the surface folds into Headless 360).
+   `mcp_custom_server: false` builds only the ECA and the hosted activations: steps 2–3 of
+   `prepare_mcp` skip and `configure_mcp_servers` defaults to `custom_server False`. On the
+   client, `RLM_MCP_CUSTOM_SERVER=0` drops the custom server, and `write_connector_config.py`
+   then points the client straight at `revenue-cloud`, without the multiplex proxy. Turning
+   the flag off does not delete a custom server an earlier build created.
+9. **A rebuilt org keeps only what is in source.** Activations are org records. A server
    switched on by hand in Setup is gone at the next rebuild unless it is in
    `CORE_HOSTED` or `PLATFORM_HOSTED` in `tasks/rlm_mcp.py`.
 
 ## DO NOT
 
-1. **DO NOT** reference `contextId`, `trackerId`, `trackerUrl`, or `isAsync` in
-   `unpackaged/post_mcp/classes/RampCloneSalesTransaction.cls`. Those members do not
-   exist on 262 / v67.0, so adding one breaks the deploy for every 262 org.
-   `tests/test_mcp_overlay_parity.py` fails if you do.
-2. **DO NOT** deploy `unpackaged/post_mcp_264` with a plain
-   `cumulusci.tasks.salesforce.Deploy`. It must go through
-   `tasks.rlm_mcp.DeployMcpOverlay`, which skips orgs below v68.0 instead of hard-failing
-   the flow on them.
-3. **DO NOT** treat `cloneSalesTransaction` as asynchronous on a 262 org. There is no
-   tracker handle to poll there — the clone is complete when the tool returns. On 264 it
-   may return a tracker id, and then it is *not* complete; `isAsync` says which.
-4. **DO NOT** hand-activate a server in Setup and consider it done. Add it to
+1. **DO NOT** reintroduce a 67.0 copy, an `unpackaged/post_mcp_264` overlay, or a
+   version-gated deploy. The baseline is 264 / v68.0 and `unpackaged/post_mcp_custom` is
+   the single source.
+2. **DO NOT** treat `cloneSalesTransaction` as complete when it returns. It may return a
+   tracker id, and then the clone is *not* complete; `isAsync` says which.
+3. **DO NOT** hand-activate a server in Setup and consider it done. Add it to
    `CORE_HOSTED` (or `PLATFORM_HOSTED`) in the same change, or it dies at the next
    rebuild. `-o operation list` flags anything unmanaged.
-5. **DO NOT** give a hosted server's namespaced `DeveloperName` form to a **custom**
+4. **DO NOT** give a hosted server's namespaced `DeveloperName` form to a **custom**
    server's `McpServerAccess`. For a custom server, `McpServerAccess.DeveloperName` must
    **equal** the definition's `DeveloperName`; the namespaced form fails
    `FIELD_INTEGRITY_EXCEPTION`.
-6. **DO NOT** commit a consumer key, consumer secret, or token. The ECA's key is read
+5. **DO NOT** commit a consumer key, consumer secret, or token. The ECA's key is read
    from the org at run time by design.
-7. **DO NOT** resurrect `unpackaged/post_ramp_builder/`. The custom Ramp Builder was
-   removed in favor of the platform-native `CreateRampSchedule`; leftover empty
-   directories are deletion residue, not a home for new work.
+6. **DO NOT** use a classic Connected App; the MCP gateway needs an External Client
+   Application.
+7. **DO NOT** use the My Domain host as the MCP endpoint; the gateway is
+   `api.salesforce.com`.
+8. **DO NOT** commit a re-retrieved ECA without stripping `OrgId`, `consumerKey` and
+   `oauthLink` first.
+9. **DO NOT** treat an active `McpServerAccess` row as proof a server is served (see
+   *Gateway Endpoints*).
+10. **DO NOT** leave a custom-server tool without a binding. The gateway then fails the
+    whole server with a 500, not just that tool (*Verification Status*).
 
 ## The Surface
 
 | Layer | Artifact | Where it lives | Applied by |
 |---|---|---|---|
-| Client identity | `ExternalClientApplication ClaudeMcpClientRC` + 4 OAuth/policy components | `unpackaged/post_mcp/` | `deploy_post_mcp` |
-| Custom tool backing | `ApexClass RampCloneSalesTransaction` (+ test), synchronous, 67.0 | `unpackaged/post_mcp/classes/` | `deploy_post_mcp` |
-| Async variant | same class at 68.0, with the tracker contract | `unpackaged/post_mcp_264/classes/` | `deploy_post_mcp_264` (v68.0+ only) |
+| Client identity | `ExternalClientApplication RLM_McpClient` + 4 OAuth/policy components | `unpackaged/post_mcp/` | `deploy_post_mcp` |
+| Custom tool backing | `ApexClass RLM_CloneSalesTransaction` (+ `RLM_CloneSalesTransactionTest`), 68.0, with the tracker contract | `unpackaged/post_mcp_custom/classes/` | `deploy_post_mcp_custom` |
+| Invocable access | `RLM_McpSalesTransactions` permission set | `unpackaged/post_mcp_custom/permissionsets/` | `deploy_post_mcp_custom` |
 | Hosted servers | `McpServerAccess` activations | `tasks/rlm_mcp.py` → `CORE_HOSTED`, `PLATFORM_HOSTED` | `configure_mcp_servers` |
-| Custom server | `McpServerDefinition rampdealsconnect` + 2 tools + 2 API bindings + its access | `tasks/rlm_mcp.py` → `CUSTOM_TOOLS` | `configure_mcp_servers` |
-| Per-person auth | PKCE login | ramp-demo-kit `tools/ramp_auth.py` | one browser click |
-| Connector | multiplex proxy + per-folder `.mcp.json` | ramp-demo-kit `tools/`, `setup/link_demo.py` | local |
+| Custom server (optional, `mcp_custom_server`) | `McpServerDefinition RLMSalesTransactions` (label `rlm-sales-transactions`) + 2 tools + 2 API bindings + its access | `tasks/rlm_mcp.py` → `CUSTOM_TOOLS` | `configure_mcp_servers` |
+| Per-person auth | PKCE login | `scripts/mcp/mcp_auth.py` | one browser click |
+| Connector | multiplex proxy + connector config (direct HTTP entry, no proxy, without the custom server) | `scripts/mcp/mcp_multiplex_proxy.py`, `write_connector_config.py` | local |
 
 The custom server's two tools demonstrate both binding styles: `placeSalesTransaction`
-binds `CONNECT` → `industries-revenue`, and `cloneSalesTransaction` binds `CLASSIC` →
-`/actions/custom/apex/RampCloneSalesTransaction`. A tool needs `@McpIntegration` to be
+binds `CONNECT` → `revenue-transactionmanagement`, and `cloneSalesTransaction` binds `CLASSIC` →
+`/actions/custom/apex/RLM_CloneSalesTransaction`. A tool needs `@McpIntegration` to be
 bound as `CONNECT`; clone does not carry it, which is why it goes through an invocable.
 
-## Release Skew — Why the Clone Invocable Is Duplicated
+## Release Skew — History of the Clone Invocable
 
-Verified by compile probe against a 262 org:
-
-| Member | 262 / v67.0 | 264 / v68.0 |
-|---|---|---|
-| `cloneSalesTransaction()` call | present | present |
-| `output.success`, `salesTransactionId`, `requestId`, `errors` | present | present |
-| `input.contextId` — requests async | **absent** | present |
-| `output.trackerId`, `output.trackerUrl` | **absent** | present |
-
-There is no single source file that serves both. ConnectApi **input** representations
-reject `JSON.serialize` and `JSON.deserialize` outright — *"Only output types from
-ConnectApi support serialization"* — so a 67.0-compiled class cannot set `contextId`
-reflectively either. Hence two copies and a version gate.
-
-The 262 copy omits the tracker fields rather than exposing them as always-null, because
-a null `trackerId` invites a caller — especially an LLM driving this as an MCP tool — to
-poll a handle that will never exist.
-
-`tests/test_mcp_overlay_parity.py` pins the invariants that keep the copies from
-drifting: same class name, opposite async-member sets, the api versions the gate
-assumes, and base-before-overlay ordering in `prepare_mcp`. **When Foundations' baseline
-reaches 264, retire all of it together** — promote the overlay copy into
-`unpackaged/post_mcp/`, then delete the overlay directory, `DeployMcpOverlay`, the
-`deploy_post_mcp_264` task, its flow step, and that parity test.
+Before the baseline reached 264 the class existed in two copies, because 262 / v67.0
+lacks the async members (`input.contextId`, `output.trackerId`, `output.trackerUrl`)
+and ConnectApi **input** representations reject `JSON.serialize` and
+`JSON.deserialize`, so no single source compiled on both. The copies were collapsed
+into the single 68.0 class, now in `unpackaged/post_mcp_custom/`; the overlay directory,
+`DeployMcpOverlay`, `deploy_post_mcp_264` and the parity test are gone. The class
+therefore needs a 264 org. Do not backport it to 262 by adding a second copy without
+a caller who still needs one — a null `trackerId` invites a caller, especially an LLM
+driving this as an MCP tool, to poll a handle that will never exist.
 
 ## Standing It Up
 
 ```bash
 # Org side, from this repo. Needs the mcp feature flag on for the flow path:
 cci task run deploy_post_mcp --org <cci-alias>
-cci task run deploy_post_mcp_264 --org <cci-alias>          # skips silently below v68.0
-cci task run configure_mcp_servers --org <cci-alias>
+cci task run deploy_post_mcp_custom --org <cci-alias>      # custom server only
+cci task run configure_mcp_servers --org <cci-alias>       # -o custom_server False: hosted only
 cci task run configure_mcp_servers --org <cci-alias> -o platform_servers True
 
-# Or all three, gated on the flag:
+# Or the whole flow (deploy, assign RLM_McpSalesTransactions, configure), gated on the flag:
 cci flow run prepare_mcp --org <cci-alias>
 
-# Client side, from the ramp-demo-kit clone:
-eval "$(python3 tools/ramp_org.py env <sf-alias>)"
-python3 tools/ramp_auth.py login
-python3 tools/mcp_multiplex_proxy.py --prime
+# Client side, from this repo:
+eval "$(python3 scripts/mcp/mcp_org.py env <sf-alias>)"   # RLM_MCP_ORG / RLM_MCP_ECA / ...
+python3 scripts/mcp/mcp_auth.py login
+python3 scripts/mcp/mcp_multiplex_proxy.py --prime
 ```
 
-Neither side seeds demo data — that needs judgement about the existing catalog, since a
-QuantumBit-loaded org already has most of it. See the kit's
-`reference/RUNBOOK-new-org.md`.
+Without the custom server, `export RLM_MCP_CUSTOM_SERVER=0` (before or after the `eval`;
+`env` does not pin the server list) and skip the login and the proxy:
+`write_connector_config.py <sf-alias>` writes a direct HTTP entry and the client logs in.
+
+Env vars: `RLM_MCP_ORG`, `RLM_MCP_ECA`, `RLM_MCP_PROFILES`, `RLM_MCP_STATE`,
+`RLM_MCP_AUTH_DIR`, `RLM_MCP_CUSTOM_SERVER`. Nothing here seeds demo data; that needs judgement about the
+existing catalog, since a QuantumBit-loaded org already has most of it.
+
+## Gateway Endpoints
+
+Default (org-pinned), verified 2026-10-17 on a production My Domain for
+`platform/headless-360`, `industries/revenue-cloud` and `custom/<name>`:
+
+```
+https://api.salesforce.com/platform/mcp/v1/d/<My Domain prefix>/<namespace>/<server>
+# custom server: .../d/<prefix>/custom/RLMSalesTransactions
+```
+
+- Legacy forms: `/v1/<ns>/<server>` and `/v1/sandbox/<ns>/<server>`.
+- Enhanced domains add an org-type label (sandbox, scratch, develop, demo,
+  trailblaze, ...) that is **not** part of the prefix. Scratch orgs use either
+  `.scratch.` or `.sandbox.`.
+- Non-production types fall back to the legacy base (sandbox/scratch to `/sandbox`)
+  because pinned routing is unverified there. `mcp_org.gateway_bases` implements this;
+  `SF_MCP_BASES` overrides it, but only while `SF_INSTANCE` names the same org, so an
+  override eval'd for one org does not follow the shell to another (`SF_CSEC` is scoped
+  the same way). Re-run `mcp_org.py env` after changing orgs.
+- A Salesforce CLI token gets **401**; an ECA token with the `mcp_api` scope is required.
+- A Tooling `McpServerAccess` row with `Active=true` does **not** mean the server is
+  served. Some servers need org permissions (for example RevMCP, for `revenue-cloud`).
+  Verify with an MCP `initialize` plus `tools/list`.
+
+## ECA Settings and Client Connections
+
+ECA settings that matter: PKCE required; consumer secret optional; JWT-based access
+tokens for named users **on**; client credentials, auth-code-and-credentials, device,
+JWT bearer and token exchange **off**; refresh token rotation on. `client_credentials`
+in the scripts is explicit opt-in (`SF_AUTH_MODE=client_credentials`) and needs that
+flow enabled on the ECA.
+
+| Client | Callback / how |
+|---|---|
+| Claude Code | `claude mcp add --transport http --client-id <consumer key> --callback-port <port> <name> <url>`; callback `http://localhost:<port>/callback` |
+| Claude Desktop / claude.ai | `https://claude.ai/api/mcp/auth_callback` |
+| Cursor | `cursor://anysphere.cursor-mcp/oauth/callback` |
+| MCP Inspector | `http://localhost:6274/oauth/callback/debug` |
+
+The shipped ECA registers only the localhost `/callback`, `localhost:1717` and claude.ai
+callbacks. Add others only for clients actually used.
 
 ## Validation Checks
 
 ```bash
 # Audit an org without changing it. Flags servers activated by hand.
 cci task run configure_mcp_servers --org <cci-alias> -o operation list
-
-# Keep the two clone copies honest (offline, no org):
-python tests/test_mcp_overlay_parity.py
 
 # Raw org state
 sf data query -q "SELECT DeveloperName, MasterLabel, Active FROM McpServerAccess" \
@@ -169,22 +209,55 @@ sf data query -q "SELECT DeveloperName, OauthScopesMCP_API, OauthScopesREFRESH_T
 
 ## Verification Status
 
-**Both Apex copies have executed their tests, 4/4 each, on a 264 / v68.0 scratch org.**
+**`RLM_CloneSalesTransaction` passes its tests, 5/5, on storm-LATEST (264, 2026-10-17).**
+`RunSpecifiedTests` on the deploy ran 0 tests there, so they were run separately with
+`sf apex run test`.
 
-- `unpackaged/post_mcp` (the 67.0 copy) deployed with `RunSpecifiedTests`: 2 components,
-  4/4 passing. Its 262 evidence is a *check-only* validate on a 262 TSO org — that proves
-  it compiles at 262, but the tests themselves have only run at 68.
-- `unpackaged/post_mcp_264` deployed through the real `deploy_post_mcp_264` task, which
-  logged `Org is v68; deploying the v68+ overlay`, then `sf apex run test --synchronous`:
-  4/4 passing. The gate's skip path is verified separately on a v67 org.
-- `configure_mcp_servers` verified live: `list` and `dry_run` on a v68 org already
-  carrying the surface (all `already`), and `dry_run` on a fresh 262 org (11 planned).
+- `configure_mcp_servers` on storm-LATEST created the `RLMSalesTransactions` server, both
+  tools, both bindings and the access row, and the gateway's `tools/list` on
+  `.../d/<prefix>/custom/RLMSalesTransactions` returned both tools. `tools/call` on
+  `placeSalesTransaction` was not run (it writes a transaction).
+- **A CONNECT identifier is the API's `<api-domain>-<api-sub-domain>`, lowercased**
+  (core `ConnectMcpOasSpecProvider`), and only operations whose OpenAPI `x-sfdc`
+  block declares an MCP integration are listed. 264 re-catalogued place from
+  `industries-revenue` to Revenue/TransactionManagement, so the binding is
+  `revenue-transactionmanagement`. The old identifier now fails with
+  `No "industries-revenue" identifier found for source "CONNECT"` — RevMCP is not the
+  cause (it gates the hosted `revenue-cloud` server, not this lookup). A wrong
+  operation on a valid identifier fails differently, and lists the valid operations:
+  `No operation "<op>" found for identifier "<id>" ... Valid operations ... [...]`.
+  Use that to discover operations, as with `revenue-price` and
+  `revenue-productcatalogmanagement`.
+- **A tool with no binding makes the gateway answer 500 for the whole server**
+  ("An error occurred while retrieving server ..."). For that reason the task deletes
+  a tool whose binding it cannot create. `placeSalesTransaction` is the reason the
+  server exists: the hosted `revenue-cloud` server exposes only a limited place
+  operation, and core's `PlaceSalesTransaction` carries the MCP annotation that makes
+  a CONNECT binding possible.
+- **An identifier the org does not resolve is a warning, not a failure.** The task
+  removes that tool, skips any other tool bound to the same identifier, and still
+  serves the rest of the server, so `prepare_rlm_org` with `mcp` on is not stopped at
+  step 35 by a catalog it cannot change. Any other binding failure still fails the
+  task. Re-run it once the org resolves the identifier; it creates only what is missing.
+- **An org bound under `industries-revenue` by an earlier run is rebound, not failed.**
+  `LEGACY_BINDINGS` in `tasks/rlm_mcp.py` lists bindings that no longer resolve; the
+  task deletes such a binding and creates the current one (`ToolId` is unique, so it
+  cannot add a second). A binding to anything else not expected still fails the task.
+- **Direct mode (custom server off) is not verified live.** Only the shape of the
+  `.mcp.json` HTTP entry is tested; Claude Code's own OAuth (metadata discovery, the
+  `mcp_api` scope, a public client) against the gateway has not been run. The verified
+  client path is the proxy, with the custom server on.
+- Pre-264 orgs: the `_preflight_custom` check refuses before any write, `dry_run`
+  included, because the 68.0 class cannot exist there. Pass `-o custom_server False`
+  to configure only the hosted servers.
 
-Neither copy compiles until `RevenueManagementSettings.enableCoreCPQ` and
+The class does not compile until `RevenueManagementSettings.enableCoreCPQ` and
 `enableTransactionCloning` are **on** — `ConnectApi.CloneSalesTransactionConnect` is
 invisible otherwise, and it fails as `Type is not visible`, which reads like a permission
 problem and is not one (`RevenueLifecycleManagementUserPsl` does not fix it).
-`prepare_rlm_org` sets both at step 1, so this only bites a bare org. On a **264** org,
+`prepare_rlm_org` sets both through `unpackaged/pre/1_settings/RevenueManagement`
+(deployed by `prepare_core`, step 1) and the scratch definitions under `orgs/`, so this
+only bites a bare org. On a **264** org,
 note that a scratch create from `config/project-scratch-def.json` currently leaves
 `RevenueManagementSettings` entirely unapplied — see *Scratch Orgs on a 264 Dev Hub*.
 
@@ -212,16 +285,8 @@ too** — `cleanup_settings_for_dev` does not strip this field. A 262-built org 
 consistent with 264 having dropped it. This is a 264-cutover item, not an MCP one; it is
 recorded here because it is what the MCP Apex failure turned out to be.
 
-## Access Note
-
-`ramp-demo-kit` is in the `salesforce-internal` GitHub EMU org with OAuth app access
-restrictions. The git-EMU MCP connector gets `403`, and `gh` returns `404` unless it is
-on the EMU account (`gh auth switch --hostname github.com --user <emu-account>`). A local
-clone sidesteps both, which is what the manifest's `local_path_hints` prefer.
-
 ## Related
 
-- `.claude/skill-manifest.yml` → `ramp_demo_kit` — the kit's declared tooling and demos
-- `.cursor/skills/pmos-integration/SKILL.md` — the same cross-repo manifest mechanism
-- `scripts/ai/skill_manifest.py --check` — confirms the kit's clone resolves
+- `.cursor/skills/pmos-integration/SKILL.md` — the cross-repo manifest mechanism
+- `scripts/mcp/README.md` — client tooling reference
 - `.cursor/skills/cci-orchestration/tasks-reference.md` — generated entries for the three MCP tasks

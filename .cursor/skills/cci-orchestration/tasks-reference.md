@@ -1184,7 +1184,7 @@
 
 ### `configure_mcp_servers`
 
-**Description:** Activate the hosted Salesforce MCP servers (McpServerAccess) and build the custom rampdealsconnect server — McpServerDefinition plus two McpServerToolDefinition tools and their McpServerToolApiDefinition bindings — via the Tooling API, because only McpServerDefinition is a deployable metadata type. Idempotent; every write checks first. Use -o operation list to report the org's surface without changing it, -o dry_run True to preview, and -o platform_servers True to also activate sobject-all and headless-360 (off by default: sobject-all grants read/write across every object).
+**Description:** Activate the hosted Salesforce MCP servers (McpServerAccess) and build the custom RLMSalesTransactions server — McpServerDefinition plus two McpServerToolDefinition tools and their McpServerToolApiDefinition bindings — via the Tooling API, because only McpServerDefinition is a deployable metadata type. Idempotent; every write checks first. Use -o operation list to report the org's surface without changing it, -o dry_run True to preview, and -o platform_servers True to also activate sobject-all and headless-360 (off by default: sobject-all grants read/write across every object). The custom server follows the mcp_custom_server flag unless -o custom_server is passed.
 
 **Class:** `tasks.rlm_mcp.ConfigureMcpServers`
 
@@ -1761,7 +1761,7 @@
 
 ### `deploy_post_mcp`
 
-**Description:** Deploy the MCP bundle — the ClaudeMcpClientRC External Client Application (5 components: app, global OAuth settings, OAuth settings, and the two policy sets) plus the RampCloneSalesTransaction invocable that backs the custom server's CLASSIC-bound cloneSalesTransaction tool. The invocable here is the 67.0, synchronous-only copy; deploy_post_mcp_264 overlays the async-capable one on newer orgs. Must run before configure_mcp_servers, which references that invocable by action path.
+**Description:** Deploy the MCP client identity — the RLM_McpClient External Client Application (5 components: app, global OAuth settings, OAuth settings, and the two policy sets). Needed by every MCP setup, with or without the custom server.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1771,16 +1771,15 @@
 
 ---
 
-### `deploy_post_mcp_264`
+### `deploy_post_mcp_custom`
 
-**Description:** Overlay the 264 / v68.0 copy of RampCloneSalesTransaction, which adds the async clone path (contextId in, trackerId/trackerUrl out). Those members do not exist on 262 / v67.0, so the base bundle ships a synchronous-only copy and this task replaces it — but only on orgs at v68.0 or later. On an older org it logs a skip and changes nothing, rather than failing the flow. Run after deploy_post_mcp.
+**Description:** Deploy what the custom RLMSalesTransactions server needs — the RLM_CloneSalesTransaction invocable (v68.0, async-capable) behind the CLASSIC-bound cloneSalesTransaction tool, and the RLM_McpSalesTransactions permission set granting access to it. Must run before configure_mcp_servers builds the custom server, which references that invocable by action path.
 
-**Class:** `tasks.rlm_mcp.DeployMcpOverlay`
+**Class:** `cumulusci.tasks.salesforce.Deploy`
 
 **Options:**
 
-- `path`: `unpackaged/post_mcp_264`
-- `min_api_version`: `68.0`
+- `path`: `unpackaged/post_mcp_custom`
 
 ---
 

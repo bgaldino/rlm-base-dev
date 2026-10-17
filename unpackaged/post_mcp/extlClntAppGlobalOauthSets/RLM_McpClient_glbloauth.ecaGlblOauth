@@ -4,9 +4,9 @@
 http://localhost:*/callback
 http://localhost:1717/OauthRedirect
 https://claude.ai/api/mcp/auth_callback</callbackUrl>
-    <externalClientApplication>ClaudeMcpClientRC</externalClientApplication>
-    <isClientCredentialsFlowEnabled>true</isClientCredentialsFlowEnabled>
-    <isCodeCredFlowEnabled>true</isCodeCredFlowEnabled>
+    <externalClientApplication>RLM_McpClient</externalClientApplication>
+    <isClientCredentialsFlowEnabled>false</isClientCredentialsFlowEnabled>
+    <isCodeCredFlowEnabled>false</isCodeCredFlowEnabled>
     <isCodeCredPostOnly>false</isCodeCredPostOnly>
     <isConsumerSecretOptional>true</isConsumerSecretOptional>
     <isDPopEnabled>false</isDPopEnabled>
@@ -16,10 +16,10 @@ https://claude.ai/api/mcp/auth_callback</callbackUrl>
     <isNamedUserJwtEnabled>true</isNamedUserJwtEnabled>
     <isPkceRequired>true</isPkceRequired>
     <isRefreshTokenRotationEnabled>true</isRefreshTokenRotationEnabled>
-    <isSecretRequiredForRefreshToken>true</isSecretRequiredForRefreshToken>
+    <isSecretRequiredForRefreshToken>false</isSecretRequiredForRefreshToken>
     <isSecretRequiredForTokenExchange>true</isSecretRequiredForTokenExchange>
     <isTokenExchangeEnabled>false</isTokenExchangeEnabled>
-    <label>ClaudeMcpClientRC_glbloauth</label>
+    <label>RLM_McpClient_glbloauth</label>
     <shouldRotateConsumerKey>false</shouldRotateConsumerKey>
     <shouldRotateConsumerSecret>false</shouldRotateConsumerSecret>
 </ExtlClntAppGlobalOauthSettings>

@@ -70,7 +70,7 @@ LOCAL_ONLY_PREFIXES = (LOCAL_ONLY_ROOT + "/",)
 # repo to the manifest means adding its key here too, or its clone is never
 # resolved. Only ``foundations`` is required; the rest declare ``optional: true``
 # and degrade to a ``[INFO]`` line when the clone is absent.
-REPO_KEYS = ("foundations", "pmos", "ramp_demo_kit")
+REPO_KEYS = ("foundations", "pmos")
 
 PY_YAML_HELP = (
     "PyYAML is not available (not installed, or failed to import), so "
@@ -437,8 +437,7 @@ def _discover_repo(
             )
         # Lenient match: the directory exists and carries a marker this repo
         # section declares as distinctive of itself (Foundations ships
-        # .cursor/skills/, PMOS ships .claude/skills/, the ramp kit ships
-        # setup/bootstrap_org.py). Declaring the marker in the manifest keeps
+        # .cursor/skills/, PMOS ships .claude/skills/). Declaring the marker in the manifest keeps
         # this generic — a new repo needs no code change here. A section with no
         # `clone_markers` gets the strict match above and nothing else.
         markers = repo_section.get("clone_markers") or []

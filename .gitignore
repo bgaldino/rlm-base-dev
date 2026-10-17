@@ -191,4 +191,5 @@ force-app/main/default/aiEvaluationDefinitions/
 # workstation and per org, they embed a resolved instance URL and consumer key —
 # and a consumer secret when running in client_credentials mode. Never commit one.
 .mcp.json
+.mcp-state/
 **/.mcp.json
