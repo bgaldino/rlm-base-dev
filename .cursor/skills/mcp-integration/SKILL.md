@@ -209,7 +209,7 @@ sf data query -q "SELECT DeveloperName, OauthScopesMCP_API, OauthScopesREFRESH_T
 
 ## Verification Status
 
-**`RLM_CloneSalesTransaction` passes its tests, 5/5, on storm-LATEST (264, 2026-10-17).**
+**`RLM_CloneSalesTransaction` passes its tests, 6/6, on storm-LATEST (264, 2026-10-17).**
 `RunSpecifiedTests` on the deploy ran 0 tests there, so they were run separately with
 `sf apex run test`.
 

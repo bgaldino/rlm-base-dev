@@ -44,18 +44,26 @@ private class RLM_CloneSalesTransactionTest {
         RLM_CloneSalesTransaction.Request noRecords = new RLM_CloneSalesTransaction.Request();
         noRecords.salesTransactionId = '0Q0000000000000AAA';
 
+        // The Connect input takes exactly one record id, despite its String[] type.
+        RLM_CloneSalesTransaction.Request twoRecords = buildRequest();
+        twoRecords.recordIds.add('0QG000000000001AAA');
+
+        RLM_CloneSalesTransaction.Request blankRecord = buildRequest();
+        blankRecord.recordIds = new List<String>{ ' ' };
+
         Test.startTest();
         List<RLM_CloneSalesTransaction.Result> results =
             RLM_CloneSalesTransaction.cloneSegments(
-                new List<RLM_CloneSalesTransaction.Request>{ noHeader, noRecords }
+                new List<RLM_CloneSalesTransaction.Request>{ noHeader, noRecords, twoRecords, blankRecord }
             );
         Test.stopTest();
 
-        System.assertEquals(2, results.size(), 'One Result per Request');
+        System.assertEquals(4, results.size(), 'One Result per Request');
         for (RLM_CloneSalesTransaction.Result r : results) {
             System.assertEquals(false, r.success, 'Incomplete input must not report success');
             System.assertEquals(false, r.isAsync, 'A rejected request never went async');
             System.assertNotEquals(null, r.errorMessage, 'Failure must explain itself');
+            System.assert(r.errorMessage.contains('exactly one recordId'), r.errorMessage);
         }
     }
 
@@ -83,7 +91,7 @@ private class RLM_CloneSalesTransactionTest {
     }
 
     @isTest
-    static void parseLineScopeMapsEnumsAndFallsBackToAllLines() {
+    static void parseLineScopeMapsEnumsAndRejectsUnknownValues() {
         System.assertEquals(ConnectApi.LineScopeEnum.AllLines,
             RLM_CloneSalesTransaction.parseLineScope('AllLines'));
         System.assertEquals(ConnectApi.LineScopeEnum.RampedLinesOnly,
@@ -96,7 +104,28 @@ private class RLM_CloneSalesTransactionTest {
         System.assertEquals(ConnectApi.LineScopeEnum.AllLines,
             RLM_CloneSalesTransaction.parseLineScope('   '));
         System.assertEquals(ConnectApi.LineScopeEnum.AllLines,
-            RLM_CloneSalesTransaction.parseLineScope('nonsense'));
+            RLM_CloneSalesTransaction.parseLineScope(' alllines '));
+        System.assertEquals(null,
+            RLM_CloneSalesTransaction.parseLineScope('nonsense'),
+            'An unknown scope is rejected, not widened to AllLines');
+    }
+
+    @isTest
+    static void rejectsAnUnknownLineScopeBeforeCallingConnect() {
+        RLM_CloneSalesTransaction.Request req = buildRequest();
+        req.lineScope = 'RampedLineOnly';  // typo
+
+        Test.startTest();
+        List<RLM_CloneSalesTransaction.Result> results =
+            RLM_CloneSalesTransaction.cloneSegments(
+                new List<RLM_CloneSalesTransaction.Request>{ req }
+            );
+        Test.stopTest();
+
+        RLM_CloneSalesTransaction.Result r = results[0];
+        System.assertEquals(false, r.success, 'An unknown scope must not clone');
+        System.assertEquals(false, r.isAsync, 'A rejected request never went async');
+        System.assert(r.errorMessage.startsWith('lineScope must be'), r.errorMessage);
     }
 
     @isTest
@@ -116,5 +145,11 @@ private class RLM_CloneSalesTransactionTest {
         Test.stopTest();
 
         System.assertEquals(4, results.size(), 'One Result per Request, whatever the scope');
+        for (Integer i = 0; i < results.size(); i++) {
+            Boolean rejected = results[i].errorMessage != null
+                && results[i].errorMessage.startsWith('lineScope must be');
+            System.assertEquals(i == 2, rejected,
+                'Only the unknown scope is rejected; got: ' + results[i].errorMessage);
+        }
     }
 }

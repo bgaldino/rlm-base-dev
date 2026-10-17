@@ -404,7 +404,11 @@ foundations:
       purpose: "The MCP surface on a built org — hosted + custom servers, the ECA, the clone invocable, the proxy. Foundations owns the whole surface: the org side (post_mcp + optional post_mcp_custom bundles, configure_mcp_servers, prepare_mcp flow) and the client tooling in scripts/mcp/. Carries the metadata-vs-Tooling-API constraint, and the rebuild-drift check"
       consumed_by_pmos: []
       tooling:
-        - scripts/ai/skill_manifest.py
+        - tasks/rlm_mcp.py
+        - scripts/mcp/mcp_org.py
+        - scripts/mcp/mcp_auth.py
+        - scripts/mcp/mcp_multiplex_proxy.py
+        - scripts/mcp/write_connector_config.py
 
     - id: pde-org-build
       path: .cursor/skills/pde-org-build/SKILL.md

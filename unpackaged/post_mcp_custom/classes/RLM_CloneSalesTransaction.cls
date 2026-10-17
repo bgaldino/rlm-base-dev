@@ -26,7 +26,8 @@
 public with sharing class RLM_CloneSalesTransaction {
 
     public class Request {
-        // The QuoteLineGroup id(s) to clone. The Connect input accepts one.
+        // The QuoteLineGroup id to clone. A list because the Connect input is String[],
+        // but it accepts exactly one; more is rejected here rather than inside Connect.
         @InvocableVariable(required=true label='Record Ids')
         public List<String> recordIds;
 
@@ -34,7 +35,8 @@ public with sharing class RLM_CloneSalesTransaction {
         @InvocableVariable(required=true label='Sales Transaction Id')
         public String salesTransactionId;
 
-        // AllLines or the platform RampedLinesOnly scope. Defaults to AllLines.
+        // AllLines or RampedLinesOnly (case-insensitive). Blank defaults to AllLines; any
+        // other value is rejected, so a typo cannot silently widen the clone.
         @InvocableVariable(label='Line Scope')
         public String lineScope;
 
@@ -77,7 +79,7 @@ public with sharing class RLM_CloneSalesTransaction {
 
     @InvocableMethod(
         label='Clone Sales Transaction'
-        description='Clones a sales transaction (or selected groups of it). Returns the async tracker handle when async clone is triggered; otherwise the clone is complete when this returns.'
+        description='Clones one group of a sales transaction (recordIds takes exactly one QuoteLineGroup id; lineScope is AllLines or RampedLinesOnly). Returns the async tracker handle when async clone is triggered; otherwise the clone is complete when this returns.'
         category='Revenue Cloud'
     )
     public static List<Result> cloneSegments(List<Request> requests) {
@@ -93,11 +95,18 @@ public with sharing class RLM_CloneSalesTransaction {
 
     private static Result cloneOne(Request req) {
         Result r = new Result();
+        r.success = false;
+        r.isAsync = false;
         if (req == null || String.isBlank(req.salesTransactionId)
-                || req.recordIds == null || req.recordIds.isEmpty()) {
-            r.success = false;
-            r.isAsync = false;
-            r.errorMessage = 'salesTransactionId and at least one recordId are required.';
+                || req.recordIds == null || req.recordIds.size() != 1
+                || String.isBlank(req.recordIds[0])) {
+            r.errorMessage = 'salesTransactionId and exactly one recordId are required.';
+            return r;
+        }
+        ConnectApi.LineScopeEnum lineScope = parseLineScope(req.lineScope);
+        if (lineScope == null) {
+            r.errorMessage = 'lineScope must be AllLines or RampedLinesOnly (or blank for AllLines); got "'
+                + req.lineScope + '".';
             return r;
         }
         try {
@@ -111,7 +120,7 @@ public with sharing class RLM_CloneSalesTransaction {
 
             ConnectApi.CloneOptionsInputRepresentation options =
                 new ConnectApi.CloneOptionsInputRepresentation();
-            options.lineScope = parseLineScope(req.lineScope);
+            options.lineScope = lineScope;
             if (String.isNotBlank(req.recordTypeId)) {
                 options.recordTypeId = req.recordTypeId;
             }
@@ -139,14 +148,18 @@ public with sharing class RLM_CloneSalesTransaction {
 
     @TestVisible
     private static ConnectApi.LineScopeEnum parseLineScope(String value) {
-        // Case-insensitive; anything unrecognised falls back to AllLines.
+        // Case-insensitive; blank means AllLines; anything unrecognised is null (rejected).
         if (String.isBlank(value)) {
             return ConnectApi.LineScopeEnum.AllLines;
         }
-        if (value.trim().toLowerCase() == 'rampedlinesonly') {
+        String scope = value.trim().toLowerCase();
+        if (scope == 'alllines') {
+            return ConnectApi.LineScopeEnum.AllLines;
+        }
+        if (scope == 'rampedlinesonly') {
             return ConnectApi.LineScopeEnum.RampedLinesOnly;
         }
-        return ConnectApi.LineScopeEnum.AllLines;
+        return null;
     }
 
     private static String serializeErrors(

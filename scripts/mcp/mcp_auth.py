@@ -137,19 +137,12 @@ def _write_private(path, text):
 
 
 @contextlib.contextmanager
-def _account_lock(account):
-    """Exclusive inter-process lock for one account's read -> refresh -> persist.
-
-    Refresh tokens ROTATE (single-use): two processes (proxy + CLI) crossing expiry together
-    would both spend the same token, the loser would get invalid_grant and delete the
-    freshly persisted credential. flock on a file under the cache dir serialises them;
-    callers must RE-READ the stored blob after acquiring it.
-    """
+def _flock(name):
+    """Exclusive flock on <cache dir>/<name>; a no-op where fcntl is unavailable."""
     if fcntl is None:
         yield
         return
     d = os.path.dirname(_file_path())             # also creates the 0700 cache dir
-    name = "refresh-%s.lock" % hashlib.sha256(account.encode()).hexdigest()[:16]
     fd = os.open(os.path.join(d, name), os.O_RDWR | os.O_CREAT, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
@@ -161,18 +154,35 @@ def _account_lock(account):
             os.close(fd)
 
 
+def _file_lock():
+    """Lock for the file backend's read-modify-replace of refresh-tokens.json.
+
+    Every account shares that one file, so per-account locks do not stop two accounts'
+    writers from each replacing it with their own stale copy and dropping the other's
+    entry. Always taken inside any account lock, never around one, so the order is fixed.
+    Not re-entrant (a second flock through a new fd blocks): never nest it, so _raw_set and
+    _store_del must not call each other.
+    """
+    return _flock("refresh-tokens.lock")
+
+
+def _account_lock(account):
+    """Exclusive inter-process lock for one account's read -> refresh -> persist.
+
+    Refresh tokens ROTATE (single-use): two processes (proxy + CLI) crossing expiry together
+    would both spend the same token, the loser would get invalid_grant and delete the
+    freshly persisted credential. flock on a file under the cache dir serialises them;
+    callers must RE-READ the stored blob after acquiring it.
+    """
+    return _flock("refresh-%s.lock" % hashlib.sha256(account.encode()).hexdigest()[:16])
+
+
 def _raw_get(account):
     if _is_macos():
         r = subprocess.run(["security", "find-generic-password", "-s", SERVICE,
                             "-a", account, "-w"], capture_output=True, text=True)
         return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else None
-    p = _file_path()
-    if not os.path.exists(p):
-        return None
-    try:
-        return json.load(open(p)).get(account)
-    except Exception:
-        return None
+    return _read_file_store(_file_path()).get(account)
 
 
 def _raw_set(account, value):
@@ -182,15 +192,22 @@ def _raw_set(account, value):
                         "-a", account, "-l", f"{SERVICE} auth", "-w", value],
                        capture_output=True, text=True, check=True)
         return
-    p = _file_path()
-    data = {}
-    if os.path.exists(p):
-        try:
-            data = json.load(open(p))
-        except Exception:
-            data = {}
-    data[account] = value
-    _write_private(p, json.dumps(data))
+    with _file_lock():
+        p = _file_path()
+        data = _read_file_store(p)
+        data[account] = value
+        _write_private(p, json.dumps(data))
+
+
+def _read_file_store(p):
+    if not os.path.exists(p):
+        return {}
+    try:
+        with open(p) as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
 
 
 def _store_get(account):
@@ -218,14 +235,12 @@ def _store_del(account):
         subprocess.run(["security", "delete-generic-password", "-s", SERVICE, "-a", account],
                        capture_output=True, text=True)
         return
-    p = _file_path()
-    if os.path.exists(p):
-        try:
-            data = json.load(open(p))
-        except Exception:
-            data = {}
-        data.pop(account, None)
-        _write_private(p, json.dumps(data))
+    with _file_lock():
+        p = _file_path()
+        if os.path.exists(p):
+            data = _read_file_store(p)
+            data.pop(account, None)
+            _write_private(p, json.dumps(data))
 
 
 # ---- OAuth ------------------------------------------------------------------

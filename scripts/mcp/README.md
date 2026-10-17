@@ -95,7 +95,9 @@ Files that can hold a secret (`.mcp.json`, `~/.rlm_mcp_orgs.json`, the file toke
 created `0600` atomically (temp file + `os.replace`), never written then chmodded. `mcp_org.py`
 `json`/`show`/`env` never print the consumer secret; `env` emits a `jq` line that reads it from
 the profile at `eval` time instead. Refresh tokens rotate, so refresh is serialised across
-processes with an `flock` under the cache dir. The ECA's refresh-token policy is a 365-day
+processes with a per-account `flock` under the cache dir. The file token cache is shared
+by every account, so its read-modify-replace also takes a file-wide lock (inside the
+account lock). The ECA's refresh-token policy is a 365-day
 `SpecificLifetime`, and with `isSecretRequiredForRefreshToken=false` the refresh grant sends no
 `client_secret` (PKCE, key only).
 

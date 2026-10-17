@@ -213,6 +213,29 @@ def test_mcp_auth(tmp):
     ra._store_del("nothing")
     check("token cache stays 0600 after delete rewrite", mode(fp) == 0o600)
 
+    # Every account shares the one file: a writer for B waits while A's read-modify-replace
+    # holds the file lock, so neither replaces the file with a copy missing the other.
+    if ra.fcntl is not None:
+        import threading, time as _t
+        done, started = [], threading.Event()
+        with ra._file_lock():
+            data = json.loads(Path(fp).read_text())
+            w = threading.Thread(target=lambda: (started.set(), ra._raw_set("B", "vb"), done.append(1)))
+            w.start()
+            began = started.wait(5)
+            _t.sleep(0.3)                   # the thread is at _raw_set; give it time to finish if unlocked
+            blocked = began and not done
+            data["A"] = "va"
+            ra._write_private(fp, json.dumps(data))
+        w.join(5)
+        both = json.loads(Path(fp).read_text())
+        check("file-backend write waits for the file lock", blocked and done == [1], str(done))
+        check("concurrent writers for two accounts keep both entries",
+              both.get("A") == "va" and both.get("B") == "vb", str(both))
+        ra._store_del("B")
+        check("delete keeps the other accounts' entries",
+              "B" not in json.loads(Path(fp).read_text()) and json.loads(Path(fp).read_text()).get("A") == "va")
+
     # refresh omits client_secret when SF_CSEC is absent
     posted = []
     ra._post_form = lambda url, form: (posted.append(form), {"access_token": "AT1", "refresh_token": "RT1", "expires_in": 7200})[1]
