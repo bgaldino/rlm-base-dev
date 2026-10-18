@@ -433,7 +433,8 @@ def get_access_token(interactive=True, force=False):
       1. Reuse the cached ACCESS token if it's still valid (>2 min headroom) — NO refresh, NO
          rotation, no cross-process race. This is the hot path.
       2. Else refresh with the cached refresh token, persist the rotated one + new access token.
-      3. Else (no cache, or invalid_grant) browser login if interactive.
+      3. Else (no cache, or invalid_grant) browser login if interactive. Any other refresh
+         failure (network, 5xx, ...) exits 4 with the cache kept, interactive or not.
 
     `force` discards the cached access token and mints a new one — used by the proxy when the
     gateway answers 401 mid-session (token aged out), so a long session self-heals.
@@ -475,9 +476,12 @@ def get_access_token(interactive=True, force=False):
                 if dead:
                     sys.stderr.write("  cached refresh token is invalid (revoked/expired) — re-authenticating\n")
                     _store_del(acct)
-                elif not interactive:
-                    sys.stderr.write("FATAL: refresh failed transiently (cache kept). Retry shortly, or run "
-                                     "`mcp_auth.py login` if it persists.\n")
+                else:
+                    # Interactive too: the refresh token is not known to be dead, so a blip
+                    # must not cost a browser login (or replace a working credential).
+                    sys.stderr.write("FATAL: refresh failed, not as invalid_grant, so the cache is "
+                                     "kept. Retry shortly; if it persists, run `mcp_auth.py logout`, "
+                                     "then `login`.\n")
                     raise SystemExit(4)
 
     # 3) browser login.

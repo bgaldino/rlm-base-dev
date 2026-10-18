@@ -7,7 +7,8 @@ Offline security invariants for scripts/mcp/ (no org, no network, no real secret
 Covers: secret-bearing files are created 0600 (even over a pre-existing 0644 file),
 no command prints a consumer secret, a repointed alias drops the old org's cached secret,
 a new org id (a refreshed sandbox) re-resolves the cached user id and consumer key,
-refresh is lock-serialised and re-reads the stored token, the proxy returns a JSON-RPC
+refresh is lock-serialised and re-reads the stored token, a transient refresh failure
+keeps the cache and opens no browser, the proxy returns a JSON-RPC
 error (not a doomed tools/call) after a failed upstream initialize or a non-JSON-RPC
 upstream answer, and picks the response out of an SSE stream; the host probe
 prefers a base that serves the first upstream, falls back to later upstreams, re-mints once on 401, reports a dead token as an auth error (not unreachable hosts), backs
@@ -368,6 +369,17 @@ def test_mcp_auth(tmp):
     ra._store_set(acct, {"refresh_token": "RT0"})
     ra.get_access_token(interactive=False)
     check("refresh uses the re-read rotated token, not the stale one", used == ["RT_rotated"], str(used))
+
+    # A transient refresh failure keeps the cache and exits; it never opens a browser login.
+    browsed = []
+    ra._refresh = lambda *a: (None, False)
+    ra._browser_login = lambda *a: browsed.append(1) or {"access_token": "AT"}
+    ra._account_lock = real_lock
+    ra._store_set(acct, {"refresh_token": "RT0"})
+    rv, _, err = capture(ra.get_access_token, True)
+    check("a transient refresh failure (interactive) exits 4, keeps the cache, opens no browser",
+          rv == 4 and browsed == [] and ra._store_get(acct).get("refresh_token") == "RT0",
+          f"{rv} {browsed} {err!r}")
 
     # a login response without an access token must not echo the refresh token
     ra._browser_login = lambda *a: {"error": "x", "refresh_token": SECRET}
