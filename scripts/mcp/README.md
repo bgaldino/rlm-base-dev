@@ -28,6 +28,7 @@ clone invocable needs a 264 org, and the validation commands.
 | `RLM_MCP_STATE` | Base dir for per-org state | `~/.config/rlm-mcp` |
 | `RLM_MCP_AUTH_DIR` | Token cache and tool-list cache dir; `mcp_org.py env` sets it per org id | `~/.config/rlm-mcp` |
 | `SF_INSTANCE`, `SF_CID` | Org instance URL and ECA consumer key (emitted by `mcp_org.py env`) | resolved |
+| `SF_USER_ID` | Id of the alias's user (emitted by `mcp_org.py env`). The token cache is keyed on it, and a login as anyone else is refused | resolved |
 | `SF_MCP_SERVERS` | Explicit comma list of gateway server suffixes; honoured only while `SF_INSTANCE` names the same org (or is unset), and not exported by `mcp_org.py env` | `industries/revenue-cloud,custom/RLMSalesTransactions` |
 | `RLM_MCP_CUSTOM_SERVER` | `0`/`false`/`no`/`off` drops the custom server from the default list (an explicit `SF_MCP_SERVERS` still wins) | on |
 | `SF_MCP_BASES` / `SF_MCP_BASE` | Explicit gateway base override | derived from `SF_INSTANCE` |
@@ -100,7 +101,18 @@ by every account, so its read-modify-replace also takes a file-wide lock (inside
 account lock); `mcp_org.py` locks its update of the shared profile file the same way
 (the lock file, `<profiles>.lock`, stays beside it and is safe to delete when idle). A
 profile's cached consumer key is re-retrieved when the alias's instance or `RLM_MCP_ECA`
-changes. The ECA's refresh-token policy is a 365-day `SpecificLifetime`, and with
+changes. On the PKCE path (`mcp_auth.py` and the proxy) a cached credential belongs to one
+(org, ECA, user): two aliases for different users of the same org hold separate tokens, and
+`mcp_auth.py login` refuses, caching nothing, when the browser signs in as someone other
+than the alias's user (`SF_USER_ID`), which is usually a browser already signed in to the
+org. The tool-list cache stays per org. A direct-mode entry uses the client's own OAuth
+and token store instead, and `client_credentials` always acts as the ECA's run-as user.
+Without `SF_USER_ID` (a shell or `.mcp.json` from before it existed) the cache falls back
+to one entry per org and `mcp_auth.py` warns; re-run `mcp_org.py env` or
+`write_connector_config.py`, then `mcp_auth.py login`. The old per-org entry is not
+removed by `logout`; delete it by hand (macOS:
+`security delete-generic-password -s rlm-mcp -a '<host>|<consumer key>'`, elsewhere its key
+in `refresh-tokens.json`). The ECA's refresh-token policy is a 365-day `SpecificLifetime`, and with
 `isSecretRequiredForRefreshToken=false` the refresh grant sends no `client_secret` (PKCE,
 key only).
 

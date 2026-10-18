@@ -19,8 +19,8 @@ STORAGE (portable, no new pip dependency)
   - macOS: the login Keychain via the `security` CLI (generic password).
   - elsewhere (Linux / devcontainer): a 0600 file under $RLM_MCP_AUTH_DIR or ~/.config/rlm-mcp.
   The secrets stored are the REFRESH TOKEN and the short-lived access token + expiry
-  (never the consumer secret). Cache key = org instance host + ECA consumer key, so multiple
-  orgs / ECAs don't collide.
+  (never the consumer secret). Cache key = org instance host + ECA consumer key + the
+  user id in SF_USER_ID, so orgs, ECAs and the users of one org don't collide.
 
 TWO MODES
   default                     authorization_code + PKCE, refresh token cached (below).
@@ -99,10 +99,28 @@ def _drop_none(d):
     return {k: v for k, v in d.items() if v is not None}
 
 
+def _user():
+    """SF_USER_ID: the user the token must belong to (exported by `mcp_org.py env`)."""
+    return os.environ.get("SF_USER_ID", "").strip() or None
+
+
 def _account(inst, cid):
-    """Cache key: stable per (org host, ECA). Keeps multiple orgs/ECAs from colliding."""
+    """Cache key: stable per (org host, ECA, user). Keeps orgs, ECAs and the users of one
+    org from sharing a credential; without SF_USER_ID it is per (host, ECA) only."""
     host = urllib.parse.urlparse(inst).netloc or inst
-    return f"{host}|{cid}"
+    user = _user()
+    return f"{host}|{cid}|{user}" if user else f"{host}|{cid}"
+
+
+def _token_user_matches(tok):
+    """True unless SF_USER_ID is set and the token belongs to another user. The token
+    response's `id` is the identity URL, .../id/<org id>/<user id>; ids compare on their
+    case-sensitive 15-character form."""
+    want = _user()
+    if not want:
+        return True
+    got = (tok.get("id") or "").rstrip("/").rsplit("/", 1)[-1]
+    return got[:15] == want[:15]
 
 
 # ---- storage backends -------------------------------------------------------
@@ -423,6 +441,9 @@ def get_access_token(interactive=True, force=False):
     inst = _inst(); cid, csec = _cid_csec()
     if CLIENT_CREDENTIALS:
         return _cc_token(inst, cid, csec, force=force)
+    if not _user():
+        sys.stderr.write("  WARNING: SF_USER_ID is not set, so this org's users share one cached "
+                         "token. Re-run `mcp_org.py env` (or write_connector_config.py).\n")
     acct = _account(inst, cid)
     blob = _store_get(acct)
     stale = blob.get("access_token") if force else None
@@ -468,6 +489,12 @@ def get_access_token(interactive=True, force=False):
     if not tok.get("access_token"):
         sys.stderr.write("FATAL: login returned no access token "
                          f"(error={tok.get('error')!r})\n"); raise SystemExit(1)
+    if not _token_user_matches(tok):
+        # Usually a browser already signed in to this org as someone else.
+        sys.stderr.write(f"FATAL: the browser login is not user {_user()} (SF_USER_ID); nothing "
+                         "was cached. Sign out of the org in the browser, or use a private "
+                         "window, and run `mcp_auth.py login` again.\n")
+        raise SystemExit(1)
     if tok.get("refresh_token"):
         _persist(acct, {}, tok)
         print(f"  cached auth for {acct} ({'Keychain' if _is_macos() else _file_path()})", flush=True)

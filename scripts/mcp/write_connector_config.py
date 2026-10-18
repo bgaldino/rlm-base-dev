@@ -67,6 +67,7 @@ def build_env(resolved):
     env = {
         "SF_INSTANCE": resolved["instance"],
         "SF_CID": resolved["consumer_key"],
+        "SF_USER_ID": resolved["user_id"],
         "SF_MCP_BASES": resolved["bases"],
         "SF_MCP_SERVERS": resolved["servers"],
         "RLM_MCP_AUTH_DIR": resolved["auth_dir"],

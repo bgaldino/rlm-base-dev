@@ -49,7 +49,7 @@ def capture(fn, *a, **k):
 
 
 def load(name, env):
-    for k in ("SF_INSTANCE", "SF_CID", "SF_CSEC", "SF_AUTH_MODE", "SF_MCP_BASES", "SF_MCP_BASE", "SF_MCP_SERVERS",
+    for k in ("SF_INSTANCE", "SF_CID", "SF_USER_ID", "SF_CSEC", "SF_AUTH_MODE", "SF_MCP_BASES", "SF_MCP_BASE", "SF_MCP_SERVERS",
               "RLM_MCP_CUSTOM_SERVER", "RLM_MCP_ORG", "RLM_MCP_ECA", "RLM_MCP_PROFILES", "RLM_MCP_STATE", "RLM_MCP_AUTH_DIR"):
         os.environ.pop(k, None)
     os.environ.update(env)
@@ -68,11 +68,45 @@ def test_mcp_org(tmp):
     try:
         # sf CLI + metadata retrieve stubbed out
         state = {"inst": "https://a.example.com", "id": "00DA"}
-        ro._sf_json = lambda args: {"status": 0, "result": {
-            "instanceUrl": state["inst"], "id": state["id"], "username": "u", "apiVersion": "68.0"}}
+        state.update(user="005U", username="u")
+        user_calls = []
+        ro._sf_json = lambda args: (
+            user_calls.append(1) or {"status": 0, "result": {
+                "id": state["user"], "username": state["username"], "accessToken": "CLI-TOKEN"}}
+            if "user" in args else {"status": 0, "result": {
+                "instanceUrl": state["inst"], "id": state["id"], "username": state["username"],
+                "apiVersion": "68.0"}})
         ro._retrieve_consumer_key = lambda alias: "KEY-" + state["id"]
         r = ro.resolve("al")
         check("mcp_org profile file is 0600 (replaced a 0644 file)", mode(prof) == 0o600, oct(mode(prof)))
+        check("resolve() carries the alias's user id and keys the Keychain on it",
+              r["user_id"] == "005U" and r["keychain_account"].endswith("|005U"), str(r))
+        ro.resolve("al")
+        check("the user id is cached, not looked up on every resolve", user_calls == [1], str(user_calls))
+        real_sf = ro._sf_json
+        ro._sf_json = lambda args: {"status": 1, "result": {}}
+        rv, _, _ = capture(ro._user_id, "al")
+        ro._sf_json = real_sf
+        check("an unreadable user id fails the resolve", isinstance(rv, str) and "user id" in rv, str(rv))
+        _, out, _ = capture(ro.main, ["mcp_org.py", "env", "al"])
+        check("env exports SF_USER_ID", "export SF_USER_ID='005U'" in out, out)
+        printed = "".join("".join(capture(ro.main, ["mcp_org.py", c, "al"])[1:]) for c in ("json", "show", "env"))
+        check("the CLI's access token is never printed or saved",
+              "CLI-TOKEN" not in printed + Path(prof).read_text())
+        # The alias re-pointed at another user of the same org: a new lookup and a new key.
+        state.update(user="005V", username="v")
+        rv = ro.resolve("al")
+        check("an alias re-pointed at another user of the org gets that user's key",
+              rv["user_id"] == "005V" and rv["keychain_account"].endswith("|005V")
+              and json.load(open(prof))["al"]["user_id"] == "005V", str(rv))
+        # A renamed username (same user) is saved, so it is looked up once, not every time.
+        state.update(username="v2")
+        ro.resolve("al"); user_calls.clear(); ro.resolve("al")
+        check("a renamed username is saved and not looked up again",
+              user_calls == [] and json.load(open(prof))["al"]["username"] == "v2", str(user_calls))
+        state.update(user="005U", username="u")
+        ro.resolve("al")
+        user_calls.clear()
         check("resolve() result carries no secret", SECRET not in json.dumps(r) and "consumer_secret" not in r)
         check("no temp files left behind", [f for f in os.listdir(tmp) if f.startswith(".tmp-")] == [])
         for cmd in ("json", "show", "env"):
@@ -232,7 +266,9 @@ def test_write_connector_config(tmp):
           "command" not in json.load(open(path))["mcpServers"]["revenue-cloud"] and mode(path) == 0o600)
 
     resolved = dict(one, alias="al", org_id="00D", instance="https://acme.my.salesforce.com",
-                    auth_dir=tmp, client_credentials=False, consumer_secret=None)
+                    user_id="005U", auth_dir=tmp, client_credentials=False, consumer_secret=None)
+    check("proxy env carries the user the token cache is keyed on",
+          wc.build_env(resolved)["SF_USER_ID"] == "005U")
     wc.resolve = lambda alias: resolved
     ran = []
     real_run = wc.subprocess.run
@@ -329,6 +365,29 @@ def test_mcp_auth(tmp):
     ra._store_get = lambda a: {}
     _, out, err = capture(ra.get_access_token, True)
     check("failed login does not echo token response", SECRET not in out + err)
+
+    # Two users of one org: separate cache entries, and a login as the wrong user caches nothing.
+    os.environ["SF_USER_ID"] = "005AAAAAAAAAAAAAAA"
+    a_key = ra._account("https://a.example.com", "KEY")
+    os.environ["SF_USER_ID"] = "005BBBBBBBBBBBBBBB"
+    check("the token cache key differs per user of one org",
+          a_key != ra._account("https://a.example.com", "KEY") and a_key.endswith("|005AAAAAAAAAAAAAAA"))
+    stored = []
+    ra._store_set = lambda a, b: stored.append(a)
+    ra._browser_login = lambda *a: {"access_token": "AT", "refresh_token": "RT",
+                                    "id": "https://login.example.com/id/00DX/005AAAAAAAAAAAAAAA"}
+    rv, _, err = capture(ra.get_access_token, True)
+    check("a browser login as another user fails and caches nothing",
+          rv == 1 and stored == [] and "005BBBBBBBBBBBBBBB" in err, f"{rv} {stored} {err!r}")
+    ra._browser_login = lambda *a: {"access_token": "AT", "refresh_token": "RT",
+                                    "id": "https://login.example.com/id/00DX/005BBBBBBBBBBBBBBB"}
+    rv, _, _ = capture(ra.get_access_token, True)
+    check("a browser login as the alias's user is cached under its key",
+          rv == "AT" and stored == [ra._account("https://a.example.com", "KEY")], f"{rv} {stored}")
+    check("a 15-character id in the token matches the 18-character SF_USER_ID",
+          ra._token_user_matches({"id": "https://x/id/00DX/005BBBBBBBBBBBB"}))
+    check("a token response without an id fails closed", not ra._token_user_matches({}))
+    os.environ.pop("SF_USER_ID")
 
 
 def test_proxy():

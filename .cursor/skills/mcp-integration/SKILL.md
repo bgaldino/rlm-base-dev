@@ -51,8 +51,10 @@ Gateway-endpoint research credit: Sam Check (`feature/mcp-servers`).
    deploy → configure for that reason.
 7. **Auth is per person, not per package.** PKCE against the ECA, with a public consumer
    key the tooling reads from the org — so there is no secret to distribute and nothing
-   to commit. Tools run as the authenticated user, so CRUD/FLS/sharing apply. That includes
-   the clone tool's Apex class access: `prepare_mcp` grants `RLM_McpSalesTransactions` to
+   to commit. Through `mcp_auth.py` and the proxy, the token cache is keyed per org, ECA
+   and the sf alias's user, and a login as anyone else is refused. Tools run as the
+   authenticated user, so CRUD/FLS/sharing apply. That includes the clone tool's Apex
+   class access: `prepare_mcp` grants `RLM_McpSalesTransactions` to
    the running user only, so assign it to every other MCP user (see *Standing It Up*), or
    their `cloneSalesTransaction` call fails while the rest of the server works.
 8. **The custom server is optional and temporary.** It exists until the hosted
@@ -148,7 +150,8 @@ Without the custom server, `export RLM_MCP_CUSTOM_SERVER=0` (before or after the
 `write_connector_config.py <sf-alias>` writes a direct HTTP entry and the client logs in.
 
 Env vars: `RLM_MCP_ORG`, `RLM_MCP_ECA`, `RLM_MCP_PROFILES`, `RLM_MCP_STATE`,
-`RLM_MCP_AUTH_DIR`, `RLM_MCP_CUSTOM_SERVER`. Nothing here seeds demo data; that needs judgement about the
+`RLM_MCP_AUTH_DIR`, `RLM_MCP_CUSTOM_SERVER`; `env` also exports `SF_INSTANCE`, `SF_CID`
+and `SF_USER_ID`. Nothing here seeds demo data; that needs judgement about the
 existing catalog, since a QuantumBit-loaded org already has most of it.
 
 ## Gateway Endpoints

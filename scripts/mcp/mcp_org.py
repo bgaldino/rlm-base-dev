@@ -14,11 +14,12 @@ WHAT IT RESOLVES (and why no secret is needed)
     consumer secret — NOT resolved and NOT required. The ECA sets
                      isConsumerSecretOptional=true, so authorization_code + PKCE (S256)
                      completes with the consumer key alone. Verified live on 264-upgrade.
-    refresh token <- already namespaced by mcp_auth.py on (instance, client_id), so two
-                     orgs never share a cached token. Nothing to do here.
+    user id       <- profile cache (per username), else `sf org display user`. mcp_auth.py
+                     keys its token cache on (instance, client_id, user id), so neither two
+                     orgs nor two users of one org share a cached token.
 
-Emits `SF_INSTANCE` / `SF_CID` for mcp_multiplex_proxy.py and mcp_auth.py, which read
-them — this is a resolver in front of them.
+Emits `SF_INSTANCE` / `SF_CID` / `SF_USER_ID` for mcp_multiplex_proxy.py and mcp_auth.py,
+which read them — this is a resolver in front of them.
 
 USAGE
     python3 mcp_org.py env  [alias]     # shell exports:  eval "$(mcp_org.py env sdb39-revmcp)"
@@ -243,6 +244,15 @@ def _retrieve_consumer_key(alias):
     raise SystemExit(f"FATAL: no consumerKey in {ECA_NAME}_glbloauth on '{alias}'")
 
 
+def _user_id(alias):
+    """The id of the user `alias` is logged in as. The token cache is keyed on it."""
+    d = _sf_json(["sf", "org", "display", "user", "--target-org", alias, "--json"])
+    uid = (d.get("result") or {}).get("id") if d.get("status") == 0 else None
+    if not uid:
+        raise SystemExit(f"FATAL: could not read the user id of '{alias}'")
+    return uid
+
+
 def resolve(alias=None, refresh=False):
     alias = alias or os.environ.get(ENV_VAR)
     if not alias:
@@ -255,13 +265,19 @@ def resolve(alias=None, refresh=False):
 
     profiles = _load_profiles()
     prof = profiles.get(alias, {})
+    # The alias's user. mcp_auth keys its token cache on it, so two aliases for different
+    # users of one org never share (or log out) each other's credential. Cached per
+    # username (unique across Salesforce), so a re-pointed alias looks it up again.
+    user_id = prof.get("user_id") if prof.get("username") == res.get("username") else None
+    if not user_id:
+        user_id = _user_id(alias)
     cid = None if refresh else prof.get("consumer_key")
     # A key cached for another ECA (RLM_MCP_ECA changed) is as stale as one for another org.
     if not cid or prof.get("instance") != instance or prof.get("eca") != ECA_NAME:
         cid = _retrieve_consumer_key(alias)     # slow (a retrieve): done outside the lock
         prof = {"instance": instance, "consumer_key": cid,
                 "eca": ECA_NAME, "org_id": res.get("id"),
-                "username": res.get("username")}
+                "username": res.get("username"), "user_id": user_id}
 
         def replace(p):
             # Carry the secret over only if it still belongs to this exact instance + key
@@ -273,6 +289,9 @@ def resolve(alias=None, refresh=False):
                 prof["consumer_secret"] = old["consumer_secret"]
             p[alias] = prof
         _update_profiles(replace)
+    elif prof.get("user_id") != user_id or prof.get("username") != res.get("username"):
+        _update_profiles(lambda p: p.setdefault(alias, {}).update(
+            username=res.get("username"), user_id=user_id))
 
     # Per-org state dir. The proxy's tool-list cache is keyed on SERVER NAME only
     # (toollist-<server>.json), and every org exposes the same server names — so without
@@ -304,11 +323,11 @@ def resolve(alias=None, refresh=False):
             "has_secret": bool(csec), "secret_in_env": bool(env_csec),
             "auth_mode": _auth_mode(),
             "client_credentials": bool(csec) and _auth_mode() in ("client_credentials", "cc"),
-            "org_id": res.get("id"), "username": res.get("username"),
+            "org_id": res.get("id"), "username": res.get("username"), "user_id": user_id,
             "api_version": res.get("apiVersion"), "eca": ECA_NAME,
             "bases": gateway_bases(instance), "servers": servers_for(instance),
-            # mcp_auth.py namespaces its Keychain entry on exactly this pair
-            "keychain_account": f"{instance.split('//')[-1]}|{cid}"}
+            # mcp_auth.py namespaces its Keychain entry on exactly this triple
+            "keychain_account": f"{instance.split('//')[-1]}|{cid}|{user_id}"}
 
 
 def get_consumer_secret(alias=None):
@@ -340,6 +359,7 @@ def main(argv):
     elif cmd == "env":
         print(f"export SF_INSTANCE={r['instance']!r}")
         print(f"export SF_CID={r['consumer_key']!r}")
+        print(f"export SF_USER_ID={r['user_id']!r}")
         print(f"export SF_MCP_BASES={r['bases']!r}")
         print(f"export RLM_MCP_AUTH_DIR={r['auth_dir']!r}")
         if r.get("client_credentials"):
@@ -367,7 +387,7 @@ def main(argv):
         else:
             print("  auth         : PKCE (no secret)")
         print(f"  gateway      : {r['bases']}")
-        print(f"  keychain acct: {r['keychain_account'][:48]}…")
+        print(f"  keychain acct: {r['keychain_account'][:40]}…|{r['user_id']}")
         print(f"  state dir    : {r['auth_dir']}")
         print(f"  servers      : {r['servers']}")
     return 0
