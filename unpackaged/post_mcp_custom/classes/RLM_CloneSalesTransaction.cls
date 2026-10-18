@@ -26,9 +26,11 @@
 public with sharing class RLM_CloneSalesTransaction {
 
     public class Request {
-        // The QuoteLineGroup id to clone. A list because the Connect input is String[],
-        // but it accepts exactly one; more is rejected here rather than inside Connect.
-        @InvocableVariable(required=true label='Record Ids')
+        // The record to clone: a Quote, Order, QuoteLineItem, OrderItem, QuoteLineGroup or
+        // OrderItemGroup id (a group clones all its items). A list because the Connect input
+        // is String[], but it accepts exactly one; more is rejected here, not inside Connect.
+        @InvocableVariable(required=true label='Record Ids'
+            description='Exactly one id to clone: a Quote, Order, QuoteLineItem, OrderItem, QuoteLineGroup or OrderItemGroup.')
         public List<String> recordIds;
 
         // Quote/Order header to clone from.
@@ -37,7 +39,8 @@ public with sharing class RLM_CloneSalesTransaction {
 
         // AllLines or RampedLinesOnly (case-insensitive). Blank defaults to AllLines; any
         // other value is rejected, so a typo cannot silently widen the clone.
-        @InvocableVariable(label='Line Scope')
+        @InvocableVariable(label='Line Scope'
+            description='AllLines (default when blank) or RampedLinesOnly; any other value is rejected.')
         public String lineScope;
 
         // Hydrated sales-transaction context id. Supplying this, with IsLargeDeal=true
@@ -79,7 +82,7 @@ public with sharing class RLM_CloneSalesTransaction {
 
     @InvocableMethod(
         label='Clone Sales Transaction'
-        description='Clones one group of a sales transaction (recordIds takes exactly one QuoteLineGroup id; lineScope is AllLines or RampedLinesOnly). Returns the async tracker handle when async clone is triggered; otherwise the clone is complete when this returns.'
+        description='Clones a quote or order, or one of its line items or groups (recordIds takes exactly one Quote, Order, QuoteLineItem, OrderItem, QuoteLineGroup or OrderItemGroup id; lineScope is AllLines or RampedLinesOnly). Returns the async tracker handle when async clone is triggered; otherwise the clone is complete when this returns.'
         category='Revenue Cloud'
     )
     public static List<Result> cloneSegments(List<Request> requests) {

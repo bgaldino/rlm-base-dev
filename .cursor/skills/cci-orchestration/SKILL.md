@@ -289,7 +289,8 @@ prepare_rlm_org
 ├── 32. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
 ├── 33. refresh_all_decision_tables
 ├── 34. rebuild_search_index (PCM catalog search index, async)
-└── 35. stamp_git_commit
+├── 35. prepare_mcp [child steps gated on mcp; custom server on mcp_custom_server]
+└── 36. stamp_git_commit
 ```
 
 `[child steps gated on <flag>]` means the flag turns that sub-flow's work off, but

@@ -29,7 +29,11 @@ USAGE
     python3 mcp_org.py list             # every alias with a cached profile
 Alias precedence: argv[2] > $RLM_MCP_ORG.
 """
-import hashlib, json, os, re, shlex, subprocess, sys, tempfile, urllib.parse, zipfile
+import contextlib, hashlib, json, os, re, shlex, subprocess, sys, tempfile, urllib.parse, zipfile
+try:
+    import fcntl                      # POSIX only; the lock degrades to a no-op elsewhere
+except ImportError:
+    fcntl = None
 
 # Restricted sandboxes (e.g. Claude Code's Bash tool) forbid writes outside the workdir
 # and $TMPDIR. The `sf` CLI otherwise tries to write ~/.sf/sf-<date>.log, gets EPERM, and
@@ -169,11 +173,45 @@ def _save_profiles(p):
     try:
         write_private(PROFILES, json.dumps(p, indent=2))
     except OSError:
-        # A restricted sandbox may forbid writes outside the workdir/$TMPDIR (PermissionError),
-        # or the redirected parent dir may not exist (FileNotFoundError) — both are OSError.
-        # The default ~/.rlm_mcp_orgs.json is then unwritable. Point the two home-dir stores at
-        # a writable dir instead — both honour env overrides, no code change needed.
-        raise SystemExit(
+        _unwritable()
+
+
+@contextlib.contextmanager
+def _profiles_lock():
+    """Exclusive flock beside the profile file, so concurrent resolves for different aliases
+    cannot each replace the shared map with a copy that drops the other's entry."""
+    if fcntl is None:
+        yield
+        return
+    try:
+        fd = os.open(PROFILES + ".lock", os.O_RDWR | os.O_CREAT, 0o600)
+    except OSError:
+        _unwritable()
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+        finally:
+            os.close(fd)
+
+
+def _update_profiles(mutate):
+    """Re-read, mutate and save the profile map under the lock; return the saved map."""
+    with _profiles_lock():
+        profiles = _load_profiles()
+        mutate(profiles)
+        _save_profiles(profiles)
+        return profiles
+
+
+def _unwritable():
+    # A restricted sandbox may forbid writes outside the workdir/$TMPDIR (PermissionError),
+    # or the redirected parent dir may not exist (FileNotFoundError) — both are OSError.
+    # The default ~/.rlm_mcp_orgs.json is then unwritable. Point the two home-dir stores at
+    # a writable dir instead — both honour env overrides, no code change needed.
+    raise SystemExit(
             f"FATAL: cannot write {PROFILES} (sandbox write block?).\n"
             f"       Redirect the home-dir state to a writable dir, e.g.:\n"
             f"         mkdir -p \"$PWD/.mcp-state\"   # gitignored\n"
@@ -218,19 +256,23 @@ def resolve(alias=None, refresh=False):
     profiles = _load_profiles()
     prof = profiles.get(alias, {})
     cid = None if refresh else prof.get("consumer_key")
-    if not cid or prof.get("instance") != instance:
-        old = prof
-        cid = _retrieve_consumer_key(alias)
-        profiles[alias] = {"instance": instance, "consumer_key": cid,
-                           "eca": ECA_NAME, "org_id": res.get("id"),
-                           "username": res.get("username")}
-        # Carry the secret over only if it still belongs to this exact instance + key
-        # (a `refresh` of the same org keeps it; a repointed alias must not inherit it).
-        if (old.get("consumer_secret") and old.get("instance") == instance
-                and old.get("consumer_key") == cid):
-            profiles[alias]["consumer_secret"] = old["consumer_secret"]
-        _save_profiles(profiles)
-        prof = profiles[alias]      # the OLD profile (and its secret) belonged to another org
+    # A key cached for another ECA (RLM_MCP_ECA changed) is as stale as one for another org.
+    if not cid or prof.get("instance") != instance or prof.get("eca") != ECA_NAME:
+        cid = _retrieve_consumer_key(alias)     # slow (a retrieve): done outside the lock
+        prof = {"instance": instance, "consumer_key": cid,
+                "eca": ECA_NAME, "org_id": res.get("id"),
+                "username": res.get("username")}
+
+        def replace(p):
+            # Carry the secret over only if it still belongs to this exact instance + key
+            # (a `refresh` of the same org keeps it; a repointed alias or another ECA must
+            # not inherit it). Read under the lock, so a secret cached meanwhile is kept.
+            old = p.get(alias, {})
+            if (old.get("consumer_secret") and old.get("instance") == instance
+                    and old.get("consumer_key") == cid):
+                prof["consumer_secret"] = old["consumer_secret"]
+            p[alias] = prof
+        _update_profiles(replace)
 
     # Per-org state dir. The proxy's tool-list cache is keyed on SERVER NAME only
     # (toollist-<server>.json), and every org exposes the same server names — so without
@@ -253,9 +295,8 @@ def resolve(alias=None, refresh=False):
     env_csec = os.environ.get("SF_CSEC") if _env_is_for(instance) else None
     csec = env_csec or cached
     if csec and cached != csec:
-        profiles.setdefault(alias, {}).update(instance=instance, consumer_key=cid,
-                                              consumer_secret=csec)
-        _save_profiles(profiles)
+        _update_profiles(lambda p: p.setdefault(alias, {}).update(
+            instance=instance, consumer_key=cid, eca=ECA_NAME, consumer_secret=csec))
     # The secret is deliberately NOT part of the returned dict: that dict is printed by
     # `json`/`show`. Callers that need it ask get_consumer_secret().
 

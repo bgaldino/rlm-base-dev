@@ -203,7 +203,7 @@ To turn it on, set `quote_est_tax: true` together with `tax: true`. Help require
 
 ### Phase 8: Finalization (Steps 33–36)
 
-**What happens:** All decision tables are refreshed, the Product Catalog search index is rebuilt, and the build's git provenance is stamped onto the org.
+**What happens:** All decision tables are refreshed, the Product Catalog search index is rebuilt, the MCP surface is set up when the `mcp` flag is on, and the build's git provenance is stamped onto the org.
 
 **Why it matters:** Decision tables must be refreshed last so they materialize the final state of all reference data; the catalog search index must rebuild after the catalog data is in place so products are searchable; stamping the commit makes each org traceable back to the exact build that produced it.
 

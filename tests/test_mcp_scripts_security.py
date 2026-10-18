@@ -103,6 +103,50 @@ def test_mcp_org(tmp):
         check("repointed alias drops the old org's cached secret",
               not r2["has_secret"] and ro.get_consumer_secret("al") is None
               and "consumer_secret" not in json.load(open(prof))["al"])
+
+        # A key cached for another ECA is re-retrieved, then reused.
+        pulls = []
+        ro._retrieve_consumer_key = lambda alias: pulls.append(ro.ECA_NAME) or "KEY-" + ro.ECA_NAME
+        ro.ECA_NAME = "Other_Eca"
+        real_update, updates = ro._update_profiles, []
+        ro._update_profiles = lambda m: (updates.append(1), real_update(m))[1]
+        r3 = ro.resolve("al")
+        ro._update_profiles = real_update
+        check("resolve() saves the profile through the locked update", updates == [1], str(updates))
+        ro.resolve("al")
+        check("changing RLM_MCP_ECA re-retrieves the key once",
+              pulls == ["Other_Eca"] and r3["consumer_key"] == "KEY-Other_Eca"
+              and json.load(open(prof))["al"]["eca"] == "Other_Eca", f"{pulls} {r3['consumer_key']}")
+        # A secret another process caches for this alias (same instance + key) while this one
+        # is retrieving the key survives: the carry-over reads the map under the lock.
+        def racing_retrieve(alias):
+            ro._update_profiles(lambda p: p["al"].update(consumer_secret="LATE"))
+            return "KEY-" + ro.ECA_NAME
+        ro._retrieve_consumer_key = racing_retrieve
+        ro.resolve("al", refresh=True)
+        check("refresh keeps a secret cached under the lock for the same key",
+              json.load(open(prof))["al"].get("consumer_secret") == "LATE")
+
+        # Concurrent resolves for two aliases: B's update waits for A's, so neither is lost.
+        if ro.fcntl is not None:
+            import threading, time as _t
+            done, started = [], threading.Event()
+            with ro._profiles_lock():
+                data = ro._load_profiles()
+                w = threading.Thread(target=lambda: (
+                    started.set(), ro._update_profiles(lambda p: p.__setitem__("b", {"x": 1})),
+                    done.append(1)))
+                w.start()
+                began = started.wait(5)
+                _t.sleep(0.3)
+                blocked = began and not done
+                data["a"] = {"x": 2}
+                ro._save_profiles(data)
+            w.join(5)
+            both = json.load(open(prof))
+            check("profile update waits for the profile lock", blocked and done == [1], str(done))
+            check("concurrent profile writers keep both aliases",
+                  both.get("a") == {"x": 2} and both.get("b") == {"x": 1} and "al" in both, str(both))
     finally:
         os.umask(umask)
 

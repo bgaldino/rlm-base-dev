@@ -97,9 +97,12 @@ created `0600` atomically (temp file + `os.replace`), never written then chmodde
 the profile at `eval` time instead. Refresh tokens rotate, so refresh is serialised across
 processes with a per-account `flock` under the cache dir. The file token cache is shared
 by every account, so its read-modify-replace also takes a file-wide lock (inside the
-account lock). The ECA's refresh-token policy is a 365-day
-`SpecificLifetime`, and with `isSecretRequiredForRefreshToken=false` the refresh grant sends no
-`client_secret` (PKCE, key only).
+account lock); `mcp_org.py` locks its update of the shared profile file the same way
+(the lock file, `<profiles>.lock`, stays beside it and is safe to delete when idle). A
+profile's cached consumer key is re-retrieved when the alias's instance or `RLM_MCP_ECA`
+changes. The ECA's refresh-token policy is a 365-day `SpecificLifetime`, and with
+`isSecretRequiredForRefreshToken=false` the refresh grant sends no `client_secret` (PKCE,
+key only).
 
 ## Prerequisites
 
