@@ -239,7 +239,8 @@ sf data query -q "SELECT DeveloperName, OauthScopesMCP_API, OauthScopesREFRESH_T
   `revenue-productcatalogmanagement`.
 - **A tool with no binding makes the gateway answer 500 for the whole server**
   ("An error occurred while retrieving server ..."). For that reason the task deletes
-  a tool whose binding it cannot create. `placeSalesTransaction` is the reason the
+  a tool whose binding it cannot create, and an unbound tool on the server that
+  `CUSTOM_TOOLS` does not define; a bound one it does not define is kept, with a warning. `placeSalesTransaction` is the reason the
   server exists: the hosted `revenue-cloud` server exposes only a limited place
   operation, and core's `PlaceSalesTransaction` carries the MCP annotation that makes
   a CONNECT binding possible.

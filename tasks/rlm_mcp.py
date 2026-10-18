@@ -458,6 +458,37 @@ class ConfigureMcpServers(BaseTask):
                     ),
                 )
 
+        # A tool on this server that CUSTOM_TOOLS does not define (a manual edit, an
+        # interrupted or older run). Unbound, it fails the whole server, so remove it;
+        # bound, it is not ours to delete, so report it for a check.
+        managed = {tool_name for tool_name, _, _, _ in CUSTOM_TOOLS}
+        for tool_name, tool_id in existing_tools.items():
+            if tool_name in managed:
+                continue
+            bound = existing_bindings.get(tool_id)
+            if bound:
+                found = "; ".join(
+                    f"{b.get('ApiSource')} {b.get('ApiIdentifier')} {b.get('Operation')}"
+                    for b in bound
+                )
+                self._warn(
+                    f"tool {tool_name} is not managed by this task; bound to [{found}], so "
+                    f"kept. If the server stops answering tools/list, delete it in Setup"
+                )
+            elif self.dry_run:
+                self.skipped.append(f"tool {tool_name} (would remove: unbound, not managed)")
+                self.logger.info(f"  would remove  tool {tool_name} (unbound, not managed)")
+            else:
+                self._tooling_delete(
+                    "McpServerToolDefinition",
+                    tool_id,
+                    f"tool {tool_name} (unbound and not managed, removed so the server stays served)",
+                    on_failure=(
+                        f"could not delete unbound tool {tool_name} ({tool_id}); the gateway "
+                        f"returns 500 for the whole server until it is deleted in Setup"
+                    ),
+                )
+
     def _ensure_custom_access(self, server_id: str):
         # For a CUSTOM server, DeveloperName must EQUAL the definition's
         # DeveloperName. The namespaced form used for hosted servers fails with

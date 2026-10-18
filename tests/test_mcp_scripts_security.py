@@ -10,7 +10,9 @@ refresh is lock-serialised and re-reads the stored token, the proxy returns a JS
 error (not a doomed tools/call) after a failed upstream initialize or a non-JSON-RPC
 upstream answer, and picks the response out of an SSE stream; the host probe
 re-mints once on 401, reports a dead token as an auth error (not unreachable hosts), backs
-off after a failure, and a cold-cache upstream that fails contributes no tools.
+off after a failure, and a cold-cache upstream that fails contributes no tools; a stale
+tool-list cache is refetched, kept when the refetch fails (once per process), and never
+replaced by an empty list.
 """
 import io
 import contextlib
@@ -441,6 +443,43 @@ def test_proxy():
               "\n" not in text and json.loads(text) == want, text)
 
 
+def test_proxy_toollist_cache(tmp):
+    px = load("mcp_multiplex_proxy", {"SF_INSTANCE": "https://a.example.com", "SF_CID": "KEY",
+                                      "RLM_MCP_AUTH_DIR": tmp})
+    px.SERVERS[:] = ["srv/a"]
+    old, new = {"tools": [{"name": "old_tool"}]}, {"tools": [{"name": "new_tool"}]}
+    p = px._cache_path("srv/a")
+    fetched = []
+    px._fetch_toollist = lambda s: fetched.append(s) or new
+
+    def names():
+        return [t["name"] for t in capture(px._merged_toollist)[0]]
+
+    Path(p).write_text(json.dumps(old))
+    check("a fresh tools/list cache is served without a gateway fetch",
+          names() == ["old_tool"] and fetched == [], str(fetched))
+    aged = px._time.time() - px.TOOLLIST_MAX_AGE - 60
+    os.utime(p, (aged, aged))
+    check("a stale tools/list cache is refetched", names() == ["new_tool"] and fetched == ["srv/a"])
+    px._fetch_toollist = lambda s: fetched.append(s) or None
+    check("a stale cache is still served when the refetch fails", names() == ["old_tool"])
+    fetched.clear()
+    check("a failed refresh is not retried in the same process", names() == ["old_tool"] and fetched == [])
+
+    # The real fetch: a tools/list result is cached (refreshing its age); an empty one is not.
+    px2 = load("mcp_multiplex_proxy", {"SF_INSTANCE": "https://a.example.com", "SF_CID": "KEY",
+                                       "RLM_MCP_AUTH_DIR": tmp})
+    px2._open_upstream = lambda s: px2._opened.add(s)
+    px2._pick_base = lambda: "https://gw.invalid"
+    for body, want in ((new, new), ({"tools": []}, old)):
+        Path(p).write_text(json.dumps(old))
+        px2._http = lambda url, b, sid=None, _r=body, **k: (200, None, json.dumps(
+            {"jsonrpc": "2.0", "id": 1, "result": _r}))
+        capture(px2._fetch_toollist, "srv/a")
+        check(f"a live tools/list with {len(body['tools'])} tools: cache now holds "
+              f"{want['tools'][0]['name']}", json.loads(Path(p).read_text()) == want)
+
+
 def test_proxy_host_probe():
     px = load("mcp_multiplex_proxy", {"SF_INSTANCE": "https://a.example.com", "SF_CID": "KEY"})
     px._BASES[:] = ["https://gw.invalid/d/a", "https://gw.invalid/sandbox"]
@@ -529,7 +568,8 @@ def main():
     umask = os.umask(0o022)
     try:
         for fn, wants_tmp in ((test_mcp_org, 1), (test_gateway_bases, 0), (test_write_connector_config, 1),
-                              (test_mcp_auth, 1), (test_proxy, 0), (test_proxy_host_probe, 0)):
+                              (test_mcp_auth, 1), (test_proxy, 0), (test_proxy_toollist_cache, 1),
+                              (test_proxy_host_probe, 0)):
             with tempfile.TemporaryDirectory() as tmp:
                 try:
                     fn(tmp) if wants_tmp else fn()

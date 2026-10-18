@@ -11,8 +11,9 @@ not make this tool look bound, (3) an access record linked to the wrong server
 fails, (4) a missing invocable fails before any write, and (5) a tool whose
 binding cannot be created is deleted, because one unbound tool makes the gateway
 fail the whole server, (6) an identifier the org does not resolve warns and skips
-the tools that depend on it, (7) a binding to a legacy identifier is rebound, and
-(8) the real create/delete/report paths, run against a stubbed requests.
+the tools that depend on it, (7) a binding to a legacy identifier is rebound,
+(8) a tool the task does not define is removed if unbound and reported if bound,
+and (9) the real create/delete/report paths, run against a stubbed requests.
 """
 import logging
 import sys
@@ -185,6 +186,30 @@ def test_failed_delete_says_the_server_stays_broken():
     t.fail_deletes = True
     t._ensure_tools(SERVER_ID)
     assert any("returns 500 for the whole server" in f and "T1" in f for f in t.failed), t.failed
+
+
+def test_unmanaged_unbound_tool_is_removed_and_a_bound_one_kept():
+    stray = [{"Id": "T8", "ToolName": "strayUnbound"}, {"Id": "T9", "ToolName": "strayBound"}]
+    keep = {"Id": "B9", "ToolId": "T9", "ApiSource": "CONNECT",
+            "ApiIdentifier": "x", "Operation": "y"}
+    t = FakeTask(tools=_tools() + stray, bindings=[keep])
+    t._ensure_tools(SERVER_ID)
+    assert t.deletes == [("McpServerToolDefinition", "T8")], t.deletes
+    assert t.failed == [] and any("strayBound" in w for w in t.warnings), (t.failed, t.warnings)
+
+
+def test_unmanaged_unbound_tool_that_cannot_be_deleted_fails():
+    t = FakeTask(tools=_tools() + [{"Id": "T8", "ToolName": "strayUnbound"}])
+    t.fail_deletes = True
+    t._ensure_tools(SERVER_ID)
+    assert any("strayUnbound" in f and "500" in f for f in t.failed), t.failed
+
+
+def test_unmanaged_unbound_tool_dry_run_deletes_nothing():
+    t = FakeTask(tools=_tools() + [{"Id": "T8", "ToolName": "strayUnbound"}])
+    t.dry_run = True
+    t._ensure_tools(SERVER_ID)
+    assert t.deletes == [] and any("would remove" in s for s in t.skipped), t.skipped
 
 
 def test_dry_run_deletes_nothing():

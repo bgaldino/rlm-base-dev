@@ -12,11 +12,11 @@ LOW-OVERHEAD DESIGN (a session that only uses the standard tools pays nothing fo
   - `initialize` is answered LOCALLY (advertising only the `tools` capability) — no upstream
     round-trip, and Claude Code never calls prompts/resources list.
   - `tools/list` is served from the per-server DISK CACHE (toollist-<server>.json, written by
-    `--prime`) and MERGED — instant, no gateway hit on a warm start. A cold cache is fetched
-    live once and written back (see _fetch_toollist).
+    `--prime`) and MERGED — instant, no gateway hit on a warm start. A cold cache, or one
+    older than TOOLLIST_MAX_AGE, is fetched live once and written back (see _fetch_toollist).
   - each upstream's MCP session (initialize → notifications/initialized) is opened LAZILY, on
-    the FIRST tools/call routed to it. A session that never calls a custom tool never opens
-    that upstream, so the only gateway traffic is the actual tools/call.
+    the FIRST tools/call routed to it (or by a cold- or stale-cache tools/list fetch). Otherwise
+    a session that never calls a custom tool never opens that upstream.
 
 CONFIG (.mcp.json / claude mcp add): one server entry. write_connector_config.py writes it with
 SF_MCP_SERVERS fixed at write time (so a later RLM_MCP_CUSTOM_SERVER change needs a re-write).
@@ -138,6 +138,11 @@ def _state_dir():
     return d
 
 
+# A cached tools/list older than this is refetched, so a rebuilt or upgraded org's tools
+# show up without a manual --prime. If that fetch fails, the stale list is still served.
+TOOLLIST_MAX_AGE = 24 * 3600
+
+
 def _cache_path(server):
     d = _state_dir()
     try:
@@ -154,7 +159,8 @@ def _pick_base():
         return _pick_base_locked()
 
 
-_LIVE_FETCH = True      # cold-cache live tools/list; off under --selftest
+_LIVE_FETCH = True      # live tools/list for a cold or stale cache; off under --selftest
+_refresh_failed = set()  # servers whose stale cache failed to refresh; not retried this process
 PROBE_RETRY_AFTER = 30  # seconds before a failed host probe is retried
 
 
@@ -331,8 +337,9 @@ def _open_upstream_locked(server):
 def _merged_toollist():
     """Merge each upstream's cached tools/list into one list, and build the name->server route.
 
-    Reads the disk cache; a server with no cache is fetched live once (_fetch_toollist) and
-    contributes nothing if that fails, with a warning. First writer of a name wins the
+    Reads the disk cache; a server with no cache, or a stale one, is fetched live
+    (_fetch_toollist). If that fails, a stale list is still served and not retried in this
+    process; a server with no cache contributes nothing, with a warning. First writer of a name wins the
     route (SERVERS order = precedence); the two servers do not share tool names.
     """
     global _route
@@ -341,7 +348,7 @@ def _merged_toollist():
 
 
 def _fetch_toollist(server):
-    """Live tools/list from the gateway, used when the disk cache is cold.
+    """Live tools/list from the gateway, used when the disk cache is cold or stale.
 
     Disabled (returns None) when _LIVE_FETCH is False, which --selftest sets so it stays offline.
 
@@ -371,6 +378,9 @@ def _fetch_toollist(server):
     except Exception as e:
         log(f"WARN: could not parse live tools/list for {server}: {e}")
         return None
+    if not result.get("tools"):
+        log(f"WARN: live tools/list for {server} returned no tools — not cached")
+        return None
     try:                                     # best effort — a read-only FS must not be fatal
         with open(_cache_path(server), "w") as f:
             json.dump(result, f)
@@ -384,15 +394,22 @@ def _merged_toollist_locked():
     tools, route, seen = [], {}, set()
     for server in SERVERS:
         p = _cache_path(server)
-        result = None
+        result = stale = None
         if os.path.exists(p):
             try:
                 result = json.load(open(p))
             except Exception as e:
                 log(f"WARN: unreadable cache for {server}: {e}")
+            if (result and server not in _refresh_failed
+                    and _time.time() - os.path.getmtime(p) > TOOLLIST_MAX_AGE):
+                stale, result = result, None
         if not result:
-            log(f"no tools/list cache for {server} — fetching live from the gateway")
+            log(f"{'stale' if stale else 'no'} tools/list cache for {server} — fetching live from the gateway")
             result = _fetch_toollist(server)
+            if not result and stale:
+                log(f"WARN: refresh of {server} failed — serving the stale cached tools/list")
+                _refresh_failed.add(server)
+                result = stale
         if not result:
             log(f"WARN: {server} contributed no tools")
             continue

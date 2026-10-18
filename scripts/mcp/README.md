@@ -82,7 +82,8 @@ python3 scripts/mcp/mcp_org.py show <sf-alias>     # inspect; key fingerprinted,
 python3 scripts/mcp/mcp_auth.py login
 python3 scripts/mcp/mcp_auth.py status
 
-# 3. Wire an agent connector for a folder, and warm the tool-list cache
+# 3. Wire an agent connector for a folder, and warm the tool-list cache (refetched once
+#    it is a day old; re-run --prime to pick up a server change sooner)
 python3 scripts/mcp/write_connector_config.py <sf-alias> --prime
 
 # Or drive the proxy directly
