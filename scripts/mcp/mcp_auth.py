@@ -128,8 +128,15 @@ def _is_macos():
     return sys.platform == "darwin"
 
 
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 def _file_path():
-    d = os.environ.get("RLM_MCP_AUTH_DIR") or os.path.expanduser("~/.config/rlm-mcp")
+    """A relative RLM_MCP_AUTH_DIR resolves against the repo root, as the proxy does, so a
+    login run from any directory writes where the proxy reads."""
+    d = os.path.expanduser(os.environ.get("RLM_MCP_AUTH_DIR") or "~/.config/rlm-mcp")
+    if not os.path.isabs(d):
+        d = os.path.join(REPO_ROOT, d)
     os.makedirs(d, mode=0o700, exist_ok=True)
     return os.path.join(d, "refresh-tokens.json")
 

@@ -117,6 +117,14 @@ def test_mcp_org(tmp):
         state.update(id="00DA", user="005U", username="u")
         ro.resolve("al")
         user_calls.clear()
+        ro2 = load("mcp_org", {"RLM_MCP_PROFILES": "rel/orgs.json", "SF_CSEC": SECRET})
+        check("a relative RLM_MCP_PROFILES resolves against the repo root",
+              ro2.PROFILES == os.path.join(ro2.REPO_ROOT, "rel", "orgs.json"), ro2.PROFILES)
+        os.environ["RLM_MCP_PROFILES"] = prof
+        os.environ["RLM_MCP_STATE"] = "rel/state"
+        check("a relative RLM_MCP_STATE gives an absolute state dir under the repo root",
+              ro.resolve("al")["auth_dir"] == os.path.join(ro.REPO_ROOT, "rel", "state", "00DA"))
+        os.environ.pop("RLM_MCP_STATE")
         check("resolve() result carries no secret", SECRET not in json.dumps(r) and "consumer_secret" not in r)
         check("no temp files left behind", [f for f in os.listdir(tmp) if f.startswith(".tmp-")] == [])
         for cmd in ("json", "show", "env"):
@@ -236,7 +244,16 @@ def test_gateway_bases():
     os.environ["SF_MCP_BASES"] = "https://override.invalid/x"
     check("gateway_bases: SF_MCP_BASES override wins",
           gb("https://acme.my.salesforce.com") == "https://override.invalid/x")
+    os.environ["SF_MCP_BASE"] = "https://single.invalid/y/"
+    check("gateway_bases: SF_MCP_BASE wins over SF_MCP_BASES, as in the proxy",
+          gb("https://acme.my.salesforce.com") == "https://single.invalid/y")
     os.environ.pop("SF_MCP_BASES")
+    check("gateway_bases: SF_MCP_BASE alone is honored",
+          gb("https://acme.my.salesforce.com") == "https://single.invalid/y")
+    os.environ["SF_INSTANCE"] = "https://a.my.salesforce.com"
+    check("gateway_bases: SF_MCP_BASE for another org is ignored",
+          gb("https://b.my.salesforce.com") == f"{g}/d/b")
+    os.environ.pop("SF_INSTANCE"); os.environ.pop("SF_MCP_BASE")
 
 
 def test_write_connector_config(tmp):
@@ -251,6 +268,29 @@ def test_write_connector_config(tmp):
     check(".mcp.json is 0600 (replaced a 0644 file)", mode(path) == 0o600, oct(mode(path)))
     check(".mcp.json content correct", json.load(open(path))["mcpServers"]["revenue-cloud"]["env"]["SF_CSEC"] == SECRET)
     check(".mcp.json no temp leftovers", [f for f in os.listdir(d) if f != ".mcp.json"] == [])
+    Path(target).write_text(json.dumps({"mcpServers": {"other": {"command": "x"},
+                                                       "revenue-cloud": {"command": "old"}},
+                                        "setting": 1}))
+    cfg = json.load(open(wc.write_config(d, {"command": "new"})))
+    check(".mcp.json keeps other connectors and settings, replaces only ours",
+          cfg == {"mcpServers": {"other": {"command": "x"}, "revenue-cloud": {"command": "new"}},
+                  "setting": 1}, str(cfg))
+    for bad in ("not json", "[]", '{"mcpServers": []}'):
+        Path(target).write_text(bad)
+        try:
+            wc.write_config(d, {"command": "new"}); refused = False
+        except SystemExit:
+            refused = True
+        check(f".mcp.json {bad!r} is refused and left unchanged",
+              refused and Path(target).read_text() == bad)
+    os.unlink(target)
+    os.mkdir(target)
+    try:
+        wc.write_config(d, {"command": "new"}); msg = ""
+    except SystemExit as e:
+        msg = str(e.code)
+    check("an unreadable .mcp.json is refused with a FATAL message", msg.startswith("FATAL: cannot read"), msg)
+    os.rmdir(target)
 
     # Custom server off: one upstream, so PKCE goes direct (no proxy); cc keeps the proxy.
     A, B = "https://a.my.salesforce.com", "https://b.my.salesforce.com"
@@ -288,6 +328,11 @@ def test_write_connector_config(tmp):
                     user_id="005U", auth_dir=tmp, client_credentials=False, consumer_secret=None)
     check("proxy env carries the user the token cache is keyed on",
           wc.build_env(resolved)["SF_USER_ID"] == "005U")
+    os.environ["SF_MCP_BASE"] = "https://other-org.invalid"
+    os.environ["SF_INSTANCE"] = resolved["instance"]
+    px = load("mcp_multiplex_proxy", dict(os.environ, **wc.build_env(resolved)))
+    check("an SF_MCP_BASE inherited from the shell does not override the written bases",
+          px._BASES == [b.rstrip("/") for b in resolved["bases"].split(",")], px._BASES)
     wc.resolve = lambda alias: resolved
     ran = []
     real_run = wc.subprocess.run
@@ -310,6 +355,12 @@ def test_mcp_auth(tmp):
     os.chmod(fp, 0o644)
     ra._store_set("acct", {"refresh_token": "RT0"})
     check("token cache file is 0600 (replaced a 0644 file)", mode(fp) == 0o600, oct(mode(fp)))
+    real_root, ra.REPO_ROOT = ra.REPO_ROOT, tmp
+    os.environ["RLM_MCP_AUTH_DIR"] = "rel/auth"
+    check("relative RLM_MCP_AUTH_DIR resolves against the repo root, as in the proxy",
+          ra._file_path() == os.path.join(tmp, "rel", "auth", "refresh-tokens.json"), ra._file_path())
+    ra.REPO_ROOT = real_root
+    os.environ["RLM_MCP_AUTH_DIR"] = tmp
     ra._store_del("nothing")
     check("token cache stays 0600 after delete rewrite", mode(fp) == 0o600)
 

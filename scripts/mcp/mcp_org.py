@@ -31,6 +31,8 @@ USAGE
 Alias precedence: argv[2] > $RLM_MCP_ORG.
 """
 import contextlib, hashlib, json, os, re, shlex, subprocess, sys, tempfile, urllib.parse, zipfile
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     import fcntl                      # POSIX only; the lock degrades to a no-op elsewhere
 except ImportError:
@@ -45,7 +47,10 @@ os.environ.setdefault("SF_DISABLE_LOG_FILE", "true")
 
 ENV_VAR   = "RLM_MCP_ORG"
 ECA_NAME  = os.environ.get("RLM_MCP_ECA", "RLM_McpClient")
-PROFILES  = os.path.expanduser(os.environ.get("RLM_MCP_PROFILES", "~/.rlm_mcp_orgs.json"))
+# A relative path resolves against the repo root, like RLM_MCP_STATE: a cached consumer
+# secret lives only here, so every working directory must read the same file.
+PROFILES  = os.path.join(REPO_ROOT, os.path.expanduser(
+    os.environ.get("RLM_MCP_PROFILES") or "~/.rlm_mcp_orgs.json"))
 # The prod gateway only: `revenue-cloud` is not published on test.api, which answers
 # `404 Server definition not found`. Override with SF_MCP_BASES for an internal / pc-rnd
 # org that genuinely routes via test.api (needs Zscaler).
@@ -85,10 +90,12 @@ def gateway_bases(instance):
     legacy base as a fallback: /sandbox for sandbox and scratch, the plain base otherwise.
     Pre-enhanced hosts: any `--` prefix is a sandbox (acme--uat.my.salesforce.com,
     acme--uat.cs42.my.salesforce.com), and a `-dev-ed` prefix is a Developer Edition.
-    A host that is not a My Domain gets the legacy base. SF_MCP_BASES overrides all of it,
-    but only for the org it was exported with (see _env_is_for).
+    A host that is not a My Domain gets the legacy base. SF_MCP_BASE, then SF_MCP_BASES,
+    overrides all of it (the proxy's precedence), but only for the org it was exported
+    with (see _env_is_for).
     """
-    override = os.environ.get("SF_MCP_BASES")
+    single = os.environ.get("SF_MCP_BASE", "").strip().rstrip("/")
+    override = single or os.environ.get("SF_MCP_BASES")
     if override and _env_is_for(instance):
         return override
     host = (urllib.parse.urlparse(instance).hostname or "").lower()
@@ -109,7 +116,7 @@ def gateway_bases(instance):
 
 
 def _env_is_for(instance):
-    """True when per-org env (SF_MCP_BASES, SF_MCP_SERVERS, SF_CSEC) belongs to `instance`.
+    """True when per-org env (SF_MCP_BASE(S), SF_MCP_SERVERS, SF_CSEC) belongs to `instance`.
 
     `env` exports SF_INSTANCE next to them, so in a shell that already eval'd org A, a
     lookup for org B must not inherit A's bases or secret. Unset SF_INSTANCE means the
@@ -302,7 +309,11 @@ def resolve(alias=None, refresh=False):
     # this, org A's cached tools are served for org B. The proxy already honours
     # RLM_MCP_AUTH_DIR, so namespacing it is the whole fix: no proxy change needed.
     # Keyed on org id, not alias: an alias can be re-pointed at a different org.
-    base_dir = os.path.expanduser(os.environ.get("RLM_MCP_STATE", "~/.config/rlm-mcp"))
+    # A relative RLM_MCP_STATE resolves against the repo root, as the proxy and mcp_auth
+    # resolve RLM_MCP_AUTH_DIR, so the dir emitted here is absolute.
+    base_dir = os.path.expanduser(os.environ.get("RLM_MCP_STATE") or "~/.config/rlm-mcp")
+    if not os.path.isabs(base_dir):
+        base_dir = os.path.join(REPO_ROOT, base_dir)
     auth_dir = os.path.join(base_dir, res.get("id") or alias)
 
     # Consumer SECRET, only for SF_AUTH_MODE=client_credentials, which must be set

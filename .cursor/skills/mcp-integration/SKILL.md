@@ -151,7 +151,9 @@ Without the custom server, `export RLM_MCP_CUSTOM_SERVER=0` (before or after the
 
 Env vars: `RLM_MCP_ORG`, `RLM_MCP_ECA`, `RLM_MCP_PROFILES`, `RLM_MCP_STATE`,
 `RLM_MCP_AUTH_DIR`, `RLM_MCP_CUSTOM_SERVER`; `env` also exports `SF_INSTANCE`, `SF_CID`
-and `SF_USER_ID`. Nothing here seeds demo data; that needs judgement about the
+and `SF_USER_ID`. Relative `RLM_MCP_PROFILES`, `RLM_MCP_STATE` and `RLM_MCP_AUTH_DIR`
+paths resolve against the repo root. `write_connector_config.py` replaces only the
+`revenue-cloud` entry of an existing `.mcp.json`. Nothing here seeds demo data; that needs judgement about the
 existing catalog, since a QuantumBit-loaded org already has most of it.
 
 ## Gateway Endpoints
@@ -170,7 +172,7 @@ https://api.salesforce.com/platform/mcp/v1/d/<My Domain prefix>/<namespace>/<ser
   `.scratch.` or `.sandbox.`.
 - Non-production types fall back to the legacy base (sandbox/scratch to `/sandbox`)
   because pinned routing is unverified there. `mcp_org.gateway_bases` implements this;
-  `SF_MCP_BASES` overrides it, but only while `SF_INSTANCE` names the same org, so an
+  `SF_MCP_BASE` (first) or `SF_MCP_BASES` overrides it, but only while `SF_INSTANCE` names the same org, so an
   override eval'd for one org does not follow the shell to another (`SF_CSEC` is scoped
   the same way). Re-run `mcp_org.py env` after changing orgs; it unsets an `SF_MCP_SERVERS`
   or `SF_MCP_BASE` left from the previous org.

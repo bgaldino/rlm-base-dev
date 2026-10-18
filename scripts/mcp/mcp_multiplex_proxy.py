@@ -55,7 +55,8 @@ SERVERS = [s.strip() for s in mcp_org.servers_for(os.environ.get("SF_INSTANCE", 
 
 # Gateway host selection. Single candidate => no startup probe. Without an explicit
 # SF_MCP_BASE(S), derive the org-pinned base (plus any fallback) from SF_INSTANCE.
-_BASES = ([os.environ["SF_MCP_BASE"].rstrip("/")] if os.environ.get("SF_MCP_BASE") else
+_BASES = ([os.environ["SF_MCP_BASE"].strip().rstrip("/")]
+          if os.environ.get("SF_MCP_BASE", "").strip() else
           [b.strip().rstrip("/") for b in
            (os.environ.get("SF_MCP_BASES")
             or mcp_org.gateway_bases(os.environ.get("SF_INSTANCE", ""))).split(",")

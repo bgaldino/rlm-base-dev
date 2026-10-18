@@ -71,6 +71,10 @@ def build_env(resolved):
         "SF_MCP_BASES": resolved["bases"],
         "SF_MCP_SERVERS": resolved["servers"],
         "RLM_MCP_AUTH_DIR": resolved["auth_dir"],
+        # Blank out a singular override from the launching shell: the proxy prefers it to
+        # SF_MCP_BASES, and it may belong to another org. When it applied to this one,
+        # SF_MCP_BASES above already carries it (mcp_org.gateway_bases).
+        "SF_MCP_BASE": "",
     }
     if resolved.get("client_credentials") and resolved.get("consumer_secret"):
         env["SF_CSEC"] = resolved["consumer_secret"]
@@ -120,13 +124,36 @@ def direct_entry(resolved):
                       "callbackPort": DIRECT_CALLBACK_PORT}}
 
 
+def _existing_config(path):
+    """The current .mcp.json, so only this connector's entry is replaced and other
+    connectors and settings survive. Refuses a file it cannot parse rather than drop it."""
+    try:
+        with open(path) as handle:
+            text = handle.read()
+    except FileNotFoundError:
+        text = ""
+    except OSError as e:
+        raise SystemExit(f"FATAL: cannot read {path}: {e.strerror}. It was left unchanged.")
+    if not text.strip():
+        return {"mcpServers": {}}
+    try:
+        config = json.loads(text)
+    except ValueError:
+        config = None
+    if not isinstance(config, dict) or not isinstance(config.setdefault("mcpServers", {}), dict):
+        raise SystemExit(f"FATAL: {path} is not a JSON object with an mcpServers object;\n"
+                         f"       fix or move it, then re-run. It was left unchanged.")
+    return config
+
+
 def write_config(directory, entry):
     target = os.path.abspath(directory)
     if not os.path.isdir(target):
         raise SystemExit(f"FATAL: not a directory: {target}")
 
-    config = {"mcpServers": {CONNECTOR_NAME: entry}}
     path = os.path.join(target, ".mcp.json")
+    config = _existing_config(path)
+    config["mcpServers"][CONNECTOR_NAME] = entry
     try:
         _write_private(path, json.dumps(config, indent=2))
     except PermissionError:
