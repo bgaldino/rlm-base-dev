@@ -172,7 +172,8 @@ https://api.salesforce.com/platform/mcp/v1/d/<My Domain prefix>/<namespace>/<ser
   because pinned routing is unverified there. `mcp_org.gateway_bases` implements this;
   `SF_MCP_BASES` overrides it, but only while `SF_INSTANCE` names the same org, so an
   override eval'd for one org does not follow the shell to another (`SF_CSEC` is scoped
-  the same way). Re-run `mcp_org.py env` after changing orgs.
+  the same way). Re-run `mcp_org.py env` after changing orgs; it unsets an `SF_MCP_SERVERS`
+  or `SF_MCP_BASE` left from the previous org.
 - A Salesforce CLI token gets **401**; an ECA token with the `mcp_api` scope is required.
 - A Tooling `McpServerAccess` row with `Active=true` does **not** mean the server is
   served. Some servers need org permissions (for example RevMCP, for `revenue-cloud`).

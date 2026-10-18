@@ -141,7 +141,16 @@ def test_mcp_org(tmp):
         os.environ["SF_INSTANCE"] = state["inst"]
         check("get_consumer_secret honours an SF_CSEC exported for this org",
               ro.get_consumer_secret("al") == "OTHER-ORG-SECRET")
-        os.environ.pop("SF_INSTANCE"); os.environ.pop("SF_CSEC")
+        os.environ.pop("SF_CSEC")
+        # Overrides left over from another org's eval are unset on a switch, not inherited.
+        os.environ.update(SF_MCP_SERVERS="x/y", SF_MCP_BASE="https://gw.invalid/a")
+        _, out, _ = capture(ro.main, ["mcp_org.py", "env", "al"])
+        check("env for the same org keeps its server and base overrides", "unset SF_MCP" not in out, out)
+        os.environ["SF_INSTANCE"] = "https://other.example.com"
+        _, out, _ = capture(ro.main, ["mcp_org.py", "env", "al"])
+        check("env switching orgs unsets the other org's SF_MCP_SERVERS and SF_MCP_BASE",
+              "unset SF_MCP_SERVERS SF_MCP_BASE" in out, out)
+        os.environ.pop("SF_INSTANCE"); os.environ.pop("SF_MCP_SERVERS"); os.environ.pop("SF_MCP_BASE")
         # alias repointed to another org: old secret must be discarded
         state.update(inst="https://b.example.com", id="00DB")
         r2 = ro.resolve("al")
@@ -424,6 +433,19 @@ def test_proxy():
     check("failed upstream initialize -> JSON-RPC error to client",
           out.get("id") == 7 and out.get("error", {}).get("code") == -32603, str(out))
     check("no tools/call sent upstream after failed initialize", "tools/call" not in calls, str(calls))
+    # initialize succeeds but notifications/initialized fails: not opened, retried next call.
+    calls.clear()
+    px._http = lambda url, body, sid=None, **k: (calls.append(body.get("method")) or (
+        (200, "S1", "") if body.get("method") == "initialize" else (500, None, "")))
+    capture(px._open_upstream, "srv/a")
+    capture(px._open_upstream, "srv/a")
+    check("a failed notifications/initialized leaves the server unopened and retries the handshake",
+          "srv/a" not in px._opened and calls.count("initialize") == 2, str(calls))
+    px._http = lambda url, body, sid=None, **k: (202 if "id" not in body else 200, "S2", "")
+    capture(px._open_upstream, "srv/a")
+    check("a 202 to notifications/initialized opens the server", "srv/a" in px._opened
+          and px._sessions.get("srv/a") == "S2", str(px._opened))
+    px._opened.clear(); px._sessions.clear()
 
     # An initialized upstream that answers a call without a JSON-RPC response (empty body,
     # a Salesforce error array, HTML) becomes an error with the request id; a real JSON-RPC
@@ -613,6 +635,12 @@ def test_proxy_host_probe():
     px2._pick_base = unrouted
     rv, out, _ = capture(px2._prime)
     check("--prime: no routed host -> exit 1 with a FATAL line", rv == 1 and "FATAL" in out, f"{rv} {out!r}")
+    px2._pick_base = lambda: "https://gw.invalid"
+    px2._http = lambda url, body, sid=None, **k: (
+        (200, "S", "") if body.get("method") == "initialize" else (500, None, ""))
+    rv, out, _ = capture(px2._prime)
+    check("--prime: a failed notifications/initialized is reported as such",
+          rv == 1 and "notifications/initialized HTTP 500" in out, f"{rv} {out!r}")
 
 
 def main():

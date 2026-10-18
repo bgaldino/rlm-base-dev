@@ -29,9 +29,9 @@ clone invocable needs a 264 org, and the validation commands.
 | `RLM_MCP_AUTH_DIR` | Token cache and tool-list cache dir; `mcp_org.py env` sets it per org id | `~/.config/rlm-mcp` |
 | `SF_INSTANCE`, `SF_CID` | Org instance URL and ECA consumer key (emitted by `mcp_org.py env`) | resolved |
 | `SF_USER_ID` | Id of the alias's user (emitted by `mcp_org.py env`). The token cache is keyed on it, and a login as anyone else is refused | resolved |
-| `SF_MCP_SERVERS` | Explicit comma list of gateway server suffixes; honoured only while `SF_INSTANCE` names the same org (or is unset), and not exported by `mcp_org.py env` | `industries/revenue-cloud,custom/RLMSalesTransactions` |
+| `SF_MCP_SERVERS` | Explicit comma list of gateway server suffixes; honoured only while `SF_INSTANCE` names the same org (or is unset); not exported by `mcp_org.py env`, which unsets one left from another org | `industries/revenue-cloud,custom/RLMSalesTransactions` |
 | `RLM_MCP_CUSTOM_SERVER` | `0`/`false`/`no`/`off` drops the custom server from the default list (an explicit `SF_MCP_SERVERS` still wins) | on |
-| `SF_MCP_BASES` / `SF_MCP_BASE` | Explicit gateway base override | derived from `SF_INSTANCE` |
+| `SF_MCP_BASES` / `SF_MCP_BASE` | Explicit gateway base override. `mcp_org.py env` re-exports `SF_MCP_BASES` and unsets an `SF_MCP_BASE` left from another org | derived from `SF_INSTANCE` |
 | `SF_AUTH_MODE` | `client_credentials` to opt in to that flow | unset (PKCE) |
 | `SF_CSEC` | Consumer secret, only used with `client_credentials` | unset |
 

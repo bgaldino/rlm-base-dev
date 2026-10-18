@@ -361,6 +361,12 @@ def main(argv):
     if cmd == "json":
         print(json.dumps(r, indent=2))   # no secret: resolve() never includes it
     elif cmd == "env":
+        # Hand-set overrides scoped to the org this shell was eval'd for: once SF_INSTANCE
+        # names this org they would pass _env_is_for here, so drop them on a switch.
+        if not _env_is_for(r["instance"]):
+            stale = [v for v in ("SF_MCP_SERVERS", "SF_MCP_BASE") if os.environ.get(v)]
+            if stale:
+                print(f"unset {' '.join(stale)}   # set for {os.environ['SF_INSTANCE']}")
         print(f"export SF_INSTANCE={r['instance']!r}")
         print(f"export SF_CID={r['consumer_key']!r}")
         print(f"export SF_USER_ID={r['user_id']!r}")

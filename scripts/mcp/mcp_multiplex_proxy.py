@@ -336,9 +336,12 @@ def _open_upstream_locked(server):
                                         "clientInfo": {"name": "rlm-mcp-mux", "version": "1.0"}}})
     if st != 200:
         log(f"upstream {server}: initialize HTTP {st}"); return
+    # initialized notification (no id -> no JSON-RPC response, just a 2xx). Without it the
+    # session stays uninitialised, so a failure leaves the server unopened, to retry next call.
+    st, _, _ = _http(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid=sid)
+    if not 200 <= (st or 0) < 300:
+        log(f"upstream {server}: notifications/initialized HTTP {st}"); return
     _sessions[server] = sid
-    # initialized notification (no id -> no response)
-    _http(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid=sid)
     _opened.add(server)
     log(f"upstream {server} opened (session={sid})")
 
@@ -546,7 +549,9 @@ def _prime():
                                             "clientInfo": {"name": "rlm-mcp-mux-prime", "version": "1.0"}}})
         if st != 200:
             print(f"FAIL {server}: initialize HTTP {st}"); ok = False; continue
-        _http(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid=sid)
+        st, _, _ = _http(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid=sid)
+        if not 200 <= (st or 0) < 300:
+            print(f"FAIL {server}: notifications/initialized HTTP {st}"); ok = False; continue
         st, _, raw = _http(url, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}, sid=sid)
         if st != 200:
             print(f"FAIL {server}: tools/list HTTP {st}"); ok = False; continue
