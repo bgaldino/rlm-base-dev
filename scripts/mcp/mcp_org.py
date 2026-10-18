@@ -9,12 +9,12 @@ silently retarget the CLI itself.
 
 WHAT IT RESOLVES (and why no secret is needed)
     instance URL  <- `sf org display --target-org <alias>`  (authoritative, always current)
-    consumer key  <- profile cache, else a one-time Metadata retrieve of
+    consumer key  <- profile cache (per org id), else a one-time Metadata retrieve of
                      ExtlClntAppGlobalOauthSettings:<eca>_glbloauth from the org
     consumer secret — NOT resolved and NOT required. The ECA sets
                      isConsumerSecretOptional=true, so authorization_code + PKCE (S256)
                      completes with the consumer key alone. Verified live on 264-upgrade.
-    user id       <- profile cache (per username), else `sf org display user`. mcp_auth.py
+    user id       <- profile cache (per username and org id), else `sf org display user`. mcp_auth.py
                      keys its token cache on (instance, client_id, user id), so neither two
                      orgs nor two users of one org share a cached token.
 
@@ -67,7 +67,8 @@ _SANDBOX_KINDS = {"sandbox", "scratch"}
 
 def gateway_bases(instance):
     """Gateway base URL(s) for an org, most specific first, comma-joined. With more than
-    one, the proxy probes them in order; with one it skips probing.
+    one, the proxy probes them in order (through each server until one answers 200); with one
+    it skips probing.
 
     The org-pinned form, GATEWAY/d/<My Domain prefix>/<namespace>/<server>, names the org
     in the path and is where the platform is heading. Verified live on a production My
@@ -267,13 +268,16 @@ def resolve(alias=None, refresh=False):
     prof = profiles.get(alias, {})
     # The alias's user. mcp_auth keys its token cache on it, so two aliases for different
     # users of one org never share (or log out) each other's credential. Cached per
-    # username (unique across Salesforce), so a re-pointed alias looks it up again.
-    user_id = prof.get("user_id") if prof.get("username") == res.get("username") else None
+    # username and org id, so a re-pointed alias looks it up again, and so does a refreshed
+    # sandbox, which keeps the username and host but gets a new org id and new user ids.
+    same_org = prof.get("org_id") == res.get("id")
+    user_id = prof.get("user_id") if same_org and prof.get("username") == res.get("username") else None
     if not user_id:
         user_id = _user_id(alias)
     cid = None if refresh else prof.get("consumer_key")
     # A key cached for another ECA (RLM_MCP_ECA changed) is as stale as one for another org.
-    if not cid or prof.get("instance") != instance or prof.get("eca") != ECA_NAME:
+    if (not cid or not same_org or prof.get("instance") != instance
+            or prof.get("eca") != ECA_NAME):
         cid = _retrieve_consumer_key(alias)     # slow (a retrieve): done outside the lock
         prof = {"instance": instance, "consumer_key": cid,
                 "eca": ECA_NAME, "org_id": res.get("id"),

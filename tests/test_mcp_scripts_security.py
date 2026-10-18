@@ -6,10 +6,11 @@ Offline security invariants for scripts/mcp/ (no org, no network, no real secret
 
 Covers: secret-bearing files are created 0600 (even over a pre-existing 0644 file),
 no command prints a consumer secret, a repointed alias drops the old org's cached secret,
+a new org id (a refreshed sandbox) re-resolves the cached user id and consumer key,
 refresh is lock-serialised and re-reads the stored token, the proxy returns a JSON-RPC
 error (not a doomed tools/call) after a failed upstream initialize or a non-JSON-RPC
 upstream answer, and picks the response out of an SSE stream; the host probe
-re-mints once on 401, reports a dead token as an auth error (not unreachable hosts), backs
+prefers a base that serves the first upstream, falls back to later upstreams, re-mints once on 401, reports a dead token as an auth error (not unreachable hosts), backs
 off after a failure, and a cold-cache upstream that fails contributes no tools; a stale
 tool-list cache is refetched, kept when the refetch fails (once per process), and never
 replaced by an empty list.
@@ -106,7 +107,13 @@ def test_mcp_org(tmp):
         ro.resolve("al"); user_calls.clear(); ro.resolve("al")
         check("a renamed username is saved and not looked up again",
               user_calls == [] and json.load(open(prof))["al"]["username"] == "v2", str(user_calls))
-        state.update(user="005U", username="u")
+        # A refreshed sandbox: same username and host, a new org id and new user ids.
+        state.update(id="00DB", user="005W")
+        rv = ro.resolve("al")
+        check("a refreshed sandbox (new org id, same username) looks the user and key up again",
+              rv["user_id"] == "005W" and rv["consumer_key"] == "KEY-00DB"
+              and json.load(open(prof))["al"]["org_id"] == "00DB", str(rv))
+        state.update(id="00DA", user="005U", username="u")
         ro.resolve("al")
         user_calls.clear()
         check("resolve() result carries no secret", SECRET not in json.dumps(r) and "consumer_secret" not in r)
@@ -484,19 +491,19 @@ def test_proxy_host_probe():
     px = load("mcp_multiplex_proxy", {"SF_INSTANCE": "https://a.example.com", "SF_CID": "KEY"})
     px._BASES[:] = ["https://gw.invalid/d/a", "https://gw.invalid/sandbox"]
     px._base, px._probe_failed = None, None
+    # Per base, for every upstream: before the re-mint, then after it.
     mints, codes = [], {"first": [401, 404], "then": [404, 200]}
-    state = {"round": "first", "i": 0}
+    state = {"round": "first"}
 
     def http(url, body, sid=None, timeout=200, _retried=False):
-        st = codes[state["round"]][state["i"]]
-        state["i"] += 1
-        return st, None, ""
+        i = next(n for n, b in enumerate(px._BASES) if url.startswith(b + "/"))
+        return codes[state["round"]][i], None, ""
     px._http = http
 
     def mint(force=False):
         mints.append(force)
         if force:
-            state.update(round="then", i=0)
+            state["round"] = "then"
         return "tok"
     px._token = mint
     base, _, _ = capture(px._pick_base)
@@ -520,6 +527,39 @@ def test_proxy_host_probe():
     except RuntimeError:
         pass
     check("probe: a recent failure is not re-probed (no re-mint storm)", mints == [], str(mints))
+
+    # The first upstream unserved (revenue-cloud without RevMCP) must not fail every base.
+    px._base, px._probe_failed = None, None
+    calls = []
+    def by_server(url, body, sid=None, timeout=200, _retried=False):
+        calls.append(url)
+        return (200 if url.endswith("/" + px.SERVERS[1]) else 404), None, ""
+    px._http = by_server
+    base, _, _ = capture(px._pick_base)
+    check("probe: a base routes when a later upstream answers 200 and no base serves the first",
+          base == px._BASES[0] and calls == [f"{b}/{px.SERVERS[0]}" for b in px._BASES]
+          + [f"{px._BASES[0]}/{px.SERVERS[1]}"], f"{base} {calls}")
+    # A base serving only a later upstream must not beat one that serves the first.
+    px._base, px._probe_failed = None, None
+    def partial(url, body, sid=None, timeout=200, _retried=False):
+        first = url.endswith("/" + px.SERVERS[0])
+        return (200 if first == url.startswith(px._BASES[1] + "/") else 404), None, ""
+    px._http = partial
+    base, _, _ = capture(px._pick_base)
+    check("probe: a base that serves the first upstream wins over one serving only a later one",
+          base == px._BASES[1], str(base))
+    px._base, px._probe_failed = None, None
+    calls.clear()
+    def down(url, body, sid=None, timeout=200, _retried=False):
+        calls.append(url)
+        raise OSError("unreachable")
+    px._http = down
+    try:
+        capture(px._pick_base)
+    except RuntimeError:
+        pass
+    check("probe: an unreachable host is tried once, not once per upstream",
+          calls == [f"{b}/{px.SERVERS[0]}" for b in px._BASES], str(calls))
 
     # A dead token (mcp_auth exits) surfaces as RuntimeError, so serve threads still answer.
     px2 = load("mcp_multiplex_proxy", {"SF_INSTANCE": "https://a.example.com", "SF_CID": "KEY"})

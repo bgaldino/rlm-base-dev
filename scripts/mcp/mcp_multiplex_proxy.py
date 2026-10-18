@@ -188,26 +188,34 @@ def _pick_base_locked():
         _base = _BASES[0]; log(f"host {_base} (pinned, no probe)")
         return _base
     mint(False)
-    # Multiple candidates: probe with the first upstream to disambiguate (e.g. on/off Zscaler).
+    # Multiple candidates: probe each to disambiguate (e.g. on/off Zscaler). Every base is tried
+    # with the first upstream before any is tried with the next, so a base that serves the
+    # first one wins; a later upstream decides only when no base serves the first (revenue-cloud
+    # unserved without RevMCP while the custom server works). An unreachable host is skipped.
     # A base that answers 401 may just be the wrong base, so a probe does not re-mint per base
     # (each re-mint spends and rotates the refresh token). When some base answered 401 and none
     # answered 200, the token itself is suspect (revoked before expiry): re-mint once, re-probe.
     for attempt in (1, 2):
-        statuses = []
-        for base in _BASES:
-            try:
-                st, _, _ = _http(f"{base}/{SERVERS[0]}",
-                                 {"jsonrpc": "2.0", "id": 0, "method": "initialize",
-                                  "params": {"protocolVersion": PROTOCOL, "capabilities": {},
-                                             "clientInfo": {"name": "rlm-mcp-mux", "version": "1.0"}}},
-                                 timeout=8, _retried=True)
-                statuses.append(st)
+        seen = {base: [] for base in _BASES}
+        for server in SERVERS:
+            for base in _BASES:
+                if None in seen[base]:
+                    continue
+                try:
+                    st, _, _ = _http(f"{base}/{server}",
+                                     {"jsonrpc": "2.0", "id": 0, "method": "initialize",
+                                      "params": {"protocolVersion": PROTOCOL, "capabilities": {},
+                                                 "clientInfo": {"name": "rlm-mcp-mux", "version": "1.0"}}},
+                                     timeout=8, _retried=True)
+                except Exception as e:
+                    seen[base].append(None)
+                    log(f"host {base} unreachable: {e}")
+                    continue
+                seen[base].append(st)
                 if st == 200:
                     _base = base; log(f"host {base}")
                     return base
-            except Exception as e:
-                statuses.append(None)
-                log(f"host {base} unreachable: {e}")
+        statuses = [st for got in seen.values() for st in got]
         if attempt == 1 and 401 in statuses:
             log("a host answered 401 and none answered 200; re-minting the token once")
             mint(True)
@@ -215,9 +223,10 @@ def _pick_base_locked():
         break
     # Raise, not sys.exit: in serve mode this runs in a handler thread, where SystemExit
     # would kill the thread without a JSON-RPC response and leave the client hanging.
-    seen = ", ".join(f"{b} -> {st or 'unreachable'}" for b, st in zip(_BASES, statuses))
+    report = ", ".join(f"{b} -> " + "/".join(str(st or "unreachable") for st in got)
+                       for b, got in seen.items())
     hint = " (401 after a fresh token: re-run mcp_auth.py login)" if 401 in statuses else ""
-    message = f"no gateway host routed: {seen}{hint}"
+    message = f"no gateway host routed: {report}{hint}"
     log(f"ABORT: {message}")
     _probe_failed = (_time.monotonic(), message)
     raise RuntimeError(message)
