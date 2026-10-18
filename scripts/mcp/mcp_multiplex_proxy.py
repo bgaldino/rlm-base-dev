@@ -203,7 +203,7 @@ def _pick_base_locked():
                 if None in seen[base]:
                     continue
                 try:
-                    st, _, _ = _http(f"{base}/{server}",
+                    st, _, raw = _http(f"{base}/{server}",
                                      {"jsonrpc": "2.0", "id": 0, "method": "initialize",
                                       "params": {"protocolVersion": PROTOCOL, "capabilities": {},
                                                  "clientInfo": {"name": "rlm-mcp-mux", "version": "1.0"}}},
@@ -212,8 +212,9 @@ def _pick_base_locked():
                     seen[base].append(None)
                     log(f"host {base} unreachable: {e}")
                     continue
-                seen[base].append(st)
-                if st == 200:
+                why = _init_error(st, raw)
+                seen[base].append(st if st != 200 or not why else "200 with no initialize result")
+                if not why:
                     _base = base; log(f"host {base}")
                     return base
         statuses = [st for got in seen.values() for st in got]
@@ -317,6 +318,24 @@ def _call_response(mid, st, raw):
         "code": -32603, "message": f"Upstream answered http={st} without a JSON-RPC response: {detail}"}})
 
 
+def _init_error(st, raw):
+    """None when `initialize` succeeded (HTTP 200 carrying a JSON-RPC result for id 0), else
+    why not. A 200 can carry a JSON-RPC error, e.g. a rejected protocol version, and a
+    session that was never negotiated must not be opened or chosen."""
+    if st != 200:
+        return f"HTTP {st}"
+    obj = _response(raw, 0)
+    if obj is None:
+        return "HTTP 200 without a JSON-RPC response"
+    if "error" in obj:      # checked before the id: an error may carry "id": null
+        return f"JSON-RPC error {' '.join(json.dumps(obj['error']).split())[:200]}"
+    if obj.get("id") != 0:
+        return f"JSON-RPC response for id {obj.get('id')!r}, not the initialize (id 0)"
+    if not isinstance(obj.get("result"), dict):
+        return "no initialize result"
+    return None
+
+
 def _open_upstream(server):
     """LAZY per-upstream MCP handshake: initialize -> notifications/initialized. Runs once.
 
@@ -332,11 +351,12 @@ def _open_upstream(server):
 def _open_upstream_locked(server):
     base = _pick_base()
     url = f"{base}/{server}"
-    st, sid, _ = _http(url, {"jsonrpc": "2.0", "id": 0, "method": "initialize",
-                             "params": {"protocolVersion": PROTOCOL, "capabilities": {},
-                                        "clientInfo": {"name": "rlm-mcp-mux", "version": "1.0"}}})
-    if st != 200:
-        log(f"upstream {server}: initialize HTTP {st}"); return
+    st, sid, raw = _http(url, {"jsonrpc": "2.0", "id": 0, "method": "initialize",
+                               "params": {"protocolVersion": PROTOCOL, "capabilities": {},
+                                          "clientInfo": {"name": "rlm-mcp-mux", "version": "1.0"}}})
+    why = _init_error(st, raw)
+    if why:
+        log(f"upstream {server}: initialize failed: {why}"); return
     # initialized notification (no id -> no JSON-RPC response, just a 2xx). Without it the
     # session stays uninitialised, so a failure leaves the server unopened, to retry next call.
     st, _, _ = _http(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid=sid)
@@ -552,6 +572,16 @@ def main():
 
 # ---- one-time cache priming (needs token + gateway) --------------------------
 def _prime():
+    """--prime with a FATAL line, not a traceback, when no host routes, no token can be
+    minted mid-run (a pinned base skips the probe, so the first _http call mints), or the
+    gateway is unreachable."""
+    try:
+        _prime_servers()
+    except (RuntimeError, OSError) as e:
+        print(f"FATAL: {e}"); sys.exit(1)
+
+
+def _prime_servers():
     """Fetch tools/list from EACH upstream and write its disk cache. Run ONCE per workstation.
 
     WHY THIS EXISTS: the multiplexer serves tools/list from the per-server caches, so a warm
@@ -565,19 +595,17 @@ def _prime():
     for k in ("SF_INSTANCE", "SF_CID"):   # SF_CSEC optional: PKCE, see mcp_auth._cid_csec
         if not os.environ.get(k):
             print(f"FATAL: {k} not set"); sys.exit(2)
-    try:
-        base = _pick_base()
-    except RuntimeError as e:
-        print(f"FATAL: {e}"); sys.exit(1)
+    base = _pick_base()
     ok = True
     for server in SERVERS:
         url = f"{base}/{server}"
         # handshake, then tools/list
-        st, sid, _ = _http(url, {"jsonrpc": "2.0", "id": 0, "method": "initialize",
-                                 "params": {"protocolVersion": PROTOCOL, "capabilities": {},
-                                            "clientInfo": {"name": "rlm-mcp-mux-prime", "version": "1.0"}}})
-        if st != 200:
-            print(f"FAIL {server}: initialize HTTP {st}"); ok = False; continue
+        st, sid, raw = _http(url, {"jsonrpc": "2.0", "id": 0, "method": "initialize",
+                                   "params": {"protocolVersion": PROTOCOL, "capabilities": {},
+                                              "clientInfo": {"name": "rlm-mcp-mux-prime", "version": "1.0"}}})
+        why = _init_error(st, raw)
+        if why:
+            print(f"FAIL {server}: initialize failed: {why}"); ok = False; continue
         st, _, _ = _http(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid=sid)
         if not 200 <= (st or 0) < 300:
             print(f"FAIL {server}: notifications/initialized HTTP {st}"); ok = False; continue

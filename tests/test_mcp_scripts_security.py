@@ -52,6 +52,11 @@ def capture(fn, *a, **k):
     return rv, out.getvalue(), err.getvalue()
 
 
+# A successful MCP initialize answer; the proxy opens or picks nothing without one.
+INIT_OK = json.dumps({"jsonrpc": "2.0", "id": 0, "result": {"protocolVersion": "2025-06-18"}})
+INIT_ERR = json.dumps({"jsonrpc": "2.0", "id": 0, "error": {"code": -32602, "message": "Unsupported protocol version"}})
+
+
 def load(name, env):
     for k in ("SF_INSTANCE", "SF_CID", "SF_USER_ID", "SF_CSEC", "SF_AUTH_MODE", "SF_MCP_BASES", "SF_MCP_BASE", "SF_MCP_SERVERS",
               "RLM_MCP_CUSTOM_SERVER", "RLM_MCP_ORG", "RLM_MCP_ECA", "RLM_MCP_PROFILES", "RLM_MCP_STATE", "RLM_MCP_AUTH_DIR"):
@@ -497,12 +502,25 @@ def test_proxy():
     # initialize succeeds but notifications/initialized fails: not opened, retried next call.
     calls.clear()
     px._http = lambda url, body, sid=None, **k: (calls.append(body.get("method")) or (
-        (200, "S1", "") if body.get("method") == "initialize" else (500, None, "")))
+        (200, "S1", INIT_OK) if body.get("method") == "initialize" else (500, None, "")))
     capture(px._open_upstream, "srv/a")
     capture(px._open_upstream, "srv/a")
     check("a failed notifications/initialized leaves the server unopened and retries the handshake",
           "srv/a" not in px._opened and calls.count("initialize") == 2, str(calls))
-    px._http = lambda url, body, sid=None, **k: (202 if "id" not in body else 200, "S2", "")
+    # A 200 whose body is a JSON-RPC error (or no response at all) is a failed initialize.
+    for label, body0 in (("a JSON-RPC error", INIT_ERR), ("no JSON-RPC response", ""),
+                         ("another id's result", INIT_OK.replace('"id": 0', '"id": 3'))):
+        calls.clear()
+        px._http = lambda url, body, sid=None, **k: (calls.append(body.get("method")) or (200, "S9", body0))
+        capture(px._open_upstream, "srv/a")
+        check(f"an initialize 200 with {label} leaves the server unopened, no initialized sent",
+              "srv/a" not in px._opened and calls == ["initialize"], str(calls))
+    null_err = INIT_ERR.replace('"id": 0', '"id": null')
+    check("an initialize error with id null is reported as that error",
+          px._init_error(200, null_err).startswith("JSON-RPC error") and "Unsupported" in px._init_error(200, null_err))
+    check("an initialize answered as SSE is accepted",
+          px._init_error(200, f"event: message\r\ndata: {INIT_OK}\r\n\r\n") is None)
+    px._http = lambda url, body, sid=None, **k: (202, "S2", "") if "id" not in body else (200, "S2", INIT_OK)
     capture(px._open_upstream, "srv/a")
     check("a 202 to notifications/initialized opens the server", "srv/a" in px._opened
           and px._sessions.get("srv/a") == "S2", str(px._opened))
@@ -512,7 +530,7 @@ def test_proxy():
     def gw(url, body, sid=None, **k):
         calls.append((body.get("method"), sid))
         if body.get("method") == "initialize":
-            return 200, "S3", ""
+            return 200, "S3", INIT_OK
         if "id" not in body:
             return 202, None, ""
         return (404, None, "") if sid == "S2" else (200, None, json.dumps(
@@ -646,7 +664,8 @@ def test_proxy_host_probe():
 
     def http(url, body, sid=None, timeout=200, _retried=False):
         i = next(n for n, b in enumerate(px._BASES) if url.startswith(b + "/"))
-        return codes[state["round"]][i], None, ""
+        st = codes[state["round"]][i]
+        return st, None, INIT_OK if st == 200 else ""
     px._http = http
 
     def mint(force=False):
@@ -682,7 +701,7 @@ def test_proxy_host_probe():
     calls = []
     def by_server(url, body, sid=None, timeout=200, _retried=False):
         calls.append(url)
-        return (200 if url.endswith("/" + px.SERVERS[1]) else 404), None, ""
+        return (200, None, INIT_OK) if url.endswith("/" + px.SERVERS[1]) else (404, None, "")
     px._http = by_server
     base, _, _ = capture(px._pick_base)
     check("probe: a base routes when a later upstream answers 200 and no base serves the first",
@@ -692,11 +711,17 @@ def test_proxy_host_probe():
     px._base, px._probe_failed = None, None
     def partial(url, body, sid=None, timeout=200, _retried=False):
         first = url.endswith("/" + px.SERVERS[0])
-        return (200 if first == url.startswith(px._BASES[1] + "/") else 404), None, ""
+        return (200, None, INIT_OK) if first == url.startswith(px._BASES[1] + "/") else (404, None, "")
     px._http = partial
     base, _, _ = capture(px._pick_base)
     check("probe: a base that serves the first upstream wins over one serving only a later one",
           base == px._BASES[1], str(base))
+    # A base whose 200 carries a JSON-RPC error has not negotiated a session: not chosen.
+    px._base, px._probe_failed = None, None
+    px._http = lambda url, body, sid=None, timeout=200, _retried=False: (
+        200, None, INIT_ERR if url.startswith(px._BASES[0] + "/") else INIT_OK)
+    base, _, _ = capture(px._pick_base)
+    check("probe: a base answering initialize with a JSON-RPC error is skipped", base == px._BASES[1], str(base))
     px._base, px._probe_failed = None, None
     calls.clear()
     def down(url, body, sid=None, timeout=200, _retried=False):
@@ -752,10 +777,20 @@ def test_proxy_host_probe():
     check("--prime: no routed host -> exit 1 with a FATAL line", rv == 1 and "FATAL" in out, f"{rv} {out!r}")
     px2._pick_base = lambda: "https://gw.invalid"
     px2._http = lambda url, body, sid=None, **k: (
-        (200, "S", "") if body.get("method") == "initialize" else (500, None, ""))
+        (200, "S", INIT_OK) if body.get("method") == "initialize" else (500, None, ""))
     rv, out, _ = capture(px2._prime)
     check("--prime: a failed notifications/initialized is reported as such",
           rv == 1 and "notifications/initialized HTTP 500" in out, f"{rv} {out!r}")
+    def no_token(url, body, sid=None, **k):
+        raise RuntimeError("no usable access token (mcp_auth exit 3); re-run mcp_auth.py login")
+    px2._http = no_token
+    rv, out, _ = capture(px2._prime)
+    check("--prime: no usable token mid-run -> exit 1 with a FATAL line, no traceback",
+          rv == 1 and out.startswith("FATAL: no usable access token"), f"{rv} {out!r}")
+    px2._http = lambda url, body, sid=None, **k: (200, "S", INIT_ERR)
+    rv, out, _ = capture(px2._prime)
+    check("--prime: an initialize 200 carrying a JSON-RPC error fails, initialized not sent",
+          rv == 1 and "initialize failed: JSON-RPC error" in out and "notifications" not in out, f"{rv} {out!r}")
 
 
 def main():
