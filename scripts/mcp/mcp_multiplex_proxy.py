@@ -346,6 +346,37 @@ def _open_upstream_locked(server):
     log(f"upstream {server} opened (session={sid})")
 
 
+def _session_post(server, msg):
+    """POST `msg` on `server`'s open session. Returns (status, body).
+
+    A 404 on a session the gateway no longer knows (expired, or lost in a gateway restart)
+    reopens the upstream once and replays the call; otherwise every later call would reuse
+    the dead session until the proxy restarts. A 404 that carries a JSON-RPC response to this
+    request was processed (a tool error, say), so it is passed on and never replayed: a
+    replayed placeSalesTransaction would write twice. The old session stays in place until
+    the reopen succeeds, so a parallel call never goes out with none, and it is replaced only
+    if no other thread has already done so.
+    """
+    sid = _sessions.get(server)
+    st, _, raw = _http(f"{_pick_base()}/{server}", msg, sid=sid)
+    if st != 404 or not sid:
+        return st, raw
+    answer = _response(raw, msg.get("id"))
+    if answer is not None and answer.get("id") == msg.get("id"):
+        return st, raw
+    log(f"upstream {server}: HTTP 404 on session {sid}; reopening it once")
+    with _init_lock:
+        if _sessions.get(server) == sid:
+            _open_upstream_locked(server)    # replaces the session only on success
+            if _sessions.get(server) == sid:
+                _opened.discard(server)
+                _sessions.pop(server, None)
+    if server not in _opened:
+        return st, raw
+    st, _, raw = _http(f"{_pick_base()}/{server}", msg, sid=_sessions.get(server))
+    return st, raw
+
+
 def _merged_toollist():
     """Merge each upstream's cached tools/list into one list, and build the name->server route.
 
@@ -376,9 +407,7 @@ def _fetch_toollist(server):
         _open_upstream(server)
         if server not in _opened:
             return None
-        st, _, raw = _http(f"{_pick_base()}/{server}",
-                           {"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
-                           sid=_sessions.get(server))
+        st, raw = _session_post(server, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
     except Exception as e:  # one unreachable upstream must not empty the merged list
         log(f"WARN: live tools/list for {server} failed: {e}")
         return None
@@ -475,9 +504,8 @@ def handle(msg):
             return json.dumps({"jsonrpc": "2.0", "id": mid, "error": {
                 "code": -32603,
                 "message": f"Upstream {server} could not be initialized; tools/call not sent"}})
-        url = f"{_pick_base()}/{server}"
         tlog("HTTP>", mid, f"{name} -> {server}")
-        st, _, raw = _http(url, msg, sid=_sessions.get(server))
+        st, raw = _session_post(server, msg)
         tlog("HTTP<", mid, f"{name} http={st}")
         return _call_response(mid, st, raw)
 

@@ -8,9 +8,9 @@ Covers: secret-bearing files are created 0600 (even over a pre-existing 0644 fil
 no command prints a consumer secret, a repointed alias drops the old org's cached secret,
 a new org id (a refreshed sandbox) re-resolves the cached user id and consumer key,
 refresh is lock-serialised and re-reads the stored token, a transient refresh failure
-keeps the cache and opens no browser, the proxy returns a JSON-RPC
+keeps the cache and opens no browser, `login` fails when no refresh token was cached, the proxy returns a JSON-RPC
 error (not a doomed tools/call) after a failed upstream initialize or a non-JSON-RPC
-upstream answer, and picks the response out of an SSE stream; the host probe
+upstream answer, reopens an upstream once on a session 404, and picks the response out of an SSE stream; the host probe
 prefers a base that serves the first upstream, falls back to later upstreams, re-mints once on 401, reports a dead token as an auth error (not unreachable hosts), backs
 off after a failure, and a cold-cache upstream that fails contributes no tools; a stale
 tool-list cache is refetched, kept when the refetch fails (once per process), and never
@@ -417,6 +417,16 @@ def test_mcp_auth(tmp):
     check("a 15-character id in the token matches the 18-character SF_USER_ID",
           ra._token_user_matches({"id": "https://x/id/00DX/005BBBBBBBBBBBB"}))
     check("a token response without an id fails closed", not ra._token_user_matches({}))
+    # `login` succeeds only if a refresh token was actually cached.
+    ra._browser_login = lambda *a: {"access_token": "AT",
+                                    "id": "https://login.example.com/id/00DX/005BBBBBBBBBBBBBBB"}
+    rv, out, err = capture(ra.main, ["login"])
+    check("login with no refresh token in the response fails instead of claiming one was cached",
+          rv == 1 and "LOGIN OK" not in out and "no refresh token" in err, f"{rv} {out!r} {err!r}")
+    ra._store_get = lambda a: {"refresh_token": "RT", "access_token": "AT",
+                               "access_expiry": __import__("time").time() + 3600}
+    rv, out, _ = capture(ra.main, ["login"])
+    check("login with a cached refresh token reports LOGIN OK", rv == 0 and "LOGIN OK" in out, f"{rv} {out!r}")
     os.environ.pop("SF_USER_ID")
 
 
@@ -445,6 +455,60 @@ def test_proxy():
     capture(px._open_upstream, "srv/a")
     check("a 202 to notifications/initialized opens the server", "srv/a" in px._opened
           and px._sessions.get("srv/a") == "S2", str(px._opened))
+
+    # A 404 on a session the gateway dropped: reopen once, replay on the new session.
+    calls.clear()
+    def gw(url, body, sid=None, **k):
+        calls.append((body.get("method"), sid))
+        if body.get("method") == "initialize":
+            return 200, "S3", ""
+        if "id" not in body:
+            return 202, None, ""
+        return (404, None, "") if sid == "S2" else (200, None, json.dumps(
+            {"jsonrpc": "2.0", "id": 5, "result": {"content": []}}))
+    px._http = gw
+    out = json.loads(capture(px.handle, {"jsonrpc": "2.0", "id": 5, "method": "tools/call",
+                                         "params": {"name": "tool_a"}})[0])
+    check("a 404 on an expired session reopens the upstream and replays the call once",
+          out.get("result") == {"content": []} and px._sessions.get("srv/a") == "S3"
+          and calls[0] == ("tools/call", "S2") and calls[-1] == ("tools/call", "S3"), str(calls))
+    # A 404 carrying this request's JSON-RPC answer was processed: passed on, not replayed.
+    calls.clear()
+    tool_err = {"jsonrpc": "2.0", "id": 8, "error": {"code": -32602, "message": "record not found"}}
+    px._http = lambda url, body, sid=None, **k: (calls.append(body.get("method")) or (
+        404, None, json.dumps(tool_err)))
+    out = json.loads(capture(px.handle, {"jsonrpc": "2.0", "id": 8, "method": "tools/call",
+                                         "params": {"name": "tool_a"}})[0])
+    check("a 404 with this request's JSON-RPC answer is passed on, not replayed",
+          out == tool_err and calls == ["tools/call"] and px._sessions.get("srv/a") == "S3", f"{out} {calls}")
+    # Same for the live tools/list behind a cold or stale cache.
+    calls.clear()
+    px._sessions["srv/a"] = "S2"
+    real_cache, real_live = px._cache_path, px._LIVE_FETCH
+    px._LIVE_FETCH = True
+    px._cache_path = lambda server: os.devnull
+    def gw_list(url, body, sid=None, **k):
+        if body.get("method") == "tools/list" and sid == "S3":
+            calls.append(("tools/list", sid))
+            return 200, None, json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"tools": [{"name": "t"}]}})
+        calls.append((body.get("method"), sid))
+        return gw(url, body, sid)
+    px._http = gw_list
+    rv, _, _ = capture(px._fetch_toollist, "srv/a")
+    px._cache_path, px._LIVE_FETCH = real_cache, real_live
+    check("a 404 on an expired session during a live tools/list reopens and replays it",
+          rv and rv.get("tools") == [{"name": "t"}] and calls[0] == ("tools/list", "S2")
+          and calls[-1] == ("tools/list", "S3"), f"{rv} {calls}")
+    calls.clear()
+    def gone(url, body, sid=None, **k):
+        calls.append(body.get("method"))
+        return 404, None, ""
+    px._http = gone
+    out = json.loads(capture(px.handle, {"jsonrpc": "2.0", "id": 6, "method": "tools/call",
+                                         "params": {"name": "tool_a"}})[0])
+    check("a 404 whose reopen fails returns an error with the request id, unopened, not replayed",
+          out.get("id") == 6 and "error" in out and "srv/a" not in px._opened
+          and calls == ["tools/call", "initialize"], f"{out} {calls}")
     px._opened.clear(); px._sessions.clear()
 
     # An initialized upstream that answers a call without a JSON-RPC response (empty body,

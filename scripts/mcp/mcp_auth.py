@@ -518,6 +518,11 @@ def main(argv):
         return 0
     if cmd == "login":
         get_access_token(interactive=True)
+        if not _store_get(_account(_inst(), _cid_csec()[0])).get("refresh_token"):
+            # The token response had no refresh token, so nothing outlives this process.
+            sys.stderr.write("FAIL: login got an access token but no refresh token, so nothing "
+                             "was cached. Check the ECA's refresh-token policy.\n")
+            return 1
         print("LOGIN OK — refresh token cached. Future runs are non-interactive.")
         return 0
     if cmd == "token":
