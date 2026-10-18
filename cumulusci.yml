@@ -3850,6 +3850,8 @@ flows:
         task: deploy_post_mcp_custom
         when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server
       3:
+        # Running user only. Every other MCP user needs RLM_McpSalesTransactions too, or
+        # their clone calls fail: see .cursor/skills/mcp-integration/SKILL.md.
         task: assign_permission_sets
         when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server
         options:

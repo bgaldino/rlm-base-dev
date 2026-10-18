@@ -110,3 +110,12 @@ The org must already have the surface — `cci flow run prepare_mcp --org <cci-a
 the tasks individually — and the `mcp` feature flag is **off** by default precisely
 because the flow cannot perform step 2 above for anyone. `mcp_org.py` fails with a clear
 message when the ECA is not deployed, since that is where it reads the consumer key.
+
+`prepare_mcp` grants `RLM_McpSalesTransactions` (class access to the clone invocable) to
+the user who runs it, and nobody else. Any other user who logs in to the custom server keeps
+the other tools (subject to their normal Revenue Cloud permissions) but gets an
+authorization failure on `cloneSalesTransaction` until they hold it. Assign it per MCP user:
+
+```bash
+sf org assign permset --name RLM_McpSalesTransactions --on-behalf-of <username> --target-org <sf-alias>
+```

@@ -404,7 +404,7 @@ The following table shows the sequence of all permission-related steps across th
 | 29.11 | `prepare_personas` > `assign_permission_sets` | `RLM_Approvals` (salesrep user) | `personas` + `quantumbit` + `approvals` |
 | 29.12 | `prepare_personas` > `assign_permission_sets` | `RLM_RenewalQuotes` (salesrep user) — Generate Renewal Quote and Consolidate Renewals call `RLM_RenewalAssetLock`. Narrow: class access and Asset/Account/Contact read, changes nothing | `personas` + (`quantumbit` \| `tso`) |
 | 31.2 | `prepare_inapp` > `assign_permission_sets` | `RLM_Learning` | `inapp` |
-| 35.3 | `prepare_mcp` > `assign_permission_sets` | `RLM_McpSalesTransactions` (running user) — class access to `RLM_CloneSalesTransaction` only, so a non-admin user authorized on the MCP server can call the CLASSIC-bound clone tool | `mcp` + `mcp_custom_server` |
+| 35.3 | `prepare_mcp` > `assign_permission_sets` | `RLM_McpSalesTransactions` (running user) — class access to `RLM_CloneSalesTransaction` only, so a non-admin user authorized on the MCP server can call the CLASSIC-bound clone tool. Every other MCP user needs it assigned separately (`sf org assign permset --on-behalf-of`) | `mcp` + `mcp_custom_server` |
 
 ---
 

@@ -51,7 +51,10 @@ Gateway-endpoint research credit: Sam Check (`feature/mcp-servers`).
    deploy → configure for that reason.
 7. **Auth is per person, not per package.** PKCE against the ECA, with a public consumer
    key the tooling reads from the org — so there is no secret to distribute and nothing
-   to commit. Tools run as the authenticated user, so CRUD/FLS/sharing apply.
+   to commit. Tools run as the authenticated user, so CRUD/FLS/sharing apply. That includes
+   the clone tool's Apex class access: `prepare_mcp` grants `RLM_McpSalesTransactions` to
+   the running user only, so assign it to every other MCP user (see *Standing It Up*), or
+   their `cloneSalesTransaction` call fails while the rest of the server works.
 8. **The custom server is optional and temporary.** It exists until the hosted
    `revenue-cloud` server covers place and clone (and the surface folds into Headless 360).
    `mcp_custom_server: false` builds only the ECA and the hosted activations: steps 2–3 of
@@ -130,6 +133,9 @@ cci task run configure_mcp_servers --org <cci-alias> -o platform_servers True
 
 # Or the whole flow (deploy, assign RLM_McpSalesTransactions, configure), gated on the flag:
 cci flow run prepare_mcp --org <cci-alias>
+
+# Custom server only: the flow assigns the clone permission set to the running user. Each other MCP user:
+sf org assign permset --name RLM_McpSalesTransactions --on-behalf-of <username> --target-org <sf-alias>
 
 # Client side, from this repo:
 eval "$(python3 scripts/mcp/mcp_org.py env <sf-alias>)"   # RLM_MCP_ORG / RLM_MCP_ECA / ...

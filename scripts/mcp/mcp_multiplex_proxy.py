@@ -240,18 +240,65 @@ def _http(url, body, sid=None, timeout=200, _retried=False):
         return e.code, e.headers.get("Mcp-Session-Id"), e.read().decode()
 
 
-def _extract_json(raw):
-    """Gateway answers application/json OR text/event-stream. Return the JSON-RPC object text."""
+def _rpc_messages(raw):
+    """The JSON objects in a gateway body: application/json, or text/event-stream events.
+
+    An SSE event's JSON can span several `data:` lines (joined with newlines), and a stream
+    can carry notifications (progress, log messages) before the response.
+    """
     raw = raw.strip()
     if raw.startswith("{"):
-        return raw
-    for ln in raw.splitlines():
-        ln = ln.strip()
-        if ln.startswith("data:"):
-            ln = ln[5:].strip()
-        if ln.startswith("{"):
-            return ln
-    return raw
+        chunks = [raw]
+    else:
+        chunks, data = [], []
+        for ln in raw.splitlines() + [""]:
+            if ln.startswith("data:"):
+                data.append(ln[5:].lstrip())
+            elif not ln.strip() and data:       # a blank line ends the event
+                chunks.append("\n".join(data))
+                data = []
+    for chunk in chunks:
+        try:
+            obj = json.loads(chunk)
+        except Exception:
+            continue
+        if isinstance(obj, dict):
+            yield obj
+
+
+def _response(raw, mid=None):
+    """The JSON-RPC response in `raw` (result or error), preferring the one for `mid`, or None."""
+    found = [o for o in _rpc_messages(raw)
+             if o.get("jsonrpc") == "2.0" and ("result" in o or "error" in o)]
+    for o in found:
+        if mid is not None and o.get("id") == mid:
+            return o
+    return found[0] if found else None
+
+
+def _extract_json(raw):
+    """Gateway answers application/json OR text/event-stream. Return the JSON-RPC response text."""
+    obj = _response(raw)
+    return json.dumps(obj) if obj is not None else raw.strip()
+
+
+def _call_response(mid, st, raw):
+    """The client-facing response to a forwarded tools/call.
+
+    A JSON-RPC response from upstream (result or error) is passed on, re-serialised onto one
+    line (stdio framing is newline-delimited) and with this request's id (an upstream error
+    may carry `"id": null`, which the client could never match). Anything else (an empty
+    body, a Salesforce error array, HTML from a 403/429/500) is not valid JSON-RPC on the
+    stdio channel: the client would hang or fail opaquely. Turn it into an error carrying
+    this request's id instead.
+    """
+    obj = _response(raw, mid)
+    if obj is not None:
+        obj["id"] = mid
+        return json.dumps(obj)
+    detail = " ".join(raw.split())[:200] or "empty body"
+    return json.dumps({"jsonrpc": "2.0", "id": mid, "error": {
+        "code": -32603, "message": f"Upstream answered http={st} without a JSON-RPC response: {detail}"}})
 
 
 def _open_upstream(server):
@@ -403,7 +450,7 @@ def handle(msg):
         tlog("HTTP>", mid, f"{name} -> {server}")
         st, _, raw = _http(url, msg, sid=_sessions.get(server))
         tlog("HTTP<", mid, f"{name} http={st}")
-        return _extract_json(raw)
+        return _call_response(mid, st, raw)
 
     # anything else with an id (ping, etc.): forward to the first opened upstream, or error.
     if method == "ping":
@@ -475,6 +522,8 @@ def _prime():
             print(f"FAIL {server}: initialize HTTP {st}"); ok = False; continue
         _http(url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid=sid)
         st, _, raw = _http(url, {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}, sid=sid)
+        if st != 200:
+            print(f"FAIL {server}: tools/list HTTP {st}"); ok = False; continue
         try:
             obj = json.loads(_extract_json(raw))
             result = obj["result"]

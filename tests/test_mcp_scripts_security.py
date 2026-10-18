@@ -7,7 +7,8 @@ Offline security invariants for scripts/mcp/ (no org, no network, no real secret
 Covers: secret-bearing files are created 0600 (even over a pre-existing 0644 file),
 no command prints a consumer secret, a repointed alias drops the old org's cached secret,
 refresh is lock-serialised and re-reads the stored token, the proxy returns a JSON-RPC
-error (not a doomed tools/call) after a failed upstream initialize, and the host probe
+error (not a doomed tools/call) after a failed upstream initialize or a non-JSON-RPC
+upstream answer, and picks the response out of an SSE stream; the host probe
 re-mints once on 401, reports a dead token as an auth error (not unreachable hosts), backs
 off after a failure, and a cold-cache upstream that fails contributes no tools.
 """
@@ -344,6 +345,41 @@ def test_proxy():
           out.get("id") == 7 and out.get("error", {}).get("code") == -32603, str(out))
     check("no tools/call sent upstream after failed initialize", "tools/call" not in calls, str(calls))
 
+    # An initialized upstream that answers a call without a JSON-RPC response (empty body,
+    # a Salesforce error array, HTML) becomes an error with the request id; a real JSON-RPC
+    # response (result or error, JSON or SSE) is passed on as one line with the request id.
+    px._opened.add("srv/a")
+    call = {"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "tool_a"}}
+    for st, body in ((500, ""), (403, '[{"message":"no","errorCode":"FORBIDDEN"}]'),
+                     (429, "<html>slow down</html>"), (200, '{"unexpected": true}')):
+        px._http = lambda url, b, sid=None, _r=(st, None, body), **k: _r
+        out = json.loads(capture(px.handle, call)[0])
+        check(f"http={st} non-JSON-RPC body -> JSON-RPC error with the request id",
+              out.get("id") == 9 and out.get("error", {}).get("code") == -32603
+              and f"http={st}" in out["error"]["message"], str(out))
+    upstream_err = {"jsonrpc": "2.0", "id": 9, "error": {"code": -32602, "message": "bad args"}}
+    upstream_ok = {"jsonrpc": "2.0", "id": 9, "result": {"content": [{"type": "text", "text": "ok"}]}}
+    progress = {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"progress": 1}}
+    cases = (
+        ("error, JSON", 400, json.dumps(upstream_err), upstream_err),
+        ("error, SSE", 400, "event: message\ndata: " + json.dumps(upstream_err) + "\n", upstream_err),
+        ("result, pretty-printed JSON", 200, json.dumps(upstream_ok, indent=2), upstream_ok),
+        ("result after a progress notification, SSE", 200,
+         "event: message\ndata: " + json.dumps(progress) + "\n\n"
+         "event: message\ndata: " + json.dumps(upstream_ok) + "\n\n", upstream_ok),
+        ("result split over two data lines, SSE", 200,
+         'data: {"jsonrpc": "2.0", "id": 9,\ndata: "result": {"content": []}}\n\n',
+         {"jsonrpc": "2.0", "id": 9, "result": {"content": []}}),
+        ("error, SSE with CRLF line endings", 400,
+         "event: message\r\ndata: " + json.dumps(upstream_err) + "\r\n\r\n", upstream_err),
+        ("error with id null gets the request id", 400,
+         json.dumps(dict(upstream_err, id=None)), upstream_err),
+    )
+    for label, st, body, want in cases:
+        px._http = lambda url, b, sid=None, _r=(st, None, body), **k: _r
+        text = capture(px.handle, call)[0]
+        check(f"upstream JSON-RPC response passes through: {label}",
+              "\n" not in text and json.loads(text) == want, text)
 
 
 def test_proxy_host_probe():
