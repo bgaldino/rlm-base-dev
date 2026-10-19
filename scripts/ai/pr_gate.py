@@ -479,7 +479,7 @@ CHECKS = [
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
                   "tasks/expression_set_schema.py", "tasks/rlm_community.py",
-                  "scripts/expression_sets/", "scripts/cml/", "scripts/recycle_bin/",
+                  "scripts/expression_sets/", "scripts/cml/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
                   "scripts/sf_token.py",
                   "tests/test_empty_recycle_bin.py",
                   "tests/test_expression_set_schema.py",

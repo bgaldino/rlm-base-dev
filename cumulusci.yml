@@ -3372,6 +3372,15 @@ tasks:
       version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
+  empty_recycle_bin:
+    group: Data Maintenance
+    description: >
+      Permanently purges deleted records from the org's Recycle Bin across every
+      object that has one (SOAP emptyRecycleBin via scripts/recycle_bin). Pass
+      -o execute false for a dry run, -o objects/-o exclude to scope it. Non-fatal
+      by default so a finished flow is never broken.
+    class_path: tasks.rlm_empty_recycle_bin.EmptyRecycleBin
+
   stamp_git_commit:
     group: Revenue Lifecycle Management
     description: >
@@ -3464,6 +3473,8 @@ flows:
       34:
         task: rebuild_search_index
       35:
+        task: empty_recycle_bin
+      36:
         flow: stamp_git_commit
 
   prepare_core:

@@ -440,7 +440,7 @@ The full 35-step build process is documented at `docs/guides/prepare-rlm-org-bui
 5. **Expression Sets & Permissions (18–23):** Expression set activation (active), approval context mappings and pricing overlay, TSO permissions, procedure plans, PRM, Agentforce
 6. **Constraints & Guided Selling (24–25):** `prepare_constraints` (metadata + CML imports), guided selling
 7. **Final Configuration & Personalization (26–32):** Revenue settings, pricing discovery, large STX, personas, UX assembly, In-App Learning, scratch seed data
-8. **Finalization (33–35):** Decision table refresh, search index rebuild, git commit stamp
+8. **Finalization (33–36):** Decision table refresh, search index rebuild, Recycle Bin purge, git commit stamp
 
 Critical feature flags driving the flow:
 - `qb=true` (QuantumBit data shape, default)

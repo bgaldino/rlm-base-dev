@@ -211,7 +211,9 @@ To turn it on, set `quote_est_tax: true` together with `tax: true`. Help require
 
 **Search index rebuild** (Step 34, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
 
-**Git commit stamp** (Step 35) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
+**Recycle Bin purge** (Step 35, `empty_recycle_bin`) — Permanently purges records the build deleted (re-loads, `deleteOldData`, cleanups) so they do not linger in the Recycle Bin. Non-fatal by default; also runnable ad hoc (`cci task run empty_recycle_bin --org <alias>`, `-o execute false` for a dry run).
+
+**Git commit stamp** (Step 36) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
 
 ---
 

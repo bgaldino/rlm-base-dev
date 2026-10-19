@@ -28,4 +28,4 @@ because the purge is permanent. Use `--exclude` to leave objects alone.
 
 Exit codes: 0 done / nothing to do / dry run, 1 some records not purged, 2 usage,
 auth or API error. Tests: `python tests/test_empty_recycle_bin.py`.
-Not wired into `cumulusci.yml` yet.
+CCI task `empty_recycle_bin` (`tasks/rlm_empty_recycle_bin.py`) wraps it and runs as step 35 of `prepare_rlm_org`, before `stamp_git_commit`.

@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts" / "recycle_bin"))
 
 import empty_recycle_bin as erb  # noqa: E402
@@ -154,6 +155,11 @@ def test_parse_fault_raises():
 def test_parse_non_xml_and_empty_raise():
     raises_recycle_error(erb.parse_empty_response, 502, "<html>bad gateway")
     raises_recycle_error(erb.parse_empty_response, 200, soap(f"<emptyRecycleBinResponse {NS}/>"))
+
+
+def test_task_wrapper_declares_org():
+    from tasks.rlm_empty_recycle_bin import EmptyRecycleBin
+    assert EmptyRecycleBin.salesforce_task is True
 
 
 def main():
