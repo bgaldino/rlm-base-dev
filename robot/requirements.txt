@@ -4,6 +4,6 @@
 #   or: pipx inject cumulusci --force -r robot/requirements.txt
 robotframework>=7.5,<8
 robotframework-seleniumlibrary>=6.9.0,<7
-selenium>=4.50.0,<5
+selenium>=4.51.0,<5
 webdriver-manager>=4.1.2,<5
 urllib3>=2.8.0
