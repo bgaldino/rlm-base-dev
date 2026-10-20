@@ -135,5 +135,6 @@ Reverse dependency order (children before parents):
 | 32 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
 | 33 | refresh_all_decision_tables | DT cache refresh |
 | 34 | rebuild_search_index | PCM catalog search index build (async) |
-| 35 | prepare_mcp | MCP surface: ECA + server config (when `mcp`); clone invocable + custom server (when `mcp_custom_server`) |
-| 36 | stamp_git_commit | Always last |
+| 35 | empty_recycle_bin | Recycle Bin purge (scratch orgs only) |
+| 36 | prepare_mcp | MCP surface: ECA + server config (when `mcp`); clone invocable + custom server (when `mcp_custom_server`) |
+| 37 | stamp_git_commit | Always last |
