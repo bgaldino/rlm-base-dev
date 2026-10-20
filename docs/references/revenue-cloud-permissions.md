@@ -144,9 +144,9 @@ The primary lifecycle PSG. Bundles the essential RLM API permission sets for quo
 | `RevLifecycleManagementTaxConfiguration` | Tax configuration |
 | `RevLifecycleManagementUsageDesignUser` | Usage design |
 
-#### RLM_RCB -- Revenue Cloud Billing Advanced (18 permission sets)
+#### RLM_RCB -- Revenue Cloud Billing Advanced (19 permission sets)
 
-Billing super-user PSG covering invoicing, payments, credit memos, tax, collections, and accounting. Sixteen are Salesforce-managed. The other two, `RLM_BillingAccountFieldAccess` and `RLM_DeleteInvoices`, are repo-owned and deploy from the same folder.
+Billing super-user PSG covering invoicing, payments, credit memos, tax, collections, and accounting. Seventeen are Salesforce-managed. The other two, `RLM_BillingAccountFieldAccess` and `RLM_DeleteInvoices`, are repo-owned and deploy from the same folder.
 
 | Permission Set | Purpose |
 |---|---|
@@ -154,6 +154,7 @@ Billing super-user PSG covering invoicing, payments, credit memos, tax, collecti
 | `BillingAdvancedPaymentAdministrator` | Payment admin |
 | `BillingAdvancedPaymentOperations` | Payment operations |
 | `BillingCollectionsAndRecoverySpecialist` | Collections |
+| `CollectionsAndRecoveryAdmin` | Collections and recovery admin |
 | `DataProcessingEngineUser` | DPE access |
 | `DocGenDesigner` | Doc generation |
 | `RevenueLifecycleManagementAccountingAdmin` | Accounting admin |
