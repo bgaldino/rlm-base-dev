@@ -299,6 +299,7 @@ persona user instead. See the persona rows in the flow inventory below.
 | `RLM_QuotingAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Revenue_Quote_Management` |
 | `RLM_QuotingAssistant` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Quoting_Assistant` |
 | `RLM_BillingEmployeeAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Billing_Employee_Assistance` |
+| `RLM_ApprovalAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Approval_Agent` |
 | `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 6 (running user) · **`prepare_personas` step 8 (salesrep persona — non-admin)** | `RLM_AccountUtilities` Apex class access. **Destructive** — that invocable deletes account-related orders, assets, contracts, invoices, quotes and opportunities, **plus the account's entire usage graph** (usage summaries, ratable summaries, entitlements, entitlement buckets, rated transaction journals, commitment junctions, and asset rate card entries). Assigned on both flows because `deploy_post_utils` ships the whole surface — class, `Account.RLM_Reset_Account` quick action and its flows — to both, so gating only the assignment left a visible reset button that no non-admin could invoke. |
 | `RLM_ExpressionSetManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 5 | `RLM_ExpressionSetManagerController` Apex class access; object READ on `ExpressionSet` and READ+EDIT on `ExpressionSetVersion` (controller USER_MODE SOQL; no FLS — the selected fields are `permissionable=false`); `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — required for the `$Api.Session_ID` loopback to work against REST; a Named Credential is the scoped alternative). The controller also reads `ContextDefinition`, `ExpressionSetDefinition`, and the junction, but those are `IsCustomizable=false` platform entities — object perms on them are silently dropped and their read is platform/feature-governed (like `AsyncApexJob`). Grant set verified on a live scratch org (2026-07-22): deploys clean, file==org, all fields non-permissionable. |
 | `RLM_DecisionTableManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 7 (running user) · **`prepare_personas` step 9 (salesrep persona — non-admin)** | `RLM_DecisionTableManagerController` Apex class access, and nothing else. Deliberately narrow: the controller reads decision-table metadata and queues the platform's own refresh action — it deletes nothing, and the refresh is the same operation Setup offers. Object permissions on `DecisionTable` and friends are NOT granted and are not needed; they are setup entities whose read is platform-governed. Assigned to the persona because the component sits on the shared Home page, so withholding it leaves a visible section that errors. |
@@ -390,7 +391,7 @@ The following table shows the sequence of all permission-related steps across th
 | 22.7 | `prepare_prm` > `assign_permission_sets` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
 | 22.10.3 | `prepare_prm` > `prepare_prm_pricing` > `assign_permission_sets` | `RLM_PRM_Pricing` | `prm` + `prm_pricing` |
 | 23.1 | `prepare_agents` > `assign_permission_set_groups` | Copilot PSGs (2) | `agents` |
-| 23.10 | `prepare_agents` > `assign_permission_sets` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
+| 23.10 | `prepare_agents` > `assign_permission_sets` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent`, `RLM_ApprovalAgent` | `agents` |
 | 24.3 | `prepare_constraints` > `assign_permission_sets` | `RLM_Constraints` | `tso` + `constraints` |
 | 25.1 | `prepare_guidedselling` > `assign_permission_sets` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
 | 25.3 | `prepare_guidedselling` > `assign_permission_sets` | `RLM_Guided_Selling` | `guidedselling` |
@@ -442,7 +443,7 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `docgen` | -- | -- | `RLM_DocGen` |
 | `tso` + `constraints` | -- | -- | `RLM_Constraints` |
 | `prm` + `prm_exp_bundle` + `tso` | -- | -- | `RLM_PRM` |
-| `agents` | -- | Copilot (2) | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` |
+| `agents` | -- | Copilot (2) | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent`, `RLM_ApprovalAgent` |
 
 ---
 

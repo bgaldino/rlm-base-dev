@@ -394,6 +394,7 @@ project:
       - RLM_QuotingAgent
       - RLM_QuotingAssistant
       - RLM_BillingEmployeeAgent
+      - RLM_ApprovalAgent
 
     ps_constraints: &ps_constraints
       # Constraints-specific permission sets

@@ -1,6 +1,6 @@
 # Agentforce Agents
 
-This bundle deploys three Agentforce **Employee Agents** plus their settings and permission sets. All three are authored as Builder Script (`.agent`) bundles. No managed package is required. (The Quoting Assistant is a ground-up custom agent rather than an OOTB template lineage; see its row below.)
+This bundle deploys four Agentforce **Employee Agents** plus their settings and permission sets. All four are authored as Builder Script (`.agent`) bundles. No managed package is required. (The Quoting Assistant is a ground-up custom agent rather than an OOTB template lineage; see its row below.)
 
 > **Release 264 retired the legacy agent format.** Revenue Quote Management previously shipped as a decomposed Bot + BotVersion + GenAiPlannerBundle tree under `legacy/`, deployed by a `deploy_legacy_agents` step. Both `BotVersion` and `GenAiPlannerBundle` are **absent from the v68.0 metadata describe**, and the deploy fails outright (`BotDefinition/BotVersion metadata type is not supported for API version 68.0 and above for non-BOT BotType`). The agent was converted back to an authoring bundle and the legacy tree and its deploy step were removed. Do not re-introduce either type.
 >
@@ -32,14 +32,15 @@ This bundle deploys three Agentforce **Employee Agents** plus their settings and
 | Revenue Quote Management agent | `aiAuthoringBundles/RLM_Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle (developer name `RLM_Revenue_Quote_Management`; label "Revenue Quote Management"). It no longer deploys as standard metadata (see the 264 note above). **Uses only out-of-the-box actions and flows** — the platform `quotingAI__*` and `industries_pcm_agentforce__*` flows, the `consumptionAI__getAccountUsageDetails` prompt template and standard invocable actions; no `RLM_AI_*` custom flow is referenced. It therefore needs the managed quoting/PCM flows in the org (see the saberPower note: orgs without them cannot deploy it). The custom product-configuration subagent (`ProductConfiguration`, backed by `RLM_AI_Configure_Product_Attributes` and related flows) and the record-card and line-lookup helpers were removed, which also cleared the `Configure_Product_Attributes` currency-output publish failure on v68/264 (pack 187). Attribute configuration is not available in this agent; use the Quoting Assistant. |
 | Quoting Assistant agent | `aiAuthoringBundles/RLM_Quoting_Assistant/` | Builder Script `.agent` authoring bundle (developer name `RLM_Quoting_Assistant`; label "Quoting Assistant"). A ground-up, scoped demo quoting agent — tight arc (find products → create/identify quote → add line → discount → configure → totals), unified no-redundant-confirmation policy (`require_user_confirmation: False` everywhere), and a names-not-IDs presentation contract (native record cards; Id outputs flagged `is_used_by_planner: false`). Backed by the three `RLM_AI_*` helper services/flows below. Intentionally excludes asset lifecycle and usage/consumption. |
 | Billing Employee Assistance agent | `aiAuthoringBundles/RLM_Billing_Employee_Assistance/` | Builder Script `.agent` authoring bundle (developer name `RLM_Billing_Employee_Assistance`; label "Billing Assistant"). |
+| Approval Agent | `aiAuthoringBundles/RLM_Approval_Agent/` | Builder Script `.agent` authoring bundle retrieved from a live org (developer name `RLM_Approval_Agent`; label "Approval Agent"; `AgentforceEmployeeAgent`). A standard out-of-the-box agent covering the approval lifecycle for submitters and reviewers — submit, recall, search, summarize, approve/reject and retrieve approval work items. Subagents: `ApprovalManagement`, `SearchApprovalRecords`, `SummarizeMultipleApprovalWorkItem`, `escalation`. Uses only platform actions: the `approval_intelligence__RecallAppvlSbms` and `approval_intelligence__RevAppWorItm` flows and the standard `queryRecords`, `identifyRecordByName` and `getDataForGrounding` invocable actions — no custom flows or Apex. |
 | Quoting Assistant helper services | `classes/RLM_AI_AddProductToQuoteService`, `RLM_AI_ApplyQuoteLineDiscountsService`, `RLM_AI_QuoteDemoSummaryService` (+ tests) | Apex invocable services behind the Quoting Assistant's three helper flows (`flows/RLM_AI_Add_Product_To_Quote`, `RLM_AI_Apply_Quote_Line_Discounts`, `RLM_AI_Get_Quote_Demo_Summary`): one-call add-product (resolves product + default selling model, then the managed add-line), one-call bulk line discount (high-level targeting: applyToAll / productName / display-ordinals; percent, target-price, percent-of-list modes), and a read-only names-only quote recap. Each isolates the managed `quotingAI__*` invocation behind a `@TestVisible` invoker seam. |
-| Permission sets | `permissionsets/RLM_QuotingAgent.permissionset-meta.xml`, `permissionsets/RLM_QuotingAssistant.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml` | Each grants Lightning users access to its agent via `<agentAccesses>`. |
+| Permission sets | `permissionsets/RLM_QuotingAgent.permissionset-meta.xml`, `permissionsets/RLM_QuotingAssistant.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml`, `permissionsets/RLM_ApprovalAgent.permissionset-meta.xml` | Each grants Lightning users access to its agent via `<agentAccesses>`. |
 
 `AiAuthoringBundle` requires **API version 65.0 or higher**.
 
 ## OOTB agent templates (no managed package)
 
-The Revenue Quote Management and Billing agents reference platform-provided templates via `agent_type: "AgentforceEmployeeAgent"` (template lineages `quotingAI__QuotingEmployeeAgent` for Quote and `billing_agents__BillingEmployeeAgent` for Billing). The Quoting Assistant is a custom Agent Script bundle.
+The Revenue Quote Management, Billing and Approval agents reference platform-provided templates via `agent_type: "AgentforceEmployeeAgent"` (template lineages `quotingAI__QuotingEmployeeAgent` for Quote and `billing_agents__BillingEmployeeAgent` for Billing; the Approval Agent is the standard `RLM_Approval_Agent` retrieved from a live org). The Quoting Assistant is a custom Agent Script bundle.
 
 The `quotingAI__` and `billing_agents__` prefixes look like managed-package namespaces but they are **platform-provided OOTB templates** — available without installing a package.
 
@@ -62,9 +63,9 @@ Driven by the `prepare_agents` flow (`cumulusci.yml`):
 7. `publish_agents` → runs `sf agent publish authoring-bundle` for each `aiAuthoringBundles/<Name>/` so the platform compiles the bundle into a runnable `BotVersion`
 8. `activate_agents` → runs `sf agent activate` for each authoring bundle
 9. `deploy_agent_permission_sets` → `unpackaged/post_agents/permissionsets` (must run **after** publish/activate: each PS's `<agentAccesses>` compiles to a `botDefinition` reference)
-10. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
+10. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent`, `RLM_ApprovalAgent` (the `ps_aea` anchor)
 
-Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`), which is **`true`**. All three bundles publish and activate, and the ten steps run. `EXCLUDED_BUNDLES` (`tasks/rlm_agents_common.py`) is currently empty; it is the mechanism for omitting a bundle that is on disk but cannot compile on the current API version (pack 187 used it for `RLM_Revenue_Quote_Management` until that agent dropped its custom product-configuration actions). The exclusion is **operation-specific**: `deactivate_agents` (step 5) always discovers excluded bundles too (`include_excluded=True`) so it can deactivate a version left active by a 262→264-upgraded org — deactivating a missing/inactive agent is a no-op. Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
+Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`), which is **`true`**. All four bundles publish and activate, and the ten steps run. `EXCLUDED_BUNDLES` (`tasks/rlm_agents_common.py`) is currently empty; it is the mechanism for omitting a bundle that is on disk but cannot compile on the current API version (pack 187 used it for `RLM_Revenue_Quote_Management` until that agent dropped its custom product-configuration actions). The exclusion is **operation-specific**: `deactivate_agents` (step 5) always discovers excluded bundles too (`include_excluded=True`) so it can deactivate a version left active by a 262→264-upgraded org — deactivating a missing/inactive agent is a no-op. Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
 
 ## Why post-deploy publish + activation are required
 
@@ -157,11 +158,11 @@ Fix:
 3. Reassign permission sets (if needed):
 
    ```bash
-   cci task run assign_permission_sets --org <alias> -o api_names "RLM_QuotingAgent,RLM_QuotingAssistant,RLM_BillingEmployeeAgent"
+   cci task run assign_permission_sets --org <alias> -o api_names "RLM_QuotingAgent,RLM_QuotingAssistant,RLM_BillingEmployeeAgent,RLM_ApprovalAgent"
    ```
 
 4. Verify `SetupEntityAccess` rows exist for `RLM_QuotingAgent`,
-   `RLM_QuotingAssistant` and `RLM_BillingEmployeeAgent` against their current
+   `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` and `RLM_ApprovalAgent` against their current
    `BotDefinition` records (`RLM_QuotingAgent` binds `RLM_Revenue_Quote_Management`),
    then hard-refresh UI.
 
