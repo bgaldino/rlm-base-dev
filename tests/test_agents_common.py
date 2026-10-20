@@ -318,7 +318,8 @@ def check_deactivate_task_actually_requests_the_excluded_bundle(_):
 
     orig_discover, orig_run = deact.discover_agent_bundles, deact.run_sf_json
     orig_excluded = common.EXCLUDED_BUNDLES
-    common.EXCLUDED_BUNDLES = frozenset({"RLM_Excluded_Example"})
+    stand_in = frozenset({"RLM_Excluded_Example"})
+    common.EXCLUDED_BUNDLES = stand_in
     deact.discover_agent_bundles = fake_discover
     deact.run_sf_json = fake_run
     try:
@@ -335,7 +336,7 @@ def check_deactivate_task_actually_requests_the_excluded_bundle(_):
     check("deactivate_call_site_passes_include_excluded",
           captured.get("kwargs", {}).get("include_excluded") is True, str(captured))
     check("deactivate_actually_targets_the_excluded_bundle",
-          all(name in deactivated for name in common.EXCLUDED_BUNDLES), str(deactivated))
+          all(name in deactivated for name in stand_in), str(deactivated))
 
 
 def main():
