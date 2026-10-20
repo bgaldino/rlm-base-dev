@@ -369,11 +369,17 @@ class NodeChecks(unittest.TestCase):
 
 
 class Run(unittest.TestCase):
+    # /bin/sh, not pick_shell(None): these tests are about run()'s timeout and process
+    # group handling, and their commands are POSIX. zsh -c still sources ~/.zshenv, which
+    # on a workstation can take longer than the 1s timeouts below, so the check timed out
+    # before its first echo and the test failed there but passed on CI.
+    SHELL = "/bin/sh"
+
     def run_one(self, command, timeout=30, grace=ta.HELD_OUTPUT_GRACE):
         check = ta.Check(1, "probe", "Probe", command=command)
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
-            ok = ta.run(check, ta.pick_shell(None), str(REPO), timeout, grace=grace)
+            ok = ta.run(check, self.SHELL, str(REPO), timeout, grace=grace)
         return ok, out.getvalue()
 
     @staticmethod
