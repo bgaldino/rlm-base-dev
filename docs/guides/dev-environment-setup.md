@@ -59,8 +59,10 @@ ends up with the same layered structure — not the same exact patch versions.
   Don't float Node on `lts/*`: it would jump a major the day the next one
   becomes LTS, with no test step.
 - **pyenv and nvm are version managers, not version pickers.** Let them
-  resolve the latest installed patch via `pyenv latest 3.13` and a bare
-  `nvm use`, which reads `.nvmrc`.
+  resolve the latest installed patch: `.envrc` picks the newest installed
+  3.13.x and the newest installed patch of `.nvmrc`'s major, the ones
+  `pyenv latest 3.13` and a bare `nvm use` would pick, by listing their versions
+  dirs (the commands themselves cost most of a second in every repo shell).
 
 ---
 
@@ -138,10 +140,18 @@ export PATH="$HOME/.local/bin:$PATH"
 # the newest installed version instead (`ls "$NVM_DIR/versions/node" | sort -V
 # | tail -1`): installing the next major early would then move every shell to it.
 #
+# That lookup alone costs about 0.4s, in every shell, so its answer is kept in
+# ~/.cache/nvm-default-version ($XDG_CACHE_HOME when set) with the NVM_DIR it
+# came from. It's looked up again when anything under $NVM_DIR/alias is newer
+# than the cache (`nvm alias default`, which update-toolchain.sh runs), when a
+# Node is installed or removed, or when NVM_DIR is another dir. The cache is
+# stamped with the time its lookup started, so a change made during one still
+# counts. To force a lookup: rm ~/.cache/nvm-default-version
+#
 # When $DIRENV_DIR is set and PATH already holds an nvm Node, move that Node's
 # bin dir (the first one that holds a `node`) back to the front instead: this shell was started
 # from one that already loaded a project's .envrc (an agent's, IDE task's or
-# script's `zsh -c`), and it inherits that PATH, with .envrc's `nvm use` Node
+# script's `zsh -c`), and it inherits that PATH, with .envrc's Node
 # first, or this block's `default` from the parent for a project that doesn't
 # pin Node. The `direnv export` below sees the .envrc already loaded and
 # changes nothing, so a Node prepended here would win over the project's
@@ -178,7 +188,23 @@ if [ -n "${DIRENV_DIR:-}" ]; then
   done
 fi
 if [ -z "$_NVM_BIN" ] && [ -n "$_NVM_SH" ]; then
-  _NVM_VER="$(nvm version default 2>/dev/null)"
+  _NVM_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/nvm-default-version" _NVM_VER=""
+  if [ -r "$_NVM_CACHE" ] && [ ! "$NVM_DIR/versions/node" -nt "$_NVM_CACHE" ] && \
+     [ -z "$(find "$NVM_DIR/alias" -newer "$_NVM_CACHE" 2>/dev/null)" ]; then
+    { read -r _NVM_D && read -r _NVM_VER; } < "$_NVM_CACHE" 2>/dev/null
+    [ "$_NVM_D" = "$NVM_DIR" ] || _NVM_VER=""
+    case "$_NVM_VER" in N/A|system) ;; */*) _NVM_VER="" ;; v[0-9]*) ;; *) _NVM_VER="" ;; esac
+  fi
+  if [ -z "$_NVM_VER" ]; then
+    _NVM_MARK="$_NVM_CACHE.$$"
+    { mkdir -p "${_NVM_CACHE%/*}" && touch "$_NVM_MARK"; } 2>/dev/null || _NVM_MARK=""
+    _NVM_VER="$(nvm version default 2>/dev/null)"
+    if [ -n "$_NVM_MARK" ]; then
+      { [ -n "$_NVM_VER" ] && printf '%s\n%s\n' "$NVM_DIR" "$_NVM_VER" > "$_NVM_MARK.new" \
+          && touch -r "$_NVM_MARK" "$_NVM_MARK.new" && mv -f "$_NVM_MARK.new" "$_NVM_CACHE"
+        rm -f "$_NVM_MARK" "$_NVM_MARK.new"; } 2>/dev/null
+    fi
+  fi
   if [ -n "$_NVM_VER" ] && [ "$_NVM_VER" != "N/A" ] && \
      [ -d "$NVM_DIR/versions/node/$_NVM_VER/bin" ]; then
     _NVM_BIN="$NVM_DIR/versions/node/$_NVM_VER/bin"
@@ -192,7 +218,7 @@ if [ -n "$_NVM_BIN" ]; then
   done
   export PATH="$_NVM_BIN$_NVM_REST"
 fi
-unset _NVM_PREFIX _NVM_SH _NVM_VER _NVM_BIN _NVM_REST _NVM_LEFT _NVM_D
+unset _NVM_PREFIX _NVM_SH _NVM_VER _NVM_BIN _NVM_REST _NVM_LEFT _NVM_D _NVM_CACHE _NVM_MARK
 
 # pyenv binary on PATH — but NO global init. Per-project init via direnv.
 export PYENV_ROOT="$HOME/.pyenv"
@@ -283,19 +309,31 @@ pins. For **rlm-base-dev** it lives at the repo root:
 ```sh
 # .envrc
 
-# Python via pyenv — major.minor line, auto-resolve latest patch
+# Python via pyenv — major.minor line, auto-resolve latest patch: the newest plain
+# 3.13.N in pyenv's versions dir (`pyenv latest`/`pyenv root` cost ~0.25s a shell)
 if command -v pyenv >/dev/null 2>&1; then
-  _PY_RESOLVED="$(pyenv latest 3.13 2>/dev/null)"
+  _PY_LINE=3.13 _PY_ROOT="${PYENV_ROOT:-$HOME/.pyenv}" _PY_RESOLVED="" _PY_BEST=-1
+  for _PY_BIN in "$_PY_ROOT"/versions/"$_PY_LINE".*/bin/python3; do
+    _PY_N="${_PY_BIN%/bin/python3}" && _PY_N="${_PY_N##*/"$_PY_LINE".}"
+    case "$_PY_N" in ''|*[!0-9]*) continue ;; esac
+    if [ -x "$_PY_BIN" ] && [ "$_PY_N" -gt "$_PY_BEST" ]; then
+      _PY_BEST="$_PY_N" _PY_RESOLVED="$_PY_LINE.$_PY_N"
+    fi
+  done
   if [ -n "$_PY_RESOLVED" ]; then
     export PYENV_VERSION="$_PY_RESOLVED"
-    PATH_add "$(pyenv root)/shims"
+    PATH_add "$_PY_ROOT/shims"
   else
-    echo ".envrc: no Python 3.13.x installed via pyenv. Run scripts/bash/update-toolchain.sh or 'pyenv install \$(pyenv latest -k 3.13)' to install the latest patch." >&2
+    echo ".envrc: no Python $_PY_LINE.x installed via pyenv. Run scripts/bash/update-toolchain.sh or 'pyenv install \$(pyenv latest -k $_PY_LINE)' to install the latest patch." >&2
   fi
-  unset _PY_RESOLVED
+  unset _PY_LINE _PY_ROOT _PY_RESOLVED _PY_BEST _PY_BIN _PY_N
 fi
 
-# Node via nvm — the major line pinned in .nvmrc; a bare `nvm use` reads it.
+# Node via nvm — the major line pinned in .nvmrc. Its newest installed patch, the
+# one a bare `nvm use` would pick, is found by listing $NVM_DIR/versions/node
+# (loading nvm and `nvm use` cost ~0.5s a shell). It goes first on PATH and the
+# other nvm Node dirs leave PATH (package bin dirs under a version stay), which is
+# stricter than `nvm use`. A .nvmrc that isn't a bare major goes to `nvm use`.
 # nvm.sh is found as update-toolchain.sh step 3 finds it: Homebrew's first
 # (brew --prefix nvm resolves to /opt/homebrew/opt/nvm on Apple Silicon or
 # /usr/local/opt/nvm on Intel), else nvm's own installer's in $NVM_DIR, or
@@ -312,9 +350,46 @@ elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then
   _NVM_SH="$NVM_DIR/nvm.sh"
 fi
 if [ -n "$_NVM_SH" ]; then
-  . "$_NVM_SH" --no-use
-  nvm use --silent >/dev/null 2>&1 \
-    || echo ".envrc: Node $(cat .nvmrc 2>/dev/null) (from .nvmrc) isn't installed. Run 'nvm install' here, or scripts/bash/update-toolchain.sh." >&2
+  _NODE_RC=""
+  [ -r .nvmrc ] && { read -r _NODE_RC < .nvmrc || true; }
+  _NODE_LINE="${_NODE_RC%%[[:space:]]*}" && _NODE_LINE="${_NODE_LINE#v}"
+  case "$_NODE_LINE" in ''|*[!0-9]*) _NODE_LINE="" ;; esac
+  # No fallback to nvm's `default`: that can be an older line, and selecting it silently
+  # hides the problem. Say so instead; validate_setup also fails a lower major.
+  _NODE_MISSING=".envrc: Node $_NODE_RC (from .nvmrc) isn't installed. Run 'nvm install' here, or scripts/bash/update-toolchain.sh."
+  if [ -n "$_NODE_LINE" ]; then
+    _NODE_BIN="" _NODE_MI=-1 _NODE_PA=-1
+    for _NODE_D in "$NVM_DIR"/versions/node/v"$_NODE_LINE".*/bin; do
+      # Only a release's vMAJOR.MINOR.PATCH name counts, not a prerelease's.
+      _NODE_V="${_NODE_D%/bin}" && _NODE_V="${_NODE_V##*/v"$_NODE_LINE".}"
+      case "$_NODE_V" in [0-9]*.[0-9]*) ;; *) continue ;; esac
+      case "$_NODE_V" in *[!0-9.]*|*.*.*) continue ;; esac
+      [ -x "$_NODE_D/node" ] || continue
+      _NODE_M="${_NODE_V%.*}" _NODE_P="${_NODE_V#*.}"
+      if [ "$_NODE_M" -gt "$_NODE_MI" ] || { [ "$_NODE_M" -eq "$_NODE_MI" ] && [ "$_NODE_P" -gt "$_NODE_PA" ]; }; then
+        _NODE_BIN="$_NODE_D" _NODE_MI="$_NODE_M" _NODE_PA="$_NODE_P"
+      fi
+    done
+    if [ -n "$_NODE_BIN" ]; then
+      # The rest of PATH, empty entries included, keeps its order.
+      _NODE_REST="" _NODE_LEFT="$PATH:"
+      while [ -n "$_NODE_LEFT" ]; do
+        _NODE_D="${_NODE_LEFT%%:*}" _NODE_LEFT="${_NODE_LEFT#*:}"
+        case "$_NODE_D" in
+          "$NVM_DIR"/versions/node/*/*/bin) _NODE_REST="$_NODE_REST:$_NODE_D" ;;
+          "$NVM_DIR"/versions/node/*/bin) ;;
+          *) _NODE_REST="$_NODE_REST:$_NODE_D" ;;
+        esac
+      done
+      export PATH="$_NODE_BIN$_NODE_REST" NVM_BIN="$_NODE_BIN" NVM_INC="${_NODE_BIN%/bin}/include/node"
+    else
+      echo "$_NODE_MISSING" >&2
+    fi
+  else
+    . "$_NVM_SH" --no-use
+    nvm use --silent >/dev/null 2>&1 || echo "$_NODE_MISSING" >&2
+  fi
+  unset _NODE_RC _NODE_LINE _NODE_MISSING _NODE_BIN _NODE_MI _NODE_PA _NODE_D _NODE_V _NODE_M _NODE_P _NODE_REST _NODE_LEFT
 else
   echo ".envrc: nvm not found (via 'brew --prefix nvm', in \$NVM_DIR or in \$XDG_CONFIG_HOME/nvm), so .nvmrc's Node line isn't applied. Install it (docs/guides/local-installation.md, Step 3), or put Homebrew on PATH if your nvm comes from Homebrew." >&2
 fi
@@ -358,8 +433,8 @@ sf --version
 
 ### Adapting to another project
 
-Copy `.envrc`, edit the python/node lines (e.g. `pyenv latest 3.12` if the
-project still needs 3.12), `direnv allow`. The system layer doesn't change.
+Copy `.envrc`, set `_PY_LINE` (e.g. `3.12` if the project still needs 3.12)
+and the project's `.nvmrc`, `direnv allow`. The system layer doesn't change.
 
 ---
 
@@ -496,8 +571,8 @@ When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
    `package.json`, and the lines that tell people which Node to install (both
    setup guides, the toolchain and troubleshooting skills, the `validate_setup`
    hint). `tests/test_node_line.py` fails the gate until they all agree
-2. Python: edit the `pyenv latest <line>` call in `.envrc` (Node needs no
-   `.envrc` change: its bare `nvm use` reads `.nvmrc`)
+2. Python: edit `_PY_LINE` in `.envrc` (Node needs no `.envrc` change: it
+   reads the major from `.nvmrc`)
 3. Run the script. It installs the new line, reinstalls CCI under the new
    Python, rebuilds the gate interpreter `.venv` and the TUI venvs on it, and
    verifies via `validate_setup`. It doesn't move `pyenv global` to a new line:

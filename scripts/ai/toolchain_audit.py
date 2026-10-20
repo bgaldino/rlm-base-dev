@@ -113,6 +113,11 @@ elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then
 export NVM_DIR; . "$s" --no-use
 if typeset -f nvm_alias >/dev/null; then a="$(nvm_alias default 2>/dev/null)" || a="(unset)"; else a="(this nvm has no nvm_alias)"; fi
 echo "default -> $a -> $(nvm version default 2>&1)"
+c="${XDG_CACHE_HOME:-$HOME/.cache}/nvm-default-version"
+if [ -r "$c" ]; then o=""
+  if [ "$NVM_DIR/versions/node" -nt "$c" ] || [ -n "$(find "$NVM_DIR/alias" -newer "$c" 2>/dev/null)" ]; then o=" (outdated: the next shell not started from a repo shell looks it up again)"; fi
+  echo "~/.zshenv's cache: $(sed -n 2p "$c") for $(sed -n 1p "$c" | sed "s#^$HOME#~#")$o"
+else echo "~/.zshenv's cache: none"; fi
 """),
     Check(3, "node-nested-shell", "Node in a shell started from a repo shell", command=r"""
 repo="$PWD"
