@@ -330,7 +330,7 @@ class ValidateSetup(BaseTask):
                 return self._warn(
                     label,
                     f"{version}, not the line pinned in .nvmrc ({pinned}). It may work, but the toolchain is "
-                    f"verified on {pinned}: `nvm use` in the repo selects it." + (f" Also, {note}" if note else ""),
+                    f"verified on {pinned}: the repo's .envrc selects it." + (f" Also, {note}" if note else ""),
                 )
             if note:
                 return self._warn(label, f"{version}; but {note}")

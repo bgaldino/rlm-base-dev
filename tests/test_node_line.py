@@ -1,6 +1,6 @@
 """Offline check: every place that names the Node major line agrees with `.nvmrc`.
 
-`.nvmrc` is the single source for the Node major line. `.envrc` (a bare `nvm use`) and
+`.nvmrc` is the single source for the Node major line. `.envrc` (its newest installed patch) and
 `scripts/bash/update-toolchain.sh` read it; the Dockerfile's `NODE_MAJOR`, every
 `actions/setup-node` step and `package.json`'s `engines.node` floor restate it, because
 neither Docker nor Actions reads `.nvmrc` unless told to. Bumping the line is a deliberate
@@ -242,6 +242,10 @@ def code_lines(text):
 
 def envrc_node_block():
     return section(read(".envrc"), "# ── Node via nvm", "# ── Per-workstation")
+
+
+def envrc_python_block():
+    return section(read(".envrc"), "# ── Python via pyenv", "# ── Node via nvm")
 
 
 def guide_node_block():
@@ -543,8 +547,10 @@ nvm() { echo "nvm $*" >> "$NVM_LOG"; [ -n "${FAKE_NODE_INSTALLED:-}" ]; }
 
 @unittest.skipUnless(shutil.which("bash"), "needs bash, which direnv runs .envrc under")
 class EnvrcNodeBlock(unittest.TestCase):
-    """.envrc's Node block run under bash against fake nvm installs: which nvm.sh it sources
-    (each fake logs its own path), the NVM_DIR it leaves, what it tells nvm, and what it prints."""
+    """.envrc's Node block run under bash against fake nvm installs: which Node dir it puts
+    first, without loading nvm, for a bare major in .nvmrc; which nvm.sh it sources (each fake
+    logs its own path) and what it tells nvm for anything else; the NVM_DIR, NVM_BIN, NVM_INC
+    and PATH it leaves, and what it prints."""
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -566,63 +572,217 @@ class EnvrcNodeBlock(unittest.TestCase):
         brew.write_text(f"#!/bin/sh\n[ \"$*\" = '--prefix nvm' ] && echo '{prefix}'\n")
         brew.chmod(brew.stat().st_mode | stat.S_IXUSR)
 
-    def run_block(self, installed=True, **env):
+    def install(self, nvm_dir, *versions, node=True):
+        """Node `versions` under `nvm_dir`; their bin dirs, in the order given."""
+        bins = []
+        for version in versions:
+            bin_dir = Path(nvm_dir) / "versions" / "node" / version / "bin"
+            bin_dir.mkdir(parents=True)
+            if node:
+                (bin_dir / "node").write_text("#!/bin/sh\n")
+                (bin_dir / "node").chmod(0o755)
+            bins.append(str(bin_dir))
+        return bins
+
+    def run_block(self, path=None, **env):
         script = self.root / "block.sh"
-        script.write_text(envrc_node_block() + 'echo "NVM_DIR=$NVM_DIR"\n')
-        full_env = {"PATH": f"{self.root / 'bin'}:/usr/bin:/bin", "HOME": str(self.root / "home"),
-                    "NVM_LOG": str(self.log), **env}
-        if installed:
-            full_env["FAKE_NODE_INSTALLED"] = "1"
+        script.write_text(envrc_node_block()
+                          + 'printf "%s\\n" "NVM_DIR=$NVM_DIR" "NVM_BIN=${NVM_BIN:-}" '
+                            '"NVM_INC=${NVM_INC:-}" "PATH=$PATH"\n')
+        full_env = {"PATH": path or f"{self.root / 'bin'}:/usr/bin:/bin",
+                    "HOME": str(self.root / "home"), "NVM_LOG": str(self.log), **env}
         result = subprocess.run(["bash", str(script)], cwd=self.root / "repo", env=full_env,
                                 capture_output=True, text=True, timeout=30)
         self.assertEqual(result.returncode, 0, result.stderr)
         log = self.log.read_text().splitlines() if self.log.exists() else []
-        return result.stdout.strip(), result.stderr, log
+        out = dict(line.split("=", 1) for line in result.stdout.splitlines())
+        return out, result.stderr, log
+
+    def assert_selected(self, out, bin_dir):
+        self.assertEqual(out["NVM_BIN"], bin_dir)
+        self.assertEqual(out["NVM_INC"], bin_dir[:-len("/bin")] + "/include/node")
+        self.assertEqual(out["PATH"].split(":")[0], bin_dir)
 
     def test_installer_nvm_in_nvm_dir(self):
         nvm_dir = self.fake_nvm("custom-nvm")
+        [v24] = self.install(nvm_dir, "v24.0.0")
         out, err, log = self.run_block(NVM_DIR=nvm_dir)
-        self.assertEqual(log, [f"sourced {nvm_dir}/nvm.sh --no-use", "nvm use --silent"])
-        self.assertEqual(out, f"NVM_DIR={nvm_dir}")
+        self.assertEqual(log, [], "a bare major in .nvmrc must not load nvm")
+        self.assertEqual(out["NVM_DIR"], nvm_dir)
+        self.assert_selected(out, v24)
         self.assertEqual(err, "")
 
     def test_installer_nvm_in_default_dir(self):
         nvm_dir = self.fake_nvm("home/.nvm")
+        [v24] = self.install(nvm_dir, "v24.0.0")
         out, err, log = self.run_block()
-        self.assertEqual(log, [f"sourced {nvm_dir}/nvm.sh --no-use", "nvm use --silent"])
-        self.assertEqual(out, f"NVM_DIR={nvm_dir}")
+        self.assertEqual(log, [])
+        self.assertEqual(out["NVM_DIR"], nvm_dir)
+        self.assert_selected(out, v24)
 
     def test_installer_nvm_under_xdg_config_home(self):
         nvm_dir = self.fake_nvm("config/nvm")
+        [v24] = self.install(nvm_dir, "v24.0.0")
         out, err, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
-        self.assertEqual(log, [f"sourced {nvm_dir}/nvm.sh --no-use", "nvm use --silent"])
-        self.assertEqual(out, f"NVM_DIR={nvm_dir}")
+        self.assertEqual(log, [])
+        self.assertEqual(out["NVM_DIR"], nvm_dir)
+        self.assert_selected(out, v24)
+
+    def test_picks_the_newest_release_of_the_line(self):
+        # Compared as numbers (24.10 is newer than 24.9), and only a vMAJOR.MINOR.PATCH dir
+        # holding a `node` counts: not a prerelease, an empty dir or another major.
+        nvm_dir = self.fake_nvm("home/.nvm")
+        self.install(nvm_dir, "v24.2.0", "v24.9.9", "v26.0.0", "v240.0.0", "v24.11.0-rc.1")
+        self.install(nvm_dir, "v24.12.0", node=False)
+        [newest] = self.install(nvm_dir, "v24.10.0")
+        out, err, log = self.run_block()
+        self.assertEqual(log, [])
+        self.assert_selected(out, newest)
+        self.assertEqual(err, "")
+
+    def test_a_v_prefixed_major_takes_the_same_path(self):
+        (self.root / "repo" / ".nvmrc").write_text("v24")
+        nvm_dir = self.fake_nvm("home/.nvm")
+        [v24] = self.install(nvm_dir, "v24.0.0")
+        out, _, log = self.run_block()
+        self.assertEqual(log, [])
+        self.assert_selected(out, v24)
+
+    def test_leaves_one_nvm_node_on_path(self):
+        # Every other nvm Node dir leaves PATH (the shell's `default` from ~/.zshenv first
+        # among them), which is stricter than `nvm use`: that edits the first nvm entry in
+        # place and leaves the rest. The rest keeps its order, empty entries too, and a
+        # package's bin dir under a version isn't a Node dir, so it stays.
+        nvm_dir = self.fake_nvm("home/.nvm")
+        v26, v24_old, v24 = self.install(nvm_dir, "v26.0.0", "v24.0.0", "v24.1.0")
+        bin_dir = self.root / "bin"
+        pkg = f"{v26.rsplit('/', 1)[0]}/lib/node_modules/pkg/bin"
+        out, _, _ = self.run_block(path=f"{v26}::{bin_dir}:{pkg}:{v24_old}:/usr/bin:/bin:{v24}")
+        self.assertEqual(out["PATH"], f"{v24}::{bin_dir}:{pkg}:/usr/bin:/bin")
 
     def test_order_is_brew_then_nvm_dir_then_xdg(self):
+        # Observed through nvm.sh, so .nvmrc holds something other than a bare major here.
+        (self.root / "repo" / ".nvmrc").write_text("lts/jod\n")
         nvm_dir = self.fake_nvm("home/.nvm")
         self.fake_nvm("config/nvm")
-        _, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
+        _, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"), FAKE_NODE_INSTALLED="1")
         self.assertEqual(log[:1], [f"sourced {nvm_dir}/nvm.sh --no-use"])
         self.log.unlink()
         brew_nvm = self.fake_nvm("brew/opt/nvm")
         self.fake_brew(brew_nvm)
-        out, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
+        out, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"), FAKE_NODE_INSTALLED="1")
         # Homebrew's nvm.sh wins, but nvm still keeps its versions in $NVM_DIR.
         self.assertEqual(log, [f"sourced {brew_nvm}/nvm.sh --no-use", "nvm use --silent"])
-        self.assertEqual(out, f"NVM_DIR={nvm_dir}")
+        self.assertEqual(out["NVM_DIR"], nvm_dir)
+
+    def test_anything_but_a_bare_major_goes_to_nvm_use(self):
+        (self.root / "repo" / ".nvmrc").write_text("lts/jod\n")
+        nvm_dir = self.fake_nvm("home/.nvm")
+        self.install(nvm_dir, "v24.0.0")
+        _, err, log = self.run_block(FAKE_NODE_INSTALLED="1")
+        self.assertEqual(log, [f"sourced {nvm_dir}/nvm.sh --no-use", "nvm use --silent"])
+        self.assertEqual(err, "")
+        self.log.unlink()
+        _, err, log = self.run_block()
+        self.assertEqual(log[1:], ["nvm use --silent"])
+        self.assertIn("Node lts/jod (from .nvmrc) isn't installed", err)
 
     def test_uninstalled_line_warns_without_falling_back(self):
-        self.fake_nvm("home/.nvm")
-        _, err, log = self.run_block(installed=False)
-        self.assertEqual(log[1:], ["nvm use --silent"])
+        nvm_dir = self.fake_nvm("home/.nvm")
+        [v26] = self.install(nvm_dir, "v26.0.0")
+        path = f"{v26}:{self.root / 'bin'}:/usr/bin:/bin"
+        out, err, log = self.run_block(path=path)
+        self.assertEqual(log, [], "no fallback through nvm, to `default` or anything else")
+        self.assertEqual((out["NVM_BIN"], out["PATH"]), ("", path))
         self.assertIn("Node 24 (from .nvmrc) isn't installed", err)
 
     def test_no_nvm_names_the_guide(self):
+        self.install(self.root / "home" / ".nvm", "v24.0.0")
         out, err, log = self.run_block()
         self.assertEqual(log, [])
+        self.assertEqual(out["NVM_BIN"], "")
         self.assertEqual(len(err.splitlines()), 1, err)
         self.assertIn("nvm not found", err)
         self.assertIn("docs/guides/local-installation.md, Step 3", err)
+
+
+@unittest.skipUnless(shutil.which("bash"), "needs bash, which direnv runs .envrc under")
+class EnvrcPythonBlock(unittest.TestCase):
+    """.envrc's Python block run under bash against a fake pyenv root: the PYENV_VERSION it
+    picks from the versions dir (pyenv itself isn't run), the shims dir it puts on PATH
+    (direnv's PATH_add stands in as a prepend) and what it prints."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        (self.root / "bin").mkdir()
+        pyenv = self.root / "bin" / "pyenv"
+        pyenv.write_text("#!/bin/sh\necho \"pyenv must not run: $*\" >&2\nexit 1\n")
+        pyenv.chmod(0o755)
+
+    def install(self, root, *versions, python=True):
+        for version in versions:
+            bin_dir = Path(root) / "versions" / version / "bin"
+            bin_dir.mkdir(parents=True)
+            if python:
+                (bin_dir / "python3").write_text("#!/bin/sh\n")
+                (bin_dir / "python3").chmod(0o755)
+
+    def run_block(self, pyenv=True, **env):
+        script = self.root / "block.sh"
+        script.write_text('PATH_add() { PATH="$1:$PATH"; }\n' + envrc_python_block()
+                          + 'printf "%s\\n" "PYENV_VERSION=${PYENV_VERSION:-}" "PATH=$PATH"\n')
+        path = f"{self.root / 'bin'}:/usr/bin:/bin" if pyenv else "/usr/bin:/bin"
+        full_env = {"PATH": path, "HOME": str(self.root / "home"), **env}
+        result = subprocess.run(["bash", str(script)], cwd=self.root, env=full_env,
+                                capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        out = dict(line.split("=", 1) for line in result.stdout.splitlines())
+        return out, result.stderr, path
+
+    def test_picks_the_newest_plain_patch(self):
+        # Compared as numbers (3.13.10 is newer than 3.13.9); a free-threaded, prerelease or
+        # empty build doesn't count, and neither does another line.
+        root = self.root / "home" / ".pyenv"
+        self.install(root, "3.13.2", "3.13.9", "3.13.10", "3.13.11t", "3.13.12rc1", "3.14.0", "3.12.20")
+        self.install(root, "3.13.13", python=False)
+        out, err, path = self.run_block()
+        self.assertEqual(out["PYENV_VERSION"], "3.13.10")
+        self.assertEqual(out["PATH"], f"{root}/shims:{path}")
+        self.assertEqual(err, "")
+
+    def test_uses_pyenv_root(self):
+        root = self.root / "elsewhere"
+        self.install(root, "3.13.4")
+        self.install(self.root / "home" / ".pyenv", "3.13.5")
+        out, _, path = self.run_block(PYENV_ROOT=str(root))
+        self.assertEqual(out["PYENV_VERSION"], "3.13.4")
+        self.assertEqual(out["PATH"], f"{root}/shims:{path}")
+
+    def test_no_patch_of_the_line_warns(self):
+        self.install(self.root / "home" / ".pyenv", "3.14.0", "3.13.1t")
+        out, err, path = self.run_block()
+        self.assertEqual((out["PYENV_VERSION"], out["PATH"]), ("", path))
+        self.assertIn("no Python 3.13.x installed via pyenv", err)
+        self.assertIn("pyenv install $(pyenv latest -k 3.13)", err)
+
+    def test_no_pyenv_does_nothing(self):
+        self.install(self.root / "home" / ".pyenv", "3.13.4")
+        out, err, path = self.run_block(pyenv=False)
+        self.assertEqual((out["PYENV_VERSION"], out["PATH"], err), ("", path, ""))
+
+    def test_line_matches_the_update_script(self):
+        envrc = re.search(r"\b_PY_LINE=(\S+)", envrc_python_block())
+        script = re.search(r'^PY_LINE="([^"]+)"', read("scripts/bash/update-toolchain.sh"), re.M)
+        self.assertTrue(envrc and script, "_PY_LINE in .envrc or PY_LINE in update-toolchain.sh is gone")
+        self.assertEqual(envrc.group(1), script.group(1),
+                         ".envrc's _PY_LINE must be update-toolchain.sh's PY_LINE")
+
+    def test_guide_template_mirrors_envrc(self):
+        guide = section(read("docs/guides/dev-environment-setup.md"), "# Python via pyenv", "# Node via nvm")
+        self.assertEqual(code_lines(guide), code_lines(envrc_python_block()),
+                         "dev-environment-setup.md's .envrc template must carry .envrc's Python code")
 
 
 class ValidateSetupNode(unittest.TestCase):

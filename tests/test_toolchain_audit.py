@@ -201,7 +201,7 @@ class NodeChecks(unittest.TestCase):
             node.write_text(f"#!/bin/sh\necho {version}\n")
             node.chmod(0o755)
         (self.repo / ".nvmrc").write_text("24\n")
-        # .envrc's `nvm use` stands in as PATH_add of the pinned line's bin dir.
+        # PATH_add of the pinned line's bin dir stands in for .envrc's Node block.
         (self.repo / ".envrc").write_text('PATH_add "$HOME/.nvm/versions/node/v24.0.0/bin"\n')
         self.env = {"HOME": str(self.home), "PATH": f"{self.bin}:/usr/bin:/bin"}
         os.symlink(shutil.which("direnv"), self.bin / "direnv")
@@ -366,6 +366,168 @@ class NodeChecks(unittest.TestCase):
         out = self.run_check("nvm-default")
         self.assertIn(".nvmrc: 24", out)
         self.assertIn("default -> node -> v26.0.0", out)
+        self.assertIn("~/.zshenv's cache: none", out)
+        cache = self.home / ".cache" / "nvm-default-version"
+        cache.parent.mkdir()
+        cache.write_text(f"{self.home / '.nvm'}\nv24.0.0\n")
+        self.assertIn("~/.zshenv's cache: v24.0.0 for ~/.nvm\n", self.run_check("nvm-default"))
+        # A change the cache hasn't caught up with yet (an `nvm alias default` in a repo shell,
+        # whose nested shells skip the lookup) is marked, not reported as the current state.
+        # Installs predate the cache, so only the alias change below can mark it.
+        t = time.time()
+        os.utime(self.home / ".nvm" / "versions" / "node", (t - 120, t - 120))
+        os.utime(cache, (t - 60, t - 60))
+        self.assertIn("~/.zshenv's cache: v24.0.0 for ~/.nvm\n", self.run_check("nvm-default"))
+        (self.home / ".nvm" / "alias").mkdir()
+        (self.home / ".nvm" / "alias" / "default").write_text("node\n")
+        self.assertIn("~/.zshenv's cache: v24.0.0 for ~/.nvm (outdated: the next shell not "
+                      "started from a repo shell looks it up again)", self.run_check("nvm-default"))
+
+
+class ZshenvCache(unittest.TestCase):
+    """The `~/.zshenv` template's cache of its `nvm version default` lookup, in a fresh shell
+    outside any repo (no direnv involved) under a scratch HOME with fake Node installs.
+    Skipped where the shell isn't installed (setUp, so the sh subclass doesn't need zsh)."""
+
+    SHELL = "zsh"
+
+    def setUp(self):
+        if not shutil.which(self.SHELL):
+            self.skipTest(f"needs {self.SHELL}")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.home = Path(tmp.name).resolve() / "home"
+        for version in ("v24.0.0", "v26.0.0"):
+            node = self.home / ".nvm" / "versions" / "node" / version / "bin" / "node"
+            node.parent.mkdir(parents=True)
+            node.write_text(f"#!/bin/sh\necho {version}\n")
+            node.chmod(0o755)
+        self.env = {"HOME": str(self.home), "PATH": "/usr/bin:/bin"}
+
+    def fake_nvm_lookup(self, answer):
+        """nvm.sh whose `nvm version default` logs each lookup to ~/lookups and answers what
+        ~/answer holds; with $FAKE_CHANGE set it also runs `nvm alias default` meanwhile."""
+        (self.home / "answer").write_text(answer + "\n")
+        (self.home / ".nvm" / "alias").mkdir(exist_ok=True)
+        (self.home / ".nvm" / "nvm.sh").write_text(
+            'nvm() {\n  [ "$1" = version ] || return 1\n  echo x >> "$HOME/lookups"\n'
+            '  [ -z "${FAKE_CHANGE:-}" ] || { sleep 1; touch "$NVM_DIR/alias/default"; }\n'
+            '  cat "$HOME/answer"\n}\n')
+        (self.home / ".zshenv").write_text(zshenv_nvm_block())
+
+    def fresh_shell(self, **env):
+        """`node` in a fresh shell outside the repo, and how many lookups have run so far.
+        zsh sources ~/.zshenv itself; sh is told to."""
+        script = "command -v node || :" if self.SHELL == "zsh" else '. "$HOME/.zshenv"; command -v node || :'
+        run = subprocess.run([self.SHELL, "-c", script], cwd="/tmp", env=dict(self.env, **env),
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        lookups = self.home / "lookups"
+        return run.stdout.strip(), len(lookups.read_text().splitlines()) if lookups.exists() else 0
+
+    def node_path(self, version):
+        return str(self.home / ".nvm/versions/node" / version / "bin/node")
+
+    def backdate_cache(self):
+        """Give the cache an mtime a minute ago, so what changes next is newer than it."""
+        t = time.time() - 60
+        os.utime(self.home / ".cache" / "nvm-default-version", (t, t))
+
+    def test_template_caches_the_default_lookup(self):
+        self.fake_nvm_lookup("v26.0.0")
+        self.assertEqual(self.fresh_shell(), (self.node_path("v26.0.0"), 1))
+        self.assertEqual(self.fresh_shell(), (self.node_path("v26.0.0"), 1))
+        # nvm would now answer otherwise, but nothing it reads has changed: still the cache.
+        (self.home / "answer").write_text("v24.0.0\n")
+        self.assertEqual(self.fresh_shell(), (self.node_path("v26.0.0"), 1))
+        # `nvm alias default 24` writes $NVM_DIR/alias/default.
+        self.backdate_cache()
+        (self.home / ".nvm" / "alias" / "default").write_text("24\n")
+        self.assertEqual(self.fresh_shell(), (self.node_path("v24.0.0"), 2))
+        self.assertEqual(self.fresh_shell(), (self.node_path("v24.0.0"), 2))
+        self.assertEqual(os.listdir(self.home / ".cache"), ["nvm-default-version"],
+                         "the lookup left a temporary file behind")
+
+    def test_template_looks_up_again_after_an_install_or_for_another_nvm_dir(self):
+        self.fake_nvm_lookup("v26.0.0")
+        self.assertEqual(self.fresh_shell()[1], 1)
+        self.backdate_cache()
+        (self.home / ".nvm/versions/node/v26.1.0").mkdir()
+        self.assertEqual(self.fresh_shell()[1], 2)
+        self.assertEqual(self.fresh_shell()[1], 2)
+        (self.home / ".cache" / "nvm-default-version").write_text("/somewhere/else/.nvm\nv26.0.0\n")
+        self.assertEqual(self.fresh_shell(), (self.node_path("v26.0.0"), 3))
+
+    def test_template_looks_up_again_for_a_cached_value_that_isnt_a_version(self):
+        self.fake_nvm_lookup("v26.0.0")
+        self.assertEqual(self.fresh_shell()[1], 1)
+        # Each value is written after every install and alias change, so the cache is fresh
+        # and only the value check can send the shell to nvm.
+        cache = self.home / ".cache" / "nvm-default-version"
+        for n, bad in enumerate(("../../../v24.0.0", "v24.0.0/../../v24.0.0", "24"), start=2):
+            cache.write_text(f"{self.home / '.nvm'}\n{bad}\n")
+            self.assertEqual(self.fresh_shell(), (self.node_path("v26.0.0"), n), bad)
+
+    def test_template_keeps_a_cached_answer_that_names_no_install(self):
+        # `N/A` (no `default` alias yet) and `system` are answers too: kept, so the shell
+        # doesn't pay the lookup again, and nothing is prepended, as after a fresh lookup.
+        self.fake_nvm_lookup("v26.0.0")
+        self.assertEqual(self.fresh_shell()[1], 1)
+        cache = self.home / ".cache" / "nvm-default-version"
+        for value in ("N/A", "system"):
+            cache.write_text(f"{self.home / '.nvm'}\n{value}\n")
+            node, lookups = self.fresh_shell()
+            # A system node (/usr/bin/node in the Docker image) may still answer.
+            self.assertFalse(node.startswith(str(self.home)), (value, node))
+            self.assertEqual(lookups, 1, value)
+
+    def test_template_counts_a_change_made_during_the_lookup(self):
+        # The alias changes while the lookup runs, so its answer may predate the change: the
+        # cache is stamped with the time the lookup started, and the next shell looks again.
+        self.fake_nvm_lookup("v26.0.0")
+        self.assertEqual(self.fresh_shell(FAKE_CHANGE="1")[1], 1)
+        self.assertEqual(self.fresh_shell()[1], 2)
+        self.assertEqual(self.fresh_shell()[1], 2)
+
+    def test_template_still_prepends_default_without_a_cache(self):
+        # A cache dir that can't be created (here a file stands in its way) costs the lookup
+        # in every shell, nothing else.
+        self.fake_nvm_lookup("v26.0.0")
+        (self.home / "not-a-dir").write_text("")
+        env = {"XDG_CACHE_HOME": str(self.home / "not-a-dir")}
+        self.assertEqual(self.fresh_shell(**env), (self.node_path("v26.0.0"), 1))
+        self.assertEqual(self.fresh_shell(**env), (self.node_path("v26.0.0"), 2))
+
+    @unittest.skipIf(os.geteuid() == 0, "root writes to a read-only dir")
+    def test_template_survives_a_cache_dir_it_cant_write(self):
+        # An existing ~/.cache it can't write (one a sudo run left owned by root): the shell
+        # must neither exit nor print, and still gets `default`. A failed redirect on a
+        # special builtin (`: > file`) would make sh exit here.
+        self.fake_nvm_lookup("v26.0.0")
+        cache_dir = self.home / ".cache"
+        cache_dir.mkdir()
+        cache_dir.chmod(0o555)
+        self.addCleanup(cache_dir.chmod, 0o755)
+        run = subprocess.run([self.SHELL, "-c", '. "$HOME/.zshenv"; command -v node'], cwd="/tmp",
+                             env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             text=True, timeout=60)
+        self.assertEqual((run.returncode, run.stdout.strip(), run.stderr),
+                         (0, self.node_path("v26.0.0"), ""))
+        self.assertEqual(os.listdir(cache_dir), [])
+
+
+class ZshenvCacheSh(ZshenvCache):
+    """The same, with the block sourced by sh (dash, or bash as sh), which a startup file
+    shared with another shell, or a script that sources it, runs it under."""
+
+    SHELL = "sh"
+
+
+class ZshenvCacheDash(ZshenvCache):
+    """The same under dash, Debian's and Ubuntu's sh. macOS's sh is bash, which doesn't exit
+    on a failed redirect of a special builtin, so the read-only cache dir test needs dash."""
+
+    SHELL = "dash"
 
 
 class Run(unittest.TestCase):
