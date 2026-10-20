@@ -144,9 +144,9 @@ The primary lifecycle PSG. Bundles the essential RLM API permission sets for quo
 | `RevLifecycleManagementTaxConfiguration` | Tax configuration |
 | `RevLifecycleManagementUsageDesignUser` | Usage design |
 
-#### RLM_RCB -- Revenue Cloud Billing Advanced (17 permission sets)
+#### RLM_RCB -- Revenue Cloud Billing Advanced (19 permission sets)
 
-Billing super-user PSG covering invoicing, payments, credit memos, tax, collections, and accounting. Sixteen are Salesforce-managed. The seventh, `RLM_BillingAccountFieldAccess`, is repo-owned and deploys from the same folder.
+Billing super-user PSG covering invoicing, payments, credit memos, tax, collections, and accounting. Seventeen are Salesforce-managed. The other two, `RLM_BillingAccountFieldAccess` and `RLM_DeleteInvoices`, are repo-owned and deploy from the same folder.
 
 | Permission Set | Purpose |
 |---|---|
@@ -154,6 +154,7 @@ Billing super-user PSG covering invoicing, payments, credit memos, tax, collecti
 | `BillingAdvancedPaymentAdministrator` | Payment admin |
 | `BillingAdvancedPaymentOperations` | Payment operations |
 | `BillingCollectionsAndRecoverySpecialist` | Collections |
+| `CollectionsAndRecoveryAdmin` | Collections and recovery admin |
 | `DataProcessingEngineUser` | DPE access |
 | `DocGenDesigner` | Doc generation |
 | `RevenueLifecycleManagementAccountingAdmin` | Accounting admin |
@@ -167,6 +168,7 @@ Billing super-user PSG covering invoicing, payments, credit memos, tax, collecti
 | `RevenueLifecycleManagementBillingVoidPostedInvoiceApi` | Void invoice API |
 | `RevenueLifecycleManagementCreateBillingScheduleFromBillingTransactionApi` | Billing schedule API |
 | `RLM_BillingAccountFieldAccess` (repo-owned) | Read/edit FLS on `BillingAccount` Shipping Address, Bill Day of Month, Payment Term and Bill To Contact. The standard Billing permission sets omit the first three and make Bill To Contact read-only, so fresh 264 orgs hide them from the Billing Account form even though the standard layout includes them |
+| `RLM_DeleteInvoices` (repo-owned) | Enables the **Delete Invoice and Invoice Lines** user permission (`BillingInvoiceSuperUser`), which the managed Billing Admin set leaves off. Without it, only Draft and Canceled invoices can be deleted. Not in the Billing Admin, Billing Operations or Credit Memo Operations persona groups, so only `RLM_RCB` holders get it |
 
 #### RLM_NGP -- Salesforce Pricing (4 permission sets)
 
@@ -404,7 +406,7 @@ The following table shows the sequence of all permission-related steps across th
 | 29.11 | `prepare_personas` > `assign_permission_sets` | `RLM_Approvals` (salesrep user) | `personas` + `quantumbit` + `approvals` |
 | 29.12 | `prepare_personas` > `assign_permission_sets` | `RLM_RenewalQuotes` (salesrep user) — Generate Renewal Quote and Consolidate Renewals call `RLM_RenewalAssetLock`. Narrow: class access and Asset/Account/Contact read, changes nothing | `personas` + (`quantumbit` \| `tso`) |
 | 31.2 | `prepare_inapp` > `assign_permission_sets` | `RLM_Learning` | `inapp` |
-| 35.3 | `prepare_mcp` > `assign_permission_sets` | `RLM_McpSalesTransactions` (running user) — class access to `RLM_CloneSalesTransaction` only, so a non-admin user authorized on the MCP server can call the CLASSIC-bound clone tool. Every other MCP user needs it assigned separately (`sf org assign permset --on-behalf-of`) | `mcp` + `mcp_custom_server` |
+| 36.3 | `prepare_mcp` > `assign_permission_sets` | `RLM_McpSalesTransactions` (running user) — class access to `RLM_CloneSalesTransaction` only, so a non-admin user authorized on the MCP server can call the CLASSIC-bound clone tool. Every other MCP user needs it assigned separately (`sf org assign permset --on-behalf-of`) | `mcp` + `mcp_custom_server` |
 
 ---
 

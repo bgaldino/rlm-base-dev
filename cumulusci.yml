@@ -139,7 +139,7 @@ project:
     breconfig: false          # Business Rules Engine configuration
     guidedselling: true      # Guided Selling
     procedureplans: true      # Procedure Plans
-    mcp: false                # MCP servers (post_mcp): RLM_McpClient ECA + hosted server activations, plus the custom rlm-sales-transactions server when mcp_custom_server is on. Opt-in — the org build cannot finish the job, since each person still runs a browser OAuth login. Requires an org with the MCP feature.
+    mcp: false                # MCP servers (post_mcp): RLM_McpClient ECA + hosted server activations, plus the custom rlm-sales-transactions server when mcp_custom_server is on. Opt-in: the hosted revenue-cloud server needs the RevMCP pilot permission, which not every org shape has, and the org build cannot finish the job, since each person still runs a browser OAuth login. Requires an org with the MCP feature.
     mcp_custom_server: true   # With mcp on, also build the custom RLMSalesTransactions server (post_mcp_custom clone invocable + permission set, server, tools, bindings). Set false to stand up only the ECA and hosted servers; clients then connect to revenue-cloud directly, without the multiplex proxy. Temporary: retire once the hosted revenue-cloud server covers place and clone.
 
     # ── Data & UX ──────────────────────────────────────────────────────────────
@@ -3414,6 +3414,16 @@ tasks:
       version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
+  empty_recycle_bin:
+    group: Data Maintenance
+    description: >
+      Permanently purges deleted records from the org's Recycle Bin across every
+      object that has one (SOAP emptyRecycleBin via scripts/recycle_bin). Pass
+      -o execute false for a dry run, -o objects/-o exclude to scope it. Non-fatal
+      by default so a finished flow is never broken. The prepare_rlm_org step runs
+      on scratch orgs only; run this task directly on any other org.
+    class_path: tasks.rlm_empty_recycle_bin.EmptyRecycleBin
+
   stamp_git_commit:
     group: Revenue Lifecycle Management
     description: >
@@ -3506,8 +3516,13 @@ flows:
       34:
         task: rebuild_search_index
       35:
-        flow: prepare_mcp
+        # Scratch orgs only: the purge is org-wide, so never run it unprompted on a
+        # sandbox or other persistent org. Run the task ad hoc there.
+        task: empty_recycle_bin
+        when: org_config.scratch
       36:
+        flow: prepare_mcp
+      37:
         flow: stamp_git_commit
 
   prepare_core:

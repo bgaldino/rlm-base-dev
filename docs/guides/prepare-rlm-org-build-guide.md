@@ -13,7 +13,7 @@
 
 ## What This Document Covers
 
-Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 36-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
+Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 37-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
 
 This guide walks through that build process from start to finish, explaining not just *what* happens at each stage, but *why* each step exists and how the pieces fit together. Whether you're onboarding to the team, preparing a demo environment, or troubleshooting a failed build, this document gives you the full picture.
 
@@ -61,7 +61,7 @@ The most commonly used flags and their defaults:
 
 ## The Build Process: Phase by Phase
 
-The 36 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
+The 37 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
 
 ---
 
@@ -201,7 +201,7 @@ To turn it on, set `quote_est_tax: true` together with `tax: true`. Help require
 
 ---
 
-### Phase 8: Finalization (Steps 33–36)
+### Phase 8: Finalization (Steps 33–37)
 
 **What happens:** All decision tables are refreshed, the Product Catalog search index is rebuilt, the MCP surface is set up when the `mcp` flag is on, and the build's git provenance is stamped onto the org.
 
@@ -211,9 +211,11 @@ To turn it on, set `quote_est_tax: true` together with `tax: true`. Help require
 
 **Search index rebuild** (Step 34, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
 
-**MCP surface** (Step 35, `mcp` flag) — Deploys the `post_mcp` bundle (the `RLM_McpClient` External Client Application) and, with the `mcp_custom_server` flag on (the default), the `post_mcp_custom` bundle (the clone invocable behind the custom server's CLASSIC-bound tool, at API 68.0) and assigns its `RLM_McpSalesTransactions` permission set to the running user (other MCP users need it assigned too, or their clone calls fail), then activates the hosted Salesforce MCP servers and builds the custom `RLMSalesTransactions` server via the Tooling API. Set `mcp_custom_server: false` to build only the ECA and the hosted servers. Off by default, because the flow cannot finish the job on its own: each person still completes a browser OAuth login against the ECA, which no automation can do for them. Enable with `mcp: true`. See `.cursor/skills/mcp-integration/SKILL.md`.
+**Recycle Bin purge** (Step 35, `empty_recycle_bin`) — Permanently purges records the build deleted (re-loads, `deleteOldData`, cleanups) so they do not linger in the Recycle Bin. Runs on scratch orgs only, because the purge is org-wide and would also remove records other users deleted; on a sandbox or other persistent org run the task ad hoc. Non-fatal by default; also runnable ad hoc (`cci task run empty_recycle_bin --org <alias>`, `-o execute false` for a dry run).
 
-**Git commit stamp** (Step 36) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
+**MCP surface** (Step 36, `mcp` flag) — Deploys the `post_mcp` bundle (the `RLM_McpClient` External Client Application) and, with the `mcp_custom_server` flag on (the default), the `post_mcp_custom` bundle (the clone invocable behind the custom server's CLASSIC-bound tool, at API 68.0) and assigns its `RLM_McpSalesTransactions` permission set to the running user (other MCP users need it assigned too, or their clone calls fail), then activates the hosted Salesforce MCP servers and builds the custom `RLMSalesTransactions` server via the Tooling API. Set `mcp_custom_server: false` to build only the ECA and the hosted servers. Off by default, for two reasons: the hosted `revenue-cloud` server needs the RevMCP pilot permission, which not every org shape has (without it the server activates but serves nothing), and the flow cannot finish the job on its own — each person still completes a browser OAuth login against the ECA, which no automation can do for them. Enable with `mcp: true`. See `.cursor/skills/mcp-integration/SKILL.md`.
+
+**Git commit stamp** (Step 37) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
 
 ---
 

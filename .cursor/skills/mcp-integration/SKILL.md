@@ -23,9 +23,10 @@ Gateway-endpoint research credit: Sam Check (`feature/mcp-servers`).
 ## Quick Rules
 
 1. **`cci flow run prepare_mcp --org <alias>` stands up the whole org-side surface.**
-   It is step 35 of `prepare_rlm_org` (36 steps; `stamp_git_commit` follows),
-   gated on the `mcp` feature flag, which defaults to **off** — the flow cannot finish the
-   job, because each person still runs their own browser OAuth login.
+   It is step 36 of `prepare_rlm_org` (37 steps; `stamp_git_commit` follows),
+   gated on the `mcp` feature flag, which defaults to **off**: the hosted `revenue-cloud`
+   server needs the RevMCP pilot permission, which not every org shape has, and the flow
+   cannot finish the job, because each person still runs their own browser OAuth login.
 2. **`prepare_mcp` is metadata deploys, a permission set assignment and one Tooling API
    step.** `deploy_post_mcp` deploys the ECA; `deploy_post_mcp_custom` deploys the clone
    invocable and its permission set (`RLM_McpSalesTransactions`); `assign_permission_sets`
@@ -250,7 +251,7 @@ sf data query -q "SELECT DeveloperName, OauthScopesMCP_API, OauthScopesREFRESH_T
 - **An identifier the org does not resolve is a warning, not a failure.** The task
   removes that tool, skips any other tool bound to the same identifier, and still
   serves the rest of the server, so `prepare_rlm_org` with `mcp` on is not stopped at
-  step 35 by a catalog it cannot change. Any other binding failure still fails the
+  step 36 by a catalog it cannot change. Any other binding failure still fails the
   task. Re-run it once the org resolves the identifier; it creates only what is missing.
 - **An org bound under `industries-revenue` by an earlier run is rebound, not failed.**
   `LEGACY_BINDINGS` in `tasks/rlm_mcp.py` lists bindings that no longer resolve; the

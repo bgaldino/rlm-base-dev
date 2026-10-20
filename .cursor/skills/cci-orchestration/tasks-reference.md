@@ -3,13 +3,13 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**264 tasks** across **9 groups**.
+**265 tasks** across **9 groups**.
 
 ---
 
 ## Data Maintenance
 
-*8 task(s)*
+*9 task(s)*
 
 ### `delete_draft_billing_records`
 
@@ -104,6 +104,14 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
+
+---
+
+### `empty_recycle_bin`
+
+**Description:** Permanently purges deleted records from the org's Recycle Bin across every object that has one (SOAP emptyRecycleBin via scripts/recycle_bin). Pass -o execute false for a dry run, -o objects/-o exclude to scope it. Non-fatal by default so a finished flow is never broken. The prepare_rlm_org step runs on scratch orgs only; run this task directly on any other org.
+
+**Class:** `tasks.rlm_empty_recycle_bin.EmptyRecycleBin`
 
 ---
 
