@@ -1,0 +1,24 @@
+.render-draw-3d-config {
+    /* position: sticky; */
+    /* Use viewport units to approximate header height if we can't access it directly */
+    /* top: 0; */
+    /* Ensure it stays above regular content but below modal headers */
+    /* z-index: 10; */
+    /* Preserve the component's width when sticky */
+    /* width: 100%; */
+    /* Add background to prevent content showing through */
+    background: var(--lwc-colorBackgroundAlt, white);
+    /* z-index: 10; */
+    /* width: 100%; */
+    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
+    /* position: absolute; */
+    /* top: 12vh; */
+    /* right: 0px; */
+    /* max-width:50%; */
+}
+/* .open{
+    width:50%;
+}
+.closed{
+    width:25%;
+} */
