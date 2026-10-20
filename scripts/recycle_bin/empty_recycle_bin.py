@@ -157,9 +157,10 @@ def candidate_objects(sobjects: Iterable[dict]) -> List[str]:
     return sorted(s["name"] for s in sobjects if s.get("queryable") and s.get("undeletable"))
 
 
-def count_deleted(org: Org, objects: Sequence[str], log=print) -> Dict[str, int]:
+def count_deleted(org: Org, objects: Sequence[str], log=print, strict: bool = False) -> Dict[str, int]:
     """Deleted-row count per object, via composite/batch. Objects that reject the
-    IsDeleted query (no such field, not queryable to this user) are skipped."""
+    IsDeleted query (no such field, not queryable to this user) are skipped, unless
+    strict (explicitly requested objects), where the failure is raised."""
     counts: Dict[str, int] = {}
     for group in chunked(list(objects), BATCH_SIZE):
         urls = [
@@ -172,6 +173,8 @@ def count_deleted(org: Org, objects: Sequence[str], log=print) -> Dict[str, int]
                 total = item["result"].get("totalSize", 0)
                 if total:
                     counts[name] = total
+            elif strict:
+                raise RecycleBinError(f"cannot count deleted {name}: HTTP {item.get('statusCode')}")
             else:
                 log(f"  skip {name}: HTTP {item.get('statusCode')}")
     return counts
@@ -210,7 +213,7 @@ def run(org: Org, objects: Optional[Sequence[str]], exclude: Iterable[str],
         log(f"Discovered {len(names)} objects with a Recycle Bin.")
     names = [n for n in names if n.lower() not in excluded]
 
-    counts = count_deleted(org, names, log)
+    counts = count_deleted(org, names, log, strict=bool(objects))
     if not counts:
         log("Recycle Bin is empty for the selected objects. Nothing to do.")
         return 0

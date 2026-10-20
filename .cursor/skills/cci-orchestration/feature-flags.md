@@ -495,6 +495,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `org_config.scratch` (runtime)
 
+- `prepare_rlm_org` step 35 → `empty_recycle_bin`
 - `prepare_core` step 1 → `fix_scratch_org_identity`
 - `prepare_core` step 2 → `set_scratch_org_password`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`

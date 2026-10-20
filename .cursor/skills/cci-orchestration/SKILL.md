@@ -251,7 +251,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 ### 6. Flows (`flows`)
 
 Flows are organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(35 steps), which calls sub-flows:
+(36 steps), which calls sub-flows:
 
 ```
 prepare_rlm_org
@@ -289,7 +289,8 @@ prepare_rlm_org
 ├── 32. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
 ├── 33. refresh_all_decision_tables
 ├── 34. rebuild_search_index (PCM catalog search index, async)
-└── 35. stamp_git_commit
+├── 35. empty_recycle_bin (scratch orgs only)
+└── 36. stamp_git_commit
 ```
 
 `[child steps gated on <flag>]` means the flag turns that sub-flow's work off, but

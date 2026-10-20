@@ -93,6 +93,12 @@ def test_count_batches_and_skips_zero_and_rejected():
     assert any("NoIsDeleted" in line for line in logs)
 
 
+def test_explicit_objects_fail_when_their_count_query_fails():
+    org = FakeOrg({"Obj3": ["a"]})
+    raises_recycle_error(erb.run, org, ["Obj3", "NoIsDeleted"], [], False, lambda *_: None,
+                         match="NoIsDeleted")
+
+
 def test_purge_chunks_at_200_and_reports_failures():
     ids = [f"001{i:012d}" for i in range(450)]
     org = FakeOrg({}, reject={ids[7]})

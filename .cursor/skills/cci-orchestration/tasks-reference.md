@@ -109,7 +109,7 @@
 
 ### `empty_recycle_bin`
 
-**Description:** Permanently purges deleted records from the org's Recycle Bin across every object that has one (SOAP emptyRecycleBin via scripts/recycle_bin). Pass -o execute false for a dry run, -o objects/-o exclude to scope it. Non-fatal by default so a finished flow is never broken.
+**Description:** Permanently purges deleted records from the org's Recycle Bin across every object that has one (SOAP emptyRecycleBin via scripts/recycle_bin). Pass -o execute false for a dry run, -o objects/-o exclude to scope it. Non-fatal by default so a finished flow is never broken. The prepare_rlm_org step runs on scratch orgs only; run this task directly on any other org.
 
 **Class:** `tasks.rlm_empty_recycle_bin.EmptyRecycleBin`
 
