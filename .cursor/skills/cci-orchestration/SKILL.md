@@ -260,10 +260,10 @@ prepare_rlm_org
 ├── 3. prepare_expression_sets
 ├── 4. prepare_payments
 ├── 5. deploy_full (force-app/main/default)
-├── 6. prepare_price_adjustment_schedules
 ├── 7. prepare_quantumbit (utils, approvals, QB metadata)
 ├── 8. prepare_product_data (PCM, Q3, product images)
 ├── 9. prepare_pricing_data (pricing delete + insert)
+├── 9.5. prepare_price_adjustment_schedules (after pricing data, which upserts the volume schedule inactive)
 ├── 10. prepare_docgen
 ├── 11. prepare_dro
 ├── 12. prepare_tax
