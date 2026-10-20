@@ -56,8 +56,8 @@ Driven by the `prepare_agents` flow (`cumulusci.yml`):
 
 1. `assign_permission_set_groups` → `CopilotSalesforceUserPSG`, `CopilotSalesforceAdminPSG`
 2. `deploy_agents_settings` → `unpackaged/post_agents/settings`
-3. `deploy_agent_classes` → `unpackaged/post_agents/classes` (Apex invocable services used by Product Configuration flows)
-4. `deploy_agent_flows` → `unpackaged/post_agents/flows` (custom autolaunched flows backing Product Configuration actions)
+3. `deploy_agent_classes` → `unpackaged/post_agents/classes` (Apex invocable services used by Product Configuration flows; now consumed by the Quoting Assistant only)
+4. `deploy_agent_flows` → `unpackaged/post_agents/flows` (custom autolaunched flows backing Product Configuration actions; now consumed by the Quoting Assistant only)
 5. `deactivate_agents` → deactivates each discovered agent so it can be re-published idempotently (tolerates not-yet-deployed or already-inactive agents)
 6. `deploy_agents` → the authoring bundles under `unpackaged/post_agents/aiAuthoringBundles`
 7. `publish_agents` → runs `sf agent publish authoring-bundle` for each `aiAuthoringBundles/<Name>/` so the platform compiles the bundle into a runnable `BotVersion`

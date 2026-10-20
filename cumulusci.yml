@@ -129,7 +129,7 @@ project:
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
     einstein: true            # Einstein AI
-    agents: true              # Agentforce agents (RLM_Revenue_Quote_Management, RLM_Quoting_Assistant, RLM_Billing_Employee_Assistance). EXCLUDED_BUNDLES in tasks/rlm_agents_common.py (currently empty) omits an on-disk bundle that cannot compile from publish/activation; deactivate_agents still discovers excluded bundles.
+    agents: true              # Agentforce agents (RLM_Revenue_Quote_Management, RLM_Quoting_Assistant, RLM_Billing_Employee_Assistance, RLM_Approval_Agent). EXCLUDED_BUNDLES in tasks/rlm_agents_common.py (currently empty) omits an on-disk bundle that cannot compile from publish/activation; deactivate_agents still discovers excluded bundles.
     analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
 
     # ── Configurators & Tooling ────────────────────────────────────────────────

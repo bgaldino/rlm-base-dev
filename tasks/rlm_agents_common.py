@@ -18,7 +18,7 @@ except ImportError:
 
 
 # Bundles present on disk but deliberately excluded from *compilation* — i.e.
-# from ``publish_agents`` and ``activate_agents``. Currently empty: all three
+# from ``publish_agents`` and ``activate_agents``. Currently empty: all four
 # agents publish and activate. ``RLM_Revenue_Quote_Management`` was excluded
 # (todo pack 187) while its ``Configure_Product_Attributes`` action's currency
 # output params failed ``sf agent publish`` on v68/264; it now uses only
