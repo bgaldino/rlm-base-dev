@@ -139,6 +139,8 @@ project:
     breconfig: false          # Business Rules Engine configuration
     guidedselling: true      # Guided Selling
     procedureplans: true      # Procedure Plans
+    mcp: false                # MCP servers (post_mcp): RLM_McpClient ECA + hosted server activations, plus the custom rlm-sales-transactions server when mcp_custom_server is on. Opt-in: the hosted revenue-cloud server needs the RevMCP pilot permission, which not every org shape has, and the org build cannot finish the job, since each person still runs a browser OAuth login. Requires an org with the MCP feature.
+    mcp_custom_server: true   # With mcp on, also build the custom RLMSalesTransactions server (post_mcp_custom clone invocable + permission set, server, tools, bindings). Set false to stand up only the ECA and hosted servers; clients then connect to revenue-cloud directly, without the multiplex proxy. Temporary: retire once the hosted revenue-cloud server covers place and clone.
 
     # ── Data & UX ──────────────────────────────────────────────────────────────
     qb: true                  # QuantumBit data
@@ -1497,6 +1499,46 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_large_stx
+
+  deploy_post_mcp:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy the MCP client identity — the RLM_McpClient External Client
+      Application (5 components: app, global OAuth settings, OAuth settings, and
+      the two policy sets). Needed by every MCP setup, with or without the custom
+      server.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_mcp
+
+  deploy_post_mcp_custom:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy what the custom RLMSalesTransactions server needs — the
+      RLM_CloneSalesTransaction invocable (v68.0, async-capable) behind the
+      CLASSIC-bound cloneSalesTransaction tool, and the RLM_McpSalesTransactions
+      permission set granting access to it. Must run before configure_mcp_servers
+      builds the custom server, which references that invocable by action path.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_mcp_custom
+
+  configure_mcp_servers:
+    group: Revenue Lifecycle Management
+    description: >
+      Activate the hosted Salesforce MCP servers (McpServerAccess) and build the
+      custom RLMSalesTransactions server — McpServerDefinition plus two
+      McpServerToolDefinition tools and their McpServerToolApiDefinition
+      bindings — via the Tooling API, because only McpServerDefinition is a
+      deployable metadata type. Idempotent; every write checks first. Use
+      -o operation list to report the org's surface without changing it,
+      -o dry_run True to preview, and -o platform_servers True to also activate
+      sobject-all and headless-360 (off by default: sobject-all grants read/write
+      across every object). The custom server follows the mcp_custom_server
+      flag unless -o custom_server is passed.
+    class_path: tasks.rlm_mcp.ConfigureMcpServers
+    options:
+      operation: ensure
 
   deploy_post_commerce:
     description: Deploy Commerce Metadata (e.g. Commerce decision table flows)
@@ -3479,6 +3521,8 @@ flows:
         task: empty_recycle_bin
         when: org_config.scratch
       36:
+        flow: prepare_mcp
+      37:
         flow: stamp_git_commit
 
   prepare_core:
@@ -3803,6 +3847,34 @@ flows:
       4:
         task: seed_large_deal_billing_treatment
         when: project_config.project__custom__large_stx and project_config.project__custom__billing
+
+  prepare_mcp:
+    group: Revenue Lifecycle Management
+    description: >
+      Stand up the org-side MCP surface: deploy the ECA, then (with the
+      mcp_custom_server flag on) the clone invocable and its permission set,
+      assign that permission set to the running user, and activate the servers.
+      Every step is gated on the mcp feature flag. This leaves one manual step per
+      person — the browser OAuth login — which no flow can do for them; see
+      .cursor/skills/mcp-integration/SKILL.md.
+    steps:
+      1:
+        task: deploy_post_mcp
+        when: project_config.project__custom__mcp
+      2:
+        task: deploy_post_mcp_custom
+        when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server
+      3:
+        # Running user only. Every other MCP user needs RLM_McpSalesTransactions too, or
+        # their clone calls fail: see .cursor/skills/mcp-integration/SKILL.md.
+        task: assign_permission_sets
+        when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server
+        options:
+          api_names:
+            - RLM_McpSalesTransactions
+      4:
+        task: configure_mcp_servers
+        when: project_config.project__custom__mcp
 
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management

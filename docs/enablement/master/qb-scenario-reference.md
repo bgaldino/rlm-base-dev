@@ -431,7 +431,7 @@ Source: `datasets/sfdmu/scratch_data/Account.csv` + `Contact.csv` + `BillingAcco
 
 ## 16. `prepare_rlm_org` Build Flow Summary
 
-The full 36-step build process is documented at `docs/guides/prepare-rlm-org-build-guide.md`. Phases:
+The full 37-step build process is documented at `docs/guides/prepare-rlm-org-build-guide.md`. Phases:
 
 1. **Foundation (1–3):** PSL/PSG assignment, context definition extension, decision tables, expression sets (deactivate)
 2. **Metadata Deployment (4–7):** Payments site, deploy_full, price adjustment schedule activation, QuantumBit metadata
@@ -440,7 +440,7 @@ The full 36-step build process is documented at `docs/guides/prepare-rlm-org-bui
 5. **Expression Sets & Permissions (18–23):** Expression set activation (active), approval context mappings and pricing overlay, TSO permissions, procedure plans, PRM, Agentforce
 6. **Constraints & Guided Selling (24–25):** `prepare_constraints` (metadata + CML imports), guided selling
 7. **Final Configuration & Personalization (26–32):** Revenue settings, pricing discovery, large STX, personas, UX assembly, In-App Learning, scratch seed data
-8. **Finalization (33–36):** Decision table refresh, search index rebuild, Recycle Bin purge, git commit stamp
+8. **Finalization (33–37):** Decision table refresh, search index rebuild, Recycle Bin purge, optional MCP surface setup (`mcp` flag), git commit stamp
 
 Critical feature flags driving the flow:
 - `qb=true` (QuantumBit data shape, default)
