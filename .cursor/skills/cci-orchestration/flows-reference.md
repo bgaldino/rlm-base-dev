@@ -659,7 +659,8 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 32. **flow** `prepare_scratch`
 33. **flow** `refresh_all_decision_tables`
 34. **task** `rebuild_search_index`
-35. **flow** `stamp_git_commit`
+35. **task** `empty_recycle_bin`  `when: org_config.scratch`
+36. **flow** `stamp_git_commit`
 
 ---
 

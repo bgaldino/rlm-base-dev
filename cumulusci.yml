@@ -3372,6 +3372,16 @@ tasks:
       version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
+  empty_recycle_bin:
+    group: Data Maintenance
+    description: >
+      Permanently purges deleted records from the org's Recycle Bin across every
+      object that has one (SOAP emptyRecycleBin via scripts/recycle_bin). Pass
+      -o execute false for a dry run, -o objects/-o exclude to scope it. Non-fatal
+      by default so a finished flow is never broken. The prepare_rlm_org step runs
+      on scratch orgs only; run this task directly on any other org.
+    class_path: tasks.rlm_empty_recycle_bin.EmptyRecycleBin
+
   stamp_git_commit:
     group: Revenue Lifecycle Management
     description: >
@@ -3464,6 +3474,11 @@ flows:
       34:
         task: rebuild_search_index
       35:
+        # Scratch orgs only: the purge is org-wide, so never run it unprompted on a
+        # sandbox or other persistent org. Run the task ad hoc there.
+        task: empty_recycle_bin
+        when: org_config.scratch
+      36:
         flow: stamp_git_commit
 
   prepare_core:
