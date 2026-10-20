@@ -78,7 +78,7 @@ jobs:
           python-version: "3.13"
 
       - name: Set up Node.js 24.16.0
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           # Pinned to an exact 24.x minor. node-version "24" floats to "latest 24.x",
           # which moved 24.16.0 → 24.17.0; on 24.17.0 the npm-installed sf CLI exits 13
