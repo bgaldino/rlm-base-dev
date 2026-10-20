@@ -61,6 +61,10 @@ foundations:
     - "$RC_WORKSPACE/foundations"
     - "${HOME}/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev"
     - "../rlm-base-dev"
+  # Paths that identify a candidate directory as THIS repo when it does not yet
+  # ship the manifest itself. Any one existing is enough.
+  clone_markers:
+    - ".cursor/skills"
 
   # Skills that Foundations holds canonically.
   # PMOS skills can read these via cross-repo resolution.
@@ -395,6 +399,17 @@ foundations:
         - scripts/ai/skill_manifest.py
       governs: .claude/skill-manifest.yml
 
+    - id: mcp-integration
+      path: .cursor/skills/mcp-integration/SKILL.md
+      purpose: "The MCP surface on a built org — hosted + custom servers, the ECA, the clone invocable, the proxy. Foundations owns the whole surface: the org side (post_mcp + optional post_mcp_custom bundles, configure_mcp_servers, prepare_mcp flow) and the client tooling in scripts/mcp/. Carries the metadata-vs-Tooling-API constraint, and the rebuild-drift check"
+      consumed_by_pmos: []
+      tooling:
+        - tasks/rlm_mcp.py
+        - scripts/mcp/mcp_org.py
+        - scripts/mcp/mcp_auth.py
+        - scripts/mcp/mcp_multiplex_proxy.py
+        - scripts/mcp/write_connector_config.py
+
     - id: pde-org-build
       path: .cursor/skills/pde-org-build/SKILL.md
       purpose: "Build a PDE (or other org type) via runtime-only feature-flag overrides with a self-reverting script + Cloud-Agent command"
@@ -574,6 +589,8 @@ pmos:
     - "$RC_WORKSPACE/pmos"
     - "${HOME}/Documents/GitHub/Enterprise/_bgaldino/pmos-revenue-cloud"
     - "../pmos-revenue-cloud"
+  clone_markers:
+    - ".claude/skills"
 
   # Skills that PMOS holds canonically (subset relevant to Foundations)
   # Foundations skills can read these via cross-repo resolution.
@@ -728,5 +745,5 @@ studio:
   sibling_repos_known:
     - distill: not_modeled_in_manifest
     - aegis: not_modeled_in_manifest
-    # See revenue-cloud-platform.md for the 4-component picture; this manifest
-    # only covers the Foundations × PMOS bridge today.
+    # See revenue-cloud-platform.md for the 4-component picture. This manifest
+    # covers the Foundations × PMOS bridge only.

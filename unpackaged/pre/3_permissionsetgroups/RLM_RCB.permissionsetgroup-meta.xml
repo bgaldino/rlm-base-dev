@@ -21,4 +21,5 @@
     <permissionSets>force__RevenueLifecycleManagementBillingVoidPostedInvoiceApi</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementCreateBillingScheduleFromBillingTransactionApi</permissionSets>
     <permissionSets>RLM_BillingAccountFieldAccess</permissionSets>
+    <permissionSets>RLM_DeleteInvoices</permissionSets>
 </PermissionSetGroup>

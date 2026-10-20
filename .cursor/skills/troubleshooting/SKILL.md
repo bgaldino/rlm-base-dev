@@ -32,7 +32,7 @@ or verify the local toolchain itself (shell config, PATH order, corporate CA,
 
 ## Quick Diagnosis: Which Step Failed?
 
-The `prepare_rlm_org` flow runs 35 steps. Identify the failing step from
+The `prepare_rlm_org` flow runs 37 steps. Identify the failing step from
 CCI output, then jump to the relevant section below.
 
 | Step Range | Category | Section |

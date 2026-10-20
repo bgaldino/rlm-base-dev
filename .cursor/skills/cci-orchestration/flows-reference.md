@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**45 flows** across **5 groups**.
+**46 flows** across **5 groups**.
 
 ---
 
@@ -426,6 +426,20 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 
 ---
 
+### `prepare_mcp`
+
+Stand up the org-side MCP surface: deploy the ECA, then (with the mcp_custom_server flag on) the clone invocable and its permission set, assign that permission set to the running user, and activate the servers. Every step is gated on the mcp feature flag. This leaves one manual step per person — the browser OAuth login — which no flow can do for them; see .cursor/skills/mcp-integration/SKILL.md.
+
+**Steps:**
+
+1. **task** `deploy_post_mcp`  `when: project_config.project__custom__mcp`
+2. **task** `deploy_post_mcp_custom`  `when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server`
+   - `api_names`: `['RLM_McpSalesTransactions']`
+4. **task** `configure_mcp_servers`  `when: project_config.project__custom__mcp`
+
+---
+
 ### `prepare_payments`
 
 **Steps:**
@@ -659,7 +673,9 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 32. **flow** `prepare_scratch`
 33. **flow** `refresh_all_decision_tables`
 34. **task** `rebuild_search_index`
-35. **flow** `stamp_git_commit`
+35. **task** `empty_recycle_bin`  `when: org_config.scratch`
+36. **flow** `prepare_mcp`
+37. **flow** `stamp_git_commit`
 
 ---
 

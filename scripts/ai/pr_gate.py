@@ -467,7 +467,7 @@ CHECKS = [
     dict(
         name="requests_offline_suites",
         cmd=None,  # expanded at runtime — see REQUESTS_SUITES
-        # The modules these two suites exercise, plus the non-code inputs they read and assert
+        # The modules these suites exercise, plus the non-code inputs they read and assert
         # against — the shipped overlay examples and the export fixture. The paths are the ones the
         # trigger-coverage rule named when this check was first added with guessed ones: a suite that
         # reads a file no trigger selects is a suite that can be invalidated without being run.
@@ -479,11 +479,14 @@ CHECKS = [
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
                   "tasks/expression_set_schema.py", "tasks/rlm_community.py",
-                  "scripts/expression_sets/", "scripts/cml/",
+                  "scripts/expression_sets/", "scripts/cml/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
+                  "scripts/sf_token.py",
+                  "tests/test_empty_recycle_bin.py",
                   "tests/test_expression_set_schema.py",
                   "tests/test_rlm_cml_import_failure.py",
                   "tests/test_rlm_cml_validate.py",
                   "tests/test_rlm_community.py",
+                  "tasks/rlm_mcp.py", "tests/test_rlm_mcp_configure.py",
                   "tests/data/expression_set/",
                   "datasets/expression_set_overlays/",
                   "docs/references/expression-set-overlay-examples/"],
@@ -653,6 +656,7 @@ STDLIB_SUITES = [
     "tests/test_df_workshop_replay.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",
+    "tests/test_mcp_scripts_security.py",
     "tests/test_post_process_extraction.py",
     "tests/test_qb_multicurrency_data.py",
     "tests/test_renewal_bucket_planner.py",
@@ -671,10 +675,12 @@ STDLIB_SUITES = [
 # dependency is declared and installed rather than inherited by luck from another check's transitive
 # tree. Kept as a separate list so `STDLIB_SUITES` means what it says.
 REQUESTS_SUITES = [
+    "tests/test_empty_recycle_bin.py",
     "tests/test_expression_set_schema.py",
     "tests/test_rlm_cml_import_failure.py",
     "tests/test_rlm_cml_validate.py",
     "tests/test_rlm_community.py",
+    "tests/test_rlm_mcp_configure.py",
 ]
 
 # Which check runs which spliced list — named once, read by both `resolve()` (to build the argv) and

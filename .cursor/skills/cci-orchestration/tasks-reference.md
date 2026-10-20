@@ -3,13 +3,13 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**261 tasks** across **9 groups**.
+**265 tasks** across **9 groups**.
 
 ---
 
 ## Data Maintenance
 
-*8 task(s)*
+*9 task(s)*
 
 ### `delete_draft_billing_records`
 
@@ -104,6 +104,14 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
+
+---
+
+### `empty_recycle_bin`
+
+**Description:** Permanently purges deleted records from the org's Recycle Bin across every object that has one (SOAP emptyRecycleBin via scripts/recycle_bin). Pass -o execute false for a dry run, -o objects/-o exclude to scope it. Non-fatal by default so a finished flow is never broken. The prepare_rlm_org step runs on scratch orgs only; run this task directly on any other org.
+
+**Class:** `tasks.rlm_empty_recycle_bin.EmptyRecycleBin`
 
 ---
 
@@ -794,7 +802,7 @@
 
 ## Revenue Lifecycle Management
 
-*171 task(s)*
+*174 task(s)*
 
 ### `activate_agents`
 
@@ -1179,6 +1187,18 @@
 - `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
 - `outputdir`: `robot/rlm-base/results`
 - `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
+
+---
+
+### `configure_mcp_servers`
+
+**Description:** Activate the hosted Salesforce MCP servers (McpServerAccess) and build the custom RLMSalesTransactions server — McpServerDefinition plus two McpServerToolDefinition tools and their McpServerToolApiDefinition bindings — via the Tooling API, because only McpServerDefinition is a deployable metadata type. Idempotent; every write checks first. Use -o operation list to report the org's surface without changing it, -o dry_run True to preview, and -o platform_servers True to also activate sobject-all and headless-360 (off by default: sobject-all grants read/write across every object). The custom server follows the mcp_custom_server flag unless -o custom_server is passed.
+
+**Class:** `tasks.rlm_mcp.ConfigureMcpServers`
+
+**Options:**
+
+- `operation`: `ensure`
 
 ---
 
@@ -1744,6 +1764,30 @@
 **Options:**
 
 - `path`: `unpackaged/post_large_stx_settings`
+
+---
+
+### `deploy_post_mcp`
+
+**Description:** Deploy the MCP client identity — the RLM_McpClient External Client Application (5 components: app, global OAuth settings, OAuth settings, and the two policy sets). Needed by every MCP setup, with or without the custom server.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_mcp`
+
+---
+
+### `deploy_post_mcp_custom`
+
+**Description:** Deploy what the custom RLMSalesTransactions server needs — the RLM_CloneSalesTransaction invocable (v68.0, async-capable) behind the CLASSIC-bound cloneSalesTransaction tool, and the RLM_McpSalesTransactions permission set granting access to it. Must run before configure_mcp_servers builds the custom server, which references that invocable by action path.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_mcp_custom`
 
 ---
 
