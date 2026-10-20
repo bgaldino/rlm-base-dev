@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Grants the Delete Invoice and Invoice Lines user permission, which the managed Billing Admin permission set omits. Needed to delete invoices in a status other than Draft or Canceled. Deleting posted invoices can cause data integrity issues.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM_DeleteInvoices</label>
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>BillingInvoiceSuperUser</name>
+    </userPermissions>
+</PermissionSet>
