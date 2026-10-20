@@ -720,11 +720,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `ps_aea`
 
-*3 items:*
+*4 items:*
 
 - `RLM_QuotingAgent`
 - `RLM_QuotingAssistant`
 - `RLM_BillingEmployeeAgent`
+- `RLM_ApprovalAgent`
 
 ### `ps_approvals`
 

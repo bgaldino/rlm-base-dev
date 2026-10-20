@@ -2737,7 +2737,7 @@
 
 ### `publish_agents`
 
-**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except those in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except any in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py — currently none) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
 
 **Class:** `tasks.rlm_publish_agents.PublishAgents`
 

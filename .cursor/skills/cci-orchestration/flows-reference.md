@@ -173,7 +173,7 @@ Extract rating and rates data from an org into CSV files
 8. **task** `activate_agents`  `when: project_config.project__custom__agents`
 9. **task** `deploy_agent_permission_sets`  `when: project_config.project__custom__agents`
 10. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
-   - `api_names`: `['RLM_QuotingAgent', 'RLM_QuotingAssistant', 'RLM_BillingEmployeeAgent']`
+   - `api_names`: `['RLM_QuotingAgent', 'RLM_QuotingAssistant', 'RLM_BillingEmployeeAgent', 'RLM_ApprovalAgent']`
 
 ---
 
