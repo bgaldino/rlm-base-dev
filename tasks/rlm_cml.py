@@ -1107,7 +1107,7 @@ class ValidateCML(BaseTask):
             for dd in data_dirs:
                 # Every CSV import_cml reads unconditionally must be present with a
                 # row, so the flow fails here, before any import mutates the org,
-                # rather than part-way through steps 7-10.
+                # rather than part-way through steps 7-8.
                 rows_by_file = {}
                 for name in REQUIRED_MODEL_CSVS:
                     path = os.path.join(dd, name)
@@ -1549,7 +1549,7 @@ class ValidateCML(BaseTask):
                 reader = csv.DictReader(handle)
                 for row in reader:
                     # ESC rows are keyed by ExpressionSet.ApiName, which differs
-                    # from the display Name for "QuantumBit PCM"/"QuantumBit Bundle".
+                    # from the display Name for models such as "QuantumBit Bundle".
                     name = (row.get("ApiName") or row.get("Name") or "").strip()
                     if name:
                         return name
