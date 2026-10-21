@@ -81,6 +81,7 @@ Run:  <cci-venv-python> tests/test_doc_build_steps.py
 
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -334,9 +335,37 @@ def audit_named_steps(inside, root_at, inside_task, runtime, declared, base=None
     return problems, seen, unknown
 
 
+def _tracked_markdown():
+    """Markdown files git tracks (or has staged), or None when git cannot say.
+
+    The repo's own docs are what CI audits, so the default scan asks git rather than the disk.
+    A disk walk also reads `.claude/worktrees/*` checkouts (each a full copy of the docs, at
+    another commit) and stray untracked directories such as `tmp-metadata/`, and reported their
+    stale citations as this branch's.
+    """
+    try:
+        proc = subprocess.run(["git", "ls-files", "-z", "--cached", "--", "*.md"],
+                              cwd=REPO, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    paths = (os.path.join(REPO, p) for p in sorted(proc.stdout.split("\0")) if p)
+    return [p for p in paths if os.path.isfile(p)]
+
+
 def _markdown_files(base=None):
-    for root, dirs, files in os.walk(base or REPO):
-        dirs[:] = [d for d in dirs if d not in _SKIP_PARTS]
+    if base is None:
+        tracked = _tracked_markdown()
+        if tracked is not None:
+            yield from tracked
+            return
+    top = base or REPO
+    for root, dirs, files in os.walk(top):
+        # A subdirectory holding its own `.git` (file or directory) is another checkout, such
+        # as a worktree, not part of this tree.
+        dirs[:] = [d for d in dirs if d not in _SKIP_PARTS
+                   and not os.path.exists(os.path.join(root, d, ".git"))]
         for name in sorted(files):
             if name.endswith(".md"):
                 yield os.path.join(root, name)
