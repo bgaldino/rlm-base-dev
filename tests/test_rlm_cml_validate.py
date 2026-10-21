@@ -8,12 +8,12 @@ No org and no CumulusCI install required.
 
 Why this file exists
 --------------------
-``prepare_constraints`` imports four constraint models but validated only one,
-and that one through the hand-kept ``scripts/cml/*.cml`` copies, each checked
-against a single model's ESC rows. ``data_dirs`` validates each directory's own
+The build previously checked historical reference copies against a single
+model's ESC rows instead of validating every imported blob. ``data_dirs`` validates
+each directory's own
 ``blobs/*.ffxblob`` (what ``import_cml`` uploads) against that directory's ESC
 rows. The ESC CSVs key rows by ``ExpressionSet.ApiName``, which differs from the
-display ``Name`` for two shipped models ("QuantumBit PCM", "QuantumBit Bundle"),
+display ``Name`` for models such as "QuantumBit Bundle",
 so the model name must come from ``ApiName`` or every association reads as
 missing.
 """
@@ -184,7 +184,11 @@ with tempfile.TemporaryDirectory() as root:
         miss = [line for line in t.logger.lines if "Missing" in line or "not found in CML" in line]
         check(f"override {override!r} finds the model's associations", not miss, repr(miss))
 
-    print("Without data_dirs the cml_dir behaviour is unchanged")
+    print("Standalone .cml validation requires an explicit directory")
+    check("no input gives actionable options guidance instead of a deleted-folder lookup",
+          _raises(lambda: _task()._collect_targets(), "Specify data_dirs"))
+    check("association data alone cannot silently choose historical model files",
+          _raises(lambda: _task(data_dir=a)._collect_targets(), "cml_dir"))
     cml_dir = os.path.join(root, "cml")
     os.makedirs(cml_dir)
     Path(cml_dir, "One.cml").write_text("type Widget;\n")
@@ -192,6 +196,9 @@ with tempfile.TemporaryDirectory() as root:
     legacy = _task(cml_dir=cml_dir, data_dir=a)._collect_targets()
     check("cml_dir .cml files are checked against data_dir",
           legacy == [(os.path.join(cml_dir, "One.cml"), "One.cml", [a])], repr(legacy))
+    check("build data_dirs takes precedence over a nonexistent standalone directory",
+          _task(data_dirs=a, cml_dir=os.path.join(root, "missing"))._collect_targets()
+          == [targets[0]])
 
 print()
 if FAILURES:

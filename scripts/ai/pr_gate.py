@@ -479,7 +479,7 @@ CHECKS = [
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
                   "tasks/expression_set_schema.py", "tasks/rlm_community.py",
-                  "scripts/expression_sets/", "scripts/cml/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
+                  "scripts/expression_sets/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
                   "scripts/sf_token.py",
                   "tests/test_empty_recycle_bin.py",
                   "tests/test_expression_set_schema.py",
@@ -509,6 +509,8 @@ CHECKS = [
         triggers=["tasks/", "cumulusci.yml", "scripts/ai/skill_manifest.py",
                   ".claude/skill-manifest.yml",
                   "datasets/sfdmu/qb/en-US/qb-dro/",
+                  # test_prepare_constraints_validation.py asserts the shipped model set under here.
+                  "datasets/constraints/qb/",
                   "tests/test_decision_table_tasks.py",
                   "tests/test_deactivate_changed_decision_tables.py",
                   "unpackaged/pre/5_decisiontables/",

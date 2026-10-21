@@ -159,9 +159,7 @@ Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml
 
 | Model | Directory | ESC Records | Active after `prepare_constraints`? |
 |-------|-----------|-------------|-------------------------------------|
-| QuantumBitBundle | `datasets/constraints/qb/QuantumBitBundle/` | 61 | **yes** — the active QuantumBit model |
-| QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 57 | no — imported inactive, kept for A/B |
-| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | no — imported inactive, kept for A/B |
+| QuantumBitBundle | `datasets/constraints/qb/QuantumBitBundle/` | 61 | **yes** — the QuantumBit model |
 | Server2 | `datasets/constraints/qb/Server2/` | 81 | **yes** — hardware model, not part of the QuantumBit family |
 
 Exactly one QuantumBit model may be active at a time; `Server2` is a separate model and
