@@ -3,6 +3,7 @@
 Stdlib only. Run with: python tests/test_check_permission_set_dependencies.py
 """
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -48,6 +49,28 @@ class PermissionSetDependencies(unittest.TestCase):
 
     def test_no_account_passes(self):
         self.assertEqual(check(perm("Opportunity", allowRead=True)), [])
+
+    def test_deleted_and_untracked_files_are_handled(self):
+        ps = "p.permissionset-meta.xml"
+        with tempfile.TemporaryDirectory() as d:
+            for cmd in (["init", "-q"], ["config", "user.email", "t@example.com"],
+                        ["config", "user.name", "t"]):
+                subprocess.run(["git", *cmd], cwd=d, check=True)
+            for name in ("gone", "kept"):
+                with open(os.path.join(d, name + "." + ps), "w") as fh:
+                    fh.write("<PermissionSet/>")
+            subprocess.run(["git", "add", "."], cwd=d, check=True)
+            subprocess.run(["git", "commit", "-qm", "x"], cwd=d, check=True)
+            os.remove(os.path.join(d, "gone." + ps))
+            with open(os.path.join(d, "new." + ps), "w") as fh:
+                fh.write("<PermissionSet/>")
+            saved, cpd.REPO_ROOT = cpd.REPO_ROOT, d
+            try:
+                names = sorted(os.path.basename(p) for p in cpd.tracked_permission_sets())
+                self.assertEqual(cpd.main([]), 0)
+            finally:
+                cpd.REPO_ROOT = saved
+        self.assertEqual(names, ["kept." + ps, "new." + ps])
 
     def test_repo_is_clean(self):
         self.assertEqual(cpd.main([]), 0)

@@ -51,8 +51,10 @@ def tracked_permission_sets():
     out = subprocess.check_output(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard",
                                    f"*{SUFFIX}"],
                                   cwd=REPO_ROOT, text=True)
-    return [os.path.join(REPO_ROOT, p) for p in out.split("\0")
-            if p and not p.startswith(SKIP_PREFIXES)]
+    paths = (os.path.join(REPO_ROOT, p) for p in out.split("\0")
+             if p and not p.startswith(SKIP_PREFIXES))
+    # `--cached` still names a file deleted or renamed in the worktree before staging.
+    return [p for p in paths if os.path.isfile(p)]
 
 
 def main(argv):
