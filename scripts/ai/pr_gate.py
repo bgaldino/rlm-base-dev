@@ -197,6 +197,16 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="permission_set_dependencies",
+        cmd=["python", "scripts/ai/check_permission_set_dependencies.py"],
+        # Account read depends on Contact read because of the person accounts in the TSO orgs;
+        # a permission set granting one without the other fails at deploy time. It reads every
+        # tracked permission set, so it selects on the suffix rather than a subtree.
+        triggers=["scripts/ai/check_permission_set_dependencies.py"],
+        suffixes=[".permissionset-meta.xml"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="skill_manifest",
         cmd=["python", "scripts/ai/skill_manifest.py", "--check"],
         # The audit resolves every path the manifest cites, and the manifest cites paths all
@@ -644,6 +654,7 @@ STDLIB_SUITES = [
     "tests/test_billing_flow_copies.py",
     "tests/test_build_billing_ui_module.py",
     "tests/test_check_node_ca.py",
+    "tests/test_check_permission_set_dependencies.py",
     "tests/test_check_release_refs.py",
     "tests/test_claude_hooks.py",
     "tests/test_context_apply.py",
