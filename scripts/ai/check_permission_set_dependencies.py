@@ -8,12 +8,13 @@ ties the two together, and an org with person accounts enabled enforces it at de
 This repo has already patched it twice, in RLM_RenewalQuotes and RLM_BillingUI, each time
 after a deploy failed. This lint moves the failure to the PR.
 
-Scope: every tracked `*.permissionset-meta.xml`, except the generated `unpackaged/post_ux/`.
+Scope: every tracked or untracked-not-ignored `*.permissionset-meta.xml` (the gate selects on a
+new, unstaged one), except the generated `unpackaged/post_ux/`.
 `allowRead`, `allowEdit`, `viewAllRecords` and `modifyAllRecords` on Account all imply read, so
 any of them requires Contact read (Contact `viewAllRecords`/`modifyAllRecords` also satisfy it).
 
 Usage: python scripts/ai/check_permission_set_dependencies.py [path ...]
-With no paths it checks every tracked permission set. Stdlib only.
+With no paths it checks every permission set git lists. Stdlib only.
 """
 import os
 import subprocess
@@ -47,7 +48,8 @@ def violations(path):
 
 
 def tracked_permission_sets():
-    out = subprocess.check_output(["git", "ls-files", "-z", f"*{SUFFIX}"],
+    out = subprocess.check_output(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard",
+                                   f"*{SUFFIX}"],
                                   cwd=REPO_ROOT, text=True)
     return [os.path.join(REPO_ROOT, p) for p in out.split("\0")
             if p and not p.startswith(SKIP_PREFIXES)]
