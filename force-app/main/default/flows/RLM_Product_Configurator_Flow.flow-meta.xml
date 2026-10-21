@@ -2,6 +2,7 @@
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Org default product configurator for Revenue Cloud Foundations builds. Cloned 2026-10-21 from the Release 264 (Winter &apos;27) Default Product Configurator Flow (template runtime_industries_cfg__ProductConfig). Modifications from the template, both on the Product Configurator Data Manager component (S01_DataManager): isNonBlockingEnabled set to true (attribute and option changes apply asynchronously instead of waiting on the constraint engine for each one) and isInstantPricingEnabled set to true (instant pricing is on by default when the configurator opens). Everything else matches the template. Made the default by the insert_default_configurator_flow task (datasets/sfdmu/configurator-flow). When a release adds new Default Product Configurator Flow attributes, re-clone from the new template and reapply these two changes.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Product Configurator Flow {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Product Configurator Flow</label>
