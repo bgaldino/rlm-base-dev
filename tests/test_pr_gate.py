@@ -271,9 +271,14 @@ check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel,
 # any tracked text file. The two cheap whole-repo checks (navigation baseline and
 # release_refs) therefore run for every non-empty change, while unrelated expensive checks
 # stay skipped.
-sel = selected_names(["docker/Dockerfile"])
+sel = selected_names(["docker/compose.yaml"])
 check("an otherwise unrelated path selects only the two whole-repo baselines",
       sel == {"agent_tooling", "release_refs"}, sel)
+# docker/Dockerfile used to be that unrelated path; it names the Node major line now, so it selects
+# the one cheap check that compares it with .nvmrc — and still nothing expensive.
+sel = selected_names(["docker/Dockerfile"])
+check("a Dockerfile change selects the Node-line check and nothing expensive",
+      sel == {"agent_tooling", "release_refs", "node_line"}, sel)
 # A suffix selector, for the check that walks every .md in the repo. Prefix triggers left
 # the root README and seven datasets/**/README.md build-step citations unable to select the
 # suite that audits them.
@@ -5335,7 +5340,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 728
+EXPECTED = 732
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

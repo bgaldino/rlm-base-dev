@@ -296,7 +296,8 @@ CHECKS = [
         triggers=["docs/erds/", ".cursor/skills/revenue-cloud-data-model/",
                   ".cursor/skills/schema-validation/",
                   "scripts/ai/README.md", "tests/test_erd_doc_counts.py",
-                  "scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py"],
+                  "scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py",
+                  "scripts/erd/schema_diff/264-clm-schema.json"],
         deps=[], gating=True,
     ),
     dict(
@@ -378,6 +379,26 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="node_line",
+        cmd=["python", "tests/test_node_line.py"],
+        # Every file that names the Node major line, so bumping any one alone runs the check that
+        # they still agree with .nvmrc. Its own check rather than a STDLIB_SUITES entry: a Dockerfile
+        # or workflow edit should cost this sub-second suite, not the whole offline bundle.
+        triggers=[".nvmrc", ".envrc", "package.json", "docker/Dockerfile", ".github/workflows/",
+                  "scripts/bash/update-toolchain.sh", "tests/test_node_line.py",
+                  # The instructions that name the line, which the suite also compares. Every
+                  # guide, since the suite also checks none of them loads nvm a second way or
+                  # writes pyenv lines into a shell startup file.
+                  "docs/guides/",
+                  ".cursor/skills/troubleshooting/SKILL.md", ".cursor/skills/toolchain/SKILL.md",
+                  ".cursor/skills/toolchain/workstation-audit.md",
+                  ".cursor/skills/toolchain/verification-handoff.md",
+                  ".cursor/skills/toolchain/managed-workstations.md",
+                  "README.md", "CONTRIBUTING.md", "docker/README.md",
+                  "tasks/rlm_validate_setup.py"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="doc_build_steps",
         cmd=["python", "tests/test_doc_build_steps.py"],
         # The suite walks every .md in the repo, so any .md must be able to select it.
@@ -430,6 +451,9 @@ CHECKS = [
                   "force-app/", "unpackaged/",
                   ".agents/", ".claude/", ".cursor/", "docs/references/",
                   "AGENTS.md", "CLAUDE.md", "README.md",
+                  # tests/test_toolchain_audit.py runs the guide's ~/.zshenv NVM block against the
+                  # audit's nested-shell check, so an edit to the template must run it.
+                  "docs/guides/dev-environment-setup.md",
                   # Loaded by path (spec loader) from tests/test_robot_salesforce_api_auth.py,
                   # so the import-coverage rule cannot see it; named here so an edit to the
                   # library runs its auth suite. tests/test_validate_setup_chrome.py loads the
@@ -443,7 +467,7 @@ CHECKS = [
     dict(
         name="requests_offline_suites",
         cmd=None,  # expanded at runtime — see REQUESTS_SUITES
-        # The modules these two suites exercise, plus the non-code inputs they read and assert
+        # The modules these suites exercise, plus the non-code inputs they read and assert
         # against — the shipped overlay examples and the export fixture. The paths are the ones the
         # trigger-coverage rule named when this check was first added with guessed ones: a suite that
         # reads a file no trigger selects is a suite that can be invalidated without being run.
@@ -455,11 +479,14 @@ CHECKS = [
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
                   "tasks/expression_set_schema.py", "tasks/rlm_community.py",
-                  "scripts/expression_sets/", "scripts/cml/",
+                  "scripts/expression_sets/", "scripts/cml/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
+                  "scripts/sf_token.py",
+                  "tests/test_empty_recycle_bin.py",
                   "tests/test_expression_set_schema.py",
                   "tests/test_rlm_cml_import_failure.py",
                   "tests/test_rlm_cml_validate.py",
                   "tests/test_rlm_community.py",
+                  "tasks/rlm_mcp.py", "tests/test_rlm_mcp_configure.py",
                   "tests/data/expression_set/",
                   "datasets/expression_set_overlays/",
                   "docs/references/expression-set-overlay-examples/"],
@@ -614,6 +641,7 @@ CHECKS = [
 STDLIB_SUITES = [
     "tests/test_agent_launch_checks.py",
     "tests/test_agents_common.py",
+    "tests/test_billing_flow_copies.py",
     "tests/test_build_billing_ui_module.py",
     "tests/test_check_node_ca.py",
     "tests/test_check_release_refs.py",
@@ -628,6 +656,7 @@ STDLIB_SUITES = [
     "tests/test_df_workshop_replay.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",
+    "tests/test_mcp_scripts_security.py",
     "tests/test_post_process_extraction.py",
     "tests/test_qb_multicurrency_data.py",
     "tests/test_renewal_bucket_planner.py",
@@ -637,6 +666,7 @@ STDLIB_SUITES = [
     "tests/test_sf_token.py",
     "tests/test_snapshot_dev_guide.py",
     "tests/test_snapshot_help.py",
+    "tests/test_toolchain_audit.py",
     "tests/test_validate_keys_targets.py",
     "tests/test_validate_setup_chrome.py",
 ]
@@ -645,10 +675,12 @@ STDLIB_SUITES = [
 # dependency is declared and installed rather than inherited by luck from another check's transitive
 # tree. Kept as a separate list so `STDLIB_SUITES` means what it says.
 REQUESTS_SUITES = [
+    "tests/test_empty_recycle_bin.py",
     "tests/test_expression_set_schema.py",
     "tests/test_rlm_cml_import_failure.py",
     "tests/test_rlm_cml_validate.py",
     "tests/test_rlm_community.py",
+    "tests/test_rlm_mcp_configure.py",
 ]
 
 # Which check runs which spliced list — named once, read by both `resolve()` (to build the argv) and

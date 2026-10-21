@@ -1,6 +1,6 @@
 # Revenue Cloud Entity Relationship Diagrams
 
-This directory contains comprehensive entity relationship diagrams (ERDs) for the Revenue Cloud Base Foundations project, generated from `erd-data.json`.
+This directory contains the canonical Revenue Cloud ERD dataset and its domain diagrams. The interactive viewer combines that baseline with a separately sourced Contracts CLM extension.
 
 **Current baseline:** Release 264 (Winter '27, API v68.0) — **263 objects, 4,252 platform fields, 674 relationships** across 9 domains.
 
@@ -9,7 +9,7 @@ record which orgs the schema was extracted from, not a version the file is pinne
 to. Bumping them without re-extracting would make the ERD claim to describe a
 release while serving another one's data.
 
-The ERD reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. The 264 capture was cross-validated across two independently built `prepare_rlm_org` 264 orgs (`rlm-base__264merged` and `rlm-base__264fresh`, both `ent` shape) which agreed field-for-field — 254 describable objects and 3,913 platform fields each — so no figure rests on a single org. The 127-entity Core UDD verification at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch` is carried forward from the 262 pass and was not re-run; 264 has no published Core UDD branch or Metadata Coverage Report yet, which is why a live org is ground truth for this release.
+The core `erd-data.json` reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. The 264 capture was cross-validated across two independently built `prepare_rlm_org` 264 orgs (`rlm-base__264merged` and `rlm-base__264fresh`, both `ent` shape) which agreed field-for-field — 254 describable objects and 3,913 platform fields each — so no figure rests on a single org. The 127-entity Core UDD verification at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch` is carried forward from the 262 pass and was not re-run; 264 has no published Core UDD branch or Metadata Coverage Report yet, which is why a live org is ground truth for this release.
 
 **262 → 264:** 70 fields added, 8 removed, 0 type changes, 1 polymorphic
 reference-target change, 270 picklist values added and 18 removed, across 62 changed
@@ -39,7 +39,7 @@ To refresh the ERD against a new release or different org configuration, see `.c
 
 ### Individual Domain Mermaid Diagrams
 
-Detailed ERDs for each domain, suitable for documentation and analysis. The count is
+Detailed core Revenue Cloud ERDs for each domain, suitable for documentation and analysis. Contracts CLM is currently represented in the interactive viewer and its machine-readable extension. The count is
 **entities drawn in that file**, which is *not* its domain's object count: a diagram may
 draw fewer than its domain holds, all of them, or one more where an edge reaches into
 another domain. Do not read one number off the other. For a domain's
@@ -90,7 +90,7 @@ object count see the Domain Overview table in
 ### Interactive HTML Viewer
 
 - **revenue-cloud-erd.html** — Force-directed graph with full field detail
-  - 263 objects, 4,252 fields, 674 relationships across 9 domains
+  - Combines the core Revenue Cloud baseline (263 objects) with the Contracts CLM extension (40 new objects). The integrated viewer displays 303 nodes, 4,698 fields, and 729 relationship edges across 10 domains.
   - **Features:**
     - Click any object node to see all fields (type, description, refersTo links)
     - Fields grouped into Relationship Fields, Data Fields, and Related Objects sections
@@ -101,13 +101,23 @@ object count see the Domain Overview table in
     - Hover tooltips with domain, field count, and click prompt
     - Node size proportional to field count (sqrt scale)
     - Domain color coding with legend
-  - Data sourced from dual-org cross-validation across two 264 orgs, diffed against the committed 262 snapshot
+  - Revenue Cloud data is sourced from dual-org 264 cross-validation and the committed 262 snapshot; CLM data is separately cross-checked across four API v68.0 prepared orgs
   - Self-contained (D3.js v7 CDN only external dependency)
+
+- **contracts-erd-data.json** — Separate Contracts CLM viewer extension (40 new objects, 446 fields, 55 additional relationship edges)
+  - Kept separate from the Revenue Cloud baseline so its release-diff history remains comparable
+  - Includes Contracts Developer Guide objects plus related contract status, state-model, and Context Service objects
+  - `scripts/erd/schema_diff/264-clm-schema.json` records the four-org describe consensus (48 objects, 553 fields) and feature-gated visibility
+  - `scripts/erd/schema_diff/clm-object-list.txt` preserves the explicit selection for future release-aligned extracts
+  - Four Developer Guide object pages were absent from the primary org's object inventory and failed direct describe in all four prepared orgs; two included generation status-event objects are marked not SOQL-queryable
 
 - **erd-data.json** — Complete machine-readable schema (263 objects, 4,252 fields, 674 relationships)
   - Custom fields excluded by design (project-deployed `RLM_*__c` and managed-package fields)
   - Fields include type, description, and refersTo metadata
   - Regenerate via `scripts/erd/validate_erd_against_org.py --org <alias> --patch` after schema changes
+
+The viewer build merges `erd-data.json` with `contracts-erd-data.json`; the base
+Revenue Cloud statistics below intentionally describe only the first dataset.
 
 ## How to Use
 
@@ -149,7 +159,7 @@ Mermaid files can be viewed in several ways:
 - **Master-Detail** — Required relationship; child cannot exist without parent
 - **Polymorphic** — Field can reference multiple object types (e.g., OwnerId)
 
-## Statistics
+## Revenue Cloud Baseline Statistics
 
 - **Total Objects:** 263
 - **Total Fields:** 4,252 (canonical platform fields only; custom fields excluded)

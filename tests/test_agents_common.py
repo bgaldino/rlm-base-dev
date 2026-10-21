@@ -245,7 +245,21 @@ def check_excluded_bundles_are_omitted_from_discovery(_):
     (the publish/activate contract) — so nothing tries to publish or activate a
     bundle v68 cannot compile. But ``include_excluded=True`` must return it, the
     deactivate_agents contract: an upgraded org may still have it active, and
-    deactivating a missing/inactive agent is a no-op."""
+    deactivating a missing/inactive agent is a no-op.
+
+    ``EXCLUDED_BUNDLES`` is empty in production now, so the mechanism is driven
+    here with a stand-in exclusion rather than a live entry."""
+    orig_excluded = common.EXCLUDED_BUNDLES
+    common.EXCLUDED_BUNDLES = frozenset({"RLM_Excluded_Example"})
+    try:
+        _check_excluded_discovery()
+    finally:
+        common.EXCLUDED_BUNDLES = orig_excluded
+    check("no_bundle_is_excluded_today", common.EXCLUDED_BUNDLES == frozenset(),
+          str(common.EXCLUDED_BUNDLES))
+
+
+def _check_excluded_discovery():
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / "aiAuthoringBundles"
         for name in common.EXCLUDED_BUNDLES:
@@ -265,10 +279,6 @@ def check_excluded_bundles_are_omitted_from_discovery(_):
               "RLM_Quoting_Assistant" in with_excluded, str(with_excluded))
         check("include_excluded_is_sorted",
               with_excluded == sorted(with_excluded), str(with_excluded))
-        # The current live exclusion, pinned so a silent re-add is a test failure.
-        check("rqm_is_the_excluded_bundle",
-              "RLM_Revenue_Quote_Management" in common.EXCLUDED_BUNDLES,
-              str(common.EXCLUDED_BUNDLES))
 
 
 class _SilentLogger:
@@ -307,6 +317,9 @@ def check_deactivate_task_actually_requests_the_excluded_bundle(_):
         return {"status": 0}
 
     orig_discover, orig_run = deact.discover_agent_bundles, deact.run_sf_json
+    orig_excluded = common.EXCLUDED_BUNDLES
+    stand_in = frozenset({"RLM_Excluded_Example"})
+    common.EXCLUDED_BUNDLES = stand_in
     deact.discover_agent_bundles = fake_discover
     deact.run_sf_json = fake_run
     try:
@@ -318,11 +331,12 @@ def check_deactivate_task_actually_requests_the_excluded_bundle(_):
     finally:
         deact.discover_agent_bundles = orig_discover
         deact.run_sf_json = orig_run
+        common.EXCLUDED_BUNDLES = orig_excluded
 
     check("deactivate_call_site_passes_include_excluded",
           captured.get("kwargs", {}).get("include_excluded") is True, str(captured))
     check("deactivate_actually_targets_the_excluded_bundle",
-          all(name in deactivated for name in common.EXCLUDED_BUNDLES), str(deactivated))
+          all(name in deactivated for name in stand_in), str(deactivated))
 
 
 def main():

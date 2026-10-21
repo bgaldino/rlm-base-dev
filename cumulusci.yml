@@ -129,7 +129,7 @@ project:
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
     einstein: true            # Einstein AI
-    agents: true              # RLM_Revenue_Quote_Management is omitted from agent publish/activation via EXCLUDED_BUNDLES in tasks/rlm_agents_common.py (pack 187): its Configure_Product_Attributes currency outputs fail publish on v68/264. deactivate_agents still discovers it (to clean up a version left active by a 262→264 upgrade). The other two bundles publish; re-add the omitted bundle once its 264 template is captured.
+    agents: true              # Agentforce agents (RLM_Revenue_Quote_Management, RLM_Quoting_Assistant, RLM_Billing_Employee_Assistance, RLM_Approval_Agent). EXCLUDED_BUNDLES in tasks/rlm_agents_common.py (currently empty) omits an on-disk bundle that cannot compile from publish/activation; deactivate_agents still discovers excluded bundles.
     analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
 
     # ── Configurators & Tooling ────────────────────────────────────────────────
@@ -139,6 +139,8 @@ project:
     breconfig: false          # Business Rules Engine configuration
     guidedselling: true      # Guided Selling
     procedureplans: true      # Procedure Plans
+    mcp: false                # MCP servers (post_mcp): RLM_McpClient ECA + hosted server activations, plus the custom rlm-sales-transactions server when mcp_custom_server is on. Opt-in: the hosted revenue-cloud server needs the RevMCP pilot permission, which not every org shape has, and the org build cannot finish the job, since each person still runs a browser OAuth login. Requires an org with the MCP feature.
+    mcp_custom_server: true   # With mcp on, also build the custom RLMSalesTransactions server (post_mcp_custom clone invocable + permission set, server, tools, bindings). Set false to stand up only the ECA and hosted servers; clients then connect to revenue-cloud directly, without the multiplex proxy. Temporary: retire once the hosted revenue-cloud server covers place and clone.
 
     # ── Data & UX ──────────────────────────────────────────────────────────────
     qb: true                  # QuantumBit data
@@ -427,6 +429,7 @@ project:
       - RLM_QuotingAgent
       - RLM_QuotingAssistant
       - RLM_BillingEmployeeAgent
+      - RLM_ApprovalAgent
 
     ps_constraints: &ps_constraints
       # Constraints-specific permission sets
@@ -1089,7 +1092,7 @@ tasks:
 
   publish_agents:
     group: Revenue Lifecycle Management
-    description: Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except those in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+    description: Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except any in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py — currently none) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
     class_path: tasks.rlm_publish_agents.PublishAgents
 
   deactivate_agents:
@@ -1531,6 +1534,46 @@ tasks:
     options:
       path: unpackaged/post_large_stx
 
+  deploy_post_mcp:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy the MCP client identity — the RLM_McpClient External Client
+      Application (5 components: app, global OAuth settings, OAuth settings, and
+      the two policy sets). Needed by every MCP setup, with or without the custom
+      server.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_mcp
+
+  deploy_post_mcp_custom:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy what the custom RLMSalesTransactions server needs — the
+      RLM_CloneSalesTransaction invocable (v68.0, async-capable) behind the
+      CLASSIC-bound cloneSalesTransaction tool, and the RLM_McpSalesTransactions
+      permission set granting access to it. Must run before configure_mcp_servers
+      builds the custom server, which references that invocable by action path.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_mcp_custom
+
+  configure_mcp_servers:
+    group: Revenue Lifecycle Management
+    description: >
+      Activate the hosted Salesforce MCP servers (McpServerAccess) and build the
+      custom RLMSalesTransactions server — McpServerDefinition plus two
+      McpServerToolDefinition tools and their McpServerToolApiDefinition
+      bindings — via the Tooling API, because only McpServerDefinition is a
+      deployable metadata type. Idempotent; every write checks first. Use
+      -o operation list to report the org's surface without changing it,
+      -o dry_run True to preview, and -o platform_servers True to also activate
+      sobject-all and headless-360 (off by default: sobject-all grants read/write
+      across every object). The custom server follows the mcp_custom_server
+      flag unless -o custom_server is passed.
+    class_path: tasks.rlm_mcp.ConfigureMcpServers
+    options:
+      operation: ensure
+
   deploy_post_commerce:
     description: Deploy Commerce Metadata (e.g. Commerce decision table flows)
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -1581,7 +1624,8 @@ tasks:
       2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text),
       2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link),
       the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set
-      (field access + Apex class access + RunFlow). Flexipages for billing_ui are
+      (field access, read on the objects the payments view queries, Apex class access,
+      RunFlow). Flexipages for billing_ui are
       deployed via assemble_and_deploy_ux (billing_ui feature flag).
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
@@ -1622,13 +1666,40 @@ tasks:
                 replace_record_id_query: SELECT Id FROM GeneralLedgerAccount WHERE AccountingCode = '8500' LIMIT 1
                 api: rest
 
+  create_default_invoice_email_template:
+    group: Revenue Lifecycle Management
+    description: >
+      Create the "Default Invoice Email Template" (Lightning HTML template on Invoice, org
+      public folder) that Billing Settings creates only from the Setup UI toggle, never from a
+      Metadata API deploy. Same name, labels and merge fields as Core's; skips when an Invoice
+      template with that name or developer name exists (it uses the developer name
+      RLM_Default_Invoice_Email_Template if a non-Invoice template holds the usual one,
+      matches either, and stops with an error if non-Invoice templates hold both).
+      deploy_billing_email_template_settings then selects it.
+    class_path: tasks.rlm_apex_file.FileBasedAnonymousApexTask
+    options:
+      path: scripts/apex/createDefaultInvoiceEmailTemplate.apex
+
+  deploy_billing_email_template_settings:
+    group: Revenue Lifecycle Management
+    description: Select the Default Invoice Email Template (created by create_default_invoice_email_template) as Billing Settings' default email template (defaultEmailTemplate)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_billing_email_template_settings
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //BillingSettings/defaultEmailTemplate[text()="__DEFAULT_EMAIL_TEMPLATE_ID__"]
+                replace_record_id_query: SELECT Id FROM EmailTemplate WHERE (Name = 'Default Invoice Email Template' OR DeveloperName IN ('Default_Invoice_Email_Template', 'RLM_Default_Invoice_Email_Template')) AND RelatedEntityType = 'Invoice' ORDER BY CreatedDate LIMIT 1
+                api: rest
+
   deploy_billing_template_id_settings:
     description: >
-      NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with
-      auto-generated template IDs (resolved after deploy_billing_template_settings
-      triggers template auto-creation). Sets defaultEmailTemplate,
-      defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings
-      auto-default these values; explicit deployment is not required.
+      NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with the invoice
+      template IDs resolved from the org: defaultEmailTemplate, defaultInvPreviewTemplate and
+      defaultInvoiceDocTemplate. Billing defaults the preview and document templates itself;
+      prepare_billing selects the email template with deploy_billing_email_template_settings.
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
@@ -1638,7 +1709,7 @@ tasks:
           options:
             patterns:
               - xpath: //BillingSettings/defaultEmailTemplate[text()="__DEFAULT_EMAIL_TEMPLATE_ID__"]
-                replace_record_id_query: SELECT Id FROM EmailTemplate WHERE Name = 'Default Invoice Email Template' ORDER BY CreatedDate DESC LIMIT 1
+                replace_record_id_query: SELECT Id FROM EmailTemplate WHERE (Name = 'Default Invoice Email Template' OR DeveloperName IN ('Default_Invoice_Email_Template', 'RLM_Default_Invoice_Email_Template')) AND RelatedEntityType = 'Invoice' ORDER BY CreatedDate LIMIT 1
                 api: rest
               - xpath: //BillingSettings/defaultInvPreviewTemplate[text()="__DEFAULT_INV_PREVIEW_TEMPLATE_ID__"]
                 replace_record_id_query: SELECT Id FROM DocumentTemplate WHERE Name = 'DefaultInvoicePreviewTemplate' LIMIT 1
@@ -1648,7 +1719,7 @@ tasks:
                 api: rest
 
   deploy_billing_template_settings:
-    description: Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
+    description: Re-enable Invoice Email/PDF toggles to trigger auto-creation of the default invoice preview and document templates (cycle step 3); the email template is created by create_default_invoice_email_template
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
@@ -3377,6 +3448,16 @@ tasks:
       version_full_names: RLM_Price_Distribution_Procedure_V1
 
 
+  empty_recycle_bin:
+    group: Data Maintenance
+    description: >
+      Permanently purges deleted records from the org's Recycle Bin across every
+      object that has one (SOAP emptyRecycleBin via scripts/recycle_bin). Pass
+      -o execute false for a dry run, -o objects/-o exclude to scope it. Non-fatal
+      by default so a finished flow is never broken. The prepare_rlm_org step runs
+      on scratch orgs only; run this task directly on any other org.
+    class_path: tasks.rlm_empty_recycle_bin.EmptyRecycleBin
+
   stamp_git_commit:
     group: Revenue Lifecycle Management
     description: >
@@ -3469,6 +3550,13 @@ flows:
       34:
         task: rebuild_search_index
       35:
+        # Scratch orgs only: the purge is org-wide, so never run it unprompted on a
+        # sandbox or other persistent org. Run the task ad hoc there.
+        task: empty_recycle_bin
+        when: org_config.scratch
+      36:
+        flow: prepare_mcp
+      37:
         flow: stamp_git_commit
 
   prepare_core:
@@ -3817,6 +3905,34 @@ flows:
         task: seed_large_deal_billing_treatment
         when: project_config.project__custom__large_stx and project_config.project__custom__billing
 
+  prepare_mcp:
+    group: Revenue Lifecycle Management
+    description: >
+      Stand up the org-side MCP surface: deploy the ECA, then (with the
+      mcp_custom_server flag on) the clone invocable and its permission set,
+      assign that permission set to the running user, and activate the servers.
+      Every step is gated on the mcp feature flag. This leaves one manual step per
+      person — the browser OAuth login — which no flow can do for them; see
+      .cursor/skills/mcp-integration/SKILL.md.
+    steps:
+      1:
+        task: deploy_post_mcp
+        when: project_config.project__custom__mcp
+      2:
+        task: deploy_post_mcp_custom
+        when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server
+      3:
+        # Running user only. Every other MCP user needs RLM_McpSalesTransactions too, or
+        # their clone calls fail: see .cursor/skills/mcp-integration/SKILL.md.
+        task: assign_permission_sets
+        when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server
+        options:
+          api_names:
+            - RLM_McpSalesTransactions
+      4:
+        task: configure_mcp_servers
+        when: project_config.project__custom__mcp
+
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management
     description: Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manually via 'cci flow run upsert_fulfillment_scope_cnfg --org <alias>'.
@@ -3941,18 +4057,26 @@ flows:
         task: deploy_billing_template_settings
         when: project_config.project__custom__billing
       11:
+        # Billing Settings' "Select Default Email Template" stays empty after a Metadata API
+        # deploy: Core creates the template only from the Setup UI toggle.
+        task: create_default_invoice_email_template
+        when: project_config.project__custom__billing
+      12:
+        task: deploy_billing_email_template_settings
+        when: project_config.project__custom__billing
+      13:
         task: deploy_post_billing_ui
         when: project_config.project__custom__billing_ui
-      12:
+      14:
         task: assign_permission_sets
         when: project_config.project__custom__billing_ui
         options:
           api_names:
             - RLM_BillingUI
-      13:
+      15:
         task: apply_context_billing_order
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui
-      14:
+      16:
         flow: prepare_billing_portal
 
   prepare_prm:

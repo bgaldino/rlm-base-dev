@@ -88,10 +88,15 @@ treats `#` as a command otherwise, which breaks lines with comments.
    `direnv status` the same way), and `git stash pop` restores anything set aside
    in step 1.
 4. **Open a new terminal outside the repo, then `cd` in.** Run the read-only audit
-   in [`workstation-audit.md`](workstation-audit.md), sections 1–6. On a **plain**
-   workstation that needs no corporate CA you may skip audit §6, and say so. On a
-   managed workstation always run it; it can be n.a. only when audit §6's own
-   conditions for that hold.
+   and read each result against its row in [`workstation-audit.md`](workstation-audit.md):
+   ```bash
+   python3 scripts/ai/toolchain_audit.py --all
+   ```
+   Run nothing from the audit's tables: they hold what to expect and where each fix
+   is documented, not commands. On a **plain** workstation that needs no corporate CA
+   you may skip audit §6 (`--section 1` through `--section 5` instead of `--all`),
+   and say so. On a managed workstation always run it; it can be n.a. only when
+   audit §6's own conditions for that hold.
 5. **Only if the owner explicitly agrees,** run `update-toolchain.sh` and repeat the
    audit. It upgrades the whole machine. When the owner runs it, use a standalone
    terminal app rather than an IDE's integrated terminal: an agent can read the
@@ -122,8 +127,10 @@ python patch (pyenv/CCI/venv)  | pass   | 3.13.x / 3.13.x / 3.13.x (latest known
 pyenv global                   | pass   | 3.13.x (the installed patch), or <a deliberate other choice>; if an older
                                |        | 3.13 patch: the packages --carry-over lists for it
 TUI venvs                      | pass   | 3.13.x in each checkout that has one, or none
+pipx shared venv               | pass   | on 3.13.x, lib python3.13; every app's pipx_shared.pth matches
 openssl@3                      | pass   | Installed (on request); _ssl links openssl@3
-node / sf / sfdmu              | pass   | v<LTS ≥ 22>.x (nvm) / 2.x / 5.x (≥ 5.6.4)
+node / sf / sfdmu              | pass   | v24.x (nvm; the line in .nvmrc) / 2.x / 5.x (≥ 5.6.4)
+nvm default / nested shell     | pass   | default -> 24 -> v24.x / nested shell: same node path and nvm dirs as the repo shell
 .envrc + .env.local            | pass   | allowed; keys: <names only, or no .env.local>
 PATH (cd in from outside)      | pass   | pyenv shim, nvm node
 NODE_EXTRA_CA_CERTS            | n.a.   | plain workstation; no corporate CA needed

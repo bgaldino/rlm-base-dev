@@ -71,46 +71,65 @@ gh auth login
 
 > **Why nvm over `brew install node`?** Homebrew installs a single Node version system-wide. nvm lets you pin projects to specific Node versions and keeps global npm packages (like `@salesforce/cli`) tied to the version they were installed with.
 >
-> **Node.js 22 or later required:** The repository npm tooling declares `engines.node: >=22` in `package.json`. Use an LTS release meeting that floor; the build workflow uses Node 24.
+> **Node.js 24, the line pinned in `.nvmrc`:** the repo's `.envrc` puts its newest installed patch, the one a bare `nvm use` would pick, first on PATH (with Homebrew's nvm, or one from nvm's own installer in `$NVM_DIR` or `$XDG_CONFIG_HOME/nvm`), `package.json` declares `engines.node: >=24`, and the Docker image and the build workflow use Node 24 too. The line moves only by a deliberate change to `.nvmrc` (see [Bumping a major line](dev-environment-setup.md#bumping-a-major-line)).
 
 ```bash
-# Install nvm via Homebrew
+# Install nvm via Homebrew, and create the directory nvm keeps Node versions in
 brew install nvm
+mkdir -p ~/.nvm
+```
 
-# Add nvm to your interactive shell (~/.zshrc)
-echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc
-echo '[ -s "$(brew --prefix nvm)/nvm.sh" ] && \. "$(brew --prefix nvm)/nvm.sh"' >> ~/.zshrc
-echo '[ -s "$(brew --prefix nvm)/etc/bash_completion.d/nvm" ] && \. "$(brew --prefix nvm)/etc/bash_completion.d/nvm"' >> ~/.zshrc
+nvm is a shell function, so a startup file has to load it in every shell, including the
+non-interactive ones that IDE tasks, scripts and Claude Code's Bash tool start. Don't
+`echo` lines of your own into `~/.zshenv` or `~/.zshrc`: copy them from the templates in
+[dev-environment-setup.md §2](dev-environment-setup.md#shell-config-responsibilities).
+Their `~/.zshenv` NVM block loads nvm without switching Node (`--no-use`), puts nvm's
+`default` Node first, and in a shell started from the repo keeps the repo's Node instead.
 
-# Also add nvm to ~/.zshenv so non-interactive shells see it
-# (required for IDE tools, CI runners, and Claude Code which spawn non-interactive shells)
-# Homebrew is often only on PATH in login shells (~/.zprofile); fall back to known absolute
-# locations so this works in non-interactive shells that never source ~/.zprofile.
-echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshenv
-echo '# Bootstrap Homebrew in non-interactive shells' >> ~/.zshenv
-echo 'if ! command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
-echo '  for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do' >> ~/.zshenv
-echo '    [ -x "$_brew" ] && eval "$($_brew shellenv)" && break' >> ~/.zshenv
-echo '  done' >> ~/.zshenv
-echo 'fi' >> ~/.zshenv
-echo 'if command -v brew >/dev/null 2>&1; then' >> ~/.zshenv
-echo '  NVM_PREFIX="$(brew --prefix nvm 2>/dev/null)"' >> ~/.zshenv
-echo '  if [ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ]; then' >> ~/.zshenv
-echo '    \. "$NVM_PREFIX/nvm.sh"' >> ~/.zshenv
-echo '  fi' >> ~/.zshenv
-echo 'fi' >> ~/.zshenv
+1. Back up the two files (one that doesn't exist yet is skipped):
 
-# Reload your shell
-source ~/.zshrc
+   ```bash
+   for f in ~/.zshenv ~/.zshrc; do [ -f "$f" ] && cp "$f" "$f.bak.$(date +%Y%m%d)"; done
+   ```
 
-# Install the latest LTS version of Node.js
-nvm install --lts
+2. In `~/.zshenv`, add two blocks from the
+   [`~/.zshenv` template](dev-environment-setup.md#zshenv--runs-in-every-shell), in this
+   order: the Homebrew block at its top (`if [ -x /opt/homebrew/bin/brew ]` through its
+   `fi`; skip it if `~/.zshenv` already runs `brew shellenv`), then the NVM block
+   (`# NVM —` through the `unset _NVM_PREFIX …` line). The NVM block finds Homebrew's nvm
+   through `brew`, so the Homebrew block has to come first. Lines you merge later go where
+   the template has them: the pipx `~/.local/bin` line goes between these two blocks,
+   because the NVM block keeps nvm's Node ahead of anything prepended before it, not after.
+3. In `~/.zshrc`, add the nvm completion lines from the
+   [`~/.zshrc` template](dev-environment-setup.md#zshrc--runs-in-interactive-shells-only)
+   (`# nvm completions` through `unset _NVM_PREFIX`). `~/.zshrc` needs nothing else for
+   nvm: `~/.zshenv` already runs for interactive shells.
 
-# Set LTS as the default for all new shells
-nvm alias default 'lts/*'
+Copy the lines exactly, and add them around any tool-managed block rather than inside it.
+The rest of the templates gets merged after the bootstrap, in
+[dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation),
+step 3.
+
+> **Set up from an earlier version of this step?** It appended its own nvm lines to both
+> files: in `~/.zshrc` an `NVM_DIR` export, an `nvm.sh` source line and a completion line,
+> and in `~/.zshenv` an `NVM_DIR` export and a `# Bootstrap Homebrew in non-interactive
+> shells` section. Those load nvm with its auto-use, which slows every shell, and an
+> interactive shell loads it twice, putting nvm's Node on PATH twice. Remove them (the
+> nvm items in [§5, step 3](dev-environment-setup.md#5-replicating-on-a-new-workstation)'s
+> list; leave the pyenv lines until that merge), then add the blocks above.
+
+```bash
+# Load the new ~/.zshenv into this shell
+source ~/.zshenv
+
+# Install the repo's Node line (the major in .nvmrc) — the newest 24.x
+nvm install 24
+
+# Make it the default for all new shells
+nvm alias default 24
 
 # Verify
-# Should show an LTS release >=22 (the build workflow uses Node 24)
+# Should show v24.x
 node --version
 npm --version
 ```
@@ -132,19 +151,39 @@ brew uninstall node
 ```bash
 # Install pyenv, plus OpenSSL 3 for the Python 3.13 build (see the note below)
 brew install pyenv openssl@3
+```
 
-# Add pyenv to your interactive shell (~/.zshrc)
-echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
-echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
-echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+Homebrew's pyenv is already on PATH, so it can install Python without any shell setup.
+What pyenv adds to a shell is its shims, which make `python` resolve to a pyenv version,
+and those come per project: the repo's `.envrc` puts them on PATH through
+[direnv](dev-environment-setup.md#3-per-project-activation-direnv-envrc), set up in
+[dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation).
+Don't `echo` pyenv lines of your own into `~/.zshenv` or `~/.zshrc`, and don't add
+`eval "$(pyenv init -)"` to either: a global `pyenv init` is the historical cause of stale
+`.pyenv-shim` locks when several shells start at once
+([pyenv rehash lock errors](dev-environment-setup.md#pyenv-cannot-rehash-couldnt-acquire-lock)),
+and in both files it runs twice in every interactive shell.
 
-# Also add pyenv to ~/.zshenv for non-interactive shells
-echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshenv
-echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshenv
-echo 'eval "$(pyenv init -)"' >> ~/.zshenv
+In `~/.zshenv` (Step 3 backed it up), add the pyenv block from the
+[`~/.zshenv` template](dev-environment-setup.md#zshenv--runs-in-every-shell)
+(`# pyenv binary on PATH` through the `[ -d "$PYENV_ROOT/bin" ] …` line) after the NVM
+block, where the template has it. It sets `PYENV_ROOT` and puts only pyenv's own `bin` on
+PATH, for a pyenv installed from git rather than Homebrew; it has no `pyenv init`. Copy the
+lines exactly, and add them around any tool-managed block rather than inside it.
+`~/.zshrc` needs nothing for pyenv.
 
-# Reload your shell
-source ~/.zshrc
+> **Set up from an earlier version of this step?** It appended three lines to both
+> `~/.zshrc` and `~/.zshenv`: an `export PYENV_ROOT="$HOME/.pyenv"`, a
+> `[[ -d $PYENV_ROOT/bin ]] && export PATH=…` line and `eval "$(pyenv init -)"`, so every
+> interactive shell ran `pyenv init` twice. Remove all six (the pyenv items in
+> [§5, step 3](dev-environment-setup.md#5-replicating-on-a-new-workstation)'s list), then
+> add the block above. `python` then resolves to pyenv's only in the repo, once direnv is set
+> up; outside it, that's by design (see
+> [`python3` resolves to `/usr/bin/python3`](dev-environment-setup.md#python3-resolves-to-usrbinpython3-instead-of-pyenv-shim)).
+
+```bash
+# Load the new ~/.zshenv into this shell
+source ~/.zshenv
 
 # Install the latest 3.13.x patch automatically
 PYTHON_VERSION=$(pyenv install --list | grep -E "^[[:space:]]*3\.13\.[0-9]+$" | tail -1 | tr -d '[:space:]')
@@ -152,19 +191,16 @@ pyenv install "$PYTHON_VERSION"
 pyenv global "$PYTHON_VERSION"
 
 # Verify
-# Should show the latest 3.13.x patch
-python --version
+# Should show the latest 3.13.x patch. With no global pyenv init, `pyenv exec` runs the
+# Python pyenv selects; a bare `python` resolves to it only in the repo, through .envrc.
+pyenv exec python --version
 ```
 
-> **`pyenv global` is the `python` every shell gets outside a project that pins its own.** `scripts/bash/update-toolchain.sh` moves it to each new 3.13 patch, but only when the old one holds no packages you pip-installed straight into it; otherwise it warns and leaves it. Prefer pipx or a virtualenv for tools, so that move stays automatic ([dev-environment-setup.md §4](dev-environment-setup.md#update-routine)).
-
-> **The `echo … >>` lines in Steps 3 and 4 append**, so run each block once: running one again adds another copy of its lines. Even run once, Step 4 puts `eval "$(pyenv init -)"` in both `~/.zshenv` and `~/.zshrc`, so interactive shells run it twice, a known cause of [pyenv rehash lock errors](dev-environment-setup.md#pyenv-cannot-rehash-couldnt-acquire-lock). Appending leaves any existing content alone, including blocks another tool manages (for example a corporate certificate or proxy block on a managed workstation). If you later restructure your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), that layout replaces the lines from Steps 3 and 4, including both `pyenv init` lines; merge it in rather than replacing the files.
+> **`pyenv global` is the Python pyenv selects outside a project that pins its own:** what `pyenv exec` and `pyenv prefix` resolve to there, and what Step 7 builds pipx and CumulusCI on. `scripts/bash/update-toolchain.sh` moves it to each new 3.13 patch, but only when the old one holds no packages you pip-installed straight into it; otherwise it warns and leaves it. Prefer pipx or a virtualenv for tools, so that move stays automatic ([dev-environment-setup.md §4](dev-environment-setup.md#update-routine)).
 
 > **Keep `openssl@3` installed.** Python 3.13 needs OpenSSL 3, but Homebrew is migrating to OpenSSL 4: plain `openssl` is now OpenSSL 4 and `pyenv` depends on it. Install `openssl@3` before `pyenv install` (the 3.13 build definition prefers it and otherwise falls back to Homebrew's default `openssl`), and leave it installed. Installing it by name marks it *installed on request*, so `brew upgrade` won't remove it later — if it does go missing, `cci` fails at startup with `Library not loaded: /opt/homebrew/opt/openssl@3/lib/libssl.3.dylib`. See [the troubleshooting entry](dev-environment-setup.md#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration) for the cause and why the toolchain can't move to OpenSSL 4 yet.
 
 > **Using multiple Python versions?** You can install additional versions alongside (for example, another 3.12.x or 3.13.x patch) and switch per-project with a `.python-version` file. Keep whichever version you use for CCI consistent with what you pass to `pipx install cumulusci --python`.
-
-> **Non-interactive shell note:** The `~/.zshenv` additions above ensure that IDE tools, CI runners, and Claude Code (which spawn non-interactive shells) can find your pyenv-managed Python. Without `~/.zshenv`, only interactive terminal sessions see pyenv.
 
 ### Step 5 — Clone the repository
 
@@ -201,7 +237,7 @@ pip --version
 python scripts/ai/gate_python.py
 ```
 
-You don't need to activate it to run the gate. `.envrc` selects the pyenv Python and doesn't activate `.venv`, so `python scripts/ai/pr_gate.py --base origin/main` starts under the pyenv Python. When that interpreter lacks a selected check's dependency, the gate re-runs itself under this `.venv` (also from a git worktree) and prints a `note:` line saying so. If the venv is missing or incomplete, the note names the problem and the affected checks report `MISSING-DEP`.
+You don't need to activate it to run the gate. `.envrc` selects the pyenv Python and doesn't activate `.venv`, so `python scripts/ai/pr_gate.py --base origin/main` starts under the pyenv Python (until direnv is set up, per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), `pyenv exec python scripts/ai/pr_gate.py --base origin/main` does the same). When that interpreter lacks a selected check's dependency, the gate re-runs itself under this `.venv` (also from a git worktree) and prints a `note:` line saying so. If the venv is missing or incomplete, the note names the problem and the affected checks report `MISSING-DEP`.
 
 > **Install the gate requirements even if you install CumulusCI via pipx (recommended, Step 7).** pipx keeps CCI in its own isolated environment, so the CCI you run day to day doesn't come from this venv. The gate does: without `cumulusci` and the other requirements here, `pr_gate.py` reports `MISSING-DEP` for a check whose dependency is absent, and a change to any `.md` file fails the gate for a setup reason. When `DEPS` in `scripts/ai/pr_gate.py` changes, rerun the install command above (`scripts/bash/update-toolchain.sh` does this for you).
 
@@ -252,7 +288,7 @@ Install `@salesforce/cli` via npm using the nvm-managed Node from Step 3. This i
 npm install -g @salesforce/cli
 
 # Verify (must be 2.x or later)
-# Check CLI >=2 and Node LTS >=22; platform/architecture and patch versions vary
+# Check CLI >=2 and Node 24 (the line pinned in .nvmrc); platform/architecture and patch versions vary
 sf --version
 ```
 
@@ -337,15 +373,15 @@ The validator does not install Salesforce CLI, Node.js, Python, or a browser.
 
 ### Using Claude Code with this project
 
-[Claude Code](https://claude.com/claude-code) spawns **non-interactive shells**, so don't rely on `~/.zshrc` for anything it needs: depending on how it was launched it may not see that file, or may see a snapshot taken when it started. Without `~/.zshenv`, Claude Code's Bash tool cannot find nvm-managed Node (`sf`, `node`) or pyenv-managed Python (`python`, `cci`). Steps 3 and 4 above add the required init blocks to `~/.zshenv` — if you skipped those additions, add them now. (If you restructured your shell files per [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation), the §2 `~/.zshenv` template provides this instead, deliberately without `pyenv init`; don't add the Step 4 lines back.)
+[Claude Code](https://claude.com/claude-code) spawns **non-interactive shells**, so don't rely on `~/.zshrc` for anything it needs: depending on how it was launched it may not see that file, or may see a snapshot taken when it started. Without `~/.zshenv`, Claude Code's Bash tool cannot find nvm-managed Node (`sf`, `node`), pipx's `cci` or pyenv. Steps 3 and 4 above copy the Homebrew, NVM and pyenv blocks of the [§2 `~/.zshenv` template](dev-environment-setup.md#zshenv--runs-in-every-shell) into `~/.zshenv`, and [dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation) merges the rest, including the `~/.local/bin` line for `cci` and the direnv line that puts pyenv's `python` on PATH in the repo. If you skipped those blocks, add them now. The template deliberately has no `pyenv init`; don't add one.
 
 **Verify Claude Code can see your tools** by asking it to run:
 
 ```bash
-node --version && sf --version && cci version && python --version
+node --version && sf --version && cci version && pyenv exec python --version
 ```
 
-If any command returns "not found", check that `~/.zshenv` contains the nvm and pyenv init blocks (see Steps 3 and 4), or the §2 `~/.zshenv` template if you restructured, then **restart Claude Code** so it picks up the updated PATH.
+If any command returns "not found", check that `~/.zshenv` contains the blocks from the §2 `~/.zshenv` template (Steps 3 and 4 copy the Homebrew, NVM and pyenv ones), then **restart Claude Code** so it picks up the updated PATH. A bare `python --version` reports pyenv's Python only inside the repo, once direnv is set up ([dev-environment-setup.md §5](dev-environment-setup.md#5-replicating-on-a-new-workstation)); before that, or outside the repo, it reports macOS's `/usr/bin/python3` or nothing. That's by design (there's no global `pyenv init`), so don't add one to fix it.
 
 **After any PATH change** (new nvm version, new pyenv version, new pipx install), restart Claude Code — it inherits the PATH from the shell that launched it and does not reload `~/.zshenv` mid-session.
 
@@ -358,7 +394,7 @@ Node LTS refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
 scripts/bash/update-toolchain.sh
 ```
 
-It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade --formula` (casks are yours to upgrade) → latest patch in your pinned Python line (stopping if it can't import `ssl`) → latest LTS Node → `sf` via `npm install -g`, or `sf update` for an installer-based `sf` → CCI reinstall/upgrade → Robot pins re-injected → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins (e.g. Python 3.13, Node `lts/*`) are configured at the top of the script.
+It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade --formula` (casks are yours to upgrade) → latest patch in your pinned Python line (stopping if it can't import `ssl`) → the newest patch of the Node line in `.nvmrc` → `sf` via `npm install -g`, or `sf update` for an installer-based `sf` → CCI reinstall/upgrade → Robot pins re-injected → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins: Python's (3.13) is at the top of the script, Node's (24) is `.nvmrc`.
 
 For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](dev-environment-setup.md).
 
@@ -388,7 +424,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Configured automatically after installation
 
 4. **Salesforce CLI** (`sf` CLI)
-   - Version 2.x or later; use an LTS Node.js release **22 or later** to meet this repository's npm engine requirement
+   - Version 2.x or later; use Node.js 24, the line pinned in `.nvmrc`, to meet this repository's npm engine requirement (`engines.node: >=24`)
    - Installation (macOS): `npm install -g @salesforce/cli` — see https://developer.salesforce.com/tools/salesforcecli
    - Verify: `sf --version`
 
@@ -406,8 +442,8 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Documentation: https://help.sfdmu.com/
 
 7. **Node.js** — required by the `sf` CLI and SFDMU plugin
-   - Use an LTS release **22 or later**, matching `package.json`; the build workflow uses Node 24
-   - Installation (macOS): `brew install nvm` then `nvm install --lts` (recommended) — see Step 3 in the macOS setup guide
+   - Use **Node 24**, the line pinned in `.nvmrc` (`package.json` declares `engines.node: >=24`; the Docker image and the build workflow use 24)
+   - Installation (macOS): `brew install nvm` then `nvm install 24` (recommended) — see Step 3 in the macOS setup guide
    - Verify: `node --version`
 
 8. **Python** (for custom tasks and the repo's AI/schema-diff scripts)
@@ -446,7 +482,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
      ```
      If you use a project virtual environment: `python -m pip install --upgrade -r robot/requirements.txt` inside the venv. Use the [venv validation command](#step-11--verify-the-full-setup) with pipx auto-fixes disabled. If you previously installed these globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework selenium webdriver-manager`.
 
-     > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. The `robot/requirements.txt` pins `selenium>=4.50.0,<5`. If selenium is older than that pin, update the requirements in the environment running CCI. Validator auto-upgrade targets pipx only; venv users should run `python -m pip install --upgrade -r robot/requirements.txt` inside the venv.
+     > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. The `robot/requirements.txt` pins `selenium>=4.51.0,<5`. If selenium is older than that pin, update the requirements in the environment running CCI. Validator auto-upgrade targets pipx only; venv users should run `python -m pip install --upgrade -r robot/requirements.txt` inside the venv.
 
    2. **Chrome or Chromium** — Robot tasks run headless by default and require Chrome or Chromium. (Use `BROWSER=firefox` to run with Firefox instead.)
      - **macOS:** Install [Google Chrome](https://www.google.com/chrome/) or `brew install chromium`

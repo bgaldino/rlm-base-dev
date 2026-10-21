@@ -10,13 +10,14 @@
 #      import ssl. pyenv's global follows it from an older 3.13 patch that holds
 #      no packages of its own; anything else is left alone, with a warning when
 #      it's an older patch that does
-#   3. Node — latest LTS (via nvm: Homebrew's, or nvm's own installer's),
-#      carrying npm globals forward
+#   3. Node — latest patch of the major line pinned in .nvmrc (via nvm:
+#      Homebrew's, or nvm's own installer's), carrying npm globals forward
 #   4. sf CLI — npm install -g when npm-installed, else `sf update`
 #   5. CCI — pipx (reinstall is required after any Python patch bump), then
 #      robot/requirements.txt re-injected (CCI's own pins downgrade selenium).
 #      pipx's own scripts are rewritten for the new patch, and other pipx apps
-#      still on an older 3.13 patch are named, not changed
+#      still on an older 3.13 patch are named, not changed. So is pipx's shared
+#      venv on another Python, and an app whose pip comes from another Python
 #   6. sf plugins (SFDMU, etc.)
 #   7. Gate interpreter — <main checkout>/.venv, if it exists (rebuilt after a
 #      Python patch bump, or when it isn't built on pyenv's Python, with its
@@ -31,13 +32,19 @@
 # the script exits nonzero rather than printing "Done".
 #
 # Designed to be idempotent. Re-run after any tool emits a "new version" notice.
-# Major-line pins live in this script (PY_LINE, NODE_LINE) — edit them to bump.
+# Major-line pins: PY_LINE lives in this script; the Node line lives in .nvmrc.
 
 set -euo pipefail
 
 PY_LINE="3.13"
-NODE_LINE="lts/*"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# The Node major line, from .nvmrc: the single source shared with .envrc, the
+# Dockerfile's NODE_MAJOR, CI's setup-node and package.json's engines. A bare
+# major only: `lts/*` would jump a major the day the next one becomes LTS.
+NODE_LINE="$(tr -d '[:space:]' < "$REPO_ROOT/.nvmrc" 2>/dev/null || true)"
+case "$NODE_LINE" in
+  ''|*[!0-9]*) printf '\n\033[1;31m[fail]\033[0m  .nvmrc must hold a bare Node major (e.g. 24), found "%s"\n' "$NODE_LINE" >&2; exit 1 ;;
+esac
 
 # Ensure pipx-managed bins (cci, snowfakery, etc.) are findable. pipx
 # ensurepath only updates shell rc files for future shells; we need PATH in
@@ -112,11 +119,13 @@ PY_TARGET_BIN="$(pyenv prefix "$PY_TARGET")/bin/python3"
 # gone. Steps 2, 7 and 8 all use it.
 gate_python() { (cd "$REPO_ROOT" && "$PY_TARGET_BIN" scripts/ai/gate_python.py "$@"); }
 
-# pyenv's global version (~/.pyenv/version) is the `python` every shell gets
-# outside a project that pins its own. It moves with the line, as step 3 moves
-# nvm's default Node, but only from an older patch of $PY_LINE, and only when
-# that interpreter holds no packages of its own: anything pip-installed straight
-# into it would disappear from `python` and the pyenv shims after the switch.
+# pyenv's global version (~/.pyenv/version) is what `pyenv exec`, `pyenv prefix`
+# and pyenv's shims resolve to outside a project that pins its own. (With the
+# guide's layout no shims are on PATH outside the repo, so a bare `python` there
+# isn't pyenv's.) It moves with the line, as step 3 moves nvm's default Node, but
+# only from an older patch of $PY_LINE, and only when that interpreter holds no
+# packages of its own: anything pip-installed straight into it would disappear
+# from `pyenv exec python` and the shims after the switch.
 # Virtualenvs built on it are unaffected either way (they record its path), so
 # none of them needs rebuilding for this. A global set to `system`, another
 # line or several versions is a deliberate choice and is left alone.
@@ -127,8 +136,8 @@ if [ "$PY_GLOBAL" = "$PY_TARGET" ]; then
 elif [[ "$PY_GLOBAL" =~ $PY_LINE_RE ]] \
     && [ "$(printf '%s\n%s\n' "$PY_GLOBAL" "$PY_TARGET" | sort -V | head -1)" = "$PY_GLOBAL" ]; then
   if [ ! -d "$(pyenv root)/versions/$PY_GLOBAL" ]; then
-    # Already uninstalled: every shell outside a pinned project gets "version
-    # not installed", so moving it on is a repair with nothing to lose.
+    # Already uninstalled: `pyenv exec`/`pyenv prefix` outside a pinned project
+    # get "version not installed", so moving it on is a repair with nothing to lose.
     pyenv global "$PY_TARGET"
     log "Python: pyenv global $PY_GLOBAL -> $PY_TARGET ($PY_GLOBAL isn't installed)"
   elif ! PY_GLOBAL_PKGS="$(gate_python --carry-over "$(pyenv root)/versions/$PY_GLOBAL")"; then
@@ -170,8 +179,8 @@ CARRY_FROM="$OLD_NODE"
 [ "${CARRY_FROM#v}" != "$CARRY_FROM" ] || CARRY_FROM="$(nvm version default 2>/dev/null || true)"
 [ "${CARRY_FROM#v}" != "$CARRY_FROM" ] || CARRY_FROM="$(nvm version node 2>/dev/null || true)"
 log "Node: installing $NODE_LINE (current: $OLD_NODE)"
-# Drive install from NODE_LINE so changes at the top of this script take effect.
-# `lts/*` resolves to the active LTS line; explicit majors (e.g. `24`) also work.
+# Drive install from NODE_LINE (.nvmrc) so a bump there takes effect: the newest
+# patch of that major, which also becomes nvm's `default` alias for new shells.
 nvm install "$NODE_LINE" --latest-npm
 nvm alias default "$NODE_LINE" >/dev/null
 NEW_NODE="$(nvm current)"
@@ -433,6 +442,33 @@ for v in "$(dirname "$CCI_VENV")"/*/; do
   v_home="$(venv_home "$v")"
   case "$v_home" in */versions/"$PY_LINE".*) ;; *) continue ;; esac
   notice_later "pipx app $(basename "$v") is on ${v_home:-an unknown Python}, not $PY_TARGET. Before uninstalling that Python: pipx reinstall $(basename "$v") --python \"$PY_TARGET_BIN\""
+done
+
+# pipx's shared venv holds the pip every pipx venv uses for installs, injects and
+# upgrades. pipx builds it on whichever Python first ran pipx and rebuilds it only
+# once that Python is gone, so nothing above moves it (`pipx upgrade-shared` only
+# upgrades pip in place). Each venv's pipx_shared.pth names the shared venv's
+# lib/pythonX.Y, so a rebuild on another line leaves it pointing at nothing. The
+# fix depends on whether the old Python must stay, so it's only named here. An app
+# kept on another line always loads pip from another lib (there's one shared venv),
+# so only a missing directory is named for it.
+PIPX_SHARED="$("${PIPX[@]}" environment --value PIPX_SHARED_LIBS 2>/dev/null || true)"
+SHARED_DOC="docs/guides/dev-environment-setup.md (pipx's shared venv is on another Python)"
+if [ -f "$PIPX_SHARED/pyvenv.cfg" ] && [ "$(venv_base "$PIPX_SHARED")" != "$PY_TARGET_BASE" ]; then
+  notice_later "pipx's shared venv (the pip every pipx app uses) is on $(venv_home "$PIPX_SHARED"), not $PY_TARGET, and no pipx command moves it while that Python is installed. Don't uninstall that Python before reading $SHARED_DOC"
+fi
+for v in "$(dirname "$CCI_VENV")"/*/; do
+  v="${v%/}"
+  for pth in "$v"/lib/python*/site-packages/pipx_shared.pth; do
+    [ -f "$pth" ] || continue
+    shared_site="$(head -1 "$pth")"
+    own_lib="$(basename "$(dirname "$(dirname "$pth")")")"  # pythonX.Y
+    if [ ! -d "$shared_site" ]; then
+      notice_later "pipx app $(basename "$v") loads pip from $shared_site, which doesn't exist, so pipx inject and upgrade fail for it. See $SHARED_DOC"
+    elif [ "$own_lib" = "python$PY_LINE" ] && [ "$(basename "$(dirname "$shared_site")")" != "$own_lib" ]; then
+      notice_later "pipx app $(basename "$v") runs $own_lib but loads pip from $shared_site, another Python's site-packages. It works now, but loses pip once the shared venv is rebuilt. See $SHARED_DOC"
+    fi
+  done
 done
 
 # ── 9. Verify ───────────────────────────────────────────────────────────────

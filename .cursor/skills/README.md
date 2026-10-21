@@ -32,6 +32,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Understand RLM objects/relationships | Revenue Cloud Data Model | [revenue-cloud-data-model/SKILL.md](revenue-cloud-data-model/SKILL.md) |
 | Use Revenue Cloud REST APIs | Business APIs | [rlm-business-apis/SKILL.md](rlm-business-apis/SKILL.md) |
 | Ground claims against Salesforce Help | Revenue Cloud Docs | [revenue-cloud-docs/SKILL.md](revenue-cloud-docs/SKILL.md) |
+| Set up, query, author, or troubleshoot Salesforce Contracts CLM | Salesforce Contracts | [salesforce-contracts/SKILL.md](salesforce-contracts/SKILL.md) |
 
 ### Product configuration and pricing
 
@@ -47,6 +48,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 
 | I need to... | Skill | Entry Point |
 |-------------|-------|-------------|
+| Design/create/load CSV/SFDMU DRO plans and maintain existing fulfillment configuration | DRO Plans | [dro-plans/SKILL.md](dro-plans/SKILL.md) |
 | Build / verify a multi-year group **ramp** quote + per-segment (compound) uplift | Ramped Quotes | [ramped-quotes/SKILL.md](ramped-quotes/SKILL.md) |
 | Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history | Renewal Asset Creation | [renewal-asset-creation/SKILL.md](renewal-asset-creation/SKILL.md) |
 | Build, rate, and verify metered consumption demos | Usage & Consumption | [usage-consumption/SKILL.md](usage-consumption/SKILL.md) |
@@ -65,6 +67,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Run build harness profiles/resume/report | Build Harness | [build-harness/SKILL.md](build-harness/SKILL.md) |
 | Set up, audit, update or verify the local dev toolchain (incl. managed workstations) | Toolchain | [toolchain/SKILL.md](toolchain/SKILL.md) |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | [pde-org-build/SKILL.md](pde-org-build/SKILL.md) |
+| Stand up / inspect / debug the MCP surface on an org (hosted + custom servers, ECA, proxy) | MCP Integration | [mcp-integration/SKILL.md](mcp-integration/SKILL.md) |
 | Capture/apply UX drift from org | UX Assembly & Retrieve | [repo-integration/ux-assembly-retrieve.md](repo-integration/ux-assembly-retrieve.md) |
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | [schema-validation/SKILL.md](schema-validation/SKILL.md) |
 | Write Robot Framework tests | Robot Testing | [robot-testing/SKILL.md](robot-testing/SKILL.md) |

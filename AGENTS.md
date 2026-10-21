@@ -55,11 +55,9 @@ Key technology stack:
 `unpackaged/post_*/` holds feature bundles. `templates/` is the UX source
 (step 30); `unpackaged/post_ux/` is generated output.
 
-Data lives under `datasets/`; utility scripts under `scripts/`; offline tests
-under `tests/`; Robot suites under `robot/rlm-base/`. `datasets/bre/` and
-`datasets/dx/` are runtime extraction output, not tracked source. See the
-[repository map](docs/references/repository-layout.md), [org definitions](orgs/README.md),
-[TFID guide](orgs/tfid/README.md), and **Script Reference** below for detail.
+Paths: `datasets/`, `scripts/`, `tests/`, `robot/rlm-base/`. `datasets/bre/` and
+`datasets/dx/` are untracked runtime output. See the [repository map](docs/references/repository-layout.md),
+[org definitions](orgs/README.md), [TFID guide](orgs/tfid/README.md), and **Script Reference**.
 
 ## DO NOT — Safety Guards
 
@@ -312,13 +310,15 @@ that topic.
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
 | Maintain the In-App Learning framework (`inapp` integration) | `.cursor/skills/inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
+| DRO plans | `.cursor/skills/dro-plans/SKILL.md` |
 | Build/rate/verify metered consumption demos (usage, commitments, drawdown) | `.cursor/skills/usage-consumption/SKILL.md` |
-| Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history (Renewal/Upsell/Downsell) | `.cursor/skills/renewal-asset-creation/SKILL.md` |
-| Prep a clone as a DF Hands-On workshop org (capture/replay seeded quotes+config, verify before templating) | `.cursor/skills/df-workshop-setup/SKILL.md` |
+| Build renewal-ready assets and lifecycle event history | `.cursor/skills/renewal-asset-creation/SKILL.md` |
+| Prepare DF Hands-On clone orgs and verify seeded data | `.cursor/skills/df-workshop-setup/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | `.cursor/skills/schema-validation/SKILL.md` |
 | Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
+| Stand up / debug the **MCP surface** (hosted + custom servers, ECA) | `.cursor/skills/mcp-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
-| Build/verify a multi-year group **ramp** quote (place→EditGroup→clone) + per-segment/compound uplift | `.cursor/skills/ramped-quotes/SKILL.md` |
+| Build/verify multi-year ramp quotes and segment uplift | `.cursor/skills/ramped-quotes/SKILL.md` |
 | Generate, inspect, continue, or verify transaction demo data | `.cursor/skills/txn-data-harness/SKILL.md` |
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | `.cursor/skills/repo-integration/ux-assembly-retrieve.md` |
@@ -332,6 +332,7 @@ that topic.
 | Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
 | Author/debug OmniDataTransform (ODT) data mappers | `.cursor/skills/odt-authoring/SKILL.md` |
 | Create/modify .docx document templates + DocumentTemplate lifecycle | `.cursor/skills/document-generation/SKILL.md` |
+| Set up, query, author, or troubleshoot Salesforce Contracts CLM | `.cursor/skills/salesforce-contracts/SKILL.md` |
 
 Every top-level skill has a **Quick Rules** section, and most have **DO NOT**;
 new and migrated skills should also include **Entry Conditions**, **Examples**,

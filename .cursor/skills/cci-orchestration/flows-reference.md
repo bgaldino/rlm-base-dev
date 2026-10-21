@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**45 flows** across **5 groups**.
+**46 flows** across **5 groups**.
 
 ---
 
@@ -173,7 +173,7 @@ Extract rating and rates data from an org into CSV files
 8. **task** `activate_agents`  `when: project_config.project__custom__agents`
 9. **task** `deploy_agent_permission_sets`  `when: project_config.project__custom__agents`
 10. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
-   - `api_names`: `['RLM_QuotingAgent', 'RLM_QuotingAssistant', 'RLM_BillingEmployeeAgent']`
+   - `api_names`: `['RLM_QuotingAgent', 'RLM_QuotingAssistant', 'RLM_BillingEmployeeAgent', 'RLM_ApprovalAgent']`
 
 ---
 
@@ -221,11 +221,13 @@ Extract rating and rates data from an org into CSV files
 8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui and not project_config.project__custom__tso`
 9. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing`
 10. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
-11. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
-12. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
+11. **task** `create_default_invoice_email_template`  `when: project_config.project__custom__billing`
+12. **task** `deploy_billing_email_template_settings`  `when: project_config.project__custom__billing`
+13. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
+14. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
    - `api_names`: `['RLM_BillingUI']`
-13. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
-14. **flow** `prepare_billing_portal`
+15. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
+16. **flow** `prepare_billing_portal`
 
 ---
 
@@ -421,6 +423,20 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 3. **task** `assign_permission_sets`  `when: project_config.project__custom__large_stx`
    - `api_names`: `['RLM_LargeSalesTransaction']`
 4. **task** `seed_large_deal_billing_treatment`  `when: project_config.project__custom__large_stx and project_config.project__custom__billing`
+
+---
+
+### `prepare_mcp`
+
+Stand up the org-side MCP surface: deploy the ECA, then (with the mcp_custom_server flag on) the clone invocable and its permission set, assign that permission set to the running user, and activate the servers. Every step is gated on the mcp feature flag. This leaves one manual step per person — the browser OAuth login — which no flow can do for them; see .cursor/skills/mcp-integration/SKILL.md.
+
+**Steps:**
+
+1. **task** `deploy_post_mcp`  `when: project_config.project__custom__mcp`
+2. **task** `deploy_post_mcp_custom`  `when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server`
+   - `api_names`: `['RLM_McpSalesTransactions']`
+4. **task** `configure_mcp_servers`  `when: project_config.project__custom__mcp`
 
 ---
 
@@ -663,7 +679,9 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 32. **flow** `prepare_scratch`
 33. **flow** `refresh_all_decision_tables`
 34. **task** `rebuild_search_index`
-35. **flow** `stamp_git_commit`
+35. **task** `empty_recycle_bin`  `when: org_config.scratch`
+36. **flow** `prepare_mcp`
+37. **flow** `stamp_git_commit`
 
 ---
 

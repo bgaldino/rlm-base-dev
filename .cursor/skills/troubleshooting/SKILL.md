@@ -32,7 +32,7 @@ or verify the local toolchain itself (shell config, PATH order, corporate CA,
 
 ## Quick Diagnosis: Which Step Failed?
 
-The `prepare_rlm_org` flow runs 35 steps. Identify the failing step from
+The `prepare_rlm_org` flow runs 37 steps. Identify the failing step from
 CCI output, then jump to the relevant section below.
 
 | Step Range | Category | Section |
@@ -65,7 +65,7 @@ Run this first — it checks everything:
 | CumulusCI not found | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | SF CLI < v2 | `npm install -g @salesforce/cli` (NOT `brew install sf`) |
 | SFDMU plugin missing/outdated | Auto-fixed by default (`auto_fix=true`). Manual: `sf plugins install sfdmu` |
-| Node.js not found | `nvm install --lts && nvm alias default lts/*` |
+| Node.js not found | `nvm install 24 && nvm alias default 24` (the line pinned in `.nvmrc`) |
 | Robot Framework deps missing | Auto-fixed by default. Manual: `pipx inject cumulusci --force -r robot/requirements.txt` |
 | Chrome/ChromeDriver missing | Install Chrome; `pip install webdriver-manager` |
 | Chrome/ChromeDriver versions mismatch, a browser override has no `CHROMEDRIVER_PATH`, or an override path is not executable or does not run cleanly (wrong architecture, nonzero `--version` exit) | Install the matching driver and point `CHROMEDRIVER_PATH` at it, or fix/unset `CHROME_BINARY` / `CHROME_BIN` / `CHROMEDRIVER_PATH` |
@@ -74,10 +74,16 @@ Run this first — it checks everything:
 
 ### `sf` or `node` not found in IDE / CI
 
-**Cause:** `~/.zshenv` is missing nvm/pyenv init blocks. Non-interactive
-shells (IDE terminals, CI runners) don't source `~/.zshrc`.
+**Cause:** `~/.zshenv` doesn't load nvm or put pyenv on PATH. Non-interactive
+shells (IDE tasks, CI runners, Claude Code's Bash tool) don't source `~/.zshrc`.
 
-**Fix:** Add both nvm and pyenv init to `~/.zshenv` AND `~/.zshrc`.
+**Fix:** Merge the `~/.zshenv` template's Homebrew, NVM and pyenv blocks from
+`docs/guides/dev-environment-setup.md` §2, in its order: the NVM block finds
+Homebrew's nvm through `brew`, which a non-login shell has only from the Homebrew
+block (`~/.zshrc` needs only the nvm completion lines). Don't add an `nvm.sh`
+source line of your own to `~/.zshrc` or `~/.zshenv`: without `--no-use`, nvm's
+auto-use runs in every shell, and a line in both files loads nvm twice in an
+interactive shell.
 
 ### "Org not found" or "auth failed" errors
 
@@ -269,6 +275,29 @@ then polls. If it times out:
 
 **Fix:** Check Setup → Permission Set Groups → the failing PSG for conflict
 details. Remove conflicting permission set members.
+
+### A standard field is on the layout but missing from the form, describe and SOQL
+
+**Example:** in a fresh 264 org, New Billing Account shows only Primary Billing
+Address, with no Shipping Address, Bill Day of Month or Payment Term.
+`SELECT ShippingStreet FROM BillingAccount` fails with "No such column".
+
+**Cause:** missing FLS, not missing schema. Describe, data-API `FieldDefinition`
+and SOQL all hide fields the running user can't read. That makes a hidden field
+look as if it doesn't exist. The standard Billing permission sets don't grant
+these three fields, and fresh orgs don't always give profiles FLS on fields a
+release adds. Opening the object in Setup → Object Manager was seen to
+back-fill profile FLS, so an org you've browsed in Setup is no longer evidence.
+
+**Diagnose:**
+- Check the schema without the FLS filter: run
+  `sf data query --use-tooling-api -q "SELECT QualifiedApiName FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName='BillingAccount'"`.
+- Then compare `FieldPermissions` for the user's permission sets.
+
+**Fix:** grant FLS through a permission set, never a custom field. For
+BillingAccount the build does this with `RLM_BillingAccountFieldAccess` (in
+`RLM_RCB` and the billing persona PSGs). On an org built before that change,
+set the field's FLS in Setup, then hard-refresh Lightning.
 
 ---
 

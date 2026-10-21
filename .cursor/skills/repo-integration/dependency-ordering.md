@@ -11,7 +11,7 @@ control order):
 |-----|---------|-----------|
 | `1_objects/` | Custom fields | Fields must exist before PSGs/DTs that reference them |
 | `2_settings/` | Org settings | Features must be enabled before metadata that uses them |
-| `3_permissionsetgroups/` | PSGs | PSG metadata deploys here; references PSLs from `force-app/` |
+| `3_permissionsetgroups/` | PSGs, plus repo-owned permission sets they include | PSG metadata deploys here; references PSLs from `force-app/`. A permission set a PSG includes (e.g. `RLM_BillingAccountFieldAccess`) lives in this folder so it deploys in the same bundle |
 | `5_decisiontables/` | Decision table definitions | Must exist before expression sets or flows reference them |
 
 ### Profile strip-and-build
@@ -135,4 +135,6 @@ Reverse dependency order (children before parents):
 | 32 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
 | 33 | refresh_all_decision_tables | DT cache refresh |
 | 34 | rebuild_search_index | PCM catalog search index build (async) |
-| 35 | stamp_git_commit | Always last |
+| 35 | empty_recycle_bin | Recycle Bin purge (scratch orgs only) |
+| 36 | prepare_mcp | MCP surface: ECA + server config (when `mcp`); clone invocable + custom server (when `mcp_custom_server`) |
+| 37 | stamp_git_commit | Always last |

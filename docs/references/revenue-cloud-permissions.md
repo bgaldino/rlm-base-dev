@@ -114,7 +114,7 @@ Defined as a YAML anchor (`TableauEinsteinUserPsl`) but not assigned in any stan
 
 ## Permission Set Groups (PSGs)
 
-PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 9, then assigned to the running user at step 10 (build steps 1.9 and 1.10; `tso` adds a second recalculate/assign pair at 1.11 and 1.12).
+PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. A few PSGs also include a repo-owned permission set from the same folder, which fills a field-access gap in the standard ones (see `RLM_RCB` below). The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 9, then assigned to the running user at step 10 (build steps 1.9 and 1.10; `tso` adds a second recalculate/assign pair at 1.11 and 1.12).
 
 ### Core PSGs (`rlm_psg_api_names`) -- Always Assigned
 
@@ -144,9 +144,9 @@ The primary lifecycle PSG. Bundles the essential RLM API permission sets for quo
 | `RevLifecycleManagementTaxConfiguration` | Tax configuration |
 | `RevLifecycleManagementUsageDesignUser` | Usage design |
 
-#### RLM_RCB -- Revenue Cloud Billing Advanced (16 permission sets)
+#### RLM_RCB -- Revenue Cloud Billing Advanced (19 permission sets)
 
-Billing super-user PSG covering invoicing, payments, credit memos, tax, collections, and accounting.
+Billing super-user PSG covering invoicing, payments, credit memos, tax, collections, and accounting. Seventeen are Salesforce-managed. The other two, `RLM_BillingAccountFieldAccess` and `RLM_DeleteInvoices`, are repo-owned and deploy from the same folder.
 
 | Permission Set | Purpose |
 |---|---|
@@ -154,6 +154,7 @@ Billing super-user PSG covering invoicing, payments, credit memos, tax, collecti
 | `BillingAdvancedPaymentAdministrator` | Payment admin |
 | `BillingAdvancedPaymentOperations` | Payment operations |
 | `BillingCollectionsAndRecoverySpecialist` | Collections |
+| `CollectionsAndRecoveryAdmin` | Collections and recovery admin |
 | `DataProcessingEngineUser` | DPE access |
 | `DocGenDesigner` | Doc generation |
 | `RevenueLifecycleManagementAccountingAdmin` | Accounting admin |
@@ -166,6 +167,8 @@ Billing super-user PSG covering invoicing, payments, credit memos, tax, collecti
 | `RevenueLifecycleManagementBillingTaxAdmin` | Billing tax admin |
 | `RevenueLifecycleManagementBillingVoidPostedInvoiceApi` | Void invoice API |
 | `RevenueLifecycleManagementCreateBillingScheduleFromBillingTransactionApi` | Billing schedule API |
+| `RLM_BillingAccountFieldAccess` (repo-owned) | Read/edit FLS on `BillingAccount` Shipping Address, Bill Day of Month, Payment Term and Bill To Contact. The standard Billing permission sets omit the first three and make Bill To Contact read-only, so fresh 264 orgs hide them from the Billing Account form even though the standard layout includes them |
+| `RLM_DeleteInvoices` (repo-owned) | Enables the **Delete Invoice and Invoice Lines** user permission (`BillingInvoiceSuperUser`), which the managed Billing Admin set leaves off. Without it, only Draft and Canceled invoices can be deleted. Not in the Billing Admin, Billing Operations or Credit Memo Operations persona groups, so only `RLM_RCB` holders get it |
 
 #### RLM_NGP -- Salesforce Pricing (4 permission sets)
 
@@ -295,9 +298,10 @@ persona user instead. See the persona rows in the flow inventory below.
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
 | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` | `prepare_prm` step 8 | FLS on partner/channel program fields |
-| `RLM_QuotingAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Revenue_Quote_Management` — **`<agentAccesses>` currently stripped (pack 187):** that bundle is omitted from publish on v68/264, so the PS deploys empty until the 264 template is recaptured |
+| `RLM_QuotingAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Revenue_Quote_Management` |
 | `RLM_QuotingAssistant` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Quoting_Assistant` |
 | `RLM_BillingEmployeeAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Billing_Employee_Assistance` |
+| `RLM_ApprovalAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Approval_Agent` |
 | `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 6 (running user) · **`prepare_personas` step 8 (salesrep persona — non-admin)** | `RLM_AccountUtilities` Apex class access. **Destructive** — that invocable deletes account-related orders, assets, contracts, invoices, quotes and opportunities, **plus the account's entire usage graph** (usage summaries, ratable summaries, entitlements, entitlement buckets, rated transaction journals, commitment junctions, and asset rate card entries). Assigned on both flows because `deploy_post_utils` ships the whole surface — class, `Account.RLM_Reset_Account` quick action and its flows — to both, so gating only the assignment left a visible reset button that no non-admin could invoke. |
 | `RLM_ExpressionSetManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 5 | `RLM_ExpressionSetManagerController` Apex class access; object READ on `ExpressionSet` and READ+EDIT on `ExpressionSetVersion` (controller USER_MODE SOQL; no FLS — the selected fields are `permissionable=false`); `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — required for the `$Api.Session_ID` loopback to work against REST; a Named Credential is the scoped alternative). The controller also reads `ContextDefinition`, `ExpressionSetDefinition`, and the junction, but those are `IsCustomizable=false` platform entities — object perms on them are silently dropped and their read is platform/feature-governed (like `AsyncApexJob`). Grant set verified on a live scratch org (2026-07-22): deploys clean, file==org, all fields non-permissionable. |
 | `RLM_DecisionTableManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 7 (running user) · **`prepare_personas` step 9 (salesrep persona — non-admin)** | `RLM_DecisionTableManagerController` Apex class access, and nothing else. Deliberately narrow: the controller reads decision-table metadata and queues the platform's own refresh action — it deletes nothing, and the refresh is the same operation Setup offers. Object permissions on `DecisionTable` and friends are NOT granted and are not needed; they are setup entities whose read is platform-governed. Assigned to the persona because the component sits on the shared Home page, so withholding it leaves a visible section that errors. |
@@ -391,13 +395,13 @@ The following table shows the sequence of all permission-related steps across th
 | 7.12 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 7.14 | `prepare_quantumbit` > `assign_permission_sets` | `RLM_RenewalQuotes` | `quantumbit` |
 | 10.10 | `prepare_docgen` > `assign_permission_sets` | `RLM_DocGen` | `docgen` |
-| 13.12 | `prepare_billing` > `assign_permission_sets` | `RLM_BillingUI` | `billing_ui` |
+| 13.14 | `prepare_billing` > `assign_permission_sets` | `RLM_BillingUI` | `billing_ui` |
 | 20.1 | `prepare_tso` > `assign_permission_set_groups` | Copilot + Catalog PSGs (4) | `tso` |
 | 20.4 | `prepare_tso` > `assign_permission_sets` | TSO permission sets (8) | `tso` |
 | 22.7 | `prepare_prm` > `assign_permission_sets` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
 | 22.10.3 | `prepare_prm` > `prepare_prm_pricing` > `assign_permission_sets` | `RLM_PRM_Pricing` | `prm` + `prm_pricing` |
 | 23.1 | `prepare_agents` > `assign_permission_set_groups` | Copilot PSGs (2) | `agents` |
-| 23.10 | `prepare_agents` > `assign_permission_sets` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
+| 23.10 | `prepare_agents` > `assign_permission_sets` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent`, `RLM_ApprovalAgent` | `agents` |
 | 24.3 | `prepare_constraints` > `assign_permission_sets` | `RLM_Constraints` | `tso` + `constraints` |
 | 25.1 | `prepare_guidedselling` > `assign_permission_sets` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
 | 25.3 | `prepare_guidedselling` > `assign_permission_sets` | `RLM_Guided_Selling` | `guidedselling` |
@@ -411,6 +415,7 @@ The following table shows the sequence of all permission-related steps across th
 | 29.11 | `prepare_personas` > `assign_permission_sets` | `RLM_Approvals` (salesrep user) | `personas` + `quantumbit` + `approvals` |
 | 29.12 | `prepare_personas` > `assign_permission_sets` | `RLM_RenewalQuotes` (salesrep user) — Generate Renewal Quote and Consolidate Renewals call `RLM_RenewalAssetLock`. Narrow: class access and Asset/Account/Contact read, changes nothing | `personas` + (`quantumbit` \| `tso`) |
 | 31.2 | `prepare_inapp` > `assign_permission_sets` | `RLM_Learning` | `inapp` |
+| 36.3 | `prepare_mcp` > `assign_permission_sets` | `RLM_McpSalesTransactions` (running user) — class access to `RLM_CloneSalesTransaction` only, so a non-admin user authorized on the MCP server can call the CLASSIC-bound clone tool. Every other MCP user needs it assigned separately (`sf org assign permset --on-behalf-of`) | `mcp` + `mcp_custom_server` |
 
 ---
 
@@ -423,11 +428,11 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `RLM_Sales_Representative` | RLM Sales Representative | `BRERuntime`, `CLMRuntimeUser`, `CorePricingRunTimeUser`, `DocGenUser`, `DocumentBuilderUser`, `DROOrderSubmitInitiateUser`, `IndustriesConfiguratorPlatformApi`, `Microsoft365WordUser`, `ObligationUser`, `ProductCatalogManagementViewer`, `ProductDiscoveryUser`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCoreCPQAssetization`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementInitiateAmendmentApi`, `RevLifecycleManagementInitiateCancellationApi`, `RevLifecycleManagementInitiateRenewalApi`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser`, `UsageManagementRunTimeUser` |
 | `RLM_Sales_Operations` | RLM Sales Operations | `BRERuntime`, `CLMRuntimeUser`, `CorePricingRunTimeUser`, `DocGenUser`, `DocumentBuilderUser`, `DROOrderSubmitInitiateUser`, `IndustriesConfiguratorPlatformApi`, `Microsoft365WordUser`, `ObligationUser`, `ProductCatalogManagementViewer`, `ProductDiscoveryUser`, `RatingRunTimeUser`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementCalculateTaxesApi`, `RevLifecycleManagementCoreCPQAssetization`, `RevLifecycleManagementCreateContractApi`, `RevLifecycleManagementCreateOrderFromQuote`, `RevLifecycleManagementInitiateAmendmentApi`, `RevLifecycleManagementInitiateCancellationApi`, `RevLifecycleManagementInitiateRenewalApi`, `RevLifecycleManagementPlaceOrderApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi`, `RevLifecycleManagementQuotePricesTaxes`, `RevLifecycleManagementUsageDesignUser`, `UsageManagementRunTimeUser` |
 | `RLM_Product_and_Pricing_Admin` | RLM Product and Pricing Admin | `AdvancedConfiguratorDesigner`, `BREDesigner`, `BRERuntime`, `CorePricingAdmin`, `CorePricingDesignTimeUser`, `CorePricingManager`, `CorePricingRunTimeUser`, `IndustriesConfiguratorPlatformApi`, `ProductCatalogManagementAdministrator`, `ProductCatalogManagementViewer`, `ProductConfigurationRulesDesigner`, `ProductDetailsApiCache`, `RevLifecycleManagementCalculatePricesApi`, `RevLifecycleManagementProductAndPriceConfigurationApi`, `RevLifecycleManagementProductImportApi` |
-| `RLM_Billing_Admin` | RLM Billing Admin | `RevenueLifecycleManagementBillingAdmin` |
-| `RLM_Billing_Operations` | RLM Billing Operations | `RevenueLifecycleManagementBillingOperations` |
+| `RLM_Billing_Admin` | RLM Billing Admin | `RevenueLifecycleManagementBillingAdmin`, `RLM_BillingAccountFieldAccess` |
+| `RLM_Billing_Operations` | RLM Billing Operations | `RevenueLifecycleManagementBillingOperations`, `RLM_BillingAccountFieldAccess` |
 | `RLM_Accounting_Admin` | RLM Accounting Admin | `RevenueLifecycleManagementAccountingAdmin` |
 | `RLM_Tax_Admin` | RLM Tax Admin | `RevenueLifecycleManagementBillingTaxAdmin` |
-| `RLM_Credit_Memo_Operations` | RLM Credit Memo Operations | `RevenueLifecycleManagementBillingCreditMemoOperations` |
+| `RLM_Credit_Memo_Operations` | RLM Credit Memo Operations | `RevenueLifecycleManagementBillingCreditMemoOperations`, `RLM_BillingAccountFieldAccess` |
 | `RLM_DRO_Admin` | RLM DRO Admin | `DfoAdminUser` |
 | `RLM_Fulfillment_Designer` | RLM Fulfillment Designer | `DFODesignerUser` |
 | `RLM_Fulfillment_Manager` | RLM Fulfillment Manager | `DFOManagerOperatorUser` |
@@ -449,7 +454,7 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `docgen` | -- | -- | `RLM_DocGen` |
 | `tso` + `constraints` | -- | -- | `RLM_Constraints` |
 | `prm` + `prm_exp_bundle` + `tso` | -- | -- | `RLM_PRM` |
-| `agents` | -- | Copilot (2) | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` |
+| `agents` | -- | Copilot (2) | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent`, `RLM_ApprovalAgent` |
 
 ---
 

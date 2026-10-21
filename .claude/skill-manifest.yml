@@ -61,10 +61,25 @@ foundations:
     - "$RC_WORKSPACE/foundations"
     - "${HOME}/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev"
     - "../rlm-base-dev"
+  # Paths that identify a candidate directory as THIS repo when it does not yet
+  # ship the manifest itself. Any one existing is enough.
+  clone_markers:
+    - ".cursor/skills"
 
   # Skills that Foundations holds canonically.
   # PMOS skills can read these via cross-repo resolution.
   skills:
+    - id: dro-plans
+      path: .cursor/skills/dro-plans/SKILL.md
+      purpose: "Author, load CSV/SFDMU, and maintain DRO order fulfillment configuration and handle affected in-flight plans"
+      consumed_by_pmos: []
+      sub_skills:
+        - .cursor/skills/dro-plans/objects-and-relationships.md
+        - .cursor/skills/dro-plans/authoring-and-deployment.md
+        - .cursor/skills/dro-plans/csv-and-sfdmu.md
+        - .cursor/skills/dro-plans/updates-and-runtime.md
+        - .cursor/skills/dro-plans/examples-and-grounding.md
+
     - id: revenue-cloud-data-model
       path: .cursor/skills/revenue-cloud-data-model/SKILL.md
       purpose: "Revenue Cloud object/field schema reference; backed by erd-data.json"
@@ -257,6 +272,7 @@ foundations:
       tooling:
         - scripts/bash/update-toolchain.sh
         - scripts/ai/gate_python.py
+        - scripts/ai/toolchain_audit.py
       caveats:
         - "macOS + zsh + Homebrew; the containerized toolchain (docker/README.md) is separate"
 
@@ -383,6 +399,17 @@ foundations:
         - scripts/ai/skill_manifest.py
       governs: .claude/skill-manifest.yml
 
+    - id: mcp-integration
+      path: .cursor/skills/mcp-integration/SKILL.md
+      purpose: "The MCP surface on a built org — hosted + custom servers, the ECA, the clone invocable, the proxy. Foundations owns the whole surface: the org side (post_mcp + optional post_mcp_custom bundles, configure_mcp_servers, prepare_mcp flow) and the client tooling in scripts/mcp/. Carries the metadata-vs-Tooling-API constraint, and the rebuild-drift check"
+      consumed_by_pmos: []
+      tooling:
+        - tasks/rlm_mcp.py
+        - scripts/mcp/mcp_org.py
+        - scripts/mcp/mcp_auth.py
+        - scripts/mcp/mcp_multiplex_proxy.py
+        - scripts/mcp/write_connector_config.py
+
     - id: pde-org-build
       path: .cursor/skills/pde-org-build/SKILL.md
       purpose: "Build a PDE (or other org type) via runtime-only feature-flag overrides with a self-reverting script + Cloud-Agent command"
@@ -410,6 +437,15 @@ foundations:
         - scripts/docgen/docgen_template_build.py
         - scripts/docgen/docgen_template_manage.py
         - scripts/docgen/docgen_template_generate.py
+
+    - id: salesforce-contracts
+      path: .cursor/skills/salesforce-contracts/SKILL.md
+      purpose: "Salesforce Contracts CLM setup, org queries, clause and template authoring, lifecycle diagnosis, and migration"
+      consumed_by_pmos: []
+      sub_skills:
+        - .cursor/skills/salesforce-contracts/setup-and-diagnostics.md
+        - .cursor/skills/salesforce-contracts/content-and-migration.md
+        - .cursor/skills/salesforce-contracts/data-model-and-queries.md
 
     - id: df-workshop-setup
       path: .cursor/skills/df-workshop-setup/SKILL.md
@@ -553,6 +589,8 @@ pmos:
     - "$RC_WORKSPACE/pmos"
     - "${HOME}/Documents/GitHub/Enterprise/_bgaldino/pmos-revenue-cloud"
     - "../pmos-revenue-cloud"
+  clone_markers:
+    - ".claude/skills"
 
   # Skills that PMOS holds canonically (subset relevant to Foundations)
   # Foundations skills can read these via cross-repo resolution.
@@ -707,5 +745,5 @@ studio:
   sibling_repos_known:
     - distill: not_modeled_in_manifest
     - aegis: not_modeled_in_manifest
-    # See revenue-cloud-platform.md for the 4-component picture; this manifest
-    # only covers the Foundations × PMOS bridge today.
+    # See revenue-cloud-platform.md for the 4-component picture. This manifest
+    # covers the Foundations × PMOS bridge only.

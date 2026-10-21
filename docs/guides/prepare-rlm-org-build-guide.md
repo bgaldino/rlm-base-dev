@@ -13,7 +13,7 @@
 
 ## What This Document Covers
 
-Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 35-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
+Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 37-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
 
 This guide walks through that build process from start to finish, explaining not just *what* happens at each stage, but *why* each step exists and how the pieces fit together. Whether you're onboarding to the team, preparing a demo environment, or troubleshooting a failed build, this document gives you the full picture.
 
@@ -61,7 +61,7 @@ The most commonly used flags and their defaults:
 
 ## The Build Process: Phase by Phase
 
-The 35 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
+The 37 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
 
 ---
 
@@ -135,7 +135,7 @@ The 35 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 To turn it on, set `quote_est_tax: true` together with `tax: true`. Help requires a tax engine and a tax policy first, so `prepare_core` step 18 deploys it off and `prepare_tax` step 5 turns it on after the engine, the tax data and activation. The tax policies come from the QuantumBit or Q3 tax data (`qb` or `q3`, not on a `refresh` re-run, which reuses the existing ones). Without an active policy, step 5 deploys the setting off and logs a warning. `deploy_post_prm` then also grants partners read access to the new Quote and QuoteLineItem tax fields. Nothing needs editing by hand, and the setting isn't in `unpackaged/pre`, so re-running `deploy_pre` leaves it alone. With `tax: false` the setting stays off; `prepare_core` step 18 logs a warning saying so when `quote_est_tax` is on.
 
-**Billing** (Step 13, `billing` flag) — The most complex data load in the build. Billing data is loaded in three passes because of circular dependencies between billing objects — for example, billing treatments reference legal entities, but legal entity assignments reference billing treatments. After data loading, the build activates billing flows, sets the default payment term, activates billing records, and deploys billing-specific settings including ID resolution settings (which tell the billing engine how to resolve record references) and invoice template settings.
+**Billing** (Step 13, `billing` flag) — The most complex data load in the build. Billing data is loaded in three passes because of circular dependencies between billing objects — for example, billing treatments reference legal entities, but legal entity assignments reference billing treatments. After data loading, the build activates billing flows, sets the default payment term, activates billing records, and deploys billing-specific settings including ID resolution settings (which tell the billing engine how to resolve record references) and invoice template settings. Billing Settings' Credit, Payment, and Refund Application is set to **Line Level** (`post_billing`, `enableTransactionsApplicationToInvoices` false), so credit memo and payment lines apply to invoice lines. Changing it on an org that already has invoices causes tax summary differences. Re-running `prepare_billing` on an existing org switches it to Line Level; its earlier header-level applications stay as they are. Turning on invoice email delivery through the Metadata API doesn't create the Default Invoice Email Template (Core does that only from the Setup toggle), so `prepare_billing` step 11 (`create_default_invoice_email_template`) creates it and step 12 (`deploy_billing_email_template_settings`) selects it.
 
 **Collections** (Step 14, `collections` flag) — Stands up the Collections & Recovery capability. The step disables any already-active case decision matrix (idempotency), deploys the `unpackaged/post_collections` bundle (the `RLM_Create_Case_for_Collection` / `RLM_Create_Promise_to_Pay` flows, collection-plan quick actions, list views, and supporting metadata), seeds and activates the `DetermineCaseReasonAndRelatedAttributes` decision matrix, then deploys the case-creation flow (which can only validate once the matrix version is active). The Collections flexipages and the `CollectionConsole` app variant are assembled later by the UX layer (Step 30), gated on the same flag; the native `CollectionsAndRecoveryPsl` is assigned earlier in `prepare_core`. On by default (`collections: true`) — disable with `collections: false`.
 
@@ -201,9 +201,9 @@ To turn it on, set `quote_est_tax: true` together with `tax: true`. Help require
 
 ---
 
-### Phase 8: Finalization (Steps 33–35)
+### Phase 8: Finalization (Steps 33–37)
 
-**What happens:** All decision tables are refreshed, the Product Catalog search index is rebuilt, and the build's git provenance is stamped onto the org.
+**What happens:** All decision tables are refreshed, the Product Catalog search index is rebuilt, the MCP surface is set up when the `mcp` flag is on, and the build's git provenance is stamped onto the org.
 
 **Why it matters:** Decision tables must be refreshed last so they materialize the final state of all reference data; the catalog search index must rebuild after the catalog data is in place so products are searchable; stamping the commit makes each org traceable back to the exact build that produced it.
 
@@ -211,7 +211,11 @@ To turn it on, set `quote_est_tax: true` together with `tax: true`. Help require
 
 **Search index rebuild** (Step 34, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
 
-**Git commit stamp** (Step 35) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
+**Recycle Bin purge** (Step 35, `empty_recycle_bin`) — Permanently purges records the build deleted (re-loads, `deleteOldData`, cleanups) so they do not linger in the Recycle Bin. Runs on scratch orgs only, because the purge is org-wide and would also remove records other users deleted; on a sandbox or other persistent org run the task ad hoc. Non-fatal by default; also runnable ad hoc (`cci task run empty_recycle_bin --org <alias>`, `-o execute false` for a dry run).
+
+**MCP surface** (Step 36, `mcp` flag) — Deploys the `post_mcp` bundle (the `RLM_McpClient` External Client Application) and, with the `mcp_custom_server` flag on (the default), the `post_mcp_custom` bundle (the clone invocable behind the custom server's CLASSIC-bound tool, at API 68.0) and assigns its `RLM_McpSalesTransactions` permission set to the running user (other MCP users need it assigned too, or their clone calls fail), then activates the hosted Salesforce MCP servers and builds the custom `RLMSalesTransactions` server via the Tooling API. Set `mcp_custom_server: false` to build only the ECA and the hosted servers. Off by default, for two reasons: the hosted `revenue-cloud` server needs the RevMCP pilot permission, which not every org shape has (without it the server activates but serves nothing), and the flow cannot finish the job on its own — each person still completes a browser OAuth login against the ECA, which no automation can do for them. Enable with `mcp: true`. See `.cursor/skills/mcp-integration/SKILL.md`.
+
+**Git commit stamp** (Step 37) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
 
 ---
 

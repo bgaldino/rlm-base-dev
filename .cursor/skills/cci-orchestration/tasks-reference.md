@@ -3,13 +3,13 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**259 tasks** across **9 groups**.
+**265 tasks** across **9 groups**.
 
 ---
 
 ## Data Maintenance
 
-*8 task(s)*
+*9 task(s)*
 
 ### `delete_draft_billing_records`
 
@@ -104,6 +104,14 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
+
+---
+
+### `empty_recycle_bin`
+
+**Description:** Permanently purges deleted records from the org's Recycle Bin across every object that has one (SOAP emptyRecycleBin via scripts/recycle_bin). Pass -o execute false for a dry run, -o objects/-o exclude to scope it. Non-fatal by default so a finished flow is never broken. The prepare_rlm_org step runs on scratch orgs only; run this task directly on any other org.
+
+**Class:** `tasks.rlm_empty_recycle_bin.EmptyRecycleBin`
 
 ---
 
@@ -794,7 +802,7 @@
 
 ## Revenue Lifecycle Management
 
-*169 task(s)*
+*174 task(s)*
 
 ### `activate_agents`
 
@@ -1182,6 +1190,18 @@
 
 ---
 
+### `configure_mcp_servers`
+
+**Description:** Activate the hosted Salesforce MCP servers (McpServerAccess) and build the custom RLMSalesTransactions server — McpServerDefinition plus two McpServerToolDefinition tools and their McpServerToolApiDefinition bindings — via the Tooling API, because only McpServerDefinition is a deployable metadata type. Idempotent; every write checks first. Use -o operation list to report the org's surface without changing it, -o dry_run True to preview, and -o platform_servers True to also activate sobject-all and headless-360 (off by default: sobject-all grants read/write across every object). The custom server follows the mcp_custom_server flag unless -o custom_server is passed.
+
+**Class:** `tasks.rlm_mcp.ConfigureMcpServers`
+
+**Options:**
+
+- `operation`: `ensure`
+
+---
+
 ### `configure_pricing_recipe_table_mappings`
 
 **Description:** Ensure PRM PricingRecipeTableMapping rows exist for NGPDefaultRecipe: RLM_Channel_Program_Level_Partner as PriceAdjustmentMatrix, plus idempotent coverage for the shared RLM_CostBookEntries ListPrice mapping. Uses Tooling API for create/update without metadata deploy.
@@ -1257,6 +1277,18 @@
 - `template`: `Self-Service Billing Portal`
 - `url_path_prefix`: `billing`
 - `skip_existing`: `True`
+
+---
+
+### `create_default_invoice_email_template`
+
+**Description:** Create the "Default Invoice Email Template" (Lightning HTML template on Invoice, org public folder) that Billing Settings creates only from the Setup UI toggle, never from a Metadata API deploy. Same name, labels and merge fields as Core's; skips when an Invoice template with that name or developer name exists (it uses the developer name RLM_Default_Invoice_Email_Template if a non-Invoice template holds the usual one, matches either, and stops with an error if non-Invoice templates hold both). deploy_billing_email_template_settings then selects it.
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/createDefaultInvoiceEmailTemplate.apex`
 
 ---
 
@@ -1514,6 +1546,19 @@
 
 ---
 
+### `deploy_billing_email_template_settings`
+
+**Description:** Select the Default Invoice Email Template (created by create_default_invoice_email_template) as Billing Settings' default email template (defaultEmailTemplate)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_billing_email_template_settings`
+- `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//BillingSettings/defaultEmailTemplate[text()="__D...`
+
+---
+
 ### `deploy_billing_id_settings`
 
 **Description:** Deploy Billing Settings with org-specific record IDs (resolved via XPath transform queries at deploy time)
@@ -1529,7 +1574,7 @@
 
 ### `deploy_billing_template_id_settings`
 
-**Description:** NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with auto-generated template IDs (resolved after deploy_billing_template_settings triggers template auto-creation). Sets defaultEmailTemplate, defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings auto-default these values; explicit deployment is not required.
+**Description:** NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with the invoice template IDs resolved from the org: defaultEmailTemplate, defaultInvPreviewTemplate and defaultInvoiceDocTemplate. Billing defaults the preview and document templates itself; prepare_billing selects the email template with deploy_billing_email_template_settings.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1542,7 +1587,7 @@
 
 ### `deploy_billing_template_settings`
 
-**Description:** Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
+**Description:** Re-enable Invoice Email/PDF toggles to trigger auto-creation of the default invoice preview and document templates (cycle step 3); the email template is created by create_default_invoice_email_template
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1652,7 +1697,7 @@
 
 ### `deploy_post_billing_ui`
 
-**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set (field access + Apex class access + RunFlow). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
+**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set (field access, read on the objects the payments view queries, Apex class access, RunFlow). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1719,6 +1764,30 @@
 **Options:**
 
 - `path`: `unpackaged/post_large_stx_settings`
+
+---
+
+### `deploy_post_mcp`
+
+**Description:** Deploy the MCP client identity — the RLM_McpClient External Client Application (5 components: app, global OAuth settings, OAuth settings, and the two policy sets). Needed by every MCP setup, with or without the custom server.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_mcp`
+
+---
+
+### `deploy_post_mcp_custom`
+
+**Description:** Deploy what the custom RLMSalesTransactions server needs — the RLM_CloneSalesTransaction invocable (v68.0, async-capable) behind the CLASSIC-bound cloneSalesTransaction tool, and the RLM_McpSalesTransactions permission set granting access to it. Must run before configure_mcp_servers builds the custom server, which references that invocable by action path.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_mcp_custom`
 
 ---
 
@@ -2668,7 +2737,7 @@
 
 ### `publish_agents`
 
-**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except those in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles (except any in EXCLUDED_BUNDLES, tasks/rlm_agents_common.py — currently none) into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
 
 **Class:** `tasks.rlm_publish_agents.PublishAgents`
 

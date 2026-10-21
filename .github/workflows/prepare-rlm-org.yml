@@ -73,19 +73,22 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.13"
 
       - name: Set up Node.js 24.16.0
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           # Pinned to an exact 24.x minor. node-version "24" floats to "latest 24.x",
           # which moved 24.16.0 → 24.17.0; on 24.17.0 the npm-installed sf CLI exits 13
           # on `sf org login` ("Detected unsettled top-level await" in the CLI entrypoint).
           # 24.16.0 is the last-known-good — Prepare RLM Org succeeded on it 2026-06-11
           # (run 27314890121). Re-float to "24" once a newer 24.x or sf CLI release restores
-          # compatibility.
+          # compatibility. Both conditions are now met (forcedotcom/cli#3586: fixed in Node
+          # 24.18.0, and sf 2.142.1 moved jsforce to native fetch), but moving this pin needs
+          # a live Prepare RLM Org run to verify. Whatever it moves to stays on the major line pinned in .nvmrc
+          # (tests/test_node_line.py checks they agree).
           node-version: "24.16.0"
 
       - name: Cache npm download cache

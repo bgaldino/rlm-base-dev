@@ -37,7 +37,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **Homebrew** | macOS pkg installer (one-time) | Package manager for everything below | latest |
 | **direnv** | `brew install direnv` | Per-project env activation on `cd` | latest |
 | **nvm** | `brew install nvm` | Node version manager | latest |
-| **Node.js** | `nvm install --lts` | JavaScript runtime for `sf` CLI | major LTS line (`lts/*`) |
+| **Node.js** | `nvm install 24` | JavaScript runtime for `sf` CLI | major line pinned in `.nvmrc` (`24`) |
 | **pyenv** | `brew install pyenv` | Python version manager | latest |
 | **OpenSSL 3** | `brew install openssl@3` | TLS library the pyenv Python 3.13 builds link against | `openssl@3`; keep installed — see [OpenSSL 4 migration](#cci-breaks-after-brew-upgrade-homebrew-openssl-4-migration) |
 | **Python** | `pyenv install $(pyenv latest -k 3.13)` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
@@ -53,9 +53,16 @@ ends up with the same layered structure — not the same exact patch versions.
 **Pin philosophy:**
 - **Major line, not minor.** Patch versions move forward automatically. Bumping
   a major line (Python 3.13 → 3.14, Node 24 → 26) is a deliberate, tested
-  change tracked in `scripts/bash/update-toolchain.sh`.
+  change: Python's line is `PY_LINE` in `scripts/bash/update-toolchain.sh`, and
+  Node's is `.nvmrc`, which the Dockerfile's `NODE_MAJOR`, CI's setup-node and
+  `package.json`'s `engines` must match (`tests/test_node_line.py` checks it).
+  Don't float Node on `lts/*`: it would jump a major the day the next one
+  becomes LTS, with no test step.
 - **pyenv and nvm are version managers, not version pickers.** Let them
-  resolve the latest installed patch via `pyenv latest 3.13` and `nvm use 'lts/*'` (quote the glob so zsh doesn't expand it).
+  resolve the latest installed patch: `.envrc` picks the newest installed
+  3.13.x and the newest installed patch of `.nvmrc`'s major, the ones
+  `pyenv latest 3.13` and a bare `nvm use` would pick, by listing their versions
+  dirs (the commands themselves cost most of a second in every repo shell).
 
 ---
 
@@ -120,26 +127,98 @@ fi
 export PATH="$HOME/.local/bin:$PATH"
 
 # NVM — function definitions + default node bin on PATH (no slow `nvm use`).
-# `brew --prefix nvm` resolves to /opt/homebrew/opt/nvm (Apple Silicon)
-# or /usr/local/opt/nvm (Intel) — works on both architectures.
+# nvm.sh is found the way the repo's .envrc finds it: Homebrew's first, via
+# `brew --prefix nvm` (/opt/homebrew/opt/nvm on Apple Silicon, /usr/local/opt/nvm
+# on Intel), else nvm's own installer's, in $NVM_DIR ($XDG_CONFIG_HOME/nvm when
+# that variable was set at install time). An inherited $NVM_DIR is kept.
 #
 # We skip the full `nvm use default` activation cycle (slow) and just resolve
 # `default` to a concrete vX.Y.Z via nvm's public API, then prepend that bin
-# dir. `nvm version default` handles any alias chain — including glob aliases
-# like `lts/*` (which `update-toolchain.sh` and `nvm install --lts` set) —
-# without depending on nvm's internal alias-cache file layout.
-export NVM_DIR="$HOME/.nvm"
+# dir. `nvm version default` handles any alias chain — a major such as `24`
+# (which `update-toolchain.sh` sets from `.nvmrc`) or a glob such as `lts/*` —
+# without depending on nvm's internal alias-cache file layout. Never prepend
+# the newest installed version instead (`ls "$NVM_DIR/versions/node" | sort -V
+# | tail -1`): installing the next major early would then move every shell to it.
+#
+# That lookup alone costs about 0.4s, in every shell, so its answer is kept in
+# ~/.cache/nvm-default-version ($XDG_CACHE_HOME when set) with the NVM_DIR it
+# came from. It's looked up again when anything under $NVM_DIR/alias is newer
+# than the cache (`nvm alias default`, which update-toolchain.sh runs), when a
+# Node is installed or removed, or when NVM_DIR is another dir. The cache is
+# stamped with the time its lookup started, so a change made during one still
+# counts. To force a lookup: rm ~/.cache/nvm-default-version
+#
+# When $DIRENV_DIR is set and PATH already holds an nvm Node, move that Node's
+# bin dir (the first one that holds a `node`) back to the front instead: this shell was started
+# from one that already loaded a project's .envrc (an agent's, IDE task's or
+# script's `zsh -c`), and it inherits that PATH, with .envrc's Node
+# first, or this block's `default` from the parent for a project that doesn't
+# pin Node. The `direnv export` below sees the .envrc already loaded and
+# changes nothing, so a Node prepended here would win over the project's
+# pinned line. Skipping isn't enough either: the lines above (`brew shellenv`,
+# ~/.local/bin) have already moved their dirs ahead of the inherited Node, and
+# a `node` there (a Homebrew one, or a tool's shim such as DevBar's
+# ~/.local/bin/node on managed workstations) would win. This needs no nvm.sh,
+# so it also runs where none is found. Without an nvm Node on PATH there is
+# nothing to keep, so `default` goes first as usual. Either way the chosen dir
+# moves to the front rather than being added again, so nested shells don't
+# accumulate copies of it; the rest of PATH, empty entries included, keeps its
+# order. The loops split PATH with parameter expansion, which works in zsh and
+# sh alike.
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+_NVM_SH=""
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
-  . "$_NVM_PREFIX/nvm.sh" --no-use
-  _NVM_VER="$(nvm version default 2>/dev/null)"
+  _NVM_SH="$_NVM_PREFIX/nvm.sh"
+elif [ -s "$NVM_DIR/nvm.sh" ]; then
+  _NVM_SH="$NVM_DIR/nvm.sh"
+elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then
+  export NVM_DIR="$XDG_CONFIG_HOME/nvm"
+  _NVM_SH="$NVM_DIR/nvm.sh"
+fi
+[ -n "$_NVM_SH" ] && . "$_NVM_SH" --no-use
+_NVM_BIN=""
+if [ -n "${DIRENV_DIR:-}" ]; then
+  _NVM_LEFT="$PATH:"
+  while [ -n "$_NVM_LEFT" ] && [ -z "$_NVM_BIN" ]; do
+    _NVM_D="${_NVM_LEFT%%:*}" _NVM_LEFT="${_NVM_LEFT#*:}"
+    case "$_NVM_D" in
+      "$NVM_DIR"/versions/node/*/bin) [ -x "$_NVM_D/node" ] && _NVM_BIN="$_NVM_D" ;;
+    esac
+  done
+fi
+if [ -z "$_NVM_BIN" ] && [ -n "$_NVM_SH" ]; then
+  _NVM_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/nvm-default-version" _NVM_VER=""
+  if [ -r "$_NVM_CACHE" ] && [ ! "$NVM_DIR/versions/node" -nt "$_NVM_CACHE" ] && \
+     [ -z "$(find "$NVM_DIR/alias" -newer "$_NVM_CACHE" 2>/dev/null)" ]; then
+    { read -r _NVM_D && read -r _NVM_VER; } < "$_NVM_CACHE" 2>/dev/null
+    [ "$_NVM_D" = "$NVM_DIR" ] || _NVM_VER=""
+    case "$_NVM_VER" in N/A|system) ;; */*) _NVM_VER="" ;; v[0-9]*) ;; *) _NVM_VER="" ;; esac
+  fi
+  if [ -z "$_NVM_VER" ]; then
+    _NVM_MARK="$_NVM_CACHE.$$"
+    { mkdir -p "${_NVM_CACHE%/*}" && touch "$_NVM_MARK"; } 2>/dev/null || _NVM_MARK=""
+    _NVM_VER="$(nvm version default 2>/dev/null)"
+    if [ -n "$_NVM_MARK" ]; then
+      { [ -n "$_NVM_VER" ] && printf '%s\n%s\n' "$NVM_DIR" "$_NVM_VER" > "$_NVM_MARK.new" \
+          && touch -r "$_NVM_MARK" "$_NVM_MARK.new" && mv -f "$_NVM_MARK.new" "$_NVM_CACHE"
+        rm -f "$_NVM_MARK" "$_NVM_MARK.new"; } 2>/dev/null
+    fi
+  fi
   if [ -n "$_NVM_VER" ] && [ "$_NVM_VER" != "N/A" ] && \
      [ -d "$NVM_DIR/versions/node/$_NVM_VER/bin" ]; then
-    export PATH="$NVM_DIR/versions/node/$_NVM_VER/bin:$PATH"
+    _NVM_BIN="$NVM_DIR/versions/node/$_NVM_VER/bin"
   fi
-  unset _NVM_VER
 fi
-unset _NVM_PREFIX
+if [ -n "$_NVM_BIN" ]; then
+  _NVM_REST="" _NVM_LEFT="$PATH:"
+  while [ -n "$_NVM_LEFT" ]; do
+    _NVM_D="${_NVM_LEFT%%:*}" _NVM_LEFT="${_NVM_LEFT#*:}"
+    [ "$_NVM_D" = "$_NVM_BIN" ] || _NVM_REST="$_NVM_REST:$_NVM_D"
+  done
+  export PATH="$_NVM_BIN$_NVM_REST"
+fi
+unset _NVM_PREFIX _NVM_SH _NVM_VER _NVM_BIN _NVM_REST _NVM_LEFT _NVM_D _NVM_CACHE _NVM_MARK
 
 # pyenv binary on PATH — but NO global init. Per-project init via direnv.
 export PYENV_ROOT="$HOME/.pyenv"
@@ -230,27 +309,91 @@ pins. For **rlm-base-dev** it lives at the repo root:
 ```sh
 # .envrc
 
-# Python via pyenv — major.minor line, auto-resolve latest patch
+# Python via pyenv — major.minor line, auto-resolve latest patch: the newest plain
+# 3.13.N in pyenv's versions dir (`pyenv latest`/`pyenv root` cost ~0.25s a shell)
 if command -v pyenv >/dev/null 2>&1; then
-  _PY_RESOLVED="$(pyenv latest 3.13 2>/dev/null)"
+  _PY_LINE=3.13 _PY_ROOT="${PYENV_ROOT:-$HOME/.pyenv}" _PY_RESOLVED="" _PY_BEST=-1
+  for _PY_BIN in "$_PY_ROOT"/versions/"$_PY_LINE".*/bin/python3; do
+    _PY_N="${_PY_BIN%/bin/python3}" && _PY_N="${_PY_N##*/"$_PY_LINE".}"
+    case "$_PY_N" in ''|*[!0-9]*) continue ;; esac
+    if [ -x "$_PY_BIN" ] && [ "$_PY_N" -gt "$_PY_BEST" ]; then
+      _PY_BEST="$_PY_N" _PY_RESOLVED="$_PY_LINE.$_PY_N"
+    fi
+  done
   if [ -n "$_PY_RESOLVED" ]; then
     export PYENV_VERSION="$_PY_RESOLVED"
-    PATH_add "$(pyenv root)/shims"
+    PATH_add "$_PY_ROOT/shims"
   else
-    echo ".envrc: no Python 3.13.x installed via pyenv. Run scripts/bash/update-toolchain.sh or 'pyenv install \$(pyenv latest -k 3.13)' to install the latest patch." >&2
+    echo ".envrc: no Python $_PY_LINE.x installed via pyenv. Run scripts/bash/update-toolchain.sh or 'pyenv install \$(pyenv latest -k $_PY_LINE)' to install the latest patch." >&2
   fi
-  unset _PY_RESOLVED
+  unset _PY_LINE _PY_ROOT _PY_RESOLVED _PY_BEST _PY_BIN _PY_N
 fi
 
-# Node via nvm — track active LTS line. brew --prefix nvm resolves to
-# /opt/homebrew/opt/nvm (Apple Silicon) or /usr/local/opt/nvm (Intel).
-export NVM_DIR="$HOME/.nvm"
+# Node via nvm — the major line pinned in .nvmrc. Its newest installed patch, the
+# one a bare `nvm use` would pick, is found by listing $NVM_DIR/versions/node
+# (loading nvm and `nvm use` cost ~0.5s a shell). It goes first on PATH and the
+# other nvm Node dirs leave PATH (package bin dirs under a version stay), which is
+# stricter than `nvm use`. A .nvmrc that isn't a bare major goes to `nvm use`.
+# nvm.sh is found as update-toolchain.sh step 3 finds it: Homebrew's first
+# (brew --prefix nvm resolves to /opt/homebrew/opt/nvm on Apple Silicon or
+# /usr/local/opt/nvm on Intel), else nvm's own installer's in $NVM_DIR, or
+# $XDG_CONFIG_HOME/nvm when that was set at install time.
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+_NVM_SH=""
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
-  . "$_NVM_PREFIX/nvm.sh" --no-use
-  nvm use --silent lts/\* >/dev/null 2>&1 || nvm use --silent default >/dev/null 2>&1
+  _NVM_SH="$_NVM_PREFIX/nvm.sh"
+elif [ -s "$NVM_DIR/nvm.sh" ]; then
+  _NVM_SH="$NVM_DIR/nvm.sh"
+elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then
+  export NVM_DIR="$XDG_CONFIG_HOME/nvm"
+  _NVM_SH="$NVM_DIR/nvm.sh"
 fi
-unset _NVM_PREFIX
+if [ -n "$_NVM_SH" ]; then
+  _NODE_RC=""
+  [ -r .nvmrc ] && { read -r _NODE_RC < .nvmrc || true; }
+  _NODE_LINE="${_NODE_RC%%[[:space:]]*}" && _NODE_LINE="${_NODE_LINE#v}"
+  case "$_NODE_LINE" in ''|*[!0-9]*) _NODE_LINE="" ;; esac
+  # No fallback to nvm's `default`: that can be an older line, and selecting it silently
+  # hides the problem. Say so instead; validate_setup also fails a lower major.
+  _NODE_MISSING=".envrc: Node $_NODE_RC (from .nvmrc) isn't installed. Run 'nvm install' here, or scripts/bash/update-toolchain.sh."
+  if [ -n "$_NODE_LINE" ]; then
+    _NODE_BIN="" _NODE_MI=-1 _NODE_PA=-1
+    for _NODE_D in "$NVM_DIR"/versions/node/v"$_NODE_LINE".*/bin; do
+      # Only a release's vMAJOR.MINOR.PATCH name counts, not a prerelease's.
+      _NODE_V="${_NODE_D%/bin}" && _NODE_V="${_NODE_V##*/v"$_NODE_LINE".}"
+      case "$_NODE_V" in [0-9]*.[0-9]*) ;; *) continue ;; esac
+      case "$_NODE_V" in *[!0-9.]*|*.*.*) continue ;; esac
+      [ -x "$_NODE_D/node" ] || continue
+      _NODE_M="${_NODE_V%.*}" _NODE_P="${_NODE_V#*.}"
+      if [ "$_NODE_M" -gt "$_NODE_MI" ] || { [ "$_NODE_M" -eq "$_NODE_MI" ] && [ "$_NODE_P" -gt "$_NODE_PA" ]; }; then
+        _NODE_BIN="$_NODE_D" _NODE_MI="$_NODE_M" _NODE_PA="$_NODE_P"
+      fi
+    done
+    if [ -n "$_NODE_BIN" ]; then
+      # The rest of PATH, empty entries included, keeps its order.
+      _NODE_REST="" _NODE_LEFT="$PATH:"
+      while [ -n "$_NODE_LEFT" ]; do
+        _NODE_D="${_NODE_LEFT%%:*}" _NODE_LEFT="${_NODE_LEFT#*:}"
+        case "$_NODE_D" in
+          "$NVM_DIR"/versions/node/*/*/bin) _NODE_REST="$_NODE_REST:$_NODE_D" ;;
+          "$NVM_DIR"/versions/node/*/bin) ;;
+          *) _NODE_REST="$_NODE_REST:$_NODE_D" ;;
+        esac
+      done
+      export PATH="$_NODE_BIN$_NODE_REST" NVM_BIN="$_NODE_BIN" NVM_INC="${_NODE_BIN%/bin}/include/node"
+    else
+      echo "$_NODE_MISSING" >&2
+    fi
+  else
+    . "$_NVM_SH" --no-use
+    nvm use --silent >/dev/null 2>&1 || echo "$_NODE_MISSING" >&2
+  fi
+  unset _NODE_RC _NODE_LINE _NODE_MISSING _NODE_BIN _NODE_MI _NODE_PA _NODE_D _NODE_V _NODE_M _NODE_P _NODE_REST _NODE_LEFT
+else
+  echo ".envrc: nvm not found (via 'brew --prefix nvm', in \$NVM_DIR or in \$XDG_CONFIG_HOME/nvm), so .nvmrc's Node line isn't applied. Install it (docs/guides/local-installation.md, Step 3), or put Homebrew on PATH if your nvm comes from Homebrew." >&2
+fi
+unset _NVM_PREFIX _NVM_SH
 
 # Per-workstation overrides: values only, read as dotenv (see below).
 dotenv_if_exists .env.local
@@ -280,7 +423,7 @@ tracked, so git overwrites local edits to it, and `direnv allow` is needed again
 python --version
 # → 3.13.x (set by PYENV_VERSION environment variable)
 pyenv version
-# → v24.x (latest LTS)
+# → v24.x (the line pinned in .nvmrc)
 node --version
 # → CumulusCI 4.x
 cci --version
@@ -290,8 +433,8 @@ sf --version
 
 ### Adapting to another project
 
-Copy `.envrc`, edit the python/node lines (e.g. `pyenv latest 3.12` if the
-project still needs 3.12), `direnv allow`. The system layer doesn't change.
+Copy `.envrc`, set `_PY_LINE` (e.g. `3.12` if the project still needs 3.12)
+and the project's `.nvmrc`, `direnv allow`. The system layer doesn't change.
 
 ---
 
@@ -313,23 +456,29 @@ The script handles:
 2. `pyenv install --skip-existing $(pyenv latest -k 3.13)` — installs newest
    patch in the pinned major.minor line, **only if** there's a newer one —
    then stops, before touching Node, if that Python can't import `ssl`.
-   It also moves `pyenv global` (`~/.pyenv/version`, the `python` you get
-   outside a project that pins its own) along the line, as step 3 moves nvm's
+   It also moves `pyenv global` (`~/.pyenv/version`: what `pyenv exec`,
+   `pyenv prefix` and pyenv's shims resolve to outside a project that pins its
+   own; with §2's layout no shims are on PATH outside the repo, so a bare
+   `python` there isn't pyenv's at all) along the line, as step 3 moves nvm's
    default Node, but only from an older 3.13 patch, and only when that old
    interpreter holds no packages of its own (`gate_python.py --carry-over` reads
    its site-packages). Packages pip-installed straight into it would disappear
-   from `python` and the shims after a switch, so then it leaves the global where
+   from `pyenv exec python` and the shims after a switch, so then it leaves the global where
    it is and warns, naming them: reinstall the ones you use under the new patch
    (or with pipx), then `pyenv global <new patch>`. A global set to `system`,
    another line or several versions is left alone. Virtualenvs built on the old
    patch aren't affected either way: they record its path, and break only if that
    patch is uninstalled
-3. `nvm install 'lts/*' --latest-npm`, then, only if the version changed,
+3. `nvm install <line> --latest-npm` with `<line>` read from `.nvmrc` (`24`;
+   the script stops if `.nvmrc` doesn't hold a bare major), then
+   `nvm alias default <line>`, so new shells outside the repo get it too.
+   Then, only if the version changed,
    `nvm reinstall-packages <old>` — carries `sf` and other npm globals forward.
    `<old>` is the active Node. When another `node` is ahead of nvm's on PATH,
    it's nvm's `default` alias instead, or without one the newest Node nvm has
    installed. nvm comes from Homebrew (`brew --prefix nvm`) or, failing that,
-   nvm's own installer (`$NVM_DIR/nvm.sh`, or `$XDG_CONFIG_HOME/nvm/nvm.sh`)
+   nvm's own installer (`$NVM_DIR/nvm.sh`, or `$XDG_CONFIG_HOME/nvm/nvm.sh`);
+   `.envrc` finds it the same way
 4. `npm install -g @salesforce/cli@latest` — `sf` is an npm global under nvm's
    Node, and `sf update` refuses npm-based installs (it falls back to `sf update`
    only for an installer-based `sf`)
@@ -338,9 +487,12 @@ The script handles:
    required because patch upgrades break the venv's python symlink. The script
    then checks the venv really runs the new patch. It also rewrites pipx's own
    scripts in `~/.local/bin` (pipx, userpath, argcomplete) for the new patch, and
-   names any other pipx app still on an older 3.13 patch without changing it. Before
-   `pyenv uninstall` of an old patch, run the toolchain audit's "Other users of an
-   older patch" row (`.cursor/skills/toolchain/workstation-audit.md` §2)
+   names any other pipx app still on an older 3.13 patch without changing it. It
+   also names [pipx's shared venv](#pipxs-shared-venv-is-on-another-python) when
+   that is on another Python, which no pipx command moves. Before
+   `pyenv uninstall` of an old patch, run the toolchain audit's two checks for it
+   (`.cursor/skills/toolchain/workstation-audit.md` §2):
+   `python3 scripts/ai/toolchain_audit.py --check older-patch-users --check pipx-shared-venv`
 6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
    requires modern setuptools. The historical `<71` pin (older docs)
    is **incompatible**; see the [local installation guide](local-installation.md#step-7--install-cumulusci), *Note on setuptools*. Note CI
@@ -395,8 +547,9 @@ venvs and their carried-over packages, a venv left because it's in use,
 the script exits nonzero instead of printing `Done`. That holds even when
 `validate_setup` passed: it can't see every missing update.
 
-A `pyenv global` left on an older patch (step 2) isn't a failure, but its warning
-is repeated just before `Done` so it isn't lost above the run's output.
+A `pyenv global` left on an older patch (step 2) isn't a failure, and neither is a
+pipx app or pipx's shared venv on another Python (step 5), but their warnings are
+repeated just before `Done` so they aren't lost above the run's output.
 
 **When `DEPS` in `scripts/ai/pr_gate.py` changes** (a check gains a new
 package, or the CumulusCI pin moves), the gate interpreter needs the new
@@ -412,19 +565,32 @@ python3 scripts/ai/gate_python.py
 
 When Python 3.14 stabilizes for CCI, or Node 26 becomes LTS:
 
-1. Edit `PY_LINE` / `NODE_LINE` at the top of `scripts/bash/update-toolchain.sh`
-2. Edit the `pyenv latest <line>` call in `.envrc`
+1. Python: edit `PY_LINE` at the top of `scripts/bash/update-toolchain.sh`.
+   Node: edit `.nvmrc`, and in the same change the Dockerfile's `NODE_MAJOR`,
+   CI's `node-version` in `prepare-rlm-org.yml`, `engines.node` in
+   `package.json`, and the lines that tell people which Node to install (both
+   setup guides, the toolchain and troubleshooting skills, the `validate_setup`
+   hint). `tests/test_node_line.py` fails the gate until they all agree
+2. Python: edit `_PY_LINE` in `.envrc` (Node needs no `.envrc` change: it
+   reads the major from `.nvmrc`)
 3. Run the script. It installs the new line, reinstalls CCI under the new
    Python, rebuilds the gate interpreter `.venv` and the TUI venvs on it, and
    verifies via `validate_setup`. It doesn't move `pyenv global` to a new line:
    that's yours to change.
-4. Commit `.envrc` + the script changes.
+4. Commit the line change (`.envrc` and the script for Python; `.nvmrc` and its
+   three companions for Node). A Python `.envrc` edit means every workstation
+   runs `direnv allow` once.
 5. Optionally `pyenv uninstall <old.line>.x` and `nvm uninstall <old-node>`.
    Before uninstalling a Python, check nothing still uses it: `pyenv global`
    must not name it ([the troubleshooting entry](#pyenv-version-313x-is-not-installed-set-by-pyenvversion)),
    and anything you pip-installed into it goes with it
    (`python3 scripts/ai/gate_python.py --carry-over "$(pyenv root)/versions/<old>"`
-   lists those).
+   lists those). Check pipx's shared venv too
+   (`sed -n 's/^home *= *//p' "$(pipx environment --value PIPX_SHARED_LIBS)/pyvenv.cfg"`).
+   It stays on the Python that first ran pipx, and the script's CCI reinstall
+   doesn't move it. If it's on the old line, uninstalling that Python leaves every
+   pipx venv without pip, so move it first, by the *Another line* route in
+   [pipx's shared venv is on another Python](#pipxs-shared-venv-is-on-another-python).
 
 ---
 
@@ -441,10 +607,15 @@ For a clean macOS workstation, in order:
    `~/.zprofile` and `~/.zshrc`. Don't replace the files wholesale.
    1. Save backups first (`cp ~/.zshenv ~/.zshenv.bak.$(date +%Y%m%d)` etc.;
       skip a file that doesn't exist yet — `~/.zprofile` often doesn't on Intel).
-   2. Remove what Steps 3–4 of the installation guide appended; the §2
-      templates replace all of it:
+   2. Remove what an earlier Step 3 and an earlier Step 4 of the installation
+      guide appended (the current Steps 3 and 4 copy the §2 blocks instead; keep
+      those); the §2 templates replace all of it:
       - in both `~/.zshenv` and `~/.zshrc`, the `NVM_DIR` and `PYENV_ROOT` exports, the pyenv `PATH`
-        line and `eval "$(pyenv init -)"`;
+        line and `eval "$(pyenv init -)"` (the plain `export NVM_DIR="$HOME/.nvm"`,
+        not the NVM block's `${NVM_DIR:-$HOME/.nvm}` one, and the
+        `[[ -d $PYENV_ROOT/bin ]] && …` line, not the pyenv block's
+        `[ -d "$PYENV_ROOT/bin" ] && …` one; keep that block's own
+        `PYENV_ROOT` export, under its `# pyenv binary on PATH` comment);
       - in `~/.zshrc`, the one-line `nvm.sh` source, and the nvm
         `bash_completion` line (or keep that in place of the template's
         equivalent);
@@ -462,7 +633,13 @@ For a clean macOS workstation, in order:
       needed). Without one, sub-step 3 adds the template block. Neither is a
       tool-managed block.
    3. Add the §2 template lines, and keep everything else, especially any
-      **tool-managed block** (see §2), unchanged.
+      **tool-managed block** (see §2), unchanged. Keep the template's order:
+      in `~/.zshenv`, no directory that can hold a `node` (Homebrew's bin,
+      `~/.local/bin`) is prepended after the NVM block, or that `node` wins
+      over nvm's. The current Steps 3 and 4 already
+      added the `~/.zshenv` Homebrew, NVM and pyenv blocks and the `~/.zshrc` nvm
+      completion lines; don't add a second copy, put the pipx line between
+      the Homebrew and NVM blocks, and the direnv line after the pyenv block.
    4. Check with `diff ~/.zshrc ~/.zshrc.bak.<date>` (and the other two): only
       toolchain lines should differ (a file you just created has no backup to
       diff against).
@@ -514,8 +691,11 @@ launch Claude Code from a terminal, **or** restart Claude Code after
 fixing `~/.zshenv`.
 
 ### `pyenv: version '3.13.x' is not installed (set by ~/.pyenv/version)`
-Every `python` outside a project that pins its own fails like this when `pyenv
-global` names a patch that was uninstalled. `update-toolchain.sh` repairs it on
+Outside a project that pins its own, `pyenv exec`, `pyenv prefix` (as in the
+installation guide's Step 7) and any pyenv shim fail like this when `pyenv global`
+names a patch that was uninstalled. With §2's layout a bare `python` outside the
+repo isn't pyenv's, so it doesn't show this error; a shell that still runs a
+global `pyenv init` does. `update-toolchain.sh` repairs it on
 its next run (it moves a global naming a missing 3.13 patch to the current one);
 by hand:
 
@@ -548,6 +728,103 @@ pipx inject --force cumulusci -r robot/requirements.txt
 # The Python version line must name the new patch
 cci version
 ```
+
+### A pipx app or a script in `~/.local/bin` is on an older 3.13 patch
+The toolchain audit's `older-patch-users` check
+(`python3 scripts/ai/toolchain_audit.py --check older-patch-users`) lists each pipx
+app and each script in `~/.local/bin` that runs on a 3.13 patch older than the
+latest installed one. Each keeps working until that patch is uninstalled, then
+breaks. `update-toolchain.sh` moves CCI and rewrites pipx's own scripts (pipx,
+userpath, argcomplete); any other pipx app it names without changing it. Move each
+one listed before you uninstall the old patch, then re-run the check: it must print
+nothing.
+
+```bash
+cur="$(pyenv latest 3.13)"
+# A pipx app: rebuild its venv on the current patch (pipx keeps injected packages).
+# For cumulusci, use "pipx venv broken after Python patch bump" above instead.
+pipx reinstall <app> --python "$(pyenv prefix "$cur")/bin/python3"
+# Any other script in ~/.local/bin: reinstall the package that owns it with the
+# current patch's pip, which rewrites its shebang. --no-deps leaves its dependencies alone.
+"$(pyenv prefix "$cur")/bin/python3" -m pip install --user --force-reinstall --no-deps <package>
+```
+
+### pipx's shared venv is on another Python
+pipx's shared venv (`pipx environment --value PIPX_SHARED_LIBS`, usually
+`~/.local/pipx/shared`) holds the pip that every pipx venv, CCI's included, uses for
+installs, injects and upgrades. Each venv reaches it through a `pipx_shared.pth` file
+that names the shared venv's `lib/pythonX.Y/site-packages`. pipx builds the shared
+venv on whichever Python first ran pipx, and rebuilds it only once that Python is
+gone. A patch bump, `pipx reinstall`, `update-toolchain.sh` and `pipx upgrade-shared`
+(which only upgrades pip in place and has no `--python`) all leave it where it is. So
+it can still be on a patch or a line you are about to uninstall, even when every venv
+already runs the current patch. `update-toolchain.sh` names it at the end of a run,
+and so does the toolchain audit's `pipx-shared-venv` check
+(`python3 scripts/ai/toolchain_audit.py --check pipx-shared-venv`). To look by hand:
+
+```bash
+s="$(pipx environment --value PIPX_SHARED_LIBS)"
+sed -n 's/^home *= *//p' "$s/pyvenv.cfg"; ls "$s/lib"
+grep -H '' "$(pipx environment --value PIPX_LOCAL_VENVS)"/*/lib/python*/site-packages/pipx_shared.pth
+```
+
+The first line is the shared venv's Python, the second its `pythonX.Y`, and the rest
+says where each app's pip comes from. An app on 3.13 whose `.pth` names another
+`lib` still works, because pip is pure Python, but it loses pip once the shared venv
+is rebuilt. A `.pth` naming a directory that's gone means `pipx inject` and
+`pipx upgrade` already fail for that app. An app you keep on another line on purpose
+always loads pip from another `lib`; that's expected.
+
+pipx rebuilds the shared venv on `PIPX_DEFAULT_PYTHON` when that is set, and on the
+Python running pipx otherwise, so the commands below unset it. (`printenv
+PIPX_DEFAULT_PYTHON` shows whether it is set; `pipx environment` always prints an
+interpreter for it, the fallback when it isn't.) Pick the route by where the shared venv is:
+
+- **An older 3.13 patch under pyenv** (`lib` is `python3.13`) that nothing else needs
+  (§4, [Bumping a major line](#bumping-a-major-line), step 5): uninstall that patch,
+  then run `env -u PIPX_DEFAULT_PYTHON "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m pipx upgrade-shared`.
+  pipx treats a shared venv whose Python is missing as invalid, prints `creating shared
+  libraries...` and rebuilds it on the interpreter running pipx. The `.pth` files stay
+  valid, because the path still ends in `python3.13`.
+- **Already on the current patch, with some `.pth` naming a directory that's gone**
+  (it was rebuilt after its old line was uninstalled): reinstall just those apps,
+  `pipx reinstall <app> --python "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3"`.
+  For `cumulusci`, re-run the two injections in the block below afterwards.
+- **Another line** (`lib` isn't `python3.13`), a Python outside pyenv (a pipx first run
+  from Homebrew's Python), or an old Python that must stay: a rebuild alone would leave
+  every venv's `.pth` on the old `lib/pythonX.Y`, so they'd lose pip. Reinstall every
+  pipx venv instead. Note first which apps you keep on another Python
+  (`pipx list` names the Python each one was installed with): `reinstall-all` moves them
+  all to 3.13. From the main checkout:
+
+  ```bash
+  PY="$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3"
+  ph="$(pipx environment --value PIPX_HOME)"; s="$(pipx environment --value PIPX_SHARED_LIBS)"
+  bk="$HOME/pipx-backup-$(date +%Y%m%d-%H%M%S)"
+  for v in "$ph"/venvs/*/; do "$v/bin/python" -c 'import importlib.metadata as m; print("\n".join(sorted(f"{d.name}=={d.version}" for d in m.distributions())))' > "$bk-$(basename "$v").before"; done
+  [ ! -e "$bk" ] && cp -a "$ph" "$bk" && mv "$s" "$bk-shared-old" && env -u PIPX_DEFAULT_PYTHON "$PY" -m pipx reinstall-all --python "$PY"
+  "$PY" -m pipx inject --force cumulusci "setuptools>=75.4"
+  "$PY" -m pipx inject --force cumulusci -r robot/requirements.txt
+  ```
+
+  The backup, the move and the reinstall are chained, so a failed copy stops before
+  anything changes. Moving `shared` aside makes pipx recreate it on `$PY`. Then rerun
+  the checks above, and diff each venv's package list against its `$bk-<app>.before`
+  file. `reinstall-all` re-resolves unpinned packages, so expect a few patch bumps, not
+  missing packages. `cci version` must name the current patch. Put an app you keep on
+  another Python back with `pipx reinstall <app> --python <its Python>`. If it can't be
+  installed on 3.13, `reinstall-all` reports it failed, and it is no longer installed
+  (a reinstall uninstalls first): `pipx install <package> --python <its Python>`, then
+  `pipx inject` the packages listed under `injected_packages` in
+  `"$bk"/venvs/<app>/pipx_metadata.json`. To roll everything back,
+  `rm -rf "$ph"`, then `mv "$bk" "$ph"`, and `rm -rf "$s" && mv "$bk-shared-old" "$s"` if
+  the shared venv lives outside `$ph`.
+
+Don't delete the shared venv outright: the first two routes need no deletion, and the
+third keeps it and a full backup. `pipx run` caches can sit on an old Python too. They
+live in `pipx environment --value PIPX_VENV_CACHEDIR`, and some setups use
+`~/.local/pipx/.cache` instead. They are disposable, and pipx expires them itself;
+pipx has no command to clear them.
 
 ### `cci` breaks after `brew upgrade` (Homebrew OpenSSL 4 migration)
 Symptom — after `brew upgrade` (or `scripts/bash/update-toolchain.sh`, which
@@ -652,10 +929,11 @@ Symptom: `npm` or `sf` fail with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` or
 downloads Node, and the version index it resolves versions from, with `curl`
 (or `wget` if `curl` is missing), and neither reads it. nvm fetches that index
 silently, so a certificate problem shows only as a version that isn't found:
-``Version '' (with LTS filter) not found - try `nvm ls-remote --lts` …`` for
-`lts/*` (what `update-toolchain.sh` installs), or
 ``Version '24' not found - try `nvm ls-remote` …`` for an explicit version
-such as `24` (nvm prints the version as you typed it).
+such as `24` (what `update-toolchain.sh` installs, from `.nvmrc`; nvm prints the
+version as you typed it), or
+``Version '' (with LTS filter) not found - try `nvm ls-remote --lts` …`` for
+`lts/*`.
 To see the real error, run `curl -sSI https://nodejs.org/dist/index.tab`.
 
 For nvm's downloads, fix the trust for `curl` (`CURL_CA_BUNDLE`; nvm runs curl with `-q`,
