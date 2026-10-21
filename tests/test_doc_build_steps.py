@@ -182,12 +182,19 @@ def resolve_flow():
             "python, not a bare python3"
         ) from exc
 
+    # CCI locates the project by looking for a `.git` *directory*; in a git worktree `.git` is a
+    # file, so it walks up to the main checkout (or finds nothing). Its own override env vars point
+    # it at this checkout instead; both are required, and a value the caller already set wins.
+    if os.path.isfile(os.path.join(REPO, ".git")):
+        os.environ.setdefault("CUMULUSCI_AUTO_DETECT", "1")
+        os.environ.setdefault("CUMULUSCI_REPO_ROOT", REPO)
     runtime = CliRuntime(load_keychain=False)
     if runtime.project_config is None:
         raise RuntimeError(
             "CumulusCI imported but resolved no project, so no flow can be read. "
             "Run from the repo root — CumulusCI finds the repo by looking for a "
-            ".git directory, and in a git worktree .git is a file."
+            ".git directory (a worktree's .git is a file; resolve_flow sets "
+            "CUMULUSCI_AUTO_DETECT/CUMULUSCI_REPO_ROOT for that case)."
         )
     coordinator = runtime.get_flow(ROOT_FLOW)
     return runtime, {
