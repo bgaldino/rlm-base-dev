@@ -336,15 +336,17 @@ def audit_named_steps(inside, root_at, inside_task, runtime, declared, base=None
 
 
 def _tracked_markdown():
-    """Markdown files git tracks (or has staged), or None when git cannot say.
+    """Markdown files git tracks or could add (untracked, not ignored), or None when git cannot say.
 
     The repo's own docs are what CI audits, so the default scan asks git rather than the disk.
     A disk walk also reads `.claude/worktrees/*` checkouts (each a full copy of the docs, at
     another commit) and stray untracked directories such as `tmp-metadata/`, and reported their
-    stale citations as this branch's.
+    stale citations as this branch's. Untracked files are included because the gate selects this
+    check on a new, unstaged doc; git does not descend into a nested checkout, so worktrees stay out.
     """
     try:
-        proc = subprocess.run(["git", "ls-files", "-z", "--cached", "--", "*.md"],
+        proc = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard",
+                               "--", "*.md"],
                               cwd=REPO, capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.TimeoutExpired):
         return None
