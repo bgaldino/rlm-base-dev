@@ -23,6 +23,9 @@ ${SCREENSHOT_COUNTER}       ${0}
 # failed; see Wait For Quote Calculation.
 @{QUOTE_CALC_FAILED}        SaveFailedOrIncomplete    QuoteRequestPartiallySaved    PartialSaveSuccess
 @{QUOTE_CALC_PRICED}        CompletedWithPricing    CompletedWithTax    TaxCalculationSuccess
+# RLM_CreateContractFromQuote's contract-price choices: option label (before its colon) → choice API name.
+&{CONTRACT_PRICE_CHOICES}   Net Unit Price=ContractUsingNetUnitPriceChoice    Discount=ContractUsingDiscountChoice
+...                         None=ContractOnlyChoice
 
 *** Keywords ***
 
@@ -2043,19 +2046,33 @@ Create Contract From Quote
     ...    contracts." and no Contract. The same quote succeeds on a second try. The retry runs
     ...    only when that message is on screen, so a contract that's merely slow to appear is
     ...    never created twice.
-    [Arguments]    ${quote_id}
+    ...
+    ...    ``contract_price_option`` picks the flow's contract-price choice by the label before its
+    ...    colon: ``None`` (the flow's default), ``Discount`` or ``Net Unit Price``
+    ...    (``\${CONTRACT_PRICE_CHOICES}`` maps them to the flow's choice names). With an option
+    ...    other than None, the Contract must get at least one ContractItemPrice, and every one must
+    ...    have an EndDate before activation. Live 2026-10-22: a one-time quote line has no dates,
+    ...    so ``createContract`` left its ContractItemPrice without an EndDate and activation
+    ...    failed; the flow now dates those from the Contract.
+    ...
+    ...    Contracts the Quote already had are excluded, so a rerun on the same Quote finds the new one.
+    [Arguments]    ${quote_id}    ${contract_price_option}=None
     SalesforceAPI.Validate Salesforce Id    ${quote_id}
     Wait For Quote Calculation    ${quote_id}    require_priced=${True}
+    ${earlier}=    SalesforceAPI.Query Records
+    ...    SELECT Id FROM Contract WHERE SourceQuoteId = '${quote_id}' LIMIT 200
+    ${earlier_ids}=    Evaluate    ", ".join("'" + r["Id"] + "'" for r in $earlier)
+    ${not_earlier}=    Set Variable If    $earlier_ids    AND Id NOT IN (${earlier_ids})    ${EMPTY}
     ${contract_soql}=    Set Variable
-    ...    SELECT Id FROM Contract WHERE SourceQuoteId = '${quote_id}' ORDER BY CreatedDate DESC LIMIT 1
-    _Submit New Contract Flow    ${quote_id}
+    ...    SELECT Id FROM Contract WHERE SourceQuoteId = '${quote_id}' ${not_earlier} ORDER BY CreatedDate DESC LIMIT 1
+    _Submit New Contract Flow    ${quote_id}    ${contract_price_option}
     ${created}=    Run Keyword And Return Status
     ...    Wait For Related Record Via API    ${contract_soql}    timeout=45s    interval=3s
     IF    not ${created}
         ${flow_failed}=    _Page Shows Text    The contract could not be created
         IF    ${flow_failed}
             Log    New Contract on ${quote_id} failed in the flow; retrying once.    WARN
-            _Submit New Contract Flow    ${quote_id}
+            _Submit New Contract Flow    ${quote_id}    ${contract_price_option}
         END
     END
     ${contract_id}=    Wait For Related Record Via API    ${contract_soql}
@@ -2065,6 +2082,9 @@ Create Contract From Quote
     Should Be Equal As Numbers    ${renewal_term}    1
     ...    msg=Contract ${contract_id} RenewalTerm2 is ${renewal_term}, expected 1
     SalesforceAPI.Verify Field Value Via API    Contract    ${contract_id}    RenewalTermUnit    Annual
+    IF    "${contract_price_option}" != "None"
+        _Verify Contract Item Prices Have End Dates    ${contract_id}
+    END
     ${result}=    Run Process    sf    data    update    record    -o    ${ORG_ALIAS}
     ...    --sobject    Contract    --record-id    ${contract_id}
     ...    --values    Status\=Activated    --json    shell=False
@@ -2074,14 +2094,74 @@ Create Contract From Quote
     RETURN    ${contract_id}
 
 _Submit New Contract Flow
-    [Documentation]    Internal keyword — runs the Quote's ``New Contract`` action and clicks the
-    ...    flow's Create button.
-    [Arguments]    ${quote_id}
+    [Documentation]    Internal keyword — runs the Quote's ``New Contract`` action, picks
+    ...    ${contract_price_option} unless it is the default None, and clicks the flow's Create
+    ...    button. A price option leads to a "Create contract prices?" screen when quote lines
+    ...    match it, with a second Create button; with no matching lines the flow skips it.
+    [Arguments]    ${quote_id}    ${contract_price_option}=None
     Navigate To Quote    ${quote_id}
     Click Highlights Panel Action    New Contract
     Sleep    5s    reason=Allow RLM_CreateContractFromQuote flow to initialize
+    IF    "${contract_price_option}" != "None"
+        ${choice}=    Get From Dictionary    ${CONTRACT_PRICE_CHOICES}    ${contract_price_option}
+        Wait Until Keyword Succeeds    30s    3s    _Select Flow Radio Option    ${choice}
+    END
     Wait Until Keyword Succeeds    30s    3s    _Click Flow Navigation Button    Create
+    IF    "${contract_price_option}" != "None"
+        ${confirm}=    _Page Shows Text    Create contract prices?
+        IF    ${confirm}
+            Capture Step Screenshot    contract_prices_confirmation
+            Wait Until Keyword Succeeds    30s    3s    _Click Flow Navigation Button    Create
+        END
+    END
     Capture Step Screenshot    contract_flow_submitted
+
+_Select Flow Radio Option
+    [Documentation]    Internal keyword — selects the running flow's radio button for the flow
+    ...    choice ${choice_name} (its API name, which the flow runtime uses as the input's value;
+    ...    the visible label text is in a nested rich-text shadow root), searching through shadow
+    ...    roots. Succeeds only when the radio reads back ``checked``, falling back to clicking
+    ...    its label, so a click that didn't select retries.
+    [Arguments]    ${choice_name}
+    ${result}=    Execute JavaScript
+    ...    return (function(choiceName){
+    ...        function deepQueryAll(root, selector) {
+    ...            var found = [];
+    ...            var els = root.querySelectorAll(selector);
+    ...            for (var i = 0; i < els.length; i++) found.push(els[i]);
+    ...            var all = root.querySelectorAll('*');
+    ...            for (var i = 0; i < all.length; i++) {
+    ...                if (all[i].shadowRoot) found = found.concat(deepQueryAll(all[i].shadowRoot, selector));
+    ...            }
+    ...            return found;
+    ...        }
+    ...        var radios = deepQueryAll(document, 'input[type="radio"]');
+    ...        for (var i = 0; i < radios.length; i++) {
+    ...            if (radios[i].value !== choiceName) continue;
+    ...            if (radios[i].checked) return 'selected';
+    ...            radios[i].click();
+    ...            if (radios[i].checked) return 'selected';
+    ...            var root = radios[i].getRootNode();
+    ...            var lbl = radios[i].id && root.querySelector ? root.querySelector('label[for="' + radios[i].id + '"]') : null;
+    ...            if (lbl) lbl.click();
+    ...            return radios[i].checked ? 'selected_by_label' : 'not_checked';
+    ...        }
+    ...        return 'not found';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${choice_name}
+    Should Start With    ${result}    selected    msg=Flow radio choice "${choice_name}" not selected: ${result}
+
+_Verify Contract Item Prices Have End Dates
+    [Documentation]    Internal keyword — fails unless ${contract_id} has at least one
+    ...    ContractItemPrice and none of them lacks an EndDate. Contract activation rejects a
+    ...    ContractItemPrice without one, so this names the cause before activation would fail.
+    [Arguments]    ${contract_id}
+    ${prices}=    SalesforceAPI.Query Records
+    ...    SELECT Id, StartDate, EndDate FROM ContractItemPrice WHERE ContractId = '${contract_id}' LIMIT 200
+    Should Not Be Empty    ${prices}    msg=Contract ${contract_id} has no ContractItemPrice records
+    ${undated}=    Evaluate    [r["Id"] for r in $prices if not r.get("EndDate")]
+    Should Be Empty    ${undated}
+    ...    msg=ContractItemPrice records on ${contract_id} without an EndDate: ${undated}
 
 _Page Shows Text
     [Documentation]    Internal keyword — True if ${text} appears anywhere on the page, including

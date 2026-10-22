@@ -15,7 +15,10 @@ share the `Run Quote To Order Flow` keyword:
   the flow set (12 months, 1 Annual term) and activates the Contract. It doesn't set the
   renewal term itself: the standard `createContract` action leaves it blank, and with no
   renewal term no renewal Opportunity is created, so patching it would hide a flow
-  regression. The test then checks the Order carries the Contract.
+  regression. The test then checks the Order carries the Contract. The keyword's
+  `contract_price_option` argument (`None` by default, `Discount` or `Net Unit Price`) picks the
+  flow's contract-price choice; with Discount or Net Unit Price it also requires at least one
+  ContractItemPrice and an EndDate on every one before activation.
 
 ```
 Revenue Cloud App

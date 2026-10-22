@@ -265,8 +265,20 @@
             <label>Contract Discount</label>
         </rules>
     </decisions>
-    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for contract term, renewal term, renewal term unit, and price source. The contract term runs from the contract start date to the end of the quote&apos;s last-ending term-defined line, so it covers every line. The renewal term is that contract term divided by the pricing term (PricingTerm × PricingTermUnit) of the first such line by line number, rounded to the nearest whole count, because renewal reads Contract.RenewalTerm2 as a count of the selling model&apos;s pricing term and ignores RenewalTermUnit.</description>
+    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for contract term, renewal term, renewal term unit, and price source. The contract term runs from the contract start date to the end of the quote&apos;s last-ending term-defined line, so it covers every line. The renewal term is that contract term divided by the pricing term (PricingTerm × PricingTermUnit) of the first such line by line number, rounded to the nearest whole count, because renewal reads Contract.RenewalTerm2 as a count of the selling model&apos;s pricing term and ignores RenewalTermUnit. Contract item prices left without an end date (from one-time or evergreen lines) get the contract&apos;s start and end dates, so the contract can be activated.</description>
     <environments>Default</environments>
+    <formulas>
+        <description>End date for an undated contract item price: the contract end date at 23:59:59 GMT, the time the platform gives term-defined contract item prices.</description>
+        <name>ContractItemPriceEndDateTimeFormula</name>
+        <dataType>DateTime</dataType>
+        <expression>IF(ISBLANK({!GetUpdatedContract.EndDate}), NULL, DATETIMEVALUE(TEXT({!GetUpdatedContract.EndDate}) &amp; &apos; 23:59:59&apos;))</expression>
+    </formulas>
+    <formulas>
+        <description>Start date for an undated contract item price: the contract start date at 00:00:00 GMT, the time the platform gives term-defined contract item prices, instead of the creation time.</description>
+        <name>ContractItemPriceStartDateTimeFormula</name>
+        <dataType>DateTime</dataType>
+        <expression>IF(ISBLANK({!GetUpdatedContract.StartDate}), NULL, DATETIMEVALUE(TEXT({!GetUpdatedContract.StartDate}) &amp; &apos; 00:00:00&apos;))</expression>
+    </formulas>
     <formulas>
         <description>Contract term in months, which sets the contract end date: whole months from the contract start date to the day after the last-ending term-defined quote line ends (a partial month rounds up), or 12 when the quote has no term-defined line or the contract has no start date.</description>
         <name>ContractTermFormula</name>
@@ -501,6 +513,34 @@
         <sortOrder>Asc</sortOrder>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <recordLookups>
+        <description>Rereads the contract after UpdateContract sets its term, because the end date GetContract read came from the default term.</description>
+        <name>GetUpdatedContract</name>
+        <label>Get Updated Contract</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>UpdateUndatedContractItemPrices</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>RollBackContract</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>CreateContract.contractId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Contract</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>StartDate</queriedFields>
+        <queriedFields>EndDate</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
     <recordRollbacks>
         <description>Rolls back this transaction when creating or updating the contract faults, so a fault leaves no contract or partially populated contract behind.</description>
         <name>RollBackContract</name>
@@ -516,6 +556,9 @@
         <label>UpdateContract</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <connector>
+            <targetReference>GetUpdatedContract</targetReference>
+        </connector>
         <faultConnector>
             <targetReference>RollBackContract</targetReference>
         </faultConnector>
@@ -640,6 +683,44 @@
             </value>
         </inputAssignments>
         <object>Contract</object>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Dates the contract item prices that createContract leaves without an end date. A one-time or evergreen quote line has no start or end date, so its contract item price gets the creation time as its start date and no end date, and contract activation rejects it. These get the contract&apos;s start and end dates, the same window the platform gives term-defined lines.</description>
+        <name>UpdateUndatedContractItemPrices</name>
+        <label>Update Undated Contract Item Prices</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <faultConnector>
+            <targetReference>RollBackContract</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>ContractId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>CreateContract.contractId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>EndDate</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>EndDate</field>
+            <value>
+                <elementReference>ContractItemPriceEndDateTimeFormula</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>StartDate</field>
+            <value>
+                <elementReference>ContractItemPriceStartDateTimeFormula</elementReference>
+            </value>
+        </inputAssignments>
+        <object>ContractItemPrice</object>
     </recordUpdates>
     <screens>
         <description>Shows the fault message when the contract cannot be created.</description>
