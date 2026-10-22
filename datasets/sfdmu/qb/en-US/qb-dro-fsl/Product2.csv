@@ -1,0 +1,5 @@
+CustomDecompositionScope,DecompositionScope,FulfillmentQtyCalcMethod,IsActive,IsAssetizable,Name,ProductCode,StockKeepingUnit
+,OrderLineItem,,true,true,PowerSwerve R750 Rack Server,QB-BDL-R750,QB-BDL-R750
+,OrderLineItem,,true,true,QuantumBit Rack Enclosure,QB-BDL-RAXS,QB-BDL-RAXS
+Ramp_Identifier,Account,AlwaysOne,true,true,Finance Service,QB-DRO-BILL,QB-DRO-BILL
+,Account,AlwaysOne,true,true,Field Installation Service,QB-DRO-FSL,QB-DRO-FSL

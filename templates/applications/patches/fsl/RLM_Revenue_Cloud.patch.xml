@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- tabs patch applied when fsl=true -->
+<tabs>standard-WorkOrder</tabs>
+<tabs>standard-ServiceAppointment</tabs>
+<tabs>standard-ServiceTerritory</tabs>
+<tabs>standard-WorkType</tabs>
+<tabs>standard-ServiceResource</tabs>

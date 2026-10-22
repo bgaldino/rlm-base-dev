@@ -1,0 +1,4 @@
+AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Code,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
+AC-RTK-PROPERTY,ATTR-RTK-PROPTYPE,Property Type,SingleFamily,,,,false,true,false,false,,,,,Property Type,PC-RTK-RES,1,Active,,,
+AC-RTK-PROPERTY,ATTR-RTK-SQFT,Square Footage,Under2000,,,,false,true,false,false,,,,,Square Footage,PC-RTK-RES,2,Active,,,
+AC-RTK-PROPERTY,ATTR-RTK-SEVERITY,Infestation Severity,Light,,,,false,true,false,false,,,,,Infestation Severity,PC-RTK-RES,3,Active,,,

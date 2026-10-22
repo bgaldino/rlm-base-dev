@@ -1,0 +1,8 @@
+feature: pest
+feature_flag: pest
+# Adds Inspect & Quote next to Quick Quote on the Account highlights panel.
+patches:
+  - type: insert_action
+    after: "Account.RLM_QuickQuote"
+    actions:
+      - "Account.RLM_RTK_Inspect_and_Quote"

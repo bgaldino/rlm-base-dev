@@ -1,0 +1,4 @@
+Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.Code,SortOrder
+CAT-RTK-RES,PC-RTK-PLANS,Subscription protection plans,true,Protection Plans,,1
+CAT-RTK-RES,PC-RTK-SERVICES,One-time services,true,Services,,2
+CAT-RTK-RES,PC-RTK-ADDONS,Add-on plans,true,Add-ons,,3

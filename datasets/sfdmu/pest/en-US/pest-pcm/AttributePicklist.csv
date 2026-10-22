@@ -1,0 +1,4 @@
+DataType,Description,Name,Code,Status,UnitOfMeasure.UnitCode
+Text,Residential property type,RTK Property Type,RTK Property Type,Active,
+Text,Home square footage band,RTK Square Footage,RTK Square Footage,Active,
+Text,Infestation severity,RTK Infestation Severity,RTK Infestation Severity,Active,

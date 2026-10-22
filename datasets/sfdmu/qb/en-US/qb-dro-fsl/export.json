@@ -1,0 +1,53 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT CustomDecompositionScope, DecompositionScope, FulfillmentQtyCalcMethod, IsActive, IsAssetizable, Name, ProductCode, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Upsert",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name, UsageType FROM FulfillmentStepDefinitionGroup",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name FROM User",
+          "operation": "Readonly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AssignedToId$User, CustomBaseExecutionDate, CustomFulfillmentScope, DelayUnit, DelayOf, ExecuteOn, FlowDefinitionName, ForcePlanFreezeDuringExecution, StepDefinitionGroupId, Id, Name, OmniscriptName, PointOfNoReturn, Scope, IsSkipBranch, TaskAllocationType, StepType, UsageType FROM FulfillmentStepDefinition",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DependencyScope, IsCompensateInReverse, FulfillmentStepDefinitionId, DependsOnStepDefinitionId, Id, Name, PropagateStateToDependentStep FROM FulfillmentStepDependencyDef",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DestinationProductId, Id, Name, Priority, SourceProductId, SourceProductClassificationId, SourceProduct.StockKeepingUnit, SourceProductClassification.Name, DestinationProduct.StockKeepingUnit FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC, DestinationProduct.StockKeepingUnit ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Action, FulfillmentStepDefnGroupId, Name, Id, ProductId, Type FROM ProductFulfillmentScenario",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Skill xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Install, rack, cable, and power on QuantumBit PowerSwerve servers and enclosures.</description>
+    <label>Server Rack Install</label>
+</Skill>

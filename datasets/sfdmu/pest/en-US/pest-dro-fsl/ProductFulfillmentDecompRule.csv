@@ -1,0 +1,2 @@
+DestinationProduct.StockKeepingUnit,Name,Priority,SourceProduct.StockKeepingUnit,SourceProductClassification.Name
+RTK-DRO-FSL,Initial Service to Field Treatment,,RTK-INITIAL,

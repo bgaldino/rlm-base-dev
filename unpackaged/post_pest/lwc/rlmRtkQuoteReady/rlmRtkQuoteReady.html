@@ -1,0 +1,36 @@
+<template>
+    <div class={shellClass}>
+        <div class="badge" aria-hidden="true">
+            <lightning-icon
+                if:true={isSuccess}
+                icon-name="utility:success"
+                size="small"
+                alternative-text=""
+            ></lightning-icon>
+            <lightning-icon
+                if:false={isSuccess}
+                icon-name="utility:error"
+                size="small"
+                alternative-text=""
+            ></lightning-icon>
+        </div>
+        <p class="eyebrow">{accountName}</p>
+        <h1>{headline}</h1>
+        <p class="message">{message}</p>
+
+        <template if:true={isSuccess}>
+            <div class="meta">
+                <div class="meta-card">
+                    <span>Location pricing</span>
+                    <strong>{zoneLabel}</strong>
+                </div>
+                <div class="meta-card">
+                    <span>Included automatically</span>
+                    <strong>Initial Service</strong>
+                </div>
+            </div>
+            <button type="button" class="open-btn" onclick={openQuote}>Open quote</button>
+            <p class="hint">Review lines, then Create Order when Michael is ready to sign.</p>
+        </template>
+    </div>
+</template>

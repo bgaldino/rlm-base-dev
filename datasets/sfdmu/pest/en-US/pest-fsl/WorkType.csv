@@ -1,0 +1,4 @@
+Description,DurationType,EstimatedDuration,Name,ShouldAutoCreateSvcAppt
+Initial cleanout and exclusion after signup,Hours,2,Initial Pest Treatment,true
+Quarterly residential pest maintenance visit,Hours,1,Quarterly Pest Visit,true
+Guarantee re-service or billable follow-up,Hours,1,Pest Re-service,true

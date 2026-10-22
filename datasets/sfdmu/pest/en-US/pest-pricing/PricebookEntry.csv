@@ -1,0 +1,9 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,IsDerived,Name,Pricebook2.$$Name$IsStandard,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,UnitPrice
+RTK-ESSENTIAL;Evergreen Monthly;USD,USD,true,false,RTK-ESSENTIAL,Standard Price Book;true,RTK-ESSENTIAL,Evergreen Monthly;Evergreen,45
+RTK-HOME-PROT;Evergreen Monthly;USD,USD,true,false,RTK-HOME-PROT,Standard Price Book;true,RTK-HOME-PROT,Evergreen Monthly;Evergreen,59
+RTK-HOME-PROT-PLUS;Evergreen Monthly;USD,USD,true,false,RTK-HOME-PROT-PLUS,Standard Price Book;true,RTK-HOME-PROT-PLUS,Evergreen Monthly;Evergreen,79
+RTK-TERMITE;Evergreen Monthly;USD,USD,true,false,RTK-TERMITE,Standard Price Book;true,RTK-TERMITE,Evergreen Monthly;Evergreen,39
+RTK-MOSQUITO;Evergreen Monthly;USD,USD,true,false,RTK-MOSQUITO,Standard Price Book;true,RTK-MOSQUITO,Evergreen Monthly;Evergreen,69
+RTK-INITIAL;One-Time;USD,USD,true,false,RTK-INITIAL,Standard Price Book;true,RTK-INITIAL,One-Time;OneTime,199
+RTK-RESERVICE;One-Time;USD,USD,true,false,RTK-RESERVICE,Standard Price Book;true,RTK-RESERVICE,One-Time;OneTime,149
+RTK-INSPECTION;One-Time;USD,USD,true,false,RTK-INSPECTION,Standard Price Book;true,RTK-INSPECTION,One-Time;OneTime,0

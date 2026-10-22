@@ -504,6 +504,9 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `approvals` | `true` | Use Approvals |
 | `clm` | `true` | Use Contract Lifecycle Management |
 | `dro` | `true` | Use Dynamic Revenue Orchestration |
+| `fsl` | `false` | Field Service Core + DRO Field Installation (requires Field Service PSLs) |
+| `fsl_managed_package` | `false` | Also install the FSL managed package (`fsl_package_version_id`) |
+| `pest` | `false` | Rentokil residential pest catalog, location pricing, field quote (requires `fsl`) |
 | `einstein` | `true` | Use Einstein AI |
 | `agents` | `false` | Deploy Agentforce Agent configurations |
 | `prm` | `true` | Use Partner Relationship Management |
@@ -860,6 +863,8 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_quantumbit` | Deploy QuantumBit metadata, permissions, CALM delete | `quantumbit`, `billing`, `approvals`, `calmdelete` |
 | `prepare_tso` | TSO-specific PSL/PSG/permissions/metadata | `tso` |
 | `prepare_dro` | Load DRO data (dynamic user resolution), PFDR update (260 bug fix) | `dro`, `qb`, `q3` |
+| `prepare_fsl` | Field Service PSLs/settings/metadata, FSL foundation data, DRO Field Installation steps (install/repair pricing and milestone billing run separately as `setup_fsl_revenue`, `prepare_rlm_org` step 13.5) | `fsl`, `fsl_managed_package`, `dro`, `qb` |
+| `prepare_pest` | Rentokil residential pest catalog, location zones, Inspect & Quote flow, Bloomingdale FSL + Initial Service DRO (`prepare_rlm_org` step 13.6) | `pest`, `fsl`, `billing`, `dro` |
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
@@ -882,7 +887,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 |------|-------------|--------------|
 | `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 27 of `prepare_rlm_org`. | `ux` |
 
-**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → qb → tso → constraints → ramps → collections → utils → docgen → approvals`) followed by sequential YAML patch application. One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
+**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → qb → tso → constraints → ramps → collections → utils → docgen → approvals`) followed by sequential YAML patch application. One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds; Field Service tabs are injected from `templates/applications/patches/fsl/` on every tier when `fsl` is true, `templates/flexipages/patches/fsl/` adds Work Order / Service Appointment / maintenance related lists to the Account, Asset and Order record pages (applied last), and `templates/flexipages/standalone/fsl/` + `templates/objects/fsl/` add the Work Order record page with the Flag Expansion header action. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
 
 ### Utility Flows and Tasks
 
@@ -1034,6 +1039,8 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
+| [Field Service + Rev Cloud Demo](docs/guides/fsl-rev-cloud-demo.md) | `prepare_fsl` build and the nine-scene demo: quote → DRO install Work Order → milestone billing → maintenance, coverage-checked break/fix billing, field-flagged expansion |
+| [Pest Control Demo (Rentokil)](docs/guides/pest-control-demo.md) | `prepare_pest` secondary story: field tablet quote with location pricing → Initial Service DRO → quarterly visits, guarantee re-service, termite upsell, mosquito pause |
 
 ### Analysis & Planning
 
@@ -1092,7 +1099,7 @@ rlm-base-dev/
 │   │   ├── billing/            # Billing-specific layouts
 │   │   └── constraints/        # OrderItem + QuoteLineItem overrides
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
-│   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates, ramps)
+│   │   └── patches/            # Feature-conditional actionOverride/tab patches (billing, rates, ramps, fsl)
 │   ├── appMenus/
 │   │   └── base/               # AppSwitcher (always assembled; deploy skipped if org has managed entries)
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
@@ -1190,6 +1197,7 @@ rlm-base-dev/
 │   ├── guides/                 # How-to setup and build process docs
 │   │   ├── constraints-setup.md
 │   │   ├── docgen-setup.md
+│   │   ├── fsl-rev-cloud-demo.md
 │   │   ├── post-billing-portal.md
 │   │   └── prepare-rlm-org-build-guide.md
 │   ├── references/             # Technical references and task/CLI examples

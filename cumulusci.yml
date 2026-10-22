@@ -117,6 +117,14 @@ project:
     rates: true               # Rates
     ramps: true               # Ramps
 
+    # ── Field Service ──────────────────────────────────────────────────────────
+    fsl: false                # Field Service Core + DRO Field Installation (requires FieldService PSLs)
+    fsl_managed_package: false  # Install the FSL managed package (Dispatcher Console, scheduling optimization)
+    fsl_package_version_id: ""  # 04t version Id of the FSL managed package (required when fsl_managed_package)
+
+    # ── Pest Control (Rentokil residential demo) ───────────────────────────────
+    pest: false               # Rentokil residential pest catalog, location pricing, field quote (requires fsl)
+
     # ── Contracts & CLM ────────────────────────────────────────────────────────
     clm: true                 # Contract Lifecycle Management
     clm_data: false           # CLM sample data
@@ -350,6 +358,21 @@ project:
       # PRM-specific permission sets
       - RLM_PRM
 
+    rlm_fsl_psl_api_names: &rlm_fsl_psl_api_names
+      # Field Service permission set licenses (admin acts as dispatcher + technician in the demo)
+      - FieldServiceStandardPsl
+      - FieldServiceDispatcherPsl
+      - FieldServiceSchedulingPsl
+      - FieldServiceMobilePsl
+
+    psg_fsl: &psg_fsl
+      # Field Service permission set group (wraps RLM_Field_Service)
+      - RLM_Field_Service_PSG
+
+    ps_fsl: &ps_fsl
+      # License-owned Field Service permission sets (cannot be added to a PSG)
+      - FieldServiceMobileStandardPermSet
+
 #-----------------#
 # DECISION TABLES #
 #-----------------#
@@ -525,6 +548,12 @@ project:
     quantumbit_product_image_dataset: &quantumbit_product_image_dataset "datasets/sfdmu/qb/en-US/qb-product-images"  # QuantumBit product image data
     quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb/en-US/qb-billing"                     # QuantumBit billing data
     quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb/en-US/qb-dro"                                 # QuantumBit DRO data (dynamic AssignedTo from target org)
+    quantumbit_fsl_dataset: &quantumbit_fsl_dataset "datasets/sfdmu/qb/en-US/qb-fsl"                                 # QuantumBit Field Service foundation data
+    quantumbit_dro_fsl_dataset: &quantumbit_dro_fsl_dataset "datasets/sfdmu/qb/en-US/qb-dro-fsl"                     # QuantumBit DRO Field Installation overlay (dynamic AssignedTo)
+    pest_pcm_dataset: &pest_pcm_dataset "datasets/sfdmu/pest/en-US/pest-pcm"                                         # Rentokil residential pest product catalog
+    pest_pricing_dataset: &pest_pricing_dataset "datasets/sfdmu/pest/en-US/pest-pricing"                             # Rentokil pest price book and attribute-based adjustments
+    pest_fsl_dataset: &pest_fsl_dataset "datasets/sfdmu/pest/en-US/pest-fsl"                                         # Rentokil Field Service foundation (Bloomingdale territory)
+    pest_dro_fsl_dataset: &pest_dro_fsl_dataset "datasets/sfdmu/pest/en-US/pest-dro-fsl"                             # Rentokil DRO Initial Service overlay
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-US/qb-tax"                                 # QuantumBit tax data
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating"                    # QuantumBit rating data
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
@@ -1545,6 +1574,179 @@ tasks:
     options:
       path: scripts/apex/updateProductFulfillmentDecompRules.apex
 
+  deploy_pre_fsl:
+    group: Revenue Lifecycle Management
+    description: Deploy Field Service settings (FieldServiceSettings - enable Work Orders and Service Appointment lifecycle)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/pre_fsl
+
+  deploy_post_fsl:
+    group: Revenue Lifecycle Management
+    description: Deploy Field Service metadata (Skills, WorkOrder and Opportunity RLM bridge fields, RLM_Field_Service permission set and group, Field Installation, service coverage, repair billing and Flag Expansion flows, and their Apex actions). Runs only RLM_FSL_ServiceBillingTest so production orgs without org-wide coverage can deploy.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_fsl
+      test_level: RunSpecifiedTests
+      specified_tests: RLM_FSL_ServiceBillingTest
+
+  install_fsl_managed_package:
+    group: Revenue Lifecycle Management
+    description: Install the Field Service (FSL) managed package by 04t version Id from project__custom__fsl_package_version_id
+    class_path: cumulusci.tasks.salesforce.install_package_version.InstallPackageVersion
+    options:
+      version_id: $project_config.project__custom__fsl_package_version_id
+      security_type: FULL
+
+  insert_qb_fsl_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit Field Service foundation data (OperatingHours, ServiceTerritory, WorkType)
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_fsl_dataset
+
+  setup_fsl_foundation:
+    group: Revenue Lifecycle Management
+    description: Idempotently create Field Service junction records (TimeSlot, SkillRequirement, ProductRequired, ServiceResource for the running user, ServiceResourceSkill, ServiceTerritoryMember)
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/setupFslFoundation.apex
+
+  setup_fsl_revenue:
+    group: Revenue Lifecycle Management
+    description: Idempotently price Installation and Assembly (QB-INST-1000) and create the Break/Fix Repair product (QB-SVC-REPAIR) as one-time catalog products, and create the Installation Milestone billing policy, treatment and Event milestone for hardware and install products. Runs at prepare_rlm_org step 13.5, after prepare_billing, because qb-billing resets Product2 billing policies.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/setupFslRevenue.apex
+
+  insert_qb_dro_fsl_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit DRO Field Installation overlay (QB-DRO-FSL fulfillment product, Field Installation step group, steps, dependencies, decomposition rules, scenario)
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_dro_fsl_dataset
+      dynamic_assigned_to_user: true
+
+  delete_qb_fsl_data:
+    group: Data Maintenance
+    description: Delete QuantumBit Field Service demo data (ServiceAppointment, WorkOrder, junctions, ServiceResource, WorkType, ServiceTerritory, OperatingHours) in dependency order
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteQbFslData.apex
+
+  extract_qb_fsl_data:
+    group: Data Management - Extract
+    description: "Extract qb-fsl from org to CSV. Output in datasets/sfdmu/extractions/qb-fsl/<timestamp>."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_fsl_dataset
+
+  test_qb_fsl_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-fsl.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_fsl_dataset
+      use_extraction_roundtrip: false
+
+  deploy_post_pest:
+    group: Revenue Lifecycle Management
+    description: Deploy Rentokil pest control metadata (service zones, line-of-business field, Inspect and Quote flow, FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_pest
+      test_level: RunSpecifiedTests
+      specified_tests: RLM_RTK_FieldQuoteTest
+
+  insert_pest_pcm_data:
+    group: Revenue Lifecycle Management
+    description: Insert Rentokil residential pest product catalog (RTK- products, attributes, selling models)
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *pest_pcm_dataset
+
+  insert_pest_pricing_data:
+    group: Revenue Lifecycle Management
+    description: Insert Rentokil pest price book entries and attribute-based adjustments
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *pest_pricing_dataset
+
+  insert_pest_fsl_data:
+    group: Revenue Lifecycle Management
+    description: Insert Rentokil Field Service foundation (Bloomingdale OperatingHours, ServiceTerritory, WorkTypes)
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *pest_fsl_dataset
+
+  insert_pest_dro_fsl_data:
+    group: Revenue Lifecycle Management
+    description: Insert Rentokil DRO Initial Service overlay (RTK-DRO-FSL, step group, decomposition from Initial Service)
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *pest_dro_fsl_dataset
+      dynamic_assigned_to_user: true
+
+  setup_rtk_foundation:
+    group: Revenue Lifecycle Management
+    description: Idempotently create Rentokil FSL junctions (skills, work type requirements, service resource for Bloomingdale)
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/setupRtkFoundation.apex
+
+  setup_rtk_revenue:
+    group: Revenue Lifecycle Management
+    description: Idempotently seed Rentokil service zones, price book entries, Initial Service milestone billing, guarantee entitlement template, and Maintenance Plan defaults. Runs after pest catalog load.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/setupRtkRevenue.apex
+
+  setup_rtk_grow:
+    group: Revenue Lifecycle Management
+    description: Idempotently create Michael Reyes Maintenance Plan, MaintenanceAsset, and quarterly MaintenanceWorkRule after the pest order is placed.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/setupRtkGrow.apex
+
+  setup_rtk_dro_steps:
+    group: Revenue Lifecycle Management
+    description: Idempotently create Rentokil Initial Treatment DRO step definitions (AutoTask/ManualTask/Milestone) and dependencies. Use when SFDMU StepType values do not match the org picklist.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/setupRtkDroSteps.apex
+
+  apply_context_pest_location:
+    group: Revenue Lifecycle Management
+    description: Add ServicePostalCode tag to RLM_SalesTransactionContext for location-aware pest pricing
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: RLM_SalesTransactionContext
+      plan_file: datasets/context_plans/PestLocation/manifest.json
+      translate_plan: true
+      activate: true
+
+  delete_pest_data:
+    group: Data Maintenance
+    description: Delete Rentokil pest demo data in dependency order
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteRtkData.apex
+
+  extract_pest_pcm_data:
+    group: Data Management - Extract
+    description: "Extract pest-pcm from org to CSV. Output in datasets/sfdmu/extractions/pest-pcm/<timestamp>."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *pest_pcm_dataset
+
+  test_pest_pcm_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for pest-pcm.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *pest_pcm_dataset
+      use_extraction_roundtrip: false
+
   insert_q3_dro_data_scratch:
     group: Revenue Lifecycle Management
     description: Insert Q3 DRO Data to Scratch
@@ -2453,10 +2655,17 @@ flows:
         flow: prepare_docgen
       11:
         flow: prepare_dro
+      11.5:
+        flow: prepare_fsl
       12:
         flow: prepare_tax
       13:
         flow: prepare_billing
+      13.5:
+        task: setup_fsl_revenue
+        when: project_config.project__custom__fsl and project_config.project__custom__billing and project_config.project__custom__qb
+      13.6:
+        flow: prepare_pest
       14:
         flow: prepare_analytics
       15:
@@ -2742,6 +2951,106 @@ flows:
       5:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__dro
+
+  prepare_fsl:
+    group: Revenue Lifecycle Management
+    description: >
+      Enable Field Service Core and connect it to DRO: assign Field Service PSLs, deploy
+      FieldServiceSettings and post_fsl metadata, optionally install the FSL managed package,
+      load foundation data, and add the Field Installation DRO overlay so hardware orders
+      create installation Work Orders.
+    steps:
+      1:
+        task: assign_permission_set_licenses
+        when: project_config.project__custom__fsl
+        options:
+          api_names: *rlm_fsl_psl_api_names
+      2:
+        task: deploy_pre_fsl
+        when: project_config.project__custom__fsl
+      3:
+        task: install_fsl_managed_package
+        when: project_config.project__custom__fsl and project_config.project__custom__fsl_managed_package
+      4:
+        task: deploy_post_fsl
+        when: project_config.project__custom__fsl
+      5:
+        task: recalculate_permission_set_groups
+        when: project_config.project__custom__fsl
+        options:
+          api_names: *psg_fsl
+      6:
+        task: assign_permission_set_groups_tolerant
+        when: project_config.project__custom__fsl
+        options:
+          api_names: *psg_fsl
+      6.5:
+        task: assign_permission_sets
+        when: project_config.project__custom__fsl
+        options:
+          api_names: *ps_fsl
+      7:
+        task: insert_qb_fsl_data
+        when: project_config.project__custom__fsl and project_config.project__custom__qb
+      8:
+        task: setup_fsl_foundation
+        when: project_config.project__custom__fsl and project_config.project__custom__qb
+      9:
+        task: insert_qb_dro_fsl_data
+        when: project_config.project__custom__fsl and project_config.project__custom__dro and project_config.project__custom__qb
+      10:
+        task: update_product_fulfillment_decomp_rules
+        when: project_config.project__custom__fsl and project_config.project__custom__dro
+
+  prepare_pest:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Rentokil residential pest control demo: catalog, location-aware pricing context,
+      Inspect and Quote field flow, Bloomingdale FSL foundation, and Initial Service DRO handoff.
+      Requires fsl=true for Field Service metadata reused from prepare_fsl.
+    steps:
+      1:
+        task: deploy_post_pest
+        when: project_config.project__custom__pest
+      1.5:
+        task: assign_permission_sets
+        when: project_config.project__custom__pest
+        options:
+          api_names:
+            - RLM_Rentokil_Pest
+      2:
+        task: apply_context_pest_location
+        when: project_config.project__custom__pest
+      3:
+        task: insert_pest_pcm_data
+        when: project_config.project__custom__pest
+      4:
+        task: insert_pest_pricing_data
+        when: project_config.project__custom__pest
+      5:
+        task: setup_rtk_revenue
+        when: project_config.project__custom__pest and project_config.project__custom__billing
+      6:
+        task: insert_pest_fsl_data
+        when: project_config.project__custom__pest and project_config.project__custom__fsl
+      7:
+        task: setup_rtk_foundation
+        when: project_config.project__custom__pest and project_config.project__custom__fsl
+      8:
+        task: insert_pest_dro_fsl_data
+        when: project_config.project__custom__pest and project_config.project__custom__fsl and project_config.project__custom__dro
+      8.5:
+        task: setup_rtk_dro_steps
+        when: project_config.project__custom__pest and project_config.project__custom__dro
+      9:
+        task: update_product_fulfillment_decomp_rules
+        when: project_config.project__custom__pest and project_config.project__custom__dro
+      10:
+        task: refresh_dt_default_pricing
+        when: project_config.project__custom__pest
+      11:
+        task: setup_rtk_grow
+        when: project_config.project__custom__pest and project_config.project__custom__fsl
 
   prepare_clm:
     group: Revenue Lifecycle Management

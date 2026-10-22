@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FieldServiceSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fieldServiceOrgPref>true</fieldServiceOrgPref>
+    <enableWorkOrders>true</enableWorkOrders>
+    <enablePopulateWorkOrderAddress>true</enablePopulateWorkOrderAddress>
+    <enableServiceAppointmentLifecycle>true</enableServiceAppointmentLifecycle>
+    <completedDefaultStatus>Completed</completedDefaultStatus>
+    <cannotCompleteDefaultStatus>Cannot Complete</cannotCompleteDefaultStatus>
+    <canceledDefaultStatus>Canceled</canceledDefaultStatus>
+    <dispatchedDefaultStatus>Dispatched</dispatchedDefaultStatus>
+    <inProgressDefaultStatus>In Progress</inProgressDefaultStatus>
+    <noneDefaultStatus>None</noneDefaultStatus>
+    <scheduledDefaultStatus>Scheduled</scheduledDefaultStatus>
+    <serviceAppointmentsDueDateOffsetOrgValue>7</serviceAppointmentsDueDateOffsetOrgValue>
+</FieldServiceSettings>

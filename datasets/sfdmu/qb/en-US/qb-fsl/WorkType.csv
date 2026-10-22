@@ -1,0 +1,4 @@
+Description,DurationType,EstimatedDuration,Name,ShouldAutoCreateSvcAppt
+"Rack, cable, and power on a PowerSwerve server and enclosure sold through Revenue Cloud.",Hours,4,Server Rack Installation,false
+Scheduled preventive maintenance visit for QuantumBit hardware under a maintenance subscription.,Hours,2,Preventive Maintenance,true
+Diagnose and repair a failed QuantumBit hardware component.,Hours,2,Hardware Break/Fix,true

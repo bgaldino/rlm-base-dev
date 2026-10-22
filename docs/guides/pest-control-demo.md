@@ -1,0 +1,86 @@
+# Rentokil Residential Pest Control Demo
+
+Secondary FSL + Revenue Cloud story: the sale happens **in the field**. A technician
+inspects Michael Reyes's home at 316 Ridgewood Dr, Bloomingdale, IL 60108, builds a
+priced Quote on a tablet, and Revenue Cloud plus Field Service run the lifecycle.
+
+Story assets (deck, screenshots) live on the `pest-control` branch of
+[FSL-RC-Story-Base](https://github.com/alostu3291/FSL-RC-Story-Base).
+
+## Enable
+
+In `cumulusci.yml` (or org-specific override):
+
+```yaml
+project:
+  custom:
+    fsl: true
+    pest: true
+```
+
+Then:
+
+```bash
+cci flow run prepare_fsl --org fsl-rc          # if not already applied
+cci flow run prepare_pest --org fsl-rc
+cci org default fsl-rc
+cci task run sync_pricing_data
+cci task run refresh_dt_default_pricing        # after price book changes
+# Wait until Price_Book_Entry_Decision_Table_v2 finishes (often 2–5 minutes).
+# Place Sales Transaction returns "Could not find product with ID" until then.
+```
+
+## Catalog (RTK-*)
+
+| SKU | Type | Role |
+|-----|------|------|
+| RTK-ESSENTIAL | Evergreen monthly | Essential plan |
+| RTK-HOME-PROT | Evergreen monthly | Home Protection (demo default) |
+| RTK-HOME-PROT-PLUS | Evergreen monthly | Home Protection Plus |
+| RTK-TERMITE | Evergreen monthly | Termite upsell (Scene 8) |
+| RTK-MOSQUITO | Evergreen monthly | Seasonal mosquito (pause Scene 9) |
+| RTK-INITIAL | One-time | Initial Service (auto-added) |
+| RTK-RESERVICE | One-time | Billable re-service when uncovered |
+| RTK-INSPECTION | One-time | Inspection |
+
+## Location pricing
+
+1. Quote shipping ZIP → context tag `ServicePostalCode` ([PestLocation](../../datasets/context_plans/PestLocation/)).
+2. `RLM_RTK_Service_Zone__c` maps ZIP / 3-digit prefix → zone multiplier (Bloomingdale `60108` = 1.00, rural `60140` = 1.20, dense `606*` = 0.95).
+3. `RLM_RTK_FieldQuote` / `place_pest_demo_order.py` apply the multiplier (and severity / sqft uplift) when placing the Quote. QuantumBit prices are unchanged.
+
+Demo proof: quote Michael at 60108, then change shipping ZIP to 60140 and show the higher net.
+
+## Field Quote (Scene 2)
+
+- **Guided (Account):** open **Michael Reyes** → highlights **Inspect & Quote** → visual LWC → creates a priced Quote (always adds `RTK-INITIAL`) → **Open quote** on the success panel.
+- **Traditional quote UI:** from that Quote (or quote `00000037`), use **Browse Catalogs** / the line editor like any other RLM quote — accept → **Create Order**.
+- **Deep link (dev only):** `/flow/RLM_RTK_Inspect_and_Quote?recordId=<AccountId>`.
+
+## Nine scenes
+
+| # | Scene | What to show |
+|---|-------|----------------|
+| 1 | Plan the day | Bloomingdale territory, tech schedule |
+| 2 | Inspect & quote | Tablet flow + location zone on waterfall |
+| 3 | Sign & pay | **Create Proposal** → preview → **Sign & Pay** (mock card + signature tied to the PDF), or Quote highlight **Sign & Pay** after a proposal exists → Create Order |
+| 4 | Plan builds itself | Activate Order → assets per plan, DRO fulfillment plan creates the Initial Pest Treatment WO + Service Appointment; `RTK-INITIAL` billing schedule waits on the "Initial Treatment Complete" milestone, monthly plans are Ready for Invoicing |
+| 5 | First treatment | Complete WO → fulfillment step completed, milestone accomplished, order invoiced (`RLM_FSL_Complete_Fulfillment_Step`) |
+| 6 | Recurring visits | Maintenance Plan quarterly WOs (routing = package vision) |
+| 7 | Re-service | Coverage check; free under plan, else `RTK-RESERVICE` via `RLM_FSL_BillRepair` |
+| 8 | Upsell | Flag Expansion → Termite co-term amendment |
+| 9 | Pause / renew | Mosquito qty amendment Nov/Apr; renew plan asset |
+
+## Driver
+
+```bash
+python scripts/place_pest_demo_order.py --target-org fsl-rc --activate --complete-initial
+```
+
+## Teardown
+
+```bash
+cci task run delete_pest_data --org fsl-rc
+```
+
+Does not delete transactional quotes/orders; use Account Utilities for those.

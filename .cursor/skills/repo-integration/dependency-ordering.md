@@ -55,6 +55,10 @@ paths are forceignored.
 | 7 | qb-rating | qb-pcm + qb-billing (UsageResourceBillingPolicy) |
 | 8 | qb-rates | qb-pcm + qb-rating (PURs must exist) + qb-pricing (PriceBook2) |
 | 9 | qb-approvals | post_approvals metadata + email templates |
+| 10 | qb-fsl | pre_fsl settings (Work Orders enabled) |
+| 11 | qb-dro-fsl | qb-dro + qb-fsl + post_fsl flows (`RLM_FSL_Create_Install_Work_Order`) |
+| 12 | pest-pcm / pest-pricing | `pest: true`; location zones via `setup_rtk_revenue` |
+| 13 | pest-fsl / pest-dro-fsl | `pest` + `fsl`; Bloomingdale territory + Initial Service DRO |
 
 ## Deletion Order
 
@@ -111,8 +115,11 @@ Reverse dependency order (children before parents):
 | 9 | prepare_pricing_data | Pricing |
 | 10 | prepare_docgen | DocGen |
 | 11 | prepare_dro | DRO + fulfillment scope |
+| 11.5 | prepare_fsl | Field Service Core + DRO Field Installation (when `fsl`) |
+| 13.6 | prepare_pest | Rentokil residential pest catalog, field quote, Bloomingdale FSL (when `pest`) |
 | 12 | prepare_tax | Tax |
 | 13 | prepare_billing | Billing |
+| 13.5 | setup_fsl_revenue | FSL install/repair prices + Installation Milestone billing policy (when `fsl` + `billing` + `qb`; must follow qb-billing, which resets Product2 billing policies) |
 | 14 | prepare_analytics | CRM Analytics replication |
 | 15 | prepare_clm | CLM |
 | 16 | prepare_rating | Rating + rates + activation |

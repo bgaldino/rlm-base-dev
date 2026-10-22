@@ -1,0 +1,5 @@
+AssignedTo.Name,CustomBaseExecutionDate,CustomFulfillmentScope,DelayOf,DelayUnit,ExecuteOn,FlowDefinitionName,ForcePlanFreezeDuringExecution,IsSkipBranch,Name,OmniscriptName,PointOfNoReturn,Scope,StepDefinitionGroup.Name,StepType,TaskAllocationType,UsageType
+__DRO_ASSIGNED_TO_USER__,,,,,,,Never,false,Ship Hardware,,,Plan,Field Installation,ManualTask,,Fulfillment
+__DRO_ASSIGNED_TO_USER__,,,,,,RLM_FSL_Create_Install_Work_Order,Never,false,Create Install Work Order,,,Plan,Field Installation,AutoTask,,Fulfillment
+__DRO_ASSIGNED_TO_USER__,,,,,,,Never,false,Installation Complete,,,Plan,Field Installation,ManualTask,,Fulfillment
+__DRO_ASSIGNED_TO_USER__,,,,,,,Never,false,Initiate Billing,,,Plan,Finance,Milestone,,Fulfillment

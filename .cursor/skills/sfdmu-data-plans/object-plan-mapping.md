@@ -145,6 +145,41 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | FulfillmentStepJeopardyRule | `Name` | Upsert | |
 | FulfillmentTaskAssignmentRule | `Name` | Upsert | |
 
+## qb-fsl (3 objects, `fsl: true`)
+
+| SObject | externalId | Operation | Notes |
+|---------|-----------|-----------|-------|
+| OperatingHours | `Name` | Upsert | |
+| ServiceTerritory | `Name` | Upsert | Lookup `OperatingHours.Name` |
+| WorkType | `Name` | Upsert | |
+
+TimeSlot, SkillRequirement, ProductRequired, ServiceResource, ServiceResourceSkill
+and ServiceTerritoryMember have no direct-field key; they are created idempotently by
+`scripts/apex/setupFslFoundation.apex` (`setup_fsl_foundation`) instead of SFDMU.
+
+## qb-dro-fsl (7 objects, `fsl: true`)
+
+| SObject | externalId | Operation | Notes |
+|---------|-----------|-----------|-------|
+| Product2 | `StockKeepingUnit` | Upsert | QB-DRO-FSL fulfillment product + hardware DRO fields |
+| FulfillmentStepDefinitionGroup | `Name` | Upsert | Field Installation, Finance |
+| User | `Name` | ReadOnly | `__DRO_ASSIGNED_TO_USER__` placeholder |
+| FulfillmentStepDefinition | `Name` | Upsert | Create Install Work Order (AutoTask), Installation Complete (ManualTask) |
+| FulfillmentStepDependencyDef | `Name` | Upsert | Installation Complete gates Initiate Billing |
+| ProductFulfillmentDecompRule | `Name` | Upsert | R750/RAXS → QB-DRO-FSL |
+| ProductFulfillmentScenario | `Name` | Upsert | Field Installation Service |
+
+## pest-pcm / pest-pricing (`pest: true`)
+
+Rentokil residential catalog (`RTK-*`). Products Upsert on `StockKeepingUnit`.
+PricebookEntry and ProductRelatedComponent (required Initial Service) are created
+idempotently by `scripts/apex/setupRtkRevenue.apex` (SFDMU Bug 3 on traversal keys).
+
+## pest-fsl / pest-dro-fsl (`pest: true` + `fsl: true`)
+
+Bloomingdale OperatingHours / ServiceTerritory / WorkTypes; Initial Treatment DRO
+overlay (`RTK-DRO-FSL`). Junctions via `setup_rtk_foundation`.
+
 ## qb-clm
 
 | SObject | externalId | Operation |

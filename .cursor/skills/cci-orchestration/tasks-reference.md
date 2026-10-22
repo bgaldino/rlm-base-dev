@@ -3,13 +3,13 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**197 tasks** across **9 groups**.
+**220 tasks** across **9 groups**.
 
 ---
 
 ## Data Maintenance
 
-*4 task(s)*
+*6 task(s)*
 
 ### `delete_draft_billing_records`
 
@@ -20,6 +20,30 @@
 **Options:**
 
 - `path`: `scripts/apex/deleteDraftBillingRecords.apex`
+
+---
+
+### `delete_pest_data`
+
+**Description:** Delete Rentokil pest demo data in dependency order
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/deleteRtkData.apex`
+
+---
+
+### `delete_qb_fsl_data`
+
+**Description:** Delete QuantumBit Field Service demo data (ServiceAppointment, WorkOrder, junctions, ServiceResource, WorkType, ServiceTerritory, OperatingHours) in dependency order
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/deleteQbFslData.apex`
 
 ---
 
@@ -81,7 +105,7 @@
 
 ## Data Management - Extract
 
-*15 task(s)*
+*17 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -92,6 +116,18 @@
 **Options:**
 
 - `output_dir`: `datasets/bre/exports`
+
+---
+
+### `extract_pest_pcm_data`
+
+**Description:** Extract pest-pcm from org to CSV. Output in datasets/sfdmu/extractions/pest-pcm/<timestamp>.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/pest/en-US/pest-pcm`
 
 ---
 
@@ -140,6 +176,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-dro`
+
+---
+
+### `extract_qb_fsl_data`
+
+**Description:** Extract qb-fsl from org to CSV. Output in datasets/sfdmu/extractions/qb-fsl/<timestamp>.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-fsl`
 
 ---
 
@@ -266,7 +314,20 @@
 
 ## Data Management - Idempotency
 
-*13 task(s)*
+*15 task(s)*
+
+### `test_pest_pcm_idempotency`
+
+**Description:** Idempotency test for pest-pcm.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/pest/en-US/pest-pcm`
+- `use_extraction_roundtrip`: `False`
+
+---
 
 ### `test_qb_approvals_idempotency`
 
@@ -316,6 +377,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-dro`
+- `use_extraction_roundtrip`: `False`
+
+---
+
+### `test_qb_fsl_idempotency`
+
+**Description:** Idempotency test for qb-fsl.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-fsl`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -546,7 +620,7 @@
 
 ## Revenue Lifecycle Management
 
-*122 task(s)*
+*139 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -742,6 +816,21 @@
 - `deactivate_before`: `False`
 - `activate`: `True`
 - `verify`: `True`
+
+---
+
+### `apply_context_pest_location`
+
+**Description:** Add ServicePostalCode tag to RLM_SalesTransactionContext for location-aware pest pricing
+
+**Class:** `tasks.rlm_context_service.ManageContextDefinition`
+
+**Options:**
+
+- `developer_name`: `RLM_SalesTransactionContext`
+- `plan_file`: `datasets/context_plans/PestLocation/manifest.json`
+- `translate_plan`: `True`
+- `activate`: `True`
 
 ---
 
@@ -1177,6 +1266,20 @@
 
 ---
 
+### `deploy_post_fsl`
+
+**Description:** Deploy Field Service metadata (Skills, WorkOrder and Opportunity RLM bridge fields, RLM_Field_Service permission set and group, Field Installation, service coverage, repair billing and Flag Expansion flows, and their Apex actions). Runs only RLM_FSL_ServiceBillingTest so production orgs without org-wide coverage can deploy.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_fsl`
+- `test_level`: `RunSpecifiedTests`
+- `specified_tests`: `RLM_FSL_ServiceBillingTest`
+
+---
+
 ### `deploy_post_personas`
 
 **Description:** Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
@@ -1186,6 +1289,20 @@
 **Options:**
 
 - `path`: `unpackaged/post_personas`
+
+---
+
+### `deploy_post_pest`
+
+**Description:** Deploy Rentokil pest control metadata (service zones, line-of-business field, Inspect and Quote flow, FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_pest`
+- `test_level`: `RunSpecifiedTests`
+- `specified_tests`: `RLM_RTK_FieldQuoteTest`
 
 ---
 
@@ -1210,6 +1327,18 @@
 **Options:**
 
 - `path`: `unpackaged/pre`
+
+---
+
+### `deploy_pre_fsl`
+
+**Description:** Deploy Field Service settings (FieldServiceSettings - enable Work Orders and Service Appointment lifecycle)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/pre_fsl`
 
 ---
 
@@ -1555,6 +1684,55 @@
 
 ---
 
+### `insert_pest_dro_fsl_data`
+
+**Description:** Insert Rentokil DRO Initial Service overlay (RTK-DRO-FSL, step group, decomposition from Initial Service)
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/pest/en-US/pest-dro-fsl`
+- `dynamic_assigned_to_user`: `True`
+
+---
+
+### `insert_pest_fsl_data`
+
+**Description:** Insert Rentokil Field Service foundation (Bloomingdale OperatingHours, ServiceTerritory, WorkTypes)
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/pest/en-US/pest-fsl`
+
+---
+
+### `insert_pest_pcm_data`
+
+**Description:** Insert Rentokil residential pest product catalog (RTK- products, attributes, selling models)
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/pest/en-US/pest-pcm`
+
+---
+
+### `insert_pest_pricing_data`
+
+**Description:** Insert Rentokil pest price book entries and attribute-based adjustments
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/pest/en-US/pest-pricing`
+
+---
+
 ### `insert_procedure_plan_data`
 
 **Description:** Insert Procedure Plan data (sections in pass 1, options with expression set links in pass 2)
@@ -1702,6 +1880,31 @@
 
 ---
 
+### `insert_qb_dro_fsl_data`
+
+**Description:** Insert QuantumBit DRO Field Installation overlay (QB-DRO-FSL fulfillment product, Field Installation step group, steps, dependencies, decomposition rules, scenario)
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-dro-fsl`
+- `dynamic_assigned_to_user`: `True`
+
+---
+
+### `insert_qb_fsl_data`
+
+**Description:** Insert QuantumBit Field Service foundation data (OperatingHours, ServiceTerritory, WorkType)
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-fsl`
+
+---
+
 ### `insert_qb_guidedselling_data`
 
 **Description:** Insert QuantumBit Guided Selling Data
@@ -1819,6 +2022,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
+
+---
+
+### `install_fsl_managed_package`
+
+**Description:** Install the Field Service (FSL) managed package by 04t version Id from project__custom__fsl_package_version_id
+
+**Class:** `cumulusci.tasks.salesforce.install_package_version.InstallPackageVersion`
+
+**Options:**
+
+- `version_id`: `$project_config.project__custom__fsl_package_version_id`
+- `security_type`: `FULL`
 
 ---
 
@@ -2088,6 +2304,78 @@
 **Description:** Restore the placeholder siteAdmin and siteGuestRecordDefaultOwner in Payments_Webhook.site-meta.xml after deploy_post_payments_site so the repo never stores the target org's real username. Run AFTER deploy_post_payments_site.
 
 **Class:** `tasks.rlm_community.RevertPaymentsSiteAfterDeploy`
+
+---
+
+### `setup_fsl_foundation`
+
+**Description:** Idempotently create Field Service junction records (TimeSlot, SkillRequirement, ProductRequired, ServiceResource for the running user, ServiceResourceSkill, ServiceTerritoryMember)
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/setupFslFoundation.apex`
+
+---
+
+### `setup_fsl_revenue`
+
+**Description:** Idempotently price Installation and Assembly (QB-INST-1000) and create the Break/Fix Repair product (QB-SVC-REPAIR) as one-time catalog products, and create the Installation Milestone billing policy, treatment and Event milestone for hardware and install products. Runs at prepare_rlm_org step 13.5, after prepare_billing, because qb-billing resets Product2 billing policies.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/setupFslRevenue.apex`
+
+---
+
+### `setup_rtk_dro_steps`
+
+**Description:** Idempotently create Rentokil Initial Treatment DRO step definitions (AutoTask/ManualTask/Milestone) and dependencies. Use when SFDMU StepType values do not match the org picklist.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/setupRtkDroSteps.apex`
+
+---
+
+### `setup_rtk_foundation`
+
+**Description:** Idempotently create Rentokil FSL junctions (skills, work type requirements, service resource for Bloomingdale)
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/setupRtkFoundation.apex`
+
+---
+
+### `setup_rtk_grow`
+
+**Description:** Idempotently create Michael Reyes Maintenance Plan, MaintenanceAsset, and quarterly MaintenanceWorkRule after the pest order is placed.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/setupRtkGrow.apex`
+
+---
+
+### `setup_rtk_revenue`
+
+**Description:** Idempotently seed Rentokil service zones, price book entries, Initial Service milestone billing, guarantee entitlement template, and Maintenance Plan defaults. Runs after pest catalog load.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/setupRtkRevenue.apex`
 
 ---
 

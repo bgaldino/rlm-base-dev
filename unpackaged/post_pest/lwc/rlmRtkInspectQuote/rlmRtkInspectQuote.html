@@ -1,0 +1,170 @@
+<template>
+    <div class="shell">
+        <header class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">Field inspect &amp; quote</p>
+                <h1 class="title">{accountName}</h1>
+                <p class="subtitle">Walk the property, capture findings, and price the plan on site.</p>
+            </div>
+            <div if:true={hasZip} class="zip-badge" title="Service ZIP drives location pricing">
+                <lightning-icon icon-name="utility:checkin" size="x-small" alternative-text=""></lightning-icon>
+                <div>
+                    <span class="zip-label">Service ZIP</span>
+                    <strong class="zip-value">{postalCode}</strong>
+                </div>
+            </div>
+        </header>
+
+        <section class="section">
+            <div class="section-head">
+                <h2>Choose a plan</h2>
+                <p>Tap a card — Home Protection is the usual pick for Bloomingdale.</p>
+            </div>
+            <div class="plan-grid" role="listbox" aria-label="Recommended plan">
+                <template for:each={plans} for:item="plan">
+                    <button
+                        key={plan.sku}
+                        type="button"
+                        class={plan.cardClass}
+                        data-sku={plan.sku}
+                        aria-pressed={plan.ariaPressed}
+                        onclick={selectPlan}
+                    >
+                        <template if:true={plan.recommended}>
+                            <span class="rec-pill">Recommended</span>
+                        </template>
+                        <span class="plan-name">{plan.name}</span>
+                        <span class="plan-price"
+                            ><span class="plan-amount">{plan.priceLabel}</span
+                            ><span class="plan-per">/mo</span></span
+                        >
+                        <span class="plan-blurb">{plan.blurb}</span>
+                        <ul class="plan-features">
+                            <template for:each={plan.features} for:item="feat">
+                                <li key={feat}>{feat}</li>
+                            </template>
+                        </ul>
+                    </button>
+                </template>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-head">
+                <h2>Property type</h2>
+                <p>Icon tiles — pick what you are standing in front of.</p>
+            </div>
+            <div class="prop-grid" role="group" aria-label="Property type">
+                <template for:each={properties} for:item="prop">
+                    <button
+                        key={prop.value}
+                        type="button"
+                        class={prop.tileClass}
+                        data-value={prop.value}
+                        aria-pressed={prop.ariaPressed}
+                        onclick={selectProperty}
+                    >
+                        <lightning-icon icon-name={prop.icon} size="medium" alternative-text=""></lightning-icon>
+                        <span class="prop-label">{prop.label}</span>
+                        <span class="prop-hint">{prop.hint}</span>
+                    </button>
+                </template>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-head row">
+                <div>
+                    <h2>Home size</h2>
+                    <p>Slide to estimate square footage — snaps to pricing buckets.</p>
+                </div>
+                <div class="sqft-readout">
+                    <strong>{sqftDisplay}</strong>
+                    <span>{sqftBucketLabel}</span>
+                </div>
+            </div>
+            <div class="slider-wrap">
+                <input
+                    type="range"
+                    class="sqft-slider"
+                    min="800"
+                    max="6000"
+                    step="50"
+                    value={sqftSlider}
+                    aria-label="Square footage"
+                    oninput={handleSqft}
+                    onchange={handleSqft}
+                />
+                <div class="slider-ticks">
+                    <span>800</span>
+                    <span>2,000</span>
+                    <span>3,500</span>
+                    <span>6,000</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-head">
+                <h2>Infestation severity</h2>
+                <p>Heat scale — how bad is what you found?</p>
+            </div>
+            <div class="sev-meter" role="group" aria-label="Infestation severity">
+                <template for:each={severities} for:item="sev">
+                    <button
+                        key={sev.value}
+                        type="button"
+                        class={sev.chipClass}
+                        data-value={sev.value}
+                        aria-pressed={sev.ariaPressed}
+                        onclick={selectSeverity}
+                    >
+                        <span class="sev-label">{sev.label}</span>
+                        <span class="sev-hint">{sev.hint}</span>
+                    </button>
+                </template>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-head">
+                <h2>Add-ons</h2>
+                <p>Toggle cards — Initial Service is always added automatically.</p>
+            </div>
+            <div class="addon-grid">
+                <button type="button" class={mosquitoCardClass} aria-pressed={includeMosquito} onclick={toggleMosquito}>
+                    <div class="addon-icon mosquito" aria-hidden="true">
+                        <lightning-icon icon-name="utility:world" size="small" alternative-text=""></lightning-icon>
+                    </div>
+                    <div class="addon-copy">
+                        <strong>Seasonal mosquito</strong>
+                        <span>Yard treatments while the season is on</span>
+                    </div>
+                    <span class="addon-switch" aria-hidden="true">
+                        <span class="knob"></span>
+                    </span>
+                </button>
+                <button type="button" class={termiteCardClass} aria-pressed={includeTermite} onclick={toggleTermite}>
+                    <div class="addon-icon termite" aria-hidden="true">
+                        <lightning-icon icon-name="utility:warning" size="small" alternative-text=""></lightning-icon>
+                    </div>
+                    <div class="addon-copy">
+                        <strong>Termite plan now</strong>
+                        <span>Add if you already see mud tubes</span>
+                    </div>
+                    <span class="addon-switch" aria-hidden="true">
+                        <span class="knob"></span>
+                    </span>
+                </button>
+            </div>
+        </section>
+
+        <footer class="summary">
+            <div>
+                <span class="summary-label">Ready to quote</span>
+                <p class="summary-bits">{summaryBits}</p>
+            </div>
+            <p class="summary-hint">Tap <strong>Create Quote</strong> below — Initial Service is included.</p>
+        </footer>
+    </div>
+</template>

@@ -1,0 +1,4 @@
+Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.UnitCode,ValueDescription
+ATTR-RTK-PROPTYPE,Picklist,,SingleFamily,Property type,RTK_Property_Type,true,false,Property Type,Property Type,RTK Property Type,,,
+ATTR-RTK-SQFT,Picklist,,Under2000,Square footage band,RTK_Square_Footage,true,false,Square Footage,Square Footage,RTK Square Footage,,,
+ATTR-RTK-SEVERITY,Picklist,,Light,Infestation severity,RTK_Infestation_Severity,true,false,Infestation Severity,Infestation Severity,RTK Infestation Severity,,,

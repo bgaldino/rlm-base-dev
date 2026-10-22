@@ -1,0 +1,10 @@
+BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+,false,,Quarterly general pest protection for the home.,,Subscription,true,true,false,Essential Pest Plan,RTK-ESSENTIAL,,,RTK-ESSENTIAL,,
+,false,,"General pest plus rodent protection, quarterly service.",,Subscription,true,true,false,Home Protection Plan,RTK-HOME-PROT,,,RTK-HOME-PROT,,
+,false,,Home Protection plus wasp and wildlife exclusion.,,Subscription,true,true,false,Home Protection Plus,RTK-HOME-PROT-PLUS,,,RTK-HOME-PROT-PLUS,,
+,false,,Ongoing termite monitoring and treatment plan.,,Subscription,true,true,false,Termite Plan,RTK-TERMITE,,,RTK-TERMITE,,
+,false,,Mosquito protection April through October; pauses in winter.,,Subscription,true,true,false,Seasonal Mosquito Plan,RTK-MOSQUITO,,,RTK-MOSQUITO,,
+,false,,One-time cleanout and exclusion at signup.,,Service,true,true,false,Initial Service,RTK-INITIAL,,,RTK-INITIAL,,
+,false,,Follow-up visit when pests return; billable when not under guarantee.,,Service,true,true,false,Re-service Visit,RTK-RESERVICE,,,RTK-RESERVICE,,
+,false,,On-site residential pest inspection and risk assessment.,,Service,true,true,false,Pest Inspection,RTK-INSPECTION,,,RTK-INSPECTION,,
+,false,,Fulfillment product that creates the Initial Service Work Order.,,Service,true,false,false,Initial Treatment Fulfillment,RTK-DRO-FSL,,,RTK-DRO-FSL,,

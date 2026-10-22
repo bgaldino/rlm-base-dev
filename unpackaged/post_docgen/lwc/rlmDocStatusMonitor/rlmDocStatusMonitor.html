@@ -1,19 +1,37 @@
 <template>
-    <div
-        class="slds-box slds-theme_default slds-align_absolute-center"
-        style="height: 200px;"
-    >
-        <template if:true={isProcessing}>
-            <div class="slds-text-align_center">
-                <lightning-spinner style="background:none;"
-                    alternative-text="Generating Document..."
-                    size="medium"
-                ></lightning-spinner>
+    <template if:false={isMobile}>
+        <div
+            class="slds-box slds-theme_default slds-align_absolute-center"
+            style="height: 200px;"
+        >
+            <template if:true={isProcessing}>
+                <div class="slds-text-align_center">
+                    <lightning-spinner style="background:none;"
+                        alternative-text="Generating Document..."
+                        size="medium"
+                    ></lightning-spinner>
 
-                <p class="slds-m-top_large textClass">
-                    Generating your document, please wait...
-                </p>
-            </div>
-        </template>
-    </div>
+                    <p class="slds-m-top_large textClass">
+                        Generating your document, please wait...
+                    </p>
+                </div>
+            </template>
+        </div>
+    </template>
+
+    <template if:true={isMobile}>
+        <div class="slds-box slds-theme_default slds-text-align_center slds-p-around_large">
+            <lightning-icon icon-name="doctype:pdf" size="large" alternative-text=""></lightning-icon>
+            <p class="slds-text-heading_small slds-m-top_medium">Proposal is generating</p>
+            <p class="slds-m-top_x-small slds-text-color_weak">
+                It will appear in Files on this quote in a few seconds. Use Sign &amp; Pay on the quote when it is ready.
+            </p>
+            <lightning-button
+                class="slds-m-top_large"
+                variant="brand"
+                label="Back to quote"
+                onclick={returnToRecord}
+            ></lightning-button>
+        </div>
+    </template>
 </template>

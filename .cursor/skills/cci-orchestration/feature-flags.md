@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**38 feature flags**, **77 configuration values**, **30 YAML anchors** under `project.custom`.
+**41 feature flags**, **84 configuration values**, **33 YAML anchors** under `project.custom`.
 
 ---
 
@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `False` | 4 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
-| `billing` | `True` | 19 flow step(s) |
+| `billing` | `True` | 21 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
@@ -29,17 +29,20 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `constraints_data` | `True` | 5 flow step(s) |
 | `dev_ed` | `False` | 1 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
-| `dro` | `True` | 7 flow step(s) |
+| `dro` | `True` | 12 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
+| `fsl` | `False` | 16 flow step(s) |
+| `fsl_managed_package` | `False` | 1 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
+| `pest` | `False` | 13 flow step(s) |
 | `prm` | `True` | 9 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 5 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
-| `qb` | `True` | 19 flow step(s) |
+| `qb` | `True` | 23 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 3 flow step(s) |
@@ -77,9 +80,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `billing` (default: `True`)
 
+- `prepare_rlm_org` step 13.5 → `setup_fsl_revenue`
 - `assign_feature_permission_sets` step 4 → `assign_permission_sets`
 - `extend_context_definitions` step 4 → `extend_context_billing`
 - `extend_context_definitions` step 5 → `extend_context_collection_plan_segment`
+- `prepare_pest` step 5 → `setup_rtk_revenue`
 - `prepare_billing` step 1 → `deploy_post_billing`
 - `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
@@ -185,12 +190,40 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 - `prepare_dro` step 5 → `update_product_fulfillment_decomp_rules`
+- `prepare_fsl` step 9 → `insert_qb_dro_fsl_data`
+- `prepare_fsl` step 10 → `update_product_fulfillment_decomp_rules`
+- `prepare_pest` step 8 → `insert_pest_dro_fsl_data`
+- `prepare_pest` step 8.5 → `setup_rtk_dro_steps`
+- `prepare_pest` step 9 → `update_product_fulfillment_decomp_rules`
 
 ### `einstein` (default: `True`)
 
 - `assign_feature_psls` step 2 → `assign_permission_set_licenses`
 - `assign_feature_permission_sets` step 2 → `assign_permission_sets`
 - `assign_feature_permission_sets` step 3 → `assign_permission_sets`
+
+### `fsl` (default: `False`)
+
+- `prepare_rlm_org` step 13.5 → `setup_fsl_revenue`
+- `prepare_fsl` step 1 → `assign_permission_set_licenses`
+- `prepare_fsl` step 2 → `deploy_pre_fsl`
+- `prepare_fsl` step 3 → `install_fsl_managed_package`
+- `prepare_fsl` step 4 → `deploy_post_fsl`
+- `prepare_fsl` step 5 → `recalculate_permission_set_groups`
+- `prepare_fsl` step 6 → `assign_permission_set_groups_tolerant`
+- `prepare_fsl` step 6.5 → `assign_permission_sets`
+- `prepare_fsl` step 7 → `insert_qb_fsl_data`
+- `prepare_fsl` step 8 → `setup_fsl_foundation`
+- `prepare_fsl` step 9 → `insert_qb_dro_fsl_data`
+- `prepare_fsl` step 10 → `update_product_fulfillment_decomp_rules`
+- `prepare_pest` step 6 → `insert_pest_fsl_data`
+- `prepare_pest` step 7 → `setup_rtk_foundation`
+- `prepare_pest` step 8 → `insert_pest_dro_fsl_data`
+- `prepare_pest` step 11 → `setup_rtk_grow`
+
+### `fsl_managed_package` (default: `False`)
+
+- `prepare_fsl` step 3 → `install_fsl_managed_package`
 
 ### `guidedselling` (default: `False`)
 
@@ -205,6 +238,22 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_payments` step 4 → `revert_payments_site_after_deploy`
 - `prepare_payments` step 5 → `publish_community`
 - `prepare_payments` step 6 → `deploy_post_payments_settings`
+
+### `pest` (default: `False`)
+
+- `prepare_pest` step 1 → `deploy_post_pest`
+- `prepare_pest` step 1.5 → `assign_permission_sets`
+- `prepare_pest` step 2 → `apply_context_pest_location`
+- `prepare_pest` step 3 → `insert_pest_pcm_data`
+- `prepare_pest` step 4 → `insert_pest_pricing_data`
+- `prepare_pest` step 5 → `setup_rtk_revenue`
+- `prepare_pest` step 6 → `insert_pest_fsl_data`
+- `prepare_pest` step 7 → `setup_rtk_foundation`
+- `prepare_pest` step 8 → `insert_pest_dro_fsl_data`
+- `prepare_pest` step 8.5 → `setup_rtk_dro_steps`
+- `prepare_pest` step 9 → `update_product_fulfillment_decomp_rules`
+- `prepare_pest` step 10 → `refresh_dt_default_pricing`
+- `prepare_pest` step 11 → `setup_rtk_grow`
 
 ### `prm` (default: `True`)
 
@@ -245,11 +294,15 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `qb` (default: `True`)
 
+- `prepare_rlm_org` step 13.5 → `setup_fsl_revenue`
 - `prepare_product_data` step 1 → `insert_quantumbit_pcm_data`
 - `prepare_product_data` step 3 → `insert_quantumbit_product_image_data`
 - `prepare_pricing_data` step 1 → `delete_quantumbit_pricing_data`
 - `prepare_pricing_data` step 2 → `insert_quantumbit_pricing_data`
 - `prepare_dro` step 2 → `insert_qb_dro_data`
+- `prepare_fsl` step 7 → `insert_qb_fsl_data`
+- `prepare_fsl` step 8 → `setup_fsl_foundation`
+- `prepare_fsl` step 9 → `insert_qb_dro_fsl_data`
 - `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 4 → `create_sequence_policies`
 - `prepare_prm` step 9 → `insert_quantumbit_prm_data`
@@ -353,7 +406,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 28 → `prepare_ux`
+- `prepare_rlm_org` step 27 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 
@@ -395,10 +448,15 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `contracts_extraction_context_name` | `RLM_ContractsExtractionContext` |
 | `default_context_start_date` | `2020-01-01T00:00:00.000Z` |
 | `default_context_ttl` | `30` |
+| `fsl_package_version_id` | `` |
 | `fulfillment_asset_context_base_reference` | `FulfillmentAssetContext__stdctx` |
 | `fulfillment_asset_context_default_mapping` | `FulfillAssetEntitiesMapping` |
 | `fulfillment_asset_context_name` | `RLM_FulfillmentAssetContext` |
 | `locale` | `en_US` |
+| `pest_dro_fsl_dataset` | `datasets/sfdmu/pest/en-US/pest-dro-fsl` |
+| `pest_fsl_dataset` | `datasets/sfdmu/pest/en-US/pest-fsl` |
+| `pest_pcm_dataset` | `datasets/sfdmu/pest/en-US/pest-pcm` |
+| `pest_pricing_dataset` | `datasets/sfdmu/pest/en-US/pest-pricing` |
 | `procedure_plan_definition_description` | `Procedure Plan Definition for Quote Pricing` |
 | `procedure_plan_definition_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_name` | `RLM_Quote_Pricing_Procedure_Plan` |
@@ -428,6 +486,8 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_data_dir` | `datasets/constraints/qb/QuantumBitComplete` |
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
+| `quantumbit_dro_fsl_dataset` | `datasets/sfdmu/qb/en-US/qb-dro-fsl` |
+| `quantumbit_fsl_dataset` | `datasets/sfdmu/qb/en-US/qb-fsl` |
 | `quantumbit_guidedselling_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |
@@ -575,6 +635,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 - `RLM_DocGen`
 
+### `ps_fsl`
+
+*1 items:*
+
+- `FieldServiceMobileStandardPermSet`
+
 ### `ps_prm`
 
 *1 items:*
@@ -592,6 +658,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_RampSchedule`
+
+### `psg_fsl`
+
+*1 items:*
+
+- `RLM_Field_Service_PSG`
 
 ### `psg_tso`
 
@@ -656,6 +728,15 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 - `Microsoft365WordPsl`
 - `ObligationManagementUser`
 - `OmniStudioDesigner`
+
+### `rlm_fsl_psl_api_names`
+
+*4 items:*
+
+- `FieldServiceStandardPsl`
+- `FieldServiceDispatcherPsl`
+- `FieldServiceSchedulingPsl`
+- `FieldServiceMobilePsl`
 
 ### `rlm_pcm_ps_api_names`
 

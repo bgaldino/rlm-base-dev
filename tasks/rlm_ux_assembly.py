@@ -727,7 +727,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
             "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
             "payments", "constraints", "analytics", "procedureplans",
-            "collections",
+            "collections", "fsl", "pest",
         ]
         flags = {}
         for flag in known_flags:
@@ -776,6 +776,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("docgen",      features.get("docgen", False)),
             ("approvals",   features.get("qb", False)),   # approvals deploys with qb flow
             ("collections", features.get("collections", False)),
+            ("fsl",         features.get("fsl", False)),
         ]
         for feature_dir, active in standalone_copy_order:
             if not active:
@@ -812,6 +813,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("constraints", "constraints"),
             ("ramps",       "ramp_builder"),
             ("collections", "collections"),
+            ("fsl",         "fsl"),
+            ("pest",        "pest"),
         ]
 
         # Flexipage types that cannot be deployed via Metadata API (platform restriction)
@@ -922,6 +925,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("base", templates_path / "layouts" / "base", True),
             ("billing", templates_path / "layouts" / "billing", features.get("billing", False)),
             ("constraints", templates_path / "layouts" / "constraints", features.get("constraints", False)),
+            ("fsl", templates_path / "layouts" / "fsl", features.get("fsl", False)),
+            ("pest", templates_path / "layouts" / "pest", features.get("pest", False)),
         ]
 
         copied_names: Set[str] = set()
@@ -998,7 +1003,26 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 existing_keys.add((sobjtype, ff))
                 added += 1
 
+        # Append <tabs> from the patch after the last existing <tabs> element
+        existing_tabs = app_root.findall(f"{{{NS}}}tabs")
+        existing_tab_names = {(t.text or "").strip() for t in existing_tabs}
+        tabs_added = 0
+        insert_at = (
+            list(app_root).index(existing_tabs[-1]) + 1 if existing_tabs else len(app_root)
+        )
+        for tab in patch_root.findall(f"{{{NS}}}tabs"):
+            name = (tab.text or "").strip()
+            if name and name not in existing_tab_names:
+                app_root.insert(insert_at, tab)
+                insert_at += 1
+                existing_tab_names.add(name)
+                tabs_added += 1
+
         if added == 0:
+            if tabs_added:
+                ET.indent(app_tree, space="    ")
+                app_tree.write(app_dest, encoding="utf-8", xml_declaration=True, default_namespace=NS)
+                self.logger.debug(f"  [app patch] {patch_file.name}: +{tabs_added} tab(s)")
             return
 
         # Re-sort all actionOverrides by (pageOrSobjectType, formFactor)
@@ -1031,7 +1055,9 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         ET.indent(app_tree, space="    ")
         app_tree.write(app_dest, encoding="utf-8", xml_declaration=True, default_namespace=NS)
-        self.logger.debug(f"  [app patch] {patch_file.name}: +{added} actionOverride(s)")
+        self.logger.debug(
+            f"  [app patch] {patch_file.name}: +{added} actionOverride(s), +{tabs_added} tab(s)"
+        )
 
     def _assemble_applications(
         self,
@@ -1071,21 +1097,23 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 shutil.copy2(str(src_file), str(dest))
                 tier = "tso" if features.get("tso") else ("quantumbit" if features.get("qb") else "base")
 
-                # Apply feature-conditional actionOverride patches.
+                # Apply feature-conditional patches.
                 # Patch files live in templates/applications/patches/{feature}/RLM_Revenue_Cloud.patch.xml
-                # and contain bare <actionOverrides> elements (no root wrapper).
-                # TSO template already contains all overrides; patches only run for non-TSO builds.
+                # and contain bare <actionOverrides> and/or <tabs> elements (no root wrapper).
+                # TSO template already contains the billing/rates/ramps overrides; those patches
+                # only run for non-TSO builds. The fsl patch (tabs) applies to every tier.
                 patches_applied = []
+                patch_features = ["fsl"]
                 if not features.get("tso"):
-                    patch_features = ["billing", "rates", "ramps"]
-                    for pf in patch_features:
-                        if not features.get(pf):
-                            continue
-                        patch_file = app_base / "patches" / pf / rev_cloud_name.replace(".app-meta.xml", ".patch.xml")
-                        if not patch_file.exists():
-                            continue
-                        self._apply_app_action_overrides_patch(dest, patch_file)
-                        patches_applied.append(pf)
+                    patch_features = ["billing", "rates", "ramps"] + patch_features
+                for pf in patch_features:
+                    if not features.get(pf):
+                        continue
+                    patch_file = app_base / "patches" / pf / rev_cloud_name.replace(".app-meta.xml", ".patch.xml")
+                    if not patch_file.exists():
+                        continue
+                    self._apply_app_action_overrides_patch(dest, patch_file)
+                    patches_applied.append(pf)
 
                 assembled.append(
                     {
@@ -1250,6 +1278,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("billing",     features.get("billing", False)),
             ("tso",         features.get("tso", False)),
             ("collections", features.get("collections", False)),
+            ("fsl",         features.get("fsl", False)),
         ]
 
         patterns = [

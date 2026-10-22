@@ -1,0 +1,4 @@
+AssignedTo.Name,CustomBaseExecutionDate,CustomFulfillmentScope,DelayOf,DelayUnit,ExecuteOn,FlowDefinitionName,ForcePlanFreezeDuringExecution,IsSkipBranch,Name,OmniscriptName,PointOfNoReturn,Scope,StepDefinitionGroup.Name,StepType,TaskAllocationType,UsageType
+__DRO_ASSIGNED_TO_USER__,,,,,,RLM_RTK_Create_Initial_Work_Order,Never,false,Create Initial Treatment Work Order,,,Plan,Initial Pest Treatment,AutoTask,,Fulfillment
+__DRO_ASSIGNED_TO_USER__,,,,,,,Never,false,Initial Treatment Complete,,,Plan,Initial Pest Treatment,ManualTask,,Fulfillment
+__DRO_ASSIGNED_TO_USER__,,,,,,,Never,false,Start Pest Subscription Billing,,,Plan,Pest Finance,Milestone,,Fulfillment

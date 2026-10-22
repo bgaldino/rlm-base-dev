@@ -1,0 +1,3 @@
+$$Name$SellingModelType,Name,PricingTerm,PricingTermUnit,SellingModelType,Status
+Evergreen Monthly;Evergreen,Evergreen Monthly,1,Monthly,Evergreen,Active
+One-Time;OneTime,One Time,,,OneTime,Active

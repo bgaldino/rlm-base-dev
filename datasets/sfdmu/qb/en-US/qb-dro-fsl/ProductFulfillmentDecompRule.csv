@@ -1,0 +1,5 @@
+DestinationProduct.StockKeepingUnit,Name,Priority,SourceProduct.StockKeepingUnit,SourceProductClassification.Name
+QB-DRO-FSL,PowerSwerve Server to Field Installation,,QB-BDL-R750,
+QB-DRO-BILL,PowerSwerve Server to Finance,,QB-BDL-R750,
+QB-DRO-FSL,Rack Enclosure to Field Installation,,QB-BDL-RAXS,
+QB-DRO-BILL,Rack Enclosure to Finance,,QB-BDL-RAXS,

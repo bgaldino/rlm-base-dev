@@ -1,0 +1,3 @@
+CustomDecompositionScope,DecompositionScope,FulfillmentQtyCalcMethod,IsActive,IsAssetizable,Name,ProductCode,StockKeepingUnit
+,OrderLineItem,,true,false,Initial Treatment Fulfillment,RTK-DRO-FSL,RTK-DRO-FSL
+,OrderLineItem,,true,false,Initial Service,RTK-INITIAL,RTK-INITIAL

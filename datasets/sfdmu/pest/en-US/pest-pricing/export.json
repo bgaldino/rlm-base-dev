@@ -1,0 +1,71 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT ConversionRate, DecimalPlaces, IsActive, IsCorporate, IsoCode FROM CurrencyType ORDER BY IsoCode ASC",
+          "operation": "Upsert",
+          "externalId": "IsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, Status, PricingTerm, PricingTermUnit, SellingModelType FROM ProductSellingModel ORDER BY Name ASC, SellingModelType ASC",
+          "operation": "Readonly",
+          "externalId": "Name;SellingModelType",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code FROM AttributeDefinition ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, IsActive, IsStandard, CostBookId, ValidFrom, ValidTo, Description FROM Pricebook2",
+          "operation": "Upsert",
+          "externalId": "Name;IsStandard",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name FROM AttributeBasedAdjRule ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, CurrencyIsoCode ASC",
+          "operation": "Upsert",
+          "externalId": "Name;CurrencyIsoCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue FROM AttributeAdjustmentCondition",
+          "operation": "Insert",
+          "externalId": "AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit",
+          "excluded": true
+        },
+        {
+          "query": "SELECT AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, AttributeCount, CurrencyIsoCode, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType FROM AttributeBasedAdjustment",
+          "operation": "Insert",
+          "externalId": "AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
+          "excluded": true
+        },
+        {
+          "query": "SELECT Name, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode FROM PricebookEntry ORDER BY Product2.StockKeepingUnit ASC",
+          "operation": "Insert",
+          "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
+          "excluded": true
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

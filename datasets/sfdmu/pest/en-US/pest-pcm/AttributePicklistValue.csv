@@ -1,0 +1,10 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+,SingleFamily,Single family,true,Single family,RTK Property Type,1,Active,SingleFamily
+,Townhome,Townhome,false,Townhome,RTK Property Type,2,Active,Townhome
+,Condo,Condo,false,Condo,RTK Property Type,3,Active,Condo
+,Under2000,"Under 2,000",true,"Under 2,000",RTK Square Footage,1,Active,Under2000
+,2000to3500,"2,000–3,500",false,"2,000–3,500",RTK Square Footage,2,Active,2000to3500
+,Over3500,"Over 3,500",false,"Over 3,500",RTK Square Footage,3,Active,Over3500
+,Light,Light,true,Light,RTK Infestation Severity,1,Active,Light
+,Moderate,Moderate,false,Moderate,RTK Infestation Severity,2,Active,Moderate
+,Heavy,Heavy,false,Heavy,RTK Infestation Severity,3,Active,Heavy

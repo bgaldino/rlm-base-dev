@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Line_of_Business__c</fullName>
+    <description>Routes pest quotes to Rentokil location-aware pricing. Set to Residential Pest for field quotes.</description>
+    <externalId>false</externalId>
+    <label>Line of Business</label>
+    <length>80</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

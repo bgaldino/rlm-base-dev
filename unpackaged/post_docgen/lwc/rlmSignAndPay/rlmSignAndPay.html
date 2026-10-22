@@ -1,0 +1,177 @@
+<template>
+    <div class={shellClass}>
+        <template if:true={loading}>
+            <div class="loading">
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:false={loading}>
+            <header class="hero">
+                <div>
+                    <p class="eyebrow">Sign &amp; pay · demo</p>
+                    <h1>{accountName}</h1>
+                    <p class="sub">
+                        Quote {quoteNumber}
+                        <template if:true={totalLabel}> · {totalLabel}</template>
+                    </p>
+                </div>
+                <template if:true={hasProposal}>
+                    <button type="button" class="doc-chip" onclick={openDocument}>
+                        <lightning-icon icon-name="doctype:pdf" size="small" alternative-text=""></lightning-icon>
+                        <span>
+                            <strong>Proposal on file</strong>
+                            <em>{proposalTitle}</em>
+                        </span>
+                    </button>
+                </template>
+                <template if:false={hasProposal}>
+                    <div class="doc-chip warn">
+                        <lightning-icon icon-name="utility:warning" size="small" alternative-text=""></lightning-icon>
+                        <span>
+                            <strong>No proposal yet</strong>
+                            <em>Run Create Proposal first</em>
+                        </span>
+                    </div>
+                </template>
+            </header>
+
+            <template if:true={isOnFile}>
+                <section class="panel onfile">
+                    <div class="panel-head">
+                        <h2>Payment method</h2>
+                        <p>This quote already has a signed proposal and a card on file.</p>
+                    </div>
+                    <div class="saved-card">
+                        <div class="saved-card-top">
+                            <span class="saved-brand">{onFileBrand}</span>
+                            <span class="saved-badge">
+                                <lightning-icon icon-name="utility:check" size="xx-small" alternative-text=""></lightning-icon>
+                                On file
+                            </span>
+                        </div>
+                        <div class="saved-number">{onFileMasked}</div>
+                        <div class="saved-meta">{onFileSignedLabel}</div>
+                    </div>
+                    <div class="choice-row">
+                        <button type="button" class="primary" onclick={handleUseCardOnFile}>Use card on file</button>
+                        <button type="button" class="secondary" onclick={handleAddAnother}>
+                            <lightning-icon icon-name="utility:add" size="x-small" alternative-text=""></lightning-icon>
+                            Add another payment method
+                        </button>
+                    </div>
+                </section>
+            </template>
+
+            <template if:true={isDone}>
+                <div class="success">
+                    <lightning-icon icon-name="utility:success" size="small" alternative-text=""></lightning-icon>
+                    <div>
+                        <strong>Signed · card on file</strong>
+                        <p>{message}</p>
+                    </div>
+                </div>
+                <div class="footer">
+                    <p>If Create Order did not open, use the button.</p>
+                    <button type="button" class="primary" onclick={handleCreateOrderClick}>Create Order</button>
+                </div>
+            </template>
+
+            <template if:true={isEntry}>
+                <template if:true={hasCardOnFile}>
+                    <button type="button" class="back-link" onclick={handleBackToOnFile}>
+                        <lightning-icon icon-name="utility:back" size="xx-small" alternative-text=""></lightning-icon>
+                        Back to {onFileBrand} •••• {onFileLast4}
+                    </button>
+                </template>
+                <div class="grid">
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2>{entryTitle}</h2>
+                            <p>{entrySubtitle}</p>
+                        </div>
+                        <label class="field">
+                            <span>Name on card</span>
+                            <input type="text" value={cardName} oninput={handleCardName} autocomplete="cc-name" />
+                        </label>
+                        <label class="field">
+                            <span>Card number</span>
+                            <input
+                                type="text"
+                                inputmode="numeric"
+                                value={cardNumber}
+                                oninput={handleCardNumber}
+                                placeholder="4242 4242 4242 4242"
+                                autocomplete="cc-number"
+                            />
+                        </label>
+                        <div class="row">
+                            <label class="field">
+                                <span>Exp</span>
+                                <input
+                                    type="text"
+                                    inputmode="numeric"
+                                    value={cardExp}
+                                    oninput={handleExp}
+                                    placeholder="MM/YY"
+                                    autocomplete="cc-exp"
+                                />
+                            </label>
+                            <label class="field">
+                                <span>CVC</span>
+                                <input
+                                    type="password"
+                                    inputmode="numeric"
+                                    value={cardCvc}
+                                    oninput={handleCvc}
+                                    placeholder="123"
+                                    autocomplete="cc-csc"
+                                />
+                            </label>
+                            <div class="brand">{cardBrand}</div>
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <div class="panel-head">
+                            <h2>Signature</h2>
+                            <p>Customer signs the proposal on the tablet.</p>
+                        </div>
+                        <label class="field">
+                            <span>Signer name</span>
+                            <input type="text" value={signerName} oninput={handleSigner} />
+                        </label>
+                        <div class="sig-wrap">
+                            <canvas
+                                class="sig"
+                                onmousedown={startDraw}
+                                onmousemove={draw}
+                                onmouseup={endDraw}
+                                onmouseleave={endDraw}
+                                ontouchstart={startDraw}
+                                ontouchmove={draw}
+                                ontouchend={endDraw}
+                            ></canvas>
+                        </div>
+                        <div class="sig-actions">
+                            <button type="button" class="ghost" onclick={handleClearSignature}>Clear</button>
+                            <button type="button" class="ghost" onclick={autofillDemo}>Autofill demo</button>
+                        </div>
+                    </section>
+                </div>
+
+                <template if:true={error}>
+                    <div class="error" role="alert">{error}</div>
+                </template>
+
+                <footer class="footer">
+                    <p>Accepting links this card + signature to the proposal document on the Quote.</p>
+                    <button type="button" class="primary" disabled={submitDisabled} onclick={handleAccept}>
+                        <template if:true={submitting}>Saving…</template>
+                        <template if:false={submitting}>Accept · Sign &amp; Pay</template>
+                    </button>
+                </footer>
+            </template>
+        </template>
+    </div>
+</template>

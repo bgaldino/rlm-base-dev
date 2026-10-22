@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Billable_Order__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>Revenue Cloud order that bills this Work Order when no entitlement covers it.</description>
+    <externalId>false</externalId>
+    <label>Billable Order</label>
+    <referenceTo>Order</referenceTo>
+    <relationshipLabel>Billed Work Orders</relationshipLabel>
+    <relationshipName>RLM_Billed_Work_Orders</relationshipName>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Lookup</type>
+</CustomField>

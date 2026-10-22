@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSetGroup xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Field Service admin, dispatcher, and technician access for the Revenue Cloud + Field Service demo.</description>
+    <label>RLM Field Service PSG</label>
+    <permissionSets>RLM_Field_Service</permissionSets>
+    <status>Updated</status>
+</PermissionSetGroup>

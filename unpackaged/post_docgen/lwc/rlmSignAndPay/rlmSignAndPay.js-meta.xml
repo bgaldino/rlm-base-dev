@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Sign &amp; Pay (Demo)</masterLabel>
+    <description>Mock card + signature acceptance tied to a Quote proposal document</description>
+    <targets>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="quoteId" type="String" label="Quote Id" role="inputOnly"/>
+            <property name="contentDocumentId" type="String" label="Proposal ContentDocument Id" role="inputOnly"/>
+            <property name="documentTitle" type="String" label="Document Title Override" role="inputOnly"/>
+            <property name="accepted" type="Boolean" label="Accepted" role="outputOnly"/>
+            <property name="signerName" type="String" label="Signer Name" role="outputOnly"/>
+            <property name="cardLast4" type="String" label="Card Last 4" role="outputOnly"/>
+            <property name="message" type="String" label="Result Message" role="outputOnly"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

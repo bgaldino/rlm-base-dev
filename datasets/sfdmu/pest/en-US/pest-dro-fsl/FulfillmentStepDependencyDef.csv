@@ -1,0 +1,3 @@
+DependencyScope,DependsOnStepDefinition.Name,FulfillmentStepDefinition.Name,IsCompensateInReverse,Name,PropagateStateToDependentStep
+Plan,Create Initial Treatment Work Order,Initial Treatment Complete,false,Create WO to Treatment Complete,
+Plan,Initial Treatment Complete,Start Pest Subscription Billing,false,Treatment Complete to Bill,

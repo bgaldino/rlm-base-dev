@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Fulfillment_Step__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>DRO FulfillmentStep (Installation Complete) linked when this Work Order was created from Field Installation orchestration.</description>
+    <externalId>false</externalId>
+    <label>Fulfillment Step</label>
+    <referenceTo>FulfillmentStep</referenceTo>
+    <relationshipLabel>Work Orders</relationshipLabel>
+    <relationshipName>RLM_Work_Orders</relationshipName>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Lookup</type>
+</CustomField>

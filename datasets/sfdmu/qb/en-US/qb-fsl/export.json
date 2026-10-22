@@ -1,0 +1,29 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT Id, Name, Description, TimeZone FROM OperatingHours ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name, IsActive, OperatingHoursId, OperatingHours.Name, Street, City, State, PostalCode, Country FROM ServiceTerritory ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name, Description, EstimatedDuration, DurationType, ShouldAutoCreateSvcAppt FROM WorkType ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

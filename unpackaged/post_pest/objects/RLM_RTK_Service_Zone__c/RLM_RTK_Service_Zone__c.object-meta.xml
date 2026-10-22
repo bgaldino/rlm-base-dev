@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>ZIP prefix to service zone and price multiplier for Rentokil residential location pricing.</description>
+    <enableActivities>false</enableActivities>
+    <enableReports>true</enableReports>
+    <enableSearch>true</enableSearch>
+    <label>RTK Service Zone</label>
+    <nameField>
+        <label>Zone Name</label>
+        <type>Text</type>
+    </nameField>
+    <pluralLabel>RTK Service Zones</pluralLabel>
+    <sharingModel>ReadWrite</sharingModel>
+</CustomObject>

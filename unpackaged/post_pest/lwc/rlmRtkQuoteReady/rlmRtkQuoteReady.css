@@ -1,0 +1,117 @@
+:host {
+    --rtk-ink: #14241a;
+    --rtk-muted: #5b6b62;
+    --rtk-line: #d7e2db;
+    --rtk-accent: #1f7a4d;
+    display: block;
+    font-family: 'Salesforce Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--rtk-ink);
+}
+
+.shell {
+    border-radius: 1.15rem;
+    border: 1px solid var(--rtk-line);
+    padding: 1.5rem 1.4rem 1.25rem;
+    background:
+        radial-gradient(90% 70% at 100% 0%, #dff3e8 0%, transparent 55%),
+        #ffffff;
+    box-shadow: 0 10px 28px rgba(20, 36, 26, 0.06);
+    text-align: center;
+}
+
+.shell.bad {
+    background:
+        radial-gradient(90% 70% at 100% 0%, #f9d4d0 0%, transparent 55%),
+        #ffffff;
+}
+
+.badge {
+    width: 2.6rem;
+    height: 2.6rem;
+    margin: 0 auto 0.75rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: #d8f0e3;
+}
+
+.shell.bad .badge {
+    background: #f9d4d0;
+}
+
+.eyebrow {
+    margin: 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--rtk-accent);
+    font-weight: 700;
+}
+
+h1 {
+    margin: 0.35rem 0 0.5rem;
+    font-size: 1.55rem;
+    letter-spacing: -0.02em;
+}
+
+.message {
+    margin: 0 auto;
+    max-width: 28rem;
+    color: var(--rtk-muted);
+    font-size: 0.95rem;
+}
+
+.meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin: 1.15rem 0 1rem;
+    text-align: left;
+}
+
+.meta-card {
+    border: 1px solid var(--rtk-line);
+    border-radius: 0.9rem;
+    padding: 0.75rem 0.85rem;
+    background: #f7fbf8;
+}
+
+.meta-card span {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--rtk-muted);
+    margin-bottom: 0.2rem;
+}
+
+.meta-card strong {
+    font-size: 1rem;
+}
+
+.open-btn {
+    border: none;
+    border-radius: 999px;
+    background: var(--rtk-accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 0.7rem 1.35rem;
+    cursor: pointer;
+}
+
+.open-btn:hover {
+    background: #145c38;
+}
+
+.hint {
+    margin: 0.75rem 0 0;
+    color: var(--rtk-muted);
+    font-size: 0.82rem;
+}
+
+@media (max-width: 700px) {
+    .meta {
+        grid-template-columns: 1fr;
+    }
+}

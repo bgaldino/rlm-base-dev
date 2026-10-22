@@ -338,15 +338,15 @@
     </relatedContent>
     <relatedLists>
         <fields>QUOTE_LI.PRODUCT2</fields>
-        <fields>QUOTE_LI.UNIT_PRICE</fields>
         <fields>QUOTE_LI.QUANTITY</fields>
+        <fields>QUOTE_LI.TOTAL_PRICE</fields>
+        <fields>QUOTE_LI.SELLING_MODEL_TYPE</fields>
+        <fields>QUOTE_LI.UNIT_PRICE</fields>
         <fields>QUOTE_LI.SUBTOTAL</fields>
         <fields>QUOTE_LI.DISCOUNT</fields>
         <fields>QUOTE_LI.DISC_AMOUNT</fields>
         <fields>QUOTE_LI.PARTNER_DISC_P</fields>
         <fields>QUOTE_LI.PARTN_UNIT_PR</fields>
-        <fields>QUOTE_LI.TOTAL_PRICE</fields>
-        <fields>QUOTE_LI.SELLING_MODEL_TYPE</fields>
         <fields>QUOTE_LI.PRICING_TERM</fields>
         <fields>QUOTE_LI.PRICING_TERM_UNIT</fields>
         <fields>QUOTE_LI.LIST_PRICE</fields>
@@ -356,11 +356,14 @@
         <relatedList>RelatedQuoteLineItemList</relatedList>
     </relatedLists>
     <relatedLists>
+        <relatedList>RelatedFileList</relatedList>
+    </relatedLists>
+    <relatedLists>
         <fields>ORDERS.ORDER_NUMBER</fields>
         <fields>ORDERS.STATUS</fields>
+        <fields>ORDERS.TOTAL_AMOUNT</fields>
         <fields>ORDERS.EFFECTIVE_DATE</fields>
         <fields>CONTRACT.CONTRACT_NUMBER</fields>
-        <fields>ORDERS.TOTAL_AMOUNT</fields>
         <relatedList>RelatedOrderList</relatedList>
     </relatedLists>
     <relatedLists>

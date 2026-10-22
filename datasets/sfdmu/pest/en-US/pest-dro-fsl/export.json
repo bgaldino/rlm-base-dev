@@ -1,0 +1,53 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT CustomDecompositionScope, DecompositionScope, FulfillmentQtyCalcMethod, IsActive, IsAssetizable, Name, ProductCode, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Upsert",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, UsageType FROM FulfillmentStepDefinitionGroup",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name FROM User",
+          "operation": "Readonly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AssignedToId$User, CustomBaseExecutionDate, CustomFulfillmentScope, DelayUnit, DelayOf, ExecuteOn, FlowDefinitionName, ForcePlanFreezeDuringExecution, StepDefinitionGroupId, Name, OmniscriptName, PointOfNoReturn, Scope, IsSkipBranch, TaskAllocationType, StepType, UsageType FROM FulfillmentStepDefinition",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DependencyScope, IsCompensateInReverse, FulfillmentStepDefinitionId, DependsOnStepDefinitionId, Name, PropagateStateToDependentStep FROM FulfillmentStepDependencyDef",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DestinationProductId, Name, Priority, SourceProductId, SourceProductClassificationId FROM ProductFulfillmentDecompRule ORDER BY SourceProduct.StockKeepingUnit ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Action, FulfillmentStepDefnGroupId, Name, ProductId, Type FROM ProductFulfillmentScenario",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

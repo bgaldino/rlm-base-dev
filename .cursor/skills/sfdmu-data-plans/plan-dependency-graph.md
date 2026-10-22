@@ -35,6 +35,14 @@ scratch_data (Account, Contact, BillingAccount)
             │
             ├──→ qb-dro (17 objects)
             │       Fulfillment step definitions, decomp rules, scenarios
+            │       │
+            │       └──→ qb-dro-fsl (7 objects, when fsl=true)
+            │               Field Installation group/steps, R750/RAXS decomp rules
+            │               Upstream: qb-fsl, post_fsl flows
+            │
+            ├──→ qb-fsl (3 objects, when fsl=true)
+            │       OperatingHours, ServiceTerritory, WorkType
+            │       Junctions (TimeSlot, SkillRequirement, ...) via setupFslFoundation.apex
             │
             ├──→ qb-clm (7 objects)
             │       ObjectStateDefinition, transitions, clause sets
@@ -71,8 +79,9 @@ Delete order (for full teardown):
 3. qb-pricing (adjustments → PricebookEntry → PriceAdjustmentSchedule → Pricebook2)
 4. qb-billing (treatments → BillingPolicy → PaymentTerm → LegalEntity)
 5. qb-tax (TaxTreatment → TaxPolicy → TaxEngine)
-6. qb-dro (steps → rules → scenarios)
-7. qb-pcm (bundles → products → attributes → classifications → categories)
+6. qb-fsl (delete_qb_fsl_data: WO/SA → junctions → WorkType → territory → OperatingHours)
+7. qb-dro (steps → rules → scenarios)
+8. qb-pcm (bundles → products → attributes → classifications → categories)
 ```
 
 ## Other Plan Families

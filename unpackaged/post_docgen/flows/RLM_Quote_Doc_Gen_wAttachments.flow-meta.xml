@@ -311,6 +311,11 @@
         <dataType>String</dataType>
         <expression>{!uplFiles.fileNames}</expression>
     </formulas>
+    <formulas>
+        <name>ProposalContentDocumentId</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!varT_MultiDocContentDocId}), {!varT_SingleDocContentDocId}, {!varT_MultiDocContentDocId})</expression>
+    </formulas>
     <interviewLabel>RLM Quote Doc Gen wAttachments {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Quote Doc Gen wAttachments</label>
     <loops>
@@ -822,6 +827,54 @@
         <showHeader>false</showHeader>
     </screens>
     <screens>
+        <name>Sign_and_Pay</name>
+        <label>Sign &amp; Pay</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>SignAndPayUI</name>
+            <extensionName>c:rlmSignAndPay</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>quoteId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>contentDocumentId</name>
+                <value>
+                    <elementReference>ProposalContentDocumentId</elementReference>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <outputParameters>
+                <assignToReference>SignPayAccepted</assignToReference>
+                <name>accepted</name>
+            </outputParameters>
+            <outputParameters>
+                <assignToReference>SignPayMessage</assignToReference>
+                <name>message</name>
+            </outputParameters>
+            <storeOutputAutomatically>false</storeOutputAutomatically>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <nextOrFinishButtonLabel>Done</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
         <name>View_Multi_Documents</name>
         <label>View Multi Documents</label>
         <locationX>0</locationX>
@@ -829,6 +882,9 @@
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Sign_and_Pay</targetReference>
+        </connector>
         <fields>
             <name>multiFilePreview</name>
             <extensionName>mulesoft_idp:configEditorPreviewPlayer</extensionName>
@@ -865,6 +921,7 @@
                 </width>
             </styleProperties>
         </fields>
+        <nextOrFinishButtonLabel>Continue to Sign &amp; Pay</nextOrFinishButtonLabel>
         <showFooter>true</showFooter>
         <showHeader>false</showHeader>
     </screens>
@@ -876,6 +933,9 @@
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Sign_and_Pay</targetReference>
+        </connector>
         <fields>
             <name>singleFilePreview</name>
             <extensionName>mulesoft_idp:configEditorPreviewPlayer</extensionName>
@@ -912,6 +972,7 @@
                 </width>
             </styleProperties>
         </fields>
+        <nextOrFinishButtonLabel>Continue to Sign &amp; Pay</nextOrFinishButtonLabel>
         <showFooter>true</showFooter>
         <showHeader>false</showHeader>
     </screens>
@@ -1020,6 +1081,20 @@
     </variables>
     <variables>
         <name>varT_SingleDocContentVersionId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>SignPayAccepted</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>SignPayMessage</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>

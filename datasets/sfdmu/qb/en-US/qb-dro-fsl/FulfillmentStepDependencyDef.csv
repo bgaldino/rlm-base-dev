@@ -1,0 +1,4 @@
+DependencyScope,DependsOnStepDefinition.Name,FulfillmentStepDefinition.Name,IsCompensateInReverse,Name,PropagateStateToDependentStep
+Plan,Ship Hardware,Create Install Work Order,false,Ship Hardware to Install Work Order,
+Plan,Create Install Work Order,Installation Complete,false,Install Work Order to Installation Complete,
+Plan,Installation Complete,Initiate Billing,false,Installation Complete to Bill,

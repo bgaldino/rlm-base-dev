@@ -1,0 +1,38 @@
+{
+  "planName": "PestLocation",
+  "developerName": "RLM_SalesTransactionContext",
+  "contextAttributesByName": [
+    {
+      "nodeName": "SalesTransaction",
+      "name": "ServicePostalCode",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    }
+  ],
+  "contextTagsByName": [
+    {
+      "nodeName": "SalesTransaction",
+      "attributeName": "ServicePostalCode",
+      "name": "ServicePostalCode"
+    }
+  ],
+  "mappingRules": [
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "ServicePostalCode",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "ShippingPostalCode"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "ServicePostalCode",
+      "mappingType": "SOBJECT",
+      "sObject": "Order",
+      "sObjectField": "ShippingPostalCode"
+    }
+  ],
+  "activate": true
+}
