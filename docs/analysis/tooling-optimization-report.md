@@ -8,9 +8,9 @@
 
 - Overall status: **PASS**
 - Required files: **6/6** present
-- Skills inventoried: **72** Markdown files under `.cursor/skills/`
+- Skills inventoried: **87** Markdown files under `.cursor/skills/`
 - Cursor rules inventoried: **12** `.mdc` files under `.cursor/rules/`
-- AGENTS.md skill references: **35** checked, **0** missing
+- AGENTS.md skill references: **39** checked, **0** missing
 - Generated CCI references: **3/3** present
 - Errors: **0**
 - Warnings: **0**
@@ -52,10 +52,17 @@
 - `.cursor/skills/document-generation/data-mapper-authoring.md`
 - `.cursor/skills/document-generation/dynamic-images.md`
 - `.cursor/skills/document-generation/extract-engine-reference.md`
+- `.cursor/skills/dro-plans/SKILL.md`
+- `.cursor/skills/dro-plans/authoring-and-deployment.md`
+- `.cursor/skills/dro-plans/csv-and-sfdmu.md`
+- `.cursor/skills/dro-plans/examples-and-grounding.md`
+- `.cursor/skills/dro-plans/objects-and-relationships.md`
+- `.cursor/skills/dro-plans/updates-and-runtime.md`
 - `.cursor/skills/expression-sets/SKILL.md`
 - `.cursor/skills/expression-sets/authoring-and-overlays.md`
 - `.cursor/skills/expression-sets/metadata-vs-connect.md`
 - `.cursor/skills/inapp-framework/SKILL.md`
+- `.cursor/skills/mcp-integration/SKILL.md`
 - `.cursor/skills/odt-authoring/SKILL.md`
 - `.cursor/skills/pde-org-build/SKILL.md`
 - `.cursor/skills/pmos-integration/SKILL.md`
@@ -86,12 +93,20 @@
 - `.cursor/skills/robot-testing/SKILL.md`
 - `.cursor/skills/robot-testing/patterns.md`
 - `.cursor/skills/robot-testing/setup-ui-shadow-dom.md`
+- `.cursor/skills/salesforce-contracts/SKILL.md`
+- `.cursor/skills/salesforce-contracts/content-and-migration.md`
+- `.cursor/skills/salesforce-contracts/data-model-and-queries.md`
+- `.cursor/skills/salesforce-contracts/setup-and-diagnostics.md`
 - `.cursor/skills/schema-validation/SKILL.md`
 - `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - `.cursor/skills/sfdmu-data-plans/object-plan-mapping.md`
 - `.cursor/skills/sfdmu-data-plans/plan-dependency-graph.md`
 - `.cursor/skills/skill-authoring/SKILL.md`
 - `.cursor/skills/todo-tracker/SKILL.md`
+- `.cursor/skills/toolchain/SKILL.md`
+- `.cursor/skills/toolchain/managed-workstations.md`
+- `.cursor/skills/toolchain/verification-handoff.md`
+- `.cursor/skills/toolchain/workstation-audit.md`
 - `.cursor/skills/troubleshooting/SKILL.md`
 - `.cursor/skills/troubleshooting/large-deal-preprocess-reference.md`
 - `.cursor/skills/txn-data-harness/SKILL.md`
@@ -128,8 +143,10 @@
 - ✅ `.cursor/skills/df-workshop-setup/SKILL.md`
 - ✅ `.cursor/skills/doc-consistency/SKILL.md`
 - ✅ `.cursor/skills/document-generation/SKILL.md`
+- ✅ `.cursor/skills/dro-plans/SKILL.md`
 - ✅ `.cursor/skills/expression-sets/SKILL.md`
 - ✅ `.cursor/skills/inapp-framework/SKILL.md`
+- ✅ `.cursor/skills/mcp-integration/SKILL.md`
 - ✅ `.cursor/skills/odt-authoring/SKILL.md`
 - ✅ `.cursor/skills/pde-org-build/SKILL.md`
 - ✅ `.cursor/skills/pmos-integration/SKILL.md`
@@ -144,10 +161,12 @@
 - ✅ `.cursor/skills/revenue-cloud-docs/SKILL.md`
 - ✅ `.cursor/skills/rlm-business-apis/SKILL.md`
 - ✅ `.cursor/skills/robot-testing/SKILL.md`
+- ✅ `.cursor/skills/salesforce-contracts/SKILL.md`
 - ✅ `.cursor/skills/schema-validation/SKILL.md`
 - ✅ `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - ✅ `.cursor/skills/skill-authoring/SKILL.md`
 - ✅ `.cursor/skills/todo-tracker/SKILL.md`
+- ✅ `.cursor/skills/toolchain/SKILL.md`
 - ✅ `.cursor/skills/troubleshooting/SKILL.md`
 - ✅ `.cursor/skills/txn-data-harness/SKILL.md`
 - ✅ `.cursor/skills/usage-consumption/SKILL.md`
@@ -180,7 +199,7 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
 - Present: **True**
 - Manifest version: `2`
 - Last verified: `2026-07-26`
-- Manifest skill count: **32**
+- Manifest skill count: **36**
   - `apex-security-hardening`
   - `audit-review`
   - `build-harness`
@@ -191,8 +210,10 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
   - `df-workshop-setup`
   - `doc-consistency`
   - `document-generation`
+  - `dro-plans`
   - `expression-sets`
   - `inapp-framework`
+  - `mcp-integration`
   - `odt-authoring`
   - `pde-org-build`
   - `pmos-integration`
@@ -206,10 +227,12 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
   - `revenue-cloud-docs`
   - `rlm-business-apis`
   - `robot-testing`
+  - `salesforce-contracts`
   - `schema-validation`
   - `sfdmu-data-plans`
   - `skill-authoring`
   - `todo-tracker`
+  - `toolchain`
   - `troubleshooting`
   - `txn-data-harness`
   - `usage-consumption`
