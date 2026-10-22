@@ -296,7 +296,7 @@ public with sharing class RLM_UsageUploaderController {
             new List<TransactionJournal>{ tj }
         );
         TransactionJournal sanitized = (TransactionJournal) accessDecision.getRecords()[0];
-        insert sanitized;
+        insert as user sanitized;
         return sanitized.Id;
     }
 
@@ -448,7 +448,7 @@ public with sharing class RLM_UsageUploaderController {
                 toInsert
             );
             List<TransactionJournal> sanitized = (List<TransactionJournal>) accessDecision.getRecords();
-            Database.SaveResult[] saveResults = Database.insert(sanitized, false);
+            Database.SaveResult[] saveResults = Database.insert(sanitized, false, AccessLevel.USER_MODE);
             for (Integer i = 0; i < saveResults.size(); i++) {
                 if (saveResults[i].isSuccess()) {
                     result.successCount++;
