@@ -397,8 +397,8 @@ cci task run test_qb_pricing_idempotency --org beta
 # Activate records
 cci task run activate_rating_records --org beta
 
-# Deploy and assemble UX (deploys to your DEFAULT cci org — no --org flag)
-cci task run assemble_and_deploy_ux
+# Assemble and deploy UX
+cci task run assemble_and_deploy_ux --org beta
 
 # UX dry-run (assemble only, no deploy; local — no org needed)
 cci task run assemble_and_deploy_ux -o deploy false

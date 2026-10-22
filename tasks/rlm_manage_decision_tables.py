@@ -94,8 +94,8 @@ class ManageDecisionTables(BaseTask):
 
     # Every operation here needs an org. Without this, BaseTask.salesforce_task defaults
     # to False, the CLI builds no --org option, and the task silently runs against the
-    # CCI DEFAULT org instead of the one asked for (see issue #320 for the repo-wide
-    # sweep — this task was one of the 102).
+    # CCI DEFAULT org instead of the one asked for (issue #320;
+    # tests/test_cci_task_org_option.py asserts the flag).
     salesforce_task = True
 
     def _update_credentials(self):

@@ -275,34 +275,31 @@ worth reading rather than just checking its exit code.
 keeps running the old one — and the import reports success.
 
 ```bash
-# manage_expression_sets does NOT accept --org (see Known gaps) -- it uses the DEFAULT org.
-# Set the default first so all three steps hit the same org.
-cci org default <cci_alias>
-
+# Pass the same --org to all three steps so they hit the same org.
 # <Version>  = the ApiName from the discovery query, e.g. QuantumBitBundle_V1
 # <DataDir>   = the model's directory under datasets/constraints/, from `ls -d`
 # <PlanDir>   = the SFDMU plan that loaded the ESC's Product2/PRC rows into the org
 #               (it supplies the names that scope import_cml's lookup queries)
-cci task run manage_expression_sets -o operation deactivate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "<Version>"
 
 cci task run import_cml --org <cci_alias> \
     -o data_dir <DataDir> \
     -o dataset_dirs "<PlanDir>"
 
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "<Version>"
 ```
 
 <details><summary>Filled in for the QuantumBit bundle, as an example</summary>
 
 ```bash
-cci task run manage_expression_sets -o operation deactivate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 cci task run import_cml --org <cci_alias> \
     -o data_dir datasets/constraints/qb/QuantumBitBundle \
     -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
 
@@ -326,13 +323,11 @@ no-op on a fresh build where imports create inactive versions.
 way to ship a model change, so cycle the version yourself afterwards:
 
 ```bash
-cci org default <cci_alias>   # manage_expression_sets does not accept --org, see Known gaps
-
 # <Version> is the ApiName from the discovery query — e.g. QuantumBitBundle_V1,
 # Server2_V1, or whatever the org actually reports as active for the model you changed.
-cci task run manage_expression_sets -o operation deactivate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "<Version>"
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "<Version>"
 ```
 
@@ -426,9 +421,6 @@ Before calling a constraint-model change done:
 
 ## Known gaps
 
-- **`manage_expression_sets` rejects `--org`** and runs against the default org. One
-  instance of a repo-wide problem (102 of 193 custom tasks). `import_cml`, `export_cml`
-  and `validate_cml`'s siblings do accept it.
 - **`validate_cml`'s warning stream is not clean enough to gate on.** Most of the old
   "missing association" noise came from checking historical reference copies against one
   model's ESC rows, and from looking those rows up by display `Name` instead of

@@ -52,6 +52,9 @@ class StampGitCommit(SFDXBaseTask):
     breaks a flow that has already completed all real work.
     """
 
+    # SFDXBaseTask leaves this False, which makes cci reject --org.
+    salesforce_task = True
+
     keychain_class = BaseProjectKeychain
 
     task_options = {

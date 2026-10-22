@@ -10,10 +10,10 @@ import sys
 from pathlib import Path
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object  # type: ignore
+    BaseSalesforceTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
 from tasks.robot_utils import check_urllib3_for_robot
@@ -23,7 +23,7 @@ DEFAULT_SUITE = "robot/rlm-base/tests/setup/enable_document_builder.robot"
 DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
 
 
-class EnableDocumentBuilderToggle(BaseTask):
+class EnableDocumentBuilderToggle(BaseSalesforceTask):
     """Run the Robot test that enables the Document Builder toggle on Revenue Settings."""
 
     task_options = {

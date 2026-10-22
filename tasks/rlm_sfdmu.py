@@ -127,7 +127,7 @@ def run_post_process_script(
             logger.warning(strip_ansi_codes(line))
 
 
-class LoadSFDMUData(SFDXBaseTask):
+class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
     keychain_class = BaseProjectKeychain
     task_options: Dict[str, Dict[str, Any]] = {
         "pathtoexportjson": {
@@ -144,10 +144,6 @@ class LoadSFDMUData(SFDXBaseTask):
         },
         "accesstoken": {
             "description": "Passed in accesstoken associated to the targetusername and instance url.",
-            "required": False
-        },
-        "org": {
-            "description": "Value to replace every instance of the find value in the source file.",
             "required": False
         },
         "dynamic_assigned_to_user": {
@@ -385,8 +381,7 @@ class LoadSFDMUData(SFDXBaseTask):
             self.project_config.keychain = self.keychain
 
     def _prep_runtime(self) -> None:
-        if "org" not in self.options or not self.options["org"]:
-            self._load_keychain()
+        self._load_keychain()
         
         self.pathtoexportjson = self.options.get("pathtoexportjson", "datasets/sfdmu/")
         self._temp_plan_dir = None
@@ -695,7 +690,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
         return deleted
 
 
-class TestSFDMUIdempotency(SFDXBaseTask):
+class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
     """Run an SFDMU load twice and assert record counts do not increase (idempotency).
 
     Use this to verify that a data plan uses SFDMU v5 composite key notation correctly:
@@ -709,7 +704,6 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         "targetusername": {"description": "Target org username or alias", "required": False},
         "instanceurl": {"description": "Instance URL for the target org", "required": False},
         "accesstoken": {"description": "Access token for the target org", "required": False},
-        "org": {"description": "Org name (for keychain resolution)", "required": False},
         "use_extraction_roundtrip": {
             "description": "If true, second load uses extract -> post_process -> load from processed dir (validates v5 re-import from extracted data)",
             "required": False,
@@ -895,8 +889,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             self.logger.info(strip_ansi_codes(line))
 
     def _run_task(self) -> None:
-        if "org" not in self.options or not self.options["org"]:
-            self._load_keychain()
+        self._load_keychain()
         plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
         if not os.path.isdir(plan_dir):
             raise FileNotFoundError(f"Plan directory not found: {plan_dir}")
@@ -906,7 +899,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
             self.targetusername = self.options.get("targetusername") or getattr(self.org_config, "username", None)
         self.accesstoken = self.options.get("accesstoken") or self.org_config.access_token
         self.instanceurl = self.options.get("instanceurl") or self.org_config.instance_url
-        org_identifier = self.options.get("org") or getattr(self.org_config, "name", None) or self._get_org_for_cli()
+        org_identifier = getattr(self.org_config, "name", None) or self._get_org_for_cli()
         self.logger.info(f"Using org for source and target: {org_identifier}")
         sobjects = _sobjects_from_export_json(plan_dir)
         if not sobjects:
@@ -1007,7 +1000,7 @@ class TestSFDMUIdempotency(SFDXBaseTask):
         self.logger.info("Idempotency check passed: no record count increase on second run.")
 
 
-class ExtractSFDMUData(SFDXBaseTask):
+class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
     """Extract data from a Salesforce org into CSV files using SFDMU.
 
     Uses the same export.json as LoadSFDMUData but reverses the direction:
@@ -1364,8 +1357,7 @@ class ExtractSFDMUData(SFDXBaseTask):
         work_dir = None
         try:
             # Resolve org credentials
-            if "org" not in self.options or not self.options["org"]:
-                self._load_keychain()
+            self._load_keychain()
 
             plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
             if not os.path.isdir(plan_dir):

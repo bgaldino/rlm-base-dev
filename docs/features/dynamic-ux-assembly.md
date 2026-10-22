@@ -292,14 +292,13 @@ cci task run assemble_and_deploy_ux [options]
 
 ```bash
 # Assemble and deploy everything (production use via prepare_ux flow)
-# (no --org flag — deploys to your DEFAULT cci org)
-cci task run assemble_and_deploy_ux
+cci task run assemble_and_deploy_ux --org beta
 
 # Dry-run: assemble only, no deploy (local — no org needed)
 cci task run assemble_and_deploy_ux -o deploy false
 
-# Regenerate a single flexipage (deploys to your DEFAULT cci org; no --org flag)
-cci task run assemble_and_deploy_ux \
+# Regenerate a single flexipage
+cci task run assemble_and_deploy_ux --org beta \
     -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
 
 # Regenerate and inspect a profile without deploying (local; no org needed)
@@ -611,8 +610,8 @@ Review `unpackaged/post_ux/` and `unpackaged/post_ux/assembly_manifest.json`.
 ### Regenerate a single item
 
 ```bash
-# Single flexipage (also deploys it — to your DEFAULT cci org; no --org flag)
-cci task run assemble_and_deploy_ux \
+# Single flexipage (also deploys it)
+cci task run assemble_and_deploy_ux --org beta \
     -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
 
 # Single layout, no deploy (local; no org needed)
