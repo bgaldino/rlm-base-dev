@@ -572,6 +572,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 1. **task** `insert_quantumbit_pcm_data`  `when: project_config.project__custom__qb`
 2. **task** `insert_q3_pcm_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
 3. **task** `insert_quantumbit_product_image_data`  `when: project_config.project__custom__qb`
+4. **task** `insert_default_configurator_flow`
 
 ---
 

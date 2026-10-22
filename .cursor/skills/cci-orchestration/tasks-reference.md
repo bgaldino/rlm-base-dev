@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**265 tasks** across **9 groups**.
+**266 tasks** across **9 groups**.
 
 ---
 
@@ -802,7 +802,7 @@
 
 ## Revenue Lifecycle Management
 
-*174 task(s)*
+*175 task(s)*
 
 ### `activate_agents`
 
@@ -2299,6 +2299,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-clm`
+
+---
+
+### `insert_default_configurator_flow`
+
+**Description:** Register RLM_Product_Configurator_Flow (the 264 Default Product Configurator Flow with non-blocking and instant pricing turned on) as the org's default Product Configuration Flow
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/configurator-flow`
 
 ---
 

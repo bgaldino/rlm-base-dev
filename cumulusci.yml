@@ -639,6 +639,7 @@ project:
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
+    configurator_flow_dataset: &configurator_flow_dataset "datasets/sfdmu/configurator-flow"                           # Default Product Configuration Flow record (RLM_Product_Configurator_Flow)
     prm_pricing_procedure_plan_overlay: &prm_pricing_procedure_plan_overlay "datasets/procedure_plan_overlays/prm_pricing.json" # PRM pricing Procedure Plan overlay
     core_pricing_recipe_table_mappings: &core_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json" # Core pricing recipe table mapping payload
     prm_pricing_recipe_table_mappings: &prm_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json" # PRM pricing recipe table mapping payload
@@ -3297,6 +3298,13 @@ tasks:
     options:
       pathtoexportjson: *procedure_plans_dataset
 
+  insert_default_configurator_flow:
+    group: Revenue Lifecycle Management
+    description: Register RLM_Product_Configurator_Flow (the 264 Default Product Configurator Flow with non-blocking and instant pricing turned on) as the org's default Product Configuration Flow
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *configurator_flow_dataset
+
   apply_procedure_plan_overlay:
     group: Revenue Lifecycle Management
     description: >
@@ -3690,6 +3698,10 @@ flows:
       3:
         task: insert_quantumbit_product_image_data
         when: project_config.project__custom__qb
+      4:
+        # Every build: make the RLM configurator flow (deployed by deploy_full) the
+        # org default, so unassigned products open with non-blocking + instant pricing.
+        task: insert_default_configurator_flow
 
   prepare_pricing_data:
     group: Revenue Lifecycle Management

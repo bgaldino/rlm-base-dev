@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**44 feature flags**, **84 configuration values**, **40 YAML anchors** under `project.custom`.
+**44 feature flags**, **85 configuration values**, **40 YAML anchors** under `project.custom`.
 
 ---
 
@@ -534,6 +534,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `collection_plan_segment_context_base_reference` | `CollectionPlanSegmentContext__stdctx` |
 | `collection_plan_segment_context_default_mapping` | `CollectionPlanContextMapping` |
 | `collection_plan_segment_context_name` | `RLM_CollectionPlanSegmentCtx` |
+| `configurator_flow_dataset` | `datasets/sfdmu/configurator-flow` |
 | `context_definition_label` | `RLM_SalesTransactionContext` |
 | `contracts_context_base_reference` | `ContractsContextDefinition__stdctx` |
 | `contracts_context_default_mapping` | `OppToCntrPersistenceMapping` |
