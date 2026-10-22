@@ -199,6 +199,59 @@
         </value>
     </choices>
     <decisions>
+        <description>Skips rereading the contract and dating contract item prices when the user chose to create only the contract header, because that option creates no contract item prices.</description>
+        <name>AreContractPricesSaved</name>
+        <label>Are Contract Prices Saved</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>Contract Only</defaultConnectorLabel>
+        <rules>
+            <name>IsContractPricesSaved</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>selectedContractPriceOption</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>ContractOnlyChoice</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>GetUpdatedContract</targetReference>
+            </connector>
+            <label>Contract Prices Saved</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Dates the undated contract item prices only when the contract has a start and end date, so a contract without them doesn&apos;t get its contract item prices&apos; start dates cleared.</description>
+        <name>DoesContractHaveDates</name>
+        <label>Does Contract Have Dates</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No Dates</defaultConnectorLabel>
+        <rules>
+            <name>HasStartAndEndDate</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>GetUpdatedContract.StartDate</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>GetUpdatedContract.EndDate</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>UpdateUndatedContractItemPrices</targetReference>
+            </connector>
+            <label>Has Start And End Date</label>
+        </rules>
+    </decisions>
+    <decisions>
         <description>Determines whether any quote line items matched the selected pricing option.</description>
         <name>HowManyQuoteLineItemsWereReturned</name>
         <label>How Many Quote Line Items Were Returned</label>
@@ -265,19 +318,19 @@
             <label>Contract Discount</label>
         </rules>
     </decisions>
-    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for contract term, renewal term, renewal term unit, and price source. The contract term runs from the contract start date to the end of the quote&apos;s last-ending term-defined line, so it covers every line. The renewal term is that contract term divided by the pricing term (PricingTerm × PricingTermUnit) of the first such line by line number, rounded to the nearest whole count, because renewal reads Contract.RenewalTerm2 as a count of the selling model&apos;s pricing term and ignores RenewalTermUnit. Contract item prices left without an end date (from one-time or evergreen lines) get the contract&apos;s start and end dates, so the contract can be activated.</description>
+    <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for contract term, renewal term, renewal term unit, and price source. The contract term runs from the contract start date to the end of the quote&apos;s last-ending term-defined line, so it covers every line. The renewal term is that contract term divided by the pricing term (PricingTerm × PricingTermUnit) of the first such line by line number, rounded to the nearest whole count, because renewal reads Contract.RenewalTerm2 as a count of the selling model&apos;s pricing term and ignores RenewalTermUnit. Contract item prices createContract leaves without an end date get the contract&apos;s end date, so the contract can be activated; one-time ones, which have no dates of their own, also get its start date, while evergreen ones keep theirs.</description>
     <environments>Default</environments>
     <formulas>
-        <description>End date for an undated contract item price: the contract end date at 23:59:59 GMT, the time the platform gives term-defined contract item prices.</description>
+        <description>End date for a contract item price createContract leaves without one: the contract end date at 23:59:59 GMT, the time the platform gives term-defined contract item prices.</description>
         <name>ContractItemPriceEndDateTimeFormula</name>
         <dataType>DateTime</dataType>
-        <expression>IF(ISBLANK({!GetUpdatedContract.EndDate}), NULL, DATETIMEVALUE(TEXT({!GetUpdatedContract.EndDate}) &amp; &apos; 23:59:59&apos;))</expression>
+        <expression>DATETIMEVALUE(TEXT({!GetUpdatedContract.EndDate}) &amp; &apos; 23:59:59&apos;)</expression>
     </formulas>
     <formulas>
-        <description>Start date for an undated contract item price: the contract start date at 00:00:00 GMT, the time the platform gives term-defined contract item prices, instead of the creation time.</description>
+        <description>Start date for an undated one-time contract item price: the contract start date at 00:00:00 GMT, the time the platform gives term-defined contract item prices, instead of the creation time.</description>
         <name>ContractItemPriceStartDateTimeFormula</name>
         <dataType>DateTime</dataType>
-        <expression>IF(ISBLANK({!GetUpdatedContract.StartDate}), NULL, DATETIMEVALUE(TEXT({!GetUpdatedContract.StartDate}) &amp; &apos; 00:00:00&apos;))</expression>
+        <expression>DATETIMEVALUE(TEXT({!GetUpdatedContract.StartDate}) &amp; &apos; 00:00:00&apos;)</expression>
     </formulas>
     <formulas>
         <description>Contract term in months, which sets the contract end date: whole months from the contract start date to the day after the last-ending term-defined quote line ends (a partial month rounds up), or 12 when the quote has no term-defined line or the contract has no start date.</description>
@@ -521,7 +574,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>UpdateUndatedContractItemPrices</targetReference>
+            <targetReference>DoesContractHaveDates</targetReference>
         </connector>
         <faultConnector>
             <targetReference>RollBackContract</targetReference>
@@ -557,7 +610,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>GetUpdatedContract</targetReference>
+            <targetReference>AreContractPricesSaved</targetReference>
         </connector>
         <faultConnector>
             <targetReference>RollBackContract</targetReference>
@@ -685,9 +738,9 @@
         <object>Contract</object>
     </recordUpdates>
     <recordUpdates>
-        <description>Dates the contract item prices that createContract leaves without an end date. A one-time or evergreen quote line has no start or end date, so its contract item price gets the creation time as its start date and no end date, and contract activation rejects it. These get the contract&apos;s start and end dates, the same window the platform gives term-defined lines.</description>
-        <name>UpdateUndatedContractItemPrices</name>
-        <label>Update Undated Contract Item Prices</label>
+        <description>Ends the remaining contract item prices that createContract leaves without an end date, such as those from evergreen lines, on the contract&apos;s end date. Contract activation rejects a contract item price without an end date or ending after the contract does (live-checked 2026-10-22). Their start date is kept: an evergreen line can start after the contract does.</description>
+        <name>UpdateOpenEndedContractItemPrices</name>
+        <label>Update Open-Ended Contract Item Prices</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <faultConnector>
@@ -706,6 +759,48 @@
             <operator>IsNull</operator>
             <value>
                 <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>EndDate</field>
+            <value>
+                <elementReference>ContractItemPriceEndDateTimeFormula</elementReference>
+            </value>
+        </inputAssignments>
+        <object>ContractItemPrice</object>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Dates the one-time contract item prices that createContract leaves without an end date. A one-time quote line has no start or end date, so its contract item price gets the creation time as its start date and no end date, and contract activation rejects it. These get the contract&apos;s start and end dates, the same window the platform gives term-defined lines.</description>
+        <name>UpdateUndatedContractItemPrices</name>
+        <label>Update Undated Contract Item Prices</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>UpdateOpenEndedContractItemPrices</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>RollBackContract</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>ContractId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>CreateContract.contractId</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>EndDate</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>SellingModelType</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>OneTime</stringValue>
             </value>
         </filters>
         <inputAssignments>

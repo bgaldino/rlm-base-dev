@@ -17,8 +17,9 @@ share the `Run Quote To Order Flow` keyword:
   renewal term no renewal Opportunity is created, so patching it would hide a flow
   regression. The test then checks the Order carries the Contract. The keyword's
   `contract_price_option` argument (`None` by default, `Discount` or `Net Unit Price`) picks the
-  flow's contract-price choice; with Discount or Net Unit Price it also requires at least one
-  ContractItemPrice and an EndDate on every one before activation.
+  flow's contract-price choice; with Discount or Net Unit Price it also requires an EndDate on
+  every ContractItemPrice before activation. The test passes `Net Unit Price`
+  (`${CONTRACT_PRICE_OPTION}`), so every priced line gets one.
 
 ```
 Revenue Cloud App
