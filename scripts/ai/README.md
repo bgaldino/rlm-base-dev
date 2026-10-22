@@ -155,17 +155,23 @@ Two check modes:
   Register it as a code span or Markdown link; a mention in prose does not count.
 
   The rule-table check exists because `check` is the only leg that runs on a
-  pull request. It asserts the *outcome* — rows actually parsed, and at least as
-  many as there are `.cursor/rules/*.mdc` files — rather than merely that the
-  heading is present. The failure this repo produces is "keep the heading as a
+  pull request. It asserts the *outcome* — rows actually parsed, matched to the
+  `.cursor/rules/*.mdc` files by name (no unlisted rule, no row for a missing
+  one), with every row naming a skill or an explicit stand-alone note and every
+  skill target resolving on disk — rather than merely that the heading is
+  present. The failure this repo produces is "keep the heading as a
   pointer, move the table", which parses to zero rows and would otherwise render
   a coverage matrix claiming every rule is unlisted.
 - **Full generated-reference checks** (`check --full-generated-reference-checks`)
   — additionally dry-runs `generate_cci_reference.py`, which requires
   PyYAML/CumulusCI. Skipped with clear guidance when PyYAML is absent.
 
-PyYAML, when installed, enriches the `report` and `coverage` subcommands;
-without it they degrade gracefully to a line-oriented fallback.
+PyYAML, when installed, parses the skill manifest for the `report` subcommand;
+without it a line-oriented fallback is used. The fallback recognises skill paths
+only under `.cursor/skills/` and generated sub-files only under
+cci-orchestration — all the current manifest declares — so both give the same
+summary today. `coverage`
+does not read the manifest.
 
 **Outputs:**
 - `docs/analysis/tooling-optimization-report.md` — report (`report`)
@@ -1464,10 +1470,13 @@ check on `main`, `preview/*` and `release/*` (repository settings, applied separ
   the gate), and CI pins `python-version: "3.13"` and exercises only that one
   version — so nothing is tested on 3.10.
 - **PyYAML** — required by `generate_cci_reference.py` (a YAML generator) and
-  used to enrich `skill_manifest.py` and `analyze_agent_tooling.py`
-  (available in the CCI venv). `skill_manifest.py` and
-  `analyze_agent_tooling.py` degrade to a stdlib-only fallback when it is
-  absent; `analyze_agent_tooling.py check` never needs it.
+  used by `skill_manifest.py` and `analyze_agent_tooling.py` when present
+  (available in the CCI venv). Both fall back to a stdlib-only parser when it
+  is absent: `skill_manifest.py`'s fallback handles a subset of YAML, while
+  `analyze_agent_tooling.py report` gives the same summary for the current
+  manifest. `analyze_agent_tooling.py check` never imports PyYAML; only its
+  opt-in `--full-generated-reference-checks` leg needs it, and is skipped
+  without it.
 - No other external dependencies
 
 ---
