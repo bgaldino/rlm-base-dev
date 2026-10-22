@@ -3,12 +3,13 @@
  *
  * WHAT IS WORTH TESTING HERE
  * --------------------------
- * The class has exactly one public entry point and ~40 private helpers, so the
- * only contract a test can hold it to is the invocable's own: the input guards,
- * and which categories of record each flag is allowed to delete. That flag
- * gating is also the part that has actually broken -- AssetRateCardEntry rows
- * were once removed while the asset was kept, leaving a usage asset that could
- * never rate again -- so it is where the assertions are concentrated.
+ * The class has exactly one public entry point and a few dozen private helpers,
+ * so the only contract a test can hold it to is the invocable's own: the input
+ * guards, which categories of record each flag is allowed to delete, and the
+ * Result it reports. That flag gating is also the part that has actually broken
+ * -- AssetRateCardEntry rows were once removed while the asset was kept, leaving
+ * a usage asset that could never rate again -- so it is where the assertions
+ * are concentrated.
  *
  * AVOIDING A VACUOUS PASS
  * -----------------------
@@ -18,29 +19,25 @@
  * reason -- the class of defect this repository produces most often, where a
  * check silently validates an empty set.
  *
- * COVERAGE: 34.6% (346/1001 lines), measured on a scratch org 2026-07-25.
- * ----------------------------------------------------------------------------
- * To be precise about what that does and does not mean: Salesforce enforces 75%
- * across ALL Apex in the org for a production deploy, plus at least some
- * coverage on every trigger. It is not a per-class gate, so 34.6% here does not
- * by itself block a deploy. What it does mean is that this class is
- * under-tested and drags the org-wide figure down by roughly 655 uncovered
- * lines -- a real cost in an org that has to clear the aggregate. Stated
- * plainly so nobody reads a green run as "this class is well covered".
- *
- * The uncovered ~655 lines are the usage-graph and fulfillment teardown --
- * deleteUsageEntitlementBucketsHierarchy/BottomUp, deleteUsageEntitlements,
- * deleteAllTransactionUsageEntitlements, deleteUsageSummaryGraph,
- * deleteTransactionJournal and the fulfillment helpers. Each is a no-op unless
- * the matching records exist, and building them needs fixtures this class does
- * not yet have: UsageEntitlementAccount alone requires a PricebookEntry plus
+ * COVERAGE
+ * --------
+ * Salesforce enforces 75% across ALL Apex in the org for a production deploy,
+ * not per class, so this class's figure does not by itself block a deploy. It
+ * is still under-tested: the usage-graph and fulfillment teardown --
+ * deleteUsageSummaryGraph's delete rounds, deleteUsageEntitlementBucketsBottomUp,
+ * deleteTransactionJournal and the fulfillment helpers -- are no-ops unless the
+ * matching records exist, and building them needs fixtures this class does not
+ * yet have: UsageEntitlementAccount alone requires a PricebookEntry plus
  * billing-period fields, and UsageEntitlementBucket requires a UsageResource
  * and a UnitOfMeasure. Those objects ARE createable, so the coverage is
- * reachable -- it is simply a separate piece of work, tracked as its own task.
+ * reachable -- it is simply a separate piece of work.
  *
- * Two paths are NOT reachable from a unit test at all: Invoice and
- * BillingScheduleGroup are both createable=false, so deleteInvoices and
- * deleteBillingScheduleGroups can only ever be verified live.
+ * Three objects cannot be created in a unit test at all: Invoice and
+ * BillingScheduleGroup are createable=false, and a CreditMemo's required
+ * BillingAccountId and Status are not createable. So deleting invoices and
+ * credit memos can only be verified live. The tests here cover what surrounds
+ * it: the permission check that decides whether posted invoices go, payments
+ * being kept and reported, and the documents cleanup.
  *
  * The live verification that does cover the usage graph is
  * scripts/apex/validateRatedUsage.apex plus the usage-consumption skill; the
@@ -63,6 +60,17 @@ private without sharing class RLM_AccountUtilitiesTest {
         Account a = new Account(Name = 'RLM Utilities Test Account');
         insert a;
         return a;
+    }
+
+    private static Opportunity newOpportunity(Id accountId, String name) {
+        Opportunity o = new Opportunity(
+            Name = name,
+            AccountId = accountId,
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30)
+        );
+        insert o;
+        return o;
     }
 
     private static Id seedAccountWithContracts() {
@@ -97,6 +105,53 @@ private without sharing class RLM_AccountUtilitiesTest {
         return account.Id;
     }
 
+    // Processed is the status a payment ends in, and the one that cannot be deleted.
+    private static Payment newProcessedPayment(Id accountId) {
+        Payment p = new Payment(
+            AccountId = accountId,
+            Amount = 10,
+            Status = 'Processed',
+            Type = 'Sale',
+            ProcessingMode = 'External'
+        );
+        insert p;
+        return p;
+    }
+
+    private static Id newFile(String title, Id parentId) {
+        ContentVersion version = new ContentVersion(
+            Title = title,
+            PathOnClient = title + '.txt',
+            VersionData = Blob.valueOf(title),
+            FirstPublishLocationId = parentId
+        );
+        insert version;
+        return [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :version.Id].ContentDocumentId;
+    }
+
+    private static User newMinimalAccessUser() {
+        Profile leastPrivileged = [
+            SELECT Id
+            FROM Profile
+            WHERE Name IN ('Minimum Access - Salesforce', 'Standard User')
+            ORDER BY Name ASC
+            LIMIT 1
+        ];
+        User u = new User(
+            ProfileId = leastPrivileged.Id,
+            LastName = 'Reset',
+            Email = 'rlm.reset.minimal@example.com',
+            Username = 'rlm.reset.minimal.' + Datetime.now().getTime() + '@example.com',
+            Alias = 'rlmrst',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert u;
+        return u;
+    }
+
     private static RLM_AccountUtilities.InputVariables request(
         Id accountId, Boolean deleteAssets, Boolean deleteFulfillment, Boolean deleteBilling
     ) {
@@ -108,10 +163,17 @@ private without sharing class RLM_AccountUtilitiesTest {
         return iv;
     }
 
-    private static void run(RLM_AccountUtilities.InputVariables iv) {
-        RLM_AccountUtilities.delAccountRelatedObjects(
+    private static RLM_AccountUtilities.Result run(RLM_AccountUtilities.InputVariables iv) {
+        List<RLM_AccountUtilities.Result> results = RLM_AccountUtilities.delAccountRelatedObjects(
             new List<RLM_AccountUtilities.InputVariables>{ iv }
         );
+        System.assertEquals(1, results.size(), 'One request must return one Result');
+        return results[0];
+    }
+
+    // How a summary names `count` rows of an object.
+    private static String entry(Schema.SObjectType type, Integer count) {
+        return type.getDescribe().getLabelPlural() + ': ' + count;
     }
 
     // ------------------------------------------------------------------ guards
@@ -119,21 +181,20 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void nullRequestIsANoOp() {
         Test.startTest();
-        RLM_AccountUtilities.delAccountRelatedObjects(null);
+        List<RLM_AccountUtilities.Result> results = RLM_AccountUtilities.delAccountRelatedObjects(null);
         Test.stopTest();
-        // Reaching here without an exception is the assertion: the invocable is
-        // called by a Flow, where a null input must not surface as an error.
-        System.assert(true, 'A null request must return quietly');
+        // The invocable is called by a Flow, where a null input must not surface as an error.
+        System.assertEquals(0, results.size(), 'A null request must return quietly, with no Result');
     }
 
     @IsTest
     static void emptyRequestIsANoOp() {
         Test.startTest();
-        RLM_AccountUtilities.delAccountRelatedObjects(
+        List<RLM_AccountUtilities.Result> results = RLM_AccountUtilities.delAccountRelatedObjects(
             new List<RLM_AccountUtilities.InputVariables>()
         );
         Test.stopTest();
-        System.assert(true, 'An empty request must return quietly');
+        System.assertEquals(0, results.size(), 'An empty request must return quietly, with no Result');
     }
 
     @IsTest
@@ -162,6 +223,36 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
     }
 
+    @IsTest
+    static void malformedIdIsReportedNotThrown() {
+        RLM_AccountUtilities.InputVariables iv = request(null, true, true, true);
+        iv.accountId = 'not-an-id';
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(iv);
+        Test.stopTest();
+
+        System.assertEquals(false, result.completed, 'A malformed Id must not count as a completed reset');
+        System.assertEquals(false, result.cleared, 'A malformed Id must not count as a cleared account');
+        System.assert(
+            result.reason.startsWith('Not an Account Id'),
+            'The flow shows the reason, so it must name the problem. Got: ' + result.reason
+        );
+    }
+
+    @IsTest
+    static void idOfAnotherObjectIsRejected() {
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(UserInfo.getUserId(), true, true, true));
+        Test.stopTest();
+
+        System.assertEquals(false, result.completed, 'A User Id is not an account to reset');
+        System.assert(
+            result.reason.startsWith('Not an Account Id'),
+            'The reason must say the Id is not an account. Got: ' + result.reason
+        );
+    }
+
     // ------------------------------------------------------- baseline teardown
 
     @IsTest
@@ -169,7 +260,7 @@ private without sharing class RLM_AccountUtilitiesTest {
         Account a = newAccount();
 
         Test.startTest();
-        run(request(a.Id, true, true, true));
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
         Test.stopTest();
 
         // Every helper runs against empty result sets. The assertion is that the
@@ -181,6 +272,11 @@ private without sharing class RLM_AccountUtilitiesTest {
             [SELECT COUNT() FROM Account WHERE Id = :a.Id],
             'The reset must not delete the account it was pointed at'
         );
+        System.assertEquals(true, result.completed, 'Nothing to delete is a completed reset');
+        System.assertEquals(true, result.cleared, 'Nothing was kept, so the account is cleared');
+        System.assertEquals(null, result.reason, 'A completed reset has no reason to report');
+        System.assertEquals(null, result.removedSummary, 'Nothing was removed');
+        System.assertEquals(null, result.retainedSummary, 'Nothing was kept');
     }
 
     // ------------------------------------------------- always-deleted category
@@ -188,13 +284,7 @@ private without sharing class RLM_AccountUtilitiesTest {
     @IsTest
     static void opportunitiesAreAlwaysDeleted() {
         Account a = newAccount();
-        Opportunity o = new Opportunity(
-            Name = 'RLM Utilities Test Opp',
-            AccountId = a.Id,
-            StageName = 'Prospecting',
-            CloseDate = Date.today().addDays(30)
-        );
-        insert o;
+        newOpportunity(a.Id, 'RLM Utilities Test Opp');
 
         System.assertEquals(
             1,
@@ -204,13 +294,18 @@ private without sharing class RLM_AccountUtilitiesTest {
 
         Test.startTest();
         // All three flags false: opportunity removal is not gated by any of them.
-        run(request(a.Id, false, false, false));
+        RLM_AccountUtilities.Result result = run(request(a.Id, false, false, false));
         Test.stopTest();
 
         System.assertEquals(
             0,
             [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
             'Opportunities are removed regardless of the DeleteAssets/Fulfillment/Billing flags'
+        );
+        System.assertEquals(
+            entry(Opportunity.SObjectType, 1),
+            result.removedSummary,
+            'The Result must report what the reset removed'
         );
     }
 
@@ -255,13 +350,17 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
 
         Test.startTest();
-        run(request(a.Id, true, true, true));
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
         Test.stopTest();
 
         System.assertEquals(
             0,
             [SELECT COUNT() FROM Asset WHERE AccountId = :a.Id],
             'DeleteAssets=true must remove the asset'
+        );
+        System.assert(
+            result.removedSummary.contains(entry(Schema.Asset.SObjectType, 1)),
+            'The removed asset must be reported. Got: ' + result.removedSummary
         );
     }
 
@@ -340,6 +439,180 @@ private without sharing class RLM_AccountUtilitiesTest {
             0,
             [SELECT COUNT() FROM Contract WHERE AccountId = :accountId],
             'A null preserve flag must behave like preserve=false'
+        );
+    }
+
+    // ---------------------------------------------------------- Delete Billing
+
+    @IsTest
+    static void processedPaymentIsKeptAndReported() {
+        Account a = newAccount();
+        Payment payment = newProcessedPayment(a.Id);
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        System.assertEquals(
+            1,
+            [SELECT COUNT() FROM Payment WHERE Id = :payment.Id],
+            'Salesforce does not allow deleting a processed payment, so the reset must leave it'
+        );
+        System.assertEquals(true, result.completed, 'A kept payment does not stop the reset');
+        System.assertEquals(false, result.cleared, 'An account that keeps a payment is not cleared');
+        System.assert(
+            result.retainedSummary != null && result.retainedSummary.contains(entry(Schema.Payment.SObjectType, 1)),
+            'The kept payment must be reported, so the user knows the account is not clean. Got: '
+                + result.retainedSummary
+        );
+    }
+
+    @IsTest
+    static void paymentsAreNotReportedWithoutDeleteBilling() {
+        Account a = newAccount();
+        newProcessedPayment(a.Id);
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, false));
+        Test.stopTest();
+
+        // Billing records were not asked for, so keeping them is not news.
+        System.assertEquals(true, result.cleared, 'DeleteBilling=false leaves billing out of the reset and its report');
+        System.assertEquals(null, result.retainedSummary, 'Nothing the reset was asked to delete was kept');
+    }
+
+    @IsTest
+    static void postedInvoicePermissionIsReadForTheRunningUser() {
+        User u = newMinimalAccessUser();
+
+        Boolean minimalUser;
+        System.runAs(u) {
+            minimalUser = RLM_AccountUtilities.canDeletePostedInvoices();
+        }
+        System.assertEquals(
+            false,
+            minimalUser,
+            'A user without Delete Invoice and Invoice Lines must not be treated as able to '
+                + 'delete posted invoices'
+        );
+
+        // The positive case is the running user. A fresh user cannot be given the
+        // permission: its user license does not allow BillingInvoiceSuperUser. So the
+        // check is compared with what the running user is assigned, which in a
+        // billing org (through RLM_RCB) includes it.
+        Id me = UserInfo.getUserId();
+        Boolean assigned;
+        try {
+            assigned = Database.countQuery('SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :me '
+                + 'AND PermissionSet.PermissionsBillingInvoiceSuperUser = true') > 0;
+        } catch (QueryException e) {
+            // A release without the permission: nobody has it.
+            assigned = false;
+        }
+        System.assertEquals(
+            assigned,
+            RLM_AccountUtilities.canDeletePostedInvoices(),
+            'The check must agree with the running user\'s permission set assignments'
+        );
+    }
+
+    // ------------------------------------------------------------- documents
+
+    @IsTest
+    static void quoteFilesAreDeletedUnlessSharedElsewhere() {
+        Account a = newAccount();
+        Opportunity o = newOpportunity(a.Id, 'RLM Utilities Quote Opp');
+        update new Pricebook2(Id = Test.getStandardPricebookId(), IsActive = true);
+        Quote q = new Quote(
+            Name = 'RLM Utilities Test Quote',
+            OpportunityId = o.Id,
+            Pricebook2Id = Test.getStandardPricebookId(),
+            Status = 'Draft'
+        );
+        insert q;
+        Id quoteOnly = newFile('Quote only', q.Id);
+        Id shared = newFile('Shared with the account', q.Id);
+        insert new ContentDocumentLink(ContentDocumentId = shared, LinkedEntityId = a.Id, ShareType = 'V');
+
+        System.assertEquals(
+            2,
+            [SELECT COUNT() FROM ContentDocument WHERE Id IN (:quoteOnly, :shared)],
+            'PRECONDITION: both files must exist before the reset runs'
+        );
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        System.assertEquals(0, [SELECT COUNT() FROM Quote WHERE Id = :q.Id], 'The quote must be deleted');
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM ContentDocument WHERE Id = :quoteOnly],
+            'A file only the quote used must go with it, or it is orphaned'
+        );
+        System.assertEquals(
+            1,
+            [SELECT COUNT() FROM ContentDocument WHERE Id = :shared],
+            'A file also linked to another record must be kept'
+        );
+        System.assert(
+            result.removedSummary.contains(entry(ContentDocument.SObjectType, 1)),
+            'The deleted file must be reported. Got: ' + result.removedSummary
+        );
+    }
+
+    // ------------------------------------------------------------ stopped runs
+
+    @IsTest
+    static void phaseTwoFailureRollsBackAndSaysSo() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Rollback Opp');
+        RLM_AccountUtilities.phaseTwoFailureForTest = new DmlException('Forced phase 2 failure');
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        System.assertEquals(
+            1,
+            [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
+            'A failure late in phase 2 must roll back what phase 2 had deleted'
+        );
+        System.assertEquals(false, result.completed, 'A rolled-back reset did not complete');
+        System.assert(
+            result.reason.contains('rolled back') && result.reason.contains('Forced phase 2 failure'),
+            'The reason must say what was rolled back, and why. Got: ' + result.reason
+        );
+        System.assertEquals(
+            null,
+            result.removedSummary,
+            'Records that were rolled back must not be reported as removed'
+        );
+    }
+
+    @IsTest
+    static void runningOutOfDmlRowsStopsCleanly() {
+        Account a = newAccount();
+        newOpportunity(a.Id, 'RLM Utilities Budget Opp 1');
+        newOpportunity(a.Id, 'RLM Utilities Budget Opp 2');
+        // Room for one row: the two opportunities do not fit.
+        RLM_AccountUtilities.dmlRowLimitForTest = 1;
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        // Reaching this line is part of the assertion: the platform's own limit
+        // throws a LimitException, which cannot be caught and fails the flow.
+        System.assertEquals(false, result.completed, 'A run that ran out of DML rows did not complete');
+        System.assert(
+            result.reason.contains('limit on record changes') && result.reason.contains('Run the reset again'),
+            'The reason must name the limit and say a rerun continues. Got: ' + result.reason
+        );
+        System.assertEquals(
+            2,
+            [SELECT COUNT() FROM Opportunity WHERE AccountId = :a.Id],
+            'Phase 2 rolls back as a whole, so neither opportunity may be half-deleted'
         );
     }
 

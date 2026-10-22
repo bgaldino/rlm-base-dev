@@ -10,6 +10,9 @@
         <connector>
             <targetReference>isResetSuccessful</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Reset_Failed</targetReference>
+        </faultConnector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>accountId</name>
@@ -43,6 +46,26 @@
         </inputParameters>
         <nameSegment>RLM_AccountUtilities</nameSegment>
         <offset>0</offset>
+        <outputParameters>
+            <assignToReference>ResetCleared</assignToReference>
+            <name>cleared</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>ResetCompleted</assignToReference>
+            <name>completed</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>ResetReason</assignToReference>
+            <name>reason</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>ResetRemoved</assignToReference>
+            <name>removedSummary</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>ResetRetained</assignToReference>
+            <name>retainedSummary</name>
+        </outputParameters>
     </actionCalls>
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
@@ -53,25 +76,29 @@
         </value>
     </customProperties>
     <decisions>
+        <description>The pricing decision tables are refreshed only when the reset completed. A reset that stopped rolled back everything but usage records, so the contracts and assets the tables read are unchanged.</description>
         <name>isResetSuccessful</name>
         <label>isResetSuccessful</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>Refresh_Pricing_Discovery_Decision_Tables</targetReference>
+            <targetReference>Reset_Result</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <defaultConnectorLabel>Stopped</defaultConnectorLabel>
         <rules>
-            <name>False</name>
+            <name>Completed</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>Reset_Account</leftValueReference>
-                <operator>HasError</operator>
+                <leftValueReference>ResetCompleted</leftValueReference>
+                <operator>EqualTo</operator>
                 <rightValue>
                     <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
-            <label>False</label>
+            <connector>
+                <targetReference>Refresh_Pricing_Discovery_Decision_Tables</targetReference>
+            </connector>
+            <label>Completed</label>
         </rules>
     </decisions>
     <environments>Default</environments>
@@ -153,6 +180,7 @@
             </defaultValue>
             <fieldText>Delete Billing</fieldText>
             <fieldType>InputField</fieldType>
+            <helpText>&lt;p&gt;Deletes the account&apos;s invoices with their payment schedules and generated documents, and its credit memos, canceling posted ones first. Invoices that are not Draft or Canceled need the Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices); without it they are kept. Payments are always kept.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>
@@ -186,6 +214,115 @@
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
+    <screens>
+        <name>Reset_Failed</name>
+        <label>Reset Failed</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Reset_FailedText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The reset failed.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Reset_Result</name>
+        <label>Reset Result</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Result_Cleared</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The account is reset.&lt;/strong&gt; Nothing was kept.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>ResetCleared</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>Result_Partial</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The reset finished, but some records were kept.&lt;/strong&gt; They are listed below with the reason.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>ResetCompleted</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+                <conditions>
+                    <leftValueReference>ResetCleared</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>false</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>Result_Stopped</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The reset stopped before it finished.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!ResetReason}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>ResetCompleted</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>false</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>Result_Removed</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Removed:&lt;/strong&gt; {!ResetRemoved}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>ResetRemoved</leftValueReference>
+                    <operator>IsNull</operator>
+                    <rightValue>
+                        <booleanValue>false</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>Result_Retained</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Kept:&lt;/strong&gt; {!ResetRetained}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>ResetRetained</leftValueReference>
+                    <operator>IsNull</operator>
+                    <rightValue>
+                        <booleanValue>false</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -199,6 +336,9 @@
         <label>Refresh Pricing Discovery Decision Tables</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <connector>
+            <targetReference>Reset_Result</targetReference>
+        </connector>
         <flowName>RLM_Refresh_Decision_Tables_By_Usage_Type</flowName>
         <inputAssignments>
             <name>decisionTableUsageType</name>
@@ -215,5 +355,40 @@
         <isInput>true</isInput>
         <isOutput>false</isOutput>
         <objectType>Account</objectType>
+    </variables>
+    <variables>
+        <name>ResetCleared</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>ResetCompleted</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>ResetReason</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>ResetRemoved</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>ResetRetained</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
     </variables>
 </Flow>
