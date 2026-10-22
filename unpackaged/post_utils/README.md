@@ -12,25 +12,38 @@ The primary utility: a screen flow + Apex invocable that deletes transactional d
 
 | Option | Default | Behavior |
 |--------|---------|----------|
-| Delete Assets | true | Removes assets, asset relationships, and asset rate card entries. The broader usage teardown runs regardless of this option. |
+| Delete Assets | true | Removes assets, asset relationships, asset rate card entries, and the work orders (and cases, where the org has `Case.AssetId`) that reference the assets. The broader usage teardown runs regardless of this option. |
 | Delete Fulfillment | true | Removes fulfillment orders, line items, plans, and decomposition records |
-| Delete Billing | true | Removes invoices |
-| Preserve Contracts with Contracted Prices | false | When checked, contracts that have at least one `ContractItemPrice` child are kept; contracts without contracted prices are still deleted |
+| Delete Billing | true | Removes the account's invoices with their payment schedules, generated documents (`DocumentGenerationProcess`) and files, then its credit memos, canceling posted ones first. Invoices that are not Draft or Canceled need the **Delete Invoice and Invoice Lines** permission (`RLM_DeleteInvoices`, in the `RLM_RCB` group); without it they are kept. Invoices still processing, credit memos applied to a kept invoice, and payments are always kept |
+| Preserve Contracts with Contracted Prices | false | When checked, contracts that have at least one `ContractItemPrice` child are kept, with the binding object rate card entries bound to them; contracts without contracted prices are still deleted |
 
-All resets delete usage policies, binding object rate card entries, usage summaries, entitlements, buckets, transaction journals, orders, quotes, opportunities, and billing schedule groups regardless of the flags above.
+All resets delete usage policies, binding object rate card entries, usage summaries, entitlements, buckets, transaction journals, orders, quotes (with their files and generated documents), opportunities, and billing schedule groups regardless of the flags above. The one exception is the rate card entries of contracts that Preserve Contracts with Contracted Prices keeps.
+
+### Result
+
+The flow ends on a screen that shows the invocable's result: whether the reset completed, what it removed and what it kept, by object.
+
+| Output | Meaning |
+|--------|---------|
+| `completed` | Every step ran. False when the run stopped early or failed, and `reason` says why |
+| `cleared` | The run completed and kept nothing |
+| `removedSummary` | What was deleted, by object, such as `Invoices: 3; Credit Memos: 1` |
+| `retainedSummary` | What was kept, by object, with the reason, such as `Payments: 1 (payments are not deleted: …)` |
+
+Payments are never deleted, because Salesforce refuses to delete a processed payment. A Delete Billing reset of an account with payments therefore completes without clearing it.
 
 ### Deletion order
 
 The reset runs in two phases:
 
 1. **Pre-savepoint (convergent):** Usage resource policies, binding object rate card entries, and the usage summary graph are always processed; asset rate card entries are processed only when **Delete Assets** is enabled. These operations are idempotent, so partial progress survives a later failure.
-2. **Transactional (savepoint-wrapped):** Entitlements, journals, billing, fulfillment, contracts, orders, assets, quotes, and opportunities. A thrown exception rolls back this phase. Some existing helpers use partial-success DML, so an individual row failure can leave records for a subsequent reset without triggering rollback.
+2. **Transactional (savepoint-wrapped):** Entitlements, journals, billing, fulfillment, contracts, orders, assets, quotes, and opportunities. If a step fails, the whole phase rolls back and the result says so; only the usage records from phase 1 stay deleted. A record that refuses a best-effort delete is reported as kept, with the platform's reason, instead of failing the run.
 
-The reset is designed for convergence: if it hits the DML row budget during the usage teardown, it stops and the next run resumes from the smaller graph.
+Neither phase may reach a governor limit: that would roll back both. Each delete is clamped to the DML rows left, and the usage teardown stops while the queries phase 2 needs are still available. A run that runs short stops with a result asking for another run, and the next run resumes from the smaller graph.
 
 ### Permission set
 
-`RLM_UtilitiesPermset` grants access to the `RLM_AccountUtilities` Apex class. Assigned in both `quantumbit` and `tso` flows, and to the salesrep persona in `prepare_personas`.
+`RLM_UtilitiesPermset` grants access to the `RLM_AccountUtilities` Apex class. Assigned in both `quantumbit` and `tso` flows, and to the salesrep persona in `prepare_personas`. The class runs without sharing, but Delete Billing deletes posted invoices only for a user who has Delete Invoice and Invoice Lines. The build gives that permission only to `RLM_RCB` holders, not to the salesrep persona, so a reset the persona runs keeps posted invoices and lists them under Kept.
 
 ## Other components
 

@@ -177,7 +177,8 @@ row budget, reporting a partial teardown rather than throwing. Two consequences
 worth knowing:
 
 - **Re-run until the remaining counts read zero.** A partial teardown is expected on
-  a large graph and is real progress, not a failure.
+  a large graph and is real progress, not a failure. Account Utilities says so on
+  its result screen: a run that stops early asks to be run again.
 - **Usage teardown must sit outside any rollback boundary.** In
   `RLM_AccountUtilities` it deliberately runs *before* the savepoint: inside it, one
   later exception would roll back every usage row removed and the reset could never

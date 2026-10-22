@@ -168,7 +168,7 @@ Billing super-user PSG covering invoicing, payments, credit memos, tax, collecti
 | `RevenueLifecycleManagementBillingVoidPostedInvoiceApi` | Void invoice API |
 | `RevenueLifecycleManagementCreateBillingScheduleFromBillingTransactionApi` | Billing schedule API |
 | `RLM_BillingAccountFieldAccess` (repo-owned) | Read/edit FLS on `BillingAccount` Shipping Address, Bill Day of Month, Payment Term and Bill To Contact. The standard Billing permission sets omit the first three and make Bill To Contact read-only, so fresh 264 orgs hide them from the Billing Account form even though the standard layout includes them |
-| `RLM_DeleteInvoices` (repo-owned) | Enables the **Delete Invoice and Invoice Lines** user permission (`BillingInvoiceSuperUser`), which the managed Billing Admin set leaves off. Without it, only Draft and Canceled invoices can be deleted. Not in the Billing Admin, Billing Operations or Credit Memo Operations persona groups, so only `RLM_RCB` holders get it |
+| `RLM_DeleteInvoices` (repo-owned) | Enables the **Delete Invoice and Invoice Lines** user permission (`BillingInvoiceSuperUser`), which the managed Billing Admin set leaves off. Without it, only Draft and Canceled invoices can be deleted. Not in the Billing Admin, Billing Operations or Credit Memo Operations persona groups, so only `RLM_RCB` holders get it. The Account Reset's Delete Billing checks for it before deleting posted invoices, and keeps them for a user without it |
 
 #### RLM_NGP -- Salesforce Pricing (4 permission sets)
 
@@ -281,14 +281,18 @@ persona user instead. See the persona rows in the flow inventory below.
 
 > ⚠️ **`RLM_UtilitiesPermset` is assigned to the `salesrep` PERSONA, not only to the
 > running admin — and it runs in SYSTEM MODE.** It grants `RLM_AccountUtilities`, which
-> declares no sharing keyword, so when entered directly from its invocable the class runs
-> unrestricted by sharing. The persona can therefore delete an account's orders, assets,
-> contracts, invoices and usage graph **regardless of what that user can see**.
+> is declared `without sharing`, so when entered directly from its invocable the class
+> runs unrestricted by sharing. The persona can therefore delete an account's orders,
+> assets, contracts, Draft and Canceled invoices and usage graph **regardless of what
+> that user can see**. Posted invoices are the exception: the class deletes them only for
+> a user who has **Delete Invoice and Invoice Lines** (`BillingInvoiceSuperUser`, from
+> `RLM_DeleteInvoices`), and the persona is not given it.
 >
 > This is the widest non-admin privilege the build grants. It is intentional for a demo
 > org — resetting between demos is the persona's job and the quick action sits on the
 > Account page it sees — but it would not be appropriate in an org holding real data.
-> Giving the class an explicit sharing declaration is tracked separately.
+> The sharing mode is deliberate: the reset must remove records the running user cannot
+> see, or the account is left half-reset, so do not switch the class to `with sharing`.
 
 | Permission Set | Feature Flag(s) | Flow / Step | What It Grants |
 |---|---|---|---|
@@ -302,7 +306,7 @@ persona user instead. See the persona rows in the flow inventory below.
 | `RLM_QuotingAssistant` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Quoting_Assistant` |
 | `RLM_BillingEmployeeAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Billing_Employee_Assistance` |
 | `RLM_ApprovalAgent` | `agents` | `prepare_agents` step 10 | Agent access to `RLM_Approval_Agent` |
-| `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 6 (running user) · **`prepare_personas` step 8 (salesrep persona — non-admin)** | `RLM_AccountUtilities` Apex class access. **Destructive** — that invocable deletes account-related orders, assets, contracts, invoices, quotes and opportunities, **plus the account's entire usage graph** (usage summaries, ratable summaries, entitlements, entitlement buckets, rated transaction journals, commitment junctions, and asset rate card entries). Assigned on both flows because `deploy_post_utils` ships the whole surface — class, `Account.RLM_Reset_Account` quick action and its flows — to both, so gating only the assignment left a visible reset button that no non-admin could invoke. |
+| `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 6 (running user) · **`prepare_personas` step 8 (salesrep persona — non-admin)** | `RLM_AccountUtilities` Apex class access. **Destructive** — that invocable deletes account-related orders, assets, contracts, invoices (posted ones only for a user with `BillingInvoiceSuperUser`), credit memos, quotes and opportunities, **plus the account's entire usage graph** (usage summaries, ratable summaries, entitlements, entitlement buckets, rated transaction journals, commitment junctions, and asset rate card entries). Assigned on both flows because `deploy_post_utils` ships the whole surface — class, `Account.RLM_Reset_Account` quick action and its flows — to both, so gating only the assignment left a visible reset button that no non-admin could invoke. |
 | `RLM_ExpressionSetManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 5 | `RLM_ExpressionSetManagerController` Apex class access; object READ on `ExpressionSet` and READ+EDIT on `ExpressionSetVersion` (controller USER_MODE SOQL; no FLS — the selected fields are `permissionable=false`); `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — required for the `$Api.Session_ID` loopback to work against REST; a Named Credential is the scoped alternative). The controller also reads `ContextDefinition`, `ExpressionSetDefinition`, and the junction, but those are `IsCustomizable=false` platform entities — object perms on them are silently dropped and their read is platform/feature-governed (like `AsyncApexJob`). Grant set verified on a live scratch org (2026-07-22): deploys clean, file==org, all fields non-permissionable. |
 | `RLM_DecisionTableManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 7 (running user) · **`prepare_personas` step 9 (salesrep persona — non-admin)** | `RLM_DecisionTableManagerController` Apex class access, and nothing else. Deliberately narrow: the controller reads decision-table metadata and queues the platform's own refresh action — it deletes nothing, and the refresh is the same operation Setup offers. Object permissions on `DecisionTable` and friends are NOT granted and are not needed; they are setup entities whose read is platform-governed. Assigned to the persona because the component sits on the shared Home page, so withholding it leaves a visible section that errors. |
 | `RLM_RebuildSearchIndex` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 8 (running user) — **not** assigned to the salesrep persona | `RLM_RebuildSearchIndex` Apex class access; `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — same `$Api.Session_ID` loopback dependency as `RLM_ExpressionSetManager`, same Named Credential escape hatch). **No object permissions**, because the class runs no SOQL and no DML — its whole surface is one Connect callout to `/connect/pcm/index/deploy`. That callout carries the running user's session, so the endpoint applies that user's own catalog permissions; this set deliberately does not re-grant them, and a user without them gets `isSuccess=false` plus the endpoint's status code surfaced in the component rather than a silent no-op. Withheld from the persona because `ApiEnabled` is a broad system permission and a full catalog index rebuild is an admin operation — the same call already made for `RLM_ExpressionSetManager`. Before this set existed the class was granted in **no** permission set anywhere in the repo. |
@@ -401,7 +405,7 @@ The following table shows the sequence of all permission-related steps across th
 | 29.5 | `prepare_personas` > `assign_personas_sales_rep_psg` | `RLM_Sales_Representative` PSG (salesrep user) | `personas` |
 | 29.6 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
 | 29.7 | `prepare_personas` > `assign_permission_sets` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
-| 29.8 | `prepare_personas` > `assign_permission_sets` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph | `personas` + (`quantumbit` \| `tso`) |
+| 29.8 | `prepare_personas` > `assign_permission_sets` | **`RLM_UtilitiesPermset` (salesrep user)** — ⚠ destructive: grants `RLM_AccountUtilities`, which deletes an account's orders, assets, contracts, invoices and usage graph (not posted invoices, which need `BillingInvoiceSuperUser`, and the persona does not have it) | `personas` + (`quantumbit` \| `tso`) |
 | 29.9 | `prepare_personas` > `assign_permission_sets` | **`RLM_DecisionTableManager` (salesrep user)** — the Manager sits on the shared Home page that persona sees, so without this it renders a section that errors on class access. Narrow: class access only, deletes nothing | `personas` + (`quantumbit` \| `tso`) |
 | 29.10 | `prepare_personas` > `assign_permission_sets` | `RLM_QuantumBitDemoSetup` (salesrep user) | `personas` + `quantumbit` |
 | 29.11 | `prepare_personas` > `assign_permission_sets` | `RLM_Approvals` (salesrep user) | `personas` + `quantumbit` + `approvals` |

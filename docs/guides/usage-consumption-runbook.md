@@ -245,7 +245,8 @@ product column too. The policy is per product *and* resource, not per resource.
 orders, assets, contracts, invoices, quotes, opportunities **and its entire usage
 graph**. It requires the `RLM_UtilitiesPermset` permission set, assigned on both
 `quantumbit` and `tso` builds. It is destructive and has no confirmation step —
-it resets the account you invoke it on.
+it resets the account you invoke it on. It ends on a screen that lists what it
+removed and what it kept; a run that stops early asks to be run again.
 
 **From the CLI (whole org).**
 
