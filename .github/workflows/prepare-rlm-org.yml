@@ -82,12 +82,13 @@ jobs:
         with:
           # Pinned to an exact 24.x patch, not "24", so a Node patch regression cannot
           # reach CI unannounced. That happened once: 24.17.0 made the npm-installed sf
-          # CLI exit 13 on `sf org login` (forcedotcom/cli#3586), and CI sat on 24.16.0
-          # from 2026-06 until both fixes landed (Node 24.18.0; sf 2.142.1 moved jsforce
-          # to native fetch). Moved to 24.22.1 (security release, 2026-10-20) after a
-          # live Prepare RLM Org run passed on it. Move it again by the same test: change
-          # the version and run the `ci:prepare-org` label. Whatever it moves to stays on
-          # the major line pinned in .nvmrc (tests/test_node_line.py checks they agree).
+          # CLI exit 13 on `sf org login` (forcedotcom/cli#3586), so CI held 24.16.0 from
+          # 2026-06 to 2026-10-22. The bug was fixed in Node 24.18.0 and in sf 2.142.1
+          # (jsforce moved to native fetch). Moved to 24.22.1 (security release,
+          # 2026-10-20) after Prepare RLM Org passed end to end on it 2026-10-22 (run
+          # 39790256575). Move it again by the same test: change the version and apply
+          # (or re-apply) the `ci:prepare-org` label. Whatever it moves to stays on the
+          # major line pinned in .nvmrc (tests/test_node_line.py checks they agree).
           node-version: "24.22.1"
 
       - name: Cache npm download cache
