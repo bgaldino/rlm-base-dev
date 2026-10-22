@@ -725,7 +725,7 @@ cci task run assemble_and_deploy_ux -o deploy false
 rm -rf .sf/orgs/<org-id>/localSourceTracking
 
 # Validate each CML model's shipped blob against its own ESC rows (no org needed)
-cci task run validate_cml -o data_dirs "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
+cci task run validate_cml -o data_dirs "datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitBundle"
 ```
 
 ---

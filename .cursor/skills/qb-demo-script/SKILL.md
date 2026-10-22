@@ -129,7 +129,7 @@ images and substitutes the placeholder markers with real Slack file IDs.
    - Per-bundle SKU lists
    - Pricing-feature wiring (Software Maintenance derivation, API quantity
      auto-add, etc.)
-   - Constraint models (QuantumBitComplete, Server2)
+   - Constraint models (QuantumBitBundle, Server2)
 3a. **Read `.agents/artifacts/qb-canvas-{prior_release}-source.md`** — extract
     the 6-persona inventory (name + role + bio). This is intentionally a
     second source today; see Quick Rule 4 for the migration note. If the

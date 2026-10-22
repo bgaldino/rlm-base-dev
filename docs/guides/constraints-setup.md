@@ -4,7 +4,9 @@ This document describes the `prepare_constraints` flow, its dependencies, and ho
 
 ## Flow Order (prepare_constraints)
 
-The `prepare_constraints` flow runs twelve steps grouped into two phases:
+The `prepare_constraints` flow runs ten steps grouped into two phases. The
+[generated flow reference](../../.cursor/skills/cci-orchestration/flows-reference.md#prepare_constraints)
+provides the current ordering, task options, and guards.
 
 ### Phase 1: Metadata Setup (steps 1-4)
 
@@ -17,36 +19,36 @@ These steps run when the `constraints` flag is `true`:
 | 3 | `assign_permission_sets` | `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 
-### Phase 2: Constraint Data Loading (steps 5-12)
+### Phase 2: Constraint Data Loading (steps 5-10)
 
-These steps run when `constraints_data` is `true` (steps 6-12 also require `qb`):
+Step 5 runs with `constraints_data`; steps 6-10 also require `qb`.
 
-| Step | Task | Condition | Purpose |
-|------|------|-----------|---------|
-| 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type to "Advanced Configurator", set Asset Context for Product Configurator, and enable Constraints Engine toggle via Robot Framework browser automation |
-| 6 | `validate_cml` | `constraints_data` + `qb` | Validate every model steps 7-10 import: each data dir's own `blobs/*.ffxblob` is structure-checked and cross-referenced against that dir's ESC associations (`data_dirs`) |
-| 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import the QuantumBitComplete constraint model (imported but left **inactive**) |
-| 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import the Server2 constraint model |
-| 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model (imported but left **inactive**) |
-| 10 | `import_cml` (QuantumBitBundle) | `constraints_data` + `qb` | Import the combined QuantumBitBundle model (QuantumBitComplete bundle + QuantumBitPCM virtual-quote rules) |
-| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1`, `QuantumBitPCM_V1`, **`QuantumBitBundle_V1` and `Server2_V1`** — Complete/PCM so re-running switches cleanly to Bundle; Bundle and Server2 because step 12 activates them and would otherwise no-op on an already-active version (steps 7-10 may have uploaded into an active version, which stores the blob without redeploying). No-op on a fresh build |
-| 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** (only one QuantumBit model can be active at a time; QuantumBitBundle is the active combined model). See `datasets/constraints/README.md`. |
+| Step | Task | Purpose |
+|---|---|---|
+| 5 | `enable_constraints_settings` | Configure the engine through Robot |
+| 6 | `validate_cml` | Validate both retained model blobs against their own ESC rows |
+| 7 | `import_cml` (Server2) | Import the hardware model |
+| 8 | `import_cml` (QuantumBitBundle) | Import the software bundle and cart rules |
+| 9 | `manage_expression_sets` (deactivate) | Deactivate Bundle and Server2 versions |
+| 10 | `manage_expression_sets` (activate) | Activate both versions to rebuild their runtimes |
 
-**Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) were removed from this checkout and replaced by the CML utility. Use the [current constraint model plans](#constraint-model-data-plans).
+The CML utility imports the models directly. Both versions are cycled on rerun:
+importing into an active version stores the blob without rebuilding its runtime.
+There are no operations for retired models.
 
 ## Feature Flags
 
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
-| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-12) |
+| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-10) |
 | `quantumbit` | `true` | QuantumBit-specific prerequisites (step 1) |
-| `qb` | `true` | QuantumBit dataset family gate (steps 6-12) |
+| `qb` | `true` | QuantumBit dataset family gate (steps 6-10) |
 
-To load constraint data, set `constraints_data: true` in `cumulusci.yml` or override at runtime:
+To load constraint data, set `constraints_data: true` in `project.custom` in `cumulusci.yml`, then run:
 
 ```bash
-cci flow run prepare_constraints --org <org> -o constraints_data true
+cci flow run prepare_constraints --org <cci_alias>
 ```
 
 ## Constraint Model Data Plans
@@ -55,11 +57,8 @@ Constraint model data is stored in `datasets/constraints/qb/` with one directory
 
 ```
 datasets/constraints/qb/
-├── QuantumBitComplete/   # 57 ESC records (29 Type + 28 Port), 29 products — imported, inactive
-├── Server2/              # 81 ESC records (41 Type + 40 Port), 41 products — active
-├── QuantumBitPCM/        # 12 ESC records (12 Type, 0 Port), 12 products — imported, inactive
-├── QuantumBitBundle/     # 61 ESC records (33 Type + 28 Port), 33 products — active (Complete bundle + PCM rules)
-└── README.md             # Detailed CML utility documentation
+├── Server2/              # 81 ESC records (41 Type + 40 Port), hardware
+└── QuantumBitBundle/     # 61 ESC records (33 Type + 28 Port), software and cart rules
 ```
 
 Each directory contains:
@@ -79,7 +78,7 @@ It is loaded by `insert_qb_transactionprocessingtypes_data` (step 1) and is requ
 If you need to manage TransactionProcessingType records directly (outside the SFDMU plan), use:
 
 ```bash
-cci task run manage_transaction_processing_types --operation list
+cci task run manage_transaction_processing_types -o operation list
 ```
 
 ## post_constraints Metadata
@@ -87,10 +86,11 @@ cci task run manage_transaction_processing_types --operation list
 The `unpackaged/post_constraints` bundle contains metadata that must deploy **after** the constraint fields exist. This includes:
 
 - `RLM_QuoteItemTrigger`
-- `RLM_Asset_Action_Source_Record_Page.flexipage-meta.xml`
-- `OrderItem-RLM Order Product Layout.layout-meta.xml`
-- `QuoteLineItem-RLM Quote Line Item Layout.layout-meta.xml`
-- `RLM_QuantumBit.permissionset-meta.xml` (only field permissions for constraint fields)
+- `RLM_ConstraintEngineNodeStatus__c` fields on AssetActionSource, OrderItem, and QuoteLineItem
+- `RLM_Constraints.permissionset-meta.xml`
+- IndustriesConstraints and ProductDiscovery settings
+
+Constraint UX layouts and pages are assembled from `templates/` by the UX task.
 
 This ordering avoids missing field errors during `deploy_full`.
 
