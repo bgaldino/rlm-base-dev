@@ -172,8 +172,7 @@ Scripts that call Salesforce REST themselves get the token from `scripts/sf_toke
 (`org_auth(alias)`). It takes the instance URL from `sf org display`, checks the token
 (a real one starts with the org's `00D` Id prefix), and when it isn't real fetches it with
 `sf org auth show-access-token --json`, which `sf` never redacts. The token is never logged or
-put in an error. `scripts/cml/export_cml.py`, `scripts/cml/import_cml.py` and
-`scripts/docgen/docgen_template_manage.py` use it; `scripts/txn_data_harness/auth.py` already
+put in an error. `scripts/docgen/docgen_template_manage.py` uses it; `scripts/txn_data_harness/auth.py` already
 used `show-access-token`. New scripts that need a token should use the helper rather than
 parsing `sf org display`. Offline tests: `tests/test_sf_token.py`. CumulusCI's own token reads
 are covered by CumulusCI 4.10.1 itself (see the status note at the top).

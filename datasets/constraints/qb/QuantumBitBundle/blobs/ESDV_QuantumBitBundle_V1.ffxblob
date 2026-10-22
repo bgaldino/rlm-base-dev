@@ -1,38 +1,23 @@
 // ============================================================================
-// QuantumBitBundle - combined constraint model (Release 262 / API v67)
+// QuantumBitBundle - bundle configuration and cart-level constraint rules
 // ============================================================================
-// UNION of two existing QuantumBit constraint models so the combined behavior
-// can be compared against the originals in a scratch org:
-//   * QuantumBitComplete - bundle/configuration paradigm (LineItem + relation
-//     ports -> ProductRelatedComponent). Grafted VERBATIM below as the
-//     configurable QuantumBitCompleteSolution bundle (+ QuantumBitServicesProject
-//     sub-bundle, attributes, constraint, require).
-//   * QuantumBitPCM - virtual-quote cross-item paradigm (v67). Grafted as the
-//     @(virtual="true") Quote container with its lineitems relation + cart-level
-//     require/recommend rules.
+// Bundle members use LineItem types and relation ports mapped to
+// ProductRelatedComponent. The virtual Quote container applies cross-item
+// require/recommend rules to the same LineItem types.
 //
-// LINEITEM-PRIMARY (forced by the platform): In RLM a Product2 maps to exactly
-// ONE Component Type, and CML is single-inheritance, so a product cannot be both
-// a LineItem bundle member (QuantumBitComplete) and an AssetLineItem leaf
-// (QuantumBitPCM) in one model. Verified on ent-r1: tagging a product with two
-// types fails config rules ("Component Type ... already exists"). Therefore:
-//   - QuantumBitPCM's asset-context facet is DROPPED: the assetLineItems relation,
-//     the AssetLineItem base + its 3 leaves (QuantumBitCompleteSolution,
-//     QuantumBitDatabaseTokenCommitEach/Flat as AssetLineItem), and the single
-//     assetLineItems[...] recommend rule. Those products remain as the
-//     QuantumBitComplete LineItem bundle members instead.
-//   - QuantumBitPCM's APIAccessRequests is unified to QuantumBitComplete's
-//     APIAccessRequestsAEH (same product "API Access Requests (AEH)", both
-//     LineItem) -- lossless.
-// PRESERVED: the full bundle, and PCM's cart-level require + both recommend rules.
+// LINEITEM-PRIMARY: a Product2 maps to exactly one Component Type. The platform
+// rejects mapping it to both LineItem and AssetLineItem types (verified on ent-r1:
+// "Component Type ... already exists"). This model therefore has no asset-context
+// relation or AssetLineItem facet. APIAccessRequestsAEH represents
+// "API Access Requests (AEH)" in both bundle and cart rules.
 // ----------------------------------------------------------------------------
 
-// --- Header: external variable (from QuantumBitComplete) ---
+// --- External variable ---
 @(contextPath = "SalesTransaction.OriginalActionType")
 extern string OriginalActionType;
 
 // ============================================================================
-// Virtual-quote container (from QuantumBitPCM) - cart-level cross-item rules
+// Virtual-quote container - cart-level cross-item rules
 // ============================================================================
 @(virtual = "true")
 type Quote {
@@ -55,7 +40,7 @@ type Quote {
 type LineItem;
 
 // ============================================================================
-// QuantumBitComplete configurable bundle (grafted verbatim)
+// Configurable bundle
 // ============================================================================
 type QuantumBitCompleteSolution : LineItem {
     relation softwaremaintenance : SoftwareMaintenance;
@@ -250,8 +235,7 @@ type ProfessionalServicesScopeofWork : LineItem;
 type ProfessionalServicesDailyRate : LineItem;
 
 // ============================================================================
-// QuantumBitPCM-only leaf types (grafted; APIAccessRequests unified to the
-// QuantumBitComplete bundle child APIAccessRequestsAEH - same product)
+// Additional LineItem types for cart-level rules
 // ============================================================================
 type APIAccessRequestsFlex : LineItem;
 

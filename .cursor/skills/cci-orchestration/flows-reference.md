@@ -281,23 +281,17 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 4. **task** `apply_context_constraint_engine_node_status`  `when: project_config.project__custom__constraints`
 5. **task** `enable_constraints_settings`  `when: project_config.project__custom__constraints_data`
 6. **task** `validate_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `data_dirs`: `datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/q...`
+   - `data_dirs`: `datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitBundle`
 7. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `data_dir`: `datasets/constraints/qb/QuantumBitComplete`
-   - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-8. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `data_dir`: `datasets/constraints/qb/Server2`
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-9. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `data_dir`: `datasets/constraints/qb/QuantumBitPCM`
-   - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-10. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+8. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `data_dir`: `datasets/constraints/qb/QuantumBitBundle`
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-11. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+9. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `deactivate_versions`
-   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1,Server2_V1`
-12. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+   - `version_full_names`: `QuantumBitBundle_V1,Server2_V1`
+10. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `activate_versions`
    - `version_full_names`: `Server2_V1,QuantumBitBundle_V1`
 

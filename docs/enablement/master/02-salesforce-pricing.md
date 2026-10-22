@@ -73,7 +73,7 @@ For the full scenario context — customer accounts (Infinitech, Global Media), 
 | Volume Adjustment | `QB-MSG-STRT` (Additional Messages) — tiered: 5–10 → 10% · 11–15 → 15% · 16+ → 25% |
 | Bundle-Based Adjustment | `QB-API` inside `QB-COMPLETE` — automatic 5% Percentage |
 | Attribute-Based Adjustment | `QB-API` with `ATTR-QB-API` attribute → Override prices: Flex $10K · Pre-Prod $12K · Prod $15K · Gov $8.5K |
-| Constraint validation | `QuantumBitComplete` CML enforces required usage product, valid software combinations |
+| Constraint validation | `QuantumBitBundle` CML enforces required usage product, valid software combinations |
 | Nested-bundle pricing (260) | `QB-QRack-750` Computing → Cooling, Storage → Hard Drives, PCIe → GPUs/I/O/Networking |
 | Customer | Infinitech (San Francisco, US LE) — sourced from `scratch_data` |
 

@@ -109,13 +109,13 @@ cci task run manage_flows --operation list --process_type ScreenFlow
 cci task run manage_expression_sets --operation list
 
 # Export a constraint model
-cci task run export_cml --org <org> -o developer_name QuantumBitComplete -o version 1 -o output_dir datasets/constraints/qb/QuantumBitComplete
+cci task run export_cml --org <org> -o developer_name QuantumBitBundle -o version 1 -o output_dir datasets/constraints/qb/QuantumBitBundle
 
 # Import a constraint model (with dry run)
-cci task run import_cml --org <org> -o data_dir datasets/constraints/qb/QuantumBitComplete -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm" -o dry_run true
+cci task run import_cml --org <org> -o data_dir datasets/constraints/qb/QuantumBitBundle -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm" -o dry_run true
 
 # Validate each model's shipped blob against its own ESC rows
-cci task run validate_cml -o data_dirs "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
+cci task run validate_cml -o data_dirs "datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitBundle"
 ```
 
 For detailed examples and usage, see:
@@ -176,16 +176,16 @@ cci flow run prepare_rlm_org
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-This will validate CML files, import all four constraint models (QuantumBitComplete, Server2, QuantumBitPCM, and QuantumBitBundle), then deactivate all four versions and activate **two** of them — `Server2_V1` and `QuantumBitBundle_V1`. QuantumBitComplete and QuantumBitPCM are imported but left inactive for A/B comparison. See [Constraints Setup](../../docs/guides/constraints-setup.md) for flow details.
+This will validate CML files, import both constraint models (Server2 and QuantumBitBundle), then deactivate and reactivate both versions (`Server2_V1` and `QuantumBitBundle_V1`) so the rebuilt models take effect. See [Constraints Setup](../../docs/guides/constraints-setup.md) for flow details.
 
 ### Export a Constraint Model
 
 ```bash
 # Export from a source org to a local data plan directory
 cci task run export_cml --org <source_org> \
-    -o developer_name QuantumBitComplete \
+    -o developer_name QuantumBitBundle \
     -o version 1 \
-    -o output_dir datasets/constraints/qb/QuantumBitComplete
+    -o output_dir datasets/constraints/qb/QuantumBitBundle
 ```
 
 See the [Constraints Utility Guide](../../datasets/constraints/README.md) for full export/import/validate documentation.

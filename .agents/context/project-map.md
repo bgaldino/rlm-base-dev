@@ -34,7 +34,6 @@
 | `datasets/tooling/` | Tooling API metadata exports | Treat as metadata snapshots. |
 | `scripts/apex/` | Apex activation/deletion scripts | Keep scripts bulk-safe and avoid unsafe single-record loops. |
 | `scripts/ai/` | Agent support utilities | Includes CCI reference generation and ERD/manifest helpers. |
-| `scripts/cml/` | CML utilities | Export/import/validation helpers for constraint model work. |
 | `scripts/erd/` | Schema and ERD tooling | Use for cross-release schema comparisons (260/262/264) and ERD generation. |
 | `scripts/soql/` | Reusable SOQL queries | Prefer checked-in query files for repeatable analysis. |
 | `tasks/` | Custom Python CCI tasks | Use `org_config.username` for `sf` CLI; reserve tokens for REST. |

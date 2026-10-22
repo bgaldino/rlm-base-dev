@@ -197,6 +197,16 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="permission_set_dependencies",
+        cmd=["python", "scripts/ai/check_permission_set_dependencies.py"],
+        # Account read depends on Contact read because of the person accounts in the TSO orgs;
+        # a permission set granting one without the other fails at deploy time. It reads every
+        # tracked permission set, so it selects on the suffix rather than a subtree.
+        triggers=["scripts/ai/check_permission_set_dependencies.py"],
+        suffixes=[".permissionset-meta.xml"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="skill_manifest",
         cmd=["python", "scripts/ai/skill_manifest.py", "--check"],
         # The audit resolves every path the manifest cites, and the manifest cites paths all
@@ -479,7 +489,7 @@ CHECKS = [
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
                   "tasks/expression_set_schema.py", "tasks/rlm_community.py",
-                  "scripts/expression_sets/", "scripts/cml/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
+                  "scripts/expression_sets/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
                   "scripts/sf_token.py",
                   "tests/test_empty_recycle_bin.py",
                   "tests/test_expression_set_schema.py",
@@ -509,6 +519,8 @@ CHECKS = [
         triggers=["tasks/", "cumulusci.yml", "scripts/ai/skill_manifest.py",
                   ".claude/skill-manifest.yml",
                   "datasets/sfdmu/qb/en-US/qb-dro/",
+                  # test_prepare_constraints_validation.py asserts the shipped model set under here.
+                  "datasets/constraints/qb/",
                   "tests/test_decision_table_tasks.py",
                   "tests/test_deactivate_changed_decision_tables.py",
                   "unpackaged/pre/5_decisiontables/",
@@ -644,6 +656,7 @@ STDLIB_SUITES = [
     "tests/test_billing_flow_copies.py",
     "tests/test_build_billing_ui_module.py",
     "tests/test_check_node_ca.py",
+    "tests/test_check_permission_set_dependencies.py",
     "tests/test_check_release_refs.py",
     "tests/test_claude_hooks.py",
     "tests/test_context_apply.py",

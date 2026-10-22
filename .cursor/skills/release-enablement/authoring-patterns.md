@@ -243,7 +243,7 @@ Every walkthrough in a master exercise should be **anchored to the workshop scen
 
 - **Customer**: Infinitech (primary) or Global Media (secondary) — sourced from `scratch_data`
 - **Partner channel** (when relevant): Robot Resellers — sourced from `qb-prm`
-- **Software bundle**: QB-COMPLETE (Software, with QuantumBitComplete CML applied)
+- **Software bundle**: QB-COMPLETE (Software, with QuantumBitBundle CML applied)
 - **Hardware bundle**: QB-QRack-750 (Hardware, with Server2 CML applied)
 - **Pricing demo products**: QB-API (bundle + attribute pricing) · QB-MSG-STRT (volume pricing)
 - **Usage demo products**: QB-DB / QB-DB-TOKEN / QB-TOKENS-PACK / QB-CMT-* commitments
