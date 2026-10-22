@@ -13,7 +13,7 @@
             <targetReference>Assign_PricingContractId</targetReference>
         </connector>
         <filterFormula>OR(
-  AND(ISNEW(), NOT(ISNULL({!$Record.ContractId})), ISNULL({!$Record.PricingContractId})),
+  AND(ISNEW(), NOT(ISBLANK({!$Record.ContractId})), ISBLANK({!$Record.PricingContractId})),
   AND(NOT(ISNEW()), ISCHANGED({!$Record.ContractId}))
 )</filterFormula>
         <object>Quote</object>

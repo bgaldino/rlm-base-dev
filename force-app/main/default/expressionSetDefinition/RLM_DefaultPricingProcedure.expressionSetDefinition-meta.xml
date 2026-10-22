@@ -4228,7 +4228,7 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>1 AND 2 AND 3 AND 4 AND 5</conditionLogic>
+                <conditionLogic>1 AND 2 AND 3 AND 4</conditionLogic>
                 <criteria>
                     <operator>IsNull</operator>
                     <sequenceNumber>1</sequenceNumber>
@@ -4250,13 +4250,6 @@
                     <operator>Equals</operator>
                     <sequenceNumber>4</sequenceNumber>
                     <sourceFieldName>DerivedPricingAttribute</sourceFieldName>
-                    <value>false</value>
-                    <valueType>Literal</valueType>
-                </criteria>
-                <criteria>
-                    <operator>Equals</operator>
-                    <sequenceNumber>5</sequenceNumber>
-                    <sourceFieldName>IsContracted</sourceFieldName>
                     <value>false</value>
                     <valueType>Literal</valueType>
                 </criteria>
