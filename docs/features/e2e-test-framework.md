@@ -113,11 +113,12 @@ tasks/
 
 ## Running Tests
 
-⚠ The `robot_*` tasks' **feature flags come from `cumulusci.yml` defaults, not from the org** — a TSO org still
+⚠ The `robot_e2e*` and modular `robot_*` tasks' **feature flags come from `cumulusci.yml` defaults, not from the org** — a TSO org still
 gets `TSO:false`. Only `QB` is consumed by the suites today.
 
 ```bash
-# Every robot_* task takes --org <cci_alias>; without it, the CCI default org is used
+# The robot_e2e* and modular robot_* tasks below take --org <cci_alias>; without it,
+# the CCI default org is used (robot_testdoc, CCI's own task, takes no org)
 
 # Full Quote-to-Order flow (headless): both tests, no contract and contract-first
 cci task run robot_e2e
