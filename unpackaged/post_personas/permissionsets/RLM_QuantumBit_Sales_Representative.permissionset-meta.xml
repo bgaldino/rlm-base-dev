@@ -329,6 +329,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Quote.PricingContractId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Quote.QuoteAccountId</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -460,6 +465,11 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>Quote.ValidationResult</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.PricingContractId</field>
         <readable>true</readable>
     </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
