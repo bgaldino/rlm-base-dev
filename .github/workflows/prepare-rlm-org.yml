@@ -77,19 +77,19 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Set up Node.js 24.16.0
+      - name: Set up Node.js 24.22.1
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
-          # Pinned to an exact 24.x minor. node-version "24" floats to "latest 24.x",
-          # which moved 24.16.0 → 24.17.0; on 24.17.0 the npm-installed sf CLI exits 13
-          # on `sf org login` ("Detected unsettled top-level await" in the CLI entrypoint).
-          # 24.16.0 is the last-known-good — Prepare RLM Org succeeded on it 2026-06-11
-          # (run 27314890121). Re-float to "24" once a newer 24.x or sf CLI release restores
-          # compatibility. Both conditions are now met (forcedotcom/cli#3586: fixed in Node
-          # 24.18.0, and sf 2.142.1 moved jsforce to native fetch), but moving this pin needs
-          # a live Prepare RLM Org run to verify. Whatever it moves to stays on the major line pinned in .nvmrc
-          # (tests/test_node_line.py checks they agree).
-          node-version: "24.16.0"
+          # Pinned to an exact 24.x patch, not "24", so a Node patch regression cannot
+          # reach CI unannounced. That happened once: 24.17.0 made the npm-installed sf
+          # CLI exit 13 on `sf org login` (forcedotcom/cli#3586), so CI held 24.16.0 from
+          # 2026-06 to 2026-10-22. The bug was fixed in Node 24.18.0 and in sf 2.142.1
+          # (jsforce moved to native fetch). Moved to 24.22.1 (security release,
+          # 2026-10-20) after Prepare RLM Org passed end to end on it 2026-10-22 (run
+          # 39790256575). Move it again by the same test: change the version and apply
+          # (or re-apply) the `ci:prepare-org` label. Whatever it moves to stays on the
+          # major line pinned in .nvmrc (tests/test_node_line.py checks they agree).
+          node-version: "24.22.1"
 
       - name: Cache npm download cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
