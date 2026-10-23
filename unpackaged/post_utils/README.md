@@ -39,7 +39,7 @@ The reset runs in two phases:
 1. **Pre-savepoint (convergent):** Usage resource policies, binding object rate card entries, and the usage summary graph are always processed; asset rate card entries are processed only when **Delete Assets** is enabled. These operations are idempotent, so partial progress survives a later failure.
 2. **Transactional (savepoint-wrapped):** Entitlements, journals, billing, fulfillment, contracts, orders, assets, quotes, and opportunities. If a step fails, the whole phase rolls back and the result says so; only the usage records from phase 1 stay deleted. A record that refuses a best-effort delete is reported as kept, with the platform's reason, instead of failing the run.
 
-Neither phase may reach a governor limit: that would roll back both. Each delete is clamped to the DML rows left, and the usage teardown stops while the queries phase 2 needs are still available. A run that runs short stops with a result asking for another run, and the next run resumes from the smaller graph.
+A governor limit would roll back both phases, so the reset stops short of one. Each delete is clamped to the DML rows left, and the usage teardown stops while the queries phase 2 needs are still available. A run that stops short returns a result asking for another run, and the next run resumes from the smaller graph.
 
 ### Permission set
 
