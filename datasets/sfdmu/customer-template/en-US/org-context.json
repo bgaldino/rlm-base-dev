@@ -1,0 +1,505 @@
+{
+  "cciOrgName": "rc-apr8-customer-template",
+  "sfTargetOrg": "trailsignup.b06ac1f8b1c4bc@salesforce.com",
+  "capturedAt": "2026-09-21T19:31:38Z",
+  "reachable": true,
+  "productSellingModels": [
+    {
+      "Name": "Evergreen Monthly",
+      "SellingModelType": "Evergreen"
+    },
+    {
+      "Name": "Term Annual",
+      "SellingModelType": "TermDefined"
+    },
+    {
+      "Name": "Term Monthly",
+      "SellingModelType": "TermDefined"
+    },
+    {
+      "Name": "One-Time",
+      "SellingModelType": "OneTime"
+    },
+    {
+      "Name": "Evergreen Annual",
+      "SellingModelType": "Evergreen"
+    },
+    {
+      "Name": "Evergreen - Quarterly",
+      "SellingModelType": "Evergreen"
+    },
+    {
+      "Name": "Evergreen - Semi-Annual",
+      "SellingModelType": "Evergreen"
+    },
+    {
+      "Name": "Term Based - Quarterly",
+      "SellingModelType": "TermDefined"
+    },
+    {
+      "Name": "Term Based - Semi-Annual",
+      "SellingModelType": "TermDefined"
+    }
+  ],
+  "unitsOfMeasure": [
+    {
+      "UnitCode": "B",
+      "Name": "Byte",
+      "ClassCode": "DATAVOL"
+    },
+    {
+      "UnitCode": "EACH",
+      "Name": "Each",
+      "ClassCode": ""
+    },
+    {
+      "UnitCode": "GB",
+      "Name": "Gigabyte",
+      "ClassCode": "DATAVOL"
+    },
+    {
+      "UnitCode": "h",
+      "Name": "Hour",
+      "ClassCode": "TIME"
+    },
+    {
+      "UnitCode": "KB",
+      "Name": "Kilobyte",
+      "ClassCode": "DATAVOL"
+    },
+    {
+      "UnitCode": "m",
+      "Name": "Minutes",
+      "ClassCode": "TIME"
+    },
+    {
+      "UnitCode": "MB",
+      "Name": "Megabyte",
+      "ClassCode": "DATAVOL"
+    },
+    {
+      "UnitCode": "PB",
+      "Name": "Petabyte",
+      "ClassCode": "DATAVOL"
+    },
+    {
+      "UnitCode": "s",
+      "Name": "Seconds",
+      "ClassCode": "TIME"
+    },
+    {
+      "UnitCode": "TB",
+      "Name": "Terabyte",
+      "ClassCode": "DATAVOL"
+    },
+    {
+      "UnitCode": "TOKEN-UOM",
+      "Name": "Tokens",
+      "ClassCode": "Token_UoM_Class"
+    },
+    {
+      "UnitCode": "USD",
+      "Name": "USD",
+      "ClassCode": "CURRENCY"
+    },
+    {
+      "UnitCode": "CRD",
+      "Name": "Snowflake Credit",
+      "ClassCode": "SNFCRED"
+    },
+    {
+      "UnitCode": "EVENT",
+      "Name": "Event",
+      "ClassCode": "DEVICE_EVENTS"
+    },
+    {
+      "UnitCode": "ROUND",
+      "Name": "Round",
+      "ClassCode": "OC-GOLF"
+    },
+    {
+      "UnitCode": "FLEXCRD",
+      "Name": "Flex Credit",
+      "ClassCode": "SFDCCRED"
+    },
+    {
+      "UnitCode": "AFCONV",
+      "Name": "Agentforce Conversation",
+      "ClassCode": "SFDCCONV"
+    }
+  ],
+  "unitOfMeasureClasses": [
+    {
+      "Code": "DATAVOL",
+      "Name": "Data Volume"
+    },
+    {
+      "Code": "CAS01",
+      "Name": "Case"
+    },
+    {
+      "Code": "TIME",
+      "Name": "Time"
+    },
+    {
+      "Code": "Token_UoM_Class",
+      "Name": "Tokens UoM Class"
+    },
+    {
+      "Code": "CURRENCY",
+      "Name": "Currency"
+    },
+    {
+      "Code": "SNFCRED",
+      "Name": "Snowflake Credits"
+    },
+    {
+      "Code": "DEVICE_EVENTS",
+      "Name": "Device Events"
+    },
+    {
+      "Code": "OC-GOLF",
+      "Name": "Golf Round"
+    }
+  ],
+  "prorationPolicies": [
+    {
+      "Name": "Default Proration Policy"
+    }
+  ],
+  "usageGrantRenewalPolicies": [
+    {
+      "Code": "QB-DB-REFRESH"
+    },
+    {
+      "Code": "SF-DEMO-USG-RENEW"
+    }
+  ],
+  "usageGrantRolloverPolicies": [
+    {
+      "Code": "QB-DB-ROLLOVER"
+    },
+    {
+      "Code": "SF-DEMO-USG-ROLL"
+    }
+  ],
+  "usageOveragePolicies": [
+    {
+      "Name": "Default Usage Overage Policy"
+    },
+    {
+      "Name": "Overage Chargeable - No"
+    }
+  ],
+  "usageResourceBillingPolicies": [
+    {
+      "Code": "monthlytotal",
+      "Name": "Monthly Total"
+    },
+    {
+      "Code": "monthlypeak",
+      "Name": "Monthly Peak"
+    },
+    {
+      "Code": "URBP-DATAXFR",
+      "Name": "Data Transfer Billing Policy"
+    },
+    {
+      "Code": "CD-DEMO-URBILL",
+      "Name": "Snowflake Demo Monthly Total (usage)"
+    },
+    {
+      "Code": "SF-DEMO-STORAGE-PEAK",
+      "Name": "Snowflake Demo Storage Monthly Peak"
+    }
+  ],
+  "fulfillmentStepDefinitionGroups": [
+    {
+      "Id": "13oak000000CAEvAAO",
+      "Name": "Usage Provisioning & Activation"
+    },
+    {
+      "Id": "13oak000000CAEwAAO",
+      "Name": "Finance"
+    },
+    {
+      "Id": "13oak000000CAExAAO",
+      "Name": "Platform"
+    },
+    {
+      "Id": "13oak000000CAEyAAO",
+      "Name": "Provisioning & Activation"
+    },
+    {
+      "Id": "13oak000000CAEzAAO",
+      "Name": "Services"
+    }
+  ],
+  "droRoutingProducts": [
+    {
+      "StockKeepingUnit": "QB-DRO-BILL"
+    },
+    {
+      "StockKeepingUnit": "QB-DRO-PROJ"
+    }
+  ],
+  "existingCatalogs": [
+    {
+      "Name": "QuantumBit Software",
+      "Code": "CAT-QB-SFT"
+    },
+    {
+      "Name": "QuantumBit Hardware",
+      "Code": "CAT-QB-HW"
+    },
+    {
+      "Name": "QuantumBit Services",
+      "Code": "CAT-QB-SRV"
+    },
+    {
+      "Name": "LeafFilter Demo Catalog",
+      "Code": "CD-DEMO-CAT"
+    },
+    {
+      "Name": "Rentokil Service Catalog",
+      "Code": "CAT-RK-SVC"
+    },
+    {
+      "Name": "OpenAI",
+      "Code": "OAI-CATALOG"
+    }
+  ],
+  "_end": true,
+  "existingNames": {
+    "paymentTerms": [
+      "Default Payment Term",
+      "Due on Receipt",
+      "Net 30",
+      "Net 45",
+      "OpenAI Net 30",
+      "SFDC Net 30"
+    ],
+    "billingPolicies": [
+      "Billing Policy - Advance",
+      "Billing Policy - Arrears",
+      "LeafFilter Demo Billing Policy",
+      "Milestone Billing Policy - Software",
+      "OpenAI Standard Billing",
+      "Rentokil Standard Billing",
+      "SFDC Annual Advance",
+      "SFDC Monthly Arrears"
+    ],
+    "billingTreatments": [
+      "Billing Treatment - Advance - Canada",
+      "Billing Treatment - Canada - Arrears",
+      "Billing Treatment - EU - Advance",
+      "Billing Treatment - EU - Arrears",
+      "Billing Treatment - UK - Advance",
+      "Billing Treatment - UK - Arrears",
+      "Billing Treatment - USA - Advance",
+      "Billing Treatment - USA - Arrears",
+      "LeafFilter Demo Billing Treatment - US",
+      "Milestone Billing Treatment",
+      "OpenAI Billing Treatment",
+      "Rentokil Billing Treatment - US",
+      "Salesforce Annual Subscription",
+      "Salesforce Monthly Usage"
+    ],
+    "legalEntities": [
+      "APTIM Demo Legal Entity - US",
+      "Default Legal Entity - Canada",
+      "Default Legal Entity - EU",
+      "Default Legal Entity - UK",
+      "Default Legal Entity - US",
+      "LeafFilter Demo Legal Entity - US",
+      "Olympic Demo Legal Entity - US",
+      "OpenAI Legal Entity",
+      "Salesforce, Inc.",
+      "Snowflake Demo Legal Entity - US"
+    ],
+    "productClassifications": [
+      "HDD PC",
+      "OAI-PC-API",
+      "PC-QB-API",
+      "PC-QB-CABLES",
+      "PC-QB-COMPLETE",
+      "PC-QB-CPU",
+      "PC-QB-DB",
+      "PC-QB-MEMORY",
+      "PC-QB-NIC",
+      "PC-QB-PS-RESOURCES",
+      "PC-QB-PSBUNDLE",
+      "PC-QB-SERVER",
+      "PC-QB-SERVICES",
+      "PC-QB-SOFTWARE",
+      "PC-QB-STARTER",
+      "PC-QB-STORAGE",
+      "PC-QB-SUB",
+      "PC-RK-PESTCONTROL",
+      "PCIe PC",
+      "Q-Rack PC",
+      "SFDC-PC-CRM-APP"
+    ],
+    "attributeDefinitions": [
+      "AvailablePCIeSlots",
+      "Base_Core_Count",
+      "Connector_Type",
+      "DIMMType",
+      "Data_Throughput_TB",
+      "Data_Utilization",
+      "Engineering_Options",
+      "Flows",
+      "FrontStorage",
+      "GB_Storage",
+      "HDDCount",
+      "HDD_Storage",
+      "Length",
+      "Memory_Capacity",
+      "Memory_Config",
+      "Messages_Million",
+      "NIC_Type",
+      "Notes_and_Assumptions",
+      "OAI_Model_Tier",
+      "Operating_System",
+      "PCIeLane",
+      "PCIeSlotsUsed",
+      "PerformanceTier",
+      "PowerDraw",
+      "Processor_Frequency",
+      "Property_Size",
+      "RAID",
+      "RearStorage",
+      "Redundancy",
+      "Resource_Location",
+      "SFDC_Service_Plan",
+      "Server_Configuration",
+      "SocketConfiguration",
+      "StorageProfile",
+      "SubscriptionType",
+      "Type",
+      "Visit_Frequency",
+      "Workload",
+      "bigDrive",
+      "smallDrive",
+      "watts",
+      "x16Lanes",
+      "x8Lanes"
+    ],
+    "attributePicklistValueCodes": [
+      "0",
+      "1.7GHz",
+      "12ft",
+      "12x3.5 inch Drives",
+      "16GB",
+      "16TB",
+      "16x2.5 inch Drives",
+      "1TB",
+      "2",
+      "2.0GHz",
+      "2.1GHz",
+      "20TB",
+      "24x2.5 inch Drives",
+      "2TB",
+      "2x2.5 inch Drives",
+      "3.2GHz",
+      "30TB",
+      "3200MT/s LRDIMMs",
+      "3200MT/s RDIMMs",
+      "32GB",
+      "3TB",
+      "3ft",
+      "4",
+      "4TB",
+      "4x2.5 inch Drives",
+      "5ft",
+      "6",
+      "8",
+      "8GB",
+      "8TB",
+      "8TB_Self_Encrypting",
+      "8ft",
+      "AI",
+      "AL2",
+      "APV-10",
+      "APV-20",
+      "APV-30",
+      "APV-40",
+      "APV-5",
+      "APV-50",
+      "Accelerated",
+      "Balanced",
+      "Basic",
+      "Basic Uptime",
+      "Bi-Weekly",
+      "C13toC14",
+      "C19toC20",
+      "Capacity",
+      "Custom",
+      "Direct_Attach",
+      "Dual",
+      "Enterprise",
+      "Entry",
+      "Evergreen",
+      "Extended_Care",
+      "Flex",
+      "General",
+      "Gov",
+      "High Availability",
+      "High Performance Computing",
+      "L5-20",
+      "Large",
+      "Medium",
+      "Memory_Mirroring",
+      "Monthly",
+      "N/A",
+      "N/A Performance Tier",
+      "N/A RAID",
+      "N/A Storage Profile",
+      "OAI-MT-EFF",
+      "OAI-MT-FRN",
+      "OAI-MT-PRO",
+      "Offshore",
+      "Onsite",
+      "Performance",
+      "Performance Storage",
+      "Performance Tier",
+      "Performance_Optimized",
+      "Performance_Optimized_with_Sparing",
+      "Pre-Prod",
+      "Premium",
+      "Prod",
+      "RAID 0",
+      "RAID 1",
+      "RAID 5",
+      "REL",
+      "Remote",
+      "SFDC-SP-PREM",
+      "SFDC-SP-SIG",
+      "SFDC-SP-STD",
+      "SFP",
+      "Security",
+      "Single",
+      "Small",
+      "Standard",
+      "TermBased",
+      "Unconfigured RAID",
+      "Value",
+      "Weekly",
+      "XLarge",
+      "x16",
+      "x8"
+    ]
+  },
+  "occupiedSkuPrefixes": [
+    "LF-",
+    "OAI-",
+    "OC-",
+    "QB-",
+    "RES-",
+    "RK-",
+    "SF-",
+    "SFDC-",
+    "TEST-"
+  ],
+  "foreignDemoSkuCount": 214
+}
