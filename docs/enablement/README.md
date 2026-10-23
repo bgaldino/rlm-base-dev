@@ -241,7 +241,7 @@ The per-release 260 drafts remain valid but will eventually be regenerated as fi
 
 ### 5. QB scenario grounding
 
-The `master/qb-scenario-reference.md` document was authored after a comprehensive study of `rlm-base-dev`'s data plans. Particularly important for review: the **pricing-feature wiring** (Bundle / Attribute / Volume adjustments are wired to specific QB-COMPLETE products) and the **constraint engine semantics** (QuantumBitComplete + Server2 CML models, with Type/Port tags driving compatibility logic).
+The `master/qb-scenario-reference.md` document was authored after a comprehensive study of `rlm-base-dev`'s data plans. Particularly important for review: the **pricing-feature wiring** (Bundle / Attribute / Volume adjustments are wired to specific QB-COMPLETE products) and the **constraint engine semantics** (QuantumBitBundle + Server2 CML models, with Type/Port tags driving compatibility logic).
 
 ---
 

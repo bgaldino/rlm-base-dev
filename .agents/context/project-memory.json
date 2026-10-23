@@ -77,11 +77,6 @@
       "notes": "query_erd, generate_cci_reference, and skill manifest helpers."
     },
     {
-      "path": "scripts/cml/",
-      "owner": "CML tooling",
-      "notes": "CML export/import/validation utilities."
-    },
-    {
       "path": "scripts/erd/",
       "owner": "Schema/ERD tooling",
       "notes": "Schema validation, diffing, cleanup, HTML generation, and schema_diff tools."

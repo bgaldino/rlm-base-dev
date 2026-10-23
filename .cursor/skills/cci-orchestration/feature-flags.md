@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**44 feature flags**, **86 configuration values**, **43 YAML anchors** under `project.custom`.
+**44 feature flags**, **85 configuration values**, **43 YAML anchors** under `project.custom`.
 
 ---
 
@@ -27,7 +27,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `collections` | `True` | 4 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
 | `constraints` | `True` | 4 flow step(s) |
-| `constraints_data` | `True` | 8 flow step(s) |
+| `constraints_data` | `True` | 6 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
@@ -45,7 +45,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
 | `q3` | `False` | 13 flow step(s) |
-| `qb` | `True` | 40 flow step(s) |
+| `qb` | `True` | 38 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 26 flow step(s) |
 | `quote_est_tax` | `False` | — |
@@ -182,10 +182,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 6 → `validate_cml`
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
-- `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `import_cml`
-- `prepare_constraints` step 11 → `manage_expression_sets`
-- `prepare_constraints` step 12 → `manage_expression_sets`
+- `prepare_constraints` step 9 → `manage_expression_sets`
+- `prepare_constraints` step 10 → `manage_expression_sets`
 
 ### `docgen` (default: `True`)
 
@@ -384,10 +382,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 6 → `validate_cml`
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
-- `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `import_cml`
-- `prepare_constraints` step 11 → `manage_expression_sets`
-- `prepare_constraints` step 12 → `manage_expression_sets`
+- `prepare_constraints` step 9 → `manage_expression_sets`
+- `prepare_constraints` step 10 → `manage_expression_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
 - `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
@@ -541,6 +537,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `collection_plan_segment_context_base_reference` | `CollectionPlanSegmentContext__stdctx` |
 | `collection_plan_segment_context_default_mapping` | `CollectionPlanContextMapping` |
 | `collection_plan_segment_context_name` | `RLM_CollectionPlanSegmentCtx` |
+| `configurator_flow_dataset` | `datasets/sfdmu/configurator-flow` |
 | `context_definition_label` | `RLM_SalesTransactionContext` |
 | `contracts_context_base_reference` | `ContractsContextDefinition__stdctx` |
 | `contracts_context_default_mapping` | `OppToCntrPersistenceMapping` |
@@ -587,11 +584,9 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_bundle_constraints_data_dir` | `datasets/constraints/qb/QuantumBitBundle` |
 | `quantumbit_clm_dataset` | `datasets/sfdmu/qb/en-US/qb-clm` |
 | `quantumbit_constraints_component_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-component` |
-| `quantumbit_constraints_data_dir` | `datasets/constraints/qb/QuantumBitComplete` |
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
 | `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |
-| `quantumbit_pcm_constraints_data_dir` | `datasets/constraints/qb/QuantumBitPCM` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |
 | `quantumbit_prm_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-prm-pricing` |

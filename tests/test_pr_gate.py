@@ -290,9 +290,13 @@ check("a data plan README selects the build-step check",
           ["datasets/sfdmu/qb/en-US/qb-billing/README.md"]))
 check("a non-markdown file does not select it via the suffix",
       "doc_build_steps" not in selected_names(["robot/x.robot"]))
-check("only the whole-repo check carries a suffix selector",
-      [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")] == ["doc_build_steps"],
+check("only the whole-repo checks carry a suffix selector",
+      [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")]
+      == ["permission_set_dependencies", "doc_build_steps"],
       [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")])
+check("a permission set selects the Account/Contact dependency check via the suffix",
+      "permission_set_dependencies" in selected_names(
+          ["unpackaged/post_billing_ui/permissionsets/RLM_BillingUI.permissionset-meta.xml"]))
 check("a harness change selects the harness suites",
       "harness_suites" in selected_names(["scripts/txn_data_harness/cli.py"]))
 check("an empty change set selects nothing", selected_names([]) == set())
@@ -5340,7 +5344,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 732
+EXPECTED = 736
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
