@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Rentokil residential pest demo: service zones, property inspections and findings, field quote Apex, and Line of Business on Quote.</description>
+    <description>Rentokil residential pest demo: service zones, property inspections, findings and treatment checklist, field quote Apex, and Line of Business on Quote.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Rentokil Pest</label>
     <classAccesses>
@@ -107,6 +107,31 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>RLM_RTK_Inspection__c.Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>ContentVersion.RLM_RTK_Photo_Stage__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>RLM_RTK_Finding__c.Treated_On__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>RLM_RTK_Finding__c.Treatment_Note__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>RLM_RTK_Finding__c.Treatment_Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>WorkOrder.RLM_RTK_Inspection__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

@@ -1294,7 +1294,7 @@
 
 ### `deploy_post_pest`
 
-**Description:** Deploy Rentokil pest control metadata (service zones, line-of-business field, Monthly/One-Time Quote total roll-ups, inspection and finding objects, inspection-led Inspect and Quote flow, Inspection and FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest and RLM_RTK_InspectionTest.
+**Description:** Deploy Rentokil pest control metadata (service zones, line-of-business field, Monthly/One-Time Quote total roll-ups, inspection and finding objects, inspection-led Inspect and Quote flow, work order treatment checklist, Inspection and FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest and RLM_RTK_InspectionTest.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

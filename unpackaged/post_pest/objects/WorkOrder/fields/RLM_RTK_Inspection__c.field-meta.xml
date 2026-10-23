@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_RTK_Inspection__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>Rentokil inspection whose findings this work order treats.</description>
+    <label>RTK Inspection</label>
+    <referenceTo>RLM_RTK_Inspection__c</referenceTo>
+    <relationshipLabel>Work Orders</relationshipLabel>
+    <relationshipName>Work_Orders</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

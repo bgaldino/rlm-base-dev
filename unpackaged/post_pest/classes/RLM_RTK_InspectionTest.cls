@@ -147,6 +147,63 @@ private class RLM_RTK_InspectionTest {
     }
 
     @IsTest
+    static void workOrderTreatmentAndAfterPhotos() {
+        Id inspectionId = newInspection();
+        RLM_RTK_Inspection.InspectionState walk = RLM_RTK_Inspection.saveFinding(
+            inspectionId,
+            input('Garage', 'Rodents', 'Droppings', 'Moderate')
+        );
+        Id findingId = walk.findings[0].id;
+        insert new ContentVersion(
+            Title = 'before', PathOnClient = 'before.jpg', VersionData = Blob.valueOf('b'),
+            FirstPublishLocationId = findingId
+        );
+        Id accountId = [SELECT Account__c FROM RLM_RTK_Inspection__c WHERE Id = :inspectionId].Account__c;
+        WorkOrder wo = new WorkOrder(Subject = 'Initial Pest Treatment', AccountId = accountId, RLM_RTK_Inspection__c = inspectionId);
+        insert wo;
+
+        Assert.isNull(RLM_RTK_Inspection.getWorkOrderFindings(null));
+        Test.startTest();
+        RLM_RTK_Inspection.InspectionState state = RLM_RTK_Inspection.getWorkOrderFindings(wo.Id);
+        Assert.areEqual(1, state.findings.size());
+        Assert.areEqual('Open', state.findings[0].treatmentStatus);
+        Assert.areEqual(0, state.treatedCount);
+
+        state = RLM_RTK_Inspection.saveTreatment(wo.Id, findingId, 'Treated', 'Set 4 stations');
+        Assert.areEqual(1, state.treatedCount);
+        Assert.areEqual('Set 4 stations', state.findings[0].treatmentNote);
+        Assert.isNotNull(state.findings[0].treatedOn);
+
+        ContentVersion after = new ContentVersion(
+            Title = 'after', PathOnClient = 'after.jpg', VersionData = Blob.valueOf('a'),
+            FirstPublishLocationId = findingId
+        );
+        insert after;
+        Id afterDoc = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :after.Id].ContentDocumentId;
+        state = RLM_RTK_Inspection.tagAfterPhotos(wo.Id, findingId, new List<Id>{ afterDoc });
+        Test.stopTest();
+
+        Assert.areEqual(1, state.findings[0].photos.size());
+        Assert.areEqual(1, state.findings[0].afterPhotos.size());
+        Assert.areEqual('After', state.findings[0].afterPhotos[0].stage);
+    }
+
+    @IsTest
+    static void treatmentRejectsFindingFromAnotherInspection() {
+        Id inspectionId = newInspection();
+        Id otherFinding = RLM_RTK_Inspection.saveFinding(newInspection(), input('Yard', 'Ants', null, 'Light'))
+            .findings[0].id;
+        WorkOrder wo = new WorkOrder(Subject = 'Initial Pest Treatment', RLM_RTK_Inspection__c = inspectionId);
+        insert wo;
+        try {
+            RLM_RTK_Inspection.saveTreatment(wo.Id, otherFinding, 'Treated', null);
+            Assert.fail('Expected the finding to be rejected');
+        } catch (AuraHandledException e) {
+            Assert.isTrue(e.getMessage().contains('not part of this work order'), e.getMessage());
+        }
+    }
+
+    @IsTest
     static void saveErrorsSurfaceAsAuraException() {
         try {
             RLM_RTK_Inspection.saveFinding(newInspection(), input('Kitchen', 'Not A Pest', null, 'Light'));

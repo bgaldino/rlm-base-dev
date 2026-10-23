@@ -1,0 +1,114 @@
+<template>
+    <template lwc:if={hasInspection}>
+        <section class="card">
+            <header class="head">
+                <div>
+                    <p class="eyebrow">From inspection {state.inspectionName}</p>
+                    <h2>Treatment checklist</h2>
+                </div>
+                <div class="count">
+                    <strong>{treated} / {total}</strong>
+                    <span>treated</span>
+                </div>
+            </header>
+            <div class="progress-track"><div class="progress-fill" style={progressStyle}></div></div>
+            <template lwc:if={allDone}>
+                <p class="done-note">Every finding is treated. Add after photos if you haven't, then complete the work order.</p>
+            </template>
+            <template lwc:if={error}>
+                <p class="error" role="alert">{error}</p>
+            </template>
+
+            <template for:each={findings} for:item="f">
+                <article key={f.id} class={f.cardClass}>
+                    <div class="finding-head">
+                        <div>
+                            <span class="area">{f.zone}</span>
+                            <strong>{f.observation}</strong>
+                        </div>
+                        <span class={f.sevClass}>{f.severity}</span>
+                    </div>
+
+                    <template lwc:if={f.customerNote}>
+                        <p class="note">{f.customerNote}</p>
+                    </template>
+                    <template lwc:if={f.internalNote}>
+                        <p class="note internal"><span>Specialist</span>{f.internalNote}</p>
+                    </template>
+                    <template lwc:if={f.recommendedProductName}>
+                        <p class="plan">Covered by {f.recommendedProductName}</p>
+                    </template>
+
+                    <div class="photo-row">
+                        <div class="photo-group">
+                            <span class="photo-label">Before</span>
+                            <div class="photos">
+                                <template for:each={f.beforePhotos} for:item="p">
+                                    <button key={p.versionId} type="button" class="thumb" data-doc={p.documentId} onclick={previewPhoto} title={p.title}>
+                                        <img src={p.url} alt={p.title} />
+                                    </button>
+                                </template>
+                                <template lwc:if={f.noBefore}>
+                                    <span class="none">No photos</span>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="photo-group">
+                            <span class="photo-label after">After</span>
+                            <div class="photos">
+                                <template for:each={f.afterThumbs} for:item="p">
+                                    <button key={p.versionId} type="button" class="thumb" data-doc={p.documentId} onclick={previewPhoto} title={p.title}>
+                                        <img src={p.url} alt={p.title} />
+                                    </button>
+                                </template>
+                                <lightning-file-upload
+                                    label="Add after photos"
+                                    name="afterPhotos"
+                                    accept={photoFormats}
+                                    record-id={f.id}
+                                    data-id={f.id}
+                                    multiple
+                                    onuploadfinished={handleAfterUpload}
+                                ></lightning-file-upload>
+                            </div>
+                        </div>
+                    </div>
+
+                    <lightning-textarea
+                        label="What you did"
+                        placeholder="e.g. Sealed gap at gas line with copper mesh; set 4 tamper-resistant stations"
+                        data-id={f.id}
+                        value={f.noteValue}
+                        onchange={handleNote}
+                    ></lightning-textarea>
+
+                    <div class="actions">
+                        <template for:each={f.statuses} for:item="s">
+                            <button
+                                key={s.value}
+                                type="button"
+                                class={s.cls}
+                                data-id={f.id}
+                                data-value={s.value}
+                                aria-pressed={s.ariaPressed}
+                                disabled={f.busy}
+                                onclick={setStatus}
+                            >
+                                {s.label}
+                            </button>
+                        </template>
+                        <button type="button" class="link" data-id={f.id} disabled={f.busy} onclick={saveNote}>
+                            Save note
+                        </button>
+                    </div>
+                </article>
+            </template>
+        </section>
+    </template>
+    <template lwc:elseif={showEmpty}>
+        <p class="empty">No inspection findings on file for this work order.</p>
+    </template>
+    <template lwc:elseif={error}>
+        <p class="error" role="alert">{error}</p>
+    </template>
+</template>

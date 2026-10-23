@@ -1,0 +1,21 @@
+feature: pest
+feature_flag: pest
+# Treatment checklist (inspection findings, before/after photos) at the top of the Work Order page.
+patches:
+  - type: insert_action
+    after: "WorkOrder.RLM_Flag_Expansion"
+    actions:
+      - "WorkOrder.RLM_RTK_Treatment_Checklist"
+  - type: insert_after_xml
+    anchor: |-
+      <name>maintabs</name>
+              <type>Facet</type>
+          </flexiPageRegions>
+          <flexiPageRegions>
+    xml: |2
+              <itemInstances>
+                  <componentInstance>
+                      <componentName>rlmRtkTreatmentChecklist</componentName>
+                      <identifier>c_rlmRtkTreatmentChecklist</identifier>
+                  </componentInstance>
+              </itemInstances>

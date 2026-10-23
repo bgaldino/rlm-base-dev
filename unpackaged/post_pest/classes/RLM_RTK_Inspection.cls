@@ -24,6 +24,7 @@ public with sharing class RLM_RTK_Inspection {
         @AuraEnabled public Id versionId;
         @AuraEnabled public Id documentId;
         @AuraEnabled public String title;
+        @AuraEnabled public String stage;
     }
 
     public class FindingView {
@@ -38,6 +39,10 @@ public with sharing class RLM_RTK_Inspection {
         @AuraEnabled public String recommendedProduct;
         @AuraEnabled public String recommendedProductName;
         @AuraEnabled public List<PhotoView> photos = new List<PhotoView>();
+        @AuraEnabled public List<PhotoView> afterPhotos = new List<PhotoView>();
+        @AuraEnabled public String treatmentStatus;
+        @AuraEnabled public String treatmentNote;
+        @AuraEnabled public Datetime treatedOn;
     }
 
     public class Reason {
@@ -58,6 +63,8 @@ public with sharing class RLM_RTK_Inspection {
     public class InspectionState {
         @AuraEnabled public Id inspectionId;
         @AuraEnabled public String inspectionName;
+        @AuraEnabled public Id workOrderId;
+        @AuraEnabled public Integer treatedCount = 0;
         @AuraEnabled public List<FindingView> findings = new List<FindingView>();
         @AuraEnabled public Recommendation recommendation;
     }
@@ -98,11 +105,111 @@ public with sharing class RLM_RTK_Inspection {
         }
         for (FindingView v : state.findings) {
             v.internalNote = null;
+            v.afterPhotos = new List<PhotoView>();
             if (!quotedSkus.contains(v.recommendedProduct)) {
                 v.recommendedProductName = null;
             }
         }
         return state;
+    }
+
+    /** Technician view of the inspection a work order treats, including internal notes and after photos. */
+    @AuraEnabled
+    public static InspectionState getWorkOrderFindings(Id workOrderId) {
+        Id inspectionId = inspectionFor(workOrderId);
+        if (inspectionId == null) {
+            return null;
+        }
+        List<RLM_RTK_Finding__c> findings = queryFindings(inspectionId);
+        InspectionState state = buildState(inspectionId, findings, recommend(findings));
+        state.workOrderId = workOrderId;
+        state.inspectionName = [SELECT Name FROM RLM_RTK_Inspection__c WHERE Id = :inspectionId].Name;
+        for (FindingView v : state.findings) {
+            if (v.treatmentStatus == 'Treated') {
+                state.treatedCount++;
+            }
+        }
+        return state;
+    }
+
+    @AuraEnabled
+    public static InspectionState saveTreatment(Id workOrderId, Id findingId, String status, String note) {
+        try {
+            requireFindingOnWorkOrder(workOrderId, findingId);
+            update new RLM_RTK_Finding__c(
+                Id = findingId,
+                Treatment_Status__c = String.isBlank(status) ? 'Open' : status,
+                Treatment_Note__c = note,
+                Treated_On__c = Datetime.now()
+            );
+            return getWorkOrderFindings(workOrderId);
+        } catch (Exception e) {
+            throw auraError(e);
+        }
+    }
+
+    /** Marks files just uploaded to a finding from the work order as After photos. */
+    @AuraEnabled
+    public static InspectionState tagAfterPhotos(Id workOrderId, Id findingId, List<Id> documentIds) {
+        try {
+            requireFindingOnWorkOrder(workOrderId, findingId);
+            Set<Id> onFinding = new Set<Id>();
+            for (ContentDocumentLink link : [
+                SELECT ContentDocumentId FROM ContentDocumentLink
+                WHERE LinkedEntityId = :findingId AND ContentDocumentId IN :documentIds
+            ]) {
+                onFinding.add(link.ContentDocumentId);
+            }
+            List<ContentVersion> versions = [
+                SELECT Id FROM ContentVersion WHERE ContentDocumentId IN :onFinding AND IsLatest = true
+            ];
+            for (ContentVersion v : versions) {
+                v.RLM_RTK_Photo_Stage__c = 'After';
+            }
+            update versions;
+            return getWorkOrderFindings(workOrderId);
+        } catch (Exception e) {
+            throw auraError(e);
+        }
+    }
+
+    private static Id inspectionFor(Id workOrderId) {
+        if (workOrderId == null) {
+            return null;
+        }
+        List<WorkOrder> orders = [
+            SELECT RLM_RTK_Inspection__c, RLM_Order__r.QuoteId FROM WorkOrder WHERE Id = :workOrderId
+        ];
+        if (orders.isEmpty()) {
+            return null;
+        }
+        if (orders[0].RLM_RTK_Inspection__c != null) {
+            return orders[0].RLM_RTK_Inspection__c;
+        }
+        Id quoteId = orders[0].RLM_Order__r?.QuoteId;
+        if (quoteId == null) {
+            return null;
+        }
+        List<RLM_RTK_Inspection__c> inspections = [
+            SELECT Id FROM RLM_RTK_Inspection__c WHERE Quote__c = :quoteId ORDER BY CreatedDate DESC LIMIT 1
+        ];
+        return inspections.isEmpty() ? null : inspections[0].Id;
+    }
+
+    private static void requireFindingOnWorkOrder(Id workOrderId, Id findingId) {
+        Id inspectionId = inspectionFor(workOrderId);
+        if (inspectionId == null
+            || [SELECT COUNT() FROM RLM_RTK_Finding__c WHERE Id = :findingId AND Inspection__c = :inspectionId] == 0) {
+            throw new InspectionException('That finding is not part of this work order\'s inspection.');
+        }
+    }
+
+    private class InspectionException extends Exception {}
+
+    private static AuraHandledException auraError(Exception e) {
+        AuraHandledException error = new AuraHandledException(e.getMessage());
+        error.setMessage(e.getMessage());
+        return error;
     }
 
     @AuraEnabled
@@ -125,7 +232,7 @@ public with sharing class RLM_RTK_Inspection {
             }
             return refresh(inspectionId);
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            throw auraError(e);
         }
     }
 
@@ -145,7 +252,7 @@ public with sharing class RLM_RTK_Inspection {
             }
             return refresh(inspectionId);
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            throw auraError(e);
         }
     }
 
@@ -177,7 +284,7 @@ public with sharing class RLM_RTK_Inspection {
     private static List<RLM_RTK_Finding__c> queryFindings(Id inspectionId) {
         return [
             SELECT Id, Name, Zone__c, Pest__c, Evidence__c, Severity__c, Customer_Note__c, Internal_Note__c,
-                Recommended_Product__c
+                Recommended_Product__c, Treatment_Status__c, Treatment_Note__c, Treated_On__c
             FROM RLM_RTK_Finding__c
             WHERE Inspection__c = :inspectionId
             ORDER BY CreatedDate ASC
@@ -201,13 +308,17 @@ public with sharing class RLM_RTK_Inspection {
             v.internalNote = f.Internal_Note__c;
             v.recommendedProduct = productFor(f, rec.planSku);
             v.recommendedProductName = PRODUCT_NAMES.get(v.recommendedProduct);
+            v.treatmentStatus = String.isBlank(f.Treatment_Status__c) ? 'Open' : f.Treatment_Status__c;
+            v.treatmentNote = f.Treatment_Note__c;
+            v.treatedOn = f.Treated_On__c;
             views.put(f.Id, v);
             state.findings.add(v);
         }
         if (!views.isEmpty()) {
             for (ContentDocumentLink link : [
                 SELECT LinkedEntityId, ContentDocumentId, ContentDocument.Title,
-                    ContentDocument.LatestPublishedVersionId
+                    ContentDocument.LatestPublishedVersionId,
+                    ContentDocument.LatestPublishedVersion.RLM_RTK_Photo_Stage__c
                 FROM ContentDocumentLink
                 WHERE LinkedEntityId IN :views.keySet()
                 ORDER BY ContentDocument.CreatedDate ASC
@@ -216,7 +327,13 @@ public with sharing class RLM_RTK_Inspection {
                 p.documentId = link.ContentDocumentId;
                 p.versionId = link.ContentDocument.LatestPublishedVersionId;
                 p.title = link.ContentDocument.Title;
-                views.get(link.LinkedEntityId).photos.add(p);
+                p.stage = link.ContentDocument.LatestPublishedVersion.RLM_RTK_Photo_Stage__c == 'After' ? 'After' : 'Before';
+                FindingView v = views.get(link.LinkedEntityId);
+                if (p.stage == 'After') {
+                    v.afterPhotos.add(p);
+                } else {
+                    v.photos.add(p);
+                }
             }
         }
         return state;
