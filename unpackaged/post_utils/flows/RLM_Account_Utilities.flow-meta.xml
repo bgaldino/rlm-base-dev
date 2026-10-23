@@ -33,6 +33,12 @@
             </value>
         </inputParameters>
         <inputParameters>
+            <name>DeleteCollectionPlans</name>
+            <value>
+                <elementReference>Delete_Collection_Plans</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
             <name>DeleteFulfillment</name>
             <value>
                 <elementReference>Delete_Fulfillment</elementReference>
@@ -180,7 +186,27 @@
             </defaultValue>
             <fieldText>Delete Billing</fieldText>
             <fieldType>InputField</fieldType>
-            <helpText>&lt;p&gt;Deletes the account&apos;s invoices with their payment schedules and generated documents, and its credit memos, canceling posted ones first. Invoices that are not Draft or Canceled need the Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices); without it they are kept. Payments are always kept.&lt;/p&gt;</helpText>
+            <helpText>&lt;p&gt;Deletes the account&apos;s debit memos, its invoices with their payment schedules and generated documents, and its credit memos, canceling posted ones first. Invoices that are not Draft or Canceled need the Delete Invoice and Invoice Lines permission (permission set RLM_DeleteInvoices); without it they are kept. Payments, and posted or void debit memos, are always kept: Salesforce does not allow deleting them.&lt;/p&gt;</helpText>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <fields>
+            <name>Delete_Collection_Plans</name>
+            <dataType>Boolean</dataType>
+            <defaultValue>
+                <booleanValue>true</booleanValue>
+            </defaultValue>
+            <fieldText>Delete Collection Plans</fieldText>
+            <fieldType>InputField</fieldType>
+            <helpText>&lt;p&gt;Deletes the account&apos;s collection plans with their plan items, promise-to-pay payment schedules and cases, and the account&apos;s disputes, including those raised against its invoices, with their dispute items and cases. The account&apos;s other cases are kept.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>

@@ -2,18 +2,19 @@
  * RLM_AccountUtilities
  *
  * Resets a demo account so it can be sold to again. Deletes the orders, assets,
- * contracts, billing records, quotes and opportunities built on the account,
- * along with the usage and fulfillment records that would otherwise block those
- * deletes. Invoked by the RLM_Account_Utilities screen flow (quick action
- * Account.RLM_Reset_Account), which shows the Result returned here.
+ * contracts, billing records, collection plans, disputes, quotes and
+ * opportunities built on the account, along with the usage and fulfillment
+ * records that would otherwise block those deletes. Invoked by the
+ * RLM_Account_Utilities screen flow (quick action Account.RLM_Reset_Account),
+ * which shows the Result returned here.
  *
  * The reset runs in two phases:
  *  1. The usage graph: binding policies, usage summaries, entitlements and their
  *     buckets, rated journals and asset rate card entries. Runs BEFORE the
  *     savepoint, so its progress survives a later failure.
- *  2. Everything else, inside a savepoint: billing, fulfillment, contracts,
- *     orders, assets, quotes and opportunities. If any of it fails, all of it
- *     rolls back and the Result says why.
+ *  2. Everything else, inside a savepoint: collections, billing, fulfillment,
+ *     contracts, orders, assets, quotes and opportunities. If any of it fails,
+ *     all of it rolls back and the Result says why.
  *
  * Neither phase may exceed a governor limit: that throws a LimitException, which
  * cannot be caught and rolls back BOTH phases. So every delete is clamped to the
@@ -65,11 +66,11 @@ public without sharing class RLM_AccountUtilities {
     private static final Integer TEARDOWN_BATCH = 2000;
 
     // The queries one teardown round issues, and the queries phase 2 needs once
-    // the usage graph is gone (about 40 with every option on). A round starts only
+    // the usage graph is gone (about 45 with every option on). A round starts only
     // while both are left; otherwise a large usage graph would spend phase 2's
     // queries and end in a LimitException.
     private static final Integer QUERIES_PER_ROUND = 9;
-    private static final Integer QUERY_RESERVE = 45;
+    private static final Integer QUERY_RESERVE = 50;
 
     private static final String RUN_AGAIN = 'Run the reset again; it continues from where this run stopped.';
     private static final String USAGE_TOO_LARGE = 'The account has more usage records than one run can remove.';
@@ -80,6 +81,7 @@ public without sharing class RLM_AccountUtilities {
     private static final String INVOICE_IN_PROGRESS = 'still processing; run the reset again once they finish';
     private static final String PAYMENTS_KEPT = 'payments are not deleted: Salesforce does not allow deleting processed payments';
     private static final String MEMO_ON_KEPT_INVOICE = 'applied to an invoice that was kept';
+    private static final String DEBIT_MEMOS_KEPT = 'posted or void; Salesforce does not allow deleting them, or canceling a posted one';
 
     /**
      * Input variables for the account cleanup process.
@@ -97,6 +99,11 @@ public without sharing class RLM_AccountUtilities {
 
         @InvocableVariable(required=true)
         public Boolean DeleteBilling;
+
+        // Optional (required=false) so callers that don't pass it keep working;
+        // a null value is treated as false.
+        @InvocableVariable(required=false)
+        public Boolean DeleteCollectionPlans;
 
         // Optional (required=false) so callers that don't pass it keep working;
         // a null value is treated as false.
@@ -300,6 +307,7 @@ public without sharing class RLM_AccountUtilities {
         Boolean deleteBilling = input.DeleteBilling == true;
         // '== true' collapses both null (flag omitted) and false to false, so the
         // default/unchecked behavior is identical to the legacy delete-all path.
+        Boolean deleteCollections = input.DeleteCollectionPlans == true;
         Boolean preserveContractsWithPrices = input.PreserveContractsWithContractedPrices == true;
 
         // ------------------------------------------------------------------
@@ -367,6 +375,11 @@ public without sharing class RLM_AccountUtilities {
                 // their summaries release them; anything still here refused to delete
                 // and will block asset deletion, so say so rather than failing later.
                 deleteTransactionJournal(accountId);
+            }
+
+            // Before billing: deleting an invoice clears a dispute's link to it.
+            if (deleteCollections) {
+                deleteCollectionRecords(accountId, orderData.invoices);
             }
 
             // Delete Billing information
@@ -630,8 +643,72 @@ public without sharing class RLM_AccountUtilities {
     }
 
     /**
-     * Delete Billing: the account's invoices with their documents and payment
-     * schedules, then its credit memos. Payments are left in place.
+     * Delete Collection Plans: the account's collection plans with their items,
+     * promise-to-pay payment schedules and cases, then its disputes, including
+     * those raised against its invoices, with their items and cases. Only the
+     * account's own cases go, and only those of a plan or dispute that was deleted.
+     *
+     * Deleting a plan does not take its cases (Case.SourceId) or promise-to-pay
+     * schedules (PaymentSchedule.ReferenceEntityId or CollectionPlanItemId) with it,
+     * it clears their link to the plan, so both are found before the plan goes. A
+     * case cannot be deleted while a dispute references it, so cases go last. Plan,
+     * dispute and payment schedule items go with their parents (live 264).
+     *
+     * Queried dynamically, so the class still deploys to an org without Collections
+     * or Billing Dispute Management.
+     */
+    private static void deleteCollectionRecords(Id accountId, List<Invoice> invoices) {
+        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
+        Set<Id> caseIds = new Set<Id>();
+        if (types.containsKey('CollectionPlan')) {
+            List<SObject> plans = Database.query('SELECT Id FROM CollectionPlan WHERE AccountId = :accountId');
+            Set<Id> planIds = new Map<Id, SObject>(plans).keySet();
+            if (!planIds.isEmpty()) {
+                // Bound, not a semi-join: SOQL does not allow a semi-join inside OR.
+                Set<Id> itemIds = new Map<Id, SObject>(Database.query(
+                    'SELECT Id FROM CollectionPlanItem WHERE CollectionPlanId IN :planIds')).keySet();
+                deleteQuietly(Database.query('SELECT Id FROM PaymentSchedule WHERE ReferenceEntityId IN :planIds '
+                    + 'OR CollectionPlanItemId IN :itemIds'));
+                Map<Id, Set<Id>> casesByPlan = new Map<Id, Set<Id>>();
+                for (SObject planCase : Database.query(
+                    'SELECT Id, SourceId FROM Case WHERE SourceId IN :planIds AND AccountId = :accountId'
+                )) {
+                    Id planId = (Id) planCase.get('SourceId');
+                    if (!casesByPlan.containsKey(planId)) {
+                        casesByPlan.put(planId, new Set<Id>());
+                    }
+                    casesByPlan.get(planId).add(planCase.Id);
+                }
+                for (Id planId : deleteRows(plans, false)) {
+                    if (casesByPlan.containsKey(planId)) {
+                        caseIds.addAll(casesByPlan.get(planId));
+                    }
+                }
+            }
+        }
+        if (types.containsKey('Dispute')) {
+            Set<Id> invoiceIds = new Map<Id, Invoice>(invoices).keySet();
+            List<SObject> disputes = Database.query('SELECT Id, CaseId, Case.AccountId FROM Dispute '
+                + 'WHERE AccountId = :accountId OR InvoiceId IN :invoiceIds');
+            Set<Id> gone = deleteRows(disputes, false);
+            for (SObject dispute : disputes) {
+                SObject disputeCase = dispute.getSObject('Case');
+                if (gone.contains(dispute.Id) && disputeCase != null && disputeCase.get('AccountId') == accountId) {
+                    caseIds.add((Id) dispute.get('CaseId'));
+                }
+            }
+        }
+        List<Case> cases = new List<Case>();
+        for (Id caseId : caseIds) {
+            cases.add(new Case(Id = caseId));
+        }
+        deleteQuietly(cases);
+    }
+
+    /**
+     * Delete Billing: the account's debit memos, then its invoices with their
+     * documents and payment schedules, then its credit memos. Payments, and posted
+     * or void debit memos, are left in place.
      *
      * Posted invoices need the "Delete Invoice and Invoice Lines" permission
      * (BillingInvoiceSuperUser, from RLM_DeleteInvoices). Without it only Draft
@@ -648,6 +725,10 @@ public without sharing class RLM_AccountUtilities {
      * are deleted here.
      */
     private static void deleteBillingRecords(Id accountId, List<Invoice> invoices) {
+        // First, so that a debit memo line adjusting an invoice line, or a debit
+        // memo raised from a credit memo, is gone before either is deleted.
+        deleteDebitMemos(accountId);
+
         List<Invoice> deletable = new List<Invoice>();
         List<Invoice> needPermission = new List<Invoice>();
         Integer processing = 0;
@@ -770,6 +851,32 @@ public without sharing class RLM_AccountUtilities {
         for (Id canceledId : updateRows(posted, 'could not be canceled')) {
             deletable.add(new CreditMemo(Id = canceledId));
         }
+        deleteQuietly(deletable);
+    }
+
+    /**
+     * Deletes the account's debit memos, which takes their lines with them. A
+     * posted debit memo can be voided but not canceled, and Salesforce refuses to
+     * delete a posted or void one even with Delete Invoice and Invoice Lines (live
+     * 264), so those are kept and reported. Queried dynamically, so the class does
+     * not depend on DebitMemo to deploy.
+     */
+    private static void deleteDebitMemos(Id accountId) {
+        Schema.SObjectType memoType = Schema.getGlobalDescribe().get('DebitMemo');
+        if (memoType == null) {
+            return;
+        }
+        List<SObject> deletable = new List<SObject>();
+        Integer locked = 0;
+        for (SObject memo : Database.query('SELECT Id, Status FROM DebitMemo WHERE AccountId = :accountId')) {
+            String status = (String) memo.get('Status');
+            if (status == 'Posted' || status == 'Void') {
+                locked++;
+            } else {
+                deletable.add(memo);
+            }
+        }
+        recordRetained(memoType, locked, DEBIT_MEMOS_KEPT);
         deleteQuietly(deletable);
     }
 

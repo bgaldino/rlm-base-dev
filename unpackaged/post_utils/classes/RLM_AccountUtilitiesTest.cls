@@ -37,7 +37,9 @@
  * BillingAccountId and Status are not createable. So deleting invoices and
  * credit memos can only be verified live. The tests here cover what surrounds
  * it: the permission check that decides whether posted invoices go, payments
- * being kept and reported, and the documents cleanup.
+ * being kept and reported, and the documents cleanup. Nor can a test post a
+ * debit memo, which needs a tax treatment on every line, so keeping posted and
+ * void debit memos is verified live too.
  *
  * The live verification that does cover the usage graph is
  * scripts/apex/validateRatedUsage.apex plus the usage-consumption skill; the
@@ -174,6 +176,35 @@ private without sharing class RLM_AccountUtilitiesTest {
     // How a summary names `count` rows of an object.
     private static String entry(Schema.SObjectType type, Integer count) {
         return type.getDescribe().getLabelPlural() + ': ' + count;
+    }
+
+    private static String entry(String objectName, Integer count) {
+        return entry(Schema.getGlobalDescribe().get(objectName), count);
+    }
+
+    private static Boolean available(List<String> objectNames) {
+        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
+        for (String objectName : objectNames) {
+            if (!types.containsKey(objectName)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Collection plans, disputes and debit memos are created by name, as the class
+    // queries them, so this class still compiles in an org without them.
+    private static SObject newRecord(String objectName, Map<String, Object> values) {
+        SObject record = Schema.getGlobalDescribe().get(objectName).newSObject();
+        for (String field : values.keySet()) {
+            record.put(field, values.get(field));
+        }
+        insert record;
+        return record;
+    }
+
+    private static Integer countOf(String objectName, Id recordId) {
+        return Database.countQuery('SELECT COUNT() FROM ' + objectName + ' WHERE Id = \'' + recordId + '\'');
     }
 
     // ------------------------------------------------------------------ guards
@@ -514,6 +545,166 @@ private without sharing class RLM_AccountUtilitiesTest {
             RLM_AccountUtilities.canDeletePostedInvoices(),
             'The check must agree with the running user\'s permission set assignments'
         );
+    }
+
+    // A Draft debit memo with one line. Draft is the only status one can be created in.
+    private static SObject newDebitMemo(Id accountId) {
+        SObject memo = newRecord('DebitMemo', new Map<String, Object>{
+            'AccountId' => accountId, 'Status' => 'Draft', 'InvoiceGenerationStatus' => 'None'
+        });
+        newRecord('DebitMemoLine', new Map<String, Object>{
+            'Name' => 'RLM Reset Test Line', 'DebitMemoId' => memo.Id, 'ChargeAmount' => 10
+        });
+        return memo;
+    }
+
+    @IsTest
+    static void draftAndCanceledDebitMemosAreDeleted() {
+        if (!available(new List<String>{ 'DebitMemo', 'DebitMemoLine' })) return;
+        Account a = newAccount();
+        SObject draft = newDebitMemo(a.Id);
+        SObject canceled = newDebitMemo(a.Id);
+        canceled.put('Status', 'Canceled');
+        update canceled;
+
+        System.assertEquals(
+            2,
+            Database.countQuery('SELECT COUNT() FROM DebitMemoLine WHERE DebitMemo.AccountId = \'' + a.Id + '\''),
+            'PRECONDITION: both debit memos and their lines must exist before the reset runs'
+        );
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        System.assertEquals(0, countOf('DebitMemo', draft.Id), 'A Draft debit memo must be deleted');
+        System.assertEquals(0, countOf('DebitMemo', canceled.Id), 'A Canceled debit memo must be deleted');
+        System.assertEquals(
+            0,
+            Database.countQuery('SELECT COUNT() FROM DebitMemoLine WHERE DebitMemoId IN (\''
+                + draft.Id + '\', \'' + canceled.Id + '\')'),
+            'The lines must go with their debit memos'
+        );
+        System.assertEquals(true, result.cleared, 'Nothing was kept. Retained: ' + result.retainedSummary);
+        System.assert(
+            result.removedSummary.contains(entry('DebitMemo', 2)),
+            'The deleted debit memos must be reported. Got: ' + result.removedSummary
+        );
+    }
+
+    @IsTest
+    static void debitMemosStayWithoutDeleteBilling() {
+        if (!available(new List<String>{ 'DebitMemo', 'DebitMemoLine' })) return;
+        Account a = newAccount();
+        SObject memo = newDebitMemo(a.Id);
+
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, false));
+        Test.stopTest();
+
+        System.assertEquals(1, countOf('DebitMemo', memo.Id), 'DeleteBilling=false must leave debit memos alone');
+        System.assertEquals(null, result.removedSummary, 'Nothing was removed');
+    }
+
+    // ------------------------------------------------- Delete Collection Plans
+
+    private static final List<String> COLLECTION_OBJECTS = new List<String>{
+        'CollectionPlan', 'CollectionPlanItem', 'Dispute', 'DisputeItem'
+    };
+
+    @IsTest
+    static void collectionPlansGoWithTheirCasesAndDisputes() {
+        if (!available(COLLECTION_OBJECTS)) return;
+        Account a = newAccount();
+        Account bystander = new Account(Name = 'RLM Utilities Bystander Account');
+        insert bystander;
+        // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises
+        // the plan's case itself, from org data a unit test cannot see.
+        SObject plan = newRecord('CollectionPlan', new Map<String, Object>{
+            'AccountId' => a.Id, 'UsageType' => 'Billing'
+        });
+        PaymentSchedule promise = new PaymentSchedule(
+            ReferenceEntityId = plan.Id,
+            Type = 'PromiseToPay',
+            UsageType = 'CollectionPlan',
+            Status = 'Draft',
+            TotalRequestedAmount = 10
+        );
+        insert promise;
+
+        Case planCase = new Case(AccountId = a.Id, Subject = 'Plan case');
+        Case othersPlanCase = new Case(AccountId = bystander.Id, Subject = 'Plan case on another account');
+        Case disputeCase = new Case(AccountId = a.Id, Subject = 'Dispute case');
+        Case unrelatedCase = new Case(AccountId = a.Id, Subject = 'Unrelated case');
+        planCase.put('SourceId', plan.Id);
+        othersPlanCase.put('SourceId', plan.Id);
+        insert new List<Case>{ planCase, othersPlanCase, disputeCase, unrelatedCase };
+
+        SObject dispute = newRecord('Dispute', new Map<String, Object>{
+            'AccountId' => a.Id, 'CaseId' => disputeCase.Id, 'ReceivedDate' => Date.today()
+        });
+        SObject disputeItem = newRecord('DisputeItem', new Map<String, Object>{
+            'DisputeId' => dispute.Id, 'TransactionDate' => Date.today()
+        });
+
+        System.assertEquals(1, countOf('CollectionPlan', plan.Id), 'PRECONDITION: the plan must exist');
+        System.assertEquals(1, countOf('DisputeItem', disputeItem.Id), 'PRECONDITION: the dispute item must exist');
+
+        RLM_AccountUtilities.InputVariables iv = request(a.Id, false, false, false);
+        iv.DeleteCollectionPlans = true;
+        Test.startTest();
+        RLM_AccountUtilities.Result result = run(iv);
+        Test.stopTest();
+
+        System.assertEquals(true, result.completed, 'The reset must complete. Reason: ' + result.reason);
+        System.assertEquals(0, countOf('CollectionPlan', plan.Id), 'The collection plan must be deleted');
+        System.assertEquals(
+            0,
+            [SELECT COUNT() FROM PaymentSchedule WHERE Id = :promise.Id],
+            'A promise to pay outlives its plan unless it is deleted first'
+        );
+        System.assertEquals(0, countOf('Case', planCase.Id), 'The plan\'s case must be deleted');
+        System.assertEquals(0, countOf('Dispute', dispute.Id), 'The dispute must be deleted');
+        System.assertEquals(0, countOf('DisputeItem', disputeItem.Id), 'The dispute item must go with its dispute');
+        System.assertEquals(0, countOf('Case', disputeCase.Id), 'The dispute\'s case must be deleted');
+        System.assertEquals(1, countOf('Case', unrelatedCase.Id), 'A case of neither a plan nor a dispute is kept');
+        System.assertEquals(
+            1,
+            countOf('Case', othersPlanCase.Id),
+            'A destructive utility must not reach past the account it was given, even through the plan'
+        );
+        for (String removed : new List<String>{
+            entry('CollectionPlan', 1), entry('Dispute', 1), entry(Case.SObjectType, 2)
+        }) {
+            System.assert(
+                result.removedSummary.contains(removed),
+                'Expected "' + removed + '" in the removed summary. Got: ' + result.removedSummary
+            );
+        }
+    }
+
+    @IsTest
+    static void collectionPlansStayUnlessSelected() {
+        if (!available(COLLECTION_OBJECTS)) return;
+        Account a = newAccount();
+        SObject plan = newRecord('CollectionPlan', new Map<String, Object>{
+            'AccountId' => a.Id, 'UsageType' => 'Billing'
+        });
+        // A dispute needs a case.
+        Case disputeCase = new Case(AccountId = a.Id, Subject = 'Dispute case');
+        insert disputeCase;
+        SObject dispute = newRecord('Dispute', new Map<String, Object>{
+            'AccountId' => a.Id, 'CaseId' => disputeCase.Id, 'ReceivedDate' => Date.today()
+        });
+
+        Test.startTest();
+        // Every other option on, and DeleteCollectionPlans omitted, as an older caller would.
+        RLM_AccountUtilities.Result result = run(request(a.Id, true, true, true));
+        Test.stopTest();
+
+        System.assertEquals(1, countOf('CollectionPlan', plan.Id), 'An omitted DeleteCollectionPlans must keep plans');
+        System.assertEquals(1, countOf('Dispute', dispute.Id), 'An omitted DeleteCollectionPlans must keep disputes');
+        System.assertEquals(true, result.cleared, 'Records the reset was not asked to delete are not reported');
     }
 
     // ------------------------------------------------------------- documents
