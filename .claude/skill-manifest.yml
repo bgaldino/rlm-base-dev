@@ -16,7 +16,9 @@
 #      resolve_manifest() function — load and resolve are separate steps so a
 #      single load can back many lookups.)
 #   2. Local clone paths come from env vars (FOUNDATIONS_REPO_ROOT, PMOS_REPO_ROOT)
-#      OR sibling-directory fallback (../pmos-revenue-cloud, ../rlm-base-dev)
+#      OR sibling-directory fallback (../pmos-revenue-cloud, ../rlm-base-dev).
+#      The repo containing this file answers for its own section first, ahead
+#      of every hint, so a worktree or renamed clone audits itself.
 #   3. Each grounding artifact has a resolved local filesystem path
 #   4. CLI: `python scripts/ai/skill_manifest.py --check | --list-skills <repo> |
 #      --resolve <repo>/<kind>/<key>` exposes the same surface for diagnostics
