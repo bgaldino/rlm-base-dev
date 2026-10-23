@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DocumentTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <documentGenerationMechanism>ServerSide</documentGenerationMechanism>
+    <extractOmniDataTransformName>RLMRTKProposalExtract</extractOmniDataTransformName>
+    <fileExtension>docx</fileExtension>
+    <hasBatchableSection>false</hasBatchableSection>
+    <isActive>true</isActive>
+    <isSectionProcessed>false</isSectionProcessed>
+    <mapperOmniDataTransformName>RLMRTKProposalTransform</mapperOmniDataTransformName>
+    <name>RLM_RTK_PestProposal</name>
+    <shouldDisplayUnmappedToken>false</shouldDisplayUnmappedToken>
+    <shouldExtractEmbeddedTmplToken>false</shouldExtractEmbeddedTmplToken>
+    <status>Active</status>
+    <tokenList>QuoteNumber,CreatedDate,AccountName,ServiceStreet,ServiceCity,ServiceState,ServicePostalCode,BillingStreet,BillingCity,BillingState,BillingPostalCode,CustomerPhone,SalesRep,SalesRepEmail,Plan:Name,Plan:Description,Plan:MonthlyPrice,MonthlyTotal,OneTime:Name,OneTime:Description,OneTime:Price,OneTimeTotal,GrandTotal</tokenList>
+    <tokenMappingMethodType>OmniDataTransform</tokenMappingMethodType>
+    <tokenMappingType>JSON</tokenMappingType>
+    <type>MicrosoftWord</type>
+    <uniqueName>RLM_RTK_PestProposal_1</uniqueName>
+    <usageType>Revenue_Lifecycle_Management</usageType>
+    <versionNumber>1</versionNumber>
+</DocumentTemplate>

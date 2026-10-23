@@ -28,7 +28,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `constraints` | `True` | 9 flow step(s) |
 | `constraints_data` | `True` | 5 flow step(s) |
 | `dev_ed` | `False` | 1 flow step(s) |
-| `docgen` | `True` | 10 flow step(s) |
+| `docgen` | `True` | 13 flow step(s) |
 | `dro` | `True` | 12 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `fsl` | `False` | 16 flow step(s) |
@@ -36,7 +36,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `guidedselling` | `False` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
-| `pest` | `False` | 13 flow step(s) |
+| `pest` | `False` | 16 flow step(s) |
 | `prm` | `True` | 9 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
@@ -170,6 +170,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `docgen` (default: `True`)
 
+- `prepare_pest` step 12 → `deploy_post_pest_docgen`
+- `prepare_pest` step 13 → `activate_docgen_templates`
+- `prepare_pest` step 14 → `fix_pest_document_template_binaries`
 - `prepare_docgen` step 1 → `create_docgen_library`
 - `prepare_docgen` step 2 → `enable_document_builder_toggle`
 - `prepare_docgen` step 3 → `deploy_docgen_seller_fields`
@@ -254,6 +257,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_pest` step 9 → `update_product_fulfillment_decomp_rules`
 - `prepare_pest` step 10 → `refresh_dt_default_pricing`
 - `prepare_pest` step 11 → `setup_rtk_grow`
+- `prepare_pest` step 12 → `deploy_post_pest_docgen`
+- `prepare_pest` step 13 → `activate_docgen_templates`
+- `prepare_pest` step 14 → `fix_pest_document_template_binaries`
 
 ### `prm` (default: `True`)
 

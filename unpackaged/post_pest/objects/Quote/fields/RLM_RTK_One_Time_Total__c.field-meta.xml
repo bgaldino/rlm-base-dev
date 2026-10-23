@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_RTK_One_Time_Total__c</fullName>
+    <description>Sum of one-time quote line totals, such as the Initial Service.</description>
+    <label>One-Time Total</label>
+    <summarizedField>QuoteLineItem.NetTotalPrice</summarizedField>
+    <summaryFilterItems>
+        <field>QuoteLineItem.BillingFrequency</field>
+        <operation>equals</operation>
+    </summaryFilterItems>
+    <summaryForeignKey>QuoteLineItem.QuoteId</summaryForeignKey>
+    <summaryOperation>sum</summaryOperation>
+    <type>Summary</type>
+</CustomField>

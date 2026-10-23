@@ -362,7 +362,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 
 ### `prepare_pest`
 
-Deploy Rentokil residential pest control demo: catalog, location-aware pricing context, Inspect and Quote field flow, Bloomingdale FSL foundation, and Initial Service DRO handoff. Requires fsl=true for Field Service metadata reused from prepare_fsl.
+Deploy Rentokil residential pest control demo: catalog, location-aware pricing context, Inspect and Quote field flow, Bloomingdale FSL foundation, Initial Service DRO handoff, and Rentokil-branded proposal and invoice DocGen templates (when docgen=true). Requires fsl=true for Field Service metadata reused from prepare_fsl.
 
 **Steps:**
 
@@ -380,6 +380,9 @@ Deploy Rentokil residential pest control demo: catalog, location-aware pricing c
 9. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__pest and project_config.project__custom__dro`
 10. **task** `refresh_dt_default_pricing`  `when: project_config.project__custom__pest`
 11. **task** `setup_rtk_grow`  `when: project_config.project__custom__pest and project_config.project__custom__fsl`
+12. **task** `deploy_post_pest_docgen`  `when: project_config.project__custom__pest and project_config.project__custom__docgen`
+13. **task** `activate_docgen_templates`  `when: project_config.project__custom__pest and project_config.project__custom__docgen`
+14. **task** `fix_pest_document_template_binaries`  `when: project_config.project__custom__pest and project_config.project__custom__docgen`
 
 ---
 

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**220 tasks** across **9 groups**.
+**222 tasks** across **9 groups**.
 
 ---
 
@@ -620,7 +620,7 @@
 
 ## Revenue Lifecycle Management
 
-*139 task(s)*
+*141 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1294,7 +1294,7 @@
 
 ### `deploy_post_pest`
 
-**Description:** Deploy Rentokil pest control metadata (service zones, line-of-business field, Inspect and Quote flow, FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest.
+**Description:** Deploy Rentokil pest control metadata (service zones, line-of-business field, Monthly/One-Time Quote total roll-ups, Inspect and Quote flow, FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1303,6 +1303,18 @@
 - `path`: `unpackaged/post_pest`
 - `test_level`: `RunSpecifiedTests`
 - `specified_tests`: `RLM_RTK_FieldQuoteTest`
+
+---
+
+### `deploy_post_pest_docgen`
+
+**Description:** Deploy Rentokil-branded DocGen templates (RLM_RTK_PestProposal for quotes, RLM_RTK_Invoice for invoices) and the RLMRTKProposalExtract/Transform data mappings. Requires prepare_docgen and the Quote total roll-ups from deploy_post_pest.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_pest_docgen`
 
 ---
 
@@ -1637,6 +1649,18 @@
 **Description:** Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy. Salesforce metadata API bug: all DocumentTemplates deployed in a single batch receive the same ContentDocument binary (first alphabetically). This task uploads the correct .dt binary from the repo for each RLM_ template, replacing the wrong ContentDocument content. Run after deploy_post_docgen + activate_docgen_templates.
 
 **Class:** `tasks.rlm_docgen.FixDocumentTemplateBinaries`
+
+---
+
+### `fix_pest_document_template_binaries`
+
+**Description:** Re-upload the Rentokil DocumentTemplate binaries after deploy_post_pest_docgen (works around the batch-deploy binary bug).
+
+**Class:** `tasks.rlm_docgen.FixDocumentTemplateBinaries`
+
+**Options:**
+
+- `templates_dir`: `unpackaged/post_pest_docgen/documentTemplates`
 
 ---
 

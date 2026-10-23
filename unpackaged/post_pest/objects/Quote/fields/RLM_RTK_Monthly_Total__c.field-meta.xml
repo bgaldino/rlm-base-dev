@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_RTK_Monthly_Total__c</fullName>
+    <description>Sum of recurring (non one-time) quote line totals; the customer's monthly service price.</description>
+    <label>Monthly Total</label>
+    <summarizedField>QuoteLineItem.NetTotalPrice</summarizedField>
+    <summaryFilterItems>
+        <field>QuoteLineItem.BillingFrequency</field>
+        <operation>equals</operation>
+        <value>Monthly</value>
+    </summaryFilterItems>
+    <summaryForeignKey>QuoteLineItem.QuoteId</summaryForeignKey>
+    <summaryOperation>sum</summaryOperation>
+    <type>Summary</type>
+</CustomField>

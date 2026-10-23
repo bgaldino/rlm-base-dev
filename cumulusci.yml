@@ -1651,12 +1651,26 @@ tasks:
 
   deploy_post_pest:
     group: Revenue Lifecycle Management
-    description: Deploy Rentokil pest control metadata (service zones, line-of-business field, Inspect and Quote flow, FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest.
+    description: Deploy Rentokil pest control metadata (service zones, line-of-business field, Monthly/One-Time Quote total roll-ups, Inspect and Quote flow, FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_pest
       test_level: RunSpecifiedTests
       specified_tests: RLM_RTK_FieldQuoteTest
+
+  deploy_post_pest_docgen:
+    group: Revenue Lifecycle Management
+    description: Deploy Rentokil-branded DocGen templates (RLM_RTK_PestProposal for quotes, RLM_RTK_Invoice for invoices) and the RLMRTKProposalExtract/Transform data mappings. Requires prepare_docgen and the Quote total roll-ups from deploy_post_pest.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_pest_docgen
+
+  fix_pest_document_template_binaries:
+    group: Revenue Lifecycle Management
+    description: Re-upload the Rentokil DocumentTemplate binaries after deploy_post_pest_docgen (works around the batch-deploy binary bug).
+    class_path: tasks.rlm_docgen.FixDocumentTemplateBinaries
+    options:
+      templates_dir: unpackaged/post_pest_docgen/documentTemplates
 
   insert_pest_pcm_data:
     group: Revenue Lifecycle Management
@@ -3006,7 +3020,8 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Deploy Rentokil residential pest control demo: catalog, location-aware pricing context,
-      Inspect and Quote field flow, Bloomingdale FSL foundation, and Initial Service DRO handoff.
+      Inspect and Quote field flow, Bloomingdale FSL foundation, Initial Service DRO handoff,
+      and Rentokil-branded proposal and invoice DocGen templates (when docgen=true).
       Requires fsl=true for Field Service metadata reused from prepare_fsl.
     steps:
       1:
@@ -3051,6 +3066,15 @@ flows:
       11:
         task: setup_rtk_grow
         when: project_config.project__custom__pest and project_config.project__custom__fsl
+      12:
+        task: deploy_post_pest_docgen
+        when: project_config.project__custom__pest and project_config.project__custom__docgen
+      13:
+        task: activate_docgen_templates
+        when: project_config.project__custom__pest and project_config.project__custom__docgen
+      14:
+        task: fix_pest_document_template_binaries
+        when: project_config.project__custom__pest and project_config.project__custom__docgen
 
   prepare_clm:
     group: Revenue Lifecycle Management
