@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>One observation during an inspection: where, which pest, what evidence, how severe, with notes and photos (Files).</description>
+    <enableActivities>false</enableActivities>
+    <enableHistory>false</enableHistory>
+    <enableReports>true</enableReports>
+    <enableSearch>true</enableSearch>
+    <label>RTK Finding</label>
+    <nameField>
+        <displayFormat>FND-{00000}</displayFormat>
+        <label>Finding Number</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>RTK Findings</pluralLabel>
+    <sharingModel>ControlledByParent</sharingModel>
+</CustomObject>

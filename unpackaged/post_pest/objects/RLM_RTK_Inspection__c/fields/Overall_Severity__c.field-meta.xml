@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Overall_Severity__c</fullName>
+    <description>Highest finding severity; sets the plan's severity attribute.</description>
+    <label>Overall Severity</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+                <value>
+                    <fullName>Light</fullName>
+                    <default>false</default>
+                    <label>Light</label>
+                </value>
+                <value>
+                    <fullName>Moderate</fullName>
+                    <default>false</default>
+                    <label>Moderate</label>
+                </value>
+                <value>
+                    <fullName>Heavy</fullName>
+                    <default>false</default>
+                    <label>Heavy</label>
+                </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Pest__c</fullName>
+    <description>Pest associated with the finding.</description>
+    <label>Pest</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+                <value>
+                    <fullName>Ants</fullName>
+                    <default>false</default>
+                    <label>Ants</label>
+                </value>
+                <value>
+                    <fullName>Spiders</fullName>
+                    <default>false</default>
+                    <label>Spiders</label>
+                </value>
+                <value>
+                    <fullName>Cockroaches</fullName>
+                    <default>false</default>
+                    <label>Cockroaches</label>
+                </value>
+                <value>
+                    <fullName>Rodents</fullName>
+                    <default>false</default>
+                    <label>Rodents</label>
+                </value>
+                <value>
+                    <fullName>Termites</fullName>
+                    <default>false</default>
+                    <label>Termites</label>
+                </value>
+                <value>
+                    <fullName>Mosquitoes</fullName>
+                    <default>false</default>
+                    <label>Mosquitoes</label>
+                </value>
+                <value>
+                    <fullName>Wasps / Bees</fullName>
+                    <default>false</default>
+                    <label>Wasps / Bees</label>
+                </value>
+                <value>
+                    <fullName>Other</fullName>
+                    <default>false</default>
+                    <label>Other</label>
+                </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

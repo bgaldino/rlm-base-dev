@@ -439,6 +439,43 @@
     transform: translateX(1.15rem);
 }
 
+.because {
+    margin-top: 0.65rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--rtk-accent-soft);
+    border-radius: 0.6rem;
+}
+
+.because-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--rtk-accent-deep);
+    margin-bottom: 0.2rem;
+}
+
+.because ul,
+.because-inline {
+    margin: 0 0 0 1rem;
+    padding: 0;
+    list-style: disc;
+    font-size: 0.78rem;
+    color: var(--rtk-accent-deep);
+}
+
+.because-inline {
+    margin-top: 0.3rem;
+}
+
+.override {
+    background: var(--rtk-warn-soft);
+    border: 1px solid #f0b98f;
+    border-radius: var(--rtk-radius);
+    padding: 0.85rem 1rem;
+}
+
 .summary {
     display: flex;
     justify-content: space-between;

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Inspection__c</fullName>
+    <description>Inspection this finding belongs to.</description>
+    <label>Inspection</label>
+    <referenceTo>RLM_RTK_Inspection__c</referenceTo>
+    <relationshipLabel>Findings</relationshipLabel>
+    <relationshipName>Findings</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

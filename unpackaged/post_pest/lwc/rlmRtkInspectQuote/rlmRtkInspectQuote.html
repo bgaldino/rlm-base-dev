@@ -18,7 +18,7 @@
         <section class="section">
             <div class="section-head">
                 <h2>Choose a plan</h2>
-                <p>Tap a card — Home Protection is the usual pick for Bloomingdale.</p>
+                <p>{planSubtitle}</p>
             </div>
             <div class="plan-grid" role="listbox" aria-label="Recommended plan">
                 <template for:each={plans} for:item="plan">
@@ -44,6 +44,16 @@
                                 <li key={feat}>{feat}</li>
                             </template>
                         </ul>
+                        <template lwc:if={plan.hasBecause}>
+                            <div class="because">
+                                <span class="because-label">Because</span>
+                                <ul>
+                                    <template for:each={plan.because} for:item="b">
+                                        <li key={b.key}>{b.text}</li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
                     </button>
                 </template>
             </div>
@@ -107,7 +117,12 @@
         <section class="section">
             <div class="section-head">
                 <h2>Infestation severity</h2>
-                <p>Heat scale — how bad is what you found?</p>
+                <template lwc:if={severityFromInspection}>
+                    <p>Inspection rated this <strong>{severityFromInspection}</strong> (worst finding).</p>
+                </template>
+                <template lwc:else>
+                    <p>Heat scale — how bad is what you found?</p>
+                </template>
             </div>
             <div class="sev-meter" role="group" aria-label="Infestation severity">
                 <template for:each={severities} for:item="sev">
@@ -139,6 +154,13 @@
                     <div class="addon-copy">
                         <strong>Seasonal mosquito</strong>
                         <span>Yard treatments while the season is on</span>
+                        <template lwc:if={hasMosquitoReasons}>
+                            <ul class="because-inline">
+                                <template for:each={mosquitoReasons} for:item="b">
+                                    <li key={b.key}>{b.text}</li>
+                                </template>
+                            </ul>
+                        </template>
                     </div>
                     <span class="addon-switch" aria-hidden="true">
                         <span class="knob"></span>
@@ -151,6 +173,13 @@
                     <div class="addon-copy">
                         <strong>Termite plan now</strong>
                         <span>Add if you already see mud tubes</span>
+                        <template lwc:if={hasTermiteReasons}>
+                            <ul class="because-inline">
+                                <template for:each={termiteReasons} for:item="b">
+                                    <li key={b.key}>{b.text}</li>
+                                </template>
+                            </ul>
+                        </template>
                     </div>
                     <span class="addon-switch" aria-hidden="true">
                         <span class="knob"></span>
@@ -158,6 +187,21 @@
                 </button>
             </div>
         </section>
+
+        <template lwc:if={isOverridden}>
+            <section class="section override">
+                <div class="section-head">
+                    <h2>Changed from the inspection</h2>
+                    <p>{changeSummary}</p>
+                </div>
+                <lightning-textarea
+                    label="Why are you changing the recommendation?"
+                    required
+                    value={overrideNote}
+                    onchange={handleOverride}
+                ></lightning-textarea>
+            </section>
+        </template>
 
         <footer class="summary">
             <div>

@@ -11,12 +11,14 @@
         <targetConfig targets="lightning__FlowScreen">
             <property name="accountName" type="String" label="Account Name" role="inputOnly"/>
             <property name="postalCode" type="String" label="Service ZIP" role="inputOnly"/>
-            <property name="planSku" type="String" label="Plan SKU" role="outputOnly"/>
-            <property name="propertyType" type="String" label="Property Type" role="outputOnly"/>
-            <property name="squareFootage" type="String" label="Square Footage Bucket" role="outputOnly"/>
-            <property name="severity" type="String" label="Severity" role="outputOnly"/>
-            <property name="includeMosquito" type="Boolean" label="Include Mosquito" role="outputOnly"/>
-            <property name="includeTermite" type="Boolean" label="Include Termite" role="outputOnly"/>
+            <property name="recommendationJson" type="String" label="Inspection Recommendation JSON" role="inputOnly"/>
+            <property name="planSku" type="String" label="Plan SKU"/>
+            <property name="propertyType" type="String" label="Property Type"/>
+            <property name="squareFootage" type="String" label="Square Footage Bucket"/>
+            <property name="severity" type="String" label="Severity"/>
+            <property name="includeMosquito" type="Boolean" label="Include Mosquito"/>
+            <property name="includeTermite" type="Boolean" label="Include Termite"/>
+            <property name="overrideReason" type="String" label="Override Reason" role="outputOnly"/>
         </targetConfig>
     </targetConfigs>
 </LightningComponentBundle>

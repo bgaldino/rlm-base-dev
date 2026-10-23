@@ -1,0 +1,207 @@
+<template>
+    <div class="shell">
+        <header class="hero">
+            <div>
+                <p class="eyebrow">Step 1 · Walk the property</p>
+                <h1 class="title">{accountName}</h1>
+                <p class="subtitle">{serviceAddress}</p>
+            </div>
+            <div class="stats">
+                <div class="stat"><strong>{findingTotal}</strong><span>findings</span></div>
+                <div class="stat"><strong>{photoTotal}</strong><span>photos</span></div>
+                <div class="stat"><span class={overallSevClass}>{overallSeverity}</span><span>severity</span></div>
+            </div>
+        </header>
+
+        <div class="progress">
+            <div class="progress-label">
+                <span>Zones checked</span>
+                <strong>{checkedCount} / {zoneTotal}</strong>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style={progressStyle}></div></div>
+        </div>
+
+        <template lwc:if={error}>
+            <div class="error" role="alert">{error}</div>
+        </template>
+
+        <div class="zone-grid" role="group" aria-label="Property zones">
+            <template for:each={zones} for:item="zone">
+                <button
+                    key={zone.value}
+                    type="button"
+                    class={zone.cardClass}
+                    data-zone={zone.value}
+                    aria-pressed={zone.ariaPressed}
+                    onclick={selectZone}
+                >
+                    <lightning-icon icon-name={zone.icon} size="small" alternative-text=""></lightning-icon>
+                    <span class="zone-name">{zone.value}</span>
+                    <span class="zone-status">{zone.status}</span>
+                </button>
+            </template>
+        </div>
+
+        <template lwc:if={hasActiveZone}>
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h2>{activeZone}</h2>
+                        <p>{activeZoneHint}</p>
+                    </div>
+                    <div class="panel-actions">
+                        <template lwc:if={canMarkClear}>
+                            <button type="button" class="btn ghost" onclick={markClear} disabled={editing}>
+                                Mark clear
+                            </button>
+                        </template>
+                        <button type="button" class="btn primary" onclick={startFinding} disabled={editing}>
+                            Add finding
+                        </button>
+                    </div>
+                </div>
+
+                <template for:each={activeFindings} for:item="f">
+                    <article key={f.id} class="finding">
+                        <div class="finding-head">
+                            <div>
+                                <strong>{f.title}</strong>
+                                <span class={f.sevClass}>{f.severity}</span>
+                            </div>
+                            <div class="finding-actions">
+                                <button type="button" class="link" data-id={f.id} onclick={editFinding}>Edit</button>
+                                <button type="button" class="link danger" data-id={f.id} onclick={removeFinding}>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                        <template lwc:if={f.customerNote}>
+                            <p class="note">{f.customerNote}</p>
+                        </template>
+                        <template lwc:if={f.internalNote}>
+                            <p class="note internal"><span>Internal</span>{f.internalNote}</p>
+                        </template>
+                        <div class="photos">
+                            <template for:each={f.photos} for:item="p">
+                                <button
+                                    key={p.versionId}
+                                    type="button"
+                                    class="thumb"
+                                    data-doc={p.documentId}
+                                    onclick={previewPhoto}
+                                    title={p.title}
+                                >
+                                    <img src={p.url} alt={p.title} />
+                                </button>
+                            </template>
+                            <lightning-file-upload
+                                class="uploader"
+                                label="Add photos"
+                                name="findingPhotos"
+                                accept={photoFormats}
+                                record-id={f.id}
+                                multiple
+                                onuploadfinished={handleUploadFinished}
+                            ></lightning-file-upload>
+                        </div>
+                    </article>
+                </template>
+
+                <template lwc:if={activeZoneClear}>
+                    <p class="clear-note">Marked clear: no activity found here.</p>
+                </template>
+
+                <template lwc:if={editing}>
+                    <div class="editor">
+                        <h3>{editorTitle}</h3>
+                        <p class="field-label">Pest</p>
+                        <div class="chips">
+                            <template for:each={pestChips} for:item="c">
+                                <button
+                                    key={c.value}
+                                    type="button"
+                                    class={c.cls}
+                                    data-field={c.field}
+                                    data-value={c.value}
+                                    aria-pressed={c.ariaPressed}
+                                    onclick={pickChip}
+                                >
+                                    {c.value}
+                                </button>
+                            </template>
+                        </div>
+                        <p class="field-label">What you see</p>
+                        <div class="chips">
+                            <template for:each={evidenceChips} for:item="c">
+                                <button
+                                    key={c.value}
+                                    type="button"
+                                    class={c.cls}
+                                    data-field={c.field}
+                                    data-value={c.value}
+                                    aria-pressed={c.ariaPressed}
+                                    onclick={pickChip}
+                                >
+                                    {c.value}
+                                </button>
+                            </template>
+                        </div>
+                        <p class="field-label">Severity</p>
+                        <div class="sev-row">
+                            <template for:each={severityChips} for:item="s">
+                                <button
+                                    key={s.value}
+                                    type="button"
+                                    class={s.cls}
+                                    data-value={s.value}
+                                    aria-pressed={s.ariaPressed}
+                                    onclick={pickSeverity}
+                                >
+                                    {s.value}
+                                </button>
+                            </template>
+                        </div>
+                        <lightning-textarea
+                            label="Note for the customer"
+                            placeholder="What you found, in plain language"
+                            data-field="customerNote"
+                            value={draft.customerNote}
+                            onchange={handleNote}
+                        ></lightning-textarea>
+                        <lightning-textarea
+                            label="Internal note (technician only)"
+                            data-field="internalNote"
+                            value={draft.internalNote}
+                            onchange={handleNote}
+                        ></lightning-textarea>
+                        <p class="hint">Save the finding, then add photos to it.</p>
+                        <div class="editor-actions">
+                            <button type="button" class="btn ghost" onclick={cancelFinding}>Cancel</button>
+                            <button type="button" class="btn primary" onclick={submitFinding} disabled={saveDisabled}>
+                                Save finding
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </section>
+        </template>
+
+        <section class="recommend">
+            <p class="eyebrow">Recommended from findings</p>
+            <template lwc:if={loading}>
+                <lightning-spinner size="small" alternative-text="Loading"></lightning-spinner>
+            </template>
+            <template for:each={reasons} for:item="r">
+                <div key={r.key} class="reason">
+                    <strong>{r.productName}</strong>
+                    <ul>
+                        <template for:each={r.because} for:item="b">
+                            <li key={b.key}>{b.text}</li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+            <p class="hint">Tap <strong>Next</strong> to review the plan and price. You can still change it.</p>
+        </section>
+    </div>
+</template>

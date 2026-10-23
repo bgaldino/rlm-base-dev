@@ -14,8 +14,7 @@ const PLANS = [
         name: 'Home Protection',
         price: 59,
         blurb: 'Best for most single-family homes',
-        features: ['Monthly visits', 'Broader pest list', 'Re-service guarantee'],
-        recommended: true
+        features: ['Monthly visits', 'Broader pest list', 'Re-service guarantee']
     },
     {
         sku: 'RTK-HOME-PROT-PLUS',
@@ -54,7 +53,29 @@ export default class RlmRtkInspectQuote extends LightningElement {
     _severity = 'Moderate';
     _includeMosquito = true;
     _includeTermite = false;
+    _rec;
+    _overrideNote = '';
     sqftSlider = 1600;
+
+    @api
+    get recommendationJson() {
+        return this._rec ? JSON.stringify(this._rec) : undefined;
+    }
+    set recommendationJson(v) {
+        try {
+            this._rec = v ? JSON.parse(v) : undefined;
+        } catch (e) {
+            this._rec = undefined;
+        }
+    }
+
+    @api
+    get overrideReason() {
+        return this.composeOverride();
+    }
+    set overrideReason(v) {
+        this._overrideNote = v || '';
+    }
 
     @api
     get planSku() {
@@ -114,9 +135,92 @@ export default class RlmRtkInspectQuote extends LightningElement {
         this.publishAll();
     }
 
+    // ---------- recommendation from the inspection walk ----------
+    get hasInspection() {
+        return !!(this._rec && this._rec.planSku);
+    }
+
+    get recommendedSku() {
+        return this.hasInspection ? this._rec.planSku : 'RTK-HOME-PROT';
+    }
+
+    reasonsFor(sku) {
+        if (!this.hasInspection || !this._rec.reasons) return [];
+        const r = this._rec.reasons.find((x) => x.sku === sku);
+        return r && r.because ? r.because.map((text, i) => ({ key: `${sku}-${i}`, text })) : [];
+    }
+
+    get mosquitoReasons() {
+        return this.reasonsFor('RTK-MOSQUITO');
+    }
+
+    get termiteReasons() {
+        return this.reasonsFor('RTK-TERMITE');
+    }
+
+    get hasMosquitoReasons() {
+        return this.mosquitoReasons.length > 0;
+    }
+
+    get hasTermiteReasons() {
+        return this.termiteReasons.length > 0;
+    }
+
+    get planSubtitle() {
+        return this.hasInspection
+            ? 'Pre-selected from your inspection findings. You can still change it.'
+            : 'Tap a card — Home Protection is the usual pick for Bloomingdale.';
+    }
+
+    get severityFromInspection() {
+        return this.hasInspection ? this._rec.severity : null;
+    }
+
+    get changes() {
+        if (!this.hasInspection) return [];
+        const rec = this._rec;
+        const out = [];
+        const name = (sku) => (PLANS.find((p) => p.sku === sku) || { name: sku }).name;
+        if (this._planSku !== rec.planSku) out.push(`Plan ${name(rec.planSku)} → ${name(this._planSku)}`);
+        if (rec.severity && this._severity !== rec.severity) out.push(`Severity ${rec.severity} → ${this._severity}`);
+        if (this._includeMosquito !== (rec.includeMosquito === true)) {
+            out.push(this._includeMosquito ? 'Mosquito added' : 'Mosquito removed');
+        }
+        if (this._includeTermite !== (rec.includeTermite === true)) {
+            out.push(this._includeTermite ? 'Termite added' : 'Termite removed');
+        }
+        return out;
+    }
+
+    get isOverridden() {
+        return this.changes.length > 0;
+    }
+
+    get changeSummary() {
+        return this.changes.join(' · ');
+    }
+
+    get overrideNote() {
+        return this._overrideNote;
+    }
+
+    composeOverride() {
+        if (!this.isOverridden) return null;
+        return `${this.changeSummary}. Reason: ${this._overrideNote || ''}`.trim();
+    }
+
+    handleOverride(event) {
+        this._overrideNote = event.target.value;
+        this.emit('overrideReason', this.composeOverride());
+    }
+
     get plans() {
+        const recSku = this.recommendedSku;
         return PLANS.map((p) => ({
             ...p,
+            recommended: p.sku === recSku,
+            because: this.reasonsFor(p.sku),
+            hasBecause: p.sku === recSku && this.reasonsFor(p.sku).length > 0,
             selected: p.sku === this._planSku,
             cardClass: p.sku === this._planSku ? 'plan-card selected' : 'plan-card',
             priceLabel: `$${p.price}`,
@@ -217,6 +321,9 @@ export default class RlmRtkInspectQuote extends LightningElement {
 
     emit(name, value) {
         this.dispatchEvent(new FlowAttributeChangeEvent(name, value));
+        if (name !== 'overrideReason') {
+            this.dispatchEvent(new FlowAttributeChangeEvent('overrideReason', this.composeOverride()));
+        }
     }
 
     publishAll() {
@@ -234,6 +341,12 @@ export default class RlmRtkInspectQuote extends LightningElement {
             return {
                 isValid: false,
                 errorMessage: 'Complete each section before creating the quote.'
+            };
+        }
+        if (this.isOverridden && !(this._overrideNote || '').trim()) {
+            return {
+                isValid: false,
+                errorMessage: 'You changed the inspection recommendation. Add a reason before creating the quote.'
             };
         }
         return { isValid: true };

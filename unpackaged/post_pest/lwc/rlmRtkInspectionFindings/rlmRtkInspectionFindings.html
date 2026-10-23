@@ -1,0 +1,55 @@
+<template>
+    <template lwc:if={hasFindings}>
+        <section class="card">
+            <header class="head">
+                <div>
+                    <p class="eyebrow">Your home inspection · {state.inspectionName}</p>
+                    <h2>What we found</h2>
+                </div>
+                <div class="meta">
+                    <span>{findingCount} findings</span>
+                    <span>{photoCount} photos</span>
+                    <span class={severityClass}>{severity}</span>
+                </div>
+            </header>
+            <div class="list">
+                <template for:each={findings} for:item="f">
+                    <article key={f.id} class="finding">
+                        <div class="finding-head">
+                            <div>
+                                <span class="area">{f.zone}</span>
+                                <strong>{f.observation}</strong>
+                            </div>
+                            <span class={f.sevClass}>{f.severity}</span>
+                        </div>
+                        <template lwc:if={f.customerNote}>
+                            <p class="note">{f.customerNote}</p>
+                        </template>
+                        <template lwc:if={f.hasPhotos}>
+                            <div class="photos">
+                                <template for:each={f.photos} for:item="p">
+                                    <button
+                                        key={p.versionId}
+                                        type="button"
+                                        class="photo"
+                                        data-doc={p.documentId}
+                                        onclick={previewPhoto}
+                                        title={p.title}
+                                    >
+                                        <img src={p.url} alt={p.title} />
+                                    </button>
+                                </template>
+                            </div>
+                        </template>
+                        <template lwc:if={f.recommendedProductName}>
+                            <p class="fix">Addressed by your <strong>{f.recommendedProductName}</strong></p>
+                        </template>
+                    </article>
+                </template>
+            </div>
+        </section>
+    </template>
+    <template lwc:elseif={error}>
+        <p class="error">{error}</p>
+    </template>
+</template>

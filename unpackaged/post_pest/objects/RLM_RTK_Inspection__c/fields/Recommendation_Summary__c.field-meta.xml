@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Recommendation_Summary__c</fullName>
+    <description>Why each product was recommended, one line per product.</description>
+    <label>Recommendation Summary</label>
+    <length>8000</length>
+    <type>LongTextArea</type>
+    <visibleLines>6</visibleLines>
+</CustomField>

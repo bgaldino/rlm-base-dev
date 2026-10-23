@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>66.0</apiVersion>
-    <description>Rentokil demo Sign &amp; Pay on a Quote. Requires a proposal document from Create Proposal; stamps mock card + signature fields linked to that ContentDocument.</description>
+    <description>Rentokil demo Sign &amp; Pay on a Quote. Shows the inspection findings and photos behind the quote, then requires a proposal document from Create Proposal; stamps mock card + signature fields linked to that ContentDocument.</description>
     <environments>Default</environments>
     <interviewLabel>Sign &amp; Pay {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Sign &amp; Pay</label>
@@ -28,6 +28,28 @@
         <allowBack>false</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
+        <fields>
+            <name>InspectionFindingsUI</name>
+            <extensionName>c:rlmRtkInspectionFindings</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>quoteId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <storeOutputAutomatically>true</storeOutputAutomatically>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
         <fields>
             <name>SignAndPayUI</name>
             <extensionName>c:rlmSignAndPay</extensionName>

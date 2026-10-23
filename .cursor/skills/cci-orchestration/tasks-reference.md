@@ -1294,7 +1294,7 @@
 
 ### `deploy_post_pest`
 
-**Description:** Deploy Rentokil pest control metadata (service zones, line-of-business field, Monthly/One-Time Quote total roll-ups, Inspect and Quote flow, FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest.
+**Description:** Deploy Rentokil pest control metadata (service zones, line-of-business field, Monthly/One-Time Quote total roll-ups, inspection and finding objects, inspection-led Inspect and Quote flow, Inspection and FieldQuote Apex). Runs RLM_RTK_FieldQuoteTest and RLM_RTK_InspectionTest.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1302,13 +1302,13 @@
 
 - `path`: `unpackaged/post_pest`
 - `test_level`: `RunSpecifiedTests`
-- `specified_tests`: `RLM_RTK_FieldQuoteTest`
+- `specified_tests`: `RLM_RTK_FieldQuoteTest,RLM_RTK_InspectionTest`
 
 ---
 
 ### `deploy_post_pest_docgen`
 
-**Description:** Deploy Rentokil-branded DocGen templates (RLM_RTK_PestProposal for quotes, RLM_RTK_Invoice for invoices) and the RLMRTKProposalExtract/Transform data mappings. Requires prepare_docgen and the Quote total roll-ups from deploy_post_pest.
+**Description:** Deploy Rentokil-branded DocGen templates (RLM_RTK_PestProposal for quotes, with inspection findings; RLM_RTK_Invoice for invoices) and the RLMRTKProposalExtract/Transform data mappings. Requires prepare_docgen plus the Quote total roll-ups and inspection objects from deploy_post_pest.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

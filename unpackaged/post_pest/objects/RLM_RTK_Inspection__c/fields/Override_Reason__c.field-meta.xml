@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Override_Reason__c</fullName>
+    <description>Technician's reason when the quoted products differ from the recommendation.</description>
+    <label>Override Reason</label>
+    <length>4000</length>
+    <type>LongTextArea</type>
+    <visibleLines>3</visibleLines>
+</CustomField>

@@ -16,6 +16,8 @@ public with sharing class RLM_RTK_FieldQuote {
         @InvocableVariable public String severity;
         @InvocableVariable public Boolean includeMosquito;
         @InvocableVariable public Boolean includeTermite;
+        @InvocableVariable public Id inspectionId;
+        @InvocableVariable public String overrideReason;
     }
 
     public class Response {
@@ -155,6 +157,9 @@ public with sharing class RLM_RTK_FieldQuote {
                 return response;
             }
             response.quoteId = pstResponse.salesTransactionId;
+            if (request.inspectionId != null) {
+                RLM_RTK_Inspection.markQuoted(request.inspectionId, response.quoteId, request.overrideReason);
+            }
             response.success = true;
             response.message = 'Quote created with zone ' + zone.zoneCode + ' x' + String.valueOf(zone.multiplier);
         } catch (Exception e) {

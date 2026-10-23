@@ -45,6 +45,20 @@
       "Quantity": 1,
       "Price": "$199.00"
     }
+  ],
+  "Finding": [
+    {
+      "Area": "Garage",
+      "Observation": "Rodents \u2013 Droppings",
+      "Severity": "Moderate",
+      "Note": "Fresh droppings along the back wall."
+    },
+    {
+      "Area": "Yard",
+      "Observation": "Mosquitoes \u2013 Standing Water",
+      "Severity": "Light",
+      "Note": "Water collecting in the planter by the patio."
+    }
   ]
 }</expectedOutputJson>
     <fieldLevelSecurityEnabled>false</fieldLevelSecurityEnabled>
@@ -457,6 +471,66 @@
         <transformValuesMappings>{ }</transformValuesMappings>
         <upsertKey>false</upsertKey>
     </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>184a1fb9-377c-5977-ab0a-340a44500ba6</globalKey>
+        <inputFieldName>Finding:Area</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMRTKProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Finding:Area</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>d7a6e84a-228b-5855-8d4f-41e2f04ef576</globalKey>
+        <inputFieldName>Finding:Observation</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMRTKProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Finding:Observation</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>a9646bc8-bf9b-5b83-856b-a6b826e6d669</globalKey>
+        <inputFieldName>Finding:Severity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMRTKProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Finding:Severity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>f9256cfa-44c5-59de-a626-77f54de6b039</globalKey>
+        <inputFieldName>Finding:Note</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMRTKProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Finding:Note</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <transformValuesMappings>{ }</transformValuesMappings>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
     <outputType>JSON</outputType>
     <previewJsonData>{
   "QuoteId": "0Q0Ka000000EXAMPLE",
@@ -498,6 +572,20 @@
       "Description": "One-time cleanout and exclusion at signup.",
       "Quantity": 1,
       "Price": "$199.00"
+    }
+  ],
+  "Finding": [
+    {
+      "Area": "Garage",
+      "Observation": "Rodents \u2013 Droppings",
+      "Severity": "Moderate",
+      "Note": "Fresh droppings along the back wall."
+    },
+    {
+      "Area": "Yard",
+      "Observation": "Mosquitoes \u2013 Standing Water",
+      "Severity": "Light",
+      "Note": "Water collecting in the planter by the patio."
     }
   ]
 }</previewJsonData>

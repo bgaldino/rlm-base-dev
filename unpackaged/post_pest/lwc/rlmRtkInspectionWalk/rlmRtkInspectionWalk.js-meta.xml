@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Rentokil Inspection Walk</masterLabel>
+    <description>Zone-by-zone property inspection with findings, notes and photos that drive the plan recommendation</description>
+    <targets>
+        <target>lightning__FlowScreen</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__FlowScreen">
+            <property name="inspectionId" type="String" label="Inspection Id" role="inputOnly"/>
+            <property name="accountName" type="String" label="Account Name" role="inputOnly"/>
+            <property name="serviceAddress" type="String" label="Service Address" role="inputOnly"/>
+            <property name="planSku" type="String" label="Recommended Plan SKU" role="outputOnly"/>
+            <property name="severity" type="String" label="Overall Severity" role="outputOnly"/>
+            <property name="includeMosquito" type="Boolean" label="Recommend Mosquito" role="outputOnly"/>
+            <property name="includeTermite" type="Boolean" label="Recommend Termite" role="outputOnly"/>
+            <property name="recommendationJson" type="String" label="Recommendation JSON" role="outputOnly"/>
+            <property name="findingCount" type="Integer" label="Finding Count" role="outputOnly"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

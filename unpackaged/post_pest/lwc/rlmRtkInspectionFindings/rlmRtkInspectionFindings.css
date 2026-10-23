@@ -1,0 +1,147 @@
+:host {
+    --rtk-ink: #14241a;
+    --rtk-muted: #5b6b62;
+    --rtk-line: #d7e2db;
+    --rtk-accent: #1f7a4d;
+    --rtk-accent-deep: #145c38;
+    --rtk-accent-soft: #d8f0e3;
+    --rtk-warn: #c45c16;
+    --rtk-warn-soft: #fde8d6;
+    --rtk-hot: #b42318;
+    --rtk-hot-soft: #f9d4d0;
+    display: block;
+    color: var(--rtk-ink);
+    margin-bottom: 1rem;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid var(--rtk-line);
+    border-radius: 1rem;
+    padding: 1rem 1.1rem;
+}
+
+.head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.eyebrow {
+    margin: 0 0 0.2rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--rtk-accent);
+    font-weight: 700;
+}
+
+.head h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.meta {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--rtk-muted);
+}
+
+.list {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.finding {
+    border: 1px solid var(--rtk-line);
+    border-radius: 0.8rem;
+    padding: 0.7rem 0.8rem;
+}
+
+.finding-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+.area {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--rtk-muted);
+    font-weight: 700;
+}
+
+.note {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+}
+
+.photos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.55rem;
+}
+
+.photo {
+    width: 8rem;
+    height: 6rem;
+    padding: 0;
+    border: 1px solid var(--rtk-line);
+    border-radius: 0.6rem;
+    overflow: hidden;
+    cursor: pointer;
+    background: #eef5f0;
+}
+
+.photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.fix {
+    margin: 0.5rem 0 0;
+    font-size: 0.8rem;
+    color: var(--rtk-accent-deep);
+}
+
+.sev-pill {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    white-space: nowrap;
+}
+
+.sev-pill.light {
+    background: var(--rtk-accent-soft);
+    color: var(--rtk-accent-deep);
+}
+
+.sev-pill.moderate {
+    background: var(--rtk-warn-soft);
+    color: var(--rtk-warn);
+}
+
+.sev-pill.heavy {
+    background: var(--rtk-hot-soft);
+    color: var(--rtk-hot);
+}
+
+.error {
+    color: var(--rtk-hot);
+    font-size: 0.85rem;
+}

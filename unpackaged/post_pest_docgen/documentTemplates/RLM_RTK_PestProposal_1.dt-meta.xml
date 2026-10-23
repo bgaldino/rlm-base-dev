@@ -11,7 +11,7 @@
     <shouldDisplayUnmappedToken>false</shouldDisplayUnmappedToken>
     <shouldExtractEmbeddedTmplToken>false</shouldExtractEmbeddedTmplToken>
     <status>Active</status>
-    <tokenList>QuoteNumber,CreatedDate,AccountName,ServiceStreet,ServiceCity,ServiceState,ServicePostalCode,BillingStreet,BillingCity,BillingState,BillingPostalCode,CustomerPhone,SalesRep,SalesRepEmail,Plan:Name,Plan:Description,Plan:MonthlyPrice,MonthlyTotal,OneTime:Name,OneTime:Description,OneTime:Price,OneTimeTotal,GrandTotal</tokenList>
+    <tokenList>QuoteNumber,CreatedDate,AccountName,ServiceStreet,ServiceCity,ServiceState,ServicePostalCode,BillingStreet,BillingCity,BillingState,BillingPostalCode,CustomerPhone,SalesRep,SalesRepEmail,Plan:Name,Plan:Description,Plan:MonthlyPrice,MonthlyTotal,OneTime:Name,OneTime:Description,OneTime:Price,OneTimeTotal,GrandTotal,Finding:Area,Finding:Observation,Finding:Severity,Finding:Note</tokenList>
     <tokenMappingMethodType>OmniDataTransform</tokenMappingMethodType>
     <tokenMappingType>JSON</tokenMappingType>
     <type>MicrosoftWord</type>

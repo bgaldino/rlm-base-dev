@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Field inspection of a residential property. Findings with photos drive the recommended pest plan and the resulting Quote.</description>
+    <enableActivities>false</enableActivities>
+    <enableHistory>false</enableHistory>
+    <enableReports>true</enableReports>
+    <enableSearch>true</enableSearch>
+    <label>RTK Inspection</label>
+    <nameField>
+        <displayFormat>INSP-{00000}</displayFormat>
+        <label>Inspection Number</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>RTK Inspections</pluralLabel>
+    <sharingModel>ReadWrite</sharingModel>
+</CustomObject>

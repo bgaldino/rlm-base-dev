@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>66.0</apiVersion>
-    <description>Guided tablet Inspect and Quote for Rentokil residential pest. Visual LWC collects plan, property, size, severity, and add-ons; Apex creates a priced Quote with Initial Service and location zone pricing.</description>
+    <description>Inspection-led field quote for Rentokil residential pest. The technician walks the property zone by zone, logging findings with notes and photos; rules turn findings into a recommended plan, add-ons and severity. The quote screen is pre-filled with the recommendation and its reasons, requires a reason for any override, and Apex creates a priced Quote linked to the inspection.</description>
     <environments>Default</environments>
     <interviewLabel>Inspect &amp; Quote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Inspect &amp; Quote</label>
@@ -19,7 +19,7 @@
         <locationY>134</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Inspect_Screen</targetReference>
+            <targetReference>Create_Inspection</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -33,12 +33,104 @@
         <object>Account</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <recordCreates>
+        <name>Create_Inspection</name>
+        <label>Create Inspection</label>
+        <locationX>176</locationX>
+        <locationY>188</locationY>
+        <assignRecordIdToReference>InspectionId</assignRecordIdToReference>
+        <connector>
+            <targetReference>Walk_Screen</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Account__c</field>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Status__c</field>
+            <value>
+                <stringValue>In Progress</stringValue>
+            </value>
+        </inputAssignments>
+        <object>RLM_RTK_Inspection__c</object>
+    </recordCreates>
+    <screens>
+        <name>Walk_Screen</name>
+        <label>Walk the Property</label>
+        <locationX>176</locationX>
+        <locationY>215</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Inspect_Screen</targetReference>
+        </connector>
+        <fields>
+            <name>InspectionWalkUI</name>
+            <extensionName>c:rlmRtkInspectionWalk</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>inspectionId</name>
+                <value>
+                    <elementReference>InspectionId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>accountName</name>
+                <value>
+                    <elementReference>Get_Account.Name</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>serviceAddress</name>
+                <value>
+                    <elementReference>ServiceAddress</elementReference>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <isRequired>true</isRequired>
+            <outputParameters>
+                <assignToReference>RecPlanSku</assignToReference>
+                <name>planSku</name>
+            </outputParameters>
+            <outputParameters>
+                <assignToReference>RecSeverity</assignToReference>
+                <name>severity</name>
+            </outputParameters>
+            <outputParameters>
+                <assignToReference>RecMosquito</assignToReference>
+                <name>includeMosquito</name>
+            </outputParameters>
+            <outputParameters>
+                <assignToReference>RecTermite</assignToReference>
+                <name>includeTermite</name>
+            </outputParameters>
+            <outputParameters>
+                <assignToReference>RecommendationJson</assignToReference>
+                <name>recommendationJson</name>
+            </outputParameters>
+            <storeOutputAutomatically>false</storeOutputAutomatically>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <nextOrFinishButtonLabel>Review Plan</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
     <screens>
         <name>Inspect_Screen</name>
         <label>Inspect the Property</label>
         <locationX>176</locationX>
         <locationY>242</locationY>
-        <allowBack>false</allowBack>
+        <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
@@ -60,7 +152,49 @@
                     <elementReference>Get_Account.ShippingPostalCode</elementReference>
                 </value>
             </inputParameters>
-            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <inputParameters>
+                <name>recommendationJson</name>
+                <value>
+                    <elementReference>RecommendationJson</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>planSku</name>
+                <value>
+                    <elementReference>RecPlanSku</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>severity</name>
+                <value>
+                    <elementReference>RecSeverity</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>includeMosquito</name>
+                <value>
+                    <elementReference>RecMosquito</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>includeTermite</name>
+                <value>
+                    <elementReference>RecTermite</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>propertyType</name>
+                <value>
+                    <elementReference>PropertyType</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>squareFootage</name>
+                <value>
+                    <elementReference>SquareFootage</elementReference>
+                </value>
+            </inputParameters>
+            <inputsOnNextNavToAssocScrn>ResetValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <outputParameters>
                 <assignToReference>PlanSku</assignToReference>
@@ -85,6 +219,10 @@
             <outputParameters>
                 <assignToReference>IncludeTermite</assignToReference>
                 <name>includeTermite</name>
+            </outputParameters>
+            <outputParameters>
+                <assignToReference>OverrideReason</assignToReference>
+                <name>overrideReason</name>
             </outputParameters>
             <storeOutputAutomatically>false</storeOutputAutomatically>
             <styleProperties>
@@ -224,6 +362,18 @@
                 <elementReference>IncludeTermite</elementReference>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>inspectionId</name>
+            <value>
+                <elementReference>InspectionId</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>overrideReason</name>
+            <value>
+                <elementReference>OverrideReason</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>RLM_RTK_FieldQuote</nameSegment>
         <offset>0</offset>
         <outputParameters>
@@ -251,6 +401,11 @@
         <name>ZoneMultiplierText</name>
         <dataType>String</dataType>
         <expression>TEXT({!ZoneMultiplier})</expression>
+    </formulas>
+    <formulas>
+        <name>ServiceAddress</name>
+        <dataType>String</dataType>
+        <expression>{!Get_Account.ShippingStreet} &amp; &quot;, &quot; &amp; {!Get_Account.ShippingCity} &amp; &quot;, &quot; &amp; {!Get_Account.ShippingState} &amp; &quot; &quot; &amp; {!Get_Account.ShippingPostalCode}</expression>
     </formulas>
     <variables>
         <name>recordId</name>
@@ -354,5 +509,66 @@
         <isInput>false</isInput>
         <isOutput>true</isOutput>
         <scale>2</scale>
+    </variables>
+    <variables>
+        <name>InspectionId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>RecPlanSku</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <stringValue>RTK-ESSENTIAL</stringValue>
+        </value>
+    </variables>
+    <variables>
+        <name>RecSeverity</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <stringValue>Light</stringValue>
+        </value>
+    </variables>
+    <variables>
+        <name>RecMosquito</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <name>RecTermite</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <name>RecommendationJson</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>OverrideReason</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
     </variables>
 </Flow>

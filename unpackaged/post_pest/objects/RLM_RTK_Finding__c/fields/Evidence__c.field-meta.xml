@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Evidence__c</fullName>
+    <description>What was observed.</description>
+    <label>Evidence</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+                <value>
+                    <fullName>Live Activity</fullName>
+                    <default>false</default>
+                    <label>Live Activity</label>
+                </value>
+                <value>
+                    <fullName>Droppings</fullName>
+                    <default>false</default>
+                    <label>Droppings</label>
+                </value>
+                <value>
+                    <fullName>Damage</fullName>
+                    <default>false</default>
+                    <label>Damage</label>
+                </value>
+                <value>
+                    <fullName>Nest</fullName>
+                    <default>false</default>
+                    <label>Nest</label>
+                </value>
+                <value>
+                    <fullName>Entry Point</fullName>
+                    <default>false</default>
+                    <label>Entry Point</label>
+                </value>
+                <value>
+                    <fullName>Standing Water</fullName>
+                    <default>false</default>
+                    <label>Standing Water</label>
+                </value>
+                <value>
+                    <fullName>Wood-to-Soil Contact</fullName>
+                    <default>false</default>
+                    <label>Wood-to-Soil Contact</label>
+                </value>
+                <value>
+                    <fullName>Moisture</fullName>
+                    <default>false</default>
+                    <label>Moisture</label>
+                </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

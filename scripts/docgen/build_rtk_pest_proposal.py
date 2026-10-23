@@ -185,6 +185,23 @@ for i, lines in enumerate(blocks):
         run(p, line, 9.5, first, INK)
         first = False
 
+# ---------- inspection findings ----------
+section_title("What We Found at Your Home")
+para(doc, "Your specialist inspected the property area by area. These findings are why we recommend the plan below; "
+     "you can review the inspection photos with your specialist before you sign.", 8.5, color=GREY, after=6)
+found = doc.add_table(rows=2, cols=4)
+borders(found, RULE, inside_h=True)
+cell_margins(found, 70, 70, 120, 120)
+widths(found, [1.5, 1.9, 0.9, 3.0])
+for i, h in enumerate(["AREA", "WHAT WE FOUND", "SEVERITY", "NOTES"]):
+    c = found.cell(0, i)
+    shade(c, INK)
+    cell_text(c, h, 8, True, "FFFFFF")
+cell_text(found.cell(1, 0), "{{#Finding}}{{Area}}", 9.5, True, INK)
+cell_text(found.cell(1, 1), "{{Observation}}", 9.5, False, INK)
+cell_text(found.cell(1, 2), "{{Severity}}", 9, True, RED)
+cell_text(found.cell(1, 3), "{{Note}}{{/Finding}}", 9, False, GREY)
+
 # ---------- protection plans ----------
 section_title("Your Protection Plan")
 para(doc, "Ongoing service plans that keep your home protected all year. Billed monthly; cancel any time with 30 days' notice.",
