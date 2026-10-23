@@ -752,6 +752,30 @@ private without sharing class RLM_AccountUtilitiesTest {
         );
     }
 
+    @IsTest
+    static void fileLookupTakesTwoQueriesForAnyNumberOfRecords() {
+        Account a = newAccount();
+        Id file = newFile('Account only', a.Id);
+        // 200 Ids of records that don't exist take the set past a 200-row chunk,
+        // so a query per chunk would show, without inserting 200 records.
+        Set<Id> parentIds = new Set<Id>{ a.Id };
+        for (Integer i = 1; i <= 200; i++) {
+            parentIds.add(Id.valueOf('001' + String.valueOf(i).leftPad(12, '0')));
+        }
+
+        Test.startTest();
+        Map<Id, Set<Id>> files = RLM_AccountUtilities.exclusiveFiles(parentIds);
+        Integer queries = Limits.getQueries();
+        Test.stopTest();
+
+        System.assertEquals(new Set<Id>{ file }, files.keySet(), 'The account\'s file is linked to nothing else');
+        System.assertEquals(
+            2,
+            queries,
+            'Phase 2 keeps back a fixed number of queries, so the file lookup must not take more for a larger account'
+        );
+    }
+
     // ------------------------------------------------------------ stopped runs
 
     @IsTest

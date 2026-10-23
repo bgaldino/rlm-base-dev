@@ -48,7 +48,6 @@
  */
 public without sharing class RLM_AccountUtilities {
     // Constants
-    private static final Integer BATCH_SIZE = 200;
 
     // Usage summary teardown. The graph has circular delete constraints
     // (a ratable summary can be held by a usage summary and vice versa), so the
@@ -887,49 +886,42 @@ public without sharing class RLM_AccountUtilities {
      * records: their ContentDocumentLinks go with them, and with the links the
      * only way to find the files.
      */
+    @TestVisible
     private static Map<Id, Set<Id>> exclusiveFiles(Set<Id> parentIds) {
         Map<Id, Set<Id>> parentsByFile = new Map<Id, Set<Id>>();
         if (parentIds.isEmpty()) {
             return parentsByFile;
         }
-        // Chunked to keep per-query row counts bounded.
-        List<Id> parents = new List<Id>(parentIds);
-        for (Integer i = 0; i < parents.size(); i += BATCH_SIZE) {
-            List<Id> chunk = new List<Id>();
-            for (Integer j = i; j < Math.min(i + BATCH_SIZE, parents.size()); j++) {
-                chunk.add(parents[j]);
+        // Two queries however many records there are, not one per chunk: phase 2's
+        // query budget is the fixed QUERY_RESERVE, so a count that grows with the
+        // account could exceed it and end in a LimitException.
+        for (ContentDocumentLink cdl : [
+            SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink WHERE LinkedEntityId IN :parentIds
+        ]) {
+            if (!parentsByFile.containsKey(cdl.ContentDocumentId)) {
+                parentsByFile.put(cdl.ContentDocumentId, new Set<Id>());
             }
-            for (ContentDocumentLink cdl : [
-                SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink WHERE LinkedEntityId IN :chunk
-            ]) {
-                if (!parentsByFile.containsKey(cdl.ContentDocumentId)) {
-                    parentsByFile.put(cdl.ContentDocumentId, new Set<Id>());
-                }
-                parentsByFile.get(cdl.ContentDocumentId).add(cdl.LinkedEntityId);
-            }
+            parentsByFile.get(cdl.ContentDocumentId).add(cdl.LinkedEntityId);
+        }
+        if (parentsByFile.isEmpty()) {
+            return parentsByFile;
         }
 
-        List<Id> fileIds = new List<Id>(parentsByFile.keySet());
-        for (Integer i = 0; i < fileIds.size(); i += BATCH_SIZE) {
-            List<Id> chunk = new List<Id>();
-            for (Integer j = i; j < Math.min(i + BATCH_SIZE, fileIds.size()); j++) {
-                chunk.add(fileIds[j]);
+        Set<Id> fileIds = new Set<Id>(parentsByFile.keySet());
+        for (ContentDocumentLink cdl : [
+            SELECT ContentDocumentId, LinkedEntityId, ShareType FROM ContentDocumentLink
+            WHERE ContentDocumentId IN :fileIds
+        ]) {
+            // Skip: linked to one of our records (expected), or a personal-library
+            // link (ShareType='I') auto-created by the platform for the file owner --
+            // every document has one, so counting it would skip them all.
+            // NOTE: ShareType cannot be filtered in SOQL here because Salesforce only
+            // allows non-Id field filters on ContentDocumentLink when filtering by
+            // LinkedEntityId with the equals operator — not with ContentDocumentId IN.
+            if (parentIds.contains(cdl.LinkedEntityId) || cdl.ShareType == 'I') {
+                continue;
             }
-            for (ContentDocumentLink cdl : [
-                SELECT ContentDocumentId, LinkedEntityId, ShareType FROM ContentDocumentLink
-                WHERE ContentDocumentId IN :chunk
-            ]) {
-                // Skip: linked to one of our records (expected), or a personal-library
-                // link (ShareType='I') auto-created by the platform for the file owner --
-                // every document has one, so counting it would skip them all.
-                // NOTE: ShareType cannot be filtered in SOQL here because Salesforce only
-                // allows non-Id field filters on ContentDocumentLink when filtering by
-                // LinkedEntityId with the equals operator — not with ContentDocumentId IN.
-                if (parentIds.contains(cdl.LinkedEntityId) || cdl.ShareType == 'I') {
-                    continue;
-                }
-                parentsByFile.remove(cdl.ContentDocumentId);
-            }
+            parentsByFile.remove(cdl.ContentDocumentId);
         }
         return parentsByFile;
     }
