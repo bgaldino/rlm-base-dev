@@ -1,5 +1,5 @@
 @IsTest
-private class RLM_UsageOrchestrationControllerTest {
+private with sharing class RLM_UsageOrchestrationControllerTest {
 
     @IsTest
     static void testStartOrchestration_InvalidFlow_Throws() {
