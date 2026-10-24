@@ -12,14 +12,14 @@ from typing import List
 import requests
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
 
 
-class RecalculatePermissionSetGroups(BaseTask):
+class RecalculatePermissionSetGroups(BaseSalesforceTask):
     """Ensure PSGs are in Updated status before assignment."""
 
     task_options = {

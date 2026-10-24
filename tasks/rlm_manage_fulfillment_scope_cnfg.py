@@ -22,10 +22,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
 
 OBJECT_NAME = "CustomFulfillmentScopeCnfg"
@@ -69,7 +69,7 @@ class ToolingWriteError(TaskOptionsError):
         self.body = body
 
 
-class ManageFulfillmentScopeCnfg(BaseTask):
+class ManageFulfillmentScopeCnfg(BaseSalesforceTask):
     task_options = {
         "operation": {
             "description": (

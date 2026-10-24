@@ -117,16 +117,12 @@ tasks/
 
 ## Running Tests
 
-⚠ **Every `robot_*` task REJECTS `--org`** (`Error: No such option: --org`, issue #320) — they run
-against the **CCI default org**, so select it first with `cci org default <alias>`. Verified
-2026-07-28 against all six tasks.
-
-⚠ Their **feature flags come from `cumulusci.yml` defaults, not from the org** — a TSO org still
+⚠ The `robot_e2e*` and modular `robot_*` tasks' **feature flags come from `cumulusci.yml` defaults, not from the org** — a TSO org still
 gets `TSO:false`. Only `QB` is consumed by the suites today.
 
 ```bash
-# Select the target org FIRST — the robot tasks do not take --org
-cci org default beta
+# The robot_e2e* and modular robot_* tasks below take --org <cci_alias>; without it,
+# the CCI default org is used (robot_testdoc, CCI's own task, takes no org)
 
 # Full Quote-to-Order flow (headless): both tests, no contract and contract-first
 cci task run robot_e2e
@@ -151,7 +147,7 @@ cci task run robot_order_from_quote
 cci task run robot_reset_account
 
 # Override test data (run Robot directly to pass --variable)
-robot -v TEST_ACCOUNT_NAME:"Acme Corp" -v ORG_ALIAS:beta robot/rlm-base/tests/e2e
+robot -v TEST_ACCOUNT_NAME:"Acme Corp" -v ORG_ALIAS:rlm-base__beta robot/rlm-base/tests/e2e   # SF CLI alias
 ```
 
 ### CCI Task Reference
@@ -392,7 +388,7 @@ robot_my_test:
   Pause points are placed before each major step (Reset, Create Opportunity, Create Quote, Browse Catalogs, Create Order, Activate Order) and after final verification. They have no effect in headless mode (`PAUSE_FOR_RECORDING` defaults to `false`).
 - **Screenshots** — every step captures a screenshot; check `results/e2e_<timestamp>/log.html`.
 - **Shadow DOM inspection** — in Chrome DevTools, enable "Show user agent shadow DOM" in Settings to see shadow roots in the Elements panel.
-- **Test isolation** — `cci org default beta` then `cci task run robot_reset_account` to clear transactional data before re-running (the task takes no `--org`).
+- **Test isolation** — `cci task run robot_reset_account --org beta` to clear transactional data before re-running.
 - **`*_retry` screenshots are NOT failures** — the configurator's menu items, tabs and footer each miss on their first attempt and succeed on a retry. `configurator_tab_retry.png` in a results folder is normal for a passing run.
 
 ## Keyword Reference (E2ECommon.robot)

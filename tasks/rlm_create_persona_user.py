@@ -25,15 +25,15 @@ except ImportError:
     requests = None
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError, CommandException
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
     CommandException = Exception
 
 
-class CreatePersonaUser(BaseTask):
+class CreatePersonaUser(BaseSalesforceTask):
     """Create a persona user from a JSON definition file.
 
     Scratch orgs use the ``sf org create user`` CLI; non-scratch orgs insert a

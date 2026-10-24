@@ -815,15 +815,12 @@ def build_one(org, account, args):
         # missing from that chain until it was added. On an org built before that fix the
         # commitment rate is looked up against a stale table and consumption rates at the
         # undiscounted anchor rate, so the table has to be refreshed by hand there.
-        # refresh_dt_asset extends SFDXBaseTask, so cci offers it no --org flag -- it runs
-        # against the CCI DEFAULT org. This script was given an SF CLI alias, a different
-        # registry entirely, so spell out the default-org step or the refresh silently lands
-        # on whatever org happened to be default.
+        # This script was given an SF CLI alias, but cci's --org takes the CCI alias (a
+        # different registry), so the hint names the placeholder rather than reusing it.
         print("  note         commitment rate table refreshes via CreateAssetOrderEvent; on an "
               "org built\n               before that was wired up, refresh it before recording "
               "usage:\n"
-              "                 cci org default <cci_alias>   # refresh_dt_asset takes no --org\n"
-              "                 cci task run refresh_dt_asset")
+              "                 cci task run refresh_dt_asset --org <cci_alias>")
 
     # Usage-bucket verification is meaningful only for usage products (Anchor/
     # Pack/Commit). A plain renewal term product (the renewal-asset-creation use

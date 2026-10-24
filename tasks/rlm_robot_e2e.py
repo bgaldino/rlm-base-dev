@@ -12,10 +12,10 @@ from datetime import datetime
 from pathlib import Path
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object  # type: ignore
+    BaseSalesforceTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
 from tasks.robot_utils import check_urllib3_for_robot
@@ -31,7 +31,7 @@ FEATURE_FLAGS = [
 ]
 
 
-class RunE2ETests(BaseTask):
+class RunE2ETests(BaseSalesforceTask):
     """Run end-to-end Robot Framework tests with org and feature flag context."""
 
     task_options = {

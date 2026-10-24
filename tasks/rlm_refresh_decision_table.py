@@ -39,9 +39,8 @@ class RefreshDecisionTable(SFDXBaseTask):
     # salesforce_task False, the CLI builds no --org option, and every
     # refresh_dt_* task silently runs against the CCI DEFAULT org — so the
     # obvious remediation for a stale table (`cci task run refresh_dt_commerce
-    # --org <alias>`) fails outright with "No such option: --org". Part of the
-    # repo-wide sweep tracked in issue #320; this and ManageDecisionTables are
-    # done, the rest of the 102 are not.
+    # --org <alias>`) fails outright with "No such option: --org". Issue #320;
+    # tests/test_cci_task_org_option.py now asserts the flag for every task.
     salesforce_task = True
 
     def _update_credentials(self):

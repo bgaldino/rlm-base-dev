@@ -19,14 +19,14 @@ import xml.etree.ElementTree as ET
 import time
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
 
 
-class ManageExpressionSets(BaseTask):
+class ManageExpressionSets(BaseSalesforceTask):
     """
     Comprehensive Expression Set management task.
     
