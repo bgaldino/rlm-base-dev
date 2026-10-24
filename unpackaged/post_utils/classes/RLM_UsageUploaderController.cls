@@ -725,7 +725,7 @@ public with sharing class RLM_UsageUploaderController {
             }
         } catch (QueryException e) {
             // USER_MODE throws when the caller lacks read on the policy chain, and nothing in
-            // this repo grants ProductUsageResourcePolicy or UsageOveragePolicy. Rates and
+            // this repo grants ProductUsageResourcePolicy or UsageOveragePolicy outside RLM_UsageUploader (and RLM_USG). Rates and
             // grants are the point of this screen, so a missing grant on one optional column
             // must not fail the whole wire: degrade to blank, exactly as an absent policy does.
             return new OverageLookup();

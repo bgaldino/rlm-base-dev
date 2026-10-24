@@ -11,7 +11,8 @@
      filter on: TransactionJournal create fields (editable) plus Asset/Product2 read fields
      (readable only — the controller never writes them). Most other queried objects
      (ProductUsageResource, UsageResource, AssetRateCardEntry, RateCardEntry,
-     RateAdjustmentByTier, TransactionUsageEntitlement, UsageEntitlementBucket) expose zero
+     RateAdjustmentByTier, TransactionUsageEntitlement, UsageEntitlementBucket,
+     ProductUsageResourcePolicy, UsageOveragePolicy) expose zero
      permissionable fields at all — object-level READ fully covers their queried fields per
      platform rules, so no fieldPermissions rows exist for them. TransactionJournal omits six
      fields: two required (ActivityDate, Status) and four non-permissionable (AccountId,
@@ -22,7 +23,7 @@
      the deploy fails with "Permission Read Account depends on permission(s): Read Contact" without
      it. Live-verified on tcr_803 (Person Accounts enabled) after failing without this grant.
 
-     Note: All 13 READ object grants overlap with the RLM_USG permission set group (always assigned).
+     Note: All 16 READ object grants overlap with the RLM_USG permission set group (always assigned).
      The only incremental permissions are TransactionJournal CREATE plus field-level grants. READ
      object grants are retained to make this set self-sufficient if assigned standalone (partial builds,
      manual assignment, or future PSG changes). Salesforce automatically deduplicates permissions. -->
@@ -206,6 +207,24 @@
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
         <object>UsageEntitlementBucket</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>ProductUsageResourcePolicy</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>UsageOveragePolicy</object>
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
