@@ -148,6 +148,7 @@
             </defaultValue>
             <fieldText>Delete Assets</fieldText>
             <fieldType>InputField</fieldType>
+            <helpText>&lt;p&gt;Deletes the account&apos;s assets with their asset relationships and asset rate card entries, and the work orders and cases linked to the assets. When unchecked, the assets and their rate card entries are kept. Usage summaries, entitlements and transaction journals are deleted either way.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>
@@ -167,6 +168,7 @@
             </defaultValue>
             <fieldText>Delete Fulfillment</fieldText>
             <fieldType>InputField</fieldType>
+            <helpText>&lt;p&gt;Deletes the account&apos;s fulfillment records: its fulfillment orders with their line items, the fulfillment plans of its orders with their steps, and its fulfillment assets with their decompositions.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>
@@ -226,6 +228,7 @@
             </defaultValue>
             <fieldText>Preserve Contracts with Contracted Prices</fieldText>
             <fieldType>InputField</fieldType>
+            <helpText>&lt;p&gt;When checked, the account&apos;s contracts that have contracted prices are kept, with those prices and the rate card entries bound to them, and its other contracts are still deleted. The usage resource policies bound to the kept contracts are deleted either way. When unchecked, all of the account&apos;s contracts are deleted.&lt;/p&gt;</helpText>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <styleProperties>
