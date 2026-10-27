@@ -23,6 +23,9 @@ ${SCREENSHOT_COUNTER}       ${0}
 # failed; see Wait For Quote Calculation.
 @{QUOTE_CALC_FAILED}        SaveFailedOrIncomplete    QuoteRequestPartiallySaved    PartialSaveSuccess
 @{QUOTE_CALC_PRICED}        CompletedWithPricing    CompletedWithTax    TaxCalculationSuccess
+# RLM_CreateContractFromQuote's contract-price choices: option label (before its colon) → choice API name.
+&{CONTRACT_PRICE_CHOICES}   Net Unit Price=ContractUsingNetUnitPriceChoice    Discount=ContractUsingDiscountChoice
+...                         None=ContractOnlyChoice
 
 *** Keywords ***
 
@@ -547,20 +550,33 @@ Select Order Creation Method
     ...    ⚠ A click is not a selection. Live 2026-10-13: the radio click returned success while the
     ...    tile stayed unselected, so Finish couldn't advance. The radio must read back `checked`
     ...    (falling back to its label), or the step fails and retries.
-    Wait Until Keyword Succeeds    15s    3s    _Select Single Order Radio Via JS
-    Sleep    2s    reason=Allow selection to register
-    # Again after the settle: the LWC picker can re-render the radio unchecked after the click, and
-    # the read-back above is synchronous. The keyword returns early when it is still checked.
-    Wait Until Keyword Succeeds    15s    3s    _Select Single Order Radio Via JS
+    _Select Radio And Settle    CreateSingleOrder    picker_id=single-order
+    ...    screenshot=order_method_not_found    timeout=15s
     # Click Finish to advance past the picker screen
     Save Modal    Finish
 
-_Select Single Order Radio Via JS
-    [Documentation]    Internal keyword — selects the Create Single Order radio via JS, and succeeds
-    ...    only when the radio reads back `checked` (otherwise returns `not_checked`, which retries).
-    ...    Returns early, without clicking, when it is already checked.
+_Select Radio And Settle
+    [Documentation]    Internal keyword — selects the radio whose value is ${value} (see
+    ...    ``_Select Radio By Value Via JS``), waits for the selection to register, then selects
+    ...    it again: an LWC picker can re-render the radio unchecked after the click, and the
+    ...    read-back is synchronous. The second pass returns early when it is still checked.
+    [Arguments]    ${value}    ${picker_id}=${EMPTY}    ${screenshot}=radio_not_selected    ${timeout}=30s
+    Wait Until Keyword Succeeds    ${timeout}    3s    _Select Radio By Value Via JS
+    ...    ${value}    ${picker_id}    ${screenshot}
+    Sleep    2s    reason=Allow selection to register
+    Wait Until Keyword Succeeds    ${timeout}    3s    _Select Radio By Value Via JS
+    ...    ${value}    ${picker_id}    ${screenshot}
+
+_Select Radio By Value Via JS
+    [Documentation]    Internal keyword — selects the radio input whose value is ${value}, searching
+    ...    through shadow roots and slotted content, and succeeds only when the radio reads back
+    ...    `checked`, falling back to its label (otherwise returns `not_checked`, which retries).
+    ...    Returns early, without clicking, when it is already checked. A screen flow's radio
+    ...    value is the choice's API name. ${picker_id}, when given, is the ``data-id`` of a
+    ...    visual-picker div to fall back on when no such input is found.
+    [Arguments]    ${value}    ${picker_id}=${EMPTY}    ${screenshot}=radio_not_selected
     ${result}=    Execute JavaScript
-    ...    return (function(){
+    ...    return (function(value, pickerId){
     ...        function deepQueryAll(root, selector) {
     ...            var found = [];
     ...            var els = root.querySelectorAll(selector);
@@ -579,9 +595,10 @@ _Select Single Order Radio Via JS
     ...            }
     ...            return found;
     ...        }
-    ...        /* Find radio with value="CreateSingleOrder"; only a radio left CHECKED counts */
-    ...        var radios = deepQueryAll(document, 'input[value="CreateSingleOrder"]');
+    ...        /* Find the radio with this value; only a radio left CHECKED counts */
+    ...        var radios = deepQueryAll(document, 'input[type="radio"]');
     ...        for (var i = 0; i < radios.length; i++) {
+    ...            if (radios[i].value !== value) continue;
     ...            if (radios[i].checked) { return 'selected'; }
     ...            radios[i].click();
     ...            if (radios[i].checked) { return 'selected'; }
@@ -590,8 +607,8 @@ _Select Single Order Radio Via JS
     ...            if (lbl) { lbl.click(); if (radios[i].checked) { return 'selected_by_label'; } }
     ...            return 'not_checked';
     ...        }
-    ...        /* Fallback: find the visual picker div with data-id="single-order" */
-    ...        var pickers = deepQueryAll(document, 'div[data-id="single-order"]');
+    ...        /* Fallback: find the visual picker div with this data-id */
+    ...        var pickers = pickerId ? deepQueryAll(document, 'div[data-id="' + pickerId + '"]') : [];
     ...        for (var i = 0; i < pickers.length; i++) {
     ...            var radio = pickers[i].querySelector('input[type="radio"]');
     ...            if (!radio) continue;
@@ -601,11 +618,12 @@ _Select Single Order Radio Via JS
     ...            return radio.checked ? 'selected_by_picker' : 'not_checked';
     ...        }
     ...        return 'not_found';
-    ...    })()
-    Log    Select Order Creation Method JS result: ${result}
+    ...    })(arguments[0], arguments[1])
+    ...    ARGUMENTS    ${value}    ${picker_id}
+    Log    Radio "${value}" JS result: ${result}
     IF    "${result}" == "not_found" or "${result}" == "not_checked"
-        Capture Step Screenshot    order_method_not_found
-        Fail    msg=Create Single Order radio not selected (${result}) (will retry).
+        Capture Step Screenshot    ${screenshot}
+        Fail    msg=Radio "${value}" not selected (${result}) (will retry).
     END
 
 # ── Browse Catalogs ────────────────────────────────────────────────
@@ -2043,19 +2061,36 @@ Create Contract From Quote
     ...    contracts." and no Contract. The same quote succeeds on a second try. The retry runs
     ...    only when that message is on screen, so a contract that's merely slow to appear is
     ...    never created twice.
-    [Arguments]    ${quote_id}
+    ...
+    ...    ``contract_price_option`` picks the flow's contract-price choice by the label before its
+    ...    colon: ``None`` (the flow's default), ``Discount`` or ``Net Unit Price``
+    ...    (``\${CONTRACT_PRICE_CHOICES}`` maps them to the flow's choice names). With an option
+    ...    other than None, every ContractItemPrice the Contract gets must have an EndDate before
+    ...    activation. It may get none, when no quote line has a discount (Discount) or a net unit
+    ...    price (Net Unit Price). Live 2026-10-22: a one-time quote line has no dates, so
+    ...    ``createContract`` left its ContractItemPrice without an EndDate and activation failed;
+    ...    the flow now dates those from the Contract.
+    ...
+    ...    Contracts the Quote already had are excluded, so a rerun on the same Quote finds the new one.
+    [Arguments]    ${quote_id}    ${contract_price_option}=None
     SalesforceAPI.Validate Salesforce Id    ${quote_id}
+    Dictionary Should Contain Key    ${CONTRACT_PRICE_CHOICES}    ${contract_price_option}
+    ...    msg=contract_price_option must be one of ${CONTRACT_PRICE_CHOICES.keys()}, not "${contract_price_option}"
     Wait For Quote Calculation    ${quote_id}    require_priced=${True}
+    ${earlier}=    SalesforceAPI.Query Records
+    ...    SELECT Id FROM Contract WHERE SourceQuoteId = '${quote_id}' LIMIT 200
+    ${earlier_ids}=    Evaluate    ", ".join("'" + r["Id"] + "'" for r in $earlier)
+    ${not_earlier}=    Set Variable If    $earlier_ids    AND Id NOT IN (${earlier_ids})    ${EMPTY}
     ${contract_soql}=    Set Variable
-    ...    SELECT Id FROM Contract WHERE SourceQuoteId = '${quote_id}' ORDER BY CreatedDate DESC LIMIT 1
-    _Submit New Contract Flow    ${quote_id}
+    ...    SELECT Id FROM Contract WHERE SourceQuoteId = '${quote_id}' ${not_earlier} ORDER BY CreatedDate DESC LIMIT 1
+    _Submit New Contract Flow    ${quote_id}    ${contract_price_option}    ${contract_soql}
     ${created}=    Run Keyword And Return Status
     ...    Wait For Related Record Via API    ${contract_soql}    timeout=45s    interval=3s
     IF    not ${created}
         ${flow_failed}=    _Page Shows Text    The contract could not be created
         IF    ${flow_failed}
             Log    New Contract on ${quote_id} failed in the flow; retrying once.    WARN
-            _Submit New Contract Flow    ${quote_id}
+            _Submit New Contract Flow    ${quote_id}    ${contract_price_option}    ${contract_soql}
         END
     END
     ${contract_id}=    Wait For Related Record Via API    ${contract_soql}
@@ -2065,6 +2100,9 @@ Create Contract From Quote
     Should Be Equal As Numbers    ${renewal_term}    1
     ...    msg=Contract ${contract_id} RenewalTerm2 is ${renewal_term}, expected 1
     SalesforceAPI.Verify Field Value Via API    Contract    ${contract_id}    RenewalTermUnit    Annual
+    IF    "${contract_price_option}" != "None"
+        _Verify Contract Item Prices Have End Dates    ${contract_id}
+    END
     ${result}=    Run Process    sf    data    update    record    -o    ${ORG_ALIAS}
     ...    --sobject    Contract    --record-id    ${contract_id}
     ...    --values    Status\=Activated    --json    shell=False
@@ -2074,14 +2112,58 @@ Create Contract From Quote
     RETURN    ${contract_id}
 
 _Submit New Contract Flow
-    [Documentation]    Internal keyword — runs the Quote's ``New Contract`` action and clicks the
-    ...    flow's Create button.
-    [Arguments]    ${quote_id}
+    [Documentation]    Internal keyword — runs the Quote's ``New Contract`` action, picks
+    ...    ${contract_price_option} unless it is the default None, and clicks the flow's Create
+    ...    button. A price option leads to a "Create contract prices?" screen when quote lines
+    ...    match it, with a second Create button; with no matching lines the flow skips it. So
+    ...    this waits until that screen, the flow's error or the contract (${contract_soql})
+    ...    appears, rather than checking once and missing a screen that renders late.
+    [Arguments]    ${quote_id}    ${contract_price_option}    ${contract_soql}
     Navigate To Quote    ${quote_id}
     Click Highlights Panel Action    New Contract
     Sleep    5s    reason=Allow RLM_CreateContractFromQuote flow to initialize
+    IF    "${contract_price_option}" != "None"
+        _Select Radio And Settle    ${CONTRACT_PRICE_CHOICES}[${contract_price_option}]
+        ...    screenshot=contract_price_option_not_selected
+    END
     Wait Until Keyword Succeeds    30s    3s    _Click Flow Navigation Button    Create
+    IF    "${contract_price_option}" != "None"
+        ${screen}=    Wait Until Keyword Succeeds    45s    3s
+        ...    _Contract Prices Screen Or Result    ${contract_soql}
+        IF    "${screen}" == "confirmation"
+            Capture Step Screenshot    contract_prices_confirmation
+            Wait Until Keyword Succeeds    30s    3s    _Click Flow Navigation Button    Create
+        END
+    END
     Capture Step Screenshot    contract_flow_submitted
+
+_Contract Prices Screen Or Result
+    [Documentation]    Internal keyword — returns ``confirmation`` once the flow shows its "Create
+    ...    contract prices?" screen, ``failed`` once it shows its error, or ``created`` once
+    ...    ${contract_soql} finds the contract (no quote line matched the price option, so the
+    ...    flow skipped the screen). Fails while none of them has appeared, so it can be retried.
+    [Arguments]    ${contract_soql}
+    ${confirm}=    _Page Shows Text    Create contract prices?
+    IF    ${confirm}    RETURN    confirmation
+    ${failed}=    _Page Shows Text    The contract could not be created
+    IF    ${failed}    RETURN    failed
+    ${contracts}=    SalesforceAPI.Query Records    ${contract_soql}
+    IF    $contracts    RETURN    created
+    Fail    msg=Neither the "Create contract prices?" screen nor a contract has appeared yet (will retry).
+
+_Verify Contract Item Prices Have End Dates
+    [Documentation]    Internal keyword — fails if any ContractItemPrice on ${contract_id} lacks an
+    ...    EndDate. Contract activation rejects a ContractItemPrice without one, so this names the
+    ...    cause before activation would fail. A Contract with no ContractItemPrice passes: the
+    ...    flow creates none when no quote line matches the price option.
+    [Arguments]    ${contract_id}
+    ${prices}=    SalesforceAPI.Query Records
+    ...    SELECT Id, StartDate, EndDate FROM ContractItemPrice WHERE ContractId = '${contract_id}' LIMIT 200
+    ${count}=    Get Length    ${prices}
+    Log    Contract ${contract_id} has ${count} ContractItemPrice record(s): ${prices}
+    ${undated}=    Evaluate    [r["Id"] for r in $prices if not r.get("EndDate")]
+    Should Be Empty    ${undated}
+    ...    msg=ContractItemPrice records on ${contract_id} without an EndDate: ${undated}
 
 _Page Shows Text
     [Documentation]    Internal keyword — True if ${text} appears anywhere on the page, including

@@ -26,6 +26,9 @@ ${OPPORTUNITY_ID}       ${EMPTY}
 ${QUOTE_ID}             ${EMPTY}
 ${ORDER_ID}             ${EMPTY}
 ${CONTRACT_ID}          ${EMPTY}
+# The contract-first test's contract-price option (None, Discount or Net Unit Price). Net Unit
+# Price gives every priced line a ContractItemPrice, so the dates check covers them all.
+${CONTRACT_PRICE_OPTION}    Net Unit Price
 
 *** Test Cases ***
 
@@ -101,6 +104,7 @@ Run Quote To Order Flow
     # Order (and the renewal Opportunity the flow creates from it) carries a real ContractId.
     IF    ${with_contract}
         ${contract_id}=    Create Contract From Quote    ${QUOTE_ID}
+        ...    contract_price_option=${CONTRACT_PRICE_OPTION}
         Set Suite Variable    ${CONTRACT_ID}    ${contract_id}
     END
 
