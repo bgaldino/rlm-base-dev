@@ -1,116 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <actionCalls>
-        <name>Price_Book_Entry_Commerce_V2</name>
-        <label>Price Book Entry Commerce V2</label>
+    <apiVersion>68.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>The Commerce tables, as listed on the first screen and in dt_commerce_decision_tables.</description>
+        <name>Set_Commerce_Table_Names</name>
+        <label>Set Commerce Table Names</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Price_Book_Entry_For_Unit_Price_Commerce_V1</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
+        <assignmentItems>
+            <assignToReference>decisionTableApiNames</assignToReference>
+            <operator>Add</operator>
             <value>
                 <stringValue>Price_Book_Entry_Commerce_V2</stringValue>
             </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Price_Book_Entry_For_Unit_Price_Commerce_V1</name>
-        <label>Price Book Entry For Unit Price Commerce V1</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Pricebook_Entry_Adjustment_Commerce_V1</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>decisionTableApiNames</assignToReference>
+            <operator>Add</operator>
             <value>
                 <stringValue>Price_Book_Entry_For_Unit_Price_Commerce_V1</stringValue>
             </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Pricebook_Entry_Adjustment_Commerce_V1</name>
-        <label>Pricebook Entry Adjustment Commerce V1</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Range_Based_Adjustments_Commerce_V1</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>decisionTableApiNames</assignToReference>
+            <operator>Add</operator>
             <value>
                 <stringValue>Pricebook_Entry_Adjustment_Commerce_V1</stringValue>
             </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Range_Based_Adjustments_Commerce_V1</name>
-        <label>Range Based Adjustments Commerce V1</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Slab_Based_Adjustments_Commerce_V1</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>decisionTableApiNames</assignToReference>
+            <operator>Add</operator>
             <value>
                 <stringValue>Range_Based_Adjustments_Commerce_V1</stringValue>
             </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <actionCalls>
-        <name>Slab_Based_Adjustments_Commerce_V1</name>
-        <label>Slab Based Adjustments Commerce V1</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>decisionTableApiNames</assignToReference>
+            <operator>Add</operator>
             <value>
                 <stringValue>Slab_Based_Adjustments_Commerce_V1</stringValue>
             </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <apiVersion>68.0</apiVersion>
-    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+        </assignmentItems>
+        <connector>
+            <targetReference>Refresh_Tables</targetReference>
+        </connector>
+    </assignments>
     <customProperties>
         <name>ScreenProgressIndicator</name>
         <value>
             <stringValue>{&quot;location&quot;:&quot;top&quot;,&quot;type&quot;:&quot;simple&quot;}</stringValue>
         </value>
     </customProperties>
-    <description>Screen flow to refresh Commerce decision tables. Aligns with CCI dt_commerce_decision_tables. Run when Commerce is enabled.</description>
+    <description>Screen flow to refresh Commerce decision tables. Aligns with CCI dt_commerce_decision_tables. Run when Commerce is enabled. The refresh is RLM_Refresh_Decision_Tables_Bulk, so a table whose refresh throws is counted and named on the result screen rather than ending the flow with the tables after it unrefreshed. Deploy unpackaged/post_utils first (deploy_post_utils), which ships that flow.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Refresh Commerce Decision Tables {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Refresh Commerce Decision Tables</label>
@@ -142,7 +85,7 @@
         <allowFinish>true</allowFinish>
         <allowPause>false</allowPause>
         <connector>
-            <targetReference>Price_Book_Entry_Commerce_V2</targetReference>
+            <targetReference>Set_Commerce_Table_Names</targetReference>
         </connector>
         <fields>
             <name>Refresh_Commerce_Header</name>
@@ -174,6 +117,37 @@
         <showFooter>true</showFooter>
         <showHeader>false</showHeader>
     </screens>
+    <screens>
+        <name>Refresh_Result</name>
+        <label>Refresh Result</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Result_Counts</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Refresh_Tables.queuedCount} Commerce decision tables queued for refresh, {!Refresh_Tables.failedCount} failed.&lt;/strong&gt; A queued refresh finishes in the background; the Decision Table Manager shows its status.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>Result_Failed</name>
+            <fieldText>&lt;p&gt;Failed: {!Refresh_Tables.failedApiNames}. A table that is missing or inactive in this org cannot be refreshed.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>Refresh_Tables.failedCount</leftValueReference>
+                    <operator>GreaterThan</operator>
+                    <rightValue>
+                        <numberValue>0.0</numberValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -182,4 +156,28 @@
         </connector>
     </start>
     <status>Active</status>
+    <subflows>
+        <name>Refresh_Tables</name>
+        <label>Refresh Tables</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Refresh_Result</targetReference>
+        </connector>
+        <flowName>RLM_Refresh_Decision_Tables_Bulk</flowName>
+        <inputAssignments>
+            <name>decisionTableApiNames</name>
+            <value>
+                <elementReference>decisionTableApiNames</elementReference>
+            </value>
+        </inputAssignments>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </subflows>
+    <variables>
+        <name>decisionTableApiNames</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
 </Flow>

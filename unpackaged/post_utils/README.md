@@ -22,7 +22,7 @@ All resets delete usage policies, binding object rate card entries, usage summar
 
 ### Result
 
-The flow ends on a screen that shows the invocable's result: whether the reset completed, what it removed and what it kept, by object.
+The flow ends on a screen that shows the invocable's result: whether the reset completed, what it removed and what it kept, by object. After a completed reset it also refreshes the active `PricingDiscovery` decision tables through `RLM_Refresh_Decision_Tables_By_Usage_Type`, and the screen shows how many were queued, which failed, or that none matched. A fault in that refresh is shown on the same screen and does not undo the reset; a governor limit hit by the refresh would, because it runs in the reset's transaction and no fault path catches a limit.
 
 | Output | Meaning |
 |--------|---------|
@@ -66,7 +66,7 @@ A governor limit would roll back both phases, so the reset stops short of one. E
 | Flow `RLM_CloseRenewalOpportunityOnQuoteSync` | `QuoteToOpportunitySyncEvent` subscriber: when a sync succeeds, the quote has an activated order and none of its orders is still a draft, sets its open opportunity to Closed Won, whatever its type, if the opportunity still syncs with that quote, so a renewal just won doesn't stay open beside the next-term renewal opportunity; a quote split into several orders closes the opportunity only when the last one activates. When the background sync fails for a quote with an activated order, it leaves the opportunity open and creates a high-priority task for its owner with the event's error code and message |
 | Flow `RLM_Event_Trigger` | Generic event trigger utility |
 | Flow `RLM_Refresh_Decision_Tables_Bulk` | Bulk decision table refresh |
-| Flow `RLM_Refresh_Decision_Tables_By_Usage_Type` | Decision table refresh filtered by usage type (called by account reset) |
+| Flow `RLM_Refresh_Decision_Tables_By_Usage_Type` | Refreshes the active decision tables of one usage type through `RLM_Refresh_Decision_Tables_Bulk` and returns queued/failed counts (called by account reset) |
 | `RLM_Build_Info__mdt` | Custom metadata recording build provenance (branch, commit, timestamp, flags) |
 | Settings `RevenueManagement` | Turns on Asynchronous Opportunity Sync (`enableAsynchronousQuoteOpportunitySync`), which the standard `syncQuoteOpportunity` action requires |
 | `RLM_SessionId` (VF page) | Exposes session ID for tooling integrations |

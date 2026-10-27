@@ -349,6 +349,108 @@
                 </conditions>
             </visibilityRule>
         </fields>
+        <fields>
+            <name>Result_Refresh</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Pricing decision tables:&lt;/strong&gt; {!Refresh_Pricing_Discovery_Decision_Tables.queuedCount} queued for refresh, {!Refresh_Pricing_Discovery_Decision_Tables.failedCount} failed. A queued refresh finishes in the background; the Decision Table Manager shows its status.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>1 AND 2 AND (3 OR 4)</conditionLogic>
+                <conditions>
+                    <leftValueReference>ResetCompleted</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+                <conditions>
+                    <leftValueReference>Refresh_Pricing_Discovery_Decision_Tables.faultMessage</leftValueReference>
+                    <operator>IsNull</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+                <conditions>
+                    <leftValueReference>Refresh_Pricing_Discovery_Decision_Tables.queuedCount</leftValueReference>
+                    <operator>GreaterThan</operator>
+                    <rightValue>
+                        <numberValue>0.0</numberValue>
+                    </rightValue>
+                </conditions>
+                <conditions>
+                    <leftValueReference>Refresh_Pricing_Discovery_Decision_Tables.failedCount</leftValueReference>
+                    <operator>GreaterThan</operator>
+                    <rightValue>
+                        <numberValue>0.0</numberValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>Result_Refresh_Failed</name>
+            <fieldText>&lt;p&gt;Not refreshed: {!Refresh_Pricing_Discovery_Decision_Tables.failedApiNames}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>Refresh_Pricing_Discovery_Decision_Tables.failedCount</leftValueReference>
+                    <operator>GreaterThan</operator>
+                    <rightValue>
+                        <numberValue>0.0</numberValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>Result_Refresh_None</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;Pricing decision tables:&lt;/strong&gt; none refreshed. No active decision table has the PricingDiscovery usage type in this org.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>ResetCompleted</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+                <conditions>
+                    <leftValueReference>Refresh_Pricing_Discovery_Decision_Tables.faultMessage</leftValueReference>
+                    <operator>IsNull</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+                <conditions>
+                    <leftValueReference>Refresh_Pricing_Discovery_Decision_Tables.queuedCount</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <numberValue>0.0</numberValue>
+                    </rightValue>
+                </conditions>
+                <conditions>
+                    <leftValueReference>Refresh_Pricing_Discovery_Decision_Tables.failedCount</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <numberValue>0.0</numberValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>Result_Refresh_Fault</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The pricing decision tables were not refreshed.&lt;/strong&gt; Refresh them from the Decision Table Manager.&lt;/p&gt;&lt;p&gt;{!Refresh_Pricing_Discovery_Decision_Tables.faultMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>Refresh_Pricing_Discovery_Decision_Tables.faultMessage</leftValueReference>
+                    <operator>IsNull</operator>
+                    <rightValue>
+                        <booleanValue>false</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
