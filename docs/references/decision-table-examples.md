@@ -448,8 +448,8 @@ Cloud Home page. The remaining `post_utils` refresh flows are autolaunched.
 |---|---|---|---|
 | **Decision Table Manager** | `post_utils` LWC, Home page | Component | Interactive: per-table verdict, selective refresh, status polling |
 | `RLM_Refresh_Decision_Tables_Bulk` | `post_utils` | **Autolaunched** | The only way Apex can reach the refresh action — `Flow.Interview.createInterview(...).start()`. Carries the incremental input |
-| `RLM_Refresh_Decision_Tables_By_Usage_Type` | `post_utils` | **Autolaunched** | Refreshes every table sharing a usage type; called by `RLM_Account_Utilities` |
-| `RLM_Refresh_Commerce_Decision_Tables` | `post_commerce` | **Screen flow** | The one surviving screen flow — Commerce tables, when Commerce is enabled |
+| `RLM_Refresh_Decision_Tables_By_Usage_Type` | `post_utils` | **Autolaunched** | Selects every **active** table with a usage type and hands them to `RLM_Refresh_Decision_Tables_Bulk`; returns `queuedCount`, `failedCount`, `failedApiNames`. Called by `RLM_Account_Utilities`, which shows the counts on its result screen |
+| `RLM_Refresh_Commerce_Decision_Tables` | `post_commerce` | **Screen flow** | The one surviving screen flow — Commerce tables, when Commerce is enabled. Refreshes through `RLM_Refresh_Decision_Tables_Bulk` and ends on a result screen, so deploy `post_utils` first |
 | `check_decision_table_freshness` | CCI task | Headless | Verdicts without a browser; `-o param1 strict` fails a build on any stale table |
 
 The action input is `isDecisionTableIncremental`, not `isIncremental`. The
@@ -461,8 +461,10 @@ incremental request is accepted and then changes nothing. The Manager refuses on
 a table rather than queueing a no-op, and so does
 `scripts/decision_tables/refresh_decision_table.py --incremental`.
 
-Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_post_commerce`
-(or enable `deploy_post_commerce` in prepare when `commerce: true`).
+Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_post_commerce`,
+which no build flow runs. Deploy `post_utils`
+first: the Commerce flow calls `RLM_Refresh_Decision_Tables_Bulk`, and `post_utils` only
+deploys on its own when `quantumbit` or `tso` is on.
 
 ---
 

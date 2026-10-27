@@ -1574,7 +1574,7 @@ tasks:
       operation: ensure
 
   deploy_post_commerce:
-    description: Deploy Commerce Metadata (e.g. Commerce decision table flows)
+    description: Deploy Commerce Metadata (e.g. Commerce decision table flows). Run deploy_post_utils first; the Commerce refresh flow calls RLM_Refresh_Decision_Tables_Bulk
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_commerce

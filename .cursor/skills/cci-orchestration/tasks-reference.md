@@ -3215,7 +3215,7 @@
 
 ### `deploy_post_commerce`
 
-**Description:** Deploy Commerce Metadata (e.g. Commerce decision table flows)
+**Description:** Deploy Commerce Metadata (e.g. Commerce decision table flows). Run deploy_post_utils first; the Commerce refresh flow calls RLM_Refresh_Decision_Tables_Bulk
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

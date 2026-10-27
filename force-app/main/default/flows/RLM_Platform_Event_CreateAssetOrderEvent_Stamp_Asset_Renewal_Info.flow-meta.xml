@@ -10,6 +10,9 @@
         <connector>
             <targetReference>Refresh_Asset_Rate_Adjustment_Resolution_Entries</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Asset_Rate_Adjustment_Resolution_Entries</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -31,6 +34,9 @@
         <connector>
             <targetReference>Refresh_Asset_Rate_Card_Entry_Resolution_Entries</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Asset_Rate_Card_Entry_Resolution_Entries</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -52,6 +58,9 @@
         <connector>
             <targetReference>Refresh_Asset_Rate_Card_Entry_Resolution_V2</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Asset_Rate_Card_Entry_Resolution_V2</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -73,6 +82,9 @@
         <connector>
             <targetReference>Refresh_Asset_Rate_V2</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Asset_Rate_V2</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -94,6 +106,9 @@
         <connector>
             <targetReference>Refresh_Asset_Tier_based_Rate_Adjustment_V2</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Asset_Tier_based_Rate_Adjustment_V2</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -115,6 +130,9 @@
         <connector>
             <targetReference>Refresh_Asset_Volume_based_Rate_Adjustment_V2</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Asset_Volume_based_Rate_Adjustment_V2</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -136,6 +154,9 @@
         <connector>
             <targetReference>Refresh_Binding_Object_Rate_Adjustment_Resolution_Entries</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Binding_Object_Rate_Adjustment_Resolution_Entries</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -157,6 +178,9 @@
         <connector>
             <targetReference>Refresh_Binding_Object_Rate_Card_Entry_Resolution_Entries_v2</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Binding_Object_Rate_Card_Entry_Resolution_Entries_v2</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -178,6 +202,9 @@
         <connector>
             <targetReference>Refresh_Binding_Object_Rate_Card_Entry_Resolution_V2</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Binding_Object_Rate_Card_Entry_Resolution_V2</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -199,6 +226,9 @@
         <connector>
             <targetReference>Refresh_Binding_Object_Rate_Decision_Table_V2</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Binding_Object_Rate_Decision_Table_V2</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -220,6 +250,9 @@
         <connector>
             <targetReference>Refresh_Binding_Object_Tier_based_Rate_Adjustment_V2</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Binding_Object_Tier_based_Rate_Adjustment_V2</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -241,6 +274,9 @@
         <connector>
             <targetReference>Refresh_Binding_Object_Volume_based_Rate_Adjustment_V2</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Binding_Object_Volume_based_Rate_Adjustment_V2</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -262,6 +298,9 @@
         <connector>
             <targetReference>Refresh_Commitment_based_Rate_Adjustment</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Refresh_Commitment_based_Rate_Adjustment</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -287,6 +326,9 @@ rate with no error anywhere.</description>
         <locationY>0</locationY>
         <actionName>refreshDecisionTable</actionName>
         <actionType>refreshDecisionTable</actionType>
+        <faultConnector>
+            <targetReference>Absorb_Refresh_Fault</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>DecisionTableApiName</name>
@@ -300,6 +342,20 @@ rate with no error anywhere.</description>
     </actionCalls>
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Fault sink for the last refresh. Every earlier refresh&apos;s fault path continues to the next table, so one missing or inactive table (a build without a feature&apos;s tables, say) no longer abandons the tables after it or faults the interview. The trade-off: a fault no longer sends a flow-error email, and this flow queues 14 full refreshes per event against the org&apos;s hourly full-refresh pool, so a burst of orders can exhaust it silently. Compare each table&apos;s LastSyncDate against its source (check_decision_table_freshness, or the Decision Table Manager) to find a refresh that did not happen.</description>
+        <name>Absorb_Refresh_Fault</name>
+        <label>Absorb Refresh Fault</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>refreshFaultMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.FaultMessage</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
     <environments>Default</environments>
     <interviewLabel>Platform Event - {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Platform Event - CreateAssetOrderEvent - Stamp Asset Renewal Info</label>
@@ -340,5 +396,13 @@ rate with no error anywhere.</description>
         <isInput>true</isInput>
         <isOutput>true</isOutput>
         <objectType>CreateAssetOrderDtlEvent</objectType>
+    </variables>
+    <variables>
+        <description>Holds the last refresh&apos;s fault message so the fault is handled. Not an output and not persisted.</description>
+        <name>refreshFaultMessage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
     </variables>
 </Flow>
