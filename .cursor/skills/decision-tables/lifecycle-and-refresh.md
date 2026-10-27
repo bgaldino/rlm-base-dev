@@ -129,16 +129,43 @@ live to the engine.
 - The response carries `outputValues.Status = "Queued"` and no tracker id. Poll
   the appropriate timestamp rather than treating the response as completion.
 
-Incremental refresh is meaningful only when `isIncrementalSyncEnabled` is true.
-When it is false the action still returns `isSuccess=true` / `Status=Queued`
-and syncs nothing — measured false on all four tables this repo ships and on
-all 45 in a built org, so a silent no-op is the **default** outcome of asking
-for incremental, not an edge case. Every caller refuses rather than queue it:
-`refresh_decision_table.py --incremental` (override with
-`--allow-disabled-incremental`), the in-org Decision Table Manager
-(`RLM_DecisionTableManagerController.refreshTables`), and the CCI tasks
-(`manage_decision_tables`, `refresh_dt_*`). Read the flag from
-`describe_decision_table.py` → `incrSync`.
+### Release 264 chooses the refresh type (`AutoSelectRefreshDT`)
+
+⭐ **In 264 the request does not fix the type that runs.** Read from Core source
+(`DecisionTableMediumVolumeBuilderJob` on the 264 patch branch — implementation, not a
+documented contract, and the 264 Help does not describe it) and confirmed on a fresh
+264 build, 2026-10-27:
+
+- `isDecisionTableIncremental = true` is honored: an incremental runs. Two cases force a
+  full anyway: the table's last incremental failed (`HasIncrementalSyncFailed`), or its
+  source object hard-deletes records.
+- `false` and **omitted are the same**: the platform chooses. It runs **full** when the
+  last full refresh is more than 24 hours old, when the table is not an sObject-sourced
+  MediumVolume (HBase) table (CSV upload, LowVolume, Data Cloud), or when nothing can be
+  counted. Otherwise it runs **incremental** if under `IncrementalRefreshThreshold`
+  (an org value, default 20%) of the rows changed since the later of the two stamps,
+  and full above it.
+- Measured: a full request on all 40 tables of a fresh build, 2 hours after the first
+  refresh, ran as **incremental on 12** — `LastIncrementalSyncDate` moved and
+  `LastSyncDate` did not. An explicit incremental request on a table with no
+  incremental history (`LastIncrementalSyncDate` null) stamped **both** fields at the
+  same instant — so do not infer the type that ran from which stamp moved.
+- `IsIncrementalSyncEnabled` is **not consulted** (a Salesforce engineer: "not
+  consequential"). LowVolume tables reject an explicit incremental request.
+- The org preference **`AutoSelectRefreshDT`** turns this **off**. Its Setup toggle,
+  "Auto Select Refresh for Decision Tables" (Setup → Decision Tables → Settings), is
+  an **opt-out**: ON suppresses auto-selection, and the request decides again. Core
+  plans to rename it `SuppressAutoSelectRefreshDT` in 266.
+- **Freshness is the later of `LastSyncDate` and `LastIncrementalSyncDate`**, the rule
+  the Decision Table app page uses. 264 Setup shows only the full date; GUS W-24264525
+  fixes that in 266. GUS W-24425582 ("[264] Incremental refresh is not updating Price
+  book Entry Decision Table") is fixed in 266, so an incremental stamp on a price book
+  table can be trusted less until then.
+
+The CCI tasks (`manage_decision_tables`, `refresh_dt_*`) send the request as given and
+do not refuse anything. The Decision Table Manager and `refresh_decision_table.py
+--incremental` still refuse an incremental request on a table with
+`IsIncrementalSyncEnabled` false, a pre-264 rule that issue #587 removes.
 
 ## CSV Based tables — upload + version lifecycle
 

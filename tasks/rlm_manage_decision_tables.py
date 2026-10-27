@@ -85,16 +85,15 @@ def _as_name_list(value, option_name: str) -> List[str]:
 def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_refresh_decision_table.py; tests/test_decision_table_tasks.py holds them together."""
-    if is_incremental:
-        return (
-            "Completion is asynchronous; an incremental refresh advances "
-            "LastIncrementalSyncDate only, never LastSyncDate, so check_decision_table_freshness "
-            "cannot see it — query DecisionTable.LastIncrementalSyncDate AFTER the job completes."
-        )
+    # ⚠ Release 264 chooses the refresh type itself unless incremental is requested
+    # (AutoSelectRefreshDT, on by default): a "full" request can run as incremental, which
+    # stamps LastIncrementalSyncDate and leaves LastSyncDate alone. So the guidance is the
+    # same for both modes — judge completion by the later of the two stamps.
+    requested = "an incremental" if is_incremental else "a full"
     return (
-        "Completion is asynchronous; verify with check_decision_table_freshness "
-        "AFTER the job completes — a queued refresh has not yet advanced "
-        "LastSyncDate, so checking now returns the PRE-refresh verdict."
+        f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
+        "a full refresh advances LastSyncDate, an incremental one only LastIncrementalSyncDate. "
+        "AFTER the job completes, judge it by the later of the two."
     )
 
 
@@ -395,9 +394,11 @@ class ManageDecisionTables(BaseTask):
         # silently select an incremental refresh while logging "full". YAML callers pass
         # a real bool and are unaffected.
         is_incremental = process_bool_arg(self.options.get("is_incremental") or False)
-        refresh_type = "incremental" if is_incremental else "full"
+        # "full requested", not "full": Release 264 picks the type itself unless
+        # incremental is requested, so a full request can run as incremental.
+        refresh_type = "incremental" if is_incremental else "full requested; the platform may run incremental"
         
-        self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type} refresh)...")
+        self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type})...")
         
         # Use Salesforce REST API to call the refreshDecisionTable action
         if not hasattr(self, 'org_config') or not self.org_config:
@@ -407,20 +408,6 @@ class ManageDecisionTables(BaseTask):
 
         success_count = 0
         fail_count = 0
-
-        if is_incremental:
-            # The action accepts an incremental refresh of a table with
-            # IsIncrementalSyncEnabled false, queues it and syncs nothing. Refuse it, as the
-            # Decision Table Manager and scripts/decision_tables do.
-            disabled = self._incremental_disabled(sf, developer_names)
-            for developer_name in disabled:
-                fail_count += 1
-                self.logger.error(
-                    f"❌ Refusing an incremental refresh of '{developer_name}': "
-                    "IsIncrementalSyncEnabled is false, so it would queue and sync nothing. "
-                    "Run a full refresh instead."
-                )
-            developer_names = [name for name in developer_names if name not in disabled]
 
         for developer_name in developer_names:
             try:
@@ -598,16 +585,6 @@ class ManageDecisionTables(BaseTask):
         anchors = [k for k in custom.keys() if k.startswith("dt_") and k.endswith("_decision_tables")]
         return sorted(anchors)
     
-    def _incremental_disabled(self, sf, developer_names: List[str]) -> List[str]:
-        """Return the named tables that exist with IsIncrementalSyncEnabled false."""
-        escaped = "', '".join(name.replace("\\", "\\\\").replace("'", "\\'") for name in developer_names)
-        records = sf.query(
-            "SELECT DeveloperName, IsIncrementalSyncEnabled FROM DecisionTable "
-            f"WHERE DeveloperName IN ('{escaped}')"
-        ).get("records", [])
-        disabled = {rec["DeveloperName"].lower() for rec in records if not rec.get("IsIncrementalSyncEnabled")}
-        return [name for name in developer_names if name.lower() in disabled]
-
     def _refresh_single_decision_table(self, sf, developer_name: str, is_incremental: bool) -> Dict:
         """
         Refresh a single decision table using the refreshDecisionTable action.

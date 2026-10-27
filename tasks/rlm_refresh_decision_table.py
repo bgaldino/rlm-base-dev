@@ -41,16 +41,15 @@ CONNECTION_ATTEMPTS = 3
 def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_manage_decision_tables.py; tests/test_decision_table_tasks.py holds them together."""
-    if is_incremental:
-        return (
-            "Completion is asynchronous; an incremental refresh advances "
-            "LastIncrementalSyncDate only, never LastSyncDate, so check_decision_table_freshness "
-            "cannot see it — query DecisionTable.LastIncrementalSyncDate AFTER the job completes."
-        )
+    # ⚠ Release 264 chooses the refresh type itself unless incremental is requested
+    # (AutoSelectRefreshDT, on by default): a "full" request can run as incremental, which
+    # stamps LastIncrementalSyncDate and leaves LastSyncDate alone. So the guidance is the
+    # same for both modes — judge completion by the later of the two stamps.
+    requested = "an incremental" if is_incremental else "a full"
     return (
-        "Completion is asynchronous; verify with check_decision_table_freshness "
-        "AFTER the job completes — a queued refresh has not yet advanced "
-        "LastSyncDate, so checking now returns the PRE-refresh verdict."
+        f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
+        "a full refresh advances LastSyncDate, an incremental one only LastIncrementalSyncDate. "
+        "AFTER the job completes, judge it by the later of the two."
     )
 
 
@@ -100,7 +99,7 @@ class RefreshDecisionTable(SFDXBaseTask):
             "required": True,
         },
         "isIncremental": {
-            "description": "Specifies whether to trigger an incremental refresh (true) or not (false). If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh. Needs IsIncrementalSyncEnabled on the table (no table this repo ships has it; such a table is refused) and advances LastIncrementalSyncDate, not LastSyncDate.",
+            "description": "Specifies whether to trigger an incremental refresh (true) or not (false). If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh. An incremental refresh advances LastIncrementalSyncDate, not LastSyncDate. In Release 264, false lets the platform choose full or incremental itself.",
             "required": False,
         },
     }
@@ -181,15 +180,13 @@ class RefreshDecisionTable(SFDXBaseTask):
             if not (name.lower() in seen or seen.add(name.lower()))
         ]
         found = self._query_decision_table_statuses(developer_names)
-        missing, inactive, refused, refreshable = [], [], [], []
+        missing, inactive, refreshable = [], [], []
         for name in developer_names:
             table = found.get(name.lower())
             if table is None:
                 missing.append(name)
             elif table.get("Status") != "Active":
                 inactive.append(f"{name} ({table.get('Status')})")
-            elif is_incremental and not table.get("IsIncrementalSyncEnabled"):
-                refused.append(name)
             else:
                 # The org's spelling, not the caller's: SOQL matched case-insensitively,
                 # and nothing establishes that the action does.
@@ -203,16 +200,7 @@ class RefreshDecisionTable(SFDXBaseTask):
                 f"Skipping {len(inactive)} decision table(s) that are not Active; refreshDecisionTable "
                 f"needs an active table: {', '.join(inactive)}"
             )
-        if refused:
-            # The Decision Table Manager and scripts/decision_tables refuse this too: the
-            # action accepts it, queues, and syncs nothing.
-            self.logger.error(
-                f"Refusing an incremental refresh of {len(refused)} decision table(s) with "
-                f"IsIncrementalSyncEnabled false, which would queue and sync nothing; run a full "
-                f"refresh instead: {', '.join(refused)}"
-            )
-
-        failed = list(refused)
+        failed = []
         for name in refreshable:
             # ⚠ One table's exception must not abandon the tables after it.
             try:
@@ -223,7 +211,7 @@ class RefreshDecisionTable(SFDXBaseTask):
             if not queued:
                 failed.append(name)
         self.logger.info(
-            f"Refresh summary: {len(refreshable) + len(refused) - len(failed)} queued, "
+            f"Refresh summary: {len(refreshable) - len(failed)} queued, "
             f"{len(failed)} not queued, {len(missing) + len(inactive)} skipped"
         )
         if failed:
@@ -243,7 +231,7 @@ class RefreshDecisionTable(SFDXBaseTask):
             "get",
             url,
             headers=headers,
-            params={"q": "SELECT DeveloperName, Status, IsIncrementalSyncEnabled FROM DecisionTable "
+            params={"q": "SELECT DeveloperName, Status FROM DecisionTable "
                          f"WHERE DeveloperName IN ({quoted})"},
         )
         if not isinstance(response, dict) or "records" not in response:

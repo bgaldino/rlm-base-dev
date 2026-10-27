@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 123
+EXPECTED_CHECKS = 124
 
 
 def check(label, condition, detail=""):
@@ -454,7 +454,6 @@ def manage_payload_for(raw_value):
     task.logger = _SilentLogger()
     task.org_config = object()
     task._sf_client = object()
-    task._incremental_disabled = lambda sf, names: []
     task._refresh_single_decision_table = lambda sf, name, inc: (
         rec.payloads.append(inc) or {"isSuccess": True, "outputValues": {"Status": "Queued"}}
     )
@@ -469,7 +468,7 @@ def refresh_payload_for(raw_value):
     task.logger = _SilentLogger()
     task._prep_runtime = lambda: None
     task._query_decision_table_statuses = lambda names: {
-        name.lower(): {"DeveloperName": name, "Status": "Active", "IsIncrementalSyncEnabled": True}
+        name.lower(): {"DeveloperName": name, "Status": "Active"}
         for name in names}
     task._refresh_decision_table = lambda name, inc: rec.payloads.append(inc) or True
     RefreshDecisionTable._run_task(task)
@@ -683,7 +682,7 @@ except Exception as exc:
 # POST-refresh verdict and the shared opening survives in both files, so a check labelled
 # "byte-identical" stays green while the two messages contradict each other. Rendering also
 # sidesteps source line-wrapping, which is not a semantic difference.
-GUIDANCE_START = "Completion is asynchronous;"
+GUIDANCE_START = "Completion is asynchronous"
 _QUEUED = {"isSuccess": True, "outputValues": {"Status": "Queued"}}
 
 
@@ -720,7 +719,7 @@ except Exception as exc:
 print("\n[3c] the build path skips missing/inactive tables and fails on a real refresh failure")
 
 
-def run_partition(names, statuses, queued, incremental=False, enabled=(), raises=()):
+def run_partition(names, statuses, queued, incremental=False, raises=()):
     """Drive RefreshDecisionTable._run_task; return (attempted, logger, raised message or None).
 
     `statuses` maps an org DeveloperName to its Status, keyed the way the real query returns
@@ -732,7 +731,7 @@ def run_partition(names, statuses, queued, incremental=False, enabled=(), raises
     task.logger = logger
     task._prep_runtime = lambda: None
     task._query_decision_table_statuses = lambda requested: {
-        name.lower(): {"DeveloperName": name, "Status": status, "IsIncrementalSyncEnabled": name in enabled}
+        name.lower(): {"DeveloperName": name, "Status": status}
         for name, status in statuses.items()}
 
     def refresh(name, inc):
@@ -785,11 +784,12 @@ try:
           attempted == ["Live_A", "Live_B"] and raised is not None and "Live_A" in raised,
           f"{attempted} {raised}")
 
+    # Release 264 does not consult IsIncrementalSyncEnabled, so an incremental request is
+    # sent for every active table rather than refused.
     attempted, logs, raised = run_partition(
-        "On_A,Off_B", {"On_A": "Active", "Off_B": "Active"}, {"On_A", "Off_B"},
-        incremental=True, enabled={"On_A"})
-    check("an incremental refresh of a table with incremental sync disabled is refused",
-          attempted == ["On_A"] and raised is not None and "Off_B" in raised, f"{attempted} {raised}")
+        "On_A,Off_B", {"On_A": "Active", "Off_B": "Active"}, {"On_A", "Off_B"}, incremental=True)
+    check("an incremental request is sent for every active table, not refused",
+          attempted == ["On_A", "Off_B"] and raised is None, f"{attempted} {raised}")
 except Exception as exc:
     check("partition checks ran", False, f"{type(exc).__name__}: {exc}")
 
@@ -805,14 +805,14 @@ try:
     except Exception as exc:
         check("a failed status query raises", "DecisionTable" in str(exc), str(exc))
     task._make_request = lambda method, url, **kw: seen.update(method=method, url=url, **kw) or {
-        "records": [{"DeveloperName": "A", "Status": "Active", "IsIncrementalSyncEnabled": False}]}
+        "records": [{"DeveloperName": "A", "Status": "Active"}]}
     got = RefreshDecisionTable._query_decision_table_statuses(task, ["A", "O'Brien", "B\\C"])
     check("the status query keys records by lowercased DeveloperName",
           list(got) == ["a"] and got["a"]["Status"] == "Active", str(got))
     soql = (seen.get("params") or {}).get("q", "")
     check("the status query is a GET on the query endpoint with quotes and backslashes escaped",
           seen.get("method") == "get" and seen.get("url", "").endswith("/query")
-          and "'O\\'Brien'" in soql and "'B\\\\C'" in soql and "IsIncrementalSyncEnabled" in soql,
+          and "'O\\'Brien'" in soql and "'B\\\\C'" in soql,
           f"{seen.get('method')} {seen.get('url')} {soql}")
 except Exception as exc:
     check("status query checks ran", False, f"{type(exc).__name__}: {exc}")
@@ -899,32 +899,30 @@ try:
     check("ManageDecisionTables sends isDecisionTableIncremental, not isIncremental",
           sent.get("isDecisionTableIncremental") is True and "isIncremental" not in sent, str(sent))
 
-    # The manual task refuses an incremental refresh of a table with incremental sync off.
+    # The manual task sends an incremental request for every table, not refusing any.
     attempted = []
     task = object.__new__(ManageDecisionTables)
     task.options = {"developer_names": "On_A,Off_B", "is_incremental": True}
     task.logger = _CapturingLogger()
     task.org_config = object()
     task._sf_client = object()
-    task._incremental_disabled = lambda sf, names: [n for n in names if n == "Off_B"]
-    task._refresh_single_decision_table = lambda sf, name, inc: attempted.append(name) or _QUEUED
-    try:
-        ManageDecisionTables._refresh_decision_tables(task)
-        check("ManageDecisionTables refuses incremental on a table with it disabled", False, "did not raise")
-    except Exception as exc:
-        check("ManageDecisionTables refuses incremental on a table with it disabled",
-              attempted == ["On_A"] and QUEUE_FAILURE_MESSAGE in str(exc), f"{attempted} {exc}")
+    task._refresh_single_decision_table = lambda sf, name, inc: attempted.append((name, inc)) or _QUEUED
+    ManageDecisionTables._refresh_decision_tables(task)
+    check("ManageDecisionTables sends an incremental request for every table",
+          attempted == [("On_A", True), ("Off_B", True)], str(attempted))
 except Exception as exc:
     check("incremental key checks ran", False, f"{type(exc).__name__}: {exc}")
 
-# Both modes' guidance, in both modules, identical; and the incremental one must not send
-# the operator to a check that only reads LastSyncDate.
+# Both modes' guidance, in both modules, identical. In 264 a full request can run as an
+# incremental, so BOTH modes must name both stamps.
 try:
     for inc in (False, True):
         check(f"both modules carry the same guidance (incremental={inc})",
               _manage.queued_guidance(inc) == _refresh.queued_guidance(inc))
-    check("incremental guidance points at LastIncrementalSyncDate",
-          "LastIncrementalSyncDate" in _refresh.queued_guidance(True))
+    for inc in (False, True):
+        g = _refresh.queued_guidance(inc)
+        check(f"guidance names both stamps (incremental={inc})",
+              "LastIncrementalSyncDate" in g and "LastSyncDate" in g and "later of the two" in g, g)
 except Exception as exc:
     check("guidance checks ran", False, f"{type(exc).__name__}: {exc}")
 
