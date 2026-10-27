@@ -564,6 +564,20 @@ stay `PENDING`** — a platform issue, not a data defect. **Re-verified on a fre
 billing records must be deactivated before deletion (if the platform allows),
 or the org must be recreated.
 
+### Account Reset keeps posted invoices, debit memos or payments
+
+**Cause:** Delete Billing deletes invoices that are not Draft or Canceled only
+for a user with **Delete Invoice and Invoice Lines** (`BillingInvoiceSuperUser`,
+from `RLM_DeleteInvoices` in the `RLM_RCB` group). Payments are never deleted:
+Salesforce refuses to delete a processed payment. Posted and void debit memos
+are never deleted either: Salesforce refuses to delete them, even with that
+permission, and a posted one can be voided but not canceled.
+
+**Fix:** The reset's result screen lists what it kept and why. For invoices,
+assign `RLM_DeleteInvoices` to the user running the reset and run it again;
+invoices that are still processing need another run once they finish. Kept
+payments and posted or void debit memos are expected, not a failure.
+
 ### BillingTreatment missing BillingPolicyId
 
 **Cause:** Data load ordering issue — BillingTreatment loaded before its
