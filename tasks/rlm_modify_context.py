@@ -3,11 +3,13 @@ from abc import abstractmethod
 import requests
 
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.sfdx import SFDXBaseTask
 
 
 # ModifyContextDefinition is a custom task that extends the SFDXBaseTask provided by CumulusCI.
-class ModifyContextDefinition(SFDXBaseTask):
+# BaseSalesforceTask sets salesforce_task, so cci offers --org and refreshes the token.
+class ModifyContextDefinition(SFDXBaseTask, BaseSalesforceTask):
 
     # Task options are used to set up configuration settings for this particular task.
     task_options = {

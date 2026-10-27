@@ -11,10 +11,10 @@ import sys
 from pathlib import Path
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object  # type: ignore
+    BaseSalesforceTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
 from tasks.robot_utils import check_urllib3_for_robot
@@ -23,7 +23,7 @@ DEFAULT_SUITE = "robot/rlm-base/tests/setup/enable_timeline.robot"
 DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
 
 
-class EnableTimeline(BaseTask):
+class EnableTimeline(BaseSalesforceTask):
     """Run the Robot test that enables the Timeline feature toggle in Setup."""
 
     task_options = {

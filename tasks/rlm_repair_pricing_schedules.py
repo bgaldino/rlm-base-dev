@@ -5,14 +5,14 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
 
 
-class EnsurePricingSchedules(BaseTask):
+class EnsurePricingSchedules(BaseSalesforceTask):
     """Ensure PriceAdjustmentSchedule records exist; toggle pricing if missing."""
 
     task_options = {

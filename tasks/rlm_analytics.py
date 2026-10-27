@@ -14,10 +14,10 @@ import sys
 from pathlib import Path
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object  # type: ignore
+    BaseSalesforceTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
 from tasks.robot_utils import check_urllib3_for_robot
@@ -27,7 +27,7 @@ DEFAULT_SUITE = "robot/rlm-base/tests/setup/enable_analytics.robot"
 DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
 
 
-class EnableAnalyticsReplication(BaseTask):
+class EnableAnalyticsReplication(BaseSalesforceTask):
     """Run the Robot test that enables CRM Analytics via the Getting Started page."""
 
     task_options = {

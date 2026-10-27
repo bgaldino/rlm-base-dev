@@ -430,6 +430,14 @@ CHECKS = [
         deps=["cumulusci"], gating=True,
     ),
     dict(
+        name="cci_task_org_option",
+        cmd=["python", "tests/test_cci_task_org_option.py"],
+        # Imports every task class in tasks/ the way cci does and asserts the ones that read
+        # org_config set salesforce_task, without which cci rejects --org (todo 244).
+        triggers=["tasks/", "cumulusci.yml", "tests/test_cci_task_org_option.py"],
+        deps=["cumulusci"], gating=True,
+    ),
+    dict(
         name="context_node_mapping_merge",
         cmd=["python", "tests/test_context_service_node_mapping_merge.py"],
         # tasks/rlm_context_service.py imports cumulusci and requests unconditionally (as

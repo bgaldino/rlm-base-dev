@@ -152,8 +152,7 @@ refuses scratch-only commands. CCI's own `org_config.scratch` is unaffected, so
 **Fix (standalone, when running CLI commands outside the flow):**
 
 ```bash
-cci org default ent-r1                      # this CCI build uses the default org (no --org)
-cci task run fix_scratch_org_identity        # sets isScratch=true (when false or missing) if devHubUsername is present
+cci task run fix_scratch_org_identity --org ent-r1   # sets isScratch=true (when false or missing) if devHubUsername is present
 ```
 
 The task is idempotent (no-op when already correct) and only sets

@@ -12,16 +12,16 @@ Uses the Composite API (25 records per request) for efficiency.
 import requests
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
 
 BATCH_SIZE = 25  # Composite API max sub-requests per call
 
 
-class ActivateRateCardEntries(BaseTask):
+class ActivateRateCardEntries(BaseSalesforceTask):
     """Activate Draft RateCardEntry records via REST API (262+ workaround)."""
 
     task_docs = """
