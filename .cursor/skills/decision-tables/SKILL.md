@@ -245,9 +245,9 @@ header — read it there rather than re-deriving it.
 An **incremental** sync advances only `LastIncrementalSyncDate`. It does **not** move
 `LastSyncDate`, and freshness is measured against the full sync. It also needs
 `isIncrementalSyncEnabled = true`, which **no table this repo ships has** — asking for
-incremental elsewhere returns `Queued` and syncs nothing. Both the Manager and
-`scripts/decision_tables/refresh_decision_table.py` refuse it rather than queue the
-no-op; see `lifecycle-and-refresh.md` → *Refresh*.
+incremental elsewhere returns `Queued` and syncs nothing. The Manager,
+`scripts/decision_tables/refresh_decision_table.py` and the CCI tasks refuse it rather
+than queue the no-op; see `lifecycle-and-refresh.md` → *Refresh*.
 
 ## The timing rule
 

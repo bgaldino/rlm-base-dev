@@ -82,6 +82,22 @@ def _as_name_list(value, option_name: str) -> List[str]:
     return names
 
 
+def queued_guidance(is_incremental):
+    """What to check once a queued refresh completes. Kept identical to the copy in
+    rlm_refresh_decision_table.py; tests/test_decision_table_tasks.py holds them together."""
+    if is_incremental:
+        return (
+            "Completion is asynchronous; an incremental refresh advances "
+            "LastIncrementalSyncDate only, never LastSyncDate, so check_decision_table_freshness "
+            "cannot see it — query DecisionTable.LastIncrementalSyncDate AFTER the job completes."
+        )
+    return (
+        "Completion is asynchronous; verify with check_decision_table_freshness "
+        "AFTER the job completes — a queued refresh has not yet advanced "
+        "LastSyncDate, so checking now returns the PRE-refresh verdict."
+    )
+
+
 class ManageDecisionTables(BaseTask):
     """
     Comprehensive Decision Table management task.
@@ -392,6 +408,20 @@ class ManageDecisionTables(BaseTask):
         success_count = 0
         fail_count = 0
 
+        if is_incremental:
+            # The action accepts an incremental refresh of a table with
+            # IsIncrementalSyncEnabled false, queues it and syncs nothing. Refuse it, as the
+            # Decision Table Manager and scripts/decision_tables do.
+            disabled = self._incremental_disabled(sf, developer_names)
+            for developer_name in disabled:
+                fail_count += 1
+                self.logger.error(
+                    f"❌ Refusing an incremental refresh of '{developer_name}': "
+                    "IsIncrementalSyncEnabled is false, so it would queue and sync nothing. "
+                    "Run a full refresh instead."
+                )
+            developer_names = [name for name in developer_names if name not in disabled]
+
         for developer_name in developer_names:
             try:
                 result = self._refresh_single_decision_table(sf, developer_name, is_incremental)
@@ -425,9 +455,7 @@ class ManageDecisionTables(BaseTask):
                     success_count += 1
                     self.logger.info(
                         f"Refresh queued for '{developer_name}' - Status: {action_status}. "
-                        "Completion is asynchronous; verify with check_decision_table_freshness "
-                        "AFTER the job completes — a queued refresh has not yet advanced "
-                        "LastSyncDate, so checking now returns the PRE-refresh verdict."
+                        + queued_guidance(is_incremental)
                     )
                 elif result.get('isSuccess'):
                     fail_count += 1
@@ -570,6 +598,16 @@ class ManageDecisionTables(BaseTask):
         anchors = [k for k in custom.keys() if k.startswith("dt_") and k.endswith("_decision_tables")]
         return sorted(anchors)
     
+    def _incremental_disabled(self, sf, developer_names: List[str]) -> List[str]:
+        """Return the named tables that exist with IsIncrementalSyncEnabled false."""
+        escaped = "', '".join(name.replace("\\", "\\\\").replace("'", "\\'") for name in developer_names)
+        records = sf.query(
+            "SELECT DeveloperName, IsIncrementalSyncEnabled FROM DecisionTable "
+            f"WHERE DeveloperName IN ('{escaped}')"
+        ).get("records", [])
+        disabled = {rec["DeveloperName"].lower() for rec in records if not rec.get("IsIncrementalSyncEnabled")}
+        return [name for name in developer_names if name.lower() in disabled]
+
     def _refresh_single_decision_table(self, sf, developer_name: str, is_incremental: bool) -> Dict:
         """
         Refresh a single decision table using the refreshDecisionTable action.
@@ -585,7 +623,9 @@ class ManageDecisionTables(BaseTask):
             "inputs": [
                 {
                     "decisionTableApiName": developer_name,
-                    "isIncremental": is_incremental
+                    # isDecisionTableIncremental: the action ignores an unknown key, so
+                    # `isIncremental` ran every incremental request as a full refresh.
+                    "isDecisionTableIncremental": is_incremental
                 }
             ]
         }
