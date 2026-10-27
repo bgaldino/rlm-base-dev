@@ -4013,6 +4013,12 @@ NOT_INPUTS = {
         # there is selectable, which is the very asymmetry this suite exists to pin.
         ".agents/artifacts": "gitignored: cannot appear in a diff, so cannot select anything",
         ".agents/artifacts/integration-staging/pmos-integration.md": "gitignored",
+        # The discovery checks (issue #593) build throwaway clones in a temp dir. Their hint
+        # resolves beside REPO only on a workstation laid out that way, which is why it
+        # surfaced locally and would not in CI.
+        "../rlm-base-dev": "a local_path_hint resolved inside a throwaway temp tree",
+        ".claude/skills": "a skill surface created inside a throwaway clone",
+        ".cursor/skills": "a skill surface created inside a throwaway clone",
     },
     "tests/test_fix_scratch_identity.py": {
         ".sf/orgs": "runtime org state, gitignored — not a repo input",

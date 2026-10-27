@@ -25,7 +25,7 @@ contributions. The [skill catalog](../README.md) provides standalone starting po
 
 1. **Temporal split is the framing.** PMOS is canonical for *future state* (PRDs, roadmap, proposed schema changes). Foundations is canonical for *current state* (built schema, deployed flags, real records). Don't put proposed-but-not-built content in Foundations; don't put runtime-verified state in PMOS.
 2. **Manifest is read-only on both sides.** Foundations consumes PMOS via local clone path; PMOS does the same in reverse. Each maintainer keeps full control of what they own.
-3. **Filesystem-level, not API-level.** No servers, no auth, no CI dependency. The resolver looks for `$FOUNDATIONS_REPO_ROOT` / `$PMOS_REPO_ROOT` env vars or sibling-directory layout (`../pmos-revenue-cloud`, `../rlm-base-dev`).
+3. **Filesystem-level, not API-level.** No servers, no auth, no CI dependency. The resolver looks for `$FOUNDATIONS_REPO_ROOT` / `$PMOS_REPO_ROOT` env vars or sibling-directory layout (`../pmos-revenue-cloud`, `../rlm-base-dev`). A repo's own section always resolves to the checkout it runs in, ahead of those hints, so a worktree or renamed clone audits itself; the env vars and siblings locate the *other* repo.
 4. **Degrades gracefully.** If a sibling clone isn't present, the consumer skill operates standalone. Nothing breaks; the upgrade just isn't available.
 5. **Per-skill opt-in.** Each side decides which of their skills consume from the other. Not all-or-nothing.
 6. **PMOS is document-centric — not a code project.** Don't propose Python or build automation in PMOS. PMOS's side of the manifest is purely declarative YAML.

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**44 feature flags**, **85 configuration values**, **40 YAML anchors** under `project.custom`.
+**44 feature flags**, **85 configuration values**, **43 YAML anchors** under `project.custom`.
 
 ---
 
@@ -47,7 +47,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 13 flow step(s) |
 | `qb` | `True` | 38 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 23 flow step(s) |
+| `quantumbit` | `True` | 26 flow step(s) |
 | `quote_est_tax` | `False` | — |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
@@ -144,7 +144,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `calmdelete` (default: `True`)
 
-- `prepare_quantumbit` step 9 → `assign_permission_sets`
+- `prepare_quantumbit` step 12 → `assign_permission_sets`
 
 ### `clm` (default: `True`)
 
@@ -403,8 +403,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 7 → `assign_permission_sets`
 - `prepare_quantumbit` step 8 → `assign_permission_sets`
 - `prepare_quantumbit` step 9 → `assign_permission_sets`
-- `prepare_quantumbit` step 10 → `deploy_post_setup_guide`
+- `prepare_quantumbit` step 10 → `assign_permission_sets`
 - `prepare_quantumbit` step 11 → `assign_permission_sets`
+- `prepare_quantumbit` step 12 → `assign_permission_sets`
+- `prepare_quantumbit` step 13 → `deploy_post_setup_guide`
+- `prepare_quantumbit` step 14 → `assign_permission_sets`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
@@ -825,6 +828,24 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 - `RLM_RenewalQuotes`
 
+### `ps_usage_datatables`
+
+*1 items:*
+
+- `RLM_UsageDatatables`
+
+### `ps_usage_orchestration`
+
+*1 items:*
+
+- `RLM_UsageOrchestration`
+
+### `ps_usage_uploader`
+
+*1 items:*
+
+- `RLM_UsageUploader`
+
 ### `psg_tso`
 
 *1 items:*
@@ -937,13 +958,16 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `rlm_tso_ps_api_names`
 
-*8 items:*
+*11 items:*
 
 - `ERIBasic`
 - `RLM_UtilitiesPermset`
 - `RLM_ExpressionSetManager`
 - `RLM_DecisionTableManager`
 - `RLM_RebuildSearchIndex`
+- `RLM_UsageUploader`
+- `RLM_UsageOrchestration`
+- `RLM_UsageDatatables`
 - `RLM_RenewalQuotes`
 - `OrchestrationProcessManagerPermissionSet`
 - `EventMonitoringPermSet`

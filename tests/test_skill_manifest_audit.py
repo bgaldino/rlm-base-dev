@@ -17,11 +17,24 @@ The fix must hold two properties at once, and only the pair is correct:
   2. Present private tree -> the reference is audited normally, so a typo still fails.
      Downgrading it everywhere would have traded a false failure for a blind spot.
 
-Run: python tests/test_skill_manifest_audit.py   (needs PyYAML; no org, no network)
+The second half covers clone discovery, which decides WHICH tree the audit reads. From a
+git worktree whose origin used an SSH host alias (`git@github.com-<alias>:owner/repo`),
+`--check` failed: no hint named the worktree, so the sibling hint found the main checkout,
+and the alias host made its remote compare as a provably different repo (issue #593).
+Fixing only the comparison would have been worse than the failure — the audit would then
+pass against the main checkout, another branch. So the pair again:
+
+  3. The repo containing the manifest wins its own section, ahead of every hint, and the
+     self test cannot take a Foundations checkout for PMOS (it has both skill surfaces).
+  4. An alias host with the same owner/repo is unverifiable, not rejected — while a
+     different owner/repo is still rejected, which is what the rejection exists for.
+
+Run: python tests/test_skill_manifest_audit.py   (needs PyYAML and git; no org, no network)
 """
 
 import io
 import os
+import subprocess
 import sys
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -31,6 +44,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
                                 "scripts", "ai"))
 
 import skill_manifest  # noqa: E402
+
+# Run as if outside any git hook, as tests/test_pr_gate.py does: an exported GIT_DIR would
+# aim the throwaway clones' `git init`/`remote add`, and every remote the resolver reads, at
+# this repository instead.
+for _var in [v for v in os.environ
+             if v in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                      "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+                      "GIT_NAMESPACE", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT")
+             or v.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))]:
+    os.environ.pop(_var)
 
 PASSED = 0
 FAILED = []
@@ -118,11 +141,127 @@ check("the exempt prefix is anchored with a separator",
       skill_manifest.LOCAL_ONLY_PREFIXES == (".agents/artifacts/",),
       skill_manifest.LOCAL_ONLY_PREFIXES)
 
+# ─── Clone discovery ─────────────────────────────────────────────────────────
+
+URL = "https://github.com/bgaldino/rlm-base-dev"
+ALIAS = "git@github.com-work:bgaldino/rlm-base-dev.git"
+FOREIGN = "git@github.com:someone-else/rlm-base-dev.git"
+
+check("an SSH-alias host with the same owner/repo cannot be compared, not a mismatch",
+      skill_manifest._urls_equivalent(ALIAS, URL) is None,
+      skill_manifest._urls_equivalent(ALIAS, URL))
+check("a different owner/repo is still a provable mismatch",
+      skill_manifest._urls_equivalent(FOREIGN, URL) is False,
+      skill_manifest._urls_equivalent(FOREIGN, URL))
+check("the same host and owner/repo still match",
+      skill_manifest._urls_equivalent("git@github.com:bgaldino/rlm-base-dev.git", URL) is True)
+check("the ssh:// form of an alias is unverifiable too",
+      skill_manifest._urls_equivalent("ssh://git@github.com-work/bgaldino/rlm-base-dev.git", URL)
+      is None)
+# An https host is never an SSH alias, so another forge with the same owner/repo — a mirror,
+# or an unrelated repo that happens to share the name — is still a mismatch.
+check("two https hosts with the same owner/repo are still a mismatch",
+      skill_manifest._urls_equivalent("https://git.example.com/bgaldino/rlm-base-dev", URL)
+      is False)
+check("an ssh:// alias with a user other than git is unverifiable too",
+      skill_manifest._urls_equivalent("ssh://alice@github.com-work/bgaldino/rlm-base-dev", URL)
+      is None)
+check("https userinfo names an account, not a different host",
+      skill_manifest._urls_equivalent("https://someone@github.com/bgaldino/rlm-base-dev", URL)
+      is True)
+
+
+def clone(parent, name, *, remote, surfaces):
+    """A directory shaped like a checkout: the manifest, skill surfaces, an origin remote."""
+    root = Path(parent, name)
+    Path(root, ".claude").mkdir(parents=True)
+    Path(root, skill_manifest.MANIFEST_FILENAME).write_text("manifest_version: 2\n")
+    for surface in surfaces:
+        Path(root, surface).mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    subprocess.run(["git", "-C", str(root), "remote", "add", "origin", remote], check=True)
+    return root.resolve()
+
+
+def section(name, url, hints, marker):
+    return {"name": name, "role": "test", "repo_url": url,
+            "local_path_hints": hints, "clone_markers": [marker]}
+
+
+FOUNDATIONS_SURFACES = (".cursor/skills", ".claude/skills")
+FOUNDATIONS = section("rlm-base-dev", URL, ["../rlm-base-dev"], ".cursor/skills")
+PMOS_URL = "https://git.example.com/bgaldino/pmos-revenue-cloud"
+
+with TemporaryDirectory() as parent:
+    main = clone(parent, "rlm-base-dev", remote=ALIAS, surfaces=FOUNDATIONS_SURFACES)
+    wt = clone(parent, "rlm-base-dev-wt", remote=ALIAS, surfaces=FOUNDATIONS_SURFACES)
+    found = skill_manifest._discover_repo(FOUNDATIONS, manifest_root=wt)
+    check("a worktree resolves its own section to itself, not the sibling checkout",
+          found.path == wt, found.path)
+    check("and is verified as self rather than by remote",
+          found.identity == "verified-self", found.identity)
+
+    # An env-var hint (here: absolute, listed first) naming the main checkout still loses.
+    found = skill_manifest._discover_repo(
+        section("rlm-base-dev", URL, [str(main), "../rlm-base-dev"], ".cursor/skills"),
+        manifest_root=wt)
+    check("self wins its section ahead of an earlier absolute hint",
+          found.path == wt, found.path)
+
+    found = skill_manifest._discover_repo(FOUNDATIONS, manifest_root=main)
+    check("the main checkout still resolves to itself", found.path == main, found.path)
+    check("a hint naming self is not tried twice",
+          [p.resolve() for p in found.candidates_tried].count(main) == 1,
+          found.candidates_tried)
+
+    # From a repo that is NOT this section (the PMOS side finding Foundations), an alias
+    # remote on the hinted clone is accepted as unverified instead of rejected...
+    pmos = clone(parent, "pmos-revenue-cloud", remote=PMOS_URL, surfaces=(".claude/skills",))
+    found = skill_manifest._discover_repo(FOUNDATIONS, manifest_root=pmos)
+    check("an alias-remote clone found by hint is accepted, not rejected",
+          found.path == main and found.identity == "unverified" and not found.rejected,
+          (found.path, found.identity, found.rejected))
+
+    # ...but a clone of a different owner/repo at the same hint is still rejected.
+    stale = clone(parent, "stale", remote=FOREIGN, surfaces=FOUNDATIONS_SURFACES)
+    found = skill_manifest._discover_repo(
+        section("rlm-base-dev", URL, ["../stale"], ".cursor/skills"), manifest_root=pmos)
+    check("a foreign owner/repo at a hint path is still rejected",
+          found.path is None and [p for p, _ in found.rejected] == [stale],
+          (found.path, found.rejected))
+
+    # A Foundations checkout also has .claude/skills, PMOS's surface. Taken as self for
+    # the PMOS section, every Foundations checkout would answer for PMOS. Its remote is a
+    # local mirror, which cannot be compared, so only the surface test can say no.
+    mirrored = clone(parent, "rlm-base-dev-mirrored", remote=str(Path(parent, "mirror")),
+                     surfaces=FOUNDATIONS_SURFACES)
+    found = skill_manifest._discover_repo(
+        section("pmos-revenue-cloud", PMOS_URL, [], ".claude/skills"), manifest_root=mirrored)
+    check("a Foundations checkout is not taken for PMOS as self",
+          found.identity != "verified-self", (found.path, found.identity))
+
+    # CONTRIBUTING.md has contributors clone their fork: another owner, the same repo.
+    fork = clone(parent, "rlm-base-dev-fork", remote="https://github.com/alice/rlm-base-dev",
+                 surfaces=FOUNDATIONS_SURFACES)
+    found = skill_manifest._discover_repo(FOUNDATIONS, manifest_root=fork)
+    check("a contributor's fork resolves its own section to itself",
+          found.path == fork and found.identity == "verified-self" and not found.rejected,
+          (found.path, found.identity, found.rejected))
+
+    # The surface test is structural. Were PMOS to grow .cursor/skills, it would pass for
+    # Foundations; its remote is what still says otherwise.
+    grown = clone(parent, "pmos-grown", remote=PMOS_URL, surfaces=FOUNDATIONS_SURFACES)
+    found = skill_manifest._discover_repo(
+        section("rlm-base-dev", URL, [], ".cursor/skills"), manifest_root=grown)
+    check("a self root whose remote names another repo is rejected, not verified-self",
+          found.path is None and [p for p, _ in found.rejected] == [grown],
+          (found.path, found.identity, found.rejected))
+
 print("\n" + "=" * 100)
 if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
-EXPECTED = 13
+EXPECTED = 30
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")
