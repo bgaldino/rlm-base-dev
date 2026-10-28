@@ -116,9 +116,14 @@
  *
  *    USER_MODE is kept deliberately: this reads no data a user could not already
  *    query, and dropping to system mode to make the wording stronger would trade a
- *    real access boundary for a cosmetic one. What it does NOT do is prove the
- *    caller sees every row — nothing here checks that, so "visible" is the
- *    strongest honest claim.
+ *    real access boundary for a cosmetic one.
+ *
+ *    NARROWED (pack 079, measured on 264): FRESH is withdrawn to Not comparable when
+ *    an object the table reads has a sharing model that can hide rows from this user
+ *    (Private, or ControlledByParent under a Private master) and the user lacks View
+ *    All Data or View All on it. Every probed object counts, including those a source
+ *    criterion traverses. See rowsMayBeHiddenFrom. Still open: restriction rules and
+ *    external users' sharing, so "visible" stays the strongest honest claim.
  *
  * The two that remain open can leave a genuinely stale table reading FRESH. This check catches
  * inserts and edits the caller can see, which is what a post-build readiness check
@@ -402,7 +407,230 @@ public with sharing class RLM_DecisionTableManagerController {
             }
             results.add(info);
         }
+
+        applySharingScope(results, globalDescribe);
         return results;
+    }
+
+    /** Withdraws every Fresh verdict that rests on an object sharing can hide from this user. */
+    @TestVisible
+    private static void applySharingScope(List<DecisionTableInfo> results, Map<String, SObjectType> globalDescribe) {
+        Set<String> probedByAny = new Set<String>();
+        for (DecisionTableInfo info : results) {
+            probedByAny.addAll(probedObjectsOf(info));
+        }
+        Map<String, String> hiddenBecause = rowsMayBeHiddenFrom(probedByAny, globalDescribe);
+        for (DecisionTableInfo info : results) {
+            withdrawFreshWhenRowsMayBeHidden(info, hiddenBecause);
+        }
+    }
+
+    // Internal sharing models under which every user with object read sees every row.
+    // Anything else, including a model this list does not know, is treated as hiding.
+    private static final Set<String> SEE_ALL_SHARING_MODELS = new Set<String>{
+        'Read', 'ReadWrite', 'ReadWriteTransfer', 'FullAccess', 'ReadSelect'
+    };
+    private static final String CONTROLLED_BY_PARENT = 'ControlledByParent';
+    // The Setup labels for the API values a reason can show.
+    private static final Map<String, String> SHARING_MODEL_LABELS = new Map<String, String>{
+        'Private' => 'Private', 'None' => 'No Access',
+        'ControlledByCampaign' => 'Controlled by Campaign',
+        'ControlledByLeadOrContact' => 'Controlled by Lead or Contact'
+    };
+
+    /**
+     * For each of `objects` whose rows sharing can hide from the running user, why.
+     *
+     * The probes run USER_MODE, so a row the user cannot see is invisible to them, and a
+     * change to it after the last sync leaves the table reading Fresh while it is stale.
+     * Measured on 264 (pack 079): with IndexRate Private, an admin's new matching row read
+     * Stale for the admin and was invisible to the salesrep persona.
+     *
+     * Nothing is hidden from a user with View All Data, or with View All / Modify All on
+     * the object through an active assignment. Otherwise an object hides rows when its
+     * internal sharing model is not a see-all one; ControlledByParent follows its
+     * master-detail parents, and any hiding master hides the child. Read in system mode:
+     * these are metadata reads about the user, not data the user is reading.
+     */
+    @TestVisible
+    private static Map<String, String> rowsMayBeHiddenFrom(Set<String> objects, Map<String, SObjectType> globalDescribe) {
+        Map<String, String> hiddenBecause = new Map<String, String>();
+        if (objects.isEmpty()) {
+            return hiddenBecause;
+        }
+        List<UserPermissionAccess> user = [SELECT PermissionsViewAllData FROM UserPermissionAccess LIMIT 1];
+        if (!user.isEmpty() && user[0].PermissionsViewAllData) {
+            return hiddenBecause;
+        }
+
+        // Models first, then masters only for ControlledByParent objects, to closure
+        // (AssetActionSource → AssetAction → Asset is the deepest stock chain).
+        Map<String, String> modelOf = new Map<String, String>();
+        Map<String, List<String>> mastersOf = new Map<String, List<String>>();
+        Set<String> pending = new Set<String>(objects);
+        while (!pending.isEmpty()) {
+            Map<String, String> models = sharingModels(pending);
+            modelOf.putAll(models);
+            Set<String> next = new Set<String>();
+            for (String name : pending) {
+                if (models.get(name) != CONTROLLED_BY_PARENT) {
+                    continue;
+                }
+                List<String> masters = mastersOfObject(globalDescribe.get(name));
+                mastersOf.put(name, masters);
+                for (String master : masters) {
+                    if (!modelOf.containsKey(master) && !pending.contains(master)) {
+                        next.add(master);
+                    }
+                }
+            }
+            pending = next;
+        }
+
+        Set<String> seesAll = viewAllObjects(modelOf.keySet());
+        for (String name : objects) {
+            String reason = hidingReason(name, modelOf, mastersOf, seesAll, 0);
+            if (reason != null) {
+                hiddenBecause.put(name, reason);
+            }
+        }
+        return hiddenBecause;
+    }
+
+    /**
+     * InternalSharingModel by object. EntityDefinition returns no row for an object the
+     * user cannot access, and an object with no row reads as hiding (fail closed); its
+     * probe fails too, so its table is Unknown regardless.
+     */
+    private static Map<String, String> sharingModels(Set<String> names) {
+        Map<String, String> modelOf = new Map<String, String>();
+        try {
+            for (EntityDefinition e : [
+                SELECT QualifiedApiName, InternalSharingModel FROM EntityDefinition
+                WHERE QualifiedApiName IN :names
+            ]) {
+                modelOf.put(e.QualifiedApiName, e.InternalSharingModel);
+            }
+        } catch (Exception e) {
+            modelOf.clear();
+        }
+        return modelOf;
+    }
+
+    /** The master-detail parents of an object. */
+    private static List<String> mastersOfObject(SObjectType sot) {
+        List<String> masters = new List<String>();
+        if (sot == null) {
+            return masters;
+        }
+        for (SObjectField f : sot.getDescribe().fields.getMap().values()) {
+            DescribeFieldResult fd = f.getDescribe();
+            if (fd.getRelationshipOrder() != null) {
+                for (SObjectType parent : fd.getReferenceTo()) {
+                    masters.add(parent.getDescribe().getName());
+                }
+            }
+        }
+        return masters;
+    }
+
+    /**
+     * Objects the user sees every row of through View All or Modify All on an active
+     * assignment. A failed read counts as none (fail closed).
+     */
+    private static Set<String> viewAllObjects(Set<String> names) {
+        Set<String> seesAll = new Set<String>();
+        Id userId = UserInfo.getUserId();
+        try {
+            for (ObjectPermissions p : [
+                SELECT SobjectType FROM ObjectPermissions
+                WHERE SobjectType IN :names
+                AND (PermissionsViewAllRecords = true OR PermissionsModifyAllRecords = true)
+                AND ParentId IN (SELECT PermissionSetId FROM PermissionSetAssignment
+                                 WHERE AssigneeId = :userId AND IsActive = true)
+            ]) {
+                seesAll.add(p.SobjectType);
+            }
+        } catch (Exception e) {
+            seesAll.clear();
+        }
+        return seesAll;
+    }
+
+    /** Why `name`'s rows can be hidden from this user, or null if they cannot. */
+    @TestVisible
+    private static String hidingReason(
+        String name, Map<String, String> modelOf, Map<String, List<String>> mastersOf,
+        Set<String> seesAll, Integer depth
+    ) {
+        if (seesAll.contains(name)) {
+            return null;
+        }
+        String model = modelOf.get(name);
+        if (model == null) {
+            return 'sharing model unreadable';
+        }
+        if (SEE_ALL_SHARING_MODELS.contains(model)) {
+            return null;
+        }
+        if (model != CONTROLLED_BY_PARENT) {
+            return (SHARING_MODEL_LABELS.containsKey(model) ? SHARING_MODEL_LABELS.get(model) : model) + ' sharing';
+        }
+        List<String> masters = mastersOf.get(name);
+        if (masters == null || masters.isEmpty() || depth > 5) {
+            return 'controlled by a parent that could not be resolved';
+        }
+        for (String master : masters) {
+            String masterReason = hidingReason(master, modelOf, mastersOf, seesAll, depth + 1);
+            if (masterReason != null) {
+                return 'controlled by ' + master + ': ' + masterReason;
+            }
+        }
+        return null;
+    }
+
+    /** Every object a table's probes read: its parameters' objects and its criteria's. */
+    @TestVisible
+    private static Set<String> probedObjectsOf(DecisionTableInfo info) {
+        Set<String> probed = new Set<String>();
+        if (info.readsObjects != null) {
+            probed.addAll(info.readsObjects);
+        }
+        if (info.contributingObjects != null) {
+            probed.addAll(info.contributingObjects);
+        }
+        return probed;
+    }
+
+    /**
+     * Withdraw FRESH when sharing can hide rows of an object the table reads.
+     *
+     * Same shape as withdrawFreshWhenOrgAgeUnknown, for the same reason: only FRESH is
+     * withdrawn. A Stale verdict is a change the user CAN see, and stands. Admins and
+     * users with View All Data are unaffected, so check_decision_table_freshness run as
+     * an admin still reports every verdict.
+     */
+    @TestVisible
+    private static void withdrawFreshWhenRowsMayBeHidden(DecisionTableInfo info, Map<String, String> hiddenBecause) {
+        if (info.staleness != STALENESS_FRESH || hiddenBecause.isEmpty()) {
+            return;
+        }
+        List<String> hidden = new List<String>();
+        List<String> probed = new List<String>(probedObjectsOf(info));
+        probed.sort();
+        for (String name : probed) {
+            if (hiddenBecause.containsKey(name)) {
+                hidden.add(name + ' (' + hiddenBecause.get(name) + ')');
+            }
+        }
+        if (hidden.isEmpty()) {
+            return;
+        }
+        info.staleness = STALENESS_UNCOMPUTED;
+        info.stalenessReason = 'Nothing you can see has changed since the last sync, but sharing can '
+            + 'hide rows of ' + String.join(hidden, ', ') + ' from you, and a change to a hidden '
+            + 'row would not show here. A user with View All Data, or View All on these objects, '
+            + 'sees the full verdict.';
     }
 
     /**

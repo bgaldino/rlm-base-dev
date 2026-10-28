@@ -74,8 +74,9 @@ if (detail.isEmpty()) {
     System.debug(LoggingLevel.ERROR,
         'Refresh with: cci flow run refresh_all_decision_tables --org <alias>\n'
         + '⚠ "Not comparable" is NOT a failure — it means this check refused to guess, '
-        + 'usually because a source criterion could not be faithfully reproduced. Compare '
-        + 'those by hand. Only "Stale" is a positive finding.');
+        + 'usually because a source criterion could not be faithfully reproduced, or because '
+        + 'sharing can hide rows from the running user. Compare those by hand. Only "Stale" '
+        + 'is a positive finding.');
 }
 
 List<String> stale = byVerdict.get('Stale');
