@@ -225,10 +225,14 @@ if (inScope.isEmpty()) {
         // different asset entirely -- vouch for usage that never drew down.
         Set<Id> settledAssetIds = new Set<Id>();
         for (UsageRatableSummary r : settled) { settledAssetIds.add(r.AssetId); }
+        // Window-scoped like the drawdown buckets below (see the comment there).
         Decimal totalConsumed = 0;
         for (AggregateResult ar : [SELECT SUM(ConsumedEntitlement) c
                                    FROM UsageEntitlementBucket
-                                   WHERE TransactionUsageEntitlement.AssetId IN :settledAssetIds]) {
+                                   WHERE TransactionUsageEntitlement.AssetId IN :settledAssetIds
+                                     AND EffectiveStartDateTime < :windowTo
+                                     AND (EffectiveEndDateTime = null
+                                          OR EffectiveEndDateTime > :windowFrom)]) {
             Decimal c = (Decimal) ar.get('c');
             if (c != null) totalConsumed += c;
         }
@@ -294,14 +298,25 @@ for (UsageCmtAssetRelatedObj link : [
 // Aggregate per ASSET -- an asset can have several buckets, so accumulate
 // rather than overwrite.
 //
-// SCOPE LIMIT: unlike the journal and summary queries above, this is NOT bounded by
-// the declared window. UsageEntitlementBucket does carry EffectiveStartDateTime /
-// EffectiveEndDateTime, so it could be -- but a bucket's effective period is not
-// necessarily the rating period, and choosing the predicate blind is how the summary
-// query above ended up selecting the WRONG period. So: consume into ONE period per
-// asset. Re-consuming the same asset into a second period sums both periods' buckets
-// here and the draw-order assertion below is then evaluated against cross-period
-// totals, which is not what it claims to check.
+// Bounded by the declared window: only buckets whose effective period OVERLAPS it.
+// Measured on 264 (todo 051, 2026-10-28) with a QB-DB-TOKEN anchor + linked
+// QB-CMT-TKN-TIER commitment, usage booked into June and July before orchestrating:
+//   - per resource, three bucket shapes: a MONTHLY bucket (start 06-01T00:00Z, end
+//     06-30T23:59:59Z) that carries all consumption and balance; term-length buckets
+//     (end 2027-05-31) with null consumed and zero balance; open-ended buckets (null
+//     end) with zeros. Overlap selects the monthly bucket of the declared month only --
+//     the boundaries do not touch. It also keeps a term-length bucket that spans the
+//     window: a hedge, since none was seen carrying consumption, so a product whose
+//     consumption did land on one would not be silently dropped.
+//   - ⚠ observed: no MONTHLY bucket was ever created for July (CompletedRollovers = 0 on
+//     June's), and July's usage rated at full overage. The asset was backdated; that
+//     this is why is the likely reading, not a measured rule. Unscoped, this query let
+//     June's drawdown pass July's draw-order check -- a false pass on exactly the
+//     period it claimed to check.
+// ConsumedEntitlement, not TotalConsumedEntitlement: the term-length QB-TOKEN bucket
+// showed TotalConsumedEntitlement = June's draw (term-cumulative), which would leak one
+// period's consumption into every window it spans. Strict `>` on the end bound is safe
+// whether a shape's end is inclusive (23:59:59) or exclusive (next 00:00).
 Map<Id, Decimal> anchorConsumedByAsset = new Map<Id, Decimal>();
 Map<Id, Decimal> commitBalanceByAsset = new Map<Id, Decimal>();
 Map<Id, Decimal> commitConsumedByAsset = new Map<Id, Decimal>();
@@ -310,7 +325,9 @@ for (UsageEntitlementBucket b : [
                TransactionUsageEntitlement.AssetId,
                TransactionUsageEntitlement.UsageModelType
         FROM UsageEntitlementBucket
-        WHERE TransactionUsageEntitlement.AssetId IN :qbAssetIds]) {
+        WHERE TransactionUsageEntitlement.AssetId IN :qbAssetIds
+          AND EffectiveStartDateTime < :windowTo
+          AND (EffectiveEndDateTime = null OR EffectiveEndDateTime > :windowFrom)]) {
     Id assetId = b.TransactionUsageEntitlement.AssetId;
     String model = b.TransactionUsageEntitlement.UsageModelType;
     Decimal consumed = b.ConsumedEntitlement == null ? 0 : b.ConsumedEntitlement;
@@ -326,7 +343,39 @@ for (UsageEntitlementBucket b : [
     }
 }
 
+// Settled overage rows per asset in the window: a linked commitment that drew nothing
+// while its anchor rated overage is the undiscounted billing this check exists to catch.
+// Counted, not summed: the rows are per usage resource, in different units. Keyed by
+// asset|resource so a pair only counts resources its commitment actually covers --
+// overage on a resource the commitment does not carry is not a commitment failure.
+Map<String, Integer> overageRowsByAssetResource = new Map<String, Integer>();
+Set<Id> runAssetIds = new Set<Id>();   // assets this run produced summaries for
+for (UsageRatableSummary r : inScope) {
+    runAssetIds.add(r.AssetId);
+    if (r.Status == RATING_COMPLETE && r.OverageQuantity != null && r.OverageQuantity > 0) {
+        String k = r.AssetId + '|' + r.UsageResourceId;
+        overageRowsByAssetResource.put(k, (overageRowsByAssetResource.containsKey(k)
+            ? overageRowsByAssetResource.get(k) : 0) + 1);
+    }
+}
+// The resources each commitment covers, from ALL its buckets -- deliberately unscoped by
+// time: the failure this feeds is a window with no commitment bucket of its own.
+Set<Id> linkedCommitIds = new Set<Id>();
+for (Set<Id> ids : anchorToCommitments.values()) { linkedCommitIds.addAll(ids); }
+Map<Id, Set<Id>> resourcesByCommit = new Map<Id, Set<Id>>();
+for (UsageEntitlementBucket b : [
+        SELECT UsageResourceId, TransactionUsageEntitlement.AssetId
+        FROM UsageEntitlementBucket
+        WHERE TransactionUsageEntitlement.AssetId IN :linkedCommitIds
+          AND UsageResourceId != null]) {
+    Id commitId = b.TransactionUsageEntitlement.AssetId;
+    if (!resourcesByCommit.containsKey(commitId)) resourcesByCommit.put(commitId, new Set<Id>());
+    resourcesByCommit.get(commitId).add(b.UsageResourceId);
+}
+
 List<String> drawOrder = new List<String>();
+List<String> unapplied = new List<String>();
+List<String> inert = new List<String>();
 Integer exercisedPairs = 0;
 for (Id anchorAssetId : anchorToCommitments.keySet()) {
     Decimal anchorConsumed = anchorConsumedByAsset.containsKey(anchorAssetId)
@@ -336,12 +385,34 @@ for (Id anchorAssetId : anchorToCommitments.keySet()) {
             ? commitBalanceByAsset.get(commitAssetId) : 0;
         Decimal commitConsumed = commitConsumedByAsset.containsKey(commitAssetId)
             ? commitConsumedByAsset.get(commitAssetId) : 0;
-        if (commitConsumed > 0) exercisedPairs++;
+        String acct = qbAssets.containsKey(anchorAssetId)
+            ? qbAssets.get(anchorAssetId).Account.Name : String.valueOf(anchorAssetId);
+        String commitSku = qbAssets.containsKey(commitAssetId)
+            ? qbAssets.get(commitAssetId).Product2.StockKeepingUnit : String.valueOf(commitAssetId);
+        if (commitConsumed > 0) {
+            exercisedPairs++;
+        } else if (!resourcesByCommit.containsKey(commitAssetId)) {
+            // No buckets at all: the commitment cannot absorb anything, in any period.
+            // Only for anchors THIS run touched -- links span every QB asset in the org,
+            // and another account's state must not fail this run (see the header).
+            if (runAssetIds.contains(anchorAssetId)) {
+                inert.add(acct + ': ' + commitSku);
+            }
+        } else {
+            Integer overageRows = 0;
+            for (Id resourceId : resourcesByCommit.get(commitAssetId)) {
+                String k = anchorAssetId + '|' + resourceId;
+                if (overageRowsByAssetResource.containsKey(k)) {
+                    overageRows += overageRowsByAssetResource.get(k);
+                }
+            }
+            if (overageRows > 0) {
+                unapplied.add(acct + ': ' + overageRows + ' settled anchor summar(ies) on '
+                    + 'resources the commitment covers rated overage while linked commitment '
+                    + commitSku + ' drew nothing');
+            }
+        }
         if (anchorConsumed > 0 && commitBalance > 0) {
-            String acct = qbAssets.containsKey(anchorAssetId)
-                ? qbAssets.get(anchorAssetId).Account.Name : String.valueOf(anchorAssetId);
-            String commitSku = qbAssets.containsKey(commitAssetId)
-                ? qbAssets.get(commitAssetId).Product2.StockKeepingUnit : String.valueOf(commitAssetId);
             drawOrder.add(acct + ': anchor grant drew ' + anchorConsumed
                 + ' while linked commitment ' + commitSku + ' still had ' + commitBalance + ' available');
         }
@@ -350,16 +421,34 @@ for (Id anchorAssetId : anchorToCommitments.keySet()) {
 if (!drawOrder.isEmpty()) {
     problems.add('Anchor grant consumed before the commitment was exhausted (usage would bill '
         + 'at the undiscounted rate): ' + String.join(drawOrder, '; '));
-} else if (exercisedPairs > 0) {
-    // Only claim this passed when a commitment was ACTUALLY drawn down. An
-    // untouched commitment proves nothing about ordering.
-    passed.add('commitment buckets drew before anchor grants across '
-        + exercisedPairs + ' exercised commitment/anchor pair(s)');
-} else if (!anchorToCommitments.isEmpty()) {
-    passed.add('SKIPPED commitment draw-order: ' + anchorToCommitments.size()
-        + ' linked pair(s) exist but no commitment bucket was consumed');
-} else {
-    passed.add('SKIPPED commitment draw-order: no UsageCmtAssetRelatedObj links exist');
+}
+if (!unapplied.isEmpty()) {
+    problems.add('Linked commitment not applied in ' + String.valueOf(USAGE_PERIOD_START) + '..'
+        + String.valueOf(USAGE_PERIOD_END) + ' -- usage rated at overage, undiscounted: '
+        + String.join(unapplied, '; ') + '. Check for a commitment MONTHLY bucket overlapping '
+        + 'the window; if the asset is backdated and this is not its first period, none may '
+        + 'exist (see usage-consumption/building-usage-assets.md). A term-length or prepaid '
+        + 'commitment exhausted in an earlier period also reads this way.');
+}
+if (!inert.isEmpty()) {
+    problems.add('Linked commitment has no entitlement buckets at all -- the link is inert, so '
+        + 'it can absorb nothing in any period: ' + String.join(inert, '; ')
+        + '. Re-assetize the commitment, or check its usage entitlements.');
+}
+if (drawOrder.isEmpty() && unapplied.isEmpty() && inert.isEmpty()) {
+    if (exercisedPairs > 0) {
+        // Only claim this passed when a commitment was ACTUALLY drawn down. An
+        // untouched commitment proves nothing about ordering.
+        passed.add('commitment buckets drew before anchor grants across '
+            + exercisedPairs + ' exercised commitment/anchor pair(s)');
+    } else if (!anchorToCommitments.isEmpty()) {
+        passed.add('SKIPPED commitment draw-order: ' + anchorToCommitments.size()
+            + ' linked pair(s) exist, but no commitment drew and no linked anchor rated overage '
+            + 'on resources its commitment covers in '
+            + String.valueOf(USAGE_PERIOD_START) + '..' + String.valueOf(USAGE_PERIOD_END));
+    } else {
+        passed.add('SKIPPED commitment draw-order: no UsageCmtAssetRelatedObj links exist');
+    }
 }
 
 // --------------------------------------------------------------------- report

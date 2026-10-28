@@ -114,6 +114,15 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
     address first, then the order's Shipping fields.
 - **Backdate deliberately.** `--start` must be early enough that a billing period has
   closed, or there is nothing for rating to settle.
+- ⚠ **A backdated asset got a MONTHLY entitlement bucket for its first period only.**
+  Observed on 264 (2026-10-28, `QB-DB-TOKEN` anchor + linked `QB-CMT-TKN-TIER`, start
+  2026-06-01): only June's monthly buckets exist (`CompletedRollovers = 0`; the term-length
+  and open-ended buckets exist but carry zeros), and identical ×3 usage booked into July
+  rated at **full overage** — 52,500 overage tokens against June's 20,500, with neither the
+  commitment nor the grant drawn. The platform raises no error; `validateRatedUsage.apex`
+  run on the July window FAILS ("Linked commitment not applied"). Demo a drawdown in the
+  first period only; for a second period, check for its monthly bucket rather than
+  assuming it.
 
 ## Key options
 
