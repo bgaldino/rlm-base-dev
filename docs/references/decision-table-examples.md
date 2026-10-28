@@ -13,14 +13,14 @@ This document provides working examples for the `manage_decision_tables` Cumulus
 
 Decision Tables are Business Rules Engine (BRE) objects in Salesforce Revenue Cloud that store decision logic. This task provides comprehensive management capabilities: **list** (with UsageType), **query**, **refresh**, **activate**, **deactivate**, and **validate_lists** (compare org to project list anchors).
 
-> ⚠ **Incremental-refresh caveat.** The CCI task implementations send
-> `isIncremental`, which the Release 262 action silently ignores; their
-> `--is_incremental true` option therefore still queues a **full** refresh. Use
-> `scripts/decision_tables/refresh_decision_table.py --incremental --confirm`
-> when an actual incremental refresh is required; it sends the platform's
-> `isDecisionTableIncremental` input. That input only does anything on a table
-> with `isIncrementalSyncEnabled = true`, which is **false on every table this
-> repo ships** — see *Regular Maintenance - Incremental Refresh* below.
+> ⚠ **Refresh-type caveat.** The CCI tasks' incremental option
+> (`is_incremental` here, `isIncremental` on `refresh_dt_*`) sends the platform's
+> `isDecisionTableIncremental` input. Before issue #351 they sent `isIncremental`,
+> which the action silently ignores. In Release 264 `true` runs an incremental, but
+> `false` lets the platform choose: a "full" request can run as incremental and stamp
+> only `LastIncrementalSyncDate`. Judge a refresh by the later of the two stamps. See
+> the decision-tables skill, `lifecycle-and-refresh.md` → *Release 264 chooses the
+> refresh type*.
 
 > **Org targeting.** `manage_decision_tables` and every `refresh_dt_*` task accept
 > `--org "your-cci-alias"`. The examples below omit it and therefore run against the
@@ -88,7 +88,7 @@ cci task run manage_decision_tables --operation list --developer_names RLM_Produ
 cci task run manage_decision_tables --operation refresh
 ```
 
-#### 11. Legacy Incremental Option (Currently Falls Back to Full Refresh)
+#### 11. Incremental Refresh
 ```bash
 cci task run manage_decision_tables --operation refresh --is_incremental true
 ```
@@ -98,7 +98,7 @@ cci task run manage_decision_tables --operation refresh --is_incremental true
 cci task run manage_decision_tables --operation refresh --developer_names "RLM_CostBookEntries,RLM_ProductCategoryQualification"
 ```
 
-#### 13. Legacy Incremental Option for Specific Tables (Currently Full)
+#### 13. Incremental Refresh of Specific Tables
 ```bash
 cci task run manage_decision_tables --operation refresh --developer_names "RLM_CostBookEntries,RLM_ProductCategoryQualification" --is_incremental true
 ```
@@ -108,7 +108,7 @@ cci task run manage_decision_tables --operation refresh --developer_names "RLM_C
 cci task run manage_decision_tables --operation refresh --developer_names RLM_ProductQualification
 ```
 
-#### 15. Legacy Incremental Option for One Table (Currently Full)
+#### 15. Incremental Refresh of One Table
 ```bash
 cci task run manage_decision_tables --operation refresh --developer_names RLM_ProductQualification --is_incremental true
 ```
@@ -174,7 +174,7 @@ cci task run manage_decision_tables --operation list --status Active --sort_by L
 cci task run manage_decision_tables --operation query --status Inactive
 ```
 
-#### 25. Legacy Incremental Option with Limit (Currently Full)
+#### 25. Incremental Refresh with a Status Filter
 ```bash
 cci task run manage_decision_tables --operation refresh --status Active --is_incremental true
 ```
@@ -197,14 +197,15 @@ Advanced; CSV tables use the Advanced pool. Batch initial setup accordingly.
 
 ### Regular Maintenance - Incremental Refresh
 
-Incremental refresh needs `isIncrementalSyncEnabled = true` on the table, and
-**every Decision Table this repo ships has it `false`** (`RLM_CostBookEntries`,
-`RLM_ProductQualification`, `RLM_ProductCategoryQualification`,
-`RLM_Channel_Program_Level_Partner`). An incremental request against one of
-those is accepted by the action and then syncs nothing, so there is no shipped
-table to demonstrate it on — use a **full** refresh for them.
+⚠ **Release 264 does not consult `isIncrementalSyncEnabled`** (read from Core source
+and confirmed live, 2026-10-27): an incremental request runs whatever the flag says,
+and a full request can run as incremental too. See the decision-tables skill,
+`lifecycle-and-refresh.md` → *Release 264 chooses the refresh type*. The text below
+describes the standalone toolkit's pre-264 rule, which issue #587 removes.
 
-Check the flag before reaching for `--incremental`:
+The flag is `false` on every Decision Table this repo ships (`RLM_CostBookEntries`,
+`RLM_ProductQualification`, `RLM_ProductCategoryQualification`,
+`RLM_Channel_Program_Level_Partner`):
 
 ```bash
 python scripts/decision_tables/describe_decision_table.py \
@@ -222,9 +223,9 @@ python scripts/decision_tables/refresh_decision_table.py \
 ```
 
 `refresh_decision_table.py` reads the flag first and **refuses** `--incremental`
-on a table where it is false rather than queueing a no-op — the same rule the
-in-org Decision Table Manager applies. `--allow-disabled-incremental` overrides
-the refusal if you need to reproduce the platform's silent no-op.
+on a table where it is false — the same pre-264 rule the in-org Decision Table
+Manager applies. `--allow-disabled-incremental` overrides the refusal. Both go with
+issue #587.
 
 ### Refresh Specific Decision Tables
 
@@ -345,23 +346,29 @@ The `query` operation returns decision table data as JSON, useful for scripting 
 The `refresh` operation triggers Salesforce to refresh decision table data from external sources.
 
 **Refresh Types:**
-- **Full Refresh** (`is_incremental: false`): Complete refresh of all data
-- **Incremental Refresh**: Use the standalone toolkit command above; the CCI
-  tasks perform full refreshes. Requires `isIncrementalSyncEnabled = true` on
-  the table, which no table this repo ships has.
+- **Full Refresh** (`is_incremental: false`): in Release 264 this lets the platform
+  choose, and it can run as incremental
+- **Incremental Refresh** (`is_incremental: true`): runs incremental unless the last
+  incremental failed or the source hard-deletes. It usually advances `LastIncrementalSyncDate`
+  only; a first incremental on a table with no incremental history was measured
+  stamping both.
 
 **Refresh Process:**
 1. The task calls the Salesforce `refreshDecisionTable` standard action
 2. Salesforce processes the refresh asynchronously
-3. The task reports success/failure for each table
+3. The task reports, per table, whether the refresh queued. `manage_decision_tables`
+   fails if any table does not queue. The `refresh_dt_*` build tasks first skip, with a
+   warning, any listed table that is missing or inactive in the org (the lists are not
+   org-scoped), then fail if an active table does not queue
 4. The relevant sync timestamp advances when the asynchronous refresh completes
 
 **Important Notes:**
 - Refresh operations are asynchronous and may take several minutes
 - Full refreshes use separate hourly pools: 40 Standard and 60 Advanced per org
 - Active decision tables must be deactivated before their definitions can be edited
-- Refresh completion can be checked via `LastSyncDate` (full) or
-  `LastIncrementalSyncDate` (incremental), not the table lifecycle `Status`
+- Refresh completion is the later of `LastSyncDate` (a full refresh ran) and
+  `LastIncrementalSyncDate` (an incremental ran), not the table lifecycle `Status`.
+  In Release 264 the type requested does not decide which one moves
 
 ---
 
@@ -387,9 +394,9 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 ### Is Incremental
 - **Required**: No (only for `refresh` operation)
 - **Type**: Boolean
-- **Default**: `false` (full refresh)
-- **Description**: These CCI tasks perform a full refresh. Use the standalone
-  toolkit when an incremental refresh is required.
+- **Default**: `false` (in Release 264, the platform chooses full or incremental)
+- **Description**: Sends `isDecisionTableIncremental`. In Release 264 `false` lets the
+  platform choose full or incremental itself; `true` runs incremental.
 
 ### Sort By
 - **Required**: No
@@ -456,10 +463,11 @@ The action input is `isDecisionTableIncremental`, not `isIncremental`. The
 `RLM_Refresh_Decision_Tables_Bulk` flow maps its flow variable to the correct
 action input.
 
-⚠ Incremental sync is **disabled on every decision table this repo ships**, so an
-incremental request is accepted and then changes nothing. The Manager refuses one on such
-a table rather than queueing a no-op, and so does
-`scripts/decision_tables/refresh_decision_table.py --incremental`.
+⚠ Incremental sync is **disabled on every decision table this repo ships**. Before
+Release 264 that made an incremental request a no-op, which is why the Manager and
+`scripts/decision_tables/refresh_decision_table.py --incremental` refuse one on such a
+table. Release 264 does not consult the flag, so both refusals predate it; issue #587
+removes them.
 
 Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_post_commerce`,
 which no build flow runs. Deploy `post_utils`
@@ -474,11 +482,11 @@ deploys on its own when `quantumbit` or `tso` is on.
 - **Status Values**: `Active`, `Inactive`
 - **Refresh Limits**: Separate 40 Standard / 60 Advanced full-refresh pools per org/hour
 - **Active Tables**: An Active table rejects a structural change. `deactivate_changed_decision_tables` (in `prepare_core`) deactivates exactly the tables that need it and deploys them at once, which reactivates them.
-- **Refresh Timing**: Refresh operations are asynchronous. Check the `LastSyncDate` field to verify completion.
+- **Refresh Timing**: Refresh operations are asynchronous. Check the later of `LastSyncDate` and `LastIncrementalSyncDate` to verify completion.
 - **Incremental vs Full**:
   - Use **full refresh** for initial setup or when you need complete data refresh
-  - Use the standalone toolkit for a true **incremental refresh** — and only on a
-    table with `isIncrementalSyncEnabled = true`; no table this repo ships has it
+  - In Release 264 a full request can run as incremental (see the caveat at the top), so
+    check the later of `LastSyncDate` and `LastIncrementalSyncDate`
 - **Field Names**: 
   - `DeveloperName`: The API name of the decision table
   - `SetupName`: The user-friendly name
@@ -503,13 +511,13 @@ deploys on its own when `quantumbit` or `tso` is on.
 ### Error: Full-refresh hourly limit exceeded
 **Solution**: 
 - Wait before refreshing more tables
-- Use the standalone toolkit's incremental refresh when the table supports it
+- Request an incremental refresh (`is_incremental: true`). It is not a full refresh, so it should not draw on the full-refresh pool (not verified). A forced full (after a failed incremental, or on a source that hard-deletes records) does. LowVolume tables reject it
 - Refresh only specific tables that need updating
 
 ### Refresh Operation Shows Success But Status Not Updated
 **Solution**: 
 - Refresh operations are asynchronous
-- Wait a few minutes and check `LastSyncDate` again
+- Wait a few minutes and check the later of `LastSyncDate` and `LastIncrementalSyncDate` again
 - Use `list` or `query` operation to verify status
 
 ### No Decision Tables Found

@@ -82,6 +82,21 @@ def _as_name_list(value, option_name: str) -> List[str]:
     return names
 
 
+def queued_guidance(is_incremental):
+    """What to check once a queued refresh completes. Kept identical to the copy in
+    rlm_refresh_decision_table.py; tests/test_decision_table_tasks.py holds them together."""
+    # ⚠ Release 264 chooses the refresh type itself unless incremental is requested
+    # (AutoSelectRefreshDT, on by default): a "full" request can run as incremental, which
+    # stamps LastIncrementalSyncDate and leaves LastSyncDate alone. So the guidance is the
+    # same for both modes — judge completion by the later of the two stamps.
+    requested = "an incremental" if is_incremental else "a full"
+    return (
+        f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
+        "a full refresh advances LastSyncDate, an incremental one only LastIncrementalSyncDate. "
+        "AFTER the job completes, judge it by the later of the two."
+    )
+
+
 class ManageDecisionTables(BaseTask):
     """
     Comprehensive Decision Table management task.
@@ -379,9 +394,11 @@ class ManageDecisionTables(BaseTask):
         # silently select an incremental refresh while logging "full". YAML callers pass
         # a real bool and are unaffected.
         is_incremental = process_bool_arg(self.options.get("is_incremental") or False)
-        refresh_type = "incremental" if is_incremental else "full"
+        # "full requested", not "full": Release 264 picks the type itself unless
+        # incremental is requested, so a full request can run as incremental.
+        refresh_type = "incremental" if is_incremental else "full requested; the platform may run incremental"
         
-        self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type} refresh)...")
+        self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type})...")
         
         # Use Salesforce REST API to call the refreshDecisionTable action
         if not hasattr(self, 'org_config') or not self.org_config:
@@ -425,9 +442,7 @@ class ManageDecisionTables(BaseTask):
                     success_count += 1
                     self.logger.info(
                         f"Refresh queued for '{developer_name}' - Status: {action_status}. "
-                        "Completion is asynchronous; verify with check_decision_table_freshness "
-                        "AFTER the job completes — a queued refresh has not yet advanced "
-                        "LastSyncDate, so checking now returns the PRE-refresh verdict."
+                        + queued_guidance(is_incremental)
                     )
                 elif result.get('isSuccess'):
                     fail_count += 1
@@ -585,7 +600,9 @@ class ManageDecisionTables(BaseTask):
             "inputs": [
                 {
                     "decisionTableApiName": developer_name,
-                    "isIncremental": is_incremental
+                    # isDecisionTableIncremental: the action ignores an unknown key, so
+                    # `isIncremental` ran every incremental request as a full refresh.
+                    "isDecisionTableIncremental": is_incremental
                 }
             ]
         }

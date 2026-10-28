@@ -1,3 +1,4 @@
+import time
 from abc import abstractmethod
 
 # ⚠ Guarded, matching tasks/rlm_apex_file.py and the pattern
@@ -11,10 +12,12 @@ try:
     from cumulusci.tasks.sfdx import SFDXBaseTask
     from cumulusci.core.keychain import BaseProjectKeychain
     from cumulusci.core.utils import process_bool_arg
+    from cumulusci.core.exceptions import CommandException
 except ImportError:  # pragma: no cover - exercised only in the offline test environment
     requests = None
     SFDXBaseTask = object
     BaseProjectKeychain = object
+    CommandException = Exception
 
     def process_bool_arg(arg):
         """Offline fallback for cumulusci.core.utils.process_bool_arg: same vocabulary,
@@ -31,6 +34,24 @@ except ImportError:  # pragma: no cover - exercised only in the offline test env
             if arg.lower() in ("no", "n", "false", "off", "0"):
                 return False
         raise TypeError(f"Cannot interpret as boolean: `{arg}`")
+
+CONNECTION_ATTEMPTS = 3
+
+
+def queued_guidance(is_incremental):
+    """What to check once a queued refresh completes. Kept identical to the copy in
+    rlm_manage_decision_tables.py; tests/test_decision_table_tasks.py holds them together."""
+    # ⚠ Release 264 chooses the refresh type itself unless incremental is requested
+    # (AutoSelectRefreshDT, on by default): a "full" request can run as incremental, which
+    # stamps LastIncrementalSyncDate and leaves LastSyncDate alone. So the guidance is the
+    # same for both modes — judge completion by the later of the two stamps.
+    requested = "an incremental" if is_incremental else "a full"
+    return (
+        f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
+        "a full refresh advances LastSyncDate, an incremental one only LastIncrementalSyncDate. "
+        "AFTER the job completes, judge it by the later of the two."
+    )
+
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
 class RefreshDecisionTable(SFDXBaseTask):
@@ -51,9 +72,8 @@ class RefreshDecisionTable(SFDXBaseTask):
         `Command`, which — unlike `SalesforceCommand` — never sets `salesforce_task`, and
         so inherits `BaseTask._update_credentials`, a bare `pass`. This task builds its
         own `Authorization: Bearer` header from `org_config.access_token`, and
-        `_make_request` returns None on any non-2xx, which `_refresh_decision_table` only
-        logs — so a token that failed to refresh would mean every table goes unrefreshed
-        while the flow step stays green.
+        `_make_request` returns None on any non-2xx — so a token that failed to refresh
+        would fail the DecisionTable status query, and with it the step.
 
         ⚠ Scope that risk honestly rather than restating it as a live danger. CCI wraps
         the sf CLI and leverages its auth, so every org here is an `SfdxOrgConfig` (or its
@@ -79,7 +99,7 @@ class RefreshDecisionTable(SFDXBaseTask):
             "required": True,
         },
         "isIncremental": {
-            "description": "Specifies whether to trigger an incremental refresh (true) or not (false). If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh.",
+            "description": "Specifies whether to trigger an incremental refresh (true) or not (false). If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh. An incremental refresh advances LastIncrementalSyncDate, not LastSyncDate. In Release 264, false lets the platform choose full or incremental itself.",
             "required": False,
         },
     }
@@ -136,8 +156,8 @@ class RefreshDecisionTable(SFDXBaseTask):
         # ⚠ Split on commas. The flow always passes a real YAML list so this path is
         # latent there, but `cci task run refresh_dt_rating -o developerNames "A,B"`
         # otherwise asks the org to refresh one table literally named "A,B" — which
-        # does not exist, and (see _refresh_decision_table) only logs an error while
-        # the task still exits 0. Same fix applied in rlm_manage_decision_tables.py.
+        # does not exist, so it would be skipped as missing below and the real tables
+        # never refreshed. Same fix applied in rlm_manage_decision_tables.py.
         if isinstance(developer_names, str):
             developer_names = [part.strip() for part in developer_names.split(",") if part.strip()]
             if not developer_names:
@@ -145,17 +165,90 @@ class RefreshDecisionTable(SFDXBaseTask):
         elif not isinstance(developer_names, list):
             raise ValueError(f"developerNames must be a string or a list of strings, but got {type(developer_names)}")
 
-        for developer_name in developer_names:
-            self._refresh_decision_table(developer_name, is_incremental)
+        # ⚠ Partition BEFORE refreshing, so the two failures this task used to conflate
+        # get different handling. A configured table that is absent or inactive in this
+        # org is a list/org mismatch — the cumulusci.yml lists are not org-scoped, and
+        # refresh_dt_default_pricing runs unconditionally in refresh_all_decision_tables —
+        # so it is skipped and reported, never fatal. A table that is active and still
+        # does not queue is a real failure, and fails the task: before, every refresh
+        # could fail and the step still exited 0.
+        # De-duplicate first: each refresh draws on the org's hourly full-refresh pool.
+        # DeveloperName matches case-insensitively in SOQL, so the lookup does too.
+        seen = set()
+        developer_names = [
+            name for name in developer_names
+            if not (name.lower() in seen or seen.add(name.lower()))
+        ]
+        found = self._query_decision_table_statuses(developer_names)
+        missing, inactive, refreshable = [], [], []
+        for name in developer_names:
+            table = found.get(name.lower())
+            if table is None:
+                missing.append(name)
+            elif table.get("Status") != "Active":
+                inactive.append(f"{name} ({table.get('Status')})")
+            else:
+                # The org's spelling, not the caller's: SOQL matched case-insensitively,
+                # and nothing establishes that the action does.
+                refreshable.append(table["DeveloperName"])
+        if missing:
+            self.logger.warning(
+                f"Skipping {len(missing)} decision table(s) not in this org: {', '.join(missing)}"
+            )
+        if inactive:
+            self.logger.warning(
+                f"Skipping {len(inactive)} decision table(s) that are not Active; refreshDecisionTable "
+                f"needs an active table: {', '.join(inactive)}"
+            )
+        failed = []
+        for name in refreshable:
+            # ⚠ One table's exception must not abandon the tables after it.
+            try:
+                queued = self._refresh_decision_table(name, is_incremental)
+            except Exception as exc:
+                self.logger.error(f"Exception refreshing Decision Table '{name}': {exc}")
+                queued = False
+            if not queued:
+                failed.append(name)
+        self.logger.info(
+            f"Refresh summary: {len(refreshable) - len(failed)} queued, "
+            f"{len(failed)} not queued, {len(missing) + len(inactive)} skipped"
+        )
+        if failed:
+            raise CommandException(
+                f"Failed to queue a refresh for {len(failed)} decision table(s): {', '.join(failed)}"
+            )
 
-    # Core logic to refresh decision tables
+    def _query_decision_table_statuses(self, developer_names):
+        """Return {lowercased DeveloperName: record} for the named tables in the org.
+
+        Raises when the query itself fails: without it a missing table cannot be told
+        apart from a failed refresh, and the refreshes would fail for the same reason.
+        """
+        quoted = ", ".join("'" + name.replace("\\", "\\\\").replace("'", "\\'") + "'" for name in developer_names)
+        url, headers = self._build_url_and_headers("query")
+        response = self._make_request(
+            "get",
+            url,
+            headers=headers,
+            params={"q": "SELECT DeveloperName, Status FROM DecisionTable "
+                         f"WHERE DeveloperName IN ({quoted})"},
+        )
+        if not isinstance(response, dict) or "records" not in response:
+            raise CommandException("Could not query DecisionTable to check which tables exist in this org")
+        return {rec["DeveloperName"].lower(): rec for rec in response["records"]}
+
+    # Core logic to refresh decision tables. Returns True only when the refresh queued.
     def _refresh_decision_table(self, developer_name, is_incremental):
         url, headers = self._build_url_and_headers("actions/standard/refreshDecisionTable")
+        # ⚠ The action input is isDecisionTableIncremental. The action ignores an unknown
+        # key, so the old `isIncremental` silently ran every incremental request as a full
+        # refresh. The task option keeps its old name (issue #351).
         payload = {
             "inputs": [
                 {
                     "decisionTableApiName": developer_name,
-                    "isIncremental": is_incremental
+                    "isDecisionTableIncremental": is_incremental
                 }
             ]
         }
@@ -170,8 +263,8 @@ class RefreshDecisionTable(SFDXBaseTask):
                 if len(response) > 0:
                     result = response[0]
                 else:
-                    self.logger.warning(f"Empty response list for Decision Table '{developer_name}'")
-                    return
+                    self.logger.error(f"Empty response list for Decision Table '{developer_name}'")
+                    return False
             elif isinstance(response, dict):
                 result = response
             else:
@@ -199,10 +292,9 @@ class RefreshDecisionTable(SFDXBaseTask):
             if success and status.lower() == 'queued':
                 self.logger.info(
                     f"Refresh queued for Decision Table '{developer_name}' - Status: {status}. "
-                    "Completion is asynchronous; verify with check_decision_table_freshness "
-                    "AFTER the job completes — a queued refresh has not yet advanced "
-                    "LastSyncDate, so checking now returns the PRE-refresh verdict."
+                    + queued_guidance(is_incremental)
                 )
+                return True
             elif success:
                 self.logger.error(
                     f"Decision Table '{developer_name}' was accepted but reported "
@@ -221,6 +313,7 @@ class RefreshDecisionTable(SFDXBaseTask):
                         self.logger.error(f"Error: {error}")
         else:
             self.logger.error(f"No response received for Decision Table '{developer_name}'")
+        return False
 
     # Helper to construct the request URL and headers for making API calls
     def _build_url_and_headers(self, endpoint):
@@ -233,7 +326,20 @@ class RefreshDecisionTable(SFDXBaseTask):
 
     # Make an HTTP request using the requests library and handle the response
     def _make_request(self, method, url, **kwargs):
-        response = requests.request(method, url, **kwargs)
+        # ⚠ Retry a dropped connection. A full build's refresh_dt_rating measured two
+        # "Connection reset by peer" in 22 POSTs, and those tables stayed unrefreshed.
+        # Resending a refresh is harmless: at worst the table is queued twice.
+        for attempt in range(1, CONNECTION_ATTEMPTS + 1):
+            try:
+                response = requests.request(method, url, timeout=120, **kwargs)
+                break
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
+                if attempt == CONNECTION_ATTEMPTS:
+                    raise
+                self.logger.warning(
+                    f"{method.upper()} {url} failed ({exc}); retrying ({attempt}/{CONNECTION_ATTEMPTS - 1})"
+                )
+                time.sleep(2 * attempt)
         if response.ok:
             return response.json()
         else:

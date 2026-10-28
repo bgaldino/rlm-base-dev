@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 89
+EXPECTED_CHECKS = 124
 
 
 def check(label, condition, detail=""):
@@ -467,7 +467,10 @@ def refresh_payload_for(raw_value):
     task.options = {"developerNames": "A_Table", "isIncremental": raw_value}
     task.logger = _SilentLogger()
     task._prep_runtime = lambda: None
-    task._refresh_decision_table = lambda name, inc: rec.payloads.append(inc)
+    task._query_decision_table_statuses = lambda names: {
+        name.lower(): {"DeveloperName": name, "Status": "Active"}
+        for name in names}
+    task._refresh_decision_table = lambda name, inc: rec.payloads.append(inc) or True
     RefreshDecisionTable._run_task(task)
     return rec.payloads[0]
 
@@ -568,9 +571,10 @@ def refresh_logs_for(response):
     Drive the BUILD PATH gate — RefreshDecisionTable._refresh_decision_table — and return
     everything it told the operator.
 
-    That method deliberately does not raise (exit-0 behaviour is coupled to the
-    unconditional default-pricing flow step; see todo pack 049), so the verdict is
-    observable only through the log. Asserting on error PRESENCE rather than on wording
+    That method returns the verdict rather than raising on a refused request (it raises only
+    on a response of an unexpected type, which _run_task catches): _run_task decides, after
+    setting aside tables that are missing or inactive in the org (section 3c). So here the
+    verdict is observable through the log and the return value. Asserting on error PRESENCE rather than on wording
     keeps the verdict check alive when the message is reworded — which this branch has now
     done twice.
 
@@ -678,7 +682,7 @@ except Exception as exc:
 # POST-refresh verdict and the shared opening survives in both files, so a check labelled
 # "byte-identical" stays green while the two messages contradict each other. Rendering also
 # sidesteps source line-wrapping, which is not a semantic difference.
-GUIDANCE_START = "Completion is asynchronous;"
+GUIDANCE_START = "Completion is asynchronous"
 _QUEUED = {"isSuccess": True, "outputValues": {"Status": "Queued"}}
 
 
@@ -705,6 +709,222 @@ try:
 except Exception as exc:
     check("both classes render byte-identical async guidance", False,
           f"driver raised {type(exc).__name__}: {exc}")
+
+# ---------------------------------------------------------------------------
+# 3c. Missing vs failed. The build path used to exit 0 whatever happened. It now
+#     skips a configured table that is absent or inactive in the org (a list/org
+#     mismatch: refresh_dt_default_pricing runs unconditionally) and fails only
+#     when an ACTIVE table does not queue. Todo 49, Part 3.
+# ---------------------------------------------------------------------------
+print("\n[3c] the build path skips missing/inactive tables and fails on a real refresh failure")
+
+
+def run_partition(names, statuses, queued, incremental=False, raises=()):
+    """Drive RefreshDecisionTable._run_task; return (attempted, logger, raised message or None).
+
+    `statuses` maps an org DeveloperName to its Status, keyed the way the real query returns
+    it (lowercased); a name in `raises` makes the refresh call throw."""
+    attempted = []
+    task = object.__new__(RefreshDecisionTable)
+    task.options = {"developerNames": names, "isIncremental": incremental}
+    logger = _CapturingLogger()
+    task.logger = logger
+    task._prep_runtime = lambda: None
+    task._query_decision_table_statuses = lambda requested: {
+        name.lower(): {"DeveloperName": name, "Status": status}
+        for name, status in statuses.items()}
+
+    def refresh(name, inc):
+        attempted.append(name)
+        if name in raises:
+            raise RuntimeError("connection reset")
+        return name in queued
+
+    task._refresh_decision_table = refresh
+    try:
+        RefreshDecisionTable._run_task(task)
+        return attempted, logger, None
+    except Exception as exc:
+        return attempted, logger, str(exc)
+
+
+try:
+    attempted, logs, raised = run_partition(
+        "Live_A,Gone_B,Off_C", {"Live_A": "Active", "Off_C": "Inactive"}, {"Live_A"})
+    check("only the active table is attempted", attempted == ["Live_A"], str(attempted))
+    check("a missing or inactive table does not fail the task", raised is None, str(raised))
+    check("the missing table is reported", any("Gone_B" in m for m in logs.warnings), str(logs.warnings))
+    check("the inactive table is reported with its status",
+          any("Off_C (Inactive)" in m for m in logs.warnings), str(logs.warnings))
+
+    attempted, logs, raised = run_partition(
+        "Live_A,Live_B", {"Live_A": "Active", "Live_B": "Active"}, {"Live_A"})
+    check("an active table that does not queue fails the task", raised is not None)
+    check("the failure names the table, and only it",
+          raised is not None and "Live_B" in raised and "Live_A" not in raised, str(raised))
+    check("a failure does not stop the tables after it", attempted == ["Live_A", "Live_B"], str(attempted))
+
+    attempted, logs, raised = run_partition("Gone_A", {}, set())
+    check("nothing in the org: skipped, not failed", raised is None and attempted == [], str(raised))
+
+    attempted, logs, raised = run_partition("Live_A,Live_A", {"Live_A": "Active"}, {"Live_A"})
+    check("a name listed twice is refreshed once", attempted == ["Live_A"], str(attempted))
+
+    attempted, logs, raised = run_partition(
+        "Live_B,Live_A,live_b", {"Live_A": "Active", "Live_B": "Active"}, {"Live_A", "Live_B"})
+    check("de-duplication keeps the configured order", attempted == ["Live_B", "Live_A"], str(attempted))
+
+    attempted, logs, raised = run_partition("live_a,LIVE_A", {"Live_A": "Active"}, {"Live_A"})
+    check("a name differing only in case is found, refreshed once, under the org's spelling",
+          attempted == ["Live_A"] and raised is None, f"{attempted} {raised}")
+
+    attempted, logs, raised = run_partition(
+        "Live_A,Live_B", {"Live_A": "Active", "Live_B": "Active"}, {"Live_B"}, raises={"Live_A"})
+    check("an exception on one table does not abandon the next, and fails the task",
+          attempted == ["Live_A", "Live_B"] and raised is not None and "Live_A" in raised,
+          f"{attempted} {raised}")
+
+    # Release 264 does not consult IsIncrementalSyncEnabled, so an incremental request is
+    # sent for every active table rather than refused.
+    attempted, logs, raised = run_partition(
+        "On_A,Off_B", {"On_A": "Active", "Off_B": "Active"}, {"On_A", "Off_B"}, incremental=True)
+    check("an incremental request is sent for every active table, not refused",
+          attempted == ["On_A", "Off_B"] and raised is None, f"{attempted} {raised}")
+except Exception as exc:
+    check("partition checks ran", False, f"{type(exc).__name__}: {exc}")
+
+# The status query must fail loudly: without it a missing table looks like a failure.
+try:
+    task = object.__new__(RefreshDecisionTable)
+    task._build_url_and_headers = lambda endpoint: ("https://example.invalid/" + endpoint, {})
+    seen = {}
+    task._make_request = lambda method, url, **kw: seen.update(method=method, url=url, **kw) or None
+    try:
+        RefreshDecisionTable._query_decision_table_statuses(task, ["A"])
+        check("a failed status query raises", False, "returned")
+    except Exception as exc:
+        check("a failed status query raises", "DecisionTable" in str(exc), str(exc))
+    task._make_request = lambda method, url, **kw: seen.update(method=method, url=url, **kw) or {
+        "records": [{"DeveloperName": "A", "Status": "Active"}]}
+    got = RefreshDecisionTable._query_decision_table_statuses(task, ["A", "O'Brien", "B\\C"])
+    check("the status query keys records by lowercased DeveloperName",
+          list(got) == ["a"] and got["a"]["Status"] == "Active", str(got))
+    soql = (seen.get("params") or {}).get("q", "")
+    check("the status query is a GET on the query endpoint with quotes and backslashes escaped",
+          seen.get("method") == "get" and seen.get("url", "").endswith("/query")
+          and "'O\\'Brien'" in soql and "'B\\\\C'" in soql,
+          f"{seen.get('method')} {seen.get('url')} {soql}")
+except Exception as exc:
+    check("status query checks ran", False, f"{type(exc).__name__}: {exc}")
+
+# _refresh_decision_table's return value is what _run_task counts, so pin it to the gate.
+for response, should_queue, label in STATUS_CASES:
+    try:
+        task = object.__new__(RefreshDecisionTable)
+        task.logger = _CapturingLogger()
+        task._build_url_and_headers = lambda endpoint: ("https://example.invalid/x", {})
+        task._make_request = lambda method, url, **kwargs: response
+        got = RefreshDecisionTable._refresh_decision_table(task, "A_Table", False)
+        check(f"_refresh_decision_table returns {should_queue} for {label}", got is should_queue, repr(got))
+    except Exception as exc:
+        check(f"_refresh_decision_table returns {should_queue} for {label}", False, f"{type(exc).__name__}: {exc}")
+
+# A dropped connection is retried, not counted as a failure; one that never recovers raises.
+try:
+    class _ConnErr(Exception):
+        pass
+
+    class _Resp:
+        ok = True
+
+        def json(self):
+            return {"records": []}
+
+    class _FakeRequests:
+        class exceptions:
+            ConnectionError = _ConnErr
+            Timeout = _ConnErr
+
+        def __init__(self, failures):
+            self.failures, self.calls = failures, 0
+
+        def request(self, method, url, **kwargs):
+            self.calls += 1
+            if self.calls <= self.failures:
+                raise _ConnErr("Connection reset by peer")
+            return _Resp()
+
+    real_requests, real_sleep = _refresh.requests, _refresh.time.sleep
+    _refresh.time.sleep = lambda seconds: None
+    try:
+        task = object.__new__(RefreshDecisionTable)
+        task.logger = _CapturingLogger()
+        _refresh.requests = _FakeRequests(failures=_refresh.CONNECTION_ATTEMPTS - 1)
+        got = RefreshDecisionTable._make_request(task, "post", "https://example.invalid/x")
+        check("a dropped connection is retried until it succeeds",
+              got == {"records": []} and _refresh.requests.calls == _refresh.CONNECTION_ATTEMPTS,
+              f"{got} calls={_refresh.requests.calls}")
+        _refresh.requests = _FakeRequests(failures=_refresh.CONNECTION_ATTEMPTS)
+        try:
+            RefreshDecisionTable._make_request(task, "post", "https://example.invalid/x")
+            check("a connection that never recovers raises", False, "returned")
+        except _ConnErr:
+            check("a connection that never recovers raises",
+                  _refresh.requests.calls == _refresh.CONNECTION_ATTEMPTS, f"calls={_refresh.requests.calls}")
+    finally:
+        _refresh.requests, _refresh.time.sleep = real_requests, real_sleep
+except Exception as exc:
+    check("connection retry checks ran", False, f"{type(exc).__name__}: {exc}")
+
+# Issue 351: the action input is isDecisionTableIncremental. The action ignores an unknown
+# key, so the old isIncremental ran every incremental request as a full refresh.
+try:
+    sent = {}
+    task = object.__new__(RefreshDecisionTable)
+    task.logger = _CapturingLogger()
+    task._build_url_and_headers = lambda endpoint: ("https://example.invalid/x", {})
+    task._make_request = lambda method, url, **kwargs: sent.update(kwargs["json"]["inputs"][0]) or _QUEUED
+    RefreshDecisionTable._refresh_decision_table(task, "A_Table", True)
+    check("RefreshDecisionTable sends isDecisionTableIncremental, not isIncremental",
+          sent.get("isDecisionTableIncremental") is True and "isIncremental" not in sent, str(sent))
+
+    class _Sf:
+        def restful(self, endpoint, method=None, json=None):
+            sent.clear()
+            sent.update(json["inputs"][0])
+            return [_QUEUED]
+
+    task = object.__new__(ManageDecisionTables)
+    ManageDecisionTables._refresh_single_decision_table(task, _Sf(), "A_Table", True)
+    check("ManageDecisionTables sends isDecisionTableIncremental, not isIncremental",
+          sent.get("isDecisionTableIncremental") is True and "isIncremental" not in sent, str(sent))
+
+    # The manual task sends an incremental request for every table, not refusing any.
+    attempted = []
+    task = object.__new__(ManageDecisionTables)
+    task.options = {"developer_names": "On_A,Off_B", "is_incremental": True}
+    task.logger = _CapturingLogger()
+    task.org_config = object()
+    task._sf_client = object()
+    task._refresh_single_decision_table = lambda sf, name, inc: attempted.append((name, inc)) or _QUEUED
+    ManageDecisionTables._refresh_decision_tables(task)
+    check("ManageDecisionTables sends an incremental request for every table",
+          attempted == [("On_A", True), ("Off_B", True)], str(attempted))
+except Exception as exc:
+    check("incremental key checks ran", False, f"{type(exc).__name__}: {exc}")
+
+# Both modes' guidance, in both modules, identical. In 264 a full request can run as an
+# incremental, so BOTH modes must name both stamps.
+try:
+    for inc in (False, True):
+        check(f"both modules carry the same guidance (incremental={inc})",
+              _manage.queued_guidance(inc) == _refresh.queued_guidance(inc))
+    for inc in (False, True):
+        g = _refresh.queued_guidance(inc)
+        check(f"guidance names both stamps (incremental={inc})",
+              "LastIncrementalSyncDate" in g and "LastSyncDate" in g and "later of the two" in g, g)
+except Exception as exc:
+    check("guidance checks ran", False, f"{type(exc).__name__}: {exc}")
 
 # ---------------------------------------------------------------------------
 # 4. Flow shape. A draft of this very change created a duplicate step key, and
