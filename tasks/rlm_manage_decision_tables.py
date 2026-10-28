@@ -57,6 +57,97 @@ except ImportError:
         raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 
+def _anchor_gates(config: Dict, names: List[str]) -> List[Dict]:
+    """
+    Every flow step that refreshes or activates the decision-table list `names`.
+
+    The `dt_*_decision_tables` anchors carry no flag of their own: the flag is the `when:` on
+    the flow step that runs the task the anchor is wired into. Reading it from the loaded
+    config, rather than keeping a second anchor-to-flag map, means it cannot drift from the
+    flows. YAML aliases load as equal lists, so a list matches on the same names in any order.
+    A step's own list option overrides its task's. Every flow counts, not only the build:
+    an unconditional step anywhere means some run expects the tables. A parent `flow:` step's
+    `when:` is not read, as CumulusCI's flow runner does not read it either.
+
+    Returns [{"flow", "step", "task", "when"}]; "when" is None for an unconditional step.
+    """
+    wanted = set(names)
+
+    def list_in(options):
+        """The decision-table list an options dict carries, or None."""
+        for key in ("developerNames", "developer_names"):
+            if isinstance(options.get(key), list):
+                return options[key]
+        return None
+
+    def matches(options):
+        value = list_in(options)
+        return value is not None and set(value) == wanted
+
+    tasks = config.get("tasks") or {}
+    using = {name for name, task in tasks.items() if matches((task or {}).get("options") or {})}
+    gates = []
+    for flow_name, flow in (config.get("flows") or {}).items():
+        for step_num, step in ((flow or {}).get("steps") or {}).items():
+            if not isinstance(step, dict) or not step.get("task"):
+                continue
+            step_options = step.get("options") or {}
+            if list_in(step_options) is not None:
+                hit = matches(step_options)
+            else:
+                hit = step["task"] in using
+            if hit:
+                gates.append({
+                    "flow": flow_name,
+                    "step": step_num,
+                    "task": step["task"],
+                    "when": step.get("when"),
+                })
+    return gates
+
+
+def _evaluate_when(when: Optional[str], project_config, org_config) -> Optional[bool]:
+    """
+    A flow step's `when:` as CumulusCI's flow runner evaluates it. True for an unconditional
+    step; None only when CumulusCI is not installed. An expression that fails to evaluate
+    raises, as it fails the flow itself.
+    """
+    if when is None:
+        return True
+    try:
+        from cumulusci.core.flowrunner import jinja2_env
+    except ImportError:
+        return None
+    return bool(jinja2_env.compile_expression(when)(project_config=project_config, org_config=org_config))
+
+
+EXPECTED = "expected"
+UNEXPECTED = "unexpected"
+UNKNOWN = "unknown"
+
+
+def _list_verdict(gates: List[Dict], verdicts: List[Optional[bool]]) -> tuple:
+    """
+    Whether a list's missing names are explained by its flags: (kind, reason).
+
+    `verdicts` holds _evaluate_when's value for each gate, in order. UNEXPECTED when any step
+    using the list runs, or when no flow uses it at all; EXPECTED only when every step is
+    off; otherwise UNKNOWN, which strict mode treats as unexpected.
+    """
+    if not gates:
+        return UNEXPECTED, "no flow uses this list, so no flag explains the absence"
+    if any(v is True for v in verdicts):
+        return UNEXPECTED, "a step that uses this list runs for this project's flags"
+    if all(v is False for v in verdicts):
+        return EXPECTED, "every step that uses this list is off for this project's flags"
+    return UNKNOWN, "a step condition could not be evaluated here (CumulusCI not installed)"
+
+
+def _soql_quote(value: str) -> str:
+    """A SOQL string literal: backslash first, then the quote."""
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
 def _as_name_list(value, option_name: str) -> List[str]:
     """
     Normalise a task option that names one or more records into a list.
@@ -217,6 +308,10 @@ class ManageDecisionTables(BaseTask):
         "list_anchors": {
             "description": "For validate_lists: list of config anchor names (e.g. dt_rating_decision_tables). If omitted, all dt_*_decision_tables from project custom are used.",
             "required": False
+        },
+        "strict": {
+            "description": "For validate_lists: fail when a listed table is missing or inactive and its flags don't explain it (a step using its list runs, no flow uses it, or a condition can't be evaluated). Default: False (report only).",
+            "required": False
         }
     }
     
@@ -340,15 +435,13 @@ class ManageDecisionTables(BaseTask):
         if developer_names:
             developer_names = _as_name_list(developer_names, "developer_names")
 
-            # Escape single quotes in developer names
-            escaped_names = [name.replace("'", "\\'") for name in developer_names]
-            names_str = "', '".join(escaped_names)
-            where_clauses.append(f"DeveloperName IN ('{names_str}')")
+            names_str = ", ".join(_soql_quote(name) for name in developer_names)
+            where_clauses.append(f"DeveloperName IN ({names_str})")
         
         # Filter by status
         status = self.options.get("status", "Active")
         if status:
-            where_clauses.append(f"Status = '{status}'")
+            where_clauses.append(f"Status = {_soql_quote(status)}")
         
         # Build query
         soql = f"SELECT {', '.join(fields)} FROM DecisionTable"
@@ -499,8 +592,9 @@ class ManageDecisionTables(BaseTask):
             elif "developer_names" in self.options:
                 del self.options["developer_names"]
         if not decision_tables:
+            # Carry on: with nothing active, every list in use is a finding, and strict must see it.
             self.logger.warning("No active decision tables found in org.")
-            return
+            decision_tables = []
 
         org_by_name = {dt["DeveloperName"]: dt for dt in decision_tables}
         org_names = set(org_by_name.keys())
@@ -556,20 +650,58 @@ class ManageDecisionTables(BaseTask):
             self.logger.info("=== In org but not in any list: (none) ===")
         self.logger.info("")
 
-        # --- Report: In lists but not in org (invalid entries) ---
+        # --- Report: In lists but not in org, attributed to the flag that gates the list ---
         not_in_org = all_listed_names - org_names
+        unexpected: Set[str] = set()
         if not_in_org:
-            self.logger.info("=== In configured lists but not in org (invalid/missing) ===")
+            inactive = self._statuses_of(sorted(not_in_org))
+            self.logger.info("=== In configured lists but not active in org ===")
+            config = getattr(self.project_config, "config", None) or {}
             for anchor in list_anchors:
                 names = anchor_to_names.get(anchor, [])
-                missing = [n for n in names if n not in org_names]
-                if missing:
-                    self.logger.info("  %s: %s", anchor, ", ".join(sorted(missing)))
-            self.logger.info("  Total: %d", len(not_in_org))
+                missing = sorted(n for n in names if n not in org_names)
+                if not missing:
+                    continue
+                gates = _anchor_gates(config, names)
+                try:
+                    verdicts = [_evaluate_when(g["when"], self.project_config, self.org_config) for g in gates]
+                    kind, reason = _list_verdict(gates, verdicts)
+                except Exception as e:  # a when: that cannot evaluate fails the flow, so it fails here
+                    kind, reason = UNKNOWN, f"a step condition failed to evaluate: {e}"
+                if kind != EXPECTED:
+                    unexpected.update(missing)
+                runs = " · ".join(
+                    f"{g['flow']} step {g['step']} ({g['task']}"
+                    + (f", when: {g['when']}" if g["when"] else ", unconditional") + ")"
+                    for g in gates
+                ) or "no flow step"
+                self.logger.info("  %s — %s: %s", anchor, kind.upper() if kind != EXPECTED else kind, reason)
+                self.logger.info("    used by: %s", runs)
+                for name in missing:
+                    status = inactive.get(name)
+                    self.logger.info("    %s%s", name, f" (in org, {status})" if status else " (not in org)")
+            self.logger.info("  Total: %d (%d not explained by a flag)", len(not_in_org), len(unexpected))
+            self.logger.info(
+                "  A name in several lists is judged once per list. Flags are read from this "
+                "project's config, which may differ from the flags the org was built with (a "
+                "runtime -o override, for example)."
+            )
         else:
             self.logger.info("=== In lists but not in org: (none) ===")
         self.logger.info("")
         self.logger.info("Validate lists complete. Org total: %d, Listed total (unique): %d.", len(org_names), len(all_listed_names))
+        if unexpected and process_bool_arg(self.options.get("strict") or False):
+            raise TaskOptionsError(
+                "Decision tables missing or inactive, not explained by a flag: " + ", ".join(sorted(unexpected))
+            )
+
+    def _statuses_of(self, names: List[str]) -> Dict[str, str]:
+        """{DeveloperName: Status} for those of `names` that exist in the org, in any status."""
+        if not names:
+            return {}
+        quoted = ", ".join(_soql_quote(n) for n in names)
+        result = self._sf.query(f"SELECT DeveloperName, Status FROM DecisionTable WHERE DeveloperName IN ({quoted})")
+        return {r["DeveloperName"]: r["Status"] for r in (result or {}).get("records") or []}
 
     def _get_project_custom_config(self) -> Dict:
         """Return project custom config dict (e.g. from cumulusci.yml project.custom)."""
@@ -630,11 +762,10 @@ class ManageDecisionTables(BaseTask):
 
         developer_names = _as_name_list(developer_names, "developer_names")
 
-        escaped_names = [name.replace("'", "\\'") for name in developer_names]
-        names_str = "', '".join(escaped_names)
+        names_str = ", ".join(_soql_quote(name) for name in developer_names)
         soql = (
             "SELECT Id, DeveloperName, Status FROM DecisionTable "
-            f"WHERE DeveloperName IN ('{names_str}')"
+            f"WHERE DeveloperName IN ({names_str})"
         )
         sf = self._sf
         records = sf.query(soql).get("records", [])

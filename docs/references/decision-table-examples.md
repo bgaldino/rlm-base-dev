@@ -137,7 +137,10 @@ cci task run manage_decision_tables --operation validate_lists
 ```
 - Queries all active decision tables from the org (with UsageType).
 - Discovers all anchors matching `dt_*_decision_tables` from project custom config.
-- Reports: **Decision tables in org by UsageType**; **In org but not in any list**; **In lists but not in org** (invalid entries).
+- Reports: **Decision tables in org by UsageType**; **In org but not in any list**; **In configured lists but not active in org**.
+- Each list with missing names is attributed to the flow steps that use it, read from `cumulusci.yml`: a task whose `developerNames`/`developer_names` option holds the list, and the `when:` of every flow step that runs it, evaluated as the flow runner does. A missing name is **expected** when every such step is off for this project's flags (the `dt_commerce_decision_tables` names on a `commerce: false`, `tso: false` build), and **UNEXPECTED** when one runs, or when no flow uses the list. It is **UNKNOWN** when a condition can't be evaluated: CumulusCI isn't installed, or the expression errors (which would fail the flow too). Every flow counts, not only the build. A name in several lists is judged once per list. Each missing name also says whether it exists in the org in another status.
+- Flags come from the project config, not from the org: a build run with a runtime `-o` override can differ.
+- `-o strict true` fails the task on any name not explained by a flag (UNEXPECTED or UNKNOWN). With no active tables at all it still runs the comparison, so every list in use fails. Default: report only.
 
 #### 19. Validate Specific List Anchors
 ```bash
@@ -403,6 +406,12 @@ The `refresh` operation triggers Salesforce to refresh decision table data from 
 - **Type**: Integer
 - **Default**: None (no limit)
 - **Description**: Maximum number of decision tables to return
+
+### Strict (validate_lists only)
+- **Required**: No
+- **Type**: Boolean
+- **Default**: False
+- **Description**: Fail when a listed table is missing or inactive and its flags don't explain it (a step that uses its list runs, no flow uses the list, or a condition can't be evaluated)
 
 ### List Anchors (validate_lists only)
 - **Required**: No

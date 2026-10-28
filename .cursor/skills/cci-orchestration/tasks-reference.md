@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**266 tasks** across **9 groups**.
+**267 tasks** across **9 groups**.
 
 ---
 
@@ -802,7 +802,7 @@
 
 ## Revenue Lifecycle Management
 
-*175 task(s)*
+*176 task(s)*
 
 ### `activate_agents`
 
@@ -1137,13 +1137,21 @@
 
 ### `check_decision_table_freshness`
 
-**Description:** Report every decision table's freshness verdict headlessly — the same comparison the Decision Table Manager component shows, without a browser. A table is Stale when any object it reads changed at or after its last full sync — the tie counts as stale, because nothing establishes which came first — including objects it only pulls columns from. "Not comparable" means the check refused to guess (usually an unreproducible source criterion), which is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale table — off by default, because a build that loads data after its refresh step will legitimately show stale tables. Requires post_utils deployed.
+**Description:** Report every decision table's freshness verdict headlessly — the same comparison the Decision Table Manager component shows, without a browser. A table is Stale when any object it reads changed at or after its last sync, full or incremental, whichever is later — the tie counts as stale, because nothing establishes which came first — including objects it only pulls columns from. A table whose last full sync predates the org reads Stale: it was never built here. "Not comparable" means the check refused to guess (usually an unreproducible source criterion), which is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale table — off by default, because a build that loads data after its refresh step will legitimately show stale tables. Requires post_utils deployed.
 
 **Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
 
 **Options:**
 
 - `path`: `scripts/apex/checkDecisionTableFreshness.apex`
+
+---
+
+### `check_search_index_readiness`
+
+**Description:** Report whether the Product Catalog (PCM) search index was built in this org and completed. Reads the active snapshot's build logs from the Connect API: Ready only when a build completed after Organization.CreatedDate, so a spun org showing the template's build reads "Not built in this org". Judged by the logs, not the index's lastBuildStatus, which can still say IN_PROGRESS after a build completed. Changes nothing. Pass -o strict true to fail unless Ready.
+
+**Class:** `tasks.rlm_rebuild_search_index.CheckSearchIndexReadiness`
 
 ---
 
@@ -2643,7 +2651,7 @@
 
 ### `manage_decision_tables`
 
-**Description:** Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors)
+**Description:** Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors; a missing name is attributed to the flag-gated flow step that uses its list, and -o strict true fails on one missing while its step runs)
 
 **Class:** `tasks.rlm_manage_decision_tables.ManageDecisionTables`
 

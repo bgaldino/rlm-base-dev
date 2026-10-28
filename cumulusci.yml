@@ -2609,10 +2609,11 @@ tasks:
     description: >
       Report every decision table's freshness verdict headlessly — the same
       comparison the Decision Table Manager component shows, without a browser.
-      A table is Stale when any object it reads changed at or after its last full
-      sync — the tie counts as stale, because nothing establishes which came first
-      — including objects it only pulls columns from. "Not comparable" means the
-      check refused to guess (usually an unreproducible source criterion), which
+      A table is Stale when any object it reads changed at or after its last sync,
+      full or incremental, whichever is later — the tie counts as stale, because
+      nothing establishes which came first — including objects it only pulls columns
+      from. A table whose last full sync predates the org reads Stale: it was never
+      built here. "Not comparable" means the check refused to guess (usually an unreproducible source criterion), which
       is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale
       table — off by default, because a build that loads data after its refresh
       step will legitimately show stale tables. Requires post_utils deployed.
@@ -3164,6 +3165,17 @@ tasks:
     description: Rebuild the Product Catalog (PCM) search index via Connect API (FULL, IMMEDIATE). Asynchronous - initiates the build and logs the snapshot id. Warns and continues on API failure unless raise_on_failure is set.
     class_path: tasks.rlm_rebuild_search_index.RebuildSearchIndex
 
+  check_search_index_readiness:
+    group: Revenue Lifecycle Management
+    description: >
+      Report whether the Product Catalog (PCM) search index was built in this org and
+      completed. Reads the active snapshot's build logs from the Connect API: Ready only
+      when a build completed after Organization.CreatedDate, so a spun org showing the
+      template's build reads "Not built in this org". Judged by the logs, not the
+      index's lastBuildStatus, which can still say IN_PROGRESS after a build completed.
+      Changes nothing. Pass -o strict true to fail unless Ready.
+    class_path: tasks.rlm_rebuild_search_index.CheckSearchIndexReadiness
+
   fix_scratch_org_identity:
     group: Revenue Lifecycle Management
     description: >
@@ -3184,7 +3196,7 @@ tasks:
 
   manage_decision_tables:
     group: Revenue Lifecycle Management
-    description: "Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors)"
+    description: "Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors; a missing name is attributed to the flag-gated flow step that uses its list, and -o strict true fails on one missing while its step runs)"
     class_path: tasks.rlm_manage_decision_tables.ManageDecisionTables
     options:
       operation: list  # Options: 'list', 'query', 'refresh', 'activate', 'deactivate', 'validate_lists'
@@ -4323,6 +4335,24 @@ flows:
         options:
           api_names: *ps_aea
   
+  check_org_readiness:
+    group: Revenue Lifecycle Management
+    description: >
+      Post-spin readiness, read-only: every decision table's freshness verdict (a table
+      whose last full sync predates the org reads Stale: never built here) and whether the
+      search index was built in this org. Run it on a Trialforce-spun org after
+      refresh_all_decision_tables and rebuild_search_index, allowing a few minutes for
+      the index build. In Release 264 a refresh within a day of the template's full
+      sync can run incremental and leave a table Stale (never built here) until a full
+      one runs. Both steps report; to fail on a not-ready result pass each step's strict
+      option, e.g. -o check_decision_table_freshness__param1 strict
+      -o check_search_index_readiness__strict true.
+    steps:
+      1:
+        task: check_decision_table_freshness
+      2:
+        task: check_search_index_readiness
+
   refresh_all_decision_tables:
     group: Revenue Lifecycle Management
     steps:
