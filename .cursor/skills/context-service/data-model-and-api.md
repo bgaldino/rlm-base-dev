@@ -386,8 +386,7 @@ exceeding 10 as an **INFO note only** — it never fails the build (even under
 ## MDAPI
 
 `ContextDefinition` deploys as **one atomic unit** (`childXmlNames: []` — no
-sub-components deploy independently) from
-`force-app/main/default/contextDefinitions/` via `deploy_context_definitions`.
-**Activation state and default-mapping designation are not packageable** — they
-are manual/API steps after deploy. This directory is **tracked** metadata, not
-auto-generated; prefer plans + tasks for additive changes.
+sub-components deploy independently). **Activation state and default-mapping
+designation are not packageable** — they are manual/API steps after deploy. The repo
+deploys no `.contextDefinition` metadata: its pre-264 snapshots are reference-only in
+`docs/references/context-definitions/` (deploying them to 264 would delete attributes 264 added). Use plans + tasks.

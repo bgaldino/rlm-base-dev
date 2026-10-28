@@ -4,7 +4,7 @@
 This validates this repo's context **plan** format (the JSON consumed by
 ``manage_context_definition`` / ``ExtendStandardContext`` under
 ``datasets/context_plans/``) — NOT the MDAPI ``.contextDefinition`` file format
-under ``force-app/main/default/contextDefinitions/``.
+(reference-only copies in ``docs/references/context-definitions/``).
 
 It is a static, offline check (no org, no network), modeled on
 ``scripts/validate_sfdmu_v5_datasets.py`` (offline validator) and

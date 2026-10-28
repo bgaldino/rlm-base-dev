@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**267 tasks** across **9 groups**.
+**266 tasks** across **9 groups**.
 
 ---
 
@@ -802,7 +802,7 @@
 
 ## Revenue Lifecycle Management
 
-*176 task(s)*
+*175 task(s)*
 
 ### `activate_agents`
 
@@ -1614,18 +1614,6 @@
 **Options:**
 
 - `path`: `unpackaged/post_collections_case_flow`
-
----
-
-### `deploy_context_definitions`
-
-**Description:** Deploy Context Definitions
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `force-app/main/default/contextDefinitions`
 
 ---
 
