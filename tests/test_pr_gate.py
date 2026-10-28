@@ -1253,7 +1253,7 @@ if os.path.exists(workflow):
         return found[0] if len(found) == 1 else (None, {})
 
     gate_job_name, gate_job = job_with("scripts/ai/pr_gate.py",
-                                       exclude=("--requirements", "--list", "--help"))
+                                       exclude=("--requirements", "--needs-node", "--list", "--help"))
     check("exactly one job runs the gate", gate_job_name, list(doc.get("jobs") or {}))
     # A whitelist of job keys, not a search for `if:`. `continue-on-error:` at job level, and
     # `defaults: {run: {shell: …}}` — which replaces the shell for *every* step in the job and so
@@ -1286,6 +1286,7 @@ if os.path.exists(workflow):
     # rest of the file, not about the step, and it is the argument that stops being true after an edit.
     STEP_KEYS = {"Checkout repository": {"name", "uses", "with"},
                  "Set up Python": {"name", "uses", "with"},
+                 "Set up Node": {"name", "uses", "with"},
                  "Resolve the base ref": {"name", "id", "env", "run"},
                  "Install only what the selection needs": {"name", "env", "run"},
                  "Run the gate": {"name", "run"},
@@ -1984,7 +1985,7 @@ if os.path.exists(workflow):
         return len(segs) == 1 and segs[0][0].split()[:1] == ["echo"]
 
     found_gate = steps_named(gate_job, "scripts/ai/pr_gate.py",
-                             exclude=("--requirements", "--list", "--help"))
+                             exclude=("--requirements", "--needs-node", "--list", "--help"))
     # Reachability for the other shell steps, and stated precisely, because the first version of this
     # comment claimed an early exit there "ends the job" — each `run:` is its own shell, so it ends
     # that *step*, successfully, and the job continues. What it actually costs: the resolver exits
@@ -3005,9 +3006,12 @@ if os.path.exists(workflow):
     # the round-6 mistake — a rule scoped to the thing it protects — one level up, at job scope. So the
     # job is whitelisted whole: which steps exist, which actions they may use, and what their shell may
     # say. Four of these five shapes survived the round-8 suite.
-    JOB_STEPS = ["Checkout repository", "Set up Python", "Resolve the base ref",
+    JOB_STEPS = ["Checkout repository", "Set up Python", "Set up Node", "Resolve the base ref",
                  "Install only what the selection needs", "Run the gate", "Branch scope"]
-    JOB_USES = {"Checkout repository": "actions/checkout", "Set up Python": "actions/setup-python"}
+    # setup-node installs a runtime on the runner and touches no file in the checkout; its one input
+    # is pinned below to `.nvmrc`, so it cannot be pointed at another Node line.
+    JOB_USES = {"Checkout repository": "actions/checkout", "Set up Python": "actions/setup-python",
+                "Set up Node": "actions/setup-node"}
     # A full commit SHA only. A tag can be repointed, which is how a pinned action stops being
     # trusted; the ESAG GitHub Actions Security Guide requires SHA pins, and the repository's
     # "require full-length commit SHA" setting refuses anything else at "Set up job". (The first
@@ -3034,7 +3038,8 @@ if os.path.exists(workflow):
     # is decided inside `pip_install_ok`, not by a constant here.
     PIP_PAYLOAD = "${reqs}"
     JOB_ASSIGN = ALLOWED_ASSIGN + (
-        'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',)
+        'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',
+        'node="$(python scripts/ai/pr_gate.py --needs-node ${SEL})"',)
     # A redirection is how a step writes to the checkout, so its *target* is the rule. The four
     # GitHub-provided files are how steps legitimately pass values on; /dev/null is how `git rev-parse
     # --verify` stays quiet.
@@ -3100,6 +3105,10 @@ if os.path.exists(workflow):
             return set_line_ok(words)
         if re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", w0):
             return re.sub(r"\s+", "", seg) in [re.sub(r"\s+", "", f) for f in JOB_ASSIGN]
+        if w0 == "npm":
+            # One form only: a clean install from the committed lockfile with install scripts off.
+            # `npm install` would rewrite the lockfile, and a dependency's postinstall is code.
+            return " ".join(words) == "npm ci --ignore-scripts --no-audit --no-fund"
         if w0 == "git":
             # Pinning the subcommand and not its arguments left the base ref writable *locally*:
             # `git fetch . "+HEAD:refs/remotes/origin/${BASE_REF}"` moves origin/<base> onto the PR
@@ -3374,7 +3383,8 @@ if os.path.exists(workflow):
     # against actually comes from: `BASE: HEAD` leaves both permitted `SEL` lines untouched and makes
     # the selection `HEAD...HEAD`. So the inputs are pinned alongside the identities.
     JOB_WITH = {"Checkout repository": {"fetch-depth": "0", "persist-credentials": "false"},
-                "Set up Python": {"python-version": None}}
+                "Set up Python": {"python-version": None},
+                "Set up Node": {"node-version-file": ".nvmrc", "package-manager-cache": "false"}}
     JOB_ENV = {"Resolve the base ref": {"BASE_REF": "${{ github.base_ref }}"},
                "Install only what the selection needs": {"BASE": "${{ steps.base.outputs.ref }}"}}
     def inputs_of(step):
@@ -3404,7 +3414,7 @@ if os.path.exists(workflow):
            if "env" in s and s.get("name") in JOB_ENV} == JOB_ENV,
           {s.get("name"): s.get("env") for s in job_steps if "env" in s})
     check("with no other step carrying an env block this rule would not read",
-          {s.get("name") for s in job_steps if "env" in s} == set(JOB_ENV) | {JOB_STEPS[5]},
+          {s.get("name") for s in job_steps if "env" in s} == set(JOB_ENV) | {"Branch scope"},
           # `or "<unnamed>"` for the same reason as the other four sites: an unnamed step carrying an
           # `env:` block puts None in this set, and `sorted()` cannot order it against str — so the
           # rule that exists to notice an unpinned env would crash instead of reporting it.
@@ -4588,6 +4598,51 @@ check("and contains no absolute-path literal, the remaining way to ask 'am I on 
       "without reading a variable — every path the gate uses is derived from __file__",
       not abs_literals, abs_literals)
 
+# The LWC Jest check (lwc_jest). CI runs `npm ci` only when `--needs-node` says a selected check
+# needs Node, so the selection and the dependency probe are what keep it honest: selected for any
+# component directory, and MISSING-DEP — a failure — when Node packages are absent.
+_jest = next((c for c in pr_gate.CHECKS if c["name"] == "lwc_jest"), None)
+check("lwc_jest exists and gates", _jest is not None and _jest["gating"] is True)
+check("it is selected by a change under any `lwc` directory: a bundle, force-app, a nested layout, "
+      "and a bundle that no longer exists on disk (a deletion)",
+      _jest is not None and all(pr_gate.selects(_jest, [f]) for f in (
+          "unpackaged/post_utils/lwc/rlmDecisionTableManager/x.js",
+          "force-app/main/default/lwc/x/x.js",
+          "unpackaged/post_new/main/default/lwc/y/y.js",
+          "unpackaged/post_deleted_bundle/lwc/z/z.js")))
+check("and by sfdx-project.json, whose package directories decide how `c/` imports resolve",
+      _jest is not None and pr_gate.selects(_jest, ["sfdx-project.json"]))
+check("and not by an unrelated change, nor by a file merely named lwc",
+      _jest is not None and not pr_gate.selects(_jest, ["tasks/rlm_x.py"])
+      and not pr_gate.selects(_jest, ["docs/lwc"]))
+_absent = dict(_jest or {}, node_deps=["node_modules/.bin/no-such-binary-for-this-test"])
+check("a missing Node package is reported missing, so the gate fails rather than skips",
+      any("no-such-binary" in m for m in pr_gate.missing_deps(_absent)), pr_gate.missing_deps(_absent))
+_needs = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "ai", "pr_gate.py"), "--needs-node",
+                         "--changed-files-from", "/dev/stdin"], input="unpackaged/post_utils/lwc/a/a.js\n",
+                        capture_output=True, text=True, cwd=REPO)
+_no_needs = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "ai", "pr_gate.py"), "--needs-node",
+                            "--changed-files-from", "/dev/stdin"], input="tasks/rlm_x.py\n",
+                           capture_output=True, text=True, cwd=REPO)
+_spec = importlib.util.spec_from_file_location(
+    "_run_lwc_jest", os.path.join(REPO, "scripts", "ai", "run_lwc_jest.py"))
+_wrapper = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_wrapper)
+_ok = {"numPassedTests": 13, "numTotalTests": 13, "numTotalTestSuites": 1, "success": True}
+check("the Jest wrapper passes a clean report", _wrapper.verdict(_ok, 0)[0] == 0, _wrapper.verdict(_ok, 0))
+check("and fails one where every test was skipped, which Jest itself calls a success",
+      _wrapper.verdict({"numPassedTests": 0, "numPendingTests": 13, "numTotalTests": 13, "success": True}, 0)[0] == 1)
+check("and one with a single skipped or todo test among passes",
+      _wrapper.verdict(dict(_ok, numTodoTests=1), 0)[0] == 1
+      and _wrapper.verdict(dict(_ok, numPendingTests=1), 0)[0] == 1)
+check("and one with a failure, a failed suite, a non-zero Jest exit, or success false",
+      all(_wrapper.verdict(r, c)[0] == 1 for r, c in (
+          (dict(_ok, numFailedTests=1), 0), (dict(_ok, numFailedTestSuites=1), 0),
+          (_ok, 1), (dict(_ok, success=False), 0))))
+check("--needs-node answers true for an LWC change and false otherwise, which is what CI's `npm ci` keys on",
+      (_needs.stdout.strip(), _no_needs.stdout.strip()) == ("true", "false"),
+      (_needs.stdout, _needs.stderr[-300:], _no_needs.stdout))
+
 # The other way a verdict disappears between producing it and reporting it: exempt one check by name.
 # `if check["name"] != "pr_gate_suite": failures.append(...)` still prints `[FAIL] pr_gate_suite` — the
 # log looks correct — but `main()` returns non-zero only from `failures`, so a PR whose one red check is
@@ -5350,7 +5405,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 739
+EXPECTED = 753
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

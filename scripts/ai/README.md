@@ -292,13 +292,14 @@ silently each fail the suite.
 
 Runs the mechanical checks a change actually needs, and reports the status of **every**
 check — including the ones it skipped, and why. One command instead of remembering which
-of twenty-eight validators a given diff should have run.
+of twenty-nine validators a given diff should have run.
 
 ```bash
 python scripts/ai/pr_gate.py --base origin/main   # select from the diff vs a base ref
 python scripts/ai/pr_gate.py --all               # run everything
 python scripts/ai/pr_gate.py --list              # the matrix: check, gating, deps, triggers
 python scripts/ai/pr_gate.py --requirements --base origin/main   # pip deps the selection needs
+python scripts/ai/pr_gate.py --needs-node --base origin/main     # true when a selected check needs npm packages
 ```
 
 Any `python` can start it. When that interpreter lacks a selected check's dependency, the
@@ -306,7 +307,10 @@ gate re-runs itself under the **gate interpreter**, the main checkout's `.venv` 
 worktree), which `gate_python.py` resolves and probes. It prints a `note:` line saying so. If
 the gate interpreter is missing or incomplete, the note says why and the run continues, so
 `MISSING-DEP` reports what's absent. CI installs the selection's requirements into its own
-interpreter, so it never re-runs. Setup: [local-installation.md, Step 6](../../docs/guides/local-installation.md#step-6--create-and-activate-a-virtual-environment-venv).
+interpreter, so it never re-runs. Node is the exception to the re-run: the gate interpreter
+can't supply it, so a missing Node or `node_modules` (the `lwc_jest` check) goes straight to
+`MISSING-DEP`. CI sets up Node from `.nvmrc` and runs `npm ci --ignore-scripts` when
+`--needs-node` prints `true`. Setup: [local-installation.md, Step 6](../../docs/guides/local-installation.md#step-6--create-and-activate-a-virtual-environment-venv).
 
 Selection lives here rather than in a workflow's `paths:` filter because the two ways of not
 running fail in opposite directions. A workflow skipped by path filtering reports nothing, so a
@@ -318,7 +322,7 @@ not.) The same care drives four statuses that are easy to conflate:
 | status | meaning | fails? |
 |--------|---------|--------|
 | `SKIPPED` | not selected — nothing it covers changed | no, and it says so on its own line |
-| `MISSING-DEP` | selected, but a package or the interpreter floor is absent | **yes** — otherwise a broken install silently turns a gate green |
+| `MISSING-DEP` | selected, but a package, the interpreter floor, Node or `node_modules` is absent | **yes** — otherwise a broken install silently turns a gate green |
 | `ADVISORY` | runs and reports, never fails | no, and the reason is printed inline |
 | `ADVISORY-DEP` | advisory, and its dependency is absent too | no — an advisory check cannot fail for a missing dep either |
 
@@ -538,14 +542,14 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 28 checks in about 100 seconds, of which the branch-scope *suite*
+A full `--all` run is 29 checks in about 100 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is about 14. A typical docs-only selection is about 7 seconds, most
 of it the two checks that run on every change: `release_refs`, which reads every tracked text
 file (about 3), and `agent_tooling`. Measured 2026-10-11, with twenty-five checks then, on a workstation where every
 one ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
-Verified by `tests/test_pr_gate.py` (739 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (753 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -565,7 +569,7 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the twenty-eight trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the twenty-nine trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted

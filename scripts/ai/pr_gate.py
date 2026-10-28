@@ -47,6 +47,7 @@ Usage:
     python scripts/ai/pr_gate.py --all                    # ignore selection, run everything
     python scripts/ai/pr_gate.py --list                   # print the matrix, run nothing
     python scripts/ai/pr_gate.py --requirements --base X  # extra pip deps the selection needs
+    python scripts/ai/pr_gate.py --needs-node --base X    # whether CI must `npm ci` (true/false)
 
 Run as a script, the gate re-runs itself under the gate interpreter (the main checkout's
 `.venv`, resolved by `gate_python.py`) when this interpreter lacks a selected check's
@@ -652,6 +653,19 @@ CHECKS = [
                   "tests/test_ux_tool.py", "pyproject.toml", "unpackaged/post_ux/"],
         deps=["pytest", "PyYAML"], gating=True,
     ),
+    dict(
+        name="lwc_jest",
+        cmd=["python", "scripts/ai/run_lwc_jest.py"],
+        # Any path with an `lwc` directory segment, at any depth: components live under every
+        # `unpackaged/<bundle>/lwc/`, and matching the segment (not a typed prefix list, not the
+        # directories on disk) also selects a nested layout and a deleted bundle. Plus everything
+        # that decides how Jest runs, resolves `c/` imports (sfdx-project.json's package
+        # directories) or installs.
+        segments=["lwc"],
+        triggers=["jest.config.js", "package.json", "package-lock.json", "sfdx-project.json",
+                  ".nvmrc", "scripts/ai/run_lwc_jest.py"],
+        deps=[], node_deps=["node_modules/.bin/sfdx-lwc-jest"], gating=True,
+    ),
 ]
 
 # Suites that need nothing but the standard library, run as one check. Enumerated rather
@@ -869,10 +883,33 @@ def selects(check, files):
         return True
     if any(f.startswith(t) for t in check["triggers"] for f in files):
         return True
-    return any(f.endswith(s) for s in check.get("suffixes", ()) for f in files)
+    if any(f.endswith(s) for s in check.get("suffixes", ()) for f in files):
+        return True
+    # `segments` is for a check keyed on a directory name wherever it sits (`lwc`): a directory
+    # segment, so a file merely named `lwc` does not count.
+    return any(seg in f.split("/")[:-1] for seg in check.get("segments", ()) for f in files)
 
 
 def missing_deps(check):
+    return missing_python_deps(check) + missing_node_deps(check)
+
+
+def missing_node_deps(check):
+    """Node checks: the runtime and the installed packages, both fatal when absent, exactly as
+    a missing pip package is. CI installs them only when --needs-node says a selected check
+    wants them, so a wrong answer there shows up here as MISSING-DEP, never as a skip.
+    Not something the gate interpreter can supply, so they don't trigger the re-run."""
+    missing = []
+    if check.get("node_deps"):
+        if shutil.which("node") is None:
+            missing.append("node (see .nvmrc)")
+        missing += [f"{path} (run `npm ci`)" for path in check["node_deps"]
+                    if not os.path.exists(os.path.join(REPO_ROOT, path))]
+    return missing
+
+
+def missing_python_deps(check):
+    """Pip packages and the interpreter floor."""
     missing = [pkg for pkg in check["deps"]
                if not have_module(DEPS.get(pkg, pkg))]
     need = check.get("min_python")
@@ -1010,7 +1047,9 @@ def reexec_under_gate_interpreter(selected, argv):
     entry point: the suite drives main() in-process with `missing_deps` patched, and an
     exec there would replace the test runner.
     """
-    if not any(missing_deps(c) for c in selected):
+    # Node items are subtracted, not the rest recomputed: the gate interpreter cannot supply Node,
+    # and reading through missing_deps keeps this the one function the suite patches.
+    if not any(set(missing_deps(c)) - set(missing_node_deps(c)) for c in selected):
         return
     try:
         import gate_python  # stdlib-only sibling; scripts/ai is sys.path[0] when run by path
@@ -1041,6 +1080,8 @@ def main(reexec=False):
     ap.add_argument("--list", action="store_true", help="print the matrix and exit")
     ap.add_argument("--requirements", action="store_true",
                     help="print pip deps the selection needs, one per line, then exit")
+    ap.add_argument("--needs-node", action="store_true",
+                    help="print `true` when a selected check needs Node packages, else `false`, then exit")
     ap.add_argument("--no-reexec", action="store_true",
                     help="never re-run under the gate interpreter (the re-run passes this)")
     args = ap.parse_args()
@@ -1048,7 +1089,8 @@ def main(reexec=False):
     if args.list:
         print(f"{'check':26} {'gating':7} {'deps':34} triggers")
         for c in CHECKS:
-            selectors = list(c["triggers"]) + [f"*{s}" for s in c.get("suffixes", ())]
+            selectors = (list(c["triggers"]) + [f"*{s}" for s in c.get("suffixes", ())]
+                         + ["/".join(("*", s, "*")) for s in c.get("segments", ())])
             print(f"{c['name']:26} {str(c['gating']):7} "
                   f"{','.join(c['deps']) or '-':34} {', '.join(selectors)}")
         print("\nexcluded from the gate, deliberately:")
@@ -1086,6 +1128,10 @@ def main(reexec=False):
             emitted.append(PINS.get(pkg, pkg))
         for line in emitted:
             print(line)
+        return 0
+
+    if args.needs_node:
+        print("true" if any(c.get("node_deps") for c in selected) else "false")
         return 0
 
     if reexec and not args.no_reexec:
