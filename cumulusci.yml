@@ -1399,6 +1399,26 @@ tasks:
       api_names:
         - RLM_Sales_Representative
 
+  recalculate_billing_psg_after_settings:
+    group: Revenue Lifecycle Management
+    description: >-
+      Force-recalculate RLM_RCB after the billing settings are deployed. RLM_RCB is calculated in
+      deploy_pre, before dispute management adds the Dispute/DisputeItem billing fields that its
+      managed Billing Admin set grants, so it reads Updated while missing them (the admin can't read
+      DisputeItem.ApprovedAmount). A Description edit does not recalculate an Updated group; this
+      adds and removes an empty probe component, which does, and fails if the fields are still
+      absent. A no-op when RLM_RCB already grants them (todo 292).
+    class_path: tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups
+    options:
+      api_names:
+        - RLM_RCB
+      force_recalc: true
+      verify_fields:
+        - DisputeItem.ApprovedAmount
+        - Dispute.ApprovedAmount
+      timeout_seconds: 300
+      poll_seconds: 10
+
   assign_personas_sales_rep_psg:
     group: Revenue Lifecycle Management
     description: Assign RLM_Sales_Representative PSG to the sales-rep-user persona using tolerant assignment.
@@ -4147,6 +4167,11 @@ flows:
         when: project_config.project__custom__billing and project_config.project__custom__billing_ui
       16:
         flow: prepare_billing_portal
+      17:
+        # After every billing setting is deployed (step 1 turns on dispute management), so the
+        # RLM_RCB aggregate includes the fields those settings add (todo 292).
+        task: recalculate_billing_psg_after_settings
+        when: project_config.project__custom__billing
 
   prepare_prm:
     group: Revenue Lifecycle Management

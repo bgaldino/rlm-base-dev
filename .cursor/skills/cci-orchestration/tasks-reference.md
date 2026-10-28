@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**266 tasks** across **9 groups**.
+**267 tasks** across **9 groups**.
 
 ---
 
@@ -807,7 +807,7 @@
 
 ## Revenue Lifecycle Management
 
-*175 task(s)*
+*176 task(s)*
 
 ### `activate_agents`
 
@@ -2778,6 +2778,22 @@
 **Description:** Rebuild the Product Catalog (PCM) search index via Connect API (FULL, IMMEDIATE). Asynchronous - initiates the build and logs the snapshot id. Warns and continues on API failure unless raise_on_failure is set.
 
 **Class:** `tasks.rlm_rebuild_search_index.RebuildSearchIndex`
+
+---
+
+### `recalculate_billing_psg_after_settings`
+
+**Description:** Force-recalculate RLM_RCB after the billing settings are deployed. RLM_RCB is calculated in deploy_pre, before dispute management adds the Dispute/DisputeItem billing fields that its managed Billing Admin set grants, so it reads Updated while missing them (the admin can't read DisputeItem.ApprovedAmount). A Description edit does not recalculate an Updated group; this adds and removes an empty probe component, which does, and fails if the fields are still absent. A no-op when RLM_RCB already grants them (todo 292).
+
+**Class:** `tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups`
+
+**Options:**
+
+- `api_names`: `['RLM_RCB']`
+- `force_recalc`: `True`
+- `verify_fields`: `['DisputeItem.ApprovedAmount', 'Dispute.ApprovedAmount']`
+- `timeout_seconds`: `300`
+- `poll_seconds`: `10`
 
 ---
 

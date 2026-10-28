@@ -114,7 +114,7 @@ Defined as a YAML anchor (`TableauEinsteinUserPsl`) but not assigned in any stan
 
 ## Permission Set Groups (PSGs)
 
-PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. A few PSGs also include a repo-owned permission set from the same folder, which fills a field-access gap in the standard ones (see `RLM_RCB` below). The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 9, then assigned to the running user at step 10 (build steps 1.9 and 1.10; `tso` adds a second recalculate/assign pair at 1.11 and 1.12).
+PSGs bundle multiple Salesforce-managed permission sets into capability-area groups. A few PSGs also include a repo-owned permission set from the same folder, which fills a field-access gap in the standard ones (see `RLM_RCB` below). The PSG metadata is deployed at `prepare_core` step 7 → `deploy_pre` (build step 1.7) from `unpackaged/pre/3_permissionsetgroups/`, recalculated at step 9, then assigned to the running user at step 10 (build steps 1.9 and 1.10; `tso` adds a second recalculate/assign pair at 1.11 and 1.12). `RLM_RCB` is force-recalculated once more at `prepare_billing` step 17 (build step 13.17), after the billing settings add the Dispute fields its managed Billing Admin set grants; see the troubleshooting skill → *PSG reads "Updated" but its users lack fields*.
 
 ### Core PSGs (`rlm_psg_api_names`) -- Always Assigned
 

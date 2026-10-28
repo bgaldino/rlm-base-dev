@@ -239,6 +239,7 @@ Extract rating and rates data from an org into CSV files
    - `api_names`: `['RLM_BillingUI']`
 15. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
 16. **flow** `prepare_billing_portal`
+17. **task** `recalculate_billing_psg_after_settings`  `when: project_config.project__custom__billing`
 
 ---
 
