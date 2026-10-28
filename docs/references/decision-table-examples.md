@@ -458,7 +458,7 @@ Salesforce's own gate on the refresh action; other users get the freshness view 
 | `RLM_Refresh_Decision_Tables_Bulk` | `post_utils` | **Autolaunched** | The only way Apex can reach the refresh action — `Flow.Interview.createInterview(...).start()`. Carries the incremental input |
 | `RLM_Refresh_Decision_Tables_By_Usage_Type` | `post_utils` | **Autolaunched** | Selects every **active** table with a usage type and hands them to `RLM_Refresh_Decision_Tables_Bulk`; returns `queuedCount`, `failedCount`, `failedApiNames`. Called by `RLM_Account_Utilities`, which shows the counts on its result screen |
 | `RLM_Refresh_Commerce_Decision_Tables` | `post_commerce` | **Screen flow** | The one surviving screen flow — Commerce tables, when Commerce is enabled. Refreshes through `RLM_Refresh_Decision_Tables_Bulk` and ends on a result screen, so deploy `post_utils` first |
-| `check_decision_table_freshness` | CCI task | Headless | Verdicts without a browser; `-o param1 strict` fails a build on any stale table |
+| `check_decision_table_freshness` | CCI task | Headless | Verdicts without a browser; `-o param1 strict` fails a build on any stale table; `-o param1 json` prints the dependency map |
 
 The action input is `isDecisionTableIncremental`, not `isIncremental`. The
 `RLM_Refresh_Decision_Tables_Bulk` flow maps its flow variable to the correct

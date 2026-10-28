@@ -2609,7 +2609,10 @@ tasks:
       built here. "Not comparable" means the check refused to guess (usually an unreproducible source criterion, or sharing that can hide rows from the running user), which
       is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale
       table — off by default, because a build that loads data after its refresh
-      step will legitimately show stale tables. Requires post_utils deployed.
+      step will legitimately show stale tables. Pass -o param1 json (or "strict,json")
+      to also print the dependency map — per table, every object it reads and its
+      verdict — as one DECISION_TABLE_MAP_JSON line. An unknown mode fails the run
+      rather than being ignored. Requires post_utils deployed.
     class_path: tasks.rlm_apex_file.FileBasedAnonymousApexTask
     options:
       path: scripts/apex/checkDecisionTableFreshness.apex

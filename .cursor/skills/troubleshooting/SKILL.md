@@ -338,7 +338,9 @@ cci task run check_decision_table_freshness --org beta
 ```
 Runs `scripts/apex/checkDecisionTableFreshness.apex` and reports every table with
 a verdict and a reason. Read-only. Add `-o param1 strict` to fail a build on any
-stale table — only where no data load follows the refresh.
+stale table — only where no data load follows the refresh. To list every table
+that reads a given object, use `-o param1 json`
+(`.cursor/skills/decision-tables/SKILL.md` → **Examples**).
 
 ⚠ **"Not comparable" is not a failure.** It means the check declined to guess.
 Only **Stale** is a positive finding. Verdicts are scoped to the running user's

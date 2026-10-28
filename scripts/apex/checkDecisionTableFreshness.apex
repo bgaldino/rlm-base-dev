@@ -9,14 +9,30 @@
 // drifted would be trusted anyway. If this script will not compile, the controller is
 // not deployed — run `cci task run deploy_post_utils` first.
 //
-// PARAM_1 = "strict" (or "true") to FAIL when any table is stale. Default reports only.
-// A build that legitimately loads data after its refresh step will show stale tables,
-// so failing is opt-in rather than the default.
+// PARAM_1 modes, comma- or space-separated:
+//   strict (or true) — FAIL when any table is stale. Default reports only: a build that
+//                      legitimately loads data after its refresh step will show stale
+//                      tables, so failing is opt-in.
+//   json             — also print the dependency map as one `DECISION_TABLE_MAP_JSON <json>`
+//                      line: per table, what it reads and its verdict.
+//   false            — report only, the same as passing nothing.
+// Any other token FAILS the run rather than being ignored: a typo like `stirct` would
+// otherwise turn a strict gate into a report that always passes.
 
 public class DecisionTableFreshnessException extends Exception {}
 
-String mode = '%%%PARAM_1%%%'.trim().toLowerCase();
-Boolean strict = mode == 'strict' || mode == 'true';
+Set<String> modes = new Set<String>('%%%PARAM_1%%%'.trim().toLowerCase().split('[,\\s]+'));
+// Not passing param1 leaves the token unsubstituted rather than empty.
+modes.removeAll(new Set<String>{ '', '%%%' + 'param_1' + '%%%' });
+Set<String> unknownModes = modes.clone();
+unknownModes.removeAll(new Set<String>{ 'strict', 'true', 'json', 'false' });
+if (!unknownModes.isEmpty()) {
+    throw new DecisionTableFreshnessException('Unknown param1 mode(s): '
+        + String.join(new List<String>(unknownModes), ', ')
+        + '. Use strict (or true), json, both as "strict,json", or false to report only.');
+}
+Boolean strict = modes.contains('strict') || modes.contains('true');
+Boolean asJson = modes.contains('json');
 
 List<RLM_DecisionTableManagerController.DecisionTableInfo> tables =
     RLM_DecisionTableManagerController.getDecisionTables();
@@ -31,6 +47,34 @@ if (tables.isEmpty()) {
         'No decision tables were readable, so freshness could not be checked at all. '
         + 'Either none are deployed (run prepare_rlm_org, or deploy_decision_tables), '
         + 'or the running user cannot see them. This is NOT a clean result.');
+}
+
+// The dependency map as data (todo 076 / issue #325): one line, prefixed so it can be cut out of the
+// log, with what each table reads and its verdict. Same values the Manager shows; nothing recomputed.
+// ⚠ Printed before the summary and per-table detail: FileBasedAnonymousApexTask shows only the
+// first 500 output lines, and the detail block below grows with every non-fresh table. Last, it
+// could be cut off, and a consumer piping it into jq would read "no table reads X" from the
+// missing line.
+if (asJson) {
+    List<Map<String, Object>> dependencyMap = new List<Map<String, Object>>();
+    for (RLM_DecisionTableManagerController.DecisionTableInfo t : tables) {
+        dependencyMap.add(new Map<String, Object>{
+            'apiName' => t.apiName,
+            'label' => t.label,
+            'usageType' => t.usageType,
+            'sourceObject' => t.sourceObject,
+            'readsObjects' => t.readsObjects,
+            'contributingObjects' => t.contributingObjects,
+            'latestSyncDate' => t.latestSyncDate,
+            'latestSyncKind' => t.latestSyncKind,
+            'staleness' => t.staleness,
+            'stalenessReason' => t.stalenessReason,
+            // A Stale verdict may be over-reported when a source criterion was not reproduced.
+            'criteriaApplied' => t.criteriaApplied,
+            'unreproducedCriteria' => t.unreproducedCriteria
+        });
+    }
+    System.debug(LoggingLevel.ERROR, 'DECISION_TABLE_MAP_JSON ' + JSON.serialize(dependencyMap));
 }
 
 Map<String, List<String>> byVerdict = new Map<String, List<String>>();
