@@ -93,7 +93,11 @@ python scripts/qb_usage.py report --org <sf-alias>   # runtime: buckets, drawdow
 
 `validateRatedUsage.apex` is the assertion pass — run it after orchestration settles.
 It aggregates the journals and checks the arithmetic rather than printing numbers for
-a human to eyeball.
+a human to eyeball. Set `USAGE_PERIOD_START` / `USAGE_PERIOD_END` to the period you
+recorded into: journals, summaries **and** drawdown buckets are all scoped to that
+window. A linked commitment that drew nothing while its anchor rated overage in the
+window FAILS — see `building-usage-assets.md` for the backdated case that produces it.
+`qb_usage.py report` lists buckets unscoped, every period together.
 
 ## Reading a suspicious result
 
