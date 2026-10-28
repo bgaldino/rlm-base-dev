@@ -24,6 +24,8 @@ insert_qb_rating_data:
   class_path: tasks.rlm_sfdmu.LoadSFDMUData
   options:
     pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-rating"
+    ignore_row_errors_for:
+      Product2: "Required fields are missing: [Name]"   # known rejection, see cumulusci.yml (todo 304)
 ```
 
 ## Data Plan Overview

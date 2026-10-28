@@ -165,6 +165,14 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         "simulation": {
             "description": "If true, run SFDMU in simulation mode (dry run without writing to the target org).",
             "required": False
+        },
+        "fail_on_row_errors": {
+            "description": "Default true: after a successful run, read the plan's target/*_target.csv files and FAIL if any row has an Errors value (SFDMU exits 0 and logs Inserted N even when Salesforce rejects every row). Set false to log the rejected rows as a warning instead.",
+            "required": False
+        },
+        "ignore_row_errors_for": {
+            "description": "Known, harmless row rejections: logged as a warning, never failing. A list of object API names, or a mapping of object -> expected error substring (then only rejections whose every error contains it are ignored; a new kind still fails). Any other object's rejections still fail. Prefer this to fail_on_row_errors false, which hides every object's rejections.",
+            "required": False
         }
     }
 
@@ -381,6 +389,8 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self.project_config.keychain = self.keychain
 
     def _prep_runtime(self) -> None:
+        # First, so a bad value fails before any side effect (temp copy, export.json rewrite).
+        self._row_error_ignores = _parse_row_error_ignores(self.options.get("ignore_row_errors_for"))
         self._load_keychain()
         
         self.pathtoexportjson = self.options.get("pathtoexportjson", "datasets/sfdmu/")
@@ -409,6 +419,8 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             
             cmd = self._get_command()
             self.logger.info(f'Executing command: {cmd}')  # Log the command being executed
+            # Before the run, so a target CSV left by an earlier run is not read as this one's.
+            baseline = sfdmu_export.snapshot_target_files(self.pathtoexportjson)
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir"))
             
             if result.returncode != 0:
@@ -419,6 +431,10 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
 
             for line in result.stdout.splitlines():
                 self.logger.info(strip_ansi_codes(line))
+
+            # Inside the try: with dynamic_assigned_to_user the plan (and its target/) is a
+            # temp copy that the finally block deletes.
+            self._check_row_errors(baseline)
             
         except Exception as e:
             self.logger.error(f"An error occurred: {str(e)}")
@@ -429,6 +445,40 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
                 shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
                 self.logger.info("Removed temp plan directory.")
+
+    def _check_row_errors(self, baseline: Dict[str, float]) -> None:
+        """Fail (or warn) on rows Salesforce rejected; the exit code does not show them."""
+        if _as_bool(self.options.get("simulation")):
+            return  # nothing was written, so there is nothing to have been rejected
+        if not os.path.isdir(os.path.join(self.pathtoexportjson, "target")):
+            # Not expected (SFDMU always writes target/), so say so rather than read as clean.
+            self.logger.warning(f"No target/ under {self.pathtoexportjson}; per-row rejection check skipped.")
+            return
+        found = sfdmu_export.collect_target_row_errors(self.pathtoexportjson, baseline=baseline)
+        if not found:
+            return
+        known, unknown = sfdmu_export.split_known_row_errors(found, self._row_error_ignores)
+        fail = self.options.get("fail_on_row_errors")
+        failing = fail is None or _as_bool(fail)
+        plan = self.options.get("pathtoexportjson")
+        if getattr(self, "_temp_plan_dir", None):
+            plan += " (target/ paths are in the temp plan copy, removed after the run)"
+        if known:
+            self.logger.warning(
+                f"Known row rejections (ignore_row_errors_for) in {plan}:\n"
+                + sfdmu_export.format_target_row_errors(known))
+        if not unknown:
+            return
+        total = sum(item["failed"] for item in unknown)
+        message = (f"SFDMU reported success, but Salesforce rejected {total} row(s) in "
+                   f"{len(unknown)} target file(s) of {plan}:\n"
+                   + sfdmu_export.format_target_row_errors(unknown))
+        if failing:
+            raise CommandException(
+                message + "\nFix the plan; if a rejection is known and harmless, list its object "
+                "in -o ignore_row_errors_for (or -o fail_on_row_errors false to load anyway).")
+        self.logger.warning(message)
+
     def _get_command(self) -> str:
         trimmed_instance_url = self._trim_instance_url(self.instanceurl)
         if not isinstance(self.org_config, ScratchOrgConfig):
@@ -443,12 +493,37 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 pathtoexportjson=self.pathtoexportjson,
                 instanceurl=trimmed_instance_url
             )
-        if self.options.get("simulation"):
+        if _as_bool(self.options.get("simulation")):
             cmd += " --simulation"
         return cmd
         
     def _trim_instance_url(self, url: str) -> str:
         return url.replace("https://", "").replace("http://", "")
+
+
+def _parse_row_error_ignores(value) -> Dict[str, Optional[str]]:
+    """`ignore_row_errors_for`, parsed BEFORE the run so a bad value fails up front.
+
+    A bracketed string from `-o` is read as YAML flow syntax, which also covers JSON, so
+    `"[ProrationPolicy]"` and `"{ProrationPolicy: duplicate value found}"` both work.
+    """
+    if isinstance(value, str) and value.strip()[:1] in "[{":
+        try:
+            import yaml  # ships with CumulusCI; sfdmu_export stays dependency-free
+            value = yaml.safe_load(value)
+        except Exception as exc:
+            raise TaskOptionsError(f"ignore_row_errors_for: cannot parse {value!r}: {exc}") from exc
+    try:
+        return sfdmu_export.parse_row_error_ignores(value)
+    except (ValueError, TypeError) as exc:
+        raise TaskOptionsError(f"ignore_row_errors_for: cannot parse {value!r}: {exc}") from exc
+
+
+def _as_bool(value) -> bool:
+    """A CCI option as a bool: `-o name false` arrives as the string "false"."""
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "y", "on")
+    return bool(value)
 
 
 def _sobjects_from_export_json(export_path: str) -> list:
@@ -721,6 +796,10 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
             ),
             "required": False,
         },
+        "ignore_row_errors_for": {
+            "description": "Known, harmless row rejections (same form as the load task's option). Tolerated on both loads, EXCEPT a rejected insert on the second load, which always fails: a rerun whose inserts are rejected instead of matched leaves counts flat and would read as idempotent.",
+            "required": False,
+        },
         "run_after_each_load_apex": {
             "description": (
                 "Optional path to an Apex script to run after each load, for deduplication only. "
@@ -809,7 +888,7 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                 self.logger.warning(f"Could not parse count for {sobject}, skipping")
         return counts
 
-    def _run_load_once(self, plan_dir: Optional[str] = None) -> None:
+    def _run_load_once(self, plan_dir: Optional[str] = None, strict: bool = True) -> None:
         plan_dir = plan_dir or self.options.get("pathtoexportjson", "datasets/sfdmu/")
         export_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
         if not os.path.isfile(export_path):
@@ -824,6 +903,7 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
         cmd = f"sf sfdmu run --sourceusername CSVFILE --targetusername {self._get_org_for_cli()} -p {plan_dir} --canmodify {trimmed} --noprompt --verbose"
         self.logger.info(f"Running SFDMU: {cmd}")
         result = None
+        baseline = sfdmu_export.snapshot_target_files(plan_dir)
         try:
             result = subprocess.run(
                 cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir")
@@ -834,6 +914,24 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                 raise CommandException(f"SFDMU load failed with exit code {result.returncode}")
             for line in result.stdout.splitlines():
                 self.logger.info(strip_ansi_codes(line))
+            # A rerun whose rows are REJECTED instead of matched leaves the counts flat and would
+            # read as idempotent (todo 286: a qb-pcm rerun rejects all 234 ProductRelatedComponent
+            # rows). So on the second load a rejected INSERT is always fatal, listed or not. A
+            # rejected update cannot create a record, so known update rejections are tolerated on
+            # both loads (SFDMU names each target file after the operation it performed).
+            rejected = sfdmu_export.collect_target_row_errors(plan_dir, baseline=baseline)
+            if rejected:
+                fatal = [i for i in rejected if strict and i["operation"].lower() == "insert"]
+                known, unknown = sfdmu_export.split_known_row_errors(
+                    [i for i in rejected if i not in fatal], self._row_error_ignores)
+                if known:
+                    self.logger.warning("Known row rejections (ignore_row_errors_for):\n"
+                                        + sfdmu_export.format_target_row_errors(known))
+                rejected = fatal + unknown
+            if rejected:
+                raise CommandException(
+                    "SFDMU reported success, but Salesforce rejected rows, so record counts cannot "
+                    "show idempotency:\n" + sfdmu_export.format_target_row_errors(rejected))
         finally:
             # Always clear injected org credentials from export.json
             export_json["orgs"] = []
@@ -904,8 +1002,9 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
         sobjects = _sobjects_from_export_json(plan_dir)
         if not sobjects:
             raise TaskOptionsError("No sobjects found in export.json")
+        self._row_error_ignores = _parse_row_error_ignores(self.options.get("ignore_row_errors_for"))
         self.logger.info("First run: load data into org")
-        self._run_load_once()
+        self._run_load_once(strict=False)
         self._run_post_load_apex_if_configured()
         counts_after_first = self._get_record_counts(sobjects)
         use_roundtrip = str(self.options.get("use_extraction_roundtrip", "")).lower() in {"1", "true", "yes"}

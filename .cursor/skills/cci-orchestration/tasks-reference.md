@@ -467,6 +467,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pcm`
+- `ignore_row_errors_for`: `{'ProrationPolicy': 'duplicate value found'}`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -519,6 +520,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-tax`
+- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -597,6 +599,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-pcm`
+- `ignore_row_errors_for`: `{'ProrationPolicy': 'duplicate value found'}`
 - `use_extraction_roundtrip`: `True`
 - `persist_extraction_output`: `True`
 
@@ -676,6 +679,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-rating`
+- `ignore_row_errors_for`: `{'Product2': 'Required fields are missing: [Name]'}`
 - `use_extraction_roundtrip`: `True`
 - `persist_extraction_output`: `True`
 
@@ -690,6 +694,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
+- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -2369,6 +2374,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pcm`
+- `ignore_row_errors_for`: `{'ProrationPolicy': 'duplicate value found'}`
 
 ---
 
@@ -2417,6 +2423,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-tax`
+- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 
 ---
 
@@ -2502,6 +2509,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-rating`
+- `ignore_row_errors_for`: `{'Product2': 'Required fields are missing: [Name]'}`
 
 ---
 
@@ -2526,6 +2534,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-pcm`
+- `ignore_row_errors_for`: `{'ProrationPolicy': 'duplicate value found'}`
 
 ---
 
@@ -2598,6 +2607,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
+- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 
 ---
 
@@ -3411,7 +3421,7 @@
 **Options:**
 
 - `suites`: `robot/rlm-base/tests`
-- `options`:  
+- `options`: `{'outputdir': 'robot/rlm-base/results'}`
 
 ---
 

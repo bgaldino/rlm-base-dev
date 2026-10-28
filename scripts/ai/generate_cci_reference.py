@@ -126,7 +126,9 @@ def generate_tasks_reference(data: dict) -> str:
                 lines.append("**Options:**")
                 lines.append("")
                 for opt_name, opt_val in options.items():
-                    if isinstance(opt_val, dict):
+                    # An option DEFINITION has description/required keys; a dict-valued option
+                    # VALUE (e.g. ignore_row_errors_for: {Object: "substring"}) renders like a list.
+                    if isinstance(opt_val, dict) and ({"description", "required"} & set(opt_val)):
                         desc_text = opt_val.get("description", "")
                         req = opt_val.get("required", False)
                         lines.append(f"- `{opt_name}`: {desc_text} {'*(required)*' if req else ''}")

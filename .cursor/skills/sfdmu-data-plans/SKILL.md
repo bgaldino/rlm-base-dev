@@ -21,6 +21,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 6. `$$` CSV column must match externalId fields exactly.
 7. After extraction: run `post_process_extraction.py` to add `$$` columns.
 8. **A plan that loads cleanly into a fresh org is not safe to re-run into a *used* org** — check the plan's operations against what the org already has. See *Reloading a plan into a live org*.
+9. **Exit 0 is not a clean load.** SFDMU logs `Inserted N` (rows *attempted*) and exits 0 even when Salesforce rejects every row; the rejection is only in the `Errors` column of `<plan>/target/[object-set-N/]<Object>_<operation>_target.csv` (`#N/A` or empty = success). `LoadSFDMUData` reads those files and FAILS on a rejected row (`fail_on_row_errors`, default true). A plan that rejects rows on a fresh build today lists each object in `ignore_row_errors_for` with the expected error text (`Object: "substring"`) and the reason beside it; a different error, or any other object, still fails. Fix the plan and remove the entry; don't add one to get a build green.
 
 ## DO NOT
 
