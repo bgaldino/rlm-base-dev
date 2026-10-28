@@ -32,9 +32,13 @@ long, over Salesforce's 40-char Apex-class cap, so the class was hand-shortened 
 35-char name above and the map left stale. Pack 084 fixed the map entry (and added a guard
 that fails the build on any >40 value), so the map and the shipped class now agree.
 
-## Hand-authored (the generator does NOT own these — 23 `.cls`)
+## Hand-authored (the generator does NOT own these — 25 `.cls`)
 
-- **Every `*Test` class** — the generator produces no tests.
+- **Every `*Test` class** — the generator produces no tests. `RLM_BillingUIAccessTest`
+  covers no single controller: it proves that each billing role, given `RLM_BillingUI`,
+  can run the controllers' USER_MODE reads.
+- **`RLM_BillingUITestUsers`** — the test-only factory those access tests share: a
+  Minimum Access user with only the licenses and permission sets a test names.
 - **Controllers with no `APEX_MAP` entry:** `RLM_BSGContextController`,
   `RLM_BillingScheduleGroupService`, `RLM_CollectionsConsoleController`,
   `RLM_InvoiceBatchRunMonitorController`, `RLM_InvoiceSummaryController`,
@@ -42,7 +46,7 @@ that fails the build on any >40 value), so the map and the shipped class now agr
 
 ## Do not
 
-- Do **not** add `classes/` to `.prettierignore` — it would exempt the 23 hand-authored
+- Do **not** add `classes/` to `.prettierignore` — it would exempt the 25 hand-authored
   files (including every test) from formatting enforcement.
 - Do **not** treat a re-run of the generator as a maintenance step; its source is absent.
   Behavior is guarded offline by `tests/test_build_billing_ui_module.py`.

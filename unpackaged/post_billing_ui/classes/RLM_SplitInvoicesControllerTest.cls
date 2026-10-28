@@ -23,15 +23,11 @@ private class RLM_SplitInvoicesControllerTest {
             RLM_SplitInvoicesController.getInvoicesByCorrelation('');
         System.assertEquals(0, blank.size(), 'Blank correlation id yields an empty list.');
 
-        // The correlation query joins BillingArrangement/BillingProfile lookups that may be
-        // absent in some orgs; accept either an empty list or a graceful AuraHandledException.
-        try {
-            List<RLM_SplitInvoicesController.InvoiceRow> unknown =
-                RLM_SplitInvoicesController.getInvoicesByCorrelation('RLM-NO-SUCH-CORRELATION');
-            System.assertEquals(0, unknown.size(), 'Unknown correlation id yields an empty list when queryable.');
-        } catch (AuraHandledException e) {
-            // Billing lookup schema not present in this org; the query path still executed.
-        }
+        // The correlation query must run: it once selected BillingArrangement, which is not an
+        // Invoice field, and failed with "No such column" on every call.
+        List<RLM_SplitInvoicesController.InvoiceRow> unknown =
+            RLM_SplitInvoicesController.getInvoicesByCorrelation('RLM-NO-SUCH-CORRELATION');
+        System.assertEquals(0, unknown.size(), 'Unknown correlation id yields an empty list.');
         Test.stopTest();
     }
 
