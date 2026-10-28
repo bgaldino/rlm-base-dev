@@ -59,7 +59,14 @@ Key endpoints (see the reference doc for exact request shapes):
 - `POST /connect/rev/sales-transaction/actions/clone` — Clone a sales transaction
 - `POST /connect/revenue-management/assets/actions/amend` — Amend asset
 - `POST /connect/revenue-management/assets/actions/renew` — Renew asset
+- `POST /connect/revenue-management/assets/actions/cancel` — Cancel asset
 - `POST /industries/cpq/quotes/actions/get-instant-price` — Instant pricing
+
+**Backdated asset changes** (amend, cancel, renew, transfer, swap, upgrade, downgrade with an
+effective date in the past; rollback's refusal): the invocable inputs, activation prerequisites,
+UI-flow (`RLM_ARC_Assets`) behaviour, and invoice/credit-memo verification are in
+[backdated-asset-lifecycle.md](backdated-asset-lifecycle.md), with the end-to-end verifier
+`scripts/backdated_arc/verify_backdated_billing.py`.
 
 ### Pricing APIs
 - `POST /connect/core-pricing/pricing` — Calculate prices for a transaction

@@ -707,6 +707,7 @@ STDLIB_SUITES = [
     "tests/test_validate_keys_targets.py",
     "tests/test_validate_setup_chrome.py",
     "tests/test_validate_setup_sf.py",
+    "tests/test_verify_backdated_billing.py",
 ]
 
 # Offline like the list above, but they reach a `tasks/` module that imports `requests`, so the

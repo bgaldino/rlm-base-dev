@@ -342,6 +342,12 @@
                 <elementReference>SelectedRenewalEndDate</elementReference>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>rampOptionsDetails</name>
+            <value>
+                <elementReference>TransformToRampOptions</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>initiateRenewal</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -383,6 +389,12 @@
             <name>renewEndDate</name>
             <value>
                 <elementReference>SelectedRenewalEndDate</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>rampOptionsDetails</name>
+            <value>
+                <elementReference>TransformToRampOptions</elementReference>
             </value>
         </inputParameters>
         <nameSegment>initiateRenewal</nameSegment>
@@ -888,8 +900,29 @@
                 <elementReference>Renewal_End_Date</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>RampSegmentType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Ramp_Segment_Type</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>RampSegmentDuration</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Ramp_Segment_Duration</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>RampNumberOfSegments</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Ramp_Number_Of_Segments</elementReference>
+            </value>
+        </assignmentItems>
         <connector>
-            <targetReference>FromAccountOrContract</targetReference>
+            <targetReference>Is_Backdated_Renewal</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -906,7 +939,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Resolve_Action_After_Date_Screen</targetReference>
+            <targetReference>Is_Backdated_Change</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -952,7 +985,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>Create_Transfer_Records</targetReference>
+            <targetReference>Is_Backdated_Transfer</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -988,7 +1021,7 @@
             </value>
         </assignmentItems>
         <connector>
-            <targetReference>getProductCatalogs</targetReference>
+            <targetReference>Is_Backdated_Swap</targetReference>
         </connector>
     </assignments>
     <assignments>
@@ -1200,6 +1233,22 @@
         </value>
     </choices>
     <choices>
+        <name>Segment_Type_Custom</name>
+        <choiceText>&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;Custom&lt;/span&gt;</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Custom</stringValue>
+        </value>
+    </choices>
+    <choices>
+        <name>Segment_Type_Yearly</name>
+        <choiceText>Yearly</choiceText>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>Yearly</stringValue>
+        </value>
+    </choices>
+    <choices>
         <name>Swap</name>
         <choiceIcon>
             <iconName>utility:replace</iconName>
@@ -1319,6 +1368,46 @@
         </rules>
     </decisions>
     <decisions>
+        <description>Builds ramp options only when group ramps are enabled AND the user chose Override with Create a ramp schedule. The 264 template checks groupRampsEnabled alone, which sends null segment fields on a plain renewal.</description>
+        <name>Check_Ramp_Selected</name>
+        <label>Check Ramp Selected</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>FromAccountOrContract</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No Ramp</defaultConnectorLabel>
+        <rules>
+            <name>Ramp_Selected</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>groupRampsEnabled</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Create_Ramp_Schedule</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>RenewalDecision</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>IsEarlyRenewal</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>TransformToRampOptions</targetReference>
+            </connector>
+            <label>Ramp Selected</label>
+        </rules>
+    </decisions>
+    <decisions>
         <name>FromAccountOrContract</name>
         <label>FromAccountOrContract</label>
         <locationX>0</locationX>
@@ -1348,6 +1437,117 @@
                 <targetReference>RenewalfromAccount</targetReference>
             </connector>
             <label>FromAccount</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Help recommends a confirmation for backdated transactions: it applies from a past date, which affects billing and revenue recognition (todo 246).</description>
+        <name>Is_Backdated_Change</name>
+        <label>Is Backdated Change</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Resolve_Action_After_Date_Screen</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Today or later</defaultConnectorLabel>
+        <rules>
+            <name>Is_Backdated_Change_Yes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>startDate</leftValueReference>
+                <operator>LessThan</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Confirm_Backdated_Change</targetReference>
+            </connector>
+            <label>Backdated</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Help recommends a confirmation for backdated transactions: it applies from a past date, which affects billing and revenue recognition (todo 246).</description>
+        <name>Is_Backdated_Renewal</name>
+        <label>Is Backdated Renewal</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Check_Ramp_Selected</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Today or later</defaultConnectorLabel>
+        <rules>
+            <name>Is_Backdated_Renewal_Yes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>SelectedRenewalStartDate</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>SelectedRenewalStartDate</leftValueReference>
+                <operator>LessThan</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Confirm_Backdated_Renewal</targetReference>
+            </connector>
+            <label>Backdated</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Help recommends a confirmation for backdated transactions: it applies from a past date, which affects billing and revenue recognition (todo 246).</description>
+        <name>Is_Backdated_Swap</name>
+        <label>Is Backdated Swap</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>getProductCatalogs</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Today or later</defaultConnectorLabel>
+        <rules>
+            <name>Is_Backdated_Swap_Yes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Swap_Start_Date.swapStartDate</leftValueReference>
+                <operator>LessThan</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Confirm_Backdated_Swap</targetReference>
+            </connector>
+            <label>Backdated</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Help recommends a confirmation for backdated transactions: it applies from a past date, which affects billing and revenue recognition (todo 246).</description>
+        <name>Is_Backdated_Transfer</name>
+        <label>Is Backdated Transfer</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Create_Transfer_Records</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Today or later</defaultConnectorLabel>
+        <rules>
+            <name>Is_Backdated_Transfer_Yes</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>startDate</leftValueReference>
+                <operator>LessThan</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Confirm_Backdated_Transfer</targetReference>
+            </connector>
+            <label>Backdated</label>
         </rules>
     </decisions>
     <decisions>
@@ -1988,6 +2188,86 @@
         <showHeader>false</showHeader>
     </screens>
     <screens>
+        <description>Confirms a backdated change before it is created (Help: Backdate Asset Transactions; todo 246).</description>
+        <name>Confirm_Backdated_Change</name>
+        <label>Confirm Backdated Change</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Resolve_Action_After_Date_Screen</targetReference>
+        </connector>
+        <fields>
+            <name>Confirm_Backdated_Change_Text</name>
+            <fieldText>&lt;p&gt;&lt;b&gt;This {!lowercase_actionTypeNoun} is backdated to {!startDate}.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;It takes effect from that past date, which must be on or after the asset&apos;s start date. The asset reflects the change from then. If Revenue Cloud Billing is in use, then once the resulting order is activated, billing is prorated for the affected period and credit memos are generated for periods already invoiced. This change can also affect revenue recognition.&lt;/p&gt;&lt;p&gt;Select Next to continue, or Previous to change the date.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <description>Confirms a backdated renewal before it is created (Help: Backdate Asset Transactions; todo 246).</description>
+        <name>Confirm_Backdated_Renewal</name>
+        <label>Confirm Backdated Renewal</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Check_Ramp_Selected</targetReference>
+        </connector>
+        <fields>
+            <name>Confirm_Backdated_Renewal_Text</name>
+            <fieldText>&lt;p&gt;&lt;b&gt;This renewal is backdated to {!SelectedRenewalStartDate}.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The renewal term starts on that past date. If Revenue Cloud Billing is in use, then once the resulting order is activated, billing is prorated for the affected period and credit memos are generated for periods already invoiced. This change can also affect revenue recognition.&lt;/p&gt;&lt;p&gt;Select Next to continue, or Previous to change the date.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <description>Confirms a backdated swap, upgrade or downgrade before it is created (Help: Backdate Asset Transactions; todo 246).</description>
+        <name>Confirm_Backdated_Swap</name>
+        <label>Confirm Backdated Swap</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>getProductCatalogs</targetReference>
+        </connector>
+        <fields>
+            <name>Confirm_Backdated_Swap_Text</name>
+            <fieldText>&lt;p&gt;&lt;b&gt;This {!lowercase_actionTypeNoun} is backdated to {!Swap_Start_Date.swapStartDate}.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The selected assets are replaced from that past date. If Revenue Cloud Billing is in use, then once the resulting order is activated, billing is prorated for the affected period and credit memos are generated for periods already invoiced. This change can also affect revenue recognition.&lt;/p&gt;&lt;p&gt;Select Next to continue, or Previous to change the date.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <description>Confirms a backdated transfer before it is created (Help: Backdate Asset Transactions; todo 246).</description>
+        <name>Confirm_Backdated_Transfer</name>
+        <label>Confirm Backdated Transfer</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Create_Transfer_Records</targetReference>
+        </connector>
+        <fields>
+            <name>Confirm_Backdated_Transfer_Text</name>
+            <fieldText>&lt;p&gt;&lt;b&gt;This transfer is backdated to {!startDate}.&lt;/b&gt;&lt;/p&gt;&lt;p&gt;The transfer takes effect from that past date: the source asset&apos;s quantity is reduced and the destination asset starts on that date. If Revenue Cloud Billing is in use, then once the source and destination orders are activated, billing is prorated for the affected period and credit memos are generated for periods already invoiced. This change can also affect revenue recognition.&lt;/p&gt;&lt;p&gt;Select Next to continue, or Previous to change the date.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
         <description>Swap Type (Swap, Upgrade, Downgrade) and Start Date</description>
         <name>Effective_Date_selector_screen</name>
         <label>Swap Type and Start Date</label>
@@ -2200,7 +2480,7 @@
         </fields>
         <fields>
             <name>noCatalogErrorDescription</name>
-            <fieldText>&lt;p&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;To use Browse Catalogs, choose or create a catalog to store the categories.&lt;/span&gt;&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong style=&quot;font-size: 16px; background-color: rgb(255, 255, 255);&quot;&gt;Unable to browse catalogs&lt;/strong&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -2373,12 +2653,33 @@
                         <formulaExpression>ISBLANK({!Renewal_End_Date}) || {!Renewal_End_Date} &gt; {!Renewal_Start_Date}</formulaExpression>
                     </validationRule>
                     <visibilityRule>
-                        <conditionLogic>and</conditionLogic>
+                        <conditionLogic>(1 AND 3) OR (1 AND 2 AND 4)</conditionLogic>
                         <conditions>
                             <leftValueReference>RenewalDecision</leftValueReference>
                             <operator>EqualTo</operator>
                             <rightValue>
                                 <elementReference>IsEarlyRenewal</elementReference>
+                            </rightValue>
+                        </conditions>
+                        <conditions>
+                            <leftValueReference>Create_Ramp_Schedule</leftValueReference>
+                            <operator>EqualTo</operator>
+                            <rightValue>
+                                <booleanValue>false</booleanValue>
+                            </rightValue>
+                        </conditions>
+                        <conditions>
+                            <leftValueReference>groupRampsEnabled</leftValueReference>
+                            <operator>EqualTo</operator>
+                            <rightValue>
+                                <booleanValue>false</booleanValue>
+                            </rightValue>
+                        </conditions>
+                        <conditions>
+                            <leftValueReference>groupRampsEnabled</leftValueReference>
+                            <operator>EqualTo</operator>
+                            <rightValue>
+                                <booleanValue>true</booleanValue>
                             </rightValue>
                         </conditions>
                     </visibilityRule>
@@ -2409,8 +2710,159 @@
                 <name>Renewal_Term_Selector_Screen_Section4_Column1</name>
                 <fieldType>Region</fieldType>
                 <fields>
+                    <name>Create_Ramp_Schedule</name>
+                    <dataType>Boolean</dataType>
+                    <fieldText>Create a ramp schedule</fieldText>
+                    <fieldType>InputField</fieldType>
+                    <helpText>&lt;p&gt;Select to create a ramp schedule.&lt;/p&gt;</helpText>
+                    <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+                    <isRequired>true</isRequired>
+                    <styleProperties>
+                        <verticalAlignment>
+                            <stringValue>top</stringValue>
+                        </verticalAlignment>
+                        <width>
+                            <stringValue>12</stringValue>
+                        </width>
+                    </styleProperties>
+                    <visibilityRule>
+                        <conditionLogic>and</conditionLogic>
+                        <conditions>
+                            <leftValueReference>RenewalDecision</leftValueReference>
+                            <operator>EqualTo</operator>
+                            <rightValue>
+                                <elementReference>IsEarlyRenewal</elementReference>
+                            </rightValue>
+                        </conditions>
+                    </visibilityRule>
+                </fields>
+                <fields>
+                    <name>Ramp_Segment_Type</name>
+                    <choiceReferences>Segment_Type_Yearly</choiceReferences>
+                    <choiceReferences>Segment_Type_Custom</choiceReferences>
+                    <dataType>String</dataType>
+                    <fieldText>Segment Type</fieldText>
+                    <fieldType>DropdownBox</fieldType>
+                    <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+                    <isRequired>true</isRequired>
+                    <styleProperties>
+                        <verticalAlignment>
+                            <stringValue>top</stringValue>
+                        </verticalAlignment>
+                        <width>
+                            <stringValue>6</stringValue>
+                        </width>
+                    </styleProperties>
+                    <visibilityRule>
+                        <conditionLogic>and</conditionLogic>
+                        <conditions>
+                            <leftValueReference>Create_Ramp_Schedule</leftValueReference>
+                            <operator>EqualTo</operator>
+                            <rightValue>
+                                <booleanValue>true</booleanValue>
+                            </rightValue>
+                        </conditions>
+                    </visibilityRule>
+                </fields>
+                <fields>
+                    <name>Ramp_Segment_Duration</name>
+                    <dataType>Number</dataType>
+                    <fieldText>Duration (Months)</fieldText>
+                    <fieldType>InputField</fieldType>
+                    <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+                    <isRequired>true</isRequired>
+                    <scale>0</scale>
+                    <styleProperties>
+                        <verticalAlignment>
+                            <stringValue>top</stringValue>
+                        </verticalAlignment>
+                        <width>
+                            <stringValue>6</stringValue>
+                        </width>
+                    </styleProperties>
+                    <visibilityRule>
+                        <conditionLogic>and</conditionLogic>
+                        <conditions>
+                            <leftValueReference>Create_Ramp_Schedule</leftValueReference>
+                            <operator>EqualTo</operator>
+                            <rightValue>
+                                <booleanValue>true</booleanValue>
+                            </rightValue>
+                        </conditions>
+                    </visibilityRule>
+                </fields>
+                <fields>
+                    <name>Ramp_Number_Of_Segments</name>
+                    <dataType>Number</dataType>
+                    <fieldText>Number of Segments</fieldText>
+                    <fieldType>InputField</fieldType>
+                    <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+                    <isRequired>true</isRequired>
+                    <scale>0</scale>
+                    <styleProperties>
+                        <verticalAlignment>
+                            <stringValue>top</stringValue>
+                        </verticalAlignment>
+                        <width>
+                            <stringValue>6</stringValue>
+                        </width>
+                    </styleProperties>
+                    <visibilityRule>
+                        <conditionLogic>and</conditionLogic>
+                        <conditions>
+                            <leftValueReference>Create_Ramp_Schedule</leftValueReference>
+                            <operator>EqualTo</operator>
+                            <rightValue>
+                                <booleanValue>true</booleanValue>
+                            </rightValue>
+                        </conditions>
+                        <conditions>
+                            <leftValueReference>Ramp_Segment_Type</leftValueReference>
+                            <operator>EqualTo</operator>
+                            <rightValue>
+                                <elementReference>Segment_Type_Custom</elementReference>
+                            </rightValue>
+                        </conditions>
+                    </visibilityRule>
+                </fields>
+                <inputParameters>
+                    <name>width</name>
+                    <value>
+                        <stringValue>12</stringValue>
+                    </value>
+                </inputParameters>
+                <isRequired>false</isRequired>
+            </fields>
+            <isRequired>false</isRequired>
+            <regionContainerType>SectionWithoutHeader</regionContainerType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+            <visibilityRule>
+                <conditionLogic>and</conditionLogic>
+                <conditions>
+                    <leftValueReference>groupRampsEnabled</leftValueReference>
+                    <operator>EqualTo</operator>
+                    <rightValue>
+                        <booleanValue>true</booleanValue>
+                    </rightValue>
+                </conditions>
+            </visibilityRule>
+        </fields>
+        <fields>
+            <name>Renewal_Term_Selector_Screen_Section5</name>
+            <fieldType>RegionContainer</fieldType>
+            <fields>
+                <name>Renewal_Term_Selector_Screen_Section5_Column1</name>
+                <fieldType>Region</fieldType>
+                <fields>
                     <name>Early_Renewal_Warning</name>
-                    <fieldText>&lt;p style=&quot;display: flex; align-items: flex-start;&quot;&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); color: rgb(140, 75, 2); font-size: 18px; margin-right: 5px;&quot;&gt;&lt;img src=&quot;/projRes/ui-revenue-common-components/img/warning.png&quot; alt=&quot;warning.png&quot; width=&quot;20&quot; height=&quot;20&quot; style=&quot;position: relative; top: 2px;&quot;&gt;  &lt;/span&gt;&lt;span style=&quot;color: rgb(150, 71, 0); line-height: 1.5;&quot;&gt;Selecting a renewal start and end date overrides the existing subscription renewal term and creates either a quote or order to refund the unused portion of the subscription.&lt;/span&gt;&lt;/p&gt;</fieldText>
+                    <fieldText>&lt;p&gt;&lt;span style=&quot;font-size: 18px; color: rgb(140, 75, 2); background-color: rgb(255, 255, 255);&quot;&gt;&lt;img src=&quot;/projRes/ui-revenue-common-components/img/warning.png&quot; alt=&quot;warning.png&quot;&gt;  &lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot;color: rgb(150, 71, 0);&quot;&gt;Selecting a renewal start and end date overrides the existing subscription renewal term and creates either a quote or order to refund the unused portion of the subscription.&lt;/span&gt;&lt;/p&gt;</fieldText>
                     <fieldType>DisplayText</fieldType>
                     <styleProperties>
                         <verticalAlignment>
@@ -2466,6 +2918,19 @@
         <connector>
             <targetReference>Swap_from_Account_or_Contract</targetReference>
         </connector>
+        <fields>
+            <name>plp_header</name>
+            <fieldText>&lt;h1 style=&quot;text-align: center;&quot;&gt;&lt;span style=&quot;font-size: 22px;&quot;&gt;{!actionType} Selections&lt;/span&gt;&lt;/h1&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
         <fields>
             <name>Select_Products</name>
             <extensionName>runtime_revenue_foundation:assetPrdCntr</extensionName>
@@ -2572,10 +3037,6 @@
                     <stringValue>12</stringValue>
                 </width>
             </styleProperties>
-            <validationRule>
-                <errorMessage>&lt;p&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255); color: rgb(255, 0, 0);&quot;&gt;Provide a date of today or a date in the future.&lt;/span&gt;&lt;/p&gt;</errorMessage>
-                <formulaExpression>{!Selected_Start_Date} &gt;= {!$Flow.CurrentDate}</formulaExpression>
-            </validationRule>
         </fields>
         <fields>
             <name>subtype_Selection</name>
@@ -2848,6 +3309,43 @@
             </transformValueActions>
         </transformValues>
     </transforms>
+    <transforms>
+        <name>TransformToRampOptions</name>
+        <label>Transform to rampOptions</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <apexClass>ConnectApi__RampOptionInputRepresentation</apexClass>
+        <connector>
+            <targetReference>FromAccountOrContract</targetReference>
+        </connector>
+        <dataType>Apex</dataType>
+        <isCollection>false</isCollection>
+        <scale>0</scale>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <transformValues>
+            <transformValueActions>
+                <outputFieldApiName>durationInMonths</outputFieldApiName>
+                <transformType>Map</transformType>
+                <value>
+                    <elementReference>RampSegmentDuration</elementReference>
+                </value>
+            </transformValueActions>
+            <transformValueActions>
+                <outputFieldApiName>segmentCount</outputFieldApiName>
+                <transformType>Map</transformType>
+                <value>
+                    <elementReference>RampNumberOfSegments</elementReference>
+                </value>
+            </transformValueActions>
+            <transformValueActions>
+                <outputFieldApiName>segmentType</outputFieldApiName>
+                <transformType>Map</transformType>
+                <value>
+                    <elementReference>RampSegmentType</elementReference>
+                </value>
+            </transformValueActions>
+        </transformValues>
+    </transforms>
     <variables>
         <description>Indicates which of the Amend, Renew, or Cancel Invocable Actions to invoke</description>
         <name>actionType</name>
@@ -2924,6 +3422,16 @@
         <objectType>ProductCatalog</objectType>
     </variables>
     <variables>
+        <name>groupRampsEnabled</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>false</booleanValue>
+        </value>
+    </variables>
+    <variables>
         <description>API name of the source object (e.g., Asset).</description>
         <name>objectApiName</name>
         <dataType>String</dataType>
@@ -2959,6 +3467,32 @@
         <scale>0</scale>
         <value>
             <numberValue>0.0</numberValue>
+        </value>
+    </variables>
+    <variables>
+        <name>RampNumberOfSegments</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>2</scale>
+    </variables>
+    <variables>
+        <name>RampSegmentDuration</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>2</scale>
+    </variables>
+    <variables>
+        <name>RampSegmentType</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <stringValue></stringValue>
         </value>
     </variables>
     <variables>

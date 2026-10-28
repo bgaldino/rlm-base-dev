@@ -3,6 +3,7 @@
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <decisions>
+        <description>Asset-action quotes take their billing info from the quote account. Swap, upgrade and downgrade quotes leave OriginalActionType blank, so a quote with no Opportunity also takes that path: the other path reads the Opportunity's account (todo 305). A quote with neither does nothing: a contact lookup on a null AccountId would pick an unrelated contact.</description>
         <name>ARC_Process_Used_for_Quote</name>
         <label>ARC Process Used for Quote?</label>
         <locationX>0</locationX>
@@ -12,13 +13,39 @@
         </defaultConnector>
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
-            <name>Yes</name>
+            <name>No_Account_To_Copy_From</name>
             <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.OpportunityId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.QuoteAccountId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <label>No Account to Copy From</label>
+        </rules>
+        <rules>
+            <name>Yes</name>
+            <conditionLogic>or</conditionLogic>
             <conditions>
                 <leftValueReference>$Record.OriginalActionType</leftValueReference>
                 <operator>IsBlank</operator>
                 <rightValue>
                     <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.OpportunityId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
