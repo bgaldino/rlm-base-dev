@@ -59,7 +59,12 @@ Key endpoints (see the reference doc for exact request shapes):
 - `POST /connect/rev/sales-transaction/actions/clone` — Clone a sales transaction
 - `POST /connect/revenue-management/assets/actions/amend` — Amend asset
 - `POST /connect/revenue-management/assets/actions/renew` — Renew asset
+- `POST /connect/revenue-management/assets/actions/cancel` — Cancel asset
 - `POST /industries/cpq/quotes/actions/get-instant-price` — Instant pricing
+
+**Backdated amend, cancel and renew** (an effective date in the past): request bodies, the
+activation prerequisites, the expired-renewal rule, and the API-vs-UI flow distinction are in
+[backdated-asset-lifecycle.md](backdated-asset-lifecycle.md).
 
 ### Pricing APIs
 - `POST /connect/core-pricing/pricing` — Calculate prices for a transaction
