@@ -130,6 +130,45 @@ live to the engine.
   the later of the two timestamps rather than treating the response as
   completion: in Release 264 the request does not decide which one moves.
 
+### After editing setup data — what refreshes what
+
+Measured on a fresh 264 build (pack 290), 40 tables:
+- **17** are refreshed at runtime by flows: contract activation, the asset Platform Event flow,
+  Account reset and Commerce.
+- **9** more are covered only by Sync Pricing Data (Setup → Salesforce Pricing Setup). It
+  refreshes all 11 DefaultPricing and 2 PricingDiscovery tables, so some of its 13 overlap the 17.
+- **14** are refreshed by nothing after the build:
+  - 11 rating tables (rate card entries, tier/volume/attribute rate adjustments, the price book
+    rate card table);
+  - the 2 qualification tables (usage types ProductQualification and
+    ProductCategoryQualification);
+  - `StandardTax`.
+
+Their sources change only by admin edits: rates, qualification rules, tax setup. An Active
+`RateCardEntry` only allows its status to change; any other change is a new entry.
+
+**After such an edit, refresh in the Decision Table Manager:**
+1. **Refresh stale only.** The edit turns Stale every table that reads the edited object and
+   could change because of it. Measured: retiring one rate card entry turned 8 of the 11 tables
+   that read `RateCardEntry` Stale, and the other 29 tables stayed Fresh. The 3 that stayed Fresh
+   are the Binding Object rate tables. Their own source objects hold no rows, so they are empty
+   whatever `RateCardEntry` holds, and the verdict says so.
+2. When a table reads **Not comparable** or **Unknown**, or the edit is outside what you can
+   see (the verdict is judged on what the running user can read), use the **Reads object**
+   filter instead.
+   - Clear the other filters, pick the object you edited, then **Refresh all shown**.
+   - It lists every table that reads the object, whatever its verdict.
+   - It matches exact API names, so `RateCardEntry` doesn't pull in `AssetRateCardEntry` tables.
+   - Objects reached only through a traversing source criterion are not listed, nor are a
+     table's column objects when its parameter scan failed (the verdict then withholds
+     Fresh).
+
+There is deliberately no automatic refresh for these:
+- A scheduled flow would spend 14 full refreshes a night against the 40/h pool, for edits that
+  are rare and made by someone already in Setup.
+- A record-triggered refresh on rate objects would spend up to 11 refreshes per saved row in a
+  bulk edit.
+
 ### Release 264 chooses the refresh type (`AutoSelectRefreshDT`)
 
 ⭐ **In 264 the request does not fix the type that runs.** Read from Core source

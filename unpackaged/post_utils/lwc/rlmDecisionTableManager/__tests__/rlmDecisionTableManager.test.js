@@ -33,7 +33,8 @@ const TABLE = {
     lastIncrementalSyncDate: null,
     latestSyncDate: '2026-10-27T22:15:53.000Z',
     latestSyncKind: 'full',
-    contributingObjects: ['PricebookEntry']
+    contributingObjects: ['PricebookEntry'],
+    readsObjects: ['PricebookEntry']
 }
 
 // Settles the microtask queue: Apex mocks resolve on it, and so do LWC re-renders. Tests
@@ -238,6 +239,82 @@ describe('c-rlm-decision-table-manager', () => {
 
         expect(getDecisionTables).toHaveBeenCalledTimes(1)
         expect(toasts).toHaveBeenCalledTimes(1)
+    })
+
+    describe('reads-object filter', () => {
+        const RATES = { ...TABLE, apiName: 'Rate_Card_Entries_2', label: 'Rate Card Entries', readsObjects: ['RateCardEntry'] }
+        const ASSET_RATES = { ...TABLE, apiName: 'Asset_Rate_Decision_Table_V2', label: 'Asset Rate', readsObjects: ['AssetRateCardEntry'] }
+        // Reads RateCardEntry only through a column, and its verdict could not be computed, so
+        // contributingObjects is empty: the case the filter exists for.
+        const RESOLUTION = {
+            ...TABLE, apiName: 'Pricebook_Rate_Card_Decision_Table', label: 'Pricebook Rate Card',
+            staleness: 'Not comparable', contributingObjects: [], readsObjects: ['PriceBookRateCard', 'RateCardEntry']
+        }
+
+        async function filterTo(element, objectName) {
+            const combo = [...element.shadowRoot.querySelectorAll('lightning-combobox')]
+                .find((c) => c.label === 'Reads object')
+            combo.dispatchEvent(new CustomEvent('change', { detail: { value: objectName } }))
+            await flushPromises()
+        }
+
+        beforeEach(() => {
+            getDecisionTables.mockResolvedValue([RATES, ASSET_RATES, RESOLUTION, TABLE])
+        })
+
+        it('offers each object some table reads, by exact name', async () => {
+            const element = await mount()
+            const combo = [...element.shadowRoot.querySelectorAll('lightning-combobox')]
+                .find((c) => c.label === 'Reads object')
+            expect(combo.options.map((o) => o.value)).toEqual(
+                ['all', 'AssetRateCardEntry', 'PriceBookRateCard', 'PricebookEntry', 'RateCardEntry'])
+            expect(combo.options[4].label).toBe('Reads: RateCardEntry')
+        })
+
+        it('shows every table that reads the object, Not comparable included, and no near-namesake', async () => {
+            const element = await mount()
+            await filterTo(element, 'RateCardEntry')
+
+            const shown = element.shadowRoot.querySelector('lightning-datatable').data.map((r) => r.apiName)
+            expect(shown.sort()).toEqual(['Pricebook_Rate_Card_Decision_Table', 'Rate_Card_Entries_2'])
+        })
+
+        it('refreshes exactly those tables with Refresh all shown', async () => {
+            const element = await mount()
+            await filterTo(element, 'RateCardEntry')
+            const refreshShown = [...element.shadowRoot.querySelectorAll('lightning-button')]
+                .find((b) => b.label.startsWith('Refresh all shown'))
+            expect(refreshShown.label).toBe('Refresh all shown (2)')
+
+            refreshShown.click()
+            await flushPromises()
+
+            expect(refreshTables).toHaveBeenCalledTimes(1)
+            expect(refreshTables.mock.calls[0][0].apiNames.sort())
+                .toEqual(['Pricebook_Rate_Card_Decision_Table', 'Rate_Card_Entries_2'])
+        })
+    })
+
+    it('refreshes only the selected rows the filters still show', async () => {
+        const OTHER = { ...TABLE, apiName: 'Other_Table', label: 'Other', usageType: 'DefaultRating', readsObjects: ['RateCardEntry'] }
+        getDecisionTables.mockResolvedValue([TABLE, OTHER])
+        refreshTables.mockResolvedValue({ queuedCount: 1, failedCount: 0, failedApiNames: [], unknownApiNames: [] })
+        const element = await mount()
+        const table = element.shadowRoot.querySelector('lightning-datatable')
+        table.dispatchEvent(new CustomEvent('rowselection', { detail: { selectedRows: [TABLE, OTHER] } }))
+        await flushPromises()
+        const combo = [...element.shadowRoot.querySelectorAll('lightning-combobox')]
+            .find((c) => c.label === 'Reads object')
+        combo.dispatchEvent(new CustomEvent('change', { detail: { value: 'RateCardEntry' } }))
+        await flushPromises()
+
+        const selected = [...element.shadowRoot.querySelectorAll('lightning-button')]
+            .find((b) => b.label.startsWith('Refresh') && b.label.endsWith('selected'))
+        expect(selected.label).toBe('Refresh 1 selected')
+        selected.click()
+        await flushPromises()
+
+        expect(refreshTables.mock.calls[0][0].apiNames).toEqual(['Other_Table'])
     })
 
     describe('load errors', () => {
