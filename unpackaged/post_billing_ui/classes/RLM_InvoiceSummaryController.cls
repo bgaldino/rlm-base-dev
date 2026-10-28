@@ -122,7 +122,9 @@ public with sharing class RLM_InvoiceSummaryController {
         // ── 3. Debit Memos — posted for this account ────────────
         String dmQuery = 'SELECT Id, TotalAmount';
         if (isMultiCurrency) dmQuery += ', CurrencyIsoCode';
-        dmQuery += ' FROM DebitMemo WHERE AccountId = :accountId AND Status = \'Posted\'';
+        // Not yet on a posted invoice: once it is, that invoice's balance counts it.
+        dmQuery += ' FROM DebitMemo WHERE AccountId = :accountId AND Status = \'Posted\''
+            + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\'';
         for (SObject dm : Database.query(dmQuery, AccessLevel.USER_MODE)) {
             Decimal amt = (Decimal)dm.get('TotalAmount');
             if (amt == null || amt <= 0) continue;
@@ -134,20 +136,26 @@ public with sharing class RLM_InvoiceSummaryController {
         }
 
         // ── 4. Promise to Pay — PSIs via CollectionPlan chain ───
-        String psiQuery = 'SELECT Id, RequestedAmount, Status';
-        if (isMultiCurrency) psiQuery += ', CurrencyIsoCode';
-        psiQuery += ' FROM PaymentScheduleItem'
-            + ' WHERE PaymentSchedule.CollectionPlanItemId != null'
-            + ' AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId = \'' + String.escapeSingleQuotes(String.valueOf(accountId)) + '\''
-            + ' AND Status NOT IN (\'Processed\', \'Canceled\')';
-        for (SObject psi : Database.query(psiQuery, AccessLevel.USER_MODE)) {
-            Decimal amt = (Decimal)psi.get('RequestedAmount');
-            if (amt == null || amt <= 0) continue;
-            if (isMultiCurrency) {
-                amt = convertCurrency(amt, (String)psi.get('CurrencyIsoCode'), targetCurrency, convRates);
+        // Collections users only: the collection plan link needs the Billing Advanced
+        // license, which the billing roles don't carry, and querying it without access
+        // fails the whole summary. A user who can't read collection plans has no
+        // promise to pay to show.
+        if (canReadCollectionPlans()) {
+            String psiQuery = 'SELECT Id, RequestedAmount, Status';
+            if (isMultiCurrency) psiQuery += ', CurrencyIsoCode';
+            psiQuery += ' FROM PaymentScheduleItem'
+                + ' WHERE PaymentSchedule.CollectionPlanItemId != null'
+                + ' AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId = \'' + String.escapeSingleQuotes(String.valueOf(accountId)) + '\''
+                + ' AND Status NOT IN (\'Processed\', \'Canceled\')';
+            for (SObject psi : Database.query(psiQuery, AccessLevel.USER_MODE)) {
+                Decimal amt = (Decimal)psi.get('RequestedAmount');
+                if (amt == null || amt <= 0) continue;
+                if (isMultiCurrency) {
+                    amt = convertCurrency(amt, (String)psi.get('CurrencyIsoCode'), targetCurrency, convRates);
+                }
+                data.promiseToPayAmount += amt;
+                data.promiseToPayCount++;
             }
-            data.promiseToPayAmount += amt;
-            data.promiseToPayCount++;
         }
 
         // ── 5. Classify invoices ────────────────────────────────
@@ -228,6 +236,21 @@ public with sharing class RLM_InvoiceSummaryController {
         Decimal fromRate = rates.containsKey(fromCurr) ? rates.get(fromCurr) : 1;
         Decimal toRate = rates.containsKey(toCurr) ? rates.get(toCurr) : 1;
         return amount.divide(fromRate, 10, RoundingMode.HALF_UP) * toRate;
+    }
+
+    // Whether this user can run the promise-to-pay query: object access to both
+    // collections objects and field access to the two fields it filters on.
+    @TestVisible
+    private static Boolean canReadCollectionPlans() {
+        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
+        for (String name : new List<String>{ 'CollectionPlan', 'CollectionPlanItem' }) {
+            Schema.SObjectType t = types.get(name);
+            if (t == null || !t.getDescribe().isAccessible()) {
+                return false;
+            }
+        }
+        return Schema.SObjectType.PaymentSchedule.fields.getMap().containsKey('CollectionPlanItemId')
+            && types.get('CollectionPlan').getDescribe().fields.getMap().containsKey('AccountId');
     }
 
     /**

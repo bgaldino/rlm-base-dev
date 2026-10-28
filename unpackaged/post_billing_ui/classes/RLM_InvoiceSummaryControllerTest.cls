@@ -100,4 +100,47 @@ private class RLM_InvoiceSummaryControllerTest {
         }
         return (SObject) JSON.deserialize(JSON.serialize(m), Invoice.class);
     }
+
+    // A billing role without collections can't read the collection plan link that the
+    // promise-to-pay step filters on. The summary must still load for that user, showing
+    // no promise to pay, rather than failing on that one query.
+    @isTest
+    static void getInvoiceSummary_billingRoleWithoutCollections_loads() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Role Test');
+        insert acc;
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        Boolean seesCollections;
+        System.runAs(u) {
+            seesCollections = RLM_InvoiceSummaryController.canReadCollectionPlans();
+            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        }
+        Assert.isFalse(seesCollections, 'Premise: Billing Operations alone cannot read collection plans.');
+        Assert.areEqual(0, data.promiseToPayCount, 'No collections access -> no promise to pay.');
+    }
+
+    // The other side of the gate: a collections user still gets the promise-to-pay query.
+    @isTest
+    static void getInvoiceSummary_collectionsUser_runsPromiseToPay() {
+        Account acc = new Account(Name = 'RLM Invoice Summary Collections Test');
+        insert acc;
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{
+                'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations', 'BillingCollectionsAndRecoverySpecialist'
+            },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL });
+
+        Boolean seesCollections;
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
+        System.runAs(u) {
+            seesCollections = RLM_InvoiceSummaryController.canReadCollectionPlans();
+            // With the gate open the promise-to-pay query runs; it must be valid for this user.
+            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        }
+        Assert.isTrue(seesCollections, 'A collections user can read collection plans.');
+        Assert.areEqual(0, data.promiseToPayCount, 'No payment schedules -> no promise to pay.');
+    }
 }

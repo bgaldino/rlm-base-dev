@@ -108,7 +108,11 @@ public with sharing class RLM_InvoiceProductSummaryController {
 
     // ─── Helper: BSG → Asset Id ───────────────────────────────────────────────
 
-    private static Map<Id, Id> resolveBsgToAsset(Set<Id> bsgIds) {
+    // failLoudly: the attribute save passes true, so a read the user may not run fails the save
+    // instead of letting it report success with nothing written. The summary passes false
+    // and shows the lines without attributes.
+    @TestVisible
+    private static Map<Id, Id> resolveBsgToAsset(Set<Id> bsgIds, Boolean failLoudly) {
         Map<Id, Id> result = new Map<Id, Id>();
         if (bsgIds == null || bsgIds.isEmpty()) return result;
         try {
@@ -121,13 +125,17 @@ public with sharing class RLM_InvoiceProductSummaryController {
                     result.put(bsg.Id, bsg.ReferenceEntityId);
                 }
             }
-        } catch (Exception e) { System.debug('BSG query failed: ' + e.getMessage()); }
+        } catch (Exception e) {
+            if (failLoudly) throw e;
+            System.debug('BSG query failed: ' + e.getMessage());
+        }
         return result;
     }
 
     // ─── Helper: Asset → AssetStatePeriodAttribute ────────────────────────────
 
-    private static Map<Id, List<AssetAttributeDetail>> resolveAssetAttributes(Set<Id> assetIds) {
+    @TestVisible
+    private static Map<Id, List<AssetAttributeDetail>> resolveAssetAttributes(Set<Id> assetIds, Boolean failLoudly) {
         Map<Id, List<AssetAttributeDetail>> result = new Map<Id, List<AssetAttributeDetail>>();
         if (assetIds == null || assetIds.isEmpty()) return result;
         try {
@@ -165,7 +173,10 @@ public with sharing class RLM_InvoiceProductSummaryController {
                 aad.value = attr.AttributeValue;
                 result.get(assetId).add(aad);
             }
-        } catch (Exception e) { System.debug('AssetStatePeriodAttribute failed: ' + e.getMessage()); }
+        } catch (Exception e) {
+            if (failLoudly) throw e;
+            System.debug('AssetStatePeriodAttribute failed: ' + e.getMessage());
+        }
         return result;
     }
 
@@ -279,8 +290,8 @@ public with sharing class RLM_InvoiceProductSummaryController {
             Set<Id> bsgIds = new Set<Id>();
             for (InvoiceLine l : blankLines) bsgIds.add(l.BillingScheduleGroupId);
 
-            Map<Id, Id> bsgToAssetId                          = resolveBsgToAsset(bsgIds);
-            Map<Id, List<AssetAttributeDetail>> assetToAttrs  = resolveAssetAttributes(new Set<Id>(bsgToAssetId.values()));
+            Map<Id, Id> bsgToAssetId                          = resolveBsgToAsset(bsgIds, true);
+            Map<Id, List<AssetAttributeDetail>> assetToAttrs  = resolveAssetAttributes(new Set<Id>(bsgToAssetId.values()), true);
 
             List<InvoiceLine> toUpdate = new List<InvoiceLine>();
             for (InvoiceLine line : blankLines) {
@@ -370,9 +381,9 @@ public with sharing class RLM_InvoiceProductSummaryController {
             }
 
             // Asset attributes
-            Map<Id, Id>     bsgToAssetId = resolveBsgToAsset(bsgIds);
+            Map<Id, Id>     bsgToAssetId = resolveBsgToAsset(bsgIds, false);
             Set<Id>         assetIds     = new Set<Id>(bsgToAssetId.values());
-            Map<Id, List<AssetAttributeDetail>> assetToAttrs = resolveAssetAttributes(assetIds);
+            Map<Id, List<AssetAttributeDetail>> assetToAttrs = resolveAssetAttributes(assetIds, false);
             Map<Id, String> assetNames   = resolveAssetNames(assetIds);
 
             // ── Bundle relationships ─────────────────────────────────────────────────

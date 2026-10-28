@@ -50,4 +50,24 @@ private class RLM_BillingCaseMetricsControllerTest {
         }
         return false;
     }
+
+    // The dispute aggregates swallow their errors and show zero, so the zero-path test passes
+    // whether or not they run. As a billing role, which can read Dispute, they must run clean.
+    @isTest
+    static void getMetrics_asBillingRole_runsTheDisputeQueries() {
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        // Each field gates part of the dispute logic: one the user can't see skips that part
+        // without an error, so all three are checked first.
+        // getMap() keys are lowercase.
+        Set<String> hidden = new Set<String>{ 'status', 'disputedamount', 'invoiceid' };
+        System.runAs(u) {
+            hidden.removeAll(Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap().keySet());
+            RLM_BillingCaseMetricsController.getMetrics();
+        }
+        Assert.isTrue(hidden.isEmpty(), 'Premise: Billing Operations can read Dispute fields, but not ' + hidden);
+        Assert.isNull(RLM_BillingCaseMetricsController.lastDisputeQueryError,
+            'Dispute query failed: ' + RLM_BillingCaseMetricsController.lastDisputeQueryError);
+    }
 }
