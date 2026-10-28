@@ -129,6 +129,11 @@
 public with sharing class RLM_DecisionTableManagerController {
 
     @TestVisible private static final String BULK_REFRESH_FLOW = 'RLM_Refresh_Decision_Tables_Bulk';
+    @TestVisible private static final String REFRESH_ACCESS_MESSAGE =
+        'Refreshing a decision table needs both Modify All Data and Customize Application. '
+        + 'Salesforce requires both for the Refresh Decision Table action, and no narrower '
+        + 'permission grants it. Ask an admin to refresh, or run '
+        + 'cci flow run refresh_all_decision_tables.';
 
     // Staleness verdicts. Anything that is not a positive, computed comparison is
     // one of the two non-committal values — never FRESH by default.
@@ -1807,6 +1812,15 @@ public with sharing class RLM_DecisionTableManagerController {
             return result;
         }
 
+        // Refused here, not per table in the flow, where each would fail to queue with
+        // "Unsupported action type: REFRESH_DECISION_TABLE", which names no permission. And
+        // before the table query, which a user with no DecisionTable access fails with a
+        // QueryException rather than an empty result.
+        if (!canRefreshTables()) {
+            result.errorMessage = REFRESH_ACCESS_MESSAGE;
+            return result;
+        }
+
         Set<String> requested = new Set<String>(apiNames);
         Set<String> known = new Set<String>();
         // ⚠ No IsIncrementalSyncEnabled gate. This used to refuse an incremental request
@@ -1851,6 +1865,26 @@ public with sharing class RLM_DecisionTableManagerController {
             result.errorMessage = 'Refresh could not be started: ' + e.getMessage();
         }
         return result;
+    }
+
+    /**
+     * Whether the running user can refresh a decision table at all.
+     *
+     * Salesforce gates the refreshDecisionTable action on Modify All Data AND Customize
+     * Application, and nothing narrower satisfies it: no BRE permission,
+     * DecisionTableExecUserAccess or RunFlow (Core InvocableRefreshDecisionTable.hasAccess;
+     * measured on 264, a salesrep with RunFlow is refused). So the component's freshness view
+     * is for everyone with the permission set, and its Refresh is for admins.
+     */
+    @AuraEnabled(cacheable=false)
+    public static Boolean canRefreshTables() {
+        List<UserPermissionAccess> access = [
+            SELECT PermissionsModifyAllData, PermissionsCustomizeApplication
+            FROM UserPermissionAccess LIMIT 1
+        ];
+        return !access.isEmpty()
+            && access[0].PermissionsModifyAllData
+            && access[0].PermissionsCustomizeApplication;
     }
 
     /**

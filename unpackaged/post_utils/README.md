@@ -22,7 +22,7 @@ All resets delete usage policies, binding object rate card entries, usage summar
 
 ### Result
 
-The flow ends on a screen that shows the invocable's result: whether the reset completed, what it removed and what it kept, by object. After a completed reset it also refreshes the active `PricingDiscovery` decision tables through `RLM_Refresh_Decision_Tables_By_Usage_Type`, and the screen shows how many were queued, which failed, or that none matched. A fault in that refresh is shown on the same screen and does not undo the reset; a governor limit hit by the refresh would, because it runs in the reset's transaction and no fault path catches a limit.
+The flow ends on a screen that shows the invocable's result: whether the reset completed, what it removed and what it kept, by object. After a completed reset it also refreshes the active `PricingDiscovery` decision tables through `RLM_Refresh_Decision_Tables_By_Usage_Type`, and the screen shows how many were queued, which failed, or that none matched. That refresh runs as the user who ran the reset, and Salesforce queues one only for a user with Modify All Data and Customize Application. For anyone else, such as the salesrep persona, every table fails to queue, and the screen names that cause and says to ask an admin. A fault in that refresh is shown on the same screen and does not undo the reset; a governor limit hit by the refresh would, because it runs in the reset's transaction and no fault path catches a limit.
 
 | Output | Meaning |
 |--------|---------|

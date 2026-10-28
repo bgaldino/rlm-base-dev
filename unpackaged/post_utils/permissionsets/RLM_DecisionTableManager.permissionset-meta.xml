@@ -63,11 +63,11 @@
         deploy takes the whole permission set with it — a worse failure than the
         one it guards against.
 
-      ⚠ NOT verified live as the salesrep persona — it needs a personas org this
-      project does not have (todo 78 covers it). If it turns out to be needed,
-      the symptom is contained and legible rather than silent: refreshTables
-      wraps flow.start() in try/catch and surfaces "Refresh could not be
-      started: <message>" in the component.
+      Measured as the salesrep persona (264): the flow starts, but the refresh
+      action itself refuses with "Unsupported action type". Salesforce gates it
+      on Modify All Data AND Customize Application, which this set cannot and
+      should not grant. So this set gives the freshness view only, and the
+      controller's canRefreshTables gate disables Refresh for anyone without both.
     -->
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Decision Table Manager</label>

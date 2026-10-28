@@ -33,6 +33,10 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    Rating, qualification and tax tables have no runtime refresh at all: after editing that
    setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
    See `lifecycle-and-refresh.md` → *After editing setup data*.
+   **Refreshing is admin-only.** Salesforce gates the Refresh Decision Table action on Modify
+   All Data *and* Customize Application, and no narrower permission (BRE, RunFlow,
+   `DecisionTableExecUserAccess`) grants it. For anyone else, the Manager shows freshness
+   but disables Refresh.
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
    Add `-o param1 strict` to fail a build on any stale table. On a Trialforce-spun org,
    `cci flow run check_org_readiness --org "your-cci-alias"` also checks that the search
@@ -246,9 +250,9 @@ header — read it there rather than re-deriving it.
 | Path | Use when |
 |---|---|
 | `cci flow run refresh_all_decision_tables --org "your-cci-alias"` | After a build, a data load, or any catalog/pricing change. Flag-scoped. |
-| The **Decision Table Manager** component (Home page, utilities accordion) | Interactive: per-table refresh, status polling, why a table is stale. |
+| The **Decision Table Manager** component (Home page, utilities accordion) | Interactive: per-table refresh (admin only, see rule 1), status polling, why a table is stale. |
 | Setup → Decision Tables | One table, manually. |
-| `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. |
+| `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. Queues only when the running user can refresh (rule 1). |
 
 An **incremental** sync advances `LastIncrementalSyncDate` and usually does not move
 `LastSyncDate` (a first incremental was measured stamping both). ⚠ In Release 264 a **full request can run as incremental**: unless

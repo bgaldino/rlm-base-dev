@@ -1672,6 +1672,85 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
     }
 
     @isTest
+    static void refreshIsRefusedWithTheReasonForAUserWithoutAdminPermissions() {
+        // The platform's own gate is Modify All Data AND Customize Application. A user
+        // without them must get the permission named, not the flow's per-table
+        // "Unsupported action type", and nothing may be started on their behalf.
+        List<DecisionTable> existing = [SELECT DeveloperName FROM DecisionTable WHERE Status = 'Active' LIMIT 1];
+        if (existing.isEmpty()) {
+            Assert.fail('Fixture missing: no Active decision table in this org.');
+        }
+        User u = newLeastPrivilegedUser('rlmdtm');
+
+        System.runAs(u) {
+            Assert.isFalse(RLM_DecisionTableManagerController.canRefreshTables(),
+                'A least-privileged user has neither Modify All Data nor Customize Application.');
+            RLM_DecisionTableManagerController.RefreshResult result =
+                RLM_DecisionTableManagerController.refreshTables(
+                    new List<String>{ existing[0].DeveloperName }, false);
+            Assert.areEqual(RLM_DecisionTableManagerController.REFRESH_ACCESS_MESSAGE, result.errorMessage,
+                'The refusal must name the permissions, not report the table as missing.');
+            Assert.areEqual(0, result.queuedCount, 'Nothing may be queued for a user who cannot refresh.');
+            Assert.areEqual(0, result.failedCount, 'The flow must not have been started.');
+        }
+    }
+
+    @isTest
+    static void onePermissionOfTheTwoIsNotEnough() {
+        // The platform requires BOTH. Customize Application alone must still read as
+        // cannot-refresh, or the Manager enables a Refresh every table then fails to queue.
+        User u = newLeastPrivilegedUser('rlmdtc');
+        PermissionSet customizeOnly = new PermissionSet(
+            Name = 'RLM_DTM_Test_CustomizeOnly', Label = 'RLM DTM Test Customize Only',
+            // Customize Application and the permissions the platform requires with it.
+            PermissionsCustomizeApplication = true, PermissionsManageCustomPermissions = true,
+            PermissionsViewSetup = true, PermissionsViewRoles = true
+        );
+        insert customizeOnly;
+        insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = customizeOnly.Id);
+
+        System.runAs(u) {
+            UserPermissionAccess access = [
+                SELECT PermissionsModifyAllData, PermissionsCustomizeApplication
+                FROM UserPermissionAccess LIMIT 1
+            ];
+            Assert.isTrue(access.PermissionsCustomizeApplication, 'Fixture: the user has Customize Application.');
+            Assert.isFalse(access.PermissionsModifyAllData, 'Fixture: the user lacks Modify All Data.');
+            Assert.isFalse(RLM_DecisionTableManagerController.canRefreshTables(),
+                'Customize Application without Modify All Data cannot refresh.');
+        }
+    }
+
+    private static User newLeastPrivilegedUser(String alias) {
+        Profile leastPrivileged = [
+            SELECT Id FROM Profile
+            WHERE Name IN ('Minimum Access - Salesforce', 'Standard User')
+            ORDER BY Name ASC LIMIT 1
+        ];
+        User u = new User(
+            ProfileId = leastPrivileged.Id,
+            LastName = 'DtmRefresh',
+            Email = alias + '@example.com',
+            Username = alias + '.' + Datetime.now().getTime() + '@example.com',
+            Alias = alias,
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert u;
+        return u;
+    }
+
+    @isTest
+    static void anAdminCanRefresh() {
+        // Tests run as the deploying user, a System Administrator here, so the gate must be
+        // open: otherwise every existing refresh test passes on the refusal alone.
+        Assert.isTrue(RLM_DecisionTableManagerController.canRefreshTables(),
+            'The deploying admin has Modify All Data and Customize Application.');
+    }
+
+    @isTest
     static void unknownTableNamesAreReportedRatherThanDropped() {
         RLM_DecisionTableManagerController.RefreshResult result =
             RLM_DecisionTableManagerController.refreshTables(

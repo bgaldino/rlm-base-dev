@@ -387,7 +387,7 @@
         </fields>
         <fields>
             <name>Result_Refresh_Failed</name>
-            <fieldText>&lt;p&gt;Not refreshed: {!Refresh_Pricing_Discovery_Decision_Tables.failedApiNames}&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;Not refreshed: {!Refresh_Pricing_Discovery_Decision_Tables.failedApiNames}. A refresh queues only for an active table, and only for a user with both Modify All Data and Customize Application. If you lack those permissions, ask an admin to refresh these from the Decision Table Manager.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>
@@ -438,7 +438,7 @@
         </fields>
         <fields>
             <name>Result_Refresh_Fault</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The pricing decision tables were not refreshed.&lt;/strong&gt; Refresh them from the Decision Table Manager.&lt;/p&gt;&lt;p&gt;{!Refresh_Pricing_Discovery_Decision_Tables.faultMessage}&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The pricing decision tables were not refreshed.&lt;/strong&gt; An admin can refresh them from the Decision Table Manager (refreshing needs Modify All Data and Customize Application).&lt;/p&gt;&lt;p&gt;{!Refresh_Pricing_Discovery_Decision_Tables.faultMessage}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>
