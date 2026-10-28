@@ -1058,6 +1058,27 @@ directly, so behind an explicit proxy use `npm ping` instead.
 - Is your shell interactive? Non-interactive shells activate via the
   `direnv export zsh` line in `~/.zshenv` at startup, not on cd.
 
+### More than one `sf` install
+This guide installs `sf` with npm, but a Homebrew package, the standalone installer or a
+managed-workstation tool can put a second one on PATH. `sf` runs the first one. An update
+(`npm install -g @salesforce/cli` for an npm install, `brew upgrade` for Homebrew, `sf update` for
+the standalone installer) reaches only the install it targets, so the two can drift apart in
+version. Plugins are shared between them (see below). A standalone install also bundles its own
+Node, so `sf --version` can report a Node that isn't the one `.nvmrc` pins.
+`cci task run validate_setup` names the `sf` that runs, with its path and install method, and
+WARNs when another one is later on PATH. To see them yourself:
+
+```bash
+which -a sf sfdx
+sf --version
+```
+
+Keep one. To keep the npm install, uninstall the other with the tool that installed it
+(`brew uninstall sf`, or the standalone installer's uninstaller). To keep the other one, run
+`npm uninstall -g @salesforce/cli`. `sfdx` can resolve to a different install than `sf`, since
+some installs link only `sf`; after the removal it may disappear from PATH. Plugins (SFDMU and
+others) live in the shared `~/.local/share/sf`, so they survive the removal.
+
 ### `INVALID_AUTH_HEADER` / "Expired session" on `cci org info` or scratch creation
 Symptom — a freshly created scratch org immediately fails, with a URL that
 ends in a redacted placeholder, e.g.:
