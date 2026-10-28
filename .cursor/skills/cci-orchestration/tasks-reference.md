@@ -97,7 +97,7 @@
 
 ### `delete_quantumbit_prm_pricing_data`
 
-**Description:** Delete all records from the qb-prm-pricing plan (ChannelProgramMember, ChannelProgramLevel, ChannelProgram, Account) in reverse plan order (children first). Run before insert_quantumbit_prm_pricing_data when resetting PRM pricing overlay data.
+**Description:** Safety no-op today: deletes only the qb-prm-pricing plan's Insert-operation objects, in reverse plan order (children first), and every object in that plan is Upsert or Update, so nothing is deleted. Do not add an Insert object to the plan to make this delete: the task deletes EVERY record of an Insert object's type org-wide (SELECT Id with no filter), so making Account an Insert object would delete every Account in the org.
 
 **Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
 

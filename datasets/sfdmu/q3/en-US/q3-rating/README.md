@@ -23,11 +23,16 @@
 | 11 | UsageCommitmentPolicy | 1 | Upsert | Name | 1 |
 | 12 | ProductUsageResource | 1 | Insert | Product.StockKeepingUnit;UsageResource.Code | 10 |
 | 13 | UsagePrdGrantBindingPolicy | 1 | Upsert | Name;Product2.StockKeepingUnit | 5 |
-| 14 | RatingFrequencyPolicy | 1 | Upsert | RatingPeriod | 3 |
+| 14 | RatingFrequencyPolicy | 1 | Upsert | RatingPeriod | 2 |
 | 15 | ProductUsageResourcePolicy | 1 | Insert | ProductUsageResourceId | 9 |
 | 16 | ProductUsageGrant | 1 | Insert | UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode | 30 |
 
-## Files
+## Required source CSVs
+
+<!-- Only CSVs a live-writable declaration must load. A source-free declaration's CSV
+     is not required and is omitted here even if one ships: a Readonly/Delete object
+     resolves from the target org, and an excluded object is skipped entirely before
+     load. -->
 
 ```
 UnitOfMeasure.csv                        # 18 records
@@ -43,7 +48,7 @@ UsageOveragePolicy.csv                   # 2 records
 UsageCommitmentPolicy.csv                # 1 record
 ProductUsageResource.csv                 # 10 records
 UsagePrdGrantBindingPolicy.csv           # 5 records
-RatingFrequencyPolicy.csv                # 3 records
+RatingFrequencyPolicy.csv                # 2 records
 ProductUsageResourcePolicy.csv           # 9 records
 ProductUsageGrant.csv                    # 30 records
 ```

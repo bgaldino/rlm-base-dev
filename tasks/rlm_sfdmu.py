@@ -601,7 +601,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
                     insert_sobjects.append(name)
 
         if not insert_sobjects:
-            self.logger.info("No Insert-operation objects found in plan. Nothing to delete.")
+            self.logger.warning(f"No Insert-operation objects found in {plan_dir}. Nothing to delete.")
             return
 
         # Reverse = children first, matching SFDMU's deleteOldData sequence.
