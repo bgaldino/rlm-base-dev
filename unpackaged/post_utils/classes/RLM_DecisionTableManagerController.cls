@@ -372,6 +372,9 @@ public with sharing class RLM_DecisionTableManagerController {
         for (DecisionTable dt : tables) {
             DecisionTableInfo info = new DecisionTableInfo(dt);
             info.sourceCriteria = describeCriteria(criteriaByTable.get(dt.Id));
+            if (!NON_SOBJECT_SOURCE_TYPES.contains(dt.DataSourceType) && String.isNotBlank(dt.SourceObject)) {
+                info.readsObjects = readsObjectsOf(dt.SourceObject, joinedObjectsByTable.get(dt.Id), globalDescribe);
+            }
             info.lookupType = lookupTypes.get(dt.SetupName);
 
             // Checked FIRST, and for every table whatever its source. A sync that
@@ -1220,6 +1223,35 @@ public with sharing class RLM_DecisionTableManagerController {
     }
 
     /**
+     * The objects a table reads: its source and every object its columns or parameters
+     * reach. Taken from the parameter scan, not from a source plan, because a plan stops
+     * early on the paths that cannot compute a verdict, and those tables still read their
+     * objects. Objects reached only through a traversing source criterion are not listed;
+     * the scan does not see them. Sorted, deduplicated, canonical names where resolvable.
+     */
+    @TestVisible
+    private static List<String> readsObjectsOf(
+        String sourceObject, Contributors contributors, Map<String, SObjectType> globalDescribe
+    ) {
+        Set<String> names = new Set<String>{ sourceObject };
+        if (contributors != null) {
+            names.addAll(contributors.objects);
+        }
+        Set<String> canonical = new Set<String>();
+        for (String name : names) {
+            SObjectType t = String.isBlank(name) ? null : globalDescribe.get(name);
+            if (t != null) {
+                canonical.add(t.getDescribe().getName());
+            } else if (String.isNotBlank(name)) {
+                canonical.add(name);
+            }
+        }
+        List<String> sorted = new List<String>(canonical);
+        sorted.sort();
+        return sorted;
+    }
+
+    /**
      * Whether SourceConditionLogic means "every criterion, ANDed together".
      *
      * Accepts a bare conjunction over each criterion's sequence number exactly once
@@ -2017,6 +2049,12 @@ public with sharing class RLM_DecisionTableManagerController {
         // across, and whose changes therefore count against its freshness. Empty for a
         // single-object table; populated for the MultipleSobjects ones.
         @AuraEnabled public List<String> contributingObjects = new List<String>();
+        // Every object this table reads, source included, whatever the verdict, for the
+        // Manager's "Reads object" filter. Unlike contributingObjects it is filled before
+        // any probe, so a Not comparable, Unknown or never-built table still lists its
+        // objects, and so does an object the running user cannot read. Canonical API
+        // names where the org resolves them.
+        @AuraEnabled public List<String> readsObjects = new List<String>();
         // Criteria the check watched rather than reproduced, so the comparison covers
         // more rows than the table holds. Non-empty means Stale may be over-reported —
         // Fresh is unaffected, since a superset that predates the sync proves the real

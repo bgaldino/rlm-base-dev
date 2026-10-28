@@ -1745,4 +1745,51 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
         Assert.areEqual(incrementalIsLater ? 'Incremental' : 'Full', info.latestSyncKind,
             'And says which kind it was.');
     }
+
+    // The Manager's "Reads object" filter: source plus every object the parameters reach,
+    // canonical where the org resolves the name, kept raw where it does not.
+    @isTest
+    static void readsObjectsListsSourceAndContributorsByCanonicalName() {
+        RLM_DecisionTableManagerController.Contributors contributors =
+            new RLM_DecisionTableManagerController.Contributors();
+        contributors.objects.add('contact');
+        contributors.objects.add('Account');
+        contributors.objects.add('No_Such_Object_XYZ__c');
+
+        List<String> reads = RLM_DecisionTableManagerController.readsObjectsOf(
+            'account', contributors, Schema.getGlobalDescribe());
+
+        Assert.areEqual(new List<String>{ 'Account', 'Contact', 'No_Such_Object_XYZ__c' }, reads,
+            'Sorted, deduplicated, canonical names; an unresolvable one is kept as named.');
+        Assert.areEqual(new List<String>{ 'Account' },
+            RLM_DecisionTableManagerController.readsObjectsOf('Account', null, Schema.getGlobalDescribe()),
+            'No contributors: the source alone.');
+    }
+
+    // Filled for every sObject-sourced table whatever its verdict, unlike contributingObjects,
+    // which needs a probe to have run. Checked against the org's own tables.
+    @isTest
+    static void everySObjectTableReportsWhatItReads() {
+        List<RLM_DecisionTableManagerController.DecisionTableInfo> infos =
+            RLM_DecisionTableManagerController.getDecisionTables();
+        Map<String, SObjectType> gd = Schema.getGlobalDescribe();
+        Integer checked = 0;
+        List<String> missing = new List<String>();
+        for (RLM_DecisionTableManagerController.DecisionTableInfo info : infos) {
+            if (String.isBlank(info.sourceObject)
+                    || RLM_DecisionTableManagerController.NON_SOBJECT_SOURCE_TYPES.contains(info.dataSourceType)
+                    || gd.get(info.sourceObject) == null) {
+                continue;
+            }
+            checked++;
+            String source = gd.get(info.sourceObject).getDescribe().getName();
+            if (!info.readsObjects.contains(source)) {
+                missing.add(info.apiName + ' (' + source + ')');
+            }
+        }
+        if (checked == 0) {
+            Assert.fail('Fixture missing: no decision table with an sObject source in this org.');
+        }
+        Assert.isTrue(missing.isEmpty(), 'readsObjects lacks the source for: ' + String.join(missing, ', '));
+    }
 }

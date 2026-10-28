@@ -83,15 +83,24 @@
 
             <!-- Toolbar -->
             <div class="slds-grid slds-wrap slds-gutters_x-small slds-m-bottom_x-small">
-                <div class="slds-col slds-size_1-of-1 slds-medium-size_5-of-12 slds-p-bottom_x-small">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12 slds-p-bottom_x-small">
                     <lightning-input type="search" label="Search" variant="label-hidden"
-                        placeholder="Search name, API name or source object"
+                        placeholder="Search name or source object"
                         value={searchTerm} onchange={handleSearch}></lightning-input>
                 </div>
-                <div class="slds-col slds-size_1-of-2 slds-medium-size_4-of-12 slds-p-bottom_x-small">
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_x-small">
                     <lightning-combobox label="Usage type" variant="label-hidden"
                         value={usageTypeFilter} options={usageTypeOptions}
                         onchange={handleUsageTypeFilter}></lightning-combobox>
+                </div>
+                <!-- After editing setup data (rates, qualification rules, tax), pick the object
+                     you edited; with the other filters cleared, "Refresh all shown" then refreshes
+                     every table that reads it, whatever its freshness verdict (except objects
+                     reached only through a traversing source criterion). -->
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_x-small">
+                    <lightning-combobox label="Reads object" variant="label-hidden"
+                        value={readsObjectFilter} options={readsObjectOptions}
+                        onchange={handleReadsObjectFilter}></lightning-combobox>
                 </div>
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_x-small">
                     <lightning-input type="toggle" label="Incremental refresh"

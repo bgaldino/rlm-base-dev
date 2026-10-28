@@ -36,6 +36,12 @@ const SUCCESS_REFRESH_STATUSES = new Set(['Completed', 'Success', 'Succeeded'])
 const isEstablished = (verdict) => verdict === VERDICT_FRESH || verdict === VERDICT_STALE
 
 const FILTER_ALL = 'all'
+
+// The objects a table reads, source included, from the controller's readsObjects. Filled for
+// every sObject table whatever its verdict: contributingObjects is not, since it is only set
+// once a freshness probe has run, and the filter exists for the tables whose verdict could not.
+const readObjectsOf = (row) => row.readsObjects || []
+const readsObject = (row, objectName) => readObjectsOf(row).includes(objectName)
 // The "not established" tile covers BOTH non-committal verdicts. It is deliberately
 // not keyed to one of them: the count and the filter have to select the same rows,
 // and counting Unknown while filtering only Not-comparable made the tile lie about
@@ -163,6 +169,7 @@ export default class RlmDecisionTableManager extends LightningElement {
     errorMessage
     searchTerm = ''
     usageTypeFilter = FILTER_ALL
+    readsObjectFilter = FILTER_ALL
     verdictFilter = FILTER_ALL
     useIncremental = false
     sortedBy = 'usageType'
@@ -261,6 +268,9 @@ export default class RlmDecisionTableManager extends LightningElement {
             if (this.usageTypeFilter !== FILTER_ALL && row.usageType !== this.usageTypeFilter) {
                 return false
             }
+            if (this.readsObjectFilter !== FILTER_ALL && !readsObject(row, this.readsObjectFilter)) {
+                return false
+            }
             if (this.verdictFilter === FILTER_UNCLEAR) {
                 if (isEstablished(row.staleness)) return false
             } else if (this.verdictFilter !== FILTER_ALL && row.staleness !== this.verdictFilter) {
@@ -302,6 +312,17 @@ export default class RlmDecisionTableManager extends LightningElement {
         })
         const options = [...seen].sort().map((t) => ({ label: t, value: t }))
         return [{ label: 'All usage types', value: FILTER_ALL }, ...options]
+    }
+
+    // Every object some table reads, exact API names. Matching on the name, not a substring,
+    // is the point: a search for RateCardEntry also hits AssetRateCardEntry.
+    get readsObjectOptions() {
+        const seen = new Set()
+        this.rows.forEach((row) => readObjectsOf(row).forEach((o) => seen.add(o)))
+        // "Reads:" in each label, since the box is label-hidden and a bare object name would
+        // not say what it filters on.
+        const options = [...seen].sort().map((o) => ({ label: `Reads: ${o}`, value: o }))
+        return [{ label: 'Reads any object', value: FILTER_ALL }, ...options]
     }
 
     get summaryTiles() {
@@ -351,7 +372,7 @@ export default class RlmDecisionTableManager extends LightningElement {
     get rowCountSummary() {
         const shown = this.visibleRows.length
         const total = this.rows.length
-        const selected = this.selectedApiNames.length
+        const selected = this.visibleSelectedApiNames.length
         const base = shown === total ? `${total} decision tables` : `${shown} of ${total} decision tables`
         return selected > 0 ? `${base} · ${selected} selected` : base
     }
@@ -370,8 +391,15 @@ export default class RlmDecisionTableManager extends LightningElement {
         return this.rows.filter((row) => row.staleness === VERDICT_STALE)
     }
 
+    // Selected rows a filter now hides are left out: the button acts on what you can see.
+    // The datatable drops hidden rows from the selection on its next change anyway.
+    get visibleSelectedApiNames() {
+        const visible = new Set(this.visibleRows.map((r) => r.apiName))
+        return this.selectedApiNames.filter((n) => visible.has(n))
+    }
+
     get refreshSelectedLabel() {
-        const n = this.selectedApiNames.length
+        const n = this.visibleSelectedApiNames.length
         return n > 0 ? `Refresh ${n} selected` : 'Refresh selected'
     }
 
@@ -380,7 +408,7 @@ export default class RlmDecisionTableManager extends LightningElement {
     }
 
     get isRefreshSelectedDisabled() {
-        return this.isBusy || this.selectedApiNames.length === 0
+        return this.isBusy || this.visibleSelectedApiNames.length === 0
     }
 
     get isRefreshVisibleDisabled() {
@@ -403,6 +431,10 @@ export default class RlmDecisionTableManager extends LightningElement {
 
     handleUsageTypeFilter(event) {
         this.usageTypeFilter = event.detail.value
+    }
+
+    handleReadsObjectFilter(event) {
+        this.readsObjectFilter = event.detail.value
     }
 
     handleIncrementalToggle(event) {
@@ -776,7 +808,7 @@ export default class RlmDecisionTableManager extends LightningElement {
     }
 
     handleRefreshSelected() {
-        this.queueRefresh(this.selectedApiNames)
+        this.queueRefresh(this.visibleSelectedApiNames)
     }
 
     handleRefreshVisible() {
@@ -1065,6 +1097,7 @@ export default class RlmDecisionTableManager extends LightningElement {
                 sourceNewestChange: row.sourceNewestChange,
                 lookupType: row.lookupType,
                 contributingObjects: row.contributingObjects,
+                readsObjects: row.readsObjects,
                 unreproducedCriteria: row.unreproducedCriteria
             })
         })

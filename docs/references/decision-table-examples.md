@@ -264,7 +264,10 @@ cci task run manage_decision_tables --operation list --status Active
 
 Decision tables are refreshed interactively from the **Decision Table Manager** on the
 Home page, which also shows a freshness verdict per table. (It replaced the
-`RLM_Refresh_Decision_Tables` screen flow, which is gone.) The `manage_decision_tables`
+`RLM_Refresh_Decision_Tables` screen flow, which is gone.) After editing rates, qualification
+rules or tax setup, nothing refreshes the affected tables for you. Use **Refresh stale only**,
+or clear the other filters, pick the edited object in **Reads object** and use **Refresh all shown**. See the
+decision-tables skill → `lifecycle-and-refresh.md` → *After editing setup data*. The `manage_decision_tables`
 task does the same job non-interactively:
 
 ```bash

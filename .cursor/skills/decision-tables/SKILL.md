@@ -30,6 +30,9 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
 1. **Refresh after any catalog, pricing, rate or contract change.** `prepare_rlm_org`
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
+   Rating, qualification and tax tables have no runtime refresh at all: after editing that
+   setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
+   See `lifecycle-and-refresh.md` → *After editing setup data*.
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
    Add `-o param1 strict` to fail a build on any stale table. On a Trialforce-spun org,
    `cci flow run check_org_readiness --org "your-cci-alias"` also checks that the search
