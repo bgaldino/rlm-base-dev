@@ -1731,13 +1731,44 @@ def test_failed_mutation_keeps_plans_online():
           not any("Procedure health" in m or "WARNING" in m for m in logs4), logs4)
 
 
+def test_client_auth_hint():
+    """The alias/auth hint appears only when auth can be the cause (todo 227)."""
+    import subprocess
+    from scripts.expression_sets import _client
+
+    def failure(stdout, stderr=""):
+        original = _client._run_sf
+        _client._run_sf = lambda args, *, input_text=None, timeout=None: subprocess.CompletedProcess(
+            ["sf"], 1, stdout=stdout, stderr=stderr)
+        try:
+            _client.connect_request("GET", "connect/x", target_org="rlm-base__t")
+        except _client.ExpressionSetClientError as exc:
+            return str(exc)
+        finally:
+            _client._run_sf = original
+        return ""
+
+    payload = failure(json.dumps([{"errorCode": "INVALID_INPUT", "message": "Specify a valid data type"}]))
+    check("payload error keeps its code and detail", "[INVALID_INPUT]" in payload and "valid data type" in payload, payload)
+    check("payload error carries no auth hint", "sf org login web" not in payload, payload)
+    session = failure(json.dumps([{"errorCode": "INVALID_SESSION_ID", "message": "Session expired"}]))
+    check("expired session keeps the auth hint", "sf org login web --alias rlm-base__t" in session, session)
+    header = failure(json.dumps([{"errorCode": "INVALID_AUTH_HEADER", "message": "bad header"}]))
+    check("invalid auth header keeps the auth hint", "sf org login web" in header, header)
+    mixed = failure(json.dumps([{"errorCode": "INVALID_INPUT", "message": "x"},
+                                {"errorCode": "INVALID_SESSION_ID", "message": "y"}]))
+    check("an auth code alongside a payload code keeps the hint", "sf org login web" in mixed, mixed)
+    cli = failure("", stderr="No authorization information found for rlm-base__t.")
+    check("CLI-level failure (no error code) keeps the auth hint", "sf org login web" in cli and "No authorization" in cli, cli)
+
+
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
                test_label_preservation, test_failed_mutation_keeps_plans_online,
                test_cli_restore_boundary,
                test_export_overlay_with_labels, test_build_overlay, test_mermaid,
                test_overlay_content_verification, test_empty_description_reads_back_null,
-               test_shipped_fixtures):
+               test_shipped_fixtures, test_client_auth_hint):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

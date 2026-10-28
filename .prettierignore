@@ -14,6 +14,9 @@ unpackaged/post_ux/
 **/*.min.js
 **/*.min.css
 
+# Vendored third-party bundles shipped verbatim as static resources (Babylon.js, glTF)
+**/staticresources/**
+
 # SFDMU / data CSVs are data, not source
 datasets/**/*.csv
 
