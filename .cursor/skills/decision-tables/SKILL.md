@@ -100,6 +100,8 @@ Use this skill when you are:
 - maintaining an org headlessly and needing its readiness state
 - inspecting, diffing, tracing, creating, updating, activating, or deleting a definition
 - sampling source-backed rows or uploading data to a `CsvUpload` table
+- changing `manage_decision_tables` or the `refresh_dt_*` task code (read
+  `lifecycle-and-refresh.md` → *The CCI refresh tasks* first)
 
 Not this skill: authoring the pricing procedures that *consume* a lookup
 (`.cursor/skills/pricing-wiring/SKILL.md`), or expression-set overlays
@@ -341,7 +343,9 @@ not know read that object.
 - `.cursor/skills/decision-tables/authoring-and-data-model.md` — Tooling setup objects,
   metadata shape, enums, and the definition/data model.
 - `.cursor/skills/decision-tables/lifecycle-and-refresh.md` — explicit lifecycle,
-  deployment, upload, refresh, and recipe-table mappings.
+  deployment, upload, refresh, and recipe-table mappings. Its *The CCI refresh tasks*
+  section is the one record of why `manage_decision_tables` and `refresh_dt_*` are built
+  as they are; read it before changing either task.
 - `scripts/decision_tables/README.md` — standalone toolkit commands and safety model.
 - `docs/references/decision-table-api-reference.md` — exhaustive API and error reference.
 - `docs/references/decision-table-examples.md` — CCI operations cookbook.

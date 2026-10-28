@@ -1,12 +1,7 @@
 import time
 from abc import abstractmethod
 
-# ⚠ Guarded, matching tasks/rlm_apex_file.py and the pattern
-# cci-orchestration/custom-task-authoring.md prescribes. Without this the module cannot
-# be imported without CumulusCI installed, which broke the offline suite in
-# tests/test_decision_table_tasks.py: it died on this import before a single check ran,
-# while its docstring claimed no CumulusCI install was needed. The sibling
-# rlm_manage_decision_tables.py already degraded this way; only this file did not.
+# Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI.
 try:
     import requests
     from cumulusci.tasks.sfdx import SFDXBaseTask
@@ -20,10 +15,8 @@ except ImportError:  # pragma: no cover - exercised only in the offline test env
     CommandException = Exception
 
     def process_bool_arg(arg):
-        """Offline fallback for cumulusci.core.utils.process_bool_arg: same vocabulary,
-        same TypeError on an uninterpretable value. NOT identical — CCI emits two
-        DeprecationWarnings for None that this does not; both call sites pre-empt None
-        with `or False`, so that path is unreachable either way."""
+        """Offline fallback for cumulusci.core.utils.process_bool_arg.
+        Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI."""
         if isinstance(arg, (int, bool)):
             return bool(arg)
         if arg is None:
@@ -41,10 +34,7 @@ CONNECTION_ATTEMPTS = 3
 def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_manage_decision_tables.py; tests/test_decision_table_tasks.py holds them together."""
-    # ⚠ Release 264 chooses the refresh type itself unless incremental is requested
-    # (AutoSelectRefreshDT, on by default): a "full" request can run as incremental, which
-    # stamps LastIncrementalSyncDate and leaves LastSyncDate alone. So the guidance is the
-    # same for both modes — judge completion by the later of the two stamps.
+    # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
     requested = "an incremental" if is_incremental else "a full"
     return (
         f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
@@ -53,39 +43,15 @@ def queued_guidance(is_incremental):
     )
 
 
-# ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
+# Queues the refreshDecisionTable action for each named table; backs every refresh_dt_* task.
 class RefreshDecisionTable(SFDXBaseTask):
 
-    # This task always needs an org. Without the flag, SFDXBaseTask leaves
-    # salesforce_task False, the CLI builds no --org option, and every
-    # refresh_dt_* task silently runs against the CCI DEFAULT org — so the
-    # obvious remediation for a stale table (`cci task run refresh_dt_commerce
-    # --org <alias>`) fails outright with "No such option: --org". Issue #320;
-    # tests/test_cci_task_org_option.py now asserts the flag for every task.
+    # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Auth and the token refresh.
     salesforce_task = True
 
     def _update_credentials(self):
-        """
-        Refresh the OAuth token before the task runs.
-
-        ⚠ The flag above buys `--org`, NOT a token refresh. `SFDXBaseTask` descends from
-        `Command`, which — unlike `SalesforceCommand` — never sets `salesforce_task`, and
-        so inherits `BaseTask._update_credentials`, a bare `pass`. This task builds its
-        own `Authorization: Bearer` header from `org_config.access_token`, and
-        `_make_request` returns None on any non-2xx — so a token that failed to refresh
-        would fail the DecisionTable status query, and with it the step.
-
-        ⚠ Scope that risk honestly rather than restating it as a live danger. CCI wraps
-        the sf CLI and leverages its auth, so every org here is an `SfdxOrgConfig` (or its
-        `ScratchOrgConfig` subclass), which resolves `access_token` through `sfdx_info` —
-        a `sf org display` behind a TTL cache — and is therefore always fresh. The
-        stale-token shape needs a plain `OrgConfig` from `cci org connect`, which this
-        project does not use; verified against the keychain 2026-07-27, zero plain
-        `OrgConfig`. Insurance for the class, not a fix for anything seen here.
-        """
-        # save_if_changed, matching BaseSalesforceTask. Why there is no connected-app
-        # handling: see the same method on ManageDecisionTables, which carries the single
-        # record of this project's auth model rather than a second copy of it.
+        """Refresh the OAuth token before the task runs."""
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Auth and the token refresh.
         with self.org_config.save_if_changed():
             self.org_config.refresh_oauth_token(self.project_config.keychain)
 
@@ -136,11 +102,7 @@ class RefreshDecisionTable(SFDXBaseTask):
         if isinstance(self.options, list):
             raise TypeError("self.options is a list, but it should be a dictionary. This is likely a configuration issue.")
 
-        # Safely get developerNames and isIncremental.
-        # ⚠ process_bool_arg: CCI passes CLI options through as STRINGS, so
-        # `-o isIncremental false` arrives as "false" — truthy — and would send a
-        # non-boolean into a REST field documented as Boolean while logging the wrong
-        # refresh mode. YAML callers pass a real bool and are unaffected.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
         developer_names = self.options.get("developerNames")
         is_incremental = process_bool_arg(self.options.get("isIncremental") or False)
 
@@ -152,12 +114,8 @@ class RefreshDecisionTable(SFDXBaseTask):
         if not developer_names:
             raise ValueError("developerNames is required but was not provided or is empty")
 
-        # Convert to list if it's a string.
-        # ⚠ Split on commas. The flow always passes a real YAML list so this path is
-        # latent there, but `cci task run refresh_dt_rating -o developerNames "A,B"`
-        # otherwise asks the org to refresh one table literally named "A,B" — which
-        # does not exist, so it would be skipped as missing below and the real tables
-        # never refreshed. Same fix applied in rlm_manage_decision_tables.py.
+        # Split a comma-separated CLI string.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
         if isinstance(developer_names, str):
             developer_names = [part.strip() for part in developer_names.split(",") if part.strip()]
             if not developer_names:
@@ -165,15 +123,8 @@ class RefreshDecisionTable(SFDXBaseTask):
         elif not isinstance(developer_names, list):
             raise ValueError(f"developerNames must be a string or a list of strings, but got {type(developer_names)}")
 
-        # ⚠ Partition BEFORE refreshing, so the two failures this task used to conflate
-        # get different handling. A configured table that is absent or inactive in this
-        # org is a list/org mismatch — the cumulusci.yml lists are not org-scoped, and
-        # refresh_dt_default_pricing runs unconditionally in refresh_all_decision_tables —
-        # so it is skipped and reported, never fatal. A table that is active and still
-        # does not queue is a real failure, and fails the task: before, every refresh
-        # could fail and the step still exited 0.
-        # De-duplicate first: each refresh draws on the org's hourly full-refresh pool.
-        # DeveloperName matches case-insensitively in SOQL, so the lookup does too.
+        # De-duplicate, then skip missing/inactive tables and fail on any that do not queue.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Missing, inactive and failed tables.
         seen = set()
         developer_names = [
             name for name in developer_names
@@ -188,8 +139,7 @@ class RefreshDecisionTable(SFDXBaseTask):
             elif table.get("Status") != "Active":
                 inactive.append(f"{name} ({table.get('Status')})")
             else:
-                # The org's spelling, not the caller's: SOQL matched case-insensitively,
-                # and nothing establishes that the action does.
+                # The org's spelling, not the caller's.
                 refreshable.append(table["DeveloperName"])
         if missing:
             self.logger.warning(
@@ -202,7 +152,7 @@ class RefreshDecisionTable(SFDXBaseTask):
             )
         failed = []
         for name in refreshable:
-            # ⚠ One table's exception must not abandon the tables after it.
+            # One table's exception must not abandon the tables after it.
             try:
                 queued = self._refresh_decision_table(name, is_incremental)
             except Exception as exc:
@@ -241,9 +191,7 @@ class RefreshDecisionTable(SFDXBaseTask):
     # Core logic to refresh decision tables. Returns True only when the refresh queued.
     def _refresh_decision_table(self, developer_name, is_incremental):
         url, headers = self._build_url_and_headers("actions/standard/refreshDecisionTable")
-        # ⚠ The action input is isDecisionTableIncremental. The action ignores an unknown
-        # key, so the old `isIncremental` silently ran every incremental request as a full
-        # refresh. The task option keeps its old name (issue #351).
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Request shape.
         payload = {
             "inputs": [
                 {
@@ -270,23 +218,8 @@ class RefreshDecisionTable(SFDXBaseTask):
             else:
                 raise TypeError(f"Unexpected response type: {type(response)}")
 
-            # Process the result.
-            #
-            # ⚠ isSuccess means the action was ACCEPTED, not that the table was rebuilt —
-            # refreshDecisionTable is asynchronous. This used to print "Refresh Process
-            # Success: True" and then "Refresh Status: Queued" on the very next line, a
-            # self-contradicting pair that an operator scrolling a 32-step build log reads
-            # as "done". This is the path EVERY refresh_dt_* task runs, so the honest
-            # wording matters more here than in the manual task.
-            #
-            # ⚠ Fail closed on the status. Salesforce documents the output as Queued or
-            # Failed, so treat only an explicit Queued as evidence of acceptance; a missing,
-            # empty or unrecognised Status is NOT evidence and is reported as a failure.
-            #
-            # ⚠ Sentinel AFTER the strip. A whitespace-only Status is truthy, so
-            # `or 'Unknown'` never fires and .strip() leaves '' — the operator reads
-            # "Status:  (expected 'Queued')" and learns nothing. Kept identical to the
-            # same gate in rlm_manage_decision_tables.py; the two must not drift.
+            # Only an explicit Queued counts; kept identical to manage_decision_tables.
+            # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
             success = result.get('isSuccess')
             status = ((result.get('outputValues') or {}).get('Status') or '').strip() or 'Unknown'
             if success and status.lower() == 'queued':
@@ -326,9 +259,7 @@ class RefreshDecisionTable(SFDXBaseTask):
 
     # Make an HTTP request using the requests library and handle the response
     def _make_request(self, method, url, **kwargs):
-        # ⚠ Retry a dropped connection. A full build's refresh_dt_rating measured two
-        # "Connection reset by peer" in 22 POSTs, and those tables stayed unrefreshed.
-        # Resending a refresh is harmless: at worst the table is queued twice.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Dropped connections.
         for attempt in range(1, CONNECTION_ATTEMPTS + 1):
             try:
                 response = requests.request(method, url, timeout=120, **kwargs)
