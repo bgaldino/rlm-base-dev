@@ -12,7 +12,7 @@ provide, which this task predates the removal of:
 - Uses refreshDecisionTable action
 - Supports All / ByUsageType / Individual modes with incremental refresh toggle
 
-⚠ That screen flow is GONE — do not go looking for it as a reference. In the org the
+That screen flow is gone: do not go looking for it as a reference. In the org the
 equivalents are the **Decision Table Manager** component on the Home page
 (interactive, with a freshness verdict per table) and ``RLM_Refresh_Decision_Tables_Bulk``
 (autolaunched; the only route Apex has to the refresh action). Do not confuse either
@@ -35,16 +35,8 @@ except ImportError:
     Salesforce = None
 
     def process_bool_arg(arg):
-        """
-        Offline fallback so this module still imports without CumulusCI.
-
-        ⚠ Same vocabulary and the same TypeError as cumulusci.core.utils.process_bool_arg.
-        NOT identical: CCI emits two DeprecationWarnings for None that this does not, and
-        both call sites pre-empt None with `or False` so that path is unreachable anyway.
-        An earlier version returned bool(arg) for anything unrecognised, so "maybe" became
-        True offline and raised under the real helper — a fallback that disagrees with the
-        thing it stands in for makes any test using it prove the wrong thing.
-        """
+        """Offline fallback for cumulusci.core.utils.process_bool_arg.
+        Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI."""
         if isinstance(arg, (int, bool)):
             return bool(arg)
         if arg is None:
@@ -150,13 +142,8 @@ def _soql_quote(value: str) -> str:
 
 def _as_name_list(value, option_name: str) -> List[str]:
     """
-    Normalise a task option that names one or more records into a list.
-
-    ⚠ The comma split is the whole point. `cci task run ... -o developer_names "A,B,C"`
-    hands this a single string; treating it as one name silently operates on a table
-    called "A,B,C" — which does not exist — while reporting "1 decision table(s)".
-    That is what shipped before 2026-07-27, so a multi-table refresh from the CLI never
-    worked. YAML callers still pass a real list and are unaffected.
+    Normalise a task option that names one or more records into a list, splitting a
+    comma-separated CLI string. Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
     """
     if isinstance(value, str):
         names = [part.strip() for part in value.split(",")]
@@ -176,10 +163,7 @@ def _as_name_list(value, option_name: str) -> List[str]:
 def queued_guidance(is_incremental):
     """What to check once a queued refresh completes. Kept identical to the copy in
     rlm_refresh_decision_table.py; tests/test_decision_table_tasks.py holds them together."""
-    # ⚠ Release 264 chooses the refresh type itself unless incremental is requested
-    # (AutoSelectRefreshDT, on by default): a "full" request can run as incremental, which
-    # stamps LastIncrementalSyncDate and leaves LastSyncDate alone. So the guidance is the
-    # same for both modes — judge completion by the later of the two stamps.
+    # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
     requested = "an incremental" if is_incremental else "a full"
     return (
         f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
@@ -198,58 +182,23 @@ class ManageDecisionTables(BaseTask):
     - Listing decision tables with metadata
     """
 
-    # Every operation here needs an org. Without this, BaseTask.salesforce_task defaults
-    # to False, the CLI builds no --org option, and the task silently runs against the
-    # CCI DEFAULT org instead of the one asked for (issue #320;
-    # tests/test_cci_task_org_option.py asserts the flag).
+    # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Auth and the token refresh.
     salesforce_task = True
 
     def _update_credentials(self):
-        """
-        Refresh the OAuth token before the task runs.
-
-        ⚠ `salesforce_task = True` buys the `--org` option and the missing-org guard —
-        it does NOT bring a token refresh. Only `BaseSalesforceTask` overrides
-        `BaseTask._update_credentials`, which is a bare `pass`, and this task hits the
-        REST API directly, so per `cci-orchestration/custom-task-authoring.md` it wants
-        the refresh.
-
-        ⚠ Scope the risk honestly. The stale-token failure this guards against needs a
-        plain `OrgConfig` — the `cci org connect` shape, where the stored token is used
-        as-is. **This project does not have that shape**: the sf CLI manages auth, so
-        every org is an `SfdxOrgConfig` (or its `ScratchOrgConfig` subclass), which
-        resolves `access_token` through `sfdx_info` and is always fresh. So the override is
-        correctness insurance for the class, not a fix for an incidence anyone here has
-        met — do not cite it as one.
-        """
-        # save_if_changed, matching BaseSalesforceTask: refresh_oauth_token also reloads
-        # user and org info, and without the wrapper that work is discarded at exit.
-        #
-        # ⚠ No connected-app handling, deliberately. Every org here is an SfdxOrgConfig
-        # (or its ScratchOrgConfig subclass), which overrides refresh_oauth_token to shell
-        # `sf org display` — no OAuth flow, no connected app. Verified against the keychain
-        # 2026-07-27: zero plain OrgConfig. So this cannot raise ServiceNotConfigured.
+        """Refresh the OAuth token before the task runs."""
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Auth and the token refresh.
         with self.org_config.save_if_changed():
             self.org_config.refresh_oauth_token(self.project_config.keychain)
 
     def _pinned_salesforce_client(self):
         """
-        A Salesforce client on the PROJECT's API version, not the org's newest.
-
-        `org_config.salesforce_client` builds itself with `latest_api_version`, which
-        GETs /services/data and takes the last entry — so it drifts upward the moment an
-        org is upgraded ahead of the project.
-
-        Called only by `_sf`. The instance normalisation is character-for-character what
-        CCI's own `OrgConfig.salesforce_client` does, so My Domain / sandbox /
-        enhanced-domain hostnames behave exactly as they do under the unpinned client.
+        A Salesforce client on the PROJECT's API version, not the org's newest. Called
+        only by `_sf`. Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → The API-version pin.
         """
         api_version = self.project_config.project__package__api_version
         if not api_version or Salesforce is None:
-            # ⚠ Say so. A fix that silently degrades is the "stops the damage but does
-            # not propagate the signal" shape REVIEW.md calls out. Unreachable in this
-            # repo today (cumulusci.yml pins api_version: "68.0", a truthy string), which
-            # is precisely why it would go unnoticed if it ever became reachable.
+            # Why the warning: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → The API-version pin.
             self.logger.warning(
                 "No project api_version pin available; falling back to the org's latest "
                 "API version. Decision-table calls are NOT pinned to the project version."
@@ -264,13 +213,8 @@ class ManageDecisionTables(BaseTask):
     @property
     def _sf(self):
         """
-        The pinned client, built once per task run and reused by every operation.
-
-        ⚠ EVERY call site in this class goes through here — query, refresh and the
-        activate/deactivate WRITE. An earlier version pinned only the refresh, which left
-        the query and the only write running on the org's newest API instead of the
-        project's. Writes are where an unannounced version bump is most likely to change
-        validation or required-field behaviour, so if you add an operation, use `self._sf`.
+        The pinned client, built once per task run. Every operation, including the
+        activate/deactivate write, must use it. Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → The API-version pin.
         """
         if getattr(self, "_sf_client", None) is None:
             self._sf_client = self._pinned_salesforce_client()
@@ -482,13 +426,9 @@ class ManageDecisionTables(BaseTask):
         else:
             developer_names = _as_name_list(developer_names, "developer_names")
 
-        # ⚠ process_bool_arg, not the raw option. CCI hands CLI options through as
-        # STRINGS, so `-o is_incremental false` arrives as "false" — truthy — and would
-        # silently select an incremental refresh while logging "full". YAML callers pass
-        # a real bool and are unaffected.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
         is_incremental = process_bool_arg(self.options.get("is_incremental") or False)
-        # "full requested", not "full": Release 264 picks the type itself unless
-        # incremental is requested, so a full request can run as incremental.
+        # Why "full requested": .cursor/skills/decision-tables/lifecycle-and-refresh.md → Release 264 chooses the refresh type.
         refresh_type = "incremental" if is_incremental else "full requested; the platform may run incremental"
         
         self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type})...")
@@ -497,7 +437,7 @@ class ManageDecisionTables(BaseTask):
         if not hasattr(self, 'org_config') or not self.org_config:
             raise TaskOptionsError("No org_config available")
 
-        sf = self._sf  # pinned client; rationale on _pinned_salesforce_client
+        sf = self._sf  # pinned client
 
         success_count = 0
         fail_count = 0
@@ -506,30 +446,8 @@ class ManageDecisionTables(BaseTask):
             try:
                 result = self._refresh_single_decision_table(sf, developer_name, is_incremental)
 
-                # ⚠ isSuccess means the action was ACCEPTED, not that the table was
-                # rebuilt. refreshDecisionTable is asynchronous: it returns Status
-                # 'Queued' and the work completes later. Reporting "successfully
-                # refreshed" off isSuccess alone is the stale-but-claims-otherwise
-                # failure this task exists to prevent, so the log says exactly what was
-                # established — queued.
-                #
-                # ⚠ Fail CLOSED on the status. Salesforce documents the output as Queued
-                # or Failed, so only an explicit Queued is evidence of acceptance; a
-                # missing, empty or unrecognised Status (including the 'Unknown'
-                # fallback below) is not evidence and is counted as a failure. An
-                # earlier version accepted "anything but Failed", which let a malformed
-                # or version-drifted response claim a queue that never happened.
-                #
-                # ⚠ Points at check_decision_table_freshness ONLY. Do not add
-                # DecisionTable.RefreshStatus here — pricing-wiring/SKILL.md rules it out
-                # as a detector, because it lives on a table record and so says nothing
-                # for the failure that actually occurs (an unresolvable name leaves no
-                # record to stamp). The latest sync date, which the freshness check uses, is the
-                # one signal that holds for every shape.
-                # ⚠ Sentinel AFTER the strip, not before. A whitespace-only Status is
-                # truthy, so `or 'Unknown'` never fires and .strip() then leaves '' —
-                # printing "Status:  (expected 'Queued')" and telling the operator
-                # nothing at the exact moment the gate is trying to explain itself.
+                # Only an explicit Queued counts; kept identical to refresh_dt_*.
+                # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
                 action_status = ((result.get('outputValues') or {}).get('Status') or '').strip() or 'Unknown'
                 if result.get('isSuccess') and action_status.lower() == 'queued':
                     success_count += 1
@@ -565,9 +483,7 @@ class ManageDecisionTables(BaseTask):
         )
         
         if fail_count > 0:
-            # "not queued", not "failed to refresh" — this task never observes a refresh
-            # completing, so it cannot claim one failed. It covers both a rejected request
-            # and one accepted with a Status other than Queued.
+            # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
             raise TaskOptionsError(
                 f"Failed to queue a refresh for {fail_count} decision table(s). "
                 "Check logs for details."
@@ -723,17 +639,14 @@ class ManageDecisionTables(BaseTask):
 
         Uses the Salesforce REST API actions endpoint.
         """
-        # ⚠ Relative path, deliberately. simple_salesforce's restful() joins this onto
-        # base_url, which already ends in /services/data/v<version>/ — passing an
-        # absolute path produced a doubled prefix and a 404.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Request shape.
         endpoint = "actions/standard/refreshDecisionTable"
 
         payload = {
             "inputs": [
                 {
                     "decisionTableApiName": developer_name,
-                    # isDecisionTableIncremental: the action ignores an unknown key, so
-                    # `isIncremental` ran every incremental request as a full refresh.
+                    # Not isIncremental.
                     "isDecisionTableIncremental": is_incremental
                 }
             ]
