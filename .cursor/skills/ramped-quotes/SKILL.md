@@ -14,7 +14,7 @@ per-segment **price uplift** — including **compound** uplift — right. It is
 consumable by any AI agent (Cursor, Claude Code, Copilot, Codex, Windsurf,
 Aider).
 
-> **Pinned to Release 264 / API v68.0.** Field legality and enums below are
+> **Pinned to Release 264 / API v68.0.** Field legality (`field-legality.md`) and the enums here are
 > live-observed on a 264 org (v68.0); re-verify on the target release at merge
 > time. Ramp build is **transaction authoring**; the compound-uplift *engine*
 > (the pricing procedure's `PriceRevision` element) belongs to
@@ -319,67 +319,31 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
 
 ## <a name="compound-uplift"></a>Compound price uplift
 
-Compound uplift makes each period's price uplift on the **prior period's factor**
-(not the list price). Working in **percent units** (the units `UnitPriceUplift` and
-`ApplUnitPriceUpliftPct` carry):
-`applied%(n) = [(1 + applied%(n−1)/100) × (1 + unitUplift%(n)/100) − 1] × 100`,
-and `NetUnitPrice(n) = base × (1 + applied%(n)/100)`. The `× 100` converts the
-compounded multiplier back to a percentage — e.g. uplifts 5% then 3% give
-`applied% = 8.15` (not `0.0815`), so `NetUnitPrice = base × 1.0815`. The first
-period is the baseline; a 0% period is a *carryover* (prior cumulative multiplier
-preserved).
-
-It needs **all** of:
-
-1. **Revenue Settings → Advanced Detail Line Pricing = ON** — this repo now defaults it
-   **ON** (`unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`,
-   `enableAdvancedDetailLinePricing=true`; kept in sync across every scratch-def), so
-   compound **is** available out of the box (the Compound option is hidden from the Ramp
-   Uplift Type picklist only when ADLP is off). The 264 Help (*Compound Uplift for Ramp
-   Deals*, `docs/salesforce/264/help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md`)
-   describes a hand-authoring path — clone the latest template, add a map line item
-   `ItemApplUnitPriceUpliftPct__std` → `itemDetailApplUnitPriceUpliftPct__std`, then sync
-   the context — but **none of that is required here**: the tracked
-   `RLM_DefaultPricingProcedure` already carries the ramp-path compound `PriceRevision`
-   (see prerequisite 4), and the bound ramp attributes plus the `itemDetailApplUnitPriceUpliftPct__std`
-   target are **standard/inherited** from base `SalesTransactionContext` (present on the
-   live `RLM_SalesTransactionContext`), so **no clone, no map line, and no context sync**
-   is needed — verified on a fresh 264 build. Turning ADLP off *after* compound
-   quotes/orders/assets exist still corrupts pricing/amendments/renewals. See
-   `.cursor/skills/context-service/SKILL.md`.
-2. **A group ramp** (this skill) — line ramps can't compound.
-3. **`RampUpliftType='Compound'` on the ramp group** — the top-level
-   `RampScheduleGroup` in multi-schedule mode (repo default), the single segment
-   group when off; it cascades to segment subgroups and lines (Quick Rule 5).
-4. **A fully-configured ramp `PriceRevision` element** — the flag alone is *not*
-   enough. **Enable Compound Uplift** (`IsCompoundUpliftEnabled=true`) appears only
-   after a **lookup table** is selected, and requires bindings for **Ramp Identifier**,
-   **Base Price Multiplier** (blank ⇒ 1 for new sale; prior compounded multiplier for
-   amend/renew), **Uplift Method** (blank ⇒ silently *standard*, no compounding),
-   and **Effective From**/**Effective To** — every segment needs a **unique Effective
-   From** or pricing fails for the *entire* ramp group. This is *engine* setup —
-   author/inspect it via `.cursor/skills/expression-sets/SKILL.md` →
-   [Compound ramp uplift](../expression-sets/SKILL.md#compound-ramp-uplift). The tracked
-   `RLM_DefaultPricingProcedure` **now carries this ramp-path compound `PriceRevision`**
-   (`IsCompoundUpliftEnabled=true`) directly — the ramp branch
-   (`Applyupliftstorampedsubscriptionsitemsduringamendment`, seq 2) was migrated from the
-   old `FormulaBasedPricing` `Uplift` BKM by metadata deploy, so it works out of the box
-   with no procedure clone. (The 264 Help's "newly-created procedure required" caveat is a
-   **UI-authoring** limitation — you can't toggle Enable Compound Uplift on an existing
-   procedure in the builder; deploying the full expression set metadata bypasses it, which
-   is how the repo ships it.)
-5. **`UnitPriceUplift` (per-period %) set per segment** on each `QuoteLineItem`.
-
-**Unsupported for compound** (264 Help, *Considerations for Ramp Deals*,
-`docs/salesforce/264/help/articles/ind.qocal_considerations_ramp_deals.htm.md`):
-a SKU using **CPI renewal uplift**, **usage-based pricing**, or **derived pricing**
-can't compound — don't build a compound ramp on one; its verification would be
-invalid. Also: compound **resets on renewal** (Year 1 of the new term is the new
-baseline), and records created **before Winter '27** use standard uplift.
-
-Verify numerically by reading back the segments (below).
+Read [`compound-uplift.md`](compound-uplift.md) when you apply or verify a **Compound** uplift:
+the prerequisites, how the engine compounds on the prior period, and the per-period arithmetic to
+check a read-back against. The PATCH payload itself is step 4 above.
 
 ## Read-back → the ramp schedule
+
+**Assert the groups first.** A clone after a failed `EditGroup` still returns `success:true`: it
+copies a group that was never converted, leaving segments with `IsRamped` and `SortOrder` null that
+look like a healthy ramp by count and name. Before reading prices, check:
+- every segment group has `IsRamped = true`, a non-null `SortOrder` and a `SegmentType`;
+- the segment count is the number of periods;
+- in multi-schedule mode (repo default), exactly one group has `Type = 'RampScheduleGroup'`. It is
+  the parent, not a segment (observed with `IsRamped = false` and `SortOrder` 0; leave it out of the
+  segment checks), and it carries the expected `RampUpliftType`. Every segment's
+  `ParentQuoteLineGroupId` must be the `RampScheduleGroup`'s Id. A segment with no parent prices correctly and passes the
+  checks above, then fails at order activation with "Specify a ramp schedule group for ramp
+  segment".
+
+```bash
+sf data query --target-org <sf_alias> -q "SELECT Id, Name, Type, ParentQuoteLineGroupId, \
+  IsRamped, SortOrder, SegmentType, RampUpliftType \
+  FROM QuoteLineGroup WHERE QuoteId='<QUOTE_ID>' ORDER BY SortOrder NULLS FIRST"
+```
+
+Then the lines:
 
 ```bash
 sf data query --target-org <sf_alias> -q "SELECT Product2.Name, Product2.StockKeepingUnit, \
@@ -439,18 +403,8 @@ sf data query --target-org <sf_alias> -q \
 
 ## Field legality (live 264 / v68.0)
 
-Snapshot — re-verify with a `describe` on the target org. Writeable = createable/updateable on the graph.
-
-| Object | Writeable (set these) | Read-only (never set) |
-|---|---|---|
-| `QuoteLineGroup` | `IsRamped`, `SegmentType`, `StartDate`, `EndDate`, `SortOrder`, `Type`, `Name`, `RampUpliftType` | — |
-| `QuoteLineItem` | `Quantity`, `StartQuantity`, `UnitPrice`, `UnitPriceUplift`, `Discount`, `DiscountAmount`, `StartDate`, `EndDate`, `SegmentType`, `QuoteLineGroupId` | `RampIdentifier`, `SegmentIdentifier`, `EndQuantity`, `NetUnitPrice`, `TotalPrice`, `ApplUnitPriceUpliftPct`; `RampUpliftType` engine-owned via Place |
-| `Quote` | `Status`, `TotalPriceOverride`, `AdjustmentDistributionLogic` | `CalculationStatus`, `TotalPrice`, `GrandTotal`, `QuoteNumber` |
-| `Product2` | — | `CanRamp` |
-
-`SegmentType` enum: `Yearly`, `Custom`, `FreeTrial`, `Prorated`.
-`QuoteLineGroup.Type` enum: `CPQQuoteGroup`, `RampScheduleGroup`, `AssetSwap`,
-`AssetUpgrade`, `AssetDowngrade`.
+Read [`field-legality.md`](field-legality.md) when a Place or PATCH call rejects a field, or before
+writing a line field: which ramp and pricing fields are writable on input on live 264.
 
 ## A headless toolkit is in development
 
@@ -494,18 +448,28 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
       366 on a leap year); `Custom` used for variable/calendar durations.
 - [ ] `BillingTreatmentId` resolved on each term-defined line (Active, account
       currency, `CanChangeBillingFrequency=true`).
-- [ ] No read-only/system fields written on the graph (see the legality table).
+- [ ] No read-only/system fields written on the graph (see [`field-legality.md`](field-legality.md)).
 - [ ] `RampUpliftType='Compound'` on the ramp **group** (the top-level
       `RampScheduleGroup` in multi-schedule mode), never on the line; per-segment
       `UnitPriceUplift` set on lines, then repriced with `pricingPref:"Force"`.
 - [ ] `CalculationStatus` polled to a settled state between calls; unknown status
       halted, not assumed.
+- [ ] Group shape asserted before prices (*Read-back*): segment fields set, one segment per
+      period, and in multi-schedule mode one `RampScheduleGroup` parent that every segment points
+      at.
 - [ ] Read-back grouped on `RampIdentifier`; every ramped line carries both
       `RampIdentifier` and `SegmentIdentifier` (proves it went through
       `groupRampAction`); TCV reconciles.
 - [ ] Compound arithmetic verified against a read-back (applied % compounds on the
       prior factor).
 - [ ] Any mutating run executed against a confirmed **writable** live 264 org.
+
+## Sub-files
+
+- `compound-uplift.md` — Compound price uplift: prerequisites, how it compounds, and the arithmetic
+  to verify. Read it when applying or checking Compound.
+- `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
+  call rejects a field.
 
 ## Related References
 
