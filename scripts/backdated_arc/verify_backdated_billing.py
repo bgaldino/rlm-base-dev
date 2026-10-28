@@ -426,9 +426,10 @@ def check(new_scheds, invoices, effective, scale):
         if s["BillingPeriodAmount"] is None:
             fails.append(f"schedule {s['Id']} has no period amount")
             continue
-        start = dt.date.fromisoformat(s["BillingScheduleStartDate"])
-        if start != effective:
-            fails.append(f"schedule {s['Id']} starts {start}, expected {effective}")
+        # The schedule's own dates stay out of the output (CodeQL treats Billing* fields as
+        # private); the effective date and the schedule id are enough to look it up.
+        if dt.date.fromisoformat(s["BillingScheduleStartDate"]) != effective:
+            fails.append(f"schedule {s['Id']} doesn't start on the effective date {effective}")
         mine = by_sched.get(s["Id"], [])
         if not mine:
             fails.append(f"schedule {s['Id']} was not invoiced")
@@ -442,9 +443,9 @@ def check(new_scheds, invoices, effective, scale):
         if abs(actual - expected) > 0.5 * 10 ** -scale * len(mine):
             fails.append(f"schedule {s['Id']} billed {actual:.2f}, expected {expected:.2f} "
                          f"({periods} period(s) since {effective})")
-    stray = set(by_sched) - {s["Id"] for s in new_scheds}
+    stray = len(set(by_sched) - {s["Id"] for s in new_scheds})
     if stray:
-        fails.append(f"invoice lines for schedules outside the change: {sorted(stray)}")
+        fails.append(f"invoice lines for {stray} schedule(s) outside the change")
     for inv in invoices:
         if inv["total"] < 0 and not inv["memo"]:
             fails.append(f"negative invoice {inv['number']} has no credit memo")
@@ -599,9 +600,9 @@ def main():
             order_account[o] = sf_query(org, f"SELECT AccountId FROM Order WHERE Id = '{o}'")[0]["AccountId"]
         new = wait(f"a billing schedule for every billable line of order(s) {', '.join(orders)}",
                    lambda: complete_schedules(org, orders), 300)
+        # Ids, quantity and total only; check() reports a wrong start date against the effective date.
         for s in new:
-            log(f"schedule     {s['Id']} qty {s['Quantity']} {s['BillingScheduleStartDate']} -> "
-                f"{s['BillingScheduleEndDate']} next {s['NextBillingDate']} total {s['TotalAmount']}")
+            log(f"schedule     {s['Id']} qty {s['Quantity']} total {s['TotalAmount']}")
         invoices = []
         # One invoice run per account (a transfer has two); each order's account is billed.
         for a in sorted(set(order_account.values())):

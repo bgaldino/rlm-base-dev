@@ -35,7 +35,9 @@ doesn't need replacing:
 
 - **From the 264 template:** no "today or later" rule on the date screen (the old copy had one;
   that was the only UI block), and the early-renewal ramp schedule fields (`rampOptionsDetails`
-  on `initiateRenewal`).
+  on `initiateRenewal`). Ours sends ramp options only when the user ticks *Create a ramp
+  schedule*; the template sends them whenever group ramps are enabled, with null segment fields
+  on a plain renewal.
 - **Ours on top:** the `RLM_ARC_AssetValidator` pre-check (blocks swap/upgrade/downgrade,
   transfer and rollback for the asset types 264 Help still excludes), separate Swap/Upgrade/
   Downgrade choices, English labels, and a **confirmation screen for every backdated date**
@@ -202,4 +204,4 @@ qty 1 and `08-01→2027-05-31` qty 2. A backdated cancel on 2026-09-01 then ende
 - **A zero-quantity amendment that changes billing frequency** (INV-12 in the 264 solution
   overview). The amend API has no billing-frequency input, so it's a quote-side change.
 - **Early renewal with a ramp schedule** (ported from the 264 template; shown only when the
-  Managed Asset viewer passes `groupRampsEnabled = true`).
+  Managed Asset viewer passes `groupRampsEnabled = true`, and only for an Override renewal).

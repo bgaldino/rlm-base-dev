@@ -79,7 +79,7 @@ expect("negative invoice without a credit memo fails",
 expect("negative invoice with an open balance fails",
        has(vb.check([sched(-1)], [invoice(lines_for(-270), MEMO, balance=-810)], EFF, 2), "balance"), True)
 expect("schedule starting late fails",
-       has(vb.check([sched(1, start=SEP)], [invoice(lines_for(270))], EFF, 2), "starts 2026-09-01"), True)
+       has(vb.check([sched(1, start=SEP)], [invoice(lines_for(270))], EFF, 2), "doesn't start on the effective date"), True)
 fails = vb.check([sched(1)], [invoice(lines_for(270, months=(SEP, OCT)))], EFF, 2)
 expect("first line after the effective date fails", has(fails, "first invoice line"), True)
 expect("a missing period also fails the amount", has(fails, "billed 540.00"), True)

@@ -1368,7 +1368,7 @@
         </rules>
     </decisions>
     <decisions>
-        <description>Routes to the ramp options transform when group ramps are enabled for the renewal.</description>
+        <description>Builds ramp options only when group ramps are enabled AND the user chose Override with Create a ramp schedule. The 264 template checks groupRampsEnabled alone, which sends null segment fields on a plain renewal.</description>
         <name>Check_Ramp_Selected</name>
         <label>Check Ramp Selected</label>
         <locationX>0</locationX>
@@ -1385,6 +1385,20 @@
                 <operator>EqualTo</operator>
                 <rightValue>
                     <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Create_Ramp_Schedule</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>RenewalDecision</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>IsEarlyRenewal</elementReference>
                 </rightValue>
             </conditions>
             <connector>
