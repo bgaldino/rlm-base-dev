@@ -52,7 +52,7 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 
 **Multicurrency regions:** LegalEntity now spans seven currencies — US (USD), Canada (CAD, corrected from USD), EU (EUR), UK (GBP), Australia (AUD), Switzerland (CHF), Japan (JPY) — to back the per-region billing treatments in `qb-billing`. `TaxTreatment` records remain US-only (they are not 1:1 with legal entities, so EU/UK already run without them); add regional tax treatments separately only if regional tax calculation is required.
 
-**Note:** `export.json` declares `externalId: Name` for TaxTreatment (both passes). The `TaxTreatment.csv` still carries a `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column that does not match the declared `externalId` — match is by `Name` alone.
+**Note:** `export.json` declares `externalId: Name` for TaxTreatment (both passes), so matching is by `Name` alone. `TaxTreatment.csv` has no `$$` composite column.
 
 ### Pass 2 — Activate and Set Defaults
 
@@ -104,7 +104,7 @@ All external IDs use portable fields:
 - `DeveloperName` for TaxEngineProvider
 - `TaxEngineName` for TaxEngine
 - `StockKeepingUnit` for Product2
-- `Name` for TaxTreatment (the CSV carries an unused `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column, but the declared `externalId` is `Name`)
+- `Name` for TaxTreatment
 
 No auto-numbered Name fields are used.
 
@@ -259,13 +259,13 @@ The missing fields fall into three categories:
 | LegalEntity      | `Name`                          | No            | No      | ✅ OK — human-readable, few records |
 | TaxEngineProvider| `DeveloperName`                 | N/A (CMDT-like)| No     | ✅ OK — standard pattern for metadata types |
 | TaxEngine        | `TaxEngineName`                 | N/A           | No      | ✅ OK — idLookup field |
-| TaxTreatment     | `Name`                          | No            | No      | ✅ OK — `export.json` declares `Name` (CSV carries an unused `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column) |
+| TaxTreatment     | `Name`                          | No            | No      | ✅ OK — `export.json` declares `Name` |
 | TaxPolicy        | `Name`                          | No            | No      | ✅ OK — human-readable, 1 record |
 | Product2         | `StockKeepingUnit`              | No*           | No*     | ✅ OK — platform-enforced unique when RLM enabled |
 
 ### Composite Key Complexity
 
-All declared externalIds are simple single-field keys. The `TaxTreatment.csv` retains a `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column (intended to keep treatments unique across legal entities/policies), but `export.json` declares `externalId: Name`, so matching is by `Name` alone.
+All declared externalIds are simple single-field keys. `export.json` declares `externalId: Name` for TaxTreatment, so matching is by `Name` alone: this plan requires treatment names that are unique across legal entities and policies.
 
 ## Optimization Opportunities
 
