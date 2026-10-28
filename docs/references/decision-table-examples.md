@@ -262,7 +262,7 @@ cci task run manage_decision_tables --operation list --status Active
 
 ### Refreshing without the UI
 
-Decision tables are refreshed interactively from the **Decision Table Manager** on the
+Admins refresh decision tables interactively from the **Decision Table Manager** on the
 Home page, which also shows a freshness verdict per table. (It replaced the
 `RLM_Refresh_Decision_Tables` screen flow, which is gone.) After editing rates, qualification
 rules or tax setup, nothing refreshes the affected tables for you. Use **Refresh stale only**,
@@ -449,11 +449,12 @@ tables even when the Commerce feature is not configured.
 ## In-Org Refresh Entry Points
 
 Interactive refresh uses the **Decision Table Manager** component on the Revenue
-Cloud Home page. The remaining `post_utils` refresh flows are autolaunched.
+Cloud Home page. Refreshing from it needs Modify All Data and Customize Application,
+Salesforce's own gate on the refresh action; other users get the freshness view only. The remaining `post_utils` refresh flows are autolaunched.
 
 | Entry point | Location | Type | Use |
 |---|---|---|---|
-| **Decision Table Manager** | `post_utils` LWC, Home page | Component | Interactive: per-table verdict, selective refresh, status polling |
+| **Decision Table Manager** | `post_utils` LWC, Home page | Component | Interactive: per-table verdict, selective refresh (admin only: Modify All Data and Customize Application), status polling |
 | `RLM_Refresh_Decision_Tables_Bulk` | `post_utils` | **Autolaunched** | The only way Apex can reach the refresh action — `Flow.Interview.createInterview(...).start()`. Carries the incremental input |
 | `RLM_Refresh_Decision_Tables_By_Usage_Type` | `post_utils` | **Autolaunched** | Selects every **active** table with a usage type and hands them to `RLM_Refresh_Decision_Tables_Bulk`; returns `queuedCount`, `failedCount`, `failedApiNames`. Called by `RLM_Account_Utilities`, which shows the counts on its result screen |
 | `RLM_Refresh_Commerce_Decision_Tables` | `post_commerce` | **Screen flow** | The one surviving screen flow — Commerce tables, when Commerce is enabled. Refreshes through `RLM_Refresh_Decision_Tables_Bulk` and ends on a result screen, so deploy `post_utils` first |

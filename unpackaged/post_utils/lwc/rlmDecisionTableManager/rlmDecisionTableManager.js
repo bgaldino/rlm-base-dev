@@ -3,6 +3,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent'
 import getDecisionTables from '@salesforce/apex/RLM_DecisionTableManagerController.getDecisionTables'
 import refreshTables from '@salesforce/apex/RLM_DecisionTableManagerController.refreshTables'
 import getRefreshStatus from '@salesforce/apex/RLM_DecisionTableManagerController.getRefreshStatus'
+import canRefreshTables from '@salesforce/apex/RLM_DecisionTableManagerController.canRefreshTables'
 
 const POLL_INTERVAL_MS = 4000
 const MAX_POLL_ATTEMPTS = 45 // ~3 minutes; a refresh that outlives this is reported, not hidden
@@ -172,6 +173,9 @@ export default class RlmDecisionTableManager extends LightningElement {
     readsObjectFilter = FILTER_ALL
     verdictFilter = FILTER_ALL
     useIncremental = false
+    // Undefined until known. Only an explicit false disables Refresh: if the check itself
+    // fails, refreshTables applies the same gate and says why.
+    canRefresh
     sortedBy = 'usageType'
     sortedDirection = 'asc'
     pollMessage = ''
@@ -203,7 +207,10 @@ export default class RlmDecisionTableManager extends LightningElement {
     async loadTables() {
         this.isLoading = true
         try {
-            const data = await getDecisionTables()
+            const [data, canRefresh] = await Promise.all([
+                getDecisionTables(),
+                canRefreshTables().catch(() => undefined)
+            ])
             // Same guard, lesser stake: no timer to strand here, only work and state
             // assignment on a component nobody can see. Written the same way so the
             // three continuations stay recognisable as one rule.
@@ -211,6 +218,7 @@ export default class RlmDecisionTableManager extends LightningElement {
                 return
             }
             this.rows = data.map((row) => this.decorate(row))
+            this.canRefresh = canRefresh
             this.errorMessage = undefined
         } catch (error) {
             this.rows = []
@@ -407,16 +415,20 @@ export default class RlmDecisionTableManager extends LightningElement {
         return `Refresh all shown (${this.visibleRows.length})`
     }
 
+    get isRefreshDenied() {
+        return this.canRefresh === false
+    }
+
     get isRefreshSelectedDisabled() {
-        return this.isBusy || this.visibleSelectedApiNames.length === 0
+        return this.isBusy || this.isRefreshDenied || this.visibleSelectedApiNames.length === 0
     }
 
     get isRefreshVisibleDisabled() {
-        return this.isBusy || this.visibleRows.length === 0
+        return this.isBusy || this.isRefreshDenied || this.visibleRows.length === 0
     }
 
     get isRefreshStaleDisabled() {
-        return this.isBusy || this.staleRows.length === 0
+        return this.isBusy || this.isRefreshDenied || this.staleRows.length === 0
     }
 
     // ---- events --------------------------------------------------------------
@@ -852,7 +864,8 @@ export default class RlmDecisionTableManager extends LightningElement {
 
             if (result.errorMessage) {
                 // ⚠ The error path must still report the OTHER bucket. The controller
-                // populates unknownApiNames before any early return, so an error and a
+                // populates unknownApiNames before any early return after its permission
+                // check (which refuses before looking up any table), so an error and a
                 // name that no longer exists are both reported. Dropping it here would
                 // leave the user re-running and still silently missing a table.
                 const missing =

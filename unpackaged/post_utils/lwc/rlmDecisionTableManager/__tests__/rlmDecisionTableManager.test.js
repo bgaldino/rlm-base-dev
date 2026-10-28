@@ -3,6 +3,7 @@ import RlmDecisionTableManager from 'c/rlmDecisionTableManager'
 import getDecisionTables from '@salesforce/apex/RLM_DecisionTableManagerController.getDecisionTables'
 import refreshTables from '@salesforce/apex/RLM_DecisionTableManagerController.refreshTables'
 import getRefreshStatus from '@salesforce/apex/RLM_DecisionTableManagerController.getRefreshStatus'
+import canRefreshTables from '@salesforce/apex/RLM_DecisionTableManagerController.canRefreshTables'
 
 jest.mock(
     '@salesforce/apex/RLM_DecisionTableManagerController.getDecisionTables',
@@ -16,6 +17,11 @@ jest.mock(
 )
 jest.mock(
     '@salesforce/apex/RLM_DecisionTableManagerController.getRefreshStatus',
+    () => ({ default: jest.fn() }),
+    { virtual: true }
+)
+jest.mock(
+    '@salesforce/apex/RLM_DecisionTableManagerController.canRefreshTables',
     () => ({ default: jest.fn() }),
     { virtual: true }
 )
@@ -65,6 +71,7 @@ describe('c-rlm-decision-table-manager', () => {
         getDecisionTables.mockResolvedValue([TABLE])
         refreshTables.mockResolvedValue({ queuedCount: 0, failedCount: 0, failedApiNames: [], unknownApiNames: [] })
         getRefreshStatus.mockResolvedValue([])
+        canRefreshTables.mockResolvedValue(true)
     })
 
     afterEach(() => {
@@ -315,6 +322,49 @@ describe('c-rlm-decision-table-manager', () => {
         await flushPromises()
 
         expect(refreshTables.mock.calls[0][0].apiNames).toEqual(['Other_Table'])
+    })
+
+    describe('refresh access', () => {
+        const refreshButtons = (element) =>
+            [...element.shadowRoot.querySelectorAll('lightning-button')].filter((b) => b.label.startsWith('Refresh'))
+        const denialNote = (element) => element.shadowRoot.querySelector('[data-id="refresh-denied"]')
+
+        it('disables every refresh control and says why for a user who cannot refresh', async () => {
+            canRefreshTables.mockResolvedValue(false)
+            const element = await mount()
+            // A selection, so "Refresh selected" is disabled by the denial and not by being empty.
+            element.shadowRoot.querySelector('lightning-datatable')
+                .dispatchEvent(new CustomEvent('rowselection', { detail: { selectedRows: [TABLE] } }))
+            await flushPromises()
+
+            const buttons = refreshButtons(element)
+            expect(buttons.map((b) => b.label)).toContain('Refresh 1 selected')
+            expect(buttons).toHaveLength(3)
+            buttons.forEach((b) => expect(b.disabled).toBe(true))
+            const toggle = [...element.shadowRoot.querySelectorAll('lightning-input')]
+                .find((i) => i.label === 'Incremental refresh')
+            expect(toggle.disabled).toBe(true)
+            expect(denialNote(element).textContent).toContain('Modify All Data and Customize Application')
+            // The freshness view itself is still there.
+            expect(element.shadowRoot.querySelector('lightning-datatable').data).toHaveLength(1)
+        })
+
+        it('leaves Refresh to the server when the check itself fails', async () => {
+            canRefreshTables.mockRejectedValue({ body: { message: 'boom' } })
+            const element = await mount()
+
+            const stale = refreshButtons(element).find((b) => b.label === 'Refresh stale only')
+            expect(stale.disabled).toBe(false)
+            expect(denialNote(element)).toBeNull()
+            expect(element.shadowRoot.querySelector('lightning-datatable').data).toHaveLength(1)
+        })
+
+        it('enables refresh for a user who can', async () => {
+            const element = await mount()
+            const stale = refreshButtons(element).find((b) => b.label === 'Refresh stale only')
+            expect(stale.disabled).toBe(false)
+            expect(denialNote(element)).toBeNull()
+        })
     })
 
     describe('load errors', () => {

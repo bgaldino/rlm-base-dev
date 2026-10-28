@@ -105,11 +105,18 @@
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_x-small">
                     <lightning-input type="toggle" label="Incremental refresh"
                         message-toggle-active="Incremental" message-toggle-inactive="Platform chooses"
-                        checked={useIncremental} onchange={handleIncrementalToggle}></lightning-input>
+                        checked={useIncremental} onchange={handleIncrementalToggle}
+                        disabled={isRefreshDenied}></lightning-input>
                 </div>
             </div>
 
             <!-- Actions -->
+            <template if:true={isRefreshDenied}>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small" data-id="refresh-denied">
+                    Refresh is for admins: Salesforce requires both Modify All Data and Customize Application
+                    to refresh a decision table. You can still check freshness here.
+                </p>
+            </template>
             <div class="slds-grid slds-wrap slds-gutters_x-small slds-m-bottom_small">
                 <div class="slds-col slds-no-flex slds-p-right_x-small slds-p-bottom_x-small">
                     <lightning-button variant="brand" label={refreshSelectedLabel}

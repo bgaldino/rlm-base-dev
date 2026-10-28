@@ -132,7 +132,7 @@
         </fields>
         <fields>
             <name>Result_Failed</name>
-            <fieldText>&lt;p&gt;Failed: {!Refresh_Tables.failedApiNames}. A table that is missing or inactive in this org cannot be refreshed.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;Failed: {!Refresh_Tables.failedApiNames}. A table that is missing or inactive in this org cannot be refreshed, and a refresh queues only for a user with both Modify All Data and Customize Application. If you lack those permissions, ask an admin to refresh these from the Decision Table Manager.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <visibilityRule>
                 <conditionLogic>and</conditionLogic>
