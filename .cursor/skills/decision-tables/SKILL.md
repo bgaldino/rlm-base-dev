@@ -31,7 +31,9 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
-   Add `-o param1 strict` to fail a build on any stale table.
+   Add `-o param1 strict` to fail a build on any stale table. On a Trialforce-spun org,
+   `cci flow run check_org_readiness --org "your-cci-alias"` also checks that the search
+   index was built in this org (`check_search_index_readiness`).
 3. **Freshness is measured against EVERY object a table reads**, not just its source
    object. A table that pulls a column across a lookup goes stale when that lookup's
    record changes, with no row of its own touched.
@@ -39,7 +41,10 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    triggering row is written. See *The timing rule*.
 5. **Discover tables from the org; do not trust a hardcoded list** as an inventory.
    `cumulusci.yml`'s `dt_*_decision_tables` lists are refresh *instructions* scoped by
-   feature flag, not a census of what exists.
+   feature flag, not a census of what exists. `manage_decision_tables -o operation validate_lists`
+   compares them to the org and attributes each missing name to the `when:` of the flow
+   step that uses its list: a flag-off absence reads as expected, a flag-on one as
+   unexpected (`-o strict true` fails on those).
 6. **"Not comparable" is a refusal, not a failure.** It means the freshness check
    declined to guess. Only **Stale** is a positive finding.
 7. **Definition and data are separate layers.** Editing columns or source bindings does

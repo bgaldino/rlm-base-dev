@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**46 flows** across **5 groups**.
+**47 flows** across **5 groups**.
 
 ---
 
@@ -109,6 +109,17 @@ Assign feature-gated permission set licenses after pre-deploy metadata is in pla
    - `api_names`: `['EinsteinAnalyticsPlusPsl']`
 4. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__tso`
    - `api_names`: `['AutomatedActionsPsl', 'EinsteinAgentCWUPsl', 'EinsteinAgentPsl', 'EinsteinCopilotReviewMyDayPsl...`
+
+---
+
+### `check_org_readiness`
+
+Post-spin readiness, read-only: every decision table's freshness verdict (a table whose last full sync predates the org reads Stale: never built here) and whether the search index was built in this org. Run it on a Trialforce-spun org after refresh_all_decision_tables and rebuild_search_index, allowing a few minutes for the index build. In Release 264 a refresh within a day of the template's full sync can run incremental and leave a table Stale (never built here) until a full one runs. Both steps report; to fail on a not-ready result pass each step's strict option, e.g. -o check_decision_table_freshness__param1 strict -o check_search_index_readiness__strict true.
+
+**Steps:**
+
+1. **task** `check_decision_table_freshness`
+2. **task** `check_search_index_readiness`
 
 ---
 

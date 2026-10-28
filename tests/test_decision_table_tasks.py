@@ -58,7 +58,7 @@ TERMINAL_CHECK = "the suite ran to completion"
 # ⚠ Raise this when you add checks. It answers COMPLETENESS ("did everything run"), which the
 # terminal sentinel does not — the sentinel only answers COMPLETION ("did the run reach the
 # end"). Both are needed: see the INCOMPLETE branch in _print_summary for the measurement.
-EXPECTED_CHECKS = 124
+EXPECTED_CHECKS = 142
 
 
 def check(label, condition, detail=""):
@@ -1597,6 +1597,138 @@ print("\n[5] the Commerce task description reflects the tso gate")
 
 desc = cci["tasks"]["refresh_dt_commerce"]["description"]
 check("description mentions tso", "tso" in desc.lower(), desc)
+
+# ---------------------------------------------------------------------------
+# 6. validate_lists attributes a missing list entry to the flag that gates its list
+#    (pack 071). The gate is read from the flow steps, so it can't drift from them.
+# ---------------------------------------------------------------------------
+print("\n[6] validate_lists derives each list's gate from the flows")
+
+_anchor_gates = _manage._anchor_gates
+_evaluate_when = _manage._evaluate_when
+_custom = cci["project"]["custom"]
+
+_commerce_gates = _anchor_gates(cci, _custom["dt_commerce_decision_tables"])
+check("the commerce list is gated by refresh_dt_commerce's step in refresh_all_decision_tables",
+      [(g["flow"], g["task"]) for g in _commerce_gates] == [("refresh_all_decision_tables", "refresh_dt_commerce")],
+      _commerce_gates)
+check("its gate is the step's when: (commerce or tso)",
+      _commerce_gates and "commerce" in (_commerce_gates[0]["when"] or "") and "tso" in (_commerce_gates[0]["when"] or ""),
+      _commerce_gates)
+_default_gates = _anchor_gates(cci, _custom["dt_default_pricing_decision_tables"])
+check("the default-pricing list runs unconditionally",
+      bool(_default_gates) and all(g["when"] is None for g in _default_gates), _default_gates)
+_unattributed = [a for a in _custom if a.startswith("dt_") and a.endswith("_decision_tables")
+                 and not _anchor_gates(cci, _custom[a])]
+check("every dt_*_decision_tables list is used by some flow step", not _unattributed, _unattributed)
+
+# Matching is by the names, in any order, and a step can carry the list itself.
+_synthetic = {
+    "tasks": {"t1": {"options": {"developerNames": ["B", "A"]}}},
+    "flows": {"f": {"steps": {
+        1: {"task": "t1", "when": "x"},
+        2: {"task": "other", "options": {"developer_names": ["A", "B"]}},
+        3: {"task": "unrelated"},
+    }}},
+}
+check("a list matches regardless of order, at task or step level",
+      [(g["step"], g["task"]) for g in _anchor_gates(_synthetic, ["A", "B"])] == [(1, "t1"), (2, "other")],
+      _anchor_gates(_synthetic, ["A", "B"]))
+check("an unconditional step evaluates True", _evaluate_when(None, object(), None) is True)
+
+# A real when:, through CumulusCI's own evaluator where it is installed. Without it the
+# function must say "can't tell" (None), never a verdict.
+try:
+    import cumulusci.core.flowrunner  # noqa: F401
+    _have_cci = True
+except ImportError:
+    _have_cci = False
+if not _have_cci:
+    print("  SKIP  CumulusCI not installed: the next check only proves the offline None, not the evaluation")
+_when = "project_config.project__custom__commerce or project_config.project__custom__tso"
+_off, _on = _flag_ctx(False, False), _flag_ctx(False, True)
+check("a real when: evaluates as the flow runner does (None without CumulusCI)",
+      (_evaluate_when(_when, _off, None), _evaluate_when(_when, _on, None)) == ((False, True) if _have_cci else (None, None)),
+      (_have_cci, _evaluate_when(_when, _off, None), _evaluate_when(_when, _on, None)))
+
+_override = {
+    "tasks": {"t1": {"options": {"developerNames": ["A", "B"]}}},
+    "flows": {"f": {"steps": {1: {"task": "t1", "options": {"developerNames": ["C"]}}}}},
+}
+check("a step that overrides its task's list is attributed to its own list",
+      _anchor_gates(_override, ["A", "B"]) == [] and len(_anchor_gates(_override, ["C"])) == 1,
+      (_anchor_gates(_override, ["A", "B"]), _anchor_gates(_override, ["C"])))
+
+_list_verdict = _manage._list_verdict
+_g = [{"flow": "f", "step": 1, "task": "t", "when": "w"}, {"flow": "f", "step": 2, "task": "t", "when": "v"}]
+check("verdict: no flow uses the list -> unexpected", _list_verdict([], [])[0] == _manage.UNEXPECTED)
+check("verdict: any step runs -> unexpected", _list_verdict(_g, [False, True])[0] == _manage.UNEXPECTED)
+check("verdict: every step off -> expected", _list_verdict(_g, [False, False])[0] == _manage.EXPECTED)
+check("verdict: off plus can't-tell -> unknown", _list_verdict(_g, [False, None])[0] == _manage.UNKNOWN)
+check("SOQL quoting escapes backslash before quote",
+      _manage._soql_quote("O'Brien\\x") == "'O\\'Brien\\\\x'", _manage._soql_quote("O'Brien\\x"))
+
+
+def validate_lists_run(org_rows, when_values, strict=True):
+    """
+    Drive _validate_lists against a two-list config; return (raised message or None, logger).
+
+    dt_x is gated by a flag, dt_y is unconditional. `when_values` maps each when: string to
+    what the evaluator returns, or to an Exception to raise; the evaluator is stubbed so the
+    verdict does not depend on CumulusCI being installed.
+    """
+    config = {
+        "project": {"custom": {"dt_x_decision_tables": ["T1", "T2"], "dt_y_decision_tables": ["T3"]}},
+        "tasks": {"rx": {"options": {"developerNames": ["T1", "T2"]}},
+                  "ry": {"options": {"developerNames": ["T3"]}}},
+        "flows": {"f": {"steps": {1: {"task": "rx", "when": "flag_x"}, 2: {"task": "ry"}}}},
+    }
+
+    class _Project:
+        pass
+
+    project = _Project()
+    project.config = config
+    task = object.__new__(ManageDecisionTables)
+    task.options = {"strict": strict}
+    task.logger = _CapturingLogger()
+    task.project_config = project
+    task.org_config = None
+    task._query_decision_tables = lambda: [dict(r) for r in org_rows]
+    task._statuses_of = lambda names: {}
+
+    def fake_when(when, project_config, org_config):
+        if when is None:
+            return True
+        value = when_values[when]
+        if isinstance(value, Exception):
+            raise value
+        return value
+
+    saved = _manage._evaluate_when
+    _manage._evaluate_when = fake_when
+    try:
+        ManageDecisionTables._validate_lists(task)
+        return None, task.logger
+    except Exception as exc:
+        return str(exc), task.logger
+    finally:
+        _manage._evaluate_when = saved
+
+
+_rows = [{"DeveloperName": "T1", "UsageType": "U"}, {"DeveloperName": "T3", "UsageType": "U"}]
+_msg, _log = validate_lists_run(_rows, {"flag_x": False})
+check("strict passes when the only missing name's flag is off",
+      _msg is None and any("expected" in line for line in _log.infos), (_msg, _log.infos[-8:]))
+_msg, _ = validate_lists_run(_rows, {"flag_x": True})
+check("strict fails, naming the table, when its flag is on", _msg is not None and "T2" in _msg, _msg)
+_msg, _ = validate_lists_run([], {"flag_x": False})
+check("strict fails with no active tables (the unconditional list is missing)",
+      _msg is not None and "T3" in _msg and "T2" not in _msg, _msg)
+_msg, _ = validate_lists_run(_rows, {"flag_x": ValueError("bad expression")})
+check("strict fails when a when: cannot evaluate", _msg is not None and "T2" in _msg, _msg)
+_msg, _ = validate_lists_run(_rows, {"flag_x": True}, strict=False)
+check("without strict the same finding only reports", _msg is None, _msg)
 
 # ⚠ The sentinel. Must remain the LAST check registered in this file — _print_summary keys the
 # abort diagnosis on its presence.
