@@ -1637,13 +1637,18 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
         // refusal only blocked valid requests. This proves the gate is gone — the request
         // is not rejected with the old message and no table is reported failed by it —
         // not that the flow queued anything, which a test context cannot show.
+        //
+        // ⚠ The fixture must exist, or the test must FAIL — a skip that passes is a test
+        // that cannot fail (issue #326). The flag filter is kept because the flag-false
+        // case is the one the old gate refused; every table this repo ships has it false.
         List<DecisionTable> existing = [
             SELECT DeveloperName FROM DecisionTable
             WHERE IsIncrementalSyncEnabled = false AND Status = 'Active' LIMIT 1
         ];
         if (existing.isEmpty()) {
-            Assert.isTrue(true, 'No incremental-disabled table available to test with.');
-            return;
+            Assert.fail('Fixture missing: no Active decision table with IsIncrementalSyncEnabled = ' +
+                'false in this org, so the refusal-removal path cannot be exercised. Every ' +
+                'table this repo ships qualifies; check the build deployed them.');
         }
         RLM_DecisionTableManagerController.RefreshResult result =
             RLM_DecisionTableManagerController.refreshTables(
@@ -1699,5 +1704,45 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
             'Polling nothing returns nothing.');
         Assert.areEqual(0, RLM_DecisionTableManagerController.getRefreshStatus(new List<String>()).size(),
             'Polling an empty list returns nothing.');
+    }
+
+    @isTest
+    static void refreshStatusOfARealTableCarriesItsCurrentState() {
+        // The normal path the component's poll loop takes on every refresh (issue #326):
+        // a known API name maps into DecisionTableInfo with the record's own state.
+        //
+        // ⚠ A SYNCED table, not just any Active one: on a never-synced row every stamp is
+        // null and the field checks below would compare null to null. Not mid-refresh
+        // either, so a platform job finishing between the two reads cannot move them.
+        List<DecisionTable> existing = [
+            SELECT DeveloperName, RefreshStatus, LastSyncDate, LastIncrementalSyncDate
+            FROM DecisionTable
+            WHERE Status = 'Active' AND LastSyncDate != null
+                AND RefreshStatus NOT IN ('Initiated', 'InProgress')
+            ORDER BY DeveloperName
+            LIMIT 1
+        ];
+        if (existing.isEmpty()) {
+            Assert.fail('Fixture missing: no Active, synced, idle decision table in this org to poll.');
+        }
+        DecisionTable dt = existing[0];
+
+        List<RLM_DecisionTableManagerController.DecisionTableInfo> polled =
+            RLM_DecisionTableManagerController.getRefreshStatus(
+                new List<String>{ dt.DeveloperName, 'ZZ_No_Such_Decision_Table' });
+
+        Assert.areEqual(1, polled.size(), 'Only the real table is returned: ' + polled);
+        RLM_DecisionTableManagerController.DecisionTableInfo info = polled[0];
+        Assert.areEqual(dt.DeveloperName, info.apiName, 'apiName');
+        Assert.areEqual(dt.RefreshStatus, info.refreshStatus, 'refreshStatus');
+        Assert.areEqual(dt.LastSyncDate, info.lastSyncDate, 'lastSyncDate');
+        Assert.areEqual(dt.LastIncrementalSyncDate, info.lastIncrementalSyncDate, 'lastIncrementalSyncDate');
+        Assert.isNotNull(info.latestSyncDate, 'A synced table has a latest sync.');
+        Boolean incrementalIsLater = dt.LastIncrementalSyncDate != null &&
+            dt.LastIncrementalSyncDate > dt.LastSyncDate;
+        Assert.areEqual(incrementalIsLater ? dt.LastIncrementalSyncDate : dt.LastSyncDate,
+            info.latestSyncDate, 'The poll carries the later of the two stamps.');
+        Assert.areEqual(incrementalIsLater ? 'Incremental' : 'Full', info.latestSyncKind,
+            'And says which kind it was.');
     }
 }
