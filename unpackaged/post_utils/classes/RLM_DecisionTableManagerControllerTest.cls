@@ -1751,6 +1751,200 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
     }
 
     @isTest
+    static void hidingReasonFollowsTheSharingModelAndItsMasters() {
+        Map<String, String> modelOf = new Map<String, String>{
+            'PrivateObj' => 'Private', 'ReadObj' => 'Read', 'NoAccessObj' => 'None',
+            'ChildOfPrivate' => 'ControlledByParent', 'ChildOfRead' => 'ControlledByParent',
+            'Grandchild' => 'ControlledByParent', 'Orphan' => 'ControlledByParent',
+            'ChildOfUnreadable' => 'ControlledByParent'
+        };
+        Map<String, List<String>> mastersOf = new Map<String, List<String>>{
+            'ChildOfPrivate' => new List<String>{ 'PrivateObj' },
+            'ChildOfRead' => new List<String>{ 'ReadObj' },
+            'Grandchild' => new List<String>{ 'ChildOfPrivate' },
+            'Orphan' => new List<String>(),
+            'ChildOfUnreadable' => new List<String>{ 'Unlisted' }
+        };
+        Set<String> none = new Set<String>();
+
+        Assert.areEqual('Private sharing',
+            RLM_DecisionTableManagerController.hidingReason('PrivateObj', modelOf, mastersOf, none, 0));
+        Assert.isNull(RLM_DecisionTableManagerController.hidingReason('ReadObj', modelOf, mastersOf, none, 0),
+            'Read sharing hides nothing.');
+        Assert.areEqual('No Access sharing',
+            RLM_DecisionTableManagerController.hidingReason('NoAccessObj', modelOf, mastersOf, none, 0),
+            'A model outside the see-all set hides rows, shown by its Setup label.');
+        Assert.areEqual('controlled by PrivateObj: Private sharing',
+            RLM_DecisionTableManagerController.hidingReason('ChildOfPrivate', modelOf, mastersOf, none, 0));
+        Assert.isNull(RLM_DecisionTableManagerController.hidingReason('ChildOfRead', modelOf, mastersOf, none, 0),
+            'A child of a Read master is as visible as the master.');
+        Assert.areEqual('controlled by ChildOfPrivate: controlled by PrivateObj: Private sharing',
+            RLM_DecisionTableManagerController.hidingReason('Grandchild', modelOf, mastersOf, none, 0),
+            'The chain is followed past one level.');
+        Assert.areEqual('controlled by a parent that could not be resolved',
+            RLM_DecisionTableManagerController.hidingReason('Orphan', modelOf, mastersOf, none, 0));
+        Assert.areEqual('sharing model unreadable',
+            RLM_DecisionTableManagerController.hidingReason('Unlisted', modelOf, mastersOf, none, 0),
+            'An unreadable model must not read as see-all.');
+        Assert.areEqual('controlled by Unlisted: sharing model unreadable',
+            RLM_DecisionTableManagerController.hidingReason('ChildOfUnreadable', modelOf, mastersOf, none, 0));
+        Assert.isNull(RLM_DecisionTableManagerController.hidingReason('PrivateObj', modelOf, mastersOf,
+            new Set<String>{ 'PrivateObj' }, 0), 'View All on the object sees every row.');
+    }
+
+    @isTest
+    static void freshIsWithdrawnOnlyWhenATableReadsAHiddenObject() {
+        Map<String, String> hidden = new Map<String, String>{
+            'IndexRate' => 'Private sharing', 'Contract' => 'Private sharing'
+        };
+
+        RLM_DecisionTableManagerController.DecisionTableInfo fresh = infoWithVerdict(
+            RLM_DecisionTableManagerController.STALENESS_FRESH, new List<String>{ 'IndexRate' });
+        RLM_DecisionTableManagerController.withdrawFreshWhenRowsMayBeHidden(fresh, hidden);
+        Assert.areEqual(RLM_DecisionTableManagerController.STALENESS_UNCOMPUTED, fresh.staleness,
+            'A Fresh verdict over a hidden object is not established.');
+        Assert.isTrue(fresh.stalenessReason.contains('IndexRate (Private sharing)'), fresh.stalenessReason);
+
+        // An object only a source criterion traverses is probed too (Contract_Pricing_*
+        // filters through ContractItemPriceId.ContractId), so it counts.
+        RLM_DecisionTableManagerController.DecisionTableInfo traversed = infoWithVerdict(
+            RLM_DecisionTableManagerController.STALENESS_FRESH, new List<String>{ 'ContractItemPrice' });
+        traversed.contributingObjects = new List<String>{ 'Contract' };
+        RLM_DecisionTableManagerController.withdrawFreshWhenRowsMayBeHidden(traversed, hidden);
+        Assert.areEqual(RLM_DecisionTableManagerController.STALENESS_UNCOMPUTED, traversed.staleness,
+            'A hidden object reached through a criterion withdraws Fresh too.');
+        Assert.isTrue(traversed.stalenessReason.contains('Contract (Private sharing)'), traversed.stalenessReason);
+
+        RLM_DecisionTableManagerController.DecisionTableInfo stale = infoWithVerdict(
+            RLM_DecisionTableManagerController.STALENESS_STALE, new List<String>{ 'IndexRate' });
+        RLM_DecisionTableManagerController.withdrawFreshWhenRowsMayBeHidden(stale, hidden);
+        Assert.areEqual(RLM_DecisionTableManagerController.STALENESS_STALE, stale.staleness,
+            'A visible change stands.');
+
+        RLM_DecisionTableManagerController.DecisionTableInfo other = infoWithVerdict(
+            RLM_DecisionTableManagerController.STALENESS_FRESH, new List<String>{ 'Product2' });
+        RLM_DecisionTableManagerController.withdrawFreshWhenRowsMayBeHidden(other, hidden);
+        Assert.areEqual(RLM_DecisionTableManagerController.STALENESS_FRESH, other.staleness,
+            'A table that reads nothing hidden keeps its verdict.');
+    }
+
+    @isTest
+    static void privateObjectRowsAreHiddenFromALeastPrivilegedUserButNotFromAnAdmin() {
+        // Opportunity, not a pricing object: IndexRate (Private on 264, measured hiding a
+        // stale row from the salesrep) needs a Revenue Cloud license a test user cannot get,
+        // and EntityDefinition returns no row for an object the user cannot access.
+        Map<String, String> models = new Map<String, String>();
+        for (EntityDefinition e : [
+            SELECT QualifiedApiName, InternalSharingModel FROM EntityDefinition
+            WHERE QualifiedApiName IN ('Opportunity', 'Quote', 'Product2')
+        ]) {
+            models.put(e.QualifiedApiName, e.InternalSharingModel);
+        }
+        // Quote is always controlled by its Opportunity. The other two are whatever this org's
+        // admin set, so the expectations below follow them; the fixed-model cases are covered
+        // by hidingReasonFollowsTheSharingModelAndItsMasters. Where Opportunity hides rows this
+        // checks the hiding direction: the labels, View All through ObjectPermissions, and Fresh
+        // being withdrawn. Elsewhere it checks the see-all direction: the EntityDefinition read
+        // and the master walk must still resolve Quote to a visible Opportunity, and a visible
+        // Fresh must be kept.
+        if (models.get('Quote') != 'ControlledByParent' || !models.containsKey('Opportunity')
+                || !models.containsKey('Product2')) {
+            Assert.fail('Fixture: expected Opportunity, Product2 and a ControlledByParent Quote; got ' + models);
+        }
+        // Deliberately a copy of the controller's SEE_ALL_SHARING_MODELS, not a reference to
+        // it: referencing it would make these expectations agree with any bug in the set.
+        Set<String> seeAll = new Set<String>{ 'Read', 'ReadWrite', 'ReadWriteTransfer', 'FullAccess', 'ReadSelect' };
+        Boolean opportunityHides = !seeAll.contains(models.get('Opportunity'));
+        Boolean productHides = !seeAll.contains(models.get('Product2'));
+        Set<String> objects = new Set<String>{ 'Opportunity', 'Quote', 'Product2' };
+        Map<String, SObjectType> gd = Schema.getGlobalDescribe();
+
+        Assert.isTrue(RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd).isEmpty(),
+            'The deploying admin has View All Data, so nothing is hidden.');
+
+        // Like the salesrep persona: View Setup and read on the objects.
+        User u = newLeastPrivilegedUser('rlmdth');
+        assign(u, readerSet('RLM_DTM_Test_Reader', true, false));
+        // The same, plus View All on Opportunity: the real ObjectPermissions read must see it.
+        User viewAll = newLeastPrivilegedUser('rlmdtv');
+        assign(viewAll, readerSet('RLM_DTM_Test_ViewAll', true, true));
+        // Read on the objects but no View Setup.
+        User bare = newLeastPrivilegedUser('rlmdtb');
+        assign(bare, readerSet('RLM_DTM_Test_NoSetup', false, false));
+
+        System.runAs(u) {
+            Map<String, String> hidden = RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd);
+            Assert.areEqual(opportunityHides, hidden.containsKey('Opportunity'),
+                'Opportunity is ' + models.get('Opportunity') + ': ' + hidden);
+            if (models.get('Opportunity') == 'Private') {
+                Assert.areEqual('Private sharing', hidden.get('Opportunity'), String.valueOf(hidden));
+            }
+            // A child is hidden exactly when its master is.
+            Assert.areEqual(opportunityHides, hidden.containsKey('Quote'), 'Quote follows Opportunity: ' + hidden);
+            if (opportunityHides) {
+                Assert.isTrue(hidden.get('Quote').startsWith('controlled by Opportunity: '), hidden.get('Quote'));
+            }
+            Assert.areEqual(productHides, hidden.containsKey('Product2'),
+                'Product2 is ' + models.get('Product2') + ': ' + hidden);
+
+            // The wiring getDecisionTables uses: a Fresh verdict over Quote is withdrawn
+            // exactly when Quote's rows can be hidden. This only catches a broken withdraw where
+            // Opportunity hides rows (Private on a stock build, e.g. pk049-r1); no standard
+            // object is hiding on every org.
+            RLM_DecisionTableManagerController.DecisionTableInfo info = infoWithVerdict(
+                RLM_DecisionTableManagerController.STALENESS_FRESH, new List<String>{ 'Quote' });
+            RLM_DecisionTableManagerController.applySharingScope(
+                new List<RLM_DecisionTableManagerController.DecisionTableInfo>{ info }, gd);
+            Assert.areEqual(opportunityHides
+                    ? RLM_DecisionTableManagerController.STALENESS_UNCOMPUTED
+                    : RLM_DecisionTableManagerController.STALENESS_FRESH,
+                info.staleness, info.stalenessReason);
+        }
+        System.runAs(viewAll) {
+            Map<String, String> hidden = RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd);
+            Assert.isFalse(hidden.containsKey('Opportunity'), 'View All on Opportunity sees every row: ' + hidden);
+            Assert.isFalse(hidden.containsKey('Quote'), 'And so every Quote under it: ' + hidden);
+        }
+        System.runAs(bare) {
+            // Where the model hides rows, it hides them either way: by the model, or because
+            // the model cannot be read.
+            Map<String, String> hidden = RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd);
+            if (opportunityHides) {
+                Assert.isTrue(hidden.containsKey('Opportunity'), 'Must not read as visible: ' + hidden);
+            }
+        }
+    }
+
+    private static PermissionSet readerSet(String name, Boolean viewSetup, Boolean viewAllOpportunity) {
+        PermissionSet ps = new PermissionSet(Name = name, Label = name.replace('_', ' '),
+            PermissionsViewSetup = viewSetup, PermissionsViewRoles = viewSetup);
+        insert ps;
+        insert new List<ObjectPermissions>{
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Opportunity', PermissionsRead = true,
+                PermissionsViewAllRecords = viewAllOpportunity),
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Quote', PermissionsRead = true),
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Product2', PermissionsRead = true)
+        };
+        return ps;
+    }
+
+    private static void assign(User u, PermissionSet ps) {
+        insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+    }
+
+    private static RLM_DecisionTableManagerController.DecisionTableInfo infoWithVerdict(
+        String verdict, List<String> reads
+    ) {
+        RLM_DecisionTableManagerController.DecisionTableInfo info =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(
+                new DecisionTable(DeveloperName = 'Test_Table', SourceObject = reads[0]));
+        info.staleness = verdict;
+        info.stalenessReason = 'computed';
+        info.readsObjects = reads;
+        return info;
+    }
+
+    @isTest
     static void unknownTableNamesAreReportedRatherThanDropped() {
         RLM_DecisionTableManagerController.RefreshResult result =
             RLM_DecisionTableManagerController.refreshTables(

@@ -342,7 +342,8 @@ stale table — only where no data load follows the refresh.
 
 ⚠ **"Not comparable" is not a failure.** It means the check declined to guess.
 Only **Stale** is a positive finding. Verdicts are scoped to the running user's
-visible rows, so run it as an operator with org-wide read.
+visible rows, so run it as an operator with org-wide read. Run as a user whom sharing can
+hide rows from, it reports those tables Not comparable rather than Fresh.
 
 Full detail — what each verdict means, the timing rule for automatic refreshes,
 and why a lookup goes stale without its own row changing:

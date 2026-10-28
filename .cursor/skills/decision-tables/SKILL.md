@@ -211,7 +211,7 @@ component does, so they cannot disagree.
 |---|---|
 | **Fresh** | The last sync — full or incremental, whichever is later — is later than the newest change **visible to the running user** in *every* object the table reads. Scoped on purpose — see limit 3 below. The reason says which sync it rests on. |
 | **Stale** | Something the table reads changed **at or after** the sync. The reason names the object that drove it, and says so explicitly when the two timestamps tie. |
-| **Not comparable** | The check refused to guess — a source criterion it could not faithfully reproduce, a dependency it could not check, or no sObject behind the table at all (`CsvUpload`, `ContextDefinition`, whose freshness is the upload or the Context Definition, not a record timestamp). Compare by hand. |
+| **Not comparable** | The check refused to guess — a source criterion it could not faithfully reproduce, a dependency it could not check, sharing that can hide rows of an object it reads from the running user (limit 3), or no sObject behind the table at all (`CsvUpload`, `ContextDefinition`, whose freshness is the upload or the Context Definition, not a record timestamp). Compare by hand. |
 | **Unknown** | The source could not be read: no source object recorded, the object missing from this org, no permission on it, or its probe failed. |
 
 Two limits apply to **every** verdict, by construction. A third is listed and **closed**,
@@ -227,9 +227,14 @@ so it is not reintroduced:
 3. Probes run in `USER_MODE`, so they see only rows the running user can see. ⚠ **Run the
    check as an operator with org-wide read.** A row hidden from the caller by sharing and
    modified after the sync is invisible to the probe, and the failure direction is the bad
-   one — Fresh while stale. Every verdict says "visible" for this reason; nothing here
-   proves the caller sees every row. The Manager is on the shared Home page, so a
-   restricted persona can run it and get a verdict scoped to their own view.
+   one — Fresh while stale. Every verdict says "visible" for this reason. The Manager is on
+   the shared Home page, so a restricted persona can run it and get a verdict scoped to
+   their own view. **Narrowed:** Fresh is withdrawn to Not comparable, naming the object,
+   when a table reads an object whose sharing can hide rows from the caller (Private, or
+   controlled by a Private master) and the caller lacks View All. On 264 that is IndexRate
+   and BindingObjectRateCardEntry for the salesrep persona (7 tables). Every probed object
+   counts, including those a source criterion traverses. Still unchecked: restriction rules
+   and external users' sharing.
 
 Within what its probes can observe, the design deliberately trades coverage for not
 guessing: an unnecessary refresh is cheap, a false all-clear is not. Over-refusing into
