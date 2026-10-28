@@ -310,8 +310,11 @@ cci task run refresh_dt_default_pricing
 `salesforce_task = True`. Before that they silently ran against the CCI **default** org.
 `manage_expression_sets` and most other custom tasks still reject it; see issue #320.)
 
-**Use `LastSyncDate` to decide whether a refresh happened.** It only advances on a refresh
-that actually ran, so the staleness comparison above is the one check that holds for every
+**Use the table's latest sync — the later of `LastSyncDate` and `LastIncrementalSyncDate`
+— to decide whether a refresh happened.** Release 264 can run a full request as
+incremental, which moves only `LastIncrementalSyncDate` (see the decision-tables skill,
+`lifecycle-and-refresh.md` → *Release 264 chooses the refresh type*). A sync date only
+advances on a refresh that actually ran, so the staleness comparison above is the one check that holds for every
 failure shape. Do not rely on `DecisionTable.RefreshStatus` / `RefreshFailureReason` as the
 detector: they live *on a table record*, so they only tell you anything once a refresh has
 been accepted for a table that exists.
@@ -332,7 +335,7 @@ Consequences:
 - The documented `status = Failed` output could not be provoked — a valid table returned
   `Queued` on every attempt, including five back-to-back refreshes of the same table.
 - Because the fault case leaves no trace on the table, a flow that swallows the fault leaves
-  `LastSyncDate` as the *only* evidence. That is by design, but it means the staleness check
+  the sync dates as the *only* evidence. That is by design, but it means the staleness check
   above is the monitoring story, not an afterthought.
 
 To tell whether a table is stale, compare **each** table against **its own** source object's
@@ -350,7 +353,7 @@ the table deliberately excludes. The tier tables only admit rows whose contract 
 so an unfiltered `MAX` over a Draft contract's tiers would report them stale forever:
 
 ```bash
-sf data query -q "SELECT DeveloperName, LastSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%' ORDER BY DeveloperName" --target-org <sf_alias>
+sf data query -q "SELECT DeveloperName, LastSyncDate, LastIncrementalSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%' ORDER BY DeveloperName" --target-org <sf_alias>
 
 # Entries <- ContractItemPrice, which has NO source criteria: no filter here.
 sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPrice" --target-org <sf_alias>
@@ -361,7 +364,7 @@ sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPrice" --
 sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPriceAdjTier WHERE ContractItemPrice.Contract.StatusCode = 'Activated'" --target-org <sf_alias>
 ```
 
-A table whose `LastSyncDate` is **earlier** than its own source's `newest` is stale, and the
+A table whose latest sync (the later of the two dates) is **earlier** than its own source's `newest` is stale, and the
 contract's negotiated price is not being applied. A `null` `newest` means that source has no
 qualifying rows, so its tables cannot be stale.
 

@@ -431,7 +431,7 @@ class ManageDecisionTables(BaseTask):
                 # DecisionTable.RefreshStatus here — pricing-wiring/SKILL.md rules it out
                 # as a detector, because it lives on a table record and so says nothing
                 # for the failure that actually occurs (an unresolvable name leaves no
-                # record to stamp). LastSyncDate, which the freshness check uses, is the
+                # record to stamp). The latest sync date, which the freshness check uses, is the
                 # one signal that holds for every shape.
                 # ⚠ Sentinel AFTER the strip, not before. A whitespace-only Status is
                 # truthy, so `or 'Unknown'` never fires and .strip() then leaves '' —

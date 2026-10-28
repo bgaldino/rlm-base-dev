@@ -200,32 +200,20 @@ Advanced; CSV tables use the Advanced pool. Batch initial setup accordingly.
 ⚠ **Release 264 does not consult `isIncrementalSyncEnabled`** (read from Core source
 and confirmed live, 2026-10-27): an incremental request runs whatever the flag says,
 and a full request can run as incremental too. See the decision-tables skill,
-`lifecycle-and-refresh.md` → *Release 264 chooses the refresh type*. The text below
-describes the standalone toolkit's pre-264 rule, which issue #587 removes.
+`lifecycle-and-refresh.md` → *Release 264 chooses the refresh type*. The flag is
+`false` on every table this repo ships, and nothing here gates on it.
 
-The flag is `false` on every Decision Table this repo ships (`RLM_CostBookEntries`,
-`RLM_ProductQualification`, `RLM_ProductCategoryQualification`,
-`RLM_Channel_Program_Level_Partner`):
-
-```bash
-python scripts/decision_tables/describe_decision_table.py \
-  --target-org "your-sf-alias" --developer-name RLM_CostBookEntries
-# → incrSync : disabled
-```
-
-Where the flag *is* true, the standalone toolkit sends the platform's
-`isDecisionTableIncremental` input:
+Request an incremental refresh with the standalone toolkit:
 
 ```bash
 python scripts/decision_tables/refresh_decision_table.py \
-  --target-org "your-sf-alias" --developer-name "your-incremental-enabled-table" \
+  --target-org "your-sf-alias" --developer-name RLM_CostBookEntries \
   --incremental --confirm
 ```
 
-`refresh_decision_table.py` reads the flag first and **refuses** `--incremental`
-on a table where it is false — the same pre-264 rule the in-org Decision Table
-Manager applies. `--allow-disabled-incremental` overrides the refusal. Both go with
-issue #587.
+It is rejected on a LowVolume table, and runs full after a failed incremental or on a
+source that hard-deletes records. `--allow-disabled-incremental` is accepted for
+compatibility and has no effect.
 
 ### Refresh Specific Decision Tables
 
@@ -463,11 +451,11 @@ The action input is `isDecisionTableIncremental`, not `isIncremental`. The
 `RLM_Refresh_Decision_Tables_Bulk` flow maps its flow variable to the correct
 action input.
 
-⚠ Incremental sync is **disabled on every decision table this repo ships**. Before
-Release 264 that made an incremental request a no-op, which is why the Manager and
-`scripts/decision_tables/refresh_decision_table.py --incremental` refuse one on such a
-table. Release 264 does not consult the flag, so both refusals predate it; issue #587
-removes them.
+The Manager judges freshness by the later of `LastSyncDate` and
+`LastIncrementalSyncDate`, the rule the Decision Table app page uses, because Release
+264 can run a full request as incremental (issue #587). It no longer refuses an
+incremental request on a table with `IsIncrementalSyncEnabled` false: 264 does not
+consult that flag.
 
 Deploy: `cci task run deploy_post_utils`. Commerce flow: `cci task run deploy_post_commerce`,
 which no build flow runs. Deploy `post_utils`
@@ -491,7 +479,7 @@ deploys on its own when `quantumbit` or `tso` is on.
   - `DeveloperName`: The API name of the decision table
   - `SetupName`: The user-friendly name
   - `UsageType`: Category (DefaultPricing, DefaultRating, RatingDiscovery, PricingDiscovery, RevenueStandardTax, etc.)
-  - `LastSyncDate`: When the table was last refreshed
+  - `LastSyncDate`: When the table last had a full refresh (`LastIncrementalSyncDate`: an incremental one)
   - `Status`: `Active` or `Inactive`
 - **SFDMU**: Expression set and decision table activate/deactivate are handled by CCI tasks (`manage_expression_sets`, `manage_decision_tables` / `activate_decision_tables`). The former SFDMU data plans for these have been removed from the repo.
 

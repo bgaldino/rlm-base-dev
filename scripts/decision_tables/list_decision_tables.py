@@ -30,9 +30,12 @@ def _print_grouped(rows):
         for r in sorted(group, key=lambda x: x.get("DeveloperName") or ""):
             status = r.get("Status") or "-"
             src = r.get("SourceObject") or "-"
+            # Both stamps: Release 264 can run a full request as incremental, which
+            # moves only LastIncrementalSyncDate, so lastSync alone looks stale (#587).
             synced = r.get("LastSyncDate") or "never"
+            incr = r.get("LastIncrementalSyncDate") or "never"
             print(f"    - {r.get('DeveloperName')}   status={status}   "
-                  f"source={src}   lastSync={synced}   id={r.get('Id')}")
+                  f"source={src}   lastSync={synced}   lastIncrSync={incr}   id={r.get('Id')}")
         print()
 
 
