@@ -97,10 +97,21 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
   post-activation poll instantly and be verified (or commitment-linked) as though it
   were the new one. A preflight refuses to run; `--allow-existing-asset` proceeds but
   requires a genuinely **new** asset id.
-- **Not every account can transact.** Several scratch accounts ship with no shipping
-  address or bill-to contact and fail with `FAILED_ACTIVATION`. The QuantumBit demo
-  accounts (Infinitech, Kingsbridge Digital, Coralbay Technologies, Helvetia Cloud,
-  Northlight Systems, Rheintech Solutions, Sakura Systems, Global Media) all have both.
+- **`FAILED_ACTIVATION` ("Enter the shipping address associated with the account") has two
+  causes.**
+  - The account has no shipping address or bill-to contact. Several scratch accounts ship
+    that way. The QuantumBit demo accounts (Infinitech, Kingsbridge Digital, Coralbay
+    Technologies, Helvetia Cloud, Northlight Systems, Rheintech Solutions, Sakura Systems,
+    Global Media) all have both.
+  - The account has one, but the order doesn't: an order created from a quote
+    (`createOrdersFromQuote`, as the chain above uses, or a graph-built one) doesn't copy the
+    account's shipping address. Measured on Infinitech, 2026-08-24 (264, ent-sb0): the account
+    had the address, and the order still failed. Copy the account's Shipping address fields onto
+    the `Order` before setting `Status = Activated` (Billing isn't gating). The txn harness does
+    this (`scripts/txn_data_harness/lifecycle.py`). `scripts/build_quote_to_asset.py` has no
+    address step; whether its path needs one hasn't been verified, given the Infinitech example
+    shown above. If activation stops with this message, check the account's
+    address first, then the order's Shipping fields.
 - **Backdate deliberately.** `--start` must be early enough that a billing period has
   closed, or there is nothing for rating to settle.
 
