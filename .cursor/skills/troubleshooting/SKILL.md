@@ -175,7 +175,26 @@ Check the SFDMU stdout for the specific object and error. Common causes:
 | `REQUIRED_FIELD_MISSING` | Parent records not loaded yet | Check plan dependency order (PCM before pricing/billing) |
 | `DUPLICATE_VALUE` | Composite key mismatch | Verify `$$` column in CSV matches `externalId` fields |
 
+### Load task fails: "SFDMU reported success, but Salesforce rejected N row(s)"
+
+**Cause:** `LoadSFDMUData` read the plan's `target/*_target.csv` files after an exit-0
+run and found rows whose `Errors` value is neither `#N/A` nor empty. SFDMU's own log said
+`Inserted N` — that counts rows attempted, not created. The message names each
+object, operation, the rejected-row count, the target file and the first errors.
+
+**Fix:** Treat it as the load error it is — the platform message is in the target
+file's `Errors` column (common ones are in the table above). Only if the rejection is
+understood and harmless, add it to the task's `ignore_row_errors_for` as
+`Object: "expected error substring"` with a comment saying why: those rows are then
+logged as a warning, while a different error or any other object still fails. `fail_on_row_errors: false` turns the whole check into a warning.
+
 ### Idempotency test fails (record count increased)
+
+(It also fails, before comparing counts, on rejected rows other than the task's
+`ignore_row_errors_for`, and on ANY rejected insert in the second load, listed or not: a
+rerun whose inserts are rejected instead of matched leaves the counts flat and would
+otherwise read as idempotent. A rejected update can't create a record, so a known update
+rejection is tolerated on both loads.)
 
 **Cause:** Missing or mismatched `$$` composite key column in the CSV. The
 second load inserts instead of matching.

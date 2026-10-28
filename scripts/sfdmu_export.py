@@ -17,6 +17,10 @@ to import this without dragging in the validator's world. These functions return
 plain data; a caller that wants to *report* on what they return does that with
 its own machinery.
 
+The one runtime primitive here, `collect_target_row_errors`, reads what a LOAD left
+behind rather than the plan itself; it lives here for the same reason (the task and
+any script that checks a load must agree on what counts as a rejected row).
+
 The canonical implementations were extracted verbatim from
 `validate_sfdmu_v5_datasets.py` (the most complete/guarded copy); their long-form
 rationale lives in that file's git history and in the referenced packs. Behavior
@@ -26,8 +30,11 @@ follow-on commits ON this module, each with its own before/after test, so a
 regression stays attributable.
 """
 
+import csv
+import json
+import os
 import re
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 # The TypeScript numeric enum SFDMU loads `operation` against, index-ordered.
 # Index 8 (`unknown`) is the enum's own fallback: a value that resolves to a
@@ -240,3 +247,138 @@ def object_set_dir_number(name) -> Optional[int]:
         return None
     match = _OBJECT_SET_DIR_RE.fullmatch(name)
     return int(match.group(1)) if match else None
+
+
+# --------------------------------------------------------------------------------
+# Per-row load results (todo pack 286)
+# --------------------------------------------------------------------------------
+# SFDMU exits 0 and logs "Inserted N" even when Salesforce rejects every row: N is rows
+# ATTEMPTED. The only record of a rejection is the `Errors` column of
+# `<plan>/target/[object-set-N/]<Object>_<operation>_target.csv`. A successful row
+# carries `#N/A` there (measured 2026-10-21, 264); SFDMU writes only rows it submitted,
+# so an empty value is not a skipped row and counts as success too.
+SFDMU_ROW_SUCCESS_MARKERS = frozenset({"", "#N/A"})
+_TARGET_CSV_SUFFIX = "_target.csv"
+
+
+def snapshot_target_files(plan_dir: str) -> Dict[str, float]:
+    """`{path: mtime}` for every `*_target.csv` under `plan_dir/target/` -- take it BEFORE a run.
+
+    `target/` is gitignored runtime output that SFDMU does not clear, so a file left by an
+    earlier run would otherwise be read as this run's result. Comparing against a snapshot
+    (new file, or changed mtime) needs no clock slack, unlike a timestamp cutoff.
+    """
+    found = {}
+    for root, _dirs, files in os.walk(os.path.join(plan_dir, "target")):
+        for name in files:
+            if name.endswith(_TARGET_CSV_SUFFIX):
+                path = os.path.join(root, name)
+                found[path] = os.path.getmtime(path)
+    return found
+
+
+def collect_target_row_errors(plan_dir: str, since: Optional[float] = None,
+                              baseline: Optional[Dict[str, float]] = None,
+                              max_samples: int = 3) -> List[dict]:
+    """Every `*_target.csv` under `plan_dir/target/` that records rejected rows.
+
+    Returns one dict per offending file, sorted by path: `file` (relative to
+    `plan_dir`), `object`, `operation`, `failed`, `rows`, `errors` (every distinct
+    message -> its row count), and `samples` (up to `max_samples` distinct messages,
+    first-seen order).
+
+    Only files written by the run under test are read: with `baseline` (from
+    `snapshot_target_files` before the run), files that are new or whose mtime changed;
+    with `since` (an epoch timestamp), files last written at or after it. A file with no
+    `Errors` column records no rejections. Raises `OSError` / `csv.Error` on an unreadable
+    file: a check that cannot read the evidence must not report a clean load.
+    """
+    target_dir = os.path.join(plan_dir, "target")
+    if not os.path.isdir(target_dir):
+        return []
+    csv.field_size_limit(max(csv.field_size_limit(), 2 ** 31 - 1))
+    found = []
+    for root, _dirs, files in os.walk(target_dir):
+        for name in files:
+            if not name.endswith(_TARGET_CSV_SUFFIX):
+                continue
+            path = os.path.join(root, name)
+            mtime = os.path.getmtime(path)
+            if since is not None and mtime < since:
+                continue
+            if baseline is not None and baseline.get(path) == mtime:
+                continue
+            with open(path, newline="", encoding="utf-8-sig") as handle:
+                reader = csv.reader(handle)
+                header = next(reader, [])
+                if "Errors" not in header:
+                    continue
+                col = header.index("Errors")
+                rows = 0
+                errors: Dict[str, int] = {}
+                for row in reader:
+                    rows += 1
+                    value = row[col].strip() if col < len(row) else ""
+                    if value not in SFDMU_ROW_SUCCESS_MARKERS:
+                        errors[value] = errors.get(value, 0) + 1
+            if errors:
+                # `<Object>_<operation>_target.csv`; the object may itself contain
+                # underscores (custom objects), the operation never does.
+                obj, _, operation = name[: -len(_TARGET_CSV_SUFFIX)].rpartition("_")
+                found.append({
+                    "file": os.path.relpath(path, plan_dir),
+                    "object": obj or name,
+                    "operation": operation if obj else "",
+                    "failed": sum(errors.values()),
+                    "rows": rows,
+                    "errors": errors,
+                    "samples": list(errors)[:max_samples],
+                })
+    return sorted(found, key=lambda item: item["file"])
+
+
+def parse_row_error_ignores(value) -> Dict[str, Optional[str]]:
+    """`ignore_row_errors_for` as `{object: expected error substring, or None for any}`.
+
+    Accepts a YAML list (`[ProrationPolicy]`), a YAML mapping (`{Product2: "Required
+    fields are missing: [Name]"}`), a JSON string of either (as `-o` delivers one pasted
+    from YAML), or a comma-separated string of object names.
+    """
+    if not value:
+        return {}
+    if isinstance(value, str):
+        text = value.strip()
+        if text[:1] in "[{":
+            value = json.loads(text)
+        else:
+            value = [part for part in text.split(",")]
+    if isinstance(value, dict):
+        return {str(k).strip(): (None if v in (None, "") else str(v)) for k, v in value.items()}
+    return {str(item).strip(): None for item in value if str(item).strip()}
+
+
+def split_known_row_errors(found: List[dict], ignores: Dict[str, Optional[str]]):
+    """`(known, unknown)`: a file is known only if its object is listed AND, when an expected
+    substring is given, EVERY distinct error in it contains that substring -- so a new kind
+    of rejection on an ignored object still fails."""
+    known, unknown = [], []
+    for item in found:
+        if item["object"] not in ignores:
+            unknown.append(item)
+            continue
+        expected = ignores[item["object"]]
+        if expected is None or all(expected in message for message in item.get("errors", {})):
+            known.append(item)
+        else:
+            unknown.append(item)
+    return known, unknown
+
+
+def format_target_row_errors(found: List[dict]) -> str:
+    """One line per offending target file, for a log or an exception message."""
+    lines = []
+    for item in found:
+        lines.append(f"{item['object']} ({item['operation'] or '?'}): {item['failed']} of "
+                     f"{item['rows']} row(s) rejected [{item['file']}] -- "
+                     + " | ".join(item["samples"]))
+    return "\n".join(lines)

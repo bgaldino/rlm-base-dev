@@ -22,6 +22,9 @@ insert_tax_data:
   class_path: tasks.rlm_sfdmu.LoadSFDMUData
   options:
     pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-tax"
+    ignore_row_errors_for:                      # known rejections, see cumulusci.yml (todo 304)
+      TaxPolicy: "cannot be updated to Active"
+      TaxEngine: "MerchantCredentialId"
 ```
 
 ## Data Plan Overview
