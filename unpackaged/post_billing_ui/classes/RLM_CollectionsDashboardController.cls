@@ -794,9 +794,11 @@ public with sharing class RLM_CollectionsDashboardController {
             Schema.DescribeSObjectResult dmDesc = Schema.getGlobalDescribe().get('DebitMemo').getDescribe();
             Map<String, Schema.SObjectField> flds = dmDesc.fields.getMap();
             String accFld = flds.containsKey('BillToAccountId') ? 'BillToAccountId' : (flds.containsKey('AccountId') ? 'AccountId' : null);
-            // Posted only, as RLM_InvoiceSummaryController counts them: a Draft or Canceled
-            // memo is not owed.
-            String soql = 'SELECT SUM(TotalAmount) sumAmt FROM DebitMemo WHERE TotalAmount != null AND Status = \'Posted\' ';
+            // Posted and not yet on a posted invoice: a Draft or Canceled memo is not owed, and
+            // a posted invoice's balance already counts its lines. A draft invoice is in no
+            // invoice sum, so a memo on one still counts here.
+            String soql = 'SELECT SUM(TotalAmount) sumAmt FROM DebitMemo WHERE TotalAmount != null'
+                + ' AND Status = \'Posted\' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' ';
             if (accountId != null && accFld != null) soql += ' AND ' + accFld + ' = :accountId ';
             if (String.isNotBlank(currencyCode) && flds.containsKey('CurrencyIsoCode')) soql += ' AND CurrencyIsoCode = :currencyCode ';
             List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);

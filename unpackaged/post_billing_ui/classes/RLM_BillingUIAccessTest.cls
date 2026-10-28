@@ -67,7 +67,9 @@ private class RLM_BillingUIAccessTest {
             'Status', 'DisputedAmount', 'InvoiceId', 'CaseId', 'DisputeType', 'DisputeSubtype',
             'Description', 'CurrencyIsoCode'
         },
-        'DebitMemo' => new List<String>{ 'TotalAmount', 'TotalChargeAmount', 'AccountId', 'Status', 'CurrencyIsoCode' },
+        'DebitMemo' => new List<String>{
+            'TotalAmount', 'TotalChargeAmount', 'AccountId', 'Status', 'InvoiceGenerationStatus', 'CurrencyIsoCode'
+        },
         'CreditMemo' => new List<String>{ 'Balance', 'BillingAccountId', 'Status', 'CurrencyIsoCode' },
         'Refund' => new List<String>{ 'Balance', 'AccountId', 'Status', 'CurrencyIsoCode' },
         'BillingScheduleGroup' => new List<String>{

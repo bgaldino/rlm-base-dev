@@ -122,7 +122,9 @@ public with sharing class RLM_InvoiceSummaryController {
         // ── 3. Debit Memos — posted for this account ────────────
         String dmQuery = 'SELECT Id, TotalAmount';
         if (isMultiCurrency) dmQuery += ', CurrencyIsoCode';
-        dmQuery += ' FROM DebitMemo WHERE AccountId = :accountId AND Status = \'Posted\'';
+        // Not yet on a posted invoice: once it is, that invoice's balance counts it.
+        dmQuery += ' FROM DebitMemo WHERE AccountId = :accountId AND Status = \'Posted\''
+            + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\'';
         for (SObject dm : Database.query(dmQuery, AccessLevel.USER_MODE)) {
             Decimal amt = (Decimal)dm.get('TotalAmount');
             if (amt == null || amt <= 0) continue;
