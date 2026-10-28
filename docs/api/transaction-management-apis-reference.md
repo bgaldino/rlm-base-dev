@@ -205,7 +205,7 @@ Asset Lifecycle APIs manage changes to existing assets after an order has been a
   - `outputRecordId` (String, Optional): ID of the Quote or Order record to renew.
   - `outputRecordType` (String, Required): Type of renewal record to create.
   - `renewalEndDate` (String, Optional): End date of the renewal process for the assets.
-  - `renewalStartDate` (String, Optional): Start date of the renewal process. Required for early asset renewals and for renewing expired assets (today's date or a future date).
+  - `renewalStartDate` (String, Optional): Start date of the renewal process. Required for early asset renewals and for renewing expired assets. The dev guide adds "using today's date or a future date". *Measured on 264 (one org, one Term Annual product, 2026-10-28): without it an expired asset was rejected with "Select Override Renewal Term to renew expired or future-dated assets", and a **past** date was accepted; the guide's own sample request also uses a past date. See `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`.*
 
 *Grounded against: `connect_resources_assets_renew.htm.md`, `connect_requests_renew_input.htm.md`*
 

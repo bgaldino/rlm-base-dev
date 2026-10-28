@@ -107,7 +107,9 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
     (`createOrdersFromQuote`, as the chain above uses, or a graph-built one) doesn't copy the
     account's shipping address. Measured on Infinitech, 2026-08-24 (264, ent-sb0): the account
     had the address, and the order still failed. Copy the account's Shipping address fields onto
-    the `Order` before setting `Status = Activated` (Billing isn't gating). The txn harness does
+    the `Order` before setting `Status = Activated` (Billing isn't gating for these new-sale
+    orders; in one measured run, amend/cancel/renew orders on 264 also needed the billing address
+    and a bill-to contact, see `rlm-business-apis/backdated-asset-lifecycle.md`). The txn harness does
     this (`scripts/txn_data_harness/lifecycle.py`). `scripts/build_quote_to_asset.py` has no
     address step; whether its path needs one hasn't been verified, given the Infinitech example
     shown above. If activation stops with this message, check the account's
