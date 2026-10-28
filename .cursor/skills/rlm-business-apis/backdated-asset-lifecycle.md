@@ -47,6 +47,27 @@ To diff against a newer template: Flow Builder → open *Amend, Renew, and Cance
 As a new flow (don't activate) → retrieve it. The template itself can't be retrieved (it's a
 managed template, `IsTemplate = true`).
 
+Measured in the UI run (2026-10-28: amend, cancel, renew, transfer, swap, upgrade and downgrade
+each continued through invoice with the verifier and passed; rollback refused in the viewer with
+*"We couldn't complete the rollback. The asset's amendment period has started"*):
+
+- **The flow creates quotes**; Create Order → Create Single Order makes the order.
+- **Swap/upgrade/downgrade product picker** lists only products in a catalog category. QB API
+  Management Solution (`QB-API-MGMT`) is in none, so it can't be picked; Additional QB DataGraph
+  and Additional API Flex/Pre-Prod can.
+- **The incoming swap/upgrade line uses the product's own term and billing frequency**: here a
+  year from the swap date (08-01 → 2027-07-31) billed **Annual**, not co-termed with the outgoing
+  asset as the API run was. So billing differs between paths: the UI swap's catch-up invoice bills
+  the incoming product's full annual period (3,240.00) against three monthly credits (−810.00).
+- **Transfer: run Create Order on one transfer quote only.** `RLM_CreateOrdersFromQuote` makes
+  both the source and target orders from either quote; running it on the second quote makes a
+  duplicate pair. Activate the source order first.
+- **Billing info on swap/upgrade/downgrade quotes.** These quotes leave `OriginalActionType`
+  blank and have no Opportunity, so `RLM_Update_Quote_Billing_Info_From_Opportunity_Account`
+  used to skip them and Create Order stopped at *"This quote isn't ready to create orders yet"*.
+  It now also defaults bill-to contact and addresses from the account for any quote without an
+  Opportunity (todo 305).
+
 ## API path
 
 The flow calls standard invocable actions. Calling them through
@@ -179,7 +200,8 @@ transfer's target order is on another account.
 - The check waits until every non-zero line of the change's order(s) has a schedule (matched
   per line) and a further poll finds no new ones. Then, **per schedule**: it starts on the
   effective date, its first invoice line starts there, and its lines sum to sign × the
-  schedule's `BillingPeriodAmount` × the periods elapsed since the effective date.
+  schedule's `BillingPeriodAmount` × the billing periods of that schedule's own term
+  (Month, Quarter, Semi-Annual, Year; any other unit fails as unmodelled) started since then.
   A zero-quantity schedule must bill nothing. Every negative invoice must have a credit memo and settle
   to `Balance = 0`. The expectation uses the platform's own period amount, so the check proves
   the invoice matches the schedule, not that the price is right.

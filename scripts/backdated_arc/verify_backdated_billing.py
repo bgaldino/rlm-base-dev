@@ -91,6 +91,24 @@ def months_between(start, end):
     return (end.year - start.year) * 12 + end.month - start.month + 1
 
 
+TERM_MONTHS = {"Month": 1, "Quarter": 3, "Semi-Annual": 6, "Year": 12}
+
+
+def periods_started(effective, today, unit, term):
+    """Billing periods (billed in advance) that have started from ``effective`` through ``today``.
+
+    A UI swap/upgrade gives the incoming line its product's own billing frequency
+    (measured: Annual), so periods aren't always months. Assumes every period starts
+    on the effective date and bills the full period amount: a calendar-aligned
+    boundary or a prorated short period fails the check (never a false PASS).
+    """
+    months = TERM_MONTHS.get(unit)
+    if not months:
+        return None
+    length = months * (term or 1)
+    return -(-months_between(effective, today) // length)
+
+
 def default_effective(today):
     """The 1st of the month two months before ``today``'s month."""
     m = today.month - 3
@@ -142,7 +160,7 @@ def schedules(org, order_ids):
         return []
     return sf_query(org, "SELECT Id, Status, Quantity, BillingScheduleStartDate, BillingScheduleEndDate, "
                          "NextBillingDate, BillingPeriodAmount, TotalAmount, BilledAmount, CancellationDate, "
-                         f"ReferenceEntityId, ReferenceEntityItemId FROM BillingSchedule WHERE ReferenceEntityId IN ({soql_ids(order_ids)}) "
+                         f"ReferenceEntityId, ReferenceEntityItemId, BillingTermUnit, BillingTerm FROM BillingSchedule WHERE ReferenceEntityId IN ({soql_ids(order_ids)}) "
                          "ORDER BY CreatedDate")
 
 
@@ -404,13 +422,12 @@ def check(new_scheds, invoices, effective, scale):
     """Return a list of failures for the post-change billing.
 
     Per schedule: it starts on the effective date, its first invoice line starts
-    there, and its lines sum to sign x |BillingPeriodAmount| x the periods elapsed
-    since then. The expectation comes from the platform's own period amount, so this
+    there, and its lines sum to sign x |BillingPeriodAmount| x the billing periods
+    (of the schedule's own term) started since then. The expectation comes from the platform's own period amount, so this
     proves the invoice matches the schedule, not the price. Each line is rounded to
     the currency's precision (JPY has none), so half a unit of it is allowed per line.
     """
     fails = []
-    periods = months_between(effective, TODAY)
     lines = [l for inv in invoices for l in inv["lines"]]
     by_sched = {}
     for l in lines:
@@ -437,6 +454,10 @@ def check(new_scheds, invoices, effective, scale):
         first = min(l["InvoiceLineStartDate"] for l in mine)
         if dt.date.fromisoformat(first) != effective:
             fails.append(f"schedule {s['Id']}: first invoice line starts {first}, expected {effective}")
+        periods = periods_started(effective, TODAY, s["BillingTermUnit"], s["BillingTerm"])
+        if periods is None:
+            fails.append(f"schedule {s['Id']} bills per {s.get('BillingTermUnit')}, which this check doesn't model")
+            continue
         expected = (1 if s["Quantity"] > 0 else -1) * abs(s["BillingPeriodAmount"]) * periods
         actual = sum(l["ChargeAmount"] for l in mine)
         expected_total += expected
@@ -595,7 +616,13 @@ def main():
         else:
             orders = run_action(org, args.scenario, asset, effective, args)
         order_account = {}
-        for o in orders:
+        for i, o in enumerate(orders):
+            if i:
+                # A transfer's target activates only once the source's activation has
+                # finished ("Activate the source order before the target order"), which
+                # is asynchronous; its billing schedules appearing marks the end.
+                wait(f"order {orders[i - 1]} to finish activating",
+                     lambda: complete_schedules(org, [orders[i - 1]]), 300)
             prepare_and_activate(org, o)
             order_account[o] = sf_query(org, f"SELECT AccountId FROM Order WHERE Id = '{o}'")[0]["AccountId"]
         new = wait(f"a billing schedule for every billable line of order(s) {', '.join(orders)}",

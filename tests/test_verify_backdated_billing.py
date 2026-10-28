@@ -9,6 +9,10 @@ The org-facing steps need a live org; the pieces that decide PASS/FAIL do not:
      requirement for a negative invoice.
   3. scenario_defaults -- the asset term and quantity each scenario builds
      (an expired term for renew-expired, quantity 2 for amend-down).
+  4. periods_started -- billing periods per schedule term (a UI swap bills annually).
+  5. complete_schedules -- waits per billable line, maps OrderItemDetail references,
+     and needs a stable poll.
+  6. check_shape and the argument rules -- UI-mode orders must match the scenario.
 
 Run:  python tests/test_verify_backdated_billing.py   (no org, stdlib only)
 """
@@ -34,7 +38,8 @@ def expect(label, got, want):
 
 
 def sched(qty, sid="S1", start="2026-08-01", period=270.0):
-    return {"Id": sid, "Quantity": qty, "BillingScheduleStartDate": start, "BillingPeriodAmount": period}
+    return {"Id": sid, "Quantity": qty, "BillingScheduleStartDate": start, "BillingPeriodAmount": period,
+            "BillingTermUnit": "Month", "BillingTerm": 1}
 
 
 def line(amount, start, sid="S1"):
@@ -108,6 +113,17 @@ jpy = [line(44033, d) for d in (AUG, SEP, OCT)]
 expect("JPY rounding passes at scale 0", vb.check([sched(1, period=44033.4166)], [invoice(jpy)], EFF, 0), [])
 expect("the same rounding fails at scale 2", bool(vb.check([sched(1, period=44033.4166)], [invoice(jpy)], EFF, 2)),
        True)
+
+# Billing periods follow each schedule's own term (a UI swap bills the incoming line annually).
+expect("monthly periods since Aug", vb.periods_started(EFF, vb.TODAY, "Month", 1), 3)
+expect("one annual period started", vb.periods_started(EFF, vb.TODAY, "Year", 1), 1)
+expect("quarterly: Aug-Oct is one quarter", vb.periods_started(EFF, vb.TODAY, "Quarter", 1), 1)
+expect("quarterly: Nov starts a second", vb.periods_started(EFF, dt.date(2026, 11, 2), "Quarter", 1), 2)
+expect("milestone plans aren't modelled", vb.periods_started(EFF, vb.TODAY, "BillingMilestonePlan", 1), None)
+annual_in = dict(sched(1, "IN", period=3240.0), BillingTermUnit="Year", BillingTerm=1)
+ui_swap = lines_for(-270, "OUT") + [line(3240, AUG, "IN")]
+expect("UI swap: monthly credit out, annual charge in",
+       vb.check([sched(-1, "OUT"), annual_in], [invoice(ui_swap)], EFF, 2), [])
 
 # 3. scenario_defaults
 expect("renew-expired term ends the day before", vb.scenario_defaults("renew-expired", EFF),
