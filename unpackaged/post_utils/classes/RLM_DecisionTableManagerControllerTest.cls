@@ -1840,10 +1840,22 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
         ]) {
             models.put(e.QualifiedApiName, e.InternalSharingModel);
         }
-        if (models.get('Opportunity') != 'Private' || models.get('Quote') != 'ControlledByParent'
-                || models.get('Product2') != 'Read') {
-            Assert.fail('Fixture: expected Opportunity Private, Quote ControlledByParent, Product2 Read; got ' + models);
+        // Quote is always controlled by its Opportunity. The other two are whatever this org's
+        // admin set, so the expectations below follow them; the fixed-model cases are covered
+        // by hidingReasonFollowsTheSharingModelAndItsMasters. Where Opportunity hides rows this
+        // checks the hiding direction: the labels, View All through ObjectPermissions, and Fresh
+        // being withdrawn. Elsewhere it checks the see-all direction: the EntityDefinition read
+        // and the master walk must still resolve Quote to a visible Opportunity, and a visible
+        // Fresh must be kept.
+        if (models.get('Quote') != 'ControlledByParent' || !models.containsKey('Opportunity')
+                || !models.containsKey('Product2')) {
+            Assert.fail('Fixture: expected Opportunity, Product2 and a ControlledByParent Quote; got ' + models);
         }
+        // Deliberately a copy of the controller's SEE_ALL_SHARING_MODELS, not a reference to
+        // it: referencing it would make these expectations agree with any bug in the set.
+        Set<String> seeAll = new Set<String>{ 'Read', 'ReadWrite', 'ReadWriteTransfer', 'FullAccess', 'ReadSelect' };
+        Boolean opportunityHides = !seeAll.contains(models.get('Opportunity'));
+        Boolean productHides = !seeAll.contains(models.get('Product2'));
         Set<String> objects = new Set<String>{ 'Opportunity', 'Quote', 'Product2' };
         Map<String, SObjectType> gd = Schema.getGlobalDescribe();
 
@@ -1862,17 +1874,31 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
 
         System.runAs(u) {
             Map<String, String> hidden = RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd);
-            Assert.areEqual('Private sharing', hidden.get('Opportunity'), 'Opportunity rows can be hidden: ' + hidden);
-            Assert.areEqual('controlled by Opportunity: Private sharing', hidden.get('Quote'),
-                'A child of a Private master is hidden too: ' + hidden);
-            Assert.isFalse(hidden.containsKey('Product2'), 'Product2 is Read; nothing is hidden.');
+            Assert.areEqual(opportunityHides, hidden.containsKey('Opportunity'),
+                'Opportunity is ' + models.get('Opportunity') + ': ' + hidden);
+            if (models.get('Opportunity') == 'Private') {
+                Assert.areEqual('Private sharing', hidden.get('Opportunity'), String.valueOf(hidden));
+            }
+            // A child is hidden exactly when its master is.
+            Assert.areEqual(opportunityHides, hidden.containsKey('Quote'), 'Quote follows Opportunity: ' + hidden);
+            if (opportunityHides) {
+                Assert.isTrue(hidden.get('Quote').startsWith('controlled by Opportunity: '), hidden.get('Quote'));
+            }
+            Assert.areEqual(productHides, hidden.containsKey('Product2'),
+                'Product2 is ' + models.get('Product2') + ': ' + hidden);
 
-            // The wiring getDecisionTables uses: a Fresh verdict over Quote is withdrawn.
+            // The wiring getDecisionTables uses: a Fresh verdict over Quote is withdrawn
+            // exactly when Quote's rows can be hidden. This only catches a broken withdraw where
+            // Opportunity hides rows (Private on a stock build, e.g. pk049-r1); no standard
+            // object is hiding on every org.
             RLM_DecisionTableManagerController.DecisionTableInfo info = infoWithVerdict(
                 RLM_DecisionTableManagerController.STALENESS_FRESH, new List<String>{ 'Quote' });
             RLM_DecisionTableManagerController.applySharingScope(
                 new List<RLM_DecisionTableManagerController.DecisionTableInfo>{ info }, gd);
-            Assert.areEqual(RLM_DecisionTableManagerController.STALENESS_UNCOMPUTED, info.staleness, info.stalenessReason);
+            Assert.areEqual(opportunityHides
+                    ? RLM_DecisionTableManagerController.STALENESS_UNCOMPUTED
+                    : RLM_DecisionTableManagerController.STALENESS_FRESH,
+                info.staleness, info.stalenessReason);
         }
         System.runAs(viewAll) {
             Map<String, String> hidden = RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd);
@@ -1880,9 +1906,12 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
             Assert.isFalse(hidden.containsKey('Quote'), 'And so every Quote under it: ' + hidden);
         }
         System.runAs(bare) {
-            // Hidden either way: by its model, or because the model cannot be read.
+            // Where the model hides rows, it hides them either way: by the model, or because
+            // the model cannot be read.
             Map<String, String> hidden = RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd);
-            Assert.isTrue(hidden.containsKey('Opportunity'), 'Must not read as visible: ' + hidden);
+            if (opportunityHides) {
+                Assert.isTrue(hidden.containsKey('Opportunity'), 'Must not read as visible: ' + hidden);
+            }
         }
     }
 
