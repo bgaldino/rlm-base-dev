@@ -1033,13 +1033,6 @@ tasks:
     options:
       path: unpackaged/pre
 
-  deploy_context_definitions:
-    description: Deploy Context Definitions
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: force-app/main/default/contextDefinitions
-
   deploy_permissions:
     description: Deploy Permission Set Groups
     class_path: cumulusci.tasks.salesforce.Deploy

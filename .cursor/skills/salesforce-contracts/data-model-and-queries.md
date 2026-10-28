@@ -181,9 +181,10 @@ first, then build a narrow `SELECT Id, Name, <verified fields>` query. Start wit
 the release snapshot and repo metadata to identify relevant API names; do not
 guess names from UI labels.
 
-For Context Service, first inspect the repo's context definitions and mappings
-(`force-app/main/default/contextDefinitions/` and the extensions named in
-`cumulusci.yml`). In the org, discover the corresponding queryable SObjects with
+For Context Service, first inspect the repo's context plans and extensions
+(`datasets/context_plans/` and the `extend_context_*` / `apply_context_*` tasks in
+`cumulusci.yml`). `docs/references/context-definitions/` holds only reference-only,
+pre-264 MDAPI snapshots: read them for the old shape, never deploy them. In the org, discover the corresponding queryable SObjects with
 `sf sobject list`, describe each candidate, and query only the mapping/config
 records and fields that the describe confirms. The connected-org observation
 above confirms queryable `ContextDefinition`, `ContextDefinitionVersion`,
