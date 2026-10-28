@@ -287,6 +287,28 @@ then polls. If it times out:
 2. Manually trigger recalculation
 3. Increase `timeout_seconds` option (default 300s)
 
+### PSG reads "Updated" but its users lack fields a member set grants
+
+**Cause:** a group's aggregate is recomputed when its *components* change, not when a
+member permission set's own permissions grow. `RLM_RCB` is deployed in `deploy_pre`;
+its managed Billing Admin set gains the Dispute/DisputeItem billing fields only when
+`post_billing` turns on dispute management, so the group can read **Updated** while the
+admin lacks `DisputeItem.ApprovedAmount` (Dispute Details save fails: "Approved Amount
+field not found"). Timing-dependent: some builds aren't stale.
+
+**Diagnose:** compare the group's aggregate (`SELECT Field FROM FieldPermissions WHERE
+ParentId IN (SELECT Id FROM PermissionSet WHERE PermissionSetGroup.DeveloperName =
+'<PSG>')`) with its components' grants. `FieldDefinition` and describe hide fields the
+user can't read, so a missing field there is not proof the field doesn't exist.
+
+**Fix:** a Description edit does NOT recalculate an Updated group. A component change
+does: `recalculate_permission_set_groups` with `force_recalc: true` adds and removes an
+empty probe permission set (`RLM_PSG_Recalc_Probe`) and, with `verify_fields`, fails if
+the fields are still absent. The build runs it for `RLM_RCB` as `prepare_billing` step 17
+(`recalculate_billing_psg_after_settings`); on an older org, run that task once. The
+empty `RLM_PSG_Recalc_Probe` permission set it creates stays in the org by design: it
+grants nothing and is safe to leave (or delete; the task recreates it).
+
 ### PSG recalculation fails with "Failed" status
 
 **Cause:** Conflicting permissions in the PSG's member permission sets.
