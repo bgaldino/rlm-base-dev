@@ -38,7 +38,8 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    `DecisionTableExecUserAccess`) grants it. For anyone else, the Manager shows freshness
    but disables Refresh.
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
-   Add `-o param1 strict` to fail a build on any stale table. On a Trialforce-spun org,
+   Add `-o param1 strict` to fail a build on any stale table, or `-o param1 json` for the
+   dependency map as JSON (Examples). On a Trialforce-spun org,
    `cci flow run check_org_readiness --org "your-cci-alias"` also checks that the search
    index was built in this org (`check_search_index_readiness`).
 3. **Freshness is measured against EVERY object a table reads**, not just its source
@@ -322,6 +323,21 @@ cci task run check_decision_table_freshness --org "your-cci-alias"
 ```bash
 cci task run check_decision_table_freshness --org "your-cci-alias" -o param1 strict
 ```
+
+**Which tables read this object?** `json` prints one `DECISION_TABLE_MAP_JSON` line: per table,
+`apiName`, `label`, `usageType`, `sourceObject`, `readsObjects`, `contributingObjects`, the latest
+sync, the verdict, and `criteriaApplied` / `unreproducedCriteria` (a Stale verdict may be
+over-reported when a source criterion wasn't reproduced). CCI's console wraps long lines, so widen
+it. `pipefail` and `grep` make a missing line an error rather than an empty answer:
+
+```bash
+( set -o pipefail
+  COLUMNS=200000 cci task run check_decision_table_freshness --org "your-cci-alias" -o param1 json \
+    | grep -o 'DECISION_TABLE_MAP_JSON .*' | cut -d' ' -f2- \
+    | jq -r '.[] | select(.readsObjects | index("RateCardEntry")) | .apiName' )
+```
+
+Combine modes as `"strict,json"`; with `pipefail` a strict failure still fails the pipeline.
 
 **Pricing looks wrong and the data looks right.** Run the check first. A Stale verdict
 naming the object you just edited is the answer; refresh and re-test before debugging
