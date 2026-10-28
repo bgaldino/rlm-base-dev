@@ -65,7 +65,7 @@ if (detail.isEmpty()) {
     // the controller's Fresh reason: probes run USER_MODE, so this ran against the rows
     // THIS user can see. It matters more headlessly than in the UI — a build gate reads
     // as an org-wide all-clear unless it says whose view produced it.
-    System.debug(LoggingLevel.ERROR, 'Every table is fresh: the last full sync is later '
+    System.debug(LoggingLevel.ERROR, 'Every table is fresh: the last sync (full or incremental, whichever is later) is later '
         + 'than the newest change VISIBLE TO THE RUNNING USER in every object each '
         + 'table reads. Run this as an operator with org-wide read to make that the '
         + 'whole org.');

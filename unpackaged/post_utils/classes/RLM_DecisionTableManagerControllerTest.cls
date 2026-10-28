@@ -312,14 +312,93 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
     }
 
     private static DecisionTable joinedTable(Datetime lastSync) {
+        return joinedTable(lastSync, null);
+    }
+
+    private static DecisionTable joinedTable(Datetime lastSync, Datetime lastIncrementalSync) {
         return (DecisionTable) JSON.deserialize(
             JSON.serialize(new Map<String, Object>{
                 'DeveloperName' => 'DTM_Joined', 'SetupName' => 'DTM Joined',
                 'SourceObject' => 'Product2', 'DataSourceType' => 'MultipleSobjects',
-                'LastSyncDate' => lastSync
+                'LastSyncDate' => lastSync,
+                'LastIncrementalSyncDate' => lastIncrementalSync
             }),
             DecisionTable.class
         );
+    }
+
+    @isTest
+    static void aLaterIncrementalSyncMakesTheTableFresh() {
+        // ⚠ Issue #587. Release 264 can run a full request as incremental, which moves only
+        // LastIncrementalSyncDate. Judging by LastSyncDate alone reported such a table
+        // stale right after it was refreshed.
+        Datetime fullSync = Datetime.newInstance(2026, 1, 1, 0, 0, 0);
+        Datetime changed = Datetime.newInstance(2026, 3, 1, 0, 0, 0);
+        Datetime incrementalSync = Datetime.newInstance(2026, 6, 1, 0, 0, 0);
+        DecisionTable dt = joinedTable(fullSync, incrementalSync);
+
+        RLM_DecisionTableManagerController.SourcePlan plan = planWithJoins(
+            dt, new List<DecisionTableSourceCriteria>(), new Set<String>{ 'Contact' });
+        RLM_DecisionTableManagerController.DecisionTableInfo info =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(dt);
+        RLM_DecisionTableManagerController.applySourceVerdict(info, dt, plan,
+            new Map<String, RLM_DecisionTableManagerController.ProbeResult>{
+                plan.probe.key() => probeResult(changed, 5),
+                plan.joinedProbes[0].key() => probeResult(changed, 3)
+            });
+        Assert.areEqual('Fresh', info.staleness,
+            'An incremental sync after the newest change is a sync: ' + info.stalenessReason);
+        Assert.isTrue(info.stalenessReason.contains('last incremental sync'),
+            'The reason must say which sync it rests on: ' + info.stalenessReason);
+    }
+
+    @isTest
+    static void aChangeAfterBothSyncsIsStaleAndNamesTheLaterOne() {
+        Datetime fullSync = Datetime.newInstance(2026, 1, 1, 0, 0, 0);
+        Datetime incrementalSync = Datetime.newInstance(2026, 3, 1, 0, 0, 0);
+        Datetime changed = Datetime.newInstance(2026, 6, 1, 0, 0, 0);
+        DecisionTable dt = joinedTable(fullSync, incrementalSync);
+
+        RLM_DecisionTableManagerController.SourcePlan plan = planWithJoins(
+            dt, new List<DecisionTableSourceCriteria>(), new Set<String>{ 'Contact' });
+        RLM_DecisionTableManagerController.DecisionTableInfo info =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(dt);
+        RLM_DecisionTableManagerController.applySourceVerdict(info, dt, plan,
+            new Map<String, RLM_DecisionTableManagerController.ProbeResult>{
+                plan.probe.key() => probeResult(changed, 5),
+                plan.joinedProbes[0].key() => probeResult(changed, 3)
+            });
+        Assert.areEqual('Stale', info.staleness, info.stalenessReason);
+        Assert.isTrue(info.stalenessReason.contains('after the last incremental sync'),
+            'Stale is measured against the later sync, and says so: ' + info.stalenessReason);
+    }
+
+    @isTest
+    static void latestSyncIsTheLaterStampAndANullIncrementalFallsBackToFull() {
+        Datetime earlier = Datetime.newInstance(2026, 1, 1, 0, 0, 0);
+        Datetime later = Datetime.newInstance(2026, 6, 1, 0, 0, 0);
+        Assert.areEqual(later, RLM_DecisionTableManagerController.latestSync(joinedTable(earlier, later)));
+        Assert.areEqual(later, RLM_DecisionTableManagerController.latestSync(joinedTable(later, earlier)));
+        Assert.areEqual(earlier, RLM_DecisionTableManagerController.latestSync(joinedTable(earlier, null)));
+        // A tie names the full sync: both stamps moved at once, so nothing was incremental-only.
+        Assert.areEqual('last full sync',
+            RLM_DecisionTableManagerController.latestSyncLabel(joinedTable(later, later)));
+        Assert.areEqual('last incremental sync',
+            RLM_DecisionTableManagerController.latestSyncLabel(joinedTable(earlier, later)));
+
+        // The wrapper carries the same number the verdict used, so the component can
+        // show it instead of a full-sync date older than the change a Fresh row covers.
+        RLM_DecisionTableManagerController.DecisionTableInfo incr =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(joinedTable(earlier, later));
+        Assert.areEqual(later, incr.latestSyncDate);
+        Assert.areEqual('Incremental', incr.latestSyncKind);
+        RLM_DecisionTableManagerController.DecisionTableInfo full =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(joinedTable(later, earlier));
+        Assert.areEqual('Full', full.latestSyncKind);
+        RLM_DecisionTableManagerController.DecisionTableInfo never =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(joinedTable(null, null));
+        Assert.isNull(never.latestSyncDate);
+        Assert.isNull(never.latestSyncKind);
     }
 
     @isTest
@@ -1552,36 +1631,27 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
     }
 
     @isTest
-    static void anIncrementalRefreshIsRefusedWhereTheTableCannotDoOne() {
-        // ⚠ The platform ACCEPTS an incremental request on a table with
-        // IsIncrementalSyncEnabled = false and then syncs nothing — so the caller is
-        // told "queued" while the table stays stale. Measured false on every table this
-        // repo ships and on all 40 in a built org, which makes this the default outcome
-        // of choosing Incremental, not an edge case.
+    static void anIncrementalRequestIsNotRefusedOnIncrementalSyncDisabled() {
+        // ⚠ Issue #587. This used to refuse an incremental request on a table with
+        // IsIncrementalSyncEnabled = false. Release 264 does not consult the flag, so the
+        // refusal only blocked valid requests. This proves the gate is gone — the request
+        // is not rejected with the old message and no table is reported failed by it —
+        // not that the flow queued anything, which a test context cannot show.
         List<DecisionTable> existing = [
-            SELECT DeveloperName, IsIncrementalSyncEnabled FROM DecisionTable
-            WHERE IsIncrementalSyncEnabled = false LIMIT 1
+            SELECT DeveloperName FROM DecisionTable
+            WHERE IsIncrementalSyncEnabled = false AND Status = 'Active' LIMIT 1
         ];
         if (existing.isEmpty()) {
-            // Nothing to assert against in this org; say so rather than pass quietly.
             Assert.isTrue(true, 'No incremental-disabled table available to test with.');
             return;
         }
         RLM_DecisionTableManagerController.RefreshResult result =
             RLM_DecisionTableManagerController.refreshTables(
                 new List<String>{ existing[0].DeveloperName }, true);
-
-        Assert.areEqual(0, result.queuedCount, 'Nothing may be queued.');
-        Assert.isNotNull(result.errorMessage, 'And the caller must be told why.');
-        Assert.isTrue(result.errorMessage.contains(existing[0].DeveloperName),
-            'The message must name the table so it can be re-run as a full refresh: ' +
-            result.errorMessage);
-
-        // A FULL refresh of the same table is unaffected by the gate.
-        RLM_DecisionTableManagerController.RefreshResult full =
-            RLM_DecisionTableManagerController.refreshTables(
-                new List<String>{ existing[0].DeveloperName }, false);
-        Assert.isNull(full.errorMessage, 'Full refresh must not be gated: ' + full.errorMessage);
+        Assert.isTrue(result.errorMessage == null || !result.errorMessage.contains('Incremental sync is not enabled'),
+            'An incremental request must not be refused on IsIncrementalSyncEnabled: ' + result.errorMessage);
+        Assert.isTrue(result.unknownApiNames.isEmpty(), 'The table exists: ' + result.unknownApiNames);
+        Assert.isTrue(result.incremental, 'The request is reported as incremental.');
     }
 
     @isTest
@@ -1606,34 +1676,6 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
             'A caller must be able to see which requested tables were not found.');
         Assert.areEqual('ZZ_No_Such_Decision_Table', result.unknownApiNames[0], 'The missing name must be named.');
         Assert.areEqual(0, result.queuedCount, 'Nothing real was requested, so nothing may be queued.');
-    }
-
-    @isTest
-    static void anUnknownNameSurvivesTheIncrementalRefusal() {
-        // ⚠ The incremental gate returns EARLY. Before this, a request mixing a real
-        // incremental-disabled table with a name that does not exist reported only the
-        // disabled table and dropped the unknown one silently — so the caller would fix
-        // the incremental problem, re-run, and still be missing a table with nothing
-        // having ever said so. Whichever way the call exits, every requested name lands
-        // in exactly one bucket.
-        List<DecisionTable> existing = [
-            SELECT DeveloperName FROM DecisionTable
-            WHERE IsIncrementalSyncEnabled = false LIMIT 1
-        ];
-        if (existing.isEmpty()) {
-            Assert.isTrue(true, 'No incremental-disabled table available to test with.');
-            return;
-        }
-        RLM_DecisionTableManagerController.RefreshResult result =
-            RLM_DecisionTableManagerController.refreshTables(
-                new List<String>{ existing[0].DeveloperName, 'ZZ_No_Such_Decision_Table' }, true);
-
-        Assert.isNotNull(result.errorMessage,
-            'The incremental gate must still fire — this is not a test that it stopped.');
-        Assert.areEqual(new List<String>{ 'ZZ_No_Such_Decision_Table' }, result.unknownApiNames,
-            'The unknown name must survive the early return: ' + result.errorMessage);
-        Assert.isTrue(result.failedApiNames.contains(existing[0].DeveloperName),
-            'And the disabled table is still reported in its own bucket: ' + result.failedApiNames);
     }
 
     @isTest

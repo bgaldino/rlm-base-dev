@@ -195,7 +195,7 @@ component does, so they cannot disagree.
 
 | Verdict | Means |
 |---|---|
-| **Fresh** | The last full sync is later than the newest change **visible to the running user** in *every* object the table reads. Scoped on purpose — see limit 3 below. ⚠ Until issue #587's change lands, the check reads the full sync only, so a table whose refresh Release 264 ran as incremental can read Stale right after it was refreshed. |
+| **Fresh** | The last sync — full or incremental, whichever is later — is later than the newest change **visible to the running user** in *every* object the table reads. Scoped on purpose — see limit 3 below. The reason says which sync it rests on. |
 | **Stale** | Something the table reads changed **at or after** the sync. The reason names the object that drove it, and says so explicitly when the two timestamps tie. |
 | **Not comparable** | The check refused to guess — a source criterion it could not faithfully reproduce, a dependency it could not check, or no sObject behind the table at all (`CsvUpload`, `ContextDefinition`, whose freshness is the upload or the Context Definition, not a record timestamp). Compare by hand. |
 | **Unknown** | The source could not be read: no source object recorded, the object missing from this org, no permission on it, or its probe failed. |
@@ -318,7 +318,7 @@ not know read that object.
 - `python scripts/ai/skill_manifest.py --check` resolves this skill and its sub-files.
 - `cci task run check_decision_table_freshness --org "your-cci-alias"` reports every table with a
   verdict, and the count matches the `DecisionTable` row count in the org.
-- After `refresh_all_decision_tables`, no table is Stale. (Until issue #587's change lands, a table whose refresh Release 264 ran as incremental can read Stale here; compare its `LastIncrementalSyncDate` by hand.)
+- After `refresh_all_decision_tables`, no table is Stale.
 - A table you deliberately made stale (edit any object it reads) flips to Stale and the
   reason names that object.
 - Any name added to a `dt_*_decision_tables` list resolves to a real `DeveloperName` in

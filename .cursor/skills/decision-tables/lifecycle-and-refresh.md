@@ -124,10 +124,11 @@ live to the engine.
   separate hourly pools: **40 Standard** and **60 Advanced**; CSV-based tables
   inherit the Advanced pool. Do **not** loop refreshes in a tight build step.
 - A completed **full refresh** advances `LastSyncDate`; a completed
-  **incremental refresh** advances `LastIncrementalSyncDate` and does not advance
+  **incremental refresh** advances `LastIncrementalSyncDate` and usually not
   `LastSyncDate`. `list`/`describe` surface both fields.
 - The response carries `outputValues.Status = "Queued"` and no tracker id. Poll
-  the appropriate timestamp rather than treating the response as completion.
+  the later of the two timestamps rather than treating the response as
+  completion: in Release 264 the request does not decide which one moves.
 
 ### Release 264 chooses the refresh type (`AutoSelectRefreshDT`)
 
@@ -162,10 +163,11 @@ documented contract, and the 264 Help does not describe it) and confirmed on a f
   book Entry Decision Table") is fixed in 266, so an incremental stamp on a price book
   table can be trusted less until then.
 
-The CCI tasks (`manage_decision_tables`, `refresh_dt_*`) send the request as given and
-do not refuse anything. The Decision Table Manager and `refresh_decision_table.py
---incremental` still refuse an incremental request on a table with
-`IsIncrementalSyncEnabled` false, a pre-264 rule that issue #587 removes.
+No caller here refuses or rewrites the request: the CCI tasks, the Decision Table
+Manager and `refresh_decision_table.py` all send it as given. The Manager and
+`check_decision_table_freshness` judge freshness by the later of the two stamps; the
+template-spin check alone stays on `LastSyncDate`, because an incremental applies
+changes on top of rows that may have been built in another org.
 
 ## CSV Based tables — upload + version lifecycle
 

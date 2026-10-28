@@ -16,7 +16,7 @@
                          check were added — and a header that overstates the check is the
                          same defect as a verdict that does. -->
                     <p class="slds-text-body_small slds-text-color_weak">
-                        Stale means something changed since the last full sync — in the table's own source
+                        Stale means something changed since the last sync, full or incremental — in the table's own source
                         or in any object it reads across. A sync older than this org means the table came
                         from a template and has never been built here. Open a row for what was checked
                         and what could not be.
@@ -95,7 +95,7 @@
                 </div>
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_x-small">
                     <lightning-input type="toggle" label="Incremental refresh"
-                        message-toggle-active="Incremental" message-toggle-inactive="Full refresh"
+                        message-toggle-active="Incremental" message-toggle-inactive="Platform chooses"
                         checked={useIncremental} onchange={handleIncrementalToggle}></lightning-input>
                 </div>
             </div>
@@ -233,17 +233,17 @@
                         </div>
 
                         <div class="dtm-stat" title={incrementalSyncNote}>
-                            <span class="dtm-stat__label">Last Full Sync
+                            <span class="dtm-stat__label">Last Sync
                                 <lightning-helptext content={incrementalSyncNote}></lightning-helptext>
                             </span>
-                            <template if:true={detailRow.lastSyncDate}>
+                            <template if:true={detailRow.latestSyncDate}>
                                 <span class="dtm-stat__value dtm-stat__value_date">
-                                    <lightning-formatted-date-time value={detailRow.lastSyncDate}
+                                    <lightning-formatted-date-time value={detailRow.latestSyncDate}
                                         year="numeric" month="short" day="2-digit"
                                         hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
                                 </span>
                             </template>
-                            <template if:false={detailRow.lastSyncDate}>
+                            <template if:false={detailRow.latestSyncDate}>
                                 <span class="dtm-stat__value dtm-stat__value_none">Never</span>
                             </template>
                             <span class="dtm-stat__note">{incrementalShortNote}</span>

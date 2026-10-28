@@ -18,8 +18,7 @@ def tristate_bool(value: Any) -> Optional[bool]:
     """Coerce a platform boolean to ``True``/``False``, or ``None`` when unknown.
 
     Unlike ``_payload._bool_from`` this keeps "absent" distinct from "false", so
-    a caller gating on a Metadata flag can refuse on a *known* false and only
-    warn when the platform did not report the flag at all. A string ``"true"`` /
+    a caller can report "unknown" when the platform did not report the flag. A string ``"true"`` /
     ``"false"`` is accepted because complexvalue booleans are not guaranteed to
     deserialize as ``bool``.
     """

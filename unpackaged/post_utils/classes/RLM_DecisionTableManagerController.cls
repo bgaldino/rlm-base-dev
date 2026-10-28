@@ -21,12 +21,17 @@
  *
  * ⚠ Incremental refresh advances LastIncrementalSyncDate ONLY — LastSyncDate does
  * not move. Watching LastSyncDate makes a working incremental refresh look dead.
- * Incremental also requires an initial full refresh and fails above 2000 changed
- * records (see the Refresh Decision Table action reference).
+ * And in Release 264 a FULL request can run as incremental: unless incremental is
+ * requested, the platform picks the type (org preference AutoSelectRefreshDT, read
+ * from Core's DecisionTableMediumVolumeBuilderJob), and it does not consult
+ * IsIncrementalSyncEnabled. So freshness is judged against the LATER of the two
+ * stamps — the rule the Decision Table app page uses (issue #587) — and nothing
+ * here gates a request on IsIncrementalSyncEnabled.
  *
  * ══ How freshness is decided, and where it deliberately refuses to decide ══
  *
- * A table is stale when its source changed at or after the last full sync — the
+ * A table is stale when its source changed at or after the last sync, full or
+ * incremental, whichever is later — the
  * tie counts as stale, because at an exact tie nothing establishes which came
  * first and Fresh is the verdict that cannot be walked back. That
  * comparison is only meaningful if the rows counted are the rows the table
@@ -472,6 +477,32 @@ public with sharing class RLM_DecisionTableManagerController {
     }
 
     /**
+     * The table's most recent sync, full or incremental — the stamp freshness is judged
+     * against. Release 264 can run a full request as incremental, which moves only
+     * LastIncrementalSyncDate; reading LastSyncDate alone then reports a table stale
+     * right after it was refreshed (issue #587).
+     *
+     * ⚠ Not used for neverBuiltInThisOrgReason, deliberately: an incremental applies
+     * changes on top of the rows already there, so after a Trialforce spin it does not
+     * prove the table was ever built from THIS org's data. That check stays on the full
+     * sync.
+     */
+    @TestVisible
+    private static Datetime latestSync(DecisionTable dt) {
+        if (dt.LastIncrementalSyncDate != null &&
+                (dt.LastSyncDate == null || dt.LastIncrementalSyncDate > dt.LastSyncDate)) {
+            return dt.LastIncrementalSyncDate;
+        }
+        return dt.LastSyncDate;
+    }
+
+    /** How the reasons name latestSync: which kind of sync it was. */
+    @TestVisible
+    private static String latestSyncLabel(DecisionTable dt) {
+        return latestSync(dt) == dt.LastSyncDate ? 'last full sync' : 'last incremental sync';
+    }
+
+    /**
      * Why a table cannot have been built in THIS org, or null if it could have been.
      *
      * ⚠ This is the check that matters after a Trialforce spin. A new org from a
@@ -493,7 +524,8 @@ public with sharing class RLM_DecisionTableManagerController {
         if (orgCreated != null && lastSyncDate < orgCreated) {
             return 'Last full sync (' + lastSyncDate.format() + ') predates this org, created ' +
                 orgCreated.format() + '. An org spun from a template inherits the template\'s ' +
-                'sync timestamp, so this table still holds rows built somewhere else — refresh it.';
+                'sync timestamp, so this table still holds rows built somewhere else. A full ' +
+                'refresh clears this; an incremental one does not.';
         }
         return null;
     }
@@ -668,7 +700,9 @@ public with sharing class RLM_DecisionTableManagerController {
         // costs a job and a false all-clear costs a wrong price. The Fresh branch below
         // also states the sync is "later than" the newest change, which at a tie is
         // simply untrue.
-        if (dt.LastSyncDate <= newest) {
+        Datetime synced = latestSync(dt);
+        String syncLabel = latestSyncLabel(dt);
+        if (synced <= newest) {
             // Stale stands even with an unread contributor: another unseen change could
             // only add to it.
             info.staleness = STALENESS_STALE;
@@ -683,10 +717,10 @@ public with sharing class RLM_DecisionTableManagerController {
             // which is the pairing this class exists to avoid.
             info.stalenessReason = driver + ' was changed by a user or an automated ' +
                 'process at ' + newest.format() +
-                (dt.LastSyncDate == newest
-                    ? ', the same instant as the last full sync. Nothing establishes ' +
+                (synced == newest
+                    ? ', the same instant as the ' + syncLabel + '. Nothing establishes ' +
                       'which happened first, so this is treated as stale rather than fresh.'
-                    : ', after the last full sync.') + scope;
+                    : ', after the ' + syncLabel + '.') + scope;
         } else if (!unread.isEmpty() || plan.contributorsUnenumerable) {
             // Fresh does NOT stand: something that could have changed was not read, so
             // there is no basis for an all-clear. Two different gaps reach here — a
@@ -710,7 +744,7 @@ public with sharing class RLM_DecisionTableManagerController {
             // Without that word this sentence asserts org-wide quiet on the evidence of
             // one user's view, and Fresh is the verdict people act on by NOT refreshing.
             // The empty-source reasons have always been scoped; this one was not.
-            info.stalenessReason = 'The last full sync is later than the newest visible ' +
+            info.stalenessReason = 'The ' + syncLabel + ' is later than the newest visible ' +
                 'change in every object this table reads.' + alsoReads + scope;
         }
     }
@@ -1743,55 +1777,29 @@ public with sharing class RLM_DecisionTableManagerController {
 
         Set<String> requested = new Set<String>(apiNames);
         Set<String> known = new Set<String>();
-        List<String> incrementalDisabled = new List<String>();
+        // ⚠ No IsIncrementalSyncEnabled gate. This used to refuse an incremental request
+        // on a table with the flag false; Release 264 does not consult the flag (a Core
+        // engineer: "not consequential"), so the refusal only blocked valid requests.
         for (DecisionTable dt : [
-            SELECT DeveloperName, IsIncrementalSyncEnabled FROM DecisionTable
+            SELECT DeveloperName FROM DecisionTable
             WHERE DeveloperName IN :requested
             WITH USER_MODE
         ]) {
             known.add(dt.DeveloperName);
-            if (dt.IsIncrementalSyncEnabled != true) {
-                incrementalDisabled.add(dt.DeveloperName);
-            }
         }
         // Diff the EXPECTED set against what was found, rather than reporting on
         // the found set alone.
-        //
-        // ⚠ Runs BEFORE the incremental gate below, which returns early. A mixed
-        // request — one real table with incremental disabled, one name that does not
-        // exist — otherwise reports the disabled table and drops the unknown name
-        // entirely, and RefreshResult's whole contract is that each name lands in
-        // exactly one bucket. Populating both is what makes a partial outcome legible.
         for (String name : requested) {
             if (!known.contains(name)) {
                 result.unknownApiNames.add(name);
             }
-        }
-        // ⚠ An incremental request against a table with IsIncrementalSyncEnabled =
-        // false is accepted by the platform action and then does not sync the changed
-        // rows — so the caller sees "queued" and the table stays stale. Measured: false
-        // on every table this repo ships and on all 40 in a built org, which makes this
-        // the DEFAULT outcome of choosing Incremental rather than an edge case.
-        //
-        // Refused rather than silently downgraded to a full refresh: a full sync is a
-        // heavier operation than the caller asked for, and doing it unasked would be a
-        // different surprise. Naming the tables lets them re-run with Full.
-        if (incremental == true && !incrementalDisabled.isEmpty()) {
-            result.errorMessage = 'Incremental sync is not enabled on ' +
-                incrementalDisabled.size() + ' of the selected table(s): ' +
-                String.join(incrementalDisabled, ', ') +
-                '. An incremental refresh there is accepted and then changes nothing. ' +
-                'Run a full refresh, or enable incremental sync on the table first.';
-            result.incremental = true;
-            result.failedApiNames.addAll(incrementalDisabled);
-            result.failedCount = incrementalDisabled.size();
-            return result;
         }
         if (known.isEmpty()) {
             result.errorMessage = 'None of the requested decision tables exist.';
             return result;
         }
 
+        result.incremental = (incremental == true);
         try {
             Flow.Interview flow = Flow.Interview.createInterview(
                 BULK_REFRESH_FLOW,
@@ -1807,7 +1815,6 @@ public with sharing class RLM_DecisionTableManagerController {
             if (failed instanceof List<String>) {
                 result.failedApiNames = (List<String>) failed;
             }
-            result.incremental = (incremental == true);
         } catch (Exception e) {
             result.errorMessage = 'Refresh could not be started: ' + e.getMessage();
         }
@@ -1974,6 +1981,11 @@ public with sharing class RLM_DecisionTableManagerController {
         @AuraEnabled public String status;
         @AuraEnabled public Datetime lastSyncDate;
         @AuraEnabled public Datetime lastIncrementalSyncDate;
+        // The later of the two — what freshness is judged against (issue #587) — and
+        // which kind it was ('Full' or 'Incremental'), so the component shows the same
+        // number the verdict used.
+        @AuraEnabled public Datetime latestSyncDate;
+        @AuraEnabled public String latestSyncKind;
         @AuraEnabled public String refreshStatus;
         @AuraEnabled public String refreshFailureReason;
         @AuraEnabled public Boolean incrementalEnabled;
@@ -2026,6 +2038,10 @@ public with sharing class RLM_DecisionTableManagerController {
             this.status = dt.Status;
             this.lastSyncDate = dt.LastSyncDate;
             this.lastIncrementalSyncDate = dt.LastIncrementalSyncDate;
+            this.latestSyncDate = latestSync(dt);
+            this.latestSyncKind = this.latestSyncDate == null
+                ? null
+                : (this.latestSyncDate == dt.LastSyncDate ? 'Full' : 'Incremental');
             this.refreshStatus = dt.RefreshStatus;
             this.refreshFailureReason = dt.RefreshFailureReason;
             this.incrementalEnabled = dt.IsIncrementalSyncEnabled;

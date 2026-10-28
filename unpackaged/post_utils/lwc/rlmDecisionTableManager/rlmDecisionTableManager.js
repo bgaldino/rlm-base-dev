@@ -110,16 +110,17 @@ const COLUMNS = [
             class: { fieldName: 'stalenessClass' }
         }
     },
+    // The LATER of the full and incremental sync — the stamp the verdict is judged
+    // against (issue #587). Release 264 can run a full request as incremental, so a
+    // full-sync column would show a date older than the change a Fresh row covers.
+    // Which kind it was, and both raw stamps, are in the details.
     {
-        label: 'Full Sync',
-        fieldName: 'lastSyncDate',
+        label: 'Last Sync',
+        fieldName: 'latestSyncDate',
         type: 'date',
         sortable: true,
         typeAttributes: COMPACT_DATE
     },
-    // No incremental-sync column while IsIncrementalSyncEnabled is false on every
-    // table in a fresh build — it spends width to print the same blank on each row.
-    // The timestamp and the reason it cannot be enabled from here are in the details.
     {
         label: 'Refresh',
         fieldName: 'refreshStatus',
@@ -337,9 +338,9 @@ export default class RlmDecisionTableManager extends LightningElement {
             // A summary that drops a qualification the detail carries is not shorter,
             // it is wrong — and the tiles are what people read first.
             tile(VERDICT_STALE, 'Stale', counts.stale, 'stale',
-                'Something this table reads changed at or after the last full sync'),
+                'Something this table reads changed at or after the last sync, full or incremental'),
             tile(VERDICT_FRESH, 'Fresh', counts.fresh, 'fresh',
-                'Last full sync is later than the newest change you can see in every ' +
+                'Last sync (full or incremental) is later than the newest change you can see in every ' +
                     'object this table reads'),
             tile(FILTER_UNCLEAR, 'Not comparable', counts.unclear, 'unclear',
                 `"${VERDICT_UNCOMPUTED}" or "${VERDICT_UNKNOWN}" — freshness was not ` +
@@ -570,16 +571,14 @@ export default class RlmDecisionTableManager extends LightningElement {
         return this.detailRow.isVersioned ? `${this.detailRow.status} · versioned` : this.detailRow.status
     }
 
-    // The incremental timestamp belongs next to the full sync it is so often
-    // mistaken for: incremental advances ONLY this one, leaving Last Full Sync
-    // untouched, which makes a working incremental refresh look dead.
+    // Both raw stamps, since the stat shows only the later one. A full sync moves
+    // LastSyncDate, an incremental LastIncrementalSyncDate; Release 264 picks which
+    // runs unless incremental is requested.
     get incrementalSyncNote() {
         if (!this.detailRow) return ''
-        if (!this.detailRow.lastIncrementalSyncDate) {
-            return 'No incremental sync has run.'
-        }
-        const when = new Date(this.detailRow.lastIncrementalSyncDate).toLocaleString()
-        return `Incremental sync last ran ${when}, which does not move this date.`
+        const fmt = (d) => (d ? new Date(d).toLocaleString() : 'never')
+        return `Full sync: ${fmt(this.detailRow.lastSyncDate)}. Incremental sync: ` +
+            `${fmt(this.detailRow.lastIncrementalSyncDate)}. Freshness uses the later of the two.`
     }
 
     get detailCriteriaClass() {
@@ -694,17 +693,16 @@ export default class RlmDecisionTableManager extends LightningElement {
     }
 
     get incrementalShortNote() {
-        if (!this.detailRow) return ''
-        return this.detailRow.lastIncrementalSyncDate
-            ? 'Incremental ran later; it does not move this.'
-            : 'No incremental sync has run.'
+        if (!this.detailRow || !this.detailRow.latestSyncKind) return ''
+        return `${this.detailRow.latestSyncKind} sync`
     }
 
     get incrementalTooltip() {
         if (!this.detailRow) return ''
-        return this.detailRow.incrementalEnabled
-            ? 'Incremental refresh advances only the incremental timestamp, never the full sync date.'
-            : 'An incremental refresh will not sync while this is disabled.'
+        // Release 264 does not consult IsIncrementalSyncEnabled: the platform picks full or
+        // incremental itself unless incremental is requested (issue #587).
+        return 'Not used in Release 264, which picks full or incremental itself. An incremental ' +
+            'refresh advances only the incremental timestamp, never the full sync date.'
     }
 
     // ⚠ Do NOT name a specific reason here. Criteria go unreproduced for several
@@ -822,11 +820,9 @@ export default class RlmDecisionTableManager extends LightningElement {
 
             if (result.errorMessage) {
                 // ⚠ The error path must still report the OTHER bucket. The controller
-                // populates unknownApiNames before the incremental gate returns
-                // precisely so a mixed request — one disabled table, one name that no
-                // longer exists — reports both. Dropping it here defeats that at the
-                // last step: the user fixes the incremental problem, re-runs, and is
-                // still silently missing a table.
+                // populates unknownApiNames before any early return, so an error and a
+                // name that no longer exists are both reported. Dropping it here would
+                // leave the user re-running and still silently missing a table.
                 const missing =
                     result.unknownApiNames && result.unknownApiNames.length > 0
                         ? ` Also not found: ${result.unknownApiNames.join(', ')}.`
@@ -844,16 +840,19 @@ export default class RlmDecisionTableManager extends LightningElement {
             if (result.unknownApiNames && result.unknownApiNames.length > 0) {
                 problems.push(`${result.unknownApiNames.length} not found (${result.unknownApiNames.join(', ')})`)
             }
-            const mode = result.incremental ? 'Incremental' : 'Full'
+            // A full request is not a full refresh in Release 264: the platform may run
+            // it as incremental, so the toast does not claim the type for it.
+            const mode = result.incremental ? 'Incremental refresh' : 'Refresh'
+            const typeNote = result.incremental ? '' : ' The platform picks full or incremental.'
             if (problems.length > 0) {
                 this.toast(
-                    `${mode} refresh partially queued`,
+                    `${mode} partially queued`,
                     `${result.queuedCount} queued · ${problems.join(' · ')}`,
                     'warning',
                     'sticky'
                 )
             } else {
-                this.toast(`${mode} refresh queued`, `${result.queuedCount} decision table(s) queued.`, 'success')
+                this.toast(`${mode} queued`, `${result.queuedCount} decision table(s) queued.${typeNote}`, 'success')
             }
 
             if (result.queuedCount > 0) {
