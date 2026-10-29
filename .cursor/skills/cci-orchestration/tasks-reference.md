@@ -1101,7 +1101,7 @@
 
 ### `apply_procedure_plan_overlay`
 
-**Description:** Apply a Procedure Plan overlay from JSON with resolved IDs and a guarded deactivate/apply/verify/reactivate sequence.
+**Description:** Apply a Procedure Plan overlay from JSON with resolved IDs and a guarded deactivate/apply/verify sequence that leaves the plan version as active or inactive as it found it.
 
 **Class:** `tasks.rlm_apply_procedure_plan_overlay.ApplyProcedurePlanOverlay`
 
@@ -1110,7 +1110,7 @@
 - `overlay_file`: `datasets/procedure_plan_overlays/prm_pricing.json`
 - `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
 - `verify`: `True`
-- `activate_after_apply`: `True`
+- `activate_after_apply`: `False`
 
 ---
 

@@ -695,6 +695,7 @@ STDLIB_SUITES = [
     "tests/test_manage_expression_sets_constraint_activation.py",
     "tests/test_mcp_scripts_security.py",
     "tests/test_post_process_extraction.py",
+    "tests/test_procedure_plan_overlay_activation.py",
     "tests/test_project_memory_schema.py",
     "tests/test_qb_multicurrency_data.py",
     "tests/test_renewal_bucket_planner.py",

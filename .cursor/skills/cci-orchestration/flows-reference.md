@@ -579,7 +579,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 2. **task** `activate_procedure_plan_expression_sets`  `when: project_config.project__custom__procedureplans`
 3. **task** `create_procedure_plan_definition`  `when: project_config.project__custom__procedureplans`
 4. **task** `insert_procedure_plan_data`  `when: project_config.project__custom__procedureplans`
-5. **task** `activate_procedure_plan_version`  `when: project_config.project__custom__procedureplans`
+5. **task** `activate_procedure_plan_version`  `when: project_config.project__custom__procedureplans and project_config.project__custom__procedureplans_active`
 
 ---
 

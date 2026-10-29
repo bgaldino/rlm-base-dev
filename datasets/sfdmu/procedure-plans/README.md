@@ -14,7 +14,7 @@ This data plan is executed as **step 4** of the `prepare_procedureplans` flow (w
 | 2    | `activate_procedure_plan_expression_sets` | Activate RLM_Price_Distribution_Procedure_V1 (idempotent)                   |
 | 3    | `create_procedure_plan_definition`      | Create PPD + inactive PPDV via Connect API (idempotent)                      |
 | 4    | `insert_procedure_plan_data`            | Run this SFDMU plan (2 passes — sections then options)                       |
-| 5    | `activate_procedure_plan_version`       | Activate the ProcedurePlanDefinitionVersion (idempotent)                     |
+| 5    | `activate_procedure_plan_version`       | Activate the ProcedurePlanDefinitionVersion (idempotent; only when `procedureplans_active=true`, default false) |
 
 ### Task Definition
 
@@ -34,11 +34,13 @@ Connect API             Pass 1 (SFDMU)          Pass 2 (SFDMU)          REST PAT
 ──────────────          ─────────────────        ─────────────────       ──────────────
 Create PPD +        ->  Upsert Procedure     ->  Upsert Procedure   ->  Activate PPDV
 inactive PPDV           Plan Sections             Plan Options            (IsActive=true)
+                                                                         only when
+                                                                         procedureplans_active
 ```
 
 The ProcedurePlanDefinition and ProcedurePlanDefinitionVersion are created by the Connect API task (`create_procedure_plan_definition`) rather than SFDMU because the `ProcedurePlanDefinition` sObject type requires the Connect API endpoint `POST /connect/procedure-plan-definitions` for creation.
 
-**Critical ordering:** The PPDV must be **inactive** during section/option insertion — Salesforce rejects DML on child records when the parent version is active ("You can't insert a procedure plan section with an active procedure plan definition version"). The activation step runs after all data is loaded.
+**Critical ordering:** The PPDV must be **inactive** during section/option insertion — Salesforce rejects DML on child records when the parent version is active ("You can't insert a procedure plan section with an active procedure plan definition version"). The activation step, when enabled (see *Activation*), runs after all data is loaded.
 
 ### Pass 1 — Upsert ProcedurePlanSections
 
@@ -117,6 +119,30 @@ Activates the ProcedurePlanDefinitionVersion after all sections and options have
 - Queries PPDV by parent `ProcedurePlanDefinition.DeveloperName`
 - Patches `IsActive = true` via sObject REST API
 
+## Activation (off by default)
+
+`prepare_procedureplans` builds the plan, but activates it (step 5) only when `procedureplans_active`
+is true. The default is false. `apply_procedure_plan_overlay` (the PRM section) leaves the version as
+it found it.
+
+Measured on a fresh 264 build (todo 314):
+
+- **Plan active, `skipOrgSttPricing=false`** (the repo setting). The Revenue Settings default procedure
+  runs again after the plan. A price revision on an as-is renewal is applied twice: CPI 4% + 2 on
+  2,400 gave 2,696.64 instead of 2,544. The stored waterfall is the re-run's.
+- **Plan active, `skipOrgSttPricing=true`.** The CPI renewal is right, but a header discount is applied
+  twice: `RLM_DefaultPricingProcedure` already distributes it, then `RLM_Price_Distribution_Procedure`
+  does it again (10% on 5,240 gave 4,244.40 instead of 4,716). The stored waterfall is one step.
+- **Plan inactive.** CPI 2,544, header discount 4,716, and amendments, renewals and group ramps
+  unchanged. The waterfall is the full default procedure.
+
+Help (*Pricing Procedure Plan Limits*): "The Price Waterfall displays execution results for only the
+last pricing procedure in the sequence" and "Don't stitch multiple pricing procedures together within
+a single procedure plan". Waterfall chaining across procedures is planned for 266 (GUS W-24674830).
+
+To use the plan anyway (for example for PRM distributor pricing), set `procedureplans_active: true`,
+or activate the version in Setup after the build.
+
 ## Procedure Plan Structure
 
 ### RC Quote Pricing Procedure Plan
@@ -126,7 +152,7 @@ Activates the ProcedurePlanDefinitionVersion after all sections and options have
 | Default Pricing | `DefaultPricing` | 1 | `RLM_DefaultPricingProcedure` | 1 |
 | Header Distribution | `HeaderDistribution` | 2 | `RLM_Price_Distribution_Procedure` | 1 |
 
-The plan executes two pricing procedures in order:
+When active, the plan executes these pricing procedures in order (the PRM overlay inserts `IFPartnerDistributorOnQuote` at sequence 2 and moves Header Distribution to 3):
 1. **Default Pricing** (Seq 1): Runs `RLM_DefaultPricingProcedure` — the main pricing expression set (deployed by the core flow, not this plan)
 2. **Header Distribution** (Seq 2): Runs `RLM_Price_Distribution_Procedure` — distributes header-level adjustments to line items (deployed by `deploy_post_procedureplans`)
 
@@ -185,7 +211,7 @@ This plan is **fully idempotent** at every step:
 1. **Connect API task** — skips if PPD already exists
 2. **Expression set activation** — skips if already active
 3. **SFDMU Upsert** — matches existing records via composite external IDs; "Nothing was updated" on re-run
-4. **PPDV activation** — skips if already active
+4. **PPDV activation** — skips if already active (and is skipped entirely unless `procedureplans_active`)
 
 Verified against `dev-sb0` (Release 260 / API v66.0) with all records present.
 
@@ -214,7 +240,22 @@ cci task run insert_procedure_plan_data -o object_sets "[0]" -o simulation true
 
 ### PPDV Must Be Inactive During Data Load
 
-Salesforce rejects `INSERT` and `UPSERT` operations on `ProcedurePlanSection` when the parent `ProcedurePlanDefinitionVersion` is active. The flow handles this by creating the PPDV with `versionActive: false` and activating it in the final step after all sections and options are loaded.
+Salesforce rejects `INSERT` and `UPSERT` operations on `ProcedurePlanSection` when the parent `ProcedurePlanDefinitionVersion` is active. The flow handles this by creating the PPDV with `versionActive: false` and, when `procedureplans_active` is true, activating it in the final step after all sections and options are loaded.
+
+### Rerun Rejects a Section Row After the PRM Overlay
+
+The PRM overlay re-sequences the sections (`HeaderDistribution` moves to 3). A later rerun of
+`insert_procedure_plan_data` no longer matches the CSV's `HeaderDistribution;2`, tries an insert,
+and the platform rejects it: "combination of the section type and subsection type is unique". The
+task then fails on the row error. Fresh builds are unaffected (`prepare_procedureplans` runs
+before `prepare_prm_pricing`). To rerun on such an org, ignore only that rejection:
+
+```bash
+cci flow run prepare_procedureplans --org <alias> \
+  -o insert_procedure_plan_data__ignore_row_errors_for "{ProcedurePlanSection: section type and subsection type}"
+```
+
+Any other rejection still fails. Avoid `fail_on_row_errors false`, which hides every object's rejections.
 
 ### ProcedurePlanDefinition Requires Connect API
 

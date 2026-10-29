@@ -136,7 +136,7 @@ precedence over that base. See the [extraction task](../../tasks/rlm_sfdmu.py).
 
 | Data Plan | Directory | Description | Documentation |
 |-----------|-----------|-------------|---------------|
-| procedure-plans | `datasets/sfdmu/procedure-plans/` | Procedure Plan sections and options with expression set links (2-pass upsert + Connect API + activation) | [README](../../datasets/sfdmu/procedure-plans/README.md) |
+| procedure-plans | `datasets/sfdmu/procedure-plans/` | Procedure Plan sections and options with expression set links (2-pass upsert + Connect API; activation only with `procedureplans_active`) | [README](../../datasets/sfdmu/procedure-plans/README.md) |
 
 Procedure-plan overlays that require resolved parent IDs live under
 `datasets/procedure_plan_overlays/` and are applied by dedicated CCI tasks

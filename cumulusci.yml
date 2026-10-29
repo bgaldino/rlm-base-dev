@@ -139,6 +139,7 @@ project:
     breconfig: false          # Business Rules Engine configuration
     guidedselling: true      # Guided Selling
     procedureplans: true      # Procedure Plans
+    procedureplans_active: false  # Activate RLM_Quote_Pricing_Procedure_Plan after building it. Off: an active plan doubles price revision and truncates the waterfall (datasets/sfdmu/procedure-plans/README.md → Activation). PRM distributor pricing needs it on.
     mcp: false                # MCP servers (post_mcp): RLM_McpClient ECA + hosted server activations, plus the custom rlm-sales-transactions server when mcp_custom_server is on. Opt-in: the hosted revenue-cloud server needs the RevMCP pilot permission, which not every org shape has, and the org build cannot finish the job, since each person still runs a browser OAuth login. Requires an org with the MCP feature.
     mcp_custom_server: true   # With mcp on, also build the custom RLMSalesTransactions server (post_mcp_custom clone invocable + permission set, server, tools, bindings). Set false to stand up only the ECA and hosted servers; clients then connect to revenue-cloud directly, without the multiplex proxy. Temporary: retire once the hosted revenue-cloud server covers place and clone.
 
@@ -3442,13 +3443,16 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Apply a Procedure Plan overlay from JSON with resolved IDs and a guarded
-      deactivate/apply/verify/reactivate sequence.
+      deactivate/apply/verify sequence that leaves the plan version as active or
+      inactive as it found it.
     class_path: tasks.rlm_apply_procedure_plan_overlay.ApplyProcedurePlanOverlay
     options:
       overlay_file: *prm_pricing_procedure_plan_overlay
       developerName: *procedure_plan_definition_developer_name
       verify: true
-      activate_after_apply: true
+      # false: leave the plan as it was (reactivated only if it was active), so the PRM
+      # section is added to an inactive plan without activating it (procedureplans_active).
+      activate_after_apply: false
 
   # Expression Set structural management via BRE Connect API
   export_expression_set:
@@ -4515,7 +4519,7 @@ flows:
         when: project_config.project__custom__procedureplans
       5:
         task: activate_procedure_plan_version
-        when: project_config.project__custom__procedureplans
+        when: project_config.project__custom__procedureplans and project_config.project__custom__procedureplans_active
 
   prepare_constraints:
     group: Revenue Lifecycle Management
