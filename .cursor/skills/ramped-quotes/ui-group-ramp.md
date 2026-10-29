@@ -36,10 +36,11 @@ A rep can build a group ramp in the 264 quote editor with the same result as the
    - **Current Segment Only** "adds products as non-ramped line items" (dialog text; not tested).
 4. **Pick the product and save.**
    - `Product2.CanRamp` gates the line-ramp path. A `CanRamp = false` product uplifts in an
-     **API-built** group ramp (pack 174, 2026-10-29). The UI test used `QB-API`
+     **API-built** group ramp (pack 174, re-measured 2026-10-28/29). The UI test used `QB-API`
      (`CanRamp = true`); a `CanRamp = false` product in this dialog wasn't tried.
-   - Pick a **term** selling model (for example Term Annual). An Evergreen price book entry can't
-     ramp: the segments come out without ramp identity.
+   - Use a **term** selling model (for example Term Annual). On the API path an Evergreen price
+     book entry can't ramp and the segments come out without ramp identity (pack 174); not tried
+     in this dialog.
    - **Reprice All** is a toolbar button. Prices were already uplifted before it was clicked.
 
 ## Expected result
@@ -85,7 +86,7 @@ flat prices. GitHub #185 reports one Asset per line after activation.
 
 **The cause isn't established.** Placing a product into a segment through the UI was never done in
 September, so there is no like-for-like comparison. A simple explanation would be that those lines
-were added with **Current Segment Only**.
+were added with **Current Segment Only**, or from an Evergreen price book entry.
 
 If a quote shows that symptom:
 1. Check which choice was used.
