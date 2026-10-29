@@ -203,6 +203,24 @@ the candidate names rather than picking arbitrarily.
 correct than the old harness's `start + term` (Jan 15 → Jan 15) and avoids
 overlap if amendments roll forward off the same boundary.
 
+**The `SubscriptionTerm` write is load-bearing for a `TermDefined` bundle — keep it.**
+A bundle goes in as one flat line whose `Product2Id` is the bundle SKU, and that line
+**is the bundle root**. The platform derives `EndDate`/term onto the expanded **child**
+lines but **not** onto the root, so the harness's `SubscriptionTerm`/`SubscriptionTermUnit`
+on that line is the only thing that gives the root a term. Without it:
+
+- on 262 (2026-08-24), the quote priced cleanly but `createOrdersFromQuote` rejected the
+  root: "Pricing Term Count must be greater than zero" (the root's `PricingTermCount` was 0);
+- on 264 (fresh build, 2026-10-28), the place itself is rejected at pricing: "Specify either
+  the end date or add the Subscription Term and subscription term unit parameters to execute
+  your Pricing Procedure", and the quote ends `PriceCalculationFailed` with no lines.
+
+`QB-COMPLETE` is the QuantumBit bundle this hits (its default selling model is Term Annual).
+"Never writes `EndDate`" is about `EndDate` only; it is not a reason to drop the term write.
+To check a placed quote, this returns zero rows when every term line can be ordered:
+`SELECT Id, Product2.StockKeepingUnit FROM QuoteLineItem WHERE QuoteId = '<id>' AND
+SellingModelType = 'TermDefined' AND PricingTermCount <= 0`.
+
 Evergreen and OneTime lines reject any `term` config at parse time and never
 write `SubscriptionTerm`/`SubscriptionTermUnit`/`EndDate` (matches the
 `createOrderFromQuote` "can't specify EndDate for evergreen order products"

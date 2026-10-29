@@ -1,8 +1,12 @@
-# :quantumbit: FY27 Revenue Cloud QuantumBit Script — Summer '26 (Release 262)
+# :quantumbit: FY27 Revenue Cloud QuantumBit Script — Winter '27 (Release 264)
 
 > **Generated:** 2026-05-24 by `.cursor/skills/qb-demo-script/SKILL.md`
 > **Source canvas (260):** [F09Q04HEC8Y](https://salesforce.enterprise.slack.com/docs/T45GK97GB/F09Q04HEC8Y)
-> **Salesforce Release:** 262 (Summer '26) · API v67.0
+> **Salesforce Release:** 264 (Winter '27) · API v68.0
+> **Relabeled to 264 (2026-10-29):** 262 orgs no longer exist, so this is the current script. It was generated as
+> the 262 draft; the *Opportunity To Order* path for QuantumBit Complete Solution, from New Opportunity through
+> **Create Order**, was clicked through on a fresh 264 org on 2026-10-29. Other sections, including the "What's new
+> in 262" notes, still describe 262 and need the SME pass below before they're relied on for 264.
 > **Status:** DRAFT — preview release, not yet GA. Requires SME pass for Setup-UI verification, Known-Bugs population, image capture, and Slack canvas publish.
 > **Grounded on:**
 > - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
@@ -250,6 +254,8 @@ Select 'Quick Quote'.
 
 :x: **CARRY-OVER FROM 260 — VERIFY:** Advanced Transaction Detail Line Pricing — confirm if the 258-era bugs were resolved by 262
 
+:white_check_mark: **RESOLVED ON 264 — QuantumBit Complete Solution → Create Order:** an earlier API investigation found that the bundle's *root* line could be left without an End Date or term, so **Create Order** failed with "Pricing Term Count must be greater than zero". On a fresh 264 org (Oct 2026) the click path in this script gives the root its term (End Date one year out, Term 1 Annual) and Create Order succeeds. If you ever do see that message, set **End Date** (or **Subscription Term**) on the QuantumBit Complete Solution root line, click **Reprice All**, then **Create Order** again.
+
 :warning: **NEW IN 262 — POPULATE FROM RELEASE NOTES:** SME pass against `salesforce-release-notes-summer-26-2026-05-07.pdf` (Revenue Management section, p. 720+) for net-new bugs and Beta-feature limitations.
 
 ---
@@ -321,10 +327,10 @@ Jean Claude manages billing processes to ensure accurate invoicing, revenue reco
 |- Click **Create Opportunity**|I'll begin by completing any essential information about this opportunity.<br><br>This step is crucial as it lays the groundwork for the tailored quote the customer has requested.|![placeholder][img-PLACEHOLDER-create-opportunity]|
 |- Click "**New Quote**" (top right)|Revenue Lifecycle Management eliminates the need for Deal Desk or cumbersome spreadsheets by integrating everything directly with the opportunity.<br><br>To start the quoting process, I click on "New Quote".|![placeholder][img-PLACEHOLDER-new-quote]|
 |- Add a Quote Name and any other required fields<br><br>- Click "Save"<br><br>- Navigate to your newly created quote record|Salesforce has populated most of the important information for me, leaving room for additional input where it matters.<br><br>Upon saving, the quote is generated and attached to the opportunity. Now I'm ready to start adding products.|![placeholder][img-PLACEHOLDER-save-quote]|
-|- Click 'Browse Catalog' button<br><br>- Select the 'Standard Pricebook'|As I browse the catalog, I will first be prompted to select a Price Book, so that the relevant prices will be displayed for the products. **NEW in 262:** Product Discovery now enforces Constraint Rules in real time as you browse — incompatible products surface inline, recommendations appear as you select.|![placeholder][img-PLACEHOLDER-browse-catalog]|
+|- Click 'Browse Catalog' button<br><br>- Confirm '**Standard Price Book**' and click **Save**|As I browse the catalog, I will first be prompted to select a Price Book, so that the relevant prices will be displayed for the products. **NEW in 262:** Product Discovery now enforces Constraint Rules in real time as you browse — incompatible products surface inline, recommendations appear as you select.|![placeholder][img-PLACEHOLDER-browse-catalog]|
 ||Once I've selected the appropriate Price Book, the system will allow me to choose the catalog I would like to explore.|![placeholder][img-PLACEHOLDER-select-catalog]|
 |## :solution-found: Product Configuration - QuantumBit Complete Solution|||
-|- Select the 'Software' catalog and click "Next"|As a QuantumBit Account Executive, I have a large product catalog to choose from, but RLM makes it easy to find the exact product suite I'm looking for.|![placeholder][img-PLACEHOLDER-software-catalog]|
+|- The catalog browser opens on the '**QuantumBit Software**' catalog (switch catalogs with the selector at the top right)|As a QuantumBit Account Executive, I have a large product catalog to choose from, but RLM makes it easy to find the exact product suite I'm looking for.|![placeholder][img-PLACEHOLDER-software-catalog]|
 |- Select the 'Bundle' category<br><br>- Find the "**QuantumBit Complete Solution**" (SKU: **QB-COMPLETE**)<br><br>- Choose the Buying Option for your product by clicking the Price Tag icon, choosing an option, and hitting '**Add**'<br>(We recommend using the 'TermDefined Annual' option to keep amendments simple)<br><br>- Once the product has been added, click **'Save Quote'**|At QuantumBit, we have a lot of products in our catalog where in the past accurately selecting what I needed for a quote required tribal knowledge. By selecting the appropriate category, I can quickly filter through the product catalog to easily find what my customer needs and how they want to buy.|![placeholder][img-PLACEHOLDER-qb-complete-add]|
 |- Once the quote has been updated and the products appear on the **Quote Lines** tab, click the dropdown next to the 'QuantumBit Complete Solution' parent line item, and choose '**Configure**'|I've selected the product my customer needs but I need to go and configure this to their specific asks.|![placeholder][img-PLACEHOLDER-qb-complete-configure]|
 |- First thing to highlight is the general layout of the configurator (Config, Summary, Subtotals)<br><br>- Navigate to the top of the configurator and choose '**Redhat Enterprise Linux**' for your **Operating System** attribute<br><br>- Configuration Rules have now been included that will drive compatibility between the attributes and product selections|**NEW in 262:** the configurator now supports Group and Ramp Segment Scope Rules — transaction scope rules apply correctly to Quote Groups and Ramp Segments. Previously, scope rules failed when groups were present.|![placeholder][img-PLACEHOLDER-configurator-os]|
@@ -399,7 +405,7 @@ Jean Claude manages billing processes to ensure accurate invoicing, revenue reco
 
 |**Click Path/Action**|**Talk Track**|**Screenshot**|
 |  ---  |  ---  |  ---  |
-|- When ready, click '**Create Order**' to finalize your quote.||![placeholder][img-PLACEHOLDER-dro-create-order]|
+|- When ready, click '**Create Order**', choose '**Create Single Order**', and click '**Finish**' to finalize your quote (Redirect to Order is on by default, so the new order opens).||![placeholder][img-PLACEHOLDER-dro-create-order]|
 |- Click on the newly created Order|Now from the perspective of Beth in Sales Ops, all the information created in the quote is available automatically in the Order details.|![placeholder][img-PLACEHOLDER-dro-order-detail]|
 |- Evaluate Order Items|From within the order, I see all the items that were quoted previously, now order items.|![placeholder][img-PLACEHOLDER-dro-order-items]|
 |*Make Sure Bill to Contact is entered in Order Details prior to activation*<br><br>- If you're not planning on showing DRO, move chevron to 'Activated'|I'll manually activate this order and this will kick off the creation of the contract to keep track of my customer's active spend.|![placeholder][img-PLACEHOLDER-dro-activate]|
@@ -687,8 +693,8 @@ img-PLACEHOLDER-contracts-advanced-approvals
 - All `(TBD)` entries in `feature-index.md` (Approval Preview Enhancements, Responsive & Maximized Quoting UX, Increased Display Count of Attributes, Deep Clone Enhancements, Quote Extensibility Enhancements, Future-Dated/Backdated Amendments, RCB-cross-listed items)
 - Verbatim 260 sections marked "carry over — verify": Q-Rack 750 detail, Services Project, RMI dashboards, Standard Payments & Collections flow
 
-**Image substitution:** All `[img-PLACEHOLDER-*]` markers must be replaced with real Slack file IDs at canvas-publish time. Recommended: capture screenshots against a 262 demo org spun up via `cci flow run prepare_rlm_org --org beta` with full feature flags, upload via Slack file upload API, substitute the markers via search-replace.
+**Image substitution:** All `[img-PLACEHOLDER-*]` markers must be replaced with real Slack file IDs at canvas-publish time. Recommended: capture screenshots against a 264 demo org spun up via `cci flow run prepare_rlm_org --org beta` with full feature flags, upload via Slack file upload API, substitute the markers via search-replace.
 
 **Skill that produced this:** `.cursor/skills/qb-demo-script/SKILL.md` (Foundations, generation mode = `regenerate`).
 
-**Manifest entry:** This artifact lives at `docs/enablement/262/qb-demo-script.md` and is registered in `.claude/skill-manifest.yml` under `foundations.skills.qb-demo-script` (skill) producing output at `foundations.grounding.qb_demo_script_262` (artifact).
+**Manifest entry:** This artifact lives at `docs/enablement/264/qb-demo-script.md` and is registered in `.claude/skill-manifest.yml` under `foundations.skills.qb-demo-script` (skill) producing output at `foundations.grounding.qb_demo_script_264` (artifact).
