@@ -360,9 +360,17 @@ reports `activeModelCount` > 0. As the user,
 **Fix:** the build shares constraint-model Expression Sets Read with all internal users
 through the criteria sharing rule `ExpressionSet.RLM_Constraint_Models_Read`
 (`unpackaged/post_constraints/sharingRules/`). Pricing procedures and other Expression Sets
-stay Private. On an org built before that change, run `deploy_post_constraints`, or, as a
-one-off, have an admin quote one configured product. Do **not** turn off
-`executeConfigurationRules`: that skips the rules.
+stay Private. The rule covers internal users only; external (Experience Cloud) users get no
+access from it. On an org built before that change, deploy only the rule, not the whole
+`post_constraints` bundle (that also redeploys an Apex trigger, which needs test coverage on a
+production-type org, and resets two settings files):
+
+```bash
+sf project deploy start --source-dir unpackaged/post_constraints/sharingRules --target-org <sf_alias>
+```
+
+As a one-off, an admin quoting one configured product also fills the cache. Do **not** turn
+off `executeConfigurationRules`: that skips the rules.
 
 ---
 

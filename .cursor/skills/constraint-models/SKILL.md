@@ -32,6 +32,10 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    cycled — deactivate then reactivate — after the upload. `prepare_constraints` does this
    for the models it names. **A standalone `import_cml` does not**, so cycle it yourself.
    See [Making a change reach an org](#making-a-change-reach-an-org).
+   **Under review:** `manage_expression_sets` cycles by updating `ExpressionSetVersion.IsActive`.
+   Fresh 264 builds were measured with a cold solver right after `prepare_constraints` steps 9–10
+   (see Rule 8), so that update may not reach the runtime. Until it's re-verified, prove a
+   re-import by exercising the configurator (Rule 4), not by the cycle.
 4. **Only the configurator proves deployment.** Reading `ConstraintModel` back proves the
    blob was *stored* — it is the same field `import_cml` writes. It cannot tell you the
    runtime rebuilt.
