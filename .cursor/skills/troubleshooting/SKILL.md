@@ -339,7 +339,7 @@ BillingAccount the build does this with `RLM_BillingAccountFieldAccess` (in
 `RLM_RCB` and the billing persona PSGs). On an org built before that change,
 set the field's FLS in Setup, then hard-refresh Lightning.
 
-### A non-admin sees no usage records (`TransactionJournal`), but `UserRecordAccess` says Read
+### The sales rep persona sees no usage records (`TransactionJournal`), but `UserRecordAccess` says Read
 
 **Example:** on the Account page's View Usage, the sales rep persona gets "No records found" in
 the **Usage** table, even for usage it uploaded itself. The admin sees the rows.
