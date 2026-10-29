@@ -1,15 +1,15 @@
 ---
 name: ramped-quotes
 description: >-
-  Build and verify multi-year Revenue Cloud group-ramp quotes through the Connect API.
-  Use when creating per-period quote groups, cloning ramp segments, checking price
+  Build and verify multi-year Revenue Cloud group-ramp quotes through the Connect API
+  or the quote UI. Use when creating per-period quote groups, cloning ramp segments, checking price
   uplift or compound uplift, or distinguishing group ramps from line ramps.
 ---
 
 # Ramped Quotes — Build & Verify Multi-Year Group Ramps
 
 Use this skill to build, verify, or report a **multi-year ramped** Revenue Cloud
-quote (one commitment segment per period) over the Connect API, and to get the
+quote (one commitment segment per period) over the Connect API or in the quote UI, and to get the
 per-segment **price uplift** — including **compound** uplift — right. It is
 consumable by any AI agent (Cursor, Claude Code, Copilot, Codex, Windsurf,
 Aider).
@@ -112,6 +112,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 | Situation | Use |
 |---|---|
 | Build / add a segment to / verify a multi-year **group** ramp quote | This skill |
+| Build or check a group ramp **in the quote UI** (demo, rep-built quote) | `ui-group-ramp.md` |
 | Get **compound** per-segment uplift right (the `PriceRevision` engine, `IsCompoundUpliftEnabled`, prerequisites) | [Compound uplift](#compound-uplift) → `.cursor/skills/expression-sets/SKILL.md` |
 | Turn on **Advanced Detail Line Pricing** / sync context definitions (a compound prerequisite) | `.cursor/skills/context-service/SKILL.md` |
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
