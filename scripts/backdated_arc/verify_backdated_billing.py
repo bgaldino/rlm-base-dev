@@ -187,6 +187,16 @@ def schedules(org, order_ids):
                          "ORDER BY CreatedDate")
 
 
+def line_skus(org, order_ids, scheds):
+    """Schedule id -> the SKU of the order line it bills (via OrderItemDetail if so)."""
+    ids = soql_ids(order_ids)
+    sku = {r["Id"]: (r.get("Product2") or {}).get("StockKeepingUnit") for r in sf_query(
+        org, f"SELECT Id, Product2.StockKeepingUnit FROM OrderItem WHERE OrderId IN ({ids})")}
+    for r in sf_query(org, f"SELECT Id, OrderItemId FROM OrderItemDetail WHERE OrderItem.OrderId IN ({ids})"):
+        sku[r["Id"]] = sku.get(r["OrderItemId"])
+    return {s["Id"]: sku.get(s["ReferenceEntityItemId"]) for s in scheds}
+
+
 def line_starts(org, order_ids, scheds):
     """Schedule id -> the start date of the order line it bills (via OrderItemDetail if so)."""
     ids = soql_ids(order_ids)
@@ -629,20 +639,28 @@ def check_ramp_cancel(new_scheds, effective, periods):
     """A ramp cancel credits every remaining segment in full, not just the current one.
 
     Measured: one credit schedule from the effective date and one from each later
-    segment's own start, each for minus that segment's quantity. ``periods`` are the
-    asset's state periods read before the change. Credits are summed per start date, so
-    a missing, partial or duplicated credit fails.
+    segment's own start, each for minus that segment's quantity and ending where that
+    segment ends. ``periods`` are the asset's state periods read before the change.
+    Credits are summed per start date, so a missing, partial or duplicated credit fails,
+    and a credit ending early fails (the billing check counts ramp periods to a
+    schedule's end, so it can't catch that itself).
     """
     def qty_on(d):
         return next((q for s, e, q in periods if s <= d <= e), None)
 
+    def end_of(d):
+        return next((e for s, e, q in periods if s <= d <= e), None)
+
     want = {d: -qty_on(d) for d in {effective} | {s for s, _, _ in periods if s > effective}
             if qty_on(d)}
-    got = {}
+    got, late = {}, []
     for s in new_scheds:
         if s["Quantity"] and s["Quantity"] < 0 and not s.get("UsageResourceId"):
             d = dt.date.fromisoformat(s["BillingScheduleStartDate"])
             got[d] = got.get(d, 0) + float(s["Quantity"])
+            end = s.get("BillingScheduleEndDate")
+            if d in want and (not end or dt.date.fromisoformat(end[:10]) != end_of(d)):
+                late.append(f"credit {s['Id']} from {d} ends {end}, expected the segment's end {end_of(d)}")
     fails = []
     for d in sorted(set(want) | set(got)):
         if d not in got:
@@ -651,7 +669,7 @@ def check_ramp_cancel(new_scheds, effective, periods):
             fails.append(f"a credit starts {d}, off the ramp's segment boundaries")
         elif abs(got[d] - want[d]) > 1e-9:
             fails.append(f"the ramp segment from {d} was credited {got[d]:g}, expected {want[d]:g}")
-    return fails
+    return fails + late
 
 
 def check_renewal_ramp(new_scheds, effective, years):
@@ -670,6 +688,68 @@ def check_renewal_ramp(new_scheds, effective, years):
     fails = [f"the renewal has no segment from {d}" for d in sorted(want - set(got))]
     fails += [f"a renewal schedule starts {d}, off the {years}-year segment starts" for d in sorted(set(got) - want)]
     fails += [f"the renewal has {n} schedules from {d}, expected one" for d, n in sorted(got.items()) if n > 1]
+    return fails
+
+
+FREQUENCY_MONTHS = {"Monthly": 1, "Quarterly": 3, "Semi-Annual": 6, "Annual": 12}
+
+
+def check_frequency(new_scheds, to_frequency, from_frequency="Monthly"):
+    """A billing-frequency change credits the old cadence and bills the new one.
+
+    Measured Monthly -> Quarterly: the outgoing schedule is Month/1, the incoming
+    Quarter/1. Compared in months, so Month/3 and Quarter/1 are the same cadence.
+    """
+    def months(s):
+        unit = TERM_MONTHS.get(s.get("BillingTermUnit"))
+        return unit * int(s.get("BillingTerm") or 1) if unit else None
+    fails = []
+    for s in new_scheds:
+        if not s["Quantity"] or s.get("UsageResourceId"):
+            continue
+        want, side = ((FREQUENCY_MONTHS[to_frequency], "incoming") if s["Quantity"] > 0
+                      else (FREQUENCY_MONTHS[from_frequency], "outgoing"))
+        if months(s) != want:
+            fails.append(f"{side} schedule {s['Id']} bills every {s.get('BillingTerm')} {s.get('BillingTermUnit')}, "
+                         f"expected {to_frequency if s['Quantity'] > 0 else from_frequency}")
+    return fails
+
+
+def check_quantities(scenario, new_scheds, before_qty):
+    """The change moves the quantity the scenario asked for, not just in the right direction.
+
+    The amount check derives everything from each schedule's own quantity, so an amend of
+    +2 or a cancel of half the quantity would otherwise pass. ``before_qty`` is the asset's
+    CurrentQuantity before the change; None (UI mode, read after the change) checks only
+    the amend's +/-1. Ramp cancels and renewals have their own segment checks. With
+    --asset it's today's quantity, so an asset whose quantity changed since the effective
+    date fails here (built assets don't).
+    """
+    plus = sum(float(s["Quantity"]) for s in new_scheds
+               if s["Quantity"] and s["Quantity"] > 0 and not s.get("UsageResourceId"))
+    minus = sum(float(s["Quantity"]) for s in new_scheds
+                if s["Quantity"] and s["Quantity"] < 0 and not s.get("UsageResourceId"))
+    want = {"amend-up": (1, 0), "amend-down": (0, -1)}.get(scenario)
+    if want is None and before_qty is not None:
+        q = float(before_qty)
+        want = {"cancel": (0, -q), "renew-expired": (q, 0), "renew-early": (q, -q),
+                "billing-frequency": (q, -q), "transfer": (q, -q), "swap": (q, -q),
+                "upgrade": (q, -q), "downgrade": (q, -q)}.get(scenario)
+    if want is None or (abs(plus - want[0]) < 1e-9 and abs(minus - want[1]) < 1e-9):
+        return []
+    return [f"{scenario} moved quantity +{plus:g}/{minus:g}, expected +{want[0]:g}/{want[1]:g}"]
+
+
+def check_swap_products(new_scheds, skus, from_sku, to_sku):
+    """A swap's outgoing schedule bills the asset's product, the incoming one ``to_sku``."""
+    fails = []
+    for s in new_scheds:
+        if not s["Quantity"] or s.get("UsageResourceId"):
+            continue
+        want = to_sku if s["Quantity"] > 0 else from_sku
+        if skus.get(s["Id"]) != want:
+            fails.append(f"{'incoming' if s['Quantity'] > 0 else 'outgoing'} schedule {s['Id']} bills "
+                         f"{skus.get(s['Id'])}, expected {want}")
     return fails
 
 
@@ -751,7 +831,7 @@ def main():
                     help="with --ramp-years when building: a line ramp (default) or a group ramp")
     ap.add_argument("--to-frequency", default="Quarterly", choices=["Quarterly", "Semi-Annual", "Annual"],
                     help="billing-frequency: the new billing frequency for the Monthly asset (default Quarterly, "
-                         "the only one measured)")
+                         "the only one measured). In UI mode, the one picked in the viewer")
     ap.add_argument("--renewal-ramp-years", type=positive_int, default=0,
                     help="renew-early: make the renewal a Yearly ramp of N segments")
     ap.add_argument("--target-account", help="transfer: destination account name")
@@ -834,6 +914,14 @@ def main():
         # A ramp's later segments start on the asset's own period boundaries: a built line ramp
         # every year from its start, a ramped renewal's group ramp every year from the renewal.
         # Read them before the change (a cancel collapses them).
+        # The asset's quantity before the change (API mode only: in UI mode it has already changed).
+        before_qty = None if args.order else sf_query(
+            org, f"SELECT CurrentQuantity FROM Asset WHERE Id = '{asset}'")[0]["CurrentQuantity"]
+        if before_qty is not None and args.scenario == "renew-expired":
+            # An expired asset's CurrentQuantity is 0 (measured); it renews at its last period's quantity.
+            last = sf_query(org, f"SELECT Quantity FROM AssetStatePeriod WHERE AssetId = '{asset}' "
+                                 "ORDER BY StartDate DESC LIMIT 1")
+            before_qty = last[0]["Quantity"] if last else None
         asset_periods = state_periods(sf_query(
             org, f"SELECT StartDate, EndDate, Quantity FROM AssetStatePeriod WHERE AssetId = '{asset}'")) \
             if args.ramp_years else []
@@ -845,6 +933,11 @@ def main():
             sku = f" --sku {shlex.quote(args.sku)}" if args.sku != "QB-API-PROD" else ""
             if args.renewal_ramp_years:
                 sku += f" --renewal-ramp-years {args.renewal_ramp_years}"
+            if args.scenario == "billing-frequency":
+                # The check compares the new schedule with it: pick the same one in the viewer.
+                sku += f" --to-frequency {shlex.quote(args.to_frequency)}"
+            if args.to_sku:
+                sku += f" --to-sku {shlex.quote(args.to_sku)}"
             print(f"READY {args.scenario}: asset {asset} on {args.account} is invoiced through {TODAY}. Make the "
                   f"change effective {effective} in the Managed Asset viewer, then run:\n  python "
                   f"{shlex.quote(sys.argv[0])} --org {shlex.quote(org)} --scenario {args.scenario} "
@@ -915,6 +1008,14 @@ def main():
             fails += check_ramp_cancel(new, effective, asset_periods)
         if args.ramp_years and args.scenario in ("amend-up", "amend-down"):
             fails += check_ramp_amend(new, effective)
+        if args.scenario == "billing-frequency":
+            fails += check_frequency(new, args.to_frequency)
+        if not (args.ramp_years and args.scenario in ("cancel", "renew-expired")) and not args.renewal_ramp_years:
+            fails += check_quantities(args.scenario, new, before_qty)
+        if args.scenario in SWAPS and args.to_sku:
+            fails += check_swap_products(new, line_skus(org, list(order_account), new), args.sku, args.to_sku)
+        elif args.scenario in SWAPS:
+            log("products     not checked: pass --to-sku with the product picked in the viewer to check them")
         if args.renewal_ramp_years:
             fails += check_renewal_ramp(new, effective, args.renewal_ramp_years)
         elif args.ramp_years and args.scenario == "renew-expired":

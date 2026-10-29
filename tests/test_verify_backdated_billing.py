@@ -349,19 +349,20 @@ PERIODS = vb.state_periods([
     {"StartDate": "2026-05-01T00:00:00.000+0000", "EndDate": "2027-04-30T23:59:59.000+0000", "Quantity": 1},
     {"StartDate": "2027-05-01T00:00:00.000+0000", "EndDate": "2028-04-30T23:59:59.000+0000", "Quantity": 2}])
 expect("state periods parse to dates", PERIODS[1], (Y2_START, dt.date(2028, 4, 30), 2.0))
-cx_y1 = sched(-1, "C1")
-cx_y2 = sched(-2, "C2", start=Y2_START.isoformat())
+cx_y1 = dict(sched(-1, "C1"), BillingScheduleEndDate="2027-04-30")
+cx_y2 = dict(sched(-2, "C2", start=Y2_START.isoformat()), BillingScheduleEndDate="2028-04-30")
 expect("ramp cancel crediting both segments passes", vb.check_ramp_cancel([cx_y1, cx_y2], EFF, PERIODS), [])
 expect("ramp cancel crediting only the current segment fails",
        has(vb.check_ramp_cancel([cx_y1], EFF, PERIODS), "from 2027-05-01 uncredited"), True)
 expect("ramp cancel with no credit from the effective date fails",
        has(vb.check_ramp_cancel([cx_y2], EFF, PERIODS), "from 2026-08-01 uncredited"), True)
 expect("a partial credit of a later segment fails",
-       has(vb.check_ramp_cancel([cx_y1, sched(-1, "C2", start=Y2_START.isoformat())], EFF, PERIODS),
-           "credited -1, expected -2"), True)
+       has(vb.check_ramp_cancel([cx_y1, dict(cx_y2, Quantity=-1)], EFF, PERIODS), "credited -1, expected -2"), True)
 expect("a duplicated later credit fails",
-       has(vb.check_ramp_cancel([cx_y1, cx_y2, sched(-2, "C3", start=Y2_START.isoformat())], EFF, PERIODS),
-           "credited -4, expected -2"), True)
+       has(vb.check_ramp_cancel([cx_y1, cx_y2, dict(cx_y2, Id="C3")], EFF, PERIODS), "credited -4, expected -2"), True)
+expect("a credit ending before its segment's end fails (Codex on #640)",
+       has(vb.check_ramp_cancel([dict(cx_y1, BillingScheduleEndDate="2026-08-31"), cx_y2], EFF, PERIODS),
+           "ends 2026-08-31, expected the segment's end 2027-04-30"), True)
 expect("a credit off the segment boundaries fails",
        has(vb.check_ramp_cancel([cx_y1, cx_y2, sched(-1, "C3", start="2027-01-01")], EFF, PERIODS),
            "off the ramp's segment boundaries"), True)
@@ -375,8 +376,30 @@ RENEWED = vb.state_periods([
     {"StartDate": "2027-08-01", "EndDate": "2028-07-31", "Quantity": 1}])
 SEP1 = dt.date(2026, 9, 1)
 expect("renewed group ramp cancel passes",
-       vb.check_ramp_cancel([sched(-1, "R1", start="2026-09-01"), sched(-1, "R2", start="2027-08-01")], SEP1, RENEWED),
+       vb.check_ramp_cancel([dict(sched(-1, "R1", start="2026-09-01"), BillingScheduleEndDate="2027-07-31"),
+                             dict(sched(-1, "R2", start="2027-08-01"), BillingScheduleEndDate="2028-07-31")],
+                            SEP1, RENEWED), [])
+# Billing frequency: measured Month/1 out, Quarter/1 in (Codex on #640).
+quarterly_in = dict(sched(1, "QI"), BillingTermUnit="Quarter", BillingTerm=1)
+# Quantities: the change moves exactly what the scenario asked for.
+expect("amend-up +1 passes", vb.check_quantities("amend-up", [sched(1)], 1), [])
+expect("amend-up +2 fails", bool(vb.check_quantities("amend-up", [sched(2)], 1)), True)
+expect("amend-down -1 passes in UI mode", vb.check_quantities("amend-down", [sched(-1)], None), [])
+expect("a cancel of the full quantity passes", vb.check_quantities("cancel", [sched(-2)], 2), [])
+expect("a cancel of half the quantity fails", bool(vb.check_quantities("cancel", [sched(-1)], 2)), True)
+expect("a swap of the full quantity passes", vb.check_quantities("swap", [sched(-1, "O"), sched(1, "I")], 1), [])
+expect("UI mode skips the full-quantity checks", vb.check_quantities("cancel", [sched(-1)], None), [])
+expect("swap products match", vb.check_swap_products([sched(-1, "O"), sched(1, "I")], {"O": "A", "I": "B"}, "A", "B"),
        [])
+expect("a swap to the wrong product fails",
+       has(vb.check_swap_products([sched(-1, "O"), sched(1, "I")], {"O": "A", "I": "C"}, "A", "B"), "bills C"), True)
+expect("Monthly -> Quarterly passes", vb.check_frequency([sched(-1, "MO"), quarterly_in], "Quarterly"), [])
+expect("Month/3 counts as Quarterly",
+       vb.check_frequency([sched(-1, "MO"), dict(quarterly_in, BillingTermUnit="Month", BillingTerm=3)], "Quarterly"),
+       [])
+expect("an unchanged Monthly cadence fails", has(vb.check_frequency([sched(-1, "MO"), sched(1, "MI")], "Quarterly"),
+                                                 "incoming schedule MI"), True)
+expect("the wrong new cadence fails", bool(vb.check_frequency([sched(-1, "MO"), quarterly_in], "Annual")), True)
 # A segment that ended before today bills only to its end (Codex on #640): Aug only, not Aug-Oct.
 ended = dict(sched(-1, "E1"), BillingScheduleEndDate="2026-08-31")
 expect("a ramp schedule ending before today counts periods to its end",

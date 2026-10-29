@@ -299,7 +299,10 @@ transfer's target order is on another account.
   proves only that its lines net out, not each schedule's share.
   A zero-quantity schedule must bill nothing. A ramp cancel must credit the effective date and each
   later segment start (state periods read before the change), each for minus that segment's
-  quantity, so a missing, partial or duplicated credit fails. A ramp amendment must leave later
+  quantity and ending on that segment's end, so a missing, partial, duplicated or shortened
+  credit fails. A billing-frequency run must credit the Monthly schedule and bill the new one
+  at `--to-frequency`. In API mode each change must move the quantity it asked for (amend ±1,
+  the full current quantity otherwise), and a swap's incoming line must be `--to-sku`. A ramp amendment must leave later
   segments at quantity 0. A ramped renewal of N years must have exactly one renewal schedule
   from each yearly segment start, and a renewed expired ramp one year at the last segment's
   quantity. Measured only on ramps with distinct per-segment quantities and no earlier change;
