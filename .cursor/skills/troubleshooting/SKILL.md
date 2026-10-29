@@ -339,39 +339,6 @@ BillingAccount the build does this with `RLM_BillingAccountFieldAccess` (in
 `RLM_RCB` and the billing persona PSGs). On an org built before that change,
 set the field's FLS in Setup, then hard-refresh Lightning.
 
-### A non-admin's quote fails: "Something went wrong while running configuration rules"
-
-**Example:** on a fresh org, the sales rep's first quote with configuration rules on
-(the default) fails with `UNKNOWN_EXCEPTION`, for any product, on every retry. The admin's
-quote succeeds, and after that the rep's do too.
-
-**Cause:** a fresh org's constraint-solver cache is empty, and a template-spun org always
-starts with it empty. The first configuration-rules run catches `MODEL_NOT_FOUND` and
-redeploys the active models as the **running user**. Part of that redeploy reads the
-constraint-model `ExpressionSet` records in user mode. `ExpressionSet` sharing is
-Private, so a user who can't see those rows fails, and the error surfaces as the generic
-message. The admin can see them, so the admin's run fills the cache for everyone.
-
-**Diagnose:** in the user's debug log, `RLM_CONFIGURATOR_END` shows
-`MODEL_NOT_FOUND_EXCEPTION` "Found no constraint models" while `RLM_CONFIGURATOR_BEGIN`
-reports `activeModelCount` > 0. As the user,
-`SELECT COUNT() FROM ExpressionSet WHERE UsageType = 'Constraint'` returns 0.
-
-**Fix:** the build shares constraint-model Expression Sets Read with all internal users
-through the criteria sharing rule `ExpressionSet.RLM_Constraint_Models_Read`
-(`unpackaged/post_constraints/sharingRules/`). Pricing procedures and other Expression Sets
-stay Private. The rule covers internal users only; external (Experience Cloud) users get no
-access from it. On an org built before that change, deploy only the rule, not the whole
-`post_constraints` bundle (that also redeploys an Apex trigger, which needs test coverage on a
-production-type org, and resets two settings files):
-
-```bash
-sf project deploy start --source-dir unpackaged/post_constraints/sharingRules --target-org <sf_alias>
-```
-
-As a one-off, an admin quoting one configured product also fills the cache. Do **not** turn
-off `executeConfigurationRules`: that skips the rules.
-
 ---
 
 ## Context Definition Errors
@@ -751,6 +718,40 @@ import.
 **Fix:**
 1. Load PCM data: `cci task run insert_quantumbit_pcm_data --org beta`
 2. Retry import: `cci task run import_cml -o data_dir <path> --org beta`
+
+### A non-admin's quote fails: "Something went wrong while running configuration rules"
+
+**Example:** on a fresh org, the sales rep's first quote with configuration rules on
+(the default) fails with `UNKNOWN_EXCEPTION`, for any product, on every retry. The admin's
+quote succeeds, and after that the rep's do too.
+
+**Cause:** a fresh org's constraint-solver cache is empty, and a template-spun org always
+starts with it empty. The first configuration-rules run catches `MODEL_NOT_FOUND` and
+redeploys the active models as the **running user**. Part of that redeploy reads the
+constraint-model `ExpressionSet` records in user mode. `ExpressionSet` sharing is
+Private, so a user who can't see those rows fails, and the error surfaces as the generic
+message. The admin can see them, so the admin's run fills the cache for everyone.
+
+**Diagnose:** in the user's debug log, `RLM_CONFIGURATOR_END` shows
+`MODEL_NOT_FOUND_EXCEPTION` "Found no constraint models" while `RLM_CONFIGURATOR_BEGIN`
+reports `activeModelCount` > 0. As the user,
+`SELECT COUNT() FROM ExpressionSet WHERE UsageType = 'Constraint'` returns 0.
+
+**Fix:** the build shares constraint-model Expression Sets Read with all internal users
+through the criteria sharing rule `ExpressionSet.RLM_Constraint_Models_Read`
+(`unpackaged/post_constraints/sharingRules/`). Pricing procedures and other Expression Sets
+stay Private. The rule covers internal users only; external (Experience Cloud) users get no
+access from it. On an org built before that change, deploy only the rule, not the whole
+`post_constraints` bundle (that also redeploys an Apex trigger, which needs test coverage on a
+production-type org, and re-applies the repo's IndustriesConstraints and ProductDiscovery
+settings over any later org changes):
+
+```bash
+sf project deploy start --source-dir unpackaged/post_constraints/sharingRules --target-org <sf_alias>
+```
+
+As a one-off, an admin quoting one configured product also fills the cache. Do **not** turn
+off `executeConfigurationRules`: that skips the rules.
 
 ---
 
