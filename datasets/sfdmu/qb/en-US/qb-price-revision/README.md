@@ -44,15 +44,16 @@ policy's Region, on the line's date.
   been tried. A Pricing `IndexRate` requires a Region.
 - **Index rate ranges for one Region can't overlap.** The platform rejects an overlap with "Specify
   different regions or select a unique date range".
-- **Policies can't overlap within the same PolicyType and Region** (probed on r1-306 only). A second policy with an
-  overlapping range is rejected ("The selected effective dates are already in use") in two cases:
+- **Policies can't overlap within the same PolicyType and Region** (probed on r1-306 only). A second
+  policy with an overlapping range is rejected ("The selected effective dates are already in use")
+  in two cases:
   - a second Flat policy with no Region;
   - a second Price Index policy for `US`.
 
   A Flat policy for `US` over the same dates is accepted. The plan's Flat and Price Index policies
   don't collide (probed 2026-10-29, rolled back). Not tried: a partial overlap for Price Index,
-  adjacent ranges, Price Index with no Region, and other orgs. An org that already has a policy of the same type
-  and Region for 2026–2030 rejects these rows. Remove or re-date it first.
+  adjacent ranges, Price Index with no Region, and other orgs. An org that already has a policy of
+  the same type and Region for 2026–2030 rejects these rows. Remove or re-date it first.
 
 ## Measured (r1-306, fresh 264 build, procedure plan inactive)
 

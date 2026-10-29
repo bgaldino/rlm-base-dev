@@ -48,6 +48,7 @@ paths are forceignored.
 |-----------|------|------------|
 | 1 | qb-pcm (products) | None |
 | 2 | qb-pricing | qb-pcm |
+| 2b | qb-price-revision | None (no lookups); loads right after qb-pricing (`prepare_pricing_data` step 5); refresh `Index_Rate_Decision_Table` after |
 | 3 | qb-dro | qb-pcm |
 | 4 | qb-tax | qb-pcm |
 | 5 | qb-billing | qb-pcm (LegalEntity shared with qb-tax) |
@@ -56,7 +57,6 @@ paths are forceignored.
 | 8 | qb-rates | qb-pcm + qb-rating (PURs must exist) + qb-pricing (PriceBook2) |
 | 9 | qb-approvals | post_approvals metadata + email templates |
 | 10 | qb-guidedselling-products | qb-pcm + `deploy_post_guidedselling` Product2 fields |
-| 2b | qb-price-revision | None (no lookups); loads right after qb-pricing (`prepare_pricing_data` step 5); refresh `Index_Rate_Decision_Table` after |
 
 ## Deletion Order
 

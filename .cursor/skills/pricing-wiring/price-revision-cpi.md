@@ -3,7 +3,7 @@
 > Sub-file of `.cursor/skills/pricing-wiring/SKILL.md`.
 
 How a **Price Revision Policy** changes a price in `RLM_DefaultPricingProcedure`, how CPI data is
-seeded, and how to check a result. Measured 2026-10-29 on a fresh 264 build with the quote
+seeded, and how to check a result. Measured 2026-10-29 on a fresh 264 build (r1-306) with the quote
 procedure plan inactive (todo 314).
 
 ## What's involved
@@ -86,8 +86,8 @@ rate) and `PolicyAdjustment`, and it should **appear once**.
 
   Use `US`. Adding another value through Setup on a restricted org hasn't been tried.
 - **Index rate ranges for one Region can't overlap.** Policies of the same PolicyType and Region
-  can't overlap either (probed on one org) ("The selected effective dates are already in use"). A hand-made policy of
-  the same type and Region for the same years makes the plan's rows fail; remove or re-date it
-  first.
+  can't overlap either ("The selected effective dates are already in use"; probed on one org). A
+  hand-made policy of the same type and Region for the same years makes the plan's rows fail;
+  remove or re-date it first.
 - **Stale table.** After adding or changing an `IndexRate`, refresh `Index_Rate_Decision_Table`.
   Until then, CPI prices with the old rates, or with no rate at all.
