@@ -205,13 +205,16 @@ overlap if amendments roll forward off the same boundary.
 
 **The `SubscriptionTerm` write is load-bearing for a `TermDefined` bundle — keep it.**
 A bundle goes in as one flat line whose `Product2Id` is the bundle SKU, and that line
-**is the bundle root**. The platform derives `EndDate`/term onto the expanded **child**
-lines but **not** onto the root, so the harness's `SubscriptionTerm`/`SubscriptionTermUnit`
-on that line is the only thing that gives the root a term. Without it:
+**is the bundle root**. On this Place Sales Transaction path the platform derives
+`EndDate`/term onto the expanded **child** lines but **not** onto the root, so the harness's
+`SubscriptionTerm`/`SubscriptionTermUnit` on that line is the only thing that gives the root a
+term. (The Lightning UI path is different: on 264, adding the bundle through Browse Catalog
+gives the root its term, checked 2026-10-29.) Without the write:
 
-- on 262 (2026-08-24), the quote priced cleanly but `createOrdersFromQuote` rejected the
+- on a 264 preview org (API v68.0, 2026-08-24), the quote priced cleanly but
+  `createOrdersFromQuote` rejected the
   root: "Pricing Term Count must be greater than zero" (the root's `PricingTermCount` was 0);
-- on 264 (fresh build, 2026-10-28), the place itself is rejected at pricing: "Specify either
+- on a fresh 264 build (2026-10-28), the place itself is rejected at pricing: "Specify either
   the end date or add the Subscription Term and subscription term unit parameters to execute
   your Pricing Procedure", and the quote ends `PriceCalculationFailed` with no lines.
 
