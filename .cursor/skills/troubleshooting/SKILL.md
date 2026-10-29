@@ -768,7 +768,12 @@ definition the model uses is inactive.
 again (deactivate, then activate). When cycling a single model on an org whose solver may be
 cold (a template-spun org, or one built before todo 064's fix), cycle **all** active
 constraint models instead. Each activation deploys one model, and the solver can reject it
-while another active model is missing from its cache (this case hasn't been checked live).
+while another active model is missing from its cache.
+
+**Not yet checked live:** the cold-solver cases. Every live cycle so far ran on a warm org.
+If step 9 (deactivate) fails this way on a rerun against a cold org, the platform refused to
+remove a model it never loaded. Give the solver its models first, either with one admin quote
+of a configured product or by activating them through the resource, then rerun.
 
 ---
 
