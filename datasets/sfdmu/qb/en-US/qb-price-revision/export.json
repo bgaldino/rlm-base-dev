@@ -1,0 +1,22 @@
+{
+  "$comment_plan": "qb-price-revision SFDMU data plan (todo 314): CPI (Price Index) and Flat price revision. IndexRate rows feed Index_Rate_Decision_Table (refresh it after loading); PriceRevisionPolicy rows are picked on a renewal line or a ramp segment. Region is an unrestricted picklist, so 'US' needs no Setup step.",
+  "apiVersion": "68.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objects": [
+    {
+      "$comment": "One row per year for Region US. Effective ranges for one region must not overlap (Help: Use the Price Revision Element in a Pricing Procedure). Rates are illustrative demo values.",
+      "query": "SELECT CurrencyIsoCode, IsActive, Name, Rate, Region, UsageType, ValidEndDate, ValidStartDate FROM IndexRate WHERE UsageType = 'Pricing' ORDER BY Name ASC",
+      "operation": "Upsert",
+      "externalId": "Name",
+      "excluded": false
+    },
+    {
+      "$comment": "PolicyAdjustment in the formula is the line's UnitPriceUplift; PriceIndex is the Index_Rate_Decision_Table rate for the policy's Region.",
+      "query": "SELECT CurrencyIsoCode, EffectiveFrom, EffectiveTo, Formula, Name, PolicyType, Region FROM PriceRevisionPolicy ORDER BY Name ASC",
+      "operation": "Upsert",
+      "externalId": "Name",
+      "excluded": false
+    }
+  ],
+  "orgs": []
+}

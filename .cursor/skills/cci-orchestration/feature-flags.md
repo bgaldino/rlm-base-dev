@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**45 feature flags**, **85 configuration values**, **43 YAML anchors** under `project.custom`.
+**45 feature flags**, **86 configuration values**, **43 YAML anchors** under `project.custom`.
 
 ---
 
@@ -46,7 +46,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `procedureplans` | `True` | 6 flow step(s) |
 | `procedureplans_active` | `False` | 1 flow step(s) |
 | `q3` | `False` | 13 flow step(s) |
-| `qb` | `True` | 38 flow step(s) |
+| `qb` | `True` | 39 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 28 flow step(s) |
 | `quote_est_tax` | `False` | — |
@@ -369,6 +369,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_pricing_data` step 2 → `insert_quantumbit_pricing_data`
 - `prepare_pricing_data` step 3 → `delete_q3_pricing_data`
 - `prepare_pricing_data` step 4 → `insert_q3_pricing_data`
+- `prepare_pricing_data` step 5 → `insert_qb_price_revision_data`
 - `prepare_dro` step 2 → `insert_qb_dro_data`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`
@@ -599,6 +600,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
 | `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |
+| `quantumbit_price_revision_dataset` | `datasets/sfdmu/qb/en-US/qb-price-revision` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |
 | `quantumbit_prm_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-prm-pricing` |
@@ -659,7 +661,7 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `dt_default_pricing_decision_tables`
 
-*9 items:*
+*10 items:*
 
 - `Attribute_Based_Adjustment_Decision_Table`
 - `Bundle_Based_Adjustment_Decision_Table`
@@ -670,6 +672,7 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 - `Price_Book_Entry_Decision_Table_v2`
 - `Tiered_Adjustment_Tier_Decision_Table`
 - `StandardTax`
+- `Index_Rate_Decision_Table`
 
 ### `dt_pricing_discovery_decision_tables`
 
