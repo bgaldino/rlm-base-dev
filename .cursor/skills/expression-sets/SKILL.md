@@ -397,6 +397,21 @@ a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
    | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` under *Apply price revision for lines with subscription and without derived pricing* | `PriceRevision` (present) | non-ramp price revision |
    | `Uplift` under *Apply uplifts to ramped subscriptions items during amendment* (filter requires `IsLineGroupRamped__std=true` AND `ItemRampIdentifier IS NOT NULL`) | `PriceRevision` with `IsCompoundUpliftEnabled=true` (migrated from `FormulaBasedPricing`) | **compound** ramp uplift when `RampUpliftType=Compound`; flat when `Standard` |
 
+   **Compared with the 264 template** (2026-10-28; a fresh "Revenue Management Default Pricing
+   Procedure" saved from Expression Set Templates on a fresh 264 build):
+   - Every template element is present except **derived pricing**, which the repo omits by owner
+     decision.
+   - The ramp `Uplift` step matches the template's `PriceRevision` parameter for parameter. Its
+     `Rate` output goes to `ItemConsumerPriceIndex__std` as in the template, rather than sharing
+     `ItemApplUnitPriceUpliftPct__std` with `AppliedUnitPriceUplift`. That's for parity only: a
+     group-ramp matrix priced identically before and after.
+   - The ramp filter keeps three extra criteria on two fields (`ItemUnitPriceUplift__std
+     IsNotNull`, `IsLineGroupRamped__std IsNotNull`, `IsLineGroupRamped__std = true`), which
+     limit it to **group** ramps. Measured with the template's four criteria instead, line ramps
+     took a standard uplift. But a Year-2 group-ramp amendment then priced 4,312.44
+     (3,564 × 1.21) instead of 3,564: the uplift went on again on top of the already-uplifted last
+     transaction price. So keep the group gate; line ramps get no uplift here.
+
 5. **`UnitPriceUplift` (per-year %) set per segment** (writeable). First segment
    is the baseline (applied uplift = its own line uplift, usually 0); a 0% segment
    is a *carryover* (prior cumulative multiplier preserved, not reset).

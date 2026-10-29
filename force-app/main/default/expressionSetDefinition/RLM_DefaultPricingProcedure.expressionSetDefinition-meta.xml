@@ -5771,7 +5771,7 @@
                     <name>Rate</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>ItemApplUnitPriceUpliftPct__std</value>
+                    <value>ItemConsumerPriceIndex__std</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
