@@ -326,9 +326,8 @@ not. See below.
 `/services/data/v<api>/industries/constraints/{expressionSetId}/versions/{versionId}` with
 `{"status": "Active"}` or `{"status": "Inactive"}`. That resource deploys the model to the
 constraint solver on activation (along with every other active constraint model) and removes
-it on deactivation. It returns HTTP 200 with
-`success: false` on a failed deploy, so the task checks `success`. Every other expression set
-gets an `IsActive` PATCH.
+it on deactivation. It returns HTTP 200 with `success: false` on a failed deploy, so the task
+checks `success`. Every other expression set gets an `IsActive` PATCH.
 
 An **already-Active** version is skipped, and for a constraint model the task warns that
 the skip doesn't redeploy anything: `activate_versions` alone never picks up a re-import, so
