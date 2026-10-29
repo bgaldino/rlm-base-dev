@@ -47,7 +47,7 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         },
         "activate_after_apply": {
             "description": (
-                "If true (default), activate the target ProcedurePlanDefinitionVersion "
+                "If true (task default; cumulusci.yml sets false), activate the target ProcedurePlanDefinitionVersion "
                 "after overlay is applied. The try/finally block restores the original "
                 "activation state on failure regardless of this setting."
             ),

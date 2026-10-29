@@ -139,11 +139,7 @@ project:
     breconfig: false          # Business Rules Engine configuration
     guidedselling: true      # Guided Selling
     procedureplans: true      # Procedure Plans
-    procedureplans_active: false  # Activate RLM_Quote_Pricing_Procedure_Plan. Off by default: with a plan active, the
-                              # price waterfall shows only the last procedure (Help: Pricing Procedure Plan Limits), and
-                              # the Revenue Settings default procedure runs again after the plan, so price revision
-                              # (CPI uplift) is applied twice. The plan is still built, inactive; PRM distributor pricing
-                              # (RLM_PRM_DISTI_Pricing_Procedure) runs only through it (todo 314).
+    procedureplans_active: false  # Activate RLM_Quote_Pricing_Procedure_Plan after building it. Off: an active plan doubles price revision and truncates the waterfall (datasets/sfdmu/procedure-plans/README.md → Activation). PRM distributor pricing needs it on.
     mcp: false                # MCP servers (post_mcp): RLM_McpClient ECA + hosted server activations, plus the custom rlm-sales-transactions server when mcp_custom_server is on. Opt-in: the hosted revenue-cloud server needs the RevMCP pilot permission, which not every org shape has, and the org build cannot finish the job, since each person still runs a browser OAuth login. Requires an org with the MCP feature.
     mcp_custom_server: true   # With mcp on, also build the custom RLMSalesTransactions server (post_mcp_custom clone invocable + permission set, server, tools, bindings). Set false to stand up only the ECA and hosted servers; clients then connect to revenue-cloud directly, without the multiplex proxy. Temporary: retire once the hosted revenue-cloud server covers place and clone.
 
@@ -3447,7 +3443,8 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Apply a Procedure Plan overlay from JSON with resolved IDs and a guarded
-      deactivate/apply/verify/reactivate sequence.
+      deactivate/apply/verify sequence that leaves the plan version as active or
+      inactive as it found it.
     class_path: tasks.rlm_apply_procedure_plan_overlay.ApplyProcedurePlanOverlay
     options:
       overlay_file: *prm_pricing_procedure_plan_overlay

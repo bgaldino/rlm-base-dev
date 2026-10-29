@@ -14,7 +14,7 @@ This data plan is executed as **step 4** of the `prepare_procedureplans` flow (w
 | 2    | `activate_procedure_plan_expression_sets` | Activate RLM_Price_Distribution_Procedure_V1 (idempotent)                   |
 | 3    | `create_procedure_plan_definition`      | Create PPD + inactive PPDV via Connect API (idempotent)                      |
 | 4    | `insert_procedure_plan_data`            | Run this SFDMU plan (2 passes — sections then options)                       |
-| 5    | `activate_procedure_plan_version`       | Activate the ProcedurePlanDefinitionVersion (idempotent)                     |
+| 5    | `activate_procedure_plan_version`       | Activate the ProcedurePlanDefinitionVersion (idempotent; only when `procedureplans_active=true`, default false) |
 
 ### Task Definition
 
@@ -34,11 +34,13 @@ Connect API             Pass 1 (SFDMU)          Pass 2 (SFDMU)          REST PAT
 ──────────────          ─────────────────        ─────────────────       ──────────────
 Create PPD +        ->  Upsert Procedure     ->  Upsert Procedure   ->  Activate PPDV
 inactive PPDV           Plan Sections             Plan Options            (IsActive=true)
+                                                                         only when
+                                                                         procedureplans_active
 ```
 
 The ProcedurePlanDefinition and ProcedurePlanDefinitionVersion are created by the Connect API task (`create_procedure_plan_definition`) rather than SFDMU because the `ProcedurePlanDefinition` sObject type requires the Connect API endpoint `POST /connect/procedure-plan-definitions` for creation.
 
-**Critical ordering:** The PPDV must be **inactive** during section/option insertion — Salesforce rejects DML on child records when the parent version is active ("You can't insert a procedure plan section with an active procedure plan definition version"). The activation step runs after all data is loaded.
+**Critical ordering:** The PPDV must be **inactive** during section/option insertion — Salesforce rejects DML on child records when the parent version is active ("You can't insert a procedure plan section with an active procedure plan definition version"). The activation step, when enabled (see *Activation*), runs after all data is loaded.
 
 ### Pass 1 — Upsert ProcedurePlanSections
 
@@ -150,7 +152,7 @@ or activate the version in Setup after the build.
 | Default Pricing | `DefaultPricing` | 1 | `RLM_DefaultPricingProcedure` | 1 |
 | Header Distribution | `HeaderDistribution` | 2 | `RLM_Price_Distribution_Procedure` | 1 |
 
-The plan executes two pricing procedures in order:
+When active, the plan executes these pricing procedures in order (the PRM overlay inserts `IFPartnerDistributorOnQuote` at sequence 2 and moves Header Distribution to 3):
 1. **Default Pricing** (Seq 1): Runs `RLM_DefaultPricingProcedure` — the main pricing expression set (deployed by the core flow, not this plan)
 2. **Header Distribution** (Seq 2): Runs `RLM_Price_Distribution_Procedure` — distributes header-level adjustments to line items (deployed by `deploy_post_procedureplans`)
 
@@ -209,7 +211,7 @@ This plan is **fully idempotent** at every step:
 1. **Connect API task** — skips if PPD already exists
 2. **Expression set activation** — skips if already active
 3. **SFDMU Upsert** — matches existing records via composite external IDs; "Nothing was updated" on re-run
-4. **PPDV activation** — skips if already active
+4. **PPDV activation** — skips if already active (and is skipped entirely unless `procedureplans_active`)
 
 Verified against `dev-sb0` (Release 260 / API v66.0) with all records present.
 
@@ -238,7 +240,16 @@ cci task run insert_procedure_plan_data -o object_sets "[0]" -o simulation true
 
 ### PPDV Must Be Inactive During Data Load
 
-Salesforce rejects `INSERT` and `UPSERT` operations on `ProcedurePlanSection` when the parent `ProcedurePlanDefinitionVersion` is active. The flow handles this by creating the PPDV with `versionActive: false` and activating it in the final step after all sections and options are loaded.
+Salesforce rejects `INSERT` and `UPSERT` operations on `ProcedurePlanSection` when the parent `ProcedurePlanDefinitionVersion` is active. The flow handles this by creating the PPDV with `versionActive: false` and, when `procedureplans_active` is true, activating it in the final step after all sections and options are loaded.
+
+### Rerun After the PRM Overlay Rejects a Section Row
+
+The PRM overlay re-sequences the sections (`HeaderDistribution` moves to 3). A later rerun of
+`insert_procedure_plan_data` no longer matches the CSV's `HeaderDistribution;2`, tries an insert,
+and the platform rejects it: "combination of the section type and subsection type is unique". The
+task then fails on the row error. Fresh builds are unaffected (`prepare_procedureplans` runs
+before `prepare_prm_pricing`). To rerun on such an org, pass
+`-o insert_procedure_plan_data__fail_on_row_errors false`.
 
 ### ProcedurePlanDefinition Requires Connect API
 

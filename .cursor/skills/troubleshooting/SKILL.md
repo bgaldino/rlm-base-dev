@@ -466,7 +466,10 @@ step you know is in the procedure (a new formula, a constant control such as
 
 **Cause:** check `ProcedurePlanDefinitionVersion.IsActive` **first**. An inactive
 procedure plan is skipped: pricing falls back to the Revenue Settings default
-procedure and none of the plan's other procedures run. Measured on 264, a
+procedure and none of the plan's other procedures run. Inactive is the build
+default (`procedureplans_active: false`), so this is only a fault when the
+change you expect lives in a procedure only the plan runs (for example
+`RLM_PRM_DISTI_Pricing_Procedure`). Measured on 264, a
 discounted quote line still priced correctly with the plan off, but produced 3
 `PricingProcessExecution` rows instead of 9. A failed expression-set import
 used to leave the plan in this state (pack 170). By contrast, an active plan
@@ -477,8 +480,12 @@ procedure has at least one active version."
 expression-set version is **not confirmed inactive** after a failed PATCH, the
 version may be half-written: inspect it and deactivate it before touching the
 plan, because an active plan would route pricing to it. Then query the plan
-(`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`) and reactivate it with `sf data update record --target-org <sf_alias_or_username>
---sobject ProcedurePlanDefinitionVersion --record-id <1Cv...> --values "IsActive=true"`, and re-check with a constant
+(`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`). If the change belongs
+to `RLM_DefaultPricingProcedure`, leave the plan inactive. Activate it only when you
+need a plan-only procedure, and accept the trade-off in
+`datasets/sfdmu/procedure-plans/README.md` → *Activation* (price revision applied
+twice, waterfall shows only the last procedure): `sf data update record --target-org <sf_alias_or_username>
+--sobject ProcedurePlanDefinitionVersion --record-id <1Cv...> --values "IsActive=true"`. Re-check with a constant
 control. Do not conclude "pricing works" from a plausible number.
 
 ---

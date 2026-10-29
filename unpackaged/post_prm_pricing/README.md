@@ -100,8 +100,8 @@ incomplete waterfall and the doubled price revision.
 
 The procedure-plan overlay is applied by `apply_procedure_plan_overlay`,
 which resolves parent IDs directly and runs through a guarded
-deactivate/apply/verify/reactivate sequence so failures do not strand the plan
-inactive.
+deactivate/apply/verify sequence. It reactivates the plan only if it was active
+before, so the default inactive plan stays inactive.
 
 ## UX Sources
 

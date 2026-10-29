@@ -25,7 +25,9 @@ pattern as PRM pricing without redesigning setup order each time.
 1. Satisfy recipe-to-table prerequisites before deploying procedures that depend on them.
 2. Split **core** prerequisites from **feature overlay** prerequisites.
 3. Keep metadata org-agnostic (placeholders + transforms, never hardcoded record IDs).
-4. Apply overlays with explicit sequencing (deactivate -> load -> verify -> reactivate).
+4. Apply overlays with explicit sequencing (deactivate -> load -> verify -> restore the
+   prior active state). The quote procedure plan is built **inactive** by default
+   (`procedureplans_active: false`); see `datasets/sfdmu/procedure-plans/README.md` → *Activation*.
 5. Validate on a clean org, then re-run for idempotency.
 6. Prefer `LookUpApiName` for decision table references; add `LookUpId` only when
    a known org/runtime issue requires it.
@@ -102,6 +104,8 @@ Repo implementation pattern:
   - Runs in `deploy_post_prm_pricing` behind `prm` + `prm_pricing`
   - Ensures PRM-specific table mappings, plus idempotent coverage for shared
     cost-book mapping when the PRM pricing flow is run directly
+  - `RLM_PRM_DISTI_Pricing_Procedure` runs only through the procedure plan, so
+    distributor pricing also needs `procedureplans_active: true`
 
 Mapping tasks fail fast when a required `DecisionTable` is missing. Keep
 `skip_missing_tables: false` for flow usage; use `skip_missing_tables: true`
@@ -141,7 +145,7 @@ Runtime contract:
 5. resolve parent IDs with SOQL instead of relying on traversal upsert keys
 6. create or patch options, then criteria if present
 7. verify exact overlay invariants
-8. reactivate the plan version in a guarded `finally` path
+8. in a guarded `finally` path, reactivate the plan version if it was active before (or if `activate_after_apply` is true)
 
 When an overlay changes section order and adds a new section into an existing
 sequence, declare placement by anchor (`placement.afterSubSectionType`) rather

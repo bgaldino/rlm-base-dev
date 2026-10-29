@@ -19,9 +19,10 @@ by `prepare_prm_pricing`:
 - upsert the priority `1` option for `RLM_PRM_DISTI_Pricing_Procedure`
 - upsert the `PartnerAccount.BillingAddress IsNotNull` criterion
 
-The CCI task wraps the apply in a guarded
-deactivate/apply/verify/reactivate sequence so a mid-task failure does not leave
-the procedure plan inactive.
+The CCI task wraps the apply in a guarded deactivate/apply/verify sequence. It
+reactivates the plan version only if it was active before the overlay, so a
+mid-task failure does not strand an active plan inactive. `cumulusci.yml` sets
+`activate_after_apply: false`, so the default inactive plan stays inactive.
 
 ## JSON Schema
 
