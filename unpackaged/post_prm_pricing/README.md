@@ -92,6 +92,12 @@ and skip behavior is intentional.
 - `datasets/procedure_plan_overlays/prm_pricing.json` adds the PRM conditional
   branch to `RLM_Quote_Pricing_Procedure_Plan` when `procedureplans=true`.
 
+The plan is built **inactive** by default (`procedureplans_active: false`; see
+`datasets/sfdmu/procedure-plans/README.md` → *Activation*). `RLM_PRM_DISTI_Pricing_Procedure`
+runs only through the plan, so **distributor pricing doesn't run** until the plan is active.
+Set `procedureplans_active: true` for a PRM demo that needs it. You then accept the plan's
+incomplete waterfall and the doubled price revision.
+
 The procedure-plan overlay is applied by `apply_procedure_plan_overlay`,
 which resolves parent IDs directly and runs through a guarded
 deactivate/apply/verify/reactivate sequence so failures do not strand the plan

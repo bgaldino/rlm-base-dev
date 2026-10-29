@@ -1110,7 +1110,7 @@
 - `overlay_file`: `datasets/procedure_plan_overlays/prm_pricing.json`
 - `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
 - `verify`: `True`
-- `activate_after_apply`: `True`
+- `activate_after_apply`: `False`
 
 ---
 

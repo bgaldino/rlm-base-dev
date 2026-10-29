@@ -117,6 +117,30 @@ Activates the ProcedurePlanDefinitionVersion after all sections and options have
 - Queries PPDV by parent `ProcedurePlanDefinition.DeveloperName`
 - Patches `IsActive = true` via sObject REST API
 
+## Activation (off by default)
+
+`prepare_procedureplans` builds the plan, but activates it (step 5) only when `procedureplans_active`
+is true. The default is false. `apply_procedure_plan_overlay` (the PRM section) leaves the version as
+it found it.
+
+Measured on a fresh 264 build (todo 314):
+
+- **Plan active, `skipOrgSttPricing=false`** (the repo setting). The Revenue Settings default procedure
+  runs again after the plan. A price revision on an as-is renewal is applied twice: CPI 4% + 2 on
+  2,400 gave 2,696.64 instead of 2,544. The stored waterfall is the re-run's.
+- **Plan active, `skipOrgSttPricing=true`.** The CPI renewal is right, but a header discount is applied
+  twice: `RLM_DefaultPricingProcedure` already distributes it, then `RLM_Price_Distribution_Procedure`
+  does it again (10% on 5,240 gave 4,244.40 instead of 4,716). The stored waterfall is one step.
+- **Plan inactive.** CPI 2,544, header discount 4,716, and amendments, renewals and group ramps
+  unchanged. The waterfall is the full default procedure.
+
+Help (*Pricing Procedure Plan Limits*): "The Price Waterfall displays execution results for only the
+last pricing procedure in the sequence" and "Don't stitch multiple pricing procedures together within
+a single procedure plan". Waterfall chaining across procedures is planned for 266 (GUS W-24674830).
+
+To use the plan anyway (for example for PRM distributor pricing), set `procedureplans_active: true`,
+or activate the version in Setup after the build.
+
 ## Procedure Plan Structure
 
 ### RC Quote Pricing Procedure Plan

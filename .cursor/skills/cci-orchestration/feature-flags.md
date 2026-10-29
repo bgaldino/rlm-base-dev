@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**44 feature flags**, **85 configuration values**, **43 YAML anchors** under `project.custom`.
+**45 feature flags**, **85 configuration values**, **43 YAML anchors** under `project.custom`.
 
 ---
 
@@ -44,6 +44,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `prm_pricing` | `True` | 15 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
+| `procedureplans_active` | `False` | 1 flow step(s) |
 | `q3` | `False` | 13 flow step(s) |
 | `qb` | `True` | 38 flow step(s) |
 | `qbrix` | `False` | — |
@@ -337,6 +338,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_procedureplans` step 2 → `activate_procedure_plan_expression_sets`
 - `prepare_procedureplans` step 3 → `create_procedure_plan_definition`
 - `prepare_procedureplans` step 4 → `insert_procedure_plan_data`
+- `prepare_procedureplans` step 5 → `activate_procedure_plan_version`
+
+### `procedureplans_active` (default: `False`)
+
 - `prepare_procedureplans` step 5 → `activate_procedure_plan_version`
 
 ### `q3` (default: `False`)
