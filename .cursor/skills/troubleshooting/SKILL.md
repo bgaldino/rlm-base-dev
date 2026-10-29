@@ -754,6 +754,22 @@ sf project deploy start --source-dir unpackaged/post_constraints/sharingRules --
 As a one-off, an admin quoting one configured product also fills the cache. Do **not** turn
 off `executeConfigurationRules`: that skips the rules.
 
+### `manage_expression_sets` fails: "Constraint version status update failed"
+
+**Cause:** the constraint-version resource refused to deploy (or remove) the model and said
+so in its response body; HTTP was still 200. `manage_expression_sets` activates constraint
+models through that resource, so `prepare_constraints` step 10 fails instead of reporting
+success while the solver keeps the old model. The `errors` in the message come from the
+platform. Typical causes: the model doesn't compile (check it with `validate_cml`), a product
+in it has no `Type`/`Port` association (see *Unresolved ESC associations*), or the context
+definition the model uses is inactive.
+
+**Fix:** correct the model or its associations, re-run `import_cml`, then cycle the version
+again (deactivate, then activate). When cycling a single model on an org whose solver may be
+cold (a template-spun org, or one built before todo 064's fix), cycle **all** active
+constraint models instead. Each activation deploys one model, and the solver can reject it
+while another active model is missing from its cache (this case hasn't been checked live).
+
 ---
 
 ## DRO Errors

@@ -575,6 +575,7 @@ class ManageExpressionSets(BaseSalesforceTask):
         record = query_result['records'][0]
         version_id = record['Id']
         current_is_active = record.get('IsActive', False)
+        is_constraint_model = (record.get("ExpressionSet") or {}).get("UsageType") == "Constraint"
 
         if current_is_active == target_is_active:
             self.logger.info(
@@ -582,9 +583,14 @@ class ManageExpressionSets(BaseSalesforceTask):
                 version_full_name,
                 status,
             )
+            if is_constraint_model and target_is_active:
+                self.logger.warning(
+                    "'%s' is a constraint model: skipping an already-Active version does not "
+                    "redeploy it to the solver. Deactivate it first to pick up a re-import.",
+                    version_full_name,
+                )
             return True
 
-        is_constraint_model = (record.get("ExpressionSet") or {}).get("UsageType") == "Constraint"
         if is_constraint_model:
             # Deploys to (or removes from) the constraint solver; see the docstring.
             url = (
@@ -596,10 +602,6 @@ class ManageExpressionSets(BaseSalesforceTask):
             # Update the data record directly.
             url = f"{instance_url}/services/data/v{api_version}/sobjects/ExpressionSetVersion/{version_id}"
             payload = {"IsActive": target_is_active}
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
 
         try:
             max_attempts = 4
@@ -610,7 +612,13 @@ class ManageExpressionSets(BaseSalesforceTask):
                         return True
                     # The constraint resource reports a failed deploy as HTTP 200 with
                     # success: false, so the status code alone proves nothing.
-                    body = response.json() if response.text else {}
+                    try:
+                        body = response.json() if response.text else {}
+                    except ValueError:
+                        raise TaskOptionsError(
+                            "Constraint version status update returned a 200 that is not JSON: "
+                            f"{response.text[:300]}"
+                        )
                     if body.get("success") is True:
                         return True
                     raise TaskOptionsError(

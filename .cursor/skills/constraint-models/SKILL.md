@@ -329,6 +329,12 @@ constraint solver on activation and removes it on deactivation. It returns HTTP 
 `success: false` on a failed deploy, so the task checks `success`. Every other expression set
 gets an `IsActive` PATCH.
 
+An **already-Active** version is skipped, and for a constraint model the task warns that
+the skip doesn't redeploy anything: `activate_versions` alone never picks up a re-import, so
+always deactivate first. On an org whose solver may be cold, cycle every active constraint
+model, not just the one you changed (see troubleshooting, *Constraint version status update
+failed*).
+
 The resource is not in the public developer guide; it is the route Constraint Builder uses,
 and nothing else deploys a model (todo 064). Measured live on 2026-10-29: when the task still
 PATCHed `IsActive` for constraint models, a model re-imported into an active version kept
