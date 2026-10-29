@@ -343,6 +343,44 @@ expect("ramp quantities must be at least 1",
        args_error("--scenario", "cancel", "--ramp-years", "2", "--ramp-quantities", "0,2"), True)
 expect("ramp amend-down needs Year-1 of 2 or more",
        args_error("--scenario", "amend-down", "--ramp-years", "2", "--ramp-quantities", "1,2"), True)
+# A ramp cancel must credit every remaining segment in full (Codex on #640).
+Y2_START = dt.date(2027, 5, 1)
+PERIODS = vb.state_periods([
+    {"StartDate": "2026-05-01T00:00:00.000+0000", "EndDate": "2027-04-30T23:59:59.000+0000", "Quantity": 1},
+    {"StartDate": "2027-05-01T00:00:00.000+0000", "EndDate": "2028-04-30T23:59:59.000+0000", "Quantity": 2}])
+expect("state periods parse to dates", PERIODS[1], (Y2_START, dt.date(2028, 4, 30), 2.0))
+cx_y1 = sched(-1, "C1")
+cx_y2 = sched(-2, "C2", start=Y2_START.isoformat())
+expect("ramp cancel crediting both segments passes", vb.check_ramp_cancel([cx_y1, cx_y2], EFF, PERIODS), [])
+expect("ramp cancel crediting only the current segment fails",
+       has(vb.check_ramp_cancel([cx_y1], EFF, PERIODS), "from 2027-05-01 uncredited"), True)
+expect("ramp cancel with no credit from the effective date fails",
+       has(vb.check_ramp_cancel([cx_y2], EFF, PERIODS), "from 2026-08-01 uncredited"), True)
+expect("a partial credit of a later segment fails",
+       has(vb.check_ramp_cancel([cx_y1, sched(-1, "C2", start=Y2_START.isoformat())], EFF, PERIODS),
+           "credited -1, expected -2"), True)
+expect("a duplicated later credit fails",
+       has(vb.check_ramp_cancel([cx_y1, cx_y2, sched(-2, "C3", start=Y2_START.isoformat())], EFF, PERIODS),
+           "credited -4, expected -2"), True)
+expect("a credit off the segment boundaries fails",
+       has(vb.check_ramp_cancel([cx_y1, cx_y2, sched(-1, "C3", start="2027-01-01")], EFF, PERIODS),
+           "off the ramp's segment boundaries"), True)
+expect("zero-quantity and usage schedules don't count",
+       vb.check_ramp_cancel([cx_y1, cx_y2, sched(0, "Z"), dict(sched(-1, "U", start="2027-01-01"), UsageResourceId="UR")],
+                            EFF, PERIODS), [])
+# A group ramp made by a ramped renewal: segments from the renewal (08-01), cancel effective 09-01.
+RENEWED = vb.state_periods([
+    {"StartDate": "2026-05-01", "EndDate": "2026-07-31", "Quantity": 1},
+    {"StartDate": "2026-08-01", "EndDate": "2027-07-31", "Quantity": 1},
+    {"StartDate": "2027-08-01", "EndDate": "2028-07-31", "Quantity": 1}])
+SEP1 = dt.date(2026, 9, 1)
+expect("renewed group ramp cancel passes",
+       vb.check_ramp_cancel([sched(-1, "R1", start="2026-09-01"), sched(-1, "R2", start="2027-08-01")], SEP1, RENEWED),
+       [])
+expect("a ramp amend with a zero-quantity later segment passes",
+       vb.check_ramp_amend([sched(1, "A1"), sched(0, "A2", start=Y2_START.isoformat())], EFF), [])
+expect("a ramp amend that changes a later segment fails",
+       has(vb.check_ramp_amend([sched(1, "A1"), sched(1, "A2", start=Y2_START.isoformat())], EFF), "A2"), True)
 expect("ramps have no prepare-only mode",
        args_error("--scenario", "cancel", "--prepare-only", "--ramp-years", "2", "--ramp-quantities", "1,2"), True)
 expect("--ramp-kind needs a ramp build", args_error("--scenario", "cancel", "--ramp-kind", "group"), True)

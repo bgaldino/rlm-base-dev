@@ -296,7 +296,12 @@ transfer's target order is on another account.
   A schedule that hasn't started must not be invoiced. Netted lines are checked per
   `BillingScheduleGroupId` with the same sum and first-line rules; a group that nets to zero
   proves only that its lines net out, not each schedule's share.
-  A zero-quantity schedule must bill nothing. Every negative invoice must have a credit memo and settle
+  A zero-quantity schedule must bill nothing. A ramp cancel must credit the effective date and each
+  later segment start (state periods read before the change), each for minus that segment's
+  quantity, so a missing, partial or duplicated credit fails. A ramp amendment must leave later
+  segments at quantity 0. Measured only on ramps with distinct per-segment quantities and no
+  earlier change; an asset amended before (via `--asset`) has extra period starts and may fail.
+  Every negative invoice must have a credit memo and settle
   to `Balance = 0`. The expectation uses the platform's own period amount, so the check proves
   the invoice matches the schedule, not that the price is right.
 

@@ -612,6 +612,51 @@ def check(new_scheds, invoices, effective, scale, line_starts=None, ramp_anchors
     return fails
 
 
+def state_periods(rows):
+    """AssetStatePeriod rows -> [(start, end, quantity)] as dates, in date order."""
+    if any(not (r.get("StartDate") and r.get("EndDate")) for r in rows):
+        raise StepError("a state period of the ramp asset has no start or end date")
+    return sorted((dt.date.fromisoformat(r["StartDate"][:10]), dt.date.fromisoformat(r["EndDate"][:10]),
+                   float(r["Quantity"] or 0)) for r in rows)
+
+
+def check_ramp_cancel(new_scheds, effective, periods):
+    """A ramp cancel credits every remaining segment in full, not just the current one.
+
+    Measured: one credit schedule from the effective date and one from each later
+    segment's own start, each for minus that segment's quantity. ``periods`` are the
+    asset's state periods read before the change. Credits are summed per start date, so
+    a missing, partial or duplicated credit fails.
+    """
+    def qty_on(d):
+        return next((q for s, e, q in periods if s <= d <= e), None)
+
+    want = {d: -qty_on(d) for d in {effective} | {s for s, _, _ in periods if s > effective}
+            if qty_on(d)}
+    got = {}
+    for s in new_scheds:
+        if s["Quantity"] and s["Quantity"] < 0 and not s.get("UsageResourceId"):
+            d = dt.date.fromisoformat(s["BillingScheduleStartDate"])
+            got[d] = got.get(d, 0) + float(s["Quantity"])
+    fails = []
+    for d in sorted(set(want) | set(got)):
+        if d not in got:
+            fails.append(f"the cancel left the ramp segment from {d} uncredited")
+        elif d not in want:
+            fails.append(f"a credit starts {d}, off the ramp's segment boundaries")
+        elif abs(got[d] - want[d]) > 1e-9:
+            fails.append(f"the ramp segment from {d} was credited {got[d]:g}, expected {want[d]:g}")
+    return fails
+
+
+def check_ramp_amend(new_scheds, effective):
+    """A ramp amendment changes only the segment it falls in (measured); later segments get
+    zero-quantity schedules, so a nonzero schedule starting after the effective date fails."""
+    return [f"schedule {s['Id']} changes a later ramp segment" for s in new_scheds
+            if s["Quantity"] and not s.get("UsageResourceId")
+            and dt.date.fromisoformat(s["BillingScheduleStartDate"]) > effective]
+
+
 def check_shape(scenario, new_scheds, order_account, acct):
     """The change must look like the scenario: right accounts, right signs.
 
@@ -765,8 +810,8 @@ def main():
         # A ramp's later segments start on the asset's own period boundaries: a built line ramp
         # every year from its start, a ramped renewal's group ramp every year from the renewal.
         # Read them before the change (a cancel collapses them).
-        asset_periods = [r["StartDate"] for r in sf_query(
-            org, f"SELECT StartDate FROM AssetStatePeriod WHERE AssetId = '{asset}'")] \
+        asset_periods = state_periods(sf_query(
+            org, f"SELECT StartDate, EndDate, Quantity FROM AssetStatePeriod WHERE AssetId = '{asset}'")) \
             if args.ramp_years else []
         if args.prepare_only:
             orders = "--order <source order> --order <target order>" if args.scenario == "transfer" \
@@ -833,13 +878,17 @@ def main():
             first = sf_query(org, f"SELECT LifecycleStartDate FROM Asset WHERE Id = '{asset}'")[0]["LifecycleStartDate"]
             if not first:
                 raise StepError(f"asset {asset} has no LifecycleStartDate to place its ramp segments")
-            anchors = tuple(sorted({dt.date.fromisoformat(d[:10]) for d in [first] + asset_periods}))
+            anchors = tuple(sorted({dt.date.fromisoformat(first[:10])} | {s for s, _, _ in asset_periods}))
         elif args.renewal_ramp_years:
             # A ramped renewal's segments start a whole number of years after the effective date.
             anchors = (effective,)
         fails = (check_shape(args.scenario, new, order_account, acct)
                  + check(new, invoices, effective, scale,
                          line_starts(org, list(order_account), new) if anchors else None, anchors))
+        if args.ramp_years and args.scenario == "cancel":
+            fails += check_ramp_cancel(new, effective, asset_periods)
+        if args.ramp_years and args.scenario in ("amend-up", "amend-down"):
+            fails += check_ramp_amend(new, effective)
     except StepError as exc:
         print(f"FAIL {args.scenario}: {exc}")
         return 1
