@@ -444,6 +444,20 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `RLM_Fulfillment_Manager` | RLM Fulfillment Manager | `DFOManagerOperatorUser` |
 | `RLM_Usage_Designer` | RLM Usage Designer | `ProductCatalogManagementViewer`, `RevLifecycleManagementUsageDesignUser` |
 
+### Record sharing
+
+Object permissions above don't grant row access to Private objects. Record access the build adds:
+
+- `set_personas_org_wide_defaults` (`prepare_personas` step 1) sets the org-wide defaults the sales
+  rep persona relies on: Read for the product and configuration objects, Read/Write for Account,
+  Asset, Contract and Order.
+- The `ExpressionSet` criteria sharing rule `RLM_Constraint_Models_Read`
+  (`unpackaged/post_constraints/sharingRules/`, deployed by `prepare_constraints` step 2 when
+  `constraints` is on) shares constraint-model Expression Sets (`UsageType = Constraint`) Read with
+  **all internal users**. On a cold constraint solver, the first configuration-rules run redeploys
+  the models as the running user, so a non-admin needs to see these rows. Pricing procedures and
+  other Expression Sets stay Private, as does access for external (Experience Cloud) users.
+
 ---
 
 ## Feature Flag Quick Reference
