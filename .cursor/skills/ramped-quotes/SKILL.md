@@ -29,7 +29,8 @@ Two distinct ramp mechanisms exist — do not confuse them:
 | **Line ramp** — `createRampDeal` on a single line (`/connect/revenue-management/sales-transaction-contexts/{lineId}/actions/ramp-deal-create`) | ungrouped segments (`QuoteLineGroupId=null`) | **No**: there's no group to hold the uplift mode, and `RLM_DefaultPricingProcedure` applies **no** `UnitPriceUplift` to line ramps at all (the ramp filter is limited to group ramps; measured 2026-10-28). Prefer group ramps. |
 | *(legacy)* `/commerce/sales-transactions/ramp-deals` (v63–66) | quantity/revenue **commitment** ramp on the deprecated `/commerce/` path | out of scope |
 
-**Compound price uplift requires the group ramp.** Build it with the sequence below.
+**Compound price uplift requires the group ramp.** Build it with the sequence below, or in the
+quote UI (`ui-group-ramp.md`, measured on 264).
 
 ## Quick Rules
 
@@ -491,6 +492,9 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
   to verify. Read it when applying or checking Compound.
 - `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
   call rejects a field.
+- `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI (Create Ramp
+  Schedule → Edit Ramp Schedule → Browse Catalogs into *Current and Subsequent Segments*), the
+  expected prices and assets, and how to verify. Read it for a UI demo or a UI-built quote.
 
 ## Related References
 
