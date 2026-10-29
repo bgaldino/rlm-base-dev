@@ -10,7 +10,7 @@
 > Save & Exit, and **Create Order**. Every other step, including the QB API,
 > Services and Software Maintenance configuration rows and the "What's new in 262" notes, still describes 262
 > and needs the SME pass below before it's relied on for 264.
-> **Status:** DRAFT — preview release, not yet GA. Requires SME pass for Setup-UI verification, Known-Bugs population, image capture, and Slack canvas publish.
+> **Status:** DRAFT. Requires SME pass for Setup-UI verification, Known-Bugs population, image capture, and Slack canvas publish.
 > **Grounded on:**
 > - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
 > - `.agents/artifacts/qb-canvas-260-source.md` (prior-release Slack canvas — source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on the local-only canvas source)
