@@ -773,9 +773,10 @@ A cold solver (a template-spun org, or one built before todo 064's fix) is not a
 Checked live on 2026-10-29 (todo 313) on an org whose solver held no models, with both
 versions still Active: step 9's deactivate returned `success: true` for both, and step 10 left
 the solver warm (the sales rep's next quote needed one configurator pass, with no
-`MODEL_NOT_FOUND`). Cycling only `QuantumBitBundle_V1` also succeeded, and afterwards a
-`Server2` product solved in one pass: activating one constraint model deploys every active
-one, so a single-model cycle is enough.
+`MODEL_NOT_FOUND`). Cycling only `QuantumBitBundle_V1` also succeeded, and the next quote,
+for a `Server2` product, solved in one pass; cycling only `Server2_V1` did the same for a
+`QuantumBitBundle` product. Activating one constraint model deploys every active one, so a
+single-model cycle is enough.
 
 ---
 

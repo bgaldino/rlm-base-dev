@@ -528,8 +528,8 @@ class ManageExpressionSets(BaseSalesforceTask):
 
         Constraint models (ExpressionSet.UsageType = 'Constraint') go through the
         constraint-version resource, /industries/constraints/{setId}/versions/{versionId}:
-        it deploys the model to the constraint solver on activation and removes it on
-        deactivation. A plain ExpressionSetVersion.IsActive update flips the record but never
+        it deploys the model to the constraint solver on activation (with every other active
+        constraint model, todo 313) and removes it on deactivation. A plain ExpressionSetVersion.IsActive update flips the record but never
         reaches the solver, so a re-imported model kept running the old one (todo 064).
         Every other expression set keeps the sObject IsActive update.
 
