@@ -98,6 +98,7 @@ Usage
 Exits 0 when every account reaches an asset with usage buckets, 1 otherwise.
 """
 import argparse
+import datetime as dt
 import json
 import os
 import subprocess
@@ -120,7 +121,9 @@ CALC_READY = {"CompletedWithPricing", "CompletedWithTax", "CompletedWithoutPrici
 # Quote.CalculationStatus lists TaxCalculationSuccess — accept both.
 QUOTE_READY = {"CompletedWithPricing", "CompletedWithTax", "TaxCalculationSuccess",
                "CompletedWithoutPricing"}
-QUOTE_FAILED = {"PriceCalculationFailed", "TaxCalculationFailed", "SaveFailedOrIncomplete"}
+QUOTE_FAILED = {"PriceCalculationFailed", "TaxCalculationFailed", "SaveFailedOrIncomplete",
+                "ConfigurationFailed", "ReconciliationFailed", "GroupRampConfigurationFailed",
+                "PstBaseStepFailed", "ARCStepFailed", "QuoteRequestFailed", "CloneFailed"}
 CALC_FAILED = {
     "PriceCalculationFailed", "TaxCalculationFailed", "SaveFailedOrIncomplete",
     "OrderRequestFailed", "ConfigurationFailed", "ReconciliationFailed",
@@ -398,7 +401,7 @@ System.debug('TREATMENT_CANCHANGE=' + treatment.CanChangeBillingFrequency);
 
 
 def place_quote(org, ids, account, start, end, quantity, period_boundary,
-                billing_frequency, bind_extra=False):
+                billing_frequency, bind_extra=False, group=False):
     """Create the Quote + line via Place Sales Transaction.
 
     Direct QuoteLineItem DML is NOT viable for a TermDefined product: the platform
@@ -410,6 +413,9 @@ def place_quote(org, ids, account, start, end, quantity, period_boundary,
     treatments so the frequency CAN be supplied, and this function sends
     BillingFrequency explicitly in the payload. The transaction API remains the
     supported path for adding a line to a quote.
+
+    ``group``: put the lines in one ``QuoteLineGroup``, with ``end`` as the group's
+    first period, for ``ramp_group`` to turn into a group ramp.
     """
     # Which line fields are legal depends on the SELLING MODEL, not the product:
     #   OneTime     -> BillingFrequency must be null; EndDate rejected
@@ -437,6 +443,10 @@ def place_quote(org, ids, account, start, end, quantity, period_boundary,
         }
     ]
 
+    if group:
+        records.append({"referenceId": "refGroup", "record": {
+            "attributes": {"type": "QuoteLineGroup", "method": "POST"},
+            "Name": "Year 1", "QuoteId": "@{refQuote.id}"}})
     n = sum(1 for k in ids if k.endswith("_PBE_ID"))
     for i in range(n):
         model = ids.get(f"SKU{i}_SELLING_MODEL", "TermDefined")
@@ -449,6 +459,8 @@ def place_quote(org, ids, account, start, end, quantity, period_boundary,
             "Quantity": quantity,
             "StartDate": start,
         }
+        if group:
+            line["QuoteLineGroupId"] = "@{refGroup.id}"
         if model not in ("Evergreen", "OneTime"):
             line["EndDate"] = end
         if model != "OneTime":
@@ -633,6 +645,190 @@ System.debug('SBMS=' + after.OrchestrationSbmsStatus);
     return vals
 
 
+RAMP_CREATE_PATH = f"/services/data/{API}/connect/revenue-management/sales-transaction-contexts/{{line}}/actions/ramp-deal-create"
+
+
+def ramp_line(org, quote_id, years, quantities, timeout, interval):
+    """Turn the quote's single line into a YEARLY line ramp of ``years`` segments.
+
+    Line ramp = ``ramp-deal-create`` on the placed line (the product needs
+    ``Product2.CanRamp``; group ramps don't, see the ramped-quotes skill). Each segment
+    copies the primary, so the per-segment quantities (required) are patched through Place
+    with the returned transaction context (as scripts/df_workshop does). That Place
+    always runs: measured, ramp-deal-create alone leaves the quote unchanged, as the
+    segments exist only in the context until a Place saves it.
+    """
+    lines = sf_query(org, f"SELECT Id FROM QuoteLineItem WHERE QuoteId = '{quote_id}'")
+    if len(lines) != 1:
+        raise StepError(f"--ramp-years needs a single-line quote, found {len(lines)} lines")
+    line_id = lines[0]["Id"]
+    resp = sf_rest(org, RAMP_CREATE_PATH.format(line=line_id), "POST", {
+        "transactionId": quote_id, "transactionLineId": line_id,
+        "subscriptionTerm": 12 * years, "subscriptionTermUnit": "MONTHS", "segmentType": "YEARLY",
+        "executionSettings": {"executePricing": True, "executeConfigRules": False}})
+    if not (isinstance(resp, dict) and resp.get("success")):
+        raise StepError(f"ramp-deal-create: {json.dumps(resp)[:400]}")
+    context_id = resp.get("transactionContextId")
+    segs = []
+    for st in resp.get("salesTransactionContext", {}).get("SalesTransaction", []):
+        for it in st.get("SalesTransactionItem", []):
+            if it.get("ItemSegmentName"):
+                if not it.get("StartDate"):
+                    raise StepError(f"ramp segment {it['ItemSegmentName']} has no StartDate")
+                segs.append((it["StartDate"], it["id"], it["ItemSegmentName"]))
+    segs.sort()
+    if len(segs) != years:
+        raise StepError(f"ramp-deal-create made {len(segs)} segment(s), expected {years}")
+    if not context_id:
+        raise StepError("ramp-deal-create returned no transactionContextId")
+    recs = [{"referenceId": "qh", "record": {"attributes": {"type": "Quote", "method": "PATCH", "id": quote_id}}}]
+    for (_, sid, _), qty in zip(segs, quantities):
+        recs.append({"referenceId": sid, "record": {
+            "attributes": {"type": "QuoteLineItem", "method": "PATCH", "id": sid}, "Quantity": qty}})
+    # Same envelope as scripts/df_workshop: the ramp's context goes in contextDetails.
+    payload = {"pricingPref": "System", "taxPref": "Skip",
+               "graph": {"graphId": "rampSave", "records": recs},
+               "contextDetails": {"contextId": context_id}}
+    out = sf_rest(org, f"/services/data/{API}/connect/rev/sales-transaction/actions/place", "POST", payload)
+    if isinstance(out, list) or (isinstance(out, dict) and (out.get("errorResponse") or out.get("isSuccess") is False)):
+        raise StepError(f"saving the ramp failed: {json.dumps(out)[:400]}")
+    # A Place that returns cleanly can still leave the quote unchanged (measured before the
+    # context was passed), and the quote is already settled from before, so wait for the
+    # segments themselves, with their quantities, then for the quote.
+    def saved():
+        rows = sf_query(org, f"SELECT Quantity, RampIdentifier FROM QuoteLineItem WHERE QuoteId = '{quote_id}' "
+                             "ORDER BY StartDate")
+        return (len(rows) == years and all(r.get("RampIdentifier") for r in rows)
+                and [float(r["Quantity"]) for r in rows] == [float(q) for q in quantities])
+    _poll(saved, f"{years} saved ramp segments with quantities {quantities}", timeout, interval)
+    wait_for_quote(org, quote_id, timeout, interval)
+    return [name for _, _, name in segs]
+
+
+CLONE_PATH = f"/services/data/{API}/connect/rev/sales-transaction/actions/clone"
+
+
+def _poll(fn, what, timeout, interval):
+    """Wait until ``fn()`` is true: after a ramp call the quote may still read as settled."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if fn():
+            return
+        time.sleep(interval)
+    raise StepError(f"timed out after {timeout}s waiting for {what}")
+
+
+def _place(org, payload, what):
+    out = sf_rest(org, f"/services/data/{API}/connect/rev/sales-transaction/actions/place", "POST", payload)
+    if isinstance(out, list) or (isinstance(out, dict) and (out.get("errorResponse") or out.get("isSuccess") is False)):
+        raise StepError(f"{what} failed: {json.dumps(out)[:400]}")
+
+
+def _patch(sobject, rec_id, **fields):
+    # The referenceId must be the record's own Id: EditGroup matches groups by it, and a
+    # label such as "g" fails with "Index 0 out of bounds for length 0" (measured).
+    return {"referenceId": rec_id, "record": dict({"attributes": {"type": sobject, "method": "PATCH", "id": rec_id}},
+                                                  **fields)}
+
+
+def ramp_segments(org, quote_id):
+    """The quote's ramp segment groups in date order (the RampScheduleGroup parent left out).
+
+    By StartDate, not SortOrder: the platform rewrites SortOrder (1 became -999999999).
+    """
+    return sf_query(org, "SELECT Id, SortOrder, IsRamped, SegmentType, StartDate, EndDate, ParentQuoteLineGroupId "
+                         f"FROM QuoteLineGroup WHERE QuoteId = '{quote_id}' AND Type != 'RampScheduleGroup' "
+                         "ORDER BY StartDate NULLS FIRST")
+
+
+def _segments_settled(segs, n):
+    return len(segs) == n and all(g.get("IsRamped") and g.get("SortOrder") is not None and g.get("StartDate")
+                                  and g.get("EndDate") for g in segs)
+
+
+def ramp_group(org, quote_id, start, years, quantities, timeout, interval):
+    """Turn the quote's single group into a YEARLY group ramp of ``years`` segments.
+
+    The ramped-quotes skill's sequence: EditGroup marks the group as segment 1, then each
+    clone of the last segment adds the next year. Measured on 264: neither creates the
+    multi-schedule RampScheduleGroup parent, and an order without one fails activation
+    ("Specify a ramp schedule group for ramp segment", todo 159), so the parent is added
+    and the segments reparented to it. Clones copy the quantity, so the per-segment
+    quantities are patched last. Unlike a line ramp, the product needs no CanRamp.
+    """
+    groups = ramp_segments(org, quote_id)
+    if len(groups) != 1:
+        raise StepError(f"--ramp-kind group needs a single-group quote, found {len(groups)} groups")
+    first = dt.date.fromisoformat(start)
+    # Yearly segments are exactly 365 days (ramped-quotes skill), not calendar years.
+    _place(org, {"groupRampAction": "EditGroup", "pricingPref": "System", "taxPref": "Skip",
+                 "graph": {"graphId": "rampEdit", "records": [
+                     _patch("Quote", quote_id),
+                     _patch("QuoteLineGroup", groups[0]["Id"], StartDate=start,
+                            EndDate=(first + dt.timedelta(days=364)).isoformat(),
+                            SortOrder=1, IsRamped=True, SegmentType="Yearly")]}}, "EditGroup")
+    _poll(lambda: _segments_settled(ramp_segments(org, quote_id), 1), "EditGroup to ramp the group", timeout, interval)
+    wait_for_quote(org, quote_id, timeout, interval)
+    for n in range(2, years + 1):
+        last = ramp_segments(org, quote_id)[-1]
+        if not last.get("IsRamped"):
+            # A clone of a group EditGroup never converted still succeeds (ramped-quotes skill).
+            raise StepError(f"segment group {last['Id']} isn't ramped; EditGroup didn't take")
+        out = sf_rest(org, CLONE_PATH, "POST", {"salesTransactionId": quote_id, "recordIds": [last["Id"]],
+                                                "options": {"lineScope": "AllLines"}})
+        if not (isinstance(out, dict) and out.get("success")):
+            raise StepError(f"cloning segment {n - 1}: {json.dumps(out)[:400]}")
+        _poll(lambda: _segments_settled(ramp_segments(org, quote_id), n), f"segment {n} from the clone",
+              timeout, interval)
+        wait_for_quote(org, quote_id, timeout, interval)
+    segs = ramp_segments(org, quote_id)
+    if not _segments_settled(segs, years):
+        raise StepError(f"the group ramp has {len(segs)} segment group(s), expected {years} ramped ones: {segs}")
+    for prev, cur in zip(segs, segs[1:]):
+        # Each clone must follow the previous segment; a clone of the wrong one overlaps it.
+        if dt.date.fromisoformat(cur["StartDate"]) != dt.date.fromisoformat(prev["EndDate"]) + dt.timedelta(days=1):
+            raise StepError(f"ramp segments aren't contiguous: {prev['StartDate']}..{prev['EndDate']} "
+                            f"then {cur['StartDate']}..{cur['EndDate']}")
+    parents = sf_query(org, f"SELECT Id FROM QuoteLineGroup WHERE QuoteId = '{quote_id}' AND Type = 'RampScheduleGroup'")
+    if not parents:
+        _place(org, {"pricingPref": "System", "taxPref": "Skip", "graph": {"graphId": "rampSchedule", "records": [
+            _patch("Quote", quote_id),
+            {"referenceId": "schedule", "record": {"attributes": {"type": "QuoteLineGroup", "method": "POST"},
+                                                   "Name": "Ramp Schedule - 1", "QuoteId": quote_id,
+                                                   "Type": "RampScheduleGroup"}}]}}, "adding the ramp schedule group")
+        parents = sf_query(org, f"SELECT Id FROM QuoteLineGroup WHERE QuoteId = '{quote_id}' "
+                                "AND Type = 'RampScheduleGroup'")
+    if len(parents) != 1:
+        raise StepError(f"expected one RampScheduleGroup on the quote, found {len(parents)}")
+    orphans = [g["Id"] for g in segs if g.get("ParentQuoteLineGroupId") != parents[0]["Id"]]
+    if orphans:
+        # DML, not Place: a Place that reparents a group to one it creates fails with
+        # "Cyclic dependencies detected" (measured).
+        sf_apex(org, "List<QuoteLineGroup> gs = new List<QuoteLineGroup>();\n"
+                     + "".join(f"gs.add(new QuoteLineGroup(Id = '{g}', ParentQuoteLineGroupId = '{parents[0]['Id']}'));\n"
+                               for g in orphans) + "update gs;")
+        if any(g.get("ParentQuoteLineGroupId") != parents[0]["Id"] for g in ramp_segments(org, quote_id)):
+            raise StepError("reparenting the segments to the RampScheduleGroup didn't take")
+    lines = sf_query(org, "SELECT Id, QuoteLineGroupId FROM QuoteLineItem "
+                          f"WHERE QuoteId = '{quote_id}' ORDER BY StartDate")
+    by_group = {g["Id"]: [l["Id"] for l in lines if l["QuoteLineGroupId"] == g["Id"]] for g in segs}
+    if any(len(v) != 1 for v in by_group.values()) or len(lines) != years:
+        raise StepError(f"expected one line per segment, found {by_group}")
+    recs = [_patch("Quote", quote_id)] + [_patch("QuoteLineItem", by_group[g["Id"]][0], Quantity=qty)
+                                          for g, qty in zip(segs, quantities)]
+    _place(org, {"pricingPref": "System", "taxPref": "Skip",
+                 "graph": {"graphId": "rampQuantities", "records": recs}}, "setting the segment quantities")
+
+    def saved():
+        rows = {r["QuoteLineGroupId"]: r for r in sf_query(
+            org, f"SELECT QuoteLineGroupId, Quantity, RampIdentifier FROM QuoteLineItem WHERE QuoteId = '{quote_id}'")}
+        return ([float(rows[g["Id"]]["Quantity"]) if g["Id"] in rows else None for g in segs]
+                == [float(q) for q in quantities] and all(r.get("RampIdentifier") for r in rows.values()))
+    _poll(saved, f"segment quantities {quantities} with ramp identifiers", timeout, interval)
+    wait_for_quote(org, quote_id, timeout, interval)
+    return [f"{g['StartDate']}..{g['EndDate']}" for g in segs]
+
+
 def link_commitment(org, account_id, commit_sku, anchor_sku):
     """Step 3 of "Sell Commitment-Based Usage Products" — the junction.
 
@@ -781,13 +977,26 @@ def build_one(org, account, args):
                             f"a TermDefined model. Pass --selling-model NAME (e.g. "
                             f"'Term Annual').")
 
-    quote_id = place_quote(org, ids, account, args.start, args.end,
+    group = bool(args.ramp_years) and args.ramp_kind == "group"
+    # A group ramp's lines start as segment 1: one Yearly segment of 365 days.
+    line_end = (dt.date.fromisoformat(args.start) + dt.timedelta(days=364)).isoformat() if group else args.end
+    quote_id = place_quote(org, ids, account, args.start, line_end,
                            args.quantity, args.period_boundary, args.billing_frequency,
-                           args.bind_extra_lines)
+                           args.bind_extra_lines, group=group)
     print(f"  quote        {quote_id}  (starts {args.start})")
 
     qcalc = wait_for_quote(org, quote_id, args.timeout, args.interval)
     print(f"  quote calc   {qcalc}")
+
+    if group:
+        names = ramp_group(org, quote_id, args.start, args.ramp_years, args.ramp_quantities,
+                           args.timeout, args.interval)
+        print(f"  group ramp   {len(names)} yearly segment(s): {', '.join(names)}"
+              + f"  quantities={args.ramp_quantities}")
+    elif args.ramp_years:
+        names = ramp_line(org, quote_id, args.ramp_years, args.ramp_quantities, args.timeout, args.interval)
+        print(f"  ramp         {len(names)} yearly segment(s): {', '.join(names)}"
+              + f"  quantities={args.ramp_quantities}")
 
     order_id = create_order(org, quote_id, args.timeout, args.interval)
     print(f"  order        {order_id}")
@@ -933,9 +1142,45 @@ def main():
     ap.add_argument("--period-boundary", default="Anniversary",
                     choices=["AlignToCalendar", "Anniversary", "DayOfPeriod", "LastDayOfPeriod"],
                     help="line period boundary (default: Anniversary)")
+    ap.add_argument("--ramp-years", type=int, default=0,
+                    help="make the line a YEARLY line ramp of N segments (ramp-deal-create). The "
+                         "product needs Product2.CanRamp, and --start/--end must span N years")
+    ap.add_argument("--ramp-quantities", type=lambda v: [float(x) for x in v.split(",")], default=None,
+                    help="with --ramp-years: comma-separated quantity per segment, e.g. 1,2")
+    ap.add_argument("--ramp-kind", choices=["line", "group"], default="line",
+                    help="with --ramp-years: a line ramp (default) or a group ramp (one QuoteLineGroup "
+                         "per year under a RampScheduleGroup; no CanRamp needed)")
     ap.add_argument("--timeout", type=int, default=300, help="per-poll timeout seconds")
     ap.add_argument("--interval", type=int, default=10, help="poll interval seconds")
     args = ap.parse_args()
+    if args.ramp_years < 0 or any(q < 1 for q in args.ramp_quantities or []):
+        ap.error("--ramp-years and every --ramp-quantities value must be positive")
+    if args.ramp_years and not args.ramp_quantities:
+        ap.error("--ramp-years needs --ramp-quantities (one quantity per segment; only that form was measured)")
+    if args.ramp_quantities and len(args.ramp_quantities) != args.ramp_years:
+        ap.error("--ramp-quantities needs one value per --ramp-years segment")
+    if args.ramp_kind == "group" and not args.ramp_years:
+        ap.error("--ramp-kind group needs --ramp-years")
+    if args.ramp_years and args.with_sku:
+        ap.error("--ramp-years ramps a single-line quote; drop --with-sku")
+    if args.ramp_years:
+        # Checked before any org call: a mismatch would otherwise fail after the quote exists.
+        try:
+            first = dt.date.fromisoformat(args.start)
+        except (TypeError, ValueError):
+            ap.error(f"--ramp-years needs --start as YYYY-MM-DD, got {args.start!r}")
+        try:
+            want = first.replace(year=first.year + args.ramp_years) - dt.timedelta(days=1)
+        except ValueError:  # a 29 February start
+            want = first.replace(year=first.year + args.ramp_years, day=28)
+        if args.end != want.isoformat():
+            ap.error(f"--ramp-years {args.ramp_years} needs --end {want} (N years from --start)")
+        year1 = first.replace(year=first.year + 1) - dt.timedelta(days=1) if (first.month, first.day) != (2, 29) else None
+        if args.ramp_kind == "group" and year1 != first + dt.timedelta(days=364):
+            # A Yearly segment 1 is 365 days, but clones end later segments on calendar dates
+            # (measured: 2027-05-01..2028-04-30), so a year 1 with 29 February would drift.
+            ap.error("--ramp-kind group: year 1 from --start contains 29 February, so its 365-day segment "
+                     "wouldn't end on the anniversary; pick another --start")
 
     accounts = [a.strip() for a in args.accounts.split(",") if a.strip()]
     print(f"org={args.org}  sku={args.sku}  {args.start} -> {args.end}  "

@@ -23,6 +23,12 @@ amend-up       +1 from the effective date
 amend-down     -1 from the effective date (asset built with quantity 2)
 cancel         cancel from the effective date
 renew-expired  renew an asset whose term ended before the effective date
+renew-early    renew an active asset early (Override) from the effective date; the unused
+               rest of the current term is refunded. --renewal-ramp-years N makes the
+               renewal a Yearly ramp (rampOptionsDetails), as the flow's ramp option does
+billing-frequency  zero-quantity field amendment that changes the billing frequency
+               (--to-frequency, default Quarterly): Help's only route on an active
+               subscription; Billing credits the old cadence and starts the new one
 transfer       move the asset's full quantity to --target-account
 swap           replace with --to-sku (swap)
 upgrade        replace with --to-sku (upgrade)
@@ -58,7 +64,7 @@ from build_quote_to_asset import (  # noqa: E402
 
 TODAY = dt.date.today()
 BUILDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "build_quote_to_asset.py")
-SCENARIOS = ("amend-up", "amend-down", "cancel", "renew-expired", "transfer",
+SCENARIOS = ("amend-up", "amend-down", "cancel", "renew-expired", "renew-early", "billing-frequency", "transfer",
              "swap", "upgrade", "downgrade", "rollback")
 SWAPS = ("swap", "upgrade", "downgrade")
 POLL = 10
@@ -70,6 +76,20 @@ INVOICE_FAILED = {"Error", "Split Error"}
 
 def log(msg):
     print(f"  {msg}", flush=True)
+
+
+def positive_int(v):
+    n = int(v)
+    if n < 1:
+        raise argparse.ArgumentTypeError(f"{v} isn't a positive whole number")
+    return n
+
+
+def quantities(v):
+    qs = [float(x) for x in v.split(",")]
+    if any(q < 1 for q in qs):
+        raise argparse.ArgumentTypeError(f"{v}: every segment quantity must be 1 or more")
+    return qs
 
 
 def wait(what, fn, timeout):
@@ -106,7 +126,7 @@ def periods_started(effective, today, unit, term):
     if not months:
         return None
     length = months * (term or 1)
-    return -(-months_between(effective, today) // length)
+    return max(0, -(-months_between(effective, today) // length))
 
 
 def default_effective(today):
@@ -135,12 +155,15 @@ def assets(org, acct, sku):
                          "ORDER BY CreatedDate")
 
 
-def build_asset(org, account, acct, sku, start, end, quantity):
+def build_asset(org, account, acct, sku, start, end, quantity, ramp_years=0, ramp_quantities=None, ramp_kind="line"):
     if assets(org, acct, sku):
         raise StepError(f"{account} already has a {sku} asset; pass --asset or use another account")
     cmd = [sys.executable, BUILDER, "--org", org, "--accounts", account, "--sku", sku,
            "--start", start.isoformat(), "--end", end.isoformat(), "--quantity", str(quantity),
            "--billing-frequency", "Monthly", "--skip-usage-verify"]
+    if ramp_years:
+        cmd += ["--ramp-years", str(ramp_years), "--ramp-quantities", ",".join(str(q) for q in ramp_quantities),
+                "--ramp-kind", ramp_kind]
     log(f"build        {sku} x{quantity} {start} -> {end}")
     p = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
     if p.returncode:
@@ -160,11 +183,22 @@ def schedules(org, order_ids):
         return []
     return sf_query(org, "SELECT Id, Status, Quantity, BillingScheduleStartDate, BillingScheduleEndDate, "
                          "NextBillingDate, BillingPeriodAmount, TotalAmount, BilledAmount, CancellationDate, "
-                         f"ReferenceEntityId, ReferenceEntityItemId, BillingTermUnit, BillingTerm FROM BillingSchedule WHERE ReferenceEntityId IN ({soql_ids(order_ids)}) "
+                         f"ReferenceEntityId, ReferenceEntityItemId, BillingTermUnit, BillingTerm, BillingScheduleGroupId, UsageResourceId FROM BillingSchedule WHERE ReferenceEntityId IN ({soql_ids(order_ids)}) "
                          "ORDER BY CreatedDate")
 
 
-def complete_schedules(org, order_ids):
+def line_starts(org, order_ids, scheds):
+    """Schedule id -> the start date of the order line it bills (via OrderItemDetail if so)."""
+    ids = soql_ids(order_ids)
+    start = {r["Id"]: r["ServiceDate"] for r in sf_query(
+        org, f"SELECT Id, ServiceDate FROM OrderItem WHERE OrderId IN ({ids})")}
+    for r in sf_query(org, f"SELECT Id, OrderItemId FROM OrderItemDetail WHERE OrderItem.OrderId IN ({ids})"):
+        start[r["Id"]] = start.get(r["OrderItemId"])
+    return {s["Id"]: dt.date.fromisoformat(start[s["ReferenceEntityItemId"]])
+            for s in scheds if start.get(s["ReferenceEntityItemId"])}
+
+
+def complete_schedules(org, order_ids, zero_lines=False):
     """The orders' schedules once EVERY billable order line has one, else None.
 
     Schedules appear asynchronously after activation and one at a time, so "any
@@ -175,7 +209,9 @@ def complete_schedules(org, order_ids):
     their line. Zero-quantity lines bill nothing and aren't waited for.
     """
     ids = soql_ids(order_ids)
-    lines = {r["Id"] for r in sf_query(org, f"SELECT Id FROM OrderItem WHERE OrderId IN ({ids}) AND Quantity != 0")}
+    # zero_lines: a field amendment's only line is quantity 0, and it does bill.
+    nonzero = "" if zero_lines else " AND Quantity != 0"
+    lines = {r["Id"] for r in sf_query(org, f"SELECT Id FROM OrderItem WHERE OrderId IN ({ids}){nonzero}")}
     if not lines:
         return None
     detail = {r["Id"]: r["OrderItemId"] for r in sf_query(
@@ -195,7 +231,8 @@ def complete_schedules(org, order_ids):
 # Billing
 # ----------------------------------------------------------------------
 def invoice_lines(org, invoice_id):
-    return sf_query(org, "SELECT BillingScheduleId, ChargeAmount, InvoiceLineStartDate, InvoiceLineEndDate "
+    return sf_query(org, "SELECT BillingScheduleId, BillingScheduleGroupId, ChargeAmount, InvoiceLineStartDate, "
+                         "InvoiceLineEndDate "
                          f"FROM InvoiceLine WHERE InvoiceId = '{invoice_id}' AND Type = 'Charge' "
                          "ORDER BY InvoiceLineStartDate")
 
@@ -209,8 +246,10 @@ def bill_through_today(org, sched_rows, tag):
     created after the request are taken, so an older Draft on the same schedules
     isn't posted in their place.
     """
+    # Usage-resource schedules (UsageResourceId set) bill through usage rating, not
+    # through this run: measured, a QB-DB order's three resource schedules got no lines.
     due = [s["Id"] for s in sched_rows
-           if s["Status"] == "ReadyForInvoicing" and s["NextBillingDate"]
+           if s["Status"] == "ReadyForInvoicing" and s["NextBillingDate"] and not s.get("UsageResourceId")
            and dt.date.fromisoformat(s["NextBillingDate"]) <= TODAY]
     if not due:
         raise StepError(f"{tag}: no billing schedule is due by {TODAY}")
@@ -223,15 +262,26 @@ def bill_through_today(org, sched_rows, tag):
     if not isinstance(resp, dict) or not resp.get("success"):
         raise StepError(f"{tag}: generate failed: {json.dumps(resp)[:400]}")
 
+    # Billing can net schedules of one group into lines with no BillingScheduleId
+    # (measured: a ramped renewal's Year-1 charge and its refund of the current term),
+    # so a due schedule counts as drafted by its own line or by its group's.
+    group = {s["Id"]: s.get("BillingScheduleGroupId") for s in sched_rows}
+    groups = sorted({group[d] for d in due if group.get(d)})
+
     def drafted():
         """Draft invoice ids once every due schedule has a Draft line (generate can split)."""
-        rows = sf_query(org, f"SELECT InvoiceId, BillingScheduleId, Invoice.Status FROM InvoiceLine WHERE "
-                             f"BillingScheduleId IN ({soql_ids(due)}) AND Invoice.CreatedDate >= {since}")
+        where = f"BillingScheduleId IN ({soql_ids(due)})"
+        if groups:
+            where = f"({where} OR BillingScheduleGroupId IN ({soql_ids(groups)}))"
+        rows = sf_query(org, f"SELECT InvoiceId, BillingScheduleId, BillingScheduleGroupId, Invoice.Status FROM "
+                             f"InvoiceLine WHERE {where} AND Invoice.CreatedDate >= {since}")
         bad = [r["InvoiceId"] for r in rows if r["Invoice"]["Status"] in INVOICE_FAILED]
         if bad:
             raise StepError(f"{tag}: generated invoice {bad[0]} is in error")
         drafts = [r for r in rows if r["Invoice"]["Status"] in INVOICE_DRAFT]
-        if set(due) <= {r["BillingScheduleId"] for r in drafts}:
+        own = {r["BillingScheduleId"] for r in drafts}
+        netted = {r["BillingScheduleGroupId"] for r in drafts if not r["BillingScheduleId"]}
+        if all(d in own or group.get(d) in netted for d in due):
             return sorted({r["InvoiceId"] for r in drafts})
         return None
     invs = wait(f"{tag} draft invoice(s) for every due schedule", drafted, 300)
@@ -373,6 +423,41 @@ def run_action(org, scenario, asset, effective, args):
             "renewStartDate": iso_dt(effective),
             "renewEndDate": iso_dt(effective.replace(year=effective.year + 1) - dt.timedelta(days=1))})
         return [wait_for_order(org, out["renewRecordId"])]
+    if scenario == "billing-frequency":
+        out = invocable(org, "initiateAmendment", {
+            "amendAssetIds": [asset], "amendStartDate": iso_dt(effective), "quantityChange": 0,
+            "amendOutputType": "Quote"})
+        quote = out["amendRecordId"]
+        wait(f"quote {quote} pricing", lambda: sf_query(
+            org, f"SELECT Id FROM Quote WHERE Id = '{quote}' AND CalculationStatus LIKE 'Completed%'"), 300)
+        line = sf_query(org, f"SELECT Id, QuoteActionId FROM QuoteLineItem WHERE QuoteId = '{quote}'")
+        if len(line) != 1:
+            raise StepError(f"billing-frequency needs a one-line amendment quote, got {len(line)} lines")
+        # Measured: Place refuses BillingFrequency on the line ("only when the Quote Action is
+        # amend and the Quote Action subtype is FieldAmendment") until the line's QuoteAction
+        # says so; initiateAmendment's actionSubtype doesn't offer FieldAmendment. In the UI,
+        # editing the field flips it (Help: Manage Assets with Field and Price Amendments).
+        # Apex, not a REST PATCH: the PATCH answers 204 with no body, which sf_rest can't parse.
+        sf_apex(org, f"update new QuoteAction(Id = '{line[0]['QuoteActionId']}', Type = 'Amend', "
+                     "Subtype = 'FieldAmendment');")
+        resp = sf_rest(org, f"/services/data/{API}/connect/rev/sales-transaction/actions/place", "POST", {
+            "pricingPref": "System", "configurationPref": {"configurationMethod": "Skip"},
+            "graph": {"graphId": "billingFrequency", "records": [
+                {"referenceId": "q", "record": {"attributes": {"type": "Quote", "method": "PATCH", "id": quote}}},
+                {"referenceId": "l", "record": {"attributes": {"type": "QuoteLineItem", "method": "PATCH",
+                                                               "id": line[0]["Id"]},
+                                                "BillingFrequency": args.to_frequency}}]}})
+        if not isinstance(resp, dict) or resp.get("errorResponse") or resp.get("isSuccess") is False:
+            raise StepError(f"changing the billing frequency failed: {json.dumps(resp)[:400]}")
+        return [wait_for_order(org, quote)]
+    if scenario == "renew-early":
+        years = args.renewal_ramp_years or 1
+        inputs = {"renewAssetIds": [asset], "renewOutputType": "Quote", "renewStartDate": iso_dt(effective),
+                  "renewEndDate": iso_dt(effective.replace(year=effective.year + years) - dt.timedelta(days=1))}
+        if args.renewal_ramp_years:
+            inputs["rampOptionsDetails"] = {"segmentType": "Yearly", "durationInMonths": 12 * years}
+        out = invocable(org, "initiateRenewal", inputs)
+        return [wait_for_order(org, out["renewRecordId"])]
     if scenario == "transfer":
         # Asset.Quantity stays null on these assets; CurrentQuantity carries the count.
         qty = sf_query(org, f"SELECT CurrentQuantity FROM Asset WHERE Id = '{asset}'")[0]["CurrentQuantity"]
@@ -418,26 +503,48 @@ def run_action(org, scenario, asset, effective, args):
 # ----------------------------------------------------------------------
 # Checks
 # ----------------------------------------------------------------------
-def check(new_scheds, invoices, effective, scale):
+def on_segment_boundary(start, anchors):
+    """``start`` is a whole number of years after one of ``anchors`` (a ramp segment start)."""
+    return any(start > a and start.day == a.day and (months_between(a, start) - 1) % 12 == 0 for a in anchors)
+
+
+def check(new_scheds, invoices, effective, scale, line_starts=None, ramp_anchors=()):
     """Return a list of failures for the post-change billing.
 
-    Per schedule: it starts on the effective date, its first invoice line starts
-    there, and its lines sum to sign x |BillingPeriodAmount| x the billing periods
-    (of the schedule's own term) started since then. The expectation comes from the platform's own period amount, so this
-    proves the invoice matches the schedule, not the price. Each line is rounded to
-    the currency's precision (JPY has none), so half a unit of it is allowed per line.
+    Per schedule: it starts on the effective date (or, for a ramp's later segment, on
+    its own order line's start), its first invoice line starts there, and its lines
+    sum to sign x |BillingPeriodAmount| x the billing periods (of the schedule's own
+    term) started since then. When billing nets a group's schedules into lines with
+    no BillingScheduleId, the same sum and first-line checks run on the group. The
+    expectation comes from the platform's own period amount, so this proves the
+    invoice matches the schedule, not the price. Each line is rounded to the
+    currency's precision (JPY has none), so half a unit of it is allowed per line.
     """
     fails = []
     lines = [l for inv in invoices for l in inv["lines"]]
-    by_sched = {}
+    by_sched, netted = {}, {}
     for l in lines:
-        by_sched.setdefault(l["BillingScheduleId"], []).append(l)
+        if l["BillingScheduleId"]:
+            by_sched.setdefault(l["BillingScheduleId"], []).append(l)
+        elif l.get("BillingScheduleGroupId"):
+            netted.setdefault(l["BillingScheduleGroupId"], []).append(l)
+        else:
+            fails.append(f"an invoice line from {l['InvoiceLineStartDate']} has neither a schedule nor a group")
+    tol = 0.5 * 10 ** -scale
     expected_total = 0.0
+    group_expect = {}  # group id -> [expected sum, earliest billable start]
     for s in new_scheds:
+        mine = by_sched.get(s["Id"], [])
+        if s.get("UsageResourceId"):
+            # Billed by usage rating (scripts/apex/validateRatedUsage.apex checks that), never by
+            # this run; any line here is unexpected.
+            if mine:
+                fails.append(f"usage-resource schedule {s['Id']} got invoice lines in this run")
+            continue
         if not s["Quantity"]:
             # A zero-quantity line must bill nothing; it isn't waited for, and isn't required.
-            billed = sum(l["ChargeAmount"] for l in by_sched.get(s["Id"], []))
-            if abs(billed) > 0.5 * 10 ** -scale * max(len(by_sched.get(s["Id"], [])), 1):
+            billed = sum(l["ChargeAmount"] for l in mine)
+            if abs(billed) > tol * max(len(mine), 1):
                 fails.append(f"zero-quantity schedule {s['Id']} billed {billed:.2f}")
             continue
         if s["BillingPeriodAmount"] is None:
@@ -445,28 +552,56 @@ def check(new_scheds, invoices, effective, scale):
             continue
         # The schedule's own dates stay out of the output (CodeQL treats Billing* fields as
         # private); the effective date and the schedule id are enough to look it up.
-        if dt.date.fromisoformat(s["BillingScheduleStartDate"]) != effective:
+        start = dt.date.fromisoformat(s["BillingScheduleStartDate"])
+        # A ramp's later segment starts on its own boundary, after the effective date:
+        # measured, a backdated cancel of a 2-year ramp credits Year-2 from its start, and
+        # a ramped renewal's Year-2 starts a year on. Such a schedule must start exactly on
+        # its own order line's start (``line_starts``: schedule id -> line ServiceDate);
+        # its credit schedules carry no RampIdentifier to go by.
+        # Only in ramp mode, and only on a segment boundary: otherwise a change the platform
+        # didn't backdate (schedule and line both starting later) would pass as a "segment".
+        later_segment = (bool(ramp_anchors) and start > effective and (line_starts or {}).get(s["Id"]) == start
+                         and on_segment_boundary(start, ramp_anchors))
+        if start != effective and not later_segment:
             fails.append(f"schedule {s['Id']} doesn't start on the effective date {effective}")
-        mine = by_sched.get(s["Id"], [])
-        if not mine:
-            fails.append(f"schedule {s['Id']} was not invoiced")
-            continue
-        first = min(l["InvoiceLineStartDate"] for l in mine)
-        if dt.date.fromisoformat(first) != effective:
-            fails.append(f"schedule {s['Id']}: first invoice line starts {first}, expected {effective}")
-        periods = periods_started(effective, TODAY, s["BillingTermUnit"], s["BillingTerm"])
+        begins = start if later_segment else effective
+        periods = periods_started(begins, TODAY, s["BillingTermUnit"], s["BillingTerm"])
         if periods is None:
             fails.append(f"schedule {s['Id']} bills per {s.get('BillingTermUnit')}, which this check doesn't model")
             continue
         expected = (1 if s["Quantity"] > 0 else -1) * abs(s["BillingPeriodAmount"]) * periods
-        actual = sum(l["ChargeAmount"] for l in mine)
         expected_total += expected
-        if abs(actual - expected) > 0.5 * 10 ** -scale * len(mine):
+        grp = s.get("BillingScheduleGroupId")
+        if periods == 0:
+            if mine:
+                fails.append(f"schedule {s['Id']} starts after today but was invoiced")
+            continue
+        if grp and not mine and grp in netted:
+            g = group_expect.setdefault(grp, [0.0, begins])
+            g[0] += expected
+            g[1] = min(g[1], begins)
+            continue
+        if not mine:
+            fails.append(f"schedule {s['Id']} was not invoiced")
+            continue
+        first = min(l["InvoiceLineStartDate"] for l in mine)
+        if dt.date.fromisoformat(first) != begins:
+            fails.append(f"schedule {s['Id']}: first invoice line starts {first}, expected {begins}")
+        actual = sum(l["ChargeAmount"] for l in mine)
+        if abs(actual - expected) > tol * len(mine):
             fails.append(f"schedule {s['Id']} billed {actual:.2f}, expected {expected:.2f} "
-                         f"({periods} period(s) since {effective})")
-    stray = len(set(by_sched) - {s["Id"] for s in new_scheds})
+                         f"({periods} period(s) since {begins})")
+    for grp, (expected, begins) in group_expect.items():
+        mine = netted[grp]
+        actual = sum(l["ChargeAmount"] for l in mine)
+        if abs(actual - expected) > tol * max(len(mine), 1):
+            fails.append(f"netted lines of group {grp} billed {actual:.2f}, expected {expected:.2f}")
+        first = min(l["InvoiceLineStartDate"] for l in mine)
+        if dt.date.fromisoformat(first) != begins:
+            fails.append(f"netted lines of group {grp}: first line starts {first}, expected {begins}")
+    stray = len(set(by_sched) - {s["Id"] for s in new_scheds}) + len(set(netted) - set(group_expect))
     if stray:
-        fails.append(f"invoice lines for {stray} schedule(s) outside the change")
+        fails.append(f"invoice lines for {stray} schedule(s) or group(s) outside the change")
     for inv in invoices:
         if inv["total"] < 0 and not inv["memo"]:
             fails.append(f"negative invoice {inv['number']} has no credit memo")
@@ -490,13 +625,18 @@ def check_shape(scenario, new_scheds, order_account, acct):
         fails.append(f"order {orders[0]} is not on the asset's account")
     if scenario == "transfer" and (len(orders) != 2 or order_account[orders[1]] == acct):
         fails.append("a transfer needs a target order on another account")
-    signs = sorted(1 if s["Quantity"] > 0 else -1 for s in new_scheds if s["Quantity"])
+    signs = sorted(1 if s["Quantity"] > 0 else -1 for s in new_scheds
+                   if s["Quantity"] and not s.get("UsageResourceId"))
     want = {"amend-up": "positive", "renew-expired": "positive", "amend-down": "negative", "cancel": "negative"}
-    if scenario in want:
+    if scenario == "renew-early":
+        # Measured: the renewal's segment(s), plus one refund of the current term's unused rest.
+        if signs.count(-1) != 1 or signs.count(1) < 1:
+            fails.append(f"renew-early needs one refund (-) and at least one renewal (+) schedule, got signs {signs}")
+    elif scenario in want:
         ok = signs and all(x == (1 if want[scenario] == "positive" else -1) for x in signs)
         if not ok:
             fails.append(f"{scenario} needs only {want[scenario]} schedules, got signs {signs}")
-    elif scenario in SWAPS + ("transfer",) and signs != [-1, 1]:
+    elif scenario in SWAPS + ("transfer", "billing-frequency") and signs != [-1, 1]:
         fails.append(f"{scenario} needs one outgoing (-) and one incoming (+) schedule, got signs {signs}")
     if scenario == "transfer" and not fails:
         out = [s for s in new_scheds if s["Quantity"] < 0][0]
@@ -505,14 +645,14 @@ def check_shape(scenario, new_scheds, order_account, acct):
     return fails
 
 
-def scenario_defaults(scenario, effective):
-    """Asset term and quantity each scenario needs."""
+def scenario_defaults(scenario, effective, years=1):
+    """Asset term and quantity each scenario needs; ``years`` > 1 for a ramp."""
     if scenario == "renew-expired":
-        # effective is a 1st, so shifting it a year is always a valid date.
-        return effective.replace(year=effective.year - 1), effective - dt.timedelta(days=1), 1
+        # effective is a 1st, so shifting it whole years is always a valid date.
+        return effective.replace(year=effective.year - years), effective - dt.timedelta(days=1), 1
     m = effective.month - 4  # the 1st three months before the effective month
     start = dt.date(effective.year + m // 12, m % 12 + 1, 1)
-    end = start.replace(year=start.year + 1) - dt.timedelta(days=1)
+    end = start.replace(year=start.year + years) - dt.timedelta(days=1)
     return start, end, 2 if scenario == "amend-down" else 1
 
 
@@ -531,6 +671,20 @@ def main():
     ap.add_argument("--order", action="append",
                     help="UI mode, step 2 (with --asset): continue from the Draft order(s) the viewer created. "
                          "Repeat for a transfer, source order first")
+    ap.add_argument("--ramp-years", type=positive_int, default=0,
+                    help="build a YEARLY ramp of N segments: a line ramp (the product needs Product2.CanRamp, "
+                         "e.g. QB-GEN-AI-LIC) or, with --ramp-kind group, a group ramp (any term product). With "
+                         "--asset: the asset is a ramp of N segments. Help allows backdating amend/renew/cancel "
+                         "for ramped assets")
+    ap.add_argument("--ramp-quantities", type=quantities, default=None,
+                    help="with --ramp-years: quantity per segment, e.g. 1,2")
+    ap.add_argument("--ramp-kind", choices=["line", "group"], default="line",
+                    help="with --ramp-years when building: a line ramp (default) or a group ramp")
+    ap.add_argument("--to-frequency", default="Quarterly", choices=["Quarterly", "Semi-Annual", "Annual"],
+                    help="billing-frequency: the new billing frequency for the Monthly asset (default Quarterly, "
+                         "the only one measured)")
+    ap.add_argument("--renewal-ramp-years", type=positive_int, default=0,
+                    help="renew-early: make the renewal a Yearly ramp of N segments")
     ap.add_argument("--target-account", help="transfer: destination account name")
     ap.add_argument("--to-sku", help="swap/upgrade/downgrade: incoming product SKU")
     ap.add_argument("--selling-model", default="Term Annual",
@@ -539,6 +693,27 @@ def main():
     for v in [args.asset] + (args.order or []):
         if v and not ID_RE.match(v):
             ap.error(f"{v!r} is not a Salesforce record id")
+    if args.renewal_ramp_years and args.scenario != "renew-early":
+        ap.error("--renewal-ramp-years applies to renew-early only")
+    if args.ramp_years and args.scenario not in ("amend-up", "amend-down", "cancel", "renew-expired"):
+        # renew-early: the platform renews a ramp early only into a ramp, and that renewal
+        # prices its new segments at zero (measured, future-dated too), so there's nothing to verify.
+        ap.error("ramped assets: Help allows backdating amend, renew and cancel; an early renewal of a ramp "
+                 "prices the new segments at zero (backdated-asset-lifecycle.md), so it isn't offered")
+    if args.ramp_years and not args.ramp_quantities and not args.asset:
+        # Building needs the quantities; continuing from an existing ramp asset (--asset) only
+        # needs --ramp-years, to know the asset's segments.
+        ap.error("--ramp-years needs --ramp-quantities (one quantity per segment) to build the asset")
+    if args.ramp_quantities and len(args.ramp_quantities) != args.ramp_years:
+        ap.error("--ramp-quantities needs one value per --ramp-years segment")
+    if args.scenario == "amend-down" and args.ramp_quantities and args.ramp_quantities[0] < 2:
+        ap.error("amend-down takes Year-1 down by one, so its --ramp-quantities must start at 2 or more")
+    if args.ramp_years and (args.order or args.prepare_only):
+        # UI mode reads the asset's periods after the change, and a cancel collapses them, so a
+        # ramp's later-segment credits can't be placed. Only API mode was run on ramps.
+        ap.error("--ramp-years has no UI mode; run the change through the API (no --prepare-only/--order)")
+    if args.ramp_kind != "line" and (not args.ramp_years or args.asset):
+        ap.error("--ramp-kind applies when building a ramp: with --ramp-years and without --asset")
     if args.order and not args.asset:
         ap.error("--order needs --asset (the asset prepared with --prepare-only)")
     if args.order and args.scenario == "rollback":
@@ -564,13 +739,13 @@ def main():
     if args.scenario == "renew-expired" and months_between(effective, TODAY) > 12:
         ap.error("--effective is too far back: the one-year renewal term from it would end before today")
     if not args.asset and args.scenario != "renew-expired" and months_between(effective, TODAY) > 9:
-        ap.error("--effective is too far back: the built asset (a one-year term from the 1st three "
-                 "months before it) would end before today")
+        ap.error("--effective is too far back: the built asset (starting the 1st three months before it) "
+                 "would end before today")
     org, tag = args.org, f"bd246-{args.scenario}-{int(time.time())}"
     print(f"org={org} scenario={args.scenario} account={args.account} effective={effective} today={TODAY}")
     try:
         acct = account_id(org, args.account)
-        start, end, qty = scenario_defaults(args.scenario, effective)
+        start, end, qty = scenario_defaults(args.scenario, effective, max(args.ramp_years, 1))
         if args.asset:
             rows = sf_query(org, f"SELECT Id FROM Asset WHERE Id = '{args.asset}' AND AccountId = '{acct}'")
             if not rows:
@@ -578,7 +753,8 @@ def main():
             asset = rows[0]["Id"]
         else:
             before = set(account_orders(org, acct))
-            asset = build_asset(org, args.account, acct, args.sku, start, end, qty)
+            asset = build_asset(org, args.account, acct, args.sku, start, end, qty,
+                                args.ramp_years, args.ramp_quantities, args.ramp_kind)
             # Invoice only the order the build created, not other products on the account.
             built = [o for o in account_orders(org, acct) if o not in before]
             if not built:
@@ -586,10 +762,18 @@ def main():
             bill_through_today(org, wait("the new order's billing schedules",
                                          lambda: complete_schedules(org, built), 300), f"{tag}-base")
         log(f"asset        {asset}")
+        # A ramp's later segments start on the asset's own period boundaries: a built line ramp
+        # every year from its start, a ramped renewal's group ramp every year from the renewal.
+        # Read them before the change (a cancel collapses them).
+        asset_periods = [r["StartDate"] for r in sf_query(
+            org, f"SELECT StartDate FROM AssetStatePeriod WHERE AssetId = '{asset}'")] \
+            if args.ramp_years else []
         if args.prepare_only:
             orders = "--order <source order> --order <target order>" if args.scenario == "transfer" \
                 else "--order <order id>"
             sku = f" --sku {shlex.quote(args.sku)}" if args.sku != "QB-API-PROD" else ""
+            if args.renewal_ramp_years:
+                sku += f" --renewal-ramp-years {args.renewal_ramp_years}"
             print(f"READY {args.scenario}: asset {asset} on {args.account} is invoiced through {TODAY}. Make the "
                   f"change effective {effective} in the Managed Asset viewer, then run:\n  python "
                   f"{shlex.quote(sys.argv[0])} --org {shlex.quote(org)} --scenario {args.scenario} "
@@ -625,8 +809,9 @@ def main():
                      lambda: complete_schedules(org, [orders[i - 1]]), 300)
             prepare_and_activate(org, o)
             order_account[o] = sf_query(org, f"SELECT AccountId FROM Order WHERE Id = '{o}'")[0]["AccountId"]
+        zero = args.scenario == "billing-frequency"
         new = wait(f"a billing schedule for every billable line of order(s) {', '.join(orders)}",
-                   lambda: complete_schedules(org, orders), 300)
+                   lambda: complete_schedules(org, orders, zero_lines=zero), 300)
         # Ids, quantity and total only; check() reports a wrong start date against the effective date.
         for s in new:
             log(f"schedule     {s['Id']} qty {s['Quantity']} total {s['TotalAmount']}")
@@ -641,7 +826,20 @@ def main():
                                   f"{soql_str(cur)}")[0]["DecimalPlaces"]
         except (StepError, IndexError):
             scale = 2  # single-currency org: no CurrencyIsoCode / CurrencyType
-        fails = check_shape(args.scenario, new, order_account, acct) + check(new, invoices, effective, scale)
+        anchors = ()
+        if args.ramp_years:
+            # A ramp asset's segments start a whole number of years after its start or one of
+            # its periods' starts (a ramped renewal's group ramp starts at the renewal).
+            first = sf_query(org, f"SELECT LifecycleStartDate FROM Asset WHERE Id = '{asset}'")[0]["LifecycleStartDate"]
+            if not first:
+                raise StepError(f"asset {asset} has no LifecycleStartDate to place its ramp segments")
+            anchors = tuple(sorted({dt.date.fromisoformat(d[:10]) for d in [first] + asset_periods}))
+        elif args.renewal_ramp_years:
+            # A ramped renewal's segments start a whole number of years after the effective date.
+            anchors = (effective,)
+        fails = (check_shape(args.scenario, new, order_account, acct)
+                 + check(new, invoices, effective, scale,
+                         line_starts(org, list(order_account), new) if anchors else None, anchors))
     except StepError as exc:
         print(f"FAIL {args.scenario}: {exc}")
         return 1

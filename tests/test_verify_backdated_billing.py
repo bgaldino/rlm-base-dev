@@ -125,6 +125,22 @@ ui_swap = lines_for(-270, "OUT") + [line(3240, AUG, "IN")]
 expect("UI swap: monthly credit out, annual charge in",
        vb.check([sched(-1, "OUT"), annual_in], [invoice(ui_swap)], EFF, 2), [])
 
+# Ramps: a later segment's schedule starts on its own boundary and bills nothing yet.
+Y2 = dt.date(2027, 5, 1)
+RAMP = (dt.date(2026, 5, 1),)  # a ramp asset's segments anchor on the asset's start
+RENEWAL_RAMP = (EFF,)  # a ramped renewal's segments anchor on the effective date
+ramp_cancel = [sched(-1, "Y1", period=12.5), sched(-2, "Y2", start="2027-05-01", period=25.0)]
+y1_credit = lines_for(-12.5, "Y1")
+expect("ramp cancel: Year-2 credit not yet billable passes",
+       vb.check(ramp_cancel, [invoice(y1_credit, MEMO)], EFF, 2, {"Y1": EFF, "Y2": Y2}, RAMP), [])
+expect("a later start that isn't its line's start fails",
+       has(vb.check(ramp_cancel, [invoice(y1_credit, MEMO)], EFF, 2, {"Y1": EFF, "Y2": EFF}, RAMP),
+           "doesn't start on the effective date"), True)
+expect("a not-yet-started schedule that was invoiced fails",
+       has(vb.check(ramp_cancel, [invoice(y1_credit + [line(-25, "2027-05-01", "Y2")], MEMO)], EFF, 2,
+                    {"Y2": Y2}, RAMP), "starts after today but was invoiced"), True)
+expect("periods before a future start are zero", vb.periods_started(Y2, vb.TODAY, "Month", 1), 0)
+
 # 3. scenario_defaults
 expect("renew-expired term ends the day before", vb.scenario_defaults("renew-expired", EFF),
        (dt.date(2025, 8, 1), dt.date(2026, 7, 31), 1))
@@ -237,6 +253,105 @@ expect("amend-down with a - schedule passes", vb.check_shape("amend-down", [sche
 expect("amend-down with a + schedule fails", bool(vb.check_shape("amend-down", [sched(1)], oa, ACC)), True)
 expect("a zero-quantity extra on a swap is ignored",
        vb.check_shape("swap", swap_s + [dict(sched(0, "Z"), ReferenceEntityId="801A")], oa, ACC), [])
+
+# Netted lines: a group's schedules billed as lines with no BillingScheduleId (early renewal).
+def gsched(qty, sid, grp="G1", **kw):
+    return dict(sched(qty, sid, **kw), BillingScheduleGroupId=grp)
+
+
+def gline(amount, start, grp="G1"):
+    return {"BillingScheduleId": None, "BillingScheduleGroupId": grp, "ChargeAmount": amount,
+            "InvoiceLineStartDate": start}
+
+
+early = [gsched(1, "REN"), gsched(-1, "REF")]
+netted = [gline(0, d) for d in (AUG, SEP, OCT)]
+expect("early renewal netted to zero passes", vb.check(early, [invoice(netted)], EFF, 2), [])
+expect("netted lines that don't net to the schedules fail",
+       has(vb.check(early, [invoice([gline(5, AUG)] + netted[1:])], EFF, 2), "netted lines of group G1 billed"), True)
+expect("netted lines from another group are stray",
+       has(vb.check(early, [invoice(netted + [gline(0, AUG, "G2")])], EFF, 2), "outside the change"), True)
+expect("renew-early shape: one refund and a renewal", vb.check_shape("renew-early", early, oa, ACC), [])
+expect("renew-early without a refund fails", bool(vb.check_shape("renew-early", early[:1], oa, ACC)), True)
+expect("billing-frequency shape: one out, one in", vb.check_shape("billing-frequency", swap_s, oa, ACC), [])
+
+# Usage-resource schedules bill through rating and are left out of the check.
+usage = dict(sched(10, "UR", period=0.0), UsageResourceId="1BR0")
+expect("a usage-resource schedule is skipped", vb.check([sched(1), usage], [invoice(lines_for(270))], EFF, 2), [])
+
+# complete_schedules(zero_lines=True) waits on a field amendment's quantity-0 line.
+def fake_lines(soql_seen):
+    def q(org, soql):
+        soql_seen.append(soql)
+        if "FROM OrderItemDetail" in soql:
+            return []
+        if "FROM OrderItem" in soql:
+            return [{"Id": "L0"}]
+        return []
+    return q
+
+
+seen = []
+vb.sf_query, real_sleep, vb.time.sleep = fake_lines(seen), vb.time.sleep, (lambda s: None)
+real_sched, vb.schedules = vb.schedules, lambda org, ids: [{"Id": "B1", "ReferenceEntityItemId": "L0"}]
+vb.complete_schedules("o", ["801A"], zero_lines=True)
+expect("zero_lines drops the quantity filter",
+       any("FROM OrderItem " in q_ and "Quantity != 0" not in q_ for q_ in seen), True)
+vb.sf_query, vb.time.sleep, vb.schedules = real_query, real_sleep, real_sched
+
+# Review round: no false PASS from a late start outside a ramp, or from stray lines.
+late = [sched(1, "LATE", start="2026-10-01")]
+late_lines = [line(270, "2026-10-01", "LATE")]
+expect("non-ramp: a schedule starting late on its own line fails",
+       has(vb.check(late, [invoice(late_lines)], EFF, 2, {"LATE": dt.date(2026, 10, 1)}), "doesn't start on"), True)
+expect("ramp: a late start off a segment boundary fails",
+       has(vb.check(late, [invoice(late_lines)], EFF, 2, {"LATE": dt.date(2026, 10, 1)}, RAMP), "doesn't start on"),
+       True)
+expect("a line with neither schedule nor group fails",
+       has(vb.check([sched(1)], [invoice(lines_for(270) + [gline(0, AUG, None)])], EFF, 2), "neither a schedule"), True)
+expect("a schedule without a group isn't matched to orphan lines",
+       has(vb.check([sched(1, "NOG")], [invoice([gline(810, AUG, None)])], EFF, 2), "NOG was not invoiced"), True)
+mixed_g = [gsched(1, "OWN"), gsched(-1, "NET")]
+mixed_lines = [dict(line(270, d, "OWN"), BillingScheduleGroupId="G1") for d in (AUG, SEP, OCT)] + \
+              [gline(-270, d) for d in (AUG, SEP, OCT)]
+expect("mixed group: own lines and netted lines both check", vb.check(mixed_g, [invoice(mixed_lines, MEMO)], EFF, 2), [])
+expect("group tolerance is half a unit per line",
+       vb.check(early, [invoice([gline(0.004, d) for d in (AUG, SEP, OCT)])], EFF, 2), [])
+expect("and fails beyond it",
+       bool(vb.check(early, [invoice([gline(0.01, d) for d in (AUG, SEP, OCT)])], EFF, 2)), True)
+expect("a usage-resource schedule with lines fails",
+       has(vb.check([usage], [invoice([line(5, AUG, "UR")])], EFF, 2), "usage-resource schedule UR"), True)
+expect("usage schedules don't count toward the shape",
+       vb.check_shape("amend-up", [sched(1), dict(usage, Quantity=-3)], oa, ACC), [])
+expect("segment boundary: a year after the asset start", vb.on_segment_boundary(Y2, RAMP), True)
+expect("segment boundary: not five months later", vb.on_segment_boundary(dt.date(2026, 10, 1), RAMP), False)
+expect("renewal ramp: Year-2 a year after the effective date", vb.on_segment_boundary(dt.date(2027, 8, 1), RENEWAL_RAMP),
+       True)
+# A group ramp from a ramped renewal: segments a year on from the renewal (an asset period
+# start), not from the asset's own start.
+GROUP_RAMP = (dt.date(2026, 5, 1), dt.date(2026, 8, 1), dt.date(2027, 8, 1))
+expect("group ramp: Year-2 credit a year after a period start", vb.on_segment_boundary(dt.date(2027, 8, 1), GROUP_RAMP),
+       True)
+expect("group ramp: but not from the asset start alone", vb.on_segment_boundary(dt.date(2027, 8, 1), RAMP), False)
+expect("ramped renew-early isn't offered", args_error("--scenario", "renew-early", "--ramp-years", "2",
+                                                      "--ramp-quantities", "1,2"), True)
+expect("--ramp-years needs quantities", args_error("--scenario", "cancel", "--ramp-years", "2"), True)
+expect("ramp years must be positive", args_error("--scenario", "cancel", "--asset", A18, "--ramp-years", "-1"), True)
+expect("renewal ramp years must be positive", args_error("--scenario", "renew-early", "--renewal-ramp-years", "0"),
+       True)
+expect("ramp quantities must be at least 1",
+       args_error("--scenario", "cancel", "--ramp-years", "2", "--ramp-quantities", "0,2"), True)
+expect("ramp amend-down needs Year-1 of 2 or more",
+       args_error("--scenario", "amend-down", "--ramp-years", "2", "--ramp-quantities", "1,2"), True)
+expect("ramps have no prepare-only mode",
+       args_error("--scenario", "cancel", "--prepare-only", "--ramp-years", "2", "--ramp-quantities", "1,2"), True)
+expect("--ramp-kind needs a ramp build", args_error("--scenario", "cancel", "--ramp-kind", "group"), True)
+expect("--ramp-kind doesn't apply to an existing asset",
+       args_error("--scenario", "cancel", "--asset", A18, "--ramp-years", "2", "--ramp-kind", "group"), True)
+expect("ramps have no UI-order mode",
+       args_error("--scenario", "cancel", "--asset", A18, "--order", O18, "--ramp-years", "2"), True)
+expect("a no-op Monthly frequency change is refused",
+       args_error("--scenario", "billing-frequency", "--to-frequency", "Monthly"), True)
 
 if _failures:
     print("FAIL")
