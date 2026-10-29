@@ -381,6 +381,20 @@ expect("renewed group ramp cancel passes",
                             SEP1, RENEWED), [])
 # Billing frequency: measured Month/1 out, Quarter/1 in (Codex on #640).
 quarterly_in = dict(sched(1, "QI"), BillingTermUnit="Quarter", BillingTerm=1)
+# Plain term ends (Codex on #640): measured, changes end on the old term end, renewals a year on.
+TERM_END = dt.date(2027, 4, 30)
+renewal = dict(sched(1, "RN"), BillingScheduleEndDate="2027-07-31")
+refund_p = dict(sched(-1, "RF"), BillingScheduleEndDate="2027-04-30")
+expect("a plain early renewal with full terms passes",
+       vb.check_term_ends("renew-early", [renewal, refund_p], EFF, TERM_END), [])
+expect("shortened renewal and refund fail",
+       len(vb.check_term_ends("renew-early", [dict(renewal, BillingScheduleEndDate="2026-10-31"),
+                                              dict(refund_p, BillingScheduleEndDate="2026-10-31")], EFF, TERM_END)), 2)
+expect("a cancel credit to the term end passes",
+       vb.check_term_ends("cancel", [dict(sched(-1), BillingScheduleEndDate="2027-04-30")], EFF, TERM_END), [])
+expect("a swap's incoming line ending early fails",
+       bool(vb.check_term_ends("swap", [dict(sched(-1, "O"), BillingScheduleEndDate="2027-04-30"),
+                                        dict(sched(1, "I"), BillingScheduleEndDate="2026-12-31")], EFF, TERM_END)), True)
 # Quantities: the change moves exactly what the scenario asked for.
 expect("amend-up +1 passes", vb.check_quantities("amend-up", [sched(1)], 1), [])
 expect("amend-up +2 fails", bool(vb.check_quantities("amend-up", [sched(2)], 1)), True)

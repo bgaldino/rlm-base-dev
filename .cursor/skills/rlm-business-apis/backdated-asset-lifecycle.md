@@ -300,6 +300,9 @@ transfer's target order is on another account.
   A zero-quantity schedule must bill nothing. Then, per scenario:
   - **Quantities (API mode):** an amend moves exactly ±1, every other change the asset's full
     quantity (an expired asset's from its last state period).
+  - **Term ends (API mode, plain assets):** every schedule ends on the asset's pre-change term
+    end, except a renewal's, which runs exactly a year from the effective date (measured on every
+    plain scenario).
   - **Swaps:** the incoming line is `--to-sku`, the outgoing the asset's product.
   - **Billing frequency:** the Monthly schedule is credited and the new one bills at
     `--to-frequency`.

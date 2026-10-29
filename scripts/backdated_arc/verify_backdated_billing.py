@@ -759,6 +759,26 @@ def check_quantities(scenario, new_scheds, before_qty):
     return [f"{scenario} moved quantity +{plus:g}/{minus:g}, expected +{want[0]:g}/{want[1]:g}"]
 
 
+def check_term_ends(scenario, new_scheds, effective, term_end):
+    """Each schedule of a plain change runs to the end of the term it changes.
+
+    Measured on every plain scenario: credits, amendments, transfers, swaps and frequency
+    changes end on the asset's pre-change LifecycleEndDate (``term_end``); a renewal's
+    schedule runs exactly a year from the effective date. The amount check counts only to
+    today, so without this a shortened schedule would pass (Codex on #640).
+    """
+    year_end = effective.replace(year=effective.year + 1) - dt.timedelta(days=1)
+    fails = []
+    for s in new_scheds:
+        if not s["Quantity"] or s.get("UsageResourceId"):
+            continue
+        want = year_end if scenario.startswith("renew") and s["Quantity"] > 0 else term_end
+        end = s.get("BillingScheduleEndDate")
+        if not end or dt.date.fromisoformat(end[:10]) != want:
+            fails.append(f"schedule {s['Id']} ends {end}, expected {want}")
+    return fails
+
+
 def check_swap_products(new_scheds, skus, from_sku, to_sku):
     """A swap's outgoing schedule bills the asset's product, the incoming one ``to_sku``."""
     fails = []
@@ -1049,6 +1069,9 @@ def main():
             fails += check_frequency(new, args.to_frequency)
         if not (args.ramp_years and args.scenario in ("cancel", "renew-expired")) and not args.renewal_ramp_years:
             fails += check_quantities(args.scenario, new, before_qty)
+        if not args.ramp_years and not args.renewal_ramp_years and before_end is not None:
+            # Ramps have their own per-segment end checks; UI mode has no pre-change term.
+            fails += check_term_ends(args.scenario, new, effective, before_end)
         if args.scenario in SWAPS and args.to_sku:
             fails += check_swap_products(new, line_skus(org, list(order_account), new), args.sku, args.to_sku)
         elif args.scenario in SWAPS:
