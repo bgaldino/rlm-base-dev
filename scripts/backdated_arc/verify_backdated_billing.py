@@ -898,7 +898,8 @@ def main():
         ap.error("--renewal-ramp-years applies to renew-early only")
     if args.ramp_years and args.scenario not in ("amend-up", "amend-down", "cancel", "renew-expired"):
         # renew-early: the platform renews a ramp early only into a ramp, and that renewal
-        # prices its new segments at zero (measured, future-dated too), so there's nothing to verify.
+        # prices its new segments at zero (measured, future-dated too; from the platform, as in
+        # GUS W-23406678; todo 309), so there's nothing to verify.
         ap.error("ramped assets: Help allows backdating amend, renew and cancel; an early renewal of a ramp "
                  "prices the new segments at zero (backdated-asset-lifecycle.md), so it isn't offered")
     if args.ramp_years and not args.ramp_quantities and not args.asset:
