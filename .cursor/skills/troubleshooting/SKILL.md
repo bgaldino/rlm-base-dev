@@ -481,9 +481,9 @@ expression-set version is **not confirmed inactive** after a failed PATCH, the
 version may be half-written: inspect it and deactivate it before touching the
 plan, because an active plan would route pricing to it. Then query the plan
 (`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`). If the change belongs
-to `RLM_DefaultPricingProcedure`, leave the plan inactive: the plan is not the cause, so
-check that procedure's active version and the Revenue Settings default procedure. Activate it only when you
-need a plan-only procedure, and accept the trade-off in
+to `RLM_DefaultPricingProcedure`, leave the plan inactive: the plan is not the cause,
+so check that procedure's active version and the Revenue Settings default procedure.
+Activate the plan only when you need a plan-only procedure, and accept the trade-off in
 `datasets/sfdmu/procedure-plans/README.md` → *Activation* (price revision applied
 twice, waterfall shows only the last procedure): `sf data update record --target-org <sf_alias_or_username>
 --sobject ProcedurePlanDefinitionVersion --record-id <1Cv...> --values "IsActive=true"`. Re-check with a constant

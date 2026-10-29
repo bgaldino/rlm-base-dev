@@ -801,15 +801,11 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         version = self._get_version(str(developer_name))
         version_id = version["Id"]
         was_active = bool(version.get("IsActive"))
-        deactivated = False
         failure: Optional[Exception] = None
 
         try:
             if was_active:
                 self._set_version_active(version_id, False, dry_run)
-                # Set before the wait: if the PATCH landed but the wait times out, the
-                # finally block must still restore the active version.
-                deactivated = True
                 if not dry_run:
                     self._wait_for_active_state(version_id, False)
             else:
@@ -824,7 +820,9 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         except Exception as exc:
             failure = exc
         finally:
-            should_activate = activate_after_apply or (was_active and deactivated)
+            # Restore on was_active alone: a deactivate PATCH that raised (timeout, reset)
+            # or whose wait timed out may still have landed.
+            should_activate = activate_after_apply or was_active
             if should_activate:
                 try:
                     self._set_version_active(version_id, True, dry_run)
