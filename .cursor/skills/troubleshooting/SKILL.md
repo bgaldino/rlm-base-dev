@@ -751,7 +751,9 @@ settings over any later org changes):
 sf project deploy start --source-dir unpackaged/post_constraints/sharingRules --target-org <sf_alias>
 ```
 
-As a one-off, an admin quoting one configured product also fills the cache. Do **not** turn
+As a one-off, an admin quoting one configured product also fills the cache, and so does
+cycling any one constraint model with `manage_expression_sets` (`deactivate_versions`, then
+`activate_versions`): one activation deploys every active model (todo 313). Do **not** turn
 off `executeConfigurationRules`: that skips the rules.
 
 ### `manage_expression_sets` fails: "Constraint version status update failed"
@@ -765,16 +767,15 @@ in it has no `Type`/`Port` association (see *Unresolved ESC associations*), or t
 definition the model uses is inactive.
 
 **Fix:** correct the model or its associations, re-run `import_cml`, then cycle the version
-again (deactivate, then activate). When cycling a single model on an org whose solver may be
-cold (a template-spun org, or one built before todo 064's fix), cycle **all** active
-constraint models instead. Each activation deploys one model, and the solver can reject it
-while another active model is missing from its cache.
+again (deactivate, then activate).
 
-**Not yet checked live:** the cold-solver cases. Every live cycle so far ran on a warm org.
-If step 9 (deactivate) fails this way on a rerun against a cold org, the platform refused to
-remove a model it never loaded. Give the solver its models first: as an admin, quote one
-configured product with configuration rules on (that run redeploys every active model), then
-rerun. `activate_versions` can't do it, because the versions are already Active and get skipped.
+A cold solver (a template-spun org, or one built before todo 064's fix) is not a cause.
+Checked live on 2026-10-29 (todo 313) on an org whose solver held no models, with both
+versions still Active: step 9's deactivate returned `success: true` for both, and step 10 left
+the solver warm (the sales rep's next quote needed one configurator pass, with no
+`MODEL_NOT_FOUND`). Cycling only `QuantumBitBundle_V1` also succeeded, and afterwards a
+`Server2` product solved in one pass: activating one constraint model deploys every active
+one, so a single-model cycle is enough.
 
 ---
 
