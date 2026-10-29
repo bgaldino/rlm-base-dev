@@ -6,7 +6,8 @@
 > **Relabeled to 264 (2026-10-29):** 262 orgs no longer exist, so this is the current script. It was generated as
 > the 262 draft. On a fresh 264 org on 2026-10-29 these steps were clicked through and match 264: New Opportunity,
 > New Quote, Browse Catalog (price book, catalog), adding QuantumBit Complete Solution on TermDefined Annual,
-> Configure (Operating System change), Save & Exit, and **Create Order**. Every other step, including the QB API,
+> Configure (switching Operating System to Redhat moved Base Core Count to 8; the rule message itself wasn't checked),
+> Save & Exit, and **Create Order**. Every other step, including the QB API,
 > Services and Software Maintenance configuration rows and the "What's new in 262" notes, still describes 262
 > and needs the SME pass below before it's relied on for 264.
 > **Status:** DRAFT — preview release, not yet GA. Requires SME pass for Setup-UI verification, Known-Bugs population, image capture, and Slack canvas publish.
@@ -330,7 +331,7 @@ Jean Claude manages billing processes to ensure accurate invoicing, revenue reco
 |- Click "**New Quote**" (top right)|Revenue Lifecycle Management eliminates the need for Deal Desk or cumbersome spreadsheets by integrating everything directly with the opportunity.<br><br>To start the quoting process, I click on "New Quote".|![placeholder][img-PLACEHOLDER-new-quote]|
 |- Add a Quote Name and any other required fields<br><br>- Click "Save"<br><br>- Navigate to your newly created quote record|Salesforce has populated most of the important information for me, leaving room for additional input where it matters.<br><br>Upon saving, the quote is generated and attached to the opportunity. Now I'm ready to start adding products.|![placeholder][img-PLACEHOLDER-save-quote]|
 |- Click 'Browse Catalog' button<br><br>- Confirm '**Standard Price Book**' and click **Save**|As I browse the catalog, I will first be prompted to select a Price Book, so that the relevant prices will be displayed for the products. **NEW in 262:** Product Discovery now enforces Constraint Rules in real time as you browse — incompatible products surface inline, recommendations appear as you select.|![placeholder][img-PLACEHOLDER-browse-catalog]|
-||Once I've selected the appropriate Price Book, the system will allow me to choose the catalog I would like to explore.|![placeholder][img-PLACEHOLDER-select-catalog]|
+||Once I've selected the appropriate Price Book, the catalog browser opens and I can switch to the catalog I want to explore.|![placeholder][img-PLACEHOLDER-select-catalog]|
 |## :solution-found: Product Configuration - QuantumBit Complete Solution|||
 |- The catalog browser opens on the '**QuantumBit Software**' catalog (switch catalogs with the selector at the top right)|As a QuantumBit Account Executive, I have a large product catalog to choose from, but RLM makes it easy to find the exact product suite I'm looking for.|![placeholder][img-PLACEHOLDER-software-catalog]|
 |- Select the 'Bundle' category<br><br>- Find the "**QuantumBit Complete Solution**" (SKU: **QB-COMPLETE**)<br><br>- Choose the Buying Option for your product by clicking the Price Tag icon, choosing an option, and hitting '**Add**'<br>(We recommend using the 'TermDefined Annual' option to keep amendments simple)<br><br>- Adding the product saves it to the quote (a confirmation appears); click **Close** to return to the quote|At QuantumBit, we have a lot of products in our catalog where in the past accurately selecting what I needed for a quote required tribal knowledge. By selecting the appropriate category, I can quickly filter through the product catalog to easily find what my customer needs and how they want to buy.|![placeholder][img-PLACEHOLDER-qb-complete-add]|
