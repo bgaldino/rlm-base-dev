@@ -196,22 +196,36 @@ procedure-plans/
 
 **External ID:** `SectionType;SubSectionType`
 
-This is the platform's own uniqueness rule: SectionType + SubSectionType must be unique per version.
-The `$$SectionType$SubSectionType` column in the CSV holds the composite key. `Sequence` isn't part
-of the key, because `apply_procedure_plan_overlay` (PRM) resequences sections.
+This is the platform's own uniqueness rule: SectionType + SubSectionType must be unique per
+version. Every query in the plan is scoped to `RLM_Quote_Pricing_Procedure_Plan`'s version, so
+another plan in the org can't match. The `$$SectionType$SubSectionType` column in the CSV holds the
+composite key. `Sequence` isn't part of the key, because `apply_procedure_plan_overlay` (PRM)
+resequences sections. The platform also requires `Sequence` to be unique per version ("This
+sequence already exists").
 
-**`skipExistingRecords: true`.** A rerun inserts any section that's missing, with its CSV
-`Sequence`, but never rewrites one that exists, so the PRM order (`HeaderDistribution` at 3)
-survives. `excludedFromUpdateFields: [Sequence]` would not work: SFDMU 5.8.0 drops excluded fields
-from inserts too, and the platform then rejects the new section ("This sequence already exists").
+**`skipExistingRecords: true`.** A rerun never rewrites an existing section, so the PRM order
+(`HeaderDistribution` at 3) survives. It inserts a missing section at its CSV `Sequence`:
+- **Every section missing:** it works, and the PRM overlay then resequences.
+- **Only `HeaderDistribution` missing on a PRM org:** its CSV slot (2) is taken by
+  `IFPartnerDistributorOnQuote`. The insert is rejected, and the overlay doesn't recreate it
+  (measured 2026-10-29).
+  - **Recovery:** delete the plan's sections and options, rerun `insert_procedure_plan_data`, then
+    `apply_procedure_plan_overlay`.
+
+**Consequences:**
+- **CSV edits don't reach existing rows.** Edits to an existing row in `ProcedurePlanSection.csv`
+  (`Phase`, `ResolutionType`, `Description`) don't propagate to an org that already has the
+  section. Change it in the org, or delete and reload.
+- **Why not `excludedFromUpdateFields: [Sequence]`:** SFDMU 5.8.0 drops excluded fields from
+  inserts too, so new sections would have no Sequence.
 
 ### ProcedurePlanOption
 
 **External ID:** `ProcedurePlanSection.SubSectionType;Priority`
 
 Each option is uniquely identified by its parent section's `SubSectionType` and the option's `Priority`. The `$$ProcedurePlanSection.SubSectionType$Priority` column in the CSV provides the composite key. The parent section is resolved with a single-field `ProcedurePlanSection.SubSectionType` lookup.
-`SubSectionType` is unique per version in this plan, and a single-field lookup avoids SFDMU
-Bug 4 (`$$` composite notation on lookup columns).
+`SubSectionType` is unique within this plan's version, which the queries are scoped to. The
+single-field lookup avoids SFDMU Bug 4 (`$$` composite notation on lookup columns).
 
 ## Idempotency
 
@@ -225,8 +239,10 @@ This plan is **fully idempotent** at every step:
 Verified 2026-10-29 on r1-306 (fresh 264 build with the PRM overlay applied, todo 316):
 - two `prepare_procedureplans` reruns with no ignore options were both no-ops;
 - the sections stayed at DefaultPricing=1, IFPartnerDistributorOnQuote=2, HeaderDistribution=3;
-- with the plan's two sections deleted, a load re-inserted them, and the overlay then resequenced
-  them as before.
+- with the plan's sections and options deleted, a load re-inserted them, and the overlay then
+  resequenced them as before;
+- with only `HeaderDistribution` deleted, the rerun was rejected on its Sequence slot (see
+  *Composite Key Design* for recovery).
 
 ## Dependencies
 

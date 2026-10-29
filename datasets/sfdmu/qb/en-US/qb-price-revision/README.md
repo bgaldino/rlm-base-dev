@@ -65,8 +65,10 @@ policy's Region, on the line's date.
 | Same ramp, Flat policy | 3,240 / 3,564 / 3,920.40 (compounds: 0 / 10 / 21) |
 
 Under CPI, Compound had no effect, while Flat compounded. **Help doesn't support CPI on ramped
-products**: "You can't use compound uplift with Consumer Price Index (CPI) uplifts"
-(`docs/salesforce/264/help/articles/ind.qocal_considerations_ramp_deals.htm.md`). The standard
+products**: "You can't apply renewal price uplifts tied to the Consumer Price Index (CPI) to ramped
+products" and "You can't use compound uplift with Consumer Price Index (CPI) uplifts"
+(`docs/salesforce/264/help/articles/ind.qocal_considerations_ramp_deals.htm.md`, lines 58 and
+100). The standard
 pricing fallback is deliberate (GUS W-22986417). Use the CPI policy on renewals, not ramps
 (todo 317).
 
