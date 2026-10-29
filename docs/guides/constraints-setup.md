@@ -89,6 +89,10 @@ The `unpackaged/post_constraints` bundle contains metadata that must deploy **af
 - `RLM_ConstraintEngineNodeStatus__c` fields on AssetActionSource, OrderItem, and QuoteLineItem
 - `RLM_Constraints.permissionset-meta.xml`
 - IndustriesConstraints and ProductDiscovery settings
+- The `ExpressionSet` criteria sharing rule `RLM_Constraint_Models_Read`, which shares
+  constraint-model Expression Sets (`UsageType = Constraint`) Read with all internal users.
+  A non-admin's first configuration-rules run on a fresh org redeploys the models as that
+  user and must be able to read those records.
 
 Constraint UX layouts and pages are assembled from `templates/` by the UX task.
 
