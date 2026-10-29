@@ -194,10 +194,16 @@ All 10 functional areas drafted. Currently authored manually pending the auto-ge
 
 | File | Status |
 |---|---|
-| [`264/qb-demo-script.md`](264/qb-demo-script.md) | 🚧 Draft (relabeled from 262 on 2026-10-29; QB-COMPLETE Opportunity-to-Order verified on 264; pending SME pass for Setup-UI verification, Known-Bugs population, image capture, Slack canvas publish) |
 | 262 per-area Hands-On extracts (10 areas) | ⏳ Pending — deferred until master coverage broadens beyond the 2 piloted areas |
 
 Status legend: ✅ final · 🚧 draft (under iteration) · ⏳ pending (not yet started)
+
+### Per-release 264 artifacts (`264/`)
+
+| File | Status |
+|---|---|
+| [`264/qb-demo-script.md`](264/qb-demo-script.md) | 🚧 Draft (relabeled from 262 on 2026-10-29; core QB-COMPLETE quote-to-order steps verified on 264; pending SME pass for Setup-UI verification, Known-Bugs population, image capture, Slack canvas publish) |
+| 264 per-area Hands-On extracts | ⏳ Scaffold only; see [`264/README.md`](264/README.md) |
 
 For an at-a-glance cross-release view, see **[`coverage-matrix.md`](coverage-matrix.md)**.
 
@@ -342,7 +348,7 @@ Project conventions that affect this work:
 - **2026-05-22** — Brought the catalog onto the `262` branch (master + 260 extracts + 260/262 feature indexes + 262 Help-portal snapshot). Trailhead L2 editorial artifacts stay off the public branch. <!-- release-ref: allow -->
 - **2026-05-24** — 262 QB demo script drafted (`262/qb-demo-script.md`) via the `qb-demo-script` SKILL; introduces a new per-release artifact type (SE/partner demo script) alongside the per-area Hands-On extracts.
 - **2026-05-28** — README refreshed for 262 status (this commit). 262 per-area Hands-On extracts intentionally deferred until master coverage broadens — see *Why two-tier?* and the *Per-release 262 artifacts* table for the rationale.
-- **2026-10-29** — QB demo script relabeled to 264 and moved to `264/qb-demo-script.md` (262 orgs no longer exist). The QB-COMPLETE Opportunity-to-Order path was clicked through on a fresh 264 org; the Browse Catalog, price book and Create Order steps were updated to match, and the QB-COMPLETE Create Order issue is recorded as resolved on 264. Other sections still need the 264 SME pass.
+- **2026-10-29** — QB demo script relabeled to 264 and moved to `264/qb-demo-script.md` (262 orgs no longer exist). The core QB-COMPLETE quote-to-order steps were clicked through on a fresh 264 org; the Browse Catalog, price book and Create Order steps were updated to match, and the QB-COMPLETE Create Order issue is recorded as resolved on 264. Other sections still need the 264 SME pass.
 
 ---
 

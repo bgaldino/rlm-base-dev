@@ -1,6 +1,6 @@
 # Release 264 (Winter '27) — Enablement Extracts
 
-**Status: scaffold — no 264 Hands-On extracts authored yet.** The one SE/partner artifact, [`qb-demo-script.md`](qb-demo-script.md), is the 262 draft relabeled to 264 on 2026-10-29 (262 orgs no longer exist); only its QB-COMPLETE Opportunity-to-Order path has been verified on 264. Created at the start of
+**Status: scaffold — no 264 Hands-On extracts authored yet.** The one SE/partner artifact, [`qb-demo-script.md`](qb-demo-script.md), is the 262 draft relabeled to 264 on 2026-10-29 (262 orgs no longer exist); only the core QB-COMPLETE quote-to-order steps have been verified on 264 (listed in its header). Created at the start of
 the 264 release cycle so the per-release directory exists. The Help-derived 264 feature
 inventory exists; authoring starts once its tiers are verified (see below).
 
