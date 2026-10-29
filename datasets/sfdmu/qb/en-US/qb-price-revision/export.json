@@ -1,5 +1,5 @@
 {
-  "$comment_plan": "qb-price-revision SFDMU data plan (todo 314): CPI (Price Index) and Flat price revision. IndexRate rows feed Index_Rate_Decision_Table (refresh it after loading); PriceRevisionPolicy rows are picked on a renewal line or a ramp segment. Region has no defined values; 'US' is accepted on every 264 org probed (restricted or not), other values only where the picklist is unrestricted.",
+  "$comment_plan": "qb-price-revision SFDMU data plan (todo 314): CPI (Price Index) and Flat price revision. IndexRate rows feed Index_Rate_Decision_Table (refresh it after loading); PriceRevisionPolicy rows are picked on a renewal line or a ramp segment. Region has no defined values; 'US' was accepted on every org probed, other values only where the picklist is unrestricted (see README).",
   "apiVersion": "68.0",
   "excludeIdsFromCSVFiles": "true",
   "objects": [

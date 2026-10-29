@@ -34,21 +34,24 @@ policy's Region, on the line's date.
 ## Platform rules (measured on 264)
 
 - **Region has no defined values, and `US` is the safe choice.** Probed 2026-10-29:
-  - On the USA1016 pod (2 orgs) `Region` is a **restricted** picklist that still accepts `US`.
-    `EU`, `CA`, `UK` and others are rejected ("bad value for restricted picklist field").
-  - On USA796 it's unrestricted and accepts any value.
+  - On r1-306 and pk049-r1 (`ent-r1` shape, USA1016), describe reports a **restricted** picklist
+    with no values, yet it accepts `US`. `EU`, `CA`, `UK` and others are rejected ("bad value for
+    restricted picklist field").
+  - On sb0-1028 (`ent-sb0` shape, USA796) it's unrestricted and accepts any value.
+  - The cause of the difference (pod, org shape or patch level) isn't known.
 
-  `US` needs no Setup step on either. Another region needs a Setup value where the field is
-  restricted. A Pricing `IndexRate` requires a Region.
+  `US` worked on every org probed. Adding another value through Setup on a restricted org hasn't
+  been tried. A Pricing `IndexRate` requires a Region.
 - **Index rate ranges for one Region can't overlap.** The platform rejects an overlap with "Specify
   different regions or select a unique date range".
-- **Policies can't overlap within the same PolicyType and Region.** A second policy with an
+- **Policies can't overlap within the same PolicyType and Region** (probed on r1-306 only). A second policy with an
   overlapping range is rejected ("The selected effective dates are already in use") in two cases:
   - a second Flat policy with no Region;
   - a second Price Index policy for `US`.
 
   A Flat policy for `US` over the same dates is accepted. The plan's Flat and Price Index policies
-  don't collide (probed 2026-10-29, rolled back). An org that already has a policy of the same type
+  don't collide (probed 2026-10-29, rolled back). Not tried: a partial overlap for Price Index,
+  adjacent ranges, Price Index with no Region, and other orgs. An org that already has a policy of the same type
   and Region for 2026–2030 rejects these rows. Remove or re-date it first.
 
 ## Measured (r1-306, fresh 264 build, procedure plan inactive)

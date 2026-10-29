@@ -79,14 +79,14 @@ rate) and `PolicyAdjustment`, and it should **appear once**.
   active, the Revenue Settings default procedure runs again after the plan, and the revision
   compounds: 2,400 → 2,544 → 2,696.64 for 4% + 2. The plan is built inactive by default
   (`procedureplans_active: false`); see `datasets/sfdmu/procedure-plans/README.md` → *Activation*.
-- **Region** on `IndexRate` and `PriceRevisionPolicy` has no defined values, and its behavior varies
-  by pod:
-  - on USA1016 it's restricted but accepts `US`;
-  - on USA796 it accepts anything.
+- **Region** on `IndexRate` and `PriceRevisionPolicy` has no defined values, and it behaves
+  differently from org to org (cause unknown; details in the plan README):
+  - on two `ent-r1` orgs it's restricted but accepts `US`;
+  - on an `ent-sb0` org it accepts anything.
 
-  Use `US`. Any other region needs a Setup value where the field is restricted.
+  Use `US`. Adding another value through Setup on a restricted org hasn't been tried.
 - **Index rate ranges for one Region can't overlap.** Policies of the same PolicyType and Region
-  can't overlap either ("The selected effective dates are already in use"). A hand-made policy of
+  can't overlap either (probed on one org) ("The selected effective dates are already in use"). A hand-made policy of
   the same type and Region for the same years makes the plan's rows fail; remove or re-date it
   first.
 - **Stale table.** After adding or changing an `IndexRate`, refresh `Index_Rate_Decision_Table`.
