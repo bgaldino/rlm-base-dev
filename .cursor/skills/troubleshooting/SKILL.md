@@ -772,8 +772,9 @@ while another active model is missing from its cache.
 
 **Not yet checked live:** the cold-solver cases. Every live cycle so far ran on a warm org.
 If step 9 (deactivate) fails this way on a rerun against a cold org, the platform refused to
-remove a model it never loaded. Give the solver its models first, either with one admin quote
-of a configured product or by activating them through the resource, then rerun.
+remove a model it never loaded. Give the solver its models first: as an admin, quote one
+configured product with configuration rules on (that run redeploys every active model), then
+rerun. `activate_versions` can't do it, because the versions are already Active and get skipped.
 
 ---
 
