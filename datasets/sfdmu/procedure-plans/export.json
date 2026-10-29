@@ -19,7 +19,9 @@
         {
           "query": "SELECT Description, Phase, ProcedurePlanVersionId, ResolutionType, SectionType, Sequence, SubSectionType FROM ProcedurePlanSection",
           "operation": "Upsert",
-          "externalId": "SubSectionType;Sequence"
+          "externalId": "SectionType;SubSectionType",
+          "$comment": "Keyed on SectionType;SubSectionType, the platform's per-version uniqueness rule. skipExistingRecords: a rerun inserts missing sections but never rewrites existing ones, because apply_procedure_plan_overlay (PRM) resequences them (HeaderDistribution 2 -> 3) and a rerun must not undo that (todo 316). excludedFromUpdateFields can't be used: SFDMU 5.8.0 also drops excluded fields from inserts.",
+          "skipExistingRecords": true
         }
       ]
     },
@@ -27,9 +29,10 @@
       "name": "Second Pass - Upsert ProcedurePlanOptions with ExpressionSet Links",
       "objects": [
         {
-          "query": "SELECT SubSectionType, Sequence, ProcedurePlanVersionId FROM ProcedurePlanSection",
+          "query": "SELECT SectionType, SubSectionType, Sequence, ProcedurePlanVersionId FROM ProcedurePlanSection",
           "operation": "Readonly",
-          "externalId": "SubSectionType;Sequence"
+          "externalId": "SubSectionType",
+          "$comment": "Single-field key so the option lookup is a plain ProcedurePlanSection.SubSectionType reference (no $$ composite lookup, SFDMU Bug 4). SubSectionType is unique per version in this plan."
         },
         {
           "query": "SELECT DeveloperName, MasterLabel FROM ExpressionSetDefinition",

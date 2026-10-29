@@ -41,7 +41,9 @@ decision-table rate for the policy's Region on the line's date. The step's `Rate
    2. On the renewal line, set `PriceRevisionPolicyId` and, optionally, `UnitPriceUplift`. Both
       fields are on the RLM quote line layout.
    3. Reprice.
-3. **Ramp:** set the policy on each group-ramp segment line, then reprice.
+3. **Ramps: don't use CPI.** Help doesn't support a CPI policy on ramped products (see below). For
+   a ramp uplift, use segment uplifts with Standard or Compound and a Flat policy, or no policy
+   (`ramped-quotes/SKILL.md`).
 
 ## Expected results
 
@@ -52,9 +54,17 @@ decision-table rate for the policy's Region on the line's date. The step's `Rate
 | Compound group ramp, list 3,240, segment uplift 0 / 10 / 10, CPI policy | 3,337.20 / 3,654.72 / 3,648.24 (applied 3 / 12.8 / 12.6) |
 | Same ramp, Flat policy | 3,240 / 3,564 / 3,920.40 (applied 0 / 10 / 21) |
 
-**Under CPI a ramp segment doesn't compound** (measured): each segment gets its own year's rate
-plus its uplift. Under Flat it compounds. Core code (read 2026-10-28, pack 314) allows compound
-uplift only with a Flat policy or no policy. The no-policy case wasn't measured.
+**CPI on ramps is a documented limitation.** Help (264, *Considerations for Ramp Deals*) says:
+- "You can't use compound uplift with Consumer Price Index (CPI) uplifts";
+- "You can't apply renewal price uplifts tied to the Consumer Price Index (CPI) to ramped products".
+
+The platform doesn't error; it falls back to standard pricing. That is deliberate per GUS
+W-22986417 (264): "Compound Pricing waterfall should do standard pricing when policy type is
+priceindex". Core's `PriceRevisionKnowledgeModel.isCompoundEligible` allows compounding only with a
+Flat policy or no policy.
+
+So the CPI ramp row above is the fallback, measured: each segment gets its own year's rate plus its
+uplift, with no compounding. It isn't a supported demo path (todo 317).
 
 On an as-is renewal the price sits on the detail line (`QuoteLineDetail`), and the parent
 `NetUnitPrice` is null. Read the detail lines (see `rlm-business-apis/SKILL.md` → *Where an ARC
