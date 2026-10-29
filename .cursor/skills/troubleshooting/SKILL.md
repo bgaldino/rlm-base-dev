@@ -721,12 +721,13 @@ import.
 
 ### A non-admin's quote fails: "Something went wrong while running configuration rules"
 
-**Example:** on a fresh org, the sales rep's first quote with configuration rules on
+**Example:** on an org spun from a template, the sales rep's first quote with configuration rules on
 (the default) fails with `UNKNOWN_EXCEPTION`, for any product, on every retry. The admin's
 quote succeeds, and after that the rep's do too.
 
-**Cause:** a fresh org's constraint-solver cache is empty, and a template-spun org always
-starts with it empty. The first configuration-rules run catches `MODEL_NOT_FOUND` and
+**Cause:** the constraint-solver cache is keyed by org, so a template-spun org always starts
+with it empty. So does an org whose models were activated by an `ExpressionSetVersion.IsActive`
+update instead of through the constraint-version resource (builds before todo 064's fix). The first configuration-rules run catches `MODEL_NOT_FOUND` and
 redeploys the active models as the **running user**. Part of that redeploy reads the
 constraint-model `ExpressionSet` records in user mode. `ExpressionSet` sharing is
 Private, so a user who can't see those rows fails, and the error surfaces as the generic
@@ -752,6 +753,28 @@ sf project deploy start --source-dir unpackaged/post_constraints/sharingRules --
 
 As a one-off, an admin quoting one configured product also fills the cache. Do **not** turn
 off `executeConfigurationRules`: that skips the rules.
+
+### `manage_expression_sets` fails: "Constraint version status update failed"
+
+**Cause:** the constraint-version resource refused to deploy (or remove) the model and said
+so in its response body; HTTP was still 200. `manage_expression_sets` activates constraint
+models through that resource, so `prepare_constraints` step 10 fails instead of reporting
+success while the solver keeps the old model. The `errors` in the message come from the
+platform. Typical causes: the model doesn't compile (check it with `validate_cml`), a product
+in it has no `Type`/`Port` association (see *Unresolved ESC associations*), or the context
+definition the model uses is inactive.
+
+**Fix:** correct the model or its associations, re-run `import_cml`, then cycle the version
+again (deactivate, then activate). When cycling a single model on an org whose solver may be
+cold (a template-spun org, or one built before todo 064's fix), cycle **all** active
+constraint models instead. Each activation deploys one model, and the solver can reject it
+while another active model is missing from its cache.
+
+**Not yet checked live:** the cold-solver cases. Every live cycle so far ran on a warm org.
+If step 9 (deactivate) fails this way on a rerun against a cold org, the platform refused to
+remove a model it never loaded. Give the solver its models first: as an admin, quote one
+configured product with configuration rules on (that run redeploys every active model), then
+rerun. `activate_versions` can't do it, because the versions are already Active and get skipped.
 
 ---
 
