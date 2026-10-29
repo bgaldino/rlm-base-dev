@@ -12,7 +12,7 @@ Why this file exists
 The quote procedure plan is built inactive by default (`procedureplans_active: false`, todo 314)
 and cumulusci.yml runs the overlay with `activate_after_apply: false`. The finally block must then
 reactivate only a version that was active before, on success or failure, including when the
-deactivate PATCH landed but the wait for it timed out. It must never activate an inactive one.
+deactivate PATCH landed but raised, or its wait timed out. It must never activate an inactive one.
 """
 import sys
 import types
