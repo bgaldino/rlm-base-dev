@@ -374,8 +374,8 @@ project:
       # Usage Datatables component (post_utils, deployed via deploy_post_utils).
       # Grants class access to RLM_UsageDataController plus READ on usage objects
       # and fields for the rlmUsageDataTable LWC. Third usage-area component;
-      # previously deploy-only, now assigned to close the persona gap on all three
-      # usage LWCs in one PR (#318, #319).
+      # previously deploy-only, now assigned in one PR (#318, #319) with the other
+      # two usage sets. prepare_personas also gives it to the salesrep persona.
       - RLM_UsageDatatables
 
     ps_renewal_quotes: &ps_renewal_quotes
@@ -1186,8 +1186,10 @@ tasks:
       configuration model (ProductCatalog plus the catalog/config objects below) →
       Read/Read so the salesrep can browse catalogs and run the Set Up Quote
       configurator — the PST configuration-rule engine reads those records in the
-      running user's context. Restores the OWD the deleted post_sharing object-meta
-      bundle used to set.
+      running user's context. UnitOfMeasure → Read/Read and UsageSummary /
+      UsageBillingPeriodItem → internal Read, for the Account page's usage uploader
+      and View Usage tables, which query in user mode. Restores the OWD the deleted
+      post_sharing object-meta bundle used to set.
     class_path: tasks.rlm_sharing.SetOrgWideDefaultsSharingOnly
     options:
       org_wide_defaults: &persona_owd_defaults
@@ -1278,6 +1280,25 @@ tasks:
         - api_name: SalesTransactionType
           internal_sharing_model: Read
           external_sharing_model: Read
+        # Usage, for the Account page's Usage tab (todo 185). UnitOfMeasure is
+        # reference data like the catalog above: RLM_UsageUploaderController
+        # re-reads the chosen unit WITH USER_MODE before it writes the journal,
+        # and at Private the persona sees no units, so every upload fails with
+        # "The selected unit of measure is not valid for this usage resource".
+        # UsageSummary and UsageBillingPeriodItem are the View Usage tables
+        # (RLM_UsageDataController, also user mode); the rating pipeline creates
+        # them owned by the admin and the persona has no role, so at Private it
+        # would see none of an account's rated usage. Internal Read only, like
+        # the account data they summarize.
+        - api_name: UnitOfMeasure
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: UsageSummary
+          internal_sharing_model: Read
+          external_sharing_model: Private
+        - api_name: UsageBillingPeriodItem
+          internal_sharing_model: Read
+          external_sharing_model: Private
 
   verify_personas_org_wide_defaults:
     group: Revenue Lifecycle Management
@@ -3898,7 +3919,9 @@ flows:
         # in the repo, so their LWC components worked only for an admin. Split
         # into separate sets per #318 review: Orchestration controller accepts
         # client-controlled flow names (arbitrary flow launch capability). The
-        # tso flow assigns all three via rlm_tso_ps_api_names.
+        # tso flow assigns all three via rlm_tso_ps_api_names. These steps reach
+        # the RUNNING user only; prepare_personas steps 13-14 give Datatables and
+        # Uploader to the salesrep persona (todo 185).
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit
         options:
@@ -4891,6 +4914,33 @@ flows:
           api_names: *ps_renewal_quotes
           user_alias: salesrep
       13:
+        # The Revenue Cloud app's Account page (RLM_Account_Record_Page) has no persona
+        # variant, so the salesrep persona SEES its Usage tab's View Usage and Add Usage
+        # sub-tabs. Without these two sets both error on Apex class access
+        # (RLM_UsageDataController, RLM_UsageUploaderController); the prepare_quantumbit
+        # grants reach only the RUNNING user (todo 185). Granted, following steps 9-12:
+        # Datatables is class access plus read on the usage objects; Uploader adds
+        # TransactionJournal create, in user mode, for the asset the persona picks.
+        # Usage entry is part of the demo the persona runs.
+        #
+        # NOT extended to RLM_UsageOrchestration: its controller launches any
+        # autolaunched flow the client names, so it stays with the admin and the
+        # persona's Process Usage button is left without it, deliberately (the step 9
+        # reasoning).
+        #
+        # Gated like step 8: both sets ship with post_utils.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
+        options:
+          api_names: *ps_usage_datatables
+          user_alias: salesrep
+      14:
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)
+        options:
+          api_names: *ps_usage_uploader
+          user_alias: salesrep
+      15:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults

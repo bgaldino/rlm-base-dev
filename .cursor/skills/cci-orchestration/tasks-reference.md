@@ -2963,7 +2963,7 @@
 
 ### `set_personas_org_wide_defaults`
 
-**Description:** Sets Organization-Wide Defaults for the Sales Rep persona. Sales Cloud objects Account/Asset/Contract/Order → internal Read/Write (all internal users can see and edit); Opportunity stays Private (reps own their pipeline). The product / configuration model (ProductCatalog plus the catalog/config objects below) → Read/Read so the salesrep can browse catalogs and run the Set Up Quote configurator — the PST configuration-rule engine reads those records in the running user's context. Restores the OWD the deleted post_sharing object-meta bundle used to set.
+**Description:** Sets Organization-Wide Defaults for the Sales Rep persona. Sales Cloud objects Account/Asset/Contract/Order → internal Read/Write (all internal users can see and edit); Opportunity stays Private (reps own their pipeline). The product / configuration model (ProductCatalog plus the catalog/config objects below) → Read/Read so the salesrep can browse catalogs and run the Set Up Quote configurator — the PST configuration-rule engine reads those records in the running user's context. UnitOfMeasure → Read/Read and UsageSummary / UsageBillingPeriodItem → internal Read, for the Account page's usage uploader and View Usage tables, which query in user mode. Restores the OWD the deleted post_sharing object-meta bundle used to set.
 
 **Class:** `tasks.rlm_sharing.SetOrgWideDefaultsSharingOnly`
 
