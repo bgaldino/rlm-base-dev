@@ -68,6 +68,29 @@ UI-flow (`RLM_ARC_Assets`) behaviour, and invoice/credit-memo verification are i
 [backdated-asset-lifecycle.md](backdated-asset-lifecycle.md), with the end-to-end verifier
 `scripts/backdated_arc/verify_backdated_billing.py`.
 
+**Where an ARC line's price lives.** On a renewal, a cancel or a negative-quantity amendment, the
+platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemDetail`** rows
+("Order Product Detail") and leaves `UnitPrice` and `NetUnitPrice` **null** on the parent
+`QuoteLineItem` / `OrderItem`. Totals on the parent stay correct.
+
+- Integrations, document templates, formulas and Apex must read the detail rows (or coalesce)
+  and must never trust the parent's `NetUnitPrice` on these lines (renewal, cancel, negative
+  amendment).
+- A positive-quantity amendment and new business keep the price on the parent and have no detail
+  rows.
+- This repo keeps **as-is renewals on** (`enableAsIsRenewals=true` in
+  `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
+  too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
+  negative amendments unchanged (measured, todo 157).
+- Advanced Detail Line Pricing does not change any of it.
+
+```bash
+sf data query -o <sf-alias> -q "SELECT QuoteLineItemId, Quantity, UnitPrice, NetUnitPrice, \
+    TotalPrice FROM QuoteLineDetail WHERE QuoteLineItem.QuoteId = '<quote>'"
+sf data query -o <sf-alias> -q "SELECT OrderItemId, Quantity, UnitPrice, NetUnitPrice, \
+    TotalPrice FROM OrderItemDetail WHERE OrderItem.OrderId = '<order>'"
+```
+
 ### Pricing APIs
 - `POST /connect/core-pricing/pricing` — Calculate prices for a transaction
 - `GET /connect/core-pricing/waterfall/{lineItemId}/{executionId}` — Pricing waterfall (audit trail)

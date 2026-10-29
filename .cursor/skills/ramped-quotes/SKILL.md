@@ -26,7 +26,7 @@ Two distinct ramp mechanisms exist — do not confuse them:
 | Mechanism | Shape | Compounds? |
 |---|---|---|
 | **Group ramp** (this skill) — `placeSalesTransaction` create → `groupRampAction: EditGroup` → clone × (N−1) → add the `RampScheduleGroup` parent (multi-schedule) | one **`QuoteLineGroup`** per period; segments carry `RampIdentifier` | **Yes** — the group holds `RampUpliftType`, so uplift can compound |
-| **Line ramp** — `createRampDeal` on a single line (`/connect/revenue-management/sales-transaction-contexts/{lineId}/actions/ramp-deal-create`) | ungrouped segments (`QuoteLineGroupId=null`) | **No** — no group to hold the uplift mode |
+| **Line ramp** — `createRampDeal` on a single line (`/connect/revenue-management/sales-transaction-contexts/{lineId}/actions/ramp-deal-create`) | ungrouped segments (`QuoteLineGroupId=null`) | **No**: there's no group to hold the uplift mode, and `RLM_DefaultPricingProcedure` applies **no** `UnitPriceUplift` to line ramps at all (the ramp filter is limited to group ramps; measured 2026-10-28). Prefer group ramps. |
 | *(legacy)* `/commerce/sales-transactions/ramp-deals` (v63–66) | quantity/revenue **commitment** ramp on the deprecated `/commerce/` path | out of scope |
 
 **Compound price uplift requires the group ramp.** Build it with the sequence below.
