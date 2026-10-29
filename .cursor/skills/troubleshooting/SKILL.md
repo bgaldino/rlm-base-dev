@@ -339,6 +339,23 @@ BillingAccount the build does this with `RLM_BillingAccountFieldAccess` (in
 `RLM_RCB` and the billing persona PSGs). On an org built before that change,
 set the field's FLS in Setup, then hard-refresh Lightning.
 
+### A non-admin sees no usage records (`TransactionJournal`), but `UserRecordAccess` says Read
+
+**Example:** on the Account page's View Usage, the sales rep persona gets "No records found" in
+the **Usage** table, even for usage it uploaded itself. The admin sees the rows.
+
+**Cause:** without View All on `TransactionJournal`, the persona sees none of its rows. The object
+has no owner field. Its org-wide default reads Read/Write, and `UserRecordAccess` reports Read, but
+the user's SOQL returns nothing and a retrieve by Id returns `NOT_FOUND` (checked live on 264, todo
+315). Object Read, FLS, the usage licenses and a `LegalEntityId` don't change it; the admin sees
+the rows through its profile's View All.
+
+**Fix:** none in the build, by design: View All exposes every account's usage records, so the
+persona keeps an empty Usage table (see `docs/references/revenue-cloud-permissions.md` → *Record
+sharing*). Don't re-check OWD, FLS or PSLs for this symptom. For a user who should see all usage,
+the standard Accounts Receivables Admin permission set (`RevenueLifecycleManagementAccountingAdmin`,
+Billing license) includes View All on the object.
+
 ---
 
 ## Context Definition Errors
