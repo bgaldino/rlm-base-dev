@@ -140,6 +140,8 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
 | `--billing-frequency` | Mandatory for TermDefined/Evergreen (default `Monthly`) |
 | `--billing-timing` | Substring picking among a currency's BillingTreatments (default `Advance`) |
 | `--period-boundary` | Default `Anniversary` |
+| `--ramp-years N` / `--ramp-quantities 1,2` | Make the single line a Yearly **line ramp** of N segments (`ramp-deal-create`, then a Place to save it), with a quantity per segment (required; only that form was measured). The product needs `Product2.CanRamp`, and `--start`/`--end` must span N years (checked). See `rlm-business-apis/backdated-asset-lifecycle.md` |
+| `--ramp-kind group` | With `--ramp-years`: a **group ramp** instead, with one `QuoteLineGroup` per year under a `RampScheduleGroup` (EditGroup, clone, then the parent; any term product). See `ramped-quotes/SKILL.md` |
 
 ## Related
 

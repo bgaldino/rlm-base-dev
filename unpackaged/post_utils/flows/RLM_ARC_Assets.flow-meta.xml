@@ -1154,6 +1154,23 @@
         </connector>
     </assignments>
     <assignments>
+        <description>Usage-based products refuse past dates (measured on 264: "Operations with dates in the past aren't supported for usage-based products"), so say so before the platform does (todo 306).</description>
+        <name>Set_Usage_Backdate_Blocked_Error</name>
+        <label>Set Usage Backdate Blocked Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>errorMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>This change can&apos;t be backdated: the selected assets include usage-based products, and the platform doesn&apos;t support past dates for them. Go back and choose today or a later date.</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>error</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>SetCatalogList</name>
         <label>Set Catalog List</label>
         <locationX>0</locationX>
@@ -1450,6 +1467,28 @@
         </defaultConnector>
         <defaultConnectorLabel>Today or later</defaultConnectorLabel>
         <rules>
+            <name>Is_Backdated_Change_Usage</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>startDate</leftValueReference>
+                <operator>LessThan</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Check_Assets_for_Usage_or_Ramps.hasUsageBasedAssets</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Usage_Backdate_Blocked_Error</targetReference>
+            </connector>
+            <label>Backdated Usage</label>
+        </rules>
+        <rules>
             <name>Is_Backdated_Change_Yes</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
@@ -1475,6 +1514,35 @@
             <targetReference>Check_Ramp_Selected</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Today or later</defaultConnectorLabel>
+        <rules>
+            <name>Is_Backdated_Renewal_Usage</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>SelectedRenewalStartDate</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>SelectedRenewalStartDate</leftValueReference>
+                <operator>LessThan</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Check_Assets_for_Usage_or_Ramps.hasUsageBasedAssets</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Usage_Backdate_Blocked_Error</targetReference>
+            </connector>
+            <label>Backdated Usage</label>
+        </rules>
         <rules>
             <name>Is_Backdated_Renewal_Yes</name>
             <conditionLogic>and</conditionLogic>

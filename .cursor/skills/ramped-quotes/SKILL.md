@@ -25,7 +25,7 @@ Two distinct ramp mechanisms exist — do not confuse them:
 
 | Mechanism | Shape | Compounds? |
 |---|---|---|
-| **Group ramp** (this skill) — `placeSalesTransaction` create → `groupRampAction: EditGroup` → clone × (N−1) | one **`QuoteLineGroup`** per period; segments carry `RampIdentifier` | **Yes** — the group holds `RampUpliftType`, so uplift can compound |
+| **Group ramp** (this skill) — `placeSalesTransaction` create → `groupRampAction: EditGroup` → clone × (N−1) → add the `RampScheduleGroup` parent (multi-schedule) | one **`QuoteLineGroup`** per period; segments carry `RampIdentifier` | **Yes** — the group holds `RampUpliftType`, so uplift can compound |
 | **Line ramp** — `createRampDeal` on a single line (`/connect/revenue-management/sales-transaction-contexts/{lineId}/actions/ramp-deal-create`) | ungrouped segments (`QuoteLineGroupId=null`) | **No** — no group to hold the uplift mode |
 | *(legacy)* `/commerce/sales-transactions/ramp-deals` (v63–66) | quantity/revenue **commitment** ramp on the deprecated `/commerce/` path | out of scope |
 
@@ -43,10 +43,11 @@ Two distinct ramp mechanisms exist — do not confuse them:
    period groups (`ParentQuoteLineGroupId` null). Either way the call order is: (1)
    `placeSalesTransaction` **create** — Quote + period-1 group + one `QuoteLineItem`
    per product; (2) `groupRampAction: "EditGroup"` — `IsRamped=true`,
-   `SegmentType=Yearly`, which (in multi-schedule mode) makes the platform create the
-   top-level `RampScheduleGroup` and convert the posted group into segment 1, and
-   stamps `RampIdentifier` on its lines; (3) **clone × (N−1)** — one clone per
-   *additional* period. A 3-year ramp = create + EditGroup + 2 clones. The exact
+   `SegmentType=Yearly`, which converts the posted group into segment 1 and stamps
+   `RampIdentifier` on its lines; (3) **clone × (N−1)** — one clone per
+   *additional* period; (4) in multi-schedule mode, add the `RampScheduleGroup` parent
+   yourself (measured on 264: neither call creates it, see step 2). A 3-year ramp =
+   create + EditGroup + 2 clones + parent. The exact
    two-level graph and resulting ids must be confirmed by read-back on the target org
    (live-verify rule below).
 2. **The group is created plain, then ramped by `EditGroup`.** Do **not** try to
@@ -120,18 +121,20 @@ Two distinct ramp mechanisms exist — do not confuse them:
 ## The proven build sequence
 
 `<PLACEHOLDER>` values are ids you resolve first (see [Discovering ids](#discovering-ids)).
-Windows are contiguous per-period spans. For **`SegmentType=Yearly`** each segment
-must be **exactly 365 days** (`ind.qocal_ramp_deal_for_groups_create.htm.md`:
-"exactly 365 days for all segments, fixed") — so use `StartDate` + 364 days, **not**
-calendar-year spans: a leap year (e.g. 2028 = 366 days) violates the Yearly rule.
-For variable or true calendar-year durations use **`SegmentType=Custom`** instead.
-(The `2026`/`2027` examples below happen to be 365-day years; a 3-year ramp reaching
-2028 would need the 365-day form or `Custom`.)
+Windows are contiguous per-period spans. For **`SegmentType=Yearly`**, send segment 1
+through EditGroup as **exactly 365 days** (`StartDate` + 364 days). Help says "exactly 365
+days for all segments, fixed" (`ind.qocal_ramp_deal_for_groups_create.htm.md`). Measured on
+264 (2026-10-28), though, **clones end each later segment on the calendar anniversary**:
+2027-05-01..2028-04-30 is 366 days and works. So only segment 1 can't contain 29 February. If
+it did, it would end a day short of the anniversary and the segments would drift; pick another
+start or use `Custom`. Later leap years are fine. `build_quote_to_asset.py --ramp-kind group`
+refuses such a start. For variable durations use **`SegmentType=Custom`**.
 
 **Multi-schedule mode (repo default).** With `enableGroupRampMultiSchedulePref=true`
-(this repo's setting), `EditGroup` produces the **two-level** structure — a top-level
+(this repo's setting), a group ramp is the **two-level** structure — a top-level
 `Type='RampScheduleGroup'` group with the period segments nested under it — and
-`RampUpliftType` is set on that **parent** (Quick Rule 5). After each mutating call,
+`RampUpliftType` is set on that **parent** (Quick Rule 5). EditGroup and clone make only the
+segments; you add the parent (step 2). After each mutating call,
 read the groups back (`SELECT Id, Type, ParentQuoteLineGroupId, IsRamped FROM
 QuoteLineGroup WHERE QuoteId='<QUOTE_ID>'`) to get the parent-schedule and
 last-segment ids rather than assuming them.
@@ -195,25 +198,39 @@ this mirrors `scripts/build_quote_to_asset.py`.
 ### 2. `placeSalesTransaction` (EditGroup) — mark period 1 ramped
 
 Same endpoint, with **`groupRampAction: "EditGroup"`**. This flips the group and
-stamps `RampIdentifier` on its lines. In multi-schedule mode (repo default) the
-platform also creates the top-level `RampScheduleGroup` here and nests this segment
-under it — read the groups back afterward to capture the parent-schedule id (needed
-for `RampUpliftType` in step 4) and the segment id.
+stamps `RampIdentifier` on its lines.
+
+**Each `referenceId` must be the record's own Id**, as in the dev guide's example. EditGroup
+matches the groups to convert by `referenceId`; with a label such as `"g"` nothing matches and
+the call fails with `UNKNOWN_EXCEPTION` *"Index 0 out of bounds for length 0"* (measured on 264,
+2026-10-28; `GroupRampActionHandler.handleEditGroup` indexes the empty match list).
+
+**Multi-schedule mode (repo default): add the parent yourself.** Measured on 264, neither
+EditGroup nor clone creates the `RampScheduleGroup`, and an order without one fails activation
+with *"Specify a ramp schedule group for ramp segment"* (todo 159). After the clones, POST a
+`QuoteLineGroup` with `Type: "RampScheduleGroup"` (a Place with the Quote PATCH and that POST),
+then set each segment's `ParentQuoteLineGroupId` to it by DML: a Place that reparents a group to
+one it creates fails with *"Cyclic dependencies detected"*. `build_quote_to_asset.py
+--ramp-kind group` does all of this. Then read the groups back to capture the parent-schedule id
+(needed for `RampUpliftType` in step 4) and the segment ids.
 
 ```json
 {
   "groupRampAction": "EditGroup",
   "pricingPref": "System",
   "graph": { "graphId": "rampEdit", "records": [
-    { "referenceId": "q", "record": {
+    { "referenceId": "<QUOTE_ID>", "record": {
         "attributes": { "type": "Quote", "method": "PATCH", "id": "<QUOTE_ID>" } } },
-    { "referenceId": "g", "record": {
+    { "referenceId": "<GROUP_ID>", "record": {
         "attributes": { "type": "QuoteLineGroup", "method": "PATCH", "id": "<GROUP_ID>" },
         "StartDate": "2026-01-01", "EndDate": "2026-12-31",
         "SortOrder": 1, "IsRamped": true, "SegmentType": "Yearly" } }
   ] }
 }
 ```
+
+The platform rewrites `SortOrder` (measured: 1 became −999999999, the next clone −999999998),
+so order segments by `StartDate`, not by the values you sent.
 
 ### 3. `cloneSalesTransaction` — add each subsequent period
 
@@ -233,7 +250,9 @@ synchronous failure — stop. On `success:true` the save runs **async**: `reques
 identifies that process, and the observable gate is `Quote.CalculationStatus` —
 poll it to a settled state ([Status](#status)) before the next call. Do **not**
 read or clone the next group until it settles; then read back the new group's id
-for the next clone.
+for the next clone. The quote can still read as settled from before the call, so also poll
+until the new group exists with `IsRamped`, `SortOrder`, `StartDate` and `EndDate` set (as
+`build_quote_to_asset.py` does).
 
 ### 4. `placeSalesTransaction` (PATCH) — apply compound uplift, then reprice
 
@@ -340,7 +359,7 @@ look like a healthy ramp by count and name. Before reading prices, check:
 ```bash
 sf data query --target-org <sf_alias> -q "SELECT Id, Name, Type, ParentQuoteLineGroupId, \
   IsRamped, SortOrder, SegmentType, RampUpliftType \
-  FROM QuoteLineGroup WHERE QuoteId='<QUOTE_ID>' ORDER BY SortOrder NULLS FIRST"
+  FROM QuoteLineGroup WHERE QuoteId='<QUOTE_ID>' ORDER BY StartDate NULLS FIRST"
 ```
 
 Then the lines:
@@ -425,10 +444,11 @@ skill's routing.
    window; resolve a `BillingTreatmentId`). Poll until settled: `CompletedWithPricing`
    on a default Foundations build, `CompletedWithTax` where estimated tax is on.
 3. `placeSalesTransaction` `EditGroup` on the Year-1 group (`IsRamped=true`,
-   `SegmentType=Yearly`). Poll. In multi-schedule mode read the groups back to get
-   the top-level `RampScheduleGroup` id.
+   `SegmentType=Yearly`, each `referenceId` the record's Id). Poll.
 4. `cloneSalesTransaction` twice (Year 2, Year 3), each cloning the last ramped
-   segment. Poll after each.
+   segment. Poll after each. In multi-schedule mode, then POST the `RampScheduleGroup`
+   and reparent the segments to it by DML (step 2 of the sequence), and read the groups
+   back to get its id.
 5. For compound uplift (step 4 of the sequence): PATCH `RampUpliftType='Compound'`
    on the **top-level `RampScheduleGroup`** and per-segment `UnitPriceUplift`, then
    reprice (`pricingPref:"Force"`) and poll (needs the fully-configured
@@ -444,8 +464,9 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
 - [ ] Group ramp (per-period segment structure — the two-level `RampScheduleGroup`
       in the repo's multi-schedule default), not a line ramp, if compound uplift is
       in scope.
-- [ ] `Yearly` segments are **exactly 365 days** (not calendar-year spans, which hit
-      366 on a leap year); `Custom` used for variable/calendar durations.
+- [ ] The `Yearly` segment 1 sent to EditGroup is **exactly 365 days** and doesn't contain
+      29 February (clones end later segments on calendar anniversaries); `Custom` used for
+      variable/calendar durations.
 - [ ] `BillingTreatmentId` resolved on each term-defined line (Active, account
       currency, `CanChangeBillingFrequency=true`).
 - [ ] No read-only/system fields written on the graph (see [`field-legality.md`](field-legality.md)).
