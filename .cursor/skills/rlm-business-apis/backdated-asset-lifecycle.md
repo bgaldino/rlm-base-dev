@@ -297,19 +297,25 @@ transfer's target order is on another account.
   A schedule that hasn't started must not be invoiced. Netted lines are checked per
   `BillingScheduleGroupId` with the same sum and first-line rules; a group that nets to zero
   proves only that its lines net out, not each schedule's share.
-  A zero-quantity schedule must bill nothing. A ramp cancel must credit the effective date and each
-  later segment start (state periods read before the change), each for minus that segment's
-  quantity and ending on that segment's end, so a missing, partial, duplicated or shortened
-  credit fails. A billing-frequency run must credit the Monthly schedule and bill the new one
-  at `--to-frequency`. In API mode each change must move the quantity it asked for (amend ±1,
-  the full current quantity otherwise), and a swap's incoming line must be `--to-sku`. A ramp amendment must leave later
-  segments at quantity 0. A ramped renewal of N years must have exactly one renewal schedule
-  from each yearly segment start, and a renewed expired ramp one year at the last segment's
-  quantity. Measured only on ramps with distinct per-segment quantities and no earlier change;
-  an asset amended before (via `--asset`) has extra period starts and may fail.
-  Every negative invoice must have a credit memo and settle
-  to `Balance = 0`. The expectation uses the platform's own period amount, so the check proves
-  the invoice matches the schedule, not that the price is right.
+  A zero-quantity schedule must bill nothing. Then, per scenario:
+  - **Quantities (API mode):** an amend moves exactly ±1, every other change the asset's full
+    quantity (an expired asset's from its last state period).
+  - **Swaps:** the incoming line is `--to-sku`, the outgoing the asset's product.
+  - **Billing frequency:** the Monthly schedule is credited and the new one bills at
+    `--to-frequency`.
+  - **Ramp cancel:** a credit from the effective date and from each later segment start (state
+    periods read before the change), each for minus that segment's quantity and ending on that
+    segment's end, so a missing, partial, duplicated or shortened credit fails.
+  - **Ramp amend:** later segments stay at quantity 0, and the change runs to its segment's end.
+  - **Ramped renewal:** exactly one renewal schedule per year, each a full year; in API mode
+    also at the asset's quantity, plus a refund from the effective date to the old term's end. A renewed expired
+    ramp is one year at the last segment's quantity.
+  - These ramp rules were measured only on ramps with distinct per-segment quantities and no
+    earlier change; an asset amended before (via `--asset`) has extra period starts and may fail.
+  - **Credit memos:** every negative invoice has one and settles to `Balance = 0`.
+
+  The expectation uses the platform's own period amount, so the check proves the invoice
+  matches the schedule, not that the price is right.
 
 ## Verify the asset
 

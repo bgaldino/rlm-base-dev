@@ -672,20 +672,39 @@ def check_ramp_cancel(new_scheds, effective, periods):
     return fails + late
 
 
-def check_renewal_ramp(new_scheds, effective, years):
-    """A renewal of N years has exactly one renewal schedule from each yearly segment start.
+def check_renewal_ramp(new_scheds, effective, years, qty=None, refund_end=None):
+    """A renewal of N years has exactly one renewal schedule per yearly segment, each a full year.
 
-    Measured: Year-1 from the effective date and each later year a year on, plus the
-    refund for an early renewal; an expired ramp renews as one unramped year (N = 1). So
-    a renewal missing a segment, duplicating one, or ramped when it shouldn't be, fails.
+    Measured: Year-1 from the effective date and each later year a year on, each ending
+    the day before the next; an early renewal also refunds the current term from the
+    effective date to its end (``refund_end``); an expired ramp renews as one unramped
+    year (N = 1). Each segment carries ``qty`` (the asset's), and the refund minus it. So
+    a renewal missing, duplicating, shortening or re-sizing a segment, or refunding the
+    wrong quantity or span, fails. Checked here because ramp billing counts to each
+    schedule's own end.
     """
     want = {effective.replace(year=effective.year + k) for k in range(years)}
-    got = {}
+    got, fails = {}, []
     for s in new_scheds:
-        if s["Quantity"] and s["Quantity"] > 0 and not s.get("UsageResourceId"):
-            d = dt.date.fromisoformat(s["BillingScheduleStartDate"])
-            got[d] = got.get(d, 0) + 1
-    fails = [f"the renewal has no segment from {d}" for d in sorted(want - set(got))]
+        if not s["Quantity"] or s.get("UsageResourceId"):
+            continue
+        start = dt.date.fromisoformat(s["BillingScheduleStartDate"])
+        end = s.get("BillingScheduleEndDate")
+        end = dt.date.fromisoformat(end[:10]) if end else None
+        if s["Quantity"] > 0:
+            got[start] = got.get(start, 0) + 1
+            # Segment starts are 1sts (the effective date), so the year arithmetic is safe there.
+            year_end = start.replace(year=start.year + 1) - dt.timedelta(days=1) if start in want else None
+            if start in want and end != year_end:
+                fails.append(f"renewal segment {s['Id']} from {start} ends {end}, expected {year_end}")
+            if qty is not None and abs(float(s["Quantity"]) - float(qty)) > 1e-9:
+                fails.append(f"renewal segment {s['Id']} has quantity {s['Quantity']:g}, expected {float(qty):g}")
+        elif refund_end is not None:
+            if start != effective or end != refund_end:
+                fails.append(f"refund {s['Id']} runs {start}..{end}, expected {effective}..{refund_end}")
+            if qty is not None and abs(float(s["Quantity"]) + float(qty)) > 1e-9:
+                fails.append(f"refund {s['Id']} has quantity {s['Quantity']:g}, expected {-float(qty):g}")
+    fails += [f"the renewal has no segment from {d}" for d in sorted(want - set(got))]
     fails += [f"a renewal schedule starts {d}, off the {years}-year segment starts" for d in sorted(set(got) - want)]
     fails += [f"the renewal has {n} schedules from {d}, expected one" for d, n in sorted(got.items()) if n > 1]
     return fails
@@ -753,12 +772,25 @@ def check_swap_products(new_scheds, skus, from_sku, to_sku):
     return fails
 
 
-def check_ramp_amend(new_scheds, effective):
-    """A ramp amendment changes only the segment it falls in (measured); later segments get
-    zero-quantity schedules, so a nonzero schedule starting after the effective date fails."""
-    return [f"schedule {s['Id']} changes a later ramp segment" for s in new_scheds
-            if s["Quantity"] and not s.get("UsageResourceId")
-            and dt.date.fromisoformat(s["BillingScheduleStartDate"]) > effective]
+def check_ramp_amend(new_scheds, effective, periods=()):
+    """A ramp amendment changes only the segment it falls in, to that segment's end (measured).
+
+    Later segments get zero-quantity schedules, so a nonzero schedule starting after the
+    effective date fails, and so does one ending before its segment ends (``periods``: the
+    state periods read before the change), which ramp billing would otherwise accept.
+    """
+    seg_end = next((e for s, e, _ in periods if s <= effective <= e), None)
+    fails = []
+    for s in new_scheds:
+        if not s["Quantity"] or s.get("UsageResourceId"):
+            continue
+        if dt.date.fromisoformat(s["BillingScheduleStartDate"]) > effective:
+            fails.append(f"schedule {s['Id']} changes a later ramp segment")
+            continue
+        end = s.get("BillingScheduleEndDate")
+        if seg_end and (not end or dt.date.fromisoformat(end[:10]) != seg_end):
+            fails.append(f"schedule {s['Id']} ends {end}, expected the segment's end {seg_end}")
+    return fails
 
 
 def check_shape(scenario, new_scheds, order_account, acct):
@@ -915,13 +947,18 @@ def main():
         # every year from its start, a ramped renewal's group ramp every year from the renewal.
         # Read them before the change (a cancel collapses them).
         # The asset's quantity before the change (API mode only: in UI mode it has already changed).
-        before_qty = None if args.order else sf_query(
-            org, f"SELECT CurrentQuantity FROM Asset WHERE Id = '{asset}'")[0]["CurrentQuantity"]
+        before = None if args.order else sf_query(
+            org, f"SELECT CurrentQuantity, LifecycleEndDate FROM Asset WHERE Id = '{asset}'")[0]
+        before_qty = before["CurrentQuantity"] if before else None
+        before_end = dt.date.fromisoformat(before["LifecycleEndDate"][:10]) \
+            if before and before.get("LifecycleEndDate") else None
         if before_qty is not None and args.scenario == "renew-expired":
             # An expired asset's CurrentQuantity is 0 (measured); it renews at its last period's quantity.
             last = sf_query(org, f"SELECT Quantity FROM AssetStatePeriod WHERE AssetId = '{asset}' "
                                  "ORDER BY StartDate DESC LIMIT 1")
             before_qty = last[0]["Quantity"] if last else None
+            if before_qty is None:
+                log("quantity     not checked: the expired asset has no state period")
         asset_periods = state_periods(sf_query(
             org, f"SELECT StartDate, EndDate, Quantity FROM AssetStatePeriod WHERE AssetId = '{asset}'")) \
             if args.ramp_years else []
@@ -1007,7 +1044,7 @@ def main():
         if args.ramp_years and args.scenario == "cancel":
             fails += check_ramp_cancel(new, effective, asset_periods)
         if args.ramp_years and args.scenario in ("amend-up", "amend-down"):
-            fails += check_ramp_amend(new, effective)
+            fails += check_ramp_amend(new, effective, asset_periods)
         if args.scenario == "billing-frequency":
             fails += check_frequency(new, args.to_frequency)
         if not (args.ramp_years and args.scenario in ("cancel", "renew-expired")) and not args.renewal_ramp_years:
@@ -1017,14 +1054,14 @@ def main():
         elif args.scenario in SWAPS:
             log("products     not checked: pass --to-sku with the product picked in the viewer to check them")
         if args.renewal_ramp_years:
-            fails += check_renewal_ramp(new, effective, args.renewal_ramp_years)
+            # In UI mode the asset has already changed, so only the segment shape is checked.
+            if before_qty is not None and before_end is None:
+                log("refund span  not checked: the asset had no LifecycleEndDate before the change")
+            fails += check_renewal_ramp(new, effective, args.renewal_ramp_years, before_qty,
+                                        before_end if before_qty is not None else None)
         elif args.ramp_years and args.scenario == "renew-expired":
             # Measured: an expired ramp renews as one unramped year at the last segment's quantity.
-            fails += check_renewal_ramp(new, effective, 1)
-            last_qty = asset_periods[-1][2] if asset_periods else None
-            fails += [f"renewal schedule {s['Id']} has quantity {s['Quantity']:g}, expected the last "
-                      f"segment's {last_qty:g}" for s in new if s["Quantity"] and s["Quantity"] > 0
-                      and last_qty is not None and abs(float(s["Quantity"]) - last_qty) > 1e-9]
+            fails += check_renewal_ramp(new, effective, 1, asset_periods[-1][2])
     except StepError as exc:
         print(f"FAIL {args.scenario}: {exc}")
         return 1

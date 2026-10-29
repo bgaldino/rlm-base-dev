@@ -407,22 +407,41 @@ expect("a ramp schedule ending before today counts periods to its end",
 expect("and still fails if it bills past its end",
        bool(vb.check([ended], [invoice(lines_for(-270, "E1"), MEMO)], EFF, 2, ramp_anchors=RAMP)), True)
 # A ramped renewal must have a renewal schedule from each yearly segment start (Codex on #640).
+# Ramped renewal ends and quantities (Codex on #640); measured: segments a year each, refund to the old end.
+OLD_END = dt.date(2027, 4, 30)
+seg1 = dict(sched(1, "N1"), BillingScheduleEndDate="2027-07-31")
+seg2 = dict(sched(1, "N2", start="2027-08-01"), BillingScheduleEndDate="2028-07-31")
+refund = dict(sched(-1, "RF"), BillingScheduleEndDate="2027-04-30")
+expect("a full ramped renewal passes", vb.check_renewal_ramp([seg1, seg2, refund], EFF, 2, 1, OLD_END), [])
+expect("a one-month renewal segment fails",
+       has(vb.check_renewal_ramp([dict(seg1, BillingScheduleEndDate="2026-08-31"), seg2, refund], EFF, 2, 1, OLD_END),
+           "ends 2026-08-31, expected 2027-07-31"), True)
+expect("renewal segments of the wrong quantity fail",
+       has(vb.check_renewal_ramp([seg1, seg2, refund], EFF, 2, 2, OLD_END), "quantity 1, expected 2"), True)
+expect("a refund of the wrong span fails",
+       has(vb.check_renewal_ramp([seg1, seg2, dict(refund, BillingScheduleEndDate="2026-08-31")], EFF, 2, 1, OLD_END),
+           "expected 2026-08-01..2027-04-30"), True)
 expect("a 2-year ramped renewal with both segments passes",
-       vb.check_renewal_ramp([sched(1, "N1"), sched(1, "N2", start="2027-08-01"), sched(-1, "RF")], EFF, 2), [])
+       vb.check_renewal_ramp([seg1, seg2, refund], EFF, 2), [])
 expect("a 2-year ramped renewal missing Year 2 fails",
-       has(vb.check_renewal_ramp([sched(1, "N1"), sched(-1, "RF")], EFF, 2), "no segment from 2027-08-01"), True)
+       has(vb.check_renewal_ramp([seg1, refund], EFF, 2), "no segment from 2027-08-01"), True)
 expect("a duplicated renewal segment fails",
-       has(vb.check_renewal_ramp([sched(1, "N1"), sched(1, "N1B"), sched(1, "N2", start="2027-08-01")], EFF, 2),
+       has(vb.check_renewal_ramp([seg1, dict(seg1, Id="N1B"), seg2], EFF, 2),
            "2 schedules from 2026-08-01"), True)
 expect("an expired ramp renewed as a ramp fails the one-year rule",
-       has(vb.check_renewal_ramp([sched(1, "N1"), sched(1, "N2", start="2027-08-01")], EFF, 1), "off the 1-year"),
+       has(vb.check_renewal_ramp([seg1, seg2], EFF, 1), "off the 1-year"),
        True)
 plain_ended = dict(sched(-1, "P1"), BillingScheduleEndDate="2026-08-31")
 expect("outside ramp mode a schedule ending early still fails on its amount",
        bool(vb.check([plain_ended], [invoice([line(-270, AUG, "P1")], MEMO)], EFF, 2)), True)
 expect("a renewal schedule off the segment starts fails",
-       has(vb.check_renewal_ramp([sched(1, "N1"), sched(1, "N2", start="2027-05-01")], EFF, 2), "off the 2-year"),
+       has(vb.check_renewal_ramp([seg1, dict(seg2, BillingScheduleStartDate="2027-05-01")], EFF, 2), "off the 2-year"),
        True)
+expect("a ramp amend ending on its segment's end passes",
+       vb.check_ramp_amend([dict(sched(1, "A1"), BillingScheduleEndDate="2027-04-30")], EFF, PERIODS), [])
+expect("a ramp amend ending early fails",
+       has(vb.check_ramp_amend([dict(sched(1, "A1"), BillingScheduleEndDate="2026-08-31")], EFF, PERIODS),
+           "expected the segment's end 2027-04-30"), True)
 expect("a ramp amend with a zero-quantity later segment passes",
        vb.check_ramp_amend([sched(1, "A1"), sched(0, "A2", start=Y2_START.isoformat())], EFF), [])
 expect("a ramp amend that changes a later segment fails",
