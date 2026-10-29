@@ -1,15 +1,15 @@
 ---
 name: ramped-quotes
 description: >-
-  Build and verify multi-year Revenue Cloud group-ramp quotes through the Connect API.
-  Use when creating per-period quote groups, cloning ramp segments, checking price
+  Build and verify multi-year Revenue Cloud group-ramp quotes through the Connect API
+  or the quote UI. Use when creating per-period quote groups, cloning ramp segments, checking price
   uplift or compound uplift, or distinguishing group ramps from line ramps.
 ---
 
 # Ramped Quotes — Build & Verify Multi-Year Group Ramps
 
 Use this skill to build, verify, or report a **multi-year ramped** Revenue Cloud
-quote (one commitment segment per period) over the Connect API, and to get the
+quote (one commitment segment per period) over the Connect API or in the quote UI, and to get the
 per-segment **price uplift** — including **compound** uplift — right. It is
 consumable by any AI agent (Cursor, Claude Code, Copilot, Codex, Windsurf,
 Aider).
@@ -29,7 +29,8 @@ Two distinct ramp mechanisms exist — do not confuse them:
 | **Line ramp** — `createRampDeal` on a single line (`/connect/revenue-management/sales-transaction-contexts/{lineId}/actions/ramp-deal-create`) | ungrouped segments (`QuoteLineGroupId=null`) | **No**: there's no group to hold the uplift mode, and `RLM_DefaultPricingProcedure` applies **no** `UnitPriceUplift` to line ramps at all (the ramp filter is limited to group ramps; measured 2026-10-28). Prefer group ramps. |
 | *(legacy)* `/commerce/sales-transactions/ramp-deals` (v63–66) | quantity/revenue **commitment** ramp on the deprecated `/commerce/` path | out of scope |
 
-**Compound price uplift requires the group ramp.** Build it with the sequence below.
+**Compound price uplift requires the group ramp.** Build it with the sequence below, or in the
+quote UI (`ui-group-ramp.md`, measured on 264).
 
 ## Quick Rules
 
@@ -111,6 +112,7 @@ Two distinct ramp mechanisms exist — do not confuse them:
 | Situation | Use |
 |---|---|
 | Build / add a segment to / verify a multi-year **group** ramp quote | This skill |
+| Build or check a group ramp **in the quote UI** (demo, rep-built quote) | `ui-group-ramp.md` |
 | Get **compound** per-segment uplift right (the `PriceRevision` engine, `IsCompoundUpliftEnabled`, prerequisites) | [Compound uplift](#compound-uplift) → `.cursor/skills/expression-sets/SKILL.md` |
 | Turn on **Advanced Detail Line Pricing** / sync context definitions (a compound prerequisite) | `.cursor/skills/context-service/SKILL.md` |
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
@@ -491,6 +493,9 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
   to verify. Read it when applying or checking Compound.
 - `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
   call rejects a field.
+- `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI (Create Ramp
+  Schedule → Edit Ramp Schedule → Browse Catalogs into *Current and Subsequent Segments*), the
+  expected prices and assets, and how to verify. Read it for a UI demo or a UI-built quote.
 
 ## Related References
 

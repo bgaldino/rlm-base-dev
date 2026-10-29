@@ -464,7 +464,7 @@ Diff the ramp path org-vs-org with `diff_expression_set.py` (compare
 ramp via `placeSalesTransaction` create → `groupRampAction: EditGroup` → clone, then
 per-segment `UnitPriceUplift` + `RampUpliftType='Compound'` on the group) is a
 transaction-building task, outside this skill — see
-`.cursor/skills/ramped-quotes/SKILL.md`. (Do **not** use the line-level
+`.cursor/skills/ramped-quotes/SKILL.md` (API, or the quote UI in `ui-group-ramp.md`). (Do **not** use the line-level
 `createRampDeal` or the legacy `/commerce/…/ramp-deals` API — neither produces the
 group that holds the compound uplift mode.) Ground behavior in the tracked 264 Help
 snapshots: `docs/salesforce/264/help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md`,
