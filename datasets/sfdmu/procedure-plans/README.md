@@ -50,7 +50,7 @@ Sections define the phases of the pricing procedure plan. Each section reference
 |---|---------------------------------|-----------|----------------------------|---------|
 | 1 | ProcedurePlanDefinition         | Readonly  | `DeveloperName`            | 1       |
 | 2 | ProcedurePlanDefinitionVersion  | Readonly  | `DeveloperName`            | 1       |
-| 3 | ProcedurePlanSection            | Upsert    | `SubSectionType;Sequence`  | 2       |
+| 3 | ProcedurePlanSection            | Upsert (`skipExistingRecords`) | `SectionType;SubSectionType` | 2 |
 
 ### Pass 2 — Upsert ProcedurePlanOptions with ExpressionSet Links
 
@@ -58,7 +58,7 @@ Options link each section to an Expression Set Definition (the pricing procedure
 
 | # | Object                     | Operation | External ID                              | Records |
 |---|----------------------------|-----------|------------------------------------------|---------|
-| 1 | ProcedurePlanSection       | Readonly  | `SubSectionType;Sequence`                | 2       |
+| 1 | ProcedurePlanSection       | Readonly  | `SubSectionType`                         | 2       |
 | 2 | ExpressionSetDefinition    | Readonly  | `DeveloperName`                          | 2       |
 | 3 | ProcedurePlanOption        | Upsert    | `ProcedurePlanSection.SubSectionType;Priority` | 2 |
 
@@ -194,26 +194,62 @@ procedure-plans/
 
 ### ProcedurePlanSection
 
-**External ID:** `SubSectionType;Sequence`
+**External ID:** `SectionType;SubSectionType`
 
-Each section is uniquely identified by its `SubSectionType` and `Sequence` within the parent PPDV. The `$$SubSectionType$Sequence` column in the CSV provides the composite key value for SFDMU upsert matching.
+This is the platform's own uniqueness rule: SectionType + SubSectionType must be unique per
+version. Every query in the plan is scoped to `RLM_Quote_Pricing_Procedure_Plan`'s version, so
+another plan in the org can't match. The `$$SectionType$SubSectionType` column in the CSV holds the
+composite key. `Sequence` isn't part of the key, because `apply_procedure_plan_overlay` (PRM)
+resequences sections. The platform also requires `Sequence` to be unique per version ("This
+sequence already exists").
+
+**`skipExistingRecords: true`.** A rerun never rewrites an existing section, so the PRM order
+(`HeaderDistribution` at 3) survives. A missing section is inserted at its CSV `Sequence`, but
+only if that slot is free:
+- On a PRM org, `IFPartnerDistributorOnQuote` holds slot 2, so a missing `HeaderDistribution` is
+  rejected, and the overlay doesn't recreate it (measured 2026-10-29).
+- With every section gone, including the PRM one, the load inserts its two CSV sections, and the
+  PRM overlay then re-adds `IFPartnerDistributorOnQuote` and resequences them.
+
+**Recovery.** The version must be inactive for the reload, which is the default. With
+`procedureplans_active: true`, deactivate it first.
+1. Delete the plan's sections and options.
+2. Rerun `insert_procedure_plan_data`.
+3. Run `apply_procedure_plan_overlay`.
+4. Reactivate the version if you deactivated it.
+
+**Consequences:**
+- **CSV edits don't reach existing rows.** Edits to an existing row in `ProcedurePlanSection.csv`
+  (`Phase`, `ResolutionType`, `Description`) don't propagate to an org that already has the
+  section. Change it in the org, or delete and reload.
+- **Why not `excludedFromUpdateFields: [Sequence]`:** SFDMU 5.8.0 drops excluded fields from
+  inserts too, so new sections would have no Sequence.
 
 ### ProcedurePlanOption
 
 **External ID:** `ProcedurePlanSection.SubSectionType;Priority`
 
-Each option is uniquely identified by its parent section's `SubSectionType` and the option's `Priority`. The `$$ProcedurePlanSection.SubSectionType$Priority` column in the CSV provides the composite key. The parent section is resolved via `ProcedurePlanSection.$$SubSectionType$Sequence` lookup.
+Each option is uniquely identified by its parent section's `SubSectionType` and the option's `Priority`. The `$$ProcedurePlanSection.SubSectionType$Priority` column in the CSV provides the composite key. The parent section is resolved with a single-field `ProcedurePlanSection.SubSectionType` lookup.
+`SubSectionType` is unique within this plan's version, which the queries are scoped to. The
+single-field lookup avoids SFDMU Bug 4 (`$$` composite notation on lookup columns).
 
 ## Idempotency
 
-This plan is **fully idempotent** at every step:
+An unchanged rerun is a no-op at every step. If sections were partly deleted, use the recovery in
+[Composite Key Design](#composite-key-design).
 
 1. **Connect API task** — skips if PPD already exists
 2. **Expression set activation** — skips if already active
-3. **SFDMU Upsert** — matches existing records via composite external IDs; "Nothing was updated" on re-run
+3. **SFDMU Upsert** — matches existing records on the keys above; "Nothing was updated" on rerun, including after the PRM overlay has resequenced the sections
 4. **PPDV activation** — skips if already active (and is skipped entirely unless `procedureplans_active`)
 
-Verified against `dev-sb0` (Release 260 / API v66.0) with all records present.
+Verified 2026-10-29 on r1-306 (fresh 264 build with the PRM overlay applied, todo 316):
+- two `prepare_procedureplans` reruns with no ignore options were both no-ops;
+- the sections stayed at DefaultPricing=1, IFPartnerDistributorOnQuote=2, HeaderDistribution=3;
+- with the plan's sections and options deleted, a load re-inserted them, and the overlay then
+  resequenced them as before;
+- with only `HeaderDistribution` deleted, the rerun was rejected on its Sequence slot (see
+  *Composite Key Design* for recovery).
 
 ## Dependencies
 
@@ -241,21 +277,6 @@ cci task run insert_procedure_plan_data -o object_sets "[0]" -o simulation true
 ### PPDV Must Be Inactive During Data Load
 
 Salesforce rejects `INSERT` and `UPSERT` operations on `ProcedurePlanSection` when the parent `ProcedurePlanDefinitionVersion` is active. The flow handles this by creating the PPDV with `versionActive: false` and, when `procedureplans_active` is true, activating it in the final step after all sections and options are loaded.
-
-### Rerun Rejects a Section Row After the PRM Overlay
-
-The PRM overlay re-sequences the sections (`HeaderDistribution` moves to 3). A later rerun of
-`insert_procedure_plan_data` no longer matches the CSV's `HeaderDistribution;2`, tries an insert,
-and the platform rejects it: "combination of the section type and subsection type is unique". The
-task then fails on the row error. Fresh builds are unaffected (`prepare_procedureplans` runs
-before `prepare_prm_pricing`). To rerun on such an org, ignore only that rejection:
-
-```bash
-cci flow run prepare_procedureplans --org <alias> \
-  -o insert_procedure_plan_data__ignore_row_errors_for "{ProcedurePlanSection: section type and subsection type}"
-```
-
-Any other rejection still fails. Avoid `fail_on_row_errors false`, which hides every object's rejections.
 
 ### ProcedurePlanDefinition Requires Connect API
 
