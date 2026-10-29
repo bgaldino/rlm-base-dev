@@ -204,13 +204,19 @@ resequences sections. The platform also requires `Sequence` to be unique per ver
 sequence already exists").
 
 **`skipExistingRecords: true`.** A rerun never rewrites an existing section, so the PRM order
-(`HeaderDistribution` at 3) survives. It inserts a missing section at its CSV `Sequence`:
-- **Every section missing:** it works, and the PRM overlay then resequences.
-- **Only `HeaderDistribution` missing on a PRM org:** its CSV slot (2) is taken by
-  `IFPartnerDistributorOnQuote`. The insert is rejected, and the overlay doesn't recreate it
-  (measured 2026-10-29).
-  - **Recovery:** delete the plan's sections and options, rerun `insert_procedure_plan_data`, then
-    `apply_procedure_plan_overlay`.
+(`HeaderDistribution` at 3) survives. A missing section is inserted at its CSV `Sequence`, but
+only if that slot is free:
+- On a PRM org, `IFPartnerDistributorOnQuote` holds slot 2, so a missing `HeaderDistribution` is
+  rejected, and the overlay doesn't recreate it (measured 2026-10-29).
+- With every section gone, including the PRM one, the load inserts both, and the PRM overlay then
+  resequences them.
+
+**Recovery:**
+1. Delete the plan's sections and options. The version must be inactive, which is the default; with
+   `procedureplans_active: true`, deactivate it first.
+2. Rerun `insert_procedure_plan_data`.
+3. Run `apply_procedure_plan_overlay`.
+4. Reactivate the version if you deactivated it.
 
 **Consequences:**
 - **CSV edits don't reach existing rows.** Edits to an existing row in `ProcedurePlanSection.csv`
@@ -229,7 +235,7 @@ single-field lookup avoids SFDMU Bug 4 (`$$` composite notation on lookup column
 
 ## Idempotency
 
-This plan is **fully idempotent** at every step:
+An unchanged rerun is a no-op at every step. If sections were partly deleted, use the recovery in *Composite Key Design*.
 
 1. **Connect API task** — skips if PPD already exists
 2. **Expression set activation** — skips if already active

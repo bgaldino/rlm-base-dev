@@ -41,9 +41,9 @@ decision-table rate for the policy's Region on the line's date. The step's `Rate
    2. On the renewal line, set `PriceRevisionPolicyId` and, optionally, `UnitPriceUplift`. Both
       fields are on the RLM quote line layout.
    3. Reprice.
-3. **Ramps: don't use CPI.** Help doesn't support a CPI policy on ramped products (see below). For
-   a ramp uplift, use segment uplifts with Standard or Compound and a Flat policy (measured), or no policy (allowed
-   by core code; not measured here). See `ramped-quotes/SKILL.md`.
+3. **Ramps: don't use CPI.** Help doesn't support a CPI policy on ramped products (see below). For a
+   ramp uplift, use segment uplifts with Standard or Compound and a Flat policy (measured), or no
+   policy (allowed by core code; not measured here). See `ramped-quotes/SKILL.md`.
 
 ## Expected results
 
