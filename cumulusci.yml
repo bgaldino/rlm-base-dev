@@ -4918,10 +4918,10 @@ flows:
         # variant, so the salesrep persona SEES its Usage tab's View Usage and Add Usage
         # sub-tabs. Without these two sets both error on Apex class access
         # (RLM_UsageDataController, RLM_UsageUploaderController); the prepare_quantumbit
-        # grants reach only the RUNNING user (todo 185). Granted, following steps 9-12: Datatables is class
-        # access plus read on the usage objects; Uploader adds TransactionJournal create,
-        # in user mode, for the asset the persona picks. Usage entry is part of the demo
-        # the persona runs.
+        # grants reach only the RUNNING user (todo 185). Granted, following steps 9-12:
+        # Datatables is class access plus read on the usage objects; Uploader adds
+        # TransactionJournal create, in user mode, for the asset the persona picks.
+        # Usage entry is part of the demo the persona runs.
         #
         # NOT extended to RLM_UsageOrchestration: its controller launches any
         # autolaunched flow the client names, so it stays with the admin and the
