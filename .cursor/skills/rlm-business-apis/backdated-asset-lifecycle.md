@@ -292,15 +292,18 @@ transfer's target order is on another account.
   `--renewal-ramp-years`, after the effective date), its first invoice line
   starts there, and its lines sum to sign × the
   schedule's `BillingPeriodAmount` × the billing periods of that schedule's own term
-  (Month, Quarter, Semi-Annual, Year; any other unit fails as unmodelled) started since then.
+  (Month, Quarter, Semi-Annual, Year; any other unit fails as unmodelled) started since then
+  (in ramp mode, up to the schedule's end if that's before today).
   A schedule that hasn't started must not be invoiced. Netted lines are checked per
   `BillingScheduleGroupId` with the same sum and first-line rules; a group that nets to zero
   proves only that its lines net out, not each schedule's share.
   A zero-quantity schedule must bill nothing. A ramp cancel must credit the effective date and each
   later segment start (state periods read before the change), each for minus that segment's
   quantity, so a missing, partial or duplicated credit fails. A ramp amendment must leave later
-  segments at quantity 0. Measured only on ramps with distinct per-segment quantities and no
-  earlier change; an asset amended before (via `--asset`) has extra period starts and may fail.
+  segments at quantity 0. A ramped renewal of N years must have exactly one renewal schedule
+  from each yearly segment start, and a renewed expired ramp one year at the last segment's
+  quantity. Measured only on ramps with distinct per-segment quantities and no earlier change;
+  an asset amended before (via `--asset`) has extra period starts and may fail.
   Every negative invoice must have a credit memo and settle
   to `Balance = 0`. The expectation uses the platform's own period amount, so the check proves
   the invoice matches the schedule, not that the price is right.
