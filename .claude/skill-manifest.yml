@@ -537,11 +537,13 @@ foundations:
     # consumers can resolve a release-specific canvas via
     # `resolve_grounding(..., 'qb_demo_script_{release}')`. Add a new entry
     # each release when the corresponding markdown file is generated.
-    qb_demo_script_262:
-      path: docs/enablement/262/qb-demo-script.md
-      purpose: "QuantumBit demo-script canvas, Release 262 (Summer '26)"
+    qb_demo_script_264:
+      # Relabeled from the 262 draft on 2026-10-29 (262 orgs no longer exist); only the
+      # core QB-COMPLETE quote-to-order steps are verified on 264 so far.
+      path: docs/enablement/264/qb-demo-script.md
+      purpose: "QuantumBit demo-script canvas, Release 264 (Winter '27)"
       produced_by_skill: qb-demo-script
-      release: "262"
+      release: "264"
       status: draft  # awaits SME pass for Setup-UI, Known Bugs, image capture, Slack publish
       consumed_by_pmos: []  # PMOS narrative-polish pass is Phase 6.3+, opt-in
 

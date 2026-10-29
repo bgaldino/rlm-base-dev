@@ -48,8 +48,7 @@ In addition to the per-area Hands-On extracts tracked above, `docs/enablement/{v
 
 | File | Release | Status | Source |
 |---|---|---|---|
-| [`262/qb-demo-script.md`](262/qb-demo-script.md) | 262 | 🚧 Draft (preview release) | Generated 2026-05-24 via [`.cursor/skills/qb-demo-script/SKILL.md`](../../.cursor/skills/qb-demo-script/SKILL.md); pending SME pass for Setup-UI verification, Known-Bugs population, image capture, Slack canvas publish |
-| `264/qb-demo-script.md` | 264 | ❌ not started | Same skill; author once a 264 org shape is verified |
+| [`264/qb-demo-script.md`](264/qb-demo-script.md) | 264 | 🚧 Draft (relabeled from the 262 draft, 2026-10-29) | Generated 2026-05-24 via [`.cursor/skills/qb-demo-script/SKILL.md`](../../.cursor/skills/qb-demo-script/SKILL.md); pending SME pass for Setup-UI verification, Known-Bugs population, image capture, Slack canvas publish |
 
 ### Notes on draft state of 258 PDFs
 
