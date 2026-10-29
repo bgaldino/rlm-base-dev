@@ -4546,7 +4546,10 @@ flows:
           # and the org keeps running the OLD model, so the configurator rejects whatever
           # the new model added. Deactivating here and reactivating in step 10 is the
           # deactivate/reactivate cycle Salesforce documents as the way to pick up a
-          # rebuilt model. manage_expression_sets only toggles the versions it is given
+          # rebuilt model. For constraint models manage_expression_sets cycles through the
+          # /industries/constraints/{set}/versions/{version} resource, which deploys to the
+          # solver; an ExpressionSetVersion.IsActive update alone never did (todo 064).
+          # manage_expression_sets only toggles the versions it is given
           # and safely skips versions that are already inactive or absent. Every version
           # step 10 activates must be deactivated here. See
           # .cursor/skills/constraint-models/SKILL.md.

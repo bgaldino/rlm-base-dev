@@ -78,11 +78,11 @@ Release 262 dev-guide/Help snapshots:
 >    exercising the configurator.
 > 2. **The activation tooling differs.** `scripts/expression_sets/activate_expression_set.py`
 >    and the Connect deactivate→PATCH→reactivate cycle are for step-graph sets.
->    Constraint models go through `manage_expression_sets` + `import_cml`. Note
->    `manage_expression_sets` PATCHes `ExpressionSetVersion.IsActive`, the same record the
->    Constraint Builder UI toggles — so it *is* the right tool; what differs is that
->    `prepare_constraints` deactivates only AFTER importing. See the constraint-models
->    skill.
+>    Constraint models go through `manage_expression_sets` + `import_cml`.
+>    `manage_expression_sets` activates and deactivates a constraint model through
+>    `/industries/constraints/{setId}/versions/{versionId}`, which deploys it to the solver; a
+>    plain `ExpressionSetVersion.IsActive` update never does. `prepare_constraints` deactivates
+>    only AFTER importing. See the constraint-models skill.
 >
 > Source material: `docs/salesforce/262/dev-guide/` (`cml_*` articles) and the
 > Configurator Help suite.

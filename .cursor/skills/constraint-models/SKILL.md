@@ -29,13 +29,12 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    to check its shipped blob against its own associations. Standalone `.cml` files
    require an explicit `cml_dir`; they are not deployment artifacts.
 3. **Importing into an ACTIVE version does not redeploy the model.** The version must be
-   cycled — deactivate then reactivate — after the upload. `prepare_constraints` does this
-   for the models it names. **A standalone `import_cml` does not**, so cycle it yourself.
+   cycled — deactivate then reactivate — after the upload, **through the constraint-version
+   resource**, which is what `manage_expression_sets` uses for constraint models. A plain
+   `ExpressionSetVersion.IsActive` update (sObject API, `sf data update`) flips the record but
+   never reaches the solver, so the org keeps running the old model. `prepare_constraints`
+   cycles the models it names. **A standalone `import_cml` does not**, so cycle it yourself.
    See [Making a change reach an org](#making-a-change-reach-an-org).
-   **Under review:** `manage_expression_sets` cycles by updating `ExpressionSetVersion.IsActive`.
-   Fresh 264 builds whose steps 9–10 activated both models were measured with a cold solver at
-   the end of the build (see Rule 8), so that update may not reach the runtime. Until it's re-verified, prove a
-   re-import by exercising the configurator (Rule 4), not by the cycle.
 4. **Only the configurator proves deployment.** Reading `ConstraintModel` back proves the
    blob was *stored* — it is the same field `import_cml` writes. It cannot tell you the
    runtime rebuilt.
@@ -51,7 +50,8 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    software and Server2 for hardware. Discover the org's active models before
    changing versions; unrelated model families can be active together.
 8. **Runtime users must be able to see the model's `ExpressionSet` record.** On a cold
-   solver (any fresh or template-spun org), the first configuration-rules run redeploys
+   solver (every template-spun org, since the cache is keyed by org; also any org whose models
+   were activated by an `IsActive` update), the first configuration-rules run redeploys
    the models as the running user and reads the `ExpressionSet` rows in user mode. The
    criteria sharing rule `ExpressionSet.RLM_Constraint_Models_Read` in `post_constraints`
    shares `UsageType = Constraint` sets Read with all internal users. Without it, every
@@ -321,8 +321,18 @@ not. See below.
 
 ### How the flow handles active-version reruns
 
-`manage_expression_sets` queries ExpressionSetVersion by ApiName and PATCHes
-IsActive, the same state toggled by Constraint Builder.
+`manage_expression_sets` queries `ExpressionSetVersion` by ApiName. For a constraint model
+(`ExpressionSet.UsageType = 'Constraint'`) it PATCHes
+`/services/data/v<api>/industries/constraints/{expressionSetId}/versions/{versionId}` with
+`{"status": "Active"}` or `{"status": "Inactive"}`. That resource deploys the model to the
+constraint solver on activation and removes it on deactivation. It returns HTTP 200 with
+`success: false` on a failed deploy, so the task checks `success`. Every other expression set
+gets an `IsActive` PATCH.
+
+The resource is not in the public developer guide; it is the route Constraint Builder uses,
+and nothing else deploys a model (todo 064). Measured live on 2026-10-29: when the task still
+PATCHed `IsActive` for constraint models, a model re-imported into an active version kept
+running the old one through this exact cycle, and a cold org stayed cold after activation.
 
 `prepare_constraints` imports Server2 and Bundle in steps 7-8, deactivates their
 versions in step 9, and activates both in step 10. Every activated version must
@@ -421,10 +431,11 @@ Before calling a constraint-model change done:
    then assert every product you expect has **both** a `Type` and a `Port` row.
 7. **Exercise the configuration rules.** This is what proves the runtime model was
    rebuilt — nothing above distinguishes a deployed model from a stored one. It does
-   **not** require the UI: activation only flips `IsActive`, and the model is compiled
-   when config rules run, so POSTing the Product Configurator `configure` action with
-   `executeConfigurationRules: true` against a quote line that uses the model exercises
-   the same path headlessly. A valid model returns `success: true`,
+   **not** require the UI: POSTing the Product Configurator `configure` action with
+   `executeConfigurationRules: true` against a quote line that uses the model runs the
+   solver's current model headlessly. To prove a specific change, make it observable (for
+   example a `message(true, "<marker>", "warning")` rule) and look for it in the response's
+   `messages`. A valid model returns `success: true`,
    `solverStatus: "success"`, `errors: []`; an invalid one returns `Model '…' is invalid`.
    Full recipe: [Runtime verification](../../../datasets/constraints/README.md#runtime-verification).
 

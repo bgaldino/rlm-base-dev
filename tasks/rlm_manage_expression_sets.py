@@ -524,8 +524,15 @@ class ManageExpressionSets(BaseSalesforceTask):
     
     def _update_version_status(self, version_full_name: str, status: str):
         """
-        Update expression set version IsActive using REST API.
-        
+        Update an expression set version's status using the REST API.
+
+        Constraint models (ExpressionSet.UsageType = 'Constraint') go through the
+        constraint-version resource, /industries/constraints/{setId}/versions/{versionId}:
+        it deploys the model to the constraint solver on activation and removes it on
+        deactivation. A plain ExpressionSetVersion.IsActive update flips the record but never
+        reaches the solver, so a re-imported model kept running the old one (todo 064).
+        Every other expression set keeps the sObject IsActive update.
+
         Args:
             version_full_name: Version ApiName (e.g., 'RLM_DefaultPricingProcedure_V1')
             status: 'Active' or 'Inactive'
@@ -545,7 +552,7 @@ class ManageExpressionSets(BaseSalesforceTask):
 
         # Query ExpressionSetVersion by ApiName to get record Id.
         soql = (
-            "SELECT Id, IsActive FROM ExpressionSetVersion "
+            "SELECT Id, IsActive, ExpressionSetId, ExpressionSet.UsageType FROM ExpressionSetVersion "
             f"WHERE ApiName = '{version_full_name}'"
         )
         url = f"{instance_url}/services/data/v{api_version}/query"
@@ -577,20 +584,38 @@ class ManageExpressionSets(BaseSalesforceTask):
             )
             return True
 
-        # Update the data record directly.
-        url = f"{instance_url}/services/data/v{api_version}/sobjects/ExpressionSetVersion/{version_id}"
+        is_constraint_model = (record.get("ExpressionSet") or {}).get("UsageType") == "Constraint"
+        if is_constraint_model:
+            # Deploys to (or removes from) the constraint solver; see the docstring.
+            url = (
+                f"{instance_url}/services/data/v{api_version}/industries/constraints/"
+                f"{record['ExpressionSetId']}/versions/{version_id}"
+            )
+            payload = {"status": status}
+        else:
+            # Update the data record directly.
+            url = f"{instance_url}/services/data/v{api_version}/sobjects/ExpressionSetVersion/{version_id}"
+            payload = {"IsActive": target_is_active}
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json"
         }
-        payload = {"IsActive": target_is_active}
-        
+
         try:
             max_attempts = 4
             for attempt in range(1, max_attempts + 1):
                 response = requests.patch(url, headers=headers, json=payload)
                 if response.status_code in [200, 204]:
-                    return True
+                    if not is_constraint_model:
+                        return True
+                    # The constraint resource reports a failed deploy as HTTP 200 with
+                    # success: false, so the status code alone proves nothing.
+                    body = response.json() if response.text else {}
+                    if body.get("success") is True:
+                        return True
+                    raise TaskOptionsError(
+                        f"Constraint version status update failed: {body.get('errors') or body}"
+                    )
 
                 response_text = response.text or ""
                 is_lock_error = "UNABLE_TO_LOCK_ROW" in response_text

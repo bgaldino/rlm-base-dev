@@ -721,12 +721,13 @@ import.
 
 ### A non-admin's quote fails: "Something went wrong while running configuration rules"
 
-**Example:** on a fresh org, the sales rep's first quote with configuration rules on
+**Example:** on an org spun from a template, the sales rep's first quote with configuration rules on
 (the default) fails with `UNKNOWN_EXCEPTION`, for any product, on every retry. The admin's
 quote succeeds, and after that the rep's do too.
 
-**Cause:** a fresh org's constraint-solver cache is empty, and a template-spun org always
-starts with it empty. The first configuration-rules run catches `MODEL_NOT_FOUND` and
+**Cause:** the constraint-solver cache is keyed by org, so a template-spun org always starts
+with it empty. So does an org whose models were activated by an `ExpressionSetVersion.IsActive`
+update instead of through the constraint-version resource (builds before todo 064's fix). The first configuration-rules run catches `MODEL_NOT_FOUND` and
 redeploys the active models as the **running user**. Part of that redeploy reads the
 constraint-model `ExpressionSet` records in user mode. `ExpressionSet` sharing is
 Private, so a user who can't see those rows fails, and the error surfaces as the generic
