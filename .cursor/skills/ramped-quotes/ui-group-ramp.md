@@ -35,8 +35,8 @@ A rep can build a group ramp in the 264 quote editor with the same result as the
      ramped line items". One add places the product in every segment, with ramp identity.
    - **Current Segment Only** "adds products as non-ramped line items" (dialog text; not tested).
 4. **Pick the product and save.**
-   - `Product2.CanRamp` gates the line-ramp path. The tested product has `CanRamp = true`; a
-     product without it wasn't tried in this dialog.
+   - `Product2.CanRamp` gates the line-ramp path only (a `CanRamp = false` product uplifts in a
+     group ramp; pack 174, 2026-10-29). The UI test used `QB-API`, which has `CanRamp = true`.
    - **Reprice All** is a toolbar button. Prices were already uplifted before it was clicked.
 
 ## Expected result
@@ -51,7 +51,7 @@ A rep can build a group ramp in the 264 quote editor with the same result as the
 - The order lines keep the `RampIdentifier`.
 - Activation creates **one** Asset with three `AssetStatePeriod` rows: `Mrr` 833.33 / 916.67 /
   1,008.33.
-- `Amount` is 0 on these rows, as on the org's other ramp assets, so check `Mrr`.
+- `Amount` was 0 on these rows; check `Mrr`.
 
 **The price waterfall shows no ramp-uplift row.** On the Compound quote's Year 3 line it goes from
 the 10,000 adjusted price straight to Net Unit Price 12,100. To see the uplift, read
@@ -65,7 +65,8 @@ sf data query --target-org <sf_alias_or_username> -q "SELECT SegmentName, RampId
   QuoteLineGroup.Name FROM QuoteLineItem WHERE QuoteId = '<quote Id>' ORDER BY StartDate"
 # After activation: one Asset per product, one AssetStatePeriod per segment
 sf data query --target-org <sf_alias_or_username> -q "SELECT AssetId, StartDate, EndDate, Mrr \
-  FROM AssetStatePeriod WHERE Asset.AccountId = '<account Id>' ORDER BY AssetId, StartDate"
+  FROM AssetStatePeriod WHERE Asset.AccountId = '<account Id>' \
+  AND Asset.Product2.StockKeepingUnit = '<SKU>' ORDER BY AssetId, StartDate"
 ```
 
 **Pass** when all of these hold:
