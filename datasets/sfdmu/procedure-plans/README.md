@@ -208,12 +208,12 @@ sequence already exists").
 only if that slot is free:
 - On a PRM org, `IFPartnerDistributorOnQuote` holds slot 2, so a missing `HeaderDistribution` is
   rejected, and the overlay doesn't recreate it (measured 2026-10-29).
-- With every section gone, including the PRM one, the load inserts both, and the PRM overlay then
-  resequences them.
+- With every section gone, including the PRM one, the load inserts its two CSV sections, and the
+  PRM overlay then re-adds `IFPartnerDistributorOnQuote` and resequences them.
 
-**Recovery:**
-1. Delete the plan's sections and options. The version must be inactive, which is the default; with
-   `procedureplans_active: true`, deactivate it first.
+**Recovery.** The version must be inactive for the reload, which is the default. With
+`procedureplans_active: true`, deactivate it first.
+1. Delete the plan's sections and options.
 2. Rerun `insert_procedure_plan_data`.
 3. Run `apply_procedure_plan_overlay`.
 4. Reactivate the version if you deactivated it.
@@ -235,7 +235,8 @@ single-field lookup avoids SFDMU Bug 4 (`$$` composite notation on lookup column
 
 ## Idempotency
 
-An unchanged rerun is a no-op at every step. If sections were partly deleted, use the recovery in *Composite Key Design*.
+An unchanged rerun is a no-op at every step. If sections were partly deleted, use the recovery in
+[Composite Key Design](#composite-key-design).
 
 1. **Connect API task** — skips if PPD already exists
 2. **Expression set activation** — skips if already active
