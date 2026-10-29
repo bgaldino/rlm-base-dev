@@ -92,7 +92,7 @@ same path. All of these accepted a past date (measured):
 |---|---|---|---|
 | Amend | `initiateAmendment` | `amendAssetIds`, `amendStartDate`, `quantityChange`, `amendOutputType` | `amendRecordId` (order or quote) |
 | Cancel | `initiateCancellation` | `cancelAssetIds`, `cancelStartDate`, `cancelOutputType` | `cancelRecordId` |
-| Renew | `initiateRenewal` | `renewAssetIds`, `renewOutputType`, `renewStartDate`, `renewEndDate` | `renewRecordId` |
+| Renew | `initiateRenewal` | `renewAssetIds`, `renewOutputType`, `renewStartDate`, `renewEndDate`; optional `rampOptionsDetails` (`segmentType`, `durationInMonths`) for a ramped renewal, which makes a **group** ramp (a `Ramp Schedule` parent `QuoteLineGroup`; measured renewing a plain, a line-ramp and a group-ramp asset) | `renewRecordId` |
 | Transfer | `initiateTransfer` | `transferRecords` `[{assetId, transferQuantity}]`, `transferDate`, `outputRecordType`, `targetAccountId` | `assetTransferSourceId`, `assetTransferTargetId` |
 | Swap / Upgrade / Downgrade | `POST /revenue/transaction-management/assets/actions/{swap,upgrade,downgrade}` | `swapStartDate`, `outputRecordType`, `swapGroups` (below) | `salesTransactionId` (the quote) |
 | Rollback | `initiateRollBackLastAction` | `assetIds`, `outputType` | `recordId` |
@@ -182,7 +182,8 @@ qty 2, from 2026-05-01; built with `build_quote_to_asset.py --ramp-years 2 --ram
 | Amend −1 (a 2,3 ramp) | Year-1 only | −37.50 → credit memo |
 | Cancel | Credits Year-1 from 08-01 **and** Year-2 from its own start (2027-05-01), which isn't billable yet | −37.50 → credit memo |
 | Renew an expired 2-year ramp | One unramped year at the **last segment's quantity** (2) | 75.00 (3 × 25.00) |
-| Early renewal **with a ramp** (`rampOptionsDetails`: Yearly, 24 months) of a plain asset | Year-1 and Year-2 segments (one `RampIdentifier`) + a refund of the current term's rest | net 0.00 |
+| Early renewal **with a ramp** (`rampOptionsDetails`: Yearly, 24 months) of a plain asset | A group ramp: Year-1 and Year-2 segments (one `RampIdentifier`) + a refund of the current term's rest | net 0.00 |
+| Early renewal with a ramp of this line-ramp asset (quote only) | A group ramp whose new segments are priced at **zero** (below) + a refund of the current ramp | not run through billing |
 
 **Group-ramp assets** (multi-schedule: a `RampScheduleGroup` parent with Yearly segment groups),
 `QB-API-PROD` at 270.00/month. Built with `build_quote_to_asset.py --ramp-years 2 --ramp-quantities 1,2 --ramp-kind group`
@@ -195,12 +196,11 @@ qty 2, from 2026-05-01; built with `build_quote_to_asset.py --ramp-years 2 --ram
 | Cancel (a 1,2 ramp) | Credits Year-1 from 08-01 and Year-2 (qty 2) from its own start | −810.00 → credit memo |
 | Cancel (a 3-year 1,2,3 ramp) | Credits Year-1 from 08-01, Years 2 and 3 from their own starts | −810.00 → credit memo |
 | Renew an expired 2-year ramp (1,2, 2024-08-01 → 2026-07-31) | One unramped year at the last segment's quantity (2) | 1,620.00 (3 × 540) |
-| Early renewal (with a ramp; without one it's refused, below) | Prices the new segments at **zero** (null `UnitPrice`) and refunds the current ramp. Same future-dated, and on a ramp from an earlier ramped renewal. | not run through billing |
+| Early renewal (with a ramp; without one it's refused, below) | Prices the new segments at **zero** (below) and refunds the current ramp. Same future-dated, and on a ramp from an earlier ramped renewal. | not run through billing |
 
 The same amend ±1 and cancel also passed on group ramps made by an earlier ramped renewal
 (segments 2026-08-01 and 2027-08-01, change effective 09-01 or 10-01); there the Year-2 credit
-starts 2027-08-01, a year after the renewal, not after the asset's start. The zero-priced early
-renewal is open as todo 309: the cause, platform or this repo's pricing procedure, isn't known.
+starts 2027-08-01, a year after the renewal, not after the asset's start.
 
 - An early renewal of a ramp asset without a ramp is refused: *"You can only renew a ramped asset
   early by turning on Create a Ramp Schedule when setting the renewal terms on the renewal
@@ -210,6 +210,34 @@ renewal is open as todo 309: the cause, platform or this repo's pricing procedur
   segment boundaries only before the change; the verifier reads them first.
 - `RLM_ARC_AssetValidator` still blocks swap, upgrade/downgrade, transfer and rollback for ramped
   assets, as 264 Help requires.
+
+**Early renewal of a ramped asset: the zero price comes from the platform** (todo 309). Measured
+on a group ramp (`QB-API-PROD`) and a line ramp (`QB-GEN-AI-LIC`). The pricing log was read on
+quote-only, future-dated runs; the backdated run zero-priced the same way (table above).
+
+- **The renewal is a group ramp, as from a plain asset.** `rampOptionsDetails` makes a
+  `Ramp Schedule - 1` parent `QuoteLineGroup` with Year segment groups, from a line-ramp asset too.
+- **The prices are on the `QuoteLineDetail` rows.** The `QuoteLineItem` `UnitPrice` and
+  `NetUnitPrice` are null. The refund details carry the last transaction price; the new
+  segments' details carry `UnitPrice`/`NetUnitPrice` 0.
+- **The 0 is already the input `NetUnitPrice`** at the pricing procedure's first element. The
+  list-price step resolves the right price; no step changes the input. Where core sets it wasn't
+  traced. An override step in the procedure wasn't tried; it would be expected to price at list,
+  not at the last transaction price.
+- **A ramped early renewal of a *plain* asset inherits the price correctly.**
+- **`enableAsIsRenewals` doesn't apply** (per core source, not measured): a renewal of a ramped
+  asset is never as-is.
+- **GUS W-23406678** has the same symptom and was closed "Not a bug".
+
+To check a renewal quote:
+
+```bash
+sf data query -o <sf-alias> -q "SELECT QuoteLineItemId, Quantity, UnitPrice, NetUnitPrice, \
+    EffectiveFrom, EffectiveTo FROM QuoteLineDetail WHERE QuoteLineItem.QuoteId = '<quote>'"
+```
+
+It's this case when the new-segment rows (positive quantity) are at 0 while the refund rows
+(negative quantity) carry a price.
 
 **Netted lines.** Billing can combine a group's schedules into invoice lines with **no
 `BillingScheduleId`**, carrying only `BillingScheduleGroupId`. Measured on early renewals: the
@@ -334,5 +362,7 @@ qty 1 and `08-01→2027-05-31` qty 2. A backdated cancel on 2026-09-01 then ende
 
 ## Not covered yet
 
-- **Early renewal of a ramp asset.** Zero-priced, as measured above, so a backdated one can't be
-  verified yet (todo 309).
+- **Early renewal of a ramp asset.** It goes through headlessly: `initiateRenewal` with
+  `rampOptionsDetails`, the input the UI's *Create a ramp schedule* sets. The Connect `renew`
+  resource has no such input. But the platform prices the new segments at zero (above, W-23406678),
+  so a backdated one can't be verified through invoice (todo 309).
