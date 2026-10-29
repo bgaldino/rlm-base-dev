@@ -56,6 +56,7 @@ paths are forceignored.
 | 8 | qb-rates | qb-pcm + qb-rating (PURs must exist) + qb-pricing (PriceBook2) |
 | 9 | qb-approvals | post_approvals metadata + email templates |
 | 10 | qb-guidedselling-products | qb-pcm + `deploy_post_guidedselling` Product2 fields |
+| 11 | qb-price-revision | None (no lookups); refresh `Index_Rate_Decision_Table` after |
 
 ## Deletion Order
 

@@ -52,8 +52,9 @@ decision-table rate for the policy's Region on the line's date. The step's `Rate
 | Compound group ramp, list 3,240, segment uplift 0 / 10 / 10, CPI policy | 3,337.20 / 3,654.72 / 3,648.24 (applied 3 / 12.8 / 12.6) |
 | Same ramp, Flat policy | 3,240 / 3,564 / 3,920.40 (applied 0 / 10 / 21) |
 
-**Under CPI a ramp segment doesn't compound.** Each segment gets its own year's rate plus its uplift.
-Core allows compounding only with a Flat policy or no policy.
+**Under CPI a ramp segment doesn't compound** (measured): each segment gets its own year's rate
+plus its uplift. Under Flat it compounds. Core code (read 2026-10-28, pack 314) allows compound
+uplift only with a Flat policy or no policy. The no-policy case wasn't measured.
 
 On an as-is renewal the price sits on the detail line (`QuoteLineDetail`), and the parent
 `NetUnitPrice` is null. Read the detail lines (see `rlm-business-apis/SKILL.md` → *Where an ARC
@@ -78,10 +79,15 @@ rate) and `PolicyAdjustment`, and it should **appear once**.
   active, the Revenue Settings default procedure runs again after the plan, and the revision
   compounds: 2,400 → 2,544 → 2,696.64 for 4% + 2. The plan is built inactive by default
   (`procedureplans_active: false`); see `datasets/sfdmu/procedure-plans/README.md` → *Activation*.
-- **Region** on `IndexRate` and `PriceRevisionPolicy` is an unrestricted picklist with no values.
-  The API takes any value, so no Setup step is needed.
-- **Index rate ranges for one Region can't overlap.** Two policies can't share the same effective
-  dates either ("The selected effective dates are already in use"). A hand-made policy for the same
-  years makes the plan's rows fail; remove or re-date it first.
+- **Region** on `IndexRate` and `PriceRevisionPolicy` has no defined values, and its behavior varies
+  by pod:
+  - on USA1016 it's restricted but accepts `US`;
+  - on USA796 it accepts anything.
+
+  Use `US`. Any other region needs a Setup value where the field is restricted.
+- **Index rate ranges for one Region can't overlap.** Policies of the same PolicyType and Region
+  can't overlap either ("The selected effective dates are already in use"). A hand-made policy of
+  the same type and Region for the same years makes the plan's rows fail; remove or re-date it
+  first.
 - **Stale table.** After adding or changing an `IndexRate`, refresh `Index_Rate_Decision_Table`.
   Until then, CPI prices with the old rates, or with no rate at all.

@@ -5,6 +5,9 @@
 Plans must load in dependency order. Arrows show "depends on" relationships.
 
 ```
+qb-price-revision (2 objects, no lookups — independent)
+    IndexRate, PriceRevisionPolicy → refresh Index_Rate_Decision_Table
+
 scratch_data (Account, Contact, BillingAccount)
     │
     └──→ qb-pcm (ROOT — 28 objects)

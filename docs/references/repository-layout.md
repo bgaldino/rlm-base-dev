@@ -90,6 +90,7 @@ rlm-base-dev/
 │   │   │   ├── qb-pcm/
 │   │   │   ├── qb-product-images/
 │   │   │   ├── qb-pricing/
+│   │   │   ├── qb-price-revision/
 │   │   │   ├── qb-tax/
 │   │   │   ├── qb-billing/
 │   │   │   ├── qb-dro/
