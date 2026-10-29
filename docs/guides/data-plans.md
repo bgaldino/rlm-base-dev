@@ -119,6 +119,7 @@ precedence over that base. See the [extraction task](../../tasks/rlm_sfdmu.py).
 | qb-pcm | `datasets/sfdmu/qb/en-US/qb-pcm/` | Product Catalog Management -- products, classifications, components, attributes | [README](../../datasets/sfdmu/qb/en-US/qb-pcm/README.md) |
 | qb-product-images | `datasets/sfdmu/qb/en-US/qb-product-images/` | Product images and content document links | [README](../../datasets/sfdmu/qb/en-US/qb-product-images/README.md) |
 | qb-pricing | `datasets/sfdmu/qb/en-US/qb-pricing/` | Pricing data (pricebook entries, price adjustments) | [README](../../datasets/sfdmu/qb/en-US/qb-pricing/README.md) |
+| qb-price-revision | `datasets/sfdmu/qb/en-US/qb-price-revision/` | CPI index rates (Region US) and Price Index / Flat price revision policies | [README](../../datasets/sfdmu/qb/en-US/qb-price-revision/README.md) |
 | qb-tax | `datasets/sfdmu/qb/en-US/qb-tax/` | Tax engine data (tax treatments, policies) | [README](../../datasets/sfdmu/qb/en-US/qb-tax/README.md) |
 | qb-billing | `datasets/sfdmu/qb/en-US/qb-billing/` | Billing data (billing terms, schedules) | [README](../../datasets/sfdmu/qb/en-US/qb-billing/README.md) |
 | qb-dro | `datasets/sfdmu/qb/en-US/qb-dro/` | Dynamic Revenue Orchestration plans | [README](../../datasets/sfdmu/qb/en-US/qb-dro/README.md) |

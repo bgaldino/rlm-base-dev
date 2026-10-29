@@ -1,0 +1,6 @@
+CurrencyIsoCode,IsActive,Name,Rate,Region,UsageType,ValidEndDate,ValidStartDate
+USD,true,QB US CPI 2026,3.2,US,Pricing,2026-12-31,2026-01-01
+USD,true,QB US CPI 2027,3,US,Pricing,2027-12-31,2027-01-01
+USD,true,QB US CPI 2028,2.8,US,Pricing,2028-12-31,2028-01-01
+USD,true,QB US CPI 2029,2.6,US,Pricing,2029-12-31,2029-01-01
+USD,true,QB US CPI 2030,2.5,US,Pricing,2030-12-31,2030-01-01

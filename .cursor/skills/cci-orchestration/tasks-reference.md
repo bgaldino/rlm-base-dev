@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**267 tasks** across **9 groups**.
+**270 tasks** across **9 groups**.
 
 ---
 
@@ -137,7 +137,7 @@
 
 ## Data Management - Extract
 
-*24 task(s)*
+*25 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -307,6 +307,18 @@
 
 ---
 
+### `extract_qb_price_revision_data`
+
+**Description:** Extract qb-price-revision from org to CSV. Output in datasets/sfdmu/extractions/qb-price-revision/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-price-revision`
+
+---
+
 ### `extract_qb_pricing_data`
 
 **Description:** Extract qb-pricing from org to CSV. Output in datasets/sfdmu/extractions/qb-pricing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
@@ -430,7 +442,7 @@
 
 ## Data Management - Idempotency
 
-*21 task(s)*
+*22 task(s)*
 
 ### `test_q3_billing_idempotency`
 
@@ -602,6 +614,19 @@
 - `ignore_row_errors_for`: `{'ProrationPolicy': 'duplicate value found'}`
 - `use_extraction_roundtrip`: `True`
 - `persist_extraction_output`: `True`
+
+---
+
+### `test_qb_price_revision_idempotency`
+
+**Description:** Idempotency test for qb-price-revision.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-price-revision`
+- `use_extraction_roundtrip`: `False`
 
 ---
 
@@ -807,7 +832,7 @@
 
 ## Revenue Lifecycle Management
 
-*176 task(s)*
+*177 task(s)*
 
 ### `activate_agents`
 
@@ -2485,6 +2510,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling-products`
+
+---
+
+### `insert_qb_price_revision_data`
+
+**Description:** Insert QuantumBit CPI index rates (Region US) and Price Index / Flat price revision policies. Refresh Index_Rate_Decision_Table after loading.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-price-revision`
 
 ---
 

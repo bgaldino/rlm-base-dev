@@ -552,6 +552,12 @@ Use this quick checklist whenever pricing changes add or consume new context key
 
 ---
 
+## Sub-files
+
+- `price-revision-cpi.md` — Price Revision Policies and CPI (Price Index): the seeded data, when the
+  renewal and ramp steps run, expected prices, and how to verify. Read it when setting up or checking a
+  price revision on a renewal or ramp.
+
 ## Related References
 
 - **Expression Sets skill (CRUD, overlays, dependency capture):**

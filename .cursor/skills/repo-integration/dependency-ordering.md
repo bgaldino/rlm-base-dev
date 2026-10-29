@@ -48,6 +48,7 @@ paths are forceignored.
 |-----------|------|------------|
 | 1 | qb-pcm (products) | None |
 | 2 | qb-pricing | qb-pcm |
+| 2b | qb-price-revision | None (no lookups); loads right after qb-pricing (`prepare_pricing_data` step 5); refresh `Index_Rate_Decision_Table` after |
 | 3 | qb-dro | qb-pcm |
 | 4 | qb-tax | qb-pcm |
 | 5 | qb-billing | qb-pcm (LegalEntity shared with qb-tax) |

@@ -514,6 +514,7 @@ project:
       - Price_Book_Entry_Decision_Table_v2
       - Tiered_Adjustment_Tier_Decision_Table
       - StandardTax
+      - Index_Rate_Decision_Table  # read by RLM_DefaultPricingProcedure's Price Revision steps (also in the rating list)
 
     dt_asset_decision_tables: &dt_asset_decision_tables
       # Asset-specific decision tables for rate calculations and adjustments
@@ -664,6 +665,7 @@ project:
     quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # DEPRECATED - replaced by CML import
     server2_constraints_data_dir: &server2_constraints_data_dir "datasets/constraints/qb/Server2"  # Server2 CML constraint model data (CSVs + blob)
     quantumbit_bundle_constraints_data_dir: &quantumbit_bundle_constraints_data_dir "datasets/constraints/qb/QuantumBitBundle"  # QuantumBitBundle combined CML constraint model (LineItem-primary)
+    quantumbit_price_revision_dataset: &quantumbit_price_revision_dataset "datasets/sfdmu/qb/en-US/qb-price-revision"   # QuantumBit CPI index rates + price revision policies
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_products_dataset: &quantumbit_guidedselling_products_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling-products"   # QuantumBit guided selling Product2 field values
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
@@ -2138,6 +2140,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
 
+  insert_qb_price_revision_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit CPI index rates (Region US) and Price Index / Flat price revision policies. Refresh Index_Rate_Decision_Table after loading.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_price_revision_dataset
+
   insert_quantumbit_product_image_data:
     group: Revenue Lifecycle Management
     description: Insert QuantumBit Product Image Data
@@ -2887,6 +2896,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_rates_dataset
 
+  extract_qb_price_revision_data:
+    group: Data Management - Extract
+    description: "Extract qb-price-revision from org to CSV. Output in datasets/sfdmu/extractions/qb-price-revision/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_price_revision_dataset
+
   extract_qb_transactionprocessingtypes_data:
     group: Data Management - Extract
     description: "Extract qb-transactionprocessingtypes from org to CSV. Output in datasets/sfdmu/extractions/qb-transactionprocessingtypes/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -3059,6 +3075,14 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_rates_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_price_revision_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-price-revision.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_price_revision_dataset
       use_extraction_roundtrip: false
 
   test_qb_transactionprocessingtypes_idempotency:
@@ -3855,6 +3879,11 @@ flows:
       4:
         task: insert_q3_pricing_data
         when: project_config.project__custom__q3 and not project_config.project__custom__qb
+      5:
+        # CPI data for the Price Revision steps; refresh_all_decision_tables rebuilds
+        # Index_Rate_Decision_Table later in prepare_rlm_org (todo 314).
+        task: insert_qb_price_revision_data
+        when: project_config.project__custom__qb
 
   prepare_scratch:
     group: Revenue Lifecycle Management
