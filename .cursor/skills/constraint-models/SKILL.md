@@ -46,6 +46,13 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
 7. **Do not activate overlapping models.** The shipped QB build uses Bundle for
    software and Server2 for hardware. Discover the org's active models before
    changing versions; unrelated model families can be active together.
+8. **Runtime users must be able to see the model's `ExpressionSet` record.** On a cold
+   solver (any fresh or template-spun org), the first configuration-rules run redeploys
+   the models as the running user and reads the `ExpressionSet` rows in user mode. The
+   criteria sharing rule `ExpressionSet.RLM_Constraint_Models_Read` in `post_constraints`
+   shares `UsageType = Constraint` sets Read with all internal users. Without it, every
+   non-admin fails with "Something went wrong while running configuration rules" until an
+   admin runs the rules once (see troubleshooting).
 
 ---
 
