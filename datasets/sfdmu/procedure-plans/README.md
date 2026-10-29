@@ -242,14 +242,20 @@ cci task run insert_procedure_plan_data -o object_sets "[0]" -o simulation true
 
 Salesforce rejects `INSERT` and `UPSERT` operations on `ProcedurePlanSection` when the parent `ProcedurePlanDefinitionVersion` is active. The flow handles this by creating the PPDV with `versionActive: false` and, when `procedureplans_active` is true, activating it in the final step after all sections and options are loaded.
 
-### Rerun After the PRM Overlay Rejects a Section Row
+### Rerun Rejects a Section Row After the PRM Overlay
 
 The PRM overlay re-sequences the sections (`HeaderDistribution` moves to 3). A later rerun of
 `insert_procedure_plan_data` no longer matches the CSV's `HeaderDistribution;2`, tries an insert,
 and the platform rejects it: "combination of the section type and subsection type is unique". The
 task then fails on the row error. Fresh builds are unaffected (`prepare_procedureplans` runs
-before `prepare_prm_pricing`). To rerun on such an org, pass
-`-o insert_procedure_plan_data__fail_on_row_errors false`.
+before `prepare_prm_pricing`). To rerun on such an org, ignore only that rejection:
+
+```bash
+cci flow run prepare_procedureplans --org <alias> \
+  -o insert_procedure_plan_data__ignore_row_errors_for "{ProcedurePlanSection: section type and subsection type}"
+```
+
+Any other rejection still fails. Avoid `fail_on_row_errors false`, which hides every object's rejections.
 
 ### ProcedurePlanDefinition Requires Connect API
 

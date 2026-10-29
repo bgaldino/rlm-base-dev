@@ -48,8 +48,9 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         "activate_after_apply": {
             "description": (
                 "If true (task default; cumulusci.yml sets false), activate the target ProcedurePlanDefinitionVersion "
-                "after overlay is applied. The try/finally block restores the original "
-                "activation state on failure regardless of this setting."
+                "after overlay is applied. A version that was active before is always "
+                "reactivated, on success or failure; with this true, an inactive version "
+                "is also activated (even after a failed apply)."
             ),
             "required": False,
         },
@@ -806,9 +807,11 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         try:
             if was_active:
                 self._set_version_active(version_id, False, dry_run)
+                # Set before the wait: if the PATCH landed but the wait times out, the
+                # finally block must still restore the active version.
+                deactivated = True
                 if not dry_run:
                     self._wait_for_active_state(version_id, False)
-                deactivated = True
             else:
                 self.logger.info(
                     "ProcedurePlanDefinitionVersion %s is already inactive before overlay.",

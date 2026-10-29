@@ -145,7 +145,7 @@ Runtime contract:
 5. resolve parent IDs with SOQL instead of relying on traversal upsert keys
 6. create or patch options, then criteria if present
 7. verify exact overlay invariants
-8. in a guarded `finally` path, reactivate the plan version if it was active before (or if `activate_after_apply` is true)
+8. in a guarded `finally` path, reactivate the plan version if it was active before, or activate it if `activate_after_apply` is true
 
 When an overlay changes section order and adds a new section into an existing
 sequence, declare placement by anchor (`placement.afterSubSectionType`) rather
