@@ -71,6 +71,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 | Read-only reference (already loaded by another plan) | `Readonly` | `false` | Just resolves IDs for child lookups |
 | Updating existing records (set fields) | `Update` | `false` | Only modifies matched records |
 | Empty CSV (no records yet) | mark `excluded: true` | — | Prevents destructive delete-on-load |
+| Another task later rewrites a field (e.g. an overlay resequences), and a rerun must not undo it | `Upsert` + `skipExistingRecords: true` | `false` | Inserts missing rows, never touches matched ones. **Cost:** a correction to *any* field of an existing row no longer lands on rerun (see *Reloading a Plan Into a Live Org*). Don't use `excludedFromUpdateFields` for this: in 5.8.0 the insert payload is cloned from the `fieldsToUpdate` list, so new rows are inserted without the field. On `ProcedurePlanSection` the platform then rejected them ("This sequence already exists"; todo 316) |
 
 ## Bug 4 — `$$` Composite Notation Fails for Lookup Reference Columns (self-referential and cross-object)
 
@@ -134,7 +135,7 @@ failure mode differs by operation. Check before re-running:
 
 | Operation | Re-run into a used org |
 |-----------|------------------------|
-| `Upsert` / `Update` | ✅ No duplicates — matches on externalId (qb-pcm, qb-billing, qb-tax). ⚠️ Not the same as "the change applies": objects carrying `skipExistingRecords: true` (all the qb-billing billing objects) skip matched rows entirely, so a **correction** to existing data silently does not land. |
+| `Upsert` / `Update` | ✅ No duplicates — matches on externalId (qb-pcm, qb-billing, qb-tax). ⚠️ Not the same as "the change applies": objects carrying `skipExistingRecords: true` (all the qb-billing billing objects, and `ProcedurePlanSection` in procedure-plans) skip matched rows entirely, so a **correction** to existing data silently does not land. |
 | `Insert`, **no** `deleteOldData` | ⛔ **Duplicates every row.** No matching happens at all. |
 | `Insert` + `deleteOldData: true` | ⛔ Blocked when live records reference the design-time rows it must delete first |
 
