@@ -125,7 +125,7 @@ case; existing plans still carrying Insert+deleteOldData migrate under the gated
 2. Confirming no direct-field externalId alternative exists
 3. Getting explicit user approval
 
-`deleteOldData: true` deletes ALL existing records before inserting. Misapplied, it wipes data that Upsert would have safely matched.
+`deleteOldData: true` deletes every target record matched by the object's own query (all of them when it has no WHERE) before inserting, or the records matched by a per-object `deleteQuery` if one is set (SELECT is forced to `Id`; the WHERE is used verbatim against the target org). qb-rating scopes PUR/PURP/PUG with `WHERE Status != 'Active'` because the platform blocks deleting Active rating records, and an unscoped delete stripped PURP on a reload. Misapplied, it wipes data that Upsert would have safely matched.
 
 ## Reloading a Plan Into a Live Org
 
@@ -148,8 +148,9 @@ Two concrete traps in the QB plans:
   flow, or run the delete task yourself before the insert.
 - **`qb-rating` / `qb-rates` use `Insert` + `deleteOldData`** — which cannot clear
   design-time rows (PUR/PUG/RateCardEntry, and `AssetRateCardEntry` referencing
-  `RateCardEntry`) while live entitlements point at them. The delete silently leaves
-  them and you get a duplicate Draft set.
+  `RateCardEntry`) while live entitlements point at them. qb-rating's `deleteQuery`
+  skips Active rows, so a reload adds a Draft set that activation then collapses;
+  qb-rates still leaves the rows and you get a duplicate Draft set.
 
 **To add one product to a live org, load it surgically** — insert just the new
 records and their relationships (a throwaway script or anonymous Apex), rather than
