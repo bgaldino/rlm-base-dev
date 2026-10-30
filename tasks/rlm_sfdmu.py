@@ -803,12 +803,13 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
         "run_after_each_load_apex": {
             "description": (
                 "Optional path to an Apex script to run after each load, for deduplication only. "
-                "The script MUST NOT activate PUR, PUG, or any other records. Plans using "
-                "an unscoped deleteOldData need all records to remain in Draft state between loads: "
+                "The script MUST NOT activate PUR, PUG, or any other records: every plan needs "
+                "them to stay non-Active between loads. With an unscoped deleteOldData, "
                 "Salesforce rejects REST DELETE of Active records, so activating after the first "
-                "load doubles counts instead of replacing them. Plans that scope the delete with a "
-                "deleteQuery skipping Active rows (e.g. qb-rating) are not affected. Example use: a script that removes duplicate Draft PURs created "
-                "by a re-run before counts are compared."
+                "load doubles counts. Scoping the delete with a deleteQuery that skips Active "
+                "rows (e.g. qb-rating) prevents data loss but not the doubling: the Active rows "
+                "are kept and a fresh Draft set is inserted. Example use: a script that removes "
+                "duplicate Draft PURs created by a re-run before counts are compared."
             ),
             "required": False,
         },

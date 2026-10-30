@@ -125,7 +125,7 @@ case; existing plans still carrying Insert+deleteOldData migrate under the gated
 2. Confirming no direct-field externalId alternative exists
 3. Getting explicit user approval
 
-`deleteOldData: true` deletes ALL existing records before inserting, unless a per-object `deleteQuery` scopes it (SELECT is forced to `Id`; the WHERE is used verbatim against the target org). qb-rating scopes PUR/PURP/PUG with `WHERE Status != 'Active'` because the platform blocks deleting Active rating records, and an unscoped delete stripped PURP on a reload. Misapplied, it wipes data that Upsert would have safely matched.
+`deleteOldData: true` deletes every target record matched by the object's own query (all of them when it has no WHERE) before inserting, or the records matched by a per-object `deleteQuery` if one is set (SELECT is forced to `Id`; the WHERE is used verbatim against the target org). qb-rating scopes PUR/PURP/PUG with `WHERE Status != 'Active'` because the platform blocks deleting Active rating records, and an unscoped delete stripped PURP on a reload. Misapplied, it wipes data that Upsert would have safely matched.
 
 ## Reloading a Plan Into a Live Org
 

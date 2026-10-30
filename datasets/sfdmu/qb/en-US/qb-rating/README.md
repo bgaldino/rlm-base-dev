@@ -482,7 +482,7 @@ cci flow run extract_rating
 cci flow run run_qb_extracts
 ```
 
-To run the idempotency test for this plan: `cci task run test_qb_rating_idempotency --org <org>`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups. The rating idempotency test uses **extraction roundtrip** — loads from source CSVs, extracts from the org, post-processes, and re-imports — requiring a clean (Draft-only or empty) org state to compare counts. See [Idempotency](#idempotency) for prerequisites.
+To run the idempotency test for this plan: `cci task run test_qb_rating_idempotency --org <org>`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups. The rating idempotency test uses **extraction roundtrip** — loads from source CSVs, extracts from the org, post-processes, and re-imports — requiring a clean org state (no Active rating records) to compare counts. See [Idempotency](#idempotency) for prerequisites.
 
 ### Extraction via SFDMU Directly
 
@@ -520,16 +520,15 @@ The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`)
 
 The plan is idempotent **once activated**: every run deletes the previous load's non-Active PUR/PURP/PUG (`deleteQuery` scoped to `Status != 'Active'` parents) and inserts one Draft set; `activate_rating_records` then collapses the result to PUR=25, PURP=23, PUG=12 on Active parents.
 
-- **Fresh org:** nothing to delete; behavior unchanged.
+- **Fresh org or full build:** nothing to delete, so the `deleteQuery` matches nothing. In `prepare_rating`, step 2 (`delete_qb_rating_data`, `deleteQbRatingData.apex`) deletes everything before the load anyway; the scope matters when `insert_qb_rating_data` runs on its own or the Apex cleanup is skipped.
 - **Reload on a built org:** the delete finds no non-Active rows, one Draft set is inserted beside the Active one (PUR 50 = 25 Active + 25 Draft, PURP 46, PUG 24), and activation (step 2.5) removes the Draft duplicates, leaving 25/23/12 on the Active parents. No rows are rejected.
 - **Two loads without activation:** the second deletes the first's Draft copies, so Drafts never exceed one set.
-- **Inactive leftovers:** a reload deletes Inactive PURs (and children) too; Active and Draft counts are then 25/25 before activation, and activation returns 25/23/12.
-- **Fresh build:** `prepare_rating` step 2 (`delete_qb_rating_data`, `deleteQbRatingData.apex`) deletes everything first, so the `deleteQuery` matches nothing; it matters only when `insert_qb_rating_data` runs on its own or the Apex cleanup is skipped.
+- **Inactive leftovers:** a reload deletes Inactive PURs (and their children) too. For example, with 2 PURs Inactive, the reload leaves 23 Active + 25 Draft before activation, and activation returns 25/23/12.
 - **Why the scope matters:** the platform blocks deleting Active PUR/PUG. The earlier unscoped delete still removed every PURP, inserted a Draft set, and step 2.5 then deleted the duplicate Draft PURs with their children, silently leaving the Active PURs with zero policies. Row-count checks did not catch it.
 
 The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip** (`use_extraction_roundtrip: true`): loads from source CSVs → extracts from org → post-processes → re-imports from the processed dir, confirming no record count increase. Extraction output is persisted to `datasets/sfdmu/extractions/qb-rating/<timestamp>/`.
 
-**Prerequisite — clean org state for the test**: data loss is no longer a concern on a built org, but the test compares record counts after two loads *without* activation. On a built org the Active records stay and the extraction roundtrip captures them too (`post_process_extraction` rewrites Active to Draft), so the re-import inserts them again and counts rise (load 1: 50; load 2 deletes the 25 Drafts and inserts 50, giving 75), and the test fails. Salesforce also rejects deleting Active PURs and PUGs, so they cannot be cleared by the load. Before running the idempotency test, all PURs and PUGs must be in Draft status or absent. If `prepare_rating` has been run, clean up first:
+**Prerequisite — clean org state for the test**: data loss is no longer a concern on a built org, but the test compares record counts after two loads *without* activation. On a built org the Active records stay and the extraction roundtrip captures them too (`post_process_extraction` rewrites Active to Draft), so the re-import inserts them again and counts rise (load 1: 50; load 2 deletes the 25 Drafts and inserts 50, giving 75), and the test fails. Salesforce also rejects deleting Active PURs and PUGs, so they cannot be cleared by the load. Before running the idempotency test, no PUR or PUG may be Active (Draft, Inactive or absent is fine). If `prepare_rating` has been run, clean up first:
 
 ```bash
 cci task run delete_qb_rates_data   # deactivate + delete rates (reference PURs via FK)

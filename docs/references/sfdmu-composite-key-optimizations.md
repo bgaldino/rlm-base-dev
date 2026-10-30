@@ -88,7 +88,7 @@ before reloading existing data.
 
 #### qb-rating
 - **Historical migration:** ProductUsageResourcePolicy and ProductUsageGrant were initially excluded because of traversal-key issues.
-- **Current plan:** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant are included with `operation: Insert` and `deleteOldData: true`. These deletes are scoped with a `deleteQuery` that skips Active rows (todo 298), so Draft and Inactive rows are deleted and Active rows are kept. See the [rating plan's reload prerequisites](../../datasets/sfdmu/qb/en-US/qb-rating/README.md#idempotency) before reloading; active records and downstream references can block deletion.
+- **Current plan:** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant are included with `operation: Insert` and `deleteOldData: true`. These deletes are scoped with a `deleteQuery` that skips Active rows (todo 298), so Draft and Inactive rows are deleted and Active rows are kept. See the [rating plan's reload prerequisites](../../datasets/sfdmu/qb/en-US/qb-rating/README.md#idempotency) before reloading; downstream references (e.g. rate rows pointing at a non-Active PUR) can still block deletion.
 
 ### Idempotency
 
