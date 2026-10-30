@@ -829,8 +829,8 @@ def ramp_group(org, quote_id, start, years, quantities, timeout, interval):
                 == [float(q) for q in quantities] and all(r.get("RampIdentifier") for r in rows.values()))
     _poll(saved, f"segment quantities {quantities} with ramp identifiers", timeout, interval)
     wait_for_quote(org, quote_id, timeout, interval)
-    # A line whose waterfall still names another line (its clone source) wasn't fully priced
-    # after the clone (todo 160); the Force reprice above should leave none.
+    # A line whose waterfall identifier doesn't start with its own Id (usually it names the clone
+    # source; blank also fails) wasn't fully priced after the clone (todo 160). Force should leave none.
     stale = {r["Id"]: r.get("PriceWaterfallIdentifier")
              for r in sf_query(org, "SELECT Id, PriceWaterfallIdentifier FROM QuoteLineItem "
                                     f"WHERE QuoteId = '{quote_id}'")
