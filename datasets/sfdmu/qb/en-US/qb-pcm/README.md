@@ -21,7 +21,7 @@ insert_quantumbit_pcm_data:
   options:
     pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-pcm"
     ignore_row_errors_for:
-      ProrationPolicy: "duplicate value found"   # known rejection, see cumulusci.yml (todo 304)
+      ProrationPolicy: "duplicate value found"   # expected: create-only object, platform-seeded; see cumulusci.yml
 ```
 
 ## Data Plan Overview

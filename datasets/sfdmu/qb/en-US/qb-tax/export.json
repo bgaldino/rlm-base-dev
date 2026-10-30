@@ -7,6 +7,11 @@
       "name": "First Pass - Insert/Upsert with Draft Status",
       "objects": [
         {
+          "query": "SELECT Id, DeveloperName FROM NamedCredential WHERE DeveloperName = 'RLM_MockTax'",
+          "operation": "Readonly",
+          "externalId": "DeveloperName"
+        },
+        {
           "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityPostalCode, LegalEntityState, LegalEntityStreet, Name, Status FROM LegalEntity",
           "operation": "Upsert",
           "externalId": "Name",
@@ -56,7 +61,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Description, Name, Status, TreatmentSelection FROM TaxPolicy",
+          "query": "SELECT DefaultTaxTreatmentId, Description, Name, Status, TreatmentSelection FROM TaxPolicy",
           "operation": "Update",
           "externalId": "Name",
           "excluded": false

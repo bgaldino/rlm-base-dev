@@ -24,9 +24,12 @@ insert_qb_rating_data:
   class_path: tasks.rlm_sfdmu.LoadSFDMUData
   options:
     pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-rating"
-    ignore_row_errors_for:
-      Product2: "Required fields are missing: [Name]"   # known rejection, see cumulusci.yml (todo 304)
 ```
+
+`Product2.csv` also lists the five resource-definition products that `UsageResource` and `ProductUsageGrant`
+point at (QB-CPU-BLNG, QB-DATA-STORAGE-BLNG, QB-DATA-THPT-BLNG, QB-TOKEN-DEF, RES-USD-DEF), with their real
+names. Without them SFDMU adds those lookup targets to the Product2 Update set with no `Name`, and the platform
+rejects each one ("Required fields are missing: [Name]"). They're unchanged from qb-pcm.
 
 ## Data Plan Overview
 
@@ -51,7 +54,7 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 2 | UnitOfMeasureClass           | Upsert    | `Code`                                               | 5       |
 | 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 5       |
 | 4 | UsageResource                | Upsert    | `Code`                                               | 7       |
-| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 10       |
+| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 15       |
 | 6 | UsageGrantRenewalPolicy      | Upsert    | `Code`                                               | 1       |
 | 7 | UsageGrantRolloverPolicy     | Upsert    | `Code`                                               | 1       |
 | 8 | UsageOveragePolicy           | Upsert    | `Name`                                               | 2       |
@@ -436,7 +439,7 @@ qb-rating/
 ├── UnitOfMeasureClass.csv               # 5 records
 ├── UsageResourceBillingPolicy.csv       # 5 records
 ├── UsageResource.csv                    # 7 records
-├── Product2.csv                         # 10 records (Update only)
+├── Product2.csv                         # 15 records (Update only)
 ├── UsageGrantRenewalPolicy.csv          # 1 record
 ├── UsageGrantRolloverPolicy.csv         # 1 record
 ├── UsageOveragePolicy.csv               # 2 records

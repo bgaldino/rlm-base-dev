@@ -704,7 +704,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-rating`
-- `ignore_row_errors_for`: `{'Product2': 'Required fields are missing: [Name]'}`
 - `use_extraction_roundtrip`: `True`
 - `persist_extraction_output`: `True`
 
@@ -719,7 +718,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
-- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -2546,7 +2544,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-rating`
-- `ignore_row_errors_for`: `{'Product2': 'Required fields are missing: [Name]'}`
 
 ---
 
@@ -2644,7 +2641,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
-- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 
 ---
 

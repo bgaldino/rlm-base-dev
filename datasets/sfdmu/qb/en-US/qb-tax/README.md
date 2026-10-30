@@ -22,10 +22,16 @@ insert_tax_data:
   class_path: tasks.rlm_sfdmu.LoadSFDMUData
   options:
     pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-tax"
-    ignore_row_errors_for:                      # known rejections, see cumulusci.yml (todo 304)
-      TaxPolicy: "cannot be updated to Active"
-      TaxEngine: "MerchantCredentialId"
 ```
+
+Two lookups have to resolve for this plan to load with no rejected rows:
+- **`TaxEngine.MerchantCredential`:** the plan reads the `RLM_MockTax` NamedCredential (deployed as metadata)
+  as a `Readonly` object, so `MerchantCredential.DeveloperName` resolves. Without it, SFDMU can't find the parent
+  and sends the TaxEngine update with no `MerchantCredentialId`, which the platform rejects.
+- **`TaxPolicy.DefaultTaxTreatment` (pass 2):** a TaxPolicy can't be set Active without a default treatment
+  ("cannot be updated to Active as defaultTaxTreatment cannot be NULL"). Pass 2 queries `DefaultTaxTreatmentId`
+  and its CSV uses the single-field `DefaultTaxTreatment.Name` lookup (SFDMU v5 can't decompose a `$$` composite
+  in a lookup column), so the treatment is set in the same update that activates the policy.
 
 ## Data Plan Overview
 
@@ -44,12 +50,13 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 
 | # | Object           | Operation | External ID                        | Records |
 |---|------------------|-----------|------------------------------------|---------|
-| 1 | LegalEntity      | Upsert    | `Name`                             | 7       |
-| 2 | TaxEngineProvider| Upsert    | `DeveloperName`                    | 1       |
-| 3 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
-| 4 | TaxTreatment     | Upsert    | `Name`                             | 2       |
-| 5 | TaxPolicy        | Upsert    | `Name`                             | 2       |
-| 6 | Product2         | Update    | `StockKeepingUnit`                 | 316     |
+| 1 | NamedCredential  | Readonly  | `DeveloperName`                    | 1       |
+| 2 | LegalEntity      | Upsert    | `Name`                             | 7       |
+| 3 | TaxEngineProvider| Upsert    | `DeveloperName`                    | 1       |
+| 4 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
+| 5 | TaxTreatment     | Upsert    | `Name`                             | 2       |
+| 6 | TaxPolicy        | Upsert    | `Name`                             | 2       |
+| 7 | Product2         | Update    | `StockKeepingUnit`                 | 316     |
 
 **Note:** TaxTreatment and TaxPolicy use `skipExistingRecords: true` to avoid updating records that already exist. Product2 is Update-only (sets `TaxPolicyId`). The `create_tax_engine` Apex script creates TaxEngineProvider and TaxEngine via REST API before this SFDMU pass runs, so the SFDMU upsert of those objects acts as a safety net.
 
@@ -134,7 +141,7 @@ qb-tax/
 ├── TaxTreatment.csv                     # 2 records
 ├── TaxPolicy.csv                        # 2 records
 ├── Product2.csv                         # 316 records (Update only)
-├── NamedCredential.csv                  # 1 record (reference only)
+├── NamedCredential.csv                  # 1 record (Readonly lookup for TaxEngine)
 │
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/
@@ -240,7 +247,7 @@ The missing fields fall into three categories:
 | TaxPolicy             | This plan       | Upsert     |
 | EmailTemplate         | Metadata deploy | Not in plan (new) |
 | ApexClass             | Metadata deploy | Not in plan (set by script) |
-| NamedCredential       | Metadata deploy | Not in plan |
+| NamedCredential       | Metadata deploy | Readonly (lookup for TaxEngine) |
 
 ## External ID / Composite Key Analysis (Confirmed via Org Describe)
 
@@ -276,6 +283,5 @@ All declared externalIds are simple single-field keys. `export.json` declares `e
 2. **Add missing 260 fields to SOQL**: Prioritize `TaxTreatment.ProductId`, `TaxTreatment.ShouldUseTaxTreatmentItems`, `TaxEngine.Type`, `TaxEngine.ShouldCaptureTaxesAtHeader` for functional completeness
 3. **Add geo and email fields**: Lower priority — add LegalEntity geo/email fields and TaxEngine address/geo fields for full schema coverage
 4. **Add extraction support**: Create `extract_qb_tax_data` CCI task for bidirectional operation
-5. **Clean up NamedCredential.csv**: Either add it to `export.json` or remove the orphaned file
 6. **Consider combining activation**: Pass 2 (SFDMU) and `activateTaxRecords.apex` both activate TaxTreatment and TaxPolicy — consider simplifying to one activation mechanism
 7. **API version management**: `createTaxEngine.apex` has a hardcoded `v68.0` — consider making this dynamic
