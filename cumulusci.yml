@@ -3626,6 +3626,10 @@ flows:
       5:
         task: deploy_full
       6:
+        # Leaves "Standard Price Adjustment Tier" inactive on purpose, and must not move
+        # after prepare_pricing_data (step 9): the platform rejects PriceAdjustmentTier
+        # inserts and deletes while that schedule is active, and every pricing load
+        # deletes and re-inserts the tiers. See the qb-pricing README.
         flow: prepare_price_adjustment_schedules
       7:
         flow: prepare_quantumbit

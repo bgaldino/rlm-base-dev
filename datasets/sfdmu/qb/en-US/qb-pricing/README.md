@@ -15,11 +15,18 @@ This plan runs as two steps in the `prepare_pricing_data` flow (when `qb=true`).
 | 1    | `delete_quantumbit_pricing_data`    | Deletes all Insert-operation records (shape-agnostic, reverse plan order) |
 | 2    | `insert_quantumbit_pricing_data`    | Runs this SFDMU plan                                       |
 
-A separate flow, `prepare_price_adjustment_schedules`, activates PriceAdjustmentSchedule records via Apex on scratch orgs:
+A separate flow, `prepare_price_adjustment_schedules`, activates the platform-seeded PriceAdjustmentSchedule records via Apex. It is `prepare_rlm_org` step 6 → `prepare_price_adjustment_schedules`, which runs **before** this plan (`prepare_rlm_org` step 9 → `prepare_pricing_data`):
 
 | Step | Task                                   | Description                                        |
 |------|----------------------------------------|----------------------------------------------------|
-| 1    | `activate_price_adjustment_schedules`  | Runs `activatePriceAdjustmentSchedules.apex` (scratch only) |
+| 1    | `activate_price_adjustment_schedules`  | Runs `activatePriceAdjustmentSchedules.apex`       |
+
+**The "Standard Price Adjustment Tier" volume schedule ends every build inactive, on purpose.**
+- **Why:** the platform rejects any insert or delete of a `PriceAdjustmentTier` while its schedule is active ("You can't update a price adjustment tier when there's an active price adjustment schedule"; measured on 264, 2026-10-30). `delete_quantumbit_pricing_data` deletes every tier before each load, so an active Tier schedule makes the reload fail.
+- **How:** `activatePriceAdjustmentSchedules.apex` skips "Standard Price Adjustment Tier", and this plan's `PriceAdjustmentSchedule.csv` upserts it with `IsActive=false`. A build ends with the Attribute and Bundle schedules active and the Tier schedule inactive, and a `prepare_rlm_org` rerun can still reload the tiers. (Before 2026-10-30 the script activated it too, so a full rerun failed at the tier delete.)
+- **Don't** activate it, move the activation after this plan, or flip the CSV row to `true` (PR #498, closed). If you activate it by hand, deactivate it before the next pricing load.
+- **It still prices:** on a fresh 264 build, QB-MSG-STRT Term Annual (list 30,000) priced at 30,000 for quantity 2, 27,000 for quantity 8 (10%) and 25,500 for quantity 13 (15%) through Place Sales Transaction (2026-10-30, USD). Salesforce Help says to activate the schedule after adding tiers; on 264 the tiers price without it. Whether anything else depends on the flag is tracked internally.
+- **Scope:** this covers this plan's tiers, which all hang off "Standard Price Adjustment Tier". The q3 and qb/ja plans put tiers on "Standard Tier Based Adjustment" and "Standard Volume Based Adjustment", which the script still activates. Whether those reload cleanly hasn't been verified.
 
 ### Task Definitions
 
@@ -42,10 +49,11 @@ insert_quantumbit_pricing_data:
 The plan uses a **delete + insert** pattern across 16 objects. Seven objects use `Insert` (instead of `Upsert`) to work around SFDMU v5 bugs with relationship-traversal externalIds; all seven Insert objects are pre-cleared by `delete_quantumbit_pricing_data` before each load. Three objects are `Readonly` (Product2, ProductSellingModel, AttributeDefinition) — they provide SFDMU with lookup context for parent resolution without modifying them. `ProrationPolicy` uses `Update` (not Upsert) because those records are always pre-provisioned by the platform. `PriceAdjustmentSchedule` uses `Upsert` (ordered before its child adjustments) — there is exactly **one schedule per type** (Attribute / Bundle / Volume), in the corporate currency (USD), matching what the platform seeds; every currency's adjustment children reference that single schedule by `Name` and are disambiguated at pricing time by their own `CurrencyIsoCode`.
 
 ```
-Pre-Delete (DeleteSFDMUData)                    SFDMU Pass                              Apex Activation (scratch only)
-─────────────────────────────────           ────────────────────────────────────        ─────────────────────────────────
-Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly        ->     activatePriceAdjustmentSchedules.apex
-(reverse plan order, children first)        (Readonly parents for lookup context)       (activates 5 standard schedules)
+Apex Activation (step 6, earlier)          Pre-Delete (DeleteSFDMUData)            SFDMU Pass
+─────────────────────────────────    ─────────────────────────────────    ────────────────────────────────────
+activatePriceAdjustmentSchedules  ->  Delete all Insert-operation records ->  Upsert/Update/Insert/Readonly
+(skips the Tier schedule)             (reverse plan order, children first)   (upserts the Tier schedule
+                                                                              inactive, then inserts its tiers)
 ```
 
 ### Objects
@@ -83,14 +91,14 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 
 **File:** `scripts/apex/activatePriceAdjustmentSchedules.apex`
 
-Activates 5 standard PriceAdjustmentSchedule records by name:
+Activates the standard PriceAdjustmentSchedule records it finds inactive, by name:
 - Standard Attribute Based Adjustment
 - Standard Bundle Based Adjustment
-- Standard Price Adjustment Tier
 - Standard Tier Based Adjustment
 - Standard Volume Based Adjustment
 
-This script only runs on **scratch orgs** (gated by `when: org_config.scratch` in the flow).
+A 264 org seeds only the first two of these, plus "Standard Price Adjustment Tier", which the script skips on
+purpose (see above). The flow step has no org-type condition, so it runs on every org.
 
 ## Key Object Groups
 
@@ -366,5 +374,5 @@ This timestamp Name cascades to 2 dependent objects:
 3. **Investigate PriceAdjustmentTier key simplification**: Test whether a 4-5 field subset of the 9-field key is sufficient for uniqueness
 4. **Investigate PricebookEntryDerivedPrice key simplification**: Test whether fewer fields uniquely identify derived prices
 5. **Extraction available**: Use `extract_qb_pricing_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_pricing_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
-6. **Consider activation flow integration**: The `prepare_price_adjustment_schedules` flow is separate from `prepare_pricing_data` — consider whether they should be combined
+6. **Activation flow placement**: `prepare_price_adjustment_schedules` stays separate from, and before, `prepare_pricing_data`. Don't fold it in after the load (see CCI Integration above).
 7. **Consistency**: Uses `objectSets` wrapper — consider switching to flat `objects` array for consistency with qb-pcm
