@@ -8,14 +8,18 @@ SFDMU data plan for QuantumBit (QB) usage rating design-time configuration. Crea
 
 ### Flow: `prepare_rating`
 
-This plan is executed as **step 1** of the `prepare_rating` flow (when `rating=true`, `qb=true`, and `refresh=false`).
+This plan is executed as **step 3** of the `prepare_rating` flow (when `rating=true`, `qb=true`, and `refresh=false`), after the qb rates and rating cleanup steps.
 
 | Step | Task                     | Description                                        |
 |------|--------------------------|----------------------------------------------------|
-| 1    | `insert_qb_rating_data`  | Runs this SFDMU plan (2 passes)                    |
-| 3    | `insert_qb_rates_data`   | Runs qb-rates plan (single pass — all objects)     |
-| 5    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
-| 6    | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
+| 1    | `delete_qb_rates_data`   | Runs `deleteQbRatesData.apex`                      |
+| 2    | `delete_qb_rating_data`  | Runs `deleteQbRatingData.apex`                     |
+| 3    | `insert_qb_rating_data`  | Runs this SFDMU plan (2 passes)                    |
+| 7    | `insert_qb_rates_data`   | Runs qb-rates plan (single pass — all objects)     |
+| 9    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
+| 10   | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
+
+Steps 4–6 and 8 are the q3 equivalents (they run only when `q3` is on and `qb` is off).
 
 ### Task Definition
 

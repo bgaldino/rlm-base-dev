@@ -2130,8 +2130,9 @@ tasks:
       # Expected rejection: ProrationPolicy is create-only (no field, and not the object, is
       # updateable), so SFDMU turns the plan's Upsert into an Insert that never checks the org. The
       # platform creates "Default Proration Policy" when the org is provisioned (seen on every 264
-      # ent/sb0 org checked), so the insert is rejected as a duplicate. On an org without it, the
-      # insert creates it. Keep this entry; it is not a defect.
+      # ent/sb0 org checked), so the insert is rejected as a duplicate, and this plan's values for it
+      # never land on such an org. On an org without it, the insert would create it (createable;
+      # not observed). Keep this entry; it is not a defect.
       ignore_row_errors_for:
         ProrationPolicy: "duplicate value found"
 
@@ -2164,7 +2165,7 @@ tasks:
       pathtoexportjson: *q3_pcm_dataset
       # Expected rejection, same as insert_quantumbit_pcm_data: ProrationPolicy is create-only, so
       # the Upsert runs as an Insert, and the platform-seeded "Default Proration Policy" makes it a
-      # duplicate. On an org without it, the insert creates it.
+      # duplicate. Not yet observed on a q3 build.
       ignore_row_errors_for:
         ProrationPolicy: "duplicate value found"
 
@@ -2256,8 +2257,9 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *q3_tax_dataset
-      # PREDICTED, not measured (todo 286): q3-tax has qb-tax's shape (pass-2 TaxPolicy activation,
-      # an unresolved TaxEngine MerchantCredential lookup). Verify on a q3 build (todo 304).
+      # PREDICTED, not measured on a q3 build: q3-tax hasn't had qb-tax's 2026-10-30 fixes. Its
+      # TaxEngine.csv leaves MerchantCredential blank, and its pass-2 TaxPolicy query omits
+      # DefaultTaxTreatmentId, so activation waits for activate_tax_records (prepare_tax step 4).
       ignore_row_errors_for:
         TaxPolicy: "cannot be updated to Active"
         TaxEngine: "MerchantCredentialId"
@@ -3007,8 +3009,8 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_product_dataset
-      # Known rejections (todo 286), as on the matching load task. A rejected INSERT on the second
-      # load still fails: a rejected rerun would otherwise read as idempotent.
+      # Expected rejection (ProrationPolicy is create-only), as on the matching load task. A rejected
+      # INSERT on the second load still fails: a rejected rerun would otherwise read as idempotent.
       ignore_row_errors_for:
         ProrationPolicy: "duplicate value found"
       use_extraction_roundtrip: true
@@ -3136,8 +3138,8 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *q3_pcm_dataset
-      # Known rejections (todo 286), as on the matching load task. A rejected INSERT on the second
-      # load still fails: a rejected rerun would otherwise read as idempotent.
+      # Expected rejection (ProrationPolicy is create-only), as on the matching load task. A rejected
+      # INSERT on the second load still fails: a rejected rerun would otherwise read as idempotent.
       ignore_row_errors_for:
         ProrationPolicy: "duplicate value found"
       use_extraction_roundtrip: false
@@ -3180,8 +3182,8 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *q3_tax_dataset
-      # Known rejections (todo 286), as on the matching load task. A rejected INSERT on the second
-      # load still fails: a rejected rerun would otherwise read as idempotent.
+      # PREDICTED rejections, as on the matching load task. A rejected INSERT on the second load
+      # still fails: a rejected rerun would otherwise read as idempotent.
       ignore_row_errors_for:
         TaxPolicy: "cannot be updated to Active"
         TaxEngine: "MerchantCredentialId"

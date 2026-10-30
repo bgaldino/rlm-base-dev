@@ -12,7 +12,7 @@ This plan is executed as **step 2** of the `prepare_tax` flow (when `tax=true`, 
 |------|--------------------------|-------------------------------|------------------------------------------------------------|
 | 1    | `create_tax_engine`      | `tax`                         | Runs `createTaxEngine.apex` (creates TaxEngineProvider + TaxEngine via REST API) |
 | 2    | `insert_tax_data`        | `tax` and not `refresh` and `qb` | Runs this SFDMU plan (2 passes)                         |
-| 3    | `insert_q3_tax_data`     | `tax` and not `refresh` and `q3` | Loads Q3 tax data (gated by the `q3` flag)             |
+| 3    | `insert_q3_tax_data`     | `tax` and not `refresh` and `q3` and not `qb` | Loads Q3 tax data (gated by the `q3` flag)             |
 | 4    | `activate_tax_records`   | `tax`                         | Runs `activateTaxRecords.apex`                             |
 
 ### Task Definition
@@ -50,7 +50,7 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 
 | # | Object           | Operation | External ID                        | Records |
 |---|------------------|-----------|------------------------------------|---------|
-| 1 | NamedCredential  | Readonly  | `DeveloperName`                    | 1       |
+| 1 | NamedCredential  | Readonly  | `DeveloperName`                    | — (org) |
 | 2 | LegalEntity      | Upsert    | `Name`                             | 7       |
 | 3 | TaxEngineProvider| Upsert    | `DeveloperName`                    | 1       |
 | 4 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
@@ -86,10 +86,12 @@ The script creates the TaxEngineProvider via REST API (because it cannot be inse
 ### `activateTaxRecords.apex` (Activation)
 
 Activates tax records in dependency order:
-1. TaxTreatment: Sets all non-Active records to `Status = 'Active'`
-2. TaxPolicy: Sets all non-Active records to `Status = 'Active'`
+1. TaxTreatment: sets every non-Active record in the org to `Status = 'Active'`.
+2. TaxPolicy: backfills `DefaultTaxTreatmentId` from the policy's treatment where it's null, then sets every
+   non-Active policy Active. It applies to all policies in the org, not only this plan's.
 
-The script is idempotent — queries filter on `Status != 'Active'`.
+It's idempotent: records already Active with a default treatment are left alone. For qb, pass 2 already sets
+both, so the script is a safety net; q3-tax still depends on it.
 
 ## Configuration
 
@@ -131,7 +133,7 @@ No auto-numbered Name fields are used.
 
 ```
 qb-tax/
-├── export.json                          # SFDMU data plan (2 passes, 8 objects)
+├── export.json                          # SFDMU data plan (2 passes, 9 object entries)
 ├── README.md                            # This file
 │
 │  Source CSVs (Pass 1 - Draft status)
@@ -282,6 +284,5 @@ All declared externalIds are simple single-field keys. `export.json` declares `e
 1. **Fix `excludeIdsFromCSVFiles`**: Change from `"false"` to `"true"` for portability — ensure all lookups use relationship traversal fields
 2. **Add missing 260 fields to SOQL**: Prioritize `TaxTreatment.ProductId`, `TaxTreatment.ShouldUseTaxTreatmentItems`, `TaxEngine.Type`, `TaxEngine.ShouldCaptureTaxesAtHeader` for functional completeness
 3. **Add geo and email fields**: Lower priority — add LegalEntity geo/email fields and TaxEngine address/geo fields for full schema coverage
-4. **Add extraction support**: Create `extract_qb_tax_data` CCI task for bidirectional operation
-6. **Consider combining activation**: Pass 2 (SFDMU) and `activateTaxRecords.apex` both activate TaxTreatment and TaxPolicy — consider simplifying to one activation mechanism
-7. **API version management**: `createTaxEngine.apex` has a hardcoded `v68.0` — consider making this dynamic
+4. **Consider retiring the activation script for qb**: pass 2 now sets `DefaultTaxTreatmentId` and activates both objects, so `activateTaxRecords.apex` only does real work for q3-tax. Keep it until q3-tax gets the same fix.
+5. **API version management**: `createTaxEngine.apex` has a hardcoded `v68.0` — consider making this dynamic
