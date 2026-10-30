@@ -2250,7 +2250,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_tax_dataset
 
-
   insert_q3_tax_data:
     group: Revenue Lifecycle Management
     description: Insert Q3 Tax Data
@@ -2263,7 +2262,6 @@ tasks:
       ignore_row_errors_for:
         TaxPolicy: "cannot be updated to Active"
         TaxEngine: "MerchantCredentialId"
-
 
   insert_billing_data:
     group: Revenue Lifecycle Management
