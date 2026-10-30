@@ -816,7 +816,10 @@ def ramp_group(org, quote_id, start, years, quantities, timeout, interval):
         raise StepError(f"expected one line per segment, found {by_group}")
     recs = [_patch("Quote", quote_id)] + [_patch("QuoteLineItem", by_group[g["Id"]][0], Quantity=qty)
                                           for g, qty in zip(segs, quantities)]
-    _place(org, {"pricingPref": "System", "taxPref": "Skip",
+    # Force, not System: a System reprice of a CompletedWithPricing quote runs delta pricing,
+    # which skips every line it doesn't PATCH. A cloned segment can keep its clone-time price
+    # (PriceWaterfallIdentifier still names the clone source) until a Force reprice (todo 160).
+    _place(org, {"pricingPref": "Force", "taxPref": "Skip",
                  "graph": {"graphId": "rampQuantities", "records": recs}}, "setting the segment quantities")
 
     def saved():
