@@ -112,7 +112,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   - 8 of 8 builds came out of cloning with the last segment un-uplifted (setting the uplift
     after the clones instead avoided it, 8 of 8);
   - one header-only System reprice repaired 7 of them;
-  - the 8th stayed stuck through three more;
+  - the 8th stayed stuck through all three System reprices;
   - one **`Force`** reprice fixed it (todo 160).
 
   Make the final reprice `Force`. Then check that every ramp line's `PriceWaterfallIdentifier`

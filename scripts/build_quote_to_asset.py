@@ -831,11 +831,13 @@ def ramp_group(org, quote_id, start, years, quantities, timeout, interval):
     wait_for_quote(org, quote_id, timeout, interval)
     # A line whose waterfall still names another line (its clone source) wasn't fully priced
     # after the clone (todo 160); the Force reprice above should leave none.
-    stale = [r["Id"] for r in sf_query(org, "SELECT Id, PriceWaterfallIdentifier FROM QuoteLineItem "
-                                            f"WHERE QuoteId = '{quote_id}'")
-             if (r.get("PriceWaterfallIdentifier") or "").split(":")[0] != r["Id"]]
+    stale = {r["Id"]: r.get("PriceWaterfallIdentifier")
+             for r in sf_query(org, "SELECT Id, PriceWaterfallIdentifier FROM QuoteLineItem "
+                                    f"WHERE QuoteId = '{quote_id}'")
+             if (r.get("PriceWaterfallIdentifier") or "").split(":")[0] != r["Id"]}
     if stale:
-        raise StepError(f"ramp line(s) {stale} kept a clone-time price (PriceWaterfallIdentifier names another line)")
+        raise StepError("ramp line(s) not priced on their own Id after the Force reprice (todo 160); "
+                        f"line -> PriceWaterfallIdentifier: {stale}")
     return [f"{g['StartDate']}..{g['EndDate']}" for g in segs]
 
 
