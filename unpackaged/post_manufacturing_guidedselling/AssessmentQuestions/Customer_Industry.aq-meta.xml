@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Customer Industry</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>Customer Industry</questionText>
+        <responseValues>Electronics
+Automotive
+Food &amp; Beverage
+Pharmaceutical</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Select</dataType>
+    <developerName>Customer_Industry</developerName>
+    <name>Customer Industry</name>
+    <questionCategory>Chemical</questionCategory>
+</AssessmentQuestion>
