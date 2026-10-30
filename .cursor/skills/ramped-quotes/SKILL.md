@@ -103,14 +103,21 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 - **DO NOT** treat a null `RampIdentifier` on read-back as a graph mistake — it
   usually means the org's **context definitions are stale**; a Context Definition
   sync fixes it (see `.cursor/skills/context-service/SKILL.md`).
-- **DO NOT** reprice a built ramp with `pricingPref: "System"` and trust the result. On a
-  `CompletedWithPricing` quote, System runs **delta pricing**: only lines in the PATCH are
-  repriced. A cloned segment can keep its clone-time price indefinitely; it is often the last
-  one, with no uplift. Measured 2026-10-29/30 on 264: 8 of 8 builds lost the last segment's
-  uplift, and 1 in 8 stayed stuck through three System reprices. A single **`Force`** reprice
-  fixed it (todo 160). Use `Force` for the final reprice, then check that every ramp line's
-  `PriceWaterfallIdentifier` starts with its **own** Id. One that starts with
-  `Quote_QuoteLineItem_<other Id>` hasn't been fully priced since its clone.
+- **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. On a
+  `CompletedWithPricing` quote, System runs **delta pricing**, which can skip lines it considers
+  unchanged. A segment created by clone can keep its clone-time price indefinitely. Exactly which
+  lines get skipped isn't traced.
+
+  Measured 2026-10-29/30 on 264 with a probe that set the uplift at placement:
+  - 8 of 8 builds came out of cloning with the last segment un-uplifted (setting the uplift
+    after the clones instead avoided it, 8 of 8);
+  - one header-only System reprice repaired 7 of them;
+  - the 8th stayed stuck through three more;
+  - one **`Force`** reprice fixed it (todo 160).
+
+  Make the final reprice `Force`. Then check that every ramp line's `PriceWaterfallIdentifier`
+  starts with its **own** Id. One that starts with `Quote_QuoteLineItem_<other Id>` hasn't been
+  fully priced since its clone. (`build_quote_to_asset.py` asserts this.)
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed
   **writable** org.
@@ -294,8 +301,8 @@ compound result — the three calls above alone do not. It also needs the fully-
 ```
 
 Segment 1 is the baseline (leave `UnitPriceUplift` 0). `pricingPref: "Force"`
-re-runs pricing on **every** line, so the engine applies the compound uplift. `System` would run
-delta pricing and could leave a cloned segment at its clone-time price (see DO NOT). Poll `CalculationStatus`
+re-runs pricing on **every** line, so the engine applies the compound uplift. `System` runs delta
+pricing and may not reprice every line (see DO NOT). Poll `CalculationStatus`
 to a settled state, then read back ([Read-back](#read-back--the-ramp-schedule)) and
 verify the compounding numerically.
 

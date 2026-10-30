@@ -817,7 +817,7 @@ def ramp_group(org, quote_id, start, years, quantities, timeout, interval):
     recs = [_patch("Quote", quote_id)] + [_patch("QuoteLineItem", by_group[g["Id"]][0], Quantity=qty)
                                           for g, qty in zip(segs, quantities)]
     # Force, not System: a System reprice of a CompletedWithPricing quote runs delta pricing,
-    # which skips every line it doesn't PATCH. A cloned segment can keep its clone-time price
+    # which can skip lines it considers unchanged. A cloned segment can keep its clone-time price
     # (PriceWaterfallIdentifier still names the clone source) until a Force reprice (todo 160).
     _place(org, {"pricingPref": "Force", "taxPref": "Skip",
                  "graph": {"graphId": "rampQuantities", "records": recs}}, "setting the segment quantities")
@@ -829,6 +829,13 @@ def ramp_group(org, quote_id, start, years, quantities, timeout, interval):
                 == [float(q) for q in quantities] and all(r.get("RampIdentifier") for r in rows.values()))
     _poll(saved, f"segment quantities {quantities} with ramp identifiers", timeout, interval)
     wait_for_quote(org, quote_id, timeout, interval)
+    # A line whose waterfall still names another line (its clone source) wasn't fully priced
+    # after the clone (todo 160); the Force reprice above should leave none.
+    stale = [r["Id"] for r in sf_query(org, "SELECT Id, PriceWaterfallIdentifier FROM QuoteLineItem "
+                                            f"WHERE QuoteId = '{quote_id}'")
+             if (r.get("PriceWaterfallIdentifier") or "").split(":")[0] != r["Id"]]
+    if stale:
+        raise StepError(f"ramp line(s) {stale} kept a clone-time price (PriceWaterfallIdentifier names another line)")
     return [f"{g['StartDate']}..{g['EndDate']}" for g in segs]
 
 
