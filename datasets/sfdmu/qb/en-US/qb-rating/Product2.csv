@@ -1,11 +1,16 @@
 Name,ProductCode,StockKeepingUnit,UsageModelType
+QuantumBit Database (Token Commit - Bounded),QB-CMT-TKN-BND,QB-CMT-TKN-BND,Commit
 QuantumBit Database (Token Commit - Each),QB-CMT-TKN-EACH,QB-CMT-TKN-EACH,Commit
 QuantumBit Database (Token Commit - Flat),QB-CMT-TKN-FLAT,QB-CMT-TKN-FLAT,Commit
-QuantumBit Database (Token Commit - Bounded),QB-CMT-TKN-BND,QB-CMT-TKN-BND,Commit
 QuantumBit Database (Token Commit - Tier),QB-CMT-TKN-TIER,QB-CMT-TKN-TIER,Commit
+Compute Time,QB-CPU-BLNG,QB-CPU-BLNG,
 Additional Data Throughput,QB-DAT-THPT,QB-DAT-THPT,Pack
+Data Storage,QB-DATA-STORAGE-BLNG,QB-DATA-STORAGE-BLNG,
+Data Throughput,QB-DATA-THPT-BLNG,QB-DATA-THPT-BLNG,
 QuantumBit Database,QB-DB,QB-DB,Anchor
 QuantumBit Database (Token Based),QB-DB-TOKEN,QB-DB-TOKEN,Anchor
 QuantumBit Database (Monetary Commit),QB-MTY-CMT,QB-MTY-CMT,CommitmentSpend
 QuantumBit Database (Quantity Commit),QB-QTY-CMT,QB-QTY-CMT,CommitmentQuantity
+Quantum Tokens Definition,QB-TOKEN-DEF,QB-TOKEN-DEF,
 QuantumBit Tokens Pack,QB-TOKENS-PACK,QB-TOKENS-PACK,Pack
+USD Resource Definition Product,RES-USD-DEF,RES-USD-DEF,
