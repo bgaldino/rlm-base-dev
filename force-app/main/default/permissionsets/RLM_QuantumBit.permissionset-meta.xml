@@ -27,6 +27,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Quote.PricingContractId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Quote.RLM_EndDate__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -36,6 +41,11 @@
         <readable>true</readable>
     </fieldPermissions>
 
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.PricingContractId</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
         <field>QuoteLineItem.RLM_ProductName__c</field>

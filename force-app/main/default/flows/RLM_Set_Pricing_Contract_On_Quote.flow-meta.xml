@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <description>Defaults Quote.PricingContractId from Quote.ContractId before save. Fires whenever ContractId is set and PricingContractId is blank, which also backfills quotes created before this flow on their next edit, and on update whenever ContractId changes (including when it is cleared). A different PricingContractId set by hand is kept until ContractId changes; PricingContractId cannot be left blank while ContractId is set.</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Set Pricing Contract On Quote {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Set Pricing Contract On Quote</label>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Assign_PricingContractId</targetReference>
+        </connector>
+        <filterFormula>OR(
+  AND(NOT(ISBLANK({!$Record.ContractId})), ISBLANK({!$Record.PricingContractId})),
+  AND(NOT(ISNEW()), ISCHANGED({!$Record.ContractId}))
+)</filterFormula>
+        <object>Quote</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <assignments>
+        <name>Assign_PricingContractId</name>
+        <label>Assign PricingContractId</label>
+        <locationX>50</locationX>
+        <locationY>140</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.PricingContractId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.ContractId</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <status>Active</status>
+</Flow>
