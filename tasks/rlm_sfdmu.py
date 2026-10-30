@@ -804,10 +804,10 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
             "description": (
                 "Optional path to an Apex script to run after each load, for deduplication only. "
                 "The script MUST NOT activate PUR, PUG, or any other records. Plans using "
-                "deleteOldData require all records to remain in Draft state between loads: "
-                "activating after the first load causes the second SFDMU run to fail because "
-                "Salesforce rejects REST DELETE of Active records, doubling counts instead of "
-                "replacing them. Example use: a script that removes duplicate Draft PURs created "
+                "an unscoped deleteOldData need all records to remain in Draft state between loads: "
+                "Salesforce rejects REST DELETE of Active records, so activating after the first "
+                "load doubles counts instead of replacing them. Plans that scope the delete with a "
+                "deleteQuery skipping Active rows (e.g. qb-rating) are not affected. Example use: a script that removes duplicate Draft PURs created "
                 "by a re-run before counts are compared."
             ),
             "required": False,
