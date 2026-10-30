@@ -816,7 +816,10 @@ def ramp_group(org, quote_id, start, years, quantities, timeout, interval):
         raise StepError(f"expected one line per segment, found {by_group}")
     recs = [_patch("Quote", quote_id)] + [_patch("QuoteLineItem", by_group[g["Id"]][0], Quantity=qty)
                                           for g, qty in zip(segs, quantities)]
-    _place(org, {"pricingPref": "System", "taxPref": "Skip",
+    # Force, not System: a System reprice of a CompletedWithPricing quote runs delta pricing,
+    # which can skip lines it considers unchanged. A cloned segment can keep its clone-time price
+    # (PriceWaterfallIdentifier still names the clone source) until a Force reprice (todo 160).
+    _place(org, {"pricingPref": "Force", "taxPref": "Skip",
                  "graph": {"graphId": "rampQuantities", "records": recs}}, "setting the segment quantities")
 
     def saved():
@@ -826,6 +829,15 @@ def ramp_group(org, quote_id, start, years, quantities, timeout, interval):
                 == [float(q) for q in quantities] and all(r.get("RampIdentifier") for r in rows.values()))
     _poll(saved, f"segment quantities {quantities} with ramp identifiers", timeout, interval)
     wait_for_quote(org, quote_id, timeout, interval)
+    # A line whose waterfall identifier doesn't start with its own Id (usually it names the clone
+    # source; blank also fails) wasn't fully priced after the clone (todo 160). Force should leave none.
+    stale = {r["Id"]: r.get("PriceWaterfallIdentifier")
+             for r in sf_query(org, "SELECT Id, PriceWaterfallIdentifier FROM QuoteLineItem "
+                                    f"WHERE QuoteId = '{quote_id}'")
+             if (r.get("PriceWaterfallIdentifier") or "").split(":")[0] != r["Id"]}
+    if stale:
+        raise StepError("ramp line(s) not priced on their own Id after the Force reprice (todo 160); "
+                        f"line -> PriceWaterfallIdentifier: {stale}")
     return [f"{g['StartDate']}..{g['EndDate']}" for g in segs]
 
 
