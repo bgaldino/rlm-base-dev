@@ -129,15 +129,18 @@ def run_post_process_script(
             logger.warning(strip_ansi_codes(line))
 
 
-def redact_secret(text: str, secret: Optional[str]) -> str:
-    """`text` with every occurrence of `secret` (an access token) masked, for logging.
+def redact_secret(text: str, *secrets: Optional[str]) -> str:
+    """`text` with every occurrence of each of `secrets` (access tokens) masked, for logging.
 
     On a non-scratch org with no username option, the token itself is SFDMU's org name
-    (`--targetusername`, `orgs[].name`), so it appears in commands and export.json beyond the
-    `accessToken` field. What SFDMU receives is unchanged; only what is logged is masked."""
-    if not secret:
-        return text
-    return str(text).replace(str(secret), "<redacted>")
+    (`--targetusername`, `orgs[].name`), so it appears in commands, export.json and possibly
+    SFDMU's own output beyond the `accessToken` field. Pass every token the task holds (an
+    `accesstoken` option can differ from the org's). What SFDMU receives is unchanged; only
+    what is logged is masked."""
+    text = str(text)
+    for secret in sorted({str(s) for s in secrets if s}, key=len, reverse=True):
+        text = text.replace(secret, "<redacted>")
+    return text
 
 
 def sfdmu_cli_org(org_config, explicit: Optional[str] = None) -> str:
@@ -307,7 +310,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
 
             # Never log the access token: it lands in CCI logs and CI output.
             self.logger.info("Formatted EXPORT.JSON: "
-                             + redact_secret(json.dumps(export_json, indent=2), self.accesstoken))
+                             + self._redact(json.dumps(export_json, indent=2)))
         except json.JSONDecodeError as e:
             self.logger.error(f"Error parsing export.json: {e}")
             raise
@@ -431,6 +434,11 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self.env = self._get_env()
         self.keychain: Optional[BaseProjectKeychain] = None
 
+    def _redact(self, text) -> str:
+        """`text` safe to log: every access token this task holds masked (see redact_secret)."""
+        return redact_secret(text, getattr(self, "accesstoken", None),
+                             getattr(getattr(self, "org_config", None), "access_token", None))
+
     @property
     def keychain_cls(self):
         return self.get_keychain_class() or self.keychain_class
@@ -492,19 +500,19 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self.logger.info(f'Current Working Directory: {self.options.get("dir")}')
             
             cmd = self._get_command()
-            self.logger.info(f'Executing command: {redact_secret(cmd, self.accesstoken)}')
+            self.logger.info(f'Executing command: {self._redact(cmd)}')
             # Before the run, so a target CSV left by an earlier run is not read as this one's.
             baseline = sfdmu_export.snapshot_target_files(self.pathtoexportjson)
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir"))
             
             if result.returncode != 0:
                 self.logger.error(f"Command failed with exit code {result.returncode}")
-                self.logger.error(f"STDOUT: {strip_ansi_codes(result.stdout)}")
-                self.logger.error(f"STDERR: {strip_ansi_codes(result.stderr)}")
+                self.logger.error(f"STDOUT: {self._redact(strip_ansi_codes(result.stdout))}")
+                self.logger.error(f"STDERR: {self._redact(strip_ansi_codes(result.stderr))}")
                 raise CommandException(f"Command failed with exit code {result.returncode}")
 
             for line in result.stdout.splitlines():
-                self.logger.info(strip_ansi_codes(line))
+                self.logger.info(self._redact(strip_ansi_codes(line)))
 
             # Inside the try: with dynamic_assigned_to_user the plan (and its target/) is a
             # temp copy that the finally block deletes.
@@ -1275,6 +1283,11 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self.env = self._get_env()
         self.keychain: Optional[BaseProjectKeychain] = None
 
+    def _redact(self, text) -> str:
+        """`text` safe to log: every access token this task holds masked (see redact_secret)."""
+        return redact_secret(text, getattr(self, "accesstoken", None),
+                             getattr(getattr(self, "org_config", None), "access_token", None))
+
     @property
     def keychain_cls(self):
         return self.get_keychain_class() or self.keychain_class
@@ -1590,18 +1603,18 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 sourceusername=self.sourceusername,
                 pathtoexportjson=work_dir,
             )
-            self.logger.info(f"Executing extraction: {redact_secret(cmd, self.accesstoken)}")
+            self.logger.info(f"Executing extraction: {self._redact(cmd)}")
             result = subprocess.run(
                 cmd, shell=True, capture_output=True, text=True,
                 cwd=self.options.get("dir"),
             )
 
             for line in result.stdout.splitlines():
-                self.logger.info(strip_ansi_codes(line))
+                self.logger.info(self._redact(strip_ansi_codes(line)))
 
             if result.returncode != 0:
                 self.logger.error(f"SFDMU extraction failed (exit {result.returncode})")
-                self.logger.error(f"STDERR: {strip_ansi_codes(result.stderr)}")
+                self.logger.error(f"STDERR: {self._redact(strip_ansi_codes(result.stderr))}")
                 raise CommandException(
                     f"SFDMU extraction failed with exit code {result.returncode}"
                 )

@@ -88,7 +88,8 @@ try:
     task._apply_parent_id_lookups()
 except Exception:
     shutil.rmtree(plan.parent, ignore_errors=True)
-    shutil.rmtree(task._temp_plan_dir or "", ignore_errors=True)
+    if task._temp_plan_dir:
+        shutil.rmtree(task._temp_plan_dir, ignore_errors=True)
     raise
 finally:
     rs.sf_query_records = real_query
@@ -124,7 +125,7 @@ class _FakeScratch(ScratchOrgConfig):
     instance_url = "https://example.my.salesforce.com"
 
 
-def run_task(options, query, plan_src=None, exit_code=0, org_config=None):
+def run_task(options, query, plan_src=None, exit_code=0, org_config=None, sfdmu_output=""):
     """Run _run_task on a fresh copy of `plan_src`; return (before, after, error, temp, logs)."""
     work = pathlib.Path(tempfile.mkdtemp())
     copy = work / "plan"
@@ -137,10 +138,11 @@ def run_task(options, query, plan_src=None, exit_code=0, org_config=None):
     t.options = {"pathtoexportjson": str(copy), **options}
     logs = []
     t.logger = _Log()
-    t.logger.info = lambda msg, *_a, **_k: logs.append(str(msg))
+    t.logger.info = t.logger.warning = t.logger.error = lambda msg, *_a, **_k: logs.append(str(msg))
     t._load_keychain = lambda: None
     done = _Done()
     done.returncode = exit_code
+    done.stdout = done.stderr = sfdmu_output
     saved = (rs.sf_query_records, rs.subprocess.run)
     rs.sf_query_records, rs.subprocess.run = query, lambda *_a, **_k: done
     error = None
@@ -206,6 +208,13 @@ check("persistent org: the token is never logged (command or export.json)",
       [m for m in logs if "PERSISTENT_TOKEN" in m], [])
 check("persistent org: the command log is still written, redacted",
       any(m.startswith("Executing command:") and "<redacted>" in m for m in logs), True)
+echo = "connected to 00Dyy!PERSISTENT_TOKEN as 00Dzz!OPTION_TOKEN"
+for code in (0, 1):
+    before, after, error, temp, logs = run_task({"accesstoken": "00Dzz!OPTION_TOKEN"}, org_with_every_pur,
+                                                plan_src=PLAIN, org_config=_FakePersistent({}, "tso"),
+                                                exit_code=code, sfdmu_output=echo)
+    check(f"accesstoken option + SFDMU echo (exit {code}): neither token logged at any level",
+          [m for m in logs if "PERSISTENT_TOKEN" in m or "OPTION_TOKEN" in m], [])
 before, after, error, temp, logs = run_task({"object_sets": "[7]"}, org_with_every_pur, plan_src=PLAIN)
 check("in place, bad object_sets: the option error surfaces", type(error).__name__, "TaskOptionsError")
 check("in place, bad object_sets: export.json byte-for-byte unchanged",
