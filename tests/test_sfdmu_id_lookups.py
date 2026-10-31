@@ -33,6 +33,7 @@ def check(label: str, got, want) -> None:
 
 
 KEYS = ["ProductUsageResource.Product.StockKeepingUnit", "ProductUsageResource.UsageResource.Code"]
+ID1, ID2 = "1TrWt00000076NFKAY", "1TrWt00000076NGKAY"
 LOOKUPS = {"lookups": [{
     "object": "ProductUsageResource",
     "keyFields": ["Product.StockKeepingUnit", "UsageResource.Code"],
@@ -140,7 +141,7 @@ _p, _f, _q, err = run([pur("PUR1", "QB-DB", "UR-CPU", "Active")], [["QB-DB", "UR
 check("missing parent -> fails and names the key",
       bool(err and "no ProductUsageResource for QB-DB;UR-NONE" in err), True)
 _p, _f, _q, err = run([], [["QB-DB", "UR-CPU", "5", "Draft"]])
-check("fresh org, parent never loaded -> fails", bool(err and "Load the plan that creates" in err), True)
+check("fresh org, parent never loaded -> fails", bool(err and "load the plan that creates ProductUsageResource first" in err), True)
 bad_export = json.loads(json.dumps(EXPORT))
 bad_export["objectSets"][0]["objects"][0]["operation"] = "Upsert"
 _p, _f, _q, err = run([pur("PUR1", "QB-DB", "UR-CPU", "Active")], [["QB-DB", "UR-CPU", "5", "Draft"]],
@@ -155,25 +156,53 @@ check("plan without lookups is unchanged",
       il.prepare_extraction_export({"excludeIdsFromCSVFiles": "true"}, []), {"excludeIdsFromCSVFiles": "true"})
 with tempfile.TemporaryDirectory() as d:
     write(pathlib.Path(d, "ProductUsageGrant.csv"), ["Id", "ProductUsageResourceId", "Quantity"],
-          [["G1", "PUR1", "5"], ["G2", "PUR2", "7"]])
+          [["G1", ID1, "5"], ["G2", ID2, "7"]])
     seen = []
 
     def q(soql):
         seen.append(soql)
-        return [pur("PUR1", "QB-DB", "UR-CPU", "Active"), pur("PUR2", "QB-DB", "UR-DATA", "Active")]
+        return [pur(ID1, "QB-DB", "UR-CPU", "Active"), pur(ID2, "QB-DB", "UR-DATA", "Active")]
     n = il.restore_parent_keys(d, LOOKUPS["lookups"], q, log=lambda _m: None)
     rows = read(pathlib.Path(d, "ProductUsageGrant.csv"))
     check("restore: keys filled from the Id", [(r[KEYS[0]], r[KEYS[1]]) for r in rows],
           [("QB-DB", "UR-CPU"), ("QB-DB", "UR-DATA")])
     check("restore: rows counted", n, 2)
-    check("restore: one IN query", len(seen) == 1 and "WHERE Id IN ('PUR1', 'PUR2')" in seen[0], True)
+    check("restore: one IN query", len(seen) == 1 and f"WHERE Id IN ('{ID1}', '{ID2}')" in seen[0], True)
 with tempfile.TemporaryDirectory() as d:
-    write(pathlib.Path(d, "ProductUsageGrant.csv"), ["Id", "ProductUsageResourceId"], [["G1", "GONE"]])
+    write(pathlib.Path(d, "ProductUsageGrant.csv"), ["Id", "ProductUsageResourceId"], [["G1", ID1]])
     try:
         il.restore_parent_keys(d, LOOKUPS["lookups"], lambda _s: [], log=lambda _m: None)
         check("restore: unknown parent Id fails", "no error", "IdLookupError")
     except il.IdLookupError:
         check("restore: unknown parent Id fails", "IdLookupError", "IdLookupError")
+for label, value in (("blank", "#N/A"), ("not an Id (quote)", "1TrWt0000007'OR'1")):
+    with tempfile.TemporaryDirectory() as d:
+        write(pathlib.Path(d, "ProductUsageGrant.csv"), ["Id", "ProductUsageResourceId"], [["G1", value]])
+        try:
+            il.restore_parent_keys(d, LOOKUPS["lookups"], lambda _s: [], log=lambda _m: None)
+            check(f"restore: {label} parent Id fails before any query", "no error", "IdLookupError")
+        except il.IdLookupError:
+            check(f"restore: {label} parent Id fails before any query", "IdLookupError", "IdLookupError")
+
+print("strip_extraction_ids")
+with tempfile.TemporaryDirectory() as d:
+    root = pathlib.Path(d)
+    write(root / "ProductUsageResource.csv", ["Id", "Status"], [[ID1, "Active"]])
+    write(root / "Product2.csv", ["Id", "StockKeepingUnit"], [["01t000000000001AAA", "QB-DB"]])
+    write(root / "ProductUsageGrant.csv",
+          ["Id", "ProductUsageResourceId", "UnitOfMeasureId", "UnitOfMeasure.UnitCode", KEYS[0], KEYS[1], "Quantity"],
+          [["G1", ID1, "0hE000000000001AAA", "m", "QB-DB", "UR-CPU", "5"]])
+    export = {"objectSets": [
+        {"objects": [{"query": "SELECT Id, Status FROM ProductUsageResource", "operation": "Readonly"},
+                     {"query": "SELECT StockKeepingUnit FROM Product2", "operation": "Readonly"},
+                     {"query": "SELECT Quantity FROM ProductUsageGrant", "operation": "Upsert"}]},
+        {"objects": [{"query": "SELECT Quantity FROM ProductUsageGrant", "operation": "Update"}]}]}
+    il.strip_extraction_ids(d, export, log=lambda _m: None)
+    check("strip: read-only objects' CSVs removed",
+          sorted(p.name for p in root.glob("*.csv")), ["ProductUsageGrant.csv"])
+    check("strip: Id and direct lookup columns dropped, traversals kept",
+          list(read(root / "ProductUsageGrant.csv")[0].keys()),
+          ["UnitOfMeasure.UnitCode", KEYS[0], KEYS[1], "Quantity"])
 with tempfile.TemporaryDirectory() as d:
     write(pathlib.Path(d, "ProductUsageGrant.csv"), ["Quantity"], [["5"]])
     try:
@@ -181,6 +210,15 @@ with tempfile.TemporaryDirectory() as d:
         check("restore: extract without the Id column fails", "no error", "IdLookupError")
     except il.IdLookupError:
         check("restore: extract without the Id column fails", "IdLookupError", "IdLookupError")
+
+print("prefer excludes unlisted statuses")
+chosen, tied = il.build_id_map([pur(ID1, "QB-DB", "UR-CPU", "Inactive")], ["Product.StockKeepingUnit", "UsageResource.Code"],
+                               {"Status": ["Active", "Draft"]})
+check("an Inactive-only key is not resolved", (chosen, tied), ({}, {}))
+_p, _f, _q, err = run([pur("A1", "QB-DB", "UR-CPU", "Active"), pur("A2", "QB-DB", "UR-CPU", "Active")],
+                      [["QB-DB", "UR-CPU", "5", "Draft"]])
+check("two Active copies tie and the message names the status rule",
+      bool(err and "2 ProductUsageResource records tie" in err and "Status in ['Active', 'Draft']" in err), True)
 
 print("shipped plan")
 shipped = REPO / "datasets/sfdmu/qb/en-US/qb-rating-entitlements"

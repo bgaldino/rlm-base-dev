@@ -41,6 +41,7 @@ LOAD_COMMAND = "sf sfdmu run --sourceusername CSVFILE --targetusername {targetus
 SCRATCHORG_LOAD_COMMAND = "sf sfdmu run --sourceusername CSVFILE --targetusername {targetusername} -p {pathtoexportjson} --canmodify {instanceurl} --noprompt --verbose"
 EXTRACT_COMMAND = "sf sfdmu run --sourceusername {sourceusername} --targetusername CSVFILE -p {pathtoexportjson} --noprompt --verbose"
 EXPORT_JSON_FILENAME = "export.json"
+SFDMU_RUNTIME_DIRS = ("source", "target", "reports")  # SFDMU run output inside a plan dir
 DRO_ASSIGNED_TO_PLACEHOLDER = "__DRO_ASSIGNED_TO_USER__"
 DRO_CSV_FILES_TO_REPLACE = ("FulfillmentStepDefinition.csv", "User.csv", "UserAndGroup.csv")
 
@@ -351,6 +352,8 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self._temp_plan_dir = tempfile.mkdtemp(prefix=prefix)
         try:
             for item in os.listdir(source_dir):
+                if item in SFDMU_RUNTIME_DIRS:
+                    continue  # last run's output; this run writes its own
                 src = os.path.join(source_dir, item)
                 dst = os.path.join(self._temp_plan_dir, item)
                 if os.path.isdir(src):
@@ -361,6 +364,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
             self._temp_plan_dir = None
             raise
+        self._source_plan_dir = source_dir
         self.pathtoexportjson = self._temp_plan_dir
 
     def _apply_parent_id_lookups(self) -> None:
@@ -394,6 +398,8 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         except Exception:
             if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
                 shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
+            self._temp_plan_dir = None
+            self.pathtoexportjson = getattr(self, "_source_plan_dir", self.pathtoexportjson)
             raise
 
     def _set_project_defaults(self, instanceurl: str) -> None:
@@ -948,7 +954,7 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
         temp_dir = tempfile.mkdtemp(prefix="sfdmu_idem_ids_")
         try:
             work = os.path.join(temp_dir, "plan")
-            shutil.copytree(plan_dir, work, ignore=shutil.ignore_patterns("source", "target", "reports"))
+            shutil.copytree(plan_dir, work, ignore=shutil.ignore_patterns(*SFDMU_RUNTIME_DIRS))
             org = self._get_org_for_cli()
             filled = sfdmu_id_lookups.apply_lookups(
                 work, lambda soql: sf_query_records(org, soql), self.logger.info)
@@ -1115,6 +1121,8 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                     org = self._get_org_for_cli()
                     sfdmu_id_lookups.restore_parent_keys(
                         work_dir, lookups, lambda soql: sf_query_records(org, soql), self.logger.info)
+                    with open(export_src, encoding="utf-8") as f:
+                        sfdmu_id_lookups.strip_extraction_ids(work_dir, json.load(f), self.logger.info)
                 # Scrub credentials immediately so they are not left on disk if we crash before finally
                 export_in_work = os.path.join(work_dir, EXPORT_JSON_FILENAME)
                 if os.path.isfile(export_in_work):
@@ -1580,9 +1588,11 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             output_dir = self._collect_output(work_dir)
             lookups = sfdmu_id_lookups.load_lookups(plan_dir)
             if lookups:
-                org = self._cli_org()
+                org = sfdmu_cli_org(self.org_config, {"targetusername": self.options.get("sourceusername")})
                 sfdmu_id_lookups.restore_parent_keys(
                     output_dir, lookups, lambda soql: sf_query_records(org, soql), self.logger.info)
+                with open(os.path.join(plan_dir, EXPORT_JSON_FILENAME), encoding="utf-8") as f:
+                    sfdmu_id_lookups.strip_extraction_ids(output_dir, json.load(f), self.logger.info)
             self.logger.info(f"Extraction complete. Output: {output_dir}")
             self.return_values = {"output_dir": output_dir}
 

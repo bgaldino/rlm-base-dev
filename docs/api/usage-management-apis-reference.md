@@ -128,7 +128,7 @@ The Usage Management APIs provide visibility at steps 2–3 (attribution and agg
 
 Usage Management APIs require the following to be configured in the org:
 
-- Usage-based products (Platform Usage Resources / PURs) loaded via `insert_qb_rating_data`
+- Usage-based products (Platform Usage Resources / PURs) loaded via `insert_qb_rating_data`, with their policies and grants via `insert_qb_rating_entitlements_data`
 - Rate cards loaded via `insert_qb_rates_data`
 - Rating records activated via `activate_rating_records`
 - `rates` and `rating` feature flags enabled in `cumulusci.yml`

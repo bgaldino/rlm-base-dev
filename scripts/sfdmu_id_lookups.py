@@ -33,9 +33,10 @@ For each lookup the parent is queried on the target org, and:
   each child's Id column to a source record;
 * each child CSV (root and per-pass) gains `idColumn`, filled from `keyColumns`.
 
-`prefer` breaks ties when a key matches more than one parent (a Draft copy next to the
-Active one): candidates are ranked by the listed values, and a tie at the best rank, or a
-key that matches none, fails the load instead of guessing.
+`prefer` restricts and ranks the candidates: a parent whose value is not listed (an Inactive
+PUR) is never chosen, and when a key matches more than one listed parent (a Draft copy next to
+the Active one) the earliest listed value wins. A tie at the best rank, or a key with no
+candidate, fails the load instead of guessing.
 
 Dependency-free (no cumulusci): the caller supplies `query`, a function that runs SOQL on
 the target org and returns the records, so the task and the tests share this code.
@@ -44,11 +45,13 @@ the target org and returns the records, so the task and the tests share this cod
 import csv
 import json
 import os
+import re
 from typing import Callable, Dict, List, Optional, Tuple
 
 import sfdmu_export
 
 LOOKUPS_FILENAME = "parent_id_lookups.json"
+_SALESFORCE_ID = re.compile(r"[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?", re.ASCII)
 EXPORT_JSON_FILENAME = "export.json"
 
 
@@ -120,11 +123,14 @@ def _declared_fields(export_data: dict, object_name: str) -> Tuple[List[str], Li
     return ["Id"] + rest, passes
 
 
-def _rank(record: dict, prefer: Dict[str, List[str]]) -> Tuple[int, ...]:
+def _rank(record: dict, prefer: Dict[str, List[str]]) -> Optional[Tuple[int, ...]]:
+    """Rank by the `prefer` lists, or None when a value is not listed (never a candidate)."""
     ranks = []
     for field, order in prefer.items():
         value = _as_text(_record_value(record, field))
-        ranks.append(order.index(value) if value in order else len(order))
+        if value not in order:
+            return None
+        ranks.append(order.index(value))
     return tuple(ranks)
 
 
@@ -135,6 +141,8 @@ def build_id_map(records: List[dict], key_fields: List[str],
     prefer = prefer or {}
     grouped: Dict[tuple, List[dict]] = {}
     for record in records:
+        if _rank(record, prefer) is None:
+            continue
         key = tuple(_as_text(_record_value(record, f)) for f in key_fields)
         grouped.setdefault(key, []).append(record)
     chosen, ambiguous = {}, {}
@@ -251,11 +259,12 @@ def apply_lookups(plan_dir: str, query: Callable[[str], List[dict]],
             for key, where in sorted(tied.items()):
                 lines.append(f"  {ambiguous[key]} {object_name} records tie for {';'.join(key)} "
                              f"(used by {', '.join(sorted(set(where)))})")
+            ranked = f" with {', '.join(f'{k} in {v}' for k, v in prefer.items())}" if prefer else ""
             raise IdLookupError(
                 f"Cannot resolve {object_name} Ids on the target org "
-                f"(keyed on {';'.join(key_fields)}):\n" + "\n".join(lines)
-                + f"\nLoad the plan that creates {object_name} first; for a tie, remove the "
-                "extra copy (activate_rating_records step 2.5 removes duplicate Draft copies).")
+                f"(keyed on {';'.join(key_fields)}{ranked}):\n" + "\n".join(lines)
+                + f"\nA missing key: load the plan that creates {object_name} first. A tie: "
+                "remove the extra copy on the org (two copies with the same status for one key).")
     return filled
 
 
@@ -292,7 +301,14 @@ def restore_parent_keys(extraction_dir: str, lookups: List[dict],
                 if id_column not in header:
                     raise IdLookupError(f"{child_object}.csv was extracted without {id_column}; "
                                         "extract with excludeIdsFromCSVFiles false")
-                ids = sorted({r[id_column] for r in rows if r.get(id_column) not in ("", "#N/A", None)})
+                blank = sum(1 for r in rows if r.get(id_column) in ("", "#N/A", None))
+                if blank:
+                    raise IdLookupError(f"{child_object}.csv: {blank} extracted row(s) have no "
+                                        f"{id_column}, so their {object_name} key can't be restored")
+                ids = sorted({r[id_column] for r in rows})
+                bad = [i for i in ids if not _SALESFORCE_ID.fullmatch(i)]
+                if bad:
+                    raise IdLookupError(f"{child_object}.csv: {id_column} {bad[0]!r} is not a record Id")
                 keys: Dict[str, tuple] = {}
                 for start in range(0, len(ids), chunk):
                     in_list = ", ".join(f"'{i}'" for i in ids[start:start + chunk])
@@ -316,3 +332,41 @@ def restore_parent_keys(extraction_dir: str, lookups: List[dict],
                 _write_csv(path, header, rows)
                 log(f"{child_object}: restored {';'.join(key_columns)} on {len(rows)} row(s) from {id_column}")
     return filled
+
+
+def strip_extraction_ids(extraction_dir: str, export_data: dict,
+                         log: Callable[[str], None] = print) -> None:
+    """Make an Id-keeping extract (`prepare_extraction_export`) portable again, IN PLACE.
+
+    Run after `restore_parent_keys`. Deletes the CSV of every object the plan only reads
+    (Readonly in every pass that declares it, e.g. the generated parent), and drops the `Id`
+    column and every direct lookup column (`...Id`, no dot) from the rest; the traversal
+    columns carry the portable values. Without this, post-processing keeps the extracted
+    headers for objects with no tracked CSV, and `copy_to_plan` would write org Ids into the
+    plan.
+    """
+    written: Dict[str, bool] = {}
+    for object_set in sfdmu_export.normalize_object_sets(export_data):
+        for obj in object_set.get("objects", []):
+            if sfdmu_export.is_js_truthy(obj.get("excluded")):
+                continue
+            name = sfdmu_export.extract_object_name(obj.get("query", ""))
+            if name:
+                writable = sfdmu_export.resolve_operation(obj.get("operation")) != "readonly"
+                written[name] = written.get(name, False) or writable
+    for name in sorted(os.listdir(extraction_dir)):
+        if not name.endswith(".csv"):
+            continue
+        object_name = name[:-4]
+        path = os.path.join(extraction_dir, name)
+        if object_name in written and not written[object_name]:
+            os.remove(path)
+            log(f"{name}: removed (read-only in this plan; it holds target-org Ids)")
+            continue
+        if object_name not in written:
+            continue
+        header, rows = _read_csv(path)
+        keep = [c for c in header if c != "Id" and not (c.endswith("Id") and "." not in c)]
+        if keep != header:
+            _write_csv(path, keep, rows)
+            log(f"{name}: dropped Id columns {[c for c in header if c not in keep]}")

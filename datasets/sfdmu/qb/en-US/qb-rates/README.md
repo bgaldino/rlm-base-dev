@@ -8,14 +8,16 @@ SFDMU data plan for QuantumBit (QB) rate cards, rate card entries, and tiered ra
 
 ### Flow: `prepare_rating`
 
-This plan is executed as **step 3** of the `prepare_rating` flow (when `rating=true`, `rates=true`, `qb=true`, and `refresh=false`).
+This plan is executed as **step 8** of the `prepare_rating` flow (when `rating=true`, `rates=true`, `qb=true`, and `refresh=false`).
 
 | Step | Task                     | Description                                        |
 |------|--------------------------|----------------------------------------------------|
-| 1    | `insert_qb_rating_data`  | Runs the qb-rating SFDMU plan (prerequisite)       |
-| 3    | `insert_qb_rates_data`   | **Runs this plan** (single pass — all objects)     |
-| 5    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
-| 6    | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
+| 1    | `delete_qb_rates_data`   | Runs `deleteQbRatesData.apex`                      |
+| 3    | `insert_qb_rating_data`  | Runs the qb-rating SFDMU plan (prerequisite)       |
+| 4    | `insert_qb_rating_entitlements_data` | Runs the qb-rating-entitlements plan (policies and grants) |
+| 8    | `insert_qb_rates_data`   | **Runs this plan** (single pass — all objects)     |
+| 10   | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
+| 11   | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
 
 ### Task Definition
 
