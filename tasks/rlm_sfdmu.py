@@ -143,6 +143,18 @@ def redact_secret(text: str, *secrets: Optional[str]) -> str:
     return text
 
 
+def redact_task_secrets(task, text) -> str:
+    """`text` safe to log from an SFDMU task: every access token it holds masked (the
+    `accesstoken` option and the org's, which can differ). Never raises: a task that hasn't
+    resolved its credentials yet has nothing to mask."""
+    secrets = [getattr(task, "accesstoken", None)]
+    try:
+        secrets.append(getattr(getattr(task, "org_config", None), "access_token", None))
+    except Exception:
+        pass
+    return redact_secret(text, *secrets)
+
+
 def sfdmu_cli_org(org_config, explicit: Optional[str] = None) -> str:
     """Org for `sf` CLI calls: the scratch username, else `explicit` (a username/alias task
     option) or `org_config.username`. Never the access token (it fails CLI auth and leaks into
@@ -435,9 +447,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self.keychain: Optional[BaseProjectKeychain] = None
 
     def _redact(self, text) -> str:
-        """`text` safe to log: every access token this task holds masked (see redact_secret)."""
-        return redact_secret(text, getattr(self, "accesstoken", None),
-                             getattr(getattr(self, "org_config", None), "access_token", None))
+        return redact_task_secrets(self, text)
 
     @property
     def keychain_cls(self):
@@ -519,7 +529,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self._check_row_errors(baseline)
             
         except Exception as e:
-            self.logger.error(f"An error occurred: {str(e)}")
+            self.logger.error(f"An error occurred: {self._redact(e)}")
             raise
         finally:
             self.logger.info('Cleaning up export.json...')
@@ -902,6 +912,9 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
         self.env = self._get_env()
         self.keychain: Optional[BaseProjectKeychain] = None
 
+    def _redact(self, text) -> str:
+        return redact_task_secrets(self, text)
+
     @property
     def keychain_cls(self):
         return self.get_keychain_class() or self.keychain_class
@@ -991,7 +1004,7 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
             json.dump(export_json, f, indent=2)
         trimmed = self.instanceurl.replace("https://", "").replace("http://", "")
         cmd = f"sf sfdmu run --sourceusername CSVFILE --targetusername {self._get_org_for_cli()} -p {plan_dir} --canmodify {trimmed} --noprompt --verbose"
-        self.logger.info(f"Running SFDMU: {cmd}")
+        self.logger.info(f"Running SFDMU: {self._redact(cmd)}")
         result = None
         baseline = sfdmu_export.snapshot_target_files(plan_dir)
         try:
@@ -999,11 +1012,11 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                 cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir")
             )
             if result.returncode != 0:
-                self.logger.error(strip_ansi_codes(result.stdout))
-                self.logger.error(strip_ansi_codes(result.stderr))
+                self.logger.error(self._redact(strip_ansi_codes(result.stdout)))
+                self.logger.error(self._redact(strip_ansi_codes(result.stderr)))
                 raise CommandException(f"SFDMU load failed with exit code {result.returncode}")
             for line in result.stdout.splitlines():
-                self.logger.info(strip_ansi_codes(line))
+                self.logger.info(self._redact(strip_ansi_codes(line)))
             # A rerun whose rows are REJECTED instead of matched leaves the counts flat and would
             # read as idempotent (todo 286: a qb-pcm rerun rejects all 234 ProductRelatedComponent
             # rows). So on the second load a rejected INSERT is always fatal, listed or not. A
@@ -1031,16 +1044,16 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
     def _run_extract_once(self, work_dir: str) -> None:
         """Extract from org into work_dir (must contain export.json with orgs injected)."""
         cmd = EXTRACT_COMMAND.format(sourceusername=self._get_org_for_cli(), pathtoexportjson=work_dir)
-        self.logger.info(f"Running SFDMU extract: {cmd}")
+        self.logger.info(f"Running SFDMU extract: {self._redact(cmd)}")
         result = subprocess.run(
             cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir"),
         )
         if result.returncode != 0:
-            self.logger.error(strip_ansi_codes(result.stdout))
-            self.logger.error(strip_ansi_codes(result.stderr))
+            self.logger.error(self._redact(strip_ansi_codes(result.stdout)))
+            self.logger.error(self._redact(strip_ansi_codes(result.stderr)))
             raise CommandException(f"SFDMU extract failed with exit code {result.returncode}")
         for line in result.stdout.splitlines():
-            self.logger.info(strip_ansi_codes(line))
+            self.logger.info(self._redact(strip_ansi_codes(line)))
 
     def _run_post_load_apex_if_configured(self) -> None:
         """If run_after_each_load_apex is set, run that Apex script against the target org for deduplication only (must not activate records)."""
@@ -1064,17 +1077,17 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
             self.logger.error(f"Post-load Apex timed out after 300s: {path}")
             if e.stdout:
                 stdout_text = e.stdout.decode() if isinstance(e.stdout, bytes) else e.stdout
-                self.logger.error(strip_ansi_codes(stdout_text))
+                self.logger.error(self._redact(strip_ansi_codes(stdout_text)))
             if e.stderr:
                 stderr_text = e.stderr.decode() if isinstance(e.stderr, bytes) else e.stderr
-                self.logger.error(strip_ansi_codes(stderr_text))
+                self.logger.error(self._redact(strip_ansi_codes(stderr_text)))
             raise CommandException(f"Post-load Apex timed out after 300s: {path}") from e
         if result.returncode != 0:
-            self.logger.error(strip_ansi_codes(result.stdout or ""))
-            self.logger.error(strip_ansi_codes(result.stderr or ""))
+            self.logger.error(self._redact(strip_ansi_codes(result.stdout or "")))
+            self.logger.error(self._redact(strip_ansi_codes(result.stderr or "")))
             raise CommandException(f"Post-load Apex failed with exit code {result.returncode}")
         for line in (result.stdout or "").splitlines():
-            self.logger.info(strip_ansi_codes(line))
+            self.logger.info(self._redact(strip_ansi_codes(line)))
 
     def _run_task(self) -> None:
         self._load_keychain()
@@ -1284,9 +1297,7 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self.keychain: Optional[BaseProjectKeychain] = None
 
     def _redact(self, text) -> str:
-        """`text` safe to log: every access token this task holds masked (see redact_secret)."""
-        return redact_secret(text, getattr(self, "accesstoken", None),
-                             getattr(getattr(self, "org_config", None), "access_token", None))
+        return redact_task_secrets(self, text)
 
     @property
     def keychain_cls(self):
@@ -1663,7 +1674,7 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 self.logger.info(f"Post-process complete. Re-import-ready CSVs: {processed_dir}")
 
         except Exception as e:
-            self.logger.error(f"Extraction error: {e}")
+            self.logger.error(f"Extraction error: {self._redact(e)}")
             raise
         finally:
             if work_dir and os.path.isdir(work_dir):

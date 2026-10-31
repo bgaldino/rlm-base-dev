@@ -220,6 +220,32 @@ check("in place, bad object_sets: the option error surfaces", type(error).__name
 check("in place, bad object_sets: export.json byte-for-byte unchanged",
       after[pathlib.Path("export.json")] == before[pathlib.Path("export.json")], True)
 
+print("ExtractSFDMUData: the token is never logged")
+extract_logs = []
+ext = rs.ExtractSFDMUData.__new__(rs.ExtractSFDMUData)
+ext.org_config = _FakePersistent({}, "tso")
+ext.options = {"pathtoexportjson": str(PLAIN), "run_post_process": "false",
+               "extractions_base_dir": tempfile.mkdtemp()}
+ext.logger = _Log()
+ext.logger.info = ext.logger.warning = ext.logger.error = lambda msg, *_a, **_k: extract_logs.append(str(msg))
+ext._load_keychain = lambda: None
+for code in (0, 1):
+    done = _Done()
+    done.returncode, done.stdout, done.stderr = code, "source org 00Dyy!PERSISTENT_TOKEN", "00Dyy!PERSISTENT_TOKEN"
+    saved_run = rs.subprocess.run
+    rs.subprocess.run = lambda *_a, **_k: done
+    try:
+        ext._run_task()
+    except Exception:
+        pass  # exit 1 raises by design; the logs are what is checked
+    finally:
+        rs.subprocess.run = saved_run
+check("extract: the token is never logged (command, SFDMU output, error)",
+      [m for m in extract_logs if "PERSISTENT_TOKEN" in m], [])
+check("extract: the command is still logged, redacted",
+      any(m.startswith("Executing extraction:") and "<redacted>" in m for m in extract_logs), True)
+shutil.rmtree(ext.options["extractions_base_dir"], ignore_errors=True)
+
 print("=" * 60)
 if _failures:
     print(f"FAIL: {len(_failures)} check(s) failed")
