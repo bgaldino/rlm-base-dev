@@ -294,7 +294,9 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 json.dump(export_json, file, indent=2)
             self._prepared_export_json = export_json_path
 
-            self.logger.info(f'Formatted EXPORT.JSON: {json.dumps(export_json, indent=2)}')
+            # Never log the access token: it lands in CCI logs and CI output.
+            redacted = dict(export_json, orgs=[dict(o, accessToken="<redacted>") for o in export_json["orgs"]])
+            self.logger.info(f'Formatted EXPORT.JSON: {json.dumps(redacted, indent=2)}')
         except json.JSONDecodeError as e:
             self.logger.error(f"Error parsing export.json: {e}")
             raise
@@ -323,7 +325,10 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self.logger.error(f"Error cleaning up export.json: {e}")
 
     def _get_target_org_user_name(self) -> str:
-        """Query the target org for the current user's Name (e.g. 'User User' or 'Admin User')."""
+        """Query the target org for the current user's Name (e.g. 'User User' or 'Admin User').
+
+        Deliberately not sfdmu_cli_org: the query matches `Username = '<x>'`, so this needs a real
+        username (org_config.username first), not an alias that targetusername may hold."""
         username = getattr(self.org_config, "username", None) or self.targetusername
         if not username or "@" not in str(username):
             raise CommandException(
@@ -468,6 +473,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
     
     def _run_task(self) -> None:
         self._prepared_export_json = None
+        self._original_object_sets = None
         try:
             self._prep_runtime()
             

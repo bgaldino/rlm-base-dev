@@ -3,8 +3,10 @@
 
 `tests/test_sfdmu_id_lookups.py` covers the lookup module. This one covers what the module
 can't: which org the `sf` CLI is pointed at (never the access token); that Ids resolve in a temp
-copy without the SFDMU runtime dirs; and that a whole `_run_task` (SFDMU stubbed) leaves the
-tracked plan byte-for-byte unchanged on success, on a bad option and on a failed lookup.
+copy without the SFDMU runtime dirs; that a whole `_run_task` (SFDMU stubbed) of a lookups plan
+leaves the tracked plan byte-for-byte unchanged on success, a bad option and a failed lookup; and
+that a plan loaded in place has its credentials cleared after a failed run, is untouched by an
+early failure, and never has the access token logged.
 
 Needs CumulusCI (the task module imports it):
     ~/.local/pipx/venvs/cumulusci/bin/python tests/test_sfdmu_id_lookup_wiring.py
@@ -84,6 +86,9 @@ def fake_query(org, soql):
 rs.sf_query_records, real_query = fake_query, rs.sf_query_records
 try:
     task._apply_parent_id_lookups()
+except Exception:
+    shutil.rmtree(plan.parent, ignore_errors=True)
+    raise
 finally:
     rs.sf_query_records = real_query
 temp = pathlib.Path(task.pathtoexportjson)
@@ -118,21 +123,25 @@ class _FakeScratch(ScratchOrgConfig):
     instance_url = "https://example.my.salesforce.com"
 
 
-def run_task(options, query):
-    """Run _run_task on a fresh copy of the shipped plan; return (copy, before, after, error, temp)."""
+def run_task(options, query, plan_src=None, exit_code=0):
+    """Run _run_task on a fresh copy of `plan_src`; return (before, after, error, temp, logs)."""
     work = pathlib.Path(tempfile.mkdtemp())
     copy = work / "plan"
-    shutil.copytree(REPO / "datasets/sfdmu/qb/en-US/qb-rating-entitlements", copy,
+    shutil.copytree(plan_src or REPO / "datasets/sfdmu/qb/en-US/qb-rating-entitlements", copy,
                     ignore=shutil.ignore_patterns(*rs.SFDMU_RUNTIME_DIRS))
     snapshot = lambda: {p.relative_to(copy): p.read_bytes() for p in copy.rglob("*") if p.is_file()}
     before = snapshot()
     t = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
     t.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
     t.options = {"pathtoexportjson": str(copy), **options}
+    logs = []
     t.logger = _Log()
+    t.logger.info = lambda msg, *_a, **_k: logs.append(str(msg))
     t._load_keychain = lambda: None
+    done = _Done()
+    done.returncode = exit_code
     saved = (rs.sf_query_records, rs.subprocess.run)
-    rs.sf_query_records, rs.subprocess.run = query, lambda *_a, **_k: _Done()
+    rs.sf_query_records, rs.subprocess.run = query, lambda *_a, **_k: done
     error = None
     try:
         t._run_task()
@@ -140,9 +149,9 @@ def run_task(options, query):
         error = exc
     finally:
         rs.sf_query_records, rs.subprocess.run = saved
-    after = snapshot()
-    shutil.rmtree(work, ignore_errors=True)
-    return before, after, error, getattr(t, "_temp_plan_dir", None)
+        after = snapshot()
+        shutil.rmtree(work, ignore_errors=True)
+    return before, after, error, getattr(t, "_temp_plan_dir", None), logs
 
 
 SHIPPED = REPO / "datasets/sfdmu/qb/en-US/qb-rating-entitlements"
@@ -156,17 +165,32 @@ def org_with_every_pur(_org, _soql):
              "UsageResource": {"Code": code}} for i, (sku, code) in enumerate(SHIPPED_KEYS)]
 
 
-before, after, error, temp = run_task({}, org_with_every_pur)
+before, after, error, temp, logs = run_task({}, org_with_every_pur)
 check("success: no error", error, None)
 check("success: tracked plan byte-for-byte unchanged", after == before, True)
 check("success: temp copy removed", bool(temp) and not os.path.exists(temp), True)
-before, after, error, temp = run_task({"ignore_row_errors_for": "{bad"}, org_with_every_pur)
+before, after, error, temp, logs = run_task({"ignore_row_errors_for": "{bad"}, org_with_every_pur)
 check("bad option: the option error surfaces (not masked by cleanup)", type(error).__name__, "TaskOptionsError")
 check("bad option: tracked plan unchanged", after == before, True)
-before, after, error, temp = run_task({}, lambda _org, _soql: [])
+before, after, error, temp, logs = run_task({}, lambda _org, _soql: [])
 check("failed lookup: IdLookupError surfaces", type(error).__name__, "IdLookupError")
 check("failed lookup: tracked plan unchanged", after == before, True)
 check("failed lookup: temp copy removed", bool(temp) and not os.path.exists(temp), True)
+
+# A plan with no lookups loads in place, so cleanup itself must restore the file.
+PLAIN = REPO / "datasets/sfdmu/qb/en-US/qb-rating"
+plain_export = (PLAIN / "export.json").read_text()
+before, after, error, temp, logs = run_task({}, org_with_every_pur, plan_src=PLAIN, exit_code=1)
+check("in place, SFDMU fails: the command error surfaces", type(error).__name__, "CommandException")
+restored = json.loads(after[pathlib.Path("export.json")])
+check("in place, SFDMU fails: credentials cleared from export.json", restored.get("orgs"), [])
+check("in place, SFDMU fails: object sets intact",
+      restored["objectSets"] == json.loads(plain_export)["objectSets"], True)
+check("the access token is never logged", any("00Dxx!TOKEN" in m for m in logs), False)
+before, after, error, temp, logs = run_task({"object_sets": "[7]"}, org_with_every_pur, plan_src=PLAIN)
+check("in place, bad object_sets: the option error surfaces", type(error).__name__, "TaskOptionsError")
+check("in place, bad object_sets: export.json byte-for-byte unchanged",
+      after[pathlib.Path("export.json")] == before[pathlib.Path("export.json")], True)
 
 print("=" * 60)
 if _failures:
