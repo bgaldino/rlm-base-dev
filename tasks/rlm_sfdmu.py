@@ -14,6 +14,7 @@ from typing import Dict, Any, List, Optional
 # primitives (`sfdmu_export`) resolve when this task module is imported by CCI.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
 import sfdmu_export  # noqa: E402  (after the path bootstrap above)
+import sfdmu_id_lookups  # noqa: E402
 
 # ANSI escape code pattern for stripping color codes from subprocess output.
 # SFDMU and other CLI tools emit color codes; stripping them improves log readability.
@@ -125,6 +126,33 @@ def run_post_process_script(
     if logger and result.stderr:
         for line in result.stderr.splitlines():
             logger.warning(strip_ansi_codes(line))
+
+
+def sfdmu_cli_org(org_config, options) -> str:
+    """Org for `sf` CLI calls: the scratch username, else `targetusername` or
+    `org_config.username`. Never the access token (it fails CLI auth and leaks into logs)."""
+    if isinstance(org_config, ScratchOrgConfig):
+        return org_config.username
+    org = options.get("targetusername") or getattr(org_config, "username", None)
+    if not org:
+        raise TaskOptionsError(
+            "No target username/alias for Salesforce CLI calls. Set 'targetusername' or use an org "
+            "with org_config.username; the access token is never passed to the CLI.")
+    return str(org)
+
+
+def sf_query_records(org: str, soql: str) -> List[dict]:
+    """All records for `soql` on `org` (`sf data query --json`); raises on any failure."""
+    result = subprocess.run(["sf", "data", "query", "-q", soql, "-o", org, "--json"],
+                            capture_output=True, text=True)
+    try:
+        payload = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        payload = {}
+    if result.returncode != 0 or payload.get("status", 0) != 0:
+        detail = payload.get("message") or strip_ansi_codes(result.stderr or result.stdout)
+        raise CommandException(f"sf data query failed ({soql}): {detail}")
+    return payload.get("result", {}).get("records") or []
 
 
 class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
@@ -315,13 +343,12 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             raise CommandException("User record has no Name.")
         return name
 
-    def _apply_dynamic_assigned_to_user(self) -> None:
-        """Copy plan to a temp dir and replace DRO assigned-to placeholder with target org user Name."""
-        placeholder = self.options.get("assigned_to_placeholder") or DRO_ASSIGNED_TO_PLACEHOLDER
-        user_name = self._get_target_org_user_name()
-        self.logger.info(f"Replacing DRO assigned-to placeholder with target org user Name: {user_name}")
+    def _ensure_temp_plan_copy(self, prefix: str) -> None:
+        """Point the run at a temp copy of the plan (once), so per-org edits never touch tracked CSVs."""
+        if getattr(self, "_temp_plan_dir", None):
+            return
         source_dir = self.pathtoexportjson
-        self._temp_plan_dir = tempfile.mkdtemp(prefix="sfdmu_dro_")
+        self._temp_plan_dir = tempfile.mkdtemp(prefix=prefix)
         try:
             for item in os.listdir(source_dir):
                 src = os.path.join(source_dir, item)
@@ -330,6 +357,29 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                     shutil.copytree(src, dst)
                 else:
                     shutil.copy2(src, dst)
+        except Exception:
+            shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
+            self._temp_plan_dir = None
+            raise
+        self.pathtoexportjson = self._temp_plan_dir
+
+    def _apply_parent_id_lookups(self) -> None:
+        """Resolve the plan's parent_id_lookups.json against the target org, in a temp copy."""
+        if not sfdmu_id_lookups.load_lookups(self.pathtoexportjson):
+            return
+        self._ensure_temp_plan_copy("sfdmu_ids_")
+        org = sfdmu_cli_org(self.org_config, self.options)
+        filled = sfdmu_id_lookups.apply_lookups(
+            self.pathtoexportjson, lambda soql: sf_query_records(org, soql), self.logger.info)
+        self.logger.info(f"Resolved parent Ids for {filled} row(s) ({sfdmu_id_lookups.LOOKUPS_FILENAME}).")
+
+    def _apply_dynamic_assigned_to_user(self) -> None:
+        """Copy plan to a temp dir and replace DRO assigned-to placeholder with target org user Name."""
+        placeholder = self.options.get("assigned_to_placeholder") or DRO_ASSIGNED_TO_PLACEHOLDER
+        user_name = self._get_target_org_user_name()
+        self.logger.info(f"Replacing DRO assigned-to placeholder with target org user Name: {user_name}")
+        self._ensure_temp_plan_copy("sfdmu_dro_")
+        try:
             for filename in DRO_CSV_FILES_TO_REPLACE:
                 path = os.path.join(self._temp_plan_dir, filename)
                 if not os.path.isfile(path):
@@ -341,7 +391,6 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 with open(path, "w", encoding="utf-8", newline="") as f:
                     f.write(content.replace(placeholder, user_name))
                 self.logger.info(f"Replaced placeholder in {filename}")
-            self.pathtoexportjson = self._temp_plan_dir
         except Exception:
             if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
                 shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
@@ -406,6 +455,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
 
         if self.options.get("dynamic_assigned_to_user"):
             self._apply_dynamic_assigned_to_user()
+        self._apply_parent_id_lookups()
         if self.options.get("sync_objectset_source_to_source"):
             self._sync_objectset_source_to_source()
         self._prepare_export_json_file()
@@ -891,6 +941,23 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
 
     def _run_load_once(self, plan_dir: Optional[str] = None, strict: bool = True) -> None:
         plan_dir = plan_dir or self.options.get("pathtoexportjson", "datasets/sfdmu/")
+        if not sfdmu_id_lookups.load_lookups(plan_dir):
+            self._run_load_in(plan_dir, strict)
+            return
+        # Same per-org step as LoadSFDMUData: resolve parent Ids into a temp copy, never the plan.
+        temp_dir = tempfile.mkdtemp(prefix="sfdmu_idem_ids_")
+        try:
+            work = os.path.join(temp_dir, "plan")
+            shutil.copytree(plan_dir, work, ignore=shutil.ignore_patterns("source", "target", "reports"))
+            org = self._get_org_for_cli()
+            filled = sfdmu_id_lookups.apply_lookups(
+                work, lambda soql: sf_query_records(org, soql), self.logger.info)
+            self.logger.info(f"Resolved parent Ids for {filled} row(s) in a temp copy of {plan_dir}.")
+            self._run_load_in(work, strict)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def _run_load_in(self, plan_dir: str, strict: bool) -> None:
         export_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
         if not os.path.isfile(export_path):
             raise FileNotFoundError(f"export.json not found: {export_path}")
@@ -1039,9 +1106,15 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                 with open(export_dst, "r") as f:
                     export_json = json.load(f)
                 export_json["orgs"] = [{"name": self._get_org_for_cli(), "accessToken": self.accesstoken, "instanceUrl": self.instanceurl}]
+                lookups = sfdmu_id_lookups.load_lookups(plan_dir)
+                export_json = sfdmu_id_lookups.prepare_extraction_export(export_json, lookups)
                 with open(export_dst, "w") as f:
                     json.dump(export_json, f, indent=2)
                 self._run_extract_once(work_dir)
+                if lookups:
+                    org = self._get_org_for_cli()
+                    sfdmu_id_lookups.restore_parent_keys(
+                        work_dir, lookups, lambda soql: sf_query_records(org, soql), self.logger.info)
                 # Scrub credentials immediately so they are not left on disk if we crash before finally
                 export_in_work = os.path.join(work_dir, EXPORT_JSON_FILENAME)
                 if os.path.isfile(export_in_work):
@@ -1060,6 +1133,9 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                     cwd=self.options.get("dir"), logger=self.logger,
                 )
                 shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
+                lookups_src = os.path.join(plan_dir, sfdmu_id_lookups.LOOKUPS_FILENAME)
+                if os.path.isfile(lookups_src):
+                    shutil.copy2(lookups_src, os.path.join(processed_dir, sfdmu_id_lookups.LOOKUPS_FILENAME))
                 self.logger.info("Second run: load from post-processed extraction (should not add records)")
                 self._run_load_once(processed_dir)
                 self._run_post_load_apex_if_configured()
@@ -1242,6 +1318,10 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 )
             export_json["objectSets"] = filtered
             self.logger.info(f"Extracting only object sets (0-based): {object_sets}")
+
+        plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
+        export_json = sfdmu_id_lookups.prepare_extraction_export(
+            export_json, sfdmu_id_lookups.load_lookups(plan_dir))
 
         # For extraction the source is the org; inject auth so SFDMU can connect
         org_data = {
@@ -1498,6 +1578,11 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
 
             # Move CSVs to final destination
             output_dir = self._collect_output(work_dir)
+            lookups = sfdmu_id_lookups.load_lookups(plan_dir)
+            if lookups:
+                org = self._cli_org()
+                sfdmu_id_lookups.restore_parent_keys(
+                    output_dir, lookups, lambda soql: sf_query_records(org, soql), self.logger.info)
             self.logger.info(f"Extraction complete. Output: {output_dir}")
             self.return_values = {"output_dir": output_dir}
 

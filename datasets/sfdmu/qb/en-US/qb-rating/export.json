@@ -1,16 +1,15 @@
 {
-  "$comment_plan": "qb-rating SFDMU data plan - creates and activates rating/usage objects",
-  "$comment_pass1": "Pass 1: Upsert most objects in Draft status. PUR, PURP, and PUG use Insert+deleteOldData with a deleteQuery that skips Active rows: a reload deletes only non-Active (Draft or Inactive) copies and never touches Active records (the platform blocks deleting them anyway, and an unscoped delete stripped every PURP on a reload of a built org, todo 298). activateRatingRecords.apex then removes the duplicate Draft PURs and their children, leaving the Active set. SFDMU v5 processes deleteOldData in reverse array order, so PUG and PURP are deleted before PUR.",
-  "$comment_pass2": "Pass 2: Activate UnitOfMeasureClass and UsageResource (Status > Active). PUR/PUG activation is handled by the Apex script (activateRatingRecords.apex) due to complex API 260 ordering constraints.",
+  "$comment_plan": "qb-rating SFDMU data plan - usage definitions (units, usage resources, usage policies) and the product-to-resource links (ProductUsageResource). The policies and grants on each link load from qb-rating-entitlements, which runs next.",
+  "$comment_pass1": "Pass 1: Upsert every object. Objects with a Status (UnitOfMeasureClass, UsageResource, ProductUsageResource) use skipExistingRecords: new rows are inserted as Draft and existing rows are never touched, so a reload of a built org changes nothing and never demotes an Active record. Nothing is deleted (todo 298).",
+  "$comment_pass2": "Pass 2: Update the same three objects WITHOUT Status, so a correction to any other field of an existing row still lands on a reload. activateRatingRecords.apex activates (Draft -> Active) after qb-rating-entitlements loads.",
   "$comment_260": "API 260+ notes: QB-DB;QB-TOKEN (Token PUR for Anchor product) is required before QB-DB Usage PURs can activate. Token-backed and currency-backed usage PURs (UR-*-TKN, UR-*-MTY) use dedicated UsageResource records with TokenResourceId set at the UsageResource level; the pre-populate + clear+activate pattern in activateRatingRecords.apex handles activation.",
-  "$comment_composite_keys": "SFDMU v5 bugs: (1) Objects whose externalId contains ONLY multi-hop traversal components get 'no mandatory external Id field definition' at validation. Fix: use a direct FK field as externalId + deleteOldData:true (PURP uses ProductUsageResourceId). (2) Upsert TARGET SELECT strips parent-relationship prefixes from traversal CSV columns and adds sub-fields as direct SObject fields \u2014 invalid SOQL for 2-hop traversals. Fix: use Insert+deleteOldData instead of Upsert for PURP and PUG. (3) Upsert cannot match records by relationship-traversal externalId components (even 1-hop: Product.StockKeepingUnit, UsageResource.Code) \u2014 v5 always inserts instead of updating, causing duplicates. Fix: use Insert+deleteOldData for PUR too. deleteOldData runs in reverse array order (PUG \u2192 PURP \u2192 PUR), satisfying FK constraints before PUR deletion.",
   "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, UsageResource.Code) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU v5 does NOT write $$ composite-key columns during extraction; the ExtractSFDMUData task runs scripts/post_process_extraction.py to add/normalize those $$ columns so extraction outputs are re-import-ready. Always use the post-processed extraction output when re-importing.",
   "apiVersion": "68.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,
   "objectSets": [
     {
-      "name": "First Pass - Insert/Upsert with Draft Status",
+      "name": "First Pass - Upsert; insert missing rows as Draft, skip existing",
       "objects": [
         {
           "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId, UnitOfMeasureClass.Code FROM UnitOfMeasure ORDER BY UnitCode ASC",
@@ -19,9 +18,11 @@
           "excluded": false
         },
         {
+          "$comment": "Pass 1 inserts missing rows as Draft and skips existing ones (skipExistingRecords), so a reload never sends Status=Draft to an Active row. Pass 2 corrects the other fields; activateRatingRecords.apex activates (todo 298).",
           "query": "SELECT Code, BaseUnitOfMeasureId, BaseUnitOfMeasure.UnitCode, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, Description, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
+          "skipExistingRecords": true,
           "excluded": false
         },
         {
@@ -31,9 +32,11 @@
           "excluded": false
         },
         {
+          "$comment": "Pass 1 inserts missing rows as Draft and skips existing ones (skipExistingRecords), so a reload never sends Status=Draft to an Active row. Pass 2 corrects the other fields; activateRatingRecords.apex activates (todo 298).",
           "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UnitOfMeasureClassId, UnitOfMeasureClass.Code, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode FROM UsageResource ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
+          "skipExistingRecords": true,
           "excluded": false
         },
         {
@@ -67,13 +70,12 @@
           "excluded": false
         },
         {
-          "$comment": "SFDMU v5 cannot match PUR via relationship-traversal externalId components (Product.StockKeepingUnit;UsageResource.Code) even for 1-hop traversals \u2014 always inserts instead of updating, causing duplicates on re-run. Fix: Insert+deleteOldData, with a deleteQuery that skips Active rows (status-scoped, still portable). deleteOldData runs in reverse array order so PUG and PURP (later in array) are deleted before PUR, satisfying FK constraints.",
+          "$comment": "Pass 1 inserts missing PURs as Draft and never touches an existing one (skipExistingRecords), so a reload neither deletes nor re-sends Status to Active records (the platform rejects Active->Draft on PUR). Pass 2 corrects the other fields of existing PURs. Matching on the traversal key works on the 5.6.4+ floor. TokenResource is set by activateRatingRecords.apex (clear+activate), not by this plan, so pass 2 leaves it out. Policies and grants on each PUR load from qb-rating-entitlements, which runs next (todo 298).",
           "query": "SELECT EffectiveEndDate, EffectiveStartDate, IsOptional, ProductId, Product.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UsageResourceId, UsageResource.Code FROM ProductUsageResource ORDER BY Product.StockKeepingUnit ASC, UsageResource.Code ASC",
-          "operation": "Insert",
+          "operation": "Upsert",
           "externalId": "Product.StockKeepingUnit;UsageResource.Code",
-          "deleteOldData": true,
-          "excluded": false,
-          "deleteQuery": "SELECT Id FROM ProductUsageResource WHERE Status != 'Active'"
+          "skipExistingRecords": true,
+          "excluded": false
         },
         {
           "query": "SELECT GrantBindingTargetType, GrantBindingType, Product2Id, Product2.StockKeepingUnit, Name FROM UsagePrdGrantBindingPolicy ORDER BY Product2.StockKeepingUnit ASC, Name ASC",
@@ -86,40 +88,41 @@
           "operation": "Upsert",
           "externalId": "RatingPeriod",
           "excluded": false
-        },
-        {
-          "$comment": "PURP is 1:1 with PUR. SFDMU v5 cannot validate composite externalIds where ALL components are multi-hop traversals (ProductUsageResource.Product.StockKeepingUnit = 2 hops from PURP). Solution: externalId=ProductUsageResourceId (direct FK field on PURP, unique 1:1 with PUR) + deleteOldData:true, with a deleteQuery that deletes only PURP whose parent PUR isn't Active (status-scoped, still portable). An unscoped delete stripped every PURP from Active PURs on a reload of a built org (todo 298). CSV has two separate columns (ProductUsageResource.Product.StockKeepingUnit and ProductUsageResource.UsageResource.Code) for FK resolution \u2014 no $$ composite (which caused SOQL injection in deleteOldData DELETE phase).",
-          "query": "SELECT ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, RatingFrequencyPolicyId, RatingFrequencyPolicy.RatingPeriod, UsageAggregationPolicyId, UsageAggregationPolicy.Code, UsageCommitmentPolicyId, UsageCommitmentPolicy.Name, UsageOveragePolicyId, UsageOveragePolicy.Name FROM ProductUsageResourcePolicy ORDER BY ProductUsageResource.Product.StockKeepingUnit ASC, ProductUsageResource.UsageResource.Code ASC",
-          "operation": "Insert",
-          "externalId": "ProductUsageResourceId",
-          "deleteOldData": true,
-          "excluded": false,
-          "deleteQuery": "SELECT Id FROM ProductUsageResourcePolicy WHERE ProductUsageResource.Status != 'Active'"
-        },
-        {
-          "$comment": "Status is required for PUG insert (Salesforce INVALID_INPUT if omitted). CSV always inserts as Draft; activation is re-applied by activateRatingRecords.apex. deleteOldData is scoped to PUGs whose parent PUR isn't Active (deleteQuery), so a reload never deletes Active PUGs; activateRatingRecords.apex removes the reload's duplicate Draft set. Insert+deleteOldData was originally chosen to avoid a pre-5.6.4 SFDMU v5 Upsert TARGET-SELECT issue (Bug 2): 2-hop externalId components (ProductUsageResource.Product.StockKeepingUnit) were prefix-stripped to 'Product.StockKeepingUnit' in the TARGET SELECT, invalid on PUG (Insert has no TARGET SELECT phase). Bug 2 is fixed on the enforced 5.6.4+ floor; the operation is retained pending the gated Upsert migration (todo 298). On 5.8.0 the PUG/PURP Upsert TARGET SELECT still fails, because it drops the ProductUsageResource. prefix from the parent's composite externalId parts. CSV has two separate traversal columns for PUR FK resolution; no $$ composite columns. externalId uniqueness: the triplet (UsageDefinitionProduct.StockKeepingUnit; UnitOfMeasureClass.Code; UnitOfMeasure.UnitCode) is intentionally not unique across parent PURs \u2014 10 of 12 rows share 3 triplets distinguished only by their parent PUR FK. This is harmless for Insert+deleteOldData: Insert does not use externalId to deduplicate incoming rows (all 12 are inserted unconditionally, confirmed by consistent PUG row-count test results), and PUG is a leaf node so no downstream object resolves FKs to PUG by externalId. If this ever moves to Upsert, the externalId must include a PUR component \u2014 the triplet's non-uniqueness across parent PURs is the real remaining blocker (Bugs 1 and 2 are fixed on the 5.6.4+ floor). ProductUsageResourceId (a direct FK field) is the correct addition, following PURP's pattern; historically, adding traversal components instead would have hit SFDMU v5 Bug 1 (all-multi-hop externalId validation error), now fixed.",
-          "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, Quantity, RenewalPolicyId, RenewalPolicy.Code, RolloverPolicyId, RolloverPolicy.Code, Status, Type, UnitOfMeasureClassId, UnitOfMeasureClass.Code, UnitOfMeasureId, UnitOfMeasure.UnitCode, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
-          "operation": "Insert",
-          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode",
-          "deleteOldData": true,
-          "excluded": false,
-          "deleteQuery": "SELECT Id FROM ProductUsageGrant WHERE ProductUsageResource.Status != 'Active'"
         }
       ]
     },
     {
-      "name": "Second Pass - Activate UnitOfMeasureClass and UsageResource",
+      "name": "Second Pass - Update existing rows, without Status",
       "objects": [
         {
-          "query": "SELECT Code, Status FROM UnitOfMeasureClass ORDER BY Code ASC",
+          "$comment": "Readonly in pass 2 so the Update rows below can resolve their lookups (UnitOfMeasureClass base/default unit, UsageResource default unit, the Product lookups). A lookup whose parent object is not declared in the pass is sent as null: without these, pass 2 blanked UnitOfMeasureClass.BaseUnitOfMeasure/DefaultUnitOfMeasure on a built org.",
+          "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId, UnitOfMeasureClass.Code FROM UnitOfMeasure ORDER BY UnitCode ASC",
+          "operation": "Readonly",
+          "externalId": "UnitCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code, BaseUnitOfMeasureId, BaseUnitOfMeasure.UnitCode, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, Description, Name, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
           "operation": "Update",
           "externalId": "Code",
           "excluded": false
         },
         {
-          "query": "SELECT Code, Status FROM UsageResource ORDER BY Code ASC",
+          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, TokenResourceId, TokenResource.Code, UnitOfMeasureClassId, UnitOfMeasureClass.Code, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode FROM UsageResource ORDER BY Code ASC",
           "operation": "Update",
           "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT EffectiveEndDate, EffectiveStartDate, IsOptional, ProductId, Product.StockKeepingUnit, UsageResourceId, UsageResource.Code FROM ProductUsageResource ORDER BY Product.StockKeepingUnit ASC, UsageResource.Code ASC",
+          "operation": "Update",
+          "externalId": "Product.StockKeepingUnit;UsageResource.Code",
           "excluded": false
         }
       ]

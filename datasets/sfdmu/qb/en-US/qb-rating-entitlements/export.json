@@ -1,0 +1,171 @@
+{
+  "$comment_plan": "qb-rating-entitlements SFDMU data plan - the policies (ProductUsageResourcePolicy) and grants (ProductUsageGrant) on each product usage resource. Runs after qb-rating, which creates the resources and the policy records these point at.",
+  "$comment_ids": "Children match on ProductUsageResourceId. The tracked CSVs carry the parent's portable key (ProductUsageResource.Product.StockKeepingUnit + ProductUsageResource.UsageResource.Code); LoadSFDMUData reads parent_id_lookups.json, queries the target org, and writes the target Ids into a temp copy of the plan before SFDMU runs (scripts/sfdmu_id_lookups.py). Never edit Ids into the tracked CSVs.",
+  "$comment_passes": "Pass 1: Upsert + skipExistingRecords (inserts missing rows, never touches existing ones). Pass 2: Update without Status (field corrections land; Active status is never sent). Nothing is deleted (todo 298).",
+  "apiVersion": "68.0",
+  "excludeIdsFromCSVFiles": "false",
+  "useSeparatedCSVFiles": true,
+  "objectSets": [
+    {
+      "name": "First Pass - Insert missing policies and grants (Draft), skip existing",
+      "objects": [
+        {
+          "query": "SELECT Code, Name, Status, UsageAccumulationMethod, UsageAccumulationPeriod FROM UsageResourceBillingPolicy ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, RatingDelayDuration, RatingPeriod FROM RatingFrequencyPolicy",
+          "operation": "Readonly",
+          "externalId": "RatingPeriod",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, CommitmentRate FROM UsageCommitmentPolicy",
+          "operation": "Readonly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, OverageChargeable FROM UsageOveragePolicy",
+          "operation": "Readonly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code, Name, IsRenewalAllowed, RenewalFrequency, RenewalFrequencyUnit, Status FROM UsageGrantRenewalPolicy ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ShouldAllowRolloverExpiry, Code, MaximumRolloverCount, Name, IsRolloverAllowed, Status FROM UsageGrantRolloverPolicy ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code, BaseUnitOfMeasureId, BaseUnitOfMeasure.UnitCode, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, Description, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId, UnitOfMeasureClass.Code FROM UnitOfMeasure ORDER BY UnitCode ASC",
+          "operation": "Readonly",
+          "externalId": "UnitCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "$comment": "Generated per load: LoadSFDMUData resolves each PUR on the target org (parent_id_lookups.json) and writes this object's CSV and each child's ProductUsageResourceId into a temp copy of the plan. Readonly needs one field besides Id, or SFDMU drops the object ('Only Id remains').",
+          "query": "SELECT Id, Status FROM ProductUsageResource",
+          "operation": "Readonly",
+          "externalId": "Id",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, RatingFrequencyPolicyId, RatingFrequencyPolicy.RatingPeriod, UsageAggregationPolicyId, UsageAggregationPolicy.Code, UsageCommitmentPolicyId, UsageCommitmentPolicy.Name, UsageOveragePolicyId, UsageOveragePolicy.Name FROM ProductUsageResourcePolicy ORDER BY ProductUsageResource.Product.StockKeepingUnit ASC, ProductUsageResource.UsageResource.Code ASC",
+          "operation": "Upsert",
+          "externalId": "ProductUsageResourceId",
+          "skipExistingRecords": true,
+          "excluded": false,
+          "$comment": "Keyed on the direct lookup ProductUsageResourceId (1:1 with PUR), resolved to a target Id at load time. Upsert on the parent's composite traversal key fails on SFDMU 5.8.0 (upstream #1218: the child target query drops the ProductUsageResource. prefix, \"Didn't understand relationship 'Product'\"). Pass 1 inserts missing rows; pass 2 corrects existing ones."
+        },
+        {
+          "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, Quantity, RenewalPolicyId, RenewalPolicy.Code, RolloverPolicyId, RolloverPolicy.Code, Status, Type, UnitOfMeasureClassId, UnitOfMeasureClass.Code, UnitOfMeasureId, UnitOfMeasure.UnitCode, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY ProductUsageResource.Product.StockKeepingUnit ASC, ProductUsageResource.UsageResource.Code ASC",
+          "operation": "Upsert",
+          "externalId": "ProductUsageResourceId",
+          "skipExistingRecords": true,
+          "excluded": false,
+          "$comment": "Keyed on ProductUsageResourceId, resolved at load time (one grant per PUR in this dataset; the UoM triplet alone is not unique across PURs). Status is required on insert, so pass 1 inserts missing grants as Draft and skips existing ones; pass 2 updates without Status (sending Draft would demote an Active grant). activateRatingRecords.apex activates."
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Update existing policies and grants, without Status",
+      "objects": [
+        {
+          "query": "SELECT Code, Name, Status, UsageAccumulationMethod, UsageAccumulationPeriod FROM UsageResourceBillingPolicy ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, RatingDelayDuration, RatingPeriod FROM RatingFrequencyPolicy",
+          "operation": "Readonly",
+          "externalId": "RatingPeriod",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, CommitmentRate FROM UsageCommitmentPolicy",
+          "operation": "Readonly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, OverageChargeable FROM UsageOveragePolicy",
+          "operation": "Readonly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code, Name, IsRenewalAllowed, RenewalFrequency, RenewalFrequencyUnit, Status FROM UsageGrantRenewalPolicy ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ShouldAllowRolloverExpiry, Code, MaximumRolloverCount, Name, IsRolloverAllowed, Status FROM UsageGrantRolloverPolicy ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code, BaseUnitOfMeasureId, BaseUnitOfMeasure.UnitCode, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, Description, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId, UnitOfMeasureClass.Code FROM UnitOfMeasure ORDER BY UnitCode ASC",
+          "operation": "Readonly",
+          "externalId": "UnitCode",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "$comment": "Generated per load: LoadSFDMUData resolves each PUR on the target org (parent_id_lookups.json) and writes this object's CSV and each child's ProductUsageResourceId into a temp copy of the plan. Readonly needs one field besides Id, or SFDMU drops the object ('Only Id remains').",
+          "query": "SELECT Id, Status FROM ProductUsageResource",
+          "operation": "Readonly",
+          "externalId": "Id",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, RatingFrequencyPolicyId, RatingFrequencyPolicy.RatingPeriod, UsageAggregationPolicyId, UsageAggregationPolicy.Code, UsageCommitmentPolicyId, UsageCommitmentPolicy.Name, UsageOveragePolicyId, UsageOveragePolicy.Name FROM ProductUsageResourcePolicy ORDER BY ProductUsageResource.Product.StockKeepingUnit ASC, ProductUsageResource.UsageResource.Code ASC",
+          "operation": "Update",
+          "externalId": "ProductUsageResourceId",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, Quantity, RenewalPolicyId, RenewalPolicy.Code, RolloverPolicyId, RolloverPolicy.Code, Type, UnitOfMeasureClassId, UnitOfMeasureClass.Code, UnitOfMeasureId, UnitOfMeasure.UnitCode, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY ProductUsageResource.Product.StockKeepingUnit ASC, ProductUsageResource.UsageResource.Code ASC",
+          "operation": "Update",
+          "externalId": "ProductUsageResourceId",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

@@ -67,7 +67,8 @@ These APIs require usage-based billing to be configured in the org. Before using
 | Plan | CCI Task | Description |
 |------|----------|-------------|
 | `qb-rates` | `insert_qb_rates_data` | Rate cards, rate card entries, adjustment tiers |
-| `qb-rating` | `insert_qb_rating_data` | Platform Usage Resources (PURs), PURPs, PUGs |
+| `qb-rating` | `insert_qb_rating_data` | Usage definitions and product usage resources (PURs) |
+| `qb-rating-entitlements` | `insert_qb_rating_entitlements_data` | Policies (PURPs) and grants (PUGs) on each PUR |
 
 ---
 

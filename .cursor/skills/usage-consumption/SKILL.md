@@ -61,8 +61,9 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
   included allowance"
 - **DO NOT** put a `RatingFrequencyPolicyId` or `UsageAggregationPolicyId` on a
   commitment product's PURP
-- **DO NOT** re-run `qb-rating` / `qb-rates` / `qb-pricing` into an org that already
-  has usage assets — see `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a Live
+- **DO NOT** re-run `qb-rates` / `qb-pricing` into an org that already has usage
+  assets (`qb-rating` and `qb-rating-entitlements` match existing rows and delete
+  nothing, so they're safe to reload) — see `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a Live
   Org*. Load new products surgically instead
 - **DO NOT** infer runtime behaviour from a field description in the dev-guide or
   help snapshot — neither documents drawdown ordering or interaction. Establish it

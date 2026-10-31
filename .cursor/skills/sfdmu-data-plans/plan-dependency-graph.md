@@ -71,7 +71,7 @@ Deletions must run in reverse dependency order. SFDMU's `deleteOldData: true` ha
 ```
 Delete order (for full teardown):
 1. qb-rates (RateAdjustmentByTier → RateCardEntry → PriceBookRateCard → RateCard)
-2. qb-rating (PUG → PURP → PUR → policies → UsageResource)
+2. qb-rating + qb-rating-entitlements (PUG → PURP → PUR → policies → UsageResource; `deleteQbRatingData.apex`)
 3. qb-pricing (adjustments → PricebookEntry → PriceAdjustmentSchedule → Pricebook2)
 4. qb-billing (treatments → BillingPolicy → PaymentTerm → LegalEntity)
 5. qb-tax (TaxTreatment → TaxPolicy → TaxEngine)

@@ -1,0 +1,31 @@
+{
+  "$comment": "Parent lookups LoadSFDMUData resolves to target-org Ids before this plan loads (scripts/sfdmu_id_lookups.py). prefer: when a key matches several PURs, take the Active one, then Draft; a remaining tie fails the load.",
+  "lookups": [
+    {
+      "object": "ProductUsageResource",
+      "keyFields": [
+        "Product.StockKeepingUnit",
+        "UsageResource.Code"
+      ],
+      "prefer": {
+        "Status": [
+          "Active",
+          "Draft"
+        ]
+      },
+      "children": [
+        {
+          "objects": [
+            "ProductUsageResourcePolicy",
+            "ProductUsageGrant"
+          ],
+          "idColumn": "ProductUsageResourceId",
+          "keyColumns": [
+            "ProductUsageResource.Product.StockKeepingUnit",
+            "ProductUsageResource.UsageResource.Code"
+          ]
+        }
+      ]
+    }
+  ]
+}

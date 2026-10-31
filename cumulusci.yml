@@ -660,6 +660,7 @@ project:
     quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb/en-US/qb-dro"                                 # QuantumBit DRO data (dynamic AssignedTo from target org)
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-US/qb-tax"                                 # QuantumBit tax data
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating"                    # QuantumBit rating data
+    quantumbit_rating_entitlements_dataset: &quantumbit_rating_entitlements_dataset "datasets/sfdmu/qb/en-US/qb-rating-entitlements"  # QuantumBit usage policies + grants per product usage resource
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
     quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # DEPRECATED - replaced by CML import
     quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # DEPRECATED - replaced by CML import
@@ -2281,10 +2282,17 @@ tasks:
 
   insert_qb_rating_data:
     group: Revenue Lifecycle Management
-    description: Insert QuantumBit Rating Data
+    description: Insert QuantumBit Rating Data (usage definitions and product usage resources; run insert_qb_rating_entitlements_data next)
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_rating_dataset
+
+  insert_qb_rating_entitlements_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit usage policies and grants on each product usage resource (run after insert_qb_rating_data; resolves resource Ids on the target org)
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_rating_entitlements_dataset
 
   
   insert_q3_rating_data:
@@ -2879,6 +2887,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_rating_dataset
 
+  extract_qb_rating_entitlements_data:
+    group: Data Management - Extract
+    description: "Extract qb-rating-entitlements (usage policies and grants) from org to CSV. Output in datasets/sfdmu/extractions/qb-rating-entitlements/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_rating_entitlements_dataset
+
   extract_qb_rates_data:
     group: Data Management - Extract
     description: "Extract qb-rates from org to CSV. Output in datasets/sfdmu/extractions/qb-rates/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -3052,6 +3067,15 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_rating_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
+  test_qb_rating_entitlements_idempotency:
+    group: Data Management - Idempotency
+    description: "Idempotency test for qb-rating-entitlements (needs qb-rating loaded). Uses extraction roundtrip (extract -> post-process -> load from processed dir); each load resolves resource Ids on the org first. Persists extraction output to datasets/sfdmu/extractions/qb-rating-entitlements/<timestamp>."
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_rating_entitlements_dataset
       use_extraction_roundtrip: true
       persist_extraction_output: true
 
@@ -4380,24 +4404,28 @@ flows:
         task: insert_qb_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
       4:
+        # Policies and grants on the PURs step 3 loaded; resolves PUR Ids on the target org (todo 298).
+        task: insert_qb_rating_entitlements_data
+        when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
+      5:
         task: delete_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
-      5:
+      6:
         task: delete_q3_rating_data
         when: project_config.project__custom__rating and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
-      6:
+      7:
         task: insert_q3_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
-      7:
+      8:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      8:
+      9:
         task: insert_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
-      9:
+      10:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      10:
+      11:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
 
@@ -4408,6 +4436,8 @@ flows:
       1:
         task: extract_qb_rating_data
       2:
+        task: extract_qb_rating_entitlements_data
+      3:
         task: extract_qb_rates_data
   
   prepare_agents:
