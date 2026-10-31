@@ -1070,7 +1070,7 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
             )
         org = self._get_org_for_cli()
         cmd = ["sf", "apex", "run", "--target-org", org, "--file", path]
-        self.logger.info(f"Running post-load Apex: {' '.join(cmd)}")
+        self.logger.info(f"Running post-load Apex: {self._redact(' '.join(cmd))}")
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, cwd=base, timeout=300)
         except subprocess.TimeoutExpired as e:

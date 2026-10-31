@@ -229,17 +229,29 @@ ext.options = {"pathtoexportjson": str(PLAIN), "run_post_process": "false",
 ext.logger = _Log()
 ext.logger.info = ext.logger.warning = ext.logger.error = lambda msg, *_a, **_k: extract_logs.append(str(msg))
 ext._load_keychain = lambda: None
-for code in (0, 1):
+outcomes = {}
+for code in (0, 1, "raise"):
     done = _Done()
-    done.returncode, done.stdout, done.stderr = code, "source org 00Dyy!PERSISTENT_TOKEN", "00Dyy!PERSISTENT_TOKEN"
+    done.returncode, done.stdout, done.stderr = (code if code != "raise" else 0,
+                                                 "source org 00Dyy!PERSISTENT_TOKEN", "00Dyy!PERSISTENT_TOKEN")
+
+    def fake_run(*_a, _done=done, _code=code, **_k):
+        if _code == "raise":  # an error whose message carries the token reaches the except log
+            raise RuntimeError("sf failed for 00Dyy!PERSISTENT_TOKEN")
+        return _done
     saved_run = rs.subprocess.run
-    rs.subprocess.run = lambda *_a, **_k: done
+    rs.subprocess.run = fake_run
     try:
         ext._run_task()
-    except Exception:
-        pass  # exit 1 raises by design; the logs are what is checked
+        outcomes[code] = None
+    except Exception as exc:
+        outcomes[code] = type(exc).__name__
     finally:
         rs.subprocess.run = saved_run
+check("extract: exit 0 completes, exit 1 fails, a raised error propagates",
+      outcomes, {0: None, 1: "CommandException", "raise": "RuntimeError"})
+check("extract: the success path ran end to end",
+      any(m.startswith("Extraction complete") for m in extract_logs), True)
 check("extract: the token is never logged (command, SFDMU output, error)",
       [m for m in extract_logs if "PERSISTENT_TOKEN" in m], [])
 check("extract: the command is still logged, redacted",
