@@ -443,7 +443,7 @@ CHECKS = [
         cmd=["python", "tests/test_sfdmu_id_lookup_wiring.py"],
         # LoadSFDMUData's parent-Id lookup step (todo 298): the sf CLI org is never the access
         # token, and Ids resolve in a temp copy that leaves the tracked plan untouched.
-        triggers=["tasks/rlm_sfdmu.py", "scripts/sfdmu_id_lookups.py",
+        triggers=["tasks/rlm_sfdmu.py", "scripts/sfdmu_id_lookups.py", "scripts/sfdmu_export.py",
                   "datasets/sfdmu/qb/en-US/qb-rating-entitlements/",
                   "tests/test_sfdmu_id_lookup_wiring.py"],
         deps=["cumulusci"], gating=True,

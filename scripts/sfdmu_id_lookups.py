@@ -361,7 +361,9 @@ def strip_extraction_ids(extraction_dir: str, export_data: dict,
     names it, and drops from the rest the `Id` column and each lookup column `XxxId` that has a
     traversal column `Xxx.<field>` beside it (or is a lookup's `idColumn`); the traversals carry
     the portable values. Any other column ending in `Id` is kept and logged, so a data field is
-    never lost. Without this, post-processing keeps the extracted headers for objects with no
+    never lost. Only standard `XxxId`/`Xxx.` pairs are recognised: a custom lookup
+    (`Foo__c` beside `Foo__r.Name`) keeps its Id column, so a plan with one needs this extended
+    before it adds a lookups file. Without this, post-processing keeps the extracted headers for objects with no
     tracked CSV, and `copy_to_plan` would write org Ids into the plan.
 
     `keep_csvs`: object names whose CSV the plan (or its reference plan) tracks. A tracked

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Task wiring for parent Id lookups in `tasks/rlm_sfdmu.py` (todo 298), offline.
 
-`tests/test_sfdmu_id_lookups.py` covers the lookup module. This one covers the two things the
-module can't: which org the `sf` CLI is pointed at (never the access token), and that a load
-resolves Ids in a temp copy without the SFDMU runtime dirs, leaving the tracked plan untouched.
+`tests/test_sfdmu_id_lookups.py` covers the lookup module. This one covers what the module
+can't: which org the `sf` CLI is pointed at (never the access token); that Ids resolve in a temp
+copy without the SFDMU runtime dirs; and that a whole `_run_task` (SFDMU stubbed) leaves the
+tracked plan byte-for-byte unchanged on success, on a bad option and on a failed lookup.
 
 Needs CumulusCI (the task module imports it):
     ~/.local/pipx/venvs/cumulusci/bin/python tests/test_sfdmu_id_lookup_wiring.py
@@ -96,6 +97,76 @@ after = {p.relative_to(plan): p.read_bytes() for p in plan.rglob("*") if p.is_fi
 check("the tracked plan is byte-for-byte unchanged", after == before, True)
 shutil.rmtree(temp, ignore_errors=True)
 shutil.rmtree(plan.parent, ignore_errors=True)
+
+
+print("LoadSFDMUData._run_task: the tracked plan is never rewritten")
+
+
+class _Log:
+    def info(self, *_a, **_k):
+        pass
+    warning = error = info
+
+
+class _Done:
+    returncode, stdout, stderr = 0, "", ""
+
+
+class _FakeScratch(ScratchOrgConfig):
+    """A scratch config whose token/URL don't trigger org creation (no config_file here)."""
+    access_token = "00Dxx!TOKEN"
+    instance_url = "https://example.my.salesforce.com"
+
+
+def run_task(options, query):
+    """Run _run_task on a fresh copy of the shipped plan; return (copy, before, after, error, temp)."""
+    work = pathlib.Path(tempfile.mkdtemp())
+    copy = work / "plan"
+    shutil.copytree(REPO / "datasets/sfdmu/qb/en-US/qb-rating-entitlements", copy,
+                    ignore=shutil.ignore_patterns(*rs.SFDMU_RUNTIME_DIRS))
+    snapshot = lambda: {p.relative_to(copy): p.read_bytes() for p in copy.rglob("*") if p.is_file()}
+    before = snapshot()
+    t = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
+    t.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+    t.options = {"pathtoexportjson": str(copy), **options}
+    t.logger = _Log()
+    t._load_keychain = lambda: None
+    saved = (rs.sf_query_records, rs.subprocess.run)
+    rs.sf_query_records, rs.subprocess.run = query, lambda *_a, **_k: _Done()
+    error = None
+    try:
+        t._run_task()
+    except Exception as exc:  # the task's own error is what we assert on
+        error = exc
+    finally:
+        rs.sf_query_records, rs.subprocess.run = saved
+    after = snapshot()
+    shutil.rmtree(work, ignore_errors=True)
+    return before, after, error, getattr(t, "_temp_plan_dir", None)
+
+
+SHIPPED = REPO / "datasets/sfdmu/qb/en-US/qb-rating-entitlements"
+SHIPPED_KEYS = sorted({(r["ProductUsageResource.Product.StockKeepingUnit"], r["ProductUsageResource.UsageResource.Code"])
+                       for name in ("ProductUsageResourcePolicy", "ProductUsageGrant")
+                       for r in rs.sfdmu_id_lookups._read_csv(str(SHIPPED / f"{name}.csv"))[1]})
+
+
+def org_with_every_pur(_org, _soql):
+    return [{"Id": f"1TrWt0000007{i:04d}AAA", "Status": "Active", "Product": {"StockKeepingUnit": sku},
+             "UsageResource": {"Code": code}} for i, (sku, code) in enumerate(SHIPPED_KEYS)]
+
+
+before, after, error, temp = run_task({}, org_with_every_pur)
+check("success: no error", error, None)
+check("success: tracked plan byte-for-byte unchanged", after == before, True)
+check("success: temp copy removed", bool(temp) and not os.path.exists(temp), True)
+before, after, error, temp = run_task({"ignore_row_errors_for": "{bad"}, org_with_every_pur)
+check("bad option: the option error surfaces (not masked by cleanup)", type(error).__name__, "TaskOptionsError")
+check("bad option: tracked plan unchanged", after == before, True)
+before, after, error, temp = run_task({}, lambda _org, _soql: [])
+check("failed lookup: IdLookupError surfaces", type(error).__name__, "IdLookupError")
+check("failed lookup: tracked plan unchanged", after == before, True)
+check("failed lookup: temp copy removed", bool(temp) and not os.path.exists(temp), True)
 
 print("=" * 60)
 if _failures:

@@ -292,6 +292,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
 
             with open(export_json_path, "w") as file:
                 json.dump(export_json, file, indent=2)
+            self._prepared_export_json = export_json_path
 
             self.logger.info(f'Formatted EXPORT.JSON: {json.dumps(export_json, indent=2)}')
         except json.JSONDecodeError as e:
@@ -302,7 +303,12 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             raise
 
     def _cleanup_export_json_file(self) -> None:
-        export_json_path = os.path.join(self.pathtoexportjson, EXPORT_JSON_FILENAME)
+        # Only the file _prepare_export_json_file wrote credentials into: a run that failed
+        # earlier (a bad option, a failed lookup) never rewrites the tracked export.json.
+        export_json_path = getattr(self, "_prepared_export_json", None)
+        if not export_json_path:
+            return
+        self._prepared_export_json = None
         try:
             with open(export_json_path, "r") as file:
                 export_json = json.load(file)
@@ -461,6 +467,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self._prepare_export_json_file()
     
     def _run_task(self) -> None:
+        self._prepared_export_json = None
         try:
             self._prep_runtime()
             
@@ -895,20 +902,10 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
             self.project_config.keychain = self.keychain
 
     def _get_org_for_cli(self) -> str:
-        if isinstance(self.org_config, ScratchOrgConfig):
-            return self.org_config.username
         # CLI commands (sf apex run, sf data query) require an authorized org alias or username
-        # as --target-org. Never fall back to access_token: it fails CLI auth and leaks a
-        # secret via logs, shell history, and process listings. The access_token is kept
-        # exclusively in the export.json orgs block where SFDMU needs it.
-        org_alias = self.options.get("targetusername") or getattr(self.org_config, "username", None)
-        if not org_alias:
-            raise TaskOptionsError(
-                "No target username/alias available for Salesforce CLI invocation. "
-                "Provide a valid 'targetusername' option or ensure org_config.username is set. "
-                "Falling back to org_config.access_token is not supported for CLI calls."
-            )
-        return org_alias
+        # as --target-org; never the access_token, which is kept exclusively in the export.json
+        # orgs block where SFDMU needs it.
+        return sfdmu_cli_org(self.org_config, self.options.get("targetusername"))
 
     def _get_record_counts(self, sobjects: list) -> Dict[str, int]:
         org_alias = self._get_org_for_cli()
@@ -1559,6 +1556,14 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self.accesstoken = self.org_config.access_token
             self.instanceurl = self.org_config.instance_url
 
+            raw_run_post_process = self.options.get("run_post_process")
+            if raw_run_post_process is None:
+                run_post_process = True  # default when option is absent
+            else:
+                run_post_process = str(raw_run_post_process).strip().lower() not in {"0", "false", "no"}
+            # Once, before the extract: a bad referenceplandir fails fast, and only when used.
+            reference_plan_dir = self._resolve_reference_plan_dir(plan_dir) if run_post_process else None
+
             # Prepare isolated working directory
             work_dir = self._prepare_working_dir()
             self._prepare_export_json(work_dir)
@@ -1594,22 +1599,15 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 with open(os.path.join(plan_dir, EXPORT_JSON_FILENAME), encoding="utf-8") as f:
                     sfdmu_id_lookups.strip_extraction_ids(
                         output_dir, json.load(f), self.logger.info,
-                        keep_csvs=sfdmu_id_lookups.tracked_csv_objects(
-                            plan_dir, self._resolve_reference_plan_dir(plan_dir)),
+                        keep_csvs=sfdmu_id_lookups.tracked_csv_objects(plan_dir, reference_plan_dir),
                         id_columns=sfdmu_id_lookups.id_columns_of(lookups))
             self.logger.info(f"Extraction complete. Output: {output_dir}")
             self.return_values = {"output_dir": output_dir}
 
             # Optionally run post-process so output is re-import-ready ($$ columns, header normalization)
-            raw_run_post_process = self.options.get("run_post_process")
-            if raw_run_post_process is None:
-                run_post_process = True  # default when option is absent
-            else:
-                run_post_process = str(raw_run_post_process).strip().lower() not in {"0", "false", "no"}
             if run_post_process:
                 processed_dir = os.path.join(output_dir, "processed")
                 os.makedirs(processed_dir, exist_ok=True)
-                reference_plan_dir = self._resolve_reference_plan_dir(plan_dir)
                 # Build an org-derived Name->Code map to restore externalId code
                 # components that SFDMU blanks to #N/A (cross-object .Code/.UnitCode).
                 code_map_file = None
