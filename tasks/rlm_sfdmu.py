@@ -129,16 +129,17 @@ def run_post_process_script(
             logger.warning(strip_ansi_codes(line))
 
 
-def sfdmu_cli_org(org_config, options) -> str:
-    """Org for `sf` CLI calls: the scratch username, else `targetusername` or
-    `org_config.username`. Never the access token (it fails CLI auth and leaks into logs)."""
+def sfdmu_cli_org(org_config, explicit: Optional[str] = None) -> str:
+    """Org for `sf` CLI calls: the scratch username, else `explicit` (a username/alias task
+    option) or `org_config.username`. Never the access token (it fails CLI auth and leaks into
+    logs). Scratch orgs ignore `explicit`, as the SFDMU commands do."""
     if isinstance(org_config, ScratchOrgConfig):
         return org_config.username
-    org = options.get("targetusername") or getattr(org_config, "username", None)
+    org = explicit or getattr(org_config, "username", None)
     if not org:
         raise TaskOptionsError(
-            "No target username/alias for Salesforce CLI calls. Set 'targetusername' or use an org "
-            "with org_config.username; the access token is never passed to the CLI.")
+            "No username/alias for Salesforce CLI calls. Set the task's username option or use an "
+            "org with org_config.username; the access token is never passed to the CLI.")
     return str(org)
 
 
@@ -364,7 +365,6 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
             self._temp_plan_dir = None
             raise
-        self._source_plan_dir = source_dir
         self.pathtoexportjson = self._temp_plan_dir
 
     def _apply_parent_id_lookups(self) -> None:
@@ -372,7 +372,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         if not sfdmu_id_lookups.load_lookups(self.pathtoexportjson):
             return
         self._ensure_temp_plan_copy("sfdmu_ids_")
-        org = sfdmu_cli_org(self.org_config, self.options)
+        org = sfdmu_cli_org(self.org_config, self.options.get("targetusername"))
         filled = sfdmu_id_lookups.apply_lookups(
             self.pathtoexportjson, lambda soql: sf_query_records(org, soql), self.logger.info)
         self.logger.info(f"Resolved parent Ids for {filled} row(s) ({sfdmu_id_lookups.LOOKUPS_FILENAME}).")
@@ -382,25 +382,19 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         placeholder = self.options.get("assigned_to_placeholder") or DRO_ASSIGNED_TO_PLACEHOLDER
         user_name = self._get_target_org_user_name()
         self.logger.info(f"Replacing DRO assigned-to placeholder with target org user Name: {user_name}")
+        # On failure _run_task's finally removes the temp copy; the tracked plan is never written.
         self._ensure_temp_plan_copy("sfdmu_dro_")
-        try:
-            for filename in DRO_CSV_FILES_TO_REPLACE:
-                path = os.path.join(self._temp_plan_dir, filename)
-                if not os.path.isfile(path):
-                    continue
-                with open(path, "r", encoding="utf-8", newline="") as f:
-                    content = f.read()
-                if placeholder not in content:
-                    continue
-                with open(path, "w", encoding="utf-8", newline="") as f:
-                    f.write(content.replace(placeholder, user_name))
-                self.logger.info(f"Replaced placeholder in {filename}")
-        except Exception:
-            if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
-                shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
-            self._temp_plan_dir = None
-            self.pathtoexportjson = getattr(self, "_source_plan_dir", self.pathtoexportjson)
-            raise
+        for filename in DRO_CSV_FILES_TO_REPLACE:
+            path = os.path.join(self._temp_plan_dir, filename)
+            if not os.path.isfile(path):
+                continue
+            with open(path, "r", encoding="utf-8", newline="") as f:
+                content = f.read()
+            if placeholder not in content:
+                continue
+            with open(path, "w", encoding="utf-8", newline="") as f:
+                f.write(content.replace(placeholder, user_name))
+            self.logger.info(f"Replaced placeholder in {filename}")
 
     def _set_project_defaults(self, instanceurl: str) -> None:
         try:
@@ -1122,7 +1116,10 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                     sfdmu_id_lookups.restore_parent_keys(
                         work_dir, lookups, lambda soql: sf_query_records(org, soql), self.logger.info)
                     with open(export_src, encoding="utf-8") as f:
-                        sfdmu_id_lookups.strip_extraction_ids(work_dir, json.load(f), self.logger.info)
+                        sfdmu_id_lookups.strip_extraction_ids(
+                            work_dir, json.load(f), self.logger.info,
+                            keep_csvs=sfdmu_id_lookups.tracked_csv_objects(plan_dir),
+                            id_columns=sfdmu_id_lookups.id_columns_of(lookups))
                 # Scrub credentials immediately so they are not left on disk if we crash before finally
                 export_in_work = os.path.join(work_dir, EXPORT_JSON_FILENAME)
                 if os.path.isfile(export_in_work):
@@ -1388,7 +1385,10 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         leaking the secret), so resolve a real alias/username here: the explicit
         sourceusername option, else org_config.username. Never the access_token.
         """
-        return self.options.get("sourceusername") or getattr(self.org_config, "username", None)
+        try:
+            return sfdmu_cli_org(self.org_config, self.options.get("sourceusername"))
+        except TaskOptionsError:
+            return None
 
     def _sf_query_records(self, soql: str) -> List[dict]:
         """Run a read-only SOQL query against the source org and return records.
@@ -1588,11 +1588,15 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             output_dir = self._collect_output(work_dir)
             lookups = sfdmu_id_lookups.load_lookups(plan_dir)
             if lookups:
-                org = sfdmu_cli_org(self.org_config, {"targetusername": self.options.get("sourceusername")})
+                org = sfdmu_cli_org(self.org_config, self.options.get("sourceusername"))
                 sfdmu_id_lookups.restore_parent_keys(
                     output_dir, lookups, lambda soql: sf_query_records(org, soql), self.logger.info)
                 with open(os.path.join(plan_dir, EXPORT_JSON_FILENAME), encoding="utf-8") as f:
-                    sfdmu_id_lookups.strip_extraction_ids(output_dir, json.load(f), self.logger.info)
+                    sfdmu_id_lookups.strip_extraction_ids(
+                        output_dir, json.load(f), self.logger.info,
+                        keep_csvs=sfdmu_id_lookups.tracked_csv_objects(
+                            plan_dir, self._resolve_reference_plan_dir(plan_dir)),
+                        id_columns=sfdmu_id_lookups.id_columns_of(lookups))
             self.logger.info(f"Extraction complete. Output: {output_dir}")
             self.return_values = {"output_dir": output_dir}
 

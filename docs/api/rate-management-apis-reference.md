@@ -56,9 +56,9 @@ These APIs require usage-based billing to be configured in the org. Before using
 1. Load rating data using `insert_qb_rating_data`, then `insert_qb_rating_entitlements_data` (policies and grants)
 2. Load rate card data using `insert_qb_rates_data` (or equivalent CCI task)
 3. Activate rating records via `activate_rating_records` (runs `activateRatingRecords.apex`)
-
-`cci flow run prepare_rating` runs all of these in order.
 4. Ensure `rates` and `rating` feature flags are enabled in `cumulusci.yml`
+
+`cci flow run prepare_rating` runs steps 1-3 in order.
 
 **Deletion order:** Always run `delete_qb_rates_data` before `delete_qb_rating_data` — rate card entries have foreign key relationships to PURs.
 

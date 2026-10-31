@@ -13,6 +13,7 @@ This plan is executed as **step 8** of the `prepare_rating` flow (when `rating=t
 | Step | Task                     | Description                                        |
 |------|--------------------------|----------------------------------------------------|
 | 1    | `delete_qb_rates_data`   | Runs `deleteQbRatesData.apex`                      |
+| 2    | `delete_qb_rating_data`  | Runs `deleteQbRatingData.apex`                     |
 | 3    | `insert_qb_rating_data`  | Runs the qb-rating SFDMU plan (prerequisite)       |
 | 4    | `insert_qb_rating_entitlements_data` | Runs the qb-rating-entitlements plan (policies and grants) |
 | 8    | `insert_qb_rates_data`   | **Runs this plan** (single pass — all objects)     |

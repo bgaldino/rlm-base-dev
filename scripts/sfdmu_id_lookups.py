@@ -139,16 +139,17 @@ def build_id_map(records: List[dict], key_fields: List[str],
     """`({key: chosen record}, {key: tied count})` -- a key with a tie at its best rank is
     left out of the map and reported in the second dict."""
     prefer = prefer or {}
-    grouped: Dict[tuple, List[dict]] = {}
+    grouped: Dict[tuple, List[Tuple[Tuple[int, ...], dict]]] = {}
     for record in records:
-        if _rank(record, prefer) is None:
+        rank = _rank(record, prefer)
+        if rank is None:
             continue
         key = tuple(_as_text(_record_value(record, f)) for f in key_fields)
-        grouped.setdefault(key, []).append(record)
+        grouped.setdefault(key, []).append((rank, record))
     chosen, ambiguous = {}, {}
     for key, candidates in grouped.items():
-        best = min(_rank(r, prefer) for r in candidates)
-        top = [r for r in candidates if _rank(r, prefer) == best]
+        best = min(rank for rank, _ in candidates)
+        top = [record for rank, record in candidates if rank == best]
         if len(top) == 1:
             chosen[key] = top[0]
         else:
@@ -263,7 +264,8 @@ def apply_lookups(plan_dir: str, query: Callable[[str], List[dict]],
             raise IdLookupError(
                 f"Cannot resolve {object_name} Ids on the target org "
                 f"(keyed on {';'.join(key_fields)}{ranked}):\n" + "\n".join(lines)
-                + f"\nA missing key: load the plan that creates {object_name} first. A tie: "
+                + f"\nA missing key: load the plan that creates {object_name} first, or the only "
+                "match on the org has a status not listed in 'prefer'. A tie: "
                 "remove the extra copy on the org (two copies with the same status for one key).")
     return filled
 
@@ -280,6 +282,20 @@ def prepare_extraction_export(export_data: dict, lookups: List[dict]) -> dict:
         export_data = dict(export_data)
         export_data["excludeIdsFromCSVFiles"] = False
     return export_data
+
+
+def id_columns_of(lookups: List[dict]) -> set:
+    """Every child `idColumn` the lookups resolve (always dropped from an extract)."""
+    return {child["idColumn"] for lookup in lookups for child in lookup["children"]}
+
+
+def tracked_csv_objects(*plan_dirs: Optional[str]) -> set:
+    """Object names with a CSV at the root of any of `plan_dirs` (None entries skipped)."""
+    names = set()
+    for plan_dir in plan_dirs:
+        if plan_dir and os.path.isdir(plan_dir):
+            names.update(n[:-4] for n in os.listdir(plan_dir) if n.endswith(".csv"))
+    return names
 
 
 def restore_parent_keys(extraction_dir: str, lookups: List[dict],
@@ -335,15 +351,22 @@ def restore_parent_keys(extraction_dir: str, lookups: List[dict],
 
 
 def strip_extraction_ids(extraction_dir: str, export_data: dict,
-                         log: Callable[[str], None] = print) -> None:
+                         log: Callable[[str], None] = print,
+                         keep_csvs: Optional[set] = None,
+                         id_columns: Optional[set] = None) -> None:
     """Make an Id-keeping extract (`prepare_extraction_export`) portable again, IN PLACE.
 
     Run after `restore_parent_keys`. Deletes the CSV of every object the plan only reads
-    (Readonly in every pass that declares it, e.g. the generated parent), and drops the `Id`
-    column and every direct lookup column (`...Id`, no dot) from the rest; the traversal
-    columns carry the portable values. Without this, post-processing keeps the extracted
-    headers for objects with no tracked CSV, and `copy_to_plan` would write org Ids into the
-    plan.
+    (Readonly in every pass that declares it, e.g. the generated parent) unless `keep_csvs`
+    names it, and drops from the rest the `Id` column and each lookup column `XxxId` that has a
+    traversal column `Xxx.<field>` beside it (or is a lookup's `idColumn`); the traversals carry
+    the portable values. Any other column ending in `Id` is kept and logged, so a data field is
+    never lost. Without this, post-processing keeps the extracted headers for objects with no
+    tracked CSV, and `copy_to_plan` would write org Ids into the plan.
+
+    `keep_csvs`: object names whose CSV the plan (or its reference plan) tracks. A tracked
+    Read-only object keeps its file, with Id columns dropped, so `copy_to_plan` doesn't replace
+    it with a header-only placeholder.
     """
     written: Dict[str, bool] = {}
     for object_set in sfdmu_export.normalize_object_sets(export_data):
@@ -359,14 +382,24 @@ def strip_extraction_ids(extraction_dir: str, export_data: dict,
             continue
         object_name = name[:-4]
         path = os.path.join(extraction_dir, name)
-        if object_name in written and not written[object_name]:
+        if object_name not in written:
+            continue
+        if not written[object_name] and object_name not in (keep_csvs or set()):
             os.remove(path)
             log(f"{name}: removed (read-only in this plan; it holds target-org Ids)")
             continue
-        if object_name not in written:
-            continue
         header, rows = _read_csv(path)
-        keep = [c for c in header if c != "Id" and not (c.endswith("Id") and "." not in c)]
+        prefixes = {c.split(".", 1)[0] for c in header if "." in c}
+
+        def is_id_column(column: str) -> bool:
+            if column == "Id" or column in (id_columns or set()):
+                return True
+            return column.endswith("Id") and "." not in column and column[:-2] in prefixes
+
+        keep = [c for c in header if not is_id_column(c)]
+        kept_ids = [c for c in keep if c.endswith("Id") and "." not in c]
+        if kept_ids:
+            log(f"{name}: kept {kept_ids} (no traversal column beside them; check they are data, not Ids)")
         if keep != header:
             _write_csv(path, keep, rows)
             log(f"{name}: dropped Id columns {[c for c in header if c not in keep]}")

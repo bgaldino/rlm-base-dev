@@ -211,6 +211,32 @@ with tempfile.TemporaryDirectory() as d:
     except il.IdLookupError:
         check("restore: extract without the Id column fails", "IdLookupError", "IdLookupError")
 
+with tempfile.TemporaryDirectory() as d:
+    root = pathlib.Path(d)
+    write(root / "Mixed.csv", ["Id", "ParentId", "Parent.Code", "ExternalSystemId", "Name"],
+          [["M1", "P1", "PC", "EXT-7", "a"]])
+    write(root / "Tracked.csv", ["Id", "Code"], [["T1", "c"]])
+    write(root / "Gone.csv", ["Id"], [["G1"]])
+    write(root / "MissingParentRecordsReport.csv", ["Id", "Note"], [["X", "y"]])
+    write(root / "Skipped.csv", ["Id"], [["S1"]])
+    logs = []
+    export = {"objectSets": [
+        {"objects": [{"query": "SELECT Name FROM Mixed", "operation": "Readonly"},
+                     {"query": "SELECT Code FROM Tracked", "operation": "Readonly"},
+                     {"query": "SELECT Name FROM Gone", "operation": "Readonly"},
+                     {"query": "SELECT Name FROM Skipped", "operation": "Readonly", "excluded": True}]},
+        {"objects": [{"query": "SELECT Name FROM Mixed", "operation": "Update"}]}]}
+    il.strip_extraction_ids(d, export, log=logs.append, keep_csvs={"Tracked"})
+    check("strip: Readonly-in-one-pass, writable-in-another keeps its CSV", (root / "Mixed.csv").is_file(), True)
+    check("strip: only lookups with a traversal beside them are dropped; data ...Id kept",
+          list(read(root / "Mixed.csv")[0].keys()), ["Parent.Code", "ExternalSystemId", "Name"])
+    check("strip: a kept ...Id column is logged", any("ExternalSystemId" in m for m in logs), True)
+    check("strip: a tracked Readonly CSV is kept, Id dropped", list(read(root / "Tracked.csv")[0].keys()), ["Code"])
+    check("strip: an untracked Readonly CSV is removed", (root / "Gone.csv").exists(), False)
+    check("strip: excluded objects and non-plan CSVs are left alone",
+          ((root / "Skipped.csv").is_file(), (root / "MissingParentRecordsReport.csv").is_file()), (True, True))
+check("id_columns_of", il.id_columns_of(LOOKUPS["lookups"]), {"ProductUsageResourceId"})
+
 print("prefer excludes unlisted statuses")
 chosen, tied = il.build_id_map([pur(ID1, "QB-DB", "UR-CPU", "Inactive")], ["Product.StockKeepingUnit", "UsageResource.Code"],
                                {"Status": ["Active", "Draft"]})
