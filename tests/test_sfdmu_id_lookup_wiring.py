@@ -254,6 +254,8 @@ check("extract: the success path ran end to end",
       any(m.startswith("Extraction complete") for m in extract_logs), True)
 check("extract: the token is never logged (command, SFDMU output, error)",
       [m for m in extract_logs if "PERSISTENT_TOKEN" in m], [])
+check("extract: the raised error is still logged, redacted",
+      any(m.startswith("Extraction error:") and "<redacted>" in m for m in extract_logs), True)
 check("extract: the command is still logged, redacted",
       any(m.startswith("Executing extraction:") and "<redacted>" in m for m in extract_logs), True)
 shutil.rmtree(ext.options["extractions_base_dir"], ignore_errors=True)
