@@ -88,6 +88,7 @@ try:
     task._apply_parent_id_lookups()
 except Exception:
     shutil.rmtree(plan.parent, ignore_errors=True)
+    shutil.rmtree(task._temp_plan_dir or "", ignore_errors=True)
     raise
 finally:
     rs.sf_query_records = real_query
@@ -123,7 +124,7 @@ class _FakeScratch(ScratchOrgConfig):
     instance_url = "https://example.my.salesforce.com"
 
 
-def run_task(options, query, plan_src=None, exit_code=0):
+def run_task(options, query, plan_src=None, exit_code=0, org_config=None):
     """Run _run_task on a fresh copy of `plan_src`; return (before, after, error, temp, logs)."""
     work = pathlib.Path(tempfile.mkdtemp())
     copy = work / "plan"
@@ -132,7 +133,7 @@ def run_task(options, query, plan_src=None, exit_code=0):
     snapshot = lambda: {p.relative_to(copy): p.read_bytes() for p in copy.rglob("*") if p.is_file()}
     before = snapshot()
     t = rs.LoadSFDMUData.__new__(rs.LoadSFDMUData)
-    t.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+    t.org_config = org_config or _FakeScratch({"username": "scratch@example.com"}, "dev")
     t.options = {"pathtoexportjson": str(copy), **options}
     logs = []
     t.logger = _Log()
@@ -187,6 +188,24 @@ check("in place, SFDMU fails: credentials cleared from export.json", restored.ge
 check("in place, SFDMU fails: object sets intact",
       restored["objectSets"] == json.loads(plain_export)["objectSets"], True)
 check("the access token is never logged", any("00Dxx!TOKEN" in m for m in logs), False)
+before, after, error, temp, logs = run_task({"object_sets": "[0]"}, org_with_every_pur, plan_src=PLAIN, exit_code=1)
+check("in place, filtered run fails: every object set restored",
+      json.loads(after[pathlib.Path("export.json")])["objectSets"] == json.loads(plain_export)["objectSets"], True)
+
+
+class _FakePersistent(OrgConfig):
+    """A persistent org with no username: the token becomes SFDMU's org name."""
+    access_token = "00Dyy!PERSISTENT_TOKEN"
+    instance_url = "https://example.my.salesforce.com"
+
+
+before, after, error, temp, logs = run_task({}, org_with_every_pur, plan_src=PLAIN,
+                                            org_config=_FakePersistent({}, "tso"))
+check("persistent org: the run completes", error, None)
+check("persistent org: the token is never logged (command or export.json)",
+      [m for m in logs if "PERSISTENT_TOKEN" in m], [])
+check("persistent org: the command log is still written, redacted",
+      any(m.startswith("Executing command:") and "<redacted>" in m for m in logs), True)
 before, after, error, temp, logs = run_task({"object_sets": "[7]"}, org_with_every_pur, plan_src=PLAIN)
 check("in place, bad object_sets: the option error surfaces", type(error).__name__, "TaskOptionsError")
 check("in place, bad object_sets: export.json byte-for-byte unchanged",

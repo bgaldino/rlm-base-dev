@@ -445,6 +445,7 @@ CHECKS = [
         # token, and Ids resolve in a temp copy that leaves the tracked plan untouched.
         triggers=["tasks/rlm_sfdmu.py", "scripts/sfdmu_id_lookups.py", "scripts/sfdmu_export.py",
                   "datasets/sfdmu/qb/en-US/qb-rating-entitlements/",
+                  "datasets/sfdmu/qb/en-US/qb-rating/",
                   "tests/test_sfdmu_id_lookup_wiring.py"],
         deps=["cumulusci"], gating=True,
     ),

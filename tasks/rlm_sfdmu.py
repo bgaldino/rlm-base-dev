@@ -129,6 +129,17 @@ def run_post_process_script(
             logger.warning(strip_ansi_codes(line))
 
 
+def redact_secret(text: str, secret: Optional[str]) -> str:
+    """`text` with every occurrence of `secret` (an access token) masked, for logging.
+
+    On a non-scratch org with no username option, the token itself is SFDMU's org name
+    (`--targetusername`, `orgs[].name`), so it appears in commands and export.json beyond the
+    `accessToken` field. What SFDMU receives is unchanged; only what is logged is masked."""
+    if not secret:
+        return text
+    return str(text).replace(str(secret), "<redacted>")
+
+
 def sfdmu_cli_org(org_config, explicit: Optional[str] = None) -> str:
     """Org for `sf` CLI calls: the scratch username, else `explicit` (a username/alias task
     option) or `org_config.username`. Never the access token (it fails CLI auth and leaks into
@@ -165,7 +176,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             "required": True
         },
         "targetusername": {
-            "description": "Username or AccessToken of the account that will be used to upload the data",
+            "description": "Username or alias of the account that will be used to upload the data (defaults to the org's; never logged if it is a token)",
             "required": False
         },
         "instanceurl": {
@@ -295,8 +306,8 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self._prepared_export_json = export_json_path
 
             # Never log the access token: it lands in CCI logs and CI output.
-            redacted = dict(export_json, orgs=[dict(o, accessToken="<redacted>") for o in export_json["orgs"]])
-            self.logger.info(f'Formatted EXPORT.JSON: {json.dumps(redacted, indent=2)}')
+            self.logger.info("Formatted EXPORT.JSON: "
+                             + redact_secret(json.dumps(export_json, indent=2), self.accesstoken))
         except json.JSONDecodeError as e:
             self.logger.error(f"Error parsing export.json: {e}")
             raise
@@ -481,7 +492,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self.logger.info(f'Current Working Directory: {self.options.get("dir")}')
             
             cmd = self._get_command()
-            self.logger.info(f'Executing command: {cmd}')  # Log the command being executed
+            self.logger.info(f'Executing command: {redact_secret(cmd, self.accesstoken)}')
             # Before the run, so a target CSV left by an earlier run is not read as this one's.
             baseline = sfdmu_export.snapshot_target_files(self.pathtoexportjson)
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir"))
@@ -1579,7 +1590,7 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 sourceusername=self.sourceusername,
                 pathtoexportjson=work_dir,
             )
-            self.logger.info(f"Executing extraction: {cmd}")
+            self.logger.info(f"Executing extraction: {redact_secret(cmd, self.accesstoken)}")
             result = subprocess.run(
                 cmd, shell=True, capture_output=True, text=True,
                 cwd=self.options.get("dir"),
