@@ -1,6 +1,8 @@
-Code,Status
-QB-TOKEN,Active
-UR-CPUTIME,Active
-UR-DATASTORAGE,Active
-UR-DATAXFR,Active
-UR-USD,Active
+Category,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,TokenResource.Code,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit
+Token,QB-TOKEN,TOKEN-UOM,Quantum Tokens,Quantum Tokens,,Token_UoM_Class,QB-TOKEN-DEF
+Usage,UR-CPUTIME,m,,Compute Time,,TIME,QB-CPU-BLNG
+Usage,UR-DATASTORAGE,TB,,Data Storage,,DATAVOL,QB-DATA-STORAGE-BLNG
+Usage,UR-DATAXFR,GB,,Data Throughput,,DATAVOL,QB-DATA-THPT-BLNG
+Currency,UR-USD,USD,,USD Resource,,CURRENCY,RES-USD-DEF
+Usage,UR-CPUTIME-TKN,m,,Compute Time (Token),QB-TOKEN,TIME,QB-CPU-BLNG
+Usage,UR-DATASTORAGE-TKN,TB,,Data Storage (Token),QB-TOKEN,DATAVOL,QB-DATA-STORAGE-BLNG

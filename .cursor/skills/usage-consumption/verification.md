@@ -29,7 +29,7 @@ python scripts/ai/check_plan_readme_consistency.py --strict  # README ↔ export
 ## Offline invariants — the fast gate
 
 17 checks, no org needed, runs in under a second. Run it before every commit that
-touches `qb-rating`, `qb-rates`, or `qb-pricing` data.
+touches `qb-rating`, `qb-rating-entitlements`, `qb-rates`, or `qb-pricing` data.
 
 | Invariant | Guards against |
 |-----------|----------------|

@@ -9,12 +9,12 @@
 //   sf apex run --target-org <alias> --file scripts/apex/activateRatingRecords.apex
 //
 // Activation order (7 steps):
-//   1. UnitOfMeasureClass > Active  (safety net; SFDMU Pass 2 handles this)
-//   2. UsageResource > Active       (safety net; SFDMU Pass 2 handles this)
-//   2.5. Remove duplicate PURs that overlap an Active PUR by effective period:
-//        2.5a. Delete Draft PUG/PURP children of the duplicate Draft PURs (API 262: SFDMU
-//              deleteOldData cannot delete Active records, so a second run inserts fresh Draft
-//              children linked to the new Draft PURs — clear them first to unblock PUR deletion).
+//   1. UnitOfMeasureClass > Active  (qb-rating loads it as Draft and never sends Status again)
+//   2. UsageResource > Active       (same)
+//   2.5. Remove duplicate PURs that overlap an Active PUR by effective period (safety net: the
+//        qb plans no longer create duplicates, since qb-rating and qb-rating-entitlements match
+//        existing rows and delete nothing (todo 298); kept for the q3 plans and hand-made copies):
+//        2.5a. Delete Draft PUG/PURP children of the duplicate Draft PURs (they block PUR deletion).
 //        2.5b. Delete the now-childless duplicate Draft PURs (survivor: Active > has-children > lower Id).
 //   3. Pre-populate TokenResourceId on Draft non-Token PURs that are missing it
 //   4. Token PUR > Active           (must precede Step 5; products with Token PURs
@@ -230,9 +230,10 @@ if (candidatePairKeys.isEmpty()) {
     if (!duplicatePurIds.isEmpty()) {
         // Sub-step 2.5a: Clear Draft PUG/PURP children of duplicate Draft PURs so the PURs
         // can be deleted by the loop below (which skips PURs with children).
-        // In API 262+ SFDMU deleteOldData cannot delete Active PURs/PUGs/PURPs, so a second
-        // plan run inserts fresh Draft children linked to the duplicate Draft PURs, blocking
-        // deletion. We delete those Draft children first, then re-query to refresh purIdsWithChildren.
+        // A plan that re-inserts instead of matching (the q3 plans still use Insert+deleteOldData,
+        // which can't delete Active records) leaves fresh Draft children on the duplicate Draft
+        // PURs, blocking deletion. We delete those Draft children first, then re-query to refresh
+        // purIdsWithChildren.
         Set<Id> draftDuplicatePurIds = new Set<Id>();
         for (ProductUsageResource pur : allPurs) {
             if (duplicatePurIds.contains(pur.Id) && pur.Status == 'Draft') {

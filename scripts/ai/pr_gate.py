@@ -439,6 +439,17 @@ CHECKS = [
         deps=["cumulusci"], gating=True,
     ),
     dict(
+        name="sfdmu_id_lookup_wiring",
+        cmd=["python", "tests/test_sfdmu_id_lookup_wiring.py"],
+        # LoadSFDMUData's parent-Id lookup step (todo 298): the sf CLI org is never the access
+        # token, and Ids resolve in a temp copy that leaves the tracked plan untouched.
+        triggers=["tasks/rlm_sfdmu.py", "scripts/sfdmu_id_lookups.py", "scripts/sfdmu_export.py",
+                  "datasets/sfdmu/qb/en-US/qb-rating-entitlements/",
+                  "datasets/sfdmu/qb/en-US/qb-rating/",
+                  "tests/test_sfdmu_id_lookup_wiring.py"],
+        deps=["cumulusci"], gating=True,
+    ),
+    dict(
         name="context_node_mapping_merge",
         cmd=["python", "tests/test_context_service_node_mapping_merge.py"],
         # tasks/rlm_context_service.py imports cumulusci and requests unconditionally (as
@@ -703,6 +714,7 @@ STDLIB_SUITES = [
     "tests/test_rlm_enable_change_data_capture.py",
     "tests/test_robot_salesforce_api_auth.py",
     "tests/test_search_index_readiness.py",
+    "tests/test_sfdmu_id_lookups.py",
     "tests/test_sf_token.py",
     "tests/test_snapshot_dev_guide.py",
     "tests/test_snapshot_help.py",

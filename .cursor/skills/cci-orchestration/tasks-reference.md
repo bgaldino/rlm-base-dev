@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**270 tasks** across **9 groups**.
+**273 tasks** across **9 groups**.
 
 ---
 
@@ -137,7 +137,7 @@
 
 ## Data Management - Extract
 
-*25 task(s)*
+*26 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -391,6 +391,18 @@
 
 ---
 
+### `extract_qb_rating_entitlements_data`
+
+**Description:** Extract qb-rating-entitlements (usage policies and grants) from org to CSV. Output in datasets/sfdmu/extractions/qb-rating-entitlements/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-rating-entitlements`
+
+---
+
 ### `extract_qb_tax_data`
 
 **Description:** Extract qb-tax (tax policies and treatments) from org to CSV. Output in datasets/sfdmu/extractions/qb-tax/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
@@ -442,7 +454,7 @@
 
 ## Data Management - Idempotency
 
-*22 task(s)*
+*23 task(s)*
 
 ### `test_q3_billing_idempotency`
 
@@ -695,6 +707,20 @@
 
 ---
 
+### `test_qb_rating_entitlements_idempotency`
+
+**Description:** Idempotency test for qb-rating-entitlements (needs qb-rating loaded). Uses extraction roundtrip (extract -> post-process -> load from processed dir); each load resolves resource Ids on the org first. Persists extraction output to datasets/sfdmu/extractions/qb-rating-entitlements/<timestamp>.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-rating-entitlements`
+- `use_extraction_roundtrip`: `True`
+- `persist_extraction_output`: `True`
+
+---
+
 ### `test_qb_rating_idempotency`
 
 **Description:** Idempotency test for qb-rating. Uses extraction roundtrip (extract -> post-process -> load from processed dir) to validate that extracted CSVs can be re-imported without adding records. Persists extraction output to datasets/sfdmu/extractions/qb-rating/<timestamp>.
@@ -830,7 +856,7 @@
 
 ## Revenue Lifecycle Management
 
-*177 task(s)*
+*178 task(s)*
 
 ### `activate_agents`
 
@@ -2537,13 +2563,25 @@
 
 ### `insert_qb_rating_data`
 
-**Description:** Insert QuantumBit Rating Data
+**Description:** Insert QuantumBit Rating Data (usage definitions and product usage resources; run insert_qb_rating_entitlements_data next)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-rating`
+
+---
+
+### `insert_qb_rating_entitlements_data`
+
+**Description:** Insert QuantumBit usage policies and grants on each product usage resource (run after insert_qb_rating_data; resolves resource Ids on the target org)
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-rating-entitlements`
 
 ---
 

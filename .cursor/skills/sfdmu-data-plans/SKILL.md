@@ -125,7 +125,7 @@ case; existing plans still carrying Insert+deleteOldData migrate under the gated
 2. Confirming no direct-field externalId alternative exists
 3. Getting explicit user approval
 
-`deleteOldData: true` deletes every target record matched by the object's own query (all of them when it has no WHERE) before inserting, or the records matched by a per-object `deleteQuery` if one is set (SELECT is forced to `Id`; the WHERE is used verbatim against the target org). qb-rating scopes PUR/PURP/PUG with `WHERE Status != 'Active'` because the platform blocks deleting Active rating records, and an unscoped delete stripped PURP on a reload. Misapplied, it wipes data that Upsert would have safely matched.
+`deleteOldData: true` deletes every target record matched by the object's own query (all of them when it has no WHERE) before inserting, or the records matched by a per-object `deleteQuery` if one is set (SELECT is forced to `Id`; the WHERE is used verbatim against the target org). Misapplied, it wipes data that Upsert would have safely matched: an unscoped delete on qb-rating stripped every policy from the Active usage resources on a reload of a built org (todo 298), which is why that plan now matches instead of deleting (see *Reload-Safe Status Objects and Child Lookups*).
 
 ## Reloading a Plan Into a Live Org
 
@@ -146,11 +146,11 @@ Two concrete traps in the QB plans:
   **flow** is safe: `prepare_pricing_data` runs `delete_quantumbit_pricing_data`
   first, which clears every Insert-operation object in the plan. So reach for the
   flow, or run the delete task yourself before the insert.
-- **`qb-rating` / `qb-rates` use `Insert` + `deleteOldData`** — which cannot clear
-  design-time rows (PUR/PUG/RateCardEntry, and `AssetRateCardEntry` referencing
-  `RateCardEntry`) while live entitlements point at them. qb-rating's `deleteQuery`
-  skips Active rows, so a reload adds a Draft set that activation then collapses;
-  qb-rates still leaves the rows and you get a duplicate Draft set.
+- **`qb-rates` uses `Insert` + `deleteOldData`** — which cannot clear design-time rows
+  (RateCardEntry, and `AssetRateCardEntry` referencing it) while live entitlements
+  point at them, so a reload leaves the rows and adds a duplicate Draft set.
+  **`qb-rating` + `qb-rating-entitlements` reload cleanly**: they match existing rows,
+  delete nothing and never send Status to an Active record (todo 298).
 
 **To add one product to a live org, load it surgically** — insert just the new
 records and their relationships (a throwaway script or anonymous Apex), rather than
@@ -161,6 +161,36 @@ re-running the plan. Then:
 3. **Verify plan-level wiring on the next full `prepare_rlm_org` build** — a
    surgical load proves the *records* work, not that the *plan* creates them
    correctly. Track that verification as owed work until it runs.
+
+## Reload-Safe Status Objects and Child Lookups (qb-rating pattern)
+
+Rating records (and many other RLM design-time objects) can't be deleted while Active, and a
+`Status` sent on update either fails (`ProductUsageResource` rejects Active -> Draft) or silently
+demotes the record (`ProductUsageGrant`). `qb-rating` and `qb-rating-entitlements` show the
+pattern that reloads a built org with no deletes and no status changes (live-verified 2026-10-30):
+
+1. **Two passes per status object.** Pass 1: `Upsert` + `skipExistingRecords: true` with the full
+   CSV (Status = Draft), which inserts missing rows and never touches existing ones. Pass 2: `Update` with
+   `Status` removed from the query and from `objectset_source/object-set-2/<Object>.csv`, so
+   corrections to every other field still land. Activation stays in Apex. Don't use
+   `excludedFromUpdateFields: ["Status"]` instead: in 5.8.0 it strips the field from inserts too,
+   and Status is required on insert.
+2. **Declare every lookup's parent in each pass**, even if only as `Readonly` with no CSV. An
+   `Update` row whose lookup target object isn't in the pass is sent with that lookup **null**:
+   qb-rating's pass 2 blanked `UnitOfMeasureClass.BaseUnitOfMeasure` until `UnitOfMeasure` was
+   added as `Readonly`.
+3. **A child that can only match on its parent's composite traversal key** fails on 5.8.0
+   (upstream #1218: the child's target query drops the parent prefix, "Didn't understand
+   relationship 'Product'"). Match it on the direct lookup (`ProductUsageResourceId`) in a
+   **separate plan that runs after the parent's**, and add a `parent_id_lookups.json`:
+   `LoadSFDMUData` resolves the target Ids from the CSV's portable key columns into a temp copy
+   (`scripts/sfdmu_id_lookups.py`), and extraction turns the Ids back into keys. Tracked CSVs
+   never carry Ids. The parent is declared `Readonly`, `externalId: Id`, with one field besides
+   `Id` (an Id-only Readonly object is dropped: "Only Id remains").
+
+The platform still locks some fields on Active records (e.g. `ProductUsageResource.EffectiveEndDate`
+while its grant is Active). Pass 2 then fails the load with the platform's message; it never skips
+the row silently.
 
 ## Object Ordering
 

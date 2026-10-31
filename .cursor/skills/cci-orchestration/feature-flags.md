@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**45 feature flags**, **86 configuration values**, **43 YAML anchors** under `project.custom`.
+**45 feature flags**, **87 configuration values**, **43 YAML anchors** under `project.custom`.
 
 ---
 
@@ -46,13 +46,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `procedureplans` | `True` | 6 flow step(s) |
 | `procedureplans_active` | `False` | 1 flow step(s) |
 | `q3` | `False` | 13 flow step(s) |
-| `qb` | `True` | 39 flow step(s) |
+| `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 28 flow step(s) |
 | `quote_est_tax` | `False` | — |
 | `rates` | `True` | 6 flow step(s) |
-| `rating` | `True` | 15 flow step(s) |
-| `refresh` | `False` | 13 flow step(s) |
+| `rating` | `True` | 16 flow step(s) |
+| `refresh` | `False` | 14 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 8 flow step(s) |
 | `trial` | `False` | — |
@@ -353,10 +353,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
-- `prepare_rating` step 4 → `delete_q3_rates_data`
-- `prepare_rating` step 5 → `delete_q3_rating_data`
-- `prepare_rating` step 6 → `insert_q3_rating_data`
-- `prepare_rating` step 8 → `insert_q3_rates_data`
+- `prepare_rating` step 5 → `delete_q3_rates_data`
+- `prepare_rating` step 6 → `delete_q3_rating_data`
+- `prepare_rating` step 7 → `insert_q3_rating_data`
+- `prepare_rating` step 9 → `insert_q3_rates_data`
 - `run_q3_idempotency_tests` step 5 → `test_q3_tax_idempotency`
 - `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
@@ -383,11 +383,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_rating` step 1 → `delete_qb_rates_data`
 - `prepare_rating` step 2 → `delete_qb_rating_data`
 - `prepare_rating` step 3 → `insert_qb_rating_data`
-- `prepare_rating` step 4 → `delete_q3_rates_data`
-- `prepare_rating` step 5 → `delete_q3_rating_data`
-- `prepare_rating` step 6 → `insert_q3_rating_data`
-- `prepare_rating` step 7 → `insert_qb_rates_data`
-- `prepare_rating` step 8 → `insert_q3_rates_data`
+- `prepare_rating` step 4 → `insert_qb_rating_entitlements_data`
+- `prepare_rating` step 5 → `delete_q3_rates_data`
+- `prepare_rating` step 6 → `delete_q3_rating_data`
+- `prepare_rating` step 7 → `insert_q3_rating_data`
+- `prepare_rating` step 8 → `insert_qb_rates_data`
+- `prepare_rating` step 9 → `insert_q3_rates_data`
 - `prepare_constraints` step 6 → `validate_cml`
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
@@ -436,11 +437,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `rates` (default: `True`)
 
 - `prepare_rating` step 1 → `delete_qb_rates_data`
-- `prepare_rating` step 4 → `delete_q3_rates_data`
-- `prepare_rating` step 7 → `insert_qb_rates_data`
-- `prepare_rating` step 8 → `insert_q3_rates_data`
-- `prepare_rating` step 9 → `activate_rating_records`
-- `prepare_rating` step 10 → `activate_rates`
+- `prepare_rating` step 5 → `delete_q3_rates_data`
+- `prepare_rating` step 8 → `insert_qb_rates_data`
+- `prepare_rating` step 9 → `insert_q3_rates_data`
+- `prepare_rating` step 10 → `activate_rating_records`
+- `prepare_rating` step 11 → `activate_rates`
 
 ### `rating` (default: `True`)
 
@@ -449,13 +450,14 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_rating` step 1 → `delete_qb_rates_data`
 - `prepare_rating` step 2 → `delete_qb_rating_data`
 - `prepare_rating` step 3 → `insert_qb_rating_data`
-- `prepare_rating` step 4 → `delete_q3_rates_data`
-- `prepare_rating` step 5 → `delete_q3_rating_data`
-- `prepare_rating` step 6 → `insert_q3_rating_data`
-- `prepare_rating` step 7 → `insert_qb_rates_data`
-- `prepare_rating` step 8 → `insert_q3_rates_data`
-- `prepare_rating` step 9 → `activate_rating_records`
-- `prepare_rating` step 10 → `activate_rates`
+- `prepare_rating` step 4 → `insert_qb_rating_entitlements_data`
+- `prepare_rating` step 5 → `delete_q3_rates_data`
+- `prepare_rating` step 6 → `delete_q3_rating_data`
+- `prepare_rating` step 7 → `insert_q3_rating_data`
+- `prepare_rating` step 8 → `insert_qb_rates_data`
+- `prepare_rating` step 9 → `insert_q3_rates_data`
+- `prepare_rating` step 10 → `activate_rating_records`
+- `prepare_rating` step 11 → `activate_rates`
 - `refresh_all_decision_tables` step 3 → `refresh_dt_asset`
 - `refresh_all_decision_tables` step 4 → `refresh_dt_rating`
 - `refresh_all_decision_tables` step 5 → `refresh_dt_rating_discovery`
@@ -470,11 +472,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_rating` step 1 → `delete_qb_rates_data`
 - `prepare_rating` step 2 → `delete_qb_rating_data`
 - `prepare_rating` step 3 → `insert_qb_rating_data`
-- `prepare_rating` step 4 → `delete_q3_rates_data`
-- `prepare_rating` step 5 → `delete_q3_rating_data`
-- `prepare_rating` step 6 → `insert_q3_rating_data`
-- `prepare_rating` step 7 → `insert_qb_rates_data`
-- `prepare_rating` step 8 → `insert_q3_rates_data`
+- `prepare_rating` step 4 → `insert_qb_rating_entitlements_data`
+- `prepare_rating` step 5 → `delete_q3_rates_data`
+- `prepare_rating` step 6 → `delete_q3_rating_data`
+- `prepare_rating` step 7 → `insert_q3_rating_data`
+- `prepare_rating` step 8 → `insert_qb_rates_data`
+- `prepare_rating` step 9 → `insert_q3_rates_data`
 
 ### `sample_data` (default: `True`)
 
@@ -608,6 +611,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_product_image_dataset` | `datasets/sfdmu/qb/en-US/qb-product-images` |
 | `quantumbit_rates_dataset` | `datasets/sfdmu/qb/en-US/qb-rates` |
 | `quantumbit_rating_dataset` | `datasets/sfdmu/qb/en-US/qb-rating` |
+| `quantumbit_rating_entitlements_dataset` | `datasets/sfdmu/qb/en-US/qb-rating-entitlements` |
 | `quantumbit_tax_dataset` | `datasets/sfdmu/qb/en-US/qb-tax` |
 | `quantumbit_transactionprocessingtypes_dataset` | `datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes` |
 | `rate_management_context_base_reference` | `RateManagementContext__stdctx` |

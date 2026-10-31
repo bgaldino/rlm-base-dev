@@ -17,8 +17,9 @@ Data plans provide the reference data loaded during org setup. This project uses
 > **Requires SFDMU v5.6.4+.** Re-run safety depends on the plan, its orchestration,
 > and the target org's existing data. Read the per-plan README before reloading:
 > `qb-pricing` retains Insert objects and uses a separate delete task in its flow;
-> `qb-rating` and `qb-rates` retain Insert + `deleteOldData` operations whose deletes
-> can be blocked by live records. See [reloading a plan into a live org](../../.cursor/skills/sfdmu-data-plans/SKILL.md#reloading-a-plan-into-a-live-org)
+> `qb-rates` retains Insert + `deleteOldData` operations whose deletes can be blocked
+> by live records. `qb-rating` and `qb-rating-entitlements` match existing rows and
+> delete nothing, so they reload a built org cleanly. See [reloading a plan into a live org](../../.cursor/skills/sfdmu-data-plans/SKILL.md#reloading-a-plan-into-a-live-org)
 > for these limitations and [Composite Key Optimizations](../../docs/references/sfdmu-composite-key-optimizations.md)
 > for migration history.
 

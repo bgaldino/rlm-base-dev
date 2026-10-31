@@ -1,6 +1,6 @@
-Code,Status
-CAS01,Active
-CURRENCY,Active
-DATAVOL,Active
-TIME,Active
-Token_UoM_Class,Active
+BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Type
+EACH,CAS01,EACH,Support Cases,Case,Usage
+USD,CURRENCY,USD,,Currency,Currency
+GB,DATAVOL,GB,,Data Volume,Usage
+m,TIME,m,,Time,Usage
+,Token_UoM_Class,TOKEN-UOM,Tokens UoM Class,Tokens UoM Class,Token
