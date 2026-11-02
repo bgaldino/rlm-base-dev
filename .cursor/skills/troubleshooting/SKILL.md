@@ -191,10 +191,12 @@ logged as a warning, while a different error or any other object still fails. `f
 ### Idempotency test fails (record count increased)
 
 (It also fails, before comparing counts, on rejected rows other than the task's
-`ignore_row_errors_for`, and on ANY rejected insert in the second load, listed or not: a
-rerun whose inserts are rejected instead of matched leaves the counts flat and would
-otherwise read as idempotent. A rejected update can't create a record, so a known update
-rejection is tolerated on both loads.)
+`ignore_row_errors_for`, and on a rejected insert in the second load: a rerun whose inserts
+are rejected instead of matched leaves the counts flat and would otherwise read as
+idempotent. The one exception is a listed insert rejection that the same target file already had
+on the first load, at least as many times, such as qb-pcm's ProrationPolicy duplicating the platform default on
+every load; that row never inserts, so it can't hide a missed match. A rejected update
+can't create a record, so a known update rejection is tolerated on both loads.)
 
 **Cause:** Missing or mismatched `$$` composite key column in the CSV. The
 second load inserts instead of matching.

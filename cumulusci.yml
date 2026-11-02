@@ -3023,7 +3023,8 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_product_dataset
       # Expected rejection (ProrationPolicy is create-only), as on the matching load task. A rejected
-      # INSERT on the second load still fails: a rejected rerun would otherwise read as idempotent.
+      # INSERT on the second load fails unless the first load rejected it too (this one, every load):
+      # a rerun whose inserts are rejected instead of matched would otherwise read as idempotent.
       ignore_row_errors_for:
         ProrationPolicy: "duplicate value found"
       use_extraction_roundtrip: true
@@ -3161,7 +3162,8 @@ tasks:
     options:
       pathtoexportjson: *q3_pcm_dataset
       # Expected rejection (ProrationPolicy is create-only), as on the matching load task. A rejected
-      # INSERT on the second load still fails: a rejected rerun would otherwise read as idempotent.
+      # INSERT on the second load fails unless the first load rejected it too (this one, every load):
+      # a rerun whose inserts are rejected instead of matched would otherwise read as idempotent.
       ignore_row_errors_for:
         ProrationPolicy: "duplicate value found"
       use_extraction_roundtrip: false
@@ -3205,7 +3207,8 @@ tasks:
     options:
       pathtoexportjson: *q3_tax_dataset
       # PREDICTED rejections, as on the matching load task. A rejected INSERT on the second load
-      # still fails: a rejected rerun would otherwise read as idempotent.
+      # fails unless the first load rejected it too: a rejected rerun would otherwise read as
+      # idempotent.
       ignore_row_errors_for:
         TaxPolicy: "cannot be updated to Active"
         TaxEngine: "MerchantCredentialId"

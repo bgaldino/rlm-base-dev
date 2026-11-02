@@ -899,7 +899,7 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
             "required": False,
         },
         "ignore_row_errors_for": {
-            "description": "Known, harmless row rejections (same form as the load task's option). Tolerated on both loads, EXCEPT a rejected insert on the second load, which always fails: a rerun whose inserts are rejected instead of matched leaves counts flat and would read as idempotent.",
+            "description": "Known, harmless row rejections (same form as the load task's option). Tolerated on both loads, EXCEPT a rejected insert on the second load, which fails unless the first load's same target file rejected at least as many inserts: a rerun whose inserts are rejected instead of matched leaves counts flat and would read as idempotent.",
             "required": False,
         },
         "run_after_each_load_apex": {
@@ -1029,12 +1029,23 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                 self.logger.info(self._redact(strip_ansi_codes(line)))
             # A rerun whose rows are REJECTED instead of matched leaves the counts flat and would
             # read as idempotent (todo 286: a qb-pcm rerun rejects all 234 ProductRelatedComponent
-            # rows). So on the second load a rejected INSERT is always fatal, listed or not. A
-            # rejected update cannot create a record, so known update rejections are tolerated on
-            # both loads (SFDMU names each target file after the operation it performed).
+            # rows). So on the second load a rejected INSERT is fatal unless it is listed in
+            # ignore_row_errors_for AND the first load's same target file rejected at least as
+            # many inserts: that row was never going to insert (qb-pcm's ProrationPolicy
+            # duplicates the platform default on both loads), so it can't hide a missed match.
+            # Keyed by file, not object: an object declared in two passes has one target file per
+            # pass, and a per-object number would let one pass's rejections excuse another's. A rejected
+            # update cannot create a record, so known update rejections are tolerated on both
+            # loads (SFDMU names each target file after the operation it performed).
             rejected = sfdmu_export.collect_target_row_errors(plan_dir, baseline=baseline)
+            if not strict:
+                self._first_load_insert_rejections = {
+                    i["file"]: i["failed"] for i in rejected if i["operation"].lower() == "insert"}
             if rejected:
-                fatal = [i for i in rejected if strict and i["operation"].lower() == "insert"]
+                first = getattr(self, "_first_load_insert_rejections", {})
+                fatal = [i for i in rejected if strict and i["operation"].lower() == "insert"
+                         and not (sfdmu_export.split_known_row_errors([i], self._row_error_ignores)[0]
+                                  and first.get(i["file"], 0) >= i["failed"])]
                 known, unknown = sfdmu_export.split_known_row_errors(
                     [i for i in rejected if i not in fatal], self._row_error_ignores)
                 if known:
