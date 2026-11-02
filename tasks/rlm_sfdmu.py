@@ -1338,6 +1338,9 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         SFDMU writes extracted CSVs into the directory that contains
         export.json.  To avoid clobbering the version-controlled plan CSVs we
         copy only the export.json to a temp dir and point SFDMU there.
+        This dir is only extracted into, never loaded, so it needs no
+        parent_id_lookups.json; the loadable processed/ dir gets one from
+        copy_plan_control_files.
         """
         plan_dir = self.options.get("pathtoexportjson", "datasets/sfdmu/")
         export_json_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)

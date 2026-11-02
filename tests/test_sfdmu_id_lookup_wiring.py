@@ -283,8 +283,7 @@ def fake_extract_run(cmd, *_a, **_k):
                         ProductUsageResourceId=f"1TrWt000000{i:04d}AAA") for i, r in enumerate(rows)]
             rs.sfdmu_id_lookups._write_csv(os.path.join(work, f"{name}.csv"),
                                            ["Id", "ProductUsageResourceId"] + [c for c in header if c not in keys], out)
-    done = _Done()
-    return done
+    return _Done()
 
 
 def fake_parent_query(_org, soql):
