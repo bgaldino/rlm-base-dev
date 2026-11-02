@@ -100,9 +100,9 @@ from the asset's last price. A contract price for the line overrides it; a
 discount-only row, or no row at all, leaves the asset price in place.
 
 These were run live on amendment quotes created with the
-`/connect/revenue-management/assets/actions/amend` API, from assets sold at
-list price (12000) with no contract. Renewals take the same last-transaction
-path but were not run.
+`/connect/revenue-management/assets/actions/amend` API (and `…/cancel` for the
+cancellation), from assets sold at list price (12000) with no contract.
+Renewals take the same last-transaction path but were not run.
 
 | Situation | Result |
 |---|---|
@@ -111,6 +111,7 @@ path but were not run.
 | Amended with `contractId` set to the contract the assets belong to | Contract price on the first pricing |
 | Assets linked to a contract, but amended without `contractId` | Asset price: the contract is not carried onto the quote |
 | Never-priced amendment quote linked to a second contract | That contract's price |
+| Quantity reduced by 1, or the asset cancelled, with `contractId` set | Credit at the asset price (12000), not the contract price. The platform prices the credit from its detail line, so the contract steps don't reach it |
 
 Two platform behaviors to expect:
 
