@@ -281,19 +281,37 @@ def test_pass2_override_rebuilds_composite_keys(m):
         check("pass-2 override: $$ key rebuilt from its components", row[0] == "QB-DB;UR-CPU", repr(row))
         check("pass-2 override: nested Parent.$$ reference rebuilt", row[1] == "P1;Usage", repr(row))
         check("pass-2 override: plain columns still copied", row[2] == "hello", repr(row))
-        # With a processed root CSV present, the override is projected from it (already
-        # normalised: #N/A -> blank, codes backfilled), not from the raw extraction.
-        out.mkdir(exist_ok=True)
+        # #N/A is normalised to blank, and a pass-N Status is kept as extracted (Active),
+        # never rewritten to Draft the way the root CSV is: overrides that activate
+        # (qb-billing, qb-tax) depend on it.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$UsageResource.Code,Description,Status\n")
         (ext / "Child.csv").write_text(
-            "Product.StockKeepingUnit,UsageResource.Code,Parent.Name,Parent.Type,Description\n"
-            "QB-DB,#N/A,P1,Usage,#N/A\n")
-        (out / "Child.csv").write_text(
-            "Product.StockKeepingUnit,UsageResource.Code,Parent.Name,Parent.Type,Description\n"
-            "QB-DB,UR-CPU,P1,Usage,\n")
+            "Product.StockKeepingUnit,UsageResource.Code,Description,Status\n"
+            "QB-DB,UR-CPU,#N/A,Active\n")
         m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
         row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
-        check("pass-2 override: built from the processed root (backfilled code, no #N/A)",
-              row == ["QB-DB;UR-CPU", "P1;Usage", ""], repr(row))
+        check("pass-2 override: #N/A normalised, Status kept as extracted",
+              row == ["QB-DB;UR-CPU", "", "Active"], repr(row))
+        # A nested reference whose components aren't all extracted verbatim stays blank;
+        # no suffix guess (BillingTreatment.BillingPolicy.Name must not become the row's Name).
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "BillingTreatment.$$Name$BillingPolicy.Name,Name\n")
+        (ext / "Child.csv").write_text("Name,BillingTreatment.Name\nItem A,Treatment A\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: partial nested reference left blank, not guessed",
+              row == ["", "Item A"], repr(row))
+        # The P;P;P case: no component column at all, but the row has its own Name.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "DefaultTaxTreatment.$$Name$LegalEntity.Name$TaxPolicy.Name,DefaultTaxTreatment.Name,Name\n")
+        (ext / "Child.csv").write_text("Name,DefaultTaxTreatment.Name\nPolicy P,Treatment T\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: no components -> blank, never the row's own Name repeated",
+              row[0] == "", repr(row))
+        check("pass-2 override: a plain lookup column absent from any root template is kept",
+              row[1:] == ["Treatment T", "Policy P"], repr(row))
 
 
 def test_excluded_uses_js_truthiness(m):
