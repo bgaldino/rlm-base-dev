@@ -104,21 +104,32 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | SObject | externalId | Operation | Pass | Notes |
 |---------|-----------|-----------|------|-------|
 | UnitOfMeasure | `UnitCode` | Upsert | 1 | |
-| UnitOfMeasureClass | `Code` | Upsert | 1 | |
+| UnitOfMeasureClass | `Code` | Upsert + skipExistingRecords | 1 | Inserts missing rows as Draft |
 | UsageResourceBillingPolicy | `Code` | Upsert | 1 | |
-| UsageResource | `Code` | Upsert | 1 | Self-ref via TokenResourceId |
+| UsageResource | `Code` | Upsert + skipExistingRecords | 1 | Self-ref via TokenResourceId |
 | Product2 | `StockKeepingUnit` | Update | 1 | Sets UsageModelType |
 | UsageGrantRenewalPolicy | `Code` | Upsert | 1 | |
 | UsageGrantRolloverPolicy | `Code` | Upsert | 1 | |
 | UsageOveragePolicy | `Name` | Upsert | 1 | |
 | UsageCommitmentPolicy | `Name` | Upsert | 1 | |
-| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
+| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | Upsert + skipExistingRecords | 1 | Inserts missing PURs as Draft (todo 298) |
 | UsagePrdGrantBindingPolicy | `Name;Product2.StockKeepingUnit` | Upsert | 1 | |
 | RatingFrequencyPolicy | `RatingPeriod` | Upsert | 1 | |
-| ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
-| ProductUsageGrant (PUG) | 3-field composite | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor. Upsert migration is not operation-only: the 3-field key is intentionally non-unique across parent PURs, so it must first add a PUR component (e.g. `ProductUsageResourceId`) |
-| UnitOfMeasureClass | — | Update | 2 | Activate |
-| UsageResource | — | Update | 2 | Activate |
+| UnitOfMeasure, Product2 | — | Readonly | 2 | Lookup targets for the pass-2 updates |
+| UnitOfMeasureClass | `Code` | Update | 2 | Corrections, without Status |
+| UsageResource | `Code` | Update | 2 | Corrections, without Status |
+| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | Update | 2 | Corrections, without Status or TokenResource |
+
+Nothing in qb-rating is deleted or activated by SFDMU; `activateRatingRecords.apex` activates.
+
+## qb-rating-entitlements (2 passes; runs after qb-rating)
+
+| SObject | externalId | Operation | Pass | Notes |
+|---------|-----------|-----------|------|-------|
+| Policies, UoM, UoMClass, Product2 | — | Readonly | 1, 2 | Owned by qb-rating |
+| ProductUsageResource (PUR) | `Id` | Readonly | 1, 2 | CSV generated per load from the target org (`parent_id_lookups.json`) |
+| ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | Upsert + skipExistingRecords, then Update | 1, 2 | Id resolved per org from the portable SKU + Code columns (upstream #1218 blocks the traversal key) |
+| ProductUsageGrant (PUG) | `ProductUsageResourceId` | Upsert + skipExistingRecords, then Update without Status | 1, 2 | Same; one grant per PUR in this dataset |
 
 ## qb-rates
 

@@ -88,7 +88,7 @@ before reloading existing data.
 
 #### qb-rating
 - **Historical migration:** ProductUsageResourcePolicy and ProductUsageGrant were initially excluded because of traversal-key issues.
-- **Current plan:** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant are included with `operation: Insert` and `deleteOldData: true`. These deletes are scoped with a `deleteQuery` that skips Active rows (todo 298), so Draft and Inactive rows are deleted and Active rows are kept. See the [rating plan's reload prerequisites](../../datasets/sfdmu/qb/en-US/qb-rating/README.md#idempotency) before reloading; downstream references (e.g. rate rows pointing at a non-Active PUR) can still block deletion.
+- **Current plan (todo 298):** nothing is deleted. ProductUsageResource is `Upsert` on `Product.StockKeepingUnit;UsageResource.Code`, two passes (insert missing rows as Draft with `skipExistingRecords`, then update without Status). ProductUsageResourcePolicy and ProductUsageGrant moved to the sibling plan [`qb-rating-entitlements`](../../datasets/sfdmu/qb/en-US/qb-rating-entitlements/README.md), keyed on `ProductUsageResourceId`, which `LoadSFDMUData` resolves on the target org before the load, because Upsert on the parent's composite traversal key fails on 5.8.0 (upstream #1218).
 
 ### Idempotency
 
@@ -96,17 +96,16 @@ The historical Release 260 verification recorded zero record-count changes acros
 47 objects in 10 QB data tasks on a fresh scratch org. That result does not certify
 the current plans against an org with live transactional data. In particular,
 `qb-pricing` requires its separate delete task before Insert operations, and
-`qb-rating`/`qb-rates` retain delete-and-reinsert operations that live references
-can block. Use the per-plan instructions and the live-org guidance linked above.
+`qb-rates` retains delete-and-reinsert operations that live references can block. Use the per-plan instructions and the live-org guidance linked above.
 
 Current examples below are classified by object, because a plan can mix operations.
 Consult each plan's `export.json` and README for its full object list and load sequence.
 
 | Strategy | Objects |
 |----------|---------|
-| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`) and UsageResource (`Code`) in qb-rating; FulfillmentWorkspace (`Name`) in qb-dro |
+| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`), UsageResource (`Code`) and ProductUsageResource (`Product.StockKeepingUnit;UsageResource.Code`) in qb-rating; ProductUsageResourcePolicy and ProductUsageGrant (`ProductUsageResourceId`, resolved per org) in qb-rating-entitlements; FulfillmentWorkspace (`Name`) in qb-dro |
 | Upsert with `deleteOldData: true` (deletes before loading) | FulfillmentWorkspaceItem (qb-dro), PriceBookRateCard (qb-rates) |
-| Insert with `deleteOldData: true` (delete + reinsert) | ProductUsageResource, ProductUsageResourcePolicy, ProductUsageGrant (qb-rating); RateCardEntry, RateAdjustmentByTier (qb-rates) |
+| Insert with `deleteOldData: true` (delete + reinsert) | RateCardEntry, RateAdjustmentByTier (qb-rates) |
 | Insert requiring the separate pricing delete task before reload | PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry (qb-pricing) |
 
 ### Known limitations (v5)
@@ -135,17 +134,14 @@ and its README before deciding which objects need separate handling.
 **Root cause (pre-5.6.4):** SFDMU's upsert matching engine could not resolve composite keys composed entirely of relationship-traversal fields against target org data. 5.6.4's `_getNestedRecordFieldValue` fix (commit `50be987`) resolves this.
 
 **Historical workaround:** `deleteOldData: true` bypassed matching for objects
-whose logical key used parent lookups. The current qb-dro, qb-rates, and qb-rating
-plans retain deletion on the following objects; this inventory does not imply
-that every operation choice was caused by Bug 5 (the rating policy uses a direct FK):
+whose logical key used parent lookups. The current qb-dro and qb-rates plans retain
+deletion on the following objects (qb-rating dropped it in todo 298); this inventory
+does not imply that every operation choice was caused by Bug 5:
 
 - `FulfillmentWorkspaceItem` (qb-dro) — Upsert + deleteOldData
 - `PriceBookRateCard` (qb-rates) — Upsert + deleteOldData
 - `RateCardEntry` (qb-rates) — Insert + deleteOldData
 - `RateAdjustmentByTier` (qb-rates) — Insert + deleteOldData
-- `ProductUsageResource` (qb-rating) — Insert + deleteOldData
-- `ProductUsageResourcePolicy` (qb-rating) — Insert + deleteOldData; `externalId: ProductUsageResourceId`
-- `ProductUsageGrant` (qb-rating) — Insert + deleteOldData
 
 **Current rule (5.6.4+):** Use `Upsert` for all-traversal composite externalIds — matching works. Reserve `deleteOldData: true` for a concrete *current* reason + explicit approval, not this (now-fixed) bug.
 

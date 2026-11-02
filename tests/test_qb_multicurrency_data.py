@@ -8,7 +8,7 @@ with base Python:
     python tests/test_qb_multicurrency_data.py
 
 Exits 0 when all checks pass, 1 otherwise. Reads only the committed CSVs in
-``datasets/sfdmu/qb/en-US/{qb-rating,qb-rates,qb-pricing}`` — no org needed, so
+``datasets/sfdmu/qb/en-US/{qb-rating,qb-rating-entitlements,qb-rates,qb-pricing}`` — no org needed, so
 this is safe to run in CI and as a pre-merge gate.
 
 Each check corresponds to a defect that actually shipped (or nearly did) during
@@ -58,6 +58,8 @@ from decimal import Decimal, ROUND_HALF_UP
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 RATING = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-rating")
+# Policies and grants on each ProductUsageResource load from this sibling plan (todo 298).
+ENTITLEMENTS = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-rating-entitlements")
 RATES = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-rates")
 PRICING = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-pricing")
 
@@ -128,7 +130,7 @@ def load():
         "uom": read(RATING, "UnitOfMeasure.csv"),
         "product": read(RATING, "Product2.csv"),
         "pur": read(RATING, "ProductUsageResource.csv"),
-        "purp": read(RATING, "ProductUsageResourcePolicy.csv"),
+        "purp": read(ENTITLEMENTS, "ProductUsageResourcePolicy.csv"),
         "rce": read(RATES, "RateCardEntry.csv"),
         "rabt": read(RATES, "RateAdjustmentByTier.csv"),
         "currency": read(PRICING, "CurrencyType.csv"),
@@ -571,7 +573,7 @@ def check_counts_match_readme(d):
     """
     problems = []
     checked = 0
-    for plan in (RATES, RATING):
+    for plan in (RATES, RATING, ENTITLEMENTS):
         readme = os.path.join(plan, "README.md")
         if not os.path.isfile(readme):
             continue

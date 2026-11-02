@@ -244,7 +244,7 @@ awk -F, 'NR>1 && $0 ~ /QB-PCG-USAGE/' datasets/sfdmu/qb/en-US/qb-pcm/ProductRela
 | `UsageOveragePolicy` | 2 |
 | `UsageCommitmentPolicy` | 1 |
 
-Source: `datasets/sfdmu/qb/en-US/qb-rating/`
+Source: `datasets/sfdmu/qb/en-US/qb-rating/` (policies and grants on each PUR: `qb-rating-entitlements/`)
 
 ---
 

@@ -262,6 +262,78 @@ def test_top_level_pass_subquery_uses_outer_object(m):
           m.parse_select_fields("SELECT Id, (SELECT Id FROM Contacts) FROM Account") == ["Id"])
 
 
+def test_pass2_override_rebuilds_composite_keys(m):
+    """A pass-2 objectset_source override is generated with its `$$` key and nested
+    `Parent.$$` reference rebuilt from component columns, not left blank (#659 review)."""
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        plan, ext, out = root / "plan", root / "ext", root / "out"
+        (plan / "objectset_source" / "object-set-2").mkdir(parents=True)
+        ext.mkdir()
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$UsageResource.Code,Parent.$$Name$Type,Description\n")
+        (ext / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,Parent.Name,Parent.Type,Description\n"
+            "QB-DB,UR-CPU,P1,Usage,hello\n")
+        passes = {"Child": [(0, {}), (1, {})]}
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: $$ key rebuilt from its components", row[0] == "QB-DB;UR-CPU", repr(row))
+        check("pass-2 override: nested Parent.$$ reference rebuilt", row[1] == "P1;Usage", repr(row))
+        check("pass-2 override: plain columns still copied", row[2] == "hello", repr(row))
+        # #N/A is normalised to blank, and a pass-N Status is kept as extracted (Active),
+        # never rewritten to Draft the way the root CSV is: overrides that activate
+        # (qb-billing, qb-tax) depend on it.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$UsageResource.Code,Description,Status\n")
+        (ext / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,Description,Status\n"
+            "QB-DB,UR-CPU,#N/A,Active\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: #N/A normalised, Status kept as extracted",
+              row == ["QB-DB;UR-CPU", "", "Active"], repr(row))
+        # A nested reference whose components aren't all extracted verbatim stays blank;
+        # no suffix guess (BillingTreatment.BillingPolicy.Name must not become the row's Name).
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "BillingTreatment.$$Name$BillingPolicy.Name,Name\n")
+        (ext / "Child.csv").write_text("Name,BillingTreatment.Name\nItem A,Treatment A\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: partial nested reference left blank, not guessed",
+              row == ["", "Item A"], repr(row))
+        # The P;P;P case: no component column at all, but the row has its own Name.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "DefaultTaxTreatment.$$Name$LegalEntity.Name$TaxPolicy.Name,DefaultTaxTreatment.Name,Name\n")
+        (ext / "Child.csv").write_text("Name,DefaultTaxTreatment.Name\nPolicy P,Treatment T\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: no components -> blank, never the row's own Name repeated",
+              row[0] == "", repr(row))
+        check("pass-2 override: plain columns copied as extracted",
+              row[1:] == ["Treatment T", "Policy P"], repr(row))
+        # The real qb-billing three-component nested reference, all components extracted.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "BillingTreatment.$$Name$BillingPolicy.Name$LegalEntity.Name\n")
+        (ext / "Child.csv").write_text(
+            "BillingTreatment.Name,BillingTreatment.BillingPolicy.Name,BillingTreatment.LegalEntity.Name\n"
+            "BT USA,Billing Policy - Advance,Default Legal Entity - US\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        line = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1]
+        check("pass-2 override: three-component nested reference rebuilt",
+              line == "BT USA;Billing Policy - Advance;Default Legal Entity - US", repr(line))
+        # A code blanked by extraction is restored from the org code map before the key is built.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$UsageResource.Code\n")
+        (ext / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,UsageResource.Name\nQB-DB,#N/A,CPU Time\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False,
+                                    code_map={"Child": {"UsageResource.Code": {"CPU Time": "UR-CPU"}}})
+        line = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1]
+        check("pass-2 override: code backfilled from the org map before the key is built",
+              line == "QB-DB;UR-CPU", repr(line))
+
+
 def test_excluded_uses_js_truthiness(m):
     """pack 168 + round-7: `excluded` is read with SFDMU's JS truthiness. `[]`/`{}` are
     falsy in Python but truthy in JS, so SFDMU skips such a declaration — this parse must
@@ -298,6 +370,7 @@ def main():
     test_both_array_plan_prepends_top_level_pass(m)
     test_top_level_pass_subquery_uses_outer_object(m)
     test_excluded_uses_js_truthiness(m)
+    test_pass2_override_rebuilds_composite_keys(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1
