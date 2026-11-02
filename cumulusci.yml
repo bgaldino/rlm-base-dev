@@ -5044,7 +5044,7 @@ flows:
         task: test_qb_transactionprocessingtypes_idempotency
       10:
         task: test_qb_guidedselling_products_idempotency
-      # Steps 10-14: feature-gated module idempotency tests, ordered to match the module
+      # Steps 11-15: feature-gated module idempotency tests, ordered to match the module
       # load order in prepare_rlm_org so cross-plan dependencies resolve on an org that does
       # not already have the data. Notably TAX before BILLING: qb-billing references
       # LegalEntity.Name with LegalEntity as Readonly, and those LegalEntity rows are created
