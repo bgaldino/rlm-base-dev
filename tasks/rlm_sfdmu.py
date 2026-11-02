@@ -129,6 +129,16 @@ def run_post_process_script(
             logger.warning(strip_ansi_codes(line))
 
 
+def copy_plan_control_files(plan_dir: str, dest_dir: str) -> None:
+    """Copy the files that make `dest_dir` loadable as `plan_dir`: export.json and, when the plan
+    has one, its parent_id_lookups.json. Without the lookups file a processed extraction of a
+    lookup plan loads with no Ids for its children's matching key."""
+    shutil.copy2(os.path.join(plan_dir, EXPORT_JSON_FILENAME), os.path.join(dest_dir, EXPORT_JSON_FILENAME))
+    lookups_src = os.path.join(plan_dir, sfdmu_id_lookups.LOOKUPS_FILENAME)
+    if os.path.isfile(lookups_src):
+        shutil.copy2(lookups_src, os.path.join(dest_dir, sfdmu_id_lookups.LOOKUPS_FILENAME))
+
+
 def redact_secret(text: str, *secrets: Optional[str]) -> str:
     """`text` with every occurrence of each of `secrets` (access tokens) masked, for logging.
 
@@ -1172,10 +1182,7 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                     work_dir, plan_dir, processed_dir,
                     cwd=self.options.get("dir"), logger=self.logger,
                 )
-                shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
-                lookups_src = os.path.join(plan_dir, sfdmu_id_lookups.LOOKUPS_FILENAME)
-                if os.path.isfile(lookups_src):
-                    shutil.copy2(lookups_src, os.path.join(processed_dir, sfdmu_id_lookups.LOOKUPS_FILENAME))
+                copy_plan_control_files(plan_dir, processed_dir)
                 self.logger.info("Second run: load from post-processed extraction (should not add records)")
                 self._run_load_once(processed_dir)
                 self._run_post_load_apex_if_configured()
@@ -1668,8 +1675,7 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 )
                 if copy_to_plan:
                     self.logger.info(f"Synced processed extraction into plan dir: {plan_dir}")
-                export_src = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
-                shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
+                copy_plan_control_files(plan_dir, processed_dir)
                 self.return_values["processed_dir"] = processed_dir
                 self.logger.info(f"Post-process complete. Re-import-ready CSVs: {processed_dir}")
 

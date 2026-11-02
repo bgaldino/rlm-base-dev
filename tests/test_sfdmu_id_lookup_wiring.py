@@ -260,6 +260,54 @@ check("extract: the command is still logged, redacted",
       any(m.startswith("Executing extraction:") and "<redacted>" in m for m in extract_logs), True)
 shutil.rmtree(ext.options["extractions_base_dir"], ignore_errors=True)
 
+print("ExtractSFDMUData: processed output of a lookup plan is re-import-ready")
+ENT = REPO / "datasets/sfdmu/qb/en-US/qb-rating-entitlements"
+base = pathlib.Path(tempfile.mkdtemp())
+ext2 = rs.ExtractSFDMUData.__new__(rs.ExtractSFDMUData)
+ext2.org_config = _FakeScratch({"username": "scratch@example.com"}, "dev")
+ext2.options = {"pathtoexportjson": str(ENT), "extractions_base_dir": str(base)}
+ext2.logger = _Log()
+ext2._load_keychain = lambda: None
+ext2._build_code_backfill_map = lambda *_a, **_k: {}
+calls = []
+
+
+def fake_extract_run(cmd, *_a, **_k):
+    calls.append(cmd)
+    if isinstance(cmd, str) and "sfdmu run" in cmd:  # the extract: write what SFDMU would
+        work = cmd.split(" -p ", 1)[1].split()[0]
+        for name in ("ProductUsageResourcePolicy", "ProductUsageGrant"):
+            header, rows = rs.sfdmu_id_lookups._read_csv(str(ENT / f"{name}.csv"))
+            keys = [c for c in header if c.startswith("ProductUsageResource.")]
+            out = [dict({c: v for c, v in r.items() if c not in keys}, Id=f"X{i:017d}",
+                        ProductUsageResourceId=f"1TrWt000000{i:04d}AAA") for i, r in enumerate(rows)]
+            rs.sfdmu_id_lookups._write_csv(os.path.join(work, f"{name}.csv"),
+                                           ["Id", "ProductUsageResourceId"] + [c for c in header if c not in keys], out)
+    done = _Done()
+    return done
+
+
+def fake_parent_query(_org, soql):
+    ids = [i.strip("' ") for i in soql.split("IN (", 1)[1].rstrip(")").split(",")]
+    return [{"Id": i, "Product": {"StockKeepingUnit": "QB-DB"}, "UsageResource": {"Code": f"UR-{i[-7:-3]}"}}
+            for i in ids]
+
+
+saved = (rs.subprocess.run, rs.sf_query_records, rs.run_post_process_script)
+rs.subprocess.run, rs.sf_query_records = fake_extract_run, fake_parent_query
+rs.run_post_process_script = lambda extraction_dir, plan_dir, processed_dir, **_k: None
+try:
+    ext2._run_task()
+    processed = pathlib.Path(ext2.return_values["processed_dir"])
+    check("processed dir carries export.json", (processed / "export.json").is_file(), True)
+    copied = processed / rs.sfdmu_id_lookups.LOOKUPS_FILENAME
+    check("processed dir carries parent_id_lookups.json (so a load resolves the children's Ids)",
+          copied.is_file() and copied.read_bytes() == (ENT / rs.sfdmu_id_lookups.LOOKUPS_FILENAME).read_bytes(),
+          True)
+finally:
+    rs.subprocess.run, rs.sf_query_records, rs.run_post_process_script = saved
+    shutil.rmtree(base, ignore_errors=True)
+
 print("=" * 60)
 if _failures:
     print(f"FAIL: {len(_failures)} check(s) failed")
