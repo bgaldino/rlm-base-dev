@@ -981,23 +981,20 @@ def generate_objectset_source(extraction_dir: str, plan_dir: str, output_dir: st
             if not source_headers:
                 continue
 
-            # Load extracted data for this object
-            ext_headers, ext_rows = load_extracted_csv(extraction_dir, obj_name)
-            if ext_headers is None:
-                continue
-
-            # Build rows with only the columns needed for this pass
-            ext_idx = {h: i for i, h in enumerate(ext_headers)}
-            source_rows = []
-            for row in ext_rows:
-                source_row = []
-                for h in source_headers:
-                    if h in ext_idx:
-                        idx = ext_idx[h]
-                        source_row.append(row[idx] if idx < len(row) else "")
-                    else:
-                        source_row.append("")
-                source_rows.append(source_row)
+            # Project this pass's columns from the PROCESSED root CSV when there is one: it has
+            # already been through the code backfill, status rewrite, Id resolution, defaults,
+            # composite-key rebuild and #N/A normalisation, so the override matches the root.
+            # Reading the raw extraction instead left `$$` keys blank and `#N/A` markers in,
+            # and copy_to_plan wrote both into the tracked override (#659 review).
+            processed_headers, processed_rows = load_plan_csv(output_dir, obj_name)
+            if processed_headers is not None:
+                src_headers, src_rows = processed_headers, processed_rows
+            else:
+                src_headers, src_rows = load_extracted_csv(extraction_dir, obj_name)
+                if src_headers is None:
+                    continue
+            _, source_rows = align_columns(src_headers, src_rows, source_headers, obj_name, verbose)
+            source_rows = normalize_na_values(source_rows, source_headers)
 
             # Write to output objectset_source
             out_dir = os.path.join(output_dir, "objectset_source", set_name)

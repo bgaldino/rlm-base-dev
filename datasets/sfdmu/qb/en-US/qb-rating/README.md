@@ -24,6 +24,11 @@ Steps 4–6 and 8 are the q3 equivalents (they run only when `q3` is on and `qb`
 ### Task Definition
 
 ```yaml
+insert_qb_rating_data:
+  class_path: tasks.rlm_sfdmu.LoadSFDMUData
+  options:
+    pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-rating"
+```
 
 ```yaml
 insert_qb_rating_entitlements_data:
@@ -33,11 +38,6 @@ insert_qb_rating_entitlements_data:
 ```
 
 `insert_qb_rating_entitlements_data` resolves each parent ProductUsageResource Id on the target org (from `parent_id_lookups.json`) into a temp copy of the plan before SFDMU runs; the tracked CSVs keep only the portable SKU + resource-code columns.
-insert_qb_rating_data:
-  class_path: tasks.rlm_sfdmu.LoadSFDMUData
-  options:
-    pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-rating"
-```
 
 `Product2.csv` also lists the five resource-definition products that `UsageResource` points at (and that the `ProductUsageGrant` rows in `qb-rating-entitlements` reference as `UsageDefinitionProduct`: QB-CPU-BLNG, QB-DATA-STORAGE-BLNG, QB-DATA-THPT-BLNG, QB-TOKEN-DEF, RES-USD-DEF), with their real
 names. Without them SFDMU adds those lookup targets to the Product2 Update set with no `Name`, and the platform

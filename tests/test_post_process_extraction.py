@@ -262,6 +262,40 @@ def test_top_level_pass_subquery_uses_outer_object(m):
           m.parse_select_fields("SELECT Id, (SELECT Id FROM Contacts) FROM Account") == ["Id"])
 
 
+def test_pass2_override_rebuilds_composite_keys(m):
+    """A pass-2 objectset_source override is generated with its `$$` key and nested
+    `Parent.$$` reference rebuilt from component columns, not left blank (#659 review)."""
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        plan, ext, out = root / "plan", root / "ext", root / "out"
+        (plan / "objectset_source" / "object-set-2").mkdir(parents=True)
+        ext.mkdir()
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$UsageResource.Code,Parent.$$Name$Type,Description\n")
+        (ext / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,Parent.Name,Parent.Type,Description\n"
+            "QB-DB,UR-CPU,P1,Usage,hello\n")
+        passes = {"Child": [(0, {}), (1, {})]}
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: $$ key rebuilt from its components", row[0] == "QB-DB;UR-CPU", repr(row))
+        check("pass-2 override: nested Parent.$$ reference rebuilt", row[1] == "P1;Usage", repr(row))
+        check("pass-2 override: plain columns still copied", row[2] == "hello", repr(row))
+        # With a processed root CSV present, the override is projected from it (already
+        # normalised: #N/A -> blank, codes backfilled), not from the raw extraction.
+        out.mkdir(exist_ok=True)
+        (ext / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,Parent.Name,Parent.Type,Description\n"
+            "QB-DB,#N/A,P1,Usage,#N/A\n")
+        (out / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,Parent.Name,Parent.Type,Description\n"
+            "QB-DB,UR-CPU,P1,Usage,\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: built from the processed root (backfilled code, no #N/A)",
+              row == ["QB-DB;UR-CPU", "P1;Usage", ""], repr(row))
+
+
 def test_excluded_uses_js_truthiness(m):
     """pack 168 + round-7: `excluded` is read with SFDMU's JS truthiness. `[]`/`{}` are
     falsy in Python but truthy in JS, so SFDMU skips such a declaration — this parse must
@@ -298,6 +332,7 @@ def main():
     test_both_array_plan_prepends_top_level_pass(m)
     test_top_level_pass_subquery_uses_outer_object(m)
     test_excluded_uses_js_truthiness(m)
+    test_pass2_override_rebuilds_composite_keys(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1
