@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Contract_Applied_Unit_Price__c</fullName>
-    <description>Written by RLM_DefaultPricingProcedure: the contract price it last copied into Sales Price. While Sales Price still equals this value, pricing treats it as system-set, so a changed or removed contract price replaces it on the next pricing run; a Sales Price typed by hand differs from it and is kept. Blank on lines that never received a contract price. Do not edit or show on layouts.</description>
+    <description>Written by RLM_DefaultPricingProcedure: the contract price it last copied into Sales Price. While Sales Price still equals this value, pricing treats it as system-set, so a changed or removed contract price replaces it on the next pricing run; a Sales Price typed by hand differs from it and is kept. Blank on lines that never received a contract price, and cleared on a new-sale line once no contract price applies, so a hand-typed old contract price is kept too. Do not edit or show on layouts.</description>
     <label>Contract Applied Unit Price</label>
     <precision>18</precision>
     <required>false</required>

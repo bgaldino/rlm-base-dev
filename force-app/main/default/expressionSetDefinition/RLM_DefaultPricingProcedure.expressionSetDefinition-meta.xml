@@ -1014,6 +1014,57 @@
                     <name>section-0-input1</name>
                     <output>false</output>
                     <type>Parameter</type>
+                    <value>ItemContractPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>1</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString1</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[]}</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString2</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;ItemContractPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;RLM_Contract_Applied_Unit_Price__c&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>section-0-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>RLM_Contract_Applied_Unit_Price__c</value>
+                </parameters>
+            </customElement>
+            <description>Assignment</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
+            <label>Clear Contract Applied Unit Price</label>
+            <name>ClearContractAppliedUnitPrice</name>
+            <parentStep>Clearcontractappliedunitpriceforlineswithoutcontractpricing</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>2</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>AssignmentElement</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>section-0-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
                     <value>NetUnitPrice</value>
                 </parameters>
                 <parameters>
@@ -2094,7 +2145,7 @@
             <label>Calculate item group subtotal by adding item net total prices of all the lines</label>
             <name>Calculateitemgroupsubtotalbyaddingitemnettotalpricesofallthelines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>41</sequenceNumber>
+            <sequenceNumber>42</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3744,7 +3795,7 @@
             <label>Calculate subtotal by adding total line amounts of all the lines</label>
             <name>Calculatesubtotalbyaddingtotallineamountsofallthelines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>40</sequenceNumber>
+            <sequenceNumber>41</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3899,7 +3950,7 @@
             <label>Calculate total amount by adding item net total prices of all the lines</label>
             <name>Calculatetotalamountbyaddingitemnettotalpricesofallthelines</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>39</sequenceNumber>
+            <sequenceNumber>40</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -4033,7 +4084,7 @@
             <label>Discount Distribution Service</label>
             <name>DiscountDistributionService</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>38</sequenceNumber>
+            <sequenceNumber>39</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -4630,6 +4681,43 @@
             <label>Filter lines without derived or last-transaction pricing, or an input unit price</label>
             <name>Filterlineswithoutderivedorlasttransactionpricingoraninputunitprice</name>
             <parentStep>Setinputunitpriceforlineswithoutderivedpricingorlasttrxnpricing</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>1</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>AdvancedListFilter</stepType>
+        </steps>
+        <steps>
+            <advancedCondition>
+                <conditionLogic>1 AND 2 AND (3 OR 4)</conditionLogic>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>1</sequenceNumber>
+                    <sourceFieldName>RLM_Contract_Applied_Unit_Price__c</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>IsNull</operator>
+                    <sequenceNumber>2</sequenceNumber>
+                    <sourceFieldName>ItemContractPrice</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>IsNull</operator>
+                    <sequenceNumber>3</sequenceNumber>
+                    <sourceFieldName>SalesTransactionActionType</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>Equals</operator>
+                    <sequenceNumber>4</sequenceNumber>
+                    <sourceFieldName>SalesTransactionActionType</sourceFieldName>
+                    <value>&apos;Add&apos;</value>
+                    <valueType>Literal</valueType>
+                </criteria>
+            </advancedCondition>
+            <hasNestedExplainability>false</hasNestedExplainability>
+            <label>Filter new-sale lines with a contract applied unit price but no contract price</label>
+            <name>Filternewsalelineswithcontractappliedunitpricebutnocontractprice</name>
+            <parentStep>Clearcontractappliedunitpriceforlineswithoutcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -5986,6 +6074,17 @@
             <name>Setinputunitpriceforlineswithoutderivedpricingorlasttrxnpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>14</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>ListGroup</stepType>
+        </steps>
+        <steps>
+            <hasNestedExplainability>false</hasNestedExplainability>
+            <label>Clear contract applied unit price for lines without contract pricing</label>
+            <name>Clearcontractappliedunitpriceforlineswithoutcontractpricing</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>38</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>

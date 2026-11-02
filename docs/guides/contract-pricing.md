@@ -19,9 +19,11 @@ so in practice you set the contract on the quote and reprice.
 in `QuoteLineItem.RLM_Contract_Applied_Unit_Price__c`. While Sales Price still
 equals that value, a changed contract price, or a switch to another contract,
 replaces it on the next reprice, and on a new-sale line a removed contract
-returns it to List Price. A Sales Price the rep typed differs from the recorded
-value, so it is kept. Amendment lines are the exception when the contract goes
-away (see [Changing the contract on a priced quote](#changing-the-contract-on-a-priced-quote)).
+returns it to List Price. A new-sale line with no contract price has its
+recorded value cleared. A Sales Price the rep typed differs from the recorded
+value, so it is kept, including an old contract price typed back in after the
+contract is gone. Amendment lines are the exception when the contract goes away
+(see [Changing the contract on a priced quote](#changing-the-contract-on-a-priced-quote)).
 
 ## What a contract can carry
 
@@ -76,7 +78,10 @@ For year-by-year pricing, add one row per year with non-overlapping
    `RLM_Contract_Applied_Unit_Price__c`. When a new-sale line no longer has a
    contract price but its Sales Price still equals the recorded one,
    *Set input unit price for lines without derived pricing or last-trxn
-   pricing* returns Sales Price to List Price.
+   pricing* returns Sales Price to List Price. Before the totals are
+   calculated, *Clear contract applied unit price for lines without contract
+   pricing* clears the recorded price on every new-sale line that has no
+   contract price.
 5. **Discounts.** *Discount Assigned From Pricing Contract* applies a
    percentage or amount contract discount to Net Unit Price. It skips
    last-transaction lines, because the asset price they carry already includes
