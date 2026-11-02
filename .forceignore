@@ -23,8 +23,6 @@ package.xml
 **/eslint.config.mjs
 
 # rlm-base specific entries
-# contextDefinitions (extended at runtime via extend_context_* tasks)
-force-app/main/default/contextDefinitions
 # default expressionSetDefinitions
 force-app/main/default/expressionSetDefinition/Default_Rating_Discovery_Procedure_Auto.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Product_Discovery_Pricing_Procedure_Auto.expressionSetDefinition-meta.xml

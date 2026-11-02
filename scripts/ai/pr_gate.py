@@ -47,6 +47,7 @@ Usage:
     python scripts/ai/pr_gate.py --all                    # ignore selection, run everything
     python scripts/ai/pr_gate.py --list                   # print the matrix, run nothing
     python scripts/ai/pr_gate.py --requirements --base X  # extra pip deps the selection needs
+    python scripts/ai/pr_gate.py --needs-node --base X    # whether CI must `npm ci` (true/false)
 
 Run as a script, the gate re-runs itself under the gate interpreter (the main checkout's
 `.venv`, resolved by `gate_python.py`) when this interpreter lacks a selected check's
@@ -430,6 +431,14 @@ CHECKS = [
         deps=["cumulusci"], gating=True,
     ),
     dict(
+        name="cci_task_org_option",
+        cmd=["python", "tests/test_cci_task_org_option.py"],
+        # Imports every task class in tasks/ the way cci does and asserts the ones that read
+        # org_config set salesforce_task, without which cci rejects --org (todo 244).
+        triggers=["tasks/", "cumulusci.yml", "tests/test_cci_task_org_option.py"],
+        deps=["cumulusci"], gating=True,
+    ),
+    dict(
         name="context_node_mapping_merge",
         cmd=["python", "tests/test_context_service_node_mapping_merge.py"],
         # tasks/rlm_context_service.py imports cumulusci and requests unconditionally (as
@@ -644,6 +653,19 @@ CHECKS = [
                   "tests/test_ux_tool.py", "pyproject.toml", "unpackaged/post_ux/"],
         deps=["pytest", "PyYAML"], gating=True,
     ),
+    dict(
+        name="lwc_jest",
+        cmd=["python", "scripts/ai/run_lwc_jest.py"],
+        # Any path with an `lwc` directory segment, at any depth: components live under every
+        # `unpackaged/<bundle>/lwc/`, and matching the segment (not a typed prefix list, not the
+        # directories on disk) also selects a nested layout and a deleted bundle. Plus everything
+        # that decides how Jest runs, resolves `c/` imports (sfdx-project.json's package
+        # directories) or installs.
+        segments=["lwc"],
+        triggers=["jest.config.js", "package.json", "package-lock.json", "sfdx-project.json",
+                  ".nvmrc", "scripts/ai/run_lwc_jest.py"],
+        deps=[], node_deps=["node_modules/.bin/sfdx-lwc-jest"], gating=True,
+    ),
 ]
 
 # Suites that need nothing but the standard library, run as one check. Enumerated rather
@@ -655,6 +677,7 @@ STDLIB_SUITES = [
     "tests/test_agents_common.py",
     "tests/test_billing_flow_copies.py",
     "tests/test_build_billing_ui_module.py",
+    "tests/test_build_quote_ramp_args.py",
     "tests/test_check_node_ca.py",
     "tests/test_check_permission_set_dependencies.py",
     "tests/test_check_release_refs.py",
@@ -669,19 +692,25 @@ STDLIB_SUITES = [
     "tests/test_df_workshop_replay.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",
+    "tests/test_manage_expression_sets_constraint_activation.py",
     "tests/test_mcp_scripts_security.py",
     "tests/test_post_process_extraction.py",
+    "tests/test_procedure_plan_overlay_activation.py",
+    "tests/test_project_memory_schema.py",
     "tests/test_qb_multicurrency_data.py",
     "tests/test_renewal_bucket_planner.py",
     "tests/test_rlm_apex_file.py",
     "tests/test_rlm_enable_change_data_capture.py",
     "tests/test_robot_salesforce_api_auth.py",
+    "tests/test_search_index_readiness.py",
     "tests/test_sf_token.py",
     "tests/test_snapshot_dev_guide.py",
     "tests/test_snapshot_help.py",
     "tests/test_toolchain_audit.py",
     "tests/test_validate_keys_targets.py",
     "tests/test_validate_setup_chrome.py",
+    "tests/test_validate_setup_sf.py",
+    "tests/test_verify_backdated_billing.py",
 ]
 
 # Offline like the list above, but they reach a `tasks/` module that imports `requests`, so the
@@ -860,10 +889,33 @@ def selects(check, files):
         return True
     if any(f.startswith(t) for t in check["triggers"] for f in files):
         return True
-    return any(f.endswith(s) for s in check.get("suffixes", ()) for f in files)
+    if any(f.endswith(s) for s in check.get("suffixes", ()) for f in files):
+        return True
+    # `segments` is for a check keyed on a directory name wherever it sits (`lwc`): a directory
+    # segment, so a file merely named `lwc` does not count.
+    return any(seg in f.split("/")[:-1] for seg in check.get("segments", ()) for f in files)
 
 
 def missing_deps(check):
+    return missing_python_deps(check) + missing_node_deps(check)
+
+
+def missing_node_deps(check):
+    """Node checks: the runtime and the installed packages, both fatal when absent, exactly as
+    a missing pip package is. CI installs them only when --needs-node says a selected check
+    wants them, so a wrong answer there shows up here as MISSING-DEP, never as a skip.
+    Not something the gate interpreter can supply, so they don't trigger the re-run."""
+    missing = []
+    if check.get("node_deps"):
+        if shutil.which("node") is None:
+            missing.append("node (see .nvmrc)")
+        missing += [f"{path} (run `npm ci`)" for path in check["node_deps"]
+                    if not os.path.exists(os.path.join(REPO_ROOT, path))]
+    return missing
+
+
+def missing_python_deps(check):
+    """Pip packages and the interpreter floor."""
     missing = [pkg for pkg in check["deps"]
                if not have_module(DEPS.get(pkg, pkg))]
     need = check.get("min_python")
@@ -1001,7 +1053,9 @@ def reexec_under_gate_interpreter(selected, argv):
     entry point: the suite drives main() in-process with `missing_deps` patched, and an
     exec there would replace the test runner.
     """
-    if not any(missing_deps(c) for c in selected):
+    # Node items are subtracted, not the rest recomputed: the gate interpreter cannot supply Node,
+    # and reading through missing_deps keeps this the one function the suite patches.
+    if not any(set(missing_deps(c)) - set(missing_node_deps(c)) for c in selected):
         return
     try:
         import gate_python  # stdlib-only sibling; scripts/ai is sys.path[0] when run by path
@@ -1032,6 +1086,8 @@ def main(reexec=False):
     ap.add_argument("--list", action="store_true", help="print the matrix and exit")
     ap.add_argument("--requirements", action="store_true",
                     help="print pip deps the selection needs, one per line, then exit")
+    ap.add_argument("--needs-node", action="store_true",
+                    help="print `true` when a selected check needs Node packages, else `false`, then exit")
     ap.add_argument("--no-reexec", action="store_true",
                     help="never re-run under the gate interpreter (the re-run passes this)")
     args = ap.parse_args()
@@ -1039,7 +1095,8 @@ def main(reexec=False):
     if args.list:
         print(f"{'check':26} {'gating':7} {'deps':34} triggers")
         for c in CHECKS:
-            selectors = list(c["triggers"]) + [f"*{s}" for s in c.get("suffixes", ())]
+            selectors = (list(c["triggers"]) + [f"*{s}" for s in c.get("suffixes", ())]
+                         + ["/".join(("*", s, "*")) for s in c.get("segments", ())])
             print(f"{c['name']:26} {str(c['gating']):7} "
                   f"{','.join(c['deps']) or '-':34} {', '.join(selectors)}")
         print("\nexcluded from the gate, deliberately:")
@@ -1077,6 +1134,10 @@ def main(reexec=False):
             emitted.append(PINS.get(pkg, pkg))
         for line in emitted:
             print(line)
+        return 0
+
+    if args.needs_node:
+        print("true" if any(c.get("node_deps") for c in selected) else "false")
         return 0
 
     if reexec and not args.no_reexec:

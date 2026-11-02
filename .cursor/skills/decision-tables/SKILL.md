@@ -30,8 +30,18 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
 1. **Refresh after any catalog, pricing, rate or contract change.** `prepare_rlm_org`
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
+   Rating, qualification and tax tables have no runtime refresh at all: after editing that
+   setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
+   See `lifecycle-and-refresh.md` → *After editing setup data*.
+   **Refreshing is admin-only.** Salesforce gates the Refresh Decision Table action on Modify
+   All Data *and* Customize Application, and no narrower permission (BRE, RunFlow,
+   `DecisionTableExecUserAccess`) grants it. For anyone else, the Manager shows freshness
+   but disables Refresh.
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
-   Add `-o param1 strict` to fail a build on any stale table.
+   Add `-o param1 strict` to fail a build on any stale table, or `-o param1 json` for the
+   dependency map as JSON (Examples). On a Trialforce-spun org,
+   `cci flow run check_org_readiness --org "your-cci-alias"` also checks that the search
+   index was built in this org (`check_search_index_readiness`).
 3. **Freshness is measured against EVERY object a table reads**, not just its source
    object. A table that pulls a column across a lookup goes stale when that lookup's
    record changes, with no row of its own touched.
@@ -39,7 +49,10 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    triggering row is written. See *The timing rule*.
 5. **Discover tables from the org; do not trust a hardcoded list** as an inventory.
    `cumulusci.yml`'s `dt_*_decision_tables` lists are refresh *instructions* scoped by
-   feature flag, not a census of what exists.
+   feature flag, not a census of what exists. `manage_decision_tables -o operation validate_lists`
+   compares them to the org and attributes each missing name to the `when:` of the flow
+   step that uses its list: a flag-off absence reads as expected, a flag-on one as
+   unexpected (`-o strict true` fails on those).
 6. **"Not comparable" is a refusal, not a failure.** It means the freshness check
    declined to guess. Only **Stale** is a positive finding.
 7. **Definition and data are separate layers.** Editing columns or source bindings does
@@ -88,6 +101,8 @@ Use this skill when you are:
 - maintaining an org headlessly and needing its readiness state
 - inspecting, diffing, tracing, creating, updating, activating, or deleting a definition
 - sampling source-backed rows or uploading data to a `CsvUpload` table
+- changing `manage_decision_tables` or the `refresh_dt_*` task code (read
+  `lifecycle-and-refresh.md` → *The CCI refresh tasks* first)
 
 Not this skill: authoring the pricing procedures that *consume* a lookup
 (`.cursor/skills/pricing-wiring/SKILL.md`), or expression-set overlays
@@ -195,9 +210,9 @@ component does, so they cannot disagree.
 
 | Verdict | Means |
 |---|---|
-| **Fresh** | The last full sync is later than the newest change **visible to the running user** in *every* object the table reads. Scoped on purpose — see limit 3 below. |
+| **Fresh** | The last sync — full or incremental, whichever is later — is later than the newest change **visible to the running user** in *every* object the table reads. Scoped on purpose — see limit 3 below. The reason says which sync it rests on. |
 | **Stale** | Something the table reads changed **at or after** the sync. The reason names the object that drove it, and says so explicitly when the two timestamps tie. |
-| **Not comparable** | The check refused to guess — a source criterion it could not faithfully reproduce, a dependency it could not check, or no sObject behind the table at all (`CsvUpload`, `ContextDefinition`, whose freshness is the upload or the Context Definition, not a record timestamp). Compare by hand. |
+| **Not comparable** | The check refused to guess — a source criterion it could not faithfully reproduce, a dependency it could not check, sharing that can hide rows of an object it reads from the running user (limit 3), or no sObject behind the table at all (`CsvUpload`, `ContextDefinition`, whose freshness is the upload or the Context Definition, not a record timestamp). Compare by hand. |
 | **Unknown** | The source could not be read: no source object recorded, the object missing from this org, no permission on it, or its probe failed. |
 
 Two limits apply to **every** verdict, by construction. A third is listed and **closed**,
@@ -213,9 +228,14 @@ so it is not reintroduced:
 3. Probes run in `USER_MODE`, so they see only rows the running user can see. ⚠ **Run the
    check as an operator with org-wide read.** A row hidden from the caller by sharing and
    modified after the sync is invisible to the probe, and the failure direction is the bad
-   one — Fresh while stale. Every verdict says "visible" for this reason; nothing here
-   proves the caller sees every row. The Manager is on the shared Home page, so a
-   restricted persona can run it and get a verdict scoped to their own view.
+   one — Fresh while stale. Every verdict says "visible" for this reason. The Manager is on
+   the shared Home page, so a restricted persona can run it and get a verdict scoped to
+   their own view. **Narrowed:** Fresh is withdrawn to Not comparable, naming the object,
+   when a table reads an object whose sharing can hide rows from the caller (Private, or
+   controlled by a Private master) and the caller lacks View All. On 264 that is IndexRate
+   and BindingObjectRateCardEntry for the salesrep persona (7 tables). Every probed object
+   counts, including those a source criterion traverses. Still unchecked: restriction rules
+   and external users' sharing.
 
 Within what its probes can observe, the design deliberately trades coverage for not
 guessing: an unnecessary refresh is cheap, a false all-clear is not. Over-refusing into
@@ -238,16 +258,16 @@ header — read it there rather than re-deriving it.
 | Path | Use when |
 |---|---|
 | `cci flow run refresh_all_decision_tables --org "your-cci-alias"` | After a build, a data load, or any catalog/pricing change. Flag-scoped. |
-| The **Decision Table Manager** component (Home page, utilities accordion) | Interactive: per-table refresh, status polling, why a table is stale. |
+| The **Decision Table Manager** component (Home page, utilities accordion) | Interactive: per-table refresh (admin only, see rule 1), status polling, why a table is stale. |
 | Setup → Decision Tables | One table, manually. |
-| `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. |
+| `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. Queues only when the running user can refresh (rule 1). |
 
-An **incremental** sync advances only `LastIncrementalSyncDate`. It does **not** move
-`LastSyncDate`, and freshness is measured against the full sync. It also needs
-`isIncrementalSyncEnabled = true`, which **no table this repo ships has** — asking for
-incremental elsewhere returns `Queued` and syncs nothing. Both the Manager and
-`scripts/decision_tables/refresh_decision_table.py` refuse it rather than queue the
-no-op; see `lifecycle-and-refresh.md` → *Refresh*.
+An **incremental** sync advances `LastIncrementalSyncDate` and usually does not move
+`LastSyncDate` (a first incremental was measured stamping both). ⚠ In Release 264 a **full request can run as incremental**: unless
+incremental is requested, the platform chooses the type itself (org preference
+`AutoSelectRefreshDT`, whose Setup toggle is an opt-out). So judge a refresh by the
+later of the two stamps; see `lifecycle-and-refresh.md` → *Release 264 chooses the
+refresh type*.
 
 ## The timing rule
 
@@ -304,6 +324,21 @@ cci task run check_decision_table_freshness --org "your-cci-alias"
 cci task run check_decision_table_freshness --org "your-cci-alias" -o param1 strict
 ```
 
+**Which tables read this object?** `json` prints one `DECISION_TABLE_MAP_JSON` line: per table,
+`apiName`, `label`, `usageType`, `sourceObject`, `readsObjects`, `contributingObjects`, the latest
+sync, the verdict, and `criteriaApplied` / `unreproducedCriteria` (a Stale verdict may be
+over-reported when a source criterion wasn't reproduced). CCI's console wraps long lines, so widen
+it. `pipefail` and `grep` make a missing line an error rather than an empty answer:
+
+```bash
+( set -o pipefail
+  COLUMNS=200000 cci task run check_decision_table_freshness --org "your-cci-alias" -o param1 json \
+    | grep -o 'DECISION_TABLE_MAP_JSON .*' | cut -d' ' -f2- \
+    | jq -r '.[] | select(.readsObjects | index("RateCardEntry")) | .apiName' )
+```
+
+Combine modes as `"strict,json"`; with `pipefail` a strict failure still fails the pipeline.
+
 **Pricing looks wrong and the data looks right.** Run the check first. A Stale verdict
 naming the object you just edited is the answer; refresh and re-test before debugging
 anything else.
@@ -329,7 +364,9 @@ not know read that object.
 - `.cursor/skills/decision-tables/authoring-and-data-model.md` — Tooling setup objects,
   metadata shape, enums, and the definition/data model.
 - `.cursor/skills/decision-tables/lifecycle-and-refresh.md` — explicit lifecycle,
-  deployment, upload, refresh, and recipe-table mappings.
+  deployment, upload, refresh, and recipe-table mappings. Its *The CCI refresh tasks*
+  section is the one record of why `manage_decision_tables` and `refresh_dt_*` are built
+  as they are; read it before changing either task.
 - `scripts/decision_tables/README.md` — standalone toolkit commands and safety model.
 - `docs/references/decision-table-api-reference.md` — exhaustive API and error reference.
 - `docs/references/decision-table-examples.md` — CCI operations cookbook.

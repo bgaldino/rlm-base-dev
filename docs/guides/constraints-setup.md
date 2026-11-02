@@ -34,6 +34,9 @@ Step 5 runs with `constraints_data`; steps 6-10 also require `qb`.
 
 The CML utility imports the models directly. Both versions are cycled on rerun:
 importing into an active version stores the blob without rebuilding its runtime.
+`manage_expression_sets` cycles constraint models through the constraint-version
+resource, which deploys them to the solver; an `ExpressionSetVersion.IsActive` update
+alone does not.
 There are no operations for retired models.
 
 ## Feature Flags
@@ -89,6 +92,10 @@ The `unpackaged/post_constraints` bundle contains metadata that must deploy **af
 - `RLM_ConstraintEngineNodeStatus__c` fields on AssetActionSource, OrderItem, and QuoteLineItem
 - `RLM_Constraints.permissionset-meta.xml`
 - IndustriesConstraints and ProductDiscovery settings
+- The `ExpressionSet` criteria sharing rule `RLM_Constraint_Models_Read`, which shares
+  constraint-model Expression Sets (`UsageType = Constraint`) Read with all internal users.
+  A non-admin's first configuration-rules run on a cold solver (any template-spun org) redeploys
+  the models as that user and must be able to read those records.
 
 Constraint UX layouts and pages are assembled from `templates/` by the UX task.
 

@@ -1,10 +1,11 @@
 import requests
+from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.sfdx import SFDXBaseTask
 from cumulusci.core.keychain import BaseProjectKeychain
 from abc import abstractmethod
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
-class SyncPricingData(SFDXBaseTask):
+class SyncPricingData(SFDXBaseTask, BaseSalesforceTask):
     
     # Task options are used to set up configuration settings for this particular task.
     task_options = {

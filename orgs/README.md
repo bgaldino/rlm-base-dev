@@ -5,8 +5,9 @@ for instance-specific shapes. Trialforce template pointers are separate — see
 [`orgs/tfid/README.md`](tfid/README.md).
 
 Most files are wired to a CCI org alias under `orgs:` in `cumulusci.yml`
-(`cci org scratch <alias> <name>`). One is not, and is used ad hoc via the
-`sf` CLI (`sf org create scratch -f orgs/<file>.json`):
+(`cci org scratch <alias> <name>`). Three are not: `feature.json` and `release.json` (CumulusCI's
+built-in org names), and `dev-mfg.json`, which is used ad hoc via the `sf` CLI
+(`sf org create scratch -f orgs/<file>.json`):
 
 | File | Wired to a CCI alias? |
 |------|----------------------|
@@ -14,6 +15,25 @@ Most files are wired to a CCI org alias under `orgs:` in `cumulusci.yml`
 | `orgs/internal/*.json` | Yes (`dev-r0`, `dev-r1`, `dev-sb0`, `ent-r0`, `ent-r1`, `ent-sb0`, `ent-sdb*`, `ent-datacloud`) |
 | `feature.json`, `release.json` | Not under `orgs:` — these are CumulusCI's built-in org names, resolved by convention |
 | `dev-mfg.json` | **No** — ad hoc only |
+
+## Which shape to use
+
+Most shapes share `ent.json`'s Revenue Cloud settings and differ only in edition, a feature or two,
+or a pinned `instance`. Every `orgs/internal/*.json` file except `ent-datacloud` and `ent-sdb39` is
+its base file (`ent.json` or `dev.json`) plus `instance`. `ent-datacloud` and `dev-mfg` carry
+different *settings*, not just features, so don't treat either as "ent plus a feature". Compare any
+two with `diff <(jq -S 'del(.instance)' a.json) <(jq -S 'del(.instance)' b.json)`.
+
+| Shape | Edition | Differs from `ent.json` (ignoring `instance`) | Use it when |
+|---|---|---|---|
+| `ent` (`ent.json`) | Enterprise | — | The default shape for a full build. |
+| `beta`, `feature`, `release` | Enterprise | Nothing: identical | Building under one of those org names. |
+| `dev` (`dev.json`) | Developer | Edition; no `SalesCloudEinstein` | You need a Developer Edition org. Builds detect it through `org_config.org_type` (AGENTS.md → PR Review Focus Areas → Edition flags). |
+| `ent-r0`, `ent-r1`, `ent-sb0`, `ent-sdb6`, `ent-sdb9`, `ent-sdb27` | Enterprise | Nothing; each pins an `instance` | You need a particular instance, for example one already on the release you're testing. This repo's live verifications are usually built on `ent-sb0`. |
+| `ent-sdb39` | Enterprise | Pins an `instance`; adds `LargeTransactionPilot` | Large-deal work. |
+| `ent-datacloud` | Enterprise | No `instance`; adds `CustomerDataPlatform`, `CustomerDataPlatformLite` and `customerDataPlatformSettings`; **lacks** `agentPlatformSettings`, `industriesSettings` and `omniStudioSettings` | Data Cloud (Data 360) work. |
+| `dev-r0`, `dev-r1`, `dev-sb0` | Developer | As `dev`; each pins an `instance` | The `dev` shape on a particular instance. |
+| `dev-mfg` (ad hoc) | Enterprise | A Manufacturing feature set (`IndustriesManufacturing*`, `IndustriesMfgRebates`, `IndustriesMfgTargets`, analytics, AI providers), several `ent` features dropped, `enableOptionalPricebook: true` (`ent` has false), and most `revenueManagementSettings` absent (no group ramp, ramp deals, transaction processor, advanced create-orders-from-quote), plus no agent-platform, industries, OmniStudio, Omni-Channel, forecasting, email-template or security settings | The manufacturing (mfg) work only. |
 
 ## The `MaxBundleDepth:5` feature value
 

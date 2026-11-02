@@ -21,12 +21,17 @@
  *
  * ⚠ Incremental refresh advances LastIncrementalSyncDate ONLY — LastSyncDate does
  * not move. Watching LastSyncDate makes a working incremental refresh look dead.
- * Incremental also requires an initial full refresh and fails above 2000 changed
- * records (see the Refresh Decision Table action reference).
+ * And in Release 264 a FULL request can run as incremental: unless incremental is
+ * requested, the platform picks the type (org preference AutoSelectRefreshDT, read
+ * from Core's DecisionTableMediumVolumeBuilderJob), and it does not consult
+ * IsIncrementalSyncEnabled. So freshness is judged against the LATER of the two
+ * stamps — the rule the Decision Table app page uses (issue #587) — and nothing
+ * here gates a request on IsIncrementalSyncEnabled.
  *
  * ══ How freshness is decided, and where it deliberately refuses to decide ══
  *
- * A table is stale when its source changed at or after the last full sync — the
+ * A table is stale when its source changed at or after the last sync, full or
+ * incremental, whichever is later — the
  * tie counts as stale, because at an exact tie nothing establishes which came
  * first and Fresh is the verdict that cannot be walked back. That
  * comparison is only meaningful if the rows counted are the rows the table
@@ -111,9 +116,14 @@
  *
  *    USER_MODE is kept deliberately: this reads no data a user could not already
  *    query, and dropping to system mode to make the wording stronger would trade a
- *    real access boundary for a cosmetic one. What it does NOT do is prove the
- *    caller sees every row — nothing here checks that, so "visible" is the
- *    strongest honest claim.
+ *    real access boundary for a cosmetic one.
+ *
+ *    NARROWED (pack 079, measured on 264): FRESH is withdrawn to Not comparable when
+ *    an object the table reads has a sharing model that can hide rows from this user
+ *    (Private, or ControlledByParent under a Private master) and the user lacks View
+ *    All Data or View All on it. Every probed object counts, including those a source
+ *    criterion traverses. See rowsMayBeHiddenFrom. Still open: restriction rules and
+ *    external users' sharing, so "visible" stays the strongest honest claim.
  *
  * The two that remain open can leave a genuinely stale table reading FRESH. This check catches
  * inserts and edits the caller can see, which is what a post-build readiness check
@@ -124,6 +134,11 @@
 public with sharing class RLM_DecisionTableManagerController {
 
     @TestVisible private static final String BULK_REFRESH_FLOW = 'RLM_Refresh_Decision_Tables_Bulk';
+    @TestVisible private static final String REFRESH_ACCESS_MESSAGE =
+        'Refreshing a decision table needs both Modify All Data and Customize Application. '
+        + 'Salesforce requires both for the Refresh Decision Table action, and no narrower '
+        + 'permission grants it. Ask an admin to refresh, or run '
+        + 'cci flow run refresh_all_decision_tables.';
 
     // Staleness verdicts. Anything that is not a positive, computed comparison is
     // one of the two non-committal values — never FRESH by default.
@@ -367,6 +382,9 @@ public with sharing class RLM_DecisionTableManagerController {
         for (DecisionTable dt : tables) {
             DecisionTableInfo info = new DecisionTableInfo(dt);
             info.sourceCriteria = describeCriteria(criteriaByTable.get(dt.Id));
+            if (!NON_SOBJECT_SOURCE_TYPES.contains(dt.DataSourceType) && String.isNotBlank(dt.SourceObject)) {
+                info.readsObjects = readsObjectsOf(dt.SourceObject, joinedObjectsByTable.get(dt.Id), globalDescribe);
+            }
             info.lookupType = lookupTypes.get(dt.SetupName);
 
             // Checked FIRST, and for every table whatever its source. A sync that
@@ -389,7 +407,230 @@ public with sharing class RLM_DecisionTableManagerController {
             }
             results.add(info);
         }
+
+        applySharingScope(results, globalDescribe);
         return results;
+    }
+
+    /** Withdraws every Fresh verdict that rests on an object sharing can hide from this user. */
+    @TestVisible
+    private static void applySharingScope(List<DecisionTableInfo> results, Map<String, SObjectType> globalDescribe) {
+        Set<String> probedByAny = new Set<String>();
+        for (DecisionTableInfo info : results) {
+            probedByAny.addAll(probedObjectsOf(info));
+        }
+        Map<String, String> hiddenBecause = rowsMayBeHiddenFrom(probedByAny, globalDescribe);
+        for (DecisionTableInfo info : results) {
+            withdrawFreshWhenRowsMayBeHidden(info, hiddenBecause);
+        }
+    }
+
+    // Internal sharing models under which every user with object read sees every row.
+    // Anything else, including a model this list does not know, is treated as hiding.
+    private static final Set<String> SEE_ALL_SHARING_MODELS = new Set<String>{
+        'Read', 'ReadWrite', 'ReadWriteTransfer', 'FullAccess', 'ReadSelect'
+    };
+    private static final String CONTROLLED_BY_PARENT = 'ControlledByParent';
+    // The Setup labels for the API values a reason can show.
+    private static final Map<String, String> SHARING_MODEL_LABELS = new Map<String, String>{
+        'Private' => 'Private', 'None' => 'No Access',
+        'ControlledByCampaign' => 'Controlled by Campaign',
+        'ControlledByLeadOrContact' => 'Controlled by Lead or Contact'
+    };
+
+    /**
+     * For each of `objects` whose rows sharing can hide from the running user, why.
+     *
+     * The probes run USER_MODE, so a row the user cannot see is invisible to them, and a
+     * change to it after the last sync leaves the table reading Fresh while it is stale.
+     * Measured on 264 (pack 079): with IndexRate Private, an admin's new matching row read
+     * Stale for the admin and was invisible to the salesrep persona.
+     *
+     * Nothing is hidden from a user with View All Data, or with View All / Modify All on
+     * the object through an active assignment. Otherwise an object hides rows when its
+     * internal sharing model is not a see-all one; ControlledByParent follows its
+     * master-detail parents, and any hiding master hides the child. Read in system mode:
+     * these are metadata reads about the user, not data the user is reading.
+     */
+    @TestVisible
+    private static Map<String, String> rowsMayBeHiddenFrom(Set<String> objects, Map<String, SObjectType> globalDescribe) {
+        Map<String, String> hiddenBecause = new Map<String, String>();
+        if (objects.isEmpty()) {
+            return hiddenBecause;
+        }
+        List<UserPermissionAccess> user = [SELECT PermissionsViewAllData FROM UserPermissionAccess LIMIT 1];
+        if (!user.isEmpty() && user[0].PermissionsViewAllData) {
+            return hiddenBecause;
+        }
+
+        // Models first, then masters only for ControlledByParent objects, to closure
+        // (AssetActionSource → AssetAction → Asset is the deepest stock chain).
+        Map<String, String> modelOf = new Map<String, String>();
+        Map<String, List<String>> mastersOf = new Map<String, List<String>>();
+        Set<String> pending = new Set<String>(objects);
+        while (!pending.isEmpty()) {
+            Map<String, String> models = sharingModels(pending);
+            modelOf.putAll(models);
+            Set<String> next = new Set<String>();
+            for (String name : pending) {
+                if (models.get(name) != CONTROLLED_BY_PARENT) {
+                    continue;
+                }
+                List<String> masters = mastersOfObject(globalDescribe.get(name));
+                mastersOf.put(name, masters);
+                for (String master : masters) {
+                    if (!modelOf.containsKey(master) && !pending.contains(master)) {
+                        next.add(master);
+                    }
+                }
+            }
+            pending = next;
+        }
+
+        Set<String> seesAll = viewAllObjects(modelOf.keySet());
+        for (String name : objects) {
+            String reason = hidingReason(name, modelOf, mastersOf, seesAll, 0);
+            if (reason != null) {
+                hiddenBecause.put(name, reason);
+            }
+        }
+        return hiddenBecause;
+    }
+
+    /**
+     * InternalSharingModel by object. EntityDefinition returns no row for an object the
+     * user cannot access, and an object with no row reads as hiding (fail closed); its
+     * probe fails too, so its table is Unknown regardless.
+     */
+    private static Map<String, String> sharingModels(Set<String> names) {
+        Map<String, String> modelOf = new Map<String, String>();
+        try {
+            for (EntityDefinition e : [
+                SELECT QualifiedApiName, InternalSharingModel FROM EntityDefinition
+                WHERE QualifiedApiName IN :names
+            ]) {
+                modelOf.put(e.QualifiedApiName, e.InternalSharingModel);
+            }
+        } catch (Exception e) {
+            modelOf.clear();
+        }
+        return modelOf;
+    }
+
+    /** The master-detail parents of an object. */
+    private static List<String> mastersOfObject(SObjectType sot) {
+        List<String> masters = new List<String>();
+        if (sot == null) {
+            return masters;
+        }
+        for (SObjectField f : sot.getDescribe().fields.getMap().values()) {
+            DescribeFieldResult fd = f.getDescribe();
+            if (fd.getRelationshipOrder() != null) {
+                for (SObjectType parent : fd.getReferenceTo()) {
+                    masters.add(parent.getDescribe().getName());
+                }
+            }
+        }
+        return masters;
+    }
+
+    /**
+     * Objects the user sees every row of through View All or Modify All on an active
+     * assignment. A failed read counts as none (fail closed).
+     */
+    private static Set<String> viewAllObjects(Set<String> names) {
+        Set<String> seesAll = new Set<String>();
+        Id userId = UserInfo.getUserId();
+        try {
+            for (ObjectPermissions p : [
+                SELECT SobjectType FROM ObjectPermissions
+                WHERE SobjectType IN :names
+                AND (PermissionsViewAllRecords = true OR PermissionsModifyAllRecords = true)
+                AND ParentId IN (SELECT PermissionSetId FROM PermissionSetAssignment
+                                 WHERE AssigneeId = :userId AND IsActive = true)
+            ]) {
+                seesAll.add(p.SobjectType);
+            }
+        } catch (Exception e) {
+            seesAll.clear();
+        }
+        return seesAll;
+    }
+
+    /** Why `name`'s rows can be hidden from this user, or null if they cannot. */
+    @TestVisible
+    private static String hidingReason(
+        String name, Map<String, String> modelOf, Map<String, List<String>> mastersOf,
+        Set<String> seesAll, Integer depth
+    ) {
+        if (seesAll.contains(name)) {
+            return null;
+        }
+        String model = modelOf.get(name);
+        if (model == null) {
+            return 'sharing model unreadable';
+        }
+        if (SEE_ALL_SHARING_MODELS.contains(model)) {
+            return null;
+        }
+        if (model != CONTROLLED_BY_PARENT) {
+            return (SHARING_MODEL_LABELS.containsKey(model) ? SHARING_MODEL_LABELS.get(model) : model) + ' sharing';
+        }
+        List<String> masters = mastersOf.get(name);
+        if (masters == null || masters.isEmpty() || depth > 5) {
+            return 'controlled by a parent that could not be resolved';
+        }
+        for (String master : masters) {
+            String masterReason = hidingReason(master, modelOf, mastersOf, seesAll, depth + 1);
+            if (masterReason != null) {
+                return 'controlled by ' + master + ': ' + masterReason;
+            }
+        }
+        return null;
+    }
+
+    /** Every object a table's probes read: its parameters' objects and its criteria's. */
+    @TestVisible
+    private static Set<String> probedObjectsOf(DecisionTableInfo info) {
+        Set<String> probed = new Set<String>();
+        if (info.readsObjects != null) {
+            probed.addAll(info.readsObjects);
+        }
+        if (info.contributingObjects != null) {
+            probed.addAll(info.contributingObjects);
+        }
+        return probed;
+    }
+
+    /**
+     * Withdraw FRESH when sharing can hide rows of an object the table reads.
+     *
+     * Same shape as withdrawFreshWhenOrgAgeUnknown, for the same reason: only FRESH is
+     * withdrawn. A Stale verdict is a change the user CAN see, and stands. Admins and
+     * users with View All Data are unaffected, so check_decision_table_freshness run as
+     * an admin still reports every verdict.
+     */
+    @TestVisible
+    private static void withdrawFreshWhenRowsMayBeHidden(DecisionTableInfo info, Map<String, String> hiddenBecause) {
+        if (info.staleness != STALENESS_FRESH || hiddenBecause.isEmpty()) {
+            return;
+        }
+        List<String> hidden = new List<String>();
+        List<String> probed = new List<String>(probedObjectsOf(info));
+        probed.sort();
+        for (String name : probed) {
+            if (hiddenBecause.containsKey(name)) {
+                hidden.add(name + ' (' + hiddenBecause.get(name) + ')');
+            }
+        }
+        if (hidden.isEmpty()) {
+            return;
+        }
+        info.staleness = STALENESS_UNCOMPUTED;
+        info.stalenessReason = 'Nothing you can see has changed since the last sync, but sharing can '
+            + 'hide rows of ' + String.join(hidden, ', ') + ' from you, and a change to a hidden '
+            + 'row would not show here. A user with View All Data, or View All on these objects, '
+            + 'sees the full verdict.';
     }
 
     /**
@@ -472,6 +713,32 @@ public with sharing class RLM_DecisionTableManagerController {
     }
 
     /**
+     * The table's most recent sync, full or incremental — the stamp freshness is judged
+     * against. Release 264 can run a full request as incremental, which moves only
+     * LastIncrementalSyncDate; reading LastSyncDate alone then reports a table stale
+     * right after it was refreshed (issue #587).
+     *
+     * ⚠ Not used for neverBuiltInThisOrgReason, deliberately: an incremental applies
+     * changes on top of the rows already there, so after a Trialforce spin it does not
+     * prove the table was ever built from THIS org's data. That check stays on the full
+     * sync.
+     */
+    @TestVisible
+    private static Datetime latestSync(DecisionTable dt) {
+        if (dt.LastIncrementalSyncDate != null &&
+                (dt.LastSyncDate == null || dt.LastIncrementalSyncDate > dt.LastSyncDate)) {
+            return dt.LastIncrementalSyncDate;
+        }
+        return dt.LastSyncDate;
+    }
+
+    /** How the reasons name latestSync: which kind of sync it was. */
+    @TestVisible
+    private static String latestSyncLabel(DecisionTable dt) {
+        return latestSync(dt) == dt.LastSyncDate ? 'last full sync' : 'last incremental sync';
+    }
+
+    /**
      * Why a table cannot have been built in THIS org, or null if it could have been.
      *
      * ⚠ This is the check that matters after a Trialforce spin. A new org from a
@@ -493,7 +760,8 @@ public with sharing class RLM_DecisionTableManagerController {
         if (orgCreated != null && lastSyncDate < orgCreated) {
             return 'Last full sync (' + lastSyncDate.format() + ') predates this org, created ' +
                 orgCreated.format() + '. An org spun from a template inherits the template\'s ' +
-                'sync timestamp, so this table still holds rows built somewhere else — refresh it.';
+                'sync timestamp, so this table still holds rows built somewhere else. A full ' +
+                'refresh clears this; an incremental one does not.';
         }
         return null;
     }
@@ -668,7 +936,9 @@ public with sharing class RLM_DecisionTableManagerController {
         // costs a job and a false all-clear costs a wrong price. The Fresh branch below
         // also states the sync is "later than" the newest change, which at a tie is
         // simply untrue.
-        if (dt.LastSyncDate <= newest) {
+        Datetime synced = latestSync(dt);
+        String syncLabel = latestSyncLabel(dt);
+        if (synced <= newest) {
             // Stale stands even with an unread contributor: another unseen change could
             // only add to it.
             info.staleness = STALENESS_STALE;
@@ -683,10 +953,10 @@ public with sharing class RLM_DecisionTableManagerController {
             // which is the pairing this class exists to avoid.
             info.stalenessReason = driver + ' was changed by a user or an automated ' +
                 'process at ' + newest.format() +
-                (dt.LastSyncDate == newest
-                    ? ', the same instant as the last full sync. Nothing establishes ' +
+                (synced == newest
+                    ? ', the same instant as the ' + syncLabel + '. Nothing establishes ' +
                       'which happened first, so this is treated as stale rather than fresh.'
-                    : ', after the last full sync.') + scope;
+                    : ', after the ' + syncLabel + '.') + scope;
         } else if (!unread.isEmpty() || plan.contributorsUnenumerable) {
             // Fresh does NOT stand: something that could have changed was not read, so
             // there is no basis for an all-clear. Two different gaps reach here — a
@@ -710,7 +980,7 @@ public with sharing class RLM_DecisionTableManagerController {
             // Without that word this sentence asserts org-wide quiet on the evidence of
             // one user's view, and Fresh is the verdict people act on by NOT refreshing.
             // The empty-source reasons have always been scoped; this one was not.
-            info.stalenessReason = 'The last full sync is later than the newest visible ' +
+            info.stalenessReason = 'The ' + syncLabel + ' is later than the newest visible ' +
                 'change in every object this table reads.' + alsoReads + scope;
         }
     }
@@ -1183,6 +1453,35 @@ public with sharing class RLM_DecisionTableManagerController {
             plan.contributingObjects.add(joinedDsr.getName());
         }
         return plan;
+    }
+
+    /**
+     * The objects a table reads: its source and every object its columns or parameters
+     * reach. Taken from the parameter scan, not from a source plan, because a plan stops
+     * early on the paths that cannot compute a verdict, and those tables still read their
+     * objects. Objects reached only through a traversing source criterion are not listed;
+     * the scan does not see them. Sorted, deduplicated, canonical names where resolvable.
+     */
+    @TestVisible
+    private static List<String> readsObjectsOf(
+        String sourceObject, Contributors contributors, Map<String, SObjectType> globalDescribe
+    ) {
+        Set<String> names = new Set<String>{ sourceObject };
+        if (contributors != null) {
+            names.addAll(contributors.objects);
+        }
+        Set<String> canonical = new Set<String>();
+        for (String name : names) {
+            SObjectType t = String.isBlank(name) ? null : globalDescribe.get(name);
+            if (t != null) {
+                canonical.add(t.getDescribe().getName());
+            } else if (String.isNotBlank(name)) {
+                canonical.add(name);
+            }
+        }
+        List<String> sorted = new List<String>(canonical);
+        sorted.sort();
+        return sorted;
     }
 
     /**
@@ -1741,57 +2040,40 @@ public with sharing class RLM_DecisionTableManagerController {
             return result;
         }
 
+        // Refused here, not per table in the flow, where each would fail to queue with
+        // "Unsupported action type: REFRESH_DECISION_TABLE", which names no permission. And
+        // before the table query, which a user with no DecisionTable access fails with a
+        // QueryException rather than an empty result.
+        if (!canRefreshTables()) {
+            result.errorMessage = REFRESH_ACCESS_MESSAGE;
+            return result;
+        }
+
         Set<String> requested = new Set<String>(apiNames);
         Set<String> known = new Set<String>();
-        List<String> incrementalDisabled = new List<String>();
+        // ⚠ No IsIncrementalSyncEnabled gate. This used to refuse an incremental request
+        // on a table with the flag false; Release 264 does not consult the flag (a Core
+        // engineer: "not consequential"), so the refusal only blocked valid requests.
         for (DecisionTable dt : [
-            SELECT DeveloperName, IsIncrementalSyncEnabled FROM DecisionTable
+            SELECT DeveloperName FROM DecisionTable
             WHERE DeveloperName IN :requested
             WITH USER_MODE
         ]) {
             known.add(dt.DeveloperName);
-            if (dt.IsIncrementalSyncEnabled != true) {
-                incrementalDisabled.add(dt.DeveloperName);
-            }
         }
         // Diff the EXPECTED set against what was found, rather than reporting on
         // the found set alone.
-        //
-        // ⚠ Runs BEFORE the incremental gate below, which returns early. A mixed
-        // request — one real table with incremental disabled, one name that does not
-        // exist — otherwise reports the disabled table and drops the unknown name
-        // entirely, and RefreshResult's whole contract is that each name lands in
-        // exactly one bucket. Populating both is what makes a partial outcome legible.
         for (String name : requested) {
             if (!known.contains(name)) {
                 result.unknownApiNames.add(name);
             }
-        }
-        // ⚠ An incremental request against a table with IsIncrementalSyncEnabled =
-        // false is accepted by the platform action and then does not sync the changed
-        // rows — so the caller sees "queued" and the table stays stale. Measured: false
-        // on every table this repo ships and on all 40 in a built org, which makes this
-        // the DEFAULT outcome of choosing Incremental rather than an edge case.
-        //
-        // Refused rather than silently downgraded to a full refresh: a full sync is a
-        // heavier operation than the caller asked for, and doing it unasked would be a
-        // different surprise. Naming the tables lets them re-run with Full.
-        if (incremental == true && !incrementalDisabled.isEmpty()) {
-            result.errorMessage = 'Incremental sync is not enabled on ' +
-                incrementalDisabled.size() + ' of the selected table(s): ' +
-                String.join(incrementalDisabled, ', ') +
-                '. An incremental refresh there is accepted and then changes nothing. ' +
-                'Run a full refresh, or enable incremental sync on the table first.';
-            result.incremental = true;
-            result.failedApiNames.addAll(incrementalDisabled);
-            result.failedCount = incrementalDisabled.size();
-            return result;
         }
         if (known.isEmpty()) {
             result.errorMessage = 'None of the requested decision tables exist.';
             return result;
         }
 
+        result.incremental = (incremental == true);
         try {
             Flow.Interview flow = Flow.Interview.createInterview(
                 BULK_REFRESH_FLOW,
@@ -1807,11 +2089,30 @@ public with sharing class RLM_DecisionTableManagerController {
             if (failed instanceof List<String>) {
                 result.failedApiNames = (List<String>) failed;
             }
-            result.incremental = (incremental == true);
         } catch (Exception e) {
             result.errorMessage = 'Refresh could not be started: ' + e.getMessage();
         }
         return result;
+    }
+
+    /**
+     * Whether the running user can refresh a decision table at all.
+     *
+     * Salesforce gates the refreshDecisionTable action on Modify All Data AND Customize
+     * Application, and nothing narrower satisfies it: no BRE permission,
+     * DecisionTableExecUserAccess or RunFlow (Core InvocableRefreshDecisionTable.hasAccess;
+     * measured on 264, a salesrep with RunFlow is refused). So the component's freshness view
+     * is for everyone with the permission set, and its Refresh is for admins.
+     */
+    @AuraEnabled(cacheable=false)
+    public static Boolean canRefreshTables() {
+        List<UserPermissionAccess> access = [
+            SELECT PermissionsModifyAllData, PermissionsCustomizeApplication
+            FROM UserPermissionAccess LIMIT 1
+        ];
+        return !access.isEmpty()
+            && access[0].PermissionsModifyAllData
+            && access[0].PermissionsCustomizeApplication;
     }
 
     /**
@@ -1974,6 +2275,11 @@ public with sharing class RLM_DecisionTableManagerController {
         @AuraEnabled public String status;
         @AuraEnabled public Datetime lastSyncDate;
         @AuraEnabled public Datetime lastIncrementalSyncDate;
+        // The later of the two — what freshness is judged against (issue #587) — and
+        // which kind it was ('Full' or 'Incremental'), so the component shows the same
+        // number the verdict used.
+        @AuraEnabled public Datetime latestSyncDate;
+        @AuraEnabled public String latestSyncKind;
         @AuraEnabled public String refreshStatus;
         @AuraEnabled public String refreshFailureReason;
         @AuraEnabled public Boolean incrementalEnabled;
@@ -2005,6 +2311,12 @@ public with sharing class RLM_DecisionTableManagerController {
         // across, and whose changes therefore count against its freshness. Empty for a
         // single-object table; populated for the MultipleSobjects ones.
         @AuraEnabled public List<String> contributingObjects = new List<String>();
+        // Every object this table reads, source included, whatever the verdict, for the
+        // Manager's "Reads object" filter. Unlike contributingObjects it is filled before
+        // any probe, so a Not comparable, Unknown or never-built table still lists its
+        // objects, and so does an object the running user cannot read. Canonical API
+        // names where the org resolves them.
+        @AuraEnabled public List<String> readsObjects = new List<String>();
         // Criteria the check watched rather than reproduced, so the comparison covers
         // more rows than the table holds. Non-empty means Stale may be over-reported —
         // Fresh is unaffected, since a superset that predates the sync proves the real
@@ -2026,6 +2338,10 @@ public with sharing class RLM_DecisionTableManagerController {
             this.status = dt.Status;
             this.lastSyncDate = dt.LastSyncDate;
             this.lastIncrementalSyncDate = dt.LastIncrementalSyncDate;
+            this.latestSyncDate = latestSync(dt);
+            this.latestSyncKind = this.latestSyncDate == null
+                ? null
+                : (this.latestSyncDate == dt.LastSyncDate ? 'Full' : 'Incremental');
             this.refreshStatus = dt.RefreshStatus;
             this.refreshFailureReason = dt.RefreshFailureReason;
             this.incrementalEnabled = dt.IsIncrementalSyncEnabled;

@@ -17,14 +17,14 @@ from typing import List, Dict, Optional
 from datetime import datetime
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
 
 
-class ManageFlows(BaseTask):
+class ManageFlows(BaseSalesforceTask):
     """
     Comprehensive Flow management task.
     

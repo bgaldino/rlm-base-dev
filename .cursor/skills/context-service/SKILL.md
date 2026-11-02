@@ -34,8 +34,7 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 
 1. **Route by task.** *Extend* a standard context → `extend_context_*` /
    `extend_standard_context`. *Apply an additive plan* → `apply_context_*` /
-   `manage_context_definition`. *Deploy tracked metadata* →
-   `deploy_context_definitions`. *Inspect / validate* → the helper scripts in
+   `manage_context_definition`. *Inspect / validate* → the helper scripts in
    `scripts/context_service/` (Deliverable of this skill). See the routing table below.
 2. **Extend, don't clone.** An *extended* definition (custom layer on a standard
    base) auto-upgrades via Sync and preserves the base's mandatory mappings; a
@@ -135,9 +134,9 @@ expression-set steps that consume it. This skill is consumable by any AI agent
   (`ContextDefinition` is a single atomic MDAPI unit, `childXmlNames: []`).
 - **DO NOT** run an `Override` upgrade/Sync expecting it to be safe — Override is
   **destructive** (deletes custom artifacts). Prefer `Sync`.
-- **DO NOT** treat `force-app/main/default/contextDefinitions/` as
-  auto-generated — it is **tracked** metadata deployed by
-  `deploy_context_definitions`. Prefer plans + tasks for additive changes.
+- **DO NOT** deploy the `.contextDefinition` files in
+  `docs/references/context-definitions/`. They are reference-only, pre-264 snapshots, and because a
+  definition deploys as one atomic unit, a deploy would delete attributes 264 added. Use plans + tasks.
 - **DO NOT** assume a runtime `contextId` survives across separate `sf`/CLI
   invocations — it is request-scoped (rule 9), and `context_session.py` does not
   change that (its steps are separate `sf api request`s too). If a standalone
@@ -165,7 +164,6 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 | Apply a plan **without** CCI (sf-CLI, same plan logic as `manage_context_definition`) | `python scripts/context_service/definition/apply_context_plan.py --target-org <sf_alias> --plan-file <manifest> --dry-run` first; drop `--dry-run` to mutate. Prefer the CCI task for build work |
 | Deactivate a definition, or hard-delete a definition / custom artifacts | `python scripts/context_service/definition/delete_context.py --target-org <sf_alias> --developer-name <name>` (deactivate is the default); hard delete needs `--confirm-delete` (+ `--deactivate-first`, deletes are blocked while active). Destructive |
 | Make one granular in-place edit to an existing definition (flip `isTransient`, re-point the default mapping, add/remove a tag, bind an attribute to a field) | `python scripts/context_service/definition/mutate_context.py --target-org <sf_alias> --developer-name <name> --set-transient <Node.Attr> <bool> \| --set-default-mapping <name> \| --add-tag <Node.Attr> <tag__c> \| --add-mapping <Node.Attr> <mapping> <sObjectField> \| --remove-tag <tag>` — previews unless `--confirm`; modifies/deletes need `--deactivate-first --reactivate` (the pure inserts `--add-tag` / `--add-mapping` run on an active version). `--add-mapping` is the sibling-safe way to bind one attribute — the only clean way to add a **root**-node binding (whole-body PATCH can't express it) |
-| Deploy tracked `contextDefinitions/` metadata | `deploy_context_definitions` |
 | Upgrade after a release (Sync) | `authoring-and-lifecycle.md` → upgrade/Sync (`upgradeMode` Sync/Preview/Override) |
 | Build the runtime **hydration payload** (the `data` object) for a definition | `python scripts/context_service/instance/build_hydration_data.py --target-org <sf_alias> --developer-name <name> [--mapping-name NAME] [--node NAME] --out records.json` — read-only skeleton; fill in ids (values optional, id-only hydrates from the org). Add `--from-record <id> [--node NAME]` for a ready-to-run **id-only** payload (parent + children hydrate server-side). `businessObjectType` is the **mapped SObject** name, resolved from the chosen mapping (default mapping unless `--mapping-name`) |
 | Run the full **runtime** lifecycle (hydrate → query → persist) end-to-end | `python scripts/context_service/instance/context_session.py --target-org <sf_alias> --developer-name <name> --data-file records.json --context-scope SESSION --query [--persist --target-mapping-name <m>]` — the script sequences the steps but each is a separate `sf api request`, so `--context-scope SESSION` (pilot) or a reused `--context-id` is required to chain query/persist after create; on a GA org `--query`/`--persist` need `ContextServicePilot` (else use Apex, rule 10). See `runtime-and-persistence.md` |
@@ -189,7 +187,6 @@ generated list; all in group *Revenue Lifecycle Management*):
 | `extend_standard_context` | `rlm_extend_stdctx.ExtendStandardContext` | Generic extend: `name`, `baseReference`, `defaultMapping`, `startDate`, `contextTtl`, optional `plan_file` |
 | `apply_context_approvals` / `_constraint_engine_node_status` / `_prm_pricing` / `_billing_order` / `_docgen` | `rlm_context_service.ManageContextDefinition` | Apply the named additive plan; `deactivate_before: false`, `activate: true` |
 | `manage_context_definition` | `rlm_context_service.ManageContextDefinition` | Generic apply: `plan_file` (required), `developer_name`/`context_definition_id`, `activate`, `dry_run`, `deactivate_before`, `validate_only`, `verify` |
-| `deploy_context_definitions` | `cumulusci.tasks.salesforce.Deploy` | Deploy `force-app/main/default/contextDefinitions/` |
 
 Helper scripts (`scripts/context_service/`, split into `definition/` design-time and
 `instance/` runtime subpackages — the first block below is offline/read-only, the

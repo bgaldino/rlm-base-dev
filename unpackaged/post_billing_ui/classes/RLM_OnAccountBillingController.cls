@@ -39,7 +39,9 @@ public with sharing class RLM_OnAccountBillingController {
 
         Decimal debitMemoBalance = queryAggregate(
             'DebitMemo', 'TotalChargeAmount', 'AccountId',
-            'Status = \'Posted\' AND TotalChargeAmount != 0',
+            // Not yet on a posted invoice: once it is, the invoice balance above counts it.
+            'Status = \'Posted\' AND TotalChargeAmount != 0'
+                + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\'',
             accountId, accountCurrency, standardRates, datedRates, isMultiCurrency
         );
         result.put('debitMemoBalance', debitMemoBalance);

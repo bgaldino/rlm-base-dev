@@ -83,11 +83,12 @@ before reloading existing data.
 - **RateAdjustmentByTier**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId)
 
 #### qb-tax
-- **TaxPolicy**: `DefaultTaxTreatmentId` removed from Pass 2 query — SFDMU v5 cannot resolve the circular `DefaultTaxTreatment.Name` reference. The `activateTaxRecords.apex` script now sets `DefaultTaxTreatmentId` before activating.
+- **TaxPolicy (Pass 2)**: queries `DefaultTaxTreatmentId` with a single-field `DefaultTaxTreatment.Name` lookup (verified live on 264, 2026-10-30), so the default treatment is set in the same update that activates the policy. The earlier failure was Bug 4: the CSV used a `$$` composite in that lookup column. Before the fix, the query omitted the field and `activateTaxRecords.apex` set it afterwards. The script still backfills it for plans that don't set it, such as q3-tax.
+- **NamedCredential**: read as a `Readonly` object (`RLM_MockTax`) so `TaxEngine.MerchantCredential.DeveloperName` resolves.
 
 #### qb-rating
 - **Historical migration:** ProductUsageResourcePolicy and ProductUsageGrant were initially excluded because of traversal-key issues.
-- **Current plan:** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant are included with `operation: Insert` and `deleteOldData: true`. These deletes have no WHERE filter and target all records of each object. See the [rating plan's reload prerequisites](../../datasets/sfdmu/qb/en-US/qb-rating/README.md#idempotency) before reloading; active records and downstream references can block deletion.
+- **Current plan:** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant are included with `operation: Insert` and `deleteOldData: true`. These deletes are scoped with a `deleteQuery` that skips Active rows (todo 298), so Draft and Inactive rows are deleted and Active rows are kept. See the [rating plan's reload prerequisites](../../datasets/sfdmu/qb/en-US/qb-rating/README.md#idempotency) before reloading; downstream references (e.g. rate rows pointing at a non-Active PUR) can still block deletion.
 
 ### Idempotency
 

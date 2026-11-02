@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**46 flows** across **5 groups**.
+**47 flows** across **5 groups**.
 
 ---
 
@@ -109,6 +109,17 @@ Assign feature-gated permission set licenses after pre-deploy metadata is in pla
    - `api_names`: `['EinsteinAnalyticsPlusPsl']`
 4. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__tso`
    - `api_names`: `['AutomatedActionsPsl', 'EinsteinAgentCWUPsl', 'EinsteinAgentPsl', 'EinsteinCopilotReviewMyDayPsl...`
+
+---
+
+### `check_org_readiness`
+
+Post-spin readiness, read-only: every decision table's freshness verdict (a table whose last full sync predates the org reads Stale: never built here) and whether the search index was built in this org. Run it on a Trialforce-spun org after refresh_all_decision_tables and rebuild_search_index, allowing a few minutes for the index build. In Release 264 a refresh within a day of the template's full sync can run incremental and leave a table Stale (never built here) until a full one runs. Both steps report; to fail on a not-ready result pass each step's strict option, e.g. -o check_decision_table_freshness__param1 strict -o check_search_index_readiness__strict true.
+
+**Steps:**
+
+1. **task** `check_decision_table_freshness`
+2. **task** `check_search_index_readiness`
 
 ---
 
@@ -229,6 +240,7 @@ Extract rating and rates data from an org into CSV files
    - `api_names`: `['RLM_BillingUI']`
 15. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
 16. **flow** `prepare_billing_portal`
+17. **task** `recalculate_billing_psg_after_settings`  `when: project_config.project__custom__billing`
 
 ---
 
@@ -484,7 +496,13 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 12. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
    - `api_names`: `['RLM_RenewalQuotes']`
    - `user_alias`: `salesrep`
-13. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+13. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_UsageDatatables']`
+   - `user_alias`: `salesrep`
+14. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_UsageUploader']`
+   - `user_alias`: `salesrep`
+15. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -504,6 +522,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 2. **task** `insert_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
 3. **task** `delete_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
 4. **task** `insert_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
+5. **task** `insert_qb_price_revision_data`  `when: project_config.project__custom__qb`
 
 ---
 
@@ -562,7 +581,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 2. **task** `activate_procedure_plan_expression_sets`  `when: project_config.project__custom__procedureplans`
 3. **task** `create_procedure_plan_definition`  `when: project_config.project__custom__procedureplans`
 4. **task** `insert_procedure_plan_data`  `when: project_config.project__custom__procedureplans`
-5. **task** `activate_procedure_plan_version`  `when: project_config.project__custom__procedureplans`
+5. **task** `activate_procedure_plan_version`  `when: project_config.project__custom__procedureplans and project_config.project__custom__procedureplans_active`
 
 ---
 
@@ -573,6 +592,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 1. **task** `insert_quantumbit_pcm_data`  `when: project_config.project__custom__qb`
 2. **task** `insert_q3_pcm_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
 3. **task** `insert_quantumbit_product_image_data`  `when: project_config.project__custom__qb`
+4. **task** `insert_default_configurator_flow`
 
 ---
 
@@ -593,10 +613,16 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
    - `api_names`: `['RLM_DecisionTableManager']`
 8. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_RebuildSearchIndex']`
-9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
-   - `api_names`: `['RLM_CALM_SObject_Access']`
-10. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
+9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UsageUploader']`
+10. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UsageOrchestration']`
 11. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UsageDatatables']`
+12. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
+   - `api_names`: `['RLM_CALM_SObject_Access']`
+13. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
+14. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_RenewalQuotes']`
 
 ---

@@ -16,7 +16,9 @@
 #      resolve_manifest() function — load and resolve are separate steps so a
 #      single load can back many lookups.)
 #   2. Local clone paths come from env vars (FOUNDATIONS_REPO_ROOT, PMOS_REPO_ROOT)
-#      OR sibling-directory fallback (../pmos-revenue-cloud, ../rlm-base-dev)
+#      OR sibling-directory fallback (../pmos-revenue-cloud, ../rlm-base-dev).
+#      The repo containing this file answers for its own section first, ahead
+#      of every hint, so a worktree or renamed clone audits itself.
 #   3. Each grounding artifact has a resolved local filesystem path
 #   4. CLI: `python scripts/ai/skill_manifest.py --check | --list-skills <repo> |
 #      --resolve <repo>/<kind>/<key>` exposes the same surface for diagnostics
@@ -39,7 +41,7 @@ generated_at: "2026-05-23T00:00:00Z"
 # never been committed on any branch. `skill_manifest.py --check` did not catch any of
 # that at the time — it resolved repo roots only. It now audits every declared skill
 # and every path-shaped value, so re-stamping this date means running it.
-last_verified: "2026-07-26"
+last_verified: "2026-10-22"
 salesforce_release_active: "264"
 salesforce_release_prior_ga: "262"
 api_version_active: "v68.0"
@@ -535,11 +537,13 @@ foundations:
     # consumers can resolve a release-specific canvas via
     # `resolve_grounding(..., 'qb_demo_script_{release}')`. Add a new entry
     # each release when the corresponding markdown file is generated.
-    qb_demo_script_262:
-      path: docs/enablement/262/qb-demo-script.md
-      purpose: "QuantumBit demo-script canvas, Release 262 (Summer '26)"
+    qb_demo_script_264:
+      # Relabeled from the 262 draft on 2026-10-29 (262 orgs no longer exist); only the
+      # core QB-COMPLETE quote-to-order steps are verified on 264 so far.
+      path: docs/enablement/264/qb-demo-script.md
+      purpose: "QuantumBit demo-script canvas, Release 264 (Winter '27)"
       produced_by_skill: qb-demo-script
-      release: "262"
+      release: "264"
       status: draft  # awaits SME pass for Setup-UI, Known Bugs, image capture, Slack publish
       consumed_by_pmos: []  # PMOS narrative-polish pass is Phase 6.3+, opt-in
 

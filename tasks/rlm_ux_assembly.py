@@ -6,8 +6,8 @@ CCI options, feature flags and the target org onto it, so ``prepare_ux`` keeps
 assembling and deploying in one step. Drift capture/writeback has no CCI task:
 use ``python scripts/ux/ux_tool.py`` (see ``scripts/ux/README.md``).
 
-Usage examples (this task has no --org option; deploy uses your DEFAULT cci org):
-    cci task run assemble_and_deploy_ux
+Usage examples (--org takes the CCI alias; without it, deploy uses the default org):
+    cci task run assemble_and_deploy_ux --org beta
     cci task run assemble_and_deploy_ux -o deploy false        # dry-run: local only, no org
     cci task run assemble_and_deploy_ux \\
         -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
@@ -52,6 +52,11 @@ class AssembleAndDeployUX(SFDXBaseTask):
     deploys that directory via sf project deploy start.
     """
 
+    # SFDXBaseTask leaves this False, which makes cci reject --org. A dry run
+    # (deploy: false) needs no org, so _validate_options clears it per instance;
+    # the class value is what cci reads to offer --org.
+    salesforce_task = True
+
     keychain_class = BaseProjectKeychain
     task_options: Dict[str, Dict[str, Any]] = {
         "metadata_type": {
@@ -91,6 +96,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
     def _validate_options(self):
         super()._validate_options()
+        if not process_bool_arg(self.options.get("deploy", True)):
+            self.salesforce_task = False
         try:
             validate_selection(
                 self.options.get("metadata_type", "all"),

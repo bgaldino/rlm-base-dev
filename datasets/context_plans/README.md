@@ -14,9 +14,9 @@ artifact. The platform has no context *import* format; our CCI task reads a plan
 and drives the standard Connect / SObject-REST APIs to apply it. Two other
 formats exist and are distinct:
 
-- **MDAPI `.contextDefinition`** (`force-app/main/default/contextDefinitions/`,
-  deployed by `deploy_context_definitions`) — the platform's *tracked-metadata*
-  format. Deploys a definition as one atomic unit; can't express "add just these
+- **MDAPI `.contextDefinition`** — the platform's *tracked-metadata* format. The repo
+  keeps only reference-only, pre-264 snapshots of it, in
+  `docs/references/context-definitions/`; nothing deploys them. Deploys a definition as one atomic unit; can't express "add just these
   N artifacts" and can't set activation/default-mapping. Different layer.
 - **Connect / SObject-REST payloads** — the platform *runtime* wire format. The
   CCI task builds these from a plan; you do not hand-author them.

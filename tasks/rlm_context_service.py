@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.sfdx import SFDXBaseTask
 from cumulusci.core.exceptions import TaskOptionsError
 
@@ -29,7 +30,7 @@ from context_service._apply import (  # noqa: E402  (after the path bootstrap ab
 _REQUEST_TIMEOUT = 30  # seconds — prevents hangs on slow networks or CI
 
 
-class ManageContextDefinition(SFDXBaseTask):
+class ManageContextDefinition(SFDXBaseTask, BaseSalesforceTask):
     task_options = {
         "access_token": {
             "description": "The access token for the org. Defaults to the project default",

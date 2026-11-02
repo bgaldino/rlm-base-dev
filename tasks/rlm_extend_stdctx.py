@@ -5,6 +5,7 @@ import requests
 from requests.exceptions import ConnectionError, Timeout, ChunkedEncodingError
 
 from cumulusci.core.keychain import BaseProjectKeychain
+from cumulusci.tasks.salesforce import BaseSalesforceTask
 from cumulusci.tasks.sfdx import SFDXBaseTask
 
 # Network resilience settings for long-running Salesforce APIs
@@ -25,7 +26,7 @@ _RECOVER_MAX_INTERVAL = 120     # cap on the exponential inter-probe wait
 
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
-class ExtendStandardContext(SFDXBaseTask):
+class ExtendStandardContext(SFDXBaseTask, BaseSalesforceTask):
 
     # Task options are used to set up configuration settings for this particular task.
     task_options = {

@@ -17,9 +17,11 @@
           "externalId": "DeveloperName"
         },
         {
-          "query": "SELECT Description, Phase, ProcedurePlanVersionId, ResolutionType, SectionType, Sequence, SubSectionType FROM ProcedurePlanSection",
+          "query": "SELECT Description, Phase, ProcedurePlanVersionId, ResolutionType, SectionType, Sequence, SubSectionType FROM ProcedurePlanSection WHERE ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
           "operation": "Upsert",
-          "externalId": "SubSectionType;Sequence"
+          "externalId": "SectionType;SubSectionType",
+          "$comment": "Keyed on SectionType;SubSectionType (the platform's per-version uniqueness rule; the query is scoped to this plan's version). skipExistingRecords: a rerun inserts a missing section at its CSV Sequence but never rewrites an existing one, so apply_procedure_plan_overlay's (PRM) resequencing survives (todo 316). excludedFromUpdateFields can't be used: SFDMU 5.8.0 also drops excluded fields from inserts.",
+          "skipExistingRecords": true
         }
       ]
     },
@@ -27,9 +29,10 @@
       "name": "Second Pass - Upsert ProcedurePlanOptions with ExpressionSet Links",
       "objects": [
         {
-          "query": "SELECT SubSectionType, Sequence, ProcedurePlanVersionId FROM ProcedurePlanSection",
+          "query": "SELECT SubSectionType, ProcedurePlanVersionId FROM ProcedurePlanSection WHERE ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
           "operation": "Readonly",
-          "externalId": "SubSectionType;Sequence"
+          "externalId": "SubSectionType",
+          "$comment": "Single-field key so the option lookup is a plain ProcedurePlanSection.SubSectionType reference (no $$ composite lookup, SFDMU Bug 4). Scoped to this plan's version, where SubSectionType is unique."
         },
         {
           "query": "SELECT DeveloperName, MasterLabel FROM ExpressionSetDefinition",
@@ -37,7 +40,7 @@
           "externalId": "DeveloperName"
         },
         {
-          "query": "SELECT ProcedurePlanSectionId, ExpressionSetDefinitionId, Priority, CriteriaLogic, ReadContextMapping, SaveContextMapping, ProcedurePlanSection.SubSectionType FROM ProcedurePlanOption",
+          "query": "SELECT ProcedurePlanSectionId, ExpressionSetDefinitionId, Priority, CriteriaLogic, ReadContextMapping, SaveContextMapping, ProcedurePlanSection.SubSectionType FROM ProcedurePlanOption WHERE ProcedurePlanSection.ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
           "operation": "Upsert",
           "externalId": "ProcedurePlanSection.SubSectionType;Priority"
         }

@@ -276,24 +276,19 @@ class SFDMUValidator:
     # surfaced four pre-existing shipped cases. Three (the qb-clm ObjectState* objects, whose `Name`
     # recurred under different `ObjectStateDefinition` parents so an Upsert collapsed distinct
     # records) were fixed in pack 193 by re-keying to the composite `Name;ObjectStateDefinition.Name`
-    # — the guard skips composite keys, so they need no entry here. The one that remains,
-    # q3-rating/RatingFrequencyPolicy, is a pair of BYTE-IDENTICAL `Monthly` rows — a benign
-    # redundant row, not a wrong-row overwrite — deduped in pack 194.
+    # — the guard skips composite keys. The fourth, q3-rating/RatingFrequencyPolicy (a pair of
+    # byte-identical `Monthly` rows), was allowlisted here until pack 194 removed the duplicate on
+    # 2026-10-28. The allowlist is empty now.
     #
-    # Allowlisted here so this offline-tooling guard lands green rather than turning the validator
-    # red repo-wide. The exemption is scoped three ways so it grandfathers only the exact collision
-    # present today, never a future regression in the same file: by EXACT plan-relative path (a NEW
-    # plan with the same object still produces the gating HIGH — deliberately not by object name); by
-    # the specific single-field key non-unique today (a re-key to a different single field fires
-    # again); and by the exact duplicate SIGNATURE — the full frozenset of (duplicated value, count)
-    # pairs. Pinning the signature rather than just a total count catches a wholesale swap (one
-    # duplicate removed while a different value becomes duplicated) that would leave a bare count
-    # unchanged. Regenerate a signature from the live CSV; delete the entry when pack 194's fix lands.
-    _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = {
-        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": ("RatingPeriod", frozenset({
-            ('Monthly', 2),
-        })),
-    }
+    # Keep the mechanism for a future grandfathered collision. An entry must be scoped three ways,
+    # so it exempts only that exact collision and never a later regression in the same file: by
+    # EXACT plan-relative path (a new plan with the same object still produces the gating HIGH —
+    # deliberately not by object name); by the specific single-field key (a re-key to a different
+    # single field fires again); and by the exact duplicate SIGNATURE, the full frozenset of
+    # (duplicated value, count) pairs, so a wholesale swap that keeps a bare count unchanged still
+    # fires. Take the signature from the live CSV, and delete the entry when its fix lands. The
+    # scoping is pinned in tests/test_sfdmu_csv_expectation.py against a fixture entry.
+    _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS: dict = {}
 
     # SFDMU 5.8.0's CSV reader imports these tokens as null, not a literal string, matched
     # case-insensitively on the trimmed cell (`Common._CSV_NULL_TOKENS` +

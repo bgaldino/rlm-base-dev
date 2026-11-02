@@ -57,7 +57,9 @@ Load the catalog and its product relationships before importing the model maps.
 
 Uploading into an active version stores the blob without rebuilding its runtime.
 The deactivate/reactivate pair therefore includes **both** Bundle and Server2 on
-every rerun. A standalone `import_cml` does not cycle the version.
+every rerun. `manage_expression_sets` runs that pair through the constraint-version
+resource, which deploys to the solver; a plain `ExpressionSetVersion.IsActive` update
+does not. A standalone `import_cml` does not cycle the version.
 
 The flags live in `project.custom` in `cumulusci.yml`; they are not flow options.
 Both constraint flags are normally enabled, but the current metadata and sample-data

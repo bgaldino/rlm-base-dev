@@ -97,6 +97,23 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None, use_sepa
                 if severity is None or i.severity == severity]
 
 
+# The allowlist mechanism's own fixture. The shipped allowlist has been empty since pack 194
+# removed the last known duplicate, so the scoping rules are pinned against this entry instead.
+_FIXTURE_NONUNIQUE_ALLOWLIST = {
+    "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": ("RatingPeriod", frozenset({("Monthly", 2)})),
+}
+
+
+def allowlisted_issues(*args, **kwargs):
+    """`deferral_issues` with `_FIXTURE_NONUNIQUE_ALLOWLIST` in place of the shipped allowlist."""
+    saved = V.SFDMUValidator._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS
+    V.SFDMUValidator._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = _FIXTURE_NONUNIQUE_ALLOWLIST
+    try:
+        return deferral_issues(*args, **kwargs)
+    finally:
+        V.SFDMUValidator._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = saved
+
+
 def deferral_issues(rel_plan_dir, passes, root_files, severity=None):
     """Run the validator END-TO-END with the plan materialized at its real
     `datasets/sfdmu/<rel_plan_dir>` location, so `_is_deferred_empty_csv_plan` (which
@@ -1426,11 +1443,20 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
                                 {"query": "SELECT Id FROM Widget__c", "operation": "Upsert", "externalId": "1"}]],
                               {"Widget__c.csv": "1\ndup\ndup\n"}, severity=V.Severity.HIGH)
             if "duplicate value" in i]),
-    # The pre-existing non-unique shipped files (packs 193/194) are allowlisted by EXACT path so the
-    # guard lands green. Materialized at its real location via `deferral_issues`, RatingFrequencyPolicy
-    # (frozen signature {("Monthly", 2)}) is suppressed only when its collision matches that signature...
+    # Pack 194 removed the last shipped duplicate, so the shipped allowlist is empty and the old
+    # RatingFrequencyPolicy collision now fires like any other.
+    ("the shipped allowlist exempts nothing: the old RatingFrequencyPolicy duplicate fires HIGH",
+     True, [i for i in deferral_issues(
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n"},
+         severity=V.Severity.HIGH)
+         if "duplicate value" in i]),
+    # The allowlist mechanism, against `_FIXTURE_NONUNIQUE_ALLOWLIST`: an entry is matched by EXACT
+    # path, and suppresses a collision only when it matches the frozen signature {("Monthly", 2)}...
     ("an allowlisted path whose duplicate signature matches the frozen one is suppressed",
-     False, [i for i in deferral_issues(
+     False, [i for i in allowlisted_issues(
          "q3/en-US/q3-rating",
          [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
             "externalId": "RatingPeriod"}]],
@@ -1440,7 +1466,7 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
     # the frozen 2), the observed signature diverges and the guard fires — a regression cannot hide
     # behind the allowlist. (Copilot's exact scenario: "gains ... another Monthly row".)
     ("an allowlisted path that gains a NEW duplicate beyond the frozen signature fires HIGH",
-     True, [i for i in deferral_issues(
+     True, [i for i in allowlisted_issues(
          "q3/en-US/q3-rating",
          [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
             "externalId": "RatingPeriod"}]],
@@ -1451,31 +1477,34 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
     # number of extra duplicate rows (here "Weekly" ×2 instead of "Monthly" ×2 — total extra still 1)
     # is a DIFFERENT collision, so its signature {("Weekly", 2)} != {("Monthly", 2)} and it fires.
     ("an allowlisted path whose duplicate value is swapped (same total) fires HIGH",
-     True, [i for i in deferral_issues(
+     True, [i for i in allowlisted_issues(
          "q3/en-US/q3-rating",
          [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
             "externalId": "RatingPeriod"}]],
          {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Weekly\n2,Weekly\n"},
          severity=V.Severity.HIGH)
          if "duplicate value" in i]),
-    # ...but the SAME object with the SAME duplicate in a DIFFERENT (non-allowlisted) plan still
-    # fires — the allowlist is keyed on exact path, not object name, so a new plan is not exempted.
-    ("the same object+duplicate in a non-allowlisted plan still fires HIGH",
-     True, [i for i in deferral_issues(
-         "qb/en-US/qb-newplan",
-         [[{"query": "SELECT Id, Name FROM ObjectStateValue", "operation": "Upsert",
-            "externalId": "Name"}]],
-         {"ObjectStateValue.csv": "Id,Name\n1,dup\n2,dup\n"}, severity=V.Severity.HIGH)
+    # ...but the fixture's exact object, key and duplicate in a DIFFERENT plan still fires: the
+    # allowlist is keyed on exact path, not object name, so a new plan is not exempted.
+    ("the allowlisted object+key+duplicate in a non-allowlisted plan still fires HIGH",
+     True, [i for i in allowlisted_issues(
+         "q3/en-US/q3-rating-copy",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n"},
+         severity=V.Severity.HIGH)
          if "duplicate value" in i]),
-    # The allowlist is scoped to the SPECIFIC known-bad key, not the file wholesale: the exempt
-    # qb-clm ObjectStateValue path is allowlisted for key "Name" only. Re-keyed to a DIFFERENT single
-    # field ("Code") with a duplicate, the collision is unknown and still fires HIGH.
+    # The allowlist is scoped to the SPECIFIC known-bad key, not the file wholesale: the fixture path
+    # is allowlisted for key "RatingPeriod" only. Re-keyed to a DIFFERENT single field
+    # ("RatingDelayDuration") with a duplicate, the collision is unknown and still fires HIGH.
     ("an allowlisted path re-keyed to a DIFFERENT single field with a duplicate still fires HIGH",
-     True, [i for i in deferral_issues(
-         "qb/en-US/qb-clm",
-         [[{"query": "SELECT Id, Code FROM ObjectStateValue", "operation": "Upsert",
-            "externalId": "Code"}]],
-         {"ObjectStateValue.csv": "Id,Code\n1,dup\n2,dup\n"}, severity=V.Severity.HIGH)
+     True, [i for i in allowlisted_issues(
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingDelayDuration FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingDelayDuration"}]],
+         # The fixture's own duplicate value, so the signature matches and only the key differs.
+         {"RatingFrequencyPolicy.csv": "Id,RatingDelayDuration\n1,Monthly\n2,Monthly\n"},
+         severity=V.Severity.HIGH)
          if "duplicate value" in i]),
 ]
 

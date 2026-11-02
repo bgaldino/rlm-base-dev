@@ -16,7 +16,7 @@
                          check were added — and a header that overstates the check is the
                          same defect as a verdict that does. -->
                     <p class="slds-text-body_small slds-text-color_weak">
-                        Stale means something changed since the last full sync — in the table's own source
+                        Stale means something changed since the last sync, full or incremental — in the table's own source
                         or in any object it reads across. A sync older than this org means the table came
                         from a template and has never been built here. Open a row for what was checked
                         and what could not be.
@@ -83,24 +83,40 @@
 
             <!-- Toolbar -->
             <div class="slds-grid slds-wrap slds-gutters_x-small slds-m-bottom_x-small">
-                <div class="slds-col slds-size_1-of-1 slds-medium-size_5-of-12 slds-p-bottom_x-small">
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12 slds-p-bottom_x-small">
                     <lightning-input type="search" label="Search" variant="label-hidden"
-                        placeholder="Search name, API name or source object"
+                        placeholder="Search name or source object"
                         value={searchTerm} onchange={handleSearch}></lightning-input>
                 </div>
-                <div class="slds-col slds-size_1-of-2 slds-medium-size_4-of-12 slds-p-bottom_x-small">
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_x-small">
                     <lightning-combobox label="Usage type" variant="label-hidden"
                         value={usageTypeFilter} options={usageTypeOptions}
                         onchange={handleUsageTypeFilter}></lightning-combobox>
                 </div>
+                <!-- After editing setup data (rates, qualification rules, tax), pick the object
+                     you edited; with the other filters cleared, "Refresh all shown" then refreshes
+                     every table that reads it, whatever its freshness verdict (except objects
+                     reached only through a traversing source criterion). -->
+                <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_x-small">
+                    <lightning-combobox label="Reads object" variant="label-hidden"
+                        value={readsObjectFilter} options={readsObjectOptions}
+                        onchange={handleReadsObjectFilter}></lightning-combobox>
+                </div>
                 <div class="slds-col slds-size_1-of-2 slds-medium-size_3-of-12 slds-p-bottom_x-small">
                     <lightning-input type="toggle" label="Incremental refresh"
-                        message-toggle-active="Incremental" message-toggle-inactive="Full refresh"
-                        checked={useIncremental} onchange={handleIncrementalToggle}></lightning-input>
+                        message-toggle-active="Incremental" message-toggle-inactive="Platform chooses"
+                        checked={useIncremental} onchange={handleIncrementalToggle}
+                        disabled={isRefreshDenied}></lightning-input>
                 </div>
             </div>
 
             <!-- Actions -->
+            <template if:true={isRefreshDenied}>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_x-small" data-id="refresh-denied">
+                    Refresh is for admins: Salesforce requires both Modify All Data and Customize Application
+                    to refresh a decision table. You can still check freshness here.
+                </p>
+            </template>
             <div class="slds-grid slds-wrap slds-gutters_x-small slds-m-bottom_small">
                 <div class="slds-col slds-no-flex slds-p-right_x-small slds-p-bottom_x-small">
                     <lightning-button variant="brand" label={refreshSelectedLabel}
@@ -233,17 +249,17 @@
                         </div>
 
                         <div class="dtm-stat" title={incrementalSyncNote}>
-                            <span class="dtm-stat__label">Last Full Sync
+                            <span class="dtm-stat__label">Last Sync
                                 <lightning-helptext content={incrementalSyncNote}></lightning-helptext>
                             </span>
-                            <template if:true={detailRow.lastSyncDate}>
+                            <template if:true={detailRow.latestSyncDate}>
                                 <span class="dtm-stat__value dtm-stat__value_date">
-                                    <lightning-formatted-date-time value={detailRow.lastSyncDate}
+                                    <lightning-formatted-date-time value={detailRow.latestSyncDate}
                                         year="numeric" month="short" day="2-digit"
                                         hour="2-digit" minute="2-digit"></lightning-formatted-date-time>
                                 </span>
                             </template>
-                            <template if:false={detailRow.lastSyncDate}>
+                            <template if:false={detailRow.latestSyncDate}>
                                 <span class="dtm-stat__value dtm-stat__value_none">Never</span>
                             </template>
                             <span class="dtm-stat__note">{incrementalShortNote}</span>

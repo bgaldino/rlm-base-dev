@@ -170,9 +170,19 @@ For LWC work, check the files you touched rather than the whole repo:
 ```sh
 npx eslint <changed-lwc-files>
 npx prettier --check <changed-files>
-npm test -- --passWithNoTests                              # Jest — the repo has no LWC suites yet,
-                                                           # so a bare `npm test` exits 1
+npm test                                                   # Jest suites (`lwc/<component>/__tests__/`)
 ```
+
+Jest suites live in `__tests__/` beside the component and mock its Apex imports. Neither
+deploy path ships them: `.forceignore` excludes `**/__tests__/**` from `sf` deploys, and
+CumulusCI's package builder skips `lwc/**/__*`. `rlmDecisionTableManager` has the first
+suite. It pins the dialog's focus trap, the `_connected` guards in `queueRefresh` and
+`poll`, the derived dialog row and error reading. `pr_gate.py` runs every suite as the
+`lwc_jest` check whenever a change touches a path under any `lwc/` directory, the Jest config,
+`package.json`, `package-lock.json`, `sfdx-project.json` or `.nvmrc`. CI's required
+`Mechanical checks` job does the same. Install first with `npm ci --ignore-scripts`, the
+command CI runs, under the Node line in `.nvmrc`. Without Node or `node_modules` the check
+reports MISSING-DEP, which fails the gate. A skipped or todo test fails it too.
 
 `prettier --check` formats Apex but never compiles or runs it. **Apex changes
 need an org**: deploy, then run the tests, then confirm the permission set is

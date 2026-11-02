@@ -4,8 +4,7 @@ Tooling for Salesforce Revenue Cloud **Context Service**, covering both halves o
 the lifecycle: **design-time** Context *Definitions* (author / inspect / validate /
 apply / delete) **and** the **runtime** context *instance* (hydrate from records →
 query/inspect → persist back to SObjects). These complement the CCI tasks
-(`apply_context_*`, `extend_context_*`, `manage_context_definition`,
-`deploy_context_definitions`) with the read/inspect/validate and runtime-execution
+(`apply_context_*`, `extend_context_*`, `manage_context_definition`) with the read/inspect/validate and runtime-execution
 work that does not fit the "apply-a-plan-to-an-org" task mold.
 
 Full guidance lives in the **context-service skill**:
@@ -16,7 +15,7 @@ Full guidance lives in the **context-service skill**:
 
 | Lifecycle stage | Production path | These helpers |
 |-----------------|-----------------|---------------|
-| **Author / apply / deploy** a definition | CCI tasks (`manage_context_definition`, `extend_context_*`, `deploy_context_definitions`) | `apply_context_plan.py`, `mutate_context.py`, `delete_context.py` — live-proven, for one-off exploration & updates outside the build |
+| **Author / apply / deploy** a definition | CCI tasks (`manage_context_definition`, `extend_context_*`) | `apply_context_plan.py`, `mutate_context.py`, `delete_context.py` — live-proven, for one-off exploration & updates outside the build |
 | **Inspect / validate / diff / export** a definition | — | the read-only design-time scripts below (safe anytime) |
 | **Run** a context *instance* (hydrate → query → persist) | — (no build task; runtime is not part of org setup) | the runtime scripts below — verify-live (pilot caveats), for debugging & validating hydration |
 

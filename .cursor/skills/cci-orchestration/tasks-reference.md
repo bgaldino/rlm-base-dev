@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**266 tasks** across **9 groups**.
+**271 tasks** across **9 groups**.
 
 ---
 
@@ -97,7 +97,7 @@
 
 ### `delete_quantumbit_prm_pricing_data`
 
-**Description:** Delete all records from the qb-prm-pricing plan (ChannelProgramMember, ChannelProgramLevel, ChannelProgram, Account) in reverse plan order (children first). Run before insert_quantumbit_prm_pricing_data when resetting PRM pricing overlay data.
+**Description:** Safety no-op today: deletes only the qb-prm-pricing plan's Insert-operation objects, in reverse plan order (children first), and every object in that plan is Upsert or Update, so nothing is deleted. Do not add an Insert object to the plan to make this delete: the task deletes EVERY record of an Insert object's type org-wide (SELECT Id with no filter), so making Account an Insert object would delete every Account in the org.
 
 **Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
 
@@ -137,7 +137,7 @@
 
 ## Data Management - Extract
 
-*24 task(s)*
+*25 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -307,6 +307,18 @@
 
 ---
 
+### `extract_qb_price_revision_data`
+
+**Description:** Extract qb-price-revision from org to CSV. Output in datasets/sfdmu/extractions/qb-price-revision/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-price-revision`
+
+---
+
 ### `extract_qb_pricing_data`
 
 **Description:** Extract qb-pricing from org to CSV. Output in datasets/sfdmu/extractions/qb-pricing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
@@ -430,7 +442,7 @@
 
 ## Data Management - Idempotency
 
-*21 task(s)*
+*22 task(s)*
 
 ### `test_q3_billing_idempotency`
 
@@ -467,6 +479,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pcm`
+- `ignore_row_errors_for`: `{'ProrationPolicy': 'duplicate value found'}`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -519,6 +532,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-tax`
+- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -597,8 +611,22 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-pcm`
+- `ignore_row_errors_for`: `{'ProrationPolicy': 'duplicate value found'}`
 - `use_extraction_roundtrip`: `True`
 - `persist_extraction_output`: `True`
+
+---
+
+### `test_qb_price_revision_idempotency`
+
+**Description:** Idempotency test for qb-price-revision.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-price-revision`
+- `use_extraction_roundtrip`: `False`
 
 ---
 
@@ -802,7 +830,7 @@
 
 ## Revenue Lifecycle Management
 
-*175 task(s)*
+*178 task(s)*
 
 ### `activate_agents`
 
@@ -1113,7 +1141,7 @@
 
 ### `apply_procedure_plan_overlay`
 
-**Description:** Apply a Procedure Plan overlay from JSON with resolved IDs and a guarded deactivate/apply/verify/reactivate sequence.
+**Description:** Apply a Procedure Plan overlay from JSON with resolved IDs and a guarded deactivate/apply/verify sequence that leaves the plan version as active or inactive as it found it.
 
 **Class:** `tasks.rlm_apply_procedure_plan_overlay.ApplyProcedurePlanOverlay`
 
@@ -1122,7 +1150,7 @@
 - `overlay_file`: `datasets/procedure_plan_overlays/prm_pricing.json`
 - `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
 - `verify`: `True`
-- `activate_after_apply`: `True`
+- `activate_after_apply`: `False`
 
 ---
 
@@ -1154,13 +1182,21 @@
 
 ### `check_decision_table_freshness`
 
-**Description:** Report every decision table's freshness verdict headlessly — the same comparison the Decision Table Manager component shows, without a browser. A table is Stale when any object it reads changed at or after its last full sync — the tie counts as stale, because nothing establishes which came first — including objects it only pulls columns from. "Not comparable" means the check refused to guess (usually an unreproducible source criterion), which is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale table — off by default, because a build that loads data after its refresh step will legitimately show stale tables. Requires post_utils deployed.
+**Description:** Report every decision table's freshness verdict headlessly — the same comparison the Decision Table Manager component shows, without a browser. A table is Stale when any object it reads changed at or after its last sync, full or incremental, whichever is later — the tie counts as stale, because nothing establishes which came first — including objects it only pulls columns from. A table whose last full sync predates the org reads Stale: it was never built here. "Not comparable" means the check refused to guess (usually an unreproducible source criterion, or sharing that can hide rows from the running user), which is a refusal, not a failure. Pass -o param1 strict to FAIL on any stale table — off by default, because a build that loads data after its refresh step will legitimately show stale tables. Pass -o param1 json (or "strict,json") to also print the dependency map — per table, every object it reads and its verdict — as one DECISION_TABLE_MAP_JSON line. An unknown mode fails the run rather than being ignored. Requires post_utils deployed.
 
 **Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
 
 **Options:**
 
 - `path`: `scripts/apex/checkDecisionTableFreshness.apex`
+
+---
+
+### `check_search_index_readiness`
+
+**Description:** Report whether the Product Catalog (PCM) search index was built in this org and completed. Reads the active snapshot's build logs from the Connect API: Ready only when a build completed after Organization.CreatedDate, so a spun org showing the template's build reads "Not built in this org". Judged by the logs, not the index's lastBuildStatus, which can still say IN_PROGRESS after a build completed. Changes nothing. Pass -o strict true to fail unless Ready.
+
+**Class:** `tasks.rlm_rebuild_search_index.CheckSearchIndexReadiness`
 
 ---
 
@@ -1626,18 +1662,6 @@
 
 ---
 
-### `deploy_context_definitions`
-
-**Description:** Deploy Context Definitions
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `force-app/main/default/contextDefinitions`
-
----
-
 ### `deploy_decision_tables`
 
 **Description:** Deploy Decision Tables
@@ -1714,7 +1738,7 @@
 
 ### `deploy_post_billing_ui`
 
-**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set (field access, read on the objects the payments view queries, Apex class access, RunFlow). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
+**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 17 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set (field access, read on the objects the Billing UI controllers query, Apex class access, RunFlow). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -2319,6 +2343,18 @@
 
 ---
 
+### `insert_default_configurator_flow`
+
+**Description:** Register RLM_Product_Configurator_Flow (the 264 Default Product Configurator Flow with non-blocking and instant pricing turned on) as the org's default Product Configuration Flow
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/configurator-flow`
+
+---
+
 ### `insert_procedure_plan_data`
 
 **Description:** Insert Procedure Plan data (sections in pass 1, options with expression set links in pass 2)
@@ -2378,6 +2414,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pcm`
+- `ignore_row_errors_for`: `{'ProrationPolicy': 'duplicate value found'}`
 
 ---
 
@@ -2426,6 +2463,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-tax`
+- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 
 ---
 
@@ -2490,6 +2528,18 @@
 
 ---
 
+### `insert_qb_price_revision_data`
+
+**Description:** Insert QuantumBit CPI index rates (Region US) and Price Index / Flat price revision policies. Refresh Index_Rate_Decision_Table after loading.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-price-revision`
+
+---
+
 ### `insert_qb_rates_data`
 
 **Description:** Insert QuantumBit Rates Data
@@ -2535,6 +2585,7 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-pcm`
+- `ignore_row_errors_for`: `{'ProrationPolicy': 'duplicate value found'}`
 
 ---
 
@@ -2648,7 +2699,7 @@
 
 ### `manage_decision_tables`
 
-**Description:** Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors)
+**Description:** Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors; a missing name is attributed to the flag-gated flow step that uses its list, and -o strict true fails on one missing while its step runs)
 
 **Class:** `tasks.rlm_manage_decision_tables.ManageDecisionTables`
 
@@ -2777,6 +2828,22 @@
 **Description:** Rebuild the Product Catalog (PCM) search index via Connect API (FULL, IMMEDIATE). Asynchronous - initiates the build and logs the snapshot id. Warns and continues on API failure unless raise_on_failure is set.
 
 **Class:** `tasks.rlm_rebuild_search_index.RebuildSearchIndex`
+
+---
+
+### `recalculate_billing_psg_after_settings`
+
+**Description:** Force-recalculate RLM_RCB after the billing settings are deployed. RLM_RCB is calculated in deploy_pre, before dispute management adds the Dispute/DisputeItem billing fields that its managed Billing Admin set grants, so it reads Updated while missing them (the admin can't read DisputeItem.ApprovedAmount). A Description edit does not recalculate an Updated group; this adds and removes an empty probe component, which does, and fails if the fields are still absent. A no-op when RLM_RCB already grants them (todo 292).
+
+**Class:** `tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups`
+
+**Options:**
+
+- `api_names`: `['RLM_RCB']`
+- `force_recalc`: `True`
+- `verify_fields`: `['DisputeItem.ApprovedAmount', 'Dispute.ApprovedAmount']`
+- `timeout_seconds`: `300`
+- `poll_seconds`: `10`
 
 ---
 
@@ -2946,7 +3013,7 @@
 
 ### `set_personas_org_wide_defaults`
 
-**Description:** Sets Organization-Wide Defaults for the Sales Rep persona. Sales Cloud objects Account/Asset/Contract/Order → internal Read/Write (all internal users can see and edit); Opportunity stays Private (reps own their pipeline). The product / configuration model (ProductCatalog plus the catalog/config objects below) → Read/Read so the salesrep can browse catalogs and run the Set Up Quote configurator — the PST configuration-rule engine reads those records in the running user's context. Restores the OWD the deleted post_sharing object-meta bundle used to set.
+**Description:** Sets Organization-Wide Defaults for the Sales Rep persona. Sales Cloud objects Account/Asset/Contract/Order → internal Read/Write (all internal users can see and edit); Opportunity stays Private (reps own their pipeline). The product / configuration model (ProductCatalog plus the catalog/config objects below) → Read/Read so the salesrep can browse catalogs and run the Set Up Quote configurator — the PST configuration-rule engine reads those records in the running user's context. UnitOfMeasure → Read/Read and UsageSummary / UsageBillingPeriodItem → internal Read, for the Account page's usage uploader and View Usage tables, which query in user mode. Restores the OWD the deleted post_sharing object-meta bundle used to set.
 
 **Class:** `tasks.rlm_sharing.SetOrgWideDefaultsSharingOnly`
 
@@ -3220,7 +3287,7 @@
 
 ### `deploy_post_commerce`
 
-**Description:** Deploy Commerce Metadata (e.g. Commerce decision table flows)
+**Description:** Deploy Commerce Metadata (e.g. Commerce decision table flows). Run deploy_post_utils first; the Commerce refresh flow calls RLM_Refresh_Decision_Tables_Bulk
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -3420,7 +3487,7 @@
 **Options:**
 
 - `suites`: `robot/rlm-base/tests`
-- `options`:  
+- `options`: `{'outputdir': 'robot/rlm-base/results'}`
 
 ---
 

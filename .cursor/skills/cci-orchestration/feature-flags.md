@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**44 feature flags**, **84 configuration values**, **40 YAML anchors** under `project.custom`.
+**45 feature flags**, **86 configuration values**, **43 YAML anchors** under `project.custom`.
 
 ---
 
@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 10 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 8 flow step(s) |
-| `billing` | `True` | 22 flow step(s) |
+| `billing` | `True` | 23 flow step(s) |
 | `billing_portal` | `False` | 5 flow step(s) |
 | `billing_portal_deploy` | `True` | 3 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
@@ -38,16 +38,17 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `mcp_custom_server` | `True` | 2 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 13 flow step(s) |
+| `personas` | `True` | 15 flow step(s) |
 | `prm` | `True` | 24 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
 | `prm_pricing` | `True` | 15 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
+| `procedureplans_active` | `False` | 1 flow step(s) |
 | `q3` | `False` | 13 flow step(s) |
-| `qb` | `True` | 38 flow step(s) |
+| `qb` | `True` | 39 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 23 flow step(s) |
+| `quantumbit` | `True` | 28 flow step(s) |
 | `quote_est_tax` | `False` | — |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
@@ -55,7 +56,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 8 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 18 flow step(s) |
+| `tso` | `False` | 20 flow step(s) |
 | `ux` | `True` | 2 flow step(s) |
 
 ---
@@ -108,6 +109,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing` step 11 → `create_default_invoice_email_template`
 - `prepare_billing` step 12 → `deploy_billing_email_template_settings`
 - `prepare_billing` step 15 → `apply_context_billing_order`
+- `prepare_billing` step 17 → `recalculate_billing_psg_after_settings`
 - `prepare_billing_portal` step 1 → `create_billing_portal`
 - `prepare_billing_portal` step 2 → `patch_network_email_for_deploy`
 - `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
@@ -144,7 +146,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `calmdelete` (default: `True`)
 
-- `prepare_quantumbit` step 9 → `assign_permission_sets`
+- `prepare_quantumbit` step 12 → `assign_permission_sets`
 
 ### `clm` (default: `True`)
 
@@ -273,7 +275,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 10 → `assign_permission_sets`
 - `prepare_personas` step 11 → `assign_permission_sets`
 - `prepare_personas` step 12 → `assign_permission_sets`
-- `prepare_personas` step 13 → `verify_personas_org_wide_defaults`
+- `prepare_personas` step 13 → `assign_permission_sets`
+- `prepare_personas` step 14 → `assign_permission_sets`
+- `prepare_personas` step 15 → `verify_personas_org_wide_defaults`
 
 ### `prm` (default: `True`)
 
@@ -336,6 +340,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_procedureplans` step 4 → `insert_procedure_plan_data`
 - `prepare_procedureplans` step 5 → `activate_procedure_plan_version`
 
+### `procedureplans_active` (default: `False`)
+
+- `prepare_procedureplans` step 5 → `activate_procedure_plan_version`
+
 ### `q3` (default: `False`)
 
 - `prepare_product_data` step 2 → `insert_q3_pcm_data`
@@ -361,6 +369,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_pricing_data` step 2 → `insert_quantumbit_pricing_data`
 - `prepare_pricing_data` step 3 → `delete_q3_pricing_data`
 - `prepare_pricing_data` step 4 → `insert_q3_pricing_data`
+- `prepare_pricing_data` step 5 → `insert_qb_price_revision_data`
 - `prepare_dro` step 2 → `insert_qb_dro_data`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`
@@ -403,8 +412,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 7 → `assign_permission_sets`
 - `prepare_quantumbit` step 8 → `assign_permission_sets`
 - `prepare_quantumbit` step 9 → `assign_permission_sets`
-- `prepare_quantumbit` step 10 → `deploy_post_setup_guide`
+- `prepare_quantumbit` step 10 → `assign_permission_sets`
 - `prepare_quantumbit` step 11 → `assign_permission_sets`
+- `prepare_quantumbit` step 12 → `assign_permission_sets`
+- `prepare_quantumbit` step 13 → `deploy_post_setup_guide`
+- `prepare_quantumbit` step 14 → `assign_permission_sets`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
@@ -418,6 +430,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 10 → `assign_permission_sets`
 - `prepare_personas` step 11 → `assign_permission_sets`
 - `prepare_personas` step 12 → `assign_permission_sets`
+- `prepare_personas` step 13 → `assign_permission_sets`
+- `prepare_personas` step 14 → `assign_permission_sets`
 
 ### `rates` (default: `True`)
 
@@ -497,6 +511,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 8 → `assign_permission_sets`
 - `prepare_personas` step 9 → `assign_permission_sets`
 - `prepare_personas` step 12 → `assign_permission_sets`
+- `prepare_personas` step 13 → `assign_permission_sets`
+- `prepare_personas` step 14 → `assign_permission_sets`
 
 ### `ux` (default: `True`)
 
@@ -534,6 +550,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `collection_plan_segment_context_base_reference` | `CollectionPlanSegmentContext__stdctx` |
 | `collection_plan_segment_context_default_mapping` | `CollectionPlanContextMapping` |
 | `collection_plan_segment_context_name` | `RLM_CollectionPlanSegmentCtx` |
+| `configurator_flow_dataset` | `datasets/sfdmu/configurator-flow` |
 | `context_definition_label` | `RLM_SalesTransactionContext` |
 | `contracts_context_base_reference` | `ContractsContextDefinition__stdctx` |
 | `contracts_context_default_mapping` | `OppToCntrPersistenceMapping` |
@@ -583,6 +600,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
 | `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |
+| `quantumbit_price_revision_dataset` | `datasets/sfdmu/qb/en-US/qb-price-revision` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |
 | `quantumbit_prm_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-prm-pricing` |
@@ -643,7 +661,7 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `dt_default_pricing_decision_tables`
 
-*9 items:*
+*10 items:*
 
 - `Attribute_Based_Adjustment_Decision_Table`
 - `Bundle_Based_Adjustment_Decision_Table`
@@ -654,6 +672,7 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 - `Price_Book_Entry_Decision_Table_v2`
 - `Tiered_Adjustment_Tier_Decision_Table`
 - `StandardTax`
+- `Index_Rate_Decision_Table`
 
 ### `dt_pricing_discovery_decision_tables`
 
@@ -824,6 +843,24 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 - `RLM_RenewalQuotes`
 
+### `ps_usage_datatables`
+
+*1 items:*
+
+- `RLM_UsageDatatables`
+
+### `ps_usage_orchestration`
+
+*1 items:*
+
+- `RLM_UsageOrchestration`
+
+### `ps_usage_uploader`
+
+*1 items:*
+
+- `RLM_UsageUploader`
+
 ### `psg_tso`
 
 *1 items:*
@@ -936,13 +973,16 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `rlm_tso_ps_api_names`
 
-*8 items:*
+*11 items:*
 
 - `ERIBasic`
 - `RLM_UtilitiesPermset`
 - `RLM_ExpressionSetManager`
 - `RLM_DecisionTableManager`
 - `RLM_RebuildSearchIndex`
+- `RLM_UsageUploader`
+- `RLM_UsageOrchestration`
+- `RLM_UsageDatatables`
 - `RLM_RenewalQuotes`
 - `OrchestrationProcessManagerPermissionSet`
 - `EventMonitoringPermSet`

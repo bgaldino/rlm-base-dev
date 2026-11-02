@@ -48,6 +48,7 @@ paths are forceignored.
 |-----------|------|------------|
 | 1 | qb-pcm (products) | None |
 | 2 | qb-pricing | qb-pcm |
+| 2b | qb-price-revision | None (no lookups); loads right after qb-pricing (`prepare_pricing_data` step 5); refresh `Index_Rate_Decision_Table` after |
 | 3 | qb-dro | qb-pcm |
 | 4 | qb-tax | qb-pcm |
 | 5 | qb-billing | qb-pcm (LegalEntity shared with qb-tax) |
@@ -108,7 +109,7 @@ Reverse dependency order (children before parents):
 | 5 | deploy_full | `force-app/` bundle |
 | 6 | prepare_price_adjustment_schedules | PAS metadata |
 | 7 | prepare_quantumbit | QB metadata |
-| 8 | prepare_product_data | PCM, Q3, product images |
+| 8 | prepare_product_data | PCM, Q3, product images; sets the org-wide default configurator flow |
 | 9 | prepare_pricing_data | Pricing |
 | 10 | prepare_docgen | DocGen |
 | 11 | prepare_dro | DRO + fulfillment scope |

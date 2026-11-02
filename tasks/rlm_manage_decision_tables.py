@@ -12,7 +12,7 @@ provide, which this task predates the removal of:
 - Uses refreshDecisionTable action
 - Supports All / ByUsageType / Individual modes with incremental refresh toggle
 
-⚠ That screen flow is GONE — do not go looking for it as a reference. In the org the
+That screen flow is gone: do not go looking for it as a reference. In the org the
 equivalents are the **Decision Table Manager** component on the Home page
 (interactive, with a freshness verdict per table) and ``RLM_Refresh_Decision_Tables_Bulk``
 (autolaunched; the only route Apex has to the refresh action). Do not confuse either
@@ -35,16 +35,8 @@ except ImportError:
     Salesforce = None
 
     def process_bool_arg(arg):
-        """
-        Offline fallback so this module still imports without CumulusCI.
-
-        ⚠ Same vocabulary and the same TypeError as cumulusci.core.utils.process_bool_arg.
-        NOT identical: CCI emits two DeprecationWarnings for None that this does not, and
-        both call sites pre-empt None with `or False` so that path is unreachable anyway.
-        An earlier version returned bool(arg) for anything unrecognised, so "maybe" became
-        True offline and raised under the real helper — a fallback that disagrees with the
-        thing it stands in for makes any test using it prove the wrong thing.
-        """
+        """Offline fallback for cumulusci.core.utils.process_bool_arg.
+        Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Importing without CumulusCI."""
         if isinstance(arg, (int, bool)):
             return bool(arg)
         if arg is None:
@@ -57,15 +49,101 @@ except ImportError:
         raise TypeError(f"Cannot interpret as boolean: `{arg}`")
 
 
+def _anchor_gates(config: Dict, names: List[str]) -> List[Dict]:
+    """
+    Every flow step that refreshes or activates the decision-table list `names`.
+
+    The `dt_*_decision_tables` anchors carry no flag of their own: the flag is the `when:` on
+    the flow step that runs the task the anchor is wired into. Reading it from the loaded
+    config, rather than keeping a second anchor-to-flag map, means it cannot drift from the
+    flows. YAML aliases load as equal lists, so a list matches on the same names in any order.
+    A step's own list option overrides its task's. Every flow counts, not only the build:
+    an unconditional step anywhere means some run expects the tables. A parent `flow:` step's
+    `when:` is not read, as CumulusCI's flow runner does not read it either.
+
+    Returns [{"flow", "step", "task", "when"}]; "when" is None for an unconditional step.
+    """
+    wanted = set(names)
+
+    def list_in(options):
+        """The decision-table list an options dict carries, or None."""
+        for key in ("developerNames", "developer_names"):
+            if isinstance(options.get(key), list):
+                return options[key]
+        return None
+
+    def matches(options):
+        value = list_in(options)
+        return value is not None and set(value) == wanted
+
+    tasks = config.get("tasks") or {}
+    using = {name for name, task in tasks.items() if matches((task or {}).get("options") or {})}
+    gates = []
+    for flow_name, flow in (config.get("flows") or {}).items():
+        for step_num, step in ((flow or {}).get("steps") or {}).items():
+            if not isinstance(step, dict) or not step.get("task"):
+                continue
+            step_options = step.get("options") or {}
+            if list_in(step_options) is not None:
+                hit = matches(step_options)
+            else:
+                hit = step["task"] in using
+            if hit:
+                gates.append({
+                    "flow": flow_name,
+                    "step": step_num,
+                    "task": step["task"],
+                    "when": step.get("when"),
+                })
+    return gates
+
+
+def _evaluate_when(when: Optional[str], project_config, org_config) -> Optional[bool]:
+    """
+    A flow step's `when:` as CumulusCI's flow runner evaluates it. True for an unconditional
+    step; None only when CumulusCI is not installed. An expression that fails to evaluate
+    raises, as it fails the flow itself.
+    """
+    if when is None:
+        return True
+    try:
+        from cumulusci.core.flowrunner import jinja2_env
+    except ImportError:
+        return None
+    return bool(jinja2_env.compile_expression(when)(project_config=project_config, org_config=org_config))
+
+
+EXPECTED = "expected"
+UNEXPECTED = "unexpected"
+UNKNOWN = "unknown"
+
+
+def _list_verdict(gates: List[Dict], verdicts: List[Optional[bool]]) -> tuple:
+    """
+    Whether a list's missing names are explained by its flags: (kind, reason).
+
+    `verdicts` holds _evaluate_when's value for each gate, in order. UNEXPECTED when any step
+    using the list runs, or when no flow uses it at all; EXPECTED only when every step is
+    off; otherwise UNKNOWN, which strict mode treats as unexpected.
+    """
+    if not gates:
+        return UNEXPECTED, "no flow uses this list, so no flag explains the absence"
+    if any(v is True for v in verdicts):
+        return UNEXPECTED, "a step that uses this list runs for this project's flags"
+    if all(v is False for v in verdicts):
+        return EXPECTED, "every step that uses this list is off for this project's flags"
+    return UNKNOWN, "a step condition could not be evaluated here (CumulusCI not installed)"
+
+
+def _soql_quote(value: str) -> str:
+    """A SOQL string literal: backslash first, then the quote."""
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
 def _as_name_list(value, option_name: str) -> List[str]:
     """
-    Normalise a task option that names one or more records into a list.
-
-    ⚠ The comma split is the whole point. `cci task run ... -o developer_names "A,B,C"`
-    hands this a single string; treating it as one name silently operates on a table
-    called "A,B,C" — which does not exist — while reporting "1 decision table(s)".
-    That is what shipped before 2026-07-27, so a multi-table refresh from the CLI never
-    worked. YAML callers still pass a real list and are unaffected.
+    Normalise a task option that names one or more records into a list, splitting a
+    comma-separated CLI string. Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
     """
     if isinstance(value, str):
         names = [part.strip() for part in value.split(",")]
@@ -82,6 +160,18 @@ def _as_name_list(value, option_name: str) -> List[str]:
     return names
 
 
+def queued_guidance(is_incremental):
+    """What to check once a queued refresh completes. Kept identical to the copy in
+    rlm_refresh_decision_table.py; tests/test_decision_table_tasks.py holds them together."""
+    # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
+    requested = "an incremental" if is_incremental else "a full"
+    return (
+        f"Completion is asynchronous, and {requested} request does not fix the type that runs: "
+        "a full refresh advances LastSyncDate, an incremental one only LastIncrementalSyncDate. "
+        "AFTER the job completes, judge it by the later of the two."
+    )
+
+
 class ManageDecisionTables(BaseTask):
     """
     Comprehensive Decision Table management task.
@@ -92,58 +182,23 @@ class ManageDecisionTables(BaseTask):
     - Listing decision tables with metadata
     """
 
-    # Every operation here needs an org. Without this, BaseTask.salesforce_task defaults
-    # to False, the CLI builds no --org option, and the task silently runs against the
-    # CCI DEFAULT org instead of the one asked for (see issue #320 for the repo-wide
-    # sweep — this task was one of the 102).
+    # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Auth and the token refresh.
     salesforce_task = True
 
     def _update_credentials(self):
-        """
-        Refresh the OAuth token before the task runs.
-
-        ⚠ `salesforce_task = True` buys the `--org` option and the missing-org guard —
-        it does NOT bring a token refresh. Only `BaseSalesforceTask` overrides
-        `BaseTask._update_credentials`, which is a bare `pass`, and this task hits the
-        REST API directly, so per `cci-orchestration/custom-task-authoring.md` it wants
-        the refresh.
-
-        ⚠ Scope the risk honestly. The stale-token failure this guards against needs a
-        plain `OrgConfig` — the `cci org connect` shape, where the stored token is used
-        as-is. **This project does not have that shape**: the sf CLI manages auth, so
-        every org is an `SfdxOrgConfig` (or its `ScratchOrgConfig` subclass), which
-        resolves `access_token` through `sfdx_info` and is always fresh. So the override is
-        correctness insurance for the class, not a fix for an incidence anyone here has
-        met — do not cite it as one.
-        """
-        # save_if_changed, matching BaseSalesforceTask: refresh_oauth_token also reloads
-        # user and org info, and without the wrapper that work is discarded at exit.
-        #
-        # ⚠ No connected-app handling, deliberately. Every org here is an SfdxOrgConfig
-        # (or its ScratchOrgConfig subclass), which overrides refresh_oauth_token to shell
-        # `sf org display` — no OAuth flow, no connected app. Verified against the keychain
-        # 2026-07-27: zero plain OrgConfig. So this cannot raise ServiceNotConfigured.
+        """Refresh the OAuth token before the task runs."""
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Auth and the token refresh.
         with self.org_config.save_if_changed():
             self.org_config.refresh_oauth_token(self.project_config.keychain)
 
     def _pinned_salesforce_client(self):
         """
-        A Salesforce client on the PROJECT's API version, not the org's newest.
-
-        `org_config.salesforce_client` builds itself with `latest_api_version`, which
-        GETs /services/data and takes the last entry — so it drifts upward the moment an
-        org is upgraded ahead of the project.
-
-        Called only by `_sf`. The instance normalisation is character-for-character what
-        CCI's own `OrgConfig.salesforce_client` does, so My Domain / sandbox /
-        enhanced-domain hostnames behave exactly as they do under the unpinned client.
+        A Salesforce client on the PROJECT's API version, not the org's newest. Called
+        only by `_sf`. Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → The API-version pin.
         """
         api_version = self.project_config.project__package__api_version
         if not api_version or Salesforce is None:
-            # ⚠ Say so. A fix that silently degrades is the "stops the damage but does
-            # not propagate the signal" shape REVIEW.md calls out. Unreachable in this
-            # repo today (cumulusci.yml pins api_version: "68.0", a truthy string), which
-            # is precisely why it would go unnoticed if it ever became reachable.
+            # Why the warning: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → The API-version pin.
             self.logger.warning(
                 "No project api_version pin available; falling back to the org's latest "
                 "API version. Decision-table calls are NOT pinned to the project version."
@@ -158,13 +213,8 @@ class ManageDecisionTables(BaseTask):
     @property
     def _sf(self):
         """
-        The pinned client, built once per task run and reused by every operation.
-
-        ⚠ EVERY call site in this class goes through here — query, refresh and the
-        activate/deactivate WRITE. An earlier version pinned only the refresh, which left
-        the query and the only write running on the org's newest API instead of the
-        project's. Writes are where an unannounced version bump is most likely to change
-        validation or required-field behaviour, so if you add an operation, use `self._sf`.
+        The pinned client, built once per task run. Every operation, including the
+        activate/deactivate write, must use it. Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → The API-version pin.
         """
         if getattr(self, "_sf_client", None) is None:
             self._sf_client = self._pinned_salesforce_client()
@@ -201,6 +251,10 @@ class ManageDecisionTables(BaseTask):
         },
         "list_anchors": {
             "description": "For validate_lists: list of config anchor names (e.g. dt_rating_decision_tables). If omitted, all dt_*_decision_tables from project custom are used.",
+            "required": False
+        },
+        "strict": {
+            "description": "For validate_lists: fail when a listed table is missing or inactive and its flags don't explain it (a step using its list runs, no flow uses it, or a condition can't be evaluated). Default: False (report only).",
             "required": False
         }
     }
@@ -325,15 +379,13 @@ class ManageDecisionTables(BaseTask):
         if developer_names:
             developer_names = _as_name_list(developer_names, "developer_names")
 
-            # Escape single quotes in developer names
-            escaped_names = [name.replace("'", "\\'") for name in developer_names]
-            names_str = "', '".join(escaped_names)
-            where_clauses.append(f"DeveloperName IN ('{names_str}')")
+            names_str = ", ".join(_soql_quote(name) for name in developer_names)
+            where_clauses.append(f"DeveloperName IN ({names_str})")
         
         # Filter by status
         status = self.options.get("status", "Active")
         if status:
-            where_clauses.append(f"Status = '{status}'")
+            where_clauses.append(f"Status = {_soql_quote(status)}")
         
         # Build query
         soql = f"SELECT {', '.join(fields)} FROM DecisionTable"
@@ -374,20 +426,18 @@ class ManageDecisionTables(BaseTask):
         else:
             developer_names = _as_name_list(developer_names, "developer_names")
 
-        # ⚠ process_bool_arg, not the raw option. CCI hands CLI options through as
-        # STRINGS, so `-o is_incremental false` arrives as "false" — truthy — and would
-        # silently select an incremental refresh while logging "full". YAML callers pass
-        # a real bool and are unaffected.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → CLI option parsing.
         is_incremental = process_bool_arg(self.options.get("is_incremental") or False)
-        refresh_type = "incremental" if is_incremental else "full"
+        # Why "full requested": .cursor/skills/decision-tables/lifecycle-and-refresh.md → Release 264 chooses the refresh type.
+        refresh_type = "incremental" if is_incremental else "full requested; the platform may run incremental"
         
-        self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type} refresh)...")
+        self.logger.info(f"Refreshing {len(developer_names)} decision table(s) ({refresh_type})...")
         
         # Use Salesforce REST API to call the refreshDecisionTable action
         if not hasattr(self, 'org_config') or not self.org_config:
             raise TaskOptionsError("No org_config available")
 
-        sf = self._sf  # pinned client; rationale on _pinned_salesforce_client
+        sf = self._sf  # pinned client
 
         success_count = 0
         fail_count = 0
@@ -396,38 +446,14 @@ class ManageDecisionTables(BaseTask):
             try:
                 result = self._refresh_single_decision_table(sf, developer_name, is_incremental)
 
-                # ⚠ isSuccess means the action was ACCEPTED, not that the table was
-                # rebuilt. refreshDecisionTable is asynchronous: it returns Status
-                # 'Queued' and the work completes later. Reporting "successfully
-                # refreshed" off isSuccess alone is the stale-but-claims-otherwise
-                # failure this task exists to prevent, so the log says exactly what was
-                # established — queued.
-                #
-                # ⚠ Fail CLOSED on the status. Salesforce documents the output as Queued
-                # or Failed, so only an explicit Queued is evidence of acceptance; a
-                # missing, empty or unrecognised Status (including the 'Unknown'
-                # fallback below) is not evidence and is counted as a failure. An
-                # earlier version accepted "anything but Failed", which let a malformed
-                # or version-drifted response claim a queue that never happened.
-                #
-                # ⚠ Points at check_decision_table_freshness ONLY. Do not add
-                # DecisionTable.RefreshStatus here — pricing-wiring/SKILL.md rules it out
-                # as a detector, because it lives on a table record and so says nothing
-                # for the failure that actually occurs (an unresolvable name leaves no
-                # record to stamp). LastSyncDate, which the freshness check uses, is the
-                # one signal that holds for every shape.
-                # ⚠ Sentinel AFTER the strip, not before. A whitespace-only Status is
-                # truthy, so `or 'Unknown'` never fires and .strip() then leaves '' —
-                # printing "Status:  (expected 'Queued')" and telling the operator
-                # nothing at the exact moment the gate is trying to explain itself.
+                # Only an explicit Queued counts; kept identical to refresh_dt_*.
+                # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
                 action_status = ((result.get('outputValues') or {}).get('Status') or '').strip() or 'Unknown'
                 if result.get('isSuccess') and action_status.lower() == 'queued':
                     success_count += 1
                     self.logger.info(
                         f"Refresh queued for '{developer_name}' - Status: {action_status}. "
-                        "Completion is asynchronous; verify with check_decision_table_freshness "
-                        "AFTER the job completes — a queued refresh has not yet advanced "
-                        "LastSyncDate, so checking now returns the PRE-refresh verdict."
+                        + queued_guidance(is_incremental)
                     )
                 elif result.get('isSuccess'):
                     fail_count += 1
@@ -457,9 +483,7 @@ class ManageDecisionTables(BaseTask):
         )
         
         if fail_count > 0:
-            # "not queued", not "failed to refresh" — this task never observes a refresh
-            # completing, so it cannot claim one failed. It covers both a rejected request
-            # and one accepted with a Status other than Queued.
+            # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Queued is not refreshed.
             raise TaskOptionsError(
                 f"Failed to queue a refresh for {fail_count} decision table(s). "
                 "Check logs for details."
@@ -484,8 +508,9 @@ class ManageDecisionTables(BaseTask):
             elif "developer_names" in self.options:
                 del self.options["developer_names"]
         if not decision_tables:
+            # Carry on: with nothing active, every list in use is a finding, and strict must see it.
             self.logger.warning("No active decision tables found in org.")
-            return
+            decision_tables = []
 
         org_by_name = {dt["DeveloperName"]: dt for dt in decision_tables}
         org_names = set(org_by_name.keys())
@@ -541,20 +566,58 @@ class ManageDecisionTables(BaseTask):
             self.logger.info("=== In org but not in any list: (none) ===")
         self.logger.info("")
 
-        # --- Report: In lists but not in org (invalid entries) ---
+        # --- Report: In lists but not in org, attributed to the flag that gates the list ---
         not_in_org = all_listed_names - org_names
+        unexpected: Set[str] = set()
         if not_in_org:
-            self.logger.info("=== In configured lists but not in org (invalid/missing) ===")
+            inactive = self._statuses_of(sorted(not_in_org))
+            self.logger.info("=== In configured lists but not active in org ===")
+            config = getattr(self.project_config, "config", None) or {}
             for anchor in list_anchors:
                 names = anchor_to_names.get(anchor, [])
-                missing = [n for n in names if n not in org_names]
-                if missing:
-                    self.logger.info("  %s: %s", anchor, ", ".join(sorted(missing)))
-            self.logger.info("  Total: %d", len(not_in_org))
+                missing = sorted(n for n in names if n not in org_names)
+                if not missing:
+                    continue
+                gates = _anchor_gates(config, names)
+                try:
+                    verdicts = [_evaluate_when(g["when"], self.project_config, self.org_config) for g in gates]
+                    kind, reason = _list_verdict(gates, verdicts)
+                except Exception as e:  # a when: that cannot evaluate fails the flow, so it fails here
+                    kind, reason = UNKNOWN, f"a step condition failed to evaluate: {e}"
+                if kind != EXPECTED:
+                    unexpected.update(missing)
+                runs = " · ".join(
+                    f"{g['flow']} step {g['step']} ({g['task']}"
+                    + (f", when: {g['when']}" if g["when"] else ", unconditional") + ")"
+                    for g in gates
+                ) or "no flow step"
+                self.logger.info("  %s — %s: %s", anchor, kind.upper() if kind != EXPECTED else kind, reason)
+                self.logger.info("    used by: %s", runs)
+                for name in missing:
+                    status = inactive.get(name)
+                    self.logger.info("    %s%s", name, f" (in org, {status})" if status else " (not in org)")
+            self.logger.info("  Total: %d (%d not explained by a flag)", len(not_in_org), len(unexpected))
+            self.logger.info(
+                "  A name in several lists is judged once per list. Flags are read from this "
+                "project's config, which may differ from the flags the org was built with (a "
+                "runtime -o override, for example)."
+            )
         else:
             self.logger.info("=== In lists but not in org: (none) ===")
         self.logger.info("")
         self.logger.info("Validate lists complete. Org total: %d, Listed total (unique): %d.", len(org_names), len(all_listed_names))
+        if unexpected and process_bool_arg(self.options.get("strict") or False):
+            raise TaskOptionsError(
+                "Decision tables missing or inactive, not explained by a flag: " + ", ".join(sorted(unexpected))
+            )
+
+    def _statuses_of(self, names: List[str]) -> Dict[str, str]:
+        """{DeveloperName: Status} for those of `names` that exist in the org, in any status."""
+        if not names:
+            return {}
+        quoted = ", ".join(_soql_quote(n) for n in names)
+        result = self._sf.query(f"SELECT DeveloperName, Status FROM DecisionTable WHERE DeveloperName IN ({quoted})")
+        return {r["DeveloperName"]: r["Status"] for r in (result or {}).get("records") or []}
 
     def _get_project_custom_config(self) -> Dict:
         """Return project custom config dict (e.g. from cumulusci.yml project.custom)."""
@@ -576,16 +639,15 @@ class ManageDecisionTables(BaseTask):
 
         Uses the Salesforce REST API actions endpoint.
         """
-        # ⚠ Relative path, deliberately. simple_salesforce's restful() joins this onto
-        # base_url, which already ends in /services/data/v<version>/ — passing an
-        # absolute path produced a doubled prefix and a 404.
+        # Why: .cursor/skills/decision-tables/lifecycle-and-refresh.md → The CCI refresh tasks → Request shape.
         endpoint = "actions/standard/refreshDecisionTable"
 
         payload = {
             "inputs": [
                 {
                     "decisionTableApiName": developer_name,
-                    "isIncremental": is_incremental
+                    # Not isIncremental.
+                    "isDecisionTableIncremental": is_incremental
                 }
             ]
         }
@@ -613,11 +675,10 @@ class ManageDecisionTables(BaseTask):
 
         developer_names = _as_name_list(developer_names, "developer_names")
 
-        escaped_names = [name.replace("'", "\\'") for name in developer_names]
-        names_str = "', '".join(escaped_names)
+        names_str = ", ".join(_soql_quote(name) for name in developer_names)
         soql = (
             "SELECT Id, DeveloperName, Status FROM DecisionTable "
-            f"WHERE DeveloperName IN ('{names_str}')"
+            f"WHERE DeveloperName IN ({names_str})"
         )
         sf = self._sf
         records = sf.query(soql).get("records", [])

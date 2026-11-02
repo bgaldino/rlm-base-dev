@@ -53,13 +53,11 @@ $RECYCLE.BIN/
 .husky
 .eslintignore
 
-jest.config.js
 
 
 
 **/.eslintrc.json
 sfdmu/logs
-package-lock.json
 
 #sfdmu
 datasets/**/source/**

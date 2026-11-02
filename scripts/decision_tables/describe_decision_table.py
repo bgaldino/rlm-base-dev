@@ -37,11 +37,11 @@ def _print_definition(defn):
 
     meta = defn.get("metadata") or {}
     if meta:
-        # The precondition for refresh_decision_table.py --incremental: with this
-        # false the action accepts an incremental request and syncs nothing.
+        # Shown for completeness only: Release 264 does not consult this flag when
+        # choosing or running an incremental refresh (issue #587).
         incremental = tristate_bool(meta.get("isIncrementalSyncEnabled"))
         print("  incrSync     : " + {True: "enabled", False: "disabled",
-                                     None: "unknown"}[incremental])
+                                     None: "unknown"}[incremental] + " (not used by 264)")
         print(f"  dataSource   : {meta.get('dataSourceType')}")
         print(f"  execution    : {meta.get('executionType')}")
         print(f"  hitPolicy    : {meta.get('filterResultBy')}")

@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/project-memory.schema.json",
   "schema_version": "2.0.0",
-  "last_updated_utc": "2026-10-11T04:17:31Z",
+  "last_updated_utc": "2026-10-28T08:58:11Z",
   "repository": {
     "name": "rlm-base-dev",
     "project_name": "rlm-base",
@@ -246,13 +246,6 @@
     "notes": "Created deterministic project memory, project map, and schema from AGENTS.md and repository configuration."
   },
   "unresolved_recommendations": [
-    {
-      "id": "REC-PMEM-001",
-      "status": "open",
-      "summary": "Add project-memory schema validation to CI or pre-merge checks.",
-      "rationale": "Future memory edits should be machine-validated before merge.",
-      "suggested_command": "python -m jsonschema -i .agents/context/project-memory.json .agents/schemas/project-memory.schema.json"
-    },
     {
       "id": "REC-PMEM-002",
       "status": "open",

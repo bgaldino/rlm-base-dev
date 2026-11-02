@@ -203,8 +203,7 @@ cci flow run prepare_ux --org <org>
 # (reorder_app_launcher orders by its priority_app_labels option via Aura saveOrder; assemble_and_deploy_ux
 #  does NOT handle appMenus, and AppSwitcher can't deploy via the Metadata API when the AppMenu contains
 #  managed ConnectedApp/Network entries — the Trialforce case)
-cci org default <cci-alias>
-cci task run reorder_app_launcher
+cci task run reorder_app_launcher --org <cci-alias>
 ```
 
 ### Load Product Data

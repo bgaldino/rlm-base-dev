@@ -33,6 +33,6 @@ Content from the source markdown files in this directory (`docs/api/`). The view
 - HTTP method badges (GET, POST, PUT, PATCH, DELETE)
 - Sidebar navigation with per-domain section links
 
-## Regenerating
+## Updating the viewer
 
-If the source markdown files in `docs/api/` are updated, regenerate `index.html` by re-running the build prompt with Claude Code. The file is fully self-contained — all content and styles are embedded inline.
+There is no generator for `index.html`. It is hand-maintained: when a source markdown file in `docs/api/` changes, edit the matching endpoint card in `index.html` in the same change (as #476 and #477 did). The Markdown files stay authoritative when the two disagree. The file is fully self-contained — all content and styles are embedded inline.

@@ -12,7 +12,7 @@ prerequisites:
   - "`cci flow run prepare_rlm_org` completed against the target org"
   - "QuantumBit catalog + pricing data loaded (`qb=true`, `prepare_pricing_data` flow run)"
   - "QuantumBitBundle CML constraint model active (default in QB orgs)"
-  - "Standard Price Book + 3 Price Adjustment Schedules active"
+  - "Standard Price Book; Attribute and Bundle Price Adjustment Schedules active (the volume schedule, Standard Price Adjustment Tier, stays Inactive by design)"
 sources:
   - "docs/enablement/master/qb-scenario-reference.md — canonical QB scenario reference"
   - ".cursor/skills/release-enablement/authoring-patterns.md — Patterns 9 (Scenario Threading) + 10 (Version-Aware Section Metadata)"
@@ -201,7 +201,7 @@ A **Volume Adjustment** uses a **Price Adjustment Schedule** of type `Volume` to
 4. Edit the line and increase quantity to **13**. Run pricing. Observe the discount steps up to 15%.
 5. Edit the line again to quantity **20**. Run pricing. Observe the discount steps up to 25%.
 
-**Where to inspect the schedule:** Setup → Pricing → **Price Adjustment Schedules** → Standard Price Adjustment Tier → Tiers tab.
+**Where to inspect the schedule:** Setup → Pricing → **Price Adjustment Schedules** → Standard Price Adjustment Tier → Tiers tab. The schedule shows **Inactive**, which is expected in these orgs: the build keeps it inactive so the tiers can be reloaded, and the tiers still apply. Don't activate it; while it's active, the platform blocks adding or removing tiers.
 
 **Critical concept:** Volume tiers apply to the *line's* quantity. If Infinitech buys 8 units of QB-MSG-STRT in one line and 8 in a separate line, neither qualifies for the 11–15 tier. Use **Cumulative Quantity** (added in 256, see Section 10) to roll up across lines.
 

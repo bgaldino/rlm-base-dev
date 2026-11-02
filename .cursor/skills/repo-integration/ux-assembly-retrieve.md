@@ -29,14 +29,14 @@ Read this when changing **`templates/`** UX sources, the **`scripts/ux/`** packa
 
 ```bash
 cci task run assemble_and_deploy_ux -o deploy false                    # dry-run assembly: local only, no org needed
-cci task run assemble_and_deploy_ux                                    # deploy: targets your DEFAULT cci org (no --org flag)
+cci task run assemble_and_deploy_ux --org beta                         # assemble + deploy to the CCI org
 python scripts/ux/ux_tool.py assemble                                  # same assembly without CCI
 python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>     # retrieve + diff
 python scripts/ux/ux_tool.py writeback                                 # dry-run writeback (add --apply to write)
 python scripts/ux/ux_tool.py apply-drift                               # writeback to templates + verify + reassemble
 ```
 
-`ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. `assemble` takes its flags from `project.custom` in `cumulusci.yml`; the org-facing commands (`retrieve`, `diff`, `writeback`, `capture-drift`, `apply-drift`) take the flags recorded in `unpackaged/post_ux/assembly_manifest.json` by the last assembly, so they match what was deployed. `--flag name=value` overrides either. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `-o deploy false` runs assembly locally with no org at all.
+`ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. `assemble` takes its flags from `project.custom` in `cumulusci.yml`; the org-facing commands (`retrieve`, `diff`, `writeback`, `capture-drift`, `apply-drift`) take the flags recorded in `unpackaged/post_ux/assembly_manifest.json` by the last assembly, so they match what was deployed. `--flag name=value` overrides either. **Note:** the `assemble_and_deploy_ux` *task* takes the **CCI** alias in `--org` (the default cci org when omitted; it raises if neither is set); `-o deploy false` runs assembly locally with no org at all.
 
 ## DO NOT
 

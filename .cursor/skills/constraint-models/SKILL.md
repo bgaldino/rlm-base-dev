@@ -29,8 +29,11 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    to check its shipped blob against its own associations. Standalone `.cml` files
    require an explicit `cml_dir`; they are not deployment artifacts.
 3. **Importing into an ACTIVE version does not redeploy the model.** The version must be
-   cycled — deactivate then reactivate — after the upload. `prepare_constraints` does this
-   for the models it names. **A standalone `import_cml` does not**, so cycle it yourself.
+   cycled — deactivate then reactivate — after the upload, **through the constraint-version
+   resource**, which is what `manage_expression_sets` uses for constraint models. A plain
+   `ExpressionSetVersion.IsActive` update (sObject API, `sf data update`) flips the record but
+   never reaches the solver, so the org keeps running the old model. `prepare_constraints`
+   cycles the models it names. **A standalone `import_cml` does not**, so cycle it yourself.
    See [Making a change reach an org](#making-a-change-reach-an-org).
 4. **Only the configurator proves deployment.** Reading `ConstraintModel` back proves the
    blob was *stored* — it is the same field `import_cml` writes. It cannot tell you the
@@ -46,6 +49,14 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
 7. **Do not activate overlapping models.** The shipped QB build uses Bundle for
    software and Server2 for hardware. Discover the org's active models before
    changing versions; unrelated model families can be active together.
+8. **Runtime users must be able to see the model's `ExpressionSet` record.** On a cold
+   solver (every template-spun org, since the cache is keyed by org; also any org whose models
+   were activated by an `IsActive` update), the first configuration-rules run redeploys
+   the models as the running user and reads the `ExpressionSet` rows in user mode. The
+   criteria sharing rule `ExpressionSet.RLM_Constraint_Models_Read` in `post_constraints`
+   shares `UsageType = Constraint` sets Read with all internal users. Without it, every
+   non-admin fails with "Something went wrong while running configuration rules" until an
+   admin runs the rules once. See [troubleshooting → Constraints / CML Errors](../troubleshooting/SKILL.md#constraints--cml-errors).
 
 ---
 
@@ -275,34 +286,31 @@ worth reading rather than just checking its exit code.
 keeps running the old one — and the import reports success.
 
 ```bash
-# manage_expression_sets does NOT accept --org (see Known gaps) -- it uses the DEFAULT org.
-# Set the default first so all three steps hit the same org.
-cci org default <cci_alias>
-
+# Pass the same --org to all three steps so they hit the same org.
 # <Version>  = the ApiName from the discovery query, e.g. QuantumBitBundle_V1
 # <DataDir>   = the model's directory under datasets/constraints/, from `ls -d`
 # <PlanDir>   = the SFDMU plan that loaded the ESC's Product2/PRC rows into the org
 #               (it supplies the names that scope import_cml's lookup queries)
-cci task run manage_expression_sets -o operation deactivate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "<Version>"
 
 cci task run import_cml --org <cci_alias> \
     -o data_dir <DataDir> \
     -o dataset_dirs "<PlanDir>"
 
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "<Version>"
 ```
 
 <details><summary>Filled in for the QuantumBit bundle, as an example</summary>
 
 ```bash
-cci task run manage_expression_sets -o operation deactivate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 cci task run import_cml --org <cci_alias> \
     -o data_dir datasets/constraints/qb/QuantumBitBundle \
     -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
 
@@ -313,8 +321,24 @@ not. See below.
 
 ### How the flow handles active-version reruns
 
-`manage_expression_sets` queries ExpressionSetVersion by ApiName and PATCHes
-IsActive, the same state toggled by Constraint Builder.
+`manage_expression_sets` queries `ExpressionSetVersion` by ApiName. For a constraint model
+(`ExpressionSet.UsageType = 'Constraint'`) it PATCHes
+`/services/data/v<api>/industries/constraints/{expressionSetId}/versions/{versionId}` with
+`{"status": "Active"}` or `{"status": "Inactive"}`. That resource deploys the model to the
+constraint solver on activation (along with every other active constraint model) and removes
+it on deactivation. It returns HTTP 200 with `success: false` on a failed deploy, so the task
+checks `success`. Every other expression set gets an `IsActive` PATCH.
+
+An **already-Active** version is skipped, and for a constraint model the task warns that
+the skip doesn't redeploy anything: `activate_versions` alone never picks up a re-import, so
+always deactivate first. Cycling only the model you changed is enough, even on a cold
+solver, because activating one constraint model deploys every active one (checked live in
+both directions with QuantumBitBundle and Server2, todo 313).
+
+The resource is not in the public developer guide; it is the route Constraint Builder uses,
+and nothing else deploys a model (todo 064). Measured live on 2026-10-29: when the task still
+PATCHed `IsActive` for constraint models, a model re-imported into an active version kept
+running the old one through this exact cycle, and a cold org stayed cold after activation.
 
 `prepare_constraints` imports Server2 and Bundle in steps 7-8, deactivates their
 versions in step 9, and activates both in step 10. Every activated version must
@@ -326,13 +350,11 @@ no-op on a fresh build where imports create inactive versions.
 way to ship a model change, so cycle the version yourself afterwards:
 
 ```bash
-cci org default <cci_alias>   # manage_expression_sets does not accept --org, see Known gaps
-
 # <Version> is the ApiName from the discovery query — e.g. QuantumBitBundle_V1,
 # Server2_V1, or whatever the org actually reports as active for the model you changed.
-cci task run manage_expression_sets -o operation deactivate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "<Version>"
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "<Version>"
 ```
 
@@ -415,10 +437,11 @@ Before calling a constraint-model change done:
    then assert every product you expect has **both** a `Type` and a `Port` row.
 7. **Exercise the configuration rules.** This is what proves the runtime model was
    rebuilt — nothing above distinguishes a deployed model from a stored one. It does
-   **not** require the UI: activation only flips `IsActive`, and the model is compiled
-   when config rules run, so POSTing the Product Configurator `configure` action with
-   `executeConfigurationRules: true` against a quote line that uses the model exercises
-   the same path headlessly. A valid model returns `success: true`,
+   **not** require the UI: POSTing the Product Configurator `configure` action with
+   `executeConfigurationRules: true` against a quote line that uses the model runs the
+   solver's current model headlessly. To prove a specific change, make it observable (for
+   example a `message(true, "<marker>", "warning")` rule) and look for it in the response's
+   `messages`. A valid model returns `success: true`,
    `solverStatus: "success"`, `errors: []`; an invalid one returns `Model '…' is invalid`.
    Full recipe: [Runtime verification](../../../datasets/constraints/README.md#runtime-verification).
 
@@ -426,9 +449,6 @@ Before calling a constraint-model change done:
 
 ## Known gaps
 
-- **`manage_expression_sets` rejects `--org`** and runs against the default org. One
-  instance of a repo-wide problem (102 of 193 custom tasks). `import_cml`, `export_cml`
-  and `validate_cml`'s siblings do accept it.
 - **`validate_cml`'s warning stream is not clean enough to gate on.** Most of the old
   "missing association" noise came from checking historical reference copies against one
   model's ESC rows, and from looking those rows up by display `Name` instead of

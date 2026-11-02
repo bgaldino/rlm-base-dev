@@ -112,7 +112,8 @@ this README):
   defines escalation criteria.
 - `.agents/context/project-map.md` — human-readable map of the repository.
 - `.agents/context/project-memory.json` — machine-readable project memory,
-  validated against `.agents/schemas/project-memory.schema.json`.
+  validated against `.agents/schemas/project-memory.schema.json` by
+  `tests/test_project_memory_schema.py`, which `pr_gate.py` runs.
 
 None of these override `AGENTS.md`; they are routing and context aids.
 

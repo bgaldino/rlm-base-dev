@@ -20,6 +20,8 @@ insert_quantumbit_pcm_data:
   class_path: tasks.rlm_sfdmu.LoadSFDMUData
   options:
     pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-pcm"
+    ignore_row_errors_for:
+      ProrationPolicy: "duplicate value found"   # expected: create-only object, platform-seeded; see cumulusci.yml
 ```
 
 ## Data Plan Overview

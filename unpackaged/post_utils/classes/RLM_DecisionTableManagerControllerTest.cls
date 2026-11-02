@@ -312,14 +312,93 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
     }
 
     private static DecisionTable joinedTable(Datetime lastSync) {
+        return joinedTable(lastSync, null);
+    }
+
+    private static DecisionTable joinedTable(Datetime lastSync, Datetime lastIncrementalSync) {
         return (DecisionTable) JSON.deserialize(
             JSON.serialize(new Map<String, Object>{
                 'DeveloperName' => 'DTM_Joined', 'SetupName' => 'DTM Joined',
                 'SourceObject' => 'Product2', 'DataSourceType' => 'MultipleSobjects',
-                'LastSyncDate' => lastSync
+                'LastSyncDate' => lastSync,
+                'LastIncrementalSyncDate' => lastIncrementalSync
             }),
             DecisionTable.class
         );
+    }
+
+    @isTest
+    static void aLaterIncrementalSyncMakesTheTableFresh() {
+        // ⚠ Issue #587. Release 264 can run a full request as incremental, which moves only
+        // LastIncrementalSyncDate. Judging by LastSyncDate alone reported such a table
+        // stale right after it was refreshed.
+        Datetime fullSync = Datetime.newInstance(2026, 1, 1, 0, 0, 0);
+        Datetime changed = Datetime.newInstance(2026, 3, 1, 0, 0, 0);
+        Datetime incrementalSync = Datetime.newInstance(2026, 6, 1, 0, 0, 0);
+        DecisionTable dt = joinedTable(fullSync, incrementalSync);
+
+        RLM_DecisionTableManagerController.SourcePlan plan = planWithJoins(
+            dt, new List<DecisionTableSourceCriteria>(), new Set<String>{ 'Contact' });
+        RLM_DecisionTableManagerController.DecisionTableInfo info =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(dt);
+        RLM_DecisionTableManagerController.applySourceVerdict(info, dt, plan,
+            new Map<String, RLM_DecisionTableManagerController.ProbeResult>{
+                plan.probe.key() => probeResult(changed, 5),
+                plan.joinedProbes[0].key() => probeResult(changed, 3)
+            });
+        Assert.areEqual('Fresh', info.staleness,
+            'An incremental sync after the newest change is a sync: ' + info.stalenessReason);
+        Assert.isTrue(info.stalenessReason.contains('last incremental sync'),
+            'The reason must say which sync it rests on: ' + info.stalenessReason);
+    }
+
+    @isTest
+    static void aChangeAfterBothSyncsIsStaleAndNamesTheLaterOne() {
+        Datetime fullSync = Datetime.newInstance(2026, 1, 1, 0, 0, 0);
+        Datetime incrementalSync = Datetime.newInstance(2026, 3, 1, 0, 0, 0);
+        Datetime changed = Datetime.newInstance(2026, 6, 1, 0, 0, 0);
+        DecisionTable dt = joinedTable(fullSync, incrementalSync);
+
+        RLM_DecisionTableManagerController.SourcePlan plan = planWithJoins(
+            dt, new List<DecisionTableSourceCriteria>(), new Set<String>{ 'Contact' });
+        RLM_DecisionTableManagerController.DecisionTableInfo info =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(dt);
+        RLM_DecisionTableManagerController.applySourceVerdict(info, dt, plan,
+            new Map<String, RLM_DecisionTableManagerController.ProbeResult>{
+                plan.probe.key() => probeResult(changed, 5),
+                plan.joinedProbes[0].key() => probeResult(changed, 3)
+            });
+        Assert.areEqual('Stale', info.staleness, info.stalenessReason);
+        Assert.isTrue(info.stalenessReason.contains('after the last incremental sync'),
+            'Stale is measured against the later sync, and says so: ' + info.stalenessReason);
+    }
+
+    @isTest
+    static void latestSyncIsTheLaterStampAndANullIncrementalFallsBackToFull() {
+        Datetime earlier = Datetime.newInstance(2026, 1, 1, 0, 0, 0);
+        Datetime later = Datetime.newInstance(2026, 6, 1, 0, 0, 0);
+        Assert.areEqual(later, RLM_DecisionTableManagerController.latestSync(joinedTable(earlier, later)));
+        Assert.areEqual(later, RLM_DecisionTableManagerController.latestSync(joinedTable(later, earlier)));
+        Assert.areEqual(earlier, RLM_DecisionTableManagerController.latestSync(joinedTable(earlier, null)));
+        // A tie names the full sync: both stamps moved at once, so nothing was incremental-only.
+        Assert.areEqual('last full sync',
+            RLM_DecisionTableManagerController.latestSyncLabel(joinedTable(later, later)));
+        Assert.areEqual('last incremental sync',
+            RLM_DecisionTableManagerController.latestSyncLabel(joinedTable(earlier, later)));
+
+        // The wrapper carries the same number the verdict used, so the component can
+        // show it instead of a full-sync date older than the change a Fresh row covers.
+        RLM_DecisionTableManagerController.DecisionTableInfo incr =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(joinedTable(earlier, later));
+        Assert.areEqual(later, incr.latestSyncDate);
+        Assert.areEqual('Incremental', incr.latestSyncKind);
+        RLM_DecisionTableManagerController.DecisionTableInfo full =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(joinedTable(later, earlier));
+        Assert.areEqual('Full', full.latestSyncKind);
+        RLM_DecisionTableManagerController.DecisionTableInfo never =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(joinedTable(null, null));
+        Assert.isNull(never.latestSyncDate);
+        Assert.isNull(never.latestSyncKind);
     }
 
     @isTest
@@ -1552,36 +1631,32 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
     }
 
     @isTest
-    static void anIncrementalRefreshIsRefusedWhereTheTableCannotDoOne() {
-        // ⚠ The platform ACCEPTS an incremental request on a table with
-        // IsIncrementalSyncEnabled = false and then syncs nothing — so the caller is
-        // told "queued" while the table stays stale. Measured false on every table this
-        // repo ships and on all 40 in a built org, which makes this the default outcome
-        // of choosing Incremental, not an edge case.
+    static void anIncrementalRequestIsNotRefusedOnIncrementalSyncDisabled() {
+        // ⚠ Issue #587. This used to refuse an incremental request on a table with
+        // IsIncrementalSyncEnabled = false. Release 264 does not consult the flag, so the
+        // refusal only blocked valid requests. This proves the gate is gone — the request
+        // is not rejected with the old message and no table is reported failed by it —
+        // not that the flow queued anything, which a test context cannot show.
+        //
+        // ⚠ The fixture must exist, or the test must FAIL — a skip that passes is a test
+        // that cannot fail (issue #326). The flag filter is kept because the flag-false
+        // case is the one the old gate refused; every table this repo ships has it false.
         List<DecisionTable> existing = [
-            SELECT DeveloperName, IsIncrementalSyncEnabled FROM DecisionTable
-            WHERE IsIncrementalSyncEnabled = false LIMIT 1
+            SELECT DeveloperName FROM DecisionTable
+            WHERE IsIncrementalSyncEnabled = false AND Status = 'Active' LIMIT 1
         ];
         if (existing.isEmpty()) {
-            // Nothing to assert against in this org; say so rather than pass quietly.
-            Assert.isTrue(true, 'No incremental-disabled table available to test with.');
-            return;
+            Assert.fail('Fixture missing: no Active decision table with IsIncrementalSyncEnabled = ' +
+                'false in this org, so the refusal-removal path cannot be exercised. Every ' +
+                'table this repo ships qualifies; check the build deployed them.');
         }
         RLM_DecisionTableManagerController.RefreshResult result =
             RLM_DecisionTableManagerController.refreshTables(
                 new List<String>{ existing[0].DeveloperName }, true);
-
-        Assert.areEqual(0, result.queuedCount, 'Nothing may be queued.');
-        Assert.isNotNull(result.errorMessage, 'And the caller must be told why.');
-        Assert.isTrue(result.errorMessage.contains(existing[0].DeveloperName),
-            'The message must name the table so it can be re-run as a full refresh: ' +
-            result.errorMessage);
-
-        // A FULL refresh of the same table is unaffected by the gate.
-        RLM_DecisionTableManagerController.RefreshResult full =
-            RLM_DecisionTableManagerController.refreshTables(
-                new List<String>{ existing[0].DeveloperName }, false);
-        Assert.isNull(full.errorMessage, 'Full refresh must not be gated: ' + full.errorMessage);
+        Assert.isTrue(result.errorMessage == null || !result.errorMessage.contains('Incremental sync is not enabled'),
+            'An incremental request must not be refused on IsIncrementalSyncEnabled: ' + result.errorMessage);
+        Assert.isTrue(result.unknownApiNames.isEmpty(), 'The table exists: ' + result.unknownApiNames);
+        Assert.isTrue(result.incremental, 'The request is reported as incremental.');
     }
 
     @isTest
@@ -1597,6 +1672,279 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
     }
 
     @isTest
+    static void refreshIsRefusedWithTheReasonForAUserWithoutAdminPermissions() {
+        // The platform's own gate is Modify All Data AND Customize Application. A user
+        // without them must get the permission named, not the flow's per-table
+        // "Unsupported action type", and nothing may be started on their behalf.
+        List<DecisionTable> existing = [SELECT DeveloperName FROM DecisionTable WHERE Status = 'Active' LIMIT 1];
+        if (existing.isEmpty()) {
+            Assert.fail('Fixture missing: no Active decision table in this org.');
+        }
+        User u = newLeastPrivilegedUser('rlmdtm');
+
+        System.runAs(u) {
+            Assert.isFalse(RLM_DecisionTableManagerController.canRefreshTables(),
+                'A least-privileged user has neither Modify All Data nor Customize Application.');
+            RLM_DecisionTableManagerController.RefreshResult result =
+                RLM_DecisionTableManagerController.refreshTables(
+                    new List<String>{ existing[0].DeveloperName }, false);
+            Assert.areEqual(RLM_DecisionTableManagerController.REFRESH_ACCESS_MESSAGE, result.errorMessage,
+                'The refusal must name the permissions, not report the table as missing.');
+            Assert.areEqual(0, result.queuedCount, 'Nothing may be queued for a user who cannot refresh.');
+            Assert.areEqual(0, result.failedCount, 'The flow must not have been started.');
+        }
+    }
+
+    @isTest
+    static void onePermissionOfTheTwoIsNotEnough() {
+        // The platform requires BOTH. Customize Application alone must still read as
+        // cannot-refresh, or the Manager enables a Refresh every table then fails to queue.
+        User u = newLeastPrivilegedUser('rlmdtc');
+        PermissionSet customizeOnly = new PermissionSet(
+            Name = 'RLM_DTM_Test_CustomizeOnly', Label = 'RLM DTM Test Customize Only',
+            // Customize Application and the permissions the platform requires with it.
+            PermissionsCustomizeApplication = true, PermissionsManageCustomPermissions = true,
+            PermissionsViewSetup = true, PermissionsViewRoles = true
+        );
+        insert customizeOnly;
+        insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = customizeOnly.Id);
+
+        System.runAs(u) {
+            UserPermissionAccess access = [
+                SELECT PermissionsModifyAllData, PermissionsCustomizeApplication
+                FROM UserPermissionAccess LIMIT 1
+            ];
+            Assert.isTrue(access.PermissionsCustomizeApplication, 'Fixture: the user has Customize Application.');
+            Assert.isFalse(access.PermissionsModifyAllData, 'Fixture: the user lacks Modify All Data.');
+            Assert.isFalse(RLM_DecisionTableManagerController.canRefreshTables(),
+                'Customize Application without Modify All Data cannot refresh.');
+        }
+    }
+
+    private static User newLeastPrivilegedUser(String alias) {
+        Profile leastPrivileged = [
+            SELECT Id FROM Profile
+            WHERE Name IN ('Minimum Access - Salesforce', 'Standard User')
+            ORDER BY Name ASC LIMIT 1
+        ];
+        User u = new User(
+            ProfileId = leastPrivileged.Id,
+            LastName = 'DtmRefresh',
+            Email = alias + '@example.com',
+            Username = alias + '.' + Datetime.now().getTime() + '@example.com',
+            Alias = alias,
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        insert u;
+        return u;
+    }
+
+    @isTest
+    static void anAdminCanRefresh() {
+        // Tests run as the deploying user, a System Administrator here, so the gate must be
+        // open: otherwise every existing refresh test passes on the refusal alone.
+        Assert.isTrue(RLM_DecisionTableManagerController.canRefreshTables(),
+            'The deploying admin has Modify All Data and Customize Application.');
+    }
+
+    @isTest
+    static void hidingReasonFollowsTheSharingModelAndItsMasters() {
+        Map<String, String> modelOf = new Map<String, String>{
+            'PrivateObj' => 'Private', 'ReadObj' => 'Read', 'NoAccessObj' => 'None',
+            'ChildOfPrivate' => 'ControlledByParent', 'ChildOfRead' => 'ControlledByParent',
+            'Grandchild' => 'ControlledByParent', 'Orphan' => 'ControlledByParent',
+            'ChildOfUnreadable' => 'ControlledByParent'
+        };
+        Map<String, List<String>> mastersOf = new Map<String, List<String>>{
+            'ChildOfPrivate' => new List<String>{ 'PrivateObj' },
+            'ChildOfRead' => new List<String>{ 'ReadObj' },
+            'Grandchild' => new List<String>{ 'ChildOfPrivate' },
+            'Orphan' => new List<String>(),
+            'ChildOfUnreadable' => new List<String>{ 'Unlisted' }
+        };
+        Set<String> none = new Set<String>();
+
+        Assert.areEqual('Private sharing',
+            RLM_DecisionTableManagerController.hidingReason('PrivateObj', modelOf, mastersOf, none, 0));
+        Assert.isNull(RLM_DecisionTableManagerController.hidingReason('ReadObj', modelOf, mastersOf, none, 0),
+            'Read sharing hides nothing.');
+        Assert.areEqual('No Access sharing',
+            RLM_DecisionTableManagerController.hidingReason('NoAccessObj', modelOf, mastersOf, none, 0),
+            'A model outside the see-all set hides rows, shown by its Setup label.');
+        Assert.areEqual('controlled by PrivateObj: Private sharing',
+            RLM_DecisionTableManagerController.hidingReason('ChildOfPrivate', modelOf, mastersOf, none, 0));
+        Assert.isNull(RLM_DecisionTableManagerController.hidingReason('ChildOfRead', modelOf, mastersOf, none, 0),
+            'A child of a Read master is as visible as the master.');
+        Assert.areEqual('controlled by ChildOfPrivate: controlled by PrivateObj: Private sharing',
+            RLM_DecisionTableManagerController.hidingReason('Grandchild', modelOf, mastersOf, none, 0),
+            'The chain is followed past one level.');
+        Assert.areEqual('controlled by a parent that could not be resolved',
+            RLM_DecisionTableManagerController.hidingReason('Orphan', modelOf, mastersOf, none, 0));
+        Assert.areEqual('sharing model unreadable',
+            RLM_DecisionTableManagerController.hidingReason('Unlisted', modelOf, mastersOf, none, 0),
+            'An unreadable model must not read as see-all.');
+        Assert.areEqual('controlled by Unlisted: sharing model unreadable',
+            RLM_DecisionTableManagerController.hidingReason('ChildOfUnreadable', modelOf, mastersOf, none, 0));
+        Assert.isNull(RLM_DecisionTableManagerController.hidingReason('PrivateObj', modelOf, mastersOf,
+            new Set<String>{ 'PrivateObj' }, 0), 'View All on the object sees every row.');
+    }
+
+    @isTest
+    static void freshIsWithdrawnOnlyWhenATableReadsAHiddenObject() {
+        Map<String, String> hidden = new Map<String, String>{
+            'IndexRate' => 'Private sharing', 'Contract' => 'Private sharing'
+        };
+
+        RLM_DecisionTableManagerController.DecisionTableInfo fresh = infoWithVerdict(
+            RLM_DecisionTableManagerController.STALENESS_FRESH, new List<String>{ 'IndexRate' });
+        RLM_DecisionTableManagerController.withdrawFreshWhenRowsMayBeHidden(fresh, hidden);
+        Assert.areEqual(RLM_DecisionTableManagerController.STALENESS_UNCOMPUTED, fresh.staleness,
+            'A Fresh verdict over a hidden object is not established.');
+        Assert.isTrue(fresh.stalenessReason.contains('IndexRate (Private sharing)'), fresh.stalenessReason);
+
+        // An object only a source criterion traverses is probed too (Contract_Pricing_*
+        // filters through ContractItemPriceId.ContractId), so it counts.
+        RLM_DecisionTableManagerController.DecisionTableInfo traversed = infoWithVerdict(
+            RLM_DecisionTableManagerController.STALENESS_FRESH, new List<String>{ 'ContractItemPrice' });
+        traversed.contributingObjects = new List<String>{ 'Contract' };
+        RLM_DecisionTableManagerController.withdrawFreshWhenRowsMayBeHidden(traversed, hidden);
+        Assert.areEqual(RLM_DecisionTableManagerController.STALENESS_UNCOMPUTED, traversed.staleness,
+            'A hidden object reached through a criterion withdraws Fresh too.');
+        Assert.isTrue(traversed.stalenessReason.contains('Contract (Private sharing)'), traversed.stalenessReason);
+
+        RLM_DecisionTableManagerController.DecisionTableInfo stale = infoWithVerdict(
+            RLM_DecisionTableManagerController.STALENESS_STALE, new List<String>{ 'IndexRate' });
+        RLM_DecisionTableManagerController.withdrawFreshWhenRowsMayBeHidden(stale, hidden);
+        Assert.areEqual(RLM_DecisionTableManagerController.STALENESS_STALE, stale.staleness,
+            'A visible change stands.');
+
+        RLM_DecisionTableManagerController.DecisionTableInfo other = infoWithVerdict(
+            RLM_DecisionTableManagerController.STALENESS_FRESH, new List<String>{ 'Product2' });
+        RLM_DecisionTableManagerController.withdrawFreshWhenRowsMayBeHidden(other, hidden);
+        Assert.areEqual(RLM_DecisionTableManagerController.STALENESS_FRESH, other.staleness,
+            'A table that reads nothing hidden keeps its verdict.');
+    }
+
+    @isTest
+    static void privateObjectRowsAreHiddenFromALeastPrivilegedUserButNotFromAnAdmin() {
+        // Opportunity, not a pricing object: IndexRate (Private on 264, measured hiding a
+        // stale row from the salesrep) needs a Revenue Cloud license a test user cannot get,
+        // and EntityDefinition returns no row for an object the user cannot access.
+        Map<String, String> models = new Map<String, String>();
+        for (EntityDefinition e : [
+            SELECT QualifiedApiName, InternalSharingModel FROM EntityDefinition
+            WHERE QualifiedApiName IN ('Opportunity', 'Quote', 'Product2')
+        ]) {
+            models.put(e.QualifiedApiName, e.InternalSharingModel);
+        }
+        // Quote is always controlled by its Opportunity. The other two are whatever this org's
+        // admin set, so the expectations below follow them; the fixed-model cases are covered
+        // by hidingReasonFollowsTheSharingModelAndItsMasters. Where Opportunity hides rows this
+        // checks the hiding direction: the labels, View All through ObjectPermissions, and Fresh
+        // being withdrawn. Elsewhere it checks the see-all direction: the EntityDefinition read
+        // and the master walk must still resolve Quote to a visible Opportunity, and a visible
+        // Fresh must be kept.
+        if (models.get('Quote') != 'ControlledByParent' || !models.containsKey('Opportunity')
+                || !models.containsKey('Product2')) {
+            Assert.fail('Fixture: expected Opportunity, Product2 and a ControlledByParent Quote; got ' + models);
+        }
+        // Deliberately a copy of the controller's SEE_ALL_SHARING_MODELS, not a reference to
+        // it: referencing it would make these expectations agree with any bug in the set.
+        Set<String> seeAll = new Set<String>{ 'Read', 'ReadWrite', 'ReadWriteTransfer', 'FullAccess', 'ReadSelect' };
+        Boolean opportunityHides = !seeAll.contains(models.get('Opportunity'));
+        Boolean productHides = !seeAll.contains(models.get('Product2'));
+        Set<String> objects = new Set<String>{ 'Opportunity', 'Quote', 'Product2' };
+        Map<String, SObjectType> gd = Schema.getGlobalDescribe();
+
+        Assert.isTrue(RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd).isEmpty(),
+            'The deploying admin has View All Data, so nothing is hidden.');
+
+        // Like the salesrep persona: View Setup and read on the objects.
+        User u = newLeastPrivilegedUser('rlmdth');
+        assign(u, readerSet('RLM_DTM_Test_Reader', true, false));
+        // The same, plus View All on Opportunity: the real ObjectPermissions read must see it.
+        User viewAll = newLeastPrivilegedUser('rlmdtv');
+        assign(viewAll, readerSet('RLM_DTM_Test_ViewAll', true, true));
+        // Read on the objects but no View Setup.
+        User bare = newLeastPrivilegedUser('rlmdtb');
+        assign(bare, readerSet('RLM_DTM_Test_NoSetup', false, false));
+
+        System.runAs(u) {
+            Map<String, String> hidden = RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd);
+            Assert.areEqual(opportunityHides, hidden.containsKey('Opportunity'),
+                'Opportunity is ' + models.get('Opportunity') + ': ' + hidden);
+            if (models.get('Opportunity') == 'Private') {
+                Assert.areEqual('Private sharing', hidden.get('Opportunity'), String.valueOf(hidden));
+            }
+            // A child is hidden exactly when its master is.
+            Assert.areEqual(opportunityHides, hidden.containsKey('Quote'), 'Quote follows Opportunity: ' + hidden);
+            if (opportunityHides) {
+                Assert.isTrue(hidden.get('Quote').startsWith('controlled by Opportunity: '), hidden.get('Quote'));
+            }
+            Assert.areEqual(productHides, hidden.containsKey('Product2'),
+                'Product2 is ' + models.get('Product2') + ': ' + hidden);
+
+            // The wiring getDecisionTables uses: a Fresh verdict over Quote is withdrawn
+            // exactly when Quote's rows can be hidden. This only catches a broken withdraw where
+            // Opportunity hides rows (Private on a stock build, e.g. pk049-r1); no standard
+            // object is hiding on every org.
+            RLM_DecisionTableManagerController.DecisionTableInfo info = infoWithVerdict(
+                RLM_DecisionTableManagerController.STALENESS_FRESH, new List<String>{ 'Quote' });
+            RLM_DecisionTableManagerController.applySharingScope(
+                new List<RLM_DecisionTableManagerController.DecisionTableInfo>{ info }, gd);
+            Assert.areEqual(opportunityHides
+                    ? RLM_DecisionTableManagerController.STALENESS_UNCOMPUTED
+                    : RLM_DecisionTableManagerController.STALENESS_FRESH,
+                info.staleness, info.stalenessReason);
+        }
+        System.runAs(viewAll) {
+            Map<String, String> hidden = RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd);
+            Assert.isFalse(hidden.containsKey('Opportunity'), 'View All on Opportunity sees every row: ' + hidden);
+            Assert.isFalse(hidden.containsKey('Quote'), 'And so every Quote under it: ' + hidden);
+        }
+        System.runAs(bare) {
+            // Where the model hides rows, it hides them either way: by the model, or because
+            // the model cannot be read.
+            Map<String, String> hidden = RLM_DecisionTableManagerController.rowsMayBeHiddenFrom(objects, gd);
+            if (opportunityHides) {
+                Assert.isTrue(hidden.containsKey('Opportunity'), 'Must not read as visible: ' + hidden);
+            }
+        }
+    }
+
+    private static PermissionSet readerSet(String name, Boolean viewSetup, Boolean viewAllOpportunity) {
+        PermissionSet ps = new PermissionSet(Name = name, Label = name.replace('_', ' '),
+            PermissionsViewSetup = viewSetup, PermissionsViewRoles = viewSetup);
+        insert ps;
+        insert new List<ObjectPermissions>{
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Opportunity', PermissionsRead = true,
+                PermissionsViewAllRecords = viewAllOpportunity),
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Quote', PermissionsRead = true),
+            new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Product2', PermissionsRead = true)
+        };
+        return ps;
+    }
+
+    private static void assign(User u, PermissionSet ps) {
+        insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+    }
+
+    private static RLM_DecisionTableManagerController.DecisionTableInfo infoWithVerdict(
+        String verdict, List<String> reads
+    ) {
+        RLM_DecisionTableManagerController.DecisionTableInfo info =
+            new RLM_DecisionTableManagerController.DecisionTableInfo(
+                new DecisionTable(DeveloperName = 'Test_Table', SourceObject = reads[0]));
+        info.staleness = verdict;
+        info.stalenessReason = 'computed';
+        info.readsObjects = reads;
+        return info;
+    }
+
+    @isTest
     static void unknownTableNamesAreReportedRatherThanDropped() {
         RLM_DecisionTableManagerController.RefreshResult result =
             RLM_DecisionTableManagerController.refreshTables(
@@ -1606,34 +1954,6 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
             'A caller must be able to see which requested tables were not found.');
         Assert.areEqual('ZZ_No_Such_Decision_Table', result.unknownApiNames[0], 'The missing name must be named.');
         Assert.areEqual(0, result.queuedCount, 'Nothing real was requested, so nothing may be queued.');
-    }
-
-    @isTest
-    static void anUnknownNameSurvivesTheIncrementalRefusal() {
-        // ⚠ The incremental gate returns EARLY. Before this, a request mixing a real
-        // incremental-disabled table with a name that does not exist reported only the
-        // disabled table and dropped the unknown one silently — so the caller would fix
-        // the incremental problem, re-run, and still be missing a table with nothing
-        // having ever said so. Whichever way the call exits, every requested name lands
-        // in exactly one bucket.
-        List<DecisionTable> existing = [
-            SELECT DeveloperName FROM DecisionTable
-            WHERE IsIncrementalSyncEnabled = false LIMIT 1
-        ];
-        if (existing.isEmpty()) {
-            Assert.isTrue(true, 'No incremental-disabled table available to test with.');
-            return;
-        }
-        RLM_DecisionTableManagerController.RefreshResult result =
-            RLM_DecisionTableManagerController.refreshTables(
-                new List<String>{ existing[0].DeveloperName, 'ZZ_No_Such_Decision_Table' }, true);
-
-        Assert.isNotNull(result.errorMessage,
-            'The incremental gate must still fire — this is not a test that it stopped.');
-        Assert.areEqual(new List<String>{ 'ZZ_No_Such_Decision_Table' }, result.unknownApiNames,
-            'The unknown name must survive the early return: ' + result.errorMessage);
-        Assert.isTrue(result.failedApiNames.contains(existing[0].DeveloperName),
-            'And the disabled table is still reported in its own bucket: ' + result.failedApiNames);
     }
 
     @isTest
@@ -1657,5 +1977,92 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
             'Polling nothing returns nothing.');
         Assert.areEqual(0, RLM_DecisionTableManagerController.getRefreshStatus(new List<String>()).size(),
             'Polling an empty list returns nothing.');
+    }
+
+    @isTest
+    static void refreshStatusOfARealTableCarriesItsCurrentState() {
+        // The normal path the component's poll loop takes on every refresh (issue #326):
+        // a known API name maps into DecisionTableInfo with the record's own state.
+        //
+        // ⚠ A SYNCED table, not just any Active one: on a never-synced row every stamp is
+        // null and the field checks below would compare null to null. Not mid-refresh
+        // either, so a platform job finishing between the two reads cannot move them.
+        List<DecisionTable> existing = [
+            SELECT DeveloperName, RefreshStatus, LastSyncDate, LastIncrementalSyncDate
+            FROM DecisionTable
+            WHERE Status = 'Active' AND LastSyncDate != null
+                AND RefreshStatus NOT IN ('Initiated', 'InProgress')
+            ORDER BY DeveloperName
+            LIMIT 1
+        ];
+        if (existing.isEmpty()) {
+            Assert.fail('Fixture missing: no Active, synced, idle decision table in this org to poll.');
+        }
+        DecisionTable dt = existing[0];
+
+        List<RLM_DecisionTableManagerController.DecisionTableInfo> polled =
+            RLM_DecisionTableManagerController.getRefreshStatus(
+                new List<String>{ dt.DeveloperName, 'ZZ_No_Such_Decision_Table' });
+
+        Assert.areEqual(1, polled.size(), 'Only the real table is returned: ' + polled);
+        RLM_DecisionTableManagerController.DecisionTableInfo info = polled[0];
+        Assert.areEqual(dt.DeveloperName, info.apiName, 'apiName');
+        Assert.areEqual(dt.RefreshStatus, info.refreshStatus, 'refreshStatus');
+        Assert.areEqual(dt.LastSyncDate, info.lastSyncDate, 'lastSyncDate');
+        Assert.areEqual(dt.LastIncrementalSyncDate, info.lastIncrementalSyncDate, 'lastIncrementalSyncDate');
+        Assert.isNotNull(info.latestSyncDate, 'A synced table has a latest sync.');
+        Boolean incrementalIsLater = dt.LastIncrementalSyncDate != null &&
+            dt.LastIncrementalSyncDate > dt.LastSyncDate;
+        Assert.areEqual(incrementalIsLater ? dt.LastIncrementalSyncDate : dt.LastSyncDate,
+            info.latestSyncDate, 'The poll carries the later of the two stamps.');
+        Assert.areEqual(incrementalIsLater ? 'Incremental' : 'Full', info.latestSyncKind,
+            'And says which kind it was.');
+    }
+
+    // The Manager's "Reads object" filter: source plus every object the parameters reach,
+    // canonical where the org resolves the name, kept raw where it does not.
+    @isTest
+    static void readsObjectsListsSourceAndContributorsByCanonicalName() {
+        RLM_DecisionTableManagerController.Contributors contributors =
+            new RLM_DecisionTableManagerController.Contributors();
+        contributors.objects.add('contact');
+        contributors.objects.add('Account');
+        contributors.objects.add('No_Such_Object_XYZ__c');
+
+        List<String> reads = RLM_DecisionTableManagerController.readsObjectsOf(
+            'account', contributors, Schema.getGlobalDescribe());
+
+        Assert.areEqual(new List<String>{ 'Account', 'Contact', 'No_Such_Object_XYZ__c' }, reads,
+            'Sorted, deduplicated, canonical names; an unresolvable one is kept as named.');
+        Assert.areEqual(new List<String>{ 'Account' },
+            RLM_DecisionTableManagerController.readsObjectsOf('Account', null, Schema.getGlobalDescribe()),
+            'No contributors: the source alone.');
+    }
+
+    // Filled for every sObject-sourced table whatever its verdict, unlike contributingObjects,
+    // which needs a probe to have run. Checked against the org's own tables.
+    @isTest
+    static void everySObjectTableReportsWhatItReads() {
+        List<RLM_DecisionTableManagerController.DecisionTableInfo> infos =
+            RLM_DecisionTableManagerController.getDecisionTables();
+        Map<String, SObjectType> gd = Schema.getGlobalDescribe();
+        Integer checked = 0;
+        List<String> missing = new List<String>();
+        for (RLM_DecisionTableManagerController.DecisionTableInfo info : infos) {
+            if (String.isBlank(info.sourceObject)
+                    || RLM_DecisionTableManagerController.NON_SOBJECT_SOURCE_TYPES.contains(info.dataSourceType)
+                    || gd.get(info.sourceObject) == null) {
+                continue;
+            }
+            checked++;
+            String source = gd.get(info.sourceObject).getDescribe().getName();
+            if (!info.readsObjects.contains(source)) {
+                missing.add(info.apiName + ' (' + source + ')');
+            }
+        }
+        if (checked == 0) {
+            Assert.fail('Fixture missing: no decision table with an sObject source in this org.');
+        }
+        Assert.isTrue(missing.isEmpty(), 'readsObjects lacks the source for: ' + String.join(missing, ', '));
     }
 }

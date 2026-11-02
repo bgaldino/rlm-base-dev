@@ -21,6 +21,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 6. `$$` CSV column must match externalId fields exactly.
 7. After extraction: run `post_process_extraction.py` to add `$$` columns.
 8. **A plan that loads cleanly into a fresh org is not safe to re-run into a *used* org** — check the plan's operations against what the org already has. See *Reloading a plan into a live org*.
+9. **Exit 0 is not a clean load.** SFDMU logs `Inserted N` (rows *attempted*) and exits 0 even when Salesforce rejects every row; the rejection is only in the `Errors` column of `<plan>/target/[object-set-N/]<Object>_<operation>_target.csv` (`#N/A` or empty = success). `LoadSFDMUData` reads those files and FAILS on a rejected row (`fail_on_row_errors`, default true). A plan that rejects rows on a fresh build today lists each object in `ignore_row_errors_for` with the expected error text (`Object: "substring"`) and the reason beside it; a different error, or any other object, still fails. Fix the plan and remove the entry; don't add one to get a build green.
 
 ## DO NOT
 
@@ -70,6 +71,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 | Read-only reference (already loaded by another plan) | `Readonly` | `false` | Just resolves IDs for child lookups |
 | Updating existing records (set fields) | `Update` | `false` | Only modifies matched records |
 | Empty CSV (no records yet) | mark `excluded: true` | — | Prevents destructive delete-on-load |
+| Another task later rewrites a field (e.g. an overlay resequences), and a rerun must not undo it | `Upsert` + `skipExistingRecords: true` | `false` | Inserts missing rows, never touches matched ones. **Cost:** a correction to *any* field of an existing row no longer lands on rerun (see *Reloading a Plan Into a Live Org*). Don't use `excludedFromUpdateFields` for this: in 5.8.0 the insert payload is cloned from the `fieldsToUpdate` list, so new rows are inserted without the field. On `ProcedurePlanSection` the platform then rejected them ("This sequence already exists"; todo 316) |
 
 ## Bug 4 — `$$` Composite Notation Fails for Lookup Reference Columns (self-referential and cross-object)
 
@@ -123,7 +125,7 @@ case; existing plans still carrying Insert+deleteOldData migrate under the gated
 2. Confirming no direct-field externalId alternative exists
 3. Getting explicit user approval
 
-`deleteOldData: true` deletes ALL existing records before inserting. Misapplied, it wipes data that Upsert would have safely matched.
+`deleteOldData: true` deletes every target record matched by the object's own query (all of them when it has no WHERE) before inserting, or the records matched by a per-object `deleteQuery` if one is set (SELECT is forced to `Id`; the WHERE is used verbatim against the target org). qb-rating scopes PUR/PURP/PUG with `WHERE Status != 'Active'` because the platform blocks deleting Active rating records, and an unscoped delete stripped PURP on a reload. Misapplied, it wipes data that Upsert would have safely matched.
 
 ## Reloading a Plan Into a Live Org
 
@@ -133,7 +135,7 @@ failure mode differs by operation. Check before re-running:
 
 | Operation | Re-run into a used org |
 |-----------|------------------------|
-| `Upsert` / `Update` | ✅ No duplicates — matches on externalId (qb-pcm, qb-billing, qb-tax). ⚠️ Not the same as "the change applies": objects carrying `skipExistingRecords: true` (all the qb-billing billing objects) skip matched rows entirely, so a **correction** to existing data silently does not land. |
+| `Upsert` / `Update` | ✅ No duplicates — matches on externalId (qb-pcm, qb-billing, qb-tax). ⚠️ Not the same as "the change applies": objects carrying `skipExistingRecords: true` (all the qb-billing billing objects, and `ProcedurePlanSection` in procedure-plans) skip matched rows entirely, so a **correction** to existing data silently does not land. |
 | `Insert`, **no** `deleteOldData` | ⛔ **Duplicates every row.** No matching happens at all. |
 | `Insert` + `deleteOldData: true` | ⛔ Blocked when live records reference the design-time rows it must delete first |
 
@@ -146,8 +148,9 @@ Two concrete traps in the QB plans:
   flow, or run the delete task yourself before the insert.
 - **`qb-rating` / `qb-rates` use `Insert` + `deleteOldData`** — which cannot clear
   design-time rows (PUR/PUG/RateCardEntry, and `AssetRateCardEntry` referencing
-  `RateCardEntry`) while live entitlements point at them. The delete silently leaves
-  them and you get a duplicate Draft set.
+  `RateCardEntry`) while live entitlements point at them. qb-rating's `deleteQuery`
+  skips Active rows, so a reload adds a Draft set that activation then collapses;
+  qb-rates still leaves the rows and you get a duplicate Draft set.
 
 **To add one product to a live org, load it surgically** — insert just the new
 records and their relationships (a throwaway script or anonymous Apex), rather than

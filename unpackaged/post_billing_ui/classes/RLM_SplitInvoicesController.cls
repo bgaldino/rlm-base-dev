@@ -1,11 +1,11 @@
 /**
  * Returns split Invoices by CorrelationIdentifier with related Account, Billing Arrangement, and Billing Profile names.
- * Invoice API names: CorrelationIdentifier, BillingArrangement (lookup), BillingProfileId (lookup).
+ * Invoice API names: CorrelationIdentifier, BillingArrangementId (lookup), BillingProfileId (lookup).
  */
 public with sharing class RLM_SplitInvoicesController {
     private static final String INVOICE_OBJECT = 'Invoice';
     private static final String CORRELATION_FIELD = 'CorrelationIdentifier';
-    private static final String BILLING_ARRANGEMENT_LOOKUP = 'BillingArrangement';
+    private static final String BILLING_ARRANGEMENT_LOOKUP = 'BillingArrangementId';
     private static final String BILLING_ARRANGEMENT_REL = 'BillingArrangement';
     private static final String BILLING_PROFILE_LOOKUP = 'BillingProfileId';
     private static final String BILLING_PROFILE_REL = 'BillingProfile';
@@ -21,9 +21,7 @@ public with sharing class RLM_SplitInvoicesController {
         if (String.isBlank(invoiceId)) return info;
         String[] queries = new String[] {
             'SELECT Id, BillingArrangementId, BillingArrangement.Name, BillingArrangementVerNumber FROM Invoice WHERE Id = :invoiceId LIMIT 1',
-            'SELECT Id, BillingArrangementId, BillingArrangement.Name FROM Invoice WHERE Id = :invoiceId LIMIT 1',
-            'SELECT Id, BillingArrangement, BillingArrangement.Name, BillingArrangementVerNumber FROM Invoice WHERE Id = :invoiceId LIMIT 1',
-            'SELECT Id, BillingArrangement, BillingArrangement.Name FROM Invoice WHERE Id = :invoiceId LIMIT 1'
+            'SELECT Id, BillingArrangementId, BillingArrangement.Name FROM Invoice WHERE Id = :invoiceId LIMIT 1'
         };
         for (Integer i = 0; i < queries.size(); i++) {
             try {
@@ -31,7 +29,7 @@ public with sharing class RLM_SplitInvoicesController {
                 if (listInv.isEmpty()) continue;
                 SObject inv = listInv[0];
                 try { SObject arr = inv.getSObject('BillingArrangement'); if (arr != null) info.billingArrangementName = (String) arr.get('Name'); } catch (Exception e2) { }
-                if (i == 0 || i == 2) { try { Object ver = inv.get('BillingArrangementVerNumber'); if (ver != null) info.billingArrangementVerNumber = String.valueOf(ver); } catch (Exception e3) { } }
+                if (i == 0) { try { Object ver = inv.get('BillingArrangementVerNumber'); if (ver != null) info.billingArrangementVerNumber = String.valueOf(ver); } catch (Exception e3) { } }
                 break;
             } catch (Exception e) { continue; }
         }

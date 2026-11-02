@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Permission set granting Apex class access to RLM_UsageOrchestrationController.
+     This controller accepts a client-controlled flow API name and launches arbitrary
+     autolaunched flows. Requires explicit user approval due to broad capability.
+     No object or field permissions required (controller performs no SOQL/DML). -->
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>RLM_UsageOrchestrationController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM Usage Orchestration</label>
+    <description>Grants Apex class access to RLM_UsageOrchestrationController (launches client-specified autolaunched flows for usage orchestration). Assign only to users who should be able to launch arbitrary autolaunched flows.</description>
+</PermissionSet>

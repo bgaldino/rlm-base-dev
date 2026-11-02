@@ -152,6 +152,13 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | FulfillmentStepJeopardyRule | `Name` | Upsert | |
 | FulfillmentTaskAssignmentRule | `Name` | Upsert | |
 
+## qb-price-revision
+
+| SObject | externalId | Operation |
+|---------|-----------|-----------|
+| IndexRate | `Name` | Upsert |
+| PriceRevisionPolicy | `Name` | Upsert |
+
 ## qb-clm
 
 | SObject | externalId | Operation |

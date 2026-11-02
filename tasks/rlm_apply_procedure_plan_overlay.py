@@ -47,9 +47,10 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         },
         "activate_after_apply": {
             "description": (
-                "If true (default), activate the target ProcedurePlanDefinitionVersion "
-                "after overlay is applied. The try/finally block restores the original "
-                "activation state on failure regardless of this setting."
+                "If true (task default; cumulusci.yml sets false), activate the target ProcedurePlanDefinitionVersion "
+                "after overlay is applied. A version that was active before is always "
+                "reactivated, on success or failure; with this true, an inactive version "
+                "is also activated (even after a failed apply)."
             ),
             "required": False,
         },
@@ -800,7 +801,6 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         version = self._get_version(str(developer_name))
         version_id = version["Id"]
         was_active = bool(version.get("IsActive"))
-        deactivated = False
         failure: Optional[Exception] = None
 
         try:
@@ -808,7 +808,6 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
                 self._set_version_active(version_id, False, dry_run)
                 if not dry_run:
                     self._wait_for_active_state(version_id, False)
-                deactivated = True
             else:
                 self.logger.info(
                     "ProcedurePlanDefinitionVersion %s is already inactive before overlay.",
@@ -821,7 +820,9 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         except Exception as exc:
             failure = exc
         finally:
-            should_activate = activate_after_apply or (was_active and deactivated)
+            # Restore on was_active alone: a deactivate PATCH that raised (timeout, reset)
+            # or whose wait timed out may still have landed.
+            should_activate = activate_after_apply or was_active
             if should_activate:
                 try:
                     self._set_version_active(version_id, True, dry_run)

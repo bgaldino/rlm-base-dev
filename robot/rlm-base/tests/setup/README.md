@@ -31,11 +31,8 @@ Run from the repo root. CCI uses its own org aliases; direct Robot commands use 
 ### Via CCI (recommended)
 
 ```bash
-# Document Builder uses the default CCI org; its wrapper rejects --org
-cci org default my-scratch
-cci task run enable_document_builder_toggle
-
-# These wrappers also accept an explicit CCI org alias
+# Each wrapper takes the CCI org alias in --org (the default org when omitted)
+cci task run enable_document_builder_toggle --org my-scratch
 cci task run enable_constraints_settings --org my-scratch
 cci task run configure_revenue_settings --org my-scratch
 cci task run configure_core_pricing_setup --org my-scratch

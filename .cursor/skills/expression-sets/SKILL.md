@@ -78,11 +78,11 @@ Release 262 dev-guide/Help snapshots:
 >    exercising the configurator.
 > 2. **The activation tooling differs.** `scripts/expression_sets/activate_expression_set.py`
 >    and the Connect deactivate→PATCH→reactivate cycle are for step-graph sets.
->    Constraint models go through `manage_expression_sets` + `import_cml`. Note
->    `manage_expression_sets` PATCHes `ExpressionSetVersion.IsActive`, the same record the
->    Constraint Builder UI toggles — so it *is* the right tool; what differs is that
->    `prepare_constraints` deactivates only AFTER importing. See the constraint-models
->    skill.
+>    Constraint models go through `manage_expression_sets` + `import_cml`.
+>    `manage_expression_sets` activates and deactivates a constraint model through
+>    `/industries/constraints/{setId}/versions/{versionId}`, which deploys it to the solver; a
+>    plain `ExpressionSetVersion.IsActive` update never does. `prepare_constraints` deactivates
+>    only AFTER importing. See the constraint-models skill.
 >
 > Source material: `docs/salesforce/262/dev-guide/` (`cml_*` articles) and the
 > Configurator Help suite.
@@ -397,6 +397,21 @@ a write) and lives on the `QuoteLineGroup`, cascading to its ramped lines.
    | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` under *Apply price revision for lines with subscription and without derived pricing* | `PriceRevision` (present) | non-ramp price revision |
    | `Uplift` under *Apply uplifts to ramped subscriptions items during amendment* (filter requires `IsLineGroupRamped__std=true` AND `ItemRampIdentifier IS NOT NULL`) | `PriceRevision` with `IsCompoundUpliftEnabled=true` (migrated from `FormulaBasedPricing`) | **compound** ramp uplift when `RampUpliftType=Compound`; flat when `Standard` |
 
+   **Compared with the 264 template** (2026-10-28; a fresh "Revenue Management Default Pricing
+   Procedure" saved from Expression Set Templates on a fresh 264 build):
+   - Every template element is present except **derived pricing**, which the repo omits by owner
+     decision.
+   - The ramp `Uplift` step matches the template's `PriceRevision` parameter for parameter. Its
+     `Rate` output goes to `ItemConsumerPriceIndex__std` as in the template, rather than sharing
+     `ItemApplUnitPriceUpliftPct__std` with `AppliedUnitPriceUplift`. That's for parity only: a
+     group-ramp matrix priced identically before and after.
+   - The ramp filter keeps three extra criteria on two fields (`ItemUnitPriceUplift__std
+     IsNotNull`, `IsLineGroupRamped__std IsNotNull`, `IsLineGroupRamped__std = true`), which
+     limit it to **group** ramps. Measured with the template's four criteria instead, line ramps
+     took a standard uplift. But a Year-2 group-ramp amendment then priced 4,312.44
+     (3,564 × 1.21) instead of 3,564: the uplift went on again on top of the already-uplifted last
+     transaction price. So keep the group gate; line ramps get no uplift here.
+
 5. **`UnitPriceUplift` (per-year %) set per segment** (writeable). First segment
    is the baseline (applied uplift = its own line uplift, usually 0); a 0% segment
    is a *carryover* (prior cumulative multiplier preserved, not reset).
@@ -449,7 +464,7 @@ Diff the ramp path org-vs-org with `diff_expression_set.py` (compare
 ramp via `placeSalesTransaction` create → `groupRampAction: EditGroup` → clone, then
 per-segment `UnitPriceUplift` + `RampUpliftType='Compound'` on the group) is a
 transaction-building task, outside this skill — see
-`.cursor/skills/ramped-quotes/SKILL.md`. (Do **not** use the line-level
+`.cursor/skills/ramped-quotes/SKILL.md` (API, or the quote UI in `ui-group-ramp.md`). (Do **not** use the line-level
 `createRampDeal` or the legacy `/commerce/…/ramp-deals` API — neither produces the
 group that holds the compound uplift mode.) Ground behavior in the tracked 264 Help
 snapshots: `docs/salesforce/264/help/articles/ind.qocal_ramp_deal_compound_uplift.htm.md`,

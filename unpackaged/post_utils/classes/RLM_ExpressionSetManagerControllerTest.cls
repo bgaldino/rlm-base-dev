@@ -1,5 +1,5 @@
 @IsTest
-private class RLM_ExpressionSetManagerControllerTest {
+private with sharing class RLM_ExpressionSetManagerControllerTest {
 
     // Fake Ids for read-only paths that should return empty results without
     // matching any platform records. RLM Setup-object records (ContextDefinition,

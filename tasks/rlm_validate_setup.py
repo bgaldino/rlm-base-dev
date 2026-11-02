@@ -338,12 +338,65 @@ class ValidateSetup(BaseTask):
         except FileNotFoundError:
             return self._warn(
                 label,
-                "not found — Node.js is required to run the npm-installed sf CLI and its plugins (including SFDMU). "
+                "not found — Node.js runs an npm-installed sf CLI and the LWC tooling (npm ci, Jest, ESLint); "
+                "a standalone sf installer bundles its own Node, but the LWC tooling still needs one. "
                 "Download from https://nodejs.org or use a version manager such as nvm "
                 "(on macOS: brew install nvm && nvm install 24, the line pinned in .nvmrc).",
             )
         except Exception as exc:
             return self._warn(label, f"check failed: {exc}")
+
+    @staticmethod
+    def _sf_installs() -> List[str]:
+        """Every distinct `sf` on PATH, first (the one that runs) first, by resolved path."""
+        seen, found = set(), []
+        for directory in os.environ.get("PATH", "").split(os.pathsep):
+            candidate = os.path.join(directory or ".", "sf")
+            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                real = os.path.realpath(candidate)
+                if real not in seen:
+                    seen.add(real)
+                    found.append(candidate)
+        return found
+
+    @staticmethod
+    def _sf_install_method(path: str) -> str:
+        """How an `sf` was installed, from where it resolves; "" when it can't be told."""
+        real = os.path.realpath(path).replace(os.sep, "/")
+        if "/node_modules/@salesforce/cli/" in real:
+            return "npm"
+        if "/Cellar/" in real or "/homebrew/" in real.lower():
+            return "Homebrew"
+        if real.endswith("/sf/bin/sf") or "/share/sf/client/" in real:
+            return "standalone installer"
+        return ""
+
+    def _sf_version_of(self, path: str) -> str:
+        try:
+            out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=20).stdout
+        except Exception:
+            return "unknown version"
+        m = re.search(r"@salesforce/cli/(\d+\.\d+\.\d+)", out or "")
+        return m.group(1) if m else "unknown version"
+
+    def _sf_location_note(self) -> Tuple[str, str]:
+        """(where the running sf is, a shadowing warning or "")."""
+        installs = self._sf_installs()
+        if not installs:
+            return "", ""
+        method = self._sf_install_method(installs[0])
+        where = f" at {installs[0]}" + (f" ({method})" if method else "")
+        if len(installs) < 2:
+            return where, ""
+        others = "; ".join(
+            f"{p} ({self._sf_version_of(p)}" + (f", {self._sf_install_method(p)}" if self._sf_install_method(p) else "") + ")"
+            for p in installs[1:]
+        )
+        return where, (
+            f"another sf is later on PATH: {others}. `sf` runs the first; an update (`npm install -g`, "
+            "`brew upgrade` or `sf update`) reaches only the one it targets, while plugins are shared. Keep one "
+            "install (see dev-environment-setup.md, Troubleshooting → More than one `sf` install)."
+        )
 
     def _check_sf_cli(self) -> Dict[str, str]:
         label = "Salesforce CLI (sf)"
@@ -362,9 +415,12 @@ class ValidateSetup(BaseTask):
             if match:
                 major = int(match.group(1))
                 ver_str = f"{match.group(1)}.{match.group(2)}.{match.group(3)}"
-                if major >= MIN_SF_MAJOR:
-                    return self._ok(label, ver_str)
-                return self._fail(label, f"{ver_str} — requires v{MIN_SF_MAJOR}+")
+                where, shadowed = self._sf_location_note()
+                if major < MIN_SF_MAJOR:
+                    return self._fail(label, f"{ver_str}{where} — requires v{MIN_SF_MAJOR}+")
+                if shadowed:
+                    return self._warn(label, f"{ver_str}{where}; {shadowed}")
+                return self._ok(label, f"{ver_str}{where}")
             return self._ok(label, first_line)
         except FileNotFoundError:
             return self._fail(

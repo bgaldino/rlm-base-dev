@@ -17,10 +17,10 @@ from pathlib import Path
 import requests
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object  # type: ignore
+    BaseSalesforceTask = object  # type: ignore
     TaskOptionsError = Exception  # type: ignore
 
 from tasks.robot_utils import check_urllib3_for_robot
@@ -43,7 +43,7 @@ DEFAULT_PRIORITY_LABELS = (
 )
 
 
-class ReorderAppLauncher(BaseTask):
+class ReorderAppLauncher(BaseSalesforceTask):
     """Run the Robot test that applies a priority order to the App Launcher."""
 
     task_options = {

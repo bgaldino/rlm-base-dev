@@ -25,7 +25,9 @@ pattern as PRM pricing without redesigning setup order each time.
 1. Satisfy recipe-to-table prerequisites before deploying procedures that depend on them.
 2. Split **core** prerequisites from **feature overlay** prerequisites.
 3. Keep metadata org-agnostic (placeholders + transforms, never hardcoded record IDs).
-4. Apply overlays with explicit sequencing (deactivate -> load -> verify -> reactivate).
+4. Apply overlays with explicit sequencing (deactivate -> load -> verify -> restore the
+   prior active state). The quote procedure plan is built **inactive** by default
+   (`procedureplans_active: false`); see `datasets/sfdmu/procedure-plans/README.md` → *Activation*.
 5. Validate on a clean org, then re-run for idempotency.
 6. Prefer `LookUpApiName` for decision table references; add `LookUpId` only when
    a known org/runtime issue requires it.
@@ -102,6 +104,8 @@ Repo implementation pattern:
   - Runs in `deploy_post_prm_pricing` behind `prm` + `prm_pricing`
   - Ensures PRM-specific table mappings, plus idempotent coverage for shared
     cost-book mapping when the PRM pricing flow is run directly
+  - `RLM_PRM_DISTI_Pricing_Procedure` runs only through the procedure plan, so
+    distributor pricing also needs `procedureplans_active: true`
 
 Mapping tasks fail fast when a required `DecisionTable` is missing. Keep
 `skip_missing_tables: false` for flow usage; use `skip_missing_tables: true`
@@ -141,7 +145,7 @@ Runtime contract:
 5. resolve parent IDs with SOQL instead of relying on traversal upsert keys
 6. create or patch options, then criteria if present
 7. verify exact overlay invariants
-8. reactivate the plan version in a guarded `finally` path
+8. in a guarded `finally` path, reactivate the plan version if it was active before, or activate it if `activate_after_apply` is true
 
 When an overlay changes section order and adds a new section into an existing
 sequence, declare placement by anchor (`placement.afterSubSectionType`) rather
@@ -310,8 +314,11 @@ cci task run refresh_dt_default_pricing
 `salesforce_task = True`. Before that they silently ran against the CCI **default** org.
 `manage_expression_sets` and most other custom tasks still reject it; see issue #320.)
 
-**Use `LastSyncDate` to decide whether a refresh happened.** It only advances on a refresh
-that actually ran, so the staleness comparison above is the one check that holds for every
+**Use the table's latest sync — the later of `LastSyncDate` and `LastIncrementalSyncDate`
+— to decide whether a refresh happened.** Release 264 can run a full request as
+incremental, which moves only `LastIncrementalSyncDate` (see the decision-tables skill,
+`lifecycle-and-refresh.md` → *Release 264 chooses the refresh type*). A sync date only
+advances on a refresh that actually ran, so the staleness comparison above is the one check that holds for every
 failure shape. Do not rely on `DecisionTable.RefreshStatus` / `RefreshFailureReason` as the
 detector: they live *on a table record*, so they only tell you anything once a refresh has
 been accepted for a table that exists.
@@ -332,7 +339,7 @@ Consequences:
 - The documented `status = Failed` output could not be provoked — a valid table returned
   `Queued` on every attempt, including five back-to-back refreshes of the same table.
 - Because the fault case leaves no trace on the table, a flow that swallows the fault leaves
-  `LastSyncDate` as the *only* evidence. That is by design, but it means the staleness check
+  the sync dates as the *only* evidence. That is by design, but it means the staleness check
   above is the monitoring story, not an afterthought.
 
 To tell whether a table is stale, compare **each** table against **its own** source object's
@@ -350,7 +357,7 @@ the table deliberately excludes. The tier tables only admit rows whose contract 
 so an unfiltered `MAX` over a Draft contract's tiers would report them stale forever:
 
 ```bash
-sf data query -q "SELECT DeveloperName, LastSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%' ORDER BY DeveloperName" --target-org <sf_alias>
+sf data query -q "SELECT DeveloperName, LastSyncDate, LastIncrementalSyncDate FROM DecisionTable WHERE DeveloperName LIKE 'Contract_Pricing%' ORDER BY DeveloperName" --target-org <sf_alias>
 
 # Entries <- ContractItemPrice, which has NO source criteria: no filter here.
 sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPrice" --target-org <sf_alias>
@@ -361,7 +368,7 @@ sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPrice" --
 sf data query -q "SELECT MAX(LastModifiedDate) newest FROM ContractItemPriceAdjTier WHERE ContractItemPrice.Contract.StatusCode = 'Activated'" --target-org <sf_alias>
 ```
 
-A table whose `LastSyncDate` is **earlier** than its own source's `newest` is stale, and the
+A table whose latest sync (the later of the two dates) is **earlier** than its own source's `newest` is stale, and the
 contract's negotiated price is not being applied. A `null` `newest` means that source has no
 qualifying rows, so its tables cannot be stale.
 
@@ -544,6 +551,12 @@ Use this quick checklist whenever pricing changes add or consume new context key
   - `python scripts/ai/generate_cci_reference.py`
 
 ---
+
+## Sub-files
+
+- `price-revision-cpi.md` — Price Revision Policies and CPI (Price Index): the seeded data, when the
+  renewal and ramp steps run, expected prices, and how to verify. Read it when setting up or checking a
+  price revision on a renewal or ramp.
 
 ## Related References
 

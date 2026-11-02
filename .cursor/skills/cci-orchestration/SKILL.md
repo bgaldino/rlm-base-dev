@@ -262,8 +262,8 @@ prepare_rlm_org
 ├── 5. deploy_full (force-app/main/default)
 ├── 6. prepare_price_adjustment_schedules
 ├── 7. prepare_quantumbit (utils, approvals, QB metadata)
-├── 8. prepare_product_data (PCM, Q3, product images)
-├── 9. prepare_pricing_data (pricing delete + insert)
+├── 8. prepare_product_data (PCM, Q3, product images, org-default configurator flow)
+├── 9. prepare_pricing_data (pricing delete + insert, CPI price revision data)
 ├── 10. prepare_docgen
 ├── 11. prepare_dro
 ├── 12. prepare_tax
@@ -397,8 +397,8 @@ cci task run test_qb_pricing_idempotency --org beta
 # Activate records
 cci task run activate_rating_records --org beta
 
-# Deploy and assemble UX (deploys to your DEFAULT cci org — no --org flag)
-cci task run assemble_and_deploy_ux
+# Assemble and deploy UX
+cci task run assemble_and_deploy_ux --org beta
 
 # UX dry-run (assemble only, no deploy; local — no org needed)
 cci task run assemble_and_deploy_ux -o deploy false

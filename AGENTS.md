@@ -164,7 +164,7 @@ cci task run delete_quantumbit_pricing_data --org beta
 cci task run extract_qb_pricing_data --org beta
 cci task run test_qb_pricing_idempotency --org beta
 cci flow run prepare_rlm_org --org beta
-cci task run assemble_and_deploy_ux                                 # deploys to your DEFAULT cci org (no --org flag — set the default org to target one)
+cci task run assemble_and_deploy_ux --org beta
 cci task run assemble_and_deploy_ux -o deploy false                 # dry-run: local assembly only, no org needed
 python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>   # retrieve + diff
 python scripts/ux/ux_tool.py apply-drift                            # writeback + verify + reassemble
