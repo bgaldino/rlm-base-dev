@@ -555,10 +555,17 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
+                    <name>section-1-input1</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>ItemContractPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
                     <name>sectionCount</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>1</value>
+                    <value>2</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -575,16 +582,30 @@
                     <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;ItemContractPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;InputUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
                 </parameters>
                 <parameters>
+                    <input>true</input>
+                    <name>sectionJsonString3</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-1-input1&quot;,&quot;value&quot;:&quot;ItemContractPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-1-output&quot;,&quot;value&quot;:&quot;RLM_Contract_Applied_Unit_Price__c&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                </parameters>
+                <parameters>
                     <input>false</input>
                     <name>section-0-output</name>
                     <output>true</output>
                     <type>Parameter</type>
                     <value>InputUnitPrice</value>
                 </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>section-1-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>RLM_Contract_Applied_Unit_Price__c</value>
+                </parameters>
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Assign ItemContractPrice to InputUnitPrice</label>
+            <label>Assign ItemContractPrice to InputUnitPrice and Contract Applied Unit Price</label>
             <name>AssignItemContractPricetoInputUnitPrice</name>
             <parentStep>Setinputunitpriceforlineswithcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -1840,6 +1861,13 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Attribute_Based_Adjustment_Decision_Table</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>__LOOKUPID_ATTRIBUTE_BASED_ADJUSTMENT_DECISION_TABLE__</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -4113,7 +4141,7 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>1 AND (2 OR (3 AND 4) OR 5)</conditionLogic>
+                <conditionLogic>1 AND (2 OR (3 AND 4) OR 5 OR (6 AND 7))</conditionLogic>
                 <criteria>
                     <operator>IsNotNull</operator>
                     <sequenceNumber>1</sequenceNumber>
@@ -4142,6 +4170,18 @@
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
                     <value>&apos;LastTransaction&apos;</value>
                     <valueType>Literal</valueType>
+                </criteria>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>6</sequenceNumber>
+                    <sourceFieldName>RLM_Contract_Applied_Unit_Price__c</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>Equals</operator>
+                    <sequenceNumber>7</sequenceNumber>
+                    <sourceFieldName>InputUnitPrice</sourceFieldName>
+                    <value>RLM_Contract_Applied_Unit_Price__c</value>
+                    <valueType>Parameter</valueType>
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
@@ -4531,7 +4571,7 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>1 AND 2 AND 3 AND 4</conditionLogic>
+                <conditionLogic>(1 OR (5 AND 6 AND 7 AND (8 OR 9))) AND 2 AND 3 AND 4</conditionLogic>
                 <criteria>
                     <operator>IsNull</operator>
                     <sequenceNumber>1</sequenceNumber>
@@ -4554,6 +4594,35 @@
                     <sequenceNumber>4</sequenceNumber>
                     <sourceFieldName>DerivedPricingAttribute</sourceFieldName>
                     <value>false</value>
+                    <valueType>Literal</valueType>
+                </criteria>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>5</sequenceNumber>
+                    <sourceFieldName>RLM_Contract_Applied_Unit_Price__c</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>IsNull</operator>
+                    <sequenceNumber>6</sequenceNumber>
+                    <sourceFieldName>ItemContractPrice</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>Equals</operator>
+                    <sequenceNumber>7</sequenceNumber>
+                    <sourceFieldName>InputUnitPrice</sourceFieldName>
+                    <value>RLM_Contract_Applied_Unit_Price__c</value>
+                    <valueType>Parameter</valueType>
+                </criteria>
+                <criteria>
+                    <operator>IsNull</operator>
+                    <sequenceNumber>8</sequenceNumber>
+                    <sourceFieldName>SalesTransactionActionType</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>Equals</operator>
+                    <sequenceNumber>9</sequenceNumber>
+                    <sourceFieldName>SalesTransactionActionType</sourceFieldName>
+                    <value>&apos;Add&apos;</value>
                     <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>

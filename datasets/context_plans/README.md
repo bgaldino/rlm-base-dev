@@ -43,11 +43,14 @@ A `manifest.json` points at each plan file:
     "planFile": "contexts/approvals.json" } ] }
 ```
 
-Current plans: **Approvals**, **Billing**, **ConstraintEngineNodeStatus**, **DocGen**
-(`create: true` — a net-new custom definition), **mfg**, **PartnerAccount**,
-**PrmPricing**. Five extend `RLM_SalesTransactionContext`
-(`Approvals`, `ConstraintEngineNodeStatus`, `mfg`, `PartnerAccount`, `PrmPricing`);
-`Billing` and `DocGen` target their own definitions.
+Current plans: **Approvals**, **Billing**, **ConstraintEngineNodeStatus**,
+**ContractPricing**, **DocGen** (`create: true` — a net-new custom definition),
+**mfg**, **PartnerAccount**, **PrmPricing**. Six extend `RLM_SalesTransactionContext`
+(`Approvals`, `ConstraintEngineNodeStatus`, `ContractPricing`, `mfg`,
+`PartnerAccount`, `PrmPricing`); `Billing` and `DocGen` target their own
+definitions. `ContractPricing` is the only one applied in `prepare_core`
+(`extend_context_definitions` step 12), because the base pricing procedure
+references its tag and is first deployed right after.
 
 ## Schema, enums, limits, `__c` rule — see the skill
 

@@ -37,7 +37,8 @@ rlm-base-dev/
 │       └── patches/            # Feature-specific profile patches (billing, constraints, prm)
 ├── unpackaged/                 # Conditional metadata (deployed based on flags)
 │   ├── pre/                    # Pre-deployment metadata
-│   │   └── 5_decisiontables/   # Decision tables (structural edits to active ones: deactivate_changed_decision_tables)
+│   │   ├── 5_decisiontables/   # Decision tables (structural edits to active ones: deactivate_changed_decision_tables)
+│   │   └── 6_fields/           # Custom fields core context plans map before the first procedure deploy
 │   ├── post_approvals/         # Approvals metadata
 │   ├── post_billing/           # Billing metadata (objects, flows, settings, quickActions)
 │   ├── post_billing_email_template_settings/ # Selects the Default Invoice Email Template (prepare_billing step 12)

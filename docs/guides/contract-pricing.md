@@ -15,12 +15,13 @@ updated to what this repository deploys. Where the two differ, see
 before-save flow `RLM_Set_Pricing_Contract_On_Quote` fills it from `ContractId`,
 so in practice you set the contract on the quote and reprice.
 
-**Once a line holds a contract price, it behaves like a Sales Price the rep
-typed.** Removing the contract, or switching the quote to another contract,
-does not take that price off the line. Clear the line's Sales Price and reprice
-to re-derive it (see [Changing the contract on a priced quote](#changing-the-contract-on-a-priced-quote)).
-This is the platform's default rule, and it is also what keeps a hand-set
-Sales Price from being overwritten on the next reprice.
+**Pricing remembers the contract price it put into Sales Price.** It records it
+in `QuoteLineItem.RLM_Contract_Applied_Unit_Price__c`. While Sales Price still
+equals that value, a changed contract price, or a switch to another contract,
+replaces it on the next reprice, and on a new-sale line a removed contract
+returns it to List Price. A Sales Price the rep typed differs from the recorded
+value, so it is kept. Amendment lines are the exception when the contract goes
+away (see [Changing the contract on a priced quote](#changing-the-contract-on-a-priced-quote)).
 
 ## What a contract can carry
 
@@ -43,9 +44,13 @@ For year-by-year pricing, add one row per year with non-overlapping
 1. **Quote.** `RLM_Set_Pricing_Contract_On_Quote` sets `PricingContractId` from
    `ContractId` when it is blank, and again whenever `ContractId` changes,
    including when it is cleared. A different value set by hand is kept until
-   `ContractId` changes.
+   `ContractId` changes. When `PricingContractId` changes on an existing quote,
+   `RLM_Cascade_Pricing_Contract_To_Quote_Lines` copies it to every line in the
+   same save; if a line cannot be updated, the quote change is rolled back with
+   the reason.
 2. **Lines.** *Pass Pricing Contract ID from Quote to Quote Lines* copies the
-   quote's pricing contract to every line (`QuoteLineItem.PricingContractId`).
+   quote's pricing contract to every line (`QuoteLineItem.PricingContractId`)
+   on every pricing run.
    *Default pricing contract for amendment and renewal lines* falls back to the
    line's platform `ItemContract` when the engine supplies one. On quotes that
    tag has no field behind it, so the contract normally arrives through the
@@ -64,9 +69,14 @@ For year-by-year pricing, add one row per year with non-overlapping
    *Assigned From Pricing Contract for undated lines* instead, which matches on
    the date of the pricing run.
 4. **Sales Price.** *Set input unit price for lines with contract pricing*
-   copies the contract price into Sales Price when Sales Price is empty or
-   still equals List Price. On lines still tagged `LastTransaction`
-   (amendment and renewal lines) it always does.
+   copies the contract price into Sales Price when Sales Price is empty, still
+   equals List Price, or still equals the contract price it last applied. On
+   lines still tagged `LastTransaction` (amendment and renewal lines) it always
+   does. Each time, it records the price in
+   `RLM_Contract_Applied_Unit_Price__c`. When a new-sale line no longer has a
+   contract price but its Sales Price still equals the recorded one,
+   *Set input unit price for lines without derived pricing or last-trxn
+   pricing* returns Sales Price to List Price.
 5. **Discounts.** *Discount Assigned From Pricing Contract* applies a
    percentage or amount contract discount to Net Unit Price. It skips
    last-transaction lines, because the asset price they carry already includes
@@ -110,11 +120,19 @@ Two platform behaviors to expect:
 
 ## Changing the contract on a priced quote
 
+Each change takes effect on the next reprice.
+
 | Change | Result | To re-derive |
 |---|---|---|
+| Contract price edited on a draft contract | New contract price | Refresh the contract pricing tables first (see the [setup checklist](#setup-checklist)). The platform rejects a `Price` edit once the contract is activated |
+| Quote switched to another contract | That contract's price; on a new-sale line with no price in it, List Price | — |
+| Contract removed from a new-sale line | List Price | — |
 | Contract removed from a contract-priced amendment line | Contract price stays | Clear Sales Price and reprice: the asset price returns |
-| Quote switched to another contract | Previous contract's price stays | Clear Sales Price and reprice: the new contract's price applies |
+| Quote switched, on an amendment line the new contract has no price for | Previous contract's price stays | Clear Sales Price and reprice: the asset price returns |
 | Sales Price set by hand on a contracted line | Hand-set price stays | Clear Sales Price and reprice |
+
+Amendment lines keep the old price because their fallback is the asset's last
+price, which only the platform supplies, and only once Sales Price is cleared.
 
 On new-sale lines the place API ignores a null `UnitPrice`, so clearing it
 through the API does not trigger a new lookup. Delete and re-add the line
@@ -134,7 +152,8 @@ instead.
    the pricing-wiring skill, under
    [Runtime-created pricing rows](../../.cursor/skills/pricing-wiring/SKILL.md#runtime-created-pricing-rows).
    Refresh by hand with `scripts/decision_tables/refresh_decision_table.py`.
-   Rows added to an already-active contract need a refresh too.
+   Rows added to an activated contract, or edited on a draft one, need a
+   refresh too.
 3. **Match product, selling model and currency exactly.** A row for a product's
    Term Annual selling model does not match a Term Monthly line, and there is
    no wildcard.
@@ -172,10 +191,11 @@ source quote are not carried over as tier rows.
   line's start date, so on a multi-year quote every line's tier lookup uses
   one date. When a contract has no tiers, that lookup also resets
   `IsContracted` to false.
-- **An applied contract price does not follow a change of window.** Moving a
-  priced line's start date into another year keeps the old price, for the same
-  reason as [Changing the contract on a priced quote](#changing-the-contract-on-a-priced-quote).
-- **There is no `Order.PricingContractId` sync.**
+- **Lines contract-priced before `RLM_Contract_Applied_Unit_Price__c` existed
+  are not tracked.** On an org upgraded from an earlier build, their contract
+  price stays put when the contract changes. Clear Sales Price and reprice once.
+- **There is no `Order.PricingContractId` sync**, and applied contract prices
+  are tracked on quote lines only.
 - **Not exercised live in this repository:** amount discounts, volume tiers,
   bundle children, renewals, and amendment lines with no quantity change.
 
@@ -189,7 +209,7 @@ these differences:
 |---|---|---|
 | Lookup dated by `DerivedStartDateTime__std` | Dated by the line's `StartDate` | `DerivedStartDateTime__std` is empty until the line is saved, so first pricing of a multi-window contract failed with `DUPLICATE_VALUE_FOUND_IN_LOOKUP` |
 | Undated lines skipped | Priced on the run date | One-time services priced from the contract (the reference org's "one-time products skip contract pricing" gap) |
-| Lookup writes Sales Price directly | Sales Price set only while it is empty or still list | A hand-set Sales Price survives a reprice |
+| Lookup writes Sales Price directly | Sales Price set only while it is empty, still list, or still the contract price last applied | A hand-set Sales Price survives a reprice, while contract changes still flow through |
 | Contracted lines excluded from the list-price fallback | Kept in it | Discount-only rows have no price, and excluding them left Sales Price at 0 |
 | Flow sets `PricingContractId = ContractId` on every save, with `ISNULL` | Fills it when blank and follows `ContractId` changes, with `ISBLANK` | `ISNULL` misses a blank lookup, and a hand-set value was overwritten |
 | Last-transaction override on any contract-linked line | Only on lines that get a contract price | Contract-linked amendment lines with no contract price keep renewal revision and ramp uplift |
