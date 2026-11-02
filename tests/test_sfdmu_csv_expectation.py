@@ -1979,6 +1979,22 @@ TRAILING_SEMICOLON_EMPTY_SEGMENT = [
 # still holds for a doubled ';': the fixer and validator agree on the same (dropped) column name,
 # so a real run's second pass is a no-op, the same guarantee UNSTRIPPED_EXTERNAL_ID already pins
 # for a stray space.
+
+# The fixer writes a `$$` value the way SFDMU 5.8.0 builds the target key
+# (`MigrationJobTask._getRecordFieldValue` drops every empty part). A kept empty part (`a;;c` for a
+# blank middle field, `a;b;` for a blank last one) never matches, and an Upsert inserts a duplicate
+# (todo 298: qb-rates RateAdjustmentByTier, qb-pcm ProductRelatedComponent). Expect-finding False:
+# each case's third element lists the wrong values, so an empty list is the pass.
+_CKV = V.SFDMUValidator(base_dir=".", verbose=False)._build_composite_key_value
+COMPOSITE_VALUE_DROPS_EMPTY_PARTS = [
+    ("the fixer drops a blank middle part from a $$ value, as SFDMU does on the target",
+     False, [v for v in [_CKV({"A": "a", "B": "", "C": "c"}, ["A", "B", "C"])] if v != "a;c"]),
+    ("the fixer drops a blank last part from a $$ value",
+     False, [v for v in [_CKV({"A": "a", "B": "b", "C": ""}, ["A", "B", "C"])] if v != "a;b"]),
+    ("a field absent from the row counts as blank, not as the text 'None'",
+     False, [v for v in [_CKV({"A": "a", "B": None}, ["A", "B"])] if v != "a"]),
+]
+
 TRAILING_SEMICOLON_COMPOSITE_KEY = [
     ("a doubled ';' in externalId does not cause a false missing-composite-key-column finding "
      "when the CSV header already has the dropped-empty-segment column name",
@@ -2278,6 +2294,8 @@ def main() -> int:
                  ("a doubled ';' in externalId does not break composite-key-column convergence "
                   "between the fixer and the validator",
                   TRAILING_SEMICOLON_COMPOSITE_KEY),
+                 ("the fixer's $$ value drops empty parts, as SFDMU does on the target",
+                  COMPOSITE_VALUE_DROPS_EMPTY_PARTS),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1

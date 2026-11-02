@@ -132,6 +132,7 @@ def load():
         "pur": read(RATING, "ProductUsageResource.csv"),
         "purp": read(ENTITLEMENTS, "ProductUsageResourcePolicy.csv"),
         "rce": read(RATES, "RateCardEntry.csv"),
+        "rce_pass2": read(RATES, os.path.join("objectset_source", "object-set-2", "RateCardEntry.csv")),
         "rabt": read(RATES, "RateAdjustmentByTier.csv"),
         "currency": read(PRICING, "CurrencyType.csv"),
         "urbp": read(RATING, "UsageResourceBillingPolicy.csv"),
@@ -517,6 +518,24 @@ def check_overrides_derived_from_base(d):
           else f"all {checked} non-base override tiers match their derived value")
 
 
+def check_rce_pass2_matches_root(d):
+    """Pass 2 updates RateCardEntry from objectset_source/object-set-2, after pass 1 inserts the
+    root rows. The override must be the root CSV minus Status, row for row, or pass 2 writes its
+    stale values over a fresh build's entries before activate_rates (todo 298)."""
+    root, pass2 = d["rce"] or [], d["rce_pass2"]
+    if pass2 is None:
+        check("rce_pass2_matches_root", False, "objectset_source/object-set-2/RateCardEntry.csv is missing")
+        return
+    want = [{k: v for k, v in r.items() if k != "Status"} for r in root]
+    problems = []
+    if pass2 and "Status" in pass2[0]:
+        problems.append("the override carries Status, which pass 2 must never send")
+    if [{k: v for k, v in r.items() if k != "Status"} for r in pass2] != want:
+        problems.append(f"{len(pass2)} override rows differ from the {len(root)} root rows minus Status")
+    check("rce_pass2_matches_root", not problems, "; ".join(problems) if problems
+          else f"all {len(root)} rows match the root CSV minus Status")
+
+
 def check_period_ordering_descending(d):
     """Billing >= Rating > Accumulation, or the summary batch rejects the record.
 
@@ -645,6 +664,7 @@ def main():
                check_money_conversion_sane,
                check_rates_derived_from_base,
                check_overrides_derived_from_base,
+               check_rce_pass2_matches_root,
                check_period_ordering_descending,
                check_counts_match_readme,
                # Counts itself: the docs advertise the total including this check.

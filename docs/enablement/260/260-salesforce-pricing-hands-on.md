@@ -385,7 +385,7 @@ When authoring Design Time Configuration steps, reference QuantumBit records by 
 
 ### Price Books
 
-> Source: `datasets/sfdmu/qb/en-US/qb-pricing/Pricebook2.csv` — 1 custom price book, plus Standard.
+> Source: `datasets/sfdmu/qb/en-US/qb-pricing/Pricebook2.csv` — the Standard Price Book only.
 
 [Author: open the CSV and list the specific name + currency code here when drafting full content.]
 

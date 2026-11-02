@@ -2423,10 +2423,11 @@ class SFDMUValidator:
             fields: List of field names to concatenate
 
         Returns:
-            Composite key value with semicolon separators
+            Composite key value with semicolon separators. Empty parts are dropped, as SFDMU
+            drops them when it builds the target-side value; a kept empty part never matches.
         """
-        values = [str(row.get(field, "")) for field in fields]
-        return ";".join(values)
+        values = [str(row.get(field) or "") for field in fields]
+        return ";".join(v for v in values if v != "")
 
     def _fix_missing_composite_key(self, csv_path: Path, fields: List[str], obj_name: str) -> bool:
         """Add composite key column to a CSV file.

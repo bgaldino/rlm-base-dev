@@ -139,18 +139,23 @@ failure mode differs by operation. Check before re-running:
 | `Insert`, **no** `deleteOldData` | ⛔ **Duplicates every row.** No matching happens at all. |
 | `Insert` + `deleteOldData: true` | ⛔ Blocked when live records reference the design-time rows it must delete first |
 
-Two concrete traps in the QB plans:
+The QB pricing, rates and rating plans now reload into a built org without deleting
+anything (todo 298). They match existing rows on their externalId, and Status is never
+sent to an Active record:
 
-- **`qb-pricing` inserts `PricebookEntry` with no `deleteOldData`** — re-running the
-  **task** (`insert_quantumbit_pricing_data`) on its own duplicates every entry. The
-  **flow** is safe: `prepare_pricing_data` runs `delete_quantumbit_pricing_data`
-  first, which clears every Insert-operation object in the plan. So reach for the
-  flow, or run the delete task yourself before the insert.
-- **`qb-rates` uses `Insert` + `deleteOldData`** — which cannot clear design-time rows
-  (RateCardEntry, and `AssetRateCardEntry` referencing it) while live entitlements
-  point at them, so a reload leaves the rows and adds a duplicate Draft set.
-  **`qb-rating` + `qb-rating-entitlements` reload cleanly**: they match existing rows,
-  delete nothing and never send Status to an Active record (todo 298).
+- **`qb-pricing`**: every object is `Upsert`/`Update`/`Readonly`.
+  `prepare_pricing_data` no longer runs `delete_quantumbit_pricing_data`, which is
+  kept for a manual full teardown only.
+- **`qb-rates`**: two passes, and no `deleteOldData`.
+  - Pass 1 upserts `RateCardEntry` with `skipExistingRecords`, so a missing entry is
+    inserted as Draft (RABT must be inserted under a Draft entry).
+  - Pass 2 updates it without Status.
+  - `prepare_rating` no longer runs `delete_qb_rates_data`.
+  - The platform still locks Active rate data: an Active entry accepts only Status
+    changes, and an RABT under an Active entry can't be edited. A correction to
+    either needs a new Draft entry, or a deactivate/edit/reactivate cycle.
+- **`qb-rating` + `qb-rating-entitlements`**: same pattern (see *Reload-Safe Status
+  Objects and Child Lookups* below).
 
 **To add one product to a live org, load it surgically** — insert just the new
 records and their relationships (a throwaway script or anonymous Apex), rather than
@@ -216,6 +221,14 @@ Objects in the `objects` array must be ordered **parent → child**. SFDMU delet
 - Verify that single-field key values are unique, non-null and not made equivalent
   by the target field's numeric coercion. A convenient Name is not inherently unique.
 - `$$` composite key columns: header format `$$Field1$Parent.Field2` — values must match exactly
+- **A `$$` value drops every empty part:** `A;B;0`, not `A;B;0;` for a blank
+  `UpperBound`, and `QB-API;PCG`, not `;QB-API;;PCG`.
+  - On the target, SFDMU 5.8.0 builds the key with the empty parts filtered out
+    (`MigrationJobTask._getRecordFieldValue`).
+  - A source value that keeps one never matches, so `Upsert` inserts a duplicate on
+    every reload (todo 298: qb-rates RABT, qb-pcm `ProductRelatedComponent`).
+  - `post_process_extraction.py` (`join_composite_parts`) and the validator's
+    `--fix-composite-keys` write values this way.
 - Empty CSVs: must have `excluded: true` in export.json to prevent destructive delete
 - After extraction, run `scripts/post_process_extraction.py` to add `$$` columns (SFDMU v5 doesn't write them during extraction)
 

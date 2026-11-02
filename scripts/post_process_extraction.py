@@ -474,7 +474,18 @@ def build_composite_key_column(row_dict: dict, components: list) -> str:
     This function is retained for backward compatibility with older plan formats.
     """
     values = [resolve_component_value(row_dict, c) for c in components]
-    return ";".join(values)
+    return join_composite_parts(values)
+
+
+def join_composite_parts(values) -> str:
+    """Join composite key parts the way SFDMU builds the target-side value.
+
+    SFDMU 5.8.0 (``MigrationJobTask._getRecordFieldValue``) drops every empty part before
+    joining with ``;``, so a target record with a blank ``UpperBound`` keys as ``A;B;0``, not
+    ``A;B;0;``. A source ``$$`` value that keeps the empty part never matches, and Upsert
+    inserts a duplicate (todo 298: qb-rates RateAdjustmentByTier, qb-pcm ProductRelatedComponent).
+    """
+    return ";".join(v for v in values if v != "")
 
 
 def parse_composite_key_header(header: str) -> list:
@@ -517,7 +528,7 @@ def align_columns(extracted_headers: list, extracted_rows: list,
             if h in ext_idx:
                 # Column exists in extraction -- use the original value directly.
                 # This preserves SFDMU's composite key formatting (e.g., omitting
-                # trailing empty parts in Parent.$$Field1$Field2 values).
+                # empty parts in Parent.$$Field1$Field2 values).
                 idx = ext_idx[h]
                 aligned_row.append(row[idx] if idx < len(row) else "")
             elif h.startswith("$$"):
@@ -568,9 +579,8 @@ def normalize_na_values(rows: list, headers: list) -> list:
                 # Normalize #N/A components within composite key values
                 parts = v.split(";")
                 parts = ["" if p == na_marker else p for p in parts]
-                # Collapse to empty if all components are empty
-                joined = ";".join(parts)
-                new_row.append("" if all(p == "" for p in parts) else joined)
+                # Drop the emptied parts, as SFDMU does on the target (all empty -> "")
+                new_row.append(join_composite_parts(parts))
             else:
                 new_row.append(v)
         new_rows.append(new_row)
@@ -949,7 +959,7 @@ def _rebuild_composite_exact(header: str, ext_idx: dict, value_of) -> str:
     components = [f"{prefix}{c}" for c in parse_composite_key_header("$$" + composite)]
     if any(c not in ext_idx for c in components):
         return ""
-    return ";".join(value_of(c) for c in components)
+    return join_composite_parts(value_of(c) for c in components)
 
 
 def generate_objectset_source(extraction_dir: str, plan_dir: str, output_dir: str,

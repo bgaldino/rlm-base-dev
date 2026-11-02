@@ -160,7 +160,7 @@ in the array; deletions run child → parent.
 
 ```bash
 cci task run insert_quantumbit_pricing_data --org beta
-cci task run delete_quantumbit_pricing_data --org beta
+cci task run delete_quantumbit_pricing_data --org beta     # manual full teardown; prepare_pricing_data reloads in place
 cci task run extract_qb_pricing_data --org beta
 cci task run test_qb_pricing_idempotency --org beta
 cci flow run prepare_rlm_org --org beta

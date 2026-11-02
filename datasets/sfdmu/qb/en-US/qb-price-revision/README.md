@@ -10,7 +10,7 @@ QuantumBit data for **price revision**, including CPI (Price Index) (todo 314). 
 
 ## CCI Integration
 
-**Flow:** step 5 of `prepare_pricing_data` (when `qb=true`), task `insert_qb_price_revision_data`.
+**Flow:** step 4 of `prepare_pricing_data` (when `qb=true`), task `insert_qb_price_revision_data`.
 `refresh_all_decision_tables` later rebuilds `Index_Rate_Decision_Table` (it's in both the
 default-pricing and the rating refresh lists). After loading outside a full build, run:
 

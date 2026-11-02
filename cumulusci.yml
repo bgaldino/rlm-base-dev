@@ -2740,15 +2740,23 @@ tasks:
   delete_quantumbit_pricing_data:
     group: Data Maintenance
     description: >
-      Delete all Insert-operation records from the qb-pricing plan (CostBookEntry,
-      PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment,
-      AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier)
-      in reverse plan order (children first). Shape-agnostic: clears all records of
-      each type regardless of which data shape populated them. Run before
-      insert_quantumbit_pricing_data when layering multiple pricing shapes.
+      Manual full teardown only: delete every CostBookEntry, PricebookEntryDerivedPrice,
+      PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment,
+      AttributeAdjustmentCondition and PriceAdjustmentTier record in the org, in reverse
+      plan order (children first). prepare_pricing_data reloads qb-pricing in place
+      (Upsert) and no longer runs it. On a built org the platform blocks some of these
+      deletes (AttributeAdjustmentCondition, entries referenced by quotes).
     class_path: tasks.rlm_sfdmu.DeleteSFDMUData
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
+      sobjects:
+        - PriceAdjustmentTier
+        - AttributeAdjustmentCondition
+        - AttributeBasedAdjustment
+        - BundleBasedAdjustment
+        - PricebookEntry
+        - PricebookEntryDerivedPrice
+        - CostBookEntry
 
   delete_q3_pricing_data:
     group: Data Maintenance
@@ -2756,9 +2764,9 @@ tasks:
       Delete all Insert-operation records from the q3-pricing plan (CostBookEntry,
       PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment,
       AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier)
-      in reverse plan order (children first). Shape-agnostic, mirrors
-      delete_quantumbit_pricing_data. Run before insert_q3_pricing_data so q3
-      pricing loads (plain Insert, no deleteOldData) are safe to rerun.
+      in reverse plan order (children first). Shape-agnostic. Run before
+      insert_q3_pricing_data so q3 pricing loads (plain Insert, no deleteOldData)
+      are safe to rerun.
     class_path: tasks.rlm_sfdmu.DeleteSFDMUData
     options:
       pathtoexportjson: *q3_pricing_dataset
@@ -2778,7 +2786,7 @@ tasks:
 
   delete_qb_rates_data:
     group: Data Maintenance
-    description: Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running insert_qb_rates_data or test_qb_rates_idempotency to clear duplicates.
+    description: Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order, deactivating Active entries first. Manual full teardown only; prepare_rating reloads qb-rates in place and no longer runs it.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/deleteQbRatesData.apex
@@ -3880,18 +3888,15 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: delete_quantumbit_pricing_data
-        when: project_config.project__custom__qb
-      2:
         task: insert_quantumbit_pricing_data
         when: project_config.project__custom__qb
-      3:
+      2:
         task: delete_q3_pricing_data
         when: project_config.project__custom__q3 and not project_config.project__custom__qb
-      4:
+      3:
         task: insert_q3_pricing_data
         when: project_config.project__custom__q3 and not project_config.project__custom__qb
-      5:
+      4:
         # CPI data for the Price Revision steps; refresh_all_decision_tables rebuilds
         # Index_Rate_Decision_Table later in prepare_rlm_org (todo 314).
         task: insert_qb_price_revision_data
@@ -4398,34 +4403,31 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: delete_qb_rates_data
-        when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__qb and not project_config.project__custom__refresh
-      2:
         task: insert_qb_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
-      3:
-        # Policies and grants on the PURs step 2 loaded; resolves PUR Ids on the target org (todo 298).
+      2:
+        # Policies and grants on the PURs step 1 loaded; resolves PUR Ids on the target org (todo 298).
         task: insert_qb_rating_entitlements_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
-      4:
+      3:
         task: delete_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
-      5:
+      4:
         task: delete_q3_rating_data
         when: project_config.project__custom__rating and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
-      6:
+      5:
         task: insert_q3_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
-      7:
+      6:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      8:
+      7:
         task: insert_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
-      9:
+      8:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      10:
+      9:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
 

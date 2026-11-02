@@ -25,7 +25,7 @@
 
 ### `delete_q3_pricing_data`
 
-**Description:** Delete all Insert-operation records from the q3-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic, mirrors delete_quantumbit_pricing_data. Run before insert_q3_pricing_data so q3 pricing loads (plain Insert, no deleteOldData) are safe to rerun.
+**Description:** Delete all Insert-operation records from the q3-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic. Run before insert_q3_pricing_data so q3 pricing loads (plain Insert, no deleteOldData) are safe to rerun.
 
 **Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
 
@@ -61,7 +61,7 @@
 
 ### `delete_qb_rates_data`
 
-**Description:** Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running insert_qb_rates_data or test_qb_rates_idempotency to clear duplicates.
+**Description:** Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order, deactivating Active entries first. Manual full teardown only; prepare_rating reloads qb-rates in place and no longer runs it.
 
 **Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
 
@@ -85,13 +85,14 @@
 
 ### `delete_quantumbit_pricing_data`
 
-**Description:** Delete all Insert-operation records from the qb-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic: clears all records of each type regardless of which data shape populated them. Run before insert_quantumbit_pricing_data when layering multiple pricing shapes.
+**Description:** Manual full teardown only: delete every CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition and PriceAdjustmentTier record in the org, in reverse plan order (children first). prepare_pricing_data reloads qb-pricing in place (Upsert) and no longer runs it. On a built org the platform blocks some of these deletes (AttributeAdjustmentCondition, entries referenced by quotes).
 
 **Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-pricing`
+- `sobjects`: `['PriceAdjustmentTier', 'AttributeAdjustmentCondition', 'AttributeBasedAdjustment', 'BundleBasedAdjustment', 'Pricebo...`
 
 ---
 
