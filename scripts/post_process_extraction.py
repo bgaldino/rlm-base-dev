@@ -947,7 +947,7 @@ def _rebuild_composite_exact(header: str, ext_idx: dict, value_of) -> str:
         return ""
     prefix, _, composite = header.partition("$$")
     components = [f"{prefix}{c}" for c in parse_composite_key_header("$$" + composite)]
-    if not components or any(c not in ext_idx for c in components):
+    if any(c not in ext_idx for c in components):
         return ""
     return ";".join(value_of(c) for c in components)
 
@@ -1011,7 +1011,8 @@ def generate_objectset_source(extraction_dir: str, plan_dir: str, output_dir: st
             ext_idx = {h: i for i, h in enumerate(ext_headers)}
             source_rows = []
             for row in ext_rows:
-                value_of = lambda h: row[ext_idx[h]] if ext_idx[h] < len(row) else ""
+                def value_of(h, row=row):
+                    return row[ext_idx[h]] if ext_idx[h] < len(row) else ""
                 source_row = []
                 for h in source_headers:
                     if h in ext_idx:

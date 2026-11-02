@@ -310,8 +310,28 @@ def test_pass2_override_rebuilds_composite_keys(m):
         row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
         check("pass-2 override: no components -> blank, never the row's own Name repeated",
               row[0] == "", repr(row))
-        check("pass-2 override: a plain lookup column absent from any root template is kept",
+        check("pass-2 override: plain columns copied as extracted",
               row[1:] == ["Treatment T", "Policy P"], repr(row))
+        # The real qb-billing three-component nested reference, all components extracted.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "BillingTreatment.$$Name$BillingPolicy.Name$LegalEntity.Name\n")
+        (ext / "Child.csv").write_text(
+            "BillingTreatment.Name,BillingTreatment.BillingPolicy.Name,BillingTreatment.LegalEntity.Name\n"
+            "BT USA,Billing Policy - Advance,Default Legal Entity - US\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        line = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1]
+        check("pass-2 override: three-component nested reference rebuilt",
+              line == "BT USA;Billing Policy - Advance;Default Legal Entity - US", repr(line))
+        # A code blanked by extraction is restored from the org code map before the key is built.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$UsageResource.Code\n")
+        (ext / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,UsageResource.Name\nQB-DB,#N/A,CPU Time\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False,
+                                    code_map={"Child": {"UsageResource.Code": {"CPU Time": "UR-CPU"}}})
+        line = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1]
+        check("pass-2 override: code backfilled from the org map before the key is built",
+              line == "QB-DB;UR-CPU", repr(line))
 
 
 def test_excluded_uses_js_truthiness(m):
