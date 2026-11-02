@@ -660,6 +660,7 @@ project:
     quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb/en-US/qb-dro"                                 # QuantumBit DRO data (dynamic AssignedTo from target org)
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-US/qb-tax"                                 # QuantumBit tax data
     quantumbit_rating_dataset: &quantumbit_rating_dataset "datasets/sfdmu/qb/en-US/qb-rating"                    # QuantumBit rating data
+    quantumbit_rating_entitlements_dataset: &quantumbit_rating_entitlements_dataset "datasets/sfdmu/qb/en-US/qb-rating-entitlements"  # QuantumBit usage policies + grants per product usage resource
     quantumbit_rates_dataset: &quantumbit_rates_dataset "datasets/sfdmu/qb/en-US/qb-rates"                           # QuantumBit rates data
     quantumbit_constraints_product_dataset: &quantumbit_constraints_product_dataset "datasets/sfdmu/qb/en-US/qb-constraints-product"   # DEPRECATED - replaced by CML import
     quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # DEPRECATED - replaced by CML import
@@ -2281,10 +2282,17 @@ tasks:
 
   insert_qb_rating_data:
     group: Revenue Lifecycle Management
-    description: Insert QuantumBit Rating Data
+    description: Insert QuantumBit Rating Data (usage definitions and product usage resources; run insert_qb_rating_entitlements_data next)
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_rating_dataset
+
+  insert_qb_rating_entitlements_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit usage policies and grants on each product usage resource (run after insert_qb_rating_data; resolves resource Ids on the target org)
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_rating_entitlements_dataset
 
   
   insert_q3_rating_data:
@@ -2777,7 +2785,7 @@ tasks:
 
   delete_qb_rating_data:
     group: Data Maintenance
-    description: Delete all qb-rating data (PUG, PURP, PUR, RatingFrequencyPolicy, UsageGrantRolloverPolicy, etc.) in dependency order. Use before re-running insert_qb_rating_data to clear duplicates.
+    description: Delete all qb-rating data (PUG, PURP, PUR, RatingFrequencyPolicy, UsageGrantRolloverPolicy, etc.) in dependency order. Manual full teardown only; prepare_rating reloads in place and no longer runs it.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/deleteQbRatingData.apex
@@ -2878,6 +2886,13 @@ tasks:
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *quantumbit_rating_dataset
+
+  extract_qb_rating_entitlements_data:
+    group: Data Management - Extract
+    description: "Extract qb-rating-entitlements (usage policies and grants) from org to CSV. Output in datasets/sfdmu/extractions/qb-rating-entitlements/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_rating_entitlements_dataset
 
   extract_qb_rates_data:
     group: Data Management - Extract
@@ -3052,6 +3067,15 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_rating_dataset
+      use_extraction_roundtrip: true
+      persist_extraction_output: true
+
+  test_qb_rating_entitlements_idempotency:
+    group: Data Management - Idempotency
+    description: "Idempotency test for qb-rating-entitlements (needs qb-rating loaded). Uses extraction roundtrip (extract -> post-process -> load from processed dir); each load resolves resource Ids on the org first. Persists extraction output to datasets/sfdmu/extractions/qb-rating-entitlements/<timestamp>."
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_rating_entitlements_dataset
       use_extraction_roundtrip: true
       persist_extraction_output: true
 
@@ -4374,10 +4398,11 @@ flows:
         task: delete_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__qb and not project_config.project__custom__refresh
       2:
-        task: delete_qb_rating_data
-        when: project_config.project__custom__rating and project_config.project__custom__qb and not project_config.project__custom__refresh
-      3:
         task: insert_qb_rating_data
+        when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
+      3:
+        # Policies and grants on the PURs step 2 loaded; resolves PUR Ids on the target org (todo 298).
+        task: insert_qb_rating_entitlements_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
       4:
         task: delete_q3_rates_data
@@ -4408,6 +4433,8 @@ flows:
       1:
         task: extract_qb_rating_data
       2:
+        task: extract_qb_rating_entitlements_data
+      3:
         task: extract_qb_rates_data
   
   prepare_agents:
@@ -4985,10 +5012,12 @@ flows:
       6:
         task: extract_qb_rating_data
       7:
-        task: extract_qb_rates_data
+        task: extract_qb_rating_entitlements_data
       8:
-        task: extract_qb_transactionprocessingtypes_data
+        task: extract_qb_rates_data
       9:
+        task: extract_qb_transactionprocessingtypes_data
+      10:
         task: extract_qb_guidedselling_products_data
 
   run_qb_idempotency_tests:
@@ -5008,31 +5037,33 @@ flows:
       6:
         task: test_qb_rating_idempotency
       7:
-        task: test_qb_rates_idempotency
+        task: test_qb_rating_entitlements_idempotency
       8:
-        task: test_qb_transactionprocessingtypes_idempotency
+        task: test_qb_rates_idempotency
       9:
+        task: test_qb_transactionprocessingtypes_idempotency
+      10:
         task: test_qb_guidedselling_products_idempotency
-      # Steps 10-14: feature-gated module idempotency tests, ordered to match the module
+      # Steps 11-15: feature-gated module idempotency tests, ordered to match the module
       # load order in prepare_rlm_org so cross-plan dependencies resolve on an org that does
       # not already have the data. Notably TAX before BILLING: qb-billing references
       # LegalEntity.Name with LegalEntity as Readonly, and those LegalEntity rows are created
       # by qb-tax (LegalEntity = Upsert). prm also precedes prm_pricing (the pricing overlay).
       # Each is guarded by the same feature flags as its data-load task, so the flow stays
       # runnable on a base org where the module's data was never loaded.
-      10:
+      11:
         task: test_qb_tax_idempotency
         when: project_config.project__custom__tax and project_config.project__custom__qb
-      11:
+      12:
         task: test_qb_billing_idempotency
         when: project_config.project__custom__billing and project_config.project__custom__qb
-      12:
+      13:
         task: test_qb_prm_idempotency
         when: project_config.project__custom__prm and project_config.project__custom__qb
-      13:
+      14:
         task: test_qb_approvals_idempotency
         when: project_config.project__custom__qb and project_config.project__custom__approvals
-      14:
+      15:
         task: test_qb_prm_pricing_idempotency
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
 

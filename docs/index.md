@@ -68,6 +68,7 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-dro README](../datasets/sfdmu/qb/en-US/qb-dro/README.md) -- Dynamic Revenue Orchestration
 - [qb-transactionprocessingtypes README](../datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) -- Transaction Processing Types
 - [qb-rating README](../datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
+- [qb-rating-entitlements README](../datasets/sfdmu/qb/en-US/qb-rating-entitlements/README.md) -- Rating policies and grants
 - [qb-rates README](../datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
 - [qb-prm README](../datasets/sfdmu/qb/en-US/qb-prm/README.md) -- Partner Relationship Management
 - [qb-prm-pricing README](../datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) -- PRM Pricing Overlay

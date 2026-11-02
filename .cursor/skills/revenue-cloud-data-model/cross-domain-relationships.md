@@ -165,7 +165,8 @@ scratch_data (Account, Contact)
         ├→ qb-billing (BillingPolicy, treatments, PaymentTerm, LegalEntity)
         │   └→ qb-accounting (GL accounts and rules)
         ├→ qb-tax (TaxPolicy, TaxTreatment, TaxEngine)
-        ├→ qb-rating (UsageResource, PUR, PURP, PUG)
+        ├→ qb-rating (UsageResource, PUR, usage policies)
+        │   └→ qb-rating-entitlements (PURP, PUG) — MUST follow qb-rating
         │   └→ qb-rates (RateCard, RateCardEntry, RABT) — MUST follow qb-rating
         ├→ qb-dro (fulfillment step definitions, decomp rules)
         ├→ qb-clm (contract lifecycle objects)

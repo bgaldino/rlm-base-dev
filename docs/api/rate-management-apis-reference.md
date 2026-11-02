@@ -53,10 +53,12 @@ Rate Management in Revenue Cloud operates across three tiers:
 
 These APIs require usage-based billing to be configured in the org. Before using Rate Management APIs:
 
-1. Load rate card data using `insert_qb_rates_data` (or equivalent CCI task)
-2. Load rating data using `insert_qb_rating_data`
+1. Load rating data using `insert_qb_rating_data`, then `insert_qb_rating_entitlements_data` (policies and grants)
+2. Load rate card data using `insert_qb_rates_data` (or equivalent CCI task)
 3. Activate rating records via `activate_rating_records` (runs `activateRatingRecords.apex`)
 4. Ensure `rates` and `rating` feature flags are enabled in `cumulusci.yml`
+
+`cci flow run prepare_rating` runs steps 1-3 in order.
 
 **Deletion order:** Always run `delete_qb_rates_data` before `delete_qb_rating_data` — rate card entries have foreign key relationships to PURs.
 
@@ -67,7 +69,8 @@ These APIs require usage-based billing to be configured in the org. Before using
 | Plan | CCI Task | Description |
 |------|----------|-------------|
 | `qb-rates` | `insert_qb_rates_data` | Rate cards, rate card entries, adjustment tiers |
-| `qb-rating` | `insert_qb_rating_data` | Platform Usage Resources (PURs), PURPs, PUGs |
+| `qb-rating` | `insert_qb_rating_data` | Usage definitions and product usage resources (PURs) |
+| `qb-rating-entitlements` | `insert_qb_rating_entitlements_data` | Policies (PURPs) and grants (PUGs) on each PUR |
 
 ---
 

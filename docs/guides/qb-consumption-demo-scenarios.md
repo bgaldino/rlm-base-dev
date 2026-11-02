@@ -167,7 +167,7 @@ A pack **cannot be sold standalone** — activation fails with "the usage produc
 missing a binding instance". The pack's grant is consumed **before** the anchor's,
 so recorded usage up to the grant size produces no overage at all.
 
-Shipped grant sizes (`qb-rating/ProductUsageGrant.csv`): `QB-TOKENS-PACK` = **5,000
+Shipped grant sizes (`qb-rating-entitlements/ProductUsageGrant.csv`): `QB-TOKENS-PACK` = **5,000
 tokens**, `QB-DAT-THPT` = **100 GB**.
 
 > ⚠ **Re-verify this scenario's numbers before demoing.** The drawdown figure

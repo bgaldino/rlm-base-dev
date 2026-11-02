@@ -930,7 +930,7 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
     # Handle objectset_source for multi-pass plans
     if not diff_only:
         generate_objectset_source(extraction_dir, plan_dir, output_dir, all_passes,
-                                  verbose, reference_plan_dir)
+                                  verbose, reference_plan_dir, code_map)
         # Place the processed extraction into the plan dir as its tracked CSV set
         # (processed plan objects + cleaned incidental + header-only placeholders).
         if copy_to_plan:
@@ -940,9 +940,21 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
     print_diff_summary(diff_report)
 
 
+def _rebuild_composite_exact(header: str, ext_idx: dict, value_of) -> str:
+    """A `$$A$B` (or nested `Parent.$$A$B`) column's value, built only when every component
+    column is present verbatim; "" otherwise. No suffix fallback (see generate_objectset_source)."""
+    if "$$" not in header:
+        return ""
+    prefix, _, composite = header.partition("$$")
+    components = [f"{prefix}{c}" for c in parse_composite_key_header("$$" + composite)]
+    if any(c not in ext_idx for c in components):
+        return ""
+    return ";".join(value_of(c) for c in components)
+
+
 def generate_objectset_source(extraction_dir: str, plan_dir: str, output_dir: str,
                                 all_passes: dict, verbose: bool,
-                                reference_plan_dir: str = None) -> None:
+                                reference_plan_dir: str = None, code_map: dict = None) -> None:
     """Generate objectset_source CSVs for Pass 2+ objects.
 
     For objects that appear in multiple passes, create stripped-down CSVs
@@ -986,18 +998,29 @@ def generate_objectset_source(extraction_dir: str, plan_dir: str, output_dir: st
             if ext_headers is None:
                 continue
 
-            # Build rows with only the columns needed for this pass
+            # Build this pass's rows from the RAW extraction, deliberately NOT from the
+            # processed root: the root's status rewrite (Active -> Draft) would undo what a
+            # pass-N override exists for (qb-billing / qb-tax set Status=Active in pass 2/3).
+            # A plain column pick leaves composite-key columns blank, because the extraction
+            # never writes them, and copy_to_plan then wrote the blanks into the tracked
+            # override (#659 review). So composite columns are rebuilt, but only from EXACT
+            # component columns, all or nothing: align_columns' suffix fallback would resolve
+            # e.g. `BillingTreatment.BillingPolicy.Name` to the row's own `Name` and write a
+            # plausible-looking wrong key. #N/A is normalised as in the root.
+            ext_rows = backfill_relationship_codes(ext_headers, ext_rows, obj_name, code_map, verbose)
             ext_idx = {h: i for i, h in enumerate(ext_headers)}
             source_rows = []
             for row in ext_rows:
+                def value_of(h, row=row):
+                    return row[ext_idx[h]] if ext_idx[h] < len(row) else ""
                 source_row = []
                 for h in source_headers:
                     if h in ext_idx:
-                        idx = ext_idx[h]
-                        source_row.append(row[idx] if idx < len(row) else "")
+                        source_row.append(value_of(h))
                     else:
-                        source_row.append("")
+                        source_row.append(_rebuild_composite_exact(h, ext_idx, value_of))
                 source_rows.append(source_row)
+            source_rows = normalize_na_values(source_rows, source_headers)
 
             # Write to output objectset_source
             out_dir = os.path.join(output_dir, "objectset_source", set_name)
