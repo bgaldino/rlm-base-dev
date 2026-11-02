@@ -503,11 +503,11 @@ cci task run extract_qb_rating_entitlements_data
 # Or use the extract_rating flow to extract rating, rating entitlements and rates
 cci flow run extract_rating
 
-# Or run all QB extract tasks (includes rating)
+# Or run all QB extract tasks (includes rating and rating entitlements)
 cci flow run run_qb_extracts
 ```
 
-To run the idempotency test for this plan: `cci task run test_qb_rating_idempotency --org <org>`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups. The rating idempotency test uses **extraction roundtrip** — loads from source CSVs, extracts from the org, post-processes, and re-imports — and all counts stay flat on a built org (live-verified 2026-10-30). See [Idempotency](#idempotency) for prerequisites.
+To run the idempotency test for this plan: `cci task run test_qb_rating_idempotency --org <org>`. To run all QB idempotency tests (rating entitlements included): `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups. The rating idempotency test uses **extraction roundtrip** — loads from source CSVs, extracts from the org, post-processes, and re-imports — and all counts stay flat on a built org (live-verified 2026-10-30). See [Idempotency](#idempotency) for prerequisites.
 
 ### Extraction via SFDMU Directly
 
@@ -578,6 +578,7 @@ cci task run delete_qb_rating_data
 
 # 4. Run idempotency tests
 cci task run test_qb_rating_idempotency
+cci task run test_qb_rating_entitlements_idempotency
 cci task run test_qb_rates_idempotency
 ```
 
