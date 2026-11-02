@@ -9,9 +9,9 @@ which creates the usage definitions, the policy records these point at, and the 
 
 | Flow | Step | Task |
 |------|------|------|
-| `prepare_rating` | 3 | `insert_qb_rating_data` (qb-rating: definitions and PURs) |
-| `prepare_rating` | **4** | **`insert_qb_rating_entitlements_data`** (this plan) |
-| `prepare_rating` | 10 | `activate_rating_records` (activates the PURs and grants) |
+| `prepare_rating` | 2 | `insert_qb_rating_data` (qb-rating: definitions and PURs) |
+| `prepare_rating` | **3** | **`insert_qb_rating_entitlements_data`** (this plan) |
+| `prepare_rating` | 9 | `activate_rating_records` (activates the PURs and grants) |
 | `extract_rating` | 2 | `extract_qb_rating_entitlements_data` |
 
 `test_qb_rating_entitlements_idempotency` runs the extraction round-trip against an org that

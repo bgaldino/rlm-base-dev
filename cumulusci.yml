@@ -4398,34 +4398,31 @@ flows:
         task: delete_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__qb and not project_config.project__custom__refresh
       2:
-        task: delete_qb_rating_data
-        when: project_config.project__custom__rating and project_config.project__custom__qb and not project_config.project__custom__refresh
-      3:
         task: insert_qb_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
-      4:
-        # Policies and grants on the PURs step 3 loaded; resolves PUR Ids on the target org (todo 298).
+      3:
+        # Policies and grants on the PURs step 2 loaded; resolves PUR Ids on the target org (todo 298).
         task: insert_qb_rating_entitlements_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
-      5:
+      4:
         task: delete_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
-      6:
+      5:
         task: delete_q3_rating_data
         when: project_config.project__custom__rating and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
-      7:
+      6:
         task: insert_q3_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
-      8:
+      7:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      9:
+      8:
         task: insert_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
-      10:
+      9:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      11:
+      10:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
 

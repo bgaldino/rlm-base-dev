@@ -500,7 +500,8 @@ re-inserts, or copies made by hand; the qb plans match existing PURs).
 
 **Fix:**
 1. Delete rates data first: `cci task run delete_qb_rates_data --org beta`
-2. Delete rating data: `cci task run delete_qb_rating_data --org beta`
+2. Delete rating data: `cci task run delete_qb_rating_data --org beta` (manual teardown;
+   `prepare_rating` no longer runs it)
 3. Re-load: `cci flow run prepare_rating --org beta` (or run `insert_qb_rating_data`,
    `insert_qb_rating_entitlements_data`, `insert_qb_rates_data`, then
    `activate_rating_records` and `activate_rates`)
