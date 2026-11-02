@@ -307,6 +307,79 @@ finally:
     rs.subprocess.run, rs.sf_query_records, rs.run_post_process_script = saved
     shutil.rmtree(base, ignore_errors=True)
 
+print("TestSFDMUIdempotency: a listed insert rejection on both loads")
+# qb-pcm's ProrationPolicy insert duplicates the platform default on every load, so it is rejected
+# on the first load and again on the second. #636 made every second-load insert rejection fatal,
+# which failed test_qb_pcm_idempotency on every org. A listed rejection the same target file already
+# had on the first load is not a missed match; a new one, a larger one, one in another pass's file,
+# or one whose error text isn't the listed one still fails.
+idem_root = pathlib.Path(tempfile.mkdtemp())
+idem_dir = idem_root / "plan"
+idem_dir.mkdir()
+(idem_dir / "export.json").write_text(json.dumps({"objects": []}))
+LISTED = "duplicate value found: Name duplicates value on record with id: x"
+
+
+def fake_load(rejections, stamp):
+    """Write `<path>: (count, error)` target files with an explicit mtime, so the second load's
+    files always differ from the first load's baseline, whatever the filesystem's resolution."""
+    def run(*_a, **_k):
+        for rel, (n, error) in rejections.items():
+            path = idem_dir / "target" / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("Name,Errors\n" + "".join(f"r{i},{error}\n" for i in range(n)))
+            os.utime(path, (stamp, stamp))
+        return type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+    return run
+
+
+def idem_task():
+    t = rs.TestSFDMUIdempotency.__new__(rs.TestSFDMUIdempotency)
+    t.options = {}
+    t.org_config = scratch
+    t.accesstoken, t.instanceurl = "00Dxx!TOKEN", "https://x.my.salesforce.com"
+    t.logger = type("L", (), {"info": lambda *_a, **_k: None, "warning": lambda *_a, **_k: None,
+                              "error": lambda *_a, **_k: None})()
+    t._row_error_ignores = rs._parse_row_error_ignores(
+        {"ProrationPolicy": "duplicate value found", "Widget": "duplicate value found"})
+    return t
+
+
+def two_loads(first, second):
+    """'passed', or which load failed and on which objects."""
+    task = idem_task()
+    saved_run = rs.subprocess.run
+    shutil.rmtree(idem_dir / "target", ignore_errors=True)
+    try:
+        for load, (rejections, strict) in enumerate(((first, False), (second, True)), 1):
+            rs.subprocess.run = fake_load(rejections, 1_000_000 + 100 * load)
+            try:
+                task._run_load_in(str(idem_dir), strict=strict)
+            except rs.CommandException as exc:
+                return f"load {load} failed: " + ", ".join(
+                    o for o in ("ProrationPolicy", "Widget") if o in str(exc))
+        return "passed"
+    finally:
+        rs.subprocess.run = saved_run
+
+
+PP, PP2 = "ProrationPolicy_insert_target.csv", "object-set-2/ProrationPolicy_insert_target.csv"
+check("listed, rejected on both loads: passes",
+      two_loads({PP: (1, LISTED)}, {PP: (1, LISTED)}), "passed")
+check("listed, but only rejected on the second load: fails (a missed match)",
+      two_loads({}, {PP: (1, LISTED)}), "load 2 failed: ProrationPolicy")
+check("listed, more rejections on the second load than the first: fails",
+      two_loads({PP: (1, LISTED)}, {PP: (2, LISTED)}), "load 2 failed: ProrationPolicy")
+check("listed, but the second load's error text isn't the listed one: fails",
+      two_loads({"Widget_insert_target.csv": (1, LISTED)},
+                {"Widget_insert_target.csv": (1, "The child product exists in the group")}),
+      "load 2 failed: Widget")
+check("two passes: the first load's pass-2 rejections don't excuse new ones in pass 1",
+      two_loads({PP2: (5, LISTED)}, {PP: (3, LISTED), PP2: (5, LISTED)}), "load 2 failed: ProrationPolicy")
+check("two passes: each pass's own repeated rejections pass",
+      two_loads({PP: (5, LISTED), PP2: (1, LISTED)}, {PP: (5, LISTED), PP2: (1, LISTED)}), "passed")
+shutil.rmtree(idem_root, ignore_errors=True)
+
 print("=" * 60)
 if _failures:
     print(f"FAIL: {len(_failures)} check(s) failed")
