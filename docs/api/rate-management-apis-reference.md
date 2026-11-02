@@ -58,9 +58,9 @@ These APIs require usage-based billing to be configured in the org. Before using
 3. Activate rating records via `activate_rating_records` (runs `activateRatingRecords.apex`)
 4. Ensure `rates` and `rating` feature flags are enabled in `cumulusci.yml`
 
-`cci flow run prepare_rating` runs steps 1-3 in order.
+`cci flow run prepare_rating` runs steps 1-3 in order, plus `activate_rates`, and reloads a built org in place without deleting.
 
-**Deletion order:** Always run `delete_qb_rates_data` before `delete_qb_rating_data` — rate card entries have foreign key relationships to PURs.
+**Deletion order** (manual full teardown only): always run `delete_qb_rates_data` before `delete_qb_rating_data` — rate card entries have foreign key relationships to PURs.
 
 ---
 

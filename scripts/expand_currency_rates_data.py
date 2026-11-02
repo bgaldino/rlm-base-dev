@@ -52,6 +52,9 @@ DEFAULT_CURRENCIES = "GBP,EUR,AUD,CAD,CHF,JPY"
 
 RCE_FILE = "RateCardEntry.csv"
 RABT_FILE = "RateAdjustmentByTier.csv"
+# Pass 2 updates RateCardEntry from this override, which is the root CSV without Status. It
+# runs after pass 1, so a stale copy would overwrite the rates pass 1 just inserted (todo 298).
+RCE_PASS2_FILE = os.path.join("objectset_source", "object-set-2", RCE_FILE)
 
 
 def load_currency_table(pricing_plan):
@@ -157,6 +160,10 @@ def expand_rate_card_entries(plan, base, targets, rates, decimals, regenerate):
     rows.extend(added)
     rows.sort(key=lambda r: r[key_col])
     write_csv(path, fields, rows)
+    pass2 = os.path.join(plan, RCE_PASS2_FILE)
+    if os.path.isfile(pass2):
+        write_csv(pass2, [f for f in fields if f != "Status"],
+                  [{k: v for k, v in r.items() if k != "Status"} for r in rows])
     return len(base_rows), added, len(rows)
 
 

@@ -15,6 +15,7 @@ alwaysApply: false
 ## Composite Key Columns (`$$`)
 - Header format: `$$Field1$Parent.Field2` — values concatenate the referenced fields
 - `$$` columns must exactly match the `externalId` fields in the corresponding export.json
+- Drop every empty part from a `$$` value (`A;B;0`, not `A;B;0;`): SFDMU 5.8.0 drops them on the target, so a kept empty part never matches and Upsert duplicates the row
 - SFDMU v5 does NOT write `$$` columns during extraction — run `scripts/post_process_extraction.py` to add them
 
 ## Header Alignment

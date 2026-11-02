@@ -673,6 +673,11 @@ class DeleteSFDMUData(BaseSalesforceTask):
     Intended as the cleanup step before running LoadSFDMUData on a plan that
     uses operation=Insert (without deleteOldData) to support layered data
     shapes: run DeleteSFDMUData once, then run each layered plan in sequence.
+
+    A plan that matches on externalId (Upsert) has no Insert objects to select, so a
+    teardown of one names its object types in ``sobjects`` instead. Each must be a type
+    the plan writes (declared, not excluded, Insert or Upsert); a Readonly or Update-only
+    type such as Product2 is refused. They are still deleted in reverse plan order.
     """
 
     keychain_class = BaseProjectKeychain
@@ -693,6 +698,15 @@ class DeleteSFDMUData(BaseSalesforceTask):
             "description": (
                 "Optional list of 0-based object set indices to include "
                 "(e.g. [0] for the first objectSet only). Omit to process all objectSets."
+            ),
+            "required": False,
+        },
+        "sobjects": {
+            "description": (
+                "Optional list of object types to delete instead of the plan's Insert-operation "
+                "objects, for a plan that matches on externalId. Each must be one the plan "
+                "inserts or upserts (not excluded, not only Readonly/Update); deleted in "
+                "reverse plan order."
             ),
             "required": False,
         },
@@ -755,9 +769,22 @@ class DeleteSFDMUData(BaseSalesforceTask):
 
         object_sets = sfdmu_export.normalize_object_sets(plan)
 
-        # Collect Insert-operation objects in plan array order.
-        # Duplicates are preserved so that the deletion order mirrors the plan exactly.
+        named_set = None
+        if self.options.get("sobjects") is not None:
+            named = self.options["sobjects"]
+            if isinstance(named, str):
+                named = named.split(",")
+            named_set = {str(n).strip() for n in named} - {""}
+            # Given but empty must fail: falling back to Insert mode would delete a different
+            # set of types than the caller named (all of them, on a still-Insert plan).
+            if not named_set:
+                raise TaskOptionsError("sobjects is empty; name at least one object type")
+
+        # Collect Insert-operation objects (or the named ones) in plan array order.
+        # Insert mode keeps duplicates so the deletion order mirrors the plan exactly;
+        # named mode deletes each type once.
         insert_sobjects: List[str] = []
+        declared: set = set()
         for obj_set in object_sets:
             for obj in obj_set.get("objects", []):
                 # JS truthiness (see _sobjects_from_export_json): `excluded: []`/`{}`
@@ -765,17 +792,39 @@ class DeleteSFDMUData(BaseSalesforceTask):
                 # cleanup must not delete its records — Python's plain `if` would.
                 if sfdmu_export.is_js_truthy(obj.get("excluded")):
                     continue
+                # Shared subquery-aware parser (see _sobjects_from_export_json): a SELECT-clause
+                # subquery's inner FROM is not mistaken for the outer object, non-string safe.
+                name = sfdmu_export.extract_object_name(obj.get("query", ""))
+                if not name:
+                    continue
+                if named_set is not None:
+                    # Only a type the plan writes rows of: a Readonly/Update declaration
+                    # (Product2, ProrationPolicy) doesn't make the plan its owner, and this
+                    # deletes every record of the type org-wide.
+                    if sfdmu_export.resolve_operation(obj.get("operation")) not in ("insert", "upsert"):
+                        continue
+                    # Once per type: a type declared in two passes is still one delete.
+                    if name in named_set and name not in declared:
+                        insert_sobjects.append(name)
+                    declared.add(name)
+                    continue
                 # `operation` may be a numeric enum index (SFDMU's ScriptLoader accepts
                 # `0`=Insert), which the shared resolver maps to a canonical lowercase
                 # name — a plain `.lower()` would raise AttributeError on an int, and a
                 # numeric `0` Insert would be missed by a string compare.
                 if sfdmu_export.resolve_operation(obj.get("operation")) != "insert":
                     continue
-                # Shared subquery-aware parser (see _sobjects_from_export_json): a SELECT-clause
-                # subquery's inner FROM is not mistaken for the outer object, non-string safe.
-                name = sfdmu_export.extract_object_name(obj.get("query", ""))
-                if name:
-                    insert_sobjects.append(name)
+                insert_sobjects.append(name)
+
+        if named_set is not None:
+            # A typo or an object the plan doesn't manage must fail, not delete nothing (or,
+            # worse, be widened): this task deletes every record of each type org-wide.
+            unknown = sorted(named_set - declared)
+            if unknown:
+                raise TaskOptionsError(
+                    f"sobjects {unknown} are not inserted or upserted by {export_json_path} "
+                    f"(undeclared, excluded, or only Readonly/Update)"
+                )
 
         if not insert_sobjects:
             self.logger.warning(f"No Insert-operation objects found in {plan_dir}. Nothing to delete.")
@@ -784,7 +833,8 @@ class DeleteSFDMUData(BaseSalesforceTask):
         # Reverse = children first, matching SFDMU's deleteOldData sequence.
         deletion_order = list(reversed(insert_sobjects))
         self.logger.info(
-            f"Deleting {len(deletion_order)} Insert-operation object type(s) "
+            f"Deleting {len(deletion_order)} "
+            f"{'named' if named_set is not None else 'Insert-operation'} object type(s) "
             f"in reverse plan order:"
         )
         for i, name in enumerate(deletion_order, 1):

@@ -51,17 +51,17 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | ProductSellingModel | `Name;SellingModelType` | Readonly | From qb-pcm |
 | AttributeDefinition | `Code` | Readonly | From qb-pcm |
 | Product2 | `StockKeepingUnit` | Readonly | From qb-pcm |
-| CostBook | `Name;IsDefault` | Upsert | |
+| CostBook | `Name` | Upsert | |
 | Pricebook2 | `Name;IsStandard` | Upsert | |
-| PriceAdjustmentTier | 9-field composite | **Insert** | Bug 3: relationship traversal externalId — pre-5.6.4 record; fixed on floor |
-| PriceAdjustmentSchedule | `Name;CurrencyIsoCode` | Update | |
+| PriceAdjustmentTier | 9-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| PriceAdjustmentSchedule | `Name` | Upsert | One per type, USD |
 | AttributeBasedAdjRule | `Name` | Upsert | |
-| AttributeAdjustmentCondition | 3-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
-| AttributeBasedAdjustment | 5-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
-| BundleBasedAdjustment | 8-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
-| PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
-| PricebookEntryDerivedPrice | 8-field composite | **Insert** | Bug 2+3 — pre-5.6.4 record; fixed on floor |
-| CostBookEntry | 3-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| AttributeAdjustmentCondition | 3-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| AttributeBasedAdjustment | 5-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| BundleBasedAdjustment | 8-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| PricebookEntryDerivedPrice | 7-field composite | Upsert | 0 rows today; no delete step (todo 298) |
+| CostBookEntry | 3-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
 
 ## qb-billing (3 passes)
 
@@ -131,15 +131,15 @@ Nothing in qb-rating is deleted or activated by SFDMU; `activateRatingRecords.ap
 | ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | Upsert + skipExistingRecords, then Update | 1, 2 | Id resolved per org from the portable SKU + Code columns (upstream #1218 blocks the traversal key) |
 | ProductUsageGrant (PUG) | `ProductUsageResourceId` | Upsert + skipExistingRecords, then Update without Status | 1, 2 | Same; one grant per PUR in this dataset |
 
-## qb-rates
+## qb-rates (2 passes)
 
-| SObject | externalId | Operation | Notes |
-|---------|-----------|-----------|-------|
-| Product2 | `StockKeepingUnit` | Update | Sets UsageModelType |
-| RateCard | `Name;Type` | Upsert | |
-| PriceBookRateCard | `PriceBook.Name;RateCard.Name;RateCardType` | Upsert + deleteOldData | Auto-number Name |
-| RateCardEntry | 4-field composite | **Insert** + deleteOldData | Bug 2 (multi-hop traversal) — pre-5.6.4 record; fixed on floor |
-| RateAdjustmentByTier | 6-field composite | **Insert** + deleteOldData | Bug 2 (multi-hop traversal) — pre-5.6.4 record; fixed on floor |
+| SObject | externalId | Operation | Pass | Notes |
+|---------|-----------|-----------|------|-------|
+| Product2 | `StockKeepingUnit` | Update, then Readonly | 1, 2 | Sets UsageModelType |
+| RateCard | `Name;Type` | Upsert, then Readonly | 1, 2 | |
+| PriceBookRateCard | `PriceBook.Name;RateCard.Name;RateCardType` | Upsert | 1 | Auto-number Name; matches on the traversal key |
+| RateCardEntry | 4-field composite | Upsert + skipExistingRecords, then Update without Status | 1, 2 | Missing entries insert as Draft; an Active entry accepts only Status edits |
+| RateAdjustmentByTier | 6-field composite | Upsert | 1 | `$$` value omits a blank UpperBound; can't be edited under an Active entry |
 
 ## qb-dro (17 objects)
 

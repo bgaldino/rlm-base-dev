@@ -2,22 +2,23 @@
 
 SFDMU data plan for QuantumBit (QB) rate cards, rate card entries, and tiered rate adjustments. Defines the pricing rates used by the usage rating engine to calculate charges for QB products.
 
-> **SFDMU 5.6.4+ floor.** RateCardEntry and RateAdjustmentByTier use `Insert` + `deleteOldData: true`, and PriceBookRateCard uses `Upsert` + `deleteOldData: true` — pre-5.6.4 workarounds for relationship-traversal externalId matching (multi-hop traversal keys produced invalid Upsert SOQL; all-traversal composite keys never matched target records). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workarounds deliberately. Restoring plain `Upsert` / dropping `deleteOldData` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval.
+> **Reload-safe (todo 298).** Nothing is deleted: every object matches on its externalId, and a reload into a built org changes nothing. RateCardEntry and RateAdjustmentByTier moved from `Insert` + `deleteOldData` to `Upsert`, and PriceBookRateCard dropped `deleteOldData` (owner-approved, 2026-11-02). RateCardEntry loads in two passes so Status is never sent to an Active entry, and `prepare_rating` no longer runs `delete_qb_rates_data` first.
 
 ## CCI Integration
 
 ### Flow: `prepare_rating`
 
-This plan is executed as **step 7** of the `prepare_rating` flow (when `rating=true`, `rates=true`, `qb=true`, and `refresh=false`).
+This plan is executed as **step 6** of the `prepare_rating` flow (when `rating=true`, `rates=true`, `qb=true`, and `refresh=false`).
 
 | Step | Task                     | Description                                        |
 |------|--------------------------|----------------------------------------------------|
-| 1    | `delete_qb_rates_data`   | Runs `deleteQbRatesData.apex`                      |
-| 2    | `insert_qb_rating_data`  | Runs the qb-rating SFDMU plan (prerequisite)       |
-| 3    | `insert_qb_rating_entitlements_data` | Runs the qb-rating-entitlements plan (policies and grants) |
-| 7    | `insert_qb_rates_data`   | **Runs this plan** (single pass — all objects)     |
-| 9    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
-| 10   | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
+| 1    | `insert_qb_rating_data`  | Runs the qb-rating SFDMU plan (prerequisite)       |
+| 2    | `insert_qb_rating_entitlements_data` | Runs the qb-rating-entitlements plan (policies and grants) |
+| 6    | `insert_qb_rates_data`   | **Runs this plan** (two passes)                    |
+| 8    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
+| 9    | `activate_rates`         | Activates Draft RateCardEntry records (REST)       |
+
+`delete_qb_rates_data` (`deleteQbRatesData.apex`: deactivates Active entries, then deletes RCE, RABT, PBRC and RateCard) is a manual full teardown; no flow runs it.
 
 ### Task Definition
 
@@ -30,16 +31,21 @@ insert_qb_rates_data:
 
 ## Data Plan Overview
 
-The plan uses a **single SFDMU pass** followed by **Apex activation**:
+The plan uses **two SFDMU passes** followed by **activation**:
 
 ```
-SFDMU (single pass)                          Apex Activation
-──────────────────────────────               ─────────────────
-RateCard, RateCardEntry (Draft),         ->  activate_rates
-PriceBookRateCard, RateAdjustmentByTier      (RateCardEntry -> Active)
+Pass 1 (Upsert)                              Pass 2 (Update)                 Activation
+──────────────────────────────               ─────────────────────           ─────────────────
+Product2 (Update), RateCard,             ->  RateCardEntry, no Status    ->  activate_rates
+PriceBookRateCard, RateCardEntry             (Product2, RateCard             (Draft RateCardEntry
+(skip existing; new rows Draft),              Readonly)                       -> Active)
+RateAdjustmentByTier
 ```
 
-**Key constraint:** RateAdjustmentByTier (RABT) must be inserted while its parent RateCardEntry is in `Draft` status. SFDMU processes objects in dependency order within the single pass, so RABT is inserted before any activation occurs.
+- **Pass 1** upserts every object. RateCardEntry carries `skipExistingRecords: true`: a missing entry is inserted as `Draft` (the CSV's Status), and an existing one is never touched, so Status is never sent to an Active entry.
+- **Pass 2** updates RateCardEntry from `objectset_source/object-set-2/RateCardEntry.csv`, which has no Status column. Product2 and RateCard are declared `Readonly` so the entry's lookups resolve instead of being sent as null.
+- **Key constraint:** RateAdjustmentByTier (RABT) must be inserted while its parent RateCardEntry is `Draft`. Pass 1 inserts both before activation.
+- **Platform locks on Active rate data** (live-verified 2026-11-02): an Active entry accepts only a Status change ("Edit Restricted. Update the status field only…"), and an RABT under an Active entry can't be edited. A correction to either is rejected and fails the load; it needs a new Draft entry, or a deactivate, edit and reactivate cycle. Pass 2 therefore only corrects Draft entries, and RateCard/PriceBookRateCard corrections land at any time.
 
 ### Objects
 
@@ -47,11 +53,11 @@ PriceBookRateCard, RateAdjustmentByTier      (RateCardEntry -> Active)
 |---|----------------------|-----------|--------------------------------------------------------------------------------------|---------|
 | 1 | Product2             | Update    | `StockKeepingUnit`                                                                   | 10       |
 | 2 | RateCard             | Upsert    | `Name;Type`                                                                          | 3       |
-| 3 | PriceBookRateCard    | Upsert (+deleteOldData) | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 2       |
-| 4 | RateCardEntry        | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 126    |
-| 5 | RateAdjustmentByTier | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 128 |
+| 3 | PriceBookRateCard    | Upsert    | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 2       |
+| 4 | RateCardEntry        | Upsert (skip existing); pass 2 Update | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 126    |
+| 5 | RateAdjustmentByTier | Upsert    | `Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 128 |
 
-**Note:** Product2 is an `Update` operation — it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status. RateAdjustmentByTier keys on `RateCardEntry.RateCard.Name` (traversing the parent RateCardEntry to its RateCard's portable `Name`) instead of `RateCardEntry.Name` (auto-numbered), with a separate `RateCardEntry.$$...` column in the CSV for parent RCE lookup resolution.
+**Note:** Product2 is an `Update` operation — it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status. RateAdjustmentByTier keys on `RateCardEntry.RateCard.Name` (traversing the parent RateCardEntry to its RateCard's portable `Name`) instead of `RateCardEntry.Name` (auto-numbered), with a separate `RateCardEntry.$$...` column in the CSV for parent RCE lookup resolution. Its `$$` key omits empty parts, as SFDMU does on the target: a row with a blank `UpperBound` keys as `...;0`, not `...;0;`, or it would never match and Upsert would insert a duplicate.
 
 ### Lookup Reference CSVs
 
@@ -88,11 +94,10 @@ org, so set the default org before running them.
 
 Two more ordering rules for an ad-hoc reload:
 
-1. **Reset the accounts first.** `AssetRateCardEntry` records reference the active
-   `RateCardEntry` rows, so the load cannot delete them and instead inserts a
-   second, `Draft` copy of every entry — leaving duplicate Draft + Active pairs
-   with different rates.
-2. **Activate after loading** (`cci task run activate_rates`); entries load as
+1. **A changed rate on an Active entry doesn't load.** The platform allows only a
+   Status change on an Active entry, so the row is rejected and the load fails.
+   Add the new rate as a new Draft entry, or deactivate, edit and reactivate.
+2. **Activate after loading** (`cci task run activate_rates`); new entries load as
    `Draft` and a Draft entry is invisible to rating.
 
 ## Apex Activation Script
@@ -313,7 +318,7 @@ cci flow run run_qb_extracts --org <org>
 
 To run the idempotency test for this plan: `cci task run test_qb_rates_idempotency --org <org>`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups.
 
-**When duplicates exist:** If the org has duplicate rates records from previous runs, run `cci task run delete_qb_rates_data --org <org>` first to clear them, then run the idempotency test or data load.
+**When duplicates exist** (left by a load from before todo 298): run `cci task run delete_qb_rates_data --org <org>` to clear every rates record, then reload. It fails while `AssetRateCardEntry` records reference the entries.
 
 ### Post-Processing
 
@@ -333,7 +338,7 @@ The SOQL queries in `export.json` include relationship traversal fields (e.g., `
 
 ```
 qb-rates/
-├── export.json                # SFDMU data plan (single pass)
+├── export.json                # SFDMU data plan (two passes)
 ├── README.md                  # This file
 │
 │  Source CSVs (data to load)
@@ -342,6 +347,8 @@ qb-rates/
 ├── PriceBookRateCard.csv      # 2 records
 ├── RateCardEntry.csv          # 126 records (Draft status — 15 per currency x 7 + 11 token-denominated)
 ├── RateAdjustmentByTier.csv   # 128 records
+├── objectset_source/object-set-2/
+│   └── RateCardEntry.csv      # 126 records (pass 2: no Status)
 │
 │  Lookup Reference CSVs (for SFDMU resolution)
 ├── Pricebook2.csv             # Standard Price Book
@@ -367,10 +374,10 @@ This plan depends on the following having been loaded first:
 > **SFDMU v5 Required.** All externalId definitions and CSV formats are optimized for SFDMU v5.
 
 - **RateCard** uses `Upsert` with `Name;Type` composite key — matches correctly on re-run.
-- **PriceBookRateCard**, **RateCardEntry**, **RateAdjustmentByTier** use `deleteOldData: true` for idempotency. Before the 5.6.4 floor, SFDMU v5 could not match these objects' auto-number Names / all-relationship externalIds against existing target records; those traversal-match bugs are **fixed on the 5.6.4+ floor**, but the shipped plan retains delete-and-reinsert (functional idempotency with stable counts) pending the gated `sfdmu-v5-optimization` migration (see the floor note at the top).
+- **PriceBookRateCard**, **RateCardEntry**, **RateAdjustmentByTier** use `Upsert` on their traversal composite keys, which match on the 5.6.4+ floor. Live-verified 2026-11-02 (SFDMU 5.8.0, 264): two reloads and a full `prepare_rating` on a built org gave 0 diff with the same record Ids; a fresh load after `delete_qb_rates_data`, then `activate_rates`, then a reload, also gave 0 diff; `test_qb_rates_idempotency` passes.
 - **Product2** uses `Update` by `StockKeepingUnit`, so only existing products are modified.
 
-**Key requirement (SFDMU v5):** Objects with multi-component composite `externalId` definitions require a `$$` column in the source CSV for SFDMU to correctly match records during Upsert. The column name uses `$` between field names (e.g., `$$Field1$Field2`), and values use `;` between component values. Without this column, pre-5.6.4 SFDMU inserted duplicates on re-runs. For objects where a `$$` column cannot be used (e.g., auto-number `Name` fields with all-relationship externalIds), the shipped plan uses `deleteOldData: true` for functional idempotency — a pre-5.6.4 workaround retained pending the gated migration; on the 5.6.4+ floor new plans use `Upsert`. See [Composite Key Optimizations](../../../../../docs/references/sfdmu-composite-key-optimizations.md) for the full v5 migration guide.
+**Key requirement (SFDMU v5):** Objects with multi-component composite `externalId` definitions require a `$$` column in the source CSV for SFDMU to correctly match records during Upsert. The column name uses `$` between field names (e.g., `$$Field1$Field2`), and values use `;` between component values. Without this column, pre-5.6.4 SFDMU inserted duplicates on re-runs. A `$$` value omits empty parts, the way SFDMU builds the target key. See [Composite Key Optimizations](../../../../../docs/references/sfdmu-composite-key-optimizations.md) for the full v5 migration guide.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 
@@ -460,7 +467,7 @@ Only 4 fields are updateable: `AdjustmentType`, `AdjustmentValue`, `LowerBound`,
 | UsageResource        | qb-rating    | Lookup CSV |
 | Pricebook2           | qb-pricing   | Lookup CSV |
 | RateCard             | This plan    | Upsert     |
-| RateCardEntry        | This plan    | Insert (+deleteOldData) |
+| RateCardEntry        | This plan    | Upsert     |
 
 ## External ID / Composite Key Analysis (Confirmed via Org Describe)
 

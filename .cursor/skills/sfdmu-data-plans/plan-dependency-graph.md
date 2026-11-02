@@ -66,7 +66,7 @@ qb-price-revision (2 objects, no lookups — independent)
 
 Deletions must run in reverse dependency order. SFDMU's `deleteOldData: true` handles per-object deletion in reverse array order within a plan, but cross-plan deletions must be sequenced manually.
 
-**Critical**: `delete_qb_rates_data` must run BEFORE `delete_qb_rating_data` — rates FK to PURs.
+**Critical**: `delete_qb_rates_data` must run BEFORE `delete_qb_rating_data` — rates FK to PURs. Neither runs in a flow any more: the qb pricing, rates and rating plans reload in place (todo 298), so these deletes are for a manual full teardown only.
 
 ```
 Delete order (for full teardown):

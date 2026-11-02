@@ -334,6 +334,38 @@ def test_pass2_override_rebuilds_composite_keys(m):
               line == "QB-DB;UR-CPU", repr(line))
 
 
+def test_composite_keys_drop_empty_parts(m):
+    """A `$$` value drops its empty parts, as SFDMU 5.8.0 does when it builds the target-side
+    key (`MigrationJobTask._getRecordFieldValue`). Keeping one (`A;B;0;` for a blank
+    UpperBound) never matches, so an Upsert inserts a duplicate (todo 298: qb-rates RABT,
+    qb-pcm ProductRelatedComponent)."""
+    check("join_composite_parts: trailing empty part dropped",
+          m.join_composite_parts(["P", "RC", "0", ""]) == "P;RC;0")
+    check("join_composite_parts: leading and middle empty parts dropped",
+          m.join_composite_parts(["", "QB-API", "", "PCG"]) == "QB-API;PCG")
+    check("join_composite_parts: all empty -> blank", m.join_composite_parts(["", ""]) == "")
+    # Root path: align_columns builds the absent $$ column from its components.
+    headers, rows = m.align_columns(
+        ["Product.StockKeepingUnit", "LowerBound", "UpperBound"], [["QB-DB", "0", ""]],
+        ["$$Product.StockKeepingUnit$LowerBound$UpperBound", "UpperBound"], "Child")
+    check("align_columns: built $$ key omits the blank UpperBound", rows[0][0] == "QB-DB;0", repr(rows))
+    # #N/A components normalised to blank are dropped too, not left as ';;'.
+    rows = m.normalize_na_values([["#N/A;QB-API;#N/A;PCG"]], ["$$A$B$C$D"])
+    check("normalize_na_values: #N/A parts dropped from a $$ value", rows[0][0] == "QB-API;PCG", repr(rows))
+    # Pass-N override path.
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        plan, ext, out = root / "plan", root / "ext", root / "out"
+        (plan / "objectset_source" / "object-set-2").mkdir(parents=True)
+        ext.mkdir()
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$LowerBound$UpperBound\n")
+        (ext / "Child.csv").write_text("Product.StockKeepingUnit,LowerBound,UpperBound\nQB-DB,0,\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), {"Child": [(0, {}), (1, {})]}, False)
+        line = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1]
+        check("pass-2 override: rebuilt $$ key omits the blank part", line == "QB-DB;0", repr(line))
+
+
 def test_excluded_uses_js_truthiness(m):
     """pack 168 + round-7: `excluded` is read with SFDMU's JS truthiness. `[]`/`{}` are
     falsy in Python but truthy in JS, so SFDMU skips such a declaration — this parse must
@@ -371,6 +403,7 @@ def main():
     test_top_level_pass_subquery_uses_outer_object(m)
     test_excluded_uses_js_truthiness(m)
     test_pass2_override_rebuilds_composite_keys(m)
+    test_composite_keys_drop_empty_parts(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1

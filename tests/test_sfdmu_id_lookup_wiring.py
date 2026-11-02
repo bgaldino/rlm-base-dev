@@ -8,6 +8,10 @@ leaves the tracked plan byte-for-byte unchanged on success, a bad option and a f
 that a plan loaded in place has its credentials cleared after a failed run, is untouched by an
 early failure, and never has the access token logged.
 
+Also `TestSFDMUIdempotency`'s second-load rule for a listed insert rejection both loads have, and
+`DeleteSFDMUData`'s `sobjects` option, which the qb-pricing teardown needs now that the plan has
+no Insert objects (todo 298).
+
 Needs CumulusCI (the task module imports it):
     ~/.local/pipx/venvs/cumulusci/bin/python tests/test_sfdmu_id_lookup_wiring.py
 """
@@ -379,6 +383,44 @@ check("two passes: the first load's pass-2 rejections don't excuse new ones in p
 check("two passes: each pass's own repeated rejections pass",
       two_loads({PP: (5, LISTED), PP2: (1, LISTED)}, {PP: (5, LISTED), PP2: (1, LISTED)}), "passed")
 shutil.rmtree(idem_root, ignore_errors=True)
+
+print("DeleteSFDMUData: named sobjects on an Upsert plan")
+# qb-pricing has no Insert objects since todo 298, so its teardown names them. Each must be a type
+# the plan inserts or upserts; a typo, a Readonly/Update type or an empty list fails instead of
+# deleting nothing, the wrong types, or every record of a type the plan only reads.
+PRICING = REPO / "datasets/sfdmu/qb/en-US/qb-pricing"
+
+
+def run_delete(options):
+    task = rs.DeleteSFDMUData.__new__(rs.DeleteSFDMUData)
+    task.options = {"pathtoexportjson": str(PRICING), **options}
+    task.logger = type("L", (), {"info": lambda *_a, **_k: None, "warning": lambda *_a, **_k: None})()
+    deleted = []
+    task._delete_all_records = lambda name: deleted.append(name) or 0
+    task._run_task()
+    return deleted
+
+
+check("no option: an all-Upsert plan deletes nothing", run_delete({}), [])
+check("named: deleted children first, in reverse plan order",
+      run_delete({"sobjects": ["PricebookEntry", "PriceAdjustmentTier", "CostBookEntry"]}),
+      ["CostBookEntry", "PricebookEntry", "PriceAdjustmentTier"])
+check("named as a comma string (cci -o): same order",
+      run_delete({"sobjects": "PricebookEntry, CostBookEntry"}), ["CostBookEntry", "PricebookEntry"])
+try:
+    got = run_delete({"sobjects": ["PricebookEntry", "Pricebookentry"]})
+except TaskOptionsError as exc:
+    got = "TaskOptionsError" if "Pricebookentry" in str(exc) else str(exc)
+check("named: an undeclared type fails before anything is deleted", got, "TaskOptionsError")
+for label, option in (("a Readonly type (Product2) is refused, never deleted org-wide", ["Product2"]),
+                      ("an Update-only type (ProrationPolicy) is refused", ["ProrationPolicy"]),
+                      ("an empty list fails instead of falling back to Insert mode", []),
+                      ("an empty string fails instead of falling back to Insert mode", " , ")):
+    try:
+        got = run_delete({"sobjects": option})
+    except TaskOptionsError:
+        got = "TaskOptionsError"
+    check(f"named: {label}", got, "TaskOptionsError")
 
 print("=" * 60)
 if _failures:

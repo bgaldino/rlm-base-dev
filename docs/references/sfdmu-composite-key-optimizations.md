@@ -94,19 +94,18 @@ before reloading existing data.
 
 The historical Release 260 verification recorded zero record-count changes across
 47 objects in 10 QB data tasks on a fresh scratch org. That result does not certify
-the current plans against an org with live transactional data. In particular,
-`qb-pricing` requires its separate delete task before Insert operations, and
-`qb-rates` retains delete-and-reinsert operations that live references can block. Use the per-plan instructions and the live-org guidance linked above.
+the current plans against an org with live transactional data. Since todo 298 the qb
+pricing, rates and rating plans match existing rows and delete nothing, so they reload a
+built org without duplicates. Live records can still lock fields: an Active rate card entry
+accepts only Status changes. Use the per-plan instructions and the live-org guidance linked above.
 
 Current examples below are classified by object, because a plan can mix operations.
 Consult each plan's `export.json` and README for its full object list and load sequence.
 
 | Strategy | Objects |
 |----------|---------|
-| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`), UsageResource (`Code`) and ProductUsageResource (`Product.StockKeepingUnit;UsageResource.Code`) in qb-rating; ProductUsageResourcePolicy and ProductUsageGrant (`ProductUsageResourceId`, resolved per org) in qb-rating-entitlements; FulfillmentWorkspace (`Name`) in qb-dro |
-| Upsert with `deleteOldData: true` (deletes before loading) | FulfillmentWorkspaceItem (qb-dro), PriceBookRateCard (qb-rates) |
-| Insert with `deleteOldData: true` (delete + reinsert) | RateCardEntry, RateAdjustmentByTier (qb-rates) |
-| Insert requiring the separate pricing delete task before reload | PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry (qb-pricing) |
+| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`), UsageResource (`Code`) and ProductUsageResource (`Product.StockKeepingUnit;UsageResource.Code`) in qb-rating; ProductUsageResourcePolicy and ProductUsageGrant (`ProductUsageResourceId`, resolved per org) in qb-rating-entitlements; FulfillmentWorkspace (`Name`) in qb-dro; every qb-pricing adjustment, entry and cost object; PriceBookRateCard, RateCardEntry and RateAdjustmentByTier in qb-rates |
+| Upsert with `deleteOldData: true` (deletes before loading) | FulfillmentWorkspaceItem (qb-dro) |
 
 ### Known limitations (v5)
 
@@ -134,14 +133,11 @@ and its README before deciding which objects need separate handling.
 **Root cause (pre-5.6.4):** SFDMU's upsert matching engine could not resolve composite keys composed entirely of relationship-traversal fields against target org data. 5.6.4's `_getNestedRecordFieldValue` fix (commit `50be987`) resolves this.
 
 **Historical workaround:** `deleteOldData: true` bypassed matching for objects
-whose logical key used parent lookups. The current qb-dro and qb-rates plans retain
-deletion on the following objects (qb-rating dropped it in todo 298); this inventory
-does not imply that every operation choice was caused by Bug 5:
+whose logical key used parent lookups. The current qb-dro plan retains deletion on the
+following object (qb-rating and qb-rates dropped it in todo 298); this inventory does not
+imply that every operation choice was caused by Bug 5:
 
 - `FulfillmentWorkspaceItem` (qb-dro) — Upsert + deleteOldData
-- `PriceBookRateCard` (qb-rates) — Upsert + deleteOldData
-- `RateCardEntry` (qb-rates) — Insert + deleteOldData
-- `RateAdjustmentByTier` (qb-rates) — Insert + deleteOldData
 
 **Current rule (5.6.4+):** Use `Upsert` for all-traversal composite externalIds — matching works. Reserve `deleteOldData: true` for a concrete *current* reason + explicit approval, not this (now-fixed) bug.
 
