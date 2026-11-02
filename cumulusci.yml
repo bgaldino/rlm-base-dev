@@ -2785,7 +2785,7 @@ tasks:
 
   delete_qb_rating_data:
     group: Data Maintenance
-    description: Delete all qb-rating data (PUG, PURP, PUR, RatingFrequencyPolicy, UsageGrantRolloverPolicy, etc.) in dependency order. Use before re-running insert_qb_rating_data to clear duplicates.
+    description: Delete all qb-rating data (PUG, PURP, PUR, RatingFrequencyPolicy, UsageGrantRolloverPolicy, etc.) in dependency order. Manual full teardown only; prepare_rating reloads in place and no longer runs it.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/deleteQbRatingData.apex
