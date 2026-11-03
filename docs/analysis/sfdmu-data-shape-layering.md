@@ -32,7 +32,7 @@ The fix was to **stop deleting**: match existing rows on a stable key and update
 
 ## The model
 
-### 1. Every load matches; nothing deletes
+### 1. A converted plan matches; it never deletes
 
 In a converted plan, each writable object is `Upsert` (or `Update`) on an externalId that identifies the record
 across orgs. A reload finds the existing row and updates it, or inserts it if it's missing.
@@ -91,7 +91,9 @@ scopes only the target, never CSV rows. Extraction merges such declarations back
 
 A **data shape** is a set of plans that seeds one demo dataset: qb (QuantumBit), q3, mfg, and
 the qb/ja locale. The rule is that **a record has exactly one owning plan**. Other plans may
-reference it, but only as `Readonly`.
+reference it, but only as `Readonly`. The exception is a record the platform seeds in every org,
+such as a price adjustment schedule: each shape's pricing plan writes the ones it uses, matched
+on their fixed `Name`, so a reload by any shape converges on the same record.
 
 | Records | Owner | Other shapes |
 |---|---|---|
