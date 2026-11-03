@@ -69,7 +69,8 @@ For year-by-year pricing, add one row per year with non-overlapping
 
    Lines with no `StartDate`, such as an undated one-time service, run
    *Assigned From Pricing Contract for undated lines* instead, which matches on
-   the date of the pricing run.
+   the date of the pricing run. Both lookups skip lines with a quantity of 0 or
+   less, so a credit keeps the prices the units were sold at.
 4. **Sales Price.** *Set input unit price for lines with contract pricing*
    copies the contract price into Sales Price when Sales Price is empty, still
    equals List Price, or still equals the contract price it last applied. On
@@ -99,10 +100,11 @@ Amendment and renewal lines carry `PricingSource = LastTransaction`: they start
 from the asset's last price. A contract price for the line overrides it; a
 discount-only row, or no row at all, leaves the asset price in place.
 
-These were run live on amendment quotes created with the
-`/connect/revenue-management/assets/actions/amend` API (and `…/cancel` for the
-cancellation), from assets sold at list price (12000) with no contract.
-Renewals take the same last-transaction path but were not run.
+These were run live on quotes created with the
+`/connect/revenue-management/assets/actions/amend`, `…/cancel` and `…/renew`
+APIs. Most assets were sold at list price (12000) with no contract. One was
+sold at 12000 and then increased by 1 at a contract price of 10000, under a
+contract that prices it at 9000 from the credit and renewal dates.
 
 | Situation | Result |
 |---|---|
@@ -111,7 +113,10 @@ Renewals take the same last-transaction path but were not run.
 | Amended with `contractId` set to the contract the assets belong to | Contract price on the first pricing |
 | Assets linked to a contract, but amended without `contractId` | Asset price: the contract is not carried onto the quote |
 | Never-priced amendment quote linked to a second contract | That contract's price |
-| Quantity reduced by 1, or the asset cancelled, with `contractId` set | Credit at the asset price (12000), not the contract price. The platform prices the credit from its detail line, so the contract steps don't reach it |
+| Quantity reduced, or the asset cancelled, with or without `contractId` | Credit at the prices the units were sold at, latest sale first: 10000 for one unit, 10000 and 12000 for two. The contract price (9000) is not used |
+| Renewed with `contractId`, asset sold without a contract | Asset price (12000) when the quote is created; the contract price (9000) from its first pricing, standard or forced |
+| Renewed with `contractId`, asset last sold under that contract | Contract price (9000) |
+| Renewed without `contractId`, asset last sold under a contract | Contract price (9000) when created, carried from the asset; last sale price (10000) from the first pricing, because the quote has no contract. Renew with `contractId` to keep the contract price |
 
 Two platform behaviors to expect:
 
@@ -203,7 +208,8 @@ source quote are not carried over as tier rows.
 - **There is no `Order.PricingContractId` sync**, and applied contract prices
   are tracked on quote lines only.
 - **Not exercised live in this repository:** amount discounts, volume tiers,
-  bundle children, renewals, and amendment lines with no quantity change.
+  bundle children, and amendment lines with no quantity change. The contract
+  lookups skip quantity 0, so those lines should keep the asset price.
 
 ## Coming from the TAT-264 reference org
 
@@ -219,5 +225,6 @@ these differences:
 | Contracted lines excluded from the list-price fallback | Kept in it | Discount-only rows have no price, and excluding them left Sales Price at 0 |
 | Flow sets `PricingContractId = ContractId` on every save, with `ISNULL` | Fills it when blank and follows `ContractId` changes, with `ISBLANK` | `ISNULL` misses a blank lookup, and a hand-set value was overwritten |
 | Last-transaction override on any contract-linked line | Only on lines that get a contract price | Contract-linked amendment lines with no contract price keep renewal revision and ramp uplift |
+| Contract price looked up for every line | Only for lines with a positive quantity | On an asset sold under a contract, credits otherwise took the contract's current price instead of the price the units were sold at |
 | Field access through 75 partial profiles | `RLM_QuantumBit` and `RLM_QuantumBit_Sales_Representative` permission sets | Profiles in `force-app/` carry class access only |
 | Line `PricingContractId` editable on the layout | Read-only | The procedure overwrites it on every pricing |

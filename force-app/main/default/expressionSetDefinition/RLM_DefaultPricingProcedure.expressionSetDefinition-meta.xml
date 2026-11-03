@@ -4248,7 +4248,7 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>1 AND 2</conditionLogic>
+                <conditionLogic>1 AND 2 AND 3</conditionLogic>
                 <criteria>
                     <operator>IsNotNull</operator>
                     <sequenceNumber>1</sequenceNumber>
@@ -4258,6 +4258,13 @@
                     <operator>IsNotNull</operator>
                     <sequenceNumber>2</sequenceNumber>
                     <sourceFieldName>EffectiveFrom</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>GreaterThan</operator>
+                    <sequenceNumber>3</sequenceNumber>
+                    <sourceFieldName>LineItemQuantity</sourceFieldName>
+                    <value>0</value>
+                    <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
@@ -4273,7 +4280,7 @@
         </steps>
         <steps>
             <advancedCondition>
-                <conditionLogic>1 AND 2</conditionLogic>
+                <conditionLogic>1 AND 2 AND 3</conditionLogic>
                 <criteria>
                     <operator>IsNotNull</operator>
                     <sequenceNumber>1</sequenceNumber>
@@ -4283,6 +4290,13 @@
                     <operator>IsNull</operator>
                     <sequenceNumber>2</sequenceNumber>
                     <sourceFieldName>EffectiveFrom</sourceFieldName>
+                </criteria>
+                <criteria>
+                    <operator>GreaterThan</operator>
+                    <sequenceNumber>3</sequenceNumber>
+                    <sourceFieldName>LineItemQuantity</sourceFieldName>
+                    <value>0</value>
+                    <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
