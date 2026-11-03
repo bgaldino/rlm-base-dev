@@ -1,3 +1,4 @@
 Description,Name,Status,TreatmentSelection
 ,Default Tax Policy,Draft,Default
 Non-taxable policy for non-taxable products,Non Taxable Tax Policy,Draft,Default
+,Tax Policy for LE,Draft,LegalEntity

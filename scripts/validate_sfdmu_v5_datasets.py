@@ -187,15 +187,15 @@ class SFDMUValidator:
 
     # Frozen snapshot of the header-only CSVs currently shipping under the deprioritized
     # `q3` / `mfg` plan families (todo pack 162). These are DEFERRED — not real placeholders
-    # — until the 264 upgrade re-seeds those plans: the `q3-billing` set is real data lost
-    # in commit 3bff2389's "fresh 262 refresh" (recoverable from git @ 3bff2389~1), and
-    # `q3-dro` / `mfg-guidedselling` / the rest are never-populated stubs. The priority
-    # datasets are the `qb` series (verified clean of this shape, 0 findings).
+    # — until the 264 upgrade re-seeds those plans: `q3-dro` / `mfg-guidedselling` / the
+    # rest are never-populated stubs. (q3-billing's lost set left this list in todo 210, when
+    # q3 moved onto qb-billing's data and q3-billing kept only its product mapping.) The
+    # priority datasets are the `qb` series (verified clean of this shape, 0 findings).
     #
     # Enumerated by EXACT plan-relative path (relative to datasets/sfdmu), deliberately NOT
     # by family prefix: a family-wide skip would also silently swallow a NEWLY added q3/mfg
     # object, or one of these plans' currently-POPULATED CSVs later truncated to its header
-    # (e.g. q3-billing/PaymentTerm still ships a data row) — exactly the data-loss shape this
+    # (e.g. q3-dro/Product2 ships 78 rows) — exactly the data-loss shape this
     # check exists to catch. Only these specific files are exempt; anything else still
     # produces the gating HIGH. Regenerate the set from the live tree (validator findings
     # with this deferral disabled), and delete entries as each plan is re-seeded.
@@ -212,15 +212,6 @@ class SFDMUValidator:
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv",
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionSetConfig.csv",
         "mfg/en-US/mfg-pcm/UnitOfMeasureClass.csv",
-        "q3/en-US/q3-billing/AccountingPeriod.csv",
-        "q3/en-US/q3-billing/BillingPolicy.csv",
-        "q3/en-US/q3-billing/BillingTreatment.csv",
-        "q3/en-US/q3-billing/BillingTreatmentItem.csv",
-        "q3/en-US/q3-billing/GeneralLedgerAccount.csv",
-        "q3/en-US/q3-billing/GeneralLedgerAcctAsgntRule.csv",
-        "q3/en-US/q3-billing/LegalEntyAccountingPeriod.csv",
-        "q3/en-US/q3-billing/PaymentRetryRule.csv",
-        "q3/en-US/q3-billing/PaymentRetryRuleSet.csv",
         "q3/en-US/q3-dro/FulfillmentFalloutRule.csv",
         "q3/en-US/q3-dro/FulfillmentStepDefinition.csv",
         "q3/en-US/q3-dro/FulfillmentStepDefinitionGroup.csv",

@@ -1,5 +1,0 @@
-Name,Description,IsTaxable,LegalEntity.Name,ProductCode,Status,TaxCode,TaxEngine.TaxEngineName,TaxPolicy.Name
-Tax Treatment for US LE,,false,Default Legal Entity - US,,Draft,,,Tax Policy for LE
-Tax Treatment for taxable products,Test Tax Treatment,true,,Test123,Draft,PA020111,RLM_MockTaxAdapter,Tax Policy for taxable products
-Tax Treatment for non-taxable products,Non-taxable treatment for non-taxable products,false,,,Draft,,RLM_MockTaxAdapter,Tax Policy for non-taxable products
-Tax Treatment for Canada LE,,false,Default Legal Entity - Canada,,Draft,,,Tax Policy for LE

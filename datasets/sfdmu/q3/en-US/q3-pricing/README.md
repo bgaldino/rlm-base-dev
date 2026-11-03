@@ -4,6 +4,12 @@ SFDMU data plan for Q3 pricing: currency types, price books and entries, price a
 
 > **Reload-safe (todo 319, the qb-pricing pattern from todo 298).** Every object matches on its externalId and nothing is deleted before a load. The seven objects that used to load as `Insert` after `delete_q3_pricing_data` (PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry) are `Upsert` on the same keys, with their traversal key fields in each SELECT (owner-approved, 2026-11-02).
 
+## Currencies
+
+- **Eleven currencies, USD corporate.** CHF was added in todo 210, so qb-tax's Swiss legal entity loads on a q3 build. Its 74 entries mirror the EUR rows at 0.89× the USD price, the same Dec-2024-era basis as the other q3 ratios.
+- **`ConversionRate` is foreign units per 1 USD**, and equals the ratio the q3 prices use (EUR 0.96, JPY 149.22, …). Before todo 210 the file carried the inverse for every currency except USD (e.g. JPY 0.0067), which skewed converted amounts in roll-ups and reports but not price-book prices. A reload updates the rates in place (`CurrencyType` is `Upsert` on `IsoCode`).
+- **q3-rates has no currency column**, so its rate card entries load in the corporate currency only; CHF rates were not added.
+
 ## Two passes
 
 - **Pass 1** loads everything except the custom price book's entries.
@@ -43,7 +49,7 @@ Both passes read the root `PricebookEntry.csv`. Each pass's `sourceRecordsFilter
 
 | # | Object | Pass | Operation | External ID | Records |
 |---|--------|------|-----------|-------------|---------|
-| 1 | CurrencyType | 1 | Upsert | IsoCode | 10 |
+| 1 | CurrencyType | 1 | Upsert | IsoCode | 11 |
 | 2 | ProrationPolicy | 1 | Update | Name | 1 |
 | 3 | ProductSellingModel | 1 | Readonly | Name;SellingModelType | — |
 | 4 | ProductSellingModel | 2 | Readonly | Name;SellingModelType | — |
@@ -60,8 +66,8 @@ Both passes read the root `PricebookEntry.csv`. Each pass's `sourceRecordsFilter
 | 15 | AttributeAdjustmentCondition | 1 | Upsert | AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit | 14 |
 | 16 | AttributeBasedAdjustment | 1 | Upsert | AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode | 5 |
 | 17 | BundleBasedAdjustment | 1 | Upsert | PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode | 4 |
-| 18 | PricebookEntry | 1 | Upsert | Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode | 746 |
-| 19 | PricebookEntry | 2 | Upsert | Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode | 746 |
+| 18 | PricebookEntry | 1 | Upsert | Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode | 820 |
+| 19 | PricebookEntry | 2 | Upsert | Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode | 820 |
 | 20 | PricebookEntryDerivedPrice | 1 | Upsert | Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode | 5 |
 | 21 | CostBookEntry | 1 | Upsert | CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode | 0 |
 
@@ -73,7 +79,7 @@ Both passes read the root `PricebookEntry.csv`. Each pass's `sourceRecordsFilter
      load. -->
 
 ```
-CurrencyType.csv                         # 10 records
+CurrencyType.csv                         # 11 records
 ProrationPolicy.csv                      # 1 record
 CostBook.csv                             # 0 records
 Pricebook2.csv                           # 2 records
@@ -83,7 +89,7 @@ AttributeBasedAdjRule.csv                # 13 records
 AttributeAdjustmentCondition.csv         # 14 records
 AttributeBasedAdjustment.csv             # 5 records
 BundleBasedAdjustment.csv                # 4 records
-PricebookEntry.csv                       # 746 records
+PricebookEntry.csv                       # 820 records
 PricebookEntryDerivedPrice.csv           # 5 records
 CostBookEntry.csv                        # 0 records
 ```
