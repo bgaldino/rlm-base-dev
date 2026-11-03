@@ -12,7 +12,7 @@ This plan is executed as **step 2** of the `prepare_billing` flow (when `billing
 |------|-----------------------------------------|--------------------|-----------------------------------------------------------------------------------------|
 | 1    | `deploy_post_billing`                   | billing            | Deploys billing settings/metadata from `unpackaged/post_billing` — **must run first** to enable `SequenceService` and `BillingSettings` so SequencePolicy SObjects are accessible |
 | 2    | `insert_billing_data`                   | billing+(qb or q3+tax) | Runs this SFDMU plan (3 passes)                                                         |
-| 3    | `insert_q3_billing_data`                | billing+q3         | Maps the q3 products onto this plan's policies                                          |
+| 3    | `insert_q3_billing_data`                | billing+tax+q3+!qb | Maps the q3 products onto this plan's policies                                          |
 | 4    | `create_sequence_policies`              | billing+(qb or q3+tax)+!refresh| Creates `SequencePolicy` and `SeqPolicySelectionCondition` records via the Connect API (standard DML cannot create these objects) |
 | 5    | `activate_flow`                         | billing            | Activates `RLM_Order_to_Billing_Schedule_Flow`                                          |
 | 6    | `activate_default_payment_term`         | billing            | Runs `activateDefaultPaymentTerm.apex`                                                  |

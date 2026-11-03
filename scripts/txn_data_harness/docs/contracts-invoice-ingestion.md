@@ -124,10 +124,14 @@ The harness handles this in three places:
    the same bootstrap as `discover_accounts` / `discover_products` and
    caches the result on `OrgContext.non_taxable_tax_treatment_id` (org-
    scoped module cache mirroring `_MULTI_CURRENCY_BY_ORG`).
-   SOQL: `SELECT Id FROM TaxTreatment WHERE IsTaxable = false AND
-   Status = 'Active' ORDER BY CreatedDate ASC LIMIT 1`. `TaxTreatment`
-   has no `IsActive` field; the active set is `Status = 'Active'`
-   (verified via describe).
+   SOQL: `SELECT Id, Name, TaxPolicy.TreatmentSelection FROM TaxTreatment
+   WHERE IsTaxable = false AND Status = 'Active' ORDER BY CreatedDate ASC`.
+   It prefers qb-tax's 'Non Taxable Tax Treatment', then a treatment under a
+   `Default`-selection policy, then the oldest. qb-tax's per-legal-entity
+   treatments (under 'Tax Policy for LE') load in the same batch, so a
+   CreatedDate tiebreak alone isn't stable. `TaxTreatment` has no
+   `IsActive` field; the active set is `Status = 'Active'` (verified via
+   describe).
 2. **Stamping** — `lifecycle.ingest_invoice` stamps `taxTreatmentId` on
    every InvoiceLine graph record (Draft and Posted alike). Stamping
    on Draft matters for the resume path: live-verified that posting
@@ -167,7 +171,7 @@ and explicit date pinning. Reference scenario:
 All four shapes settled `Invoice.Status='Posted'`, `CreationMode='External'`,
 `TotalTaxAmount=0`. Every `InvoiceLine.TaxTreatmentId` resolved to the
 oldest active non-taxable `TaxTreatment` (deterministic via
-`ORDER BY CreatedDate ASC LIMIT 1`), even on the org that had two
+`ORDER BY CreatedDate ASC`; the name and `Default`-selection preference came later), even on the org that had two
 qualifying rows -- confirms the discovery tiebreaker is stable across
 seeding operations.
 

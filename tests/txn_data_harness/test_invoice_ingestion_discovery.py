@@ -273,6 +273,17 @@ def test_resolve_non_taxable_tax_treatment_falls_back_to_oldest(fake_client) -> 
     assert resolve_non_taxable_tax_treatment(fake_client) == "1ttMAN"
 
 
+def test_resolve_non_taxable_tax_treatment_null_policy_and_no_limit(fake_client) -> None:
+    # A treatment with no policy comes back as "TaxPolicy": None. The query must return every
+    # candidate: a LIMIT 1 would hand back only the oldest, which may be a legal-entity row.
+    fake_client.query_responses.append([
+        {"Id": "1ttNOPOL", "Name": "Loose Exempt", "TaxPolicy": None},
+        {"Id": "1ttDEF", "Name": "Exempt", "TaxPolicy": {"TreatmentSelection": "Default"}},
+    ])
+    assert resolve_non_taxable_tax_treatment(fake_client) == "1ttDEF"
+    assert "LIMIT" not in fake_client.queries[0]
+
+
 def test_resolve_non_taxable_tax_treatment_missing_returns_none(fake_client) -> None:
     fake_client.query_responses.append([])
     assert resolve_non_taxable_tax_treatment(fake_client) is None

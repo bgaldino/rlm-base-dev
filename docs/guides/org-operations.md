@@ -247,10 +247,11 @@ A Q3 build keeps `quantumbit=true`. `create_tax_engine` (`prepare_tax` step 1) n
 `quantumbit=false` and `tax=true`, the build has no tax engine, and qb-tax's engine and taxable
 treatment are rejected.
 
-A Q3 build loads the qb tax and billing designs: `insert_tax_data` and `insert_billing_data` run
-when `qb` or `q3` is on. The q3-tax and q3-billing plans then only map the 78 Q3 products onto
+A Q3 build loads the qb tax and billing designs: `insert_tax_data` runs when `qb` or `q3` is on,
+and `insert_billing_data` when `qb` is on, or `q3` with `tax`. The q3-tax and q3-billing plans then only map the 78 Q3 products onto
 those policies, so `deploy_billing_id_settings` finds the qb record names it resolves. Billing on
-a Q3 build also needs `tax=true`: qb-billing reads the legal entities that qb-tax creates. An org
+any build needs `tax=true`: qb-billing reads the legal entities that qb-tax creates, and
+`deploy_billing_id_settings` resolves qb-tax's 'Default Tax Policy' treatment. An org
 built before that change carries q3's own tax and billing records (with the Canada entity in USD)
 and can't be converted in place; build a fresh one.
 
