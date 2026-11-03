@@ -54,7 +54,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `rating` | `True` | 13 flow step(s) |
 | `refresh` | `False` | 11 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
-| `tax` | `True` | 8 flow step(s) |
+| `tax` | `True` | 10 flow step(s) |
 | `trial` | `False` | — |
 | `tso` | `False` | 20 flow step(s) |
 | `ux` | `True` | 2 flow step(s) |
@@ -473,7 +473,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `tax` (default: `True`)
 
+- `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
+- `prepare_billing` step 4 → `create_sequence_policies`
 - `prepare_tax` step 1 → `create_tax_engine`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`

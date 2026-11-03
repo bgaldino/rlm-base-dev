@@ -247,6 +247,32 @@ def test_resolve_non_taxable_tax_treatment_found(fake_client) -> None:
     assert "Status = 'Active'" in soql
 
 
+def test_resolve_non_taxable_tax_treatment_prefers_qb_name(fake_client) -> None:
+    # A legal-entity treatment created in the same batch must not win (todo 210).
+    fake_client.query_responses.append([
+        {"Id": "1ttOTHER", "Name": "Some Other Non Taxable"},
+        {"Id": "1ttQB", "Name": "Non Taxable Tax Treatment"},
+    ])
+    assert resolve_non_taxable_tax_treatment(fake_client) == "1ttQB"
+
+
+def test_resolve_non_taxable_tax_treatment_prefers_default_selection(fake_client) -> None:
+    fake_client.query_responses.append([
+        {"Id": "1ttLE", "Name": "Tax Treatment for Japan LE",
+         "TaxPolicy": {"TreatmentSelection": "LegalEntity"}},
+        {"Id": "1ttDEF", "Name": "Exempt", "TaxPolicy": {"TreatmentSelection": "Default"}},
+    ])
+    assert resolve_non_taxable_tax_treatment(fake_client) == "1ttDEF"
+
+
+def test_resolve_non_taxable_tax_treatment_falls_back_to_oldest(fake_client) -> None:
+    # An org whose only non-taxable treatment sits under a Manual policy still resolves.
+    fake_client.query_responses.append([
+        {"Id": "1ttMAN", "Name": "Manual Exempt", "TaxPolicy": {"TreatmentSelection": "Manual"}},
+    ])
+    assert resolve_non_taxable_tax_treatment(fake_client) == "1ttMAN"
+
+
 def test_resolve_non_taxable_tax_treatment_missing_returns_none(fake_client) -> None:
     fake_client.query_responses.append([])
     assert resolve_non_taxable_tax_treatment(fake_client) is None
