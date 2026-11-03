@@ -245,6 +245,11 @@ try:
     check("load succeeds, restore fails: the task fails", type(error).__name__, "OSError")
     before, after, error, temp, logs = run_task({}, org_with_every_pur, plan_src=PLAIN, exit_code=1)
     check("load fails, restore fails: the load's error is kept", type(error).__name__, "CommandException")
+    # A lookup plan loads from a temp copy whose export.json holds the token: it is removed even
+    # when the restore raises (#666 review).
+    before, after, error, temp, logs = run_task({}, org_with_every_pur)
+    check("restore fails on a temp copy: the task fails", type(error).__name__, "OSError")
+    check("...and the temp copy is still removed", bool(temp) and not os.path.exists(temp), True)
 finally:
     rs._restore_export_json = saved_restore
 
@@ -447,6 +452,27 @@ try:
 finally:
     rs._restore_export_json = saved_restore
 shutil.rmtree(idem_root, ignore_errors=True)
+
+print("clear_credentials_under: the idempotency roundtrip's kept dir")
+# Persist mode keeps the roundtrip dir, and the second load ran from processed/export.json; a failed
+# restore there could leave the token behind, so every export.json under the dir is cleared (#666).
+keep = pathlib.Path(tempfile.mkdtemp())
+(keep / "processed").mkdir()
+for p in (keep / "export.json", keep / "processed" / "export.json"):
+    p.write_text(json.dumps({"orgs": [{"accessToken": "00Dxx!TOKEN"}], "objects": []}))
+untouched = b'{\n  "objects": [],\n  "note": "caf\xc3\xa9"\n}\n'
+(keep / "processed" / "clean").mkdir()
+(keep / "processed" / "clean" / "export.json").write_bytes(untouched)
+(keep / "processed" / "bad").mkdir()
+(keep / "processed" / "bad" / "export.json").write_text("{not json")
+warnings = []
+rs.clear_credentials_under(str(keep), warnings.append)
+check("every export.json under the dir is cleared",
+      [json.loads(p.read_text())["orgs"] for p in (keep / "export.json", keep / "processed" / "export.json")], [[], []])
+check("an unreadable one is reported, not raised", len(warnings), 1)
+check("one with no credentials is left byte-for-byte unchanged",
+      (keep / "processed" / "clean" / "export.json").read_bytes() == untouched, True)
+shutil.rmtree(keep, ignore_errors=True)
 
 print("DeleteSFDMUData: named sobjects on an Upsert plan")
 # qb-pricing has no Insert objects since todo 298, so its teardown names them. Each must be a type

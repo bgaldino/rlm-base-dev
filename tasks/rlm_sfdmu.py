@@ -193,6 +193,24 @@ def sf_query_records(org: str, soql: str) -> List[dict]:
     return payload.get("result", {}).get("records") or []
 
 
+def clear_credentials_under(directory: str, warn) -> None:
+    """Empty `orgs` in every export.json under `directory`. Never raises; an unreadable file is
+    reported through `warn`."""
+    for root, _dirs, files in os.walk(directory):
+        if EXPORT_JSON_FILENAME not in files:
+            continue
+        path = os.path.join(root, EXPORT_JSON_FILENAME)
+        try:
+            with open(path, "r") as f:
+                data = json.load(f)
+            if data.get("orgs"):
+                data["orgs"] = []
+                with open(path, "w") as f:
+                    json.dump(data, f, indent=2)
+        except Exception as e:
+            warn(f"Could not clear credentials from {path}: {e}")
+
+
 def _restore_export_json(path: str, original_text: str) -> None:
     """Undo a credential write: put back the exact bytes read before it, so a load leaves a
     tracked plan's export.json unchanged (re-dumping it dropped the trailing newline and escaped
@@ -561,10 +579,13 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             raise
         finally:
             self.logger.info('Cleaning up export.json...')
-            self._cleanup_export_json_file()
-            if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
-                shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
-                self.logger.info("Removed temp plan directory.")
+            try:
+                self._cleanup_export_json_file()
+            finally:
+                # Even when the restore raises: a temp plan copy's export.json may hold the token.
+                if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
+                    shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
+                    self.logger.info("Removed temp plan directory.")
 
     def _check_row_errors(self, baseline: Dict[str, float]) -> None:
         """Fail (or warn) on rows Salesforce rejected; the exit code does not show them."""
@@ -1274,18 +1295,11 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                 self._run_load_once(processed_dir)
                 self._run_post_load_apex_if_configured()
             finally:
-                # Always clear credentials from work_dir/export.json (persist mode leaves dir on disk)
+                # Always clear credentials from every export.json under work_dir: persist mode leaves
+                # the dir on disk, and the second load ran from processed/export.json, which a failed
+                # restore can leave holding the token (#666 review).
                 if work_dir and os.path.isdir(work_dir):
-                    export_in_work = os.path.join(work_dir, EXPORT_JSON_FILENAME)
-                    if os.path.isfile(export_in_work):
-                        try:
-                            with open(export_in_work, "r") as f:
-                                ej = json.load(f)
-                            ej["orgs"] = []
-                            with open(export_in_work, "w") as f:
-                                json.dump(ej, f, indent=2)
-                        except Exception as e:
-                            self.logger.warning(f"Could not clear credentials from {export_in_work}: {e}")
+                    clear_credentials_under(work_dir, self.logger.warning)
                     if use_temp:
                         shutil.rmtree(work_dir, ignore_errors=True)
                         self.logger.info("Removed extraction roundtrip temp directory.")
