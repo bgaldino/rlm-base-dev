@@ -56,13 +56,14 @@
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false,
-          "$comment": "ONE schedule per type, in the corporate currency (USD), as in qb-pricing. Upsert on Name, not Update: a 264 org seeds only the Attribute, Bundle and Price Adjustment Tier schedules, so 'Standard Tier Based Adjustment' and 'Standard Volume Based Adjustment' must be created here, and an Update left their tiers with no parent (measured on a fresh 264 q3 build, todo 319). Ordered before the child adjustments so each schedule exists first. The two volume schedules load IsActive=false: the platform rejects any PriceAdjustmentTier write while its schedule is active (#656)."
+          "$comment": "ONE schedule per type, in the corporate currency (USD), as in qb-pricing. Upsert on Name, not Update: a 264 org seeds only the Attribute, Bundle and Price Adjustment Tier schedules, so 'Standard Tier Based Adjustment' and 'Standard Volume Based Adjustment' are created here (todo 319). Ordered before the child adjustments so each schedule exists first. The volume schedules load IsActive=false: the platform rejects any PriceAdjustmentTier write while its schedule is active (#656)."
         },
         {
           "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound, PriceAdjustmentSchedule.Name, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
           "operation": "Upsert",
           "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom",
-          "excluded": false
+          "excluded": false,
+          "$comment": "Every tier hangs off 'Standard Price Adjustment Tier', the only volume schedule RLM_DefaultPricingProcedure reads (__VOLUMEPasID__), as in qb-pricing. On the source org's Tier/Volume Based schedules they never priced (measured on a fresh 264 q3 build, todo 319)."
         },
         {
           "query": "SELECT Name FROM AttributeBasedAdjRule ORDER BY Name ASC",

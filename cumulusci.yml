@@ -3672,7 +3672,7 @@ flows:
         # Leaves "Standard Price Adjustment Tier" inactive on purpose, and must not move
         # after prepare_pricing_data (step 9): the platform rejects any PriceAdjustmentTier
         # write while its schedule is active, and a pricing reload still writes new or
-        # corrected tiers. The q3 tier schedules stay inactive too. See the qb-pricing README.
+        # corrected tiers. The q3 Tier/Volume Based schedules (no tiers) stay inactive too. See the qb-pricing README.
         flow: prepare_price_adjustment_schedules
       7:
         flow: prepare_quantumbit
