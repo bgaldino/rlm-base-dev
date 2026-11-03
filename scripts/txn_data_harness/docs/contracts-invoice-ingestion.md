@@ -170,8 +170,8 @@ and explicit date pinning. Reference scenario:
 
 All four shapes settled `Invoice.Status='Posted'`, `CreationMode='External'`,
 `TotalTaxAmount=0`. Every `InvoiceLine.TaxTreatmentId` resolved to the
-oldest active non-taxable `TaxTreatment` (then `ORDER BY CreatedDate ASC
-LIMIT 1`), even on the org that had two qualifying rows. That held on this
+oldest active non-taxable `TaxTreatment` (the query was then `ORDER BY
+CreatedDate ASC LIMIT 1`), even on the org that had two qualifying rows. That held on this
 org only: qb-tax's per-legal-entity treatments load in the same batch as
 'Non Taxable Tax Treatment', so discovery now prefers it by name (above).
 
