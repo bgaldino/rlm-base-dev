@@ -186,41 +186,23 @@ class SFDMUValidator:
     }
 
     # Frozen snapshot of the header-only CSVs currently shipping under the deprioritized
-    # `q3` / `mfg` plan families (todo pack 162). These are DEFERRED — not real placeholders
-    # — until the 264 upgrade re-seeds those plans: `q3-dro` / `mfg-guidedselling` / the
-    # rest are never-populated stubs. (q3-billing's lost set left this list in todo 210, when
-    # q3 moved onto qb-billing's data and q3-billing kept only its product mapping.) The
-    # priority datasets are the `qb` series (verified clean of this shape, 0 findings).
+    # `mfg` plan family (todo pack 162). These are DEFERRED — not real placeholders — until
+    # the mfg re-seed: they are never-populated stubs. The q3 entries left this list in todo
+    # 210, when q3-billing and q3-dro were cut down to their product mappings. The priority
+    # datasets are the `qb` series (verified clean of this shape, 0 findings).
     #
     # Enumerated by EXACT plan-relative path (relative to datasets/sfdmu), deliberately NOT
-    # by family prefix: a family-wide skip would also silently swallow a NEWLY added q3/mfg
+    # by family prefix: a family-wide skip would also silently swallow a NEWLY added mfg
     # object, or one of these plans' currently-POPULATED CSVs later truncated to its header
-    # (e.g. q3-dro/Product2 ships 78 rows) — exactly the data-loss shape this
+    # (e.g. mfg-guidedselling/AssessmentQuestion.csv) — exactly the data-loss shape this
     # check exists to catch. Only these specific files are exempt; anything else still
     # produces the gating HIGH. Regenerate the set from the live tree (validator findings
     # with this deferral disabled), and delete entries as each plan is re-seeded.
-    #
-    # KNOWN EXCEPTION (pack 162 log): q3-dro/FulfillmentWorkspaceItem carries
-    # `deleteOldData: true`, so its header-only CSV is DESTRUCTIVE — running q3-dro would
-    # delete existing FulfillmentWorkspaceItem records and insert nothing. It is intentionally
-    # kept in this set (this shape was silent before pack 162 too; q3 is frozen until the
-    # post-264 re-seed by explicit project decision, and un-deferring it would block every PR
-    # on a plan the team chose not to run). The re-seed MUST re-populate this CSV or drop the
-    # deleteOldData/plan wiring; the destructive shape is tracked in the pack 162 log, not lost.
     _DEFERRED_EMPTY_CSV_PATHS = frozenset({
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionAssignment.csv",
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv",
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionSetConfig.csv",
         "mfg/en-US/mfg-pcm/UnitOfMeasureClass.csv",
-        "q3/en-US/q3-dro/FulfillmentFalloutRule.csv",
-        "q3/en-US/q3-dro/FulfillmentStepDefinition.csv",
-        "q3/en-US/q3-dro/FulfillmentStepDefinitionGroup.csv",
-        "q3/en-US/q3-dro/FulfillmentStepDependencyDef.csv",
-        "q3/en-US/q3-dro/FulfillmentStepJeopardyRule.csv",
-        "q3/en-US/q3-dro/FulfillmentWorkspace.csv",
-        "q3/en-US/q3-dro/FulfillmentWorkspaceItem.csv",
-        "q3/en-US/q3-dro/ProductFulfillmentDecompRule.csv",
-        "q3/en-US/q3-dro/ProductFulfillmentScenario.csv",
     })
 
     def _report_empty_csv_no_header(self, result, obj_name: str, csv_path: Path,
