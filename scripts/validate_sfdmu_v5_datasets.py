@@ -2016,7 +2016,7 @@ class SFDMUValidator:
                 # yields an empty (or all-blank) first record, so `headers` normalizes to
                 # all-empty here. That is still a no-header file: report it exactly like the
                 # StopIteration case above, and BEFORE the family deferral, so the no-header
-                # guarantee holds for q3/mfg too (the deferral covers only the header-only
+                # guarantee holds for mfg too (the deferral covers only the header-only
                 # finding, a strictly weaker signal).
                 if not any(h for h in headers):
                     self._report_empty_csv_no_header(result, obj_name, csv_path, pass_prefix)
@@ -2043,7 +2043,7 @@ class SFDMUValidator:
                 # lost its data rows (bad export, or a file truncated to just its header) passed
                 # validation cleanly. Mirror the severity split:
                 #   - allowlisted object → benign (this IS the expected placeholder state), DEBUG only.
-                #   - enumerated deferred q3/mfg file → this finding only is skipped (see
+                #   - enumerated deferred mfg file → this finding only is skipped (see
                 #     _DEFERRED_EMPTY_CSV_PATHS; other empty/key checks still fire, and a new
                 #     or newly-truncated file in the same plan is NOT exempt).
                 #   - any other object   → HIGH. Not CRITICAL: a present header is a weaker failure
@@ -2053,7 +2053,7 @@ class SFDMUValidator:
                         self.log(f"  Object {obj_name} has 0 data rows (known placeholder)", level="DEBUG")
                     elif self._is_deferred_empty_csv_plan(csv_path):
                         self.log(f"  {obj_name} has 0 data rows in a deferred plan tree "
-                                 "(pending post-264 refresh) — not flagged", level="DEBUG")
+                                 "(pending the mfg re-seed) — not flagged", level="DEBUG")
                     else:
                         result.add_issue(Issue(
                             severity=Severity.HIGH,

@@ -2276,7 +2276,7 @@ def main() -> int:
                  ("a header-only (0-row) CSV for a non-allowlisted object is reported HIGH, "
                   "not silently passed",
                   HEADER_ONLY_CSV_REPORTED),
-                 ("the deferred q3/mfg plan trees skip the header-only check; qb is still checked",
+                 ("the deferred mfg plan files skip the header-only check; qb is still checked",
                   DEFERRED_PLAN_SKIP),
                  ("the deferral fires end-to-end and covers only header-only, not no-header, "
                   "and only for enumerated files",
