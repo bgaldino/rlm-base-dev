@@ -39,6 +39,9 @@ ID_PREFIX_MAP = {
 # ---------------------------------------------------------------------------
 # CML validation regex patterns
 # ---------------------------------------------------------------------------
+# The leading annotation prefix is `(?:@\(.*\)\s*)?`, not `*`: the greedy `.*` already
+# spans every `@(...)` on the line, and repeating the group made a non-matching line
+# backtrack exponentially in its annotation count (CodeQL py/redos).
 TYPE_RE = re.compile(
     r"^\s*type\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*([A-Za-z_][A-Za-z0-9_]*))?\s*(\{|;)\s*$"
 )
@@ -47,14 +50,14 @@ RELATION_RE = re.compile(
     r"^\s*relation\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)"
 )
 EXTERN_RE = re.compile(
-    r"^\s*(?:@\(.*\)\s*)*extern\s+([A-Za-z0-9_()]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(=\s*[^;]+)?;"
+    r"^\s*(?:@\(.*\)\s*)?extern\s+([A-Za-z0-9_()]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(=\s*[^;]+)?;"
 )
 CONSTRAINT_LINE_RE = re.compile(
-    r"^\s*(?:@\(.*\)\s*)*(constraint|message|preference|require|exclude|rule|setdefault)\b"
+    r"^\s*(?:@\(.*\)\s*)?(constraint|message|preference|require|exclude|rule|setdefault)\b"
 )
 ORDER_RE = re.compile(r"order\s*\(([^)]*)\)")
 FIELD_RE = re.compile(
-    r"^\s*(?:@\(.*\)\s*)*(string|int|boolean|decimal(?:\(\d+\))?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);"
+    r"^\s*(?:@\(.*\)\s*)?(string|int|boolean|decimal(?:\(\d+\))?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);"
 )
 DEFAULT_RE = re.compile(r"defaultValue\s*=\s*(\"[^\"]*\"|[^,\)]+)")
 RANGE_RE = re.compile(r"\[\s*(\d+)\s*\.\.\s*(\d+)\s*\]")
