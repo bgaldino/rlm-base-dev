@@ -34,7 +34,7 @@ The fix was to **stop deleting**: match existing rows on a stable key and update
 
 ### 1. Every load matches; nothing deletes
 
-Each writable object is `Upsert` (or `Update`) on an externalId that identifies the record
+In a converted plan, each writable object is `Upsert` (or `Update`) on an externalId that identifies the record
 across orgs. A reload finds the existing row and updates it, or inserts it if it's missing.
 The SFDMU v5.6.4 floor makes this possible for relationship-traversal keys (the historical
 Upsert-matching bugs are fixed upstream; only Bug 4, `$$` in a lookup column, is still live).
@@ -97,7 +97,7 @@ reference it, but only as `Readonly`.
 |---|---|---|
 | Legal entities, tax engine, tax treatments and policies | qb-tax | q3-tax maps the q3 products onto them |
 | Accounting periods, billing policies and treatments, GL accounts, payment terms | qb-billing | q3-billing maps the q3 products onto them |
-| Price adjustment schedules | the platform seeds them; each pricing plan upserts the ones it uses on `Name` | |
+| Price adjustment schedules | the platform seeds them; qb-pricing and q3-pricing upsert the ones they use on `Name` | mfg-pricing and qb/ja still `Update` them |
 | Currency types | each shape's pricing plan, on `IsoCode` | a shape that adds a currency adds its prices too |
 | Products, price book entries, rates, usage resources | the shape's own pcm, pricing, rates and rating plans, keyed on the shape's SKUs | |
 
@@ -144,7 +144,7 @@ alignment doesn't drop the extra key part.
 | `delete_quantumbit_pricing_data`, `delete_q3_pricing_data` | manual full teardown only; no flow runs them | deletes every record of the plan's pricing types, org-wide |
 | `delete_qb_rates_data`, `delete_q3_rates_data`, `delete_qb_rating_data`, `delete_q3_rating_data` | manual full teardown only; no flow runs them | Apex that deactivates Active records first, then deletes in dependency order |
 | qb-dro `FulfillmentWorkspaceItem` | `Upsert` + `deleteOldData: true` in a flow plan | a pre-5.6.4 workaround; dropping it needs live verification and owner approval |
-| mfg plans | 9 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing | converted with the mfg series (todo 111) |
+| mfg plans | 11 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing | converted with the mfg series (todo 111) |
 | qb/ja qb-pricing | 7 `Insert` declarations | brought up to the en-US plan in the qb/ja refresh (todo 212) |
 
 The rules for anything that stays destructive:
@@ -157,8 +157,9 @@ The rules for anything that stays destructive:
   manual step on a disposable org.
 - **A rejected row fails the load** (`fail_on_row_errors`, default on). A plan that rejects rows
   on a fresh build today lists each object in `ignore_row_errors_for`. The task accepts a bare
-  object name, but give the expected error substring and a comment saying why, so that a new
-  kind of rejection still fails.
+  object name, but use the mapping form, `{Object: "expected error substring"}`, with a comment
+  saying why. A rejection is then ignored only if every error contains the substring, so a new
+  kind still fails.
 
 ## Options considered and rejected
 
