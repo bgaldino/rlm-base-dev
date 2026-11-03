@@ -228,7 +228,7 @@ class SFDMUValidator:
             ))
 
     def _is_deferred_empty_csv_plan(self, csv_path: Path) -> bool:
-        """True if csv_path is one of the enumerated known-empty q3/mfg CSVs deferred
+        """True if csv_path is one of the enumerated known-empty mfg CSVs deferred
         pending the post-264 re-seed (pack 162 / _DEFERRED_EMPTY_CSV_PATHS). Matched by
         EXACT path relative to datasets/sfdmu, so only those specific files are exempt —
         a new object, or a currently-populated sibling in the same plan later truncated to

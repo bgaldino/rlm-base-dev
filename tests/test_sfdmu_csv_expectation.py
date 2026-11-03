@@ -1860,8 +1860,8 @@ NO_HEADER_AND_BLANK_ROWS_DETECTED = [
 ]
 
 # The `mfg` plan tree carries 4 live header-only CSVs (mfg-guidedselling / mfg-pcm never-populated
-# stubs; the q3-billing and q3-dro sets left in todo 210) — all deferred until
-# the 264 upgrade re-seeds them (pack 162). The deferral is ENUMERATED by exact plan-relative path
+# stubs), all deferred until the mfg re-seed (pack 162). The q3-billing and q3-dro entries left
+# the list in todo 210. The deferral is ENUMERATED by exact plan-relative path
 # (not family-wide, per the Codex #427 finding): it protects the priority `qb` datasets AND still
 # fires on a new object or a currently-populated mfg CSV later truncated to its header. Tested on
 # the method directly: the synthetic-plan harness writes under a temp dir outside `sfdmu_base`, so
