@@ -23,5 +23,8 @@
     "globals": "^15.15.0",
     "prettier": "^3.9.10",
     "prettier-plugin-apex": "^2.3.0"
+  },
+  "overrides": {
+    "@babel/core": "^7.29.6"
   }
 }
