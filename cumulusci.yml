@@ -4214,7 +4214,7 @@ flows:
         # q3 builds load the qb billing design too, so Billing Settings (step 9) resolves its
         # qb record names; step 3 then maps the q3 products onto its policies (todo 210).
         # Billing needs tax on: qb-tax (prepare_tax) creates the legal entities qb-billing reads, and
-        # Billing Settings (step 9) resolves qb-tax's 'Default Tax Policy' treatment. q3 skips the
+        # Billing Settings (step 9) resolves qb-tax's US legal entity and 'Default Tax Policy' treatment. q3 skips the
         # load without tax; step 9 fails either way.
         task: insert_billing_data
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and (project_config.project__custom__qb or (project_config.project__custom__q3 and project_config.project__custom__tax))

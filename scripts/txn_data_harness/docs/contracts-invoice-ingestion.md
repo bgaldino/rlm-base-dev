@@ -170,10 +170,10 @@ and explicit date pinning. Reference scenario:
 
 All four shapes settled `Invoice.Status='Posted'`, `CreationMode='External'`,
 `TotalTaxAmount=0`. Every `InvoiceLine.TaxTreatmentId` resolved to the
-oldest active non-taxable `TaxTreatment` (deterministic via
-`ORDER BY CreatedDate ASC`; the name and `Default`-selection preference came later), even on the org that had two
-qualifying rows -- confirms the discovery tiebreaker is stable across
-seeding operations.
+oldest active non-taxable `TaxTreatment` (then `ORDER BY CreatedDate ASC
+LIMIT 1`), even on the org that had two qualifying rows. That held on this
+org only: qb-tax's per-legal-entity treatments load in the same batch as
+'Non Taxable Tax Treatment', so discovery now prefers it by name (above).
 
 ## Tax-on Posted Path
 
