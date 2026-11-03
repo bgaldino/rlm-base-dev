@@ -25,7 +25,7 @@ A separate flow, `prepare_price_adjustment_schedules`, activates the platform-se
 - **How:** `activatePriceAdjustmentSchedules.apex` skips "Standard Price Adjustment Tier", and this plan's `PriceAdjustmentSchedule.csv` upserts it with `IsActive=false`. A build ends with the Attribute and Bundle schedules active and the Tier schedule inactive, and a `prepare_rlm_org` rerun can still reload the tiers. (Before 2026-10-30 the script activated it too, so a full rerun failed at the tier delete.)
 - **Don't** activate it, move the activation after this plan, or flip the CSV row to `true` (PR #498, closed). If you activate it by hand, deactivate it before the next pricing load.
 - **It still prices:** on a fresh 264 build, QB-MSG-STRT Term Annual (list 30,000) priced at 30,000 for quantity 2, 27,000 for quantity 8 (10%) and 25,500 for quantity 13 (15%) through Place Sales Transaction (2026-10-30, USD). Salesforce Help says to activate the schedule after adding tiers; on 264 the tiers price without it. Whether anything else depends on the flag is tracked internally.
-- **Scope:** this covers this plan's tiers, which all hang off "Standard Price Adjustment Tier". The q3 and qb/ja plans put tiers on "Standard Tier Based Adjustment" and "Standard Volume Based Adjustment", which the script still activates. Whether those reload cleanly hasn't been verified.
+- **Scope:** this plan's tiers all hang off "Standard Price Adjustment Tier". The q3 tiers hang off "Standard Tier Based Adjustment" and "Standard Volume Based Adjustment"; q3-pricing keeps both inactive and the script no longer activates them (todo 319). qb/ja's plan declares its "Standard Volume Based Adjustment" active (an Update, so only if the org already has it); its reload hasn't been verified (todo 212).
 
 ### Task Definitions
 
@@ -88,11 +88,10 @@ activatePriceAdjustmentSchedules  ->  Upsert/Update/Readonly
 Activates the standard PriceAdjustmentSchedule records it finds inactive, by name:
 - Standard Attribute Based Adjustment
 - Standard Bundle Based Adjustment
-- Standard Tier Based Adjustment
-- Standard Volume Based Adjustment
 
-A 264 org seeds only the first two of these, plus "Standard Price Adjustment Tier", which the script skips on
-purpose (see above). The flow step has no org-type condition, so it runs on every org.
+A 264 org seeds both, plus "Standard Price Adjustment Tier", which the script skips on purpose (see above). It
+also skips "Standard Tier Based Adjustment" and "Standard Volume Based Adjustment", which hold the q3 tiers
+(todo 319). The flow step has no org-type condition, so it runs on every org.
 
 ## Key Object Groups
 

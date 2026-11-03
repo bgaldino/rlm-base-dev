@@ -271,7 +271,7 @@ prepare_rlm_org
 ├── 14. prepare_collections [child steps gated on collections]
 ├── 15. prepare_analytics
 ├── 16. prepare_clm
-├── 17. prepare_rating (reload in place + activate for rating+rates; q3 still deletes)
+├── 17. prepare_rating (reload in place + activate for rating+rates)
 ├── 18. activate_and_deploy_expression_sets
 ├── 19. prepare_approvals_pricing [child steps gated on quantumbit + approvals]
 ├── 20. prepare_tso (TSO-specific PSLs, PSGs, deploy)

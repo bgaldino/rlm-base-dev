@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**273 tasks** across **9 groups**.
+**276 tasks** across **9 groups**.
 
 ---
 
@@ -25,19 +25,20 @@
 
 ### `delete_q3_pricing_data`
 
-**Description:** Delete all Insert-operation records from the q3-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic. Run before insert_q3_pricing_data so q3 pricing loads (plain Insert, no deleteOldData) are safe to rerun.
+**Description:** Manual full teardown only: delete every CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition and PriceAdjustmentTier record in the org, in reverse plan order (children first). prepare_pricing_data reloads q3-pricing in place (Upsert) and no longer runs it. On a built org the platform blocks some of these deletes (AttributeAdjustmentCondition, entries referenced by quotes).
 
 **Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pricing`
+- `sobjects`: `['PriceAdjustmentTier', 'AttributeAdjustmentCondition', 'AttributeBasedAdjustment', 'BundleBasedAdjustment', 'Pricebo...`
 
 ---
 
 ### `delete_q3_rates_data`
 
-**Description:** Delete all rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard), deactivating Active records first. Shape-agnostic — reuses deleteQbRatesData.apex. Run before re-inserting q3-rates so a rerun on a q3 org doesn't fail deleting Active records (the q3-rates plan uses Insert+deleteOldData and activation makes them Active).
+**Description:** Delete all rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order, deactivating Active entries first. Shape-agnostic — reuses deleteQbRatesData.apex. Manual full teardown only; prepare_rating reloads q3-rates in place and no longer runs it.
 
 **Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
 
@@ -49,7 +50,7 @@
 
 ### `delete_q3_rating_data`
 
-**Description:** Delete all rating data (PUG, PURP, PUR, RatingFrequencyPolicy, etc.), deactivating Active PUGs first. Shape-agnostic — reuses deleteQbRatingData.apex. Run before re-inserting q3-rating so a rerun on a q3 org doesn't fail deleting Active records.
+**Description:** Delete all rating data (PUG, PURP, PUR, RatingFrequencyPolicy, etc.) in dependency order, deactivating Active PUGs first. Shape-agnostic — reuses deleteQbRatingData.apex. Manual full teardown only; prepare_rating reloads q3-rating in place and no longer runs it.
 
 **Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
 
@@ -138,7 +139,7 @@
 
 ## Data Management - Extract
 
-*26 task(s)*
+*27 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -221,6 +222,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-rating`
+
+---
+
+### `extract_q3_rating_entitlements_data`
+
+**Description:** Extract q3-rating-entitlements (usage policies and grants) from org to CSV, aligned to the qb-rating-entitlements schema. Output in datasets/sfdmu/extractions/q3-rating-entitlements/<timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-rating-entitlements`
 
 ---
 
@@ -455,7 +468,7 @@
 
 ## Data Management - Idempotency
 
-*23 task(s)*
+*24 task(s)*
 
 ### `test_q3_billing_idempotency`
 
@@ -523,6 +536,20 @@
 
 ---
 
+### `test_q3_rating_entitlements_idempotency`
+
+**Description:** Idempotency test for q3-rating-entitlements (needs q3-rating loaded). Uses extraction roundtrip (extract -> post-process -> load from processed dir); each load resolves resource Ids on the org first. Persists extraction output to datasets/sfdmu/extractions/q3-rating-entitlements/<timestamp>.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-rating-entitlements`
+- `use_extraction_roundtrip`: `True`
+- `persist_extraction_output`: `True`
+
+---
+
 ### `test_q3_rating_idempotency`
 
 **Description:** Idempotency test for q3-rating (load twice from source, assert no new records).
@@ -545,7 +572,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-tax`
-- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -857,7 +883,7 @@
 
 ## Revenue Lifecycle Management
 
-*178 task(s)*
+*179 task(s)*
 
 ### `activate_agents`
 
@@ -2454,13 +2480,25 @@
 
 ### `insert_q3_rating_data`
 
-**Description:** Insert Q3 Rating Data
+**Description:** Insert Q3 Rating Data (usage definitions and product usage resources; run insert_q3_rating_entitlements_data next)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-rating`
+
+---
+
+### `insert_q3_rating_entitlements_data`
+
+**Description:** Insert Q3 usage policies and grants on each product usage resource (run after insert_q3_rating_data; resolves resource Ids on the target org)
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-rating-entitlements`
 
 ---
 
@@ -2473,7 +2511,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-tax`
-- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 
 ---
 

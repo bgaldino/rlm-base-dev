@@ -6,7 +6,8 @@ can't: which org the `sf` CLI is pointed at (never the access token); that Ids r
 copy without the SFDMU runtime dirs; that a whole `_run_task` (SFDMU stubbed) of a lookups plan
 leaves the tracked plan byte-for-byte unchanged on success, a bad option and a failed lookup; and
 that a plan loaded in place has its credentials cleared after a failed run, is untouched by an
-early failure, and never has the access token logged.
+early failure, and never has the access token logged. A load, filtered or not, also restores
+the exact bytes of export.json it read (todo 319).
 
 Also `TestSFDMUIdempotency`'s second-load rule for a listed insert rejection both loads have, and
 `DeleteSFDMUData`'s `sobjects` option, which the qb-pricing teardown needs now that the plan has
@@ -194,6 +195,18 @@ check("in place, SFDMU fails: credentials cleared from export.json", restored.ge
 check("in place, SFDMU fails: object sets intact",
       restored["objectSets"] == json.loads(plain_export)["objectSets"], True)
 check("the access token is never logged", any("00Dxx!TOKEN" in m for m in logs), False)
+# A load restores the exact bytes it read: re-dumping dropped a trailing newline and escaped
+# non-ASCII text, so the plan showed as modified after every load (todo 319).
+NEWLINE_PLAN = REPO / "datasets/sfdmu/q3/en-US/q3-rates"
+check("fixture: q3-rates export.json ends with a newline",
+      (NEWLINE_PLAN / "export.json").read_bytes().endswith(b"\n"), True)
+for code in (0, 1):
+    before, after, error, temp, logs = run_task({}, org_with_every_pur, plan_src=NEWLINE_PLAN, exit_code=code)
+    check(f"in place (exit {code}): export.json byte-for-byte unchanged",
+          after[pathlib.Path("export.json")] == before[pathlib.Path("export.json")], True)
+before, after, error, temp, logs = run_task({"object_sets": "[0]"}, org_with_every_pur, plan_src=NEWLINE_PLAN)
+check("in place, filtered run: export.json byte-for-byte unchanged",
+      after[pathlib.Path("export.json")] == before[pathlib.Path("export.json")], True)
 before, after, error, temp, logs = run_task({"object_sets": "[0]"}, org_with_every_pur, plan_src=PLAIN, exit_code=1)
 check("in place, filtered run fails: every object set restored",
       json.loads(after[pathlib.Path("export.json")])["objectSets"] == json.loads(plain_export)["objectSets"], True)
@@ -382,6 +395,11 @@ check("two passes: the first load's pass-2 rejections don't excuse new ones in p
       two_loads({PP2: (5, LISTED)}, {PP: (3, LISTED), PP2: (5, LISTED)}), "load 2 failed: ProrationPolicy")
 check("two passes: each pass's own repeated rejections pass",
       two_loads({PP: (5, LISTED), PP2: (1, LISTED)}, {PP: (5, LISTED), PP2: (1, LISTED)}), "passed")
+idem_bytes = '{\n  "objects": [],\n  "note": "café"\n}\n'.encode()
+(idem_dir / "export.json").write_bytes(idem_bytes)
+two_loads({}, {})
+check("idempotency load: export.json byte-for-byte unchanged (newline, non-ASCII)",
+      (idem_dir / "export.json").read_bytes() == idem_bytes, True)
 shutil.rmtree(idem_root, ignore_errors=True)
 
 print("DeleteSFDMUData: named sobjects on an Upsert plan")

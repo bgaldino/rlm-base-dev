@@ -1,17 +1,17 @@
-Code,Status
-API001,Active
-API002,Active
-API003,Active
-API004,Active
-API005,Active
-CS001,Active
-CS002,Active
-CS003,Active
-CS004,Active
-CS005,Active
-DS,Active
-DSU,Active
-URCALLS01,Active
-URCASE01,Active
-URDATA01,Active
-URSMS01,Active
+Category,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,TokenResource.Code,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit
+Usage,API001,CALLS,,API Calls,,COUNT,
+Usage,API002,GB,,Data Transfers,,DAT01,
+Usage,API003,SESH,,User Sessions,,COUNT,
+Usage,API004,LOGS,,Error Logs,,COUNT,
+Usage,API005,TPS,,Rate Limits,,COUNT,
+Usage,CS001,GB,,Storage Data,,DAT01,
+Usage,CS002,GB,,Backup Data,,DAT01,
+Usage,CS003,XFER,,File Transfers,,COUNT,
+Usage,CS004,ACCTS,,User Accounts,,COUNT,
+Usage,CS005,LOGS,,Access Logs,,COUNT,
+Usage,DS,BASIC-GB,,Basic: Data Storage,,GB,
+Token,DSU,Basic: Data Units,,Basic: Data Storage Units,,DSU,
+Usage,URCALLS01,MIN,,Usage for Calls,,CALLUNITS01,
+Usage,URCASE01,Each,,Usage for Case,,CAS01,
+Usage,URDATA01,MB,,Usage for Data,,DAT01,
+Usage,URSMS01,Count,,Usage for SMS,,SMS01,

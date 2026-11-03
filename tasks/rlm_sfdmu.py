@@ -193,6 +193,22 @@ def sf_query_records(org: str, soql: str) -> List[dict]:
     return payload.get("result", {}).get("records") or []
 
 
+def _restore_export_json(path: str, original_text: str) -> None:
+    """Undo a credential write: put back the exact bytes read before it, so a load leaves a
+    tracked plan's export.json unchanged (re-dumping it dropped the trailing newline and escaped
+    non-ASCII text, todo 319). An original that already held credentials (an earlier run killed
+    mid-load) is rebuilt from what was read with the credentials cleared; never from the file,
+    which a failed write may have truncated."""
+    original = json.loads(original_text)
+    if not original.get("orgs"):
+        with open(path, "w", encoding="utf-8", newline="") as file:
+            file.write(original_text)
+        return
+    original["orgs"] = []
+    with open(path, "w") as file:
+        json.dump(original, file, indent=2)
+
+
 class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
     keychain_class = BaseProjectKeychain
     task_options: Dict[str, Dict[str, Any]] = {
@@ -301,8 +317,9 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             raise FileNotFoundError(f"export.json is missing: {export_json_path}")
         
         try:
-            with open(export_json_path, "r") as file:
-                export_json = json.load(file)
+            with open(export_json_path, "r", encoding="utf-8", newline="") as file:
+                original_text = file.read()
+            export_json = json.loads(original_text)
 
             object_sets = self.options.get("object_sets")
             if object_sets is not None:
@@ -315,7 +332,6 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                     raise TaskOptionsError(
                         f"object_sets {object_sets} out of range for {len(all_sets)} object sets"
                     )
-                self._original_object_sets = all_sets
                 export_json["objectSets"] = filtered
                 self.logger.info(f"Running only object sets (0-based): {object_sets}")
 
@@ -326,9 +342,11 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             }
             export_json["orgs"] = [org_data]
 
+            # Set before the write: if it fails partway, cleanup still restores the original.
+            self._prepared_export_json = export_json_path
+            self._original_export_json_text = original_text
             with open(export_json_path, "w") as file:
                 json.dump(export_json, file, indent=2)
-            self._prepared_export_json = export_json_path
 
             # Never log the access token: it lands in CCI logs and CI output.
             self.logger.info("Formatted EXPORT.JSON: "
@@ -347,16 +365,10 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         if not export_json_path:
             return
         self._prepared_export_json = None
+        original_text = self._original_export_json_text
+        self._original_export_json_text = None
         try:
-            with open(export_json_path, "r") as file:
-                export_json = json.load(file)
-
-            export_json["orgs"] = []
-            if getattr(self, "_original_object_sets", None) is not None:
-                export_json["objectSets"] = self._original_object_sets
-
-            with open(export_json_path, "w") as file:
-                json.dump(export_json, file, indent=2)
+            _restore_export_json(export_json_path, original_text)
         except (json.JSONDecodeError, IOError) as e:
             self.logger.error(f"Error cleaning up export.json: {e}")
 
@@ -512,7 +524,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
     
     def _run_task(self) -> None:
         self._prepared_export_json = None
-        self._original_object_sets = None
+        self._original_export_json_text = None
         try:
             self._prep_runtime()
             
@@ -1056,18 +1068,20 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
         export_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
         if not os.path.isfile(export_path):
             raise FileNotFoundError(f"export.json not found: {export_path}")
-        with open(export_path, "r") as f:
-            export_json = json.load(f)
+        with open(export_path, "r", encoding="utf-8", newline="") as f:
+            original_text = f.read()
+        export_json = json.loads(original_text)
         org_data = {"name": self._get_org_for_cli(), "accessToken": self.accesstoken, "instanceUrl": self.instanceurl}
-        export_json["orgs"] = [org_data]
-        with open(export_path, "w") as f:
-            json.dump(export_json, f, indent=2)
-        trimmed = self.instanceurl.replace("https://", "").replace("http://", "")
-        cmd = f"sf sfdmu run --sourceusername CSVFILE --targetusername {self._get_org_for_cli()} -p {plan_dir} --canmodify {trimmed} --noprompt --verbose"
-        self.logger.info(f"Running SFDMU: {self._redact(cmd)}")
         result = None
-        baseline = sfdmu_export.snapshot_target_files(plan_dir)
+        # The try starts before the credential write, so a write that fails partway is restored too.
         try:
+            export_json["orgs"] = [org_data]
+            with open(export_path, "w") as f:
+                json.dump(export_json, f, indent=2)
+            trimmed = self.instanceurl.replace("https://", "").replace("http://", "")
+            cmd = f"sf sfdmu run --sourceusername CSVFILE --targetusername {self._get_org_for_cli()} -p {plan_dir} --canmodify {trimmed} --noprompt --verbose"
+            self.logger.info(f"Running SFDMU: {self._redact(cmd)}")
+            baseline = sfdmu_export.snapshot_target_files(plan_dir)
             result = subprocess.run(
                 cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir")
             )
@@ -1107,10 +1121,12 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                     "SFDMU reported success, but Salesforce rejected rows, so record counts cannot "
                     "show idempotency:\n" + sfdmu_export.format_target_row_errors(rejected))
         finally:
-            # Always clear injected org credentials from export.json
-            export_json["orgs"] = []
-            with open(export_path, "w") as f:
-                json.dump(export_json, f, indent=2)
+            # Always clear injected org credentials. A failed restore is logged, not raised, so
+            # it can't replace the error that ended the load.
+            try:
+                _restore_export_json(export_path, original_text)
+            except IOError as e:
+                self.logger.error(f"Error restoring export.json: {e}")
 
     def _run_extract_once(self, work_dir: str) -> None:
         """Extract from org into work_dir (must contain export.json with orgs injected)."""
