@@ -81,7 +81,8 @@ ProductCategoryProduct.csv               # 72 records
   `FreeTrial`. The platform rejects a FreeTrial segment until its product has a Yearly or Custom
   segment, and within one batch that segment doesn't exist yet. This was measured on a fresh 264
   build (todo 319). Pass 2 declares Product2 and ProductSellingModel `Readonly`, so the segment
-  lookups resolve.
+  lookups resolve. `extract_q3_pcm_data` extracts pass 1 only (`object_sets: "[0]"`): pass 2 would
+  re-extract those parents with only Id and Name and overwrite pass 1's files.
 - **`ProductCategoryProduct.IsPrimaryCategory`** is `false` in every row. On 264 the field takes a
   boolean, and a blank value is rejected.
 - **APTRG001 (AI Specialist Training) has no category.** It is sold only with other products

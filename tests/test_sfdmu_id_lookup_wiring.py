@@ -236,6 +236,17 @@ before, after, error, temp, logs = run_task({"object_sets": "[7]"}, org_with_eve
 check("in place, bad object_sets: the option error surfaces", type(error).__name__, "TaskOptionsError")
 check("in place, bad object_sets: export.json byte-for-byte unchanged",
       after[pathlib.Path("export.json")] == before[pathlib.Path("export.json")], True)
+# The same rule on LoadSFDMUData: a failed restore after a successful load fails the task, and
+# after a failed load the load's own error is the one raised (#666 review).
+saved_restore = rs._restore_export_json
+rs._restore_export_json = lambda *_a, **_k: (_ for _ in ()).throw(IOError("disk full"))
+try:
+    before, after, error, temp, logs = run_task({}, org_with_every_pur, plan_src=PLAIN)
+    check("load succeeds, restore fails: the task fails", type(error).__name__, "OSError")
+    before, after, error, temp, logs = run_task({}, org_with_every_pur, plan_src=PLAIN, exit_code=1)
+    check("load fails, restore fails: the load's error is kept", type(error).__name__, "CommandException")
+finally:
+    rs._restore_export_json = saved_restore
 
 print("ExtractSFDMUData: the token is never logged")
 extract_logs = []
@@ -400,6 +411,41 @@ idem_bytes = '{\n  "objects": [],\n  "note": "café"\n}\n'.encode()
 two_loads({}, {})
 check("idempotency load: export.json byte-for-byte unchanged (newline, non-ASCII)",
       (idem_dir / "export.json").read_bytes() == idem_bytes, True)
+
+
+def restore_fails(*_a, **_k):
+    raise IOError("disk full")
+
+
+# A restore that fails after a successful load must fail the task, since export.json may still
+# hold the access token; after a failed load the load's own error is kept (#666 review).
+saved_restore = rs._restore_export_json
+rs._restore_export_json = restore_fails
+try:
+    task, saved_run = idem_task(), rs.subprocess.run
+    rs.subprocess.run = fake_load({}, 1_000_500)
+    try:
+        task._run_load_in(str(idem_dir), strict=False)
+        outcome = "returned"
+    except IOError:
+        outcome = "IOError"
+    finally:
+        rs.subprocess.run = saved_run
+    check("idempotency load succeeds, restore fails: the task fails", outcome, "IOError")
+    task = idem_task()
+    rs.subprocess.run = lambda *_a, **_k: type("R", (), {"returncode": 1, "stdout": "", "stderr": ""})()
+    try:
+        task._run_load_in(str(idem_dir), strict=False)
+        outcome = "returned"
+    except rs.CommandException:
+        outcome = "CommandException"
+    except IOError:
+        outcome = "IOError"
+    finally:
+        rs.subprocess.run = saved_run
+    check("idempotency load fails, restore fails: the load's error is kept", outcome, "CommandException")
+finally:
+    rs._restore_export_json = saved_restore
 shutil.rmtree(idem_root, ignore_errors=True)
 
 print("DeleteSFDMUData: named sobjects on an Upsert plan")

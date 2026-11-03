@@ -370,7 +370,11 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         try:
             _restore_export_json(export_json_path, original_text)
         except (json.JSONDecodeError, IOError) as e:
-            self.logger.error(f"Error cleaning up export.json: {e}")
+            self.logger.error(f"Error cleaning up export.json (it may still hold credentials): {e}")
+            # After a successful load this fails the task, since the file may still hold the
+            # access token; after a failed load the original error is kept.
+            if not getattr(self, "_load_failed", False):
+                raise
 
     def _get_target_org_user_name(self) -> str:
         """Query the target org for the current user's Name (e.g. 'User User' or 'Admin User').
@@ -525,6 +529,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
     def _run_task(self) -> None:
         self._prepared_export_json = None
         self._original_export_json_text = None
+        self._load_failed = False
         try:
             self._prep_runtime()
             
@@ -551,6 +556,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self._check_row_errors(baseline)
             
         except Exception as e:
+            self._load_failed = True
             self.logger.error(f"An error occurred: {self._redact(e)}")
             raise
         finally:
@@ -1121,12 +1127,16 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                     "SFDMU reported success, but Salesforce rejected rows, so record counts cannot "
                     "show idempotency:\n" + sfdmu_export.format_target_row_errors(rejected))
         finally:
-            # Always clear injected org credentials. A failed restore is logged, not raised, so
-            # it can't replace the error that ended the load.
+            # Always clear injected org credentials. A failed restore after a successful load
+            # fails the task: the file may still hold the access token. After a failed load it
+            # is logged instead, so it can't replace the error that ended the load.
+            load_failed = sys.exc_info()[0] is not None
             try:
                 _restore_export_json(export_path, original_text)
             except IOError as e:
-                self.logger.error(f"Error restoring export.json: {e}")
+                self.logger.error(f"Error restoring export.json (it may still hold credentials): {e}")
+                if not load_failed:
+                    raise
 
     def _run_extract_once(self, work_dir: str) -> None:
         """Extract from org into work_dir (must contain export.json with orgs injected)."""
@@ -1358,7 +1368,8 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 "with qb instead of inheriting its own (possibly stale) CSV schema. "
                 "If omitted, the qb/en-US sibling is auto-derived from the plan path when "
                 "it exists and differs from the plan; pass 'none' to disable alignment and "
-                "use the plan's own CSV schema."
+                "use the plan's own CSV schema. Objects the plan lists in its export.json "
+                "'$ownSchemaObjects' keep their own schema either way (a key the reference lacks)."
             ),
             "required": False
         },

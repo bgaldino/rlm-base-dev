@@ -2991,17 +2991,21 @@ tasks:
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *q3_pcm_dataset
+      # Pass 1 only: pass 2 just loads the FreeTrial ramp segments, and on an extract it
+      # re-fetches its parents (Product2, ProductSellingModel) and their lookups with only Id and
+      # Name, overwriting pass 1's full files (todo 319). Pass 1 extracts every segment.
+      object_sets: "[0]"
 
   extract_q3_pricing_data:
     group: Data Management - Extract
-    description: "Extract q3-pricing from org to CSV, aligned to the qb-pricing schema. Output in datasets/sfdmu/extractions/q3-pricing/<timestamp>/processed/. Use run_post_process false to skip."
+    description: "Extract q3-pricing from org to CSV, aligned to the qb-pricing schema except PricebookEntry and its derived prices, which keep their own price-book key. Output in datasets/sfdmu/extractions/q3-pricing/<timestamp>/processed/. Use run_post_process false to skip."
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *q3_pricing_dataset
 
   extract_q3_rates_data:
     group: Data Management - Extract
-    description: "Extract q3-rates from org to CSV, aligned to the qb-rates schema. Output in datasets/sfdmu/extractions/q3-rates/<timestamp>/processed/. Use run_post_process false to skip."
+    description: "Extract q3-rates from org to CSV, aligned to the qb-rates schema except RateCardEntry and its tiers, which keep their own selling-model key. Output in datasets/sfdmu/extractions/q3-rates/<timestamp>/processed/. Use run_post_process false to skip."
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *q3_rates_dataset
@@ -3191,6 +3195,9 @@ tasks:
       # a rerun whose inserts are rejected instead of matched would otherwise read as idempotent.
       ignore_row_errors_for:
         ProrationPolicy: "duplicate value found"
+      # Keep the roundtrip off, or give the extract object_sets [0] as extract_q3_pcm_data does:
+      # an all-pass extract lets pass 2 overwrite pass 1's Product2/UnitOfMeasure/classification
+      # files with Id and Name only (todo 319).
       use_extraction_roundtrip: false
 
   test_q3_pricing_idempotency:

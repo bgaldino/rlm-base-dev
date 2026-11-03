@@ -1,4 +1,9 @@
 {
+  "$ownSchemaObjects": [
+    "PricebookEntry",
+    "PricebookEntryDerivedPrice"
+  ],
+  "$comment_ownSchemaObjects": "PricebookEntry's key adds Pricebook2.Name, and PricebookEntryDerivedPrice references it: qb-pricing's headers would drop it (Standard and Nonprofit entries collapse). Post-processing keeps these objects' own columns when it aligns an extraction to qb-pricing (todo 319).",
   "apiVersion": "68.0",
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [

@@ -21,6 +21,10 @@ Offline, no org: `python tests/test_post_process_extraction.py`.
 """
 import importlib.util
 import json
+import shutil
+import contextlib
+import io
+import csv
 import subprocess
 import sys
 import tempfile
@@ -389,6 +393,99 @@ def test_excluded_uses_js_truthiness(m):
           set(result2) == {"Account", "Product2"}, sorted(result2))
 
 
+def test_differently_keyed_object_keeps_plan_schema(m):
+    """An extraction aligned to a reference plan keeps the plan's own columns for an object the
+    plan lists in `$ownSchemaObjects` (todo 319, #666 review). q3-rates keys RateCardEntry with the selling
+    model, and qb-rates' four-part headers would drop it, so IS001's two entries (One Time 9.99,
+    none 3) came out with the same key and a reload duplicated one. Objects keyed the same way
+    still take the reference schema."""
+    repo = Path(__file__).resolve().parent.parent
+    q3 = repo / "datasets/sfdmu/q3/en-US/q3-rates"
+    qb = repo / "datasets/sfdmu/qb/en-US/qb-rates"
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        plan, extraction, out = td / "plan", td / "extraction", td / "out"
+        shutil.copytree(q3, plan, ignore=shutil.ignore_patterns("source", "target", "reports"))
+        extraction.mkdir()
+        # A raw extraction: individual columns only, no $$ keys (SFDMU never writes them).
+        (extraction / "RateCardEntry.csv").write_text(
+            "Product.StockKeepingUnit,RateCard.Name,RateCard.Type,UsageResource.Code,"
+            "RateUnitOfMeasure.UnitCode,ProductSellingModel.Name,Rate,Status\n"
+            "IS001,Internet Service Pack,Base,DS,USD,One Time,9.99,Active\n"
+            "IS001,Internet Service Pack,Base,DS,USD,,3,Active\n", encoding="utf-8")
+        # The header SFDMU writes for the q3 tier query (measured): it adds the parent entry's
+        # key fields, RateCardEntry.ProductSellingModel.Name included.
+        (extraction / "RateAdjustmentByTier.csv").write_text(
+            "AdjustmentType,AdjustmentValue,LowerBound,UpperBound,Product.StockKeepingUnit,"
+            "RateCardEntry.RateCard.Name,RateUnitOfMeasure.UnitCode,UsageResource.Code,"
+            "RateCardEntry.Product.StockKeepingUnit,RateCardEntry.UsageResource.Code,"
+            "RateCardEntry.RateUnitOfMeasure.UnitCode,RateCardEntry.ProductSellingModel.Name\n"
+            "Percentage,5,1,10,IS001,Internet Service Pack,USD,DS,IS001,DS,USD,One Time\n",
+            encoding="utf-8")
+        (extraction / "RateCard.csv").write_text(
+            "Name,Type,EffectiveFrom\nInternet Service Pack,Base,2025-01-01T00:00:00.000+0000\n",
+            encoding="utf-8")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            m.process_extraction(str(extraction), str(plan), str(out), diff_only=False,
+                                 copy_to_plan=False, verbose=False, reference_plan_dir=str(qb))
+        with open(out / "RateCardEntry.csv", newline="", encoding="utf-8") as fh:
+            rows = list(csv.reader(fh))
+        key = "$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Code$RateUnitOfMeasure.UnitCode$ProductSellingModel.Name"
+        check("RateCardEntry keeps the plan's five-part key column", key in rows[0], rows[0][:3])
+        if key in rows[0]:
+            i = rows[0].index(key)
+            vals = [r[i] for r in rows[1:]]
+            check("the two IS001 entries keep distinct keys", len(set(vals)) == 2, vals)
+        check("the run says why it kept the plan's schema",
+              "RateCardEntry: plan keeps its own schema" in buf.getvalue(), buf.getvalue()[-300:])
+        with open(out / "RateAdjustmentByTier.csv", newline="", encoding="utf-8") as fh:
+            rabt_headers = next(csv.reader(fh))
+        check("the tiers keep their five-part RateCardEntry reference",
+              "RateCardEntry." + key in rabt_headers, [h for h in rabt_headers if h.startswith("RateCardEntry.")])
+        if "RateCardEntry." + key in rabt_headers:
+            with open(out / "RateAdjustmentByTier.csv", newline="", encoding="utf-8") as fh:
+                rabt = list(csv.DictReader(fh))
+            got = rabt[0]["RateCardEntry." + key]
+            check("the tier's reference value matches its entry's key",
+                  got == "IS001;Internet Service Pack;DS;USD;One Time", got)
+        with open(out / "RateCard.csv", newline="", encoding="utf-8") as fh:
+            rc_headers = next(csv.reader(fh))
+        with open(qb / "RateCard.csv", newline="", encoding="utf-8") as fh:
+            qb_headers = next(csv.reader(fh))
+        check("a same-keyed object (RateCard) still takes the reference schema",
+              rc_headers == qb_headers, rc_headers)
+
+
+def test_own_schema_objects_is_validated(m):
+    """`$ownSchemaObjects` must be a list of names: a bare string would become a set of letters
+    and silently turn the opt-in off. An unknown name is reported rather than ignored."""
+    for value, should_fail in (("RateCardEntry", True), (["RateCardEntry", 3], True),
+                               (["NotAPlanObject"], False)):
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            plan, extraction = td / "plan", td / "extraction"
+            plan.mkdir(); extraction.mkdir()
+            (plan / "export.json").write_text(json.dumps({"$ownSchemaObjects": value, "objects": [
+                {"query": "SELECT Name FROM Account", "operation": "Upsert", "externalId": "Name"}]}),
+                encoding="utf-8")
+            (extraction / "Account.csv").write_text("Name\nAcme\n", encoding="utf-8")
+            buf = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(buf):
+                    m.process_extraction(str(extraction), str(plan), str(td / "out"), diff_only=False,
+                                         copy_to_plan=False, verbose=False, reference_plan_dir=None)
+                failed = False
+            except SystemExit:
+                failed = True
+            if should_fail:
+                check(f"$ownSchemaObjects={value!r} is refused", failed and "CRITICAL" in buf.getvalue(),
+                      buf.getvalue()[-200:])
+            else:
+                check("an unknown $ownSchemaObjects name is reported",
+                      not failed and "NotAPlanObject" in buf.getvalue(), buf.getvalue()[-200:])
+
+
 def main():
     print("=" * 80)
     print("post_process_extraction.py regression guard (pack 182)")
@@ -404,6 +501,8 @@ def main():
     test_excluded_uses_js_truthiness(m)
     test_pass2_override_rebuilds_composite_keys(m)
     test_composite_keys_drop_empty_parts(m)
+    test_differently_keyed_object_keeps_plan_schema(m)
+    test_own_schema_objects_is_validated(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1

@@ -1,6 +1,11 @@
 {
   "$comment_plan": "q3-rates SFDMU data plan - creates rate cards, rate card entries, rate adjustment tiers, and pricebook-rate card associations. Reload-safe: nothing is deleted; every object matches on its externalId. Pass 1 upserts all objects, inserting a missing RateCardEntry as Draft (RABT requires a Draft parent) and skipping existing entries; pass 2 updates RateCardEntry without Status. activate_rates activates the Draft entries afterwards.",
   "$comment_extraction": "SOQL queries include relationship traversal fields (e.g., Product.StockKeepingUnit, RateCard.Name) so this plan works for both import (CSV > org) and extraction (org > CSV). SFDMU v5 does NOT auto-generate $$ composite-key columns during extraction — run scripts/post_process_extraction.py (called automatically by ExtractSFDMUData) before re-importing extracted data.",
+  "$ownSchemaObjects": [
+    "RateCardEntry",
+    "RateAdjustmentByTier"
+  ],
+  "$comment_ownSchemaObjects": "RateCardEntry's key adds ProductSellingModel.Name, and RateAdjustmentByTier references it: qb-rates' four-part headers would drop it (IS001's two entries collapse, and the tiers lose their parent). Post-processing keeps these objects' own columns when it aligns an extraction to qb-rates (todo 319).",
   "apiVersion": "68.0",
   "excludeIdsFromCSVFiles": "false",
   "useSeparatedCSVFiles": true,

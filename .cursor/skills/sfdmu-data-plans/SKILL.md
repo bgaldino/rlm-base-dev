@@ -231,6 +231,7 @@ Objects in the `objects` array must be ordered **parent → child**. SFDMU delet
     `--fix-composite-keys` write values this way.
 - Empty CSVs: must have `excluded: true` in export.json to prevent destructive delete
 - After extraction, run `scripts/post_process_extraction.py` to add `$$` columns (SFDMU v5 doesn't write them during extraction)
+- A variant plan (q3, mfg, qb/ja) is aligned to its qb/en-US sibling's CSV columns on extraction. If the plan keys an object, or a parent the object references, differently from qb, list the object in the plan's top-level `"$ownSchemaObjects": [...]` (with a `$comment_ownSchemaObjects` saying why). Otherwise qb's headers drop the extra key part and distinct rows collapse on reload (q3-rates, q3-pricing; todo 319)
 
 ## Self-Lookup Edge Case (Generic)
 
@@ -281,6 +282,19 @@ Some plans use multiple objectSets (passes) to handle circular dependencies or a
 - **Pass 3**: Set cross-references that require both ends to exist
 
 Example: `qb-billing` uses 3 passes: draft insert → activate treatment items → activate treatments and set BillingPolicy.DefaultBillingTreatmentId.
+
+**Splitting one object's rows across passes.** When some rows of an object need others loaded first
+(a FreeTrial ramp segment after its Yearly one; a custom price book's entry after its Standard one),
+declare the object in both passes over the same root CSV, each with a `sourceRecordsFilter` that picks
+its rows. SFDMU 5.8.0 applies the filter to CSV rows with alasql (`SELECT * FROM ? WHERE <filter>`), so
+quote a dotted or `$$` column in brackets: `[Pricebook2.$$Name$IsStandard] LIKE '%;true'`. A `WHERE` in
+the query scopes only the target org, so add one when the passes must not match each other's rows
+(q3-pricing's `Pricebook2.IsStandard`). On an extract the source is the org and SFDMU would merge the
+filter into the SOQL, so `ExtractSFDMUData` drops every `sourceRecordsFilter` and extracts a split
+object once, from its first live pass, with a `WHERE` that ORs each pass's `WHERE` (any pass without
+one makes it unscoped): the extract covers exactly the rows the passes load together
+(`scripts/sfdmu_id_lookups.py`, `strip_source_records_filters`). It refuses a split object whose
+query has a subquery or a string literal in its `WHERE`. A later pass that re-declares parent objects with fewer fields also overwrites pass 1's extracted files, so extract such a plan with `object_sets: "[0]"` (q3-pcm). Examples: q3-pcm ProductRampSegment, q3-pricing PricebookEntry (todo 319).
 
 ## Review Checklist
 

@@ -13,7 +13,7 @@ Both passes read the root `PricebookEntry.csv`. Each pass's `sourceRecordsFilter
 
 ## Keys that differ from qb-pricing
 
-- **`PricebookEntry`** keys on `Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`. The same SKU, selling model and currency is in both books, so without the book part an Upsert can match the other book's entry (measured on qb-pricing, todo 298). `PricebookEntryDerivedPrice`'s `PricebookEntry.$$…` reference carries the book too.
+- **`PricebookEntry`** keys on `Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`. The same SKU, selling model and currency is in both books, so without the book part an Upsert can match the other book's entry (measured on qb-pricing, todo 298). `PricebookEntryDerivedPrice`'s `PricebookEntry.$$…` reference carries the book too. Both objects are listed in `$ownSchemaObjects` in `export.json`, so post-processing keeps their own columns when it aligns an extraction to qb-pricing, whose headers have no book part.
 - **`PriceAdjustmentSchedule`** is `Upsert` on `Name`, like qb-pricing; it was `Update` on `Name;CurrencyIsoCode`. A 264 org seeds only the Attribute, Bundle and Price Adjustment Tier schedules. "Standard Tier Based Adjustment" and "Standard Volume Based Adjustment" have to be created here, and with `Update` their five tiers had no parent. The children reference the schedule by `PriceAdjustmentSchedule.Name`.
 
 ## Price adjustment schedules and tiers

@@ -186,12 +186,13 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pcm`
+- `object_sets`: `[0]`
 
 ---
 
 ### `extract_q3_pricing_data`
 
-**Description:** Extract q3-pricing from org to CSV, aligned to the qb-pricing schema. Output in datasets/sfdmu/extractions/q3-pricing/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract q3-pricing from org to CSV, aligned to the qb-pricing schema except PricebookEntry and its derived prices, which keep their own price-book key. Output in datasets/sfdmu/extractions/q3-pricing/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -203,7 +204,7 @@
 
 ### `extract_q3_rates_data`
 
-**Description:** Extract q3-rates from org to CSV, aligned to the qb-rates schema. Output in datasets/sfdmu/extractions/q3-rates/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract q3-rates from org to CSV, aligned to the qb-rates schema except RateCardEntry and its tiers, which keep their own selling-model key. Output in datasets/sfdmu/extractions/q3-rates/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 

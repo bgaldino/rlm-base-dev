@@ -11,8 +11,10 @@ SFDMU data plan for the Q3 rate cards, rate card entries, tiered rate adjustment
   entries on the same card, resource and unit that differ only by selling model (One Time at 9.99, and
   none at 3), so without it a reload inserted a duplicate (measured on a fresh 264 q3 build, todo 319).
   A blank selling model drops out of the `$$` value, and RateAdjustmentByTier's `RateCardEntry.$$…`
-  reference uses the same five-part key. Don't post-process a q3-rates extraction against qb-rates as
-  the reference plan: its four-part headers would drop the selling model and bring the duplicate back.
+  reference uses the same five-part key. `export.json` lists RateCardEntry and RateAdjustmentByTier in
+  `$ownSchemaObjects`, so post-processing keeps their own columns when it aligns an extraction to
+  qb-rates. qb's four-part headers would drop the selling model, bring the duplicate back, and cut the
+  tiers off their entry.
 - **Pass 2** updates RateCardEntry from `objectset_source/object-set-2/RateCardEntry.csv`, which is the root CSV without its Status column. Product2 and RateCard are declared `Readonly` so the entry's lookups resolve instead of being sent as null. Keep the two files in step: a row changed in one must change in the other. `tests/test_qb_multicurrency_data.py` (`rce_pass2_matches_root`) fails when they drift.
 - **Key constraint:** RateAdjustmentByTier (RABT) must be inserted while its parent RateCardEntry is `Draft`. Pass 1 inserts both before activation.
 - **Platform locks on Active rate data:** an Active entry accepts only a Status change, and an RABT under an Active entry can't be edited. A correction to either is rejected and fails the load; it needs a new Draft entry, or a deactivate, edit and reactivate cycle. Pass 2 therefore only corrects Draft entries; RateCard and PriceBookRateCard corrections land at any time.
