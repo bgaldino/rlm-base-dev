@@ -10,16 +10,22 @@
 
 | # | Object | Pass | Operation | External ID | Records |
 |---|--------|------|-----------|-------------|---------|
-| 1 | LegalEntity | 1 | Upsert | Name | 2 |
-| 2 | TaxEngineProvider | 1 | Upsert | DeveloperName | 1 |
-| 3 | TaxEngine | 1 | Upsert | TaxEngineName | 1 |
-| 4 | TaxTreatment | 1 | Upsert | Name | 4 |
-| 5 | TaxTreatment | 2 | Update | Name | 4 |
-| 6 | TaxPolicy | 1 | Upsert | Name | 3 |
-| 7 | TaxPolicy | 2 | Update | Name | 3 |
-| 8 | Product2 | 1 | Update | StockKeepingUnit | 78 |
+| 1 | NamedCredential | 1 | Readonly | DeveloperName | — |
+| 2 | LegalEntity | 1 | Upsert | Name | 2 |
+| 3 | TaxEngineProvider | 1 | Upsert | DeveloperName | 1 |
+| 4 | TaxEngine | 1 | Upsert | TaxEngineName | 1 |
+| 5 | TaxTreatment | 1 | Upsert | Name | 4 |
+| 6 | TaxTreatment | 2 | Update | Name | 4 |
+| 7 | TaxPolicy | 1 | Upsert | Name | 3 |
+| 8 | TaxPolicy | 2 | Update | Name | 3 |
+| 9 | Product2 | 1 | Update | StockKeepingUnit | 78 |
 
-## Files
+## Required source CSVs
+
+<!-- Only CSVs a live-writable declaration must load. A source-free declaration's CSV
+     is not required and is omitted here even if one ships: a Readonly/Delete object
+     resolves from the target org, and an excluded object is skipped entirely before
+     load. -->
 
 ```
 LegalEntity.csv                          # 2 records
@@ -32,3 +38,17 @@ objectset_source/object-set-2/TaxPolicy.csv # 3 records
 Product2.csv                             # 78 records
 ```
 <!-- generate_plan_readme:end -->
+
+## Notes
+
+- **Tax engine.** The plan uses the same mock engine as qb-tax: provider and engine `RLM_MockTaxAdapter`,
+  with merchant credential `RLM_MockTax`. `create_tax_engine` (`prepare_tax` step 1) creates the
+  provider and the engine with the Apex adapter attached, so this plan's Upsert matches them. The
+  provider can't be inserted from a CSV: `ApexAdapterId` is required, and an Apex class Id isn't
+  portable. `NamedCredential` is declared `Readonly` so that `MerchantCredential.DeveloperName`
+  resolves; the named credential is deployed with the QuantumBit metadata.
+- **Pass 2 activation.** Pass 2 activates the treatments, then the policies. Each policy sets its
+  `DefaultTaxTreatment.Name`: a policy can't be activated without a default treatment. This is a
+  single-field reference, since a `$$` lookup column can't be decomposed (Bug 4).
+- The source org used a provider named `mock`. That provider has no adapter in this repo, and on a
+  fresh 264 build its insert was rejected (`ApexAdapterId` missing). Fixed under todo 319.

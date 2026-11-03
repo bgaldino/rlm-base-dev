@@ -37,11 +37,13 @@ Run all Q3 data idempotency tests (load twice, assert no new records). Use --org
 **Steps:**
 
 1. **task** `test_q3_pcm_idempotency`
-2. **task** `test_q3_rating_idempotency`
-3. **task** `test_q3_rates_idempotency`
-4. **task** `test_q3_dro_idempotency`
-5. **task** `test_q3_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__q3`
-6. **task** `test_q3_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__q3`
+2. **task** `test_q3_pricing_idempotency`
+3. **task** `test_q3_rating_idempotency`
+4. **task** `test_q3_rating_entitlements_idempotency`
+5. **task** `test_q3_rates_idempotency`
+6. **task** `test_q3_dro_idempotency`
+7. **task** `test_q3_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__q3`
+8. **task** `test_q3_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__q3`
 
 ---
 
@@ -521,9 +523,8 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 **Steps:**
 
 1. **task** `insert_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
-2. **task** `delete_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
-3. **task** `insert_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
-4. **task** `insert_qb_price_revision_data`  `when: project_config.project__custom__qb`
+2. **task** `insert_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
+3. **task** `insert_qb_price_revision_data`  `when: project_config.project__custom__qb`
 
 ---
 
@@ -634,13 +635,12 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 
 1. **task** `insert_qb_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
 2. **task** `insert_qb_rating_entitlements_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
-3. **task** `delete_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh`
-4. **task** `delete_q3_rating_data`  `when: project_config.project__custom__rating and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh`
-5. **task** `insert_q3_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-6. **task** `insert_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb`
-7. **task** `insert_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-8. **task** `activate_rating_records`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
-9. **task** `activate_rates`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
+3. **task** `insert_q3_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+4. **task** `insert_q3_rating_entitlements_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+5. **task** `insert_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb`
+6. **task** `insert_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+7. **task** `activate_rating_records`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
+8. **task** `activate_rates`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
 
 ---
 

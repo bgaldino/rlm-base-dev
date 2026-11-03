@@ -11,7 +11,7 @@
 | # | Object | Pass | Operation | External ID | Records |
 |---|--------|------|-----------|-------------|---------|
 | 1 | AccountingPeriod | 1 | Upsert | Name;FinancialYear | 0 |
-| 2 | LegalEntity | 1 | Readonly | Name | 2 |
+| 2 | LegalEntity | 1 | Readonly | Name | — |
 | 3 | LegalEntyAccountingPeriod | 1 | Upsert | Name | 0 |
 | 4 | PaymentTerm | 1 | Upsert | Name | 1 |
 | 5 | PaymentTermItem | 1 | Upsert | PaymentTerm.Name;Type | 1 |
@@ -27,11 +27,15 @@
 | 15 | PaymentRetryRuleSet | 1 | Upsert | Name | 0 |
 | 16 | PaymentRetryRule | 1 | Upsert | PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType | 0 |
 
-## Files
+## Required source CSVs
+
+<!-- Only CSVs a live-writable declaration must load. A source-free declaration's CSV
+     is not required and is omitted here even if one ships: a Readonly/Delete object
+     resolves from the target org, and an excluded object is skipped entirely before
+     load. -->
 
 ```
 AccountingPeriod.csv                     # 0 records
-LegalEntity.csv                          # 2 records
 LegalEntyAccountingPeriod.csv            # 0 records
 PaymentTerm.csv                          # 1 record
 PaymentTermItem.csv                      # 1 record
@@ -45,3 +49,14 @@ PaymentRetryRuleSet.csv                  # 0 records
 PaymentRetryRule.csv                     # 0 records
 ```
 <!-- generate_plan_readme:end -->
+
+## Notes
+
+- **The Default Payment Term loads as `Draft` with `IsDefault=false`,** as in qb-billing. On 264 a
+  payment term can't be saved Active (or as the default) before its PaymentTermItem exists, and the
+  item is loaded after it. `activate_default_payment_term` (`prepare_billing`) then sets
+  `IsDefault` and activates it. On a fresh 264 build, loading it Active rejected the term and then
+  its item (todo 319).
+- **A q3 build needs `billing=false` for now.** This plan loads, but `deploy_billing_id_settings`
+  resolves qb-billing record names that don't exist on a q3 org, so `prepare_billing` fails after
+  it. q3 is moving onto qb-billing's and qb-tax's data instead of this plan (todo 210).

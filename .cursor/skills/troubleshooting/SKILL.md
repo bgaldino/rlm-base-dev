@@ -497,8 +497,8 @@ control. Do not conclude "pricing works" from a plausible number.
 
 ### PUR activation fails: "effective period overlaps"
 
-**Cause:** Duplicate Draft PURs exist (a q3 reload, which still deletes and
-re-inserts, or copies made by hand; the qb plans match existing PURs).
+**Cause:** Duplicate Draft PURs exist (copies made by hand, or a load from an older plan
+revision; the qb and q3 rating plans match existing PURs).
 
 **Fix:**
 1. Delete rates data first: `cci task run delete_qb_rates_data --org beta` (manual teardown;

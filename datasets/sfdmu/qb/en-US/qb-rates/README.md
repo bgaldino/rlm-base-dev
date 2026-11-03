@@ -8,7 +8,7 @@ SFDMU data plan for QuantumBit (QB) rate cards, rate card entries, and tiered ra
 
 ### Flow: `prepare_rating`
 
-This plan is executed as **step 6** of the `prepare_rating` flow (when `rating=true`, `rates=true`, `qb=true`, and `refresh=false`).
+This plan is executed as **step 5** of the `prepare_rating` flow (when `rating=true`, `rates=true`, `qb=true`, and `refresh=false`).
 
 | Step | Task                     | Description                                        |
 |------|--------------------------|----------------------------------------------------|

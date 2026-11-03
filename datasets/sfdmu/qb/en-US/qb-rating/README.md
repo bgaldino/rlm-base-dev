@@ -114,7 +114,7 @@ Changing a match key (SKU or Code) adds a new record and leaves the old one (not
 
 The pass-2 CSVs in `objectset_source/object-set-2/` (UnitOfMeasureClass, UsageResource, ProductUsageResource) are each the root CSV minus `Status` (ProductUsageResource also minus `TokenResource.Code`, which `activateRatingRecords.apex` manages). UnitOfMeasure and Product2 are declared `Readonly` so the Update rows can resolve their lookups: a lookup whose parent object is not declared in the pass is sent as null, and without them pass 2 blanked `UnitOfMeasureClass.BaseUnitOfMeasure` / `DefaultUnitOfMeasure` on a built org (live-verified).
 
-Pass 2 no longer activates anything. Activation of UnitOfMeasureClass, UsageResource, PUR and PUG is entirely `activateRatingRecords.apex` (`prepare_rating` step 8), which enforces a strict dependency order: Token PURs must be Active before non-Token usage PURs, and all PURs must be Active before PUGs.
+Pass 2 no longer activates anything. Activation of UnitOfMeasureClass, UsageResource, PUR and PUG is entirely `activateRatingRecords.apex` (`prepare_rating` step 7), which enforces a strict dependency order: Token PURs must be Active before non-Token usage PURs, and all PURs must be Active before PUGs.
 
 ## Schema: ProductUsageResource (PUR) and product relationship
 
@@ -126,7 +126,7 @@ PUR uses `Upsert` with `skipExistingRecords: true` on its traversal key. PURP an
 
 **File:** `scripts/apex/activateRatingRecords.apex`
 
-PUR and PUG activation (and UoMClass / UsageResource activation) follows a strict 7-step dependency order. It runs as `prepare_rating` step 8:
+PUR and PUG activation (and UoMClass / UsageResource activation) follows a strict 7-step dependency order. It runs as `prepare_rating` step 7:
 
 | Step | What                                      | Why                                                                |
 |------|-------------------------------------------|--------------------------------------------------------------------|
@@ -544,7 +544,7 @@ The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`)
 
 The plan is idempotent on both fresh and built orgs. It uses no `deleteOldData` and no `deleteQuery`: pass 1 is `Upsert` (with `skipExistingRecords: true` for the Status objects UnitOfMeasureClass, UsageResource and ProductUsageResource) and pass 2 is `Update` without `Status`.
 
-- **Fresh org:** pass 1 inserts the rows as Draft, and `activate_rating_records` (`prepare_rating` step 8) activates them: PUR=25, PURP=23, PUG=12. A full flow run on a built org reloads in place; `prepare_rating` no longer deletes rating data first.
+- **Fresh org:** pass 1 inserts the rows as Draft, and `activate_rating_records` (`prepare_rating` step 7) activates them: PUR=25, PURP=23, PUG=12. A full flow run on a built org reloads in place; `prepare_rating` no longer deletes rating data first.
 - **Reload on a built org (live-verified 2026-10-30):** deletes nothing, inserts nothing, never sends `Status`, and leaves all 25 PUR / 23 PURP / 12 PUG Active and unchanged. The Draft-duplicate cycle and the `activateRatingRecords.apex` step 2.5 cleanup no longer happen (step 2.5 stays as a safety net).
 - **Corrections to existing rows:** non-Status fields of existing rows are corrected through pass 2 (verified: `UnitOfMeasureClass.Description`, `UsageResource.Description`, `ProductUsageGrant.Quantity`).
 - **Platform rejections fail the load:** the platform rejects some changes on Active records, and the load then fails rather than skipping silently: `ProductUsageResource.IsOptional = true` unless the product is Token / Monetary Commitment usage model; a changed `ProductUsageResource.EffectiveEndDate` while its grant is Active; `UsageResource` fields tied to active Rate Card Entries or grants.

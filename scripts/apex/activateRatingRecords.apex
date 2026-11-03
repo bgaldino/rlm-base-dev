@@ -12,14 +12,15 @@
 //   1. UnitOfMeasureClass > Active  (qb-rating loads it as Draft and never sends Status again)
 //   2. UsageResource > Active       (same)
 //   2.5. Remove duplicate PURs that overlap an Active PUR by effective period (safety net: the
-//        qb plans no longer create duplicates, since qb-rating and qb-rating-entitlements match
-//        existing rows and delete nothing (todo 298); kept for the q3 plans and hand-made copies):
+//        rating plans no longer create duplicates, since qb/q3 rating and rating-entitlements match
+//        existing rows and delete nothing (todos 298, 319); kept for hand-made copies):
 //        2.5a. Delete Draft PUG/PURP children of the duplicate Draft PURs (they block PUR deletion).
 //        2.5b. Delete the now-childless duplicate Draft PURs (survivor: Active > has-children > lower Id).
 //   3. Pre-populate TokenResourceId on Draft non-Token PURs that are missing it
 //   4. Token PUR > Active           (must precede Step 5; products with Token PURs
 //                                    require them Active before usage PURs can activate)
-//   5. ALL non-Token PUR > clear+activate (TokenResourceId=null + Status='Active')
+//   5. ALL non-Token PUR > clear+activate (TokenResourceId=null + Status='Active'); a PUR whose
+//      token its UsageResource doesn't carry keeps it (q3's DS PURs, todo 319)
 //   6. ProductUsageGrant > Active
 //
 // API 260 Platform Behaviors:
@@ -230,7 +231,7 @@ if (candidatePairKeys.isEmpty()) {
     if (!duplicatePurIds.isEmpty()) {
         // Sub-step 2.5a: Clear Draft PUG/PURP children of duplicate Draft PURs so the PURs
         // can be deleted by the loop below (which skips PURs with children).
-        // A plan that re-inserts instead of matching (the q3 plans still use Insert+deleteOldData,
+        // A load that re-inserts instead of matching (an older plan revision, or Insert+deleteOldData,
         // which can't delete Active records) leaves fresh Draft children on the duplicate Draft
         // PURs, blocking deletion. We delete those Draft children first, then re-query to refresh
         // purIdsWithChildren.
@@ -319,7 +320,7 @@ if (candidatePairKeys.isEmpty()) {
 
 // Step 3: Pre-populate TokenResourceId on Draft non-Token PURs where it's null.
 // Some PURs (QB-DB;UR-*, QB-QTY-CMT;UR-*) don't get TokenResourceId auto-populated
-// at SFDMU insert time. For clear+activate to work in Step 4, TokenResourceId must
+// at SFDMU insert time. For clear+activate to work in Step 5, TokenResourceId must
 // be non-null so the null assignment is a REAL change (not null>null no-op).
 // We set it to the UsageResource's TokenResourceId value while the PUR is Draft.
 List<ProductUsageResource> needsTokenRes = [
@@ -374,14 +375,23 @@ if (!tokenPurs.isEmpty()) {
 // TokenResourceId set (from Step 3 or SFDMU insert), the clear+activate
 // (non-null>null + Active) prevents auto-population during DML.
 List<ProductUsageResource> nonTokenPurs = [
-    SELECT Id, Status, TokenResourceId
+    SELECT Id, Status, TokenResourceId, UsageResource.TokenResourceId
     FROM ProductUsageResource
     WHERE Status != 'Active'
     AND UsageResource.Category != 'Token'
 ];
 if (!nonTokenPurs.isEmpty()) {
+    // A PUR that names a token its UsageResource doesn't carry (q3's DS PURs, token DSU) isn't
+    // auto-populated, so its token is kept: clearing it fails ("This field can't be edited when the
+    // Product Usage Resource record is Active"; measured on a fresh 264 q3 build, todo 319).
+    // Every other PUR is cleared and activated as before.
+    Integer keptToken = 0;
     for (ProductUsageResource pur : nonTokenPurs) {
-        pur.TokenResourceId = null;
+        if (pur.TokenResourceId != null && pur.UsageResource.TokenResourceId == null) {
+            keptToken++;
+        } else {
+            pur.TokenResourceId = null;
+        }
         pur.Status = 'Active';
     }
     List<Database.SaveResult> results = Database.update(nonTokenPurs, false);
@@ -396,7 +406,8 @@ if (!nonTokenPurs.isEmpty()) {
             }
         }
     }
-    System.debug('Clear+activated ' + successCount + '/' + nonTokenPurs.size() + ' non-Token PUR(s).');
+    System.debug('Activated ' + successCount + '/' + nonTokenPurs.size() + ' non-Token PUR(s)'
+        + (keptToken == 0 ? '.' : '; ' + keptToken + ' of them kept a token their usage resource lacks.'));
 } else {
     System.debug('All non-Token PURs are already Active.');
 }

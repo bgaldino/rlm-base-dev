@@ -845,6 +845,16 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
 
     code_map = load_code_map(code_map_file)
 
+    # Objects whose column schema this plan keeps even when aligning to a reference plan.
+    declared = export_json.get("$ownSchemaObjects", [])
+    if not isinstance(declared, list) or not all(isinstance(o, str) for o in declared):
+        print(f"CRITICAL: $ownSchemaObjects in {plan_dir}/export.json must be a list of object names; "
+              f"got {declared!r}")
+        raise SystemExit(1)
+    own_schema_objects = set(declared)
+    for name in sorted(own_schema_objects - set(plan_structure)):
+        print(f"  WARNING: $ownSchemaObjects names {name}, which the plan doesn't declare")
+
     # Find extracted CSV files
     extracted_files = [f for f in os.listdir(extraction_dir) if f.endswith(".csv")]
     extracted_objects = {os.path.splitext(f)[0]: f for f in extracted_files}
@@ -893,7 +903,18 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
         template_headers = plan_headers
         if reference_plan_dir:
             ref_headers, _ = load_plan_csv(reference_plan_dir, obj_name)
-            if ref_headers is not None:
+            if ref_headers is not None and plan_headers is not None and obj_name in own_schema_objects:
+                # The plan declares this object's schema its own ($ownSchemaObjects in its
+                # export.json): it keys the object, or a parent the object references,
+                # differently from the reference (q3-rates adds the selling model to
+                # RateCardEntry, which its tiers reference). The reference's headers would drop
+                # that key part, so keep the plan's own columns for it (todo 319).
+                print(f"    {obj_name}: plan keeps its own schema ($ownSchemaObjects); "
+                      f"not aligning to {reference_plan_dir}")
+            elif ref_headers is not None:
+                if obj_name in own_schema_objects:
+                    print(f"    WARNING: {obj_name} is in $ownSchemaObjects but the plan has no CSV "
+                          f"for it yet; aligning to {reference_plan_dir}")
                 template_headers = ref_headers
                 if verbose:
                     print(f"    Aligning to reference schema from {reference_plan_dir}")

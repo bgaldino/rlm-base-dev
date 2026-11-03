@@ -6,7 +6,8 @@ can't: which org the `sf` CLI is pointed at (never the access token); that Ids r
 copy without the SFDMU runtime dirs; that a whole `_run_task` (SFDMU stubbed) of a lookups plan
 leaves the tracked plan byte-for-byte unchanged on success, a bad option and a failed lookup; and
 that a plan loaded in place has its credentials cleared after a failed run, is untouched by an
-early failure, and never has the access token logged.
+early failure, and never has the access token logged. A load, filtered or not, also restores
+the exact bytes of export.json it read (todo 319).
 
 Also `TestSFDMUIdempotency`'s second-load rule for a listed insert rejection both loads have, and
 `DeleteSFDMUData`'s `sobjects` option, which the qb-pricing teardown needs now that the plan has
@@ -194,6 +195,18 @@ check("in place, SFDMU fails: credentials cleared from export.json", restored.ge
 check("in place, SFDMU fails: object sets intact",
       restored["objectSets"] == json.loads(plain_export)["objectSets"], True)
 check("the access token is never logged", any("00Dxx!TOKEN" in m for m in logs), False)
+# A load restores the exact bytes it read: re-dumping dropped a trailing newline and escaped
+# non-ASCII text, so the plan showed as modified after every load (todo 319).
+NEWLINE_PLAN = REPO / "datasets/sfdmu/q3/en-US/q3-rates"
+check("fixture: q3-rates export.json ends with a newline",
+      (NEWLINE_PLAN / "export.json").read_bytes().endswith(b"\n"), True)
+for code in (0, 1):
+    before, after, error, temp, logs = run_task({}, org_with_every_pur, plan_src=NEWLINE_PLAN, exit_code=code)
+    check(f"in place (exit {code}): export.json byte-for-byte unchanged",
+          after[pathlib.Path("export.json")] == before[pathlib.Path("export.json")], True)
+before, after, error, temp, logs = run_task({"object_sets": "[0]"}, org_with_every_pur, plan_src=NEWLINE_PLAN)
+check("in place, filtered run: export.json byte-for-byte unchanged",
+      after[pathlib.Path("export.json")] == before[pathlib.Path("export.json")], True)
 before, after, error, temp, logs = run_task({"object_sets": "[0]"}, org_with_every_pur, plan_src=PLAIN, exit_code=1)
 check("in place, filtered run fails: every object set restored",
       json.loads(after[pathlib.Path("export.json")])["objectSets"] == json.loads(plain_export)["objectSets"], True)
@@ -223,6 +236,22 @@ before, after, error, temp, logs = run_task({"object_sets": "[7]"}, org_with_eve
 check("in place, bad object_sets: the option error surfaces", type(error).__name__, "TaskOptionsError")
 check("in place, bad object_sets: export.json byte-for-byte unchanged",
       after[pathlib.Path("export.json")] == before[pathlib.Path("export.json")], True)
+# The same rule on LoadSFDMUData: a failed restore after a successful load fails the task, and
+# after a failed load the load's own error is the one raised (#666 review).
+saved_restore = rs._restore_export_json
+rs._restore_export_json = lambda *_a, **_k: (_ for _ in ()).throw(IOError("disk full"))
+try:
+    before, after, error, temp, logs = run_task({}, org_with_every_pur, plan_src=PLAIN)
+    check("load succeeds, restore fails: the task fails", type(error).__name__, "OSError")
+    before, after, error, temp, logs = run_task({}, org_with_every_pur, plan_src=PLAIN, exit_code=1)
+    check("load fails, restore fails: the load's error is kept", type(error).__name__, "CommandException")
+    # A lookup plan loads from a temp copy whose export.json holds the token: it is removed even
+    # when the restore raises (#666 review).
+    before, after, error, temp, logs = run_task({}, org_with_every_pur)
+    check("restore fails on a temp copy: the task fails", type(error).__name__, "OSError")
+    check("...and the temp copy is still removed", bool(temp) and not os.path.exists(temp), True)
+finally:
+    rs._restore_export_json = saved_restore
 
 print("ExtractSFDMUData: the token is never logged")
 extract_logs = []
@@ -382,7 +411,68 @@ check("two passes: the first load's pass-2 rejections don't excuse new ones in p
       two_loads({PP2: (5, LISTED)}, {PP: (3, LISTED), PP2: (5, LISTED)}), "load 2 failed: ProrationPolicy")
 check("two passes: each pass's own repeated rejections pass",
       two_loads({PP: (5, LISTED), PP2: (1, LISTED)}, {PP: (5, LISTED), PP2: (1, LISTED)}), "passed")
+idem_bytes = '{\n  "objects": [],\n  "note": "café"\n}\n'.encode()
+(idem_dir / "export.json").write_bytes(idem_bytes)
+two_loads({}, {})
+check("idempotency load: export.json byte-for-byte unchanged (newline, non-ASCII)",
+      (idem_dir / "export.json").read_bytes() == idem_bytes, True)
+
+
+def restore_fails(*_a, **_k):
+    raise IOError("disk full")
+
+
+# A restore that fails after a successful load must fail the task, since export.json may still
+# hold the access token; after a failed load the load's own error is kept (#666 review).
+saved_restore = rs._restore_export_json
+rs._restore_export_json = restore_fails
+try:
+    task, saved_run = idem_task(), rs.subprocess.run
+    rs.subprocess.run = fake_load({}, 1_000_500)
+    try:
+        task._run_load_in(str(idem_dir), strict=False)
+        outcome = "returned"
+    except IOError:
+        outcome = "IOError"
+    finally:
+        rs.subprocess.run = saved_run
+    check("idempotency load succeeds, restore fails: the task fails", outcome, "IOError")
+    task = idem_task()
+    rs.subprocess.run = lambda *_a, **_k: type("R", (), {"returncode": 1, "stdout": "", "stderr": ""})()
+    try:
+        task._run_load_in(str(idem_dir), strict=False)
+        outcome = "returned"
+    except rs.CommandException:
+        outcome = "CommandException"
+    except IOError:
+        outcome = "IOError"
+    finally:
+        rs.subprocess.run = saved_run
+    check("idempotency load fails, restore fails: the load's error is kept", outcome, "CommandException")
+finally:
+    rs._restore_export_json = saved_restore
 shutil.rmtree(idem_root, ignore_errors=True)
+
+print("clear_credentials_under: the idempotency roundtrip's kept dir")
+# Persist mode keeps the roundtrip dir, and the second load ran from processed/export.json; a failed
+# restore there could leave the token behind, so every export.json under the dir is cleared (#666).
+keep = pathlib.Path(tempfile.mkdtemp())
+(keep / "processed").mkdir()
+for p in (keep / "export.json", keep / "processed" / "export.json"):
+    p.write_text(json.dumps({"orgs": [{"accessToken": "00Dxx!TOKEN"}], "objects": []}))
+untouched = b'{\n  "objects": [],\n  "note": "caf\xc3\xa9"\n}\n'
+(keep / "processed" / "clean").mkdir()
+(keep / "processed" / "clean" / "export.json").write_bytes(untouched)
+(keep / "processed" / "bad").mkdir()
+(keep / "processed" / "bad" / "export.json").write_text("{not json")
+warnings = []
+rs.clear_credentials_under(str(keep), warnings.append)
+check("every export.json under the dir is cleared",
+      [json.loads(p.read_text())["orgs"] for p in (keep / "export.json", keep / "processed" / "export.json")], [[], []])
+check("an unreadable one is reported, not raised", len(warnings), 1)
+check("one with no credentials is left byte-for-byte unchanged",
+      (keep / "processed" / "clean" / "export.json").read_bytes() == untouched, True)
+shutil.rmtree(keep, ignore_errors=True)
 
 print("DeleteSFDMUData: named sobjects on an Upsert plan")
 # qb-pricing has no Insert objects since todo 298, so its teardown names them. Each must be a type

@@ -1,4 +1,9 @@
 {
+  "$ownSchemaObjects": [
+    "PricebookEntry",
+    "PricebookEntryDerivedPrice"
+  ],
+  "$comment_ownSchemaObjects": "PricebookEntry's key adds Pricebook2.Name, and PricebookEntryDerivedPrice references it: qb-pricing's headers would drop it (Standard and Nonprofit entries collapse). Post-processing keeps these objects' own columns when it aligns an extraction to qb-pricing (todo 319).",
   "apiVersion": "68.0",
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [
@@ -47,16 +52,18 @@
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
-          "operation": "Insert",
-          "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom",
-          "excluded": false
+          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, Pricebook2.Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false,
+          "$comment": "ONE schedule per type, in the corporate currency (USD), as in qb-pricing. Upsert on Name, not Update: a 264 org seeds only the Attribute, Bundle and Price Adjustment Tier schedules, so 'Standard Tier Based Adjustment' and 'Standard Volume Based Adjustment' are created here (todo 319). Ordered before the child adjustments so each schedule exists first. The volume schedules load IsActive=false: the platform rejects any PriceAdjustmentTier write while its schedule is active (#656)."
         },
         {
-          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, CurrencyIsoCode ASC, Pricebook2.Name ASC",
-          "operation": "Update",
-          "externalId": "Name;CurrencyIsoCode",
-          "excluded": false
+          "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound, PriceAdjustmentSchedule.Name, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
+          "operation": "Upsert",
+          "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom",
+          "excluded": false,
+          "$comment": "Every tier hangs off 'Standard Price Adjustment Tier', the only volume schedule RLM_DefaultPricingProcedure reads (__VOLUMEPasID__), as in qb-pricing. On the source org's Tier/Volume Based schedules they never priced (measured on a fresh 264 q3 build, todo 319)."
         },
         {
           "query": "SELECT Name FROM AttributeBasedAdjRule ORDER BY Name ASC",
@@ -65,39 +72,80 @@
           "excluded": false
         },
         {
-          "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue FROM AttributeAdjustmentCondition ORDER BY AttributeBasedAdjRule.Name ASC, AttributeDefinition.Code ASC, Product.StockKeepingUnit ASC",
-          "operation": "Insert",
+          "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue, AttributeBasedAdjRule.Name, AttributeDefinition.Code, Product.StockKeepingUnit FROM AttributeAdjustmentCondition ORDER BY AttributeBasedAdjRule.Name ASC, AttributeDefinition.Code ASC, Product.StockKeepingUnit ASC",
+          "operation": "Upsert",
           "externalId": "AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit",
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, AttributeCount, CurrencyIsoCode, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType FROM AttributeBasedAdjustment ORDER BY AttributeBasedAdjRule.Name ASC, PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
-          "operation": "Insert",
+          "query": "SELECT AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, AttributeCount, CurrencyIsoCode, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType, AttributeBasedAdjRule.Name, PriceAdjustmentSchedule.Name, Product.StockKeepingUnit, ProductSellingModel.Name FROM AttributeBasedAdjustment ORDER BY AttributeBasedAdjRule.Name ASC, PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
+          "operation": "Upsert",
           "externalId": "AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, Name, PriceAdjustmentScheduleId, ProductId, ParentProductId, RootBundleId, ProductSellingModelId, ParentProductSellingModelId, PricingTerm, PricingTermUnit, RootProductSellingModelId, ScheduleType, SellingModelType, CurrencyIsoCode FROM BundleBasedAdjustment ORDER BY PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
-          "operation": "Insert",
+          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, Name, PriceAdjustmentScheduleId, ProductId, ParentProductId, RootBundleId, ProductSellingModelId, ParentProductSellingModelId, PricingTerm, PricingTermUnit, RootProductSellingModelId, ScheduleType, SellingModelType, CurrencyIsoCode, PriceAdjustmentSchedule.Name, Product.StockKeepingUnit, ParentProduct.StockKeepingUnit, RootBundle.StockKeepingUnit, ProductSellingModel.Name, ParentProductSellingModel.Name, RootProductSellingModel.Name FROM BundleBasedAdjustment ORDER BY PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
+          "operation": "Upsert",
           "externalId": "PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
         },
         {
-          "query": "SELECT Name, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode FROM PricebookEntry ORDER BY Product2.StockKeepingUnit ASC, Pricebook2.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
-          "operation": "Insert",
-          "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
-          "excluded": false
+          "query": "SELECT Name, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode, Pricebook2.Name, Product2.StockKeepingUnit, ProductSellingModel.Name FROM PricebookEntry WHERE Pricebook2.IsStandard = true ORDER BY Product2.StockKeepingUnit ASC, Pricebook2.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
+          "operation": "Upsert",
+          "externalId": "Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
+          "excluded": false,
+          "sourceRecordsFilter": "[Pricebook2.$$Name$IsStandard] LIKE '%;true'",
+          "$comment": "Pass 1 loads the Standard Price Book entries only; pass 2 loads the Nonprofit book. The platform rejects a custom-book entry whose Standard entry doesn't exist yet (STANDARD_PRICE_NOT_DEFINED), and in one batch it doesn't (measured on a fresh 264 q3 build: all 60 Nonprofit rows, todo 319). The externalId carries Pricebook2.Name, because the same SKU, selling model and currency is in both books; the WHERE scopes the target query to the pass's book and sourceRecordsFilter selects the CSV rows (SFDMU applies a WHERE to the target only)."
         },
         {
-          "query": "SELECT PricebookId, PricebookEntryId, ProductId, ContributingProductId, ProductSellingModelId, DerivedPricingScope, Formula, EffectiveFrom, EffectiveTo, PricingSource, CurrencyIsoCode FROM PricebookEntryDerivedPrice ORDER BY Product.StockKeepingUnit ASC, ContributingProduct.StockKeepingUnit ASC, Pricebook.Name ASC, CurrencyIsoCode DESC, ProductSellingModel.Name ASC",
-          "operation": "Insert",
+          "query": "SELECT PricebookId, PricebookEntryId, ProductId, ContributingProductId, ProductSellingModelId, DerivedPricingScope, Formula, EffectiveFrom, EffectiveTo, PricingSource, CurrencyIsoCode, Pricebook.Name, PricebookEntry.Product2.StockKeepingUnit, PricebookEntry.ProductSellingModel.Name, Product.StockKeepingUnit, ContributingProduct.StockKeepingUnit, ProductSellingModel.Name FROM PricebookEntryDerivedPrice ORDER BY Product.StockKeepingUnit ASC, ContributingProduct.StockKeepingUnit ASC, Pricebook.Name ASC, CurrencyIsoCode DESC, ProductSellingModel.Name ASC",
+          "operation": "Upsert",
           "externalId": "Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
         },
         {
           "query": "SELECT Cost, CostBookId, CostBook.Name, CostBook.IsDefault, EffectiveFrom, EffectiveTo, ProductId, Product.StockKeepingUnit, Description, CurrencyIsoCode FROM CostBookEntry ORDER BY CostBook.Name ASC, CurrencyIsoCode DESC, Name ASC",
-          "operation": "Insert",
+          "operation": "Upsert",
           "externalId": "CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode",
+          "excluded": false
+        }
+      ],
+      "name": "First Pass - everything except custom price book entries"
+    },
+    {
+      "name": "Second Pass - custom price book entries, after their Standard entries",
+      "objects": [
+        {
+          "query": "SELECT StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, Status, PricingTerm, PricingTermUnit, SellingModelType FROM ProductSellingModel ORDER BY Name ASC, SellingModelType ASC",
+          "operation": "Readonly",
+          "externalId": "Name;SellingModelType",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, IsDefault, EffectiveFrom, EffectiveTo FROM CostBook",
+          "operation": "Readonly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, IsActive, IsStandard, CostBookId, ValidFrom, ValidTo, Description FROM Pricebook2",
+          "operation": "Readonly",
+          "externalId": "Name;IsStandard",
+          "excluded": false,
+          "$comment": "Readonly in pass 2 so the entries' lookups resolve; an undeclared parent is auto-added on Name (Pricebook2's CostBook lookup pulls in CostBook too)."
+        },
+        {
+          "$comment": "The Nonprofit book's entries, after pass 1 created their Standard entries. Same key, root CSV and columns as pass 1; the WHERE and sourceRecordsFilter select the other book.",
+          "query": "SELECT Name, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode, Pricebook2.Name, Product2.StockKeepingUnit, ProductSellingModel.Name FROM PricebookEntry WHERE Pricebook2.IsStandard = false ORDER BY Product2.StockKeepingUnit ASC, Pricebook2.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
+          "operation": "Upsert",
+          "externalId": "Pricebook2.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
+          "sourceRecordsFilter": "[Pricebook2.$$Name$IsStandard] LIKE '%;false'",
           "excluded": false
         }
       ]

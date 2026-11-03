@@ -258,6 +258,80 @@ for name in ("ProductUsageResourcePolicy", "ProductUsageGrant"):
 check("no tracked parent CSV (generated per load)",
       (shipped / "ProductUsageResource.csv").exists(), False)
 
+
+print("prepare_extraction_export: sourceRecordsFilter is load-only")
+# A filter splits CSV rows between passes on a load (todo 319). On an extract SFDMU merges it into
+# the source SOQL: q3-pricing's alasql filter aborted the extract, and a pass scoped to one price
+# book extracted only part of the object while the last pass's file overwrote the rest.
+plan_json = {"objectSets": [
+    {"objects": [
+        {"query": "SELECT Name FROM Pricebook2", "operation": "Readonly", "externalId": "Name"},
+        {"query": "SELECT UnitPrice FROM PricebookEntry WHERE Pricebook2.IsStandard = true ORDER BY UnitPrice ASC",
+         "operation": "Upsert", "externalId": "Name", "sourceRecordsFilter": "[x] LIKE '%;true'"}]},
+    {"objects": [
+        {"query": "SELECT UnitPrice FROM PricebookEntry WHERE Pricebook2.IsStandard = false",
+         "operation": "Upsert", "externalId": "Name", "sourceRecordsFilter": "[x] LIKE '%;false'"},
+        {"query": "SELECT Name FROM Product2 WHERE IsActive = true", "operation": "Readonly", "externalId": "Name"}]}]}
+out = il.prepare_extraction_export(plan_json, [])
+pbe = [o for s in out["objectSets"] for o in s["objects"] if "FROM PricebookEntry" in o["query"]]
+check("a filtered object is extracted from one pass only", len(pbe), 1)
+check("its passes' WHEREs are ORed, so it covers the rows they load together (ORDER BY kept)", pbe[0]["query"],
+      "SELECT UnitPrice FROM PricebookEntry WHERE (Pricebook2.IsStandard = true) OR "
+      "(Pricebook2.IsStandard = false) ORDER BY UnitPrice ASC")
+check("no sourceRecordsFilter is left",
+      [o for s in out["objectSets"] for o in s["objects"] if "sourceRecordsFilter" in o], [])
+check("an unfiltered object keeps its WHERE",
+      [o["query"] for s in out["objectSets"] for o in s["objects"] if "FROM Product2" in o["query"]],
+      ["SELECT Name FROM Product2 WHERE IsActive = true"])
+check("the input export.json is not modified",
+      "sourceRecordsFilter" in plan_json["objectSets"][0]["objects"][1], True)
+check("lowercase where, LIMIT kept",
+      il._replace_where("SELECT Id FROM X where A = 1 LIMIT 5", None), "SELECT Id FROM X LIMIT 5")
+check("WHERE( with no space is still dropped", il._replace_where("SELECT Id FROM X WHERE(A = 1)", None), "SELECT Id FROM X")
+for bad in ("SELECT Id, (SELECT Id FROM Y) FROM X WHERE A = 1", "SELECT Id FROM X WHERE Name = 'a'"):
+    try:
+        il._replace_where(bad, None)
+        got = "returned"
+    except ValueError:
+        got = "ValueError"
+    check(f"refuses to guess: {bad[:40]}", got, "ValueError")
+later = {"objectSets": [
+    {"objects": [{"query": "SELECT Id FROM PricebookEntry WHERE A = 1", "sourceRecordsFilter": "x"}]},
+    {"objects": [{"query": "SELECT Id FROM PricebookEntry WHERE B = 2", "operation": "Update"}]}]}
+out = il.prepare_extraction_export(later, [])
+check("an unfiltered later declaration of a split object is dropped too", len(out["objectSets"][1]["objects"]), 0)
+check("...and its WHERE still joins the first one's", out["objectSets"][0]["objects"][0]["query"],
+      "SELECT Id FROM PricebookEntry WHERE (A = 1) OR (B = 2)")
+unscoped = {"objectSets": [
+    {"objects": [{"query": "SELECT Id FROM X WHERE A = 1", "sourceRecordsFilter": "x"}]},
+    {"objects": [{"query": "SELECT Id FROM X", "sourceRecordsFilter": "y"}]}]}
+check("a declaration with no WHERE makes the extract unscoped",
+      il.prepare_extraction_export(unscoped, [])["objectSets"][0]["objects"][0]["query"], "SELECT Id FROM X")
+excluded_first = {"objectSets": [
+    {"objects": [{"query": "SELECT Id FROM X WHERE A = 1", "sourceRecordsFilter": "x", "excluded": True}]},
+    {"objects": [{"query": "SELECT Id FROM X WHERE B = 2", "sourceRecordsFilter": "y"}]}]}
+out = il.prepare_extraction_export(excluded_first, [])
+check("an excluded first declaration doesn't take the extract",
+      [o["query"] for s in out["objectSets"] for o in s["objects"] if not o.get("excluded")], ["SELECT Id FROM X WHERE (B = 2)"])
+check("...and the excluded declaration is still there, still excluded",
+      [(o["query"], o.get("excluded")) for o in out["objectSets"][0]["objects"]],
+      [("SELECT Id FROM X WHERE A = 1", True)])
+plain = {"objectSets": [{"objects": [
+    {"query": "SELECT Id FROM Y WHERE Name = 'x'", "operation": "Upsert"},
+    {"query": "SELECT Id, (SELECT Id FROM Z) FROM Y2", "operation": "Readonly"}]}]}
+check("a non-split object with a literal or a subquery passes through unchanged",
+      il.prepare_extraction_export(plain, [])["objectSets"][0]["objects"], plain["objectSets"][0]["objects"])
+for label, bad in (("a literal in a split object's WHERE", {"objectSets": [{"objects": [
+                       {"query": "SELECT Id FROM X WHERE Status = 'Active'", "sourceRecordsFilter": "x"}]}]}),
+                   ("a split object whose passes select different fields", {"objectSets": [
+                       {"objects": [{"query": "SELECT Id FROM X WHERE A = 1", "sourceRecordsFilter": "x"}]},
+                       {"objects": [{"query": "SELECT Id, Name FROM X WHERE B = 2", "sourceRecordsFilter": "y"}]}]})):
+    try:
+        il.prepare_extraction_export(bad, [])
+        got = "returned"
+    except ValueError:
+        got = "ValueError"
+    check(f"prepare_extraction_export refuses {label}", got, "ValueError")
 print("=" * 60)
 if _failures:
     print(f"FAIL: {len(_failures)} check(s) failed")
