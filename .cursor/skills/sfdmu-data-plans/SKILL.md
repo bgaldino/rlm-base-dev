@@ -169,6 +169,10 @@ re-running the plan. Then:
 
 ## Reload-Safe Status Objects and Child Lookups (qb-rating pattern)
 
+The design behind this pattern (shape ownership, how to add a data shape, the remaining destructive
+operations and their guardrails) is in
+[docs/analysis/sfdmu-data-shape-layering.md](../../../docs/analysis/sfdmu-data-shape-layering.md).
+
 Rating records (and many other RLM design-time objects) can't be deleted while Active, and a
 `Status` sent on update either fails (`ProductUsageResource` rejects Active -> Draft) or silently
 demotes the record (`ProductUsageGrant`). `qb-rating` and `qb-rating-entitlements` show the
