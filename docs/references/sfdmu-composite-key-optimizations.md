@@ -83,7 +83,7 @@ before reloading existing data.
 - **RateAdjustmentByTier**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId)
 
 #### qb-tax
-- **TaxPolicy (Pass 2)**: queries `DefaultTaxTreatmentId` with a single-field `DefaultTaxTreatment.Name` lookup (verified live on 264, 2026-10-30), so the default treatment is set in the same update that activates the policy. The earlier failure was Bug 4: the CSV used a `$$` composite in that lookup column. Before the fix, the query omitted the field and `activateTaxRecords.apex` set it afterwards. The script still backfills it for plans that don't set it, such as q3-tax.
+- **TaxPolicy (Pass 2)**: queries `DefaultTaxTreatmentId` with a single-field `DefaultTaxTreatment.Name` lookup (verified live on 264, 2026-10-30), so the default treatment is set in the same update that activates the policy. The earlier failure was Bug 4: the CSV used a `$$` composite in that lookup column. Before the fix, the query omitted the field and `activateTaxRecords.apex` set it afterwards. The script still backfills it for any policy left without one; no tracked plan relies on that since q3-tax became a product mapping (todo 210).
 - **NamedCredential**: read as a `Readonly` object (`RLM_MockTax`) so `TaxEngine.MerchantCredential.DeveloperName` resolves.
 
 #### qb-rating

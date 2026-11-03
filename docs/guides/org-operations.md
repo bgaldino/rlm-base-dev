@@ -252,9 +252,9 @@ and `insert_billing_data` when `qb` is on, or `q3` with `tax`. The q3-tax and q3
 then only map the 78 Q3 products onto those policies, so `deploy_billing_id_settings` finds the
 qb record names it resolves. Billing on any build needs `tax=true`: qb-billing reads the legal
 entities that qb-tax creates, and `deploy_billing_id_settings` resolves two qb-tax records, the
-'Default Legal Entity - US' entity and the 'Default Tax Policy' treatment. An org
-built before that change carries q3's own tax and billing records (with the Canada entity in USD)
-and can't be converted in place; build a fresh one.
+'Default Legal Entity - US' entity and the 'Default Tax Policy' treatment. An org built before
+Q3 moved onto the qb tax and billing data (todo 210) carries q3's own tax and billing records
+(with the Canada entity in USD) and can't be converted in place; build a fresh one.
 
 In `prepare_dro` step 5 → `update_product_fulfillment_decomp_rules`, an Apex
 update applies the workaround for the Release 260 ExecuteOnRuleId-on-insert bug.
