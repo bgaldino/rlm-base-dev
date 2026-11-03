@@ -171,9 +171,10 @@ and explicit date pinning. Reference scenario:
 All four shapes settled `Invoice.Status='Posted'`, `CreationMode='External'`,
 `TotalTaxAmount=0`. Every `InvoiceLine.TaxTreatmentId` resolved to the
 oldest active non-taxable `TaxTreatment` (the query was then `ORDER BY
-CreatedDate ASC LIMIT 1`), even on the org that had two qualifying rows. That held on this
-org only: qb-tax's per-legal-entity treatments load in the same batch as
-'Non Taxable Tax Treatment', so discovery now prefers it by name (above).
+CreatedDate ASC LIMIT 1`), even on the org that had two qualifying rows.
+That held on this org only: qb-tax's per-legal-entity treatments load in
+the same batch as 'Non Taxable Tax Treatment', so discovery now prefers it
+by name (above).
 
 ## Tax-on Posted Path
 
@@ -186,7 +187,7 @@ per taxable line in the same composite-graph POST. Live-verified against
 
 | Treatment | Selected by | Stamped on |
 | --------- | ----------- | ---------- |
-| `IsTaxable=false`, `Status=Active` | `discovery.resolve_non_taxable_tax_treatment` (oldest `CreatedDate`) | Every non-taxable `InvoiceLine` (Draft + Posted) |
+| `IsTaxable=false`, `Status=Active` | `discovery.resolve_non_taxable_tax_treatment` (prefers 'Non Taxable Tax Treatment', then a `Default`-selection policy, then oldest `CreatedDate`) | Every non-taxable `InvoiceLine` (Draft + Posted) |
 | `IsTaxable=true`, `Status=Active` | `discovery.resolve_taxable_tax_treatment` (most-recent `CreatedDate`; override via `invoice.taxable_tax_treatment_name`) | Every `taxable: true` `InvoiceLine` -- which then carries a related `InvoiceLineTax` row |
 
 `InvoiceIngestionHandler.resolve()` raises `LifecycleError` with seed
