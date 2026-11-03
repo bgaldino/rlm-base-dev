@@ -240,7 +240,9 @@ separate scratch-specific **QuantumBit** DRO plan is required.
 
 For **Q3** (`dro=true`, `q3=true`, `qb=false`), the flow selects
 `insert_q3_dro_data_scratch` for scratch orgs and `insert_q3_dro_data_prod` for
-non-scratch orgs. The QB path takes precedence when `qb=true`.
+non-scratch orgs. The QB path takes precedence when `qb=true`. Both load the same
+q3-dro plan, which only sets the Q3 products' decomposition scope: the Q3 source org
+has no fulfillment design, so a Q3 org gets no step groups, steps or scenarios.
 
 A Q3 build keeps `quantumbit=true`. `create_tax_engine` (`prepare_tax` step 1) needs the
 `RLM_MockTax` named credential, and only the QuantumBit metadata deploys it. With

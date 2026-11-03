@@ -186,41 +186,23 @@ class SFDMUValidator:
     }
 
     # Frozen snapshot of the header-only CSVs currently shipping under the deprioritized
-    # `q3` / `mfg` plan families (todo pack 162). These are DEFERRED — not real placeholders
-    # — until the 264 upgrade re-seeds those plans: `q3-dro` / `mfg-guidedselling` / the
-    # rest are never-populated stubs. (q3-billing's lost set left this list in todo 210, when
-    # q3 moved onto qb-billing's data and q3-billing kept only its product mapping.) The
-    # priority datasets are the `qb` series (verified clean of this shape, 0 findings).
+    # `mfg` plan family (todo pack 162). These are DEFERRED — not real placeholders — until
+    # the mfg re-seed: they are never-populated stubs. The q3 entries left this list in todo
+    # 210, when q3-billing and q3-dro were cut down to their product mappings. The priority
+    # datasets are the `qb` series (verified clean of this shape, 0 findings).
     #
     # Enumerated by EXACT plan-relative path (relative to datasets/sfdmu), deliberately NOT
-    # by family prefix: a family-wide skip would also silently swallow a NEWLY added q3/mfg
+    # by family prefix: a family-wide skip would also silently swallow a NEWLY added mfg
     # object, or one of these plans' currently-POPULATED CSVs later truncated to its header
-    # (e.g. q3-dro/Product2 ships 78 rows) — exactly the data-loss shape this
+    # (e.g. mfg-guidedselling/AssessmentQuestion.csv) — exactly the data-loss shape this
     # check exists to catch. Only these specific files are exempt; anything else still
     # produces the gating HIGH. Regenerate the set from the live tree (validator findings
     # with this deferral disabled), and delete entries as each plan is re-seeded.
-    #
-    # KNOWN EXCEPTION (pack 162 log): q3-dro/FulfillmentWorkspaceItem carries
-    # `deleteOldData: true`, so its header-only CSV is DESTRUCTIVE — running q3-dro would
-    # delete existing FulfillmentWorkspaceItem records and insert nothing. It is intentionally
-    # kept in this set (this shape was silent before pack 162 too; q3 is frozen until the
-    # post-264 re-seed by explicit project decision, and un-deferring it would block every PR
-    # on a plan the team chose not to run). The re-seed MUST re-populate this CSV or drop the
-    # deleteOldData/plan wiring; the destructive shape is tracked in the pack 162 log, not lost.
     _DEFERRED_EMPTY_CSV_PATHS = frozenset({
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionAssignment.csv",
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv",
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionSetConfig.csv",
         "mfg/en-US/mfg-pcm/UnitOfMeasureClass.csv",
-        "q3/en-US/q3-dro/FulfillmentFalloutRule.csv",
-        "q3/en-US/q3-dro/FulfillmentStepDefinition.csv",
-        "q3/en-US/q3-dro/FulfillmentStepDefinitionGroup.csv",
-        "q3/en-US/q3-dro/FulfillmentStepDependencyDef.csv",
-        "q3/en-US/q3-dro/FulfillmentStepJeopardyRule.csv",
-        "q3/en-US/q3-dro/FulfillmentWorkspace.csv",
-        "q3/en-US/q3-dro/FulfillmentWorkspaceItem.csv",
-        "q3/en-US/q3-dro/ProductFulfillmentDecompRule.csv",
-        "q3/en-US/q3-dro/ProductFulfillmentScenario.csv",
     })
 
     def _report_empty_csv_no_header(self, result, obj_name: str, csv_path: Path,
@@ -246,8 +228,8 @@ class SFDMUValidator:
             ))
 
     def _is_deferred_empty_csv_plan(self, csv_path: Path) -> bool:
-        """True if csv_path is one of the enumerated known-empty q3/mfg CSVs deferred
-        pending the post-264 re-seed (pack 162 / _DEFERRED_EMPTY_CSV_PATHS). Matched by
+        """True if csv_path is one of the enumerated known-empty mfg CSVs deferred
+        pending the mfg re-seed (pack 162 / _DEFERRED_EMPTY_CSV_PATHS). Matched by
         EXACT path relative to datasets/sfdmu, so only those specific files are exempt —
         a new object, or a currently-populated sibling in the same plan later truncated to
         its header, still produces the gating HIGH.
@@ -2034,7 +2016,7 @@ class SFDMUValidator:
                 # yields an empty (or all-blank) first record, so `headers` normalizes to
                 # all-empty here. That is still a no-header file: report it exactly like the
                 # StopIteration case above, and BEFORE the family deferral, so the no-header
-                # guarantee holds for q3/mfg too (the deferral covers only the header-only
+                # guarantee holds for mfg too (the deferral covers only the header-only
                 # finding, a strictly weaker signal).
                 if not any(h for h in headers):
                     self._report_empty_csv_no_header(result, obj_name, csv_path, pass_prefix)
@@ -2061,7 +2043,7 @@ class SFDMUValidator:
                 # lost its data rows (bad export, or a file truncated to just its header) passed
                 # validation cleanly. Mirror the severity split:
                 #   - allowlisted object → benign (this IS the expected placeholder state), DEBUG only.
-                #   - enumerated deferred q3/mfg file → this finding only is skipped (see
+                #   - enumerated deferred mfg file → this finding only is skipped (see
                 #     _DEFERRED_EMPTY_CSV_PATHS; other empty/key checks still fire, and a new
                 #     or newly-truncated file in the same plan is NOT exempt).
                 #   - any other object   → HIGH. Not CRITICAL: a present header is a weaker failure
@@ -2071,7 +2053,7 @@ class SFDMUValidator:
                         self.log(f"  Object {obj_name} has 0 data rows (known placeholder)", level="DEBUG")
                     elif self._is_deferred_empty_csv_plan(csv_path):
                         self.log(f"  {obj_name} has 0 data rows in a deferred plan tree "
-                                 "(pending post-264 refresh) — not flagged", level="DEBUG")
+                                 "(pending the mfg re-seed) — not flagged", level="DEBUG")
                     else:
                         result.add_issue(Issue(
                             severity=Severity.HIGH,

@@ -2231,19 +2231,17 @@ tasks:
 
   insert_q3_dro_data_scratch:
     group: Revenue Lifecycle Management
-    description: Insert Q3 DRO Data to Scratch
+    description: Set the Q3 products' decomposition scope (scratch orgs)
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *q3_dro_dataset
-      dynamic_assigned_to_user: true
 
   insert_q3_dro_data_prod:
     group: Revenue Lifecycle Management
-    description: Insert Q3 DRO Data to Production
+    description: Set the Q3 products' decomposition scope (non-scratch orgs)
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *q3_dro_dataset
-      dynamic_assigned_to_user: true
 
   insert_tax_data:
     group: Revenue Lifecycle Management
@@ -3040,7 +3038,7 @@ tasks:
 
   extract_q3_dro_data:
     group: Data Management - Extract
-    description: "Extract q3-dro from org to CSV, aligned to the qb-dro schema. Output in datasets/sfdmu/extractions/q3-dro/<timestamp>/processed/. Use run_post_process false to skip."
+    description: "Extract the q3-dro product decomposition settings (Product2) from org to CSV. Output in datasets/sfdmu/extractions/q3-dro/<timestamp>/processed/. Use run_post_process false to skip."
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *q3_dro_dataset
@@ -3182,7 +3180,7 @@ tasks:
       use_extraction_roundtrip: false
 
   # Q3 idempotency tests: load each plan twice from source CSVs, assert no record-count
-  # increase. Run against a feature-complete q3 org (q3-dro needs DRO; q3-billing needs Billing
+  # increase. Run against a feature-complete q3 org (q3-dro needs DRO for its Product2 fields; q3-billing needs Billing
   # and the qb-tax/qb-billing data loaded; q3-262 lacks them). Roundtrip is off (source CSVs are the canonical state).
   test_q3_pcm_idempotency:
     group: Data Management - Idempotency
@@ -3235,7 +3233,7 @@ tasks:
 
   test_q3_dro_idempotency:
     group: Data Management - Idempotency
-    description: "Idempotency test for q3-dro. Requires the DRO feature enabled on the target org (q3-262 has no DRO records)."
+    description: "Idempotency test for q3-dro (the q3 products' decomposition settings). Requires the DRO feature enabled on the target org."
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *q3_dro_dataset

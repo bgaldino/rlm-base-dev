@@ -167,7 +167,7 @@
 
 ### `extract_q3_dro_data`
 
-**Description:** Extract q3-dro from org to CSV, aligned to the qb-dro schema. Output in datasets/sfdmu/extractions/q3-dro/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract the q3-dro product decomposition settings (Product2) from org to CSV. Output in datasets/sfdmu/extractions/q3-dro/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -486,7 +486,7 @@
 
 ### `test_q3_dro_idempotency`
 
-**Description:** Idempotency test for q3-dro. Requires the DRO feature enabled on the target org (q3-262 has no DRO records).
+**Description:** Idempotency test for q3-dro (the q3 products' decomposition settings). Requires the DRO feature enabled on the target org.
 
 **Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
 
@@ -2418,27 +2418,25 @@
 
 ### `insert_q3_dro_data_prod`
 
-**Description:** Insert Q3 DRO Data to Production
+**Description:** Set the Q3 products' decomposition scope (non-scratch orgs)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-dro`
-- `dynamic_assigned_to_user`: `True`
 
 ---
 
 ### `insert_q3_dro_data_scratch`
 
-**Description:** Insert Q3 DRO Data to Scratch
+**Description:** Set the Q3 products' decomposition scope (scratch orgs)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-dro`
-- `dynamic_assigned_to_user`: `True`
 
 ---
 
