@@ -20,7 +20,7 @@ the platform refuses most of those deletes once the org has activity:
 | `AttributeAdjustmentCondition` | not deletable through the API at all |
 | `PricebookEntry` | quote lines that reference it |
 | `ProductUsageResource`, `ProductUsageGrant` | Active status |
-| `RateCardEntry` | Active status, and assets or entitlements that reference it |
+| `RateCardEntry` | Active status, and `AssetRateCardEntry` records that reference it |
 
 A failed delete left the old row in place, and the re-insert then created a duplicate or was
 rejected. A reload could also do damage: an unscoped `deleteOldData` on qb-rating stripped every
@@ -42,9 +42,10 @@ Upsert-matching bugs are fixed upstream; only Bug 4, `$$` in a lookup column, is
 The key must be **unique within what the object's query selects**. Where a natural key
 collides, the key gains the part that disambiguates it:
 
-- `PricebookEntry` keys on the price book too. The same SKU, selling model and currency
-  exists in the standard and custom books, so without it an Upsert matches the other
-  book's entry.
+- A `PricebookEntry` declaration that selects more than one price book keys on the book too
+  (q3-pricing, which loads the standard and Nonprofit books). The same SKU, selling model
+  and currency exists in both, so without it an Upsert matches the other book's entry.
+  qb-pricing scopes its query to the standard book and needs no book part.
 - `RateCardEntry` in q3-rates keys on `ProductSellingModel.Name` too.
 - A composite `$$` value drops its empty parts (`A;B;0`, not `A;B;0;`), as SFDMU builds
   the target key. A source value that keeps one never matches and duplicates on every
@@ -103,8 +104,8 @@ reference it, but only as `Readonly`.
 Shapes don't collide because their keys don't: each shape's SKUs are distinct, and shared
 design records (tax, billing) have a single owner. A shape that needs a shared record
 references it by name rather than shipping its own copy. q3 used to carry its own tax and
-billing objects; with two legal entities under the same names as qb's but in a different
-currency, they could not coexist with qb's (a legal entity's currency can't be changed).
+billing objects, including two legal entities under qb's names with Canada in USD rather than
+qb's CAD. They could not coexist with qb's, because a legal entity's currency can't be changed.
 
 **Shape-specific mapping plans.** When a shape reuses another shape's design records, its own
 plan shrinks to a `Product2` `Update` that points its products at them, plus a `Readonly`
@@ -143,7 +144,8 @@ alignment doesn't drop the extra key part.
 | `delete_quantumbit_pricing_data`, `delete_q3_pricing_data` | manual full teardown only; no flow runs them | deletes every record of the plan's pricing types, org-wide |
 | `delete_qb_rates_data`, `delete_q3_rates_data`, `delete_qb_rating_data`, `delete_q3_rating_data` | manual full teardown only; no flow runs them | Apex that deactivates Active records first, then deletes in dependency order |
 | qb-dro `FulfillmentWorkspaceItem` | `Upsert` + `deleteOldData: true` in a flow plan | a pre-5.6.4 workaround; dropping it needs live verification and owner approval |
-| mfg plans | 11 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing | converted with the mfg series (todo 111) |
+| mfg plans | 9 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing | converted with the mfg series (todo 111) |
+| qb/ja qb-pricing | 7 `Insert` declarations | brought up to the en-US plan in the qb/ja refresh (todo 212) |
 
 The rules for anything that stays destructive:
 
@@ -154,8 +156,9 @@ The rules for anything that stays destructive:
 - **Teardown tasks stay out of flows.** A flow reloads in place. A full teardown is a deliberate,
   manual step on a disposable org.
 - **A rejected row fails the load** (`fail_on_row_errors`, default on). A plan that rejects rows
-  on a fresh build today lists each object and its expected error in `ignore_row_errors_for`,
-  with the reason; anything else fails.
+  on a fresh build today lists each object in `ignore_row_errors_for`. The task accepts a bare
+  object name, but give the expected error substring and a comment saying why, so that a new
+  kind of rejection still fails.
 
 ## Options considered and rejected
 
@@ -175,7 +178,7 @@ The rules for anything that stays destructive:
 
 | Plans | Verified on | Result |
 |---|---|---|
-| qb-rating, qb-rating-entitlements | built ent-sb0 orgs, 2026-10-30 to 11-02 | 0 diff on reload; Active records untouched |
-| qb-pricing, qb-rates | fresh `sb0-1102`, 2026-11-02 | 0 diff; idempotency tasks pass |
-| every q3 plan | fresh `q3-1103` and `q3-210`, 2026-11-03 | no rejected rows; all 8 `test_q3_*` idempotency tasks pass |
-| qb-tax and qb-billing, with the q3 mapping plans | fresh `q3-210` and `qb-210`, 2026-11-03 | Billing Settings deploys on q3; qb tax and billing idempotency pass |
+| qb-rating, qb-rating-entitlements | built `ent-sb0` scratch orgs, 2026-10-30 to 11-02 | 0 diff on reload; Active records untouched |
+| qb-pricing, qb-rates | a fresh `ent-sb0` build, 2026-11-02 | 0 diff; idempotency tasks pass |
+| every q3 plan | two fresh `ent-sb0` q3 builds, 2026-11-03 | no rejected rows; all 8 `test_q3_*` idempotency tasks pass |
+| qb-tax and qb-billing, with the q3 mapping plans | fresh `ent-sb0` q3 and qb builds, 2026-11-03 | Billing Settings deploys on q3; qb tax and billing idempotency pass |

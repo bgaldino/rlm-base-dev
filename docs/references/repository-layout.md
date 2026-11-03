@@ -156,6 +156,7 @@ rlm-base-dev/
 │   │   ├── sfdmu-composite-key-optimizations.md
 │   │   └── task-examples.md
 │   ├── analysis/               # Curated technical analysis (agent-generated artifacts live in .agents/artifacts/)
+│   │   ├── sfdmu-data-shape-layering.md
 │   │   └── tooling-optimization-report.md
 │   ├── integration/            # Cross-tool integration plans
 │   ├── features/               # Feature-specific design docs
