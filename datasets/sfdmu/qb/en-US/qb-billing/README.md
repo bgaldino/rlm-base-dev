@@ -6,14 +6,14 @@ SFDMU data plan for QuantumBit (QB) billing configuration. Creates accounting pe
 
 ### Flow: `prepare_billing`
 
-This plan is executed as **step 1** of the `prepare_billing` flow (when `billing=true`, `qb=true`, `refresh=false`).
+This plan is executed as **step 2** of the `prepare_billing` flow (when `billing=true`, `refresh=false`, and `qb`, or `q3` with `tax`). A q3 build loads it too, then maps the q3 products onto its policies with q3-billing (step 3, todo 210).
 
 | Step | Task                                    | When               | Description                                                                             |
 |------|-----------------------------------------|--------------------|-----------------------------------------------------------------------------------------|
 | 1    | `deploy_post_billing`                   | billing            | Deploys billing settings/metadata from `unpackaged/post_billing` — **must run first** to enable `SequenceService` and `BillingSettings` so SequencePolicy SObjects are accessible |
-| 2    | `insert_billing_data`                   | billing+qb         | Runs this SFDMU plan (3 passes)                                                         |
-| 3    | `insert_q3_billing_data`                | billing+q3         | Loads Q3 billing data (gated by q3 flag)                                                |
-| 4    | `create_sequence_policies`              | billing+qb+!refresh| Creates `SequencePolicy` and `SeqPolicySelectionCondition` records via the Connect API (standard DML cannot create these objects) |
+| 2    | `insert_billing_data`                   | billing+(qb or q3+tax)+!refresh | Runs this SFDMU plan (3 passes)                                                         |
+| 3    | `insert_q3_billing_data`                | billing+tax+q3+!qb+!refresh | Maps the q3 products onto this plan's policies                                          |
+| 4    | `create_sequence_policies`              | billing+(qb or q3+tax)+!refresh| Creates `SequencePolicy` and `SeqPolicySelectionCondition` records via the Connect API (standard DML cannot create these objects) |
 | 5    | `activate_flow`                         | billing            | Activates `RLM_Order_to_Billing_Schedule_Flow`                                          |
 | 6    | `activate_default_payment_term`         | billing            | Runs `activateDefaultPaymentTerm.apex`                                                  |
 | 7    | `activate_billing_records`              | billing            | Runs `activateBillingRecords.apex` (BTI → BT → BP)                                     |

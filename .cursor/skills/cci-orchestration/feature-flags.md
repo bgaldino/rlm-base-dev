@@ -45,7 +45,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
 | `procedureplans_active` | `False` | 1 flow step(s) |
-| `q3` | `False` | 11 flow step(s) |
+| `q3` | `False` | 14 flow step(s) |
 | `qb` | `True` | 35 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 28 flow step(s) |
@@ -54,7 +54,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `rating` | `True` | 13 flow step(s) |
 | `refresh` | `False` | 11 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
-| `tax` | `True` | 8 flow step(s) |
+| `tax` | `True` | 10 flow step(s) |
 | `trial` | `False` | — |
 | `tso` | `False` | 20 flow step(s) |
 | `ux` | `True` | 2 flow step(s) |
@@ -350,7 +350,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_pricing_data` step 2 → `insert_q3_pricing_data`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`
+- `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
+- `prepare_billing` step 4 → `create_sequence_policies`
+- `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 3 → `insert_q3_rating_data`
 - `prepare_rating` step 4 → `insert_q3_rating_entitlements_data`
@@ -470,7 +473,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `tax` (default: `True`)
 
+- `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
+- `prepare_billing` step 4 → `create_sequence_policies`
 - `prepare_tax` step 1 → `create_tax_engine`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`

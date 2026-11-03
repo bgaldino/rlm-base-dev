@@ -1,3 +1,10 @@
 Name,Description,IsTaxable,LegalEntity.Name,ProductCode,Status,TaxCode,TaxEngine.TaxEngineName,TaxPolicy.Name
 Default Tax Policy,,true,Default Legal Entity - US,Test123,Draft,PA020111,RLM_MockTaxAdapter,Default Tax Policy
 Non Taxable Tax Treatment,Non-taxable treatment for non-taxable products,false,Default Legal Entity - US,,Draft,,,Non Taxable Tax Policy
+Tax Treatment for US LE,,false,Default Legal Entity - US,,Draft,,,Tax Policy for LE
+Tax Treatment for Canada LE,,false,Default Legal Entity - Canada,,Draft,,,Tax Policy for LE
+Tax Treatment for EU LE,,false,Default Legal Entity - EU,,Draft,,,Tax Policy for LE
+Tax Treatment for UK LE,,false,Default Legal Entity - UK,,Draft,,,Tax Policy for LE
+Tax Treatment for Australia LE,,false,Default Legal Entity - Australia,,Draft,,,Tax Policy for LE
+Tax Treatment for Switzerland LE,,false,Default Legal Entity - Switzerland,,Draft,,,Tax Policy for LE
+Tax Treatment for Japan LE,,false,Default Legal Entity - Japan,,Draft,,,Tax Policy for LE

@@ -1859,8 +1859,8 @@ NO_HEADER_AND_BLANK_ROWS_DETECTED = [
             if "header row but 0 data rows" in i]),
 ]
 
-# The `q3` and `mfg` plan trees carry 22 live header-only CSVs (q3-billing's are real data lost
-# in commit 3bff2389; q3-dro / mfg-guidedselling are never-populated stubs) — all deferred until
+# The `q3` and `mfg` plan trees carry 13 live header-only CSVs (q3-dro / mfg-guidedselling are
+# never-populated stubs; q3-billing's lost set left in todo 210) — all deferred until
 # the 264 upgrade re-seeds them (pack 162). The deferral is ENUMERATED by exact plan-relative path
 # (not family-wide, per the Codex #427 finding): it protects the priority `qb` datasets AND still
 # fires on a new object or a currently-populated q3/mfg CSV later truncated to its header. Tested on
@@ -1870,7 +1870,7 @@ _DEFER_V = V.SFDMUValidator(base_dir=str(REPO))
 DEFERRED_PLAN_SKIP = [
     ("an enumerated q3 header-only CSV is deferred — not flagged",
      True, _DEFER_V._is_deferred_empty_csv_plan(
-         REPO / "datasets/sfdmu/q3/en-US/q3-billing/BillingTreatment.csv")),
+         REPO / "datasets/sfdmu/q3/en-US/q3-dro/FulfillmentWorkspace.csv")),
     ("an enumerated mfg header-only CSV is deferred too",
      True, _DEFER_V._is_deferred_empty_csv_plan(
          REPO / "datasets/sfdmu/mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv")),
@@ -1881,7 +1881,7 @@ DEFERRED_PLAN_SKIP = [
     # a new object or a currently-populated CSV later truncated to its header is NOT masked.
     ("a NON-enumerated file in a deferred q3 plan is NOT exempt — new/truncated data still fires",
      False, _DEFER_V._is_deferred_empty_csv_plan(
-         REPO / "datasets/sfdmu/q3/en-US/q3-billing/PaymentTerm.csv")),
+         REPO / "datasets/sfdmu/q3/en-US/q3-dro/Product2.csv")),
 ]
 
 # End-to-end (not predicate-in-isolation, per the Codex #427 coverage finding): the deferral must
@@ -1890,23 +1890,23 @@ DEFERRED_PLAN_SKIP = [
 # enumerated plan stays CRITICAL, and a non-enumerated sibling still fires HIGH. Moving the
 # no-header check below the deferral (the regression this pins) would flip case 2 from present to
 # absent.
-_Q3B = "q3/en-US/q3-billing"
+_Q3B = "q3/en-US/q3-dro"
 DEFERRAL_END_TO_END = [
     ("an enumerated q3 header-only CSV is suppressed end-to-end through validate_dataset",
      False, [i for i in deferral_issues(
-         _Q3B, [[{"query": "SELECT Id, Name FROM BillingTreatment", "operation": "Upsert",
-                  "externalId": "Name"}]], {"BillingTreatment.csv": "Id,Name\n"})
+         _Q3B, [[{"query": "SELECT Id, Name FROM FulfillmentWorkspace", "operation": "Upsert",
+                  "externalId": "Name"}]], {"FulfillmentWorkspace.csv": "Id,Name\n"})
          if "header row but 0 data rows" in i]),
     ("...but a no-header (whitespace-only) CSV for that same enumerated object is STILL Critical "
      "— the deferral does not cover the no-header shape",
      True, [i for i in deferral_issues(
-         _Q3B, [[{"query": "SELECT Id, Name FROM BillingTreatment", "operation": "Upsert",
-                  "externalId": "Name"}]], {"BillingTreatment.csv": "\n"})
+         _Q3B, [[{"query": "SELECT Id, Name FROM FulfillmentWorkspace", "operation": "Upsert",
+                  "externalId": "Name"}]], {"FulfillmentWorkspace.csv": "\n"})
          if "no header row" in i]),
     ("...and a NON-enumerated header-only sibling in the same deferred plan still fires HIGH",
      True, [i for i in deferral_issues(
-         _Q3B, [[{"query": "SELECT Id, Name FROM PaymentTerm", "operation": "Upsert",
-                  "externalId": "Name"}]], {"PaymentTerm.csv": "Id,Name\n"})
+         _Q3B, [[{"query": "SELECT Id, StockKeepingUnit FROM Product2", "operation": "Update",
+                  "externalId": "StockKeepingUnit"}]], {"Product2.csv": "Id,StockKeepingUnit\n"})
          if "header row but 0 data rows" in i]),
 ]
 

@@ -1,123 +1,18 @@
 {
   "apiVersion": "68.0",
   "excludeIdsFromCSVFiles": "true",
-  "useSeparatedCSVFiles": true,
-  "objectSets": [
+  "$comment": "Product billing-policy mapping for the q3 products only. The billing design (accounting periods, policies, treatments, GL accounts, payment terms) comes from qb-billing, which prepare_billing loads first on a q3 build (todo 210).",
+  "objects": [
     {
-      "name": "First Pass - Insert/Upsert with Draft Status",
-      "objects": [
-        {
-          "query": "SELECT EndDate, FinancialYear, Name, StartDate, Status FROM AccountingPeriod",
-          "operation": "Upsert",
-          "externalId": "Name;FinancialYear",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Name FROM LegalEntity",
-          "operation": "Readonly",
-          "externalId": "Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT AccountingPeriodId, LegalEntityId, Name, Status FROM LegalEntyAccountingPeriod",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Description, IsDefault, Name, Status FROM PaymentTerm",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "skipExistingRecords": true,
-          "excluded": false
-        },
-        {
-          "query": "SELECT Description, PaymentTermId, PaymentTerm.Name, PaymentTimeframe, Period, PeriodUnit, Type FROM PaymentTermItem",
-          "operation": "Upsert",
-          "externalId": "PaymentTerm.Name;Type",
-          "skipExistingRecords": true,
-          "excluded": false
-        },
-        {
-          "query": "SELECT BillingTreatmentSelection, DefaultBillingTreatmentId, DefaultBillingTreatment.Name, Description, Name, Status FROM BillingPolicy",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "skipExistingRecords": true,
-          "excluded": false
-        },
-        {
-          "query": "SELECT BillingPolicyId, BillingPolicy.Name, CanChangeBillingFrequency, CurrencyIsoCode, Description, IsMilestoneBilling, ExcludeFromBilling, LegalEntityId, LegalEntity.Name, Name, Status FROM BillingTreatment",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "skipExistingRecords": true,
-          "excluded": false
-        },
-        {
-          "query": "SELECT BillingTreatmentId, BillingTreatment.Name, BillingTreatment.BillingPolicy.Name, BillingTreatment.LegalEntity.Name, BillingType, Controller, CurrencyIsoCode, Description, FlatAmount, MilestoneStartDateOffset, MilestoneStartDateOffsetUnit, MilestoneStartDate, MilestoneType, Name, Percentage, ProcessingOrder, Sequencing, Status, Type, Handling0Amount FROM BillingTreatmentItem",
-          "operation": "Upsert",
-          "externalId": "Name;BillingTreatment.Name",
-          "skipExistingRecords": true,
-          "excluded": false
-        },
-        {
-          "query": "SELECT BillingPolicyId, BillingPolicy.Name, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
-          "operation": "Update",
-          "externalId": "StockKeepingUnit",
-          "excluded": false
-        },
-        {
-          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, LegalEntity.Name, Name, Type FROM GeneralLedgerAccount",
-          "operation": "Upsert",
-          "externalId": "AccountingCode",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, CreditGeneralLedgerAccountId, DebitGeneralLedgerAccountId, LegalEntityId, LegalEntity.Name, Name, Priority, Status, TransactionAmountField, TransactionType FROM GeneralLedgerAcctAsgntRule",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CanUseAltrnPaymentMethod, CurrencyIsoCode, DefaultIntervalUnit, DefaultIntervalValue, DefaultMaximumRetryCount, DefaultRetryIntervalType, Description, IsDefaultRuleSet, Name, Status FROM PaymentRetryRuleSet",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT CurrencyIsoCode, Description, IntervalUnit, IntervalValue, MaximumRetryCount, PaymentGatewayErrorCategory, PaymentGatewayErrorCode, PaymentGatewayId, PaymentRetryRuleSetId, PaymentRetryRuleSet.Name, RetryIntervalType FROM PaymentRetryRule",
-          "operation": "Upsert",
-          "externalId": "PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType",
-          "excluded": false
-        }
-      ]
+      "query": "SELECT Name FROM BillingPolicy",
+      "operation": "Readonly",
+      "externalId": "Name"
     },
     {
-      "name": "Second Pass - Activate BillingTreatmentItem",
-      "objects": [
-        {
-          "query": "SELECT BillingTreatmentId, BillingTreatment.Name, BillingTreatment.BillingPolicy.Name, BillingTreatment.LegalEntity.Name, Name, Status FROM BillingTreatmentItem WHERE Status = 'Draft'",
-          "operation": "Update",
-          "externalId": "Name;BillingTreatment.Name",
-          "excluded": false
-        }
-      ]
-    },
-    {
-      "name": "Third Pass - Set DefaultBillingTreatmentId on BillingPolicy",
-      "objects": [
-        {
-          "query": "SELECT BillingPolicyId, BillingPolicy.Name, LegalEntityId, LegalEntity.Name, Name, Status FROM BillingTreatment WHERE Status = 'Draft'",
-          "operation": "Update",
-          "externalId": "Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT DefaultBillingTreatmentId, DefaultBillingTreatment.Name, BillingTreatmentSelection, Description, Name, Status FROM BillingPolicy WHERE Status = 'Draft'",
-          "operation": "Update",
-          "externalId": "Name",
-          "excluded": false
-        }
-      ]
+      "query": "SELECT BillingPolicyId, BillingPolicy.Name, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+      "operation": "Update",
+      "externalId": "StockKeepingUnit",
+      "excluded": false
     }
   ],
   "orgs": []

@@ -2254,7 +2254,7 @@ tasks:
 
   insert_q3_tax_data:
     group: Revenue Lifecycle Management
-    description: Insert Q3 Tax Data
+    description: Map the Q3 products onto the qb-tax policies (run insert_tax_data first)
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *q3_tax_dataset
@@ -2269,7 +2269,7 @@ tasks:
 
   insert_q3_billing_data:
     group: Revenue Lifecycle Management
-    description: Insert Q3 Billing Data
+    description: Map the Q3 products onto the qb-billing policies (run insert_billing_data first)
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *q3_billing_dataset
@@ -3026,14 +3026,14 @@ tasks:
 
   extract_q3_billing_data:
     group: Data Management - Extract
-    description: "Extract q3-billing from org to CSV, aligned to the qb-billing schema. Output in datasets/sfdmu/extractions/q3-billing/<timestamp>/processed/. Use run_post_process false to skip."
+    description: "Extract the q3-billing product mapping (Product2.BillingPolicy) from org to CSV. Output in datasets/sfdmu/extractions/q3-billing/<timestamp>/processed/. Use run_post_process false to skip."
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *q3_billing_dataset
 
   extract_q3_tax_data:
     group: Data Management - Extract
-    description: "Extract q3-tax from org to CSV, aligned to the qb-tax schema. Output in datasets/sfdmu/extractions/q3-tax/<timestamp>/processed/. Use run_post_process false to skip."
+    description: "Extract the q3-tax product mapping (Product2.TaxPolicy) from org to CSV. Output in datasets/sfdmu/extractions/q3-tax/<timestamp>/processed/. Use run_post_process false to skip."
     class_path: tasks.rlm_sfdmu.ExtractSFDMUData
     options:
       pathtoexportjson: *q3_tax_dataset
@@ -3182,8 +3182,8 @@ tasks:
       use_extraction_roundtrip: false
 
   # Q3 idempotency tests: load each plan twice from source CSVs, assert no record-count
-  # increase. Run against a feature-complete q3 org (q3-billing/q3-dro need the Billing/DRO
-  # features enabled; q3-262 lacks them). Roundtrip is off (source CSVs are the canonical state).
+  # increase. Run against a feature-complete q3 org (q3-dro needs DRO; q3-billing needs Billing
+  # and the qb-tax/qb-billing data loaded; q3-262 lacks them). Roundtrip is off (source CSVs are the canonical state).
   test_q3_pcm_idempotency:
     group: Data Management - Idempotency
     description: Idempotency test for q3-pcm (product catalog). Loads twice from source, asserts no new records.
@@ -3243,7 +3243,7 @@ tasks:
 
   test_q3_tax_idempotency:
     group: Data Management - Idempotency
-    description: Idempotency test for q3-tax (tax policies and treatments).
+    description: Idempotency test for q3-tax (the q3 product tax-policy mapping; needs qb-tax loaded).
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *q3_tax_dataset
@@ -3251,7 +3251,7 @@ tasks:
 
   test_q3_billing_idempotency:
     group: Data Management - Idempotency
-    description: "Idempotency test for q3-billing. Requires the Billing feature enabled on the target org (q3-262 reports GeneralLedgerAccount/BillingPolicy unsupported)."
+    description: "Idempotency test for q3-billing (the q3 product billing-policy mapping; needs qb-billing loaded and the Billing feature enabled)."
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *q3_billing_dataset
@@ -4211,14 +4211,19 @@ flows:
         task: deploy_post_billing
         when: project_config.project__custom__billing
       2:
+        # q3 builds load the qb billing design too, so Billing Settings (step 9) resolves its
+        # qb record names; step 3 then maps the q3 products onto its policies (todo 210).
+        # Billing needs tax on: qb-tax (prepare_tax) creates the legal entities qb-billing reads,
+        # and Billing Settings (step 9) resolves qb-tax's US legal entity and 'Default Tax Policy'
+        # treatment. q3 skips the load without tax; step 9 fails either way.
         task: insert_billing_data
-        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
+        when: project_config.project__custom__billing and not project_config.project__custom__refresh and (project_config.project__custom__qb or (project_config.project__custom__q3 and project_config.project__custom__tax))
       3:
         task: insert_q3_billing_data
         when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
       4:
         task: create_sequence_policies
-        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
+        when: project_config.project__custom__billing and not project_config.project__custom__refresh and (project_config.project__custom__qb or (project_config.project__custom__q3 and project_config.project__custom__tax))
       5:
         task: activate_flow
         when: project_config.project__custom__billing
@@ -4408,8 +4413,10 @@ flows:
         task: create_tax_engine
         when: project_config.project__custom__tax
       2:
+        # q3 builds load the qb tax design too (legal entities, engine, treatments, policies);
+        # step 3 then maps the q3 products onto its policies (todo 210).
         task: insert_tax_data
-        when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb
+        when: project_config.project__custom__tax and not project_config.project__custom__refresh and (project_config.project__custom__qb or project_config.project__custom__q3)
       3:
         task: insert_q3_tax_data
         when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
@@ -5096,7 +5103,7 @@ flows:
 
   run_q3_idempotency_tests:
     group: Data Management - Idempotency
-    description: Run all Q3 data idempotency tests (load twice, assert no new records). Use --org to specify a feature-complete q3 org (q3-billing/q3-dro need Billing/DRO enabled).
+    description: Run all Q3 data idempotency tests (load twice, assert no new records). Use --org to specify a feature-complete q3 org (q3-dro needs DRO; q3-tax/q3-billing need the qb-tax/qb-billing data loaded).
     steps:
       1:
         task: test_q3_pcm_idempotency
@@ -5111,7 +5118,8 @@ flows:
         task: test_q3_rates_idempotency
       6:
         task: test_q3_dro_idempotency
-      # tax before billing: q3-billing references LegalEntity rows that q3-tax upserts.
+      # The q3 tax and billing plans only map the q3 products onto the qb-tax and qb-billing
+      # policies, so those qb plans must be loaded on the org first (todo 210).
       7:
         task: test_q3_tax_idempotency
         when: project_config.project__custom__tax and project_config.project__custom__q3

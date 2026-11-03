@@ -6,13 +6,13 @@ SFDMU data plan for QuantumBit (QB) tax configuration. Creates legal entities, t
 
 ### Flow: `prepare_tax`
 
-This plan is executed as **step 2** of the `prepare_tax` flow (when `tax=true`, `qb=true`, `refresh=false`).
+This plan is executed as **step 2** of the `prepare_tax` flow (when `tax=true`, `refresh=false`, and `qb` or `q3`). A q3 build loads it too, then maps the q3 products onto its policies with q3-tax (step 3, todo 210).
 
 | Step | Task                     | When (`when:`)                | Description                                                |
 |------|--------------------------|-------------------------------|------------------------------------------------------------|
 | 1    | `create_tax_engine`      | `tax`                         | Runs `createTaxEngine.apex` (creates TaxEngineProvider + TaxEngine via REST API) |
-| 2    | `insert_tax_data`        | `tax` and not `refresh` and `qb` | Runs this SFDMU plan (2 passes)                         |
-| 3    | `insert_q3_tax_data`     | `tax` and not `refresh` and `q3` and not `qb` | Loads Q3 tax data (gated by the `q3` flag)             |
+| 2    | `insert_tax_data`        | `tax` and not `refresh` and (`qb` or `q3`) | Runs this SFDMU plan (2 passes)               |
+| 3    | `insert_q3_tax_data`     | `tax` and not `refresh` and `q3` and not `qb` | Maps the q3 products onto this plan's policies |
 | 4    | `activate_tax_records`   | `tax`                         | Runs `activateTaxRecords.apex`                             |
 
 ### Task Definition
@@ -54,13 +54,13 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 | 2 | LegalEntity      | Upsert    | `Name`                             | 7       |
 | 3 | TaxEngineProvider| Upsert    | `DeveloperName`                    | 1       |
 | 4 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
-| 5 | TaxTreatment     | Upsert    | `Name`                             | 2       |
-| 6 | TaxPolicy        | Upsert    | `Name`                             | 2       |
+| 5 | TaxTreatment     | Upsert    | `Name`                             | 9       |
+| 6 | TaxPolicy        | Upsert    | `Name`                             | 3       |
 | 7 | Product2         | Update    | `StockKeepingUnit`                 | 316     |
 
 **Note:** TaxTreatment and TaxPolicy use `skipExistingRecords: true` to avoid updating records that already exist. Product2 is Update-only (sets `TaxPolicyId`). The `create_tax_engine` Apex script creates TaxEngineProvider and TaxEngine via REST API before this SFDMU pass runs, so the SFDMU upsert of those objects acts as a safety net.
 
-**Multicurrency regions:** LegalEntity now spans seven currencies — US (USD), Canada (CAD, corrected from USD), EU (EUR), UK (GBP), Australia (AUD), Switzerland (CHF), Japan (JPY) — to back the per-region billing treatments in `qb-billing`. `TaxTreatment` records remain US-only (they are not 1:1 with legal entities, so EU/UK already run without them); add regional tax treatments separately only if regional tax calculation is required.
+**Multicurrency regions:** LegalEntity now spans seven currencies — US (USD), Canada (CAD, corrected from USD), EU (EUR), UK (GBP), Australia (AUD), Switzerland (CHF), Japan (JPY) — to back the per-region billing treatments in `qb-billing`. The two Default-selection treatments are US-only. 'Tax Policy for LE' (`TreatmentSelection = LegalEntity`, added for the q3 products in todo 210) has one non-taxable treatment per legal entity, 'Tax Treatment for <region> LE', and defaults to the US one. No qb product uses it.
 
 **Note:** `export.json` declares `externalId: Name` for TaxTreatment (both passes), so matching is by `Name` alone. `TaxTreatment.csv` has no `$$` composite column.
 
@@ -68,10 +68,10 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 
 | # | Object       | Operation | External ID                        | Records |
 |---|--------------|-----------|------------------------------------|---------|
-| 1 | TaxTreatment | Update    | `Name`                             | 2       |
-| 2 | TaxPolicy    | Update    | `Name`                             | 2       |
+| 1 | TaxTreatment | Update    | `Name`                             | 9       |
+| 2 | TaxPolicy    | Update    | `Name`                             | 3       |
 
-Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on each TaxPolicy. `Default Tax Policy` defaults to `Default Tax Policy` (taxable); `Non Taxable Tax Policy` defaults to `Non Taxable Tax Treatment` (non-taxable). All `Product2.TaxPolicyId` assignments in this plan still target `Default Tax Policy` — opting a product into non-taxable behavior requires updating `Product2.csv` (or post-load configuration) to point at `Non Taxable Tax Policy`.
+Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on each TaxPolicy. `Default Tax Policy` defaults to `Default Tax Policy` (taxable); `Non Taxable Tax Policy` defaults to `Non Taxable Tax Treatment` (non-taxable); `Tax Policy for LE` defaults to `Tax Treatment for US LE`. All `Product2.TaxPolicyId` assignments in this plan still target `Default Tax Policy` — opting a product into non-taxable behavior requires updating `Product2.csv` (or post-load configuration) to point at `Non Taxable Tax Policy`.
 
 ## Apex Scripts
 
@@ -91,7 +91,7 @@ Activates tax records in dependency order:
    non-Active policy Active. It applies to all policies in the org, not only this plan's.
 
 It's idempotent: records already Active with a default treatment are left alone. For qb, pass 2 already sets
-both, so the script is a safety net; q3-tax still depends on it.
+both, so the script is a safety net.
 
 ## Configuration
 
@@ -140,16 +140,16 @@ qb-tax/
 ├── LegalEntity.csv                      # 7 records
 ├── TaxEngineProvider.csv                # 1 record
 ├── TaxEngine.csv                        # 1 record
-├── TaxTreatment.csv                     # 2 records
-├── TaxPolicy.csv                        # 2 records
+├── TaxTreatment.csv                     # 9 records
+├── TaxPolicy.csv                        # 3 records
 ├── Product2.csv                         # 316 records (Update only)
 ├── NamedCredential.csv                  # 1 record (Readonly lookup for TaxEngine)
 │
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/
 │   └── object-set-2/
-│       ├── TaxTreatment.csv             # 2 records (Status -> Active)
-│       └── TaxPolicy.csv               # 2 records (DefaultTaxTreatment + Status)
+│       ├── TaxTreatment.csv             # 9 records (Status -> Active)
+│       └── TaxPolicy.csv               # 3 records (DefaultTaxTreatment + Status)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
@@ -272,7 +272,7 @@ The missing fields fall into three categories:
 | TaxEngineProvider| `DeveloperName`                 | N/A (CMDT-like)| No     | ✅ OK — standard pattern for metadata types |
 | TaxEngine        | `TaxEngineName`                 | N/A           | No      | ✅ OK — idLookup field |
 | TaxTreatment     | `Name`                          | No            | No      | ✅ OK — `export.json` declares `Name` |
-| TaxPolicy        | `Name`                          | No            | No      | ✅ OK — human-readable, 1 record |
+| TaxPolicy        | `Name`                          | No            | No      | ✅ OK — human-readable, 3 records |
 | Product2         | `StockKeepingUnit`              | No*           | No*     | ✅ OK — platform-enforced unique when RLM enabled |
 
 ### Composite Key Complexity
@@ -284,5 +284,5 @@ All declared externalIds are simple single-field keys. `export.json` declares `e
 1. **Fix `excludeIdsFromCSVFiles`**: Change from `"false"` to `"true"` for portability — ensure all lookups use relationship traversal fields
 2. **Add missing 260 fields to SOQL**: Prioritize `TaxTreatment.ProductId`, `TaxTreatment.ShouldUseTaxTreatmentItems`, `TaxEngine.Type`, `TaxEngine.ShouldCaptureTaxesAtHeader` for functional completeness
 3. **Add geo and email fields**: Lower priority — add LegalEntity geo/email fields and TaxEngine address/geo fields for full schema coverage
-4. **Consider retiring the activation script for qb**: pass 2 now sets `DefaultTaxTreatmentId` and activates both objects, so `activateTaxRecords.apex` only does real work for q3-tax. Keep it until q3-tax gets the same fix.
+4. **Consider retiring the activation script for qb**: pass 2 now sets `DefaultTaxTreatmentId` and activates both objects, so `activateTaxRecords.apex` is only a safety net (q3 builds load this plan too since todo 210).
 5. **API version management**: `createTaxEngine.apex` has a hardcoded `v68.0` — consider making this dynamic

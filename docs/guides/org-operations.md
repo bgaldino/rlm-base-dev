@@ -244,13 +244,17 @@ non-scratch orgs. The QB path takes precedence when `qb=true`.
 
 A Q3 build keeps `quantumbit=true`. `create_tax_engine` (`prepare_tax` step 1) needs the
 `RLM_MockTax` named credential, and only the QuantumBit metadata deploys it. With
-`quantumbit=false` and `tax=true`, the build has no tax engine, and q3-tax's engine and taxable
+`quantumbit=false` and `tax=true`, the build has no tax engine, and qb-tax's engine and taxable
 treatment are rejected.
 
-A Q3 build also needs `billing=false` for now. `deploy_billing_id_settings` (`prepare_billing`)
-looks up qb-billing records by name ('Billing Treatment - USA - Advance', the 'Default Tax Policy'
-treatment, and the qb GL accounts), and none exist on a Q3 org, so the step fails. Moving Q3 onto
-the qb tax and billing data, so those names exist, is tracked separately.
+A Q3 build loads the qb tax and billing designs: `insert_tax_data` runs when `qb` or `q3` is on,
+and `insert_billing_data` when `qb` is on, or `q3` with `tax`. The q3-tax and q3-billing plans
+then only map the 78 Q3 products onto those policies, so `deploy_billing_id_settings` finds the
+qb record names it resolves. Billing on any build needs `tax=true`: qb-billing reads the legal
+entities that qb-tax creates, and `deploy_billing_id_settings` resolves two qb-tax records, the
+'Default Legal Entity - US' entity and the 'Default Tax Policy' treatment. An org built before
+Q3 moved onto the qb tax and billing data (todo 210) carries q3's own tax and billing records
+(with the Canada entity in USD) and can't be converted in place; build a fresh one.
 
 In `prepare_dro` step 5 → `update_product_fulfillment_decomp_rules`, an Apex
 update applies the workaround for the Release 260 ExecuteOnRuleId-on-insert bug.

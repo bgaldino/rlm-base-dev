@@ -155,7 +155,7 @@
 
 ### `extract_q3_billing_data`
 
-**Description:** Extract q3-billing from org to CSV, aligned to the qb-billing schema. Output in datasets/sfdmu/extractions/q3-billing/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract the q3-billing product mapping (Product2.BillingPolicy) from org to CSV. Output in datasets/sfdmu/extractions/q3-billing/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -240,7 +240,7 @@
 
 ### `extract_q3_tax_data`
 
-**Description:** Extract q3-tax from org to CSV, aligned to the qb-tax schema. Output in datasets/sfdmu/extractions/q3-tax/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract the q3-tax product mapping (Product2.TaxPolicy) from org to CSV. Output in datasets/sfdmu/extractions/q3-tax/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -473,7 +473,7 @@
 
 ### `test_q3_billing_idempotency`
 
-**Description:** Idempotency test for q3-billing. Requires the Billing feature enabled on the target org (q3-262 reports GeneralLedgerAccount/BillingPolicy unsupported).
+**Description:** Idempotency test for q3-billing (the q3 product billing-policy mapping; needs qb-billing loaded and the Billing feature enabled).
 
 **Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
 
@@ -566,7 +566,7 @@
 
 ### `test_q3_tax_idempotency`
 
-**Description:** Idempotency test for q3-tax (tax policies and treatments).
+**Description:** Idempotency test for q3-tax (the q3 product tax-policy mapping; needs qb-tax loaded).
 
 **Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
 
@@ -2406,7 +2406,7 @@
 
 ### `insert_q3_billing_data`
 
-**Description:** Insert Q3 Billing Data
+**Description:** Map the Q3 products onto the qb-billing policies (run insert_billing_data first)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
@@ -2505,7 +2505,7 @@
 
 ### `insert_q3_tax_data`
 
-**Description:** Insert Q3 Tax Data
+**Description:** Map the Q3 products onto the qb-tax policies (run insert_tax_data first)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 

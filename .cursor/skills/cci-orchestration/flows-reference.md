@@ -32,7 +32,7 @@ Run all QB data extract tasks (org → CSV). Use --org to specify source org.
 
 ### `run_q3_idempotency_tests`
 
-Run all Q3 data idempotency tests (load twice, assert no new records). Use --org to specify a feature-complete q3 org (q3-billing/q3-dro need Billing/DRO enabled).
+Run all Q3 data idempotency tests (load twice, assert no new records). Use --org to specify a feature-complete q3 org (q3-dro needs DRO; q3-tax/q3-billing need the qb-tax/qb-billing data loaded).
 
 **Steps:**
 
@@ -227,9 +227,9 @@ Extract rating and rates data from an org into CSV files
 **Steps:**
 
 1. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
-2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and (project_config.project__custom__qb or (project_config.project__custom__q3 and project_config.project__custom__tax))`
 3. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and (project_config.project__custom__qb or (project_config.project__custom__q3 and project_config.project__custom__tax))`
 5. **task** `activate_flow`  `when: project_config.project__custom__billing`
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
 6. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
@@ -713,7 +713,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 **Steps:**
 
 1. **task** `create_tax_engine`  `when: project_config.project__custom__tax`
-2. **task** `insert_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and (project_config.project__custom__qb or project_config.project__custom__q3)`
 3. **task** `insert_q3_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
 4. **task** `activate_tax_records`  `when: project_config.project__custom__tax`
 5. **task** `deploy_quote_est_tax_settings`
