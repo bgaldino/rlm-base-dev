@@ -290,7 +290,7 @@ silently each fail the suite.
 
 ### `check_sfdmu_layering.py`
 
-Two read-only checks across every data shape's SFDMU plans (qb, q3, mfg; qb/ja counts as qb).
+Read-only checks across every data shape's SFDMU plans (qb, q3, mfg; qb/ja counts as qb).
 `pr_gate.py` runs it as `sfdmu_layering` whenever a plan changes.
 
 ```bash
@@ -299,14 +299,21 @@ python scripts/ai/check_sfdmu_layering.py --list   # also print every known shar
 ```
 
 - **`lookup`:** a populated `$$` lookup-reference column that SFDMU can't resolve. A `$$` lookup
-  resolves when its parts are exactly the parent object's `externalId` in the same plan; it
+  resolves when its parts are exactly the parent object's `externalId` in the same pass; it
   fails when it's self-referential, when the parent is keyed differently, or when the plan
   declares no parent for it. Known cases in plans no current build loads are listed in
   `KNOWN_UNRESOLVED_LOOKUPS`.
-- **`shared`:** a record two shapes write with different values, so the last load wins. The
-  known ones are in `KNOWN_SHARED_CONFLICTS`, matching the table in
-  `docs/analysis/sfdmu-data-shape-layering.md`. A new conflict, or a listed one that no longer
-  conflicts, fails.
+- **`shared`:** a field of a record two shapes write with different values, so the last load
+  wins. Each plan's last pass and `sourceRecordsFilter` are taken into account. The known ones
+  are in `KNOWN_SHARED_CONFLICTS`, one per record and field (`--list` prints them); the
+  table in `docs/analysis/sfdmu-data-shape-layering.md` summarizes them. A new conflict, or a listed one
+  that no longer conflicts, fails.
+  The same check fails on keys two shapes create that differ only in case (SFDMU matches
+  case-sensitively; `KNOWN_CASE_COLLISIONS`), and on any `deleteOldData` on an object another
+  shape writes (`KNOWN_CROSS_SHAPE_DELETES`): unscoped, it deletes that shape's records on load;
+  a `deleteQuery` or WHERE is listed too, after a person checks that it spares them. Each list fails on a new entry or a stale one.
+- **`filter`:** a `sourceRecordsFilter` the check can't evaluate (it reads `LIKE`, `=` and `<>`
+  on one column). The plan's rows would otherwise be skipped unseen, so this fails too.
 
 Verified by `tests/test_check_sfdmu_layering.py`.
 

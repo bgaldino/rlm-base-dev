@@ -7,9 +7,13 @@ Each case builds a throwaway datasets/sfdmu tree and asserts what the two checks
   against a Readonly parent declared in pass 2. A self-referential one, a mis-keyed one, one
   whose parent is only in another pass, and one with an excluded parent fail. An empty column
   is skipped. The allowlist suppresses a finding and is recorded as used only while it does.
-- Shared records: two shapes with different final values conflict; the same values, a plan's
-  own Draft-then-Active staging, and qb/ja against qb/en-US don't. A stale or missing
-  allowlist entry fails the run.
+- Shared records: two shapes with different final values conflict, matched on the loading
+  plan's key, `$$` lookups and key parts held only in the `$$` column included. The same
+  values, a plan's own Draft-then-Active staging, qb/ja against qb/en-US, records an extra key
+  field keeps apart, and Update-only writes don't. A narrower key's load overwriting a wider
+  key's extra field does. A stale or missing allowlist entry fails the run, per record.
+- sourceRecordsFilter: `LIKE` (case-insensitive, whole value), `=` and `<>` are applied in both
+  checks; any other form, or a column the CSV lacks, is reported.
 
 Run: `python tests/test_check_sfdmu_layering.py` (offline, no org).
 """
@@ -44,7 +48,8 @@ def tree(plans):
 
 
 def decl(obj, key, op="Upsert", **extra):
-    return {"query": f"SELECT Id FROM {obj}", "operation": op, "externalId": key, **extra}
+    # `SELECT all` so every CSV column counts as written; written-column cases set `query`.
+    return {"query": f"SELECT all FROM {obj}", "operation": op, "externalId": key, **extra}
 
 
 SM = decl("ProductSellingModel", "Name;SellingModelType")
@@ -134,6 +139,10 @@ def fixed_allowlisted_lookup_is_stale():
 
 
 LOOKUP_CASES += [
+    ("a row the sourceRecordsFilter drops isn't checked for its lookup", False, lookups({
+        "qb/en-US/p": ([[dict(PBE, sourceRecordsFilter="Kind = 'good'")]], {
+            "PricebookEntry.csv": "Product2.StockKeepingUnit,Kind,ProductSellingModel.$$Name$SellingModelType\n"
+                                  "X,bad,A;T\nY,good,\n"})})),
     ("a pass-2 lookup resolves against a Readonly parent declared in pass 2", False, lookups({
         "qb/en-US/p": ([[PBE], [dict(SM, operation="Readonly"), PBE]], {
             "PricebookEntry.csv": "Product2.StockKeepingUnit\nX\n",
@@ -150,8 +159,15 @@ UOM = decl("UnitOfMeasure", "UnitCode")
 
 
 def conflicts(plans, field=None):
-    """Conflicts for the tree, kept only on `field` when given."""
-    return {k: v for k, v in L.shared_conflicts(tree(plans)).items() if field in (None, k[1])}
+    """Conflicts for the tree, kept only on `field` when given. Keys are (object, record, field)."""
+    return {k: v for k, v in L.shared_conflicts(tree(plans)).items() if field in (None, k[2])}
+
+
+def filter_errors(plans):
+    return L.filter_errors(tree(plans))
+
+
+PRS = decl("ProductRampSegment", "Product.StockKeepingUnit;SegmentType")
 
 
 SHARED_CASES = [
@@ -196,6 +212,172 @@ SHARED_CASES = [
             "objectset_source/object-set-2/UnitOfMeasure.csv": "UnitCode,Status\nGB,Active\n"}),
         "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Status\nGB,Draft\n"})},
         "Status")),
+    # Review cases (PR #674).
+    ("a shape keyed differently still matches the same record (mfg `Name` vs qb "
+     "`Name;SellingModelType`)", True, conflicts({
+        "qb/en-US/a": ([[SM]], {"ProductSellingModel.csv":
+                                "$$Name$SellingModelType,Name,SellingModelType,PricingTerm\n"
+                                "Evergreen Annual;Evergreen,Evergreen Annual,Evergreen,1\n"}),
+        "mfg/en-US/b": ([[decl("ProductSellingModel", "Name")]], {"ProductSellingModel.csv":
+                        "Name,SellingModelType,PricingTerm\nEvergreen Annual,Evergreen,99\n"})},
+        "PricingTerm")),
+    ("a composite lookup reference that differs between shapes is a conflict", True, conflicts({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv":
+                                 "UnitCode,UnitOfMeasureClass.$$Code$Type\nGB,DATAVOL;Data\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv":
+                                 "UnitCode,UnitOfMeasureClass.$$Code$Type\nGB,DAT01;Data\n"})},
+        "UnitOfMeasureClass.Code")),
+    ("equal value sets with different per-plan values still conflict", True, conflicts({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,1\n"}),
+        "qb/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,2\n"}),
+        "q3/en-US/c": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,2\n"}),
+        "q3/en-US/d": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,1\n"})},
+        "Sequence")),
+    ("a row a pass's sourceRecordsFilter drops isn't a write", False, conflicts({
+        "qb/en-US/a": ([[PRS]], {"ProductRampSegment.csv":
+                                 "$$Product.StockKeepingUnit$SegmentType,Product.StockKeepingUnit,"
+                                 "SegmentType,Label\nX;Yearly,X,Yearly,One\n"}),
+        "q3/en-US/b": ([[dict(PRS, sourceRecordsFilter="SegmentType <> 'Yearly'")]], {
+            "ProductRampSegment.csv": "$$Product.StockKeepingUnit$SegmentType,Product.StockKeepingUnit,"
+                                      "SegmentType,Label\nX;Yearly,X,Yearly,Two\n"})})),
+    ("a LIKE sourceRecordsFilter is case-insensitive and whole-value", True, conflicts({
+        "qb/en-US/a": ([[PRS]], {"ProductRampSegment.csv":
+                                 "$$Product.StockKeepingUnit$SegmentType,Product.StockKeepingUnit,"
+                                 "SegmentType,Label\nX;Yearly,X,Yearly,One\n"}),
+        "q3/en-US/b": ([[dict(PRS, sourceRecordsFilter="[SegmentType] LIKE 'y%LY'")]], {
+            "ProductRampSegment.csv": "$$Product.StockKeepingUnit$SegmentType,Product.StockKeepingUnit,"
+                                      "SegmentType,Label\nX;Yearly,X,Yearly,Two\n"})}, "Label")),
+    ("a sourceRecordsFilter the check can't evaluate is reported", True, filter_errors({
+        "q3/en-US/b": ([[dict(PRS, sourceRecordsFilter="SegmentType IN ('A','B')")]], {
+            "ProductRampSegment.csv": "Product.StockKeepingUnit,SegmentType\nX,A\n"})})),
+    ("a sourceRecordsFilter on a column the CSV doesn't have is reported", True, filter_errors({
+        "q3/en-US/b": ([[dict(PRS, sourceRecordsFilter="Segment = 'A'")]], {
+            "ProductRampSegment.csv": "Product.StockKeepingUnit,SegmentType\nX,A\n"})})),
+    ("a LIKE without wildcards doesn't match a substring", False, conflicts({
+        "qb/en-US/a": ([[PRS]], {"ProductRampSegment.csv":
+                                 "$$Product.StockKeepingUnit$SegmentType,Product.StockKeepingUnit,"
+                                 "SegmentType,Label\nX;Yearly,X,Yearly,One\n"}),
+        "q3/en-US/b": ([[dict(PRS, sourceRecordsFilter="[SegmentType] LIKE 'year'")]], {
+            "ProductRampSegment.csv": "$$Product.StockKeepingUnit$SegmentType,Product.StockKeepingUnit,"
+                                      "SegmentType,Label\nX;Yearly,X,Yearly,Two\n"})})),
+    ("an `=` sourceRecordsFilter keeps exact matches", True, conflicts({
+        "qb/en-US/a": ([[PRS]], {"ProductRampSegment.csv":
+                                 "$$Product.StockKeepingUnit$SegmentType,Product.StockKeepingUnit,"
+                                 "SegmentType,Label\nX;Yearly,X,Yearly,One\n"}),
+        "q3/en-US/b": ([[dict(PRS, sourceRecordsFilter="SegmentType = 'Yearly'")]], {
+            "ProductRampSegment.csv": "$$Product.StockKeepingUnit$SegmentType,Product.StockKeepingUnit,"
+                                      "SegmentType,Label\nX;Yearly,X,Yearly,Two\n"})}, "Label")),
+    # mfg keys selling models on Name alone, so its load overwrites qb's SellingModelType too.
+    ("a narrower key's load overwrites the wider key's extra key field", True, conflicts({
+        "qb/en-US/a": ([[SM]], {"ProductSellingModel.csv":
+                                "$$Name$SellingModelType,Name,SellingModelType\nA;Evergreen,A,Evergreen\n"}),
+        "mfg/en-US/b": ([[decl("ProductSellingModel", "Name")]], {"ProductSellingModel.csv":
+                        "Name,SellingModelType\nA,TermDefined\n"})}, "SellingModelType")),
+    # Both create; the JPY and USD rows are different records under both keys.
+    ("records keyed apart by an extra key field aren't merged", False, conflicts({
+        "qb/ja/a": ([[decl("CurrencyThing__c", "Name;CurrencyIsoCode")]], {
+            "CurrencyThing__c.csv": "$$Name$CurrencyIsoCode,Name,CurrencyIsoCode,IsActive\n"
+                                    "V;JPY,V,JPY,true\n"}),
+        "q3/en-US/b": ([[decl("CurrencyThing__c", "Name;CurrencyIsoCode")]], {
+            "CurrencyThing__c.csv": "$$Name$CurrencyIsoCode,Name,CurrencyIsoCode,IsActive\n"
+                                    "V;USD,V,USD,false\n"})},
+        "IsActive")),
+    ("an Update-only plan doesn't create a record another shape would meet", False, conflicts({
+        "qb/en-US/a": ([[decl("UnitOfMeasure", "UnitCode", op="Update")]],
+                       {"UnitOfMeasure.csv": "UnitCode,ConversionFactor\nGB,1\n"}),
+        "q3/en-US/b": ([[decl("UnitOfMeasure", "UnitCode", op="Update")]],
+                       {"UnitOfMeasure.csv": "UnitCode,ConversionFactor\nGB,0.001\n"})})),
+    # A key part present only inside the primary `$$` column (`$$A$B` with no `B` column). Without
+    # the split, qb's two rows would collide on `X` and q3's Annual row would meet the wrong one.
+    ("a key part held only in the `$$` column is still matched", False, conflicts({
+        "qb/en-US/a": ([[decl("PricebookEntry", "Product2.StockKeepingUnit;ProductSellingModel.Name")]], {
+            "PricebookEntry.csv": "$$Product2.StockKeepingUnit$ProductSellingModel.Name,"
+                                  "Product2.StockKeepingUnit,UnitPrice\nX;Annual,X,10\nX;Monthly,X,20\n"}),
+        "q3/en-US/b": ([[decl("PricebookEntry", "Product2.StockKeepingUnit;ProductSellingModel.Name")]], {
+            "PricebookEntry.csv": "$$Product2.StockKeepingUnit$ProductSellingModel.Name,"
+                                  "Product2.StockKeepingUnit,UnitPrice\nX;Annual,X,10\n"})}, "UnitPrice")),
+    ("a CSV column the query doesn't select isn't a write", False, conflicts({
+        "qb/en-US/a": ([[dict(UOM, query="SELECT UnitCode FROM UnitOfMeasure")]],
+                       {"UnitOfMeasure.csv": "UnitCode,ConversionFactor\nGB,1\n"}),
+        "q3/en-US/b": ([[dict(UOM, query="SELECT UnitCode FROM UnitOfMeasure")]],
+                       {"UnitOfMeasure.csv": "UnitCode,ConversionFactor\nGB,0.001\n"})})),
+    ("a lookup column counts as written when the query selects its Id field", True, conflicts({
+        "qb/en-US/a": ([[dict(UOM, query="SELECT UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure")]],
+                       {"UnitOfMeasure.csv": "UnitCode,UnitOfMeasureClass.Code\nGB,DATAVOL\n"}),
+        "q3/en-US/b": ([[dict(UOM, query="SELECT UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure")]],
+                       {"UnitOfMeasure.csv": "UnitCode,UnitOfMeasureClass.Code\nGB,DAT01\n"})},
+        "UnitOfMeasureClass.Code")),
+    ("two Updates to a platform-seeded record meet", True, conflicts({
+        "qb/ja/a": ([[decl("PriceAdjustmentSchedule", "Name;CurrencyIsoCode", op="Update")]], {
+            "PriceAdjustmentSchedule.csv": "$$Name$CurrencyIsoCode,Name,CurrencyIsoCode,EffectiveFrom\n"
+                                           "Standard Price Adjustment Tier;USD,Standard Price Adjustment Tier,"
+                                           "USD,2025\n"}),
+        "mfg/en-US/b": ([[decl("PriceAdjustmentSchedule", "Name", op="Update")]], {
+            "PriceAdjustmentSchedule.csv": "Name,CurrencyIsoCode,EffectiveFrom\n"
+                                           "Standard Price Adjustment Tier,USD,2024\n"})},
+        "EffectiveFrom")),
+]
+
+
+def cases(plans):
+    return L.case_collisions(tree(plans))
+
+
+SHARED_CASES += [
+    ("keys two shapes create that differ only in case are reported", True, cases({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nEACH\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nEach\n"})})),
+    ("a case collision is found along a narrower key", True, cases({
+        "qb/ja/a": ([[decl("ProductComponentGroup", "Code;ParentProduct.StockKeepingUnit")]], {
+            "ProductComponentGroup.csv": "$$Code$ParentProduct.StockKeepingUnit,Code,"
+                                         "ParentProduct.StockKeepingUnit\nAccessories;X,Accessories,X\n"}),
+        "q3/en-US/b": ([[decl("ProductComponentGroup", "Code")]],
+                       {"ProductComponentGroup.csv": "Code\nACCESSORIES\n"})})),
+    ("a key column the query doesn't select still places the row", True, conflicts({
+        "qb/en-US/a": ([[dict(UOM, query="SELECT ConversionFactor FROM UnitOfMeasure")]],
+                       {"UnitOfMeasure.csv": "UnitCode,ConversionFactor\nGB,1\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,ConversionFactor\nGB,0.001\n"})},
+        "ConversionFactor")),
+    ("an unscoped deleteOldData on an object another shape writes is reported", True,
+     L.cross_shape_deletes(tree({
+         "qb/en-US/a": ([[dict(UOM, deleteOldData=True)]], {"UnitOfMeasure.csv": "UnitCode\nGB\n"}),
+         "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nMB\n"})}))),
+    # A scope is reported too: whether it spares the other shape's records takes a person.
+    ("a deleteOldData scoped by a deleteQuery is still reported", True,
+     L.cross_shape_deletes(tree({
+         "qb/en-US/a": ([[dict(UOM, deleteOldData=True,
+                               deleteQuery="SELECT Id FROM UnitOfMeasure WHERE UnitCode = 'GB'")]],
+                        {"UnitOfMeasure.csv": "UnitCode\nGB\n"}),
+         "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nMB\n"})}))),
+    ("a deleteOldData scoped by a WHERE is still reported", True,
+     L.cross_shape_deletes(tree({
+         "qb/en-US/a": ([[dict(UOM, deleteOldData=True,
+                               query="SELECT all FROM UnitOfMeasure WHERE IsActive = true")]],
+                        {"UnitOfMeasure.csv": "UnitCode\nGB\n"}),
+         "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nMB\n"})}))),
+    ("a deleteOldData on an object only its own shape writes isn't reported", False,
+     L.cross_shape_deletes(tree({
+         "qb/en-US/a": ([[dict(UOM, deleteOldData=True)]], {"UnitOfMeasure.csv": "UnitCode\nGB\n"}),
+         "qb/ja/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nMB\n"})}))),
+    ("one collision across key widths is one entry", True, len(cases({
+        "qb/ja/a": ([[decl("ProductComponentGroup", "Code;ParentProduct.StockKeepingUnit")]], {
+            "ProductComponentGroup.csv": "$$Code$ParentProduct.StockKeepingUnit,Code,"
+                                         "ParentProduct.StockKeepingUnit\nAccessories;X,Accessories,X\n"}),
+        "q3/en-US/b": ([[decl("ProductComponentGroup", "Code")]],
+                       {"ProductComponentGroup.csv": "Code,ParentProduct.StockKeepingUnit\n"
+                                                     "ACCESSORIES,X\n"})})) == 1),
+    # Only q3's load meets qb's record (on Code;Sequence); the entry is filed under qb's
+    # Code;Name, the narrower by tiebreak, with qb's own Name, not q3's.
+    ("keys of one width on different fields file under the owner's key", True, set(cases({
+        "qb/en-US/a": ([[decl("ProductComponentGroup", "Code;Name")]], {
+            "ProductComponentGroup.csv": "$$Code$Name,Code,Name,Sequence\nAcc;Acc,Acc,Acc,1\n"}),
+        "q3/en-US/b": ([[decl("ProductComponentGroup", "Code;Sequence")]], {
+            "ProductComponentGroup.csv": "$$Code$Sequence,Code,Name,Sequence\n"
+                                         "ACC;1,ACC,Accessory group,1\n"})}))
+     == {("ProductComponentGroup", "acc;acc")}),
+    ("identical keys in two shapes aren't a case collision", False, cases({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nEACH\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nEACH\n"})})),
 ]
 
 
@@ -204,30 +386,62 @@ def stale_shared_entry_fails():
     import contextlib
     import io
     saved = L.KNOWN_SHARED_CONFLICTS
-    L.KNOWN_SHARED_CONFLICTS = saved | {("Nope__c", "Nope")}
+    L.KNOWN_SHARED_CONFLICTS = saved | {("Nope__c", "X", "Nope")}
     try:
         with contextlib.redirect_stdout(io.StringIO()) as out:
             code = L.main([])
-        return code == 1 and "Nope__c.Nope is in KNOWN_SHARED_CONFLICTS" in out.getvalue()
+        return code == 1 and "Nope__c 'X' Nope is in KNOWN_SHARED_CONFLICTS" in out.getvalue()
     finally:
         L.KNOWN_SHARED_CONFLICTS = saved
 
 
 def unknown_shared_conflict_fails():
-    """Dropping a known conflict from the allowlist makes the live run fail on it."""
+    """Dropping one record's conflict from the allowlist makes the live run fail on that record,
+    though another record still conflicts on the same field."""
     import contextlib
     import io
     saved = L.KNOWN_SHARED_CONFLICTS
-    L.KNOWN_SHARED_CONFLICTS = saved - {("UnitOfMeasure", "ConversionFactor")}
+    L.KNOWN_SHARED_CONFLICTS = saved - {("UnitOfMeasure", "GB", "ConversionFactor")}  # MB stays
     try:
         with contextlib.redirect_stdout(io.StringIO()) as out:
             code = L.main([])
-        return code == 1 and "UnitOfMeasure.ConversionFactor differs" in out.getvalue()
+        text = out.getvalue()
+        return (code == 1 and "UnitOfMeasure 'GB' ConversionFactor differs" in text
+                and "UnitOfMeasure 'MB' ConversionFactor differs" not in text)
     finally:
         L.KNOWN_SHARED_CONFLICTS = saved
 
 
+def later_pass_without_first_key_raises():
+    """A later pass keyed on none of the plan's first key can't be placed and raises."""
+    try:
+        conflicts({"qb/en-US/a": ([[UOM], [dict(UOM, externalId="Name", operation="Update")]],
+                                  {"UnitOfMeasure.csv": "UnitCode,Name\nGB,Gigabyte\n",
+                                   "objectset_source/object-set-2/UnitOfMeasure.csv":
+                                       "Name,Description\nGigabyte,1e9 bytes\n"}),
+                   "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nGB\n"})})
+    except ValueError as e:
+        return "none of the plan's first key" in str(e)
+    return False
+
+
+def stale_case_collision_fails():
+    """A KNOWN_CASE_COLLISIONS entry with no collision left fails the live run."""
+    import contextlib
+    import io
+    saved = L.KNOWN_CASE_COLLISIONS
+    L.KNOWN_CASE_COLLISIONS = saved | {("Nope__c", "x")}
+    try:
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = L.main([])
+        return code == 1 and "Nope__c" in out.getvalue()
+    finally:
+        L.KNOWN_CASE_COLLISIONS = saved
+
+
 SHARED_CASES += [
+    ("a later pass keyed on none of the first key raises", True, later_pass_without_first_key_raises()),
+    ("a stale case-collision entry fails the run", True, stale_case_collision_fails()),
     ("a stale shared-conflict entry fails the run", True, stale_shared_entry_fails()),
     ("a shared conflict missing from the allowlist fails the run", True, unknown_shared_conflict_fails()),
 ]
