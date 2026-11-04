@@ -2167,7 +2167,7 @@ tasks:
       pathtoexportjson: *q3_pcm_dataset
       # Expected rejection, same as insert_quantumbit_pcm_data: ProrationPolicy is create-only, so
       # the Upsert runs as an Insert, and the platform-seeded "Default Proration Policy" makes it a
-      # duplicate. Not yet observed on a q3 build.
+      # duplicate. Seen on a fresh q3 build (2026-11-03).
       ignore_row_errors_for:
         ProrationPolicy: "duplicate value found"
 
