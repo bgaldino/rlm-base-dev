@@ -69,9 +69,11 @@ are locked, and so is `ProductUsageResource.EffectiveEndDate` while its grant is
 Correcting one of those needs a new Draft record, or a deactivate, edit and reactivate cycle
 (see the qb-rates README; the qb-rating README lists its locks).
 
-Activation stays in Apex (`activate_rating_records`, `activate_rates`), which acts only on
-non-Active records. `excludedFromUpdateFields` is not a substitute: in SFDMU 5.8.0 it strips
-the field from inserts too.
+Activation is a separate step that acts only on non-Active records: Apex for rating
+(`activate_rating_records`), and the REST Composite API for rate card entries
+(`activate_rates`), because Apex DML on `RateCardEntry` failed with `UNKNOWN_EXCEPTION` in
+Release 262. `excludedFromUpdateFields` is not a substitute: in SFDMU 5.8.0 it strips the field
+from inserts too.
 
 ### 3. Every lookup's parent is declared in every pass
 
@@ -118,7 +120,7 @@ the shapes differ:
 | Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | `GB`/`MB`: qb's `DATAVOL` class with factors 1 and 1000, q3's `DAT01` with 0.001 and 1. mfg sends `EACH` with no class, where qb puts it in `CAS01`. qb/ja loads `CAS01` and `DATAVOL` Active, qb/en-US Draft |
 | Rating frequency and overage policies | qb and q3 rating | 'Daily Rating Frequency' has a delay of 0 in qb and 3 in q3 |
 | Standard price book | qb, q3, mfg and qb/ja pricing | its `CostBook`: 'Standard Cost Book' in qb, 'CostBook' in qb/ja, none in q3 and mfg |
-| Selling models, relationship types, proration policy | qb, q3, mfg and qb/ja pcm (each shape's pricing plan also updates the proration policy) | none. Only exact names match: mfg's 9 selling models are qb's, q3 shares 4 (its 'One Time' is a separate record from qb's 'One-Time'), and qb/ja's Japanese-named ones are new records |
+| Selling models, relationship types, proration policy | qb, q3, mfg and qb/ja pcm (each shape's pricing plan also updates the proration policy) | none (for the proration policy, see below). Only exact names match: mfg's 9 selling models are qb's, q3 shares 4 (its 'One Time' is a separate record from qb's 'One-Time'), and qb/ja's Japanese-named ones are new records |
 | Legal entity US, tax engine, Default Tax Policy, billing policies and treatments, payment terms, accounting periods, fulfillment step definitions | qb and mfg tax, billing and dro | the US legal entity's `CompanyName`, and the fulfillment steps' `UsageType`, which qb sets to Fulfillment and mfg leaves null. mfg still ships its own copies; it moves onto qb's design with the mfg series |
 | GL accounts and GL assignment rules | qb-billing (accounts on `AccountingCode`), mfg-billing (on `Name`); both write four rules of the same names | not shared but colliding: five codes (4100, 4200, 4300, 4400, 5300) have different names in each shape. mfg after qb adds a second account for each, unless the platform rejects the duplicate code, and repoints 'USD CML Charges' to mfg's. qb after mfg matches mfg's accounts on code and renames them. Once both exist, qb's code key matches two accounts per code. The 29 accounts with the same name take the last load's description |
 
@@ -136,6 +138,13 @@ the shapes differ:
 - **qb/ja** updates on `Name;CurrencyIsoCode`. Its USD Price Adjustment Tier row matches the
   seeded one. Its three JPY rows match nothing, so they don't load either.
 - **`EffectiveFrom`** ranges from 2023-01-01 (qb) to 2025-10-01 (qb/ja) across the shapes.
+
+**Proration policy:** it is create-only, so SFDMU runs each pcm plan's `Upsert` of it as an
+`Insert`. The platform seeded 'Default Proration Policy' on every org checked, so the insert is
+rejected as a duplicate, and the pricing plans' `Update` of it has no updateable field to
+change, so no shape's values land. qb-pcm and q3-pcm list that rejection in
+`ignore_row_errors_for`. mfg-pcm and qb/ja qb-pcm will need the same entry once a task loads
+them.
 
 **Currency types:**
 
@@ -240,5 +249,5 @@ The rules for anything that stays destructive:
 |---|---|---|
 | qb-rating, qb-rating-entitlements | built `ent-sb0` scratch orgs, 2026-10-30 to 11-02 | 0 diff on reload; Active records untouched |
 | qb-pricing, qb-rates | a fresh `ent-sb0` build, 2026-11-02 | 0 diff; idempotency tasks pass |
-| every q3 plan | two fresh `ent-sb0` q3 builds, 2026-11-03 | no rejected rows; all 8 `test_q3_*` idempotency tasks pass |
+| every q3 plan | two fresh `ent-sb0` q3 builds, 2026-11-03 | no rejected rows apart from the expected `ProrationPolicy` duplicate (see *Shape ownership*); all 8 `test_q3_*` idempotency tasks pass |
 | qb-tax and qb-billing, with the q3 mapping plans | fresh `ent-sb0` q3 and qb builds, 2026-11-03 | Billing Settings deploys on q3; qb tax and billing idempotency pass |
