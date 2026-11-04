@@ -103,6 +103,19 @@ LOOKUP_CASES = [
             "ProductSellingModel.csv": "$$Name$SellingModelType,Name,SellingModelType\nA;T,A,T\n",
             "PricebookEntry.csv": "Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType\n"
                                   "X,A;T\n"})}, "pass 2 declares no ProductSellingModel")),
+    ("a `$$` lookup the query doesn't select isn't checked", False, lookups({
+        "qb/en-US/p": ([[dict(PBE, query="SELECT Product2.StockKeepingUnit FROM PricebookEntry")]], {
+            "PricebookEntry.csv": "Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType\n"
+                                  "X,A;T\n"})})),
+    ("a `$$` lookup in excludedFields isn't checked", False, lookups({
+        "qb/en-US/p": ([[dict(PBE, excludedFields=["ProductSellingModelId"])]], {
+            "PricebookEntry.csv": "Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType\n"
+                                  "X,A;T\n"})})),
+    ("a `$$` lookup the query selects through its Id is checked", True, lookups({
+        "qb/en-US/p": ([[dict(PBE, query="SELECT Product2.StockKeepingUnit, ProductSellingModelId "
+                                         "FROM PricebookEntry")]], {
+            "PricebookEntry.csv": "Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType\n"
+                                  "X,A;T\n"})}, "declares no")),
     ("an excluded parent doesn't resolve the lookup", True, lookups({
         "qb/en-US/p": ([[dict(SM, excluded=True), PBE]], {
             "PricebookEntry.csv": "Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType\n"
@@ -296,6 +309,24 @@ SHARED_CASES = [
         "q3/en-US/b": ([[decl("PricebookEntry", "Product2.StockKeepingUnit;ProductSellingModel.Name")]], {
             "PricebookEntry.csv": "$$Product2.StockKeepingUnit$ProductSellingModel.Name,"
                                   "Product2.StockKeepingUnit,UnitPrice\nX;Annual,X,10\n"})}, "UnitPrice")),
+    # qb's later pass clears the composite lookup; q3 sets it. Cleared is a value too.
+    ("a cleared `$$` lookup conflicts with a set one", True, conflicts({
+        "qb/en-US/a": ([[PBE], [dict(PBE, operation="Update")]], {
+            "PricebookEntry.csv": "Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType\n"
+                                  "X,A;T\n",
+            "objectset_source/object-set-2/PricebookEntry.csv":
+                "Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType\nX,#N/A\n"}),
+        "q3/en-US/b": ([[PBE]], {
+            "PricebookEntry.csv": "Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType\n"
+                                  "X,A;T\n"})}, "ProductSellingModel.Name")),
+    # A blank primary `$$` key column matches nothing and writes nothing; it mustn't blank the
+    # key part it would carry (SellingModelType here), which mfg's narrower key would compare.
+    ("a blank `$$` key column doesn't blank its parts", False, conflicts({
+        "q3/en-US/a": ([[SM]], {"ProductSellingModel.csv":
+                                "$$Name$SellingModelType,Name,PricingTerm\n,A,1\n"}),
+        "mfg/en-US/b": ([[decl("ProductSellingModel", "Name")]], {
+            "ProductSellingModel.csv": "Name,SellingModelType,PricingTerm\nA,TermDefined,1\n"})},
+        "SellingModelType")),
     ("a CSV column the query doesn't select isn't a write", False, conflicts({
         "qb/en-US/a": ([[dict(UOM, query="SELECT UnitCode FROM UnitOfMeasure")]],
                        {"UnitOfMeasure.csv": "UnitCode,ConversionFactor\nGB,1\n"}),
@@ -412,8 +443,21 @@ def unknown_shared_conflict_fails():
         L.KNOWN_SHARED_CONFLICTS = saved
 
 
+def later_pass_row_without_first_key_raises():
+    """One unplaceable row raises even when another row of the same pass carries the first key."""
+    try:
+        conflicts({"qb/en-US/a": ([[UOM], [dict(UOM, externalId="Name", operation="Update")]],
+                                  {"UnitOfMeasure.csv": "UnitCode,Name\nGB,Gigabyte\n",
+                                   "objectset_source/object-set-2/UnitOfMeasure.csv":
+                                       "UnitCode,Name,Description\nGB,Gigabyte,x\n,Megabyte,y\n"}),
+                   "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nGB\n"})})
+    except ValueError as e:
+        return "Megabyte" in str(e)
+    return False
+
+
 def later_pass_without_first_key_raises():
-    """A later pass keyed on none of the plan's first key can't be placed and raises."""
+    """A later pass whose rows carry none of the plan's first key can't be placed and raises."""
     try:
         conflicts({"qb/en-US/a": ([[UOM], [dict(UOM, externalId="Name", operation="Update")]],
                                   {"UnitOfMeasure.csv": "UnitCode,Name\nGB,Gigabyte\n",
@@ -421,7 +465,7 @@ def later_pass_without_first_key_raises():
                                        "Name,Description\nGigabyte,1e9 bytes\n"}),
                    "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nGB\n"})})
     except ValueError as e:
-        return "none of the plan's first key" in str(e)
+        return "without the plan's first key (UnitCode)" in str(e)
     return False
 
 
@@ -441,6 +485,7 @@ def stale_case_collision_fails():
 
 SHARED_CASES += [
     ("a later pass keyed on none of the first key raises", True, later_pass_without_first_key_raises()),
+    ("a later pass row without the first key raises", True, later_pass_row_without_first_key_raises()),
     ("a stale case-collision entry fails the run", True, stale_case_collision_fails()),
     ("a stale shared-conflict entry fails the run", True, stale_shared_entry_fails()),
     ("a shared conflict missing from the allowlist fails the run", True, unknown_shared_conflict_fails()),

@@ -298,11 +298,11 @@ python scripts/ai/check_sfdmu_layering.py          # exit 1 on a finding
 python scripts/ai/check_sfdmu_layering.py --list   # also print every known shared conflict
 ```
 
-- **`lookup`:** a populated `$$` lookup-reference column that SFDMU can't resolve. A `$$` lookup
-  resolves when its parts are exactly the parent object's `externalId` in the same pass; it
-  fails when it's self-referential, when the parent is keyed differently, or when the plan
-  declares no parent for it. Known cases in plans no current build loads are listed in
-  `KNOWN_UNRESOLVED_LOOKUPS`.
+- **`lookup`:** a populated `$$` lookup-reference column, which the declaration writes, that
+  SFDMU can't resolve. A `$$` lookup resolves when its parts are exactly the parent object's
+  `externalId` in the same pass; it fails when it's self-referential, when the parent is keyed
+  differently, or when the plan declares no parent for it. Known cases in plans no current
+  build loads are listed in `KNOWN_UNRESOLVED_LOOKUPS`.
 - **`shared`:** a field of a record two shapes write with different values, so the last load
   wins. Each plan's last pass and `sourceRecordsFilter` are taken into account. The known ones
   are in `KNOWN_SHARED_CONFLICTS`, one per record and field (`--list` prints them); the

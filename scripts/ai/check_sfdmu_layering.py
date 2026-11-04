@@ -13,8 +13,8 @@ unseen.
   declaration of the parent keys it differently. This is the live part of "Bug 4"
   (AGENTS.md → SFDMU v5 bugs). A parent the pass doesn't declare is reported too: SFDMU sends
   a lookup whose parent isn't in the same pass as null. An `excluded` parent doesn't count.
-  A column with no values in any row is skipped, because it never asks SFDMU to resolve
-  anything.
+  Only the lookup columns the declaration writes are checked (see "What a write is"), and a
+  column with no values in any row is skipped, because neither asks SFDMU to resolve anything.
 
 * `shared` (gating on change): a field of a record that more than one data shape writes,
   where the plans' final values aren't all the same. The shapes are qb, q3 and mfg (qb/ja is a
@@ -45,12 +45,13 @@ What a write is: every declaration that isn't `excluded`, `Readonly` or `Delete`
 the CSV SFDMU would read for that pass (the `objectset_source/object-set-N/` override for
 pass 2+ when `useSeparatedCSVFiles` is set, the plan root otherwise), keeping only the rows
 its `sourceRecordsFilter` selects. A filter in a form this check doesn't evaluate fails it.
-`#N/A` and blank are both null. Only the columns the query selects are written (a CSV column
-it doesn't select is ignored at load), plus the `$$` key and lookup columns and the
-`externalId` fields, which SFDMU queries either way. `Id` and the
-loading plan's key fields aren't compared; lookup columns are, `$$` composite ones included
-(compared part by part). Updates create nothing, except to the platform-seeded records in
-`PLATFORM_SEEDED`.
+`#N/A` and blank are both null; a null `$$` lookup clears each of its parts (a blank `$$`
+key column writes nothing). Only the columns the query selects are written (a CSV column it
+doesn't select is ignored at load), plus the `$$` key and lookup columns and the `externalId`
+fields, which SFDMU queries either way. A lookup is excluded through its Id field in
+`excludedFields`. `Id` and the loading plan's key fields aren't compared; lookup columns
+are, `$$` composite ones included (compared part by part). Updates create nothing, except to
+the platform-seeded records in `PLATFORM_SEEDED`.
 
 Usage:
     python scripts/ai/check_sfdmu_layering.py              # both checks
@@ -336,13 +337,15 @@ def lookup_findings(root: Path = SFDMU, allowed=None) -> Tuple[List[str], Set[tu
         seen = set()
         for pass_idx, decl, obj in declarations(export):
             path = csv_for(plan, export, pass_idx, obj)
-            marker = (pass_idx, path, decl.get("sourceRecordsFilter"))
+            marker = (pass_idx, path, decl.get("sourceRecordsFilter"), decl.get("query"),
+                      json.dumps(decl.get("excludedFields")))
             if not is_written(decl) or marker in seen:
                 continue
             seen.add(marker)
             headers, rows = read_rows(path)
             rows = filtered_rows(decl, headers, rows)
-            for col in headers:
+            # Only the lookups this declaration writes; SFDMU ignores a CSV column it doesn't.
+            for col in written_columns(decl, headers):
                 if col.startswith("$$") or ".$$" not in col:
                     continue
                 if all(is_null(row.get(col)) for row in rows):
@@ -415,14 +418,17 @@ def written_columns(decl: dict, headers: List[str]) -> List[str]:
     def selected_lookup(rel: str) -> bool:
         # `Rel.Field` is written through the lookup the query selects, as `RelId`, `Rel__c`
         # for a custom `Rel__r`, or any `Rel.x` traversal.
+        # `excludedFields` names object fields, so a lookup is excluded through its Id field.
         lookup = rel[:-3] + "__c" if rel.endswith("__r") else rel + "Id"
+        if lookup in excluded:
+            return False
         return lookup in keep or any(f.startswith(rel + ".") for f in keep)
 
     out = []
     for h in headers:
         if not h or h in excluded:
             continue
-        if h.startswith("$$") or h in keep or h in key:
+        if h.startswith("$$") or h in key or (h in keep and "." not in h):
             out.append(h)
         elif "." in h:
             rel = h.split(".$$", 1)[0] if ".$$" in h else h.split(".", 1)[0]
@@ -431,7 +437,13 @@ def written_columns(decl: dict, headers: List[str]) -> List[str]:
     return out
 
 
-def _split_into(values: Dict[str, str], names: List[str], value: str) -> None:
+def _split_into(values: Dict[str, str], names: List[str], value: str,
+                clear_on_null: bool = False) -> None:
+    if clear_on_null and is_null(value):
+        # A null composite clears every part (a lookup set to null), so it's compared and merged.
+        for name in names:
+            values.setdefault(name, "")
+        return
     pieces = (value or "").split(";")
     # SFDMU drops a composite's empty parts, so a short value can't be split by position.
     if len(pieces) == len(names):
@@ -452,7 +464,8 @@ def row_values(parts: List[str], headers: List[str], row: dict) -> Dict[str, str
     for h in headers:
         if h and ".$$" in h and not h.startswith("$$"):
             rel, composite = h.split(".$$", 1)
-            _split_into(values, [f"{rel}.{c}" for c in composite.split("$") if c], row.get(h))
+            _split_into(values, [f"{rel}.{c}" for c in composite.split("$") if c], row.get(h),
+                        clear_on_null=True)
     return values
 
 
@@ -475,14 +488,15 @@ def plan_records(obj: str, obj_writes: List[Write]):
     out = {}
     for rel, _, op, parts, headers, rows in obj_writes:
         key, records, created = out.setdefault(rel, (parts, {}, set()))
-        if parts != key and rows and not any(key_of(row_values(parts, headers, r), key)
-                                             for r in rows):
-            raise ValueError(f"{rel}: a pass keys this object on {';'.join(parts)} and carries "
-                             f"none of the plan's first key ({';'.join(key)}); this check can't "
-                             f"place it")
         for row in rows:
             values = row_values(parts, headers, row)
             ident = key_of(values, key)
+            if ident is None and parts != key and key_of(values, parts) is not None:
+                # SFDMU matches it on this pass's key, so it writes something; this check
+                # can't tell which of the plan's records that is.
+                raise ValueError(f"{rel}: a pass keys this object on {';'.join(parts)} and has a "
+                                 f"row ({';'.join(key_of(values, parts))}) without the plan's "
+                                 f"first key ({';'.join(key)}); this check can't place it")
             if ident is None:
                 continue
             merged = records.setdefault(ident, {})
