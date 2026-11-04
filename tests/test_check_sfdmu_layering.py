@@ -443,6 +443,35 @@ SHARED_CASES = [
             "Rule__c.csv": "Name,Parent__r.$$Name$Optional__c,Parent__r.Code__c\nR,A,1\n"}),
         "q3/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Parent__r.Other__c\nR,1\n"})},
         "Parent__r (different parent keys)")),
+    ("a lookup cleared through one parent key and set through another is reported", True, conflicts({
+        "qb/en-US/a": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,4100\n"}),
+        "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Name\nR,#N/A\n"})},
+        "Account__r (set in one shape, cleared in another)")),
+    ("a lookup cleared in both shapes, through different keys, isn't reported", False, conflicts({
+        "qb/en-US/a": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,\n"}),
+        "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Name\nR,#N/A\n"})})),
+    # qb creates R/C; q3 updates it by Name, mfg by Code__c. Neither row carries the other's key.
+    ("differently keyed Updates meet through the creator's record", True, conflicts({
+        "qb/en-US/a": ([[decl("Thing__c", "Name")]], {"Thing__c.csv": "Name,Code__c\nR,C\n"}),
+        "q3/en-US/b": ([[decl("Thing__c", "Name", op="Update")]], {
+            "Thing__c.csv": "Name,Description\nR,two\n"}),
+        "mfg/en-US/c": ([[decl("Thing__c", "Code__c", op="Update")]], {
+            "Thing__c.csv": "Code__c,Description\nC,three\n"})}, "Description")),
+    # qb-pcm creates; qb-x updates by Name; mfg updates by Code__c. The creator shares qb's shape.
+    ("Updates meet through a creator of the same shape, in another plan", True, conflicts({
+        "qb/en-US/pcm": ([[decl("Thing__c", "Code__c")]], {"Thing__c.csv": "Name,Code__c\nR,C\n"}),
+        "qb/en-US/x": ([[decl("Thing__c", "Name", op="Update")]], {
+            "Thing__c.csv": "Name,Description\nR,two\n"}),
+        "mfg/en-US/c": ([[decl("Thing__c", "Code__c", op="Update")]], {
+            "Thing__c.csv": "Code__c,Description\nC,three\n"})}, "Description")),
+    # qb's pass 2 moves the lookup from Account__r.Name to Account__r.Code__c and clears it;
+    # mfg sets it by Name. qb's final state is cleared, so it conflicts.
+    ("a later pass's lookup column replaces an earlier pass's", True, conflicts({
+        "qb/en-US/a": ([[decl("Rule__c", "Name")], [decl("Rule__c", "Name", op="Update")]], {
+            "Rule__c.csv": "Name,Account__r.Name\nR,X\n",
+            "objectset_source/object-set-2/Rule__c.csv": "Name,Account__r.Code__c\nR,\n"}),
+        "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Name\nR,X\n"})},
+        "Account__r (set in one shape, cleared in another)")),
     ("a lookup set through the same parent key isn't reported that way", False, conflicts({
         "qb/en-US/a": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,4100\n"}),
         "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,4100\n"})},

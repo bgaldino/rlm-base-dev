@@ -313,7 +313,8 @@ python scripts/ai/check_sfdmu_layering.py --list   # also print every known shar
   shape writes (`KNOWN_CROSS_SHAPE_DELETES`): unscoped, it deletes that shape's records on load;
   a `deleteQuery` or WHERE is listed too, after a person checks that it spares them. Each list fails on a new entry or a stale one.
   Two shapes' Updates meet on a record a third creates, and a lookup two shapes set through
-  different parent keys (qb's GL accounts by code, mfg's by name) counts as a conflict.
+  different parent keys (qb's GL accounts by code, mfg's by name), or clears where another sets
+  it, counts as a conflict. Updates keyed differently meet through a third shape's record.
   A written object whose rows carry none of its key can't be compared, so it's listed in
   `KNOWN_UNKEYED_WRITES` too; a parent Id key filled by `parent_id_lookups.json` is matched on
   its portable columns.

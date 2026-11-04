@@ -40,7 +40,9 @@ unseen.
     keys selling models on `Name`, qb on `Name;SellingModelType`), and a narrower key's load
     is checked against the wider key's extra fields. Key parts that appear only inside a `$$`
     column are split out of it. Two shapes' Updates to a record a third creates meet, and a
-    lookup two shapes set through different parent keys counts as a conflict.
+    lookup two shapes set through different parent keys counts as a conflict, as does one a shape
+    clears where another sets it. Updates keyed differently meet through the record a third
+    shape creates.
 
 What a write is: every declaration that isn't `excluded`, `Readonly` or `Delete`, read from the
 CSV SFDMU would read for that pass (the `objectset_source/object-set-N/` override for pass 2+
@@ -581,6 +583,11 @@ def plan_records(obj: str, obj_writes: List[Write]):
             if skip_existing and ident in created:
                 continue  # an earlier pass of this plan created it, so this pass leaves it alone
             merged = records.setdefault(ident, {})
+            # A lookup is one field: a pass that writes it through any column replaces the
+            # columns earlier passes set it through.
+            written = set(lookup_columns(values))
+            for col in [c for c in merged if c not in values and relationship_of(c) in written]:
+                del merged[col]
             merged.update({f: ("" if is_null(v) else v) for f, v in values.items() if f != "Id"})
             if op in CREATES or is_seeded(obj, merged):
                 created.add(ident)
@@ -643,13 +650,26 @@ def _writes(root: Path) -> Dict[str, List[Write]]:
     return writes
 
 
+def relationship_of(col: str) -> Optional[str]:
+    """The lookup a traversal column writes (`Rel.Field`, `Rel.$$A$B`), or None."""
+    if "." not in col or col.startswith("$$"):
+        return None
+    return col.split(".$$", 1)[0] if ".$$" in col else col.split(".", 1)[0]
+
+
 def lookup_columns(values: Dict[str, str]) -> Dict[str, Set[str]]:
-    """{relationship: the populated traversal columns that set it} for one record."""
+    """{relationship: the traversal columns that write it} for one record, cleared ones
+    included (a null lookup clears the relationship)."""
     out: Dict[str, Set[str]] = defaultdict(set)
-    for col, value in values.items():
-        if "." in col and not col.startswith("$$") and not is_null(value):
-            out[col.split(".$$", 1)[0] if ".$$" in col else col.split(".", 1)[0]].add(col)
+    for col in values:
+        rel = relationship_of(col)
+        if rel:
+            out[rel].add(col)
     return out
+
+
+def set_columns(values: Dict[str, str], cols: Set[str]) -> Set[str]:
+    return {c for c in cols if not is_null(values.get(c))}
 
 
 def parent_key_columns(values: Dict[str, str], cols: Set[str]) -> Set[str]:
@@ -674,8 +694,11 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
     selling models on `Name`, qb on `Name;SellingModelType`), Q's extra key fields are compared
     too, because P's load would overwrite them. A lookup both set through different parent
     keys (qb's GL accounts by `AccountingCode`, mfg's by `Name`) is filed as "<Rel> (different
-    parent keys)", as offline the two can't be shown to name the same parent. The order shapes
-    load in isn't known, so any disagreement counts.
+    parent keys)", as offline the two can't be shown to name the same parent, and one a shape
+    clears where another sets it as "<Rel> (set in one shape, cleared in another)". Two plans'
+    Updates also meet through a third shape's created record, so Updates keyed differently (by
+    Name, by Code) reach the same record. The order shapes load in isn't known, so any
+    disagreement counts.
     """
     writes = _writes(root)
     seen: Dict[Tuple[str, str, str], Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
@@ -684,9 +707,38 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
             continue
         records = plan_records(obj, obj_writes)
         created_values = [r[i] for _, (_, r, c) in records.items() for i in c]
+        created_by = [(rel, r[i]) for rel, (_, r, c) in records.items() for i in c]
         # Q's record exists if Q creates it or any plan does (Q may only update it).
         created_by_key = {tuple(k): {key_of(v, k) for v in created_values}
                           for k, _, _ in records.values()}
+
+        def compare(p_rel, p_key, p_values, q_rel, q_values, key):
+            for field in set(p_values) & set(q_values) - set(p_key):
+                if p_values[field] != q_values[field]:
+                    seen[(obj, key, field)][shape_of(p_rel)].add(p_values[field])
+                    seen[(obj, key, field)][shape_of(q_rel)].add(q_values[field])
+            # A lookup both write through different parent keys (qb's GL accounts by
+            # AccountingCode, mfg's by Name) can't be compared field by field; whether they
+            # name the same parent isn't known offline, so it counts. One that one shape sets
+            # and the other clears differs whatever the keys.
+            p_rels, q_rels = lookup_columns(p_values), lookup_columns(q_values)
+            for rel in set(p_rels) & set(q_rels):
+                p_set = set_columns(p_values, p_rels[rel])
+                q_set = set_columns(q_values, q_rels[rel])
+                if not p_set and not q_set:
+                    continue  # both clear it
+                if not p_set or not q_set:
+                    if p_rels[rel] & q_rels[rel]:
+                        continue  # a column both write carries the clear; compared above
+                    field = f"{rel} (set in one shape, cleared in another)"
+                elif parent_key_columns(p_values, p_set) & parent_key_columns(q_values, q_set):
+                    continue  # a key both use; compared field by field above
+                else:
+                    field = f"{rel} (different parent keys)"
+                for rel_, values, cols in ((p_rel, p_values, p_set), (q_rel, q_values, q_set)):
+                    seen[(obj, key, field)][shape_of(rel_)].add(
+                        ", ".join(f"{c}={values[c]}" for c in sorted(cols)) or "cleared")
+
         for p_rel, (p_key, p_records, _) in records.items():
             for q_rel, (q_key, q_records, q_created) in records.items():
                 if shape_of(p_rel) == shape_of(q_rel):
@@ -697,26 +749,19 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
                         continue
                     ident = key_of(q_values, p_key)
                     p_values = p_records.get(ident) if ident else None
-                    if p_values is None:
+                    if p_values is not None:
+                        compare(p_rel, p_key, p_values, q_rel, q_values, ";".join(ident))
+                # Through another plan's created record, so Updates keyed differently (one by
+                # Name, one by Code) still meet on the record they both reach. A record P or Q
+                # creates itself is covered above.
+                for c_rel, c_values in created_by:
+                    if c_rel in (p_rel, q_rel):
                         continue
-                    key = ";".join(ident)
-                    for field in set(p_values) & set(q_values) - set(p_key):
-                        if p_values[field] != q_values[field]:
-                            seen[(obj, key, field)][shape_of(p_rel)].add(p_values[field])
-                            seen[(obj, key, field)][shape_of(q_rel)].add(q_values[field])
-                    # A lookup both write through different parent keys (qb's GL accounts by
-                    # AccountingCode, mfg's by Name) can't be compared field by field; whether
-                    # they name the same parent isn't known offline, so it counts.
-                    p_rels, q_rels = lookup_columns(p_values), lookup_columns(q_values)
-                    for rel in set(p_rels) & set(q_rels):
-                        if (parent_key_columns(p_values, p_rels[rel])
-                                & parent_key_columns(q_values, q_rels[rel])):
-                            continue
-                        by_shape = seen[(obj, key, f"{rel} (different parent keys)")]
-                        for rel_, values, cols in ((p_rel, p_values, p_rels[rel]),
-                                                   (q_rel, q_values, q_rels[rel])):
-                            by_shape[shape_of(rel_)].add(
-                                ", ".join(f"{c}={values[c]}" for c in sorted(cols)))
+                    p_ident, q_ident = key_of(c_values, p_key), key_of(c_values, q_key)
+                    p_values = p_records.get(p_ident) if p_ident else None
+                    q_values = q_records.get(q_ident) if q_ident else None
+                    if p_values is not None and q_values is not None:
+                        compare(p_rel, p_key, p_values, q_rel, q_values, ";".join(p_ident))
     return {ident: "; ".join(f"{s}={sorted(v)}" for s, v in sorted(by_shape.items()))
             for ident, by_shape in seen.items()}
 
