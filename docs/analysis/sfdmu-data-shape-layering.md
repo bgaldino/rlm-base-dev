@@ -37,7 +37,7 @@ The fix was to **stop deleting**: match existing rows on a stable key and update
 In a converted plan, each writable object is `Upsert` (or `Update`) on an externalId that identifies the record
 across orgs. A reload finds the existing row and updates it, or inserts it if it's missing.
 The SFDMU v5.6.4 floor makes this possible for relationship-traversal keys (the historical
-Upsert-matching bugs are fixed upstream; only Bug 4, `$$` in a lookup column, is still live).
+Upsert-matching bugs are fixed upstream; only Bug 4, a `$$` lookup column that doesn't match its parent's key, is still live).
 
 The key must be **unique within what the object's query selects**. Where a natural key
 collides, the key gains the part that disambiguates it:

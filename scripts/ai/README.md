@@ -288,11 +288,33 @@ silently each fail the suite.
 **Used by:** `AGENTS.md` §"Merges and unintended diffs",
 `.cursor/skills/audit-review/SKILL.md` §"Step −1"
 
+### `check_sfdmu_layering.py`
+
+Two read-only checks across every data shape's SFDMU plans (qb, q3, mfg; qb/ja counts as qb).
+`pr_gate.py` runs it as `sfdmu_layering` whenever a plan changes.
+
+```bash
+python scripts/ai/check_sfdmu_layering.py          # exit 1 on a finding
+python scripts/ai/check_sfdmu_layering.py --list   # also print every known shared conflict
+```
+
+- **`lookup`:** a populated `$$` lookup-reference column that SFDMU can't resolve. A `$$` lookup
+  resolves when its parts are exactly the parent object's `externalId` in the same plan; it
+  fails when it's self-referential, when the parent is keyed differently, or when the plan
+  declares no parent for it. Known cases in plans no current build loads are listed in
+  `KNOWN_UNRESOLVED_LOOKUPS`.
+- **`shared`:** a record two shapes write with different values, so the last load wins. The
+  known ones are in `KNOWN_SHARED_CONFLICTS`, matching the table in
+  `docs/analysis/sfdmu-data-shape-layering.md`. A new conflict, or a listed one that no longer
+  conflicts, fails.
+
+Verified by `tests/test_check_sfdmu_layering.py`.
+
 ### `pr_gate.py`
 
 Runs the mechanical checks a change actually needs, and reports the status of **every**
 check — including the ones it skipped, and why. One command instead of remembering which
-of thirty validators a given diff should have run.
+of thirty-one validators a given diff should have run.
 
 ```bash
 python scripts/ai/pr_gate.py --base origin/main   # select from the diff vs a base ref
@@ -542,14 +564,14 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 30 checks in about 100 seconds, of which the branch-scope *suite*
+A full `--all` run is 31 checks in about 100 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is about 14. A typical docs-only selection is about 7 seconds, most
 of it the two checks that run on every change: `release_refs`, which reads every tracked text
 file (about 3), and `agent_tooling`. Measured 2026-10-11, with twenty-five checks then, on a workstation where every
 one ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
-Verified by `tests/test_pr_gate.py` (756 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (759 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -569,7 +591,7 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the thirty trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the thirty-one trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted

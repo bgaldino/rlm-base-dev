@@ -14,7 +14,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 ## Quick Rules
 
 1. externalId delimiter is `;` — NOT `$$` (that's v4).
-2. Relationship-traversal externalId matches under `Upsert` on the 5.6.4+ floor (Bugs 2/3/5 fixed) — the old `Insert` + `deleteOldData: true` workaround is pre-5.6.4. Only Bug 4 (`$$` in lookup reference columns — self-referential *and* cross-object) is still live.
+2. Relationship-traversal externalId matches under `Upsert` on the 5.6.4+ floor (Bugs 2/3/5 fixed) — the old `Insert` + `deleteOldData: true` workaround is pre-5.6.4. Only Bug 4 (a `$$` lookup reference that's self-referential, or doesn't match the parent's `externalId`) is still live.
 3. Never change Upsert → Insert+deleteOldData without explicit user approval.
 4. Empty CSV → set `excluded: true` (prevents destructive wipe). See *Which empty-CSV remedy* — three exist and they are not interchangeable.
 5. Parent → child order in `objects` array (deletion runs reverse).
@@ -28,7 +28,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 - **DO NOT** use `$$Field1$Field2` syntax in `externalId` (v4, not v5)
 - **DO NOT** change `Upsert` to `Insert+deleteOldData` without user approval
 - **DO NOT** leave empty CSVs without `excluded: true`
-- **DO NOT** use `$$` composite notation for lookup reference columns in CSVs (Bug 4 — self-referential and cross-object `$$` references fail on import; use simple field references)
+- **DO NOT** use a `$$` lookup reference column that is self-referential or whose parts aren't the parent's `externalId` (Bug 4 — it fails on import; use a simple field reference, or key the parent on exactly those parts)
 - **DO NOT** add `Insert` + `deleteOldData: true` for a relationship-traversal externalId citing Bugs 2/3/5 — those are fixed on the 5.6.4+ floor; `Upsert` matches. (Existing plans that still carry that pattern migrate under the gated `sfdmu-v5-optimization` initiative, not ad hoc.)
 - **DO NOT** re-run a plan into an org with live transactional data to add one record — see below
 
@@ -73,11 +73,11 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 | Empty CSV (no records yet) | mark `excluded: true` | — | Prevents destructive delete-on-load |
 | Another task later rewrites a field (e.g. an overlay resequences), and a rerun must not undo it | `Upsert` + `skipExistingRecords: true` | `false` | Inserts missing rows, never touches matched ones. **Cost:** a correction to *any* field of an existing row no longer lands on rerun (see *Reloading a Plan Into a Live Org*). Don't use `excludedFromUpdateFields` for this: in 5.8.0 the insert payload is cloned from the `fieldsToUpdate` list, so new rows are inserted without the field. On `ProcedurePlanSection` the platform then rejected them ("This sequence already exists"; todo 316) |
 
-## Bug 4 — `$$` Composite Notation Fails for Lookup Reference Columns (self-referential and cross-object)
+## Bug 4 — `$$` Lookup Reference Columns That Don't Match the Parent's Key
 
 **Problem:** When an object has a self-referential lookup (e.g., `ProductComponentGroup.ParentGroupId` → `ProductComponentGroup`) and the CSV uses `$$` composite key notation for that reference (e.g., `ParentGroup.$$Code$ParentProduct.StockKeepingUnit`), SFDMU cannot resolve the parent record. The MissingParentRecordsReport shows anonymized hashes instead of matched records, and the lookup fields are left null after import — even though the parent records exist and SFDMU runs multiple passes.
 
-**Root cause:** SFDMU's `$$` composite notation works for the *primary* record's externalId matching (source↔target), but fails when used as a *lookup reference column* — for **self-referential and cross-object** relationships alike. SFDMU cannot decompose a composite `$$` value back into individual fields to find the referenced record.
+**When it fails, and when it doesn't (verified on built orgs, 2026-11-03).** A cross-object `$$` lookup column resolves when its parts are exactly the parent object's `externalId`, declared in the same pass. qb-pricing's `Pricebook2.$$Name$IsStandard` and `ProductSellingModel.$$Name$SellingModelType`, qb-rates' `RateCardEntry.$$…` (128 RABT, none with a null entry) and qb-billing's `AccountingPeriod.$$Name$FinancialYear` (588 rows, none null) all load. It fails when the reference is **self-referential**, as above, or when the plan keys the parent differently (a `$$` of three parts against a parent keyed on `Name`). `scripts/ai/check_sfdmu_layering.py` flags a populated column in either shape, and lists the known ones in plans no current build loads.
 
 **Fix:** Use simple single-field references for self-referential lookups:
 - Change `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` → `ParentGroup.Code`
@@ -97,7 +97,7 @@ Value:  Cooling,...,Computing
 externalId: "Code"
 ```
 
-**Audit required:** Review all data plans that use `$$` composite columns as *lookup references* (not just primary keys). Cross-object `$$` references (e.g., `ProductComponentGroup.$$Code$...` referenced from `ProductRelatedComponent`) fail the same way as self-references — SFDMU cannot decompose a composite `$$` value in **any** lookup-reference column. **Fix (both cases):** use a simple single-field reference for the lookup column.
+**Fix:** for a self-reference, use a simple single-field reference. For a cross-object reference, either do the same or key the parent on exactly the `$$` parts.
 
 ## v5 Bugs — one live on the 5.6.4 floor, four fixed upstream
 
@@ -312,7 +312,7 @@ query has a subquery or a string literal in its `WHERE`. A later pass that re-de
 - [ ] Objects ordered parent → child
 - [ ] `$$` composite key CSV headers match externalId fields exactly
 - [ ] `deleteOldData: true` only where a concrete *current* reason applies + user approval (Bugs 1/2/3/5 are fixed on 5.6.4+ — not justifications)
-- [ ] No `$$` composite notation used for lookup reference columns (Bug 4 — use simple field references instead)
+- [ ] No `$$` lookup reference column that is self-referential or doesn't match the parent's `externalId` (Bug 4; `check_sfdmu_layering.py`)
 - [ ] Self-referential lookups use simple field references (e.g., `ParentGroup.Code` not `ParentGroup.$$Code$...`)
 - [ ] All-traversal externalIds use `Upsert` on the 5.6.4+ floor (Bugs 3/5 fixed); any residual `Insert` + `deleteOldData: true` is a pre-5.6.4 plan awaiting the gated `sfdmu-v5-optimization` migration
 
