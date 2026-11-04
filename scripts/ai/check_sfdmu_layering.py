@@ -27,7 +27,7 @@ unseen.
   - A plan's value for a field is the one its last pass writes, so Draft-then-Active staging
     inside one plan isn't a conflict. The order the shapes load in isn't known, so any
     disagreement between plans of different shapes counts.
-  - Keys two shapes create that differ only in case (q3 `Each`, qb `EACH`) are listed in
+  - Keys two shapes create that differ only in case (mfg `Warranty`, q3 `WARRANTY`) are listed in
     `KNOWN_CASE_COLLISIONS`, with the same new/stale rules: SFDMU matches case-sensitively,
     so the second load adds a near-duplicate.
   - A `deleteOldData` on an object another shape writes is listed in
@@ -62,6 +62,10 @@ key that the plan's `parent_id_lookups.json` fills at load is matched on the por
 it's resolved from; a declaration whose rows carry none of their key is listed in
 `KNOWN_UNKEYED_WRITES`, as is one with no `externalId`; a `$$` lookup is compared whole as
 well as part by part, and a key part only inside one that can't be split stops the check.
+
+Limitations (a pass isn't a guarantee): seeded records are those in `PLATFORM_SEEDED` for a
+USD-corporate org; a lookup two shapes set through partly overlapping key columns is compared on
+the columns both carry only; values are compared as text, so `1` and `1.0` differ.
 
 Usage:
     python scripts/ai/check_sfdmu_layering.py              # both checks
@@ -169,27 +173,9 @@ KNOWN_SHARED_CONFLICTS = {
     ('PriceAdjustmentSchedule', 'Standard Tier Based Adjustment', 'EffectiveFrom'),
     ('Pricebook2', 'Standard Price Book', 'CostBook.Name'),
     ('Pricebook2', 'Standard Price Book;true', 'CostBook.Name'),
-    ('RatingFrequencyPolicy', 'Daily', 'RatingDelayDuration'),
     ('TaxPolicy', 'Default Tax Policy', 'DefaultTaxTreatment.Name'),
     ('UnitOfMeasure', 'EACH', 'Description'),
     ('UnitOfMeasure', 'EACH', 'UnitOfMeasureClass.Code'),
-    ('UnitOfMeasure', 'GB', 'ConversionFactor'),
-    ('UnitOfMeasure', 'GB', 'Description'),
-    ('UnitOfMeasure', 'GB', 'Name'),
-    ('UnitOfMeasure', 'GB', 'Sequence'),
-    ('UnitOfMeasure', 'GB', 'Type'),
-    ('UnitOfMeasure', 'GB', 'UnitOfMeasureClass.Code'),
-    ('UnitOfMeasure', 'MB', 'ConversionFactor'),
-    ('UnitOfMeasure', 'MB', 'Name'),
-    ('UnitOfMeasure', 'MB', 'Sequence'),
-    ('UnitOfMeasure', 'MB', 'Type'),
-    ('UnitOfMeasure', 'MB', 'UnitOfMeasureClass.Code'),
-    ('UnitOfMeasureClass', 'CAS01', 'BaseUnitOfMeasure.UnitCode'),
-    ('UnitOfMeasureClass', 'CAS01', 'DefaultUnitOfMeasure.UnitCode'),
-    ('UnitOfMeasureClass', 'CAS01', 'Status'),
-    ('UnitOfMeasureClass', 'CURRENCY', 'BaseUnitOfMeasure.UnitCode'),
-    ('UnitOfMeasureClass', 'CURRENCY', 'DefaultUnitOfMeasure.UnitCode'),
-    ('UnitOfMeasureClass', 'CURRENCY', 'Status'),
     # qb finds GL accounts by AccountingCode, mfg by Name; both write these four rules.
     ('GeneralLedgerAcctAsgntRule', 'USD CML Charges',
      'CreditGeneralLedgerAccount (different parent keys)'),
@@ -207,6 +193,17 @@ KNOWN_SHARED_CONFLICTS = {
      'CreditGeneralLedgerAccount (different parent keys)'),
     ('GeneralLedgerAcctAsgntRule', 'USD PMT',
      'DebitGeneralLedgerAccount (different parent keys)'),
+    # qb/ja's locale overlay against q3 (Japanese unit names, Active classes, JPY base): todo 212.
+    ('AttributeCategory', 'AC-QB-CPU', 'Name'),
+    ('UnitOfMeasure', 'GB', 'Name'),
+    ('UnitOfMeasure', 'MB', 'Name'),
+    ('UnitOfMeasureClass', 'CAS01', 'Status'),
+    ('UnitOfMeasureClass', 'CURRENCY', 'BaseUnitOfMeasure.UnitCode'),
+    ('UnitOfMeasureClass', 'CURRENCY', 'DefaultUnitOfMeasure.UnitCode'),
+    ('UnitOfMeasureClass', 'CURRENCY', 'Status'),
+    ('UnitOfMeasure', 'm', 'Name'),
+    ('UnitOfMeasureClass', 'DATAVOL', 'Status'),
+    ('UnitOfMeasureClass', 'TIME', 'Status'),
 }
 
 # `deleteOldData` on an object another shape writes: (plan, object). An unscoped one wipes the
@@ -232,7 +229,6 @@ KNOWN_UNKEYED_WRITES = {
 KNOWN_CASE_COLLISIONS = {
     ("ProductCategory", "warranty"),          # q3 WARRANTY, mfg Warranty
     ("ProductComponentGroup", "accessories"),  # q3 ACCESSORIES, mfg Accessories
-    ("UnitOfMeasure", "each"),                # q3 Each, qb and mfg EACH
 }
 
 
@@ -792,8 +788,8 @@ def cross_shape_deletes(root: Path = SFDMU) -> Dict[Tuple[str, str], str]:
 
 def case_collisions(root: Path = SFDMU) -> Dict[Tuple[str, str], str]:
     """{(object, lowercased key): description} for keys two shapes create that differ only in
-    case (q3's `Each` against qb's `EACH`). SFDMU matches case-sensitively, so the second load
-    inserts a near-duplicate record, or the platform rejects it as a duplicate."""
+    case (mfg's `Warranty` against q3's `WARRANTY`). SFDMU matches case-sensitively, so the
+    second load inserts a near-duplicate record, or the platform rejects it as a duplicate."""
     keys: Dict[Tuple[str, str], Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
     for obj, obj_writes in _writes(root).items():
         records = plan_records(obj, obj_writes)

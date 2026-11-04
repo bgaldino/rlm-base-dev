@@ -1,5 +1,7 @@
 # q3-rates Data Plan
 
+> **Shared records follow qb (todo 325).** Where q3 and qb load the same reference record, q3 uses qb's key and values, so the two shapes layer into one org: qb's unit, class and selling-model names in its lookups. Records qb doesn't have stay q3's own. An org loaded with q3 before todo 325 has the old selling models, units and classes; a reload adds the renamed ones beside them (and their entries, options and rate card entries), so rebuild it rather than reload it.
+
 SFDMU data plan for the Q3 rate cards, rate card entries, tiered rate adjustments and price book rate cards. It runs in `prepare_rating` on q3 builds (`q3: true`, `qb: false`, `rating` and `rates` on, `refresh` off), through `insert_q3_rates_data`; `activate_rates` activates the entries afterwards.
 
 > **Reload-safe (todo 319).** Nothing is deleted: every object matches on its externalId, and a reload into a built org changes nothing. RateCardEntry and RateAdjustmentByTier moved from `Insert` + `deleteOldData` to `Upsert`, and PriceBookRateCard dropped `deleteOldData` (owner-approved, 2026-11-02). The plan has the same shape as qb-rates (todo 298); see `datasets/sfdmu/qb/en-US/qb-rates/README.md`.
@@ -8,7 +10,7 @@ SFDMU data plan for the Q3 rate cards, rate card entries, tiered rate adjustment
 
 - **Pass 1** upserts every object. RateCardEntry carries `skipExistingRecords: true`: a missing entry is inserted as `Draft` (the CSV's Status), and an existing one is never touched, so Status is never sent to an Active entry.
 - **RateCardEntry's key includes `ProductSellingModel.Name`,** which qb-rates' doesn't. IS001 has two
-  entries on the same card, resource and unit that differ only by selling model (One Time at 9.99, and
+  entries on the same card, resource and unit that differ only by selling model (One-Time at 9.99, and
   none at 3), so without it a reload inserted a duplicate (measured on a fresh 264 q3 build, todo 319).
   A blank selling model drops out of the `$$` value, and RateAdjustmentByTier's `RateCardEntry.$$…`
   reference uses the same five-part key. `export.json` lists RateCardEntry and RateAdjustmentByTier in

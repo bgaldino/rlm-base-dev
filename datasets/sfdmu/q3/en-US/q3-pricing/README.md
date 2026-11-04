@@ -1,5 +1,7 @@
 # q3-pricing Data Plan
 
+> **Shared records follow qb (todo 325).** Where q3 and qb load the same reference record, q3 uses qb's key and values, so the two shapes layer into one org: qb's selling-model names, its schedule dates for the three shared schedules, and the 'Standard Cost Book' on the standard price book. Records qb doesn't have stay q3's own. Currency rates stay q3's: its prices in each currency follow them, so they move together (todo 328). An org loaded with q3 before todo 325 has the old selling models, units and classes; a reload adds the renamed ones beside them (and their entries, options and rate card entries), so rebuild it rather than reload it.
+
 SFDMU data plan for Q3 pricing: currency types, price books and entries, price adjustment schedules and tiers, attribute- and bundle-based adjustments, derived prices and cost books. It loads in `prepare_pricing_data` when `q3` is on and `qb` is off, through `insert_q3_pricing_data`.
 
 > **Reload-safe (todo 319, the qb-pricing pattern from todo 298).** Every object matches on its externalId and nothing is deleted before a load. The seven objects that used to load as `Insert` after `delete_q3_pricing_data` (PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry) are `Upsert` on the same keys, with their traversal key fields in each SELECT (owner-approved, 2026-11-02).
@@ -24,8 +26,8 @@ Both passes read the root `PricebookEntry.csv`. Each pass's `sourceRecordsFilter
 
 ## Price adjustment schedules and tiers
 
-- **The five tiers hang off "Standard Price Adjustment Tier"**, the one volume schedule `RLM_DefaultPricingProcedure` reads (`__VOLUMEPasID__`), as in qb-pricing. The source org put them on "Standard Tier Based Adjustment" (HDS001) and "Standard Volume Based Adjustment" (MO001), which no procedure step reads, so they never priced. That was measured on a fresh 264 q3 build, with those schedules active or inactive (todo 319). Their `EffectiveFrom` is the schedule's start (2024-03-26), since the platform rejects a tier dated before its schedule. HDS001's source schedule was Slab; on this Range schedule its whole quantity takes the tier's rate. An org loaded before todo 319 keeps its 5 old tiers on the Tier/Volume Based schedules. They never price and a reload ignores them, but an extraction from that org pulls them back into the CSV, so drop them from it. Delete them by hand (with their schedule inactive), or run `delete_q3_pricing_data` (all tiers, org-wide) and reload.
-- **Measured on a fresh 264 q3 build** (Place Sales Transaction, USD, One Time):
+- **The five tiers hang off "Standard Price Adjustment Tier"**, the one volume schedule `RLM_DefaultPricingProcedure` reads (`__VOLUMEPasID__`), as in qb-pricing. The source org put them on "Standard Tier Based Adjustment" (HDS001) and "Standard Volume Based Adjustment" (MO001), which no procedure step reads, so they never priced. That was measured on a fresh 264 q3 build, with those schedules active or inactive (todo 319). Their `EffectiveFrom` is 2024-03-26, on or after the schedule's start (qb's 2023-01-01 since todo 325), since the platform rejects a tier dated before its schedule. HDS001's source schedule was Slab; on this Range schedule its whole quantity takes the tier's rate. An org loaded before todo 319 keeps its 5 old tiers on the Tier/Volume Based schedules. They never price and a reload ignores them, but an extraction from that org pulls them back into the CSV, so drop them from it. Delete them by hand (with their schedule inactive), or run `delete_q3_pricing_data` (all tiers, org-wide) and reload.
+- **Measured on a fresh 264 q3 build** (Place Sales Transaction, USD, One-Time):
   - HDS001 (list 49.99): 44.99 at qty 7 and 42.49 at qty 12. Its top tier ends at 15, so qty 17 is undiscounted, as in the source org.
   - MO001 (list 144.99): 130.49 at qty 7, 123.24 at qty 12 and 115.99 at qty 17.
 - **All three volume schedules load `IsActive=false`.** The platform rejects any `PriceAdjustmentTier` insert, update or delete while its schedule is active (#656), and the tiers price with it inactive. The Tier/Volume Based schedules hold no tiers now; they are kept as the source org has them.
@@ -56,7 +58,7 @@ Both passes read the root `PricebookEntry.csv`. Each pass's `sourceRecordsFilter
 | 5 | AttributeDefinition | 1 | Readonly | Code | — |
 | 6 | Product2 | 1 | Readonly | StockKeepingUnit | — |
 | 7 | Product2 | 2 | Readonly | StockKeepingUnit | — |
-| 8 | CostBook | 1 | Upsert | Name | 0 |
+| 8 | CostBook | 1 | Upsert | Name | 1 |
 | 9 | CostBook | 2 | Readonly | Name | — |
 | 10 | Pricebook2 | 1 | Upsert | Name;IsStandard | 2 |
 | 11 | Pricebook2 | 2 | Readonly | Name;IsStandard | — |
@@ -81,7 +83,7 @@ Both passes read the root `PricebookEntry.csv`. Each pass's `sourceRecordsFilter
 ```
 CurrencyType.csv                         # 11 records
 ProrationPolicy.csv                      # 1 record
-CostBook.csv                             # 0 records
+CostBook.csv                             # 1 record
 Pricebook2.csv                           # 2 records
 PriceAdjustmentSchedule.csv              # 5 records
 PriceAdjustmentTier.csv                  # 5 records
