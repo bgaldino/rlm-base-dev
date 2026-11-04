@@ -42,7 +42,7 @@ Upsert-matching bugs are fixed upstream; only Bug 4, `$$` in a lookup column, is
 The key must be **unique within what the object's query selects**. Where a natural key
 collides, the key gains the part that disambiguates it:
 
-- A `PricebookEntry` declaration that selects more than one price book keys on the book too
+- A plan whose `PricebookEntry` rows span more than one price book keys on the book too
   (q3-pricing, which loads the standard and Nonprofit books). The same SKU, selling model
   and currency exists in both, so without it an Upsert matches the other book's entry.
   qb-pricing scopes its query to the standard book and needs no book part.
@@ -91,23 +91,49 @@ scopes only the target, never CSV rows. Extraction merges such declarations back
 
 A **data shape** is a set of plans that seeds one demo dataset: qb (QuantumBit), q3, mfg, and
 the qb/ja locale. The rule is that **a record has exactly one owning plan**. Other plans may
-reference it, but only as `Readonly`. The exception is a record the platform seeds in every org,
-such as a price adjustment schedule: each shape's pricing plan writes the ones it uses, matched
-on their fixed `Name`, so a reload by any shape converges on the same record.
+reference it, but only as `Readonly`.
+
+**Two exceptions are written by every shape that uses them: price adjustment schedules and
+currency types.** For both, the last load wins on shared fields.
+
+Price adjustment schedules:
+
+- **Platform-seeded:** on a USD-corporate org, three USD schedules, one per `ScheduleType`:
+  'Standard Attribute Based Adjustment', 'Standard Bundle Based Adjustment', and 'Standard
+  Price Adjustment Tier', which is the Volume type.
+- **qb-pricing and q3-pricing** upsert the ones they use on `Name`. Even the first load matches
+  the seeded record, so nothing is duplicated.
+- **q3 adds two of its own:** 'Standard Tier Based Adjustment' and 'Standard Volume Based
+  Adjustment'.
+- **mfg-pricing** updates on `Name`. Its Tier Based row exists only after a q3 load. Without
+  one, it matches nothing and doesn't load, because an `Update` never inserts.
+- **qb/ja** updates on `Name;CurrencyIsoCode`. Its USD Price Adjustment Tier row matches the
+  seeded one. Its three JPY rows match nothing, so they don't load either.
+- **`EffectiveFrom`** ranges from 2023-01-01 (qb) to 2025-10-01 (qb/ja) across the shapes.
+
+Currency types:
+
+- **Every pricing plan upserts them on `IsoCode`,** so shared codes such as USD, EUR and JPY
+  are written by each shape.
+- **`ConversionRate` differs by shape.** CAD is 1.408989 in qb, 1.42 in q3 and 1.36 in mfg.
+- **qb/ja's rates are on a JPY base.** JPY is the corporate currency and USD is 0.00663.
+  qb/ja assumes a JPY-corporate org. Its rates are wrong on a USD-corporate org, and the other
+  shapes' rates are wrong on a JPY-corporate one.
 
 | Records | Owner | Other shapes |
 |---|---|---|
 | Legal entities, tax engine, tax treatments and policies | qb-tax | q3-tax maps the q3 products onto them |
 | Accounting periods, billing policies and treatments, GL accounts, payment terms | qb-billing | q3-billing maps the q3 products onto them |
-| Price adjustment schedules | the platform seeds them; qb-pricing and q3-pricing upsert the ones they use on `Name` | mfg-pricing and qb/ja still `Update` them |
-| Currency types | each shape's pricing plan, on `IsoCode` | a shape that adds a currency adds its prices too |
+| Price adjustment schedules | platform-seeded; qb-pricing and q3-pricing upsert, and q3 adds two (above) | mfg-pricing and qb/ja still `Update` them |
+| Currency types | every shape's pricing plan, on `IsoCode` (above) | a shape that adds a currency adds its prices too |
 | Products, price book entries, rates, usage resources | the shape's own pcm, pricing, rates and rating plans, keyed on the shape's SKUs | |
 
-Shapes don't collide because their keys don't: each shape's SKUs are distinct, and shared
-design records (tax, billing) have a single owner. A shape that needs a shared record
-references it by name rather than shipping its own copy. q3 used to carry its own tax and
-billing objects, including two legal entities under qb's names with Canada in USD rather than
-qb's CAD. They could not coexist with qb's, because a legal entity's currency can't be changed.
+Apart from those two, shapes don't collide because their keys don't: each shape's SKUs are
+distinct, and shared design records (tax, billing) have a single owner. A shape that needs a
+shared record references it by name rather than shipping its own copy. q3 used to carry its
+own tax and billing objects, including two legal entities under qb's names with Canada in USD
+rather than qb's CAD. They could not coexist with qb's, because a legal entity's currency can't
+be changed.
 
 **Shape-specific mapping plans.** When a shape reuses another shape's design records, its own
 plan shrinks to a `Product2` `Update` that points its products at them, plus a `Readonly`
@@ -147,7 +173,7 @@ alignment doesn't drop the extra key part.
 | `delete_qb_rates_data`, `delete_q3_rates_data`, `delete_qb_rating_data`, `delete_q3_rating_data` | manual full teardown only; no flow runs them | Apex that deactivates Active records first, then deletes in dependency order |
 | qb-dro `FulfillmentWorkspaceItem` | `Upsert` + `deleteOldData: true` in a flow plan | a pre-5.6.4 workaround; dropping it needs live verification and owner approval |
 | mfg plans | 11 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing | converted with the mfg series (todo 111) |
-| qb/ja qb-pricing | 7 `Insert` declarations | brought up to the en-US plan in the qb/ja refresh (todo 212) |
+| qb/ja qb-pricing | 7 `Insert` declarations, 6 of them live (one is `excluded`) | brought up to the en-US plan in the qb/ja refresh (todo 212) |
 
 The rules for anything that stays destructive:
 
