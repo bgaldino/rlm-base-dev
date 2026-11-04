@@ -33,6 +33,18 @@ Two lookups have to resolve for this plan to load with no rejected rows:
   and its CSV uses the single-field `DefaultTaxTreatment.Name` lookup (SFDMU v5 can't decompose a `$$` composite
   in a lookup column), so the treatment is set in the same update that activates the policy.
 
+Both TaxTreatment declarations also set `restApiBatchSize: 1`, so each save carries one legal entity:
+- **Why:** on an org with Commerce B2B or B2C enabled, the platform's TaxTreatment save hook builds a
+  `WebStoreLegalBody` query from the batch's legal entities. It joins them into one quoted value.
+- **Effect:** a batch spanning two or more legal entities then fails every row with "invalid ID field". The
+  dependent TaxPolicy activation fails after it.
+- **Where it shows:** builds from the base `tfid-cdo` template have Commerce enabled. ent-sb0 doesn't, so it
+  never sees the error.
+- **Cost:** the plan has 9 treatments, so batch size 1 costs up to 9 calls per pass. A rerun sends fewer,
+  because unchanged rows are skipped.
+
+`activateTaxRecords.apex` updates its treatments one legal entity at a time for the same reason.
+
 ## Data Plan Overview
 
 The plan uses **2 SFDMU passes** plus an **Apex prerequisite** and **Apex activation**:
@@ -86,7 +98,7 @@ The script creates the TaxEngineProvider via REST API (because it cannot be inse
 ### `activateTaxRecords.apex` (Activation)
 
 Activates tax records in dependency order:
-1. TaxTreatment: sets every non-Active record in the org to `Status = 'Active'`.
+1. TaxTreatment: sets every non-Active record in the org to `Status = 'Active'`, one update per legal entity.
 2. TaxPolicy: backfills `DefaultTaxTreatmentId` from the policy's treatment where it's null, then sets every
    non-Active policy Active. It applies to all policies in the org, not only this plan's.
 
@@ -160,7 +172,7 @@ qb-tax/
 
 Pass 1 uses `skipExistingRecords: true` on TaxTreatment and TaxPolicy, so re-runs will skip existing records. Product2 Update will re-apply the same `TaxPolicyId`. Pass 2 updates Status fields, which should be idempotent (setting Active on already-Active records).
 
-**Not yet validated** — idempotency testing against a 260 org is pending.
+`test_qb_tax_idempotency` passes on a fresh ent-sb0 build and on a Commerce-enabled `tfid-cdo` build (2026-11-03).
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 
