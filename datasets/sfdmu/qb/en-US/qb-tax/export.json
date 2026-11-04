@@ -34,7 +34,8 @@
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false,
-          "skipExistingRecords": true
+          "skipExistingRecords": true,
+          "restApiBatchSize": 1
         },
         {
           "query": "SELECT Description, Name, Status, TreatmentSelection FROM TaxPolicy",
@@ -58,7 +59,8 @@
           "query": "SELECT Status, Name, LegalEntity.Name, TaxPolicy.Name FROM TaxTreatment",
           "operation": "Update",
           "externalId": "Name",
-          "excluded": false
+          "excluded": false,
+          "restApiBatchSize": 1
         },
         {
           "query": "SELECT DefaultTaxTreatmentId, Description, Name, Status, TreatmentSelection FROM TaxPolicy",
