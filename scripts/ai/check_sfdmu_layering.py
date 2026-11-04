@@ -41,17 +41,20 @@ unseen.
     is checked against the wider key's extra fields. Key parts that appear only inside a `$$`
     column are split out of it.
 
-What a write is: every declaration that isn't `excluded`, `Readonly` or `Delete`, read from
-the CSV SFDMU would read for that pass (the `objectset_source/object-set-N/` override for
-pass 2+ when `useSeparatedCSVFiles` is set, the plan root otherwise), keeping only the rows
-its `sourceRecordsFilter` selects. A filter in a form this check doesn't evaluate fails it.
-`#N/A` and blank are both null; a null `$$` lookup clears each of its parts (a blank `$$`
-key column writes nothing). Only the columns the query selects are written (a CSV column it
-doesn't select is ignored at load), plus the `$$` key and lookup columns and the `externalId`
-fields, which SFDMU queries either way. A lookup is excluded through its Id field in
-`excludedFields`. `Id` and the loading plan's key fields aren't compared; lookup columns
-are, `$$` composite ones included (compared part by part). Updates create nothing, except to
-the platform-seeded records in `PLATFORM_SEEDED`.
+What a write is: every declaration that isn't `excluded`, `Readonly` or `Delete`, read from the
+CSV SFDMU would read for that pass (the `objectset_source/object-set-N/` override for pass 2+
+when `useSeparatedCSVFiles` is set, the plan root otherwise), keeping only the rows its
+`sourceRecordsFilter` selects. A filter in a form this check doesn't evaluate fails it. Blank,
+`#N/A`, `null`, `undefined`, `#ERROR!` and `#VALUE!` are null, as SFDMU reads them; other cells
+keep their whitespace. A null `$$` lookup clears each of its parts (a blank `$$` key column
+writes nothing). A key is built as SFDMU builds it, with empty parts dropped; a `$$` key that
+drops a part this check can't place stops it (exit 2). Only the columns the query selects are
+written (a CSV column it doesn't select is ignored at load), plus the `$$` key and lookup
+columns and the `externalId` fields, which SFDMU queries either way. A lookup is excluded
+through its Id field in `excludedFields`. `Id` and the loading plan's key fields aren't
+compared; lookup columns are, `$$` composite ones included (compared part by part). Updates
+create nothing, except to the platform-seeded records in `PLATFORM_SEEDED`. A
+`skipExistingRecords` pass leaves a record an earlier pass of the plan created.
 
 Usage:
     python scripts/ai/check_sfdmu_layering.py              # both checks
@@ -78,7 +81,9 @@ SFDMU = REPO / "datasets" / "sfdmu"
 # Shape roots, relative to datasets/sfdmu. qb/ja is folded into qb: it is a locale overlay that
 # reuses qb's keys, so its differences from qb/en-US are translations, not a second shape.
 SHAPE_ROOTS = {"qb/en-US": "qb", "qb/ja": "qb", "q3/en-US": "q3", "mfg/en-US": "mfg"}
-NULL_TOKENS = frozenset({"", "#n/a", "null", "undefined"})
+# SFDMU 5.8.0 reads these as null, case-insensitively on the trimmed cell (kept in step with
+# `_SFDMU_CSV_NULL_TOKENS` in scripts/validate_sfdmu_v5_datasets.py).
+NULL_TOKENS = frozenset({"", "#n/a", "null", "undefined", "#error!", "#value!"})
 NOT_WRITTEN = frozenset({"readonly", "delete"})
 
 # Lookup relationship names whose parent object isn't spelled the same as the relationship.
@@ -379,7 +384,8 @@ def lookup_findings(root: Path = SFDMU, allowed=None) -> Tuple[List[str], Set[tu
 
 # ---- shared-record check ------------------------------------------------------------------
 
-Write = Tuple[str, int, str, List[str], List[str], List[dict]]  # plan, pass, op, key, headers, rows
+# plan, pass, op, key, headers, rows, skipExistingRecords
+Write = Tuple[str, int, str, List[str], List[str], List[dict], bool]
 CREATES = frozenset({"insert", "upsert"})
 # Records the platform creates in every (USD-corporate) org, as field values that identify
 # them, so an Update to one lands on a record that exists without any plan inserting it.
@@ -445,10 +451,23 @@ def _split_into(values: Dict[str, str], names: List[str], value: str,
             values.setdefault(name, "")
         return
     pieces = (value or "").split(";")
-    # SFDMU drops a composite's empty parts, so a short value can't be split by position.
+    if len(pieces) < len(names):
+        # SFDMU drops a composite's empty parts. When the parts known empty from their own
+        # columns account for every dropped one, the rest line up by position; when the parts
+        # known set from their own columns are exactly the pieces, the unknown ones are empty.
+        empty = [n for n in names if n in values and is_null(values[n])]
+        known = [n for n in names if n in values and not is_null(values[n])]
+        if len(names) - len(empty) == len(pieces):
+            names = [n for n in names if n not in empty]
+        elif [values[n] for n in known] == pieces:
+            for name in names:
+                values.setdefault(name, "")
+            return
+        else:
+            return  # ambiguous; `plan_records` reports the row if this leaves its key unknown
     if len(pieces) == len(names):
         for name, piece in zip(names, pieces):
-            values.setdefault(name, piece.strip())
+            values.setdefault(name, piece)
 
 
 def row_values(parts: List[str], headers: List[str], row: dict) -> Dict[str, str]:
@@ -456,7 +475,8 @@ def row_values(parts: List[str], headers: List[str], row: dict) -> Dict[str, str
     by position: the primary key column (`$$Product2.StockKeepingUnit$ProductSellingModel.Name`
     gives `ProductSellingModel.Name`) and composite lookups (`Pricebook2.$$Name$IsStandard`
     gives `Pricebook2.Name` and `Pricebook2.IsStandard`)."""
-    values = {h: (row.get(h) or "").strip() for h in headers if h and not h.startswith("$$")
+    # Raw: SFDMU keeps a non-null cell's surrounding whitespace, and trims only to test for null.
+    values = {h: (row.get(h) or "") for h in headers if h and not h.startswith("$$")
               and ".$$" not in h}
     key_col = "$$" + "$".join(parts)
     if len(parts) > 1 and key_col in row:
@@ -470,10 +490,11 @@ def row_values(parts: List[str], headers: List[str], row: dict) -> Dict[str, str
 
 
 def key_of(values: Dict[str, str], fields: List[str]) -> Optional[Tuple[str, ...]]:
-    """The row's values for `fields`, or None when all are empty. A composite key may have
-    empty parts (SFDMU drops them), so only an all-empty key is unusable."""
-    ident = tuple("" if is_null(values.get(f)) else values.get(f, "") for f in fields)
-    return None if not any(ident) else ident
+    """The row's key for `fields` as SFDMU builds it, with empty parts dropped (so `(X, '', Y)`
+    and `(X, Y, '')` are both `X;Y`), or None when all are empty. A field the row doesn't carry
+    is an empty part, as SFDMU drops an undefined one."""
+    ident = tuple(values[f] for f in fields if not is_null(values.get(f)))
+    return ident or None
 
 
 def plan_records(obj: str, obj_writes: List[Write]):
@@ -483,10 +504,11 @@ def plan_records(obj: str, obj_writes: List[Write]):
     they write on the same key, so Draft-then-Active staging leaves Active. A plan creates a
     record only through an Insert or Upsert row; an Update row changes a record only if
     something else created it. A platform-seeded record (`PLATFORM_SEEDED`) exists in every
-    org, so an Update to it counts as a write another shape meets.
+    org, so an Update to it counts as a write another shape meets. A `skipExistingRecords` pass
+    doesn't change a record an earlier pass of the plan created.
     """
     out = {}
-    for rel, _, op, parts, headers, rows in obj_writes:
+    for rel, _, op, parts, headers, rows, skip_existing in obj_writes:
         key, records, created = out.setdefault(rel, (parts, {}, set()))
         for row in rows:
             values = row_values(parts, headers, row)
@@ -497,8 +519,21 @@ def plan_records(obj: str, obj_writes: List[Write]):
                 raise ValueError(f"{rel}: a pass keys this object on {';'.join(parts)} and has a "
                                  f"row ({';'.join(key_of(values, parts))}) without the plan's "
                                  f"first key ({';'.join(key)}); this check can't place it")
+            key_cell = row.get("$$" + "$".join(parts))
+            if (len(parts) > 1 and not is_null(key_cell)
+                    and any(f not in values for f in parts)):
+                # The `$$` key carries parts this check couldn't place, so the row's key is
+                # unknown; placing it on the parts it does know could merge distinct records.
+                pieces = len(key_cell.split(";"))
+                cause = (f"has {pieces} pieces for {len(parts)} key parts (a value containing "
+                         f"`;`?)" if pieces > len(parts) else
+                         f"drops empty parts this check can't place among {';'.join(parts)}; add "
+                         f"the missing key columns to the CSV")
+                raise ValueError(f"{rel}: a row's `$$` key ({key_cell}) {cause}")
             if ident is None:
                 continue
+            if skip_existing and ident in created:
+                continue  # an earlier pass of this plan created it, so this pass leaves it alone
             merged = records.setdefault(ident, {})
             merged.update({f: ("" if is_null(v) else v) for f, v in values.items() if f != "Id"})
             if op in CREATES or is_seeded(obj, merged):
@@ -521,7 +556,9 @@ def _writes(root: Path) -> Dict[str, List[Write]]:
             op = sfdmu_export.resolve_operation(decl.get("operation", "Readonly"))
             headers, rows = read_rows(csv_for(plan, export, pass_idx, obj))
             rows = filtered_rows(decl, headers, rows)
-            writes[obj].append((rel, pass_idx, op, parts, written_columns(decl, headers), rows))
+            skip = sfdmu_export.is_js_truthy(decl.get("skipExistingRecords"))
+            writes[obj].append((rel, pass_idx, op, parts, written_columns(decl, headers), rows,
+                                skip))
     return writes
 
 

@@ -327,6 +327,52 @@ SHARED_CASES = [
         "mfg/en-US/b": ([[decl("ProductSellingModel", "Name")]], {
             "ProductSellingModel.csv": "Name,SellingModelType,PricingTerm\nA,TermDefined,1\n"})},
         "SellingModelType")),
+    # Rows the `$$` key shortens (an empty part dropped) are split using the columns known
+    # empty, so qb's AUD and CAD rows stay two records; only CAD meets q3's and conflicts.
+    ("a `$$` key with a dropped empty part is rebuilt", True, conflicts({
+        "qb/en-US/a": ([[decl("Thing__c", "A__c;B__c;C__c")]], {
+            "Thing__c.csv": "$$A__c$B__c$C__c,B__c,Label\nX;AUD,,one\nX;CAD,,two\n"}),
+        "q3/en-US/b": ([[decl("Thing__c", "A__c;B__c;C__c")]], {
+            "Thing__c.csv": "$$A__c$B__c$C__c,A__c,B__c,C__c,Label\nX;CAD,X,,CAD,three\n"})},
+        "Label") == {("Thing__c", "X;CAD", "Label"): "q3=['three']; qb=['two']"}),
+    ("SFDMU's key drops empty parts, so (X,'',Y) meets (X,Y,'')", True, conflicts({
+        "qb/en-US/a": ([[decl("Thing__c", "A__c;B__c;C__c")]], {
+            "Thing__c.csv": "A__c,B__c,C__c,Label\nX,,Y,one\n"}),
+        "q3/en-US/b": ([[decl("Thing__c", "A__c;B__c;C__c")]], {
+            "Thing__c.csv": "A__c,B__c,C__c,Label\nX,Y,,two\n"})}, "Label")),
+    ("surrounding whitespace keeps keys apart, as SFDMU does", False, conflicts({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\n GB ,One\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,Two\n"})}, "Name")),
+    ("#VALUE! and #ERROR! are null, so they don't conflict with a blank", False, conflicts({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Description\nGB,#VALUE!\nMB,#error!\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Description\nGB,\nMB,\n"})},
+        "Description")),
+    # qb's skipExistingRecords pass leaves its 'one'; q3's 'two' conflicts with it.
+    ("a skipExistingRecords pass doesn't change an existing record", True, conflicts({
+        "qb/en-US/a": ([[UOM], [dict(UOM, skipExistingRecords=True)]], {
+            "UnitOfMeasure.csv": "UnitCode,Name\nGB,one\n",
+            "objectset_source/object-set-2/UnitOfMeasure.csv": "UnitCode,Name\nGB,two\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,two\n"})}, "Name")),
+    # Pass 1 only updates (nothing exists on a fresh org); pass 2 inserts with skip. The record
+    # is created in pass 2, with its values, and meets q3's.
+    ("a skip pass after an Update still creates the record", True, conflicts({
+        "qb/en-US/a": ([[dict(UOM, operation="Update")], [dict(UOM, skipExistingRecords=True)]], {
+            "UnitOfMeasure.csv": "UnitCode,Name\nGB,one\n",
+            "objectset_source/object-set-2/UnitOfMeasure.csv": "UnitCode,Name\nGB,two\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,one\n"})}, "Name")),
+    # mfg keys on Name and has no SellingModelType column; qb's row with a blank type keys on
+    # Name alone too, as SFDMU drops the empty part, so the two meet.
+    ("a key field the other plan doesn't carry is an empty part", True, conflicts({
+        "qb/en-US/a": ([[SM]], {"ProductSellingModel.csv":
+                                "Name,SellingModelType,PricingTerm\nA,,1\n"}),
+        "mfg/en-US/b": ([[decl("ProductSellingModel", "Name")]], {
+            "ProductSellingModel.csv": "Name,PricingTerm\nA,2\n"})}, "PricingTerm")),
+    # The plan's CSV has no CurrencyIsoCode column; its rows are placed on Name, as SFDMU would.
+    ("a key column the CSV lacks doesn't drop the plan's rows", True, conflicts({
+        "qb/en-US/a": ([[decl("Thing__c", "Name;CurrencyIsoCode")]], {
+            "Thing__c.csv": "Name,Label\nA,one\n"}),
+        "q3/en-US/b": ([[decl("Thing__c", "Name;CurrencyIsoCode")]], {
+            "Thing__c.csv": "Name,Label\nA,two\n"})}, "Label")),
     ("a CSV column the query doesn't select isn't a write", False, conflicts({
         "qb/en-US/a": ([[dict(UOM, query="SELECT UnitCode FROM UnitOfMeasure")]],
                        {"UnitOfMeasure.csv": "UnitCode,ConversionFactor\nGB,1\n"}),
@@ -469,6 +515,30 @@ def later_pass_without_first_key_raises():
     return False
 
 
+def ambiguous_dropped_key_part_raises():
+    """A `$$` key that drops a part this check can't place stops it rather than merging rows."""
+    try:
+        conflicts({"qb/en-US/a": ([[decl("Thing__c", "A__c;B__c;C__c")]],
+                                  {"Thing__c.csv": "$$A__c$B__c$C__c,Label\nX;Y,one\n"}),
+                   "q3/en-US/b": ([[decl("Thing__c", "A__c;B__c;C__c")]],
+                                  {"Thing__c.csv": "A__c,B__c,C__c,Label\nX,Y,Z,two\n"})})
+    except ValueError as e:
+        return "drops empty parts" in str(e)
+    return False
+
+
+def extra_key_pieces_raise_with_their_cause():
+    """A `$$` key with more pieces than parts says so, rather than asking for missing columns."""
+    try:
+        conflicts({"qb/en-US/a": ([[decl("Thing__c", "A__c;B__c")]],
+                                  {"Thing__c.csv": "$$A__c$B__c,Label\nX;Y;Z,one\n"}),
+                   "q3/en-US/b": ([[decl("Thing__c", "A__c;B__c")]],
+                                  {"Thing__c.csv": "A__c,B__c,Label\nX,Y,two\n"})})
+    except ValueError as e:
+        return "3 pieces for 2 key parts" in str(e)
+    return False
+
+
 def stale_case_collision_fails():
     """A KNOWN_CASE_COLLISIONS entry with no collision left fails the live run."""
     import contextlib
@@ -486,6 +556,8 @@ def stale_case_collision_fails():
 SHARED_CASES += [
     ("a later pass keyed on none of the first key raises", True, later_pass_without_first_key_raises()),
     ("a later pass row without the first key raises", True, later_pass_row_without_first_key_raises()),
+    ("an ambiguous dropped `$$` key part raises", True, ambiguous_dropped_key_part_raises()),
+    ("extra `$$` key pieces raise with their own cause", True, extra_key_pieces_raise_with_their_cause()),
     ("a stale case-collision entry fails the run", True, stale_case_collision_fails()),
     ("a stale shared-conflict entry fails the run", True, stale_shared_entry_fails()),
     ("a shared conflict missing from the allowlist fails the run", True, unknown_shared_conflict_fails()),
