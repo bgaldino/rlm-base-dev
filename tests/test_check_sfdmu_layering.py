@@ -10,8 +10,10 @@ Each case builds a throwaway datasets/sfdmu tree and asserts what the two checks
 - Shared records: two shapes with different final values conflict, matched on the loading
   plan's key, `$$` lookups and key parts held only in the `$$` column included. The same
   values, a plan's own Draft-then-Active staging, qb/ja against qb/en-US, records an extra key
-  field keeps apart, and Update-only writes don't. A narrower key's load overwriting a wider
-  key's extra field does. A stale or missing allowlist entry fails the run, per record.
+  field keeps apart, and Updates to a record nobody creates don't. A narrower key's load
+  overwriting a wider key's extra field does, and so do Updates to a record another plan
+  creates and a lookup set through different parent keys. A stale or missing allowlist entry
+  fails the run, per record.
 - sourceRecordsFilter: `LIKE` (case-insensitive, whole value), `=` and `<>` are applied in both
   checks; any other form, or a column the CSV lacks, is reported.
 
@@ -426,6 +428,39 @@ SHARED_CASES = [
         "Parent__r.$$Name$Optional__c")),
     ("a key field outside the composite isn't reported as lost in it", True,
      key_field_outside_composite_doesnt_raise()),
+    ("a lookup set through different parent keys is reported", True, conflicts({
+        "qb/en-US/a": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,4100\n"}),
+        "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {
+            "Rule__c.csv": "Name,Account__r.Name\nR,4100 Revenue\n"})},
+        "Account__r (different parent keys)")),
+    ("a lookup left whole isn't reported as a different parent key", False, conflicts({
+        "qb/en-US/a": ([[decl("Rule__c", "Name")]], {
+            "Rule__c.csv": "Name,Parent__r.$$Name$Optional__c\nR,A\n"}),
+        "q3/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Parent__r.Name\nR,A\n"})},
+        "Parent__r (different parent keys)")),
+    ("a plain different key beside a lookup left whole is still reported", True, conflicts({
+        "qb/en-US/a": ([[decl("Rule__c", "Name")]], {
+            "Rule__c.csv": "Name,Parent__r.$$Name$Optional__c,Parent__r.Code__c\nR,A,1\n"}),
+        "q3/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Parent__r.Other__c\nR,1\n"})},
+        "Parent__r (different parent keys)")),
+    ("a lookup set through the same parent key isn't reported that way", False, conflicts({
+        "qb/en-US/a": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,4100\n"}),
+        "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,4100\n"})},
+        "Account__r (different parent keys)")),
+    # q3 and mfg only Update a record qb creates, and agree with qb but not with each other.
+    # Their Updates still meet, though neither creates the record.
+    ("two shapes' Updates meet on a record a third creates", True, conflicts({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name,Description\nGB,one,x\n"}),
+        "q3/en-US/b": ([[dict(UOM, operation="Update")]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,two\n"}),
+        "mfg/en-US/c": ([[dict(UOM, operation="Update")]], {
+            "UnitOfMeasure.csv": "UnitCode,Name\nGB,three\n"})}, "Name")
+     .get(("UnitOfMeasure", "GB", "Name"), "") == "mfg=['three']; q3=['two']; qb=['one']"),
+    ("Updates meet on a created record even when the creator doesn't write the field", True,
+     bool(conflicts({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nGB\n"}),
+        "q3/en-US/b": ([[dict(UOM, operation="Update")]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,two\n"}),
+        "mfg/en-US/c": ([[dict(UOM, operation="Update")]], {
+            "UnitOfMeasure.csv": "UnitCode,Name\nGB,three\n"})}, "Name"))),
     ("a declaration with no externalId is reported as unkeyed", True, L.unkeyed_writes(tree({
         "qb/en-US/a": ([[decl("Thing__c", "")]], {"Thing__c.csv": "Label\none\n"})}))),
     ("rows that carry none of their key are reported", True, L.unkeyed_writes(tree({

@@ -39,7 +39,8 @@ unseen.
     are a key this plan writes. So two shapes keying an object differently still meet (mfg
     keys selling models on `Name`, qb on `Name;SellingModelType`), and a narrower key's load
     is checked against the wider key's extra fields. Key parts that appear only inside a `$$`
-    column are split out of it.
+    column are split out of it. Two shapes' Updates to a record a third creates meet, and a
+    lookup two shapes set through different parent keys counts as a conflict.
 
 What a write is: every declaration that isn't `excluded`, `Readonly` or `Delete`, read from the
 CSV SFDMU would read for that pass (the `objectset_source/object-set-N/` override for pass 2+
@@ -187,6 +188,23 @@ KNOWN_SHARED_CONFLICTS = {
     ('UnitOfMeasureClass', 'CURRENCY', 'BaseUnitOfMeasure.UnitCode'),
     ('UnitOfMeasureClass', 'CURRENCY', 'DefaultUnitOfMeasure.UnitCode'),
     ('UnitOfMeasureClass', 'CURRENCY', 'Status'),
+    # qb finds GL accounts by AccountingCode, mfg by Name; both write these four rules.
+    ('GeneralLedgerAcctAsgntRule', 'USD CML Charges',
+     'CreditGeneralLedgerAccount (different parent keys)'),
+    ('GeneralLedgerAcctAsgntRule', 'USD CML Charges',
+     'DebitGeneralLedgerAccount (different parent keys)'),
+    ('GeneralLedgerAcctAsgntRule', 'USD CML Taxes',
+     'CreditGeneralLedgerAccount (different parent keys)'),
+    ('GeneralLedgerAcctAsgntRule', 'USD CML Taxes',
+     'DebitGeneralLedgerAccount (different parent keys)'),
+    ('GeneralLedgerAcctAsgntRule', 'USD Invoice Line Taxes',
+     'CreditGeneralLedgerAccount (different parent keys)'),
+    ('GeneralLedgerAcctAsgntRule', 'USD Invoice Line Taxes',
+     'DebitGeneralLedgerAccount (different parent keys)'),
+    ('GeneralLedgerAcctAsgntRule', 'USD PMT',
+     'CreditGeneralLedgerAccount (different parent keys)'),
+    ('GeneralLedgerAcctAsgntRule', 'USD PMT',
+     'DebitGeneralLedgerAccount (different parent keys)'),
 }
 
 # `deleteOldData` on an object another shape writes: (plan, object). An unscoped one wipes the
@@ -625,16 +643,39 @@ def _writes(root: Path) -> Dict[str, List[Write]]:
     return writes
 
 
+def lookup_columns(values: Dict[str, str]) -> Dict[str, Set[str]]:
+    """{relationship: the populated traversal columns that set it} for one record."""
+    out: Dict[str, Set[str]] = defaultdict(set)
+    for col, value in values.items():
+        if "." in col and not col.startswith("$$") and not is_null(value):
+            out[col.split(".$$", 1)[0] if ".$$" in col else col.split(".", 1)[0]].add(col)
+    return out
+
+
+def parent_key_columns(values: Dict[str, str], cols: Set[str]) -> Set[str]:
+    """The traversal columns that set a lookup, with a `$$` column left whole (it couldn't be
+    split) standing for the fields it carries, so it overlaps a plain column of the same key."""
+    out = set(cols)
+    for col in cols:
+        names = composite_names(col)
+        if names and not any(n in values for n in names):
+            out.update(names)
+    return out
+
+
 def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
     """{(object, record key, field): description} for every cross-shape value conflict.
 
     A plan's row lands on whatever record its own `externalId` finds, so plans are compared
     pairwise from the loading plan's side. For plans P and Q of different shapes, each record Q
-    creates is the record P would write if Q's values for P's key fields are a key P writes.
+    writes that exists (Q or any other plan creates it, so two shapes' Updates to a third's
+    record meet) is the record P would write if Q's values for P's key fields are a key P writes.
     Every other field both carry is then compared. When P keys more narrowly than Q (mfg keys
     selling models on `Name`, qb on `Name;SellingModelType`), Q's extra key fields are compared
-    too, because P's load would overwrite them. The order shapes load in isn't known, so any
-    disagreement counts.
+    too, because P's load would overwrite them. A lookup both set through different parent
+    keys (qb's GL accounts by `AccountingCode`, mfg's by `Name`) is filed as "<Rel> (different
+    parent keys)", as offline the two can't be shown to name the same parent. The order shapes
+    load in isn't known, so any disagreement counts.
     """
     writes = _writes(root)
     seen: Dict[Tuple[str, str, str], Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
@@ -642,12 +683,18 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
         if len({shape_of(w[0]) for w in obj_writes}) < 2:
             continue
         records = plan_records(obj, obj_writes)
+        created_values = [r[i] for _, (_, r, c) in records.items() for i in c]
+        # Q's record exists if Q creates it or any plan does (Q may only update it).
+        created_by_key = {tuple(k): {key_of(v, k) for v in created_values}
+                          for k, _, _ in records.values()}
         for p_rel, (p_key, p_records, _) in records.items():
-            for q_rel, (_, q_records, q_created) in records.items():
+            for q_rel, (q_key, q_records, q_created) in records.items():
                 if shape_of(p_rel) == shape_of(q_rel):
                     continue
-                for q_ident in q_created:
-                    q_values = q_records[q_ident]
+                created_keys = created_by_key[tuple(q_key)]
+                for q_ident, q_values in q_records.items():
+                    if q_ident not in q_created and q_ident not in created_keys:
+                        continue
                     ident = key_of(q_values, p_key)
                     p_values = p_records.get(ident) if ident else None
                     if p_values is None:
@@ -657,6 +704,19 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
                         if p_values[field] != q_values[field]:
                             seen[(obj, key, field)][shape_of(p_rel)].add(p_values[field])
                             seen[(obj, key, field)][shape_of(q_rel)].add(q_values[field])
+                    # A lookup both write through different parent keys (qb's GL accounts by
+                    # AccountingCode, mfg's by Name) can't be compared field by field; whether
+                    # they name the same parent isn't known offline, so it counts.
+                    p_rels, q_rels = lookup_columns(p_values), lookup_columns(q_values)
+                    for rel in set(p_rels) & set(q_rels):
+                        if (parent_key_columns(p_values, p_rels[rel])
+                                & parent_key_columns(q_values, q_rels[rel])):
+                            continue
+                        by_shape = seen[(obj, key, f"{rel} (different parent keys)")]
+                        for rel_, values, cols in ((p_rel, p_values, p_rels[rel]),
+                                                   (q_rel, q_values, q_rels[rel])):
+                            by_shape[shape_of(rel_)].add(
+                                ", ".join(f"{c}={values[c]}" for c in sorted(cols)))
     return {ident: "; ".join(f"{s}={sorted(v)}" for s, v in sorted(by_shape.items()))
             for ident, by_shape in seen.items()}
 
