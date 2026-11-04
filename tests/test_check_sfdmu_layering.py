@@ -180,7 +180,27 @@ def filter_errors(plans):
     return L.filter_errors(tree(plans))
 
 
+LOOKUPS = json.dumps({"lookups": [{
+    "object": "ProductUsageResource",
+    "keyFields": ["Product.StockKeepingUnit", "UsageResource.Code"],
+    "children": [{"objects": ["ProductUsageGrant"], "idColumn": "ProductUsageResourceId",
+                  "keyColumns": ["ProductUsageResource.Product.StockKeepingUnit",
+                                 "ProductUsageResource.UsageResource.Code"]}]}]})
+
 PRS = decl("ProductRampSegment", "Product.StockKeepingUnit;SegmentType")
+
+
+def key_field_outside_composite_doesnt_raise():
+    """Parent.Name isn't one of `Parent.$$Code$Other`'s fields; the CSV just doesn't carry it,
+    so it's an empty part rather than a part lost in the composite."""
+    try:
+        conflicts({"qb/en-US/a": ([[decl("Child__c", "Code__c;Parent.Name")]], {
+                       "Child__c.csv": "Code__c,Parent.$$Code$Other\nC,Z\n"}),
+                   "q3/en-US/b": ([[decl("Child__c", "Code__c;Parent.Name")]], {
+                       "Child__c.csv": "Code__c\nC\n"})})
+    except ValueError:
+        return False
+    return True
 
 
 SHARED_CASES = [
@@ -373,6 +393,45 @@ SHARED_CASES = [
             "Thing__c.csv": "Name,Label\nA,one\n"}),
         "q3/en-US/b": ([[decl("Thing__c", "Name;CurrencyIsoCode")]], {
             "Thing__c.csv": "Name,Label\nA,two\n"})}, "Label")),
+    # A shortened composite lookup with no component columns can't be split; it's compared whole.
+    ("an unsplittable `$$` lookup is compared whole", True, conflicts({
+        "qb/en-US/a": ([[decl("Child__c", "Code__c")]], {
+            "Child__c.csv": "Code__c,Parent__r.$$Name$Optional__c\nK,A\n"}),
+        "q3/en-US/b": ([[decl("Child__c", "Code__c")]], {
+            "Child__c.csv": "Code__c,Parent__r.$$Name$Optional__c\nK,B\n"})},
+        "Parent__r.$$Name$Optional__c")),
+    # Keyed on a parent Id that parent_id_lookups.json fills at load: matched on the portable keys.
+    ("a parent-Id key is matched on its parent_id_lookups.json columns", True, conflicts({
+        "qb/en-US/a": ([[decl("ProductUsageGrant", "ProductUsageResourceId")]], {
+            "parent_id_lookups.json": LOOKUPS,
+            "ProductUsageGrant.csv": "ProductUsageResource.Product.StockKeepingUnit,"
+                                     "ProductUsageResource.UsageResource.Code,Quantity\nX,T,10\n"}),
+        "q3/en-US/b": ([[decl("ProductUsageGrant", "ProductUsageResourceId")]], {
+            "parent_id_lookups.json": LOOKUPS,
+            "ProductUsageGrant.csv": "ProductUsageResource.Product.StockKeepingUnit,"
+                                     "ProductUsageResource.UsageResource.Code,Quantity\nX,T,20\n"})},
+        "Quantity")),
+    # qb's row splits (X;Y), q3's can't (Z): they still meet on the whole value.
+    ("a split `$$` lookup meets an unsplit one", True, conflicts({
+        "qb/en-US/a": ([[decl("Child__c", "Code__c")]], {
+            "Child__c.csv": "Code__c,Parent__r.$$Name$Optional__c\nK,X;Y\n"}),
+        "q3/en-US/b": ([[decl("Child__c", "Code__c")]], {
+            "Child__c.csv": "Code__c,Parent__r.$$Name$Optional__c\nK,Z\n"})},
+        "Parent__r.$$Name$Optional__c")),
+    ("`X;` and `X` are the same lookup, as SFDMU drops the empty part", False, conflicts({
+        "qb/en-US/a": ([[decl("Child__c", "Code__c")]], {
+            "Child__c.csv": "Code__c,Parent__r.$$Name$Optional__c\nK,X;\n"}),
+        "q3/en-US/b": ([[decl("Child__c", "Code__c")]], {
+            "Child__c.csv": "Code__c,Parent__r.$$Name$Optional__c\nK,X\n"})},
+        "Parent__r.$$Name$Optional__c")),
+    ("a key field outside the composite isn't reported as lost in it", True,
+     key_field_outside_composite_doesnt_raise()),
+    ("a declaration with no externalId is reported as unkeyed", True, L.unkeyed_writes(tree({
+        "qb/en-US/a": ([[decl("Thing__c", "")]], {"Thing__c.csv": "Label\none\n"})}))),
+    ("rows that carry none of their key are reported", True, L.unkeyed_writes(tree({
+        "qb/en-US/a": ([[decl("Thing__c", "Missing__c")]], {"Thing__c.csv": "Label\none\n"})}))),
+    ("keyed rows aren't reported as unkeyed", False, L.unkeyed_writes(tree({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nGB\n"})}))),
     ("a CSV column the query doesn't select isn't a write", False, conflicts({
         "qb/en-US/a": ([[dict(UOM, query="SELECT UnitCode FROM UnitOfMeasure")]],
                        {"UnitOfMeasure.csv": "UnitCode,ConversionFactor\nGB,1\n"}),
@@ -539,6 +598,40 @@ def extra_key_pieces_raise_with_their_cause():
     return False
 
 
+def key_part_in_unsplittable_lookup_raises():
+    """A key part found only in a `$$` lookup that can't be split stops the check."""
+    try:
+        conflicts({"qb/en-US/a": ([[decl("Child__c", "Code__c;Parent__r.Name")]],
+                                  {"Child__c.csv": "Code__c,Parent__r.$$Name$Optional__c\nC,Z\nC,W\n"}),
+                   "q3/en-US/b": ([[decl("Child__c", "Code__c;Parent__r.Name")]],
+                                  {"Child__c.csv": "Code__c,Parent__r.Name\nC,Z\n"})})
+    except ValueError as e:
+        return "only in a `$$` lookup" in str(e)
+    return False
+
+
+def multi_hop_key_part_in_unsplittable_lookup_raises():
+    """The same, where the key part is two hops down the lookup."""
+    try:
+        conflicts({"qb/en-US/a": ([[decl("Child__c", "Code__c;PUR.Product.StockKeepingUnit")]],
+                                  {"Child__c.csv": "Code__c,PUR.$$Product.StockKeepingUnit$X__c\nC,Z\n"}),
+                   "q3/en-US/b": ([[decl("Child__c", "Code__c")]],
+                                  {"Child__c.csv": "Code__c\nC\n"})})
+    except ValueError as e:
+        return "only in a `$$` lookup" in str(e)
+    return False
+
+
+def malformed_lookups_file_exits_2():
+    """A structurally invalid parent_id_lookups.json is a tool error (exit 2), not a finding."""
+    import contextlib
+    import io
+    root = tree({"qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nGB\n",
+                                         "parent_id_lookups.json": '{"lookups": []}'})})
+    with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+        return L.main(["--root", str(root)]) == 2
+
+
 def stale_case_collision_fails():
     """A KNOWN_CASE_COLLISIONS entry with no collision left fails the live run."""
     import contextlib
@@ -558,6 +651,11 @@ SHARED_CASES += [
     ("a later pass row without the first key raises", True, later_pass_row_without_first_key_raises()),
     ("an ambiguous dropped `$$` key part raises", True, ambiguous_dropped_key_part_raises()),
     ("extra `$$` key pieces raise with their own cause", True, extra_key_pieces_raise_with_their_cause()),
+    ("a key part only in an unsplittable `$$` lookup raises", True,
+     key_part_in_unsplittable_lookup_raises()),
+    ("a multi-hop key part only in an unsplittable `$$` lookup raises", True,
+     multi_hop_key_part_in_unsplittable_lookup_raises()),
+    ("a malformed parent_id_lookups.json exits 2", True, malformed_lookups_file_exits_2()),
     ("a stale case-collision entry fails the run", True, stale_case_collision_fails()),
     ("a stale shared-conflict entry fails the run", True, stale_shared_entry_fails()),
     ("a shared conflict missing from the allowlist fails the run", True, unknown_shared_conflict_fails()),

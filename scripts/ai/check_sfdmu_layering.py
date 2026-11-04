@@ -54,7 +54,11 @@ columns and the `externalId` fields, which SFDMU queries either way. A lookup is
 through its Id field in `excludedFields`. `Id` and the loading plan's key fields aren't
 compared; lookup columns are, `$$` composite ones included (compared part by part). Updates
 create nothing, except to the platform-seeded records in `PLATFORM_SEEDED`. A
-`skipExistingRecords` pass leaves a record an earlier pass of the plan created.
+`skipExistingRecords` pass leaves a record an earlier pass of the plan created. A parent Id
+key that the plan's `parent_id_lookups.json` fills at load is matched on the portable columns
+it's resolved from; a declaration whose rows carry none of their key is listed in
+`KNOWN_UNKEYED_WRITES`, as is one with no `externalId`; a `$$` lookup is compared whole as
+well as part by part, and a key part only inside one that can't be split stops the check.
 
 Usage:
     python scripts/ai/check_sfdmu_layering.py              # both checks
@@ -76,6 +80,7 @@ from typing import Dict, Iterator, List, Optional, Set, Tuple
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "scripts"))
 import sfdmu_export  # noqa: E402
+import sfdmu_id_lookups  # noqa: E402
 
 SFDMU = REPO / "datasets" / "sfdmu"
 # Shape roots, relative to datasets/sfdmu. qb/ja is folded into qb: it is a locale overlay that
@@ -191,6 +196,14 @@ KNOWN_SHARED_CONFLICTS = {
 KNOWN_CROSS_SHAPE_DELETES = {
     ("mfg/en-US/mfg-dro", "FulfillmentWorkspaceItem"),  # wipes qb's 4 items
     ("qb/en-US/qb-dro", "FulfillmentWorkspaceItem"),    # wipes mfg's 9 items
+}
+
+# Written declarations whose rows carry none of their key, so the shared check can't place
+# them: (plan, object). Same new/stale rules.
+KNOWN_UNKEYED_WRITES = {
+    # Its externalId `JournalEntryRuleName` isn't a BillingBatchFilterCriteria field in the 264
+    # schema, so no CSV column carries it. Only qb writes the object.
+    ("qb/en-US/qb-accounting", "BillingBatchFilterCriteria"),
 }
 
 # Keys two shapes create that differ only in case, as (object, lowercased key along the
@@ -470,6 +483,14 @@ def _split_into(values: Dict[str, str], names: List[str], value: str,
             values.setdefault(name, piece)
 
 
+def composite_names(header: str) -> List[str]:
+    """The fields a `$$` lookup column carries: `Rel.$$A$B.C` gives `Rel.A` and `Rel.B.C`."""
+    if not header or header.startswith("$$") or ".$$" not in header:
+        return []
+    rel, composite = header.split(".$$", 1)
+    return [f"{rel}.{c}" for c in composite.split("$") if c]
+
+
 def row_values(parts: List[str], headers: List[str], row: dict) -> Dict[str, str]:
     """The row's plain values, plus the fields that exist only inside a `$$` column, split out
     by position: the primary key column (`$$Product2.StockKeepingUnit$ProductSellingModel.Name`
@@ -483,9 +504,11 @@ def row_values(parts: List[str], headers: List[str], row: dict) -> Dict[str, str
         _split_into(values, parts, row.get(key_col))
     for h in headers:
         if h and ".$$" in h and not h.startswith("$$"):
-            rel, composite = h.split(".$$", 1)
-            _split_into(values, [f"{rel}.{c}" for c in composite.split("$") if c], row.get(h),
-                        clear_on_null=True)
+            names = composite_names(h)
+            _split_into(values, names, row.get(h), clear_on_null=True)
+            # The whole value too, as SFDMU builds it (empty parts dropped), so a row that can't
+            # be split still meets one that can, and a later pass's value replaces an earlier one's.
+            values[h] = ";".join(p for p in (row.get(h) or "").split(";") if not is_null(p))
     return values
 
 
@@ -530,6 +553,11 @@ def plan_records(obj: str, obj_writes: List[Write]):
                          f"drops empty parts this check can't place among {';'.join(parts)}; add "
                          f"the missing key columns to the CSV")
                 raise ValueError(f"{rel}: a row's `$$` key ({key_cell}) {cause}")
+            lost = [f for f in key if f not in values and any(
+                f in composite_names(h) and not is_null(row.get(h)) for h in headers)]
+            if lost:
+                raise ValueError(f"{rel}: key part(s) {';'.join(lost)} are only in a `$$` lookup "
+                                 f"this check can't split; add the column(s) to the CSV")
             if ident is None:
                 continue
             if skip_existing and ident in created:
@@ -541,6 +569,37 @@ def plan_records(obj: str, obj_writes: List[Write]):
     return out
 
 
+def portable_id_keys(plan: Path) -> Dict[Tuple[str, str], List[str]]:
+    """{(object, Id column): portable key columns} from the plan's `parent_id_lookups.json`,
+    which `LoadSFDMUData` resolves to target-org Ids before the load."""
+    out = {}
+    for lookup in sfdmu_id_lookups.load_lookups(str(plan)):
+        for child in lookup["children"]:
+            for obj in child["objects"]:
+                out[(obj, child["idColumn"])] = list(child["keyColumns"])
+    return out
+
+
+def unkeyed_writes(root: Path = SFDMU) -> Dict[Tuple[str, str], str]:
+    """{(plan, object): key} for every written declaration whose CSV rows carry none of its key
+    fields, or that declares no `externalId`, so the shared check would skip it unseen."""
+    out = {}
+    for obj, obj_writes in _writes(root).items():
+        for rel, _, _, parts, headers, rows, _ in obj_writes:
+            if rows and not any(key_of(row_values(parts, headers, r), parts) for r in rows):
+                out[(rel, obj)] = ";".join(parts)
+    # A written declaration with no `externalId` isn't compared at all.
+    for plan in plan_dirs(root):
+        rel = plan.relative_to(root).as_posix()
+        if not shape_of(rel):
+            continue
+        export = json.loads((plan / "export.json").read_text(encoding="utf-8"))
+        for _, decl, obj in declarations(export):
+            if is_written(decl) and not key_parts(decl.get("externalId", "")):
+                out[(rel, obj)] = "(no externalId)"
+    return out
+
+
 def _writes(root: Path) -> Dict[str, List[Write]]:
     """Every written declaration of every shape's plans, by object, in pass order."""
     writes: Dict[str, List[Write]] = defaultdict(list)
@@ -549,10 +608,14 @@ def _writes(root: Path) -> Dict[str, List[Write]]:
         if not shape_of(rel):
             continue
         export = json.loads((plan / "export.json").read_text(encoding="utf-8"))
+        id_keys = portable_id_keys(plan)
         for pass_idx, decl, obj in sorted(declarations(export), key=lambda t: t[0]):
             parts = key_parts(decl.get("externalId", ""))
             if not is_written(decl) or not parts:
                 continue
+            # A parent Id key that `parent_id_lookups.json` fills at load time is matched on
+            # the portable columns it's resolved from.
+            parts = [c for p in parts for c in id_keys.get((obj, p), [p])]
             op = sfdmu_export.resolve_operation(decl.get("operation", "Readonly"))
             headers, rows = read_rows(csv_for(plan, export, pass_idx, obj))
             rows = filtered_rows(decl, headers, rows)
@@ -660,14 +723,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--list", action="store_true",
                         help="print every shared conflict, known or not")
+    parser.add_argument("--root", type=Path, default=SFDMU, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    root = args.root
     try:
-        lookups, used = lookup_findings()
-        conflicts = shared_conflicts()
-        cases = case_collisions()
-        deletes = cross_shape_deletes()
-        bad_filters = filter_errors()
-    except (OSError, ValueError) as exc:
+        lookups, used = lookup_findings(root)
+        conflicts = shared_conflicts(root)
+        cases = case_collisions(root)
+        deletes = cross_shape_deletes(root)
+        unkeyed = unkeyed_writes(root)
+        bad_filters = filter_errors(root)
+    except (OSError, ValueError, sfdmu_id_lookups.IdLookupError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     new = {k: v for k, v in conflicts.items() if k not in KNOWN_SHARED_CONFLICTS}
@@ -675,6 +741,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     stale_lookups = sorted(KNOWN_UNRESOLVED_LOOKUPS - used)
     new_cases = sorted(set(cases) - KNOWN_CASE_COLLISIONS)
     stale_cases = sorted(KNOWN_CASE_COLLISIONS - set(cases))
+    new_unkeyed = sorted(set(unkeyed) - KNOWN_UNKEYED_WRITES)
+    stale_unkeyed = sorted(KNOWN_UNKEYED_WRITES - set(unkeyed))
     new_deletes = sorted(set(deletes) - KNOWN_CROSS_SHAPE_DELETES)
     stale_deletes = sorted(KNOWN_CROSS_SHAPE_DELETES - set(deletes))
     for line in lookups:
@@ -689,6 +757,13 @@ def main(argv: Optional[List[str]] = None) -> int:
               f"aren't in KNOWN_CASE_COLLISIONS")
     for obj, key in stale_cases:
         print(f"shared: ({obj!r}, {key!r}) is in KNOWN_CASE_COLLISIONS but no longer collides; "
+              f"remove it")
+    for plan, obj in new_unkeyed:
+        print(f"shared: {plan} {obj} rows carry none of its key ({unkeyed[(plan, obj)]}), so "
+              f"they can't be compared; add the key columns, or a parent_id_lookups.json entry "
+              f"for a parent Id key, and it isn't in KNOWN_UNKEYED_WRITES")
+    for plan, obj in stale_unkeyed:
+        print(f"shared: ({plan!r}, {obj!r}) is in KNOWN_UNKEYED_WRITES but its rows are keyed now; "
               f"remove it")
     for plan, obj in new_deletes:
         print(f"shared: {plan} {obj} has deleteOldData on an object {deletes[(plan, obj)]} also "
@@ -707,11 +782,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         for (obj, key, field), shown in sorted(conflicts.items()):
             print(f"known: ({obj!r}, {key!r}, {field!r}),  # {shown}")
     failed = bool(lookups or bad_filters or new or stale or stale_lookups or new_cases
-                  or stale_cases or new_deletes or stale_deletes)
+                  or stale_cases or new_deletes or stale_deletes or new_unkeyed or stale_unkeyed)
     print(f"{len(lookups)} unresolvable `$$` lookup(s); {len(conflicts)} shared conflict(s), "
           f"{len(new)} new, {len(stale)} stale; {len(cases)} case-only key collision(s), "
           f"{len(new_cases)} new, {len(stale_cases)} stale; {len(deletes)} cross-shape "
-          f"delete(s), {len(new_deletes)} new, {len(stale_deletes)} stale. "
+          f"delete(s), {len(new_deletes)} new, {len(stale_deletes)} stale; {len(unkeyed)} "
+          f"unkeyed write(s), {len(new_unkeyed)} new, {len(stale_unkeyed)} stale. "
           f"{'FAIL' if failed else 'PASS'}")
     return 1 if failed else 0
 

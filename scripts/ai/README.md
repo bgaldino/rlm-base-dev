@@ -312,6 +312,9 @@ python scripts/ai/check_sfdmu_layering.py --list   # also print every known shar
   case-sensitively; `KNOWN_CASE_COLLISIONS`), and on any `deleteOldData` on an object another
   shape writes (`KNOWN_CROSS_SHAPE_DELETES`): unscoped, it deletes that shape's records on load;
   a `deleteQuery` or WHERE is listed too, after a person checks that it spares them. Each list fails on a new entry or a stale one.
+  A written object whose rows carry none of its key can't be compared, so it's listed in
+  `KNOWN_UNKEYED_WRITES` too; a parent Id key filled by `parent_id_lookups.json` is matched on
+  its portable columns.
 - **`filter`:** a `sourceRecordsFilter` the check can't evaluate (it reads `LIKE`, `=` and `<>`
   on one column). The plan's rows would otherwise be skipped unseen, so this fails too.
 
