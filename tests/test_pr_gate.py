@@ -5405,7 +5405,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 756
+EXPECTED = 759
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
@@ -5421,7 +5421,8 @@ check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the p
 _NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen",
               18: "eighteen", 19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two",
               23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six",
-              27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty"}
+              27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty",
+              31: "thirty-one", 32: "thirty-two"}
 _actual = len(pr_gate.CHECKS)
 # A word boundary that also rejects a trailing hyphen, so the pattern for a smaller number word
 # does not match inside a hyphenated compound of a larger one: "two of the twenty" must NOT

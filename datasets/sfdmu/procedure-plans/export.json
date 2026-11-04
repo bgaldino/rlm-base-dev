@@ -32,7 +32,7 @@
           "query": "SELECT SubSectionType, ProcedurePlanVersionId FROM ProcedurePlanSection WHERE ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
           "operation": "Readonly",
           "externalId": "SubSectionType",
-          "$comment": "Single-field key so the option lookup is a plain ProcedurePlanSection.SubSectionType reference (no $$ composite lookup, SFDMU Bug 4). Scoped to this plan's version, where SubSectionType is unique."
+          "$comment": "Single-field key so the option lookup is a plain ProcedurePlanSection.SubSectionType reference (no $$ composite lookup to keep matched to the parent's key, SFDMU Bug 4). Scoped to this plan's version, where SubSectionType is unique."
         },
         {
           "query": "SELECT DeveloperName, MasterLabel FROM ExpressionSetDefinition",

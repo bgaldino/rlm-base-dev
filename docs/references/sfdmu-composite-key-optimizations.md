@@ -22,7 +22,7 @@ before reloading existing data.
 > shipped plans; migrating them back to Upsert is the separate, gated
 > `sfdmu-v5-optimization` initiative (needs live verification + approval). Do **not**
 > apply the patterns below when authoring *new* plans on 5.6.4+; author them as `Upsert`.
-> Only the Bug 4 (`$$` lookup references — self-referential and cross-object) simplifications remain live guidance.
+> Only the Bug 4 (a `$$` lookup reference that's self-referential, or doesn't match the parent's `externalId`) simplifications remain live guidance.
 
 ### Key v5 behavioral changes
 
@@ -83,7 +83,7 @@ before reloading existing data.
 - **RateAdjustmentByTier**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId)
 
 #### qb-tax
-- **TaxPolicy (Pass 2)**: queries `DefaultTaxTreatmentId` with a single-field `DefaultTaxTreatment.Name` lookup (verified live on 264, 2026-10-30), so the default treatment is set in the same update that activates the policy. The earlier failure was Bug 4: the CSV used a `$$` composite in that lookup column. Before the fix, the query omitted the field and `activateTaxRecords.apex` set it afterwards. The script still backfills it for any policy left without one; no tracked plan relies on that since q3-tax became a product mapping (todo 210).
+- **TaxPolicy (Pass 2)**: queries `DefaultTaxTreatmentId` with a single-field `DefaultTaxTreatment.Name` lookup (verified live on 264, 2026-10-30), so the default treatment is set in the same update that activates the policy. The earlier failure was Bug 4: the CSV's `$$` lookup didn't match how the plan keyed the treatment. Before the fix, the query omitted the field and `activateTaxRecords.apex` set it afterwards. The script still backfills it for any policy left without one; no tracked plan relies on that since q3-tax became a product mapping (todo 210).
 - **NamedCredential**: read as a `Readonly` object (`RLM_MockTax`) so `TaxEngine.MerchantCredential.DeveloperName` resolves.
 
 #### qb-rating
@@ -141,22 +141,17 @@ imply that every operation choice was caused by Bug 5:
 
 **Current rule (5.6.4+):** Use `Upsert` for all-traversal composite externalIds — matching works. Reserve `deleteOldData: true` for a concrete *current* reason + explicit approval, not this (now-fixed) bug.
 
-### Bug 4 — `$$` composite notation fails for lookup reference columns (discovered 2026-04-02)
+### Bug 4 — a `$$` lookup reference column that doesn't match its parent's key (discovered 2026-04-02, narrowed 2026-11-03)
 
-**Problem:** `$$` composite key notation works for primary record matching (externalId ↔ `$$` CSV column) but **fails when used as a lookup reference column** in the CSV. SFDMU cannot decompose a composite `$$` value to resolve the referenced record.
+**Problem:** `$$` composite key notation works for primary record matching (externalId ↔ `$$` CSV column). As a lookup reference column it resolves only when its parts are exactly the parent object's `externalId` in the same pass. It fails when the reference is self-referential, or when the parent is keyed differently.
 
-**Discovered on:** `ProductComponentGroup.ParentGroup.$$Code$ParentProduct.StockKeepingUnit` — SFDMU ran 3 passes but left all `ParentGroupId` fields null. MissingParentRecordsReport showed anonymized hashes instead of resolved records.
+**Discovered on:** `ProductComponentGroup.ParentGroup.$$Code$ParentProduct.StockKeepingUnit` (self-referential) — SFDMU ran 3 passes but left all `ParentGroupId` fields null. MissingParentRecordsReport showed anonymized hashes instead of resolved records.
 
 **Fix applied:** Replaced composite `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` with simple `ParentGroup.Code`, changed externalId from `Code;ParentProduct.StockKeepingUnit` to `Code` (unique in this dataset). After fix, all 7 nested parent group assignments resolved correctly.
 
-**Impact — audit required across all plans:**
-All data plan CSVs that use `$$` composite notation in *lookup reference columns* (not just the primary `$$` key column) need to be reviewed. This includes:
-- Self-referential lookups (e.g., `ParentGroup.$$...`, `ParentCategory.$$...`)
-- Cross-object lookups using `$$` (e.g., `ProductComponentGroup.$$Code$ParentProduct.StockKeepingUnit` referenced from `ProductRelatedComponent`)
+**Rule:** For a self-reference, use a simple single-field reference. For a cross-object reference, either do the same or key the parent on exactly the `$$` parts, declared in the same pass.
 
-The primary `$$` column (first column, used for record matching) is unaffected — only lookup references to other objects or self-references are broken.
-
-**Rule:** Always use simple field references for lookup columns. If the target object's externalId is composite, simplify to a unique single field if possible.
+**Narrowed 2026-11-03 (todo 325).** This section used to say cross-object `$$` lookups fail too. That was inferred from the self-referential case, not observed. On built orgs, a cross-object `$$` lookup whose parts are exactly the parent's `externalId` loads correctly: qb-pricing's `Pricebook2.$$Name$IsStandard` and `ProductSellingModel.$$Name$SellingModelType`, qb-rates' `RateCardEntry.$$…` (128 RABT, none with a null entry) and qb-billing's `AccountingPeriod.$$Name$FinancialYear` (588 rows, none null). What fails is a self-reference, or a `$$` lookup whose parts don't match how the plan keys the parent (the TaxPolicy case below). `scripts/ai/check_sfdmu_layering.py` flags both.
 
 ### Validation and Fixing Tools
 

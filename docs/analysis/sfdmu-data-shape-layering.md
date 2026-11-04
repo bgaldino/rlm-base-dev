@@ -37,7 +37,7 @@ The fix was to **stop deleting**: match existing rows on a stable key and update
 In a converted plan, each writable object is `Upsert` (or `Update`) on an externalId that identifies the record
 across orgs. A reload finds the existing row and updates it, or inserts it if it's missing.
 The SFDMU v5.6.4 floor makes this possible for relationship-traversal keys (the historical
-Upsert-matching bugs are fixed upstream; only Bug 4, `$$` in a lookup column, is still live).
+Upsert-matching bugs are fixed upstream; only Bug 4, a `$$` lookup column that doesn't match its parent's key, is still live).
 
 The key must be **unique within what the object's query selects**. Where a natural key
 collides, the key gains the part that disambiguates it:
@@ -117,12 +117,17 @@ the shapes differ:
 |---|---|---|
 | Price adjustment schedules | qb, q3, mfg, qb/ja pricing | `EffectiveFrom`; which schedules exist (below) |
 | Currency types | every pricing plan, on `IsoCode` | `ConversionRate` (below) |
-| Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | `GB`/`MB`: qb's `DATAVOL` class with factors 1 and 1000, q3's `DAT01` with 0.001 and 1. mfg sends `EACH` with no class, where qb puts it in `CAS01`. qb/ja loads `CAS01` and `DATAVOL` Active, qb/en-US Draft |
+| Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | `GB`/`MB`: qb's `DATAVOL` class with factors 1 and 1000, q3's `DAT01` with 0.001 and 1. Their names, types and sequences differ too. mfg sends `EACH` with no class or description, where qb puts it in `CAS01`. The `CAS01` class's base and default unit is `EACH` in qb and `Each` in q3, which differ only in case (below); the `CURRENCY` class's is `JPY` in qb/ja and `USD` in qb/en-US and q3. qb/ja loads `CAS01`, `CURRENCY` and `DATAVOL` Active, where qb/en-US loads them Draft, and q3 loads `CAS01` and `CURRENCY` Draft |
 | Rating frequency and overage policies | qb and q3 rating | 'Daily Rating Frequency' has a delay of 0 in qb and 3 in q3 |
 | Standard price book | qb, q3, mfg and qb/ja pricing | its `CostBook`: 'Standard Cost Book' in qb, 'CostBook' in qb/ja, none in q3 and mfg |
 | Selling models, relationship types, proration policy | qb, q3, mfg and qb/ja pcm (each shape's pricing plan also updates the proration policy) | none (for the proration policy, see below). Only exact names match: mfg's 9 selling models are qb's, q3 shares 4 (its 'One Time' is a separate record from qb's 'One-Time'), and qb/ja's Japanese-named ones are new records |
-| Legal entity US, tax engine, Default Tax Policy, billing policies and treatments, payment terms, accounting periods, fulfillment step definitions | qb and mfg tax, billing and dro | the US legal entity's `CompanyName`, and the fulfillment steps' `UsageType`, which qb sets to Fulfillment and mfg leaves null. mfg still ships its own copies; it moves onto qb's design with the mfg series |
-| GL accounts and GL assignment rules | qb-billing (accounts on `AccountingCode`), mfg-billing (on `Name`); both write four rules of the same names | not shared but colliding: five codes (4100, 4200, 4300, 4400, 5300) have different names in each shape. mfg after qb adds a second account for each, unless the platform rejects the duplicate code, and repoints 'USD CML Charges' to mfg's. qb after mfg matches mfg's accounts on code and renames them. Once both exist, qb's code key matches two accounts per code. The 29 accounts with the same name take the last load's description |
+| Legal entity US, tax engine, Default Tax Policy, billing policies and treatments, payment terms, accounting periods, fulfillment step definitions | qb and mfg tax, billing and dro | the US legal entity's `CompanyName`; the fulfillment steps' and step group's `UsageType`, which qb sets to Fulfillment and mfg leaves null; the fallout rule's `RetriesAllowed` (3 in qb, 1 in mfg); and Default Tax Policy's default treatment ('Default Tax Policy' in qb, 'Default Tax Treatment - US' in mfg). mfg still ships its own copies; it moves onto qb's design with the mfg series |
+| GL accounts and GL assignment rules | qb-billing (accounts on `AccountingCode`), mfg-billing (on `Name`); both write four rules of the same names | not shared but colliding: five codes (4100, 4200, 4300, 4400, 5300) have different names in each shape. mfg after qb adds a second account for each, unless the platform rejects the duplicate code, and repoints 'USD CML Charges' to mfg's. qb after mfg matches mfg's accounts on code and renames them. Once both exist, qb's code key matches two accounts per code. Of the 29 accounts with the same name, 5000 and 5600 differ in description, and the last load's wins |
+
+**Keys that differ only in case:** SFDMU matches keys case-sensitively, so a key one shape
+writes as `EACH` and another as `Each` is two records to the load, and the second load either
+inserts a near-duplicate or is rejected as one. Three exist, all against q3: the unit of measure `EACH` (qb and mfg; q3 `Each`), and mfg's
+product category `Warranty` and component group `Accessories` (q3 `WARRANTY`, `ACCESSORIES`).
 
 **Price adjustment schedules:**
 
@@ -136,7 +141,11 @@ the shapes differ:
 - **mfg-pricing** updates on `Name`. Its Tier Based row exists only after a q3 load. Without
   one, it matches nothing and doesn't load, because an `Update` never inserts.
 - **qb/ja** updates on `Name;CurrencyIsoCode`. Its USD Price Adjustment Tier row matches the
-  seeded one. Its three JPY rows match nothing, so they don't load either.
+  seeded one. On a USD-corporate org its three JPY rows match nothing, so they don't load
+  either. What a JPY-corporate org seeds hasn't been checked; if it seeds JPY schedules, those
+  rows land: the Volume schedule then differs from q3's in `IsActive`, `EffectiveFrom` and
+  `CurrencyIsoCode`, and the Attribute and Bundle schedules from q3's and mfg's in
+  `CurrencyIsoCode`.
 - **`EffectiveFrom`** ranges from 2023-01-01 (qb) to 2025-10-01 (qb/ja) across the shapes.
 
 **Proration policy:** it is create-only, so SFDMU runs each pcm plan's `Upsert` of it as an
@@ -164,7 +173,8 @@ differ on a shared record, the second load changes the first shape's data. For e
   type and the price book's cost book, and moves `EACH` out of its class. It also adds a second
   GL account for five codes, because mfg keys accounts on `Name` and qb on `AccountingCode`,
   and points a shared GL rule at mfg's. If the platform rejects the duplicate code instead,
-  the mfg load fails.
+  the mfg load fails. And mfg-dro deletes every fulfillment workspace item, qb's included
+  (qb-dro does the same in reverse).
 - Any pair changes currency rates and schedule dates.
 
 Reconciling those values, or giving one shape distinct keys, is the precondition for loading
@@ -210,7 +220,7 @@ alignment doesn't drop the extra key part.
 |---|---|---|
 | `delete_quantumbit_pricing_data`, `delete_q3_pricing_data` | manual full teardown only; no flow runs them | deletes every record of the plan's pricing types, org-wide |
 | `delete_qb_rates_data`, `delete_q3_rates_data`, `delete_qb_rating_data`, `delete_q3_rating_data` | manual full teardown only; no flow runs them | Apex that deactivates Active records first, then deletes in dependency order |
-| qb-dro `FulfillmentWorkspaceItem` | `Upsert` + `deleteOldData: true` in a flow plan | a pre-5.6.4 workaround; dropping it needs live verification and owner approval |
+| qb-dro `FulfillmentWorkspaceItem` | `Upsert` + `deleteOldData: true` with no scope, in a flow plan (`check_sfdmu_layering.py` lists it, and any `deleteOldData` on an object another shape writes) | a pre-5.6.4 workaround; each load deletes every item in the org, mfg's included (mfg-dro does the same to qb's). Dropping it needs live verification and owner approval |
 | mfg plans | 11 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing | converted with the mfg series (todo 111) |
 | qb/ja qb-pricing | 7 `Insert` declarations, 6 of them live (one is `excluded`) | brought up to the en-US plan in the qb/ja refresh (todo 212) |
 
