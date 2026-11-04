@@ -60,7 +60,14 @@ fails (`ProductUsageResource` rejects Active → Draft) or silently demotes the 
 1. **Pass 1:** `Upsert` + `skipExistingRecords: true` with the full CSV (Status = Draft).
    It inserts missing rows and never touches existing ones.
 2. **Pass 2:** `Update` with `Status` removed from the query and from its
-   `objectset_source/object-set-2/` CSV, so corrections to every other field still land.
+   `objectset_source/object-set-2/` CSV, so a correction to another field can land.
+
+The platform still locks some fields on Active records, and a correction there fails the
+load. An Active `RateCardEntry` accepts only a Status change, and a `RateAdjustmentByTier`
+under one can't be edited. `UsageResource` fields tied to active rate card entries or grants
+are locked, and so is `ProductUsageResource.EffectiveEndDate` while its grant is Active.
+Correcting one of those needs a new Draft record, or a deactivate, edit and reactivate cycle
+(see the qb-rates README; the qb-rating README lists its locks).
 
 Activation stays in Apex (`activate_rating_records`, `activate_rates`), which acts only on
 non-Active records. `excludedFromUpdateFields` is not a substitute: in SFDMU 5.8.0 it strips
@@ -89,14 +96,33 @@ scopes only the target, never CSV rows. Extraction merges such declarations back
 
 ## Shape ownership
 
-A **data shape** is a set of plans that seeds one demo dataset: qb (QuantumBit), q3, mfg, and
-the qb/ja locale. The rule is that **a record has exactly one owning plan**. Other plans may
-reference it, but only as `Readonly`.
+A **data shape** is a set of plans that seeds one demo dataset: qb (QuantumBit), q3 and mfg.
+qb/ja is not an independent shape. It is a locale overlay on qb, and reuses qb's SKUs and
+design keys: its plans write the same products, attributes, catalogs and components as
+qb/en-US, in Japanese. Loading it over a qb org rewrites those records rather than adding new
+ones. Its selling models, which have Japanese names, are the exception: they are new records.
 
-**Two exceptions are written by every shape that uses them: price adjustment schedules and
-currency types.** For both, the last load wins on shared fields.
+**The goal is that a record has one owning plan,** and other plans reference it only as
+`Readonly`. Shape-specific records meet it: each shape's SKUs are distinct, so products, price
+book entries, rates and usage resources never collide. Tax and billing design meets it on q3,
+which maps its products onto qb-tax and qb-billing instead of shipping its own copy.
 
-Price adjustment schedules:
+**Shared records** are the exception. These are reference records whose natural key is the same
+in every shape. Every shape that uses one writes it, and the last load wins on any field where
+the shapes differ:
+
+| Records | Written by | Where the shapes differ |
+|---|---|---|
+| Price adjustment schedules | qb, q3, mfg, qb/ja pricing | `EffectiveFrom`; which schedules exist (below) |
+| Currency types | every pricing plan, on `IsoCode` | `ConversionRate` (below) |
+| Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | `GB`/`MB`: qb's `DATAVOL` class with factors 1 and 1000, q3's `DAT01` with 0.001 and 1. mfg sends `EACH` with no class, where qb puts it in `CAS01`. qb/ja loads `CAS01` and `DATAVOL` Active, qb/en-US Draft |
+| Rating frequency and overage policies | qb and q3 rating | 'Daily Rating Frequency' has a delay of 0 in qb and 3 in q3 |
+| Standard price book | qb, q3, mfg and qb/ja pricing | its `CostBook`: 'Standard Cost Book' in qb, 'CostBook' in qb/ja, none in q3 and mfg |
+| Selling models, relationship types, proration policy | qb, q3, mfg and qb/ja pcm (each shape's pricing plan also updates the proration policy) | none. Only exact names match: mfg's 9 selling models are qb's, q3 shares 4 (its 'One Time' is a separate record from qb's 'One-Time'), and qb/ja's Japanese-named ones are new records |
+| Legal entity US, tax engine, Default Tax Policy, billing policies and treatments, payment terms, accounting periods, fulfillment step definitions | qb and mfg tax, billing and dro | the US legal entity's `CompanyName`, and the fulfillment steps' `UsageType`, which qb sets to Fulfillment and mfg leaves null. mfg still ships its own copies; it moves onto qb's design with the mfg series |
+| GL accounts and GL assignment rules | qb-billing (accounts on `AccountingCode`), mfg-billing (on `Name`); both write four rules of the same names | not shared but colliding: five codes (4100, 4200, 4300, 4400, 5300) have different names in each shape. mfg after qb adds a second account for each, unless the platform rejects the duplicate code, and repoints 'USD CML Charges' to mfg's. qb after mfg matches mfg's accounts on code and renames them. Once both exist, qb's code key matches two accounts per code. The 29 accounts with the same name take the last load's description |
+
+**Price adjustment schedules:**
 
 - **Platform-seeded:** on a USD-corporate org, three USD schedules, one per `ScheduleType`:
   'Standard Attribute Based Adjustment', 'Standard Bundle Based Adjustment', and 'Standard
@@ -111,29 +137,31 @@ Price adjustment schedules:
   seeded one. Its three JPY rows match nothing, so they don't load either.
 - **`EffectiveFrom`** ranges from 2023-01-01 (qb) to 2025-10-01 (qb/ja) across the shapes.
 
-Currency types:
+**Currency types:**
 
-- **Every pricing plan upserts them on `IsoCode`,** so shared codes such as USD, EUR and JPY
-  are written by each shape.
 - **`ConversionRate` differs by shape.** CAD is 1.408989 in qb, 1.42 in q3 and 1.36 in mfg.
 - **qb/ja's rates are on a JPY base.** JPY is the corporate currency and USD is 0.00663.
   qb/ja assumes a JPY-corporate org. Its rates are wrong on a USD-corporate org, and the other
   shapes' rates are wrong on a JPY-corporate one.
 
-| Records | Owner | Other shapes |
-|---|---|---|
-| Legal entities, tax engine, tax treatments and policies | qb-tax | q3-tax maps the q3 products onto them |
-| Accounting periods, billing policies and treatments, GL accounts, payment terms | qb-billing | q3-billing maps the q3 products onto them |
-| Price adjustment schedules | platform-seeded; qb-pricing and q3-pricing upsert, and q3 adds two (above) | mfg-pricing and qb/ja still `Update` them |
-| Currency types | every shape's pricing plan, on `IsoCode` (above) | a shape that adds a currency adds its prices too |
-| Products, price book entries, rates, usage resources | the shape's own pcm, pricing, rates and rating plans, keyed on the shape's SKUs | |
+**What this means for layering.** qb and q3 are reload-safe on their own builds, apart from
+qb-dro's `FulfillmentWorkspaceItem`; mfg and qb/ja are not yet (see *Destructive operations
+that remain*). Loading a second shape into the same org is not safe either. Where the shapes
+differ on a shared record, the second load changes the first shape's data. For example:
 
-Apart from those two, shapes don't collide because their keys don't: each shape's SKUs are
-distinct, and shared design records (tax, billing) have a single owner. A shape that needs a
-shared record references it by name rather than shipping its own copy. q3 used to carry its
-own tax and billing objects, including two legal entities under qb's names with Canada in USD
-rather than qb's CAD. They could not coexist with qb's, because a legal entity's currency can't
-be changed.
+- q3 after qb redefines `GB` and `MB`, which qb's usage resources and rates are measured in,
+  changes the delay on qb's daily rating policy, and clears the standard price book's cost book.
+- mfg after qb renames the US legal entity's company, clears the fulfillment steps' usage
+  type and the price book's cost book, and moves `EACH` out of its class. It also adds a second
+  GL account for five codes, because mfg keys accounts on `Name` and qb on `AccountingCode`,
+  and points a shared GL rule at mfg's. If the platform rejects the duplicate code instead,
+  the mfg load fails.
+- Any pair changes currency rates and schedule dates.
+
+Reconciling those values, or giving one shape distinct keys, is the precondition for loading
+two shapes into one org. q3 used to carry its own tax and billing objects too, including two
+legal entities under qb's names with Canada in USD rather than qb's CAD. They could not coexist
+with qb's, because a legal entity's currency can't be changed. q3 now maps onto qb's instead.
 
 **Shape-specific mapping plans.** When a shape reuses another shape's design records, its own
 plan shrinks to a `Product2` `Update` that points its products at them, plus a `Readonly`
@@ -149,7 +177,8 @@ alignment doesn't drop the extra key part.
 
 1. **Decide what the shape owns and what it reuses.** Reuse a design another shape owns
    (tax, billing) whenever it fits, and map onto it, as q3 does. Give new owned records keys
-   that can't collide with another shape's (distinct SKUs, distinct names).
+   that can't collide with another shape's (distinct SKUs, distinct names). For a shared
+   record (see *Shape ownership*), match qb's values, and reconcile any shape that differs.
 2. **Author each plan by the model above.** That means stable-key `Upsert`, two passes for
    Status objects, parents declared in every pass, a separate plan where a child can only
    match its parent's composite key, and no `Insert` or `deleteOldData`.
@@ -161,7 +190,8 @@ alignment doesn't drop the extra key part.
    loaded.
 5. **Verify on a fresh build of the shape.** The checks are no rejected rows, each plan
    reloaded twice with 0 diff, every idempotency task passing, and one correction per
-   object that lands.
+   object that lands. Make that correction to a field the platform doesn't lock on an
+   Active record (see section 2).
 6. **Keep the validator's empty-CSV deferral list shrinking.** A new shape adds no
    header-only CSVs; an object with no data is left out of the plan.
 
@@ -196,7 +226,8 @@ The rules for anything that stays destructive:
   an Active, referenced or undeletable record still can't be deleted, however narrow the delete.
 - **Ownership tags on records** (a custom field naming the owning shape). It needs a schema
   change on every object and a field on every CSV. Distinct keys and single ownership give
-  the same separation without either.
+  owned records the same separation without either. A tag couldn't separate the shared
+  records either, because every shape writes them.
 - **`excludedFromUpdateFields` for Status.** It strips the field from inserts too in 5.8.0.
 - **A schema field to key children** (tried as option T3 on a test org). It removes the
   separate entitlements plan, but needs a custom field on a standard object. The Id-lookup

@@ -180,8 +180,9 @@ pattern that reloads a built org with no deletes and no status changes (live-ver
 
 1. **Two passes per status object.** Pass 1: `Upsert` + `skipExistingRecords: true` with the full
    CSV (Status = Draft), which inserts missing rows and never touches existing ones. Pass 2: `Update` with
-   `Status` removed from the query and from `objectset_source/object-set-2/<Object>.csv`, so
-   corrections to every other field still land. Activation stays in Apex. Don't use
+   `Status` removed from the query and from `objectset_source/object-set-2/<Object>.csv`, so a
+   correction to another field can land, unless the platform locks that field on an Active
+   record (see below). Activation stays in Apex. Don't use
    `excludedFromUpdateFields: ["Status"]` instead: in 5.8.0 it strips the field from inserts too,
    and Status is required on insert.
 2. **Declare every lookup's parent in each pass**, even if only as `Readonly` with no CSV. An
@@ -197,9 +198,10 @@ pattern that reloads a built org with no deletes and no status changes (live-ver
    never carry Ids. The parent is declared `Readonly`, `externalId: Id`, with one field besides
    `Id` (an Id-only Readonly object is dropped: "Only Id remains").
 
-The platform still locks some fields on Active records (e.g. `ProductUsageResource.EffectiveEndDate`
-while its grant is Active). Pass 2 then fails the load with the platform's message; it never skips
-the row silently.
+The platform still locks some fields on Active records: `ProductUsageResource.EffectiveEndDate`
+while its grant is Active, `UsageResource` fields tied to active rate card entries or grants, every field
+but Status on an Active `RateCardEntry`, and an RABT under one. Pass 2 then fails the load with the
+platform's message; it never skips the row silently.
 
 ## Object Ordering
 
