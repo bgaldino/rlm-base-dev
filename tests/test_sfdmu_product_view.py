@@ -7,8 +7,12 @@
 - compare reports a changed label or category, an added or removed attribute (by category and
   code, not position), a SKU only on one side, and SKUs missing from an org or not returned by PCM.
   Identical captures, and lists in a different order, report nothing.
-- capture batches the PCM bulk call at 20 product Ids (the platform rejects more) and keys
-  products by the SKU asked for, even when PCM returns a blank productCode.
+- capture batches Product2 lookups at 200 SKUs and the PCM bulk call at 20 product Ids (the
+  platform rejects more), keys products by the SKU asked for even when PCM returns a blank
+  productCode, reports a SKU two products hold instead of capturing one at random, and keeps
+  both of two price entries for one selling model and currency.
+- Picklist values are compared with their display text, in numeric sequence order. Items that
+  share a key (a duplicated attribute) are a difference, in any API order.
 
 Run: `python tests/test_sfdmu_product_view.py` (offline, no org).
 """
@@ -43,7 +47,8 @@ def attr(code, label, category=None, default=None, values=("A", "B")):
             "defaultValue": default, "isRequired": False, "isHidden": False, "isReadOnly": False,
             "isPriceImpacting": True, "status": "Active",
             "picklist": {"id": "0v5XX", "name": f"{code} Picklist",
-                         "values": [{"id": "0v6XX", "code": v, "sequence": str(len(values) - i)}
+                         "values": [{"id": "0v6XX", "code": v, "displayValue": f"{v} shown", "value": v,
+                                     "status": "Active", "sequence": str(len(values) - i)}
                                     for i, v in enumerate(values)]}}
 
 
@@ -69,7 +74,11 @@ p = product("LP001", {"PROC": [attr("CPU", "Processor", default="i5")]}, loose=[
 n = V.normalize(p, {"LP001": {"Term Annual USD": 1000}}, "LP001")
 check("category attribute carries its category", n["attributes"][1]["category"], {"code": "PROC", "name": "Proc"})
 check("an uncategorized attribute has category None", n["attributes"][0]["category"], None)
-check("picklist values come out in sequence order", n["attributes"][1]["values"], ["B", "A"])
+check("picklist values come out in sequence order, with their display text",
+      [(v["code"], v["displayValue"]) for v in n["attributes"][1]["values"]], [("B", "B shown"), ("A", "A shown")])
+many = V.normalize(product("P", {"C": [attr("X", "X", values=[f"v{i}" for i in range(12)])]}), {}, "P")
+check("sequences sort numerically (2 before 10)",
+      [v["code"] for v in many["attributes"][0]["values"]][:3], ["v11", "v10", "v9"])
 check("label, override and default are kept",
       (n["attributes"][1]["label"], n["attributes"][1]["nameOverride"], n["attributes"][1]["default"]),
       ("Processor", "Processor", "i5"))
@@ -101,29 +110,50 @@ check("an inserted attribute is one difference, not a cascade", len(V.compare(ba
 shuffled = copy.deepcopy(base)
 shuffled["products"]["LP001"]["attributes"].reverse()
 check("a different list order is not a difference", V.compare(base, shuffled), [])
+relabel_value = copy.deepcopy(base)
+relabel_value["products"]["LP001"]["attributes"][1]["values"][0]["displayValue"] = "Renamed"
+check("a renamed picklist display value is a difference", len(V.compare(base, relabel_value)), 1)
+dup = copy.deepcopy(base)
+dup["products"]["LP001"]["attributes"].append(copy.deepcopy(dup["products"]["LP001"]["attributes"][1]))
+check("a duplicated attribute (same key) is a difference", len(V.compare(base, dup)) >= 1, True)
+dup_rev = copy.deepcopy(dup)
+dup_rev["products"]["LP001"]["attributes"].reverse()
+check("same duplicates in another API order are not", V.compare(dup, dup_rev), [])
+nested = copy.deepcopy(base)
+nested["products"]["LP001"]["componentGroups"][0]["childGroups"] = [
+    {"code": "G2", "name": "Child group", "components": [], "childGroups": []}]
+check("a nested child group is compared", any("childGroups" in d for d in V.compare(base, nested)), True)
 check("a SKU only in the baseline is reported",
       V.compare(base, {"missing": [], "notReturned": [], "products": {}}), ["LP001: only in baseline"])
 check("missing and not-returned SKUs are reported on either side",
       V.compare({"missing": ["X"], "notReturned": [], "products": {}},
                 {"missing": [], "notReturned": ["Y"], "products": {}}),
       ["X: missing from the org in baseline", "Y: not returned by PCM in candidate"])
+check("a duplicated SKU is reported",
+      V.compare({"duplicates": ["D"], "products": {}}, {"products": {}}),
+      ["D: held by more than one product in baseline"])
 
 print("capture: PCM batching and SKU keys")
 
 
 class FakeTransport:
-    def __init__(self, skus, blank_code=()):
-        self.skus, self.blank, self.bulk_sizes = skus, set(blank_code), []
+    def __init__(self, skus, blank_code=(), dup=(), dup_price=()):
+        self.skus, self.blank, self.bulk_sizes, self.soql_sizes = skus, set(blank_code), [], []
+        self.dup, self.dup_price = set(dup), set(dup_price)
 
     def soql(self, q):
+        hits = [s for s in self.skus if f"'{s}'" in q]
         if "FROM PricebookEntry" in q:
             return [{"Product2": {"StockKeepingUnit": s}, "ProductSellingModel": {"Name": "One-Time"},
-                     "CurrencyIsoCode": "USD", "UnitPrice": 10} for s in self.skus if f"'{s}'" in q]
-        return [{"Id": f"01t{s}", "StockKeepingUnit": s} for s in self.skus if f"'{s}'" in q]
+                     "CurrencyIsoCode": "USD", "UnitPrice": p} for s in hits
+                    for p in ((10, 12) if s in self.dup_price else (10,))]
+        self.soql_sizes.append(len(hits))
+        return [{"Id": f"01t{s}{n}", "StockKeepingUnit": s} for s in hits
+                for n in (("", "b") if s in self.dup else ("",))]
 
     def connect(self, method, path, body):
         self.bulk_sizes.append(len(body["productIds"]))
-        return {"products": [product(i[3:], {}, code="" if i[3:] in self.blank else None)
+        return {"products": [dict(product(i[3:], {}, code="" if i[3:] in self.blank else None), id=i)
                              for i in body["productIds"]]}
 
 
@@ -135,6 +165,19 @@ check("every SKU found is captured", len(view["products"]), 45)
 check("a blank productCode is still keyed by the SKU asked for", "S007" in view["products"], True)
 check("a SKU the org lacks is listed as missing", view["missing"], ["GONE"])
 check("nothing unreturned", view["notReturned"], [])
+big = [f"B{i:03d}" for i in range(450)]
+ft = FakeTransport(big, dup={"B004"}, dup_price={"B005"})
+view = V.capture(ft, big)
+check("Product2 lookups go 200 SKUs at a time", ft.soql_sizes, [200, 200, 50])
+check("a SKU two products hold is reported, not captured", (view["duplicates"], "B004" in view["products"]),
+      (["B004"], False))
+check("two entries for one model and currency are both kept", view["products"]["B005"]["listPrices"],
+      {"One-Time USD": [10, 12]})
+quoted = FakeTransport([])
+seen = []
+quoted.soql = lambda q: seen.append(q) or []
+V.capture(quoted, ["O'Brien"])
+check("a SKU with a quote is escaped in SOQL", "'O\\'Brien'" in seen[0], True)
 
 print("=" * 60)
 if _failures:

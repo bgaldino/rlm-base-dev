@@ -13,8 +13,10 @@ or reloaded org's capture against a single-shape baseline.
   python scripts/sfdmu_product_view.py compare baseline.json candidate.json
 
 `capture` is read-only. Without --sku it takes every StockKeepingUnit in the shape's
-`<shape>-pcm/Product2.csv`. `compare` exits 1 when any product differs, and lists each difference
-by SKU and path. A SKU missing from either side counts as a difference.
+`<shape>-pcm/Product2.csv`: the catalog. Other plans' Product2.csv files are Readonly lookups
+(qb's still list two products qb-pcm removed). `compare` exits 1 when any product differs, and lists each difference
+by SKU and path. A SKU missing from either side, or held by more than one product, counts as a
+difference.
 """
 from __future__ import annotations
 
@@ -27,7 +29,7 @@ from typing import Any, Dict, List
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
-from scripts.decision_tables._client import Transport, soql_literal  # noqa: E402
+from scripts.decision_tables._client import DecisionTableClientError, Transport, soql_literal  # noqa: E402
 
 SHAPE_PLANS = {"qb": "datasets/sfdmu/qb/en-US/qb-pcm", "q3": "datasets/sfdmu/q3/en-US/q3-pcm"}
 BULK_BATCH = 20  # the PCM bulk API rejects more (EPC_PAPI_PROD_DETAILS_008)
@@ -40,6 +42,14 @@ def shape_skus(shape: str, root: Path = REPO) -> List[str]:
         return sorted({r["StockKeepingUnit"] for r in csv.DictReader(f) if r.get("StockKeepingUnit")})
 
 
+def _seq(value: Any):
+    """Sort key for a platform `sequence` (a string or number; may be missing): numeric first."""
+    try:
+        return (0, float(value), "")
+    except (TypeError, ValueError):
+        return (1, 0.0, str(value))
+
+
 def _attr(a: Dict[str, Any], category: Any) -> Dict[str, Any]:
     picklist = a.get("picklist") or {}
     return {
@@ -49,8 +59,9 @@ def _attr(a: Dict[str, Any], category: Any) -> Dict[str, Any]:
         "required": a.get("isRequired"), "hidden": a.get("isHidden"), "readOnly": a.get("isReadOnly"),
         "priceImpacting": a.get("isPriceImpacting"), "status": a.get("status"),
         "picklist": picklist.get("name"),
-        "values": [v.get("code") for v in sorted(picklist.get("values") or [],
-                                                     key=lambda v: str(v.get("sequence")))],
+        "values": [{"code": v.get("code"), "displayValue": v.get("displayValue"), "value": v.get("value"),
+                    "status": v.get("status")}
+                   for v in sorted(picklist.get("values") or [], key=lambda v: _seq(v.get("sequence")))],
     }
 
 
@@ -73,7 +84,7 @@ def _groups(p: Dict[str, Any]) -> List[Dict[str, Any]]:
                           "scale": prc.get("quantityScaleMethod"), "sequence": prc.get("sequence")})
         return {"code": g.get("code"), "name": g.get("name"), "sequence": g.get("sequence"),
                 "min": g.get("minBundleComponents"), "max": g.get("maxBundleComponents"),
-                "components": sorted(comps, key=lambda c: (str(c["sequence"]), str(c["sku"]))),
+                "components": sorted(comps, key=lambda c: (_seq(c["sequence"]), str(c["sku"]))),
                 "childGroups": [group(x) for x in sorted(g.get("childGroups") or [],
                                                            key=lambda x: str(x.get("code")))]}
     return [group(g) for g in sorted(p.get("productComponentGroups") or [], key=lambda g: str(g.get("code")))]
@@ -95,11 +106,16 @@ def normalize(p: Dict[str, Any], prices: Dict[str, Dict[str, float]], sku: str) 
 
 
 def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
-    ids: Dict[str, str] = {}
+    found_ids: Dict[str, List[str]] = {}
     for i in range(0, len(skus), SOQL_BATCH):
         chunk = ",".join(f"'{soql_literal(s)}'" for s in skus[i:i + SOQL_BATCH])
-        for r in t.soql(f"SELECT Id, StockKeepingUnit FROM Product2 WHERE StockKeepingUnit IN ({chunk})"):
-            ids[r["StockKeepingUnit"]] = r["Id"]
+        for r in t.soql(f"SELECT Id, StockKeepingUnit FROM Product2 WHERE StockKeepingUnit IN ({chunk}) "
+                        "ORDER BY StockKeepingUnit, Id"):
+            found_ids.setdefault(r["StockKeepingUnit"], []).append(r["Id"])
+    # A SKU held by two products (a duplicating reload) is reported, never silently collapsed:
+    # one of them would be captured at random and the other's prices merged in.
+    duplicates = sorted(s for s, v in found_ids.items() if len(v) > 1)
+    ids = {s: v[0] for s, v in found_ids.items() if len(v) == 1}
     prices: Dict[str, Dict[str, float]] = {}
     for i in range(0, len(skus), SOQL_BATCH):
         chunk = ",".join(f"'{soql_literal(s)}'" for s in skus[i:i + SOQL_BATCH])
@@ -107,7 +123,12 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
                         "UnitPrice FROM PricebookEntry WHERE Pricebook2.IsStandard = true AND IsActive = true "
                         f"AND Product2.StockKeepingUnit IN ({chunk})"):
             model = (r.get("ProductSellingModel") or {}).get("Name") or "-"
-            prices.setdefault(r["Product2"]["StockKeepingUnit"], {})[f"{model} {r['CurrencyIsoCode']}"] = r["UnitPrice"]
+            entry = prices.setdefault(r["Product2"]["StockKeepingUnit"], {})
+            key = f"{model} {r['CurrencyIsoCode']}"
+            # Two active standard entries for one model and currency (a duplicating price load)
+            # show as a list rather than one overwriting the other.
+            entry[key] = sorted([*entry[key], r["UnitPrice"]] if isinstance(entry.get(key), list)
+                                else [entry[key], r["UnitPrice"]]) if key in entry else r["UnitPrice"]
     found = sorted(ids)
     by_id = {v: k for k, v in ids.items()}  # key by the SKU asked for: productCode can be blank
     products: Dict[str, Any] = {}
@@ -118,7 +139,7 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
             sku = by_id.get(p.get("id"))
             if sku:
                 products[sku] = normalize(p, prices, sku)
-    return {"skus": skus, "missing": sorted(set(skus) - set(ids)),
+    return {"skus": skus, "missing": sorted(set(skus) - set(found_ids)), "duplicates": duplicates,
             "notReturned": sorted(set(ids) - set(products)),
             "products": {s: products[s] for s in sorted(products)}}
 
@@ -128,15 +149,19 @@ LIST_KEYS = {"attributes": ("category", "code"), "componentGroups": ("code",), "
              "childGroups": ("code",), "sellingModels": ("name",)}
 
 
+def _key(it: Dict[str, Any], fields) -> str:
+    return "|".join(json.dumps(it.get(f), sort_keys=True) if isinstance(it.get(f), dict) else str(it.get(f))
+                    for f in fields)
+
+
 def _keyed(items: List[Any], fields) -> Dict[str, Any]:
+    """Items by key. Items that share a key are kept as one list, so their (arbitrary) API order
+    can't produce a false or masked difference; diff compares them as a sorted group."""
     out: Dict[str, Any] = {}
     for it in items:
-        k = "|".join(json.dumps(it.get(f), sort_keys=True) if isinstance(it.get(f), dict) else str(it.get(f))
-                     for f in fields)
-        while k in out:  # duplicate key: keep both, distinguishably
-            k += "+"
-        out[k] = it
-    return out
+        out.setdefault(_key(it, fields), []).append(it)
+    return {k: v[0] if len(v) == 1 else sorted(v, key=lambda x: json.dumps(x, sort_keys=True))
+            for k, v in out.items()}
 
 
 def diff(a: Any, b: Any, path: str = "") -> List[str]:
@@ -163,7 +188,8 @@ def diff(a: Any, b: Any, path: str = "") -> List[str]:
 
 def compare(base: Dict[str, Any], cand: Dict[str, Any]) -> List[str]:
     out = [f"{s}: {what} in {label}" for label, side in (("baseline", base), ("candidate", cand))
-           for key, what in (("missing", "missing from the org"), ("notReturned", "not returned by PCM"))
+           for key, what in (("missing", "missing from the org"), ("notReturned", "not returned by PCM"),
+                             ("duplicates", "held by more than one product"))
            for s in side.get(key, [])]
     bp, cp = base.get("products", {}), cand.get("products", {})
     for sku in sorted(set(bp) | set(cp)):
@@ -190,10 +216,14 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     if args.cmd == "capture":
         skus = sorted(set(args.sku)) if args.sku else shape_skus(args.shape)
-        view = {"shape": args.shape, **capture(Transport(args.target_org), skus)}
+        try:
+            view = {"shape": args.shape, **capture(Transport(args.target_org), skus)}
+        except DecisionTableClientError as exc:
+            print(f"capture failed: {exc}", file=sys.stderr)
+            return 2
         Path(args.out).write_text(json.dumps(view, indent=1, sort_keys=True) + "\n", encoding="utf-8")
         print(f"{len(view['products'])} product(s) captured, {len(view['missing'])} missing, "
-              f"{len(view['notReturned'])} not returned by PCM -> {args.out}")
+              f"{len(view['duplicates'])} duplicated, {len(view['notReturned'])} not returned by PCM -> {args.out}")
         return 0
     base = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
     cand = json.loads(Path(args.candidate).read_text(encoding="utf-8"))
