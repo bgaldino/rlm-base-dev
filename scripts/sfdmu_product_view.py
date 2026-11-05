@@ -173,7 +173,14 @@ def diff(a: Any, b: Any, path: str = "") -> List[str]:
         ka, kb = _keyed(a, LIST_KEYS[name]), _keyed(b, LIST_KEYS[name])
         out = [f"{path}[{k}]: removed" for k in sorted(set(ka) - set(kb))]
         out += [f"{path}[{k}]: added" for k in sorted(set(kb) - set(ka))]
-        return out + [d for k in sorted(set(ka) & set(kb)) for d in diff(ka[k], kb[k], f"{path}[{k}]")]
+        for k in sorted(set(ka) & set(kb)):
+            ga, gb = isinstance(ka[k], list), isinstance(kb[k], list)
+            if ga != gb:  # one side holds two or more items with this key
+                side, n = ("baseline", len(ka[k])) if ga else ("candidate", len(kb[k]))
+                out.append(f"{path}[{k}]: duplicated ({n}) in {side}")
+            else:
+                out += diff(ka[k], kb[k], f"{path}[{k}]")
+        return out
     if isinstance(a, dict) and isinstance(b, dict):
         out: List[str] = []
         for k in sorted(set(a) | set(b), key=str):

@@ -114,11 +114,15 @@ relabel_value = copy.deepcopy(base)
 relabel_value["products"]["LP001"]["attributes"][1]["values"][0]["displayValue"] = "Renamed"
 check("a renamed picklist display value is a difference", len(V.compare(base, relabel_value)), 1)
 dup = copy.deepcopy(base)
-dup["products"]["LP001"]["attributes"].append(copy.deepcopy(dup["products"]["LP001"]["attributes"][1]))
-check("a duplicated attribute (same key) is a difference", len(V.compare(base, dup)) >= 1, True)
+twin = copy.deepcopy(dup["products"]["LP001"]["attributes"][1])
+twin["default"] = "i7"  # same key, different content, so the order of the two matters
+dup["products"]["LP001"]["attributes"].append(twin)
+diffs = V.compare(base, dup)
+check("a duplicated attribute (same key) is one difference, named as duplicated",
+      (len(diffs), "duplicated (2) in candidate" in diffs[0]), (1, True))
 dup_rev = copy.deepcopy(dup)
 dup_rev["products"]["LP001"]["attributes"].reverse()
-check("same duplicates in another API order are not", V.compare(dup, dup_rev), [])
+check("the same duplicates in another API order are not a difference", V.compare(dup, dup_rev), [])
 nested = copy.deepcopy(base)
 nested["products"]["LP001"]["componentGroups"][0]["childGroups"] = [
     {"code": "G2", "name": "Child group", "components": [], "childGroups": []}]
