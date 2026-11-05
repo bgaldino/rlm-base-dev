@@ -51,6 +51,49 @@ def strip_ansi_codes(text: str) -> str:
     return ANSI_ESCAPE_PATTERN.sub('', text)
 
 
+def target_org_user_name(username) -> str:
+    """Query the org of `username` for that user's Name (dynamic_assigned_to_user)."""
+    if not username or "@" not in str(username):
+        raise CommandException(
+            "dynamic_assigned_to_user requires an org with a username (e.g. scratch or connected org). "
+            "Cannot determine user when target is token-only."
+        )
+    # Use username for -o so SF CLI finds the org (CCI org name like 'tfid-cdo' may not be a valid CLI alias)
+    org_for_cli = str(username)
+    escaped = org_for_cli.replace("\\", "\\\\").replace("'", "\\'")
+    query = "SELECT Name FROM User WHERE Username = '%s'" % escaped
+    result = subprocess.run(
+        ["sf", "data", "query", "-q", query, "-o", org_for_cli, "--json"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise CommandException(f"Failed to query User Name: {strip_ansi_codes(result.stderr or result.stdout)}")
+    out = json.loads(result.stdout)
+    records = out.get("result", {}).get("records") or []
+    if not records:
+        raise CommandException("No User record found for target org username.")
+    name = records[0].get("Name")
+    if not name:
+        raise CommandException("User record has no Name.")
+    return name
+
+
+def replace_assigned_to_placeholder(plan_dir: str, placeholder: str, user_name: str, log) -> None:
+    """Replace the DRO assigned-to placeholder with `user_name` in a (temp) plan copy's CSVs."""
+    for filename in DRO_CSV_FILES_TO_REPLACE:
+        path = os.path.join(plan_dir, filename)
+        if not os.path.isfile(path):
+            continue
+        with open(path, "r", encoding="utf-8", newline="") as f:
+            content = f.read()
+        if placeholder not in content:
+            continue
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            f.write(content.replace(placeholder, user_name))
+        log(f"Replaced placeholder in {filename}")
+
+
 def derive_qb_reference_plan_dir(plan_dir: str) -> Optional[str]:
     """Derive the qb/en-US 'golden' sibling of a variant plan directory.
 
@@ -193,6 +236,40 @@ def sf_query_records(org: str, soql: str) -> List[dict]:
     return payload.get("result", {}).get("records") or []
 
 
+def clear_credentials_under(directory: str, warn) -> None:
+    """Empty `orgs` in every export.json under `directory`. Never raises; an unreadable file is
+    reported through `warn`."""
+    for root, _dirs, files in os.walk(directory):
+        if EXPORT_JSON_FILENAME not in files:
+            continue
+        path = os.path.join(root, EXPORT_JSON_FILENAME)
+        try:
+            with open(path, "r") as f:
+                data = json.load(f)
+            if data.get("orgs"):
+                data["orgs"] = []
+                with open(path, "w") as f:
+                    json.dump(data, f, indent=2)
+        except Exception as e:
+            warn(f"Could not clear credentials from {path}: {e}")
+
+
+def _restore_export_json(path: str, original_text: str) -> None:
+    """Undo a credential write: put back the exact bytes read before it, so a load leaves a
+    tracked plan's export.json unchanged (re-dumping it dropped the trailing newline and escaped
+    non-ASCII text, todo 319). An original that already held credentials (an earlier run killed
+    mid-load) is rebuilt from what was read with the credentials cleared; never from the file,
+    which a failed write may have truncated."""
+    original = json.loads(original_text)
+    if not original.get("orgs"):
+        with open(path, "w", encoding="utf-8", newline="") as file:
+            file.write(original_text)
+        return
+    original["orgs"] = []
+    with open(path, "w") as file:
+        json.dump(original, file, indent=2)
+
+
 class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
     keychain_class = BaseProjectKeychain
     task_options: Dict[str, Dict[str, Any]] = {
@@ -301,8 +378,9 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             raise FileNotFoundError(f"export.json is missing: {export_json_path}")
         
         try:
-            with open(export_json_path, "r") as file:
-                export_json = json.load(file)
+            with open(export_json_path, "r", encoding="utf-8", newline="") as file:
+                original_text = file.read()
+            export_json = json.loads(original_text)
 
             object_sets = self.options.get("object_sets")
             if object_sets is not None:
@@ -315,7 +393,6 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                     raise TaskOptionsError(
                         f"object_sets {object_sets} out of range for {len(all_sets)} object sets"
                     )
-                self._original_object_sets = all_sets
                 export_json["objectSets"] = filtered
                 self.logger.info(f"Running only object sets (0-based): {object_sets}")
 
@@ -326,9 +403,11 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             }
             export_json["orgs"] = [org_data]
 
+            # Set before the write: if it fails partway, cleanup still restores the original.
+            self._prepared_export_json = export_json_path
+            self._original_export_json_text = original_text
             with open(export_json_path, "w") as file:
                 json.dump(export_json, file, indent=2)
-            self._prepared_export_json = export_json_path
 
             # Never log the access token: it lands in CCI logs and CI output.
             self.logger.info("Formatted EXPORT.JSON: "
@@ -347,50 +426,23 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         if not export_json_path:
             return
         self._prepared_export_json = None
+        original_text = self._original_export_json_text
+        self._original_export_json_text = None
         try:
-            with open(export_json_path, "r") as file:
-                export_json = json.load(file)
-
-            export_json["orgs"] = []
-            if getattr(self, "_original_object_sets", None) is not None:
-                export_json["objectSets"] = self._original_object_sets
-
-            with open(export_json_path, "w") as file:
-                json.dump(export_json, file, indent=2)
+            _restore_export_json(export_json_path, original_text)
         except (json.JSONDecodeError, IOError) as e:
-            self.logger.error(f"Error cleaning up export.json: {e}")
+            self.logger.error(f"Error cleaning up export.json (it may still hold credentials): {e}")
+            # After a successful load this fails the task, since the file may still hold the
+            # access token; after a failed load the original error is kept.
+            if not getattr(self, "_load_failed", False):
+                raise
 
     def _get_target_org_user_name(self) -> str:
-        """Query the target org for the current user's Name (e.g. 'User User' or 'Admin User').
+        """The target org user's Name (e.g. 'User User' or 'Admin User').
 
         Deliberately not sfdmu_cli_org: the query matches `Username = '<x>'`, so this needs a real
         username (org_config.username first), not an alias that targetusername may hold."""
-        username = getattr(self.org_config, "username", None) or self.targetusername
-        if not username or "@" not in str(username):
-            raise CommandException(
-                "dynamic_assigned_to_user requires an org with a username (e.g. scratch or connected org). "
-                "Cannot determine user when target is token-only."
-            )
-        # Use username for -o so SF CLI finds the org (CCI org name like 'tfid-cdo' may not be a valid CLI alias)
-        org_for_cli = str(username)
-        escaped = org_for_cli.replace("\\", "\\\\").replace("'", "\\'")
-        query = "SELECT Name FROM User WHERE Username = '%s'" % escaped
-        result = subprocess.run(
-            ["sf", "data", "query", "-q", query, "-o", org_for_cli, "--json"],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            self.logger.error(f"sf data query STDERR: {strip_ansi_codes(result.stderr)}")
-            raise CommandException(f"Failed to query User Name: {strip_ansi_codes(result.stderr or result.stdout)}")
-        out = json.loads(result.stdout)
-        records = out.get("result", {}).get("records") or []
-        if not records:
-            raise CommandException("No User record found for target org username.")
-        name = records[0].get("Name")
-        if not name:
-            raise CommandException("User record has no Name.")
-        return name
+        return target_org_user_name(getattr(self.org_config, "username", None) or self.targetusername)
 
     def _ensure_temp_plan_copy(self, prefix: str) -> None:
         """Point the run at a temp copy of the plan (once), so per-org edits never touch tracked CSVs."""
@@ -431,17 +483,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self.logger.info(f"Replacing DRO assigned-to placeholder with target org user Name: {user_name}")
         # On failure _run_task's finally removes the temp copy; the tracked plan is never written.
         self._ensure_temp_plan_copy("sfdmu_dro_")
-        for filename in DRO_CSV_FILES_TO_REPLACE:
-            path = os.path.join(self._temp_plan_dir, filename)
-            if not os.path.isfile(path):
-                continue
-            with open(path, "r", encoding="utf-8", newline="") as f:
-                content = f.read()
-            if placeholder not in content:
-                continue
-            with open(path, "w", encoding="utf-8", newline="") as f:
-                f.write(content.replace(placeholder, user_name))
-            self.logger.info(f"Replaced placeholder in {filename}")
+        replace_assigned_to_placeholder(self._temp_plan_dir, placeholder, user_name, self.logger.info)
 
     def _set_project_defaults(self, instanceurl: str) -> None:
         try:
@@ -503,7 +545,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self.accesstoken = self.options.get("accesstoken") or self.org_config.access_token
         self.instanceurl = self.options.get("instanceurl") or self.org_config.instance_url
 
-        if self.options.get("dynamic_assigned_to_user"):
+        if _as_bool(self.options.get("dynamic_assigned_to_user")):
             self._apply_dynamic_assigned_to_user()
         self._apply_parent_id_lookups()
         if self.options.get("sync_objectset_source_to_source"):
@@ -512,7 +554,8 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
     
     def _run_task(self) -> None:
         self._prepared_export_json = None
-        self._original_object_sets = None
+        self._original_export_json_text = None
+        self._load_failed = False
         try:
             self._prep_runtime()
             
@@ -539,14 +582,18 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
             self._check_row_errors(baseline)
             
         except Exception as e:
+            self._load_failed = True
             self.logger.error(f"An error occurred: {self._redact(e)}")
             raise
         finally:
             self.logger.info('Cleaning up export.json...')
-            self._cleanup_export_json_file()
-            if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
-                shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
-                self.logger.info("Removed temp plan directory.")
+            try:
+                self._cleanup_export_json_file()
+            finally:
+                # Even when the restore raises: a temp plan copy's export.json may hold the token.
+                if getattr(self, "_temp_plan_dir", None) and os.path.isdir(self._temp_plan_dir):
+                    shutil.rmtree(self._temp_plan_dir, ignore_errors=True)
+                    self.logger.info("Removed temp plan directory.")
 
     def _check_row_errors(self, baseline: Dict[str, float]) -> None:
         """Fail (or warn) on rows Salesforce rejected; the exit code does not show them."""
@@ -673,6 +720,11 @@ class DeleteSFDMUData(BaseSalesforceTask):
     Intended as the cleanup step before running LoadSFDMUData on a plan that
     uses operation=Insert (without deleteOldData) to support layered data
     shapes: run DeleteSFDMUData once, then run each layered plan in sequence.
+
+    A plan that matches on externalId (Upsert) has no Insert objects to select, so a
+    teardown of one names its object types in ``sobjects`` instead. Each must be a type
+    the plan writes (declared, not excluded, Insert or Upsert); a Readonly or Update-only
+    type such as Product2 is refused. They are still deleted in reverse plan order.
     """
 
     keychain_class = BaseProjectKeychain
@@ -693,6 +745,15 @@ class DeleteSFDMUData(BaseSalesforceTask):
             "description": (
                 "Optional list of 0-based object set indices to include "
                 "(e.g. [0] for the first objectSet only). Omit to process all objectSets."
+            ),
+            "required": False,
+        },
+        "sobjects": {
+            "description": (
+                "Optional list of object types to delete instead of the plan's Insert-operation "
+                "objects, for a plan that matches on externalId. Each must be one the plan "
+                "inserts or upserts (not excluded, not only Readonly/Update); deleted in "
+                "reverse plan order."
             ),
             "required": False,
         },
@@ -755,9 +816,22 @@ class DeleteSFDMUData(BaseSalesforceTask):
 
         object_sets = sfdmu_export.normalize_object_sets(plan)
 
-        # Collect Insert-operation objects in plan array order.
-        # Duplicates are preserved so that the deletion order mirrors the plan exactly.
+        named_set = None
+        if self.options.get("sobjects") is not None:
+            named = self.options["sobjects"]
+            if isinstance(named, str):
+                named = named.split(",")
+            named_set = {str(n).strip() for n in named} - {""}
+            # Given but empty must fail: falling back to Insert mode would delete a different
+            # set of types than the caller named (all of them, on a still-Insert plan).
+            if not named_set:
+                raise TaskOptionsError("sobjects is empty; name at least one object type")
+
+        # Collect Insert-operation objects (or the named ones) in plan array order.
+        # Insert mode keeps duplicates so the deletion order mirrors the plan exactly;
+        # named mode deletes each type once.
         insert_sobjects: List[str] = []
+        declared: set = set()
         for obj_set in object_sets:
             for obj in obj_set.get("objects", []):
                 # JS truthiness (see _sobjects_from_export_json): `excluded: []`/`{}`
@@ -765,17 +839,39 @@ class DeleteSFDMUData(BaseSalesforceTask):
                 # cleanup must not delete its records — Python's plain `if` would.
                 if sfdmu_export.is_js_truthy(obj.get("excluded")):
                     continue
+                # Shared subquery-aware parser (see _sobjects_from_export_json): a SELECT-clause
+                # subquery's inner FROM is not mistaken for the outer object, non-string safe.
+                name = sfdmu_export.extract_object_name(obj.get("query", ""))
+                if not name:
+                    continue
+                if named_set is not None:
+                    # Only a type the plan writes rows of: a Readonly/Update declaration
+                    # (Product2, ProrationPolicy) doesn't make the plan its owner, and this
+                    # deletes every record of the type org-wide.
+                    if sfdmu_export.resolve_operation(obj.get("operation")) not in ("insert", "upsert"):
+                        continue
+                    # Once per type: a type declared in two passes is still one delete.
+                    if name in named_set and name not in declared:
+                        insert_sobjects.append(name)
+                    declared.add(name)
+                    continue
                 # `operation` may be a numeric enum index (SFDMU's ScriptLoader accepts
                 # `0`=Insert), which the shared resolver maps to a canonical lowercase
                 # name — a plain `.lower()` would raise AttributeError on an int, and a
                 # numeric `0` Insert would be missed by a string compare.
                 if sfdmu_export.resolve_operation(obj.get("operation")) != "insert":
                     continue
-                # Shared subquery-aware parser (see _sobjects_from_export_json): a SELECT-clause
-                # subquery's inner FROM is not mistaken for the outer object, non-string safe.
-                name = sfdmu_export.extract_object_name(obj.get("query", ""))
-                if name:
-                    insert_sobjects.append(name)
+                insert_sobjects.append(name)
+
+        if named_set is not None:
+            # A typo or an object the plan doesn't manage must fail, not delete nothing (or,
+            # worse, be widened): this task deletes every record of each type org-wide.
+            unknown = sorted(named_set - declared)
+            if unknown:
+                raise TaskOptionsError(
+                    f"sobjects {unknown} are not inserted or upserted by {export_json_path} "
+                    f"(undeclared, excluded, or only Readonly/Update)"
+                )
 
         if not insert_sobjects:
             self.logger.warning(f"No Insert-operation objects found in {plan_dir}. Nothing to delete.")
@@ -784,7 +880,8 @@ class DeleteSFDMUData(BaseSalesforceTask):
         # Reverse = children first, matching SFDMU's deleteOldData sequence.
         deletion_order = list(reversed(insert_sobjects))
         self.logger.info(
-            f"Deleting {len(deletion_order)} Insert-operation object type(s) "
+            f"Deleting {len(deletion_order)} "
+            f"{'named' if named_set is not None else 'Insert-operation'} object type(s) "
             f"in reverse plan order:"
         )
         for i, name in enumerate(deletion_order, 1):
@@ -898,8 +995,16 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
             ),
             "required": False,
         },
+        "dynamic_assigned_to_user": {
+            "description": "Same as the load task's option: replace the DRO assigned-to placeholder with the target org user's Name, in a temp copy, before each load. Set it when the plan's load task does, or both loads send a blank AssignedTo.",
+            "required": False,
+        },
+        "assigned_to_placeholder": {
+            "description": "Placeholder string to replace when dynamic_assigned_to_user is true (default __DRO_ASSIGNED_TO_USER__).",
+            "required": False,
+        },
         "ignore_row_errors_for": {
-            "description": "Known, harmless row rejections (same form as the load task's option). Tolerated on both loads, EXCEPT a rejected insert on the second load, which always fails: a rerun whose inserts are rejected instead of matched leaves counts flat and would read as idempotent.",
+            "description": "Known, harmless row rejections (same form as the load task's option). Tolerated on both loads, EXCEPT a rejected insert on the second load, which fails unless the first load's same target file rejected at least as many inserts: a rerun whose inserts are rejected instead of matched leaves counts flat and would read as idempotent.",
             "required": False,
         },
         "run_after_each_load_apex": {
@@ -986,38 +1091,58 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
 
     def _run_load_once(self, plan_dir: Optional[str] = None, strict: bool = True) -> None:
         plan_dir = plan_dir or self.options.get("pathtoexportjson", "datasets/sfdmu/")
-        if not sfdmu_id_lookups.load_lookups(plan_dir):
+        lookups = sfdmu_id_lookups.load_lookups(plan_dir)
+        user_name = self._assigned_to_user_name()
+        if not lookups and not user_name:
             self._run_load_in(plan_dir, strict)
             return
-        # Same per-org step as LoadSFDMUData: resolve parent Ids into a temp copy, never the plan.
+        # Same per-org steps as LoadSFDMUData, in a temp copy, never the plan.
         temp_dir = tempfile.mkdtemp(prefix="sfdmu_idem_ids_")
         try:
             work = os.path.join(temp_dir, "plan")
             shutil.copytree(plan_dir, work, ignore=shutil.ignore_patterns(*SFDMU_RUNTIME_DIRS))
-            org = self._get_org_for_cli()
-            filled = sfdmu_id_lookups.apply_lookups(
-                work, lambda soql: sf_query_records(org, soql), self.logger.info)
-            self.logger.info(f"Resolved parent Ids for {filled} row(s) in a temp copy of {plan_dir}.")
+            if user_name:
+                placeholder = self.options.get("assigned_to_placeholder") or DRO_ASSIGNED_TO_PLACEHOLDER
+                replace_assigned_to_placeholder(work, placeholder, user_name, self.logger.info)
+            if lookups:
+                org = self._get_org_for_cli()
+                filled = sfdmu_id_lookups.apply_lookups(
+                    work, lambda soql: sf_query_records(org, soql), self.logger.info)
+                self.logger.info(f"Resolved parent Ids for {filled} row(s) in a temp copy of {plan_dir}.")
             self._run_load_in(work, strict)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def _assigned_to_user_name(self) -> Optional[str]:
+        """The target org user's Name when dynamic_assigned_to_user is set (queried once), else None."""
+        if not _as_bool(self.options.get("dynamic_assigned_to_user")):
+            return None
+        if getattr(self, "_assigned_to_name", None) is None:
+            # A real username, as LoadSFDMUData uses: the query matches Username = '<x>'.
+            self._assigned_to_name = target_org_user_name(
+                getattr(self.org_config, "username", None) or self.targetusername)
+            self.logger.info(f"Replacing DRO assigned-to placeholder with target org user Name: "
+                             f"{self._assigned_to_name}")
+        return self._assigned_to_name
 
     def _run_load_in(self, plan_dir: str, strict: bool) -> None:
         export_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
         if not os.path.isfile(export_path):
             raise FileNotFoundError(f"export.json not found: {export_path}")
-        with open(export_path, "r") as f:
-            export_json = json.load(f)
+        with open(export_path, "r", encoding="utf-8", newline="") as f:
+            original_text = f.read()
+        export_json = json.loads(original_text)
         org_data = {"name": self._get_org_for_cli(), "accessToken": self.accesstoken, "instanceUrl": self.instanceurl}
-        export_json["orgs"] = [org_data]
-        with open(export_path, "w") as f:
-            json.dump(export_json, f, indent=2)
-        trimmed = self.instanceurl.replace("https://", "").replace("http://", "")
-        cmd = f"sf sfdmu run --sourceusername CSVFILE --targetusername {self._get_org_for_cli()} -p {plan_dir} --canmodify {trimmed} --noprompt --verbose"
-        self.logger.info(f"Running SFDMU: {self._redact(cmd)}")
         result = None
-        baseline = sfdmu_export.snapshot_target_files(plan_dir)
+        # The try starts before the credential write, so a write that fails partway is restored too.
         try:
+            export_json["orgs"] = [org_data]
+            with open(export_path, "w") as f:
+                json.dump(export_json, f, indent=2)
+            trimmed = self.instanceurl.replace("https://", "").replace("http://", "")
+            cmd = f"sf sfdmu run --sourceusername CSVFILE --targetusername {self._get_org_for_cli()} -p {plan_dir} --canmodify {trimmed} --noprompt --verbose"
+            self.logger.info(f"Running SFDMU: {self._redact(cmd)}")
+            baseline = sfdmu_export.snapshot_target_files(plan_dir)
             result = subprocess.run(
                 cmd, shell=True, capture_output=True, text=True, cwd=self.options.get("dir")
             )
@@ -1029,12 +1154,23 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                 self.logger.info(self._redact(strip_ansi_codes(line)))
             # A rerun whose rows are REJECTED instead of matched leaves the counts flat and would
             # read as idempotent (todo 286: a qb-pcm rerun rejects all 234 ProductRelatedComponent
-            # rows). So on the second load a rejected INSERT is always fatal, listed or not. A
-            # rejected update cannot create a record, so known update rejections are tolerated on
-            # both loads (SFDMU names each target file after the operation it performed).
+            # rows). So on the second load a rejected INSERT is fatal unless it is listed in
+            # ignore_row_errors_for AND the first load's same target file rejected at least as
+            # many inserts: that row was never going to insert (qb-pcm's ProrationPolicy
+            # duplicates the platform default on both loads), so it can't hide a missed match.
+            # Keyed by file, not object: an object declared in two passes has one target file per
+            # pass, and a per-object number would let one pass's rejections excuse another's. A rejected
+            # update cannot create a record, so known update rejections are tolerated on both
+            # loads (SFDMU names each target file after the operation it performed).
             rejected = sfdmu_export.collect_target_row_errors(plan_dir, baseline=baseline)
+            if not strict:
+                self._first_load_insert_rejections = {
+                    i["file"]: i["failed"] for i in rejected if i["operation"].lower() == "insert"}
             if rejected:
-                fatal = [i for i in rejected if strict and i["operation"].lower() == "insert"]
+                first = getattr(self, "_first_load_insert_rejections", {})
+                fatal = [i for i in rejected if strict and i["operation"].lower() == "insert"
+                         and not (sfdmu_export.split_known_row_errors([i], self._row_error_ignores)[0]
+                                  and first.get(i["file"], 0) >= i["failed"])]
                 known, unknown = sfdmu_export.split_known_row_errors(
                     [i for i in rejected if i not in fatal], self._row_error_ignores)
                 if known:
@@ -1046,10 +1182,16 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                     "SFDMU reported success, but Salesforce rejected rows, so record counts cannot "
                     "show idempotency:\n" + sfdmu_export.format_target_row_errors(rejected))
         finally:
-            # Always clear injected org credentials from export.json
-            export_json["orgs"] = []
-            with open(export_path, "w") as f:
-                json.dump(export_json, f, indent=2)
+            # Always clear injected org credentials. A failed restore after a successful load
+            # fails the task: the file may still hold the access token. After a failed load it
+            # is logged instead, so it can't replace the error that ended the load.
+            load_failed = sys.exc_info()[0] is not None
+            try:
+                _restore_export_json(export_path, original_text)
+            except IOError as e:
+                self.logger.error(f"Error restoring export.json (it may still hold credentials): {e}")
+                if not load_failed:
+                    raise
 
     def _run_extract_once(self, work_dir: str) -> None:
         """Extract from org into work_dir (must contain export.json with orgs injected)."""
@@ -1187,18 +1329,11 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
                 self._run_load_once(processed_dir)
                 self._run_post_load_apex_if_configured()
             finally:
-                # Always clear credentials from work_dir/export.json (persist mode leaves dir on disk)
+                # Always clear credentials from every export.json under work_dir: persist mode leaves
+                # the dir on disk, and the second load ran from processed/export.json, which a failed
+                # restore can leave holding the token (#666 review).
                 if work_dir and os.path.isdir(work_dir):
-                    export_in_work = os.path.join(work_dir, EXPORT_JSON_FILENAME)
-                    if os.path.isfile(export_in_work):
-                        try:
-                            with open(export_in_work, "r") as f:
-                                ej = json.load(f)
-                            ej["orgs"] = []
-                            with open(export_in_work, "w") as f:
-                                json.dump(ej, f, indent=2)
-                        except Exception as e:
-                            self.logger.warning(f"Could not clear credentials from {export_in_work}: {e}")
+                    clear_credentials_under(work_dir, self.logger.warning)
                     if use_temp:
                         shutil.rmtree(work_dir, ignore_errors=True)
                         self.logger.info("Removed extraction roundtrip temp directory.")
@@ -1281,7 +1416,8 @@ class ExtractSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 "with qb instead of inheriting its own (possibly stale) CSV schema. "
                 "If omitted, the qb/en-US sibling is auto-derived from the plan path when "
                 "it exists and differs from the plan; pass 'none' to disable alignment and "
-                "use the plan's own CSV schema."
+                "use the plan's own CSV schema. Objects the plan lists in its export.json "
+                "'$ownSchemaObjects' keep their own schema either way (a key the reference lacks)."
             ),
             "required": False
         },

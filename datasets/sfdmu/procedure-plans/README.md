@@ -231,7 +231,7 @@ only if that slot is free:
 
 Each option is uniquely identified by its parent section's `SubSectionType` and the option's `Priority`. The `$$ProcedurePlanSection.SubSectionType$Priority` column in the CSV provides the composite key. The parent section is resolved with a single-field `ProcedurePlanSection.SubSectionType` lookup.
 `SubSectionType` is unique within this plan's version, which the queries are scoped to. The
-single-field lookup avoids SFDMU Bug 4 (`$$` composite notation on lookup columns).
+single-field lookup sidesteps SFDMU Bug 4 (a `$$` lookup must match the parent's key exactly).
 
 ## Idempotency
 

@@ -1,2 +1,0 @@
-Description,MerchantCredential.DeveloperName,SellerCode,Status,TaxEngineCountry,TaxEngineGeocodeAccuracy,TaxEngineName,TaxEngineProvider.DeveloperName
-,,Billing2,Active,US,,Mock TaxEngine,mock

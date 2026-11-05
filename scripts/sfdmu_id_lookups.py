@@ -271,7 +271,8 @@ def apply_lookups(plan_dir: str, query: Callable[[str], List[dict]],
 
 
 def prepare_extraction_export(export_data: dict, lookups: List[dict]) -> dict:
-    """The export.json an EXTRACT of a lookup plan needs: Ids kept in the CSVs.
+    """The export.json an EXTRACT needs: Ids kept in a lookup plan's CSVs, and no
+    `sourceRecordsFilter` on any plan (see `strip_source_records_filters`).
 
     SFDMU drops a child's 2-hop traversal columns (`ProductUsageResource.Product.StockKeepingUnit`)
     on extract, so the portable key cannot come back directly; the child's Id column can, and
@@ -281,7 +282,114 @@ def prepare_extraction_export(export_data: dict, lookups: List[dict]) -> dict:
     if lookups:
         export_data = dict(export_data)
         export_data["excludeIdsFromCSVFiles"] = False
+    return strip_source_records_filters(export_data)
+
+
+def strip_source_records_filters(export_data: dict) -> dict:
+    """Drop every object's `sourceRecordsFilter` from an export.json used to EXTRACT.
+
+    A plan uses it to split CSV rows between passes on a load (q3-pcm's FreeTrial ramp segments,
+    q3-pricing's Standard and Nonprofit price book entries; todo 319). On an extract the source is
+    the org, and SFDMU merges the filter into the source SOQL instead: an alasql expression such
+    as `[Pricebook2.$$Name$IsStandard] LIKE '%;true'` aborts the query (measured).
+    """
+    def strip(objects):
+        return [{k: v for k, v in o.items() if k != "sourceRecordsFilter"} if isinstance(o, dict) else o
+                for o in objects]
+
+    def live(o):
+        return isinstance(o, dict) and not sfdmu_export.is_js_truthy(o.get("excluded"))
+
+    def name_of(o):
+        return sfdmu_export.extract_object_name(o.get("query")) if live(o) else ""
+
+    passes = [export_data["objects"]] if isinstance(export_data.get("objects"), list) else []
+    passes += [s["objects"] for s in export_data.get("objectSets") or []
+               if isinstance(s, dict) and isinstance(s.get("objects"), list)]
+
+    # A split object's passes also scope the extract's source query, and each pass would extract
+    # its share with the last file overwriting the rest. So it is extracted once, from its first
+    # live declaration, with a WHERE that ORs every live declaration's WHERE: the extract covers
+    # exactly the rows the passes load together (q3-pricing: IsStandard = true OR IsStandard =
+    # false), and no rows a WHERE keeps out. A declaration with no WHERE makes it unscoped.
+    wheres = {}
+    for objects in passes:
+        for o in objects:
+            if live(o) and "sourceRecordsFilter" in o:
+                name = name_of(o)
+                if not name:
+                    raise ValueError(f"sourceRecordsFilter on a query with no object name: {o.get('query')!r}")
+                wheres[name] = []
+    fields = {}
+    for objects in passes:
+        for o in objects:
+            name = name_of(o)
+            if name in wheres:
+                wheres[name].append(_where_of(o["query"]))
+                # The first declaration's fields are the ones extracted, so a later one selecting
+                # others would lose them without a word.
+                cols = sorted(sfdmu_export.parse_select_fields(o["query"]))
+                if fields.setdefault(name, cols) != cols:
+                    raise ValueError(f"{name} is split across passes with different fields; "
+                                     f"an extract of it would drop some")
+
+    kept = set()
+
+    def extract_once(objects):
+        out = []
+        for o in objects:
+            name = name_of(o)
+            if name not in wheres:
+                out.append(o)
+            elif name not in kept:
+                kept.add(name)
+                clauses = wheres[name]
+                combined = None if None in clauses else " OR ".join(f"({c})" for c in clauses)
+                out.append({**o, "query": _replace_where(o["query"], combined)})
+        return out
+
+    export_data = dict(export_data)
+    if isinstance(export_data.get("objects"), list):
+        export_data["objects"] = strip(extract_once(export_data["objects"]))
+    if isinstance(export_data.get("objectSets"), list):
+        export_data["objectSets"] = [
+            {**s, "objects": strip(extract_once(s["objects"]))}
+            if isinstance(s, dict) and isinstance(s.get("objects"), list) else s
+            for s in export_data["objectSets"]]
     return export_data
+
+
+_TAIL = r"\b(GROUP\s+BY|ORDER\s+BY|LIMIT|OFFSET)\b"
+
+
+def _split_where(query) -> Tuple[str, Optional[str], str]:
+    """(head, WHERE condition or None, tail) of a query.
+
+    Refuses what a regex can't split safely (a subquery, a string literal in the WHERE, a
+    non-string query), rather than guess: a wrong cut either breaks the SOQL or leaves a pass's
+    filter in place, and the second extracts part of the object without an error."""
+    if not isinstance(query, str):
+        raise ValueError(f"query is not a string: {query!r}")
+    if re.search(r"\(\s*SELECT\b", query, re.IGNORECASE):
+        raise ValueError(f"can't split the WHERE of a query with a subquery: {query!r}")
+    m = re.search(r"\bWHERE\b", query, re.IGNORECASE)
+    if not m:
+        t = re.search(_TAIL, query, re.IGNORECASE)
+        return (query[:t.start()].rstrip(), None, query[t.start():]) if t else (query, None, "")
+    if "'" in query[m.end():]:
+        raise ValueError(f"can't split a WHERE that holds a string literal: {query!r}")
+    t = re.search(_TAIL, query[m.end():], re.IGNORECASE)
+    cond = (query[m.end():m.end() + t.start()] if t else query[m.end():]).strip()
+    return query[:m.start()].rstrip(), cond, (query[m.end() + t.start():] if t else "")
+
+
+def _where_of(query) -> Optional[str]:
+    return _split_where(query)[1]
+
+
+def _replace_where(query: str, cond: Optional[str]) -> str:
+    head, _, tail = _split_where(query)
+    return head + (f" WHERE {cond}" if cond else "") + (f" {tail}" if tail else "")
 
 
 def id_columns_of(lookups: List[dict]) -> set:

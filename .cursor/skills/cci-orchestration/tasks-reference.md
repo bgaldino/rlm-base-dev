@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**274 tasks** across **9 groups**.
+**277 tasks** across **9 groups**.
 
 ---
 
@@ -25,19 +25,20 @@
 
 ### `delete_q3_pricing_data`
 
-**Description:** Delete all Insert-operation records from the q3-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic, mirrors delete_quantumbit_pricing_data. Run before insert_q3_pricing_data so q3 pricing loads (plain Insert, no deleteOldData) are safe to rerun.
+**Description:** Manual full teardown only: delete every CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition and PriceAdjustmentTier record in the org, in reverse plan order (children first). prepare_pricing_data reloads q3-pricing in place (Upsert) and no longer runs it. On a built org the platform blocks some of these deletes (AttributeAdjustmentCondition, entries referenced by quotes).
 
 **Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pricing`
+- `sobjects`: `['PriceAdjustmentTier', 'AttributeAdjustmentCondition', 'AttributeBasedAdjustment', 'BundleBasedAdjustment', 'Pricebo...`
 
 ---
 
 ### `delete_q3_rates_data`
 
-**Description:** Delete all rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard), deactivating Active records first. Shape-agnostic — reuses deleteQbRatesData.apex. Run before re-inserting q3-rates so a rerun on a q3 org doesn't fail deleting Active records (the q3-rates plan uses Insert+deleteOldData and activation makes them Active).
+**Description:** Delete all rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order, deactivating Active entries first. Shape-agnostic — reuses deleteQbRatesData.apex. Manual full teardown only; prepare_rating reloads q3-rates in place and no longer runs it.
 
 **Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
 
@@ -49,7 +50,7 @@
 
 ### `delete_q3_rating_data`
 
-**Description:** Delete all rating data (PUG, PURP, PUR, RatingFrequencyPolicy, etc.), deactivating Active PUGs first. Shape-agnostic — reuses deleteQbRatingData.apex. Run before re-inserting q3-rating so a rerun on a q3 org doesn't fail deleting Active records.
+**Description:** Delete all rating data (PUG, PURP, PUR, RatingFrequencyPolicy, etc.) in dependency order, deactivating Active PUGs first. Shape-agnostic — reuses deleteQbRatingData.apex. Manual full teardown only; prepare_rating reloads q3-rating in place and no longer runs it.
 
 **Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
 
@@ -61,7 +62,7 @@
 
 ### `delete_qb_rates_data`
 
-**Description:** Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running insert_qb_rates_data or test_qb_rates_idempotency to clear duplicates.
+**Description:** Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order, deactivating Active entries first. Manual full teardown only; prepare_rating reloads qb-rates in place and no longer runs it.
 
 **Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
 
@@ -85,13 +86,14 @@
 
 ### `delete_quantumbit_pricing_data`
 
-**Description:** Delete all Insert-operation records from the qb-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic: clears all records of each type regardless of which data shape populated them. Run before insert_quantumbit_pricing_data when layering multiple pricing shapes.
+**Description:** Manual full teardown only: delete every CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition and PriceAdjustmentTier record in the org, in reverse plan order (children first). prepare_pricing_data reloads qb-pricing in place (Upsert) and no longer runs it. On a built org the platform blocks some of these deletes (AttributeAdjustmentCondition, entries referenced by quotes).
 
 **Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-pricing`
+- `sobjects`: `['PriceAdjustmentTier', 'AttributeAdjustmentCondition', 'AttributeBasedAdjustment', 'BundleBasedAdjustment', 'Pricebo...`
 
 ---
 
@@ -137,7 +139,7 @@
 
 ## Data Management - Extract
 
-*26 task(s)*
+*27 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -153,7 +155,7 @@
 
 ### `extract_q3_billing_data`
 
-**Description:** Extract q3-billing from org to CSV, aligned to the qb-billing schema. Output in datasets/sfdmu/extractions/q3-billing/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract the q3-billing product mapping (Product2.BillingPolicy) from org to CSV. Output in datasets/sfdmu/extractions/q3-billing/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -165,7 +167,7 @@
 
 ### `extract_q3_dro_data`
 
-**Description:** Extract q3-dro from org to CSV, aligned to the qb-dro schema. Output in datasets/sfdmu/extractions/q3-dro/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract the q3-dro product decomposition settings (Product2) from org to CSV. Output in datasets/sfdmu/extractions/q3-dro/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -184,12 +186,13 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pcm`
+- `object_sets`: `[0]`
 
 ---
 
 ### `extract_q3_pricing_data`
 
-**Description:** Extract q3-pricing from org to CSV, aligned to the qb-pricing schema. Output in datasets/sfdmu/extractions/q3-pricing/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract q3-pricing from org to CSV, aligned to the qb-pricing schema except PricebookEntry and its derived prices, which keep their own price-book key. Output in datasets/sfdmu/extractions/q3-pricing/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -201,7 +204,7 @@
 
 ### `extract_q3_rates_data`
 
-**Description:** Extract q3-rates from org to CSV, aligned to the qb-rates schema. Output in datasets/sfdmu/extractions/q3-rates/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract q3-rates from org to CSV, aligned to the qb-rates schema except RateCardEntry and its tiers, which keep their own selling-model key. Output in datasets/sfdmu/extractions/q3-rates/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -223,9 +226,21 @@
 
 ---
 
+### `extract_q3_rating_entitlements_data`
+
+**Description:** Extract q3-rating-entitlements (usage policies and grants) from org to CSV, aligned to the qb-rating-entitlements schema. Output in datasets/sfdmu/extractions/q3-rating-entitlements/<timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-rating-entitlements`
+
+---
+
 ### `extract_q3_tax_data`
 
-**Description:** Extract q3-tax from org to CSV, aligned to the qb-tax schema. Output in datasets/sfdmu/extractions/q3-tax/<timestamp>/processed/. Use run_post_process false to skip.
+**Description:** Extract the q3-tax product mapping (Product2.TaxPolicy) from org to CSV. Output in datasets/sfdmu/extractions/q3-tax/<timestamp>/processed/. Use run_post_process false to skip.
 
 **Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
 
@@ -454,11 +469,11 @@
 
 ## Data Management - Idempotency
 
-*23 task(s)*
+*24 task(s)*
 
 ### `test_q3_billing_idempotency`
 
-**Description:** Idempotency test for q3-billing. Requires the Billing feature enabled on the target org (q3-262 reports GeneralLedgerAccount/BillingPolicy unsupported).
+**Description:** Idempotency test for q3-billing (the q3 product billing-policy mapping; needs qb-billing loaded and the Billing feature enabled).
 
 **Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
 
@@ -471,7 +486,7 @@
 
 ### `test_q3_dro_idempotency`
 
-**Description:** Idempotency test for q3-dro. Requires the DRO feature enabled on the target org (q3-262 has no DRO records).
+**Description:** Idempotency test for q3-dro (the q3 products' decomposition settings). Requires the DRO feature enabled on the target org.
 
 **Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
 
@@ -522,6 +537,20 @@
 
 ---
 
+### `test_q3_rating_entitlements_idempotency`
+
+**Description:** Idempotency test for q3-rating-entitlements (needs q3-rating loaded). Uses extraction roundtrip (extract -> post-process -> load from processed dir); each load resolves resource Ids on the org first. Persists extraction output to datasets/sfdmu/extractions/q3-rating-entitlements/<timestamp>.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-rating-entitlements`
+- `use_extraction_roundtrip`: `True`
+- `persist_extraction_output`: `True`
+
+---
+
 ### `test_q3_rating_idempotency`
 
 **Description:** Idempotency test for q3-rating (load twice from source, assert no new records).
@@ -537,14 +566,13 @@
 
 ### `test_q3_tax_idempotency`
 
-**Description:** Idempotency test for q3-tax (tax policies and treatments).
+**Description:** Idempotency test for q3-tax (the q3 product tax-policy mapping; needs qb-tax loaded).
 
 **Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-tax`
-- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -590,7 +618,7 @@
 
 ### `test_qb_dro_idempotency`
 
-**Description:** Idempotency test for qb-dro. Note: plan uses dynamic_assigned_to_user for load; test runs without it (scratch org user may differ).
+**Description:** Idempotency test for qb-dro (AssignedTo resolved from target org, as insert_qb_dro_data does).
 
 **Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
 
@@ -598,6 +626,7 @@
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-dro`
 - `use_extraction_roundtrip`: `False`
+- `dynamic_assigned_to_user`: `True`
 
 ---
 
@@ -856,7 +885,7 @@
 
 ## Revenue Lifecycle Management
 
-*179 task(s)*
+*180 task(s)*
 
 ### `activate_agents`
 
@@ -2395,7 +2424,7 @@
 
 ### `insert_q3_billing_data`
 
-**Description:** Insert Q3 Billing Data
+**Description:** Map the Q3 products onto the qb-billing policies (run insert_billing_data first)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
@@ -2407,27 +2436,25 @@
 
 ### `insert_q3_dro_data_prod`
 
-**Description:** Insert Q3 DRO Data to Production
+**Description:** Set the Q3 products' decomposition scope (non-scratch orgs)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-dro`
-- `dynamic_assigned_to_user`: `True`
 
 ---
 
 ### `insert_q3_dro_data_scratch`
 
-**Description:** Insert Q3 DRO Data to Scratch
+**Description:** Set the Q3 products' decomposition scope (scratch orgs)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-dro`
-- `dynamic_assigned_to_user`: `True`
 
 ---
 
@@ -2470,7 +2497,7 @@
 
 ### `insert_q3_rating_data`
 
-**Description:** Insert Q3 Rating Data
+**Description:** Insert Q3 Rating Data (usage definitions and product usage resources; run insert_q3_rating_entitlements_data next)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
@@ -2480,16 +2507,27 @@
 
 ---
 
+### `insert_q3_rating_entitlements_data`
+
+**Description:** Insert Q3 usage policies and grants on each product usage resource (run after insert_q3_rating_data; resolves resource Ids on the target org)
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-rating-entitlements`
+
+---
+
 ### `insert_q3_tax_data`
 
-**Description:** Insert Q3 Tax Data
+**Description:** Map the Q3 products onto the qb-tax policies (run insert_tax_data first)
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-tax`
-- `ignore_row_errors_for`: `{'TaxPolicy': 'cannot be updated to Active', 'TaxEngine': 'MerchantCredentialId'}`
 
 ---
 

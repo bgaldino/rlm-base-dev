@@ -1,9 +1,15 @@
-List<TaxTreatment> taxTreatments = [SELECT Id, Status FROM TaxTreatment WHERE Status != 'Active'];
-for (TaxTreatment tt : taxTreatments) {
+// One update per legal entity. On an org with Commerce B2B or B2C enabled, a TaxTreatment save
+// whose rows span two or more legal entities fails with "invalid ID field" (see the qb-tax README).
+Map<Id, List<TaxTreatment>> treatmentsByLegalEntity = new Map<Id, List<TaxTreatment>>();
+for (TaxTreatment tt : [SELECT Id, Status, LegalEntityId FROM TaxTreatment WHERE Status != 'Active']) {
     tt.Status = 'Active';
+    if (!treatmentsByLegalEntity.containsKey(tt.LegalEntityId)) {
+        treatmentsByLegalEntity.put(tt.LegalEntityId, new List<TaxTreatment>());
+    }
+    treatmentsByLegalEntity.get(tt.LegalEntityId).add(tt);
 }
-if (!taxTreatments.isEmpty()) {
-    update taxTreatments;
+for (List<TaxTreatment> treatments : treatmentsByLegalEntity.values()) {
+    update treatments;
 }
 
 Map<Id, Id> treatmentByPolicyId = new Map<Id, Id>();

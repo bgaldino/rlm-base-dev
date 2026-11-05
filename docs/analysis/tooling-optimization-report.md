@@ -8,7 +8,7 @@
 
 - Overall status: **PASS**
 - Required files: **6/6** present
-- Skills inventoried: **87** Markdown files under `.cursor/skills/`
+- Skills inventoried: **92** Markdown files under `.cursor/skills/`
 - Cursor rules inventoried: **12** `.mdc` files under `.cursor/rules/`
 - AGENTS.md skill references: **39** checked, **0** missing
 - Generated CCI references: **3/3** present
@@ -67,8 +67,12 @@
 - `.cursor/skills/pde-org-build/SKILL.md`
 - `.cursor/skills/pmos-integration/SKILL.md`
 - `.cursor/skills/pricing-wiring/SKILL.md`
+- `.cursor/skills/pricing-wiring/price-revision-cpi.md`
 - `.cursor/skills/qb-demo-script/SKILL.md`
 - `.cursor/skills/ramped-quotes/SKILL.md`
+- `.cursor/skills/ramped-quotes/compound-uplift.md`
+- `.cursor/skills/ramped-quotes/field-legality.md`
+- `.cursor/skills/ramped-quotes/ui-group-ramp.md`
 - `.cursor/skills/release-enablement/SKILL.md`
 - `.cursor/skills/release-enablement/authoring-patterns.md`
 - `.cursor/skills/release-enablement/resume-enablement-work.md`
@@ -90,6 +94,7 @@
 - `.cursor/skills/revenue-cloud-data-model/domains/usage.md`
 - `.cursor/skills/revenue-cloud-docs/SKILL.md`
 - `.cursor/skills/rlm-business-apis/SKILL.md`
+- `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`
 - `.cursor/skills/robot-testing/SKILL.md`
 - `.cursor/skills/robot-testing/patterns.md`
 - `.cursor/skills/robot-testing/setup-ui-shadow-dom.md`

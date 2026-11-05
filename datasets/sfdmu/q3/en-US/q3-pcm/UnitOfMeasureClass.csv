@@ -1,12 +1,11 @@
 BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,Type
-MIN,CALLUNITS01,MIN,Call Units in Minutes,Call Units,Draft,Usage
-Each,CAS01,Each,Support Cases,Case,Draft,Usage
+m,TIME,m,,Time,Draft,Usage
+EACH,CAS01,EACH,Support Cases,Case,Draft,Usage
 XFER,COUNT,XFER,,Count,Draft,Usage
 USD,CURRENCY,USD,,Currency,Draft,Currency
-MB,DAT01,MB,The unit refers to the amount of data,Data,Draft,Usage
+GB,DATAVOL,GB,,Data Volume,Draft,Usage
 ,DSU,Basic: Data Units,,Basic: Data Storage Token Units,Draft,Token
 ,GB,BASIC-GB,,Basic: Data Storage Class,Draft,Usage
 ,Grams,GRAMS,,Grams,Draft,Usage
 ,Litre,LITRE,,Litre,Draft,Usage
 Count,SMS01,Count,Class for SMS,SMS,Draft,Usage
-Each,Unit,Each,,Unit,Draft,

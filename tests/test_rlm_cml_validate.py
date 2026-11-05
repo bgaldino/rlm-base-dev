@@ -20,6 +20,7 @@ missing.
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -199,6 +200,33 @@ with tempfile.TemporaryDirectory() as root:
     check("build data_dirs takes precedence over a nonexistent standalone directory",
           _task(data_dirs=a, cml_dir=os.path.join(root, "missing"))._collect_targets()
           == [targets[0]])
+
+print("Inline annotation prefixes match without exponential backtracking (CodeQL py/redos)")
+from tasks.rlm_cml import CONSTRAINT_LINE_RE, EXTERN_RE, FIELD_RE  # noqa: E402
+
+two = '@(contextPath = "SalesTransaction.Qty") @(virtual = "true") '
+m = EXTERN_RE.match(two + "extern int Qty = 1;")
+check("extern after two inline annotations still parses",
+      m is not None and m.groups() == ("int", "Qty", "= 1"), repr(m and m.groups()))
+m = FIELD_RE.match("  " + two + 'string Fuel = "Hydrogen (H2)";')
+check("field after inline annotations keeps its parenthesised default",
+      m is not None and m.groups() == ("string", "Fuel", '"Hydrogen (H2)"'), repr(m and m.groups()))
+m = CONSTRAINT_LINE_RE.match(two + "constraint(Qty > 0);")
+check("constraint after inline annotations still parses",
+      m is not None and m.group(1) == "constraint", repr(m and m.groups()))
+check("a bare annotation line is not mistaken for a declaration",
+      not any(r.match('@(defaultValue = "x")') for r in (EXTERN_RE, FIELD_RE, CONSTRAINT_LINE_RE)))
+# 28 stacked annotations and no declaration: the old repeated group took ~12s here (time
+# grows ~16x per four more), so it fails this bound instead of hanging the suite. The fixed
+# pattern takes microseconds, so a one-second bound cannot flake.
+hostile = "@(" + ")@(" * 28 + ")"
+for name, rx in (("EXTERN_RE", EXTERN_RE), ("FIELD_RE", FIELD_RE),
+                 ("CONSTRAINT_LINE_RE", CONSTRAINT_LINE_RE)):
+    started = time.monotonic()
+    rx.match(hostile)
+    elapsed = time.monotonic() - started
+    check(f"{name} rejects 28 stacked annotations in under a second",
+          elapsed < 1.0, f"{elapsed:.2f}s")
 
 print()
 if FAILURES:

@@ -1,0 +1,8 @@
+DrawdownOrder,EffectiveEndDate,EffectiveStartDate,Label,ProductUsageResource.Product.StockKeepingUnit,ProductUsageResource.UsageResource.Code,Quantity,RenewalPolicy.Code,RolloverPolicy.Code,Type,UnitOfMeasure.UnitCode,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,ValidityPeriodTerm,ValidityPeriodUnit
+ExpiringFirst,,2025-01-01T20:00:00.000+0000,,ANC01,DSU,200,REF01,,Grant,Basic: Data Units,DSU,,1,Month
+ExpiringFirst,,2025-01-01T20:00:00.000+0000,,COMMITMENT-A,DSU,10000,REF01,,Commit,Basic: Data Units,DSU,,1,Month
+ExpiringFirst,,2025-01-01T20:00:00.000+0000,,COMMITMENT-B,DSU,5000,REF01,,Commit,Basic: Data Units,DSU,,1,Month
+ExpiringFirst,,2025-01-01T20:00:00.000+0000,PPU,ANC01-2,DS,500,REF01,,Grant,BASIC-GB,GB,ANCHOR-C-BILLING,1,Month
+ExpiringFirst,,2025-01-01T20:00:00.000+0000,,ANC01,DS,100,REF01,,Grant,BASIC-GB,GB,ANCHOR-PRODUCT-WITH-TOKEN-BILLING,1,Month
+ExpiringFirst,,2025-01-01T20:00:00.000+0000,,INTERNET-SERVICE,DS,100,REF01,,Grant,BASIC-GB,GB,INTERNET-SERVICE-BILLING-PRODUCT,1,Month
+ExpiringFirst,,2025-01-01T20:00:00.000+0000,,IS001,DS,150,REF01,,Grant,BASIC-GB,GB,IS001,1,Month

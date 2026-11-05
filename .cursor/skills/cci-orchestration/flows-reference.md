@@ -32,16 +32,18 @@ Run all QB data extract tasks (org → CSV). Use --org to specify source org.
 
 ### `run_q3_idempotency_tests`
 
-Run all Q3 data idempotency tests (load twice, assert no new records). Use --org to specify a feature-complete q3 org (q3-billing/q3-dro need Billing/DRO enabled).
+Run all Q3 data idempotency tests (load twice, assert no new records). Use --org to specify a feature-complete q3 org (q3-dro needs DRO; q3-tax/q3-billing need the qb-tax/qb-billing data loaded).
 
 **Steps:**
 
 1. **task** `test_q3_pcm_idempotency`
-2. **task** `test_q3_rating_idempotency`
-3. **task** `test_q3_rates_idempotency`
-4. **task** `test_q3_dro_idempotency`
-5. **task** `test_q3_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__q3`
-6. **task** `test_q3_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__q3`
+2. **task** `test_q3_pricing_idempotency`
+3. **task** `test_q3_rating_idempotency`
+4. **task** `test_q3_rating_entitlements_idempotency`
+5. **task** `test_q3_rates_idempotency`
+6. **task** `test_q3_dro_idempotency`
+7. **task** `test_q3_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__q3`
+8. **task** `test_q3_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__q3`
 
 ---
 
@@ -226,9 +228,9 @@ Extract rating and rates data from an org into CSV files
 **Steps:**
 
 1. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
-2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and (project_config.project__custom__qb or (project_config.project__custom__q3 and project_config.project__custom__tax))`
 3. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and (project_config.project__custom__qb or (project_config.project__custom__q3 and project_config.project__custom__tax))`
 5. **task** `activate_flow`  `when: project_config.project__custom__billing`
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
 6. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
@@ -521,11 +523,9 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 
 **Steps:**
 
-1. **task** `delete_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
-2. **task** `insert_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
-3. **task** `delete_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
-4. **task** `insert_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
-5. **task** `insert_qb_price_revision_data`  `when: project_config.project__custom__qb`
+1. **task** `insert_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
+2. **task** `insert_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
+3. **task** `insert_qb_price_revision_data`  `when: project_config.project__custom__qb`
 
 ---
 
@@ -634,16 +634,14 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 
 **Steps:**
 
-1. **task** `delete_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__qb and not project_config.project__custom__refresh`
-2. **task** `insert_qb_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
-3. **task** `insert_qb_rating_entitlements_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
-4. **task** `delete_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh`
-5. **task** `delete_q3_rating_data`  `when: project_config.project__custom__rating and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh`
-6. **task** `insert_q3_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-7. **task** `insert_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb`
-8. **task** `insert_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-9. **task** `activate_rating_records`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
-10. **task** `activate_rates`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
+1. **task** `insert_qb_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_qb_rating_entitlements_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
+3. **task** `insert_q3_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+4. **task** `insert_q3_rating_entitlements_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+5. **task** `insert_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb`
+6. **task** `insert_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+7. **task** `activate_rating_records`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
+8. **task** `activate_rates`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
 
 ---
 
@@ -716,7 +714,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 **Steps:**
 
 1. **task** `create_tax_engine`  `when: project_config.project__custom__tax`
-2. **task** `insert_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and (project_config.project__custom__qb or project_config.project__custom__q3)`
 3. **task** `insert_q3_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
 4. **task** `activate_tax_records`  `when: project_config.project__custom__tax`
 5. **task** `deploy_quote_est_tax_settings`

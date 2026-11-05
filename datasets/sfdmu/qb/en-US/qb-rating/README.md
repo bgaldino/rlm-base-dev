@@ -8,16 +8,15 @@ SFDMU data plan for QuantumBit (QB) usage rating design-time configuration. Crea
 
 ### Flow: `prepare_rating`
 
-This plan is executed as **step 2** of the `prepare_rating` flow (when `rating=true`, `qb=true`, and `refresh=false`), after the qb rates cleanup step. `qb-rating-entitlements` runs as step 3. There is no rating cleanup step: the plans match existing rows and delete nothing, so a full flow run reloads in place (`delete_qb_rating_data` remains as a manual task for a full teardown).
+This plan is executed as **step 1** of the `prepare_rating` flow (when `rating=true`, `qb=true`, and `refresh=false`). `qb-rating-entitlements` runs as step 2. There is no rating or rates cleanup step: the rating, entitlements and rates plans match existing rows and delete nothing, so a full flow run reloads in place (`delete_qb_rating_data` and `delete_qb_rates_data` remain as manual tasks for a full teardown).
 
 | Step | Task                                  | Description                                        |
 |------|---------------------------------------|----------------------------------------------------|
-| 1    | `delete_qb_rates_data`                | Runs `deleteQbRatesData.apex` (rates still delete and re-insert) |
-| 2    | `insert_qb_rating_data`               | Runs this SFDMU plan (2 passes)                    |
-| 3    | `insert_qb_rating_entitlements_data`  | Runs the `qb-rating-entitlements` plan (PURP + PUG, 2 passes) |
-| 7    | `insert_qb_rates_data`                | Runs qb-rates plan (single pass — all objects)     |
-| 9    | `activate_rating_records`             | Runs `activateRatingRecords.apex`                  |
-| 10   | `activate_rates`                      | Runs `activateRateCardEntries.apex`                |
+| 1    | `insert_qb_rating_data`               | Runs this SFDMU plan (2 passes)                    |
+| 2    | `insert_qb_rating_entitlements_data`  | Runs the `qb-rating-entitlements` plan (PURP + PUG, 2 passes) |
+| 6    | `insert_qb_rates_data`                | Runs the qb-rates plan (2 passes, nothing deleted) |
+| 8    | `activate_rating_records`             | Runs `activateRatingRecords.apex`                  |
+| 9    | `activate_rates`                      | Activates Draft RateCardEntry records via the REST Composite API |
 
 Steps 4–6 and 8 are the q3 equivalents (they run only when `q3` is on and `qb` is off).
 
@@ -56,7 +55,7 @@ use skipExistingRecords           PUR without Status             skip existing) 
 
 **PUR idempotency (Upsert + skipExistingRecords):** ProductUsageResource is `Upsert` on `Product.StockKeepingUnit;UsageResource.Code` with `skipExistingRecords: true`. Pass 1 inserts missing PURs as Draft and never touches an existing one, so a reload neither deletes anything nor sends `Status` to an Active record (the platform rejects Active -> Draft on PUR). Pass 2 then updates the other fields of existing PURs (without `Status`, and without `TokenResource`, which `activateRatingRecords.apex` manages). The plan uses no `Insert` + `deleteOldData` and no `deleteQuery`. Before the 5.6.4 floor, SFDMU v5 could not match records by relationship-traversal externalId and inserted duplicates on re-run; that is fixed on the floor.
 
-**PURP and PUG** moved to the sibling plan `qb-rating-entitlements` (task `insert_qb_rating_entitlements_data`, `prepare_rating` step 3) because SFDMU 5.8.0 cannot Upsert a child keyed on the parent's composite traversal key (upstream issue #1218). That plan keys both on `ProductUsageResourceId`; `LoadSFDMUData` resolves it on the target org from the portable key columns (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`) into a temp copy of the plan before SFDMU runs. Their CSVs live in that plan's directory.
+**PURP and PUG** moved to the sibling plan `qb-rating-entitlements` (task `insert_qb_rating_entitlements_data`, `prepare_rating` step 2) because SFDMU 5.8.0 cannot Upsert a child keyed on the parent's composite traversal key (upstream issue #1218). That plan keys both on `ProductUsageResourceId`; `LoadSFDMUData` resolves it on the target org from the portable key columns (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`) into a temp copy of the plan before SFDMU runs. Their CSVs live in that plan's directory.
 
 ### Pass 1 — Upsert; insert missing rows as Draft
 
@@ -115,7 +114,7 @@ Changing a match key (SKU or Code) adds a new record and leaves the old one (not
 
 The pass-2 CSVs in `objectset_source/object-set-2/` (UnitOfMeasureClass, UsageResource, ProductUsageResource) are each the root CSV minus `Status` (ProductUsageResource also minus `TokenResource.Code`, which `activateRatingRecords.apex` manages). UnitOfMeasure and Product2 are declared `Readonly` so the Update rows can resolve their lookups: a lookup whose parent object is not declared in the pass is sent as null, and without them pass 2 blanked `UnitOfMeasureClass.BaseUnitOfMeasure` / `DefaultUnitOfMeasure` on a built org (live-verified).
 
-Pass 2 no longer activates anything. Activation of UnitOfMeasureClass, UsageResource, PUR and PUG is entirely `activateRatingRecords.apex` (`prepare_rating` step 9), which enforces a strict dependency order: Token PURs must be Active before non-Token usage PURs, and all PURs must be Active before PUGs.
+Pass 2 no longer activates anything. Activation of UnitOfMeasureClass, UsageResource, PUR and PUG is entirely `activateRatingRecords.apex` (`prepare_rating` step 7), which enforces a strict dependency order: Token PURs must be Active before non-Token usage PURs, and all PURs must be Active before PUGs.
 
 ## Schema: ProductUsageResource (PUR) and product relationship
 
@@ -127,7 +126,7 @@ PUR uses `Upsert` with `skipExistingRecords: true` on its traversal key. PURP an
 
 **File:** `scripts/apex/activateRatingRecords.apex`
 
-PUR and PUG activation (and UoMClass / UsageResource activation) follows a strict 7-step dependency order. It runs as `prepare_rating` step 9:
+PUR and PUG activation (and UoMClass / UsageResource activation) follows a strict 7-step dependency order. It runs as `prepare_rating` step 7:
 
 | Step | What                                      | Why                                                                |
 |------|-------------------------------------------|--------------------------------------------------------------------|
@@ -485,7 +484,7 @@ qb-rating/
 └── target/                              # SFDMU-generated target snapshots
 ```
 
-The sibling plan `../qb-rating-entitlements/` (`prepare_rating` step 3) holds `export.json`, `parent_id_lookups.json` (parent PUR key to target Id resolution), and the PURP (23 records) and PUG (12 records) CSVs.
+The sibling plan `../qb-rating-entitlements/` (`prepare_rating` step 2) holds `export.json`, `parent_id_lookups.json` (parent PUR key to target Id resolution), and the PURP (23 records) and PUG (12 records) CSVs.
 
 ## Data Extraction
 
@@ -545,7 +544,7 @@ The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`)
 
 The plan is idempotent on both fresh and built orgs. It uses no `deleteOldData` and no `deleteQuery`: pass 1 is `Upsert` (with `skipExistingRecords: true` for the Status objects UnitOfMeasureClass, UsageResource and ProductUsageResource) and pass 2 is `Update` without `Status`.
 
-- **Fresh org:** pass 1 inserts the rows as Draft, and `activate_rating_records` (`prepare_rating` step 9) activates them: PUR=25, PURP=23, PUG=12. A full flow run on a built org reloads in place; `prepare_rating` no longer deletes rating data first.
+- **Fresh org:** pass 1 inserts the rows as Draft, and `activate_rating_records` (`prepare_rating` step 7) activates them: PUR=25, PURP=23, PUG=12. A full flow run on a built org reloads in place; `prepare_rating` no longer deletes rating data first.
 - **Reload on a built org (live-verified 2026-10-30):** deletes nothing, inserts nothing, never sends `Status`, and leaves all 25 PUR / 23 PURP / 12 PUG Active and unchanged. The Draft-duplicate cycle and the `activateRatingRecords.apex` step 2.5 cleanup no longer happen (step 2.5 stays as a safety net).
 - **Corrections to existing rows:** non-Status fields of existing rows are corrected through pass 2 (verified: `UnitOfMeasureClass.Description`, `UsageResource.Description`, `ProductUsageGrant.Quantity`).
 - **Platform rejections fail the load:** the platform rejects some changes on Active records, and the load then fails rather than skipping silently: `ProductUsageResource.IsOptional = true` unless the product is Token / Monetary Commitment usage model; a changed `ProductUsageResource.EffectiveEndDate` while its grant is Active; `UsageResource` fields tied to active Rate Card Entries or grants.

@@ -55,6 +55,7 @@ flow ordering and feature-flag conditions.
 | Document | Description |
 |----------|-------------|
 | [Composite Key Optimizations](references/sfdmu-composite-key-optimizations.md) | SFDMU v5 migration, composite key analysis, idempotency verification |
+| [SFDMU Data-Shape Layering](analysis/sfdmu-data-shape-layering.md) | How plans reload without deleting, shape ownership, adding a shape, remaining destructive operations |
 
 ## SFDMU Data Plan READMEs
 

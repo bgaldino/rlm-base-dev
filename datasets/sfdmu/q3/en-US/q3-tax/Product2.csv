@@ -1,79 +1,79 @@
 StockKeepingUnit,TaxPolicy.Name
 AV001,Tax Policy for LE
-DS001,Tax Policy for taxable products
-KB001,Tax Policy for taxable products
+DS001,Default Tax Policy
+KB001,Default Tax Policy
 CS001,Tax Policy for LE
 LP001,Tax Policy for LE
 LB001,Tax Policy for LE
 LCP001,Tax Policy for LE
 LPB001,Tax Policy for LE
-MO001,Tax Policy for taxable products
+MO001,Default Tax Policy
 MOU001,Tax Policy for LE
 PRN001,Tax Policy for LE
-PB001,Tax Policy for taxable products
-PP001,Tax Policy for taxable products
+PB001,Default Tax Policy
+PP001,Default Tax Policy
 SP001,Tax Policy for LE
 TRG001,Tax Policy for LE
 W001,Tax Policy for LE
-USB01,Tax Policy for taxable products
+USB01,Default Tax Policy
 HDS001,Tax Policy for LE
 TPP01,Tax Policy for LE
-LLMTRG001,Tax Policy for non-taxable products
+LLMTRG001,Non Taxable Tax Policy
 UA001,Tax Policy for LE
-SDP001,Tax Policy for taxable products
-ASTCERT001,Tax Policy for taxable products
+SDP001,Default Tax Policy
+ASTCERT001,Default Tax Policy
 ATRG001,Tax Policy for LE
-APTRG001,Tax Policy for non-taxable products
-ACERT001,Tax Policy for taxable products
-DCERT001,Tax Policy for taxable products
+APTRG001,Non Taxable Tax Policy
+ACERT001,Default Tax Policy
+DCERT001,Default Tax Policy
 CERT007,Tax Policy for LE
 LLMCERT001,Tax Policy for LE
-QP001,Tax Policy for taxable products
-GW001,Tax Policy for taxable products
-GPTW001,Tax Policy for taxable products
-LCD001,Tax Policy for taxable products
-MAIN0098,Tax Policy for non-taxable products
-SLKDPP007,Tax Policy for taxable products
-SLKDPP008,Tax Policy for taxable products
-SLKSRC001,Tax Policy for taxable products
-SLKDPP009,Tax Policy for taxable products
-PCERT001,Tax Policy for taxable products
-LBG001,Tax Policy for taxable products
-EHD009,Tax Policy for taxable products
-FIG001,Tax Policy for taxable products
-PS001,Tax Policy for taxable products
-NCH025,Tax Policy for taxable products
-LPST001,Tax Policy for non-taxable products
-LPB001-2,Tax Policy for taxable products
-ATTM001,Tax Policy for taxable products
-ATTMB001,Tax Policy for taxable products
-ATTSMS07,Tax Policy for taxable products
-CLOUD001,Tax Policy for taxable products
-CLOUD001-2,Tax Policy for taxable products
-QBO0021,Tax Policy for taxable products
-DEF001,Tax Policy for taxable products
-CLOUD002,Tax Policy for taxable products
-PM002,Tax Policy for taxable products
-SSS001,Tax Policy for taxable products
-TIM67542E,Tax Policy for taxable products
-TIM12367,Tax Policy for taxable products
-TIM235A7,Tax Policy for taxable products
-TIMB893AB45,Tax Policy for taxable products
-VIL8899089,Tax Policy for taxable products
-PUP001A45,Tax Policy for taxable products
-KTC677R,Tax Policy for taxable products
-EAS1001,Tax Policy for taxable products
-SBP10907,Tax Policy for taxable products
-PVS9876,Tax Policy for taxable products
-EAS098781A,Tax Policy for taxable products
+QP001,Default Tax Policy
+GW001,Default Tax Policy
+GPTW001,Default Tax Policy
+LCD001,Default Tax Policy
+MAIN0098,Non Taxable Tax Policy
+SLKDPP007,Default Tax Policy
+SLKDPP008,Default Tax Policy
+SLKSRC001,Default Tax Policy
+SLKDPP009,Default Tax Policy
+PCERT001,Default Tax Policy
+LBG001,Default Tax Policy
+EHD009,Default Tax Policy
+FIG001,Default Tax Policy
+PS001,Default Tax Policy
+NCH025,Default Tax Policy
+LPST001,Non Taxable Tax Policy
+LPB001-2,Default Tax Policy
+ATTM001,Default Tax Policy
+ATTMB001,Default Tax Policy
+ATTSMS07,Default Tax Policy
+CLOUD001,Default Tax Policy
+CLOUD001-2,Default Tax Policy
+QBO0021,Default Tax Policy
+DEF001,Default Tax Policy
+CLOUD002,Default Tax Policy
+PM002,Default Tax Policy
+SSS001,Default Tax Policy
+TIM67542E,Default Tax Policy
+TIM12367,Default Tax Policy
+TIM235A7,Default Tax Policy
+TIMB893AB45,Default Tax Policy
+VIL8899089,Default Tax Policy
+PUP001A45,Default Tax Policy
+KTC677R,Default Tax Policy
+EAS1001,Default Tax Policy
+SBP10907,Default Tax Policy
+PVS9876,Default Tax Policy
+EAS098781A,Default Tax Policy
 INTERNET-SERVICE,Tax Policy for LE
 IS001,Tax Policy for LE
 ANC01,Tax Policy for LE
 ANC01-2,Tax Policy for LE
 COMMITMENT-A,Tax Policy for LE
 COMMITMENT-B,Tax Policy for LE
-LA001,Tax Policy for taxable products
-OF001,Tax Policy for non-taxable products
+LA001,Default Tax Policy
+OF001,Non Taxable Tax Policy
 INTERNET-SERVICE-BILLING-PRODUCT,Tax Policy for LE
 ANCHOR-PRODUCT-WITH-TOKEN-BILLING,Tax Policy for LE
 ANCHOR-C-BILLING,Tax Policy for LE

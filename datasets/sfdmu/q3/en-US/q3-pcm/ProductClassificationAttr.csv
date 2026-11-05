@@ -4,7 +4,7 @@ DIS,DISPLAY-SIZE,Screen Size,,,,,false,false,false,true,,,,,Screen Size (Compute
 GRA,GRAPHICS,Graphics,,,,,false,false,false,false,,,,,Graphics,CMP001,,Active,,,
 MEM,MEMORY,Memory,RAM 32GB,,,,false,false,false,true,,,,,Memory,CMP001,,Active,,,
 STO,STORAGE,Storage,,,,,false,false,false,true,,,,,Storage (Computer),CMP001,,Active,,,
-PRO,WINDOWS-PROCESSOR,Processor,i5-CPU 4.4GHz,,,,false,false,false,true,,,,,Processor,CMP001,,Active,,,
+AC-QB-CPU,WINDOWS-PROCESSOR,Processor,i5-CPU 4.4GHz,,,,false,false,false,true,,,,,Processor,CMP001,,Active,,,
 STO,STORAGE,Storage,,,,,false,false,false,true,,,,,Storage (Cloud Storage),CS001,,Active,,,
 CT001,WIRELESS,Wireless,true,,,,false,false,false,false,,,,,Wireless (Keyboard),KB001,,Active,,,
 CT001,WIRELESS,Wireless,true,,,,false,false,false,false,,,,,Wireless (Mouse),M001,,Active,,,

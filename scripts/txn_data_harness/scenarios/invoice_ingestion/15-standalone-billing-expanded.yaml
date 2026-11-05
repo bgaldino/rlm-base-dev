@@ -14,8 +14,9 @@
 #
 # Bypasses the PST chain entirely (no Opportunity / Quote / Order / Activate).
 # Each transaction is a single POST to /commerce/invoicing/.../actions/ingest.
-# Discovery picks the oldest active non-taxable TaxTreatment deterministically
-# (ORDER BY CreatedDate ASC LIMIT 1) and stamps it on every InvoiceLine.
+# Discovery picks an active non-taxable TaxTreatment ('Non Taxable Tax Treatment'
+# first, then a Default-selection policy's, then the oldest) and stamps it on
+# every InvoiceLine.
 #
 # Tax-on Posted ingestion (lines with `taxable: true` + a `tax:` block) is
 # supported and ships explicit InvoiceLineTax graph records; see the

@@ -263,7 +263,7 @@ prepare_rlm_org
 ├── 6. prepare_price_adjustment_schedules
 ├── 7. prepare_quantumbit (utils, approvals, QB metadata)
 ├── 8. prepare_product_data (PCM, Q3, product images, org-default configurator flow)
-├── 9. prepare_pricing_data (pricing delete + insert, CPI price revision data)
+├── 9. prepare_pricing_data (pricing reload in place, CPI price revision data)
 ├── 10. prepare_docgen
 ├── 11. prepare_dro
 ├── 12. prepare_tax
@@ -271,7 +271,7 @@ prepare_rlm_org
 ├── 14. prepare_collections [child steps gated on collections]
 ├── 15. prepare_analytics
 ├── 16. prepare_clm
-├── 17. prepare_rating (delete, insert, activate for rating+rates)
+├── 17. prepare_rating (reload in place + activate for rating+rates)
 ├── 18. activate_and_deploy_expression_sets
 ├── 19. prepare_approvals_pricing [child steps gated on quantumbit + approvals]
 ├── 20. prepare_tso (TSO-specific PSLs, PSGs, deploy)
@@ -385,7 +385,7 @@ cci flow run prepare_rlm_org --org beta
 # Run a single data plan
 cci task run insert_quantumbit_pricing_data --org beta
 
-# Delete before re-load
+# Manual full teardown (flows reload qb pricing in place)
 cci task run delete_quantumbit_pricing_data --org beta
 
 # Extract data from an org

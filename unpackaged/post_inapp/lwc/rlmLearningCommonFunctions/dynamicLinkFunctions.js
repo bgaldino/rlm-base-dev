@@ -215,14 +215,15 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
     case "CommunityPage": {
       const communityPage = await getRecordIdFromDynamicLinkType({
         dynamicLinkType: dynamicLink.RecordType.DeveloperName,
-        // Escape single quotes so a site name like "Bob's Portal" can't break the
-        // SOQL literal (USER_MODE on the Apex side already bounds the query).
+        // Escape backslashes, then single quotes, so a site name like "Bob's Portal"
+        // or one ending in "\" can't break the SOQL literal (USER_MODE on the Apex
+        // side already bounds the query). Backslashes first, or the quote's own
+        // escape would be doubled.
         whereCondition:
           "Name='" +
-          String(dynamicLink.RLM_Learning_Site_Name__c || "").replace(
-            /'/g,
-            "\\'"
-          ) +
+          String(dynamicLink.RLM_Learning_Site_Name__c || "")
+            .replace(/\\/g, "\\\\")
+            .replace(/'/g, "\\'") +
           "'"
       });
       let siteUrl = await getSiteUrl({

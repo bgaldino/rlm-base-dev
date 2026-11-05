@@ -118,7 +118,7 @@ Each plan directory contains an `export.json`, one CSV per object, and `source/`
 | `AttributeDefinition` | Attribute reference (upsert) |
 | `Product2` | Product reference (upsert) |
 | `CostBook` | Cost book definitions |
-| `Pricebook2` | Standard and custom pricebooks |
+| `Pricebook2` | The Standard Price Book |
 | `PriceAdjustmentTier` | Tier breakpoints per schedule |
 | `PriceAdjustmentSchedule` | Volume, attribute, and bundle adjustment schedules |
 | `AttributeBasedAdjRule` | Attribute-based adjustment rule conditions |

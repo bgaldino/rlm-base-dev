@@ -128,13 +128,12 @@ is the separate, gated `sfdmu-v5-optimization` initiative (needs live
 verification + explicit per-operation approval — do not flip operations ad hoc;
 see the CRITICAL rule below).
 
-**Bug 4 — `$$` composite notation fails for lookup reference columns (STILL PRESENT, incl. 5.8.0)**
-When a CSV uses `$$` composite notation for a **lookup reference** — self-referential
-(e.g. `ParentGroup.$$Code$ParentProduct.StockKeepingUnit`) *or cross-object* — SFDMU
-cannot decompose the composite value to resolve the referenced record. (The primary
-`$$` externalId-matching column is unaffected.)
-**Fix:** Use simple single-field references for lookup columns
-(e.g. `ParentGroup.Code`). Non-destructive — no `deleteOldData`.
+**Bug 4 — a `$$` lookup column that doesn't match its parent's key (STILL PRESENT, 5.8.0)**
+A `$$` lookup column (e.g. `Pricebook2.$$Name$IsStandard`) resolves only when its parts
+are exactly the parent's `externalId` in the same pass. Self-references
+(`ParentGroup.$$Code$ParentProduct.StockKeepingUnit`) and differently keyed parents fail.
+**Fix:** a single-field reference (`ParentGroup.Code`), or key the parent on those parts.
+`scripts/ai/check_sfdmu_layering.py` flags it.
 
 Historical Bugs 1/2/3/5 and their fixed versions are documented in
 `.cursor/skills/sfdmu-data-plans/SKILL.md` → **v5 Bugs**.
@@ -160,7 +159,7 @@ in the array; deletions run child → parent.
 
 ```bash
 cci task run insert_quantumbit_pricing_data --org beta
-cci task run delete_quantumbit_pricing_data --org beta
+cci task run delete_quantumbit_pricing_data --org beta     # manual full teardown; prepare_pricing_data reloads in place
 cci task run extract_qb_pricing_data --org beta
 cci task run test_qb_pricing_idempotency --org beta
 cci flow run prepare_rlm_org --org beta

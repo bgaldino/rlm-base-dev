@@ -1,67 +1,18 @@
 {
   "apiVersion": "68.0",
-  "excludeIdsFromCSVFiles": "false",
-  "useSeparatedCSVFiles": true,
-  "objectSets": [
+  "excludeIdsFromCSVFiles": "true",
+  "$comment": "Product tax-policy mapping for the q3 products only. The tax design (legal entities, engine, treatments, policies) comes from qb-tax, which prepare_tax loads first on a q3 build (todo 210).",
+  "objects": [
     {
-      "name": "First Pass - Insert/Upsert with Draft Status",
-      "objects": [
-        {
-          "query": "SELECT CompanyName, CurrencyIsoCode, Description, LegalEntityCity, LegalEntityCountry, LegalEntityPostalCode, LegalEntityState, LegalEntityStreet, Name, Status FROM LegalEntity",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Description, DeveloperName, Language, MasterLabel, NamespacePrefix FROM TaxEngineProvider",
-          "operation": "Upsert",
-          "externalId": "DeveloperName",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Description, MerchantCredentialId, SellerCode, Status, TaxEngineCountry, TaxEngineGeocodeAccuracy, TaxEngineName, TaxEngineProviderId FROM TaxEngine",
-          "operation": "Upsert",
-          "externalId": "TaxEngineName",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Description, IsTaxable, LegalEntityId, LegalEntity.Name, Name, ProductCode, Status, TaxCode, TaxEngineId, TaxPolicyId, TaxPolicy.Name FROM TaxTreatment",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "excluded": false,
-          "skipExistingRecords": true
-        },
-        {
-          "query": "SELECT Description, Name, Status, TreatmentSelection FROM TaxPolicy",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "excluded": false,
-          "skipExistingRecords": true
-        },
-        {
-          "query": "SELECT TaxPolicyId, StockKeepingUnit FROM Product2",
-          "operation": "Update",
-          "externalId": "StockKeepingUnit",
-          "excluded": false
-        }
-      ]
+      "query": "SELECT Name FROM TaxPolicy",
+      "operation": "Readonly",
+      "externalId": "Name"
     },
     {
-      "name": "Second Pass - Activate and Set Defaults",
-      "objects": [
-        {
-          "query": "SELECT Status, Name, LegalEntity.Name, TaxPolicy.Name FROM TaxTreatment",
-          "operation": "Update",
-          "externalId": "Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Description, Name, Status, TreatmentSelection FROM TaxPolicy",
-          "operation": "Update",
-          "externalId": "Name",
-          "excluded": false
-        }
-      ]
+      "query": "SELECT TaxPolicyId, TaxPolicy.Name, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit ASC",
+      "operation": "Update",
+      "externalId": "StockKeepingUnit",
+      "excluded": false
     }
   ],
   "orgs": []

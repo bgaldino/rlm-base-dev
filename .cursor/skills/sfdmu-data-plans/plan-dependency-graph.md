@@ -66,7 +66,7 @@ qb-price-revision (2 objects, no lookups — independent)
 
 Deletions must run in reverse dependency order. SFDMU's `deleteOldData: true` handles per-object deletion in reverse array order within a plan, but cross-plan deletions must be sequenced manually.
 
-**Critical**: `delete_qb_rates_data` must run BEFORE `delete_qb_rating_data` — rates FK to PURs.
+**Critical**: `delete_qb_rates_data` must run BEFORE `delete_qb_rating_data` — rates FK to PURs. Neither runs in a flow any more: the qb pricing, rates and rating plans reload in place (todo 298), so these deletes are for a manual full teardown only.
 
 ```
 Delete order (for full teardown):
@@ -83,6 +83,6 @@ Delete order (for full teardown):
 
 | Family | Plans | Notes |
 |--------|-------|-------|
-| Q3 | q3-pcm, q3-pricing, q3-billing, q3-dro, q3-tax, q3-rating, q3-rates | Parallel product line, mirrors qb plan shapes; same dependency ordering (q3-multicurrency was split into q3-pcm + q3-pricing) |
+| Q3 | q3-pcm, q3-pricing, q3-billing, q3-dro, q3-tax, q3-rating, q3-rating-entitlements, q3-rates | Parallel product line, mirrors qb plan shapes; same dependency ordering (q3-multicurrency was split into q3-pcm + q3-pricing). q3-tax and q3-billing only map the q3 products onto qb-tax/qb-billing policies, which a q3 build also loads, and q3-dro only sets their decomposition scope (todo 210) |
 | Manufacturing | mfg-aaf, mfg-billing, mfg-configflow, mfg-constraints-p, mfg-constraints-prc, mfg-dro, mfg-guidedselling, mfg-pcm, mfg-pricing, mfg-rebates, mfg-tax | **11 plans, none wired** — `grep -ic mfg cumulusci.yml` returns 0. Wiring is tracked separately; `mfg-multicurrency` was removed for being unwired with zero-byte CSVs (pack 110) |
 | Procedure Plans | procedure-plans | Depends on expression sets metadata, not on QB data |

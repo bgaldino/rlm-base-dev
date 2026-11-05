@@ -2,7 +2,7 @@
 
 SFDMU data plan for QuantumBit (QB) Dynamic Revenue Orchestrator (DRO) configuration. Creates fulfillment step definitions, groups, dependencies, decomposition rules, fulfillment scenarios, workspaces, fallout rules, jeopardy rules, and updates products with DRO-specific fields. Uses dynamic user resolution at runtime.
 
-> **SFDMU 5.6.4+ floor.** The plan is `Upsert` throughout; only FulfillmentWorkspaceItem adds `deleteOldData: true`, because its externalId is a composite of two relationship traversals (`FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`) that pre-5.6.4 Upsert could not match — **fixed at/below the 5.6.4 floor**. The shipped plan keeps the workaround deliberately; dropping `deleteOldData` is the gated `sfdmu-v5-optimization` initiative (live verification + explicit approval required).
+> **SFDMU 5.6.4+ floor.** Every object it writes is `Upsert` (Product2 is `Update`), with no `deleteOldData`. FulfillmentWorkspaceItem's externalId is a composite of two relationship traversals (`FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`), which matches on the 5.6.4+ floor. Its old `deleteOldData: true` (a pre-5.6.4 workaround) deleted every workspace item in the org on each load, including other shapes' (mfg) and cloned workspaces' items, so it was removed (todo 326, owner-approved). An item removed from the CSV now stays in the org until deleted by hand.
 
 ## CCI Integration
 
@@ -108,7 +108,7 @@ Upsert all DRO objects in dependency order
 | 10 | FulfillmentStepDependencyDef    | Upsert    | `Name`                                                             | 9       | Simplified from 13; removed dependencies on deleted steps |
 | 11 | ProductFulfillmentScenario      | Upsert    | `Name`                                                             | 10      | Simplified from 13; removed standalone QB-DB-TOKEN scenarios |
 | 12 | FulfillmentWorkspace            | Upsert    | `Name`                                                             | 1       | QuantumBit Complete Solution Bundle (Ramp Deal Orchestration removed) |
-| 13 | FulfillmentWorkspaceItem        | Upsert    | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`    | 4       | `deleteOldData: true` (auto-number Name) |
+| 13 | FulfillmentWorkspaceItem        | Upsert    | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`    | 4       | Auto-number Name; matched on the two parent traversals |
 | 14 | FulfillmentFalloutRule          | Upsert    | `Name`                                                             | 3       | |
 | 15 | FulfillmentStepJeopardyRule     | Upsert    | `Name`                                                             | 6       | |
 | 16 | FulfillmentTaskAssignmentRule   | Upsert    | `Name`                                                             | 0       | |
@@ -157,7 +157,7 @@ FulfillmentFalloutRule (3 rules) for error handling, FulfillmentStepJeopardyRule
 
 ## Composite External IDs (v5)
 
-With the SFDMU v5 migration, most composite externalIds were simplified to just `Name` after ensuring Name uniqueness in the source CSVs. The `$$` composite key columns have been removed from all DRO CSVs.
+With the SFDMU v5 migration, most composite externalIds were simplified to just `Name` after ensuring Name uniqueness in the source CSVs. The `$$` composite key columns have been removed from the DRO CSVs, except `FulfillmentWorkspaceItem.csv`, which keeps `$$FulfillmentWorkspace.Name$FulfillmentStepDefinitionGroup.Name` for its composite key (todo 326).
 
 | Object                        | v5 ExternalId | Previous (v4) | Change |
 |-------------------------------|---------------|----------------|--------|
@@ -165,7 +165,7 @@ With the SFDMU v5 migration, most composite externalIds were simplified to just 
 | FulfillmentStepDefinition     | `Name` | `Name;StepDefinitionGroup.Name` | Consolidated from 17 → 10 steps; all Names unique |
 | FulfillmentStepDependencyDef  | `Name` | `Name;DependsOn.Name;FSD.Name` | Simplified from 13 → 9 deps |
 | ProductFulfillmentScenario    | `Name` | `Name;Product.StockKeepingUnit` | Simplified from 13 → 10; removed standalone QB-DB-TOKEN scenarios |
-| FulfillmentWorkspaceItem      | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Same | `deleteOldData: true` added (auto-number Name) |
+| FulfillmentWorkspaceItem      | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Same | Auto-number Name; `deleteOldData` removed on the 5.6.4+ floor (todo 326) |
 
 ## Portability
 
@@ -176,7 +176,7 @@ All external IDs use portable, human-readable fields:
 - **DeveloperName** for IntegrationDefinition references
 - **Dynamic user resolution**: `__DRO_ASSIGNED_TO_USER__` placeholder ensures cross-org compatibility
 
-**Auto-numbered Name fields**: FulfillmentWorkspaceItem uses an auto-number Name — matched via its parent composite key with `deleteOldData: true` for functional idempotency.
+**Auto-numbered Name fields**: FulfillmentWorkspaceItem uses an auto-number Name — matched via its parent composite key, so a reload updates `ShowOrder` on the same records.
 
 ## Lookup CSVs and Extra Files
 
@@ -251,7 +251,7 @@ qb-dro/
 This plan is idempotent — re-running on an org that already has the data produces zero net record changes for successfully inserted objects.
 
 - Objects with `Name` externalIds (PFDR, FSD, FSDD, PFS, FSDG, FW, FFR, FSJR): matched correctly on re-run, no duplicates
-- **FulfillmentWorkspaceItem**: uses `deleteOldData: true` (delete + reinsert cycle) since its Name is auto-numbered
+- **FulfillmentWorkspaceItem**: matched on its parent composite key (its Name is auto-numbered); a reload keeps the same records
 - **TaxEngine**: always inserts 1 record (Salesforce metadata-like limitation)
 
 ### Known limitations
