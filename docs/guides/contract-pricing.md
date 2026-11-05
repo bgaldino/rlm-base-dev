@@ -199,8 +199,8 @@ source quote are not carried over as tier rows.
   quote (observed in the TAT-264 org). Create `ContractItemPriceAdjTier` rows
   yourself.
 - **The volume-tier lookup is dated by `PricingDate`**, not each line's
-  `StartDate`. The procedure sets `PricingDate` from `EffectiveFrom` (step 7),
-  and from `EffectiveDate` on contracted lines where it is still empty (step 9),
+  `StartDate`. The procedure sets `PricingDate` from `EffectiveFrom` (procedure step 7),
+  and from `EffectiveDate` on contracted lines where it is still empty (procedure step 9),
   so on a multi-year quote the tier rows may not follow each line's contract
   year. In the TAT-264 org a contract with no tiers also
   reset `IsContracted` to false. Neither is verified in this repository yet.
