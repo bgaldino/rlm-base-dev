@@ -79,7 +79,7 @@ For year-by-year pricing, add one row per year with non-overlapping
    `RLM_Contract_Applied_Unit_Price__c`. When a new-sale line no longer has a
    contract price but its Sales Price still equals the recorded one,
    *Set input unit price for lines without derived pricing or last-trxn
-   pricing* returns Sales Price to List Price. Right after that, *Clear
+   pricing* returns Sales Price to List Price. Then *Clear
    contract applied unit price for lines without contract pricing* clears the
    recorded price on every new-sale line that has no contract price.
 5. **Discounts.** *Discount Assigned From Pricing Contract* applies a
@@ -197,26 +197,28 @@ source quote are not carried over as tier rows.
 - **Volume tier rows are not generated** when a contract is created from a
   quote (observed in the TAT-264 org). Create `ContractItemPriceAdjTier` rows
   yourself.
-- **The volume-tier lookup's date and its `IsContracted` output** (observed in
-  the TAT-264 org, not yet confirmed here): there it used the quote-level
-  `PricingDate` rather than each line's start date, and a contract with no tiers
-  reset `IsContracted` to false. In this procedure *Assign the EffectiveFrom
-  date to PricingDate* sets each line's `PricingDate` first.
+- **The volume-tier lookup uses `PricingDate`, a quote-level value**, as its
+  date, not each line's start date, so on a multi-year quote every line's tier
+  lookup likely uses one date. In the TAT-264 org a contract with no tiers also
+  reset `IsContracted` to false. Neither is verified in this repository yet.
 - **Lines contract-priced before `RLM_Contract_Applied_Unit_Price__c` existed
   are not tracked.** On an org upgraded from an earlier build, their contract
   price stays put when the contract changes. Clear Sales Price and reprice once.
 - **There is no `Order.PricingContractId` sync**, and applied contract prices
   are tracked on quote lines only. Orders use the same procedure, so on an
   order reprice *Pass Pricing Contract ID from Quote to Quote Lines* copies the
-  order's blank pricing contract to its lines.
+  order's `PricingContractId` (normally blank) to its lines, overwriting any
+  line value.
 - **Only `RLM_DefaultPricingProcedure` reads `PricingContractId`.**
   `RLM_Revenue_Management_Recalc_Procedure` and
-  `RLM_PRM_DISTI_Pricing_Procedure` keep their own pricing logic, so contract
-  prices apply only where the default procedure runs. On a PRM distributor
-  quote the DISTI procedure runs after it and keeps its contract price.
+  `RLM_PRM_DISTI_Pricing_Procedure` look up contract prices only from the
+  line's `ItemContract`, which on quotes normally has no value. On a PRM
+  distributor quote, when the quote procedure plan is active (it is built
+  inactive), the DISTI procedure runs after the default one, keeps the contract
+  Sales Price and takes the partner discount off it.
 - **An org built before this procedure needs the field and the context
-  attribute before the procedure is redeployed.** Deploy `unpackaged/pre`
-  (for `RLM_Contract_Applied_Unit_Price__c`) and run
+  attribute before the procedure is redeployed.** Deploy
+  `unpackaged/pre/6_fields` (for `RLM_Contract_Applied_Unit_Price__c`) and run
   `apply_context_contract_pricing`, then redeploy the expression sets.
   `prepare_rlm_org` runs them in that order.
 - **Not exercised live in this repository:** amount discounts, volume tiers,
@@ -238,5 +240,5 @@ these differences:
 | Flow sets `PricingContractId = ContractId` on every save, with `ISNULL` | Fills it when blank and follows `ContractId` changes, with `ISBLANK` | `ISNULL` misses a blank lookup, and a hand-set value was overwritten |
 | Last-transaction override on any contract-linked line | Only on lines that get a contract price | Contract-linked amendment lines with no contract price keep renewal revision and ramp uplift |
 | Contract price looked up for every line | Only for lines with a positive quantity | On an asset sold under a contract, credits otherwise took the contract's current price instead of the price the units were sold at |
-| Field access through 75 partial profiles | `RLM_QuantumBit` and `RLM_QuantumBit_Sales_Representative` permission sets, plus their TSO (`unpackaged/post_tso`) and partner (`RLM_Partner_Community_User_Perm_Set`) copies | Profiles in `force-app/` carry class access only, and a TSO build replaces `RLM_QuantumBit` with its own copy |
+| Field access through 75 partial profiles | `RLM_QuantumBit` (and its TSO copy in `unpackaged/post_tso`), `RLM_QuantumBit_Sales_Representative` and `RLM_Partner_Community_User_Perm_Set` permission sets | Profiles in `force-app/` carry class access only, and a TSO build replaces `RLM_QuantumBit` with its TSO copy |
 | Line `PricingContractId` editable on the layout | Read-only | The procedure overwrites it on every pricing |
