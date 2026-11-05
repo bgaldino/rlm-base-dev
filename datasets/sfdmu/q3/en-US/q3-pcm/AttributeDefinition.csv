@@ -10,7 +10,7 @@ POWDER-WEIGHT,Picklist,,,,PowderWeight,true,false,Powder Weight,Powder Weight,Co
 PRINTER,Picklist,,,,Printer,true,false,Printer,Printer,Printer Picklist,,,
 PROCESSOR,Picklist,,i5-CPU 4.4GHz,,Processor,true,true,Processor,Processor,Processor Picklist,,,
 STORAGE,Picklist,,,,Storage,true,true,Storage,Storage,Storage Picklist,,,
-SUBTYPE001,Picklist,,,Subscription Type - either Enterprise or Business,SubscriptionTier,true,true,Subscription Tier,Subscription Tier,Subscription Type,,,
+SUBTYPE001,Picklist,,,Subscription Type - either Enterprise or Business,SubscriptionTier,true,true,Subscription Type,Subscription Tier,Subscription Type,,,
 SUPPORT-LEVEL,Picklist,,Premium Support,,Support_Level,true,false,Support_Level,Support_Level,Support Level Picklist,,,
 TRAINING,Picklist,,,,Training,true,false,Training,Training,Training Type Picklist,,,
 WINDOWS-PROCESSOR,Picklist,,i5-CPU 4.4GHz,,Windows_Processor,true,true,Processor,Windows_Processor,Processor Picklist,,,
