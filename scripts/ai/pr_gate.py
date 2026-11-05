@@ -450,6 +450,8 @@ CHECKS = [
                   "datasets/sfdmu/qb/en-US/qb-pricing/",
                   # The export.json byte-restore cases load q3-rates in place (todo 319).
                   "datasets/sfdmu/q3/en-US/q3-rates/",
+                  # TestSFDMUIdempotency's AssignedTo placeholder case copies qb-dro (todo 329).
+                  "datasets/sfdmu/qb/en-US/qb-dro/",
                   "tests/test_sfdmu_id_lookup_wiring.py"],
         deps=["cumulusci"], gating=True,
     ),
