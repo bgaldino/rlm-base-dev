@@ -51,6 +51,49 @@ def strip_ansi_codes(text: str) -> str:
     return ANSI_ESCAPE_PATTERN.sub('', text)
 
 
+def target_org_user_name(username) -> str:
+    """Query the org of `username` for that user's Name (dynamic_assigned_to_user)."""
+    if not username or "@" not in str(username):
+        raise CommandException(
+            "dynamic_assigned_to_user requires an org with a username (e.g. scratch or connected org). "
+            "Cannot determine user when target is token-only."
+        )
+    # Use username for -o so SF CLI finds the org (CCI org name like 'tfid-cdo' may not be a valid CLI alias)
+    org_for_cli = str(username)
+    escaped = org_for_cli.replace("\\", "\\\\").replace("'", "\\'")
+    query = "SELECT Name FROM User WHERE Username = '%s'" % escaped
+    result = subprocess.run(
+        ["sf", "data", "query", "-q", query, "-o", org_for_cli, "--json"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise CommandException(f"Failed to query User Name: {strip_ansi_codes(result.stderr or result.stdout)}")
+    out = json.loads(result.stdout)
+    records = out.get("result", {}).get("records") or []
+    if not records:
+        raise CommandException("No User record found for target org username.")
+    name = records[0].get("Name")
+    if not name:
+        raise CommandException("User record has no Name.")
+    return name
+
+
+def replace_assigned_to_placeholder(plan_dir: str, placeholder: str, user_name: str, log) -> None:
+    """Replace the DRO assigned-to placeholder with `user_name` in a (temp) plan copy's CSVs."""
+    for filename in DRO_CSV_FILES_TO_REPLACE:
+        path = os.path.join(plan_dir, filename)
+        if not os.path.isfile(path):
+            continue
+        with open(path, "r", encoding="utf-8", newline="") as f:
+            content = f.read()
+        if placeholder not in content:
+            continue
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            f.write(content.replace(placeholder, user_name))
+        log(f"Replaced placeholder in {filename}")
+
+
 def derive_qb_reference_plan_dir(plan_dir: str) -> Optional[str]:
     """Derive the qb/en-US 'golden' sibling of a variant plan directory.
 
@@ -395,36 +438,11 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
                 raise
 
     def _get_target_org_user_name(self) -> str:
-        """Query the target org for the current user's Name (e.g. 'User User' or 'Admin User').
+        """The target org user's Name (e.g. 'User User' or 'Admin User').
 
         Deliberately not sfdmu_cli_org: the query matches `Username = '<x>'`, so this needs a real
         username (org_config.username first), not an alias that targetusername may hold."""
-        username = getattr(self.org_config, "username", None) or self.targetusername
-        if not username or "@" not in str(username):
-            raise CommandException(
-                "dynamic_assigned_to_user requires an org with a username (e.g. scratch or connected org). "
-                "Cannot determine user when target is token-only."
-            )
-        # Use username for -o so SF CLI finds the org (CCI org name like 'tfid-cdo' may not be a valid CLI alias)
-        org_for_cli = str(username)
-        escaped = org_for_cli.replace("\\", "\\\\").replace("'", "\\'")
-        query = "SELECT Name FROM User WHERE Username = '%s'" % escaped
-        result = subprocess.run(
-            ["sf", "data", "query", "-q", query, "-o", org_for_cli, "--json"],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            self.logger.error(f"sf data query STDERR: {strip_ansi_codes(result.stderr)}")
-            raise CommandException(f"Failed to query User Name: {strip_ansi_codes(result.stderr or result.stdout)}")
-        out = json.loads(result.stdout)
-        records = out.get("result", {}).get("records") or []
-        if not records:
-            raise CommandException("No User record found for target org username.")
-        name = records[0].get("Name")
-        if not name:
-            raise CommandException("User record has no Name.")
-        return name
+        return target_org_user_name(getattr(self.org_config, "username", None) or self.targetusername)
 
     def _ensure_temp_plan_copy(self, prefix: str) -> None:
         """Point the run at a temp copy of the plan (once), so per-org edits never touch tracked CSVs."""
@@ -465,17 +483,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self.logger.info(f"Replacing DRO assigned-to placeholder with target org user Name: {user_name}")
         # On failure _run_task's finally removes the temp copy; the tracked plan is never written.
         self._ensure_temp_plan_copy("sfdmu_dro_")
-        for filename in DRO_CSV_FILES_TO_REPLACE:
-            path = os.path.join(self._temp_plan_dir, filename)
-            if not os.path.isfile(path):
-                continue
-            with open(path, "r", encoding="utf-8", newline="") as f:
-                content = f.read()
-            if placeholder not in content:
-                continue
-            with open(path, "w", encoding="utf-8", newline="") as f:
-                f.write(content.replace(placeholder, user_name))
-            self.logger.info(f"Replaced placeholder in {filename}")
+        replace_assigned_to_placeholder(self._temp_plan_dir, placeholder, user_name, self.logger.info)
 
     def _set_project_defaults(self, instanceurl: str) -> None:
         try:
@@ -537,7 +545,7 @@ class LoadSFDMUData(SFDXBaseTask, BaseSalesforceTask):
         self.accesstoken = self.options.get("accesstoken") or self.org_config.access_token
         self.instanceurl = self.options.get("instanceurl") or self.org_config.instance_url
 
-        if self.options.get("dynamic_assigned_to_user"):
+        if _as_bool(self.options.get("dynamic_assigned_to_user")):
             self._apply_dynamic_assigned_to_user()
         self._apply_parent_id_lookups()
         if self.options.get("sync_objectset_source_to_source"):
@@ -987,6 +995,14 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
             ),
             "required": False,
         },
+        "dynamic_assigned_to_user": {
+            "description": "Same as the load task's option: replace the DRO assigned-to placeholder with the target org user's Name, in a temp copy, before each load. Set it when the plan's load task does, or both loads send a blank AssignedTo.",
+            "required": False,
+        },
+        "assigned_to_placeholder": {
+            "description": "Placeholder string to replace when dynamic_assigned_to_user is true (default __DRO_ASSIGNED_TO_USER__).",
+            "required": False,
+        },
         "ignore_row_errors_for": {
             "description": "Known, harmless row rejections (same form as the load task's option). Tolerated on both loads, EXCEPT a rejected insert on the second load, which fails unless the first load's same target file rejected at least as many inserts: a rerun whose inserts are rejected instead of matched leaves counts flat and would read as idempotent.",
             "required": False,
@@ -1075,21 +1091,39 @@ class TestSFDMUIdempotency(SFDXBaseTask, BaseSalesforceTask):
 
     def _run_load_once(self, plan_dir: Optional[str] = None, strict: bool = True) -> None:
         plan_dir = plan_dir or self.options.get("pathtoexportjson", "datasets/sfdmu/")
-        if not sfdmu_id_lookups.load_lookups(plan_dir):
+        lookups = sfdmu_id_lookups.load_lookups(plan_dir)
+        user_name = self._assigned_to_user_name()
+        if not lookups and not user_name:
             self._run_load_in(plan_dir, strict)
             return
-        # Same per-org step as LoadSFDMUData: resolve parent Ids into a temp copy, never the plan.
+        # Same per-org steps as LoadSFDMUData, in a temp copy, never the plan.
         temp_dir = tempfile.mkdtemp(prefix="sfdmu_idem_ids_")
         try:
             work = os.path.join(temp_dir, "plan")
             shutil.copytree(plan_dir, work, ignore=shutil.ignore_patterns(*SFDMU_RUNTIME_DIRS))
-            org = self._get_org_for_cli()
-            filled = sfdmu_id_lookups.apply_lookups(
-                work, lambda soql: sf_query_records(org, soql), self.logger.info)
-            self.logger.info(f"Resolved parent Ids for {filled} row(s) in a temp copy of {plan_dir}.")
+            if user_name:
+                placeholder = self.options.get("assigned_to_placeholder") or DRO_ASSIGNED_TO_PLACEHOLDER
+                replace_assigned_to_placeholder(work, placeholder, user_name, self.logger.info)
+            if lookups:
+                org = self._get_org_for_cli()
+                filled = sfdmu_id_lookups.apply_lookups(
+                    work, lambda soql: sf_query_records(org, soql), self.logger.info)
+                self.logger.info(f"Resolved parent Ids for {filled} row(s) in a temp copy of {plan_dir}.")
             self._run_load_in(work, strict)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def _assigned_to_user_name(self) -> Optional[str]:
+        """The target org user's Name when dynamic_assigned_to_user is set (queried once), else None."""
+        if not _as_bool(self.options.get("dynamic_assigned_to_user")):
+            return None
+        if getattr(self, "_assigned_to_name", None) is None:
+            # A real username, as LoadSFDMUData uses: the query matches Username = '<x>'.
+            self._assigned_to_name = target_org_user_name(
+                getattr(self.org_config, "username", None) or self.targetusername)
+            self.logger.info(f"Replacing DRO assigned-to placeholder with target org user Name: "
+                             f"{self._assigned_to_name}")
+        return self._assigned_to_name
 
     def _run_load_in(self, plan_dir: str, strict: bool) -> None:
         export_path = os.path.join(plan_dir, EXPORT_JSON_FILENAME)

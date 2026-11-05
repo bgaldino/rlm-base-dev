@@ -618,7 +618,7 @@
 
 ### `test_qb_dro_idempotency`
 
-**Description:** Idempotency test for qb-dro. Note: plan uses dynamic_assigned_to_user for load; test runs without it (scratch org user may differ).
+**Description:** Idempotency test for qb-dro (AssignedTo resolved from target org, as insert_qb_dro_data does).
 
 **Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
 
@@ -626,6 +626,7 @@
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-dro`
 - `use_extraction_roundtrip`: `False`
+- `dynamic_assigned_to_user`: `True`
 
 ---
 
