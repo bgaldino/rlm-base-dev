@@ -45,6 +45,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Quote.PricingContractId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Quote.RLM_Approval_Level__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -61,6 +66,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Quote.RLM_TermMonths__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.PricingContractId</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

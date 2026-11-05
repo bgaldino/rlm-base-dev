@@ -9,10 +9,11 @@ control order):
 
 | Dir | Deploys | Why First |
 |-----|---------|-----------|
-| `1_objects/` | Custom fields | Fields must exist before PSGs/DTs that reference them |
-| `2_settings/` | Org settings | Features must be enabled before metadata that uses them |
+| `1_settings/`, `2_settings/` | Org settings (`2_settings/` is also the `enable_settings_path` some tasks redeploy) | Features must be enabled before metadata that uses them |
 | `3_permissionsetgroups/` | PSGs, plus repo-owned permission sets they include | PSG metadata deploys here; references PSLs from `force-app/`. A permission set a PSG includes (e.g. `RLM_BillingAccountFieldAccess`) lives in this folder so it deploys in the same bundle |
+| `4_tax/` | Tax adapter Apex | Must exist before the tax metadata and data that reference it |
 | `5_decisiontables/` | Decision table definitions | Must exist before expression sets or flows reference them |
+| `6_fields/` | Custom fields the context plans map (e.g. `QuoteLineItem.RLM_Contract_Applied_Unit_Price__c`) | A context plan's mapping needs its field, and `extend_context_definitions` runs before `prepare_expression_sets` deploys the procedure that reads the tag |
 
 ### Profile strip-and-build
 
