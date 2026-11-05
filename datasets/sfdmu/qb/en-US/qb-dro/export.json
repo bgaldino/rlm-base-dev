@@ -86,7 +86,6 @@
           "query": "SELECT FulfillmentStepDefinitionGroupId, FulfillmentWorkspaceId, FulfillmentWorkspace.Name, FulfillmentStepDefinitionGroup.Name, Id, ShowOrder FROM FulfillmentWorkspaceItem",
           "operation": "Upsert",
           "externalId": "FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name",
-          "deleteOldData": true,
           "excluded": false
         },
         {

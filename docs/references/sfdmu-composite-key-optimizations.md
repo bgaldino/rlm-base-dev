@@ -73,7 +73,7 @@ before reloading existing data.
 - **FulfillmentStepDefinition**: externalId simplified to `Name`; `$$` column removed; 2 duplicate-Name pairs disambiguated with group-name suffix
 - **FulfillmentStepDependencyDef**: externalId simplified to `Name`; `$$` column removed; parent references updated to use renamed FSD Names
 - **ProductFulfillmentScenario**: externalId simplified to `Name`; `$$` column removed
-- **FulfillmentWorkspaceItem**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Names make direct-field matching impossible); `$$` column removed
+- **FulfillmentWorkspaceItem**: the `$$FulfillmentWorkspace.Name$FulfillmentStepDefinitionGroup.Name` column is back (todo 326), for Upsert matching on its composite key. Its pre-5.6.4 `deleteOldData: true` (auto-number Names make direct-field matching impossible) was dropped on the 5.6.4+ floor (todo 326): the all-traversal key matches
 - **ProductDecompEnrichmentRule**: excluded (0 records)
 - **Single plan for scratch and TSO:** The qb-dro plan uses the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` (AssignedTo.Name), `User.csv`, and `UserAndGroup.csv` (Name). The task `insert_qb_dro_data` runs with `dynamic_assigned_to_user: true`, which queries the target org for the default user's Name and replaces the placeholder before running SFDMU.
 
@@ -104,8 +104,8 @@ Consult each plan's `export.json` and README for its full object list and load s
 
 | Strategy | Objects |
 |----------|---------|
-| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`), UsageResource (`Code`) and ProductUsageResource (`Product.StockKeepingUnit;UsageResource.Code`) in qb-rating; ProductUsageResourcePolicy and ProductUsageGrant (`ProductUsageResourceId`, resolved per org) in qb-rating-entitlements; FulfillmentWorkspace (`Name`) in qb-dro; every qb-pricing adjustment, entry and cost object; PriceBookRateCard, RateCardEntry and RateAdjustmentByTier in qb-rates |
-| Upsert with `deleteOldData: true` (deletes before loading) | FulfillmentWorkspaceItem (qb-dro) |
+| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`), UsageResource (`Code`) and ProductUsageResource (`Product.StockKeepingUnit;UsageResource.Code`) in qb-rating; ProductUsageResourcePolicy and ProductUsageGrant (`ProductUsageResourceId`, resolved per org) in qb-rating-entitlements; FulfillmentWorkspace (`Name`) and FulfillmentWorkspaceItem (`FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`) in qb-dro; every qb-pricing adjustment, entry and cost object; PriceBookRateCard, RateCardEntry and RateAdjustmentByTier in qb-rates |
+| Upsert with `deleteOldData: true` (deletes before loading) | None in the qb plans (mfg-dro's FulfillmentWorkspaceItem still does; todo 111) |
 
 ### Known limitations (v5)
 
@@ -133,11 +133,9 @@ and its README before deciding which objects need separate handling.
 **Root cause (pre-5.6.4):** SFDMU's upsert matching engine could not resolve composite keys composed entirely of relationship-traversal fields against target org data. 5.6.4's `_getNestedRecordFieldValue` fix (commit `50be987`) resolves this.
 
 **Historical workaround:** `deleteOldData: true` bypassed matching for objects
-whose logical key used parent lookups. The current qb-dro plan retains deletion on the
-following object (qb-rating and qb-rates dropped it in todo 298); this inventory does not
-imply that every operation choice was caused by Bug 5:
-
-- `FulfillmentWorkspaceItem` (qb-dro) — Upsert + deleteOldData
+whose logical key used parent lookups. No qb plan carries it any more: qb-rating and qb-rates
+dropped it in todo 298, and qb-dro's `FulfillmentWorkspaceItem` in todo 326. mfg-dro's copy
+goes with the mfg series (todo 111).
 
 **Current rule (5.6.4+):** Use `Upsert` for all-traversal composite externalIds — matching works. Reserve `deleteOldData: true` for a concrete *current* reason + explicit approval, not this (now-fixed) bug.
 

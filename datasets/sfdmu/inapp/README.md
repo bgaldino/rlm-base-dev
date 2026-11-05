@@ -39,8 +39,9 @@ Total: **402 records** (405 source − 2 dead blocks − 2 orphan junction rows 
   **confirmed on a live load** — the composite-traversal externalId does NOT match on
   re-Upsert, so `RLM_Learning_SectionBlock__c` uses **`operation: Insert` + `deleteOldData: true`** (the
   CLAUDE.md Bug 5 fix). Verified idempotent: three consecutive loads hold the junction at
-  120 (an Upsert junction doubled to 240). Repo precedent for composite-traversal +
-  `deleteOldData`: `qb-dro` `FulfillmentWorkspaceItem`.
+  120 (an Upsert junction doubled to 240). The earlier repo precedent, `qb-dro`
+  `FulfillmentWorkspaceItem`, has since dropped `deleteOldData`: its all-traversal key matches on
+  the 5.6.4+ floor (todo 326).
 - The single-`Name`-key parents (Icon/Page/Section/DynamicLink/Block) are idempotent under
   Upsert; only the junction needs `deleteOldData`.
 - Each parent traversal references that parent's own externalId (`Name`), so resolution
