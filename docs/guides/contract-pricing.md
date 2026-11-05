@@ -38,8 +38,9 @@ one date window.
 | Volume tiers | `AdjustmentMethod = Range`, plus `ContractItemPriceAdjTier` rows | Tier bracket picked by quantity | *Calculate net unit, net total, and contract prices after volume-based discounts* |
 
 For year-by-year pricing, add one row per year with non-overlapping
-`StartDate`/`EndDate`. Each line picks the window that contains its own
-`StartDate`, so one quote can carry lines in different contract years.
+`StartDate`/`EndDate`. Price and discount rows are matched on each line's own
+`StartDate`, so one quote can carry lines in different contract years. Volume
+tiers are dated differently (see [Known limits](#known-limits)).
 
 ## How a line gets its contract price
 
@@ -197,9 +198,11 @@ source quote are not carried over as tier rows.
 - **Volume tier rows are not generated** when a contract is created from a
   quote (observed in the TAT-264 org). Create `ContractItemPriceAdjTier` rows
   yourself.
-- **The volume-tier lookup uses `PricingDate`, a quote-level value**, as its
-  date, not each line's start date, so on a multi-year quote every line's tier
-  lookup likely uses one date. In the TAT-264 org a contract with no tiers also
+- **The volume-tier lookup is dated by `PricingDate`**, not each line's
+  `StartDate`. The procedure sets `PricingDate` from `EffectiveFrom` (step 7),
+  and from `EffectiveDate` on contracted lines where it is still empty (step 9),
+  so on a multi-year quote the tier rows may not follow each line's contract
+  year. In the TAT-264 org a contract with no tiers also
   reset `IsContracted` to false. Neither is verified in this repository yet.
 - **Lines contract-priced before `RLM_Contract_Applied_Unit_Price__c` existed
   are not tracked.** On an org upgraded from an earlier build, their contract
@@ -233,7 +236,7 @@ these differences:
 
 | Reference org | This repository | Why |
 |---|---|---|
-| Lookup dated by `DerivedStartDateTime__std` | Dated by the line's `StartDate` | `DerivedStartDateTime__std` is empty until the line is saved, so first pricing of a multi-window contract failed with `DUPLICATE_VALUE_FOUND_IN_LOOKUP` |
+| Lookup dated by `DerivedStartDateTime__std` | Price and discount lookups dated by the line's `StartDate` | `DerivedStartDateTime__std` is empty until the line is saved, so first pricing of a multi-window contract failed with `DUPLICATE_VALUE_FOUND_IN_LOOKUP` |
 | Undated lines skipped | Priced on the run date | One-time services priced from the contract (the reference org's "one-time products skip contract pricing" gap) |
 | Lookup writes Sales Price directly | Sales Price set only while it is empty, still list, or still the contract price last applied | A hand-set Sales Price survives a reprice, while contract changes still flow through |
 | Contracted lines excluded from the list-price fallback | Kept in it | Discount-only rows have no price, and excluding them left Sales Price at 0 |
