@@ -5,7 +5,7 @@ DISPLAY;LP001,DIS,DISPLAY,Display,1080p Built-in Display,,,,false,true,false,tru
 DISPLAY-SIZE;LP001,DIS,DISPLAY-SIZE,Screen Size,13 Inch,,,,false,true,false,true,,,,,Screen Size,,LP001,Screen Size (Computer),,Active,,,
 GRAPHICS;LP001,GRA,GRAPHICS,Graphics,Intel Iris Xe Graphics,,,,false,true,false,false,,,,,Graphics,,LP001,Graphics,,Active,,,
 MEMORY;LP001,MEM,MEMORY,Memory,RAM 8GB,,,,false,false,false,true,,,,,Memory,,LP001,Memory,,Active,,,
-WINDOWS-PROCESSOR;LP001,PRO,WINDOWS-PROCESSOR,Processor,i5-CPU 4.4GHz,,,,false,true,false,true,,,,,Processor,,LP001,Processor,,Active,,,
+WINDOWS-PROCESSOR;LP001,AC-QB-CPU,WINDOWS-PROCESSOR,Processor,i5-CPU 4.4GHz,,,,false,true,false,true,,,,,Processor,,LP001,Processor,,Active,,,
 STORAGE;LP001,STO,STORAGE,Storage,SSD Hard Drive 256GB,,,,false,false,false,true,,,,,Storage,,LP001,Storage (Computer),,Active,,,
 DISPLAY;MO001,DIS,DISPLAY,Display,1080p Built-in Display,,,,false,true,false,true,,,,,Display,,MO001,Display (Monitor),,Active,,,
 DISPLAY-SIZE;MO001,DIS,DISPLAY-SIZE,Screen Size,24 Inch,,,,false,true,false,true,,,,,Screen Size,,MO001,Screen Size (Monitor),,Active,,,

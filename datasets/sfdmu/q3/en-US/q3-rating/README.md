@@ -1,5 +1,7 @@
 # q3-rating Data Plan
 
+> **Shared records follow qb (todo 325).** Where q3 and qb load the same reference record, q3 uses qb's key and values, so the two shapes layer into one org: the same units and classes as qb-rating, and the daily rating delay of 0. Records qb doesn't have stay q3's own. An org loaded with q3 before todo 325 has the old selling models, units and classes; a reload adds the renamed units and classes beside them, and its pass-2 update of URCALLS01's unit is likely rejected once the resource is in use, so rebuild it rather than reload it.
+
 SFDMU data plan for the Q3 usage rating design-time data: units, usage resources, usage policies and the
 product-to-resource links (`ProductUsageResource`, PUR). The policies and grants on each PUR
 (`ProductUsageResourcePolicy`, `ProductUsageGrant`) load from the sibling plan
@@ -21,8 +23,8 @@ lookups resolve; without them an `Update` sends the lookup as null.
 
 ## Release 264 notes
 
-- `RatingFrequencyPolicy.Name` is required on 264. The rows are `Daily Rating Frequency` (delay 3) and
-  `Monthly Rating Frequency` (delay 0); the key is still `RatingPeriod`.
+- `RatingFrequencyPolicy.Name` is required on 264. The rows are `Daily Rating Frequency` and
+  `Monthly Rating Frequency`, both with delay 0 as in qb-rating (todo 325); the key is still `RatingPeriod`.
 - `UsageResourceBillingPolicy.UsageAccumulationMethod` allows only `Sum`/`Peak` on 264, so the
   `DefaultUsageResourceBillingPolicy` row (`Event`, referenced by nothing) was dropped.
 - The inactive `Unit` UnitOfMeasureClass had no `Type`, which 264 requires; nothing referenced it, so it was

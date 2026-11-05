@@ -4,14 +4,14 @@ ConversionFactor,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,Unit
 ,,Basic: Data Units,,,,Active,Storage,Basic: Data Units,DSU
 1,,CALLS,,,4,Active,Count,CALLS,COUNT
 1,,Count,,,1,Active,Count,Count,SMS01
-1,,Each,,,1,Active,Count,Each,CAS01
-0.001,Unit of measure for Data,GB,,,2,Active,Memory,GB,DAT01
+1,Support Cases,Each,,,1,Active,Count,EACH,CAS01
+1,,Gigabyte,,,4,Active,Data,GB,DATAVOL
 1000,,Grams,Up,5,1,Active,Weight,GRAMS,Grams
 0.001,,Kilograms,Up,3,2,Active,Weight,KG,Grams
 1,,Litre,Down,4,1,Active,Litre,LITRE,Litre
 1,,LOGS,,,3,Active,Count,LOGS,COUNT
-1,,MB,,,1,Active,Memory,MB,DAT01
-1,,Minutes,,,1,Active,Time,MIN,CALLUNITS01
+1000,,Megabyte,,,3,Active,Data,MB,DATAVOL
+1,,Minutes,,,2,Active,Time,m,TIME
 0.001,,Millilitres,Down,5,2,Active,Litre,ML,Litre
 1,,SESH,,,5,Active,Count,SESH,COUNT
 1,,TPS,,,6,Active,Count,TPS,COUNT

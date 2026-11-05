@@ -1,9 +1,9 @@
 BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Type
-MIN,CALLUNITS01,MIN,Call Units in Minutes,Call Units,Usage
-Each,CAS01,Each,Support Cases,Case,Usage
+m,TIME,m,,Time,Usage
+EACH,CAS01,EACH,Support Cases,Case,Usage
 XFER,COUNT,XFER,,Count,Usage
 USD,CURRENCY,USD,,Currency,Currency
-MB,DAT01,MB,The unit refers to the amount of data,Data,Usage
+GB,DATAVOL,GB,,Data Volume,Usage
 ,DSU,Basic: Data Units,,Basic: Data Storage Token Units,Token
 ,GB,BASIC-GB,,Basic: Data Storage Class,Usage
 ,Grams,GRAMS,,Grams,Usage

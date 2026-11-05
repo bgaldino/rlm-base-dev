@@ -117,17 +117,18 @@ the shapes differ:
 |---|---|---|
 | Price adjustment schedules | qb, q3, mfg, qb/ja pricing | `EffectiveFrom`; which schedules exist (below) |
 | Currency types | every pricing plan, on `IsoCode` | `ConversionRate` (below) |
-| Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | `GB`/`MB`: qb's `DATAVOL` class with factors 1 and 1000, q3's `DAT01` with 0.001 and 1. Their names, types and sequences differ too. mfg sends `EACH` with no class or description, where qb puts it in `CAS01`. The `CAS01` class's base and default unit is `EACH` in qb and `Each` in q3, which differ only in case (below); the `CURRENCY` class's is `JPY` in qb/ja and `USD` in qb/en-US and q3. qb/ja loads `CAS01`, `CURRENCY` and `DATAVOL` Active, where qb/en-US loads them Draft, and q3 loads `CAS01` and `CURRENCY` Draft |
-| Rating frequency and overage policies | qb and q3 rating | 'Daily Rating Frequency' has a delay of 0 in qb and 3 in q3 |
-| Standard price book | qb, q3, mfg and qb/ja pricing | its `CostBook`: 'Standard Cost Book' in qb, 'CostBook' in qb/ja, none in q3 and mfg |
-| Selling models, relationship types, proration policy | qb, q3, mfg and qb/ja pcm (each shape's pricing plan also updates the proration policy) | none (for the proration policy, see below). Only exact names match: mfg's 9 selling models are qb's, q3 shares 4 (its 'One Time' is a separate record from qb's 'One-Time'), and qb/ja's Japanese-named ones are new records |
+| Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | q3 uses qb's `EACH`, `GB`, `MB` and `m` and its `CAS01`, `DATAVOL` and `TIME` classes (todo 325). mfg sends `EACH` with no class or description, where qb puts it in `CAS01`. qb/ja loads its classes Active with Japanese names, and its `CURRENCY` class on a JPY base (todo 212) |
+| Rating frequency and overage policies | qb and q3 rating | none (q3 takes qb's delay of 0, todo 325) |
+| Standard price book | qb, q3, mfg and qb/ja pricing | its `CostBook`: 'Standard Cost Book' in qb and q3, 'CostBook' in qb/ja, none in mfg |
+| Selling models, relationship types, proration policy | qb, q3, mfg and qb/ja pcm (each shape's pricing plan also updates the proration policy) | none (for the proration policy, see below). Only exact names match: mfg's and q3's 9 selling models are qb's (q3 renamed five to qb's names, todo 325), and qb/ja's Japanese-named ones are new records |
 | Legal entity US, tax engine, Default Tax Policy, billing policies and treatments, payment terms, accounting periods, fulfillment step definitions | qb and mfg tax, billing and dro | the US legal entity's `CompanyName`; the fulfillment steps' and step group's `UsageType`, which qb sets to Fulfillment and mfg leaves null; the fallout rule's `RetriesAllowed` (3 in qb, 1 in mfg); and Default Tax Policy's default treatment ('Default Tax Policy' in qb, 'Default Tax Treatment - US' in mfg). mfg still ships its own copies; it moves onto qb's design with the mfg series |
 | GL accounts and GL assignment rules | qb-billing (accounts on `AccountingCode`), mfg-billing (on `Name`); both write four rules of the same names | not shared but colliding: five codes (4100, 4200, 4300, 4400, 5300) have different names in each shape. mfg after qb adds a second account for each, unless the platform rejects the duplicate code, and repoints 'USD CML Charges' to mfg's. qb after mfg matches mfg's accounts on code and renames them. Once both exist, qb's code key matches two accounts per code. Of the 29 accounts with the same name, 5000 and 5600 differ in description, and the last load's wins |
 
 **Keys that differ only in case:** SFDMU matches keys case-sensitively, so a key one shape
 writes as `EACH` and another as `Each` is two records to the load, and the second load either
-inserts a near-duplicate or is rejected as one. Three exist, all against q3: the unit of measure `EACH` (qb and mfg; q3 `Each`), and mfg's
-product category `Warranty` and component group `Accessories` (q3 `WARRANTY`, `ACCESSORIES`).
+inserts a near-duplicate or is rejected as one. Two remain, both mfg's against q3: the product
+category `Warranty` and the component group `Accessories` (q3 `WARRANTY`, `ACCESSORIES`; todo
+327). q3 now writes the unit `EACH` as qb and mfg do (todo 325).
 
 **Price adjustment schedules:**
 
@@ -146,7 +147,7 @@ product category `Warranty` and component group `Accessories` (q3 `WARRANTY`, `A
   rows land: the Volume schedule then differs from q3's in `IsActive`, `EffectiveFrom` and
   `CurrencyIsoCode`, and the Attribute and Bundle schedules from q3's and mfg's in
   `CurrencyIsoCode`.
-- **`EffectiveFrom`** ranges from 2023-01-01 (qb) to 2025-10-01 (qb/ja) across the shapes.
+- **`EffectiveFrom`** is 2023-01-01 in qb and q3 for the three shared schedules (todo 325), 2024-01-01 in mfg and 2025-10-01 in qb/ja.
 
 **Proration policy:** it is create-only, so SFDMU runs each pcm plan's `Upsert` of it as an
 `Insert`. The platform seeded 'Default Proration Policy' on every org checked, so the insert is
@@ -157,7 +158,7 @@ them.
 
 **Currency types:**
 
-- **`ConversionRate` differs by shape.** CAD is 1.408989 in qb, 1.42 in q3 and 1.36 in mfg.
+- **`ConversionRate` differs by shape.** CAD is 1.408989 in qb, 1.42 in q3 and 1.36 in mfg. Each shape's prices in a currency follow its own rates, so converging the rates means regenerating those prices too (todo 328; mfg in todo 327).
 - **qb/ja's rates are on a JPY base.** JPY is the corporate currency and USD is 0.00663.
   qb/ja assumes a JPY-corporate org. Its rates are wrong on a USD-corporate org, and the other
   shapes' rates are wrong on a JPY-corporate one.
@@ -167,15 +168,17 @@ qb-dro's `FulfillmentWorkspaceItem`; mfg and qb/ja are not yet (see *Destructive
 that remain*). Loading a second shape into the same org is not safe either. Where the shapes
 differ on a shared record, the second load changes the first shape's data. For example:
 
-- q3 after qb redefines `GB` and `MB`, which qb's usage resources and rates are measured in,
-  changes the delay on qb's daily rating policy, and clears the standard price book's cost book.
+- q3 after qb writes qb's own values into the records they share (todo 325), apart from
+  currency rates (todo 328); a q3-on-qb build is the live check. A q3 org built before todo 325
+  has the old selling models and units, so rebuild it rather than reload it.
 - mfg after qb renames the US legal entity's company, clears the fulfillment steps' usage
   type and the price book's cost book, and moves `EACH` out of its class. It also adds a second
   GL account for five codes, because mfg keys accounts on `Name` and qb on `AccountingCode`,
   and points a shared GL rule at mfg's. If the platform rejects the duplicate code instead,
   the mfg load fails. And mfg-dro deletes every fulfillment workspace item, qb's included
   (qb-dro does the same in reverse).
-- Any pair changes currency rates and schedule dates.
+- Any pair changes currency rates (todo 328). mfg against qb or q3 also changes schedule dates
+  (todo 327), and qb/ja against the others changes both (todo 212).
 
 Reconciling those values, or giving one shape distinct keys, is the precondition for loading
 two shapes into one org. q3 used to carry its own tax and billing objects too, including two

@@ -601,13 +601,13 @@ def unknown_shared_conflict_fails():
     import contextlib
     import io
     saved = L.KNOWN_SHARED_CONFLICTS
-    L.KNOWN_SHARED_CONFLICTS = saved - {("UnitOfMeasure", "GB", "ConversionFactor")}  # MB stays
+    L.KNOWN_SHARED_CONFLICTS = saved - {("CurrencyType", "CAD", "ConversionRate")}  # AUD stays
     try:
         with contextlib.redirect_stdout(io.StringIO()) as out:
             code = L.main([])
         text = out.getvalue()
-        return (code == 1 and "UnitOfMeasure 'GB' ConversionFactor differs" in text
-                and "UnitOfMeasure 'MB' ConversionFactor differs" not in text)
+        return (code == 1 and "CurrencyType 'CAD' ConversionRate differs" in text
+                and "CurrencyType 'AUD' ConversionRate differs" not in text)
     finally:
         L.KNOWN_SHARED_CONFLICTS = saved
 
