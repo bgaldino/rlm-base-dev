@@ -9,7 +9,8 @@ that a plan loaded in place has its credentials cleared after a failed run, is u
 early failure, and never has the access token logged. A load, filtered or not, also restores
 the exact bytes of export.json it read (todo 319).
 
-Also `TestSFDMUIdempotency`'s second-load rule for a listed insert rejection both loads have, and
+Also `TestSFDMUIdempotency`'s second-load rule for a listed insert rejection both loads have, its
+`dynamic_assigned_to_user` option resolving the DRO placeholder on both loads (todo 329), and
 `DeleteSFDMUData`'s `sobjects` option, which the qb-pricing teardown needs now that the plan has
 no Insert objects (todo 298).
 
@@ -210,6 +211,12 @@ check("in place, filtered run: export.json byte-for-byte unchanged",
 before, after, error, temp, logs = run_task({"object_sets": "[0]"}, org_with_every_pur, plan_src=PLAIN, exit_code=1)
 check("in place, filtered run fails: every object set restored",
       json.loads(after[pathlib.Path("export.json")])["objectSets"] == json.loads(plain_export)["objectSets"], True)
+
+# `-o dynamic_assigned_to_user false` arrives as the string "false": it must disable the option
+# (the stubbed run returns no JSON, so a User Name query would fail the task).
+before, after, error, temp, logs = run_task({"dynamic_assigned_to_user": "false"}, org_with_every_pur,
+                                            plan_src=PLAIN)
+check('dynamic_assigned_to_user "false": no user query, the run completes', error, None)
 
 
 class _FakePersistent(OrgConfig):
@@ -452,6 +459,58 @@ try:
 finally:
     rs._restore_export_json = saved_restore
 shutil.rmtree(idem_root, ignore_errors=True)
+
+print("TestSFDMUIdempotency: dynamic_assigned_to_user resolves the placeholder on both loads")
+# qb-dro's load sets dynamic_assigned_to_user; the test ran without it, so both loads sent the raw
+# placeholder and the platform rejected FulfillmentStepDefinition rows for a blank AssignedToId
+# (todo 329). With the option, each load runs from a temp copy carrying the org user's Name.
+dro_root = pathlib.Path(tempfile.mkdtemp())
+DRO = dro_root / "qb-dro"
+shutil.copytree(REPO / "datasets/sfdmu/qb/en-US/qb-dro", DRO, ignore=shutil.ignore_patterns(*rs.SFDMU_RUNTIME_DIRS))
+dro_before = {p.relative_to(DRO): p.read_bytes() for p in DRO.rglob("*") if p.is_file()}
+seen, user_queries = [], []
+
+
+def dro_run(cmd, *_a, **_k):
+    if isinstance(cmd, list):  # the User Name query
+        user_queries.append(cmd)
+        return type("R", (), {"returncode": 0, "stderr": "",
+                              "stdout": json.dumps({"result": {"records": [{"Name": "Admin User"}]}})})()
+    plan = pathlib.Path(cmd.split(" -p ", 1)[1].split(" ", 1)[0])
+    seen.append((plan, (plan / "FulfillmentStepDefinition.csv").read_text(encoding="utf-8")))
+    return type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+
+
+for option, want_name in ((True, True), ("false", False)):
+    seen.clear(), user_queries.clear()
+    task = idem_task()
+    task.options = {"dynamic_assigned_to_user": option}
+    task.targetusername = "scratch@example.com"
+    saved_run = rs.subprocess.run
+    rs.subprocess.run = dro_run
+    try:
+        task._run_load_once(str(DRO), strict=False)
+        task._run_load_once(str(DRO), strict=True)
+    finally:
+        rs.subprocess.run = saved_run
+    tag = f"dynamic_assigned_to_user={option!r}"
+    check(f"{tag}: both loads ran", len(seen), 2)
+    if want_name:
+        check(f"{tag}: both loads send the org user's Name",
+              [("Admin User" in csv, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv) for _, csv in seen],
+              [(True, False)] * 2)
+        check(f"{tag}: both loads ran from a temp copy, now removed",
+              [(plan != DRO, plan.exists()) for plan, _ in seen], [(True, False)] * 2)
+        check(f"{tag}: the user Name is queried once, by username",
+              [c[c.index("-o") + 1] for c in user_queries], ["scratch@example.com"])
+    else:
+        check(f"{tag}: the plan loads in place, placeholder unchanged",
+              [(plan == DRO, rs.DRO_ASSIGNED_TO_PLACEHOLDER in csv) for plan, csv in seen], [(True, True)] * 2)
+        check(f"{tag}: no user query", user_queries, [])
+    shutil.rmtree(DRO / "target", ignore_errors=True)  # the in-place run's (empty) output
+dro_after = {p.relative_to(DRO): p.read_bytes() for p in DRO.rglob("*") if p.is_file()}
+check("qb-dro plan byte-for-byte unchanged", dro_after == dro_before, True)
+shutil.rmtree(dro_root, ignore_errors=True)
 
 print("clear_credentials_under: the idempotency roundtrip's kept dir")
 # Persist mode keeps the roundtrip dir, and the second load ran from processed/export.json; a failed

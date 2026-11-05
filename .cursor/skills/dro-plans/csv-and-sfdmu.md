@@ -255,23 +255,22 @@ CCI_ORG="your-cci-alias"
 SF_ORG="your-sf-alias-or-username"
 cci task run insert_qb_dro_data --org "$CCI_ORG" \
   -o pathtoexportjson "$DRO_PLAN" -o targetusername "$SF_ORG" \
-  -o dynamic_assigned_to_user "" -o simulation true
+  -o dynamic_assigned_to_user false -o simulation true
 ```
 
 Despite the task's QB name, the `pathtoexportjson` override loads
 the selected plan using `LoadSFDMUData`. Verify the CCI and SF targets identify the
 same org. Explicit `targetusername` avoids the loader's connected-org fallback
-to an access token. The loader uses Python truthiness for these options:
-CLI `false` is a nonempty string, so it does **not** disable either option. Pass
-an empty string to disable dynamic assignment (overriding the task's true default)
-or simulation; pass `true` to enable them. Turn dynamic assignment on only when
+to an access token. Pass `false` (or an empty string) to disable dynamic
+assignment (overriding the task's true default) or simulation; pass `true` to
+enable them. Turn dynamic assignment on only when
 the dataset uses its placeholder. **The next command writes to the org**; run
 only for an authorized target after preflight/prerequisites:
 
 ```bash
 cci task run insert_qb_dro_data --org "$CCI_ORG" \
   -o pathtoexportjson "$DRO_PLAN" -o targetusername "$SF_ORG" \
-  -o dynamic_assigned_to_user "" -o simulation ""
+  -o dynamic_assigned_to_user false -o simulation false
 ```
 
 If the target is authenticated only in the SF CLI and has no CCI alias, direct
@@ -295,9 +294,9 @@ If SFDMU classifies the target host as production and requests `--canmodify`,
 verify the authenticated org identity and authorization first; simulation does
 not bypass this identity guard. For idempotency, use a disposable org and verify
 stable record identities and intended relationships after two loads. The existing
-`test_qb_dro_idempotency` can be overridden with `pathtoexportjson`, but its
-documented default-user limitation applies; two explicit loader runs plus read-back
-cover dynamic assignment. Follow
+`test_qb_dro_idempotency` can be overridden with `pathtoexportjson`; it sets
+`dynamic_assigned_to_user` like the load, so both runs send the target org user.
+Pass `-o dynamic_assigned_to_user false` for a plan without the placeholder. Follow
 [updates-and-runtime.md](updates-and-runtime.md) for used orgs and null clears.
 
 ## Extract Existing Configuration
