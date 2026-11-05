@@ -2,7 +2,7 @@
 
 SFDMU data plan for QuantumBit (QB) Dynamic Revenue Orchestrator (DRO) configuration. Creates fulfillment step definitions, groups, dependencies, decomposition rules, fulfillment scenarios, workspaces, fallout rules, jeopardy rules, and updates products with DRO-specific fields. Uses dynamic user resolution at runtime.
 
-> **SFDMU 5.6.4+ floor.** The plan is `Upsert` throughout, with no `deleteOldData`. FulfillmentWorkspaceItem's externalId is a composite of two relationship traversals (`FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`), which matches on the 5.6.4+ floor. Its old `deleteOldData: true` (a pre-5.6.4 workaround) deleted every workspace item in the org on each load, including other shapes' (mfg) and cloned workspaces' items, so it was removed (todo 326, owner-approved). An item removed from the CSV now stays in the org until deleted by hand.
+> **SFDMU 5.6.4+ floor.** Every object it writes is `Upsert` (Product2 is `Update`), with no `deleteOldData`. FulfillmentWorkspaceItem's externalId is a composite of two relationship traversals (`FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`), which matches on the 5.6.4+ floor. Its old `deleteOldData: true` (a pre-5.6.4 workaround) deleted every workspace item in the org on each load, including other shapes' (mfg) and cloned workspaces' items, so it was removed (todo 326, owner-approved). An item removed from the CSV now stays in the org until deleted by hand.
 
 ## CCI Integration
 
