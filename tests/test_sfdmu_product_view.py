@@ -102,7 +102,7 @@ check("it names the SKU, the attribute and the field",
 moved = copy.deepcopy(base)
 moved["products"]["LP001"]["attributes"][1]["category"] = {"code": "SHARED", "name": "Processor"}
 diffs = V.compare(base, moved)
-check("a changed category reads as one removed and one added attribute",
+check("a different category code reads as one removed and one added attribute",
       sorted(d.rsplit(": ", 1)[1] for d in diffs), ["added", "removed"])
 extra = copy.deepcopy(base)
 extra["products"]["LP001"]["attributes"].insert(0, V._attr(attr("AAA", "First"), None))
@@ -123,6 +123,15 @@ nested = copy.deepcopy(base)
 nested["products"]["LP001"]["componentGroups"][0]["childGroups"] = [
     {"code": "G2", "name": "Child group", "components": [], "childGroups": []}]
 check("a nested child group is compared", any("childGroups" in d for d in V.compare(base, nested)), True)
+renamed_cat = copy.deepcopy(base)
+renamed_cat["products"]["LP001"]["attributes"][1]["category"]["name"] = "CPU"
+diffs = V.compare(base, renamed_cat)
+check("a renamed category is one field change, not a removed and added attribute",
+      (len(diffs), diffs[0].endswith('"Proc" -> "CPU"')), (1, True))
+fewer = copy.deepcopy(base)
+fewer["products"]["LP001"]["attributes"][1]["values"].pop()
+diffs = V.compare(base, fewer)
+check("a dropped picklist value is reported as removed", (len(diffs), "removed" in diffs[0]), (1, True))
 check("a SKU only in the baseline is reported",
       V.compare(base, {"missing": [], "notReturned": [], "products": {}}), ["LP001: only in baseline"])
 check("missing and not-returned SKUs are reported on either side",

@@ -145,13 +145,16 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
 
 
 # Lists compared as sets keyed by these fields, so one inserted item doesn't misreport every later one.
-LIST_KEYS = {"attributes": ("category", "code"), "componentGroups": ("code",), "components": ("sku",),
+LIST_KEYS = {"attributes": ("categoryCode", "code"), "componentGroups": ("code",), "components": ("sku",),
              "childGroups": ("code",), "sellingModels": ("name",)}
 
 
 def _key(it: Dict[str, Any], fields) -> str:
-    return "|".join(json.dumps(it.get(f), sort_keys=True) if isinstance(it.get(f), dict) else str(it.get(f))
-                    for f in fields)
+    def part(f):
+        if f == "categoryCode":  # a category rename is one field change, not every attribute moving
+            return str((it.get("category") or {}).get("code"))
+        return str(it.get(f))
+    return "|".join(part(f) for f in fields)
 
 
 def _keyed(items: List[Any], fields) -> Dict[str, Any]:
@@ -181,8 +184,13 @@ def diff(a: Any, b: Any, path: str = "") -> List[str]:
             else:
                 out += diff(a[k], b[k], f"{path}/{k}")
         return out
-    if isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
-        return [d for i, (x, y) in enumerate(zip(a, b)) for d in diff(x, y, f"{path}[{i}]")]
+    if isinstance(a, list) and isinstance(b, list):
+        if len(a) == len(b):
+            return [d for i, (x, y) in enumerate(zip(a, b)) for d in diff(x, y, f"{path}[{i}]")]
+        ja, jb = [json.dumps(x, sort_keys=True) for x in a], [json.dumps(y, sort_keys=True) for y in b]
+        return ([f"{path}: removed {x[:200]}" for x in ja if x not in jb]
+                + [f"{path}: added {y[:200]}" for y in jb if y not in ja]
+                or [f"{path}: {len(a)} -> {len(b)} items"])
     return [] if a == b else [f"{path}: {json.dumps(a, sort_keys=True)[:200]} -> {json.dumps(b, sort_keys=True)[:200]}"]
 
 

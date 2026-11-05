@@ -178,7 +178,7 @@ is deleted and inserted again. Optional (nillable) create-only lookups in the qb
 
 (Required create-only lookups, such as a master-detail parent, make the child insert fail outright
 instead.) So when a load reports rejected rows, fix the cause, delete the children inserted in
-that run whose create-only lookup is blank, and reload. Then check what users see:
+that run whose create-only lookup is blank where the plan's CSV has a value, and reload. Then check what users see:
 `python scripts/sfdmu_product_view.py capture --target-org <org> --shape <qb|q3> --out <file>` reads
 the configurator's view (PCM `/connect/pcm/products/bulk`) and list prices. `compare <baseline>
 <candidate>` diffs it against a single-shape build. Run it after any layered load or rename.
