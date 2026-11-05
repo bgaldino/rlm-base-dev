@@ -211,8 +211,7 @@ KNOWN_SHARED_CONFLICTS = {
 # `deleteQuery` or WHERE is listed here too, once a person has checked that it spares the
 # other shapes' records, because this check can't tell what a scope selects.
 KNOWN_CROSS_SHAPE_DELETES = {
-    ("mfg/en-US/mfg-dro", "FulfillmentWorkspaceItem"),  # wipes qb's 4 items
-    ("qb/en-US/qb-dro", "FulfillmentWorkspaceItem"),    # wipes mfg's 9 items
+    ("mfg/en-US/mfg-dro", "FulfillmentWorkspaceItem"),  # wipes qb's 4 items: todo 111
 }
 
 # Written declarations whose rows carry none of their key, so the shared check can't place

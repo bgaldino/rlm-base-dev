@@ -1,5 +1,5 @@
-FulfillmentStepDefinitionGroup.Name,FulfillmentWorkspace.Name,ShowOrder
-Provisioning & Activation,QuantumBit Complete Solution Bundle,4
-Finance,QuantumBit Complete Solution Bundle,5
-Services,QuantumBit Complete Solution Bundle,2
-Platform,QuantumBit Complete Solution Bundle,3
+$$FulfillmentWorkspace.Name$FulfillmentStepDefinitionGroup.Name,FulfillmentStepDefinitionGroup.Name,FulfillmentWorkspace.Name,ShowOrder
+QuantumBit Complete Solution Bundle;Provisioning & Activation,Provisioning & Activation,QuantumBit Complete Solution Bundle,4
+QuantumBit Complete Solution Bundle;Finance,Finance,QuantumBit Complete Solution Bundle,5
+QuantumBit Complete Solution Bundle;Services,Services,QuantumBit Complete Solution Bundle,2
+QuantumBit Complete Solution Bundle;Platform,Platform,QuantumBit Complete Solution Bundle,3

@@ -158,7 +158,7 @@ Nothing in qb-rating is deleted or activated by SFDMU; `activateRatingRecords.ap
 | FulfillmentStepDependencyDef | `Name` | Upsert | |
 | ProductFulfillmentScenario | `Name` | Upsert | |
 | FulfillmentWorkspace | `Name` | Upsert | |
-| FulfillmentWorkspaceItem | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Upsert + deleteOldData | Bug 5 — auto-number Name |
+| FulfillmentWorkspaceItem | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Upsert | Auto-number Name; matches on the 5.6.4+ floor (todo 326) |
 | FulfillmentFalloutRule | `Name` | Upsert | |
 | FulfillmentStepJeopardyRule | `Name` | Upsert | |
 | FulfillmentTaskAssignmentRule | `Name` | Upsert | |

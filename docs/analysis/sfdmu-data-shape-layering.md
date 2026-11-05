@@ -163,8 +163,8 @@ them.
   qb/ja assumes a JPY-corporate org. Its rates are wrong on a USD-corporate org, and the other
   shapes' rates are wrong on a JPY-corporate one.
 
-**What this means for layering.** qb and q3 are reload-safe on their own builds, apart from
-qb-dro's `FulfillmentWorkspaceItem`; mfg and qb/ja are not yet (see *Destructive operations
+**What this means for layering.** qb and q3 are reload-safe on their own builds; mfg and
+qb/ja are not yet (see *Destructive operations
 that remain*). Loading a second shape into the same org is not safe either. Where the shapes
 differ on a shared record, the second load changes the first shape's data. For example:
 
@@ -223,8 +223,7 @@ alignment doesn't drop the extra key part.
 |---|---|---|
 | `delete_quantumbit_pricing_data`, `delete_q3_pricing_data` | manual full teardown only; no flow runs them | deletes every record of the plan's pricing types, org-wide |
 | `delete_qb_rates_data`, `delete_q3_rates_data`, `delete_qb_rating_data`, `delete_q3_rating_data` | manual full teardown only; no flow runs them | Apex that deactivates Active records first, then deletes in dependency order |
-| qb-dro `FulfillmentWorkspaceItem` | `Upsert` + `deleteOldData: true` with no scope, in a flow plan (`check_sfdmu_layering.py` lists it, and any `deleteOldData` on an object another shape writes) | a pre-5.6.4 workaround; each load deletes every item in the org, mfg's included (mfg-dro does the same to qb's). Dropping it needs live verification and owner approval |
-| mfg plans | 11 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing | converted with the mfg series (todo 111) |
+| mfg plans | 11 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing. mfg-dro's `FulfillmentWorkspaceItem` delete is unscoped, so each load deletes every item in the org, qb's included (`check_sfdmu_layering.py` lists it) | converted with the mfg series (todo 111). qb-dro dropped its own copy of that delete (todo 326); scoping the deletes that stay is researched in todo 331 |
 | qb/ja qb-pricing | 7 `Insert` declarations, 6 of them live (one is `excluded`) | brought up to the en-US plan in the qb/ja refresh (todo 212) |
 
 The rules for anything that stays destructive:
