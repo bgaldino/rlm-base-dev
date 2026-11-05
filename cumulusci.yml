@@ -864,6 +864,25 @@ tasks:
       activate: true
       verify: true
 
+  apply_context_contract_pricing:
+    group: Revenue Lifecycle Management
+    description: >
+      Adds the RLM_Contract_Applied_Unit_Price__c attribute and tag to
+      RLM_SalesTransactionContext with a QuoteLineItem mapping, using an additive
+      Context Service plan, so RLM_DefaultPricingProcedure can remember the
+      contract price it copied into Sales Price and replace it when the contract
+      price changes or no longer applies. Runs in extend_context_definitions
+      because the procedure references the tag and is first deployed by
+      prepare_expression_sets.
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: *sales_transaction_context_name
+      plan_file: datasets/context_plans/ContractPricing/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
   apply_context_approvals:
     group: Revenue Lifecycle Management
     description: >
@@ -3880,6 +3899,8 @@ flows:
         when: project_config.project__custom__rating
       11:
         task: extend_context_asset
+      12:
+        task: apply_context_contract_pricing
 
   prepare_expression_sets:
     group: Revenue Lifecycle Management

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>68.0</apiVersion>
+    <customErrors>
+        <description>Rolls back the quote save when its lines cannot take the new pricing contract, so the quote and its lines never disagree about which contract prices them.</description>
+        <name>Report_Cascade_Failure</name>
+        <label>Report Cascade Failure</label>
+        <locationX>440</locationX>
+        <locationY>158</locationY>
+        <customErrorMessages>
+            <errorMessage>The quote&apos;s pricing contract could not be copied to its quote lines, so the change was not saved: {!$Flow.FaultMessage}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <description>When Quote.PricingContractId changes on an existing quote (set, switched, or cleared), copies the new value to every QuoteLineItem.PricingContractId on that quote. Runs after save, so it sees the value RLM Set Pricing Contract On Quote resolved from Quote.ContractId in the same save. Update-only: a new quote has no lines yet.</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Cascade Pricing Contract To Quote Lines {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Cascade Pricing Contract To Quote Lines</label>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <name>Update_QLI_PricingContractId</name>
+        <label>Update QLI PricingContractId</label>
+        <locationX>176</locationX>
+        <locationY>158</locationY>
+        <faultConnector>
+            <targetReference>Report_Cascade_Failure</targetReference>
+        </faultConnector>
+        <filterLogic>1</filterLogic>
+        <filters>
+            <field>QuoteId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>PricingContractId</field>
+            <value>
+                <elementReference>$Record.PricingContractId</elementReference>
+            </value>
+        </inputAssignments>
+        <object>QuoteLineItem</object>
+    </recordUpdates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Update_QLI_PricingContractId</targetReference>
+        </connector>
+        <filterFormula>ISCHANGED({!$Record.PricingContractId})</filterFormula>
+        <object>Quote</object>
+        <recordTriggerType>Update</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

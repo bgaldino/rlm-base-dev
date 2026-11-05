@@ -2119,6 +2119,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>QuoteLineItem.RLM_Contract_Applied_Unit_Price__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>QuoteLineItem.RLM_ProductName__c</field>
         <readable>true</readable>
     </fieldPermissions>

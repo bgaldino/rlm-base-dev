@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**276 tasks** across **9 groups**.
+**277 tasks** across **9 groups**.
 
 ---
 
@@ -885,7 +885,7 @@
 
 ## Revenue Lifecycle Management
 
-*179 task(s)*
+*180 task(s)*
 
 ### `activate_agents`
 
@@ -1116,6 +1116,23 @@
 
 - `developer_name`: `RLM_SalesTransactionContext`
 - `plan_file`: `datasets/context_plans/ConstraintEngineNodeStatus/manifest.json`
+- `translate_plan`: `True`
+- `deactivate_before`: `False`
+- `activate`: `True`
+- `verify`: `True`
+
+---
+
+### `apply_context_contract_pricing`
+
+**Description:** Adds the RLM_Contract_Applied_Unit_Price__c attribute and tag to RLM_SalesTransactionContext with a QuoteLineItem mapping, using an additive Context Service plan, so RLM_DefaultPricingProcedure can remember the contract price it copied into Sales Price and replace it when the contract price changes or no longer applies. Runs in extend_context_definitions because the procedure references the tag and is first deployed by prepare_expression_sets.
+
+**Class:** `tasks.rlm_context_service.ManageContextDefinition`
+
+**Options:**
+
+- `developer_name`: `RLM_SalesTransactionContext`
+- `plan_file`: `datasets/context_plans/ContractPricing/manifest.json`
 - `translate_plan`: `True`
 - `deactivate_before`: `False`
 - `activate`: `True`

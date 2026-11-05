@@ -159,6 +159,7 @@ Deploy and configure the PRM pricing bundle in dependency order so context resou
 9. **task** `extend_context_rate_management`  `when: project_config.project__custom__rating`
 10. **task** `extend_context_rating_discovery`  `when: project_config.project__custom__rating`
 11. **task** `extend_context_asset`
+12. **task** `apply_context_contract_pricing`
 
 ---
 

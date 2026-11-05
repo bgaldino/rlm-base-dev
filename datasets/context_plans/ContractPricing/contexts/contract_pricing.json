@@ -1,0 +1,30 @@
+{
+  "planName": "ContractPricing",
+  "developerName": "RLM_SalesTransactionContext",
+  "activate": true,
+  "contextAttributesByName": [
+    {
+      "nodeName": "SalesTransactionItem",
+      "name": "RLM_Contract_Applied_Unit_Price__c",
+      "dataType": "CURRENCY",
+      "fieldType": "INPUTOUTPUT"
+    }
+  ],
+  "mappingRules": [
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Contract_Applied_Unit_Price__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem",
+      "sObjectField": "RLM_Contract_Applied_Unit_Price__c"
+    }
+  ],
+  "contextTagsByName": [
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "RLM_Contract_Applied_Unit_Price__c",
+      "name": "RLM_Contract_Applied_Unit_Price__c"
+    }
+  ]
+}
