@@ -263,3 +263,4 @@ The rules for anything that stays destructive:
 | qb-pricing, qb-rates | a fresh `ent-sb0` build, 2026-11-02 | 0 diff; idempotency tasks pass |
 | every q3 plan | two fresh `ent-sb0` q3 builds, 2026-11-03 | no rejected rows apart from the expected `ProrationPolicy` duplicate (see *Shape ownership*); all 8 `test_q3_*` idempotency tasks pass |
 | qb-tax and qb-billing, with the q3 mapping plans | fresh `ent-sb0` q3 and qb builds, 2026-11-03 | Billing Settings deploys on q3; qb tax and billing idempotency pass |
+| product view, q3 on qb (`sfdmu_product_view.py`) | a fresh q3 build and a qb build with q3 layered on, 2026-11-05 | q3's 78 products: 0 differences after the layered org's q3-pcm was reloaded (before, one: DS001's processor override). qb's 314 products: 0 differences against a single-shape qb build. Against a pre-#675 q3 build, the tool shows #675's intended changes: the Processor attribute moved to qb's category, and SUBTYPE001's Name |

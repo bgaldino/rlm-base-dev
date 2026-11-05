@@ -157,6 +157,32 @@ sent to an Active record:
 - **`qb-rating` + `qb-rating-entitlements`**: same pattern (see *Reload-Safe Status
   Objects and Child Lookups* below).
 
+**A load that fails partway can leave children that no reload repairs** (todo 330). When
+SFDMU rejects a parent row, it still inserts the children that look it up, with that lookup
+blank. A later reload matches those children on their key, but it can't set a lookup the
+platform makes **create-only** (createable, not updateable). The child stays wrong until it
+is deleted and inserted again. Optional (nillable) create-only lookups in the qb and q3 plans
+(264 schema):
+
+| Object.field | Plans |
+|---|---|
+| `ProductAttributeDefinition.AttributeCategoryId`, `.OverriddenProductAttributeDefinitionId` | qb-pcm, q3-pcm |
+| `ProductClassificationAttr.AttributeCategoryId` | qb-pcm, q3-pcm |
+| `ProductClassification.ParentProductClassificationId` | qb-pcm, q3-pcm |
+| `ProductRelatedComponent.ChildProductId`, `.ChildProductClassificationId`, `.ParentSellingModelId` | qb-pcm, q3-pcm |
+| `ProductSellingModelOption.ProrationPolicyId` | qb-pcm, q3-pcm |
+| `AttributeDefinition.PicklistId` | qb-pcm, q3-pcm |
+| `Product2.UnitOfMeasureId` | qb-pcm, q3-pcm |
+| `AttributeBasedAdjustment.ProductSellingModelId`; `BundleBasedAdjustment.ProductSellingModelId`, `.ParentProductSellingModelId`, `.RootProductSellingModelId` | qb-pricing, q3-pricing |
+| `GeneralLedgerAcctAsgntRule.LegalEntityId` | qb-accounting, qb-billing |
+
+(Required create-only lookups, such as a master-detail parent, make the child insert fail outright
+instead.) So when a load reports rejected rows, fix the cause, delete the children inserted in
+that run whose create-only lookup is blank, and reload. Then check what users see:
+`python scripts/sfdmu_product_view.py capture --target-org <org> --shape <qb|q3> --out <file>` reads
+the configurator's view (PCM `/connect/pcm/products/bulk`) and list prices. `compare <baseline>
+<candidate>` diffs it against a single-shape build. Run it after any layered load or rename.
+
 **To add one product to a live org, load it surgically** — insert just the new
 records and their relationships (a throwaway script or anonymous Apex), rather than
 re-running the plan. Then:
@@ -439,6 +465,14 @@ python scripts/validate_sfdmu_v5_datasets.py                           # validat
 python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/qb/en-US/qb-pricing  # one plan
 python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run       # preview fixes
 python scripts/validate_sfdmu_v5_datasets.py --fix-all                 # apply fixes
+```
+
+After a layered or partly failed load, check the product view as well (read-only; see *Reloading a Plan
+Into a Live Org*):
+
+```bash
+python scripts/sfdmu_product_view.py capture --target-org <sf_alias> --shape q3 --out q3-view.json
+python scripts/sfdmu_product_view.py compare baseline.json q3-view.json   # exit 1 on any difference
 ```
 
 The validator checks the **plan** (export.json/CSV v5 compliance). To check that the

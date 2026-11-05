@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) Product Catalog Management (PCM). Creates the full product catalog including attribute definitions, picklists, product classifications, products, selling models, component groups, bundle relationships, catalogs, categories, qualifications, and attribute scopes.
 
+> **A load that fails partway needs cleanup, not just a reload (todo 330).** When a parent row is rejected, SFDMU still inserts the children that look it up, with that lookup blank. Several lookups in this plan are create-only, so a reload can't set them: `ProductAttributeDefinition` and `ProductClassificationAttr` `AttributeCategoryId`, `ProductRelatedComponent` `ChildProductId` and `ParentSellingModelId`, and `ProductSellingModelOption` `ProrationPolicyId` (the full list is in the sfdmu-data-plans skill, *Reloading a Plan Into a Live Org*). Fix the cause, delete the children that run inserted with the lookup blank, then reload. Check the result with `scripts/sfdmu_product_view.py`.
+
 ## CCI Integration
 
 ### Flow: `prepare_product_data`
