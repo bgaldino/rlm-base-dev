@@ -85,6 +85,9 @@ declarations against `sobject describe`.
   one pass counts once (the first row), so row order inside a CSV can decide which row is checked.
   A declaration with no `externalId` is matched on the plan's first creating declaration's key. A pass
   whose CSV lacks one of the key's columns can't be matched, either side, so its rows count as created.
+  A key value is matched as written: a later pass that rewrites a key field of an existing record
+  doesn't retire the value an earlier pass wrote, so a third pass keyed on the old value still counts
+  as patching. For a plan that does this, run the audit on its final pass alone.
 - **`required` assumes a creating declaration creates.** An Upsert that only fills a few
   fields on records another plan created is flagged for every required field it leaves out. List it
   in `KNOWN_FINDINGS` with that reason rather than adding columns.
