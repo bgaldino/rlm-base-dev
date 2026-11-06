@@ -290,7 +290,8 @@ silently each fail the suite.
 
 ### `check_sfdmu_layering.py`
 
-Read-only checks across every data shape's SFDMU plans (qb, q3, mfg; qb/ja counts as qb), plus the
+Read-only checks across every data shape's SFDMU plans (qb, q3, mfg; qb/ja counts as qb for
+which plans are compared, though its conflicts are filed as `qb/ja`), plus the
 top-level plans every build loads (scratch_data, procedure-plans, inapp, configurator-flow), which
 count as the shape `common` and are compared against all three.
 `pr_gate.py` runs it as `sfdmu_layering` whenever a plan changes.
@@ -307,7 +308,9 @@ python scripts/ai/check_sfdmu_layering.py --list   # also print every shared and
   build loads are listed in `KNOWN_UNRESOLVED_LOOKUPS`.
 - **`shared`:** a field of a record two shapes write with different values, so the last load
   wins. Each plan's last pass and `sourceRecordsFilter` are taken into account. The known ones
-  are in `KNOWN_SHARED_CONFLICTS`, one per record and field (`--list` prints them); the
+  are in `KNOWN_SHARED_CONFLICTS`, one per record, field and pair of shapes that disagree, with
+  qb/ja apart from qb (`--list` prints them), so a pair that agrees today fails once it drifts
+  (todo 340); the
   table in `docs/analysis/sfdmu-data-shape-layering.md` summarizes them. A new conflict, or a listed one
   that no longer conflicts, fails.
   The same check fails on keys two shapes create that differ only in case (SFDMU matches
