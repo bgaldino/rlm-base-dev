@@ -385,7 +385,7 @@ python scripts/ai/generate_cci_reference.py --dry-run
 
 For requests such as "clean up my CCI and SF orgs" or "purge expired scratch
 orgs and invalid auth", follow [Local Org and Auth Cleanup](org-cleanup.md).
-That procedure inventories first, removes only evidence-backed stale entries,
+That procedure audits first, removes only entries a Dev Hub shows are gone,
 and verifies both CLI registries and residual local state.
 
 ```bash
@@ -436,7 +436,7 @@ cci flow info prepare_rlm_org
 ## Sub-Files
 
 - `org-cleanup.md` — read before cleaning CCI/SF org registries, invalid auth,
-  aliases/defaults, or residual `.sf`/`.sfdx` files.
+  aliases/defaults, or residual `.sf`/`.sfdx` files. Drives `scripts/ai/org_cleanup.py`.
 - `custom-task-authoring.md` — read before writing Python CCI tasks.
 - `tasks-reference.md`, `flows-reference.md`, `feature-flags.md` — generated
   task, flow, and feature-flag references; regenerate after configuration edits.

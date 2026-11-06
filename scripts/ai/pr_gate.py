@@ -721,6 +721,7 @@ STDLIB_SUITES = [
     "tests/test_fix_scratch_identity.py",
     "tests/test_manage_expression_sets_constraint_activation.py",
     "tests/test_mcp_scripts_security.py",
+    "tests/test_org_cleanup.py",
     "tests/test_post_process_extraction.py",
     "tests/test_procedure_plan_overlay_activation.py",
     "tests/test_project_memory_schema.py",
@@ -738,8 +739,7 @@ STDLIB_SUITES = [
     "tests/test_validate_keys_targets.py",
     "tests/test_validate_setup_chrome.py",
     "tests/test_validate_setup_sf.py",
-    "tests/test_verify_backdated_billing.py",
-]
+    "tests/test_verify_backdated_billing.py",]
 
 # Offline like the list above, but they reach a `tasks/` module that imports `requests`, so the
 # dependency is declared and installed rather than inherited by luck from another check's transitive
