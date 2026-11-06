@@ -97,7 +97,7 @@ declarations against `sobject describe`.
   the failed step) and `harness.py resume`, so the remaining plans load and are audited.
 - **mfg-only objects** (AAF, rebates) aren't on a qb build. Merge a snapshot from an org that has them,
   or they stay under *Objects not in the describe*.
-- **SFDMU's polymorphic `Rel$Type`** (`Who$Contact.Name`) is resolved through that target only; an untyped polymorphic path passes if any target has the rest.
+- **SFDMU's polymorphic `Rel$Type`** (`Who$Contact.Name`) is resolved through that target only; an untyped polymorphic path passes if any target has the rest. Which columns a declaration writes ignores the type (a `Who$Lead.Name` header counts as written for a query selecting `Who$Contact.Name`), and the layering checker's shared-record merge treats `Who$Contact` and `Who` as different lookups.
 - **An unsupported `sourceRecordsFilter`** (`Name IN (...)`) exits 2 rather than skipping the declaration; rewrite it as `[col] LIKE`, `=` or `<>`.
 - **`--plans` and a feature-incomplete org:** an allowlist entry for an object the describe lacks is never reported stale, since it wasn't checked.
 

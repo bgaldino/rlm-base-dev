@@ -448,7 +448,9 @@ def lookup_findings(root: Path = SFDMU, allowed=None) -> Tuple[List[str], Set[tu
                     continue
                 relationship, composite = col.split(".$$", 1)
                 parts = ";".join(p for p in composite.split("$") if p)
-                parent = RELATIONSHIP_PARENT.get(relationship, relationship)
+                # `Who$Contact.$$A$B`: the polymorphic discriminator names the parent object.
+                relationship, _, typed = relationship.partition("$")
+                parent = typed or RELATIONSHIP_PARENT.get(relationship, relationship)
                 csv_rel = path.relative_to(plan).as_posix()
                 where = f"{rel}/{csv_rel} column {col}"
                 parent_keys = keys_by_pass.get((pass_idx, parent))
@@ -500,17 +502,29 @@ def is_seeded(obj: str, values: Dict[str, str]) -> bool:
                for seed in PLATFORM_SEEDED.get(obj, []))
 
 
+def untyped(path: str) -> str:
+    """A path without SFDMU's polymorphic `$Type` discriminators: `Who$Contact.Name` is `Who.Name`.
+    A `$$` key column is returned as it is."""
+    if path.startswith("$$"):
+        return path
+    if ".$$" in path:  # `Who$Contact.$$A$B`: only the lookup part is typed
+        head, tail = path.split(".$$", 1)
+        return f"{untyped(head)}.$${tail}"
+    return ".".join(seg.partition("$")[0] for seg in path.split("."))
+
+
 def written_columns(decl: dict, headers: List[str]) -> List[str]:
     """The CSV columns SFDMU writes for this declaration: the query's selected fields (all of
     them for `SELECT all`), less `excludedFields`, plus the `$$` columns for the key and for
     composite lookups, and the `externalId` fields, which SFDMU queries whether or not the
     query names them. A CSV column the query doesn't select is otherwise ignored at load."""
-    # `Field$Type` is SFDMU's polymorphic lookup (`AssignedToId$User`): the field is `Field`.
-    selected = [f.split("$", 1)[0] for f in sfdmu_export.parse_select_fields(decl.get("query", ""))]
+    # `Field$Type` is SFDMU's polymorphic lookup (`AssignedToId$User`, `Who$Contact.Name`): the
+    # field is `Field`, and a traversal keeps its tail (`Who.Name`).
+    selected = [untyped(f) for f in sfdmu_export.parse_select_fields(decl.get("query", ""))]
     key = set(key_parts(decl.get("externalId", "")))  # SFDMU adds the key fields to the query
     excluded = set(decl.get("excludedFields") or [])
     if any(f.lower() == "all" for f in selected):
-        keep = set(headers)
+        keep = {untyped(h) for h in headers}
     else:
         keep = set(selected)
     def selected_lookup(rel: str) -> bool:
@@ -524,13 +538,14 @@ def written_columns(decl: dict, headers: List[str]) -> List[str]:
 
     out = []
     for h in headers:
-        if not h or h in excluded:
+        hu = untyped(h)
+        if not h or h in excluded or hu in excluded:
             continue
-        if h.startswith("$$") or h in key or (h in keep and "." not in h):
+        if h.startswith("$$") or h in key or hu in key or (hu in keep and "." not in h):
             out.append(h)
         elif "." in h:
             rel = h.split(".$$", 1)[0] if ".$$" in h else h.split(".", 1)[0]
-            if selected_lookup(rel):
+            if selected_lookup(untyped(rel)):
                 out.append(h)
     return out
 

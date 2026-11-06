@@ -262,6 +262,7 @@ def _field_of(header: str, fields: Dict[str, Any]) -> Optional[str]:
     if header.startswith("$$"):
         return None
     if "." not in header:
+        header = header.partition("$")[0]  # `AssignedToId$User` is the field `AssignedToId`
         return header if header in fields else None
     rel = header.split(".", 1)[0].partition("$")[0]  # `Who$Contact.Name` is the lookup `Who`
     return next((n for n, f in fields.items() if f.get("relationshipName") == rel), None)

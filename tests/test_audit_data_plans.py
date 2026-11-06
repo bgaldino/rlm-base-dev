@@ -409,6 +409,20 @@ def test_csv_lookup_paths_and_api_version():
         check("a CSV path the parent lacks, plain or composite, is unknown",
               sorted(f["field"] for f in r["findings"] if f["check"] == "unknown-field"),
               ["Parent.Code", "Parent.Gone"])
+    tsnap = {"Task__x": {"fields": {"Name": field(), "WhoId": {**field("reference", rel="Who", nillable=False),
+                                                                "referenceTo": ["Contact__x", "Lead__x"]}}},
+             "Contact__x": {"fields": {"Name": field()}},
+             "Lead__x": {"fields": {"Name": field(), "LeadOnly__c": field()}}}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/t", [
+            {"query": "SELECT Name, WhoId FROM Task__x", "operation": "Upsert", "externalId": "Name"}],
+            {"Task__x.csv": "$$Name,Name,Who$Contact__x.LeadOnly__c\nn,n,x\n"})
+        r = A.audit(tsnap, tmp)
+        check("a typed CSV header is validated against its target, and counts as writing the lookup",
+              ([f["field"] for f in r["findings"] if f["check"] == "unknown-field"],
+               [f["field"] for f in r["findings"] if f["check"] == "required"]),
+              (["Who$Contact__x.LeadOnly__c"], []))
     with tempfile.TemporaryDirectory() as d:
         manifest = pathlib.Path(d) / "m.yml"
         manifest.write_text('api_version_active: "v70.0"\n', encoding="utf-8")
@@ -429,6 +443,8 @@ def test_csv_lookup_paths_and_api_version():
                           {**poly, "Task__x": {"fields": {"WhoId": {**field("reference", rel="Who"),
                                                "referenceTo": ["Elsewhere"]}}}}), None)
     check("a type on the last segment names the field", problem("WhoId$Contact__x"), None)
+    check("a typed plain header is its field",
+          A._field_of("WhoId$Contact__x", poly["Task__x"]["fields"]), "WhoId")
     check("a typed header counts as writing its lookup", A._field_of("Who$Contact__x.Name", poly["Task__x"]["fields"]), "WhoId")
 
 
