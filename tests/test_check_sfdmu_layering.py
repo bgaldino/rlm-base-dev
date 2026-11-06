@@ -17,7 +17,9 @@ Each case builds a throwaway datasets/sfdmu tree and asserts what the two checks
 - Intra-shape (todo 337): two plans of one shape writing different values to one field of one
   record conflict, labelled by plan (the todo 336 DisplayUrl replay). The same values, one plan's
   staging, plans of different shapes, and qb/ja against qb/en-US don't; two qb/ja plans are
-  compared. A stale allowlist entry fails the run.
+  compared. A pair sees records only from plans that load into its org (qb/ja pairs see
+  qb/en-US's; two top-level plans see every shape's). A new conflict and a stale allowlist
+  entry each fail the run.
 - Top-level plans (scratch_data and the other plans every build loads) count as the shape
   `common`, so they're compared against every shape.
 - sourceRecordsFilter: `LIKE` (case-insensitive, whole value), `=` and `<>` are applied in both
@@ -834,6 +836,11 @@ INTRA_CASES = [
         "qb/en-US/c": ([[P2]], {"Product2.csv": "StockKeepingUnit\nQB-1\n"}),
         "qb/ja/a": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,Name\nQB-1,ア\n"}),
         "qb/ja/b": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,Name\nQB-1,イ\n"})}, "Name")),
+    ("two top-level plans' Updates meet on a record a shape creates (they load into its org)", True, intra({
+        "qb/en-US/c": ([[P2]], {"Product2.csv": "StockKeepingUnit\nQB-1\n"}),
+        "inapp": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/a.png\n"}),
+        "scratch_data": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/b.png\n"})},
+        "DisplayUrl")),
     ("a new intra-shape conflict fails the run", True, new_intra_conflict_fails()),
     ("a stale intra-shape entry fails the run", True, stale_intra_entry_fails()),
 ]

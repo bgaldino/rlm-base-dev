@@ -34,7 +34,8 @@ unseen.
     `KNOWN_INTRA_SHAPE_CONFLICTS` with the same new/stale rules. A reload of either plan alone
     changes the data (qb-pcm and the retired qb-product-images blanked 155 product images). qb/ja
     isn't compared against qb/en-US: its plans rewrite qb's records with Japanese values by
-    design (todo 212).
+    design (todo 212). A record counts only if a plan that loads into the pair's org creates it
+    (for qb/ja, qb/en-US's too; for two top-level plans, any shape's).
   - Keys two shapes create that differ only in case (mfg `Warranty`, q3 `WARRANTY`) are listed in
     `KNOWN_CASE_COLLISIONS`, with the same new/stale rules: SFDMU matches case-sensitively,
     so the second load adds a near-duplicate.
@@ -732,11 +733,13 @@ def intra_shape_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]
     and labelled by plan. qb/ja isn't compared against qb/en-US: its plans rewrite qb's records
     with Japanese values by design (todo 212). Plans under one locale root are compared. A record
     exists for them if a plan of that root, a top-level plan, or their shape's en-US plans create
-    it (qb/ja loads over a qb org); another shape's or locale's records don't count.
+    it (qb/ja loads over a qb org); another shape's or locale's records don't count. Two
+    top-level plans load into every shape's org, so any plan's record counts for them.
     """
     return _value_conflicts(
         root, lambda p, q: p != q and shape_of(p) == shape_of(q) and locale_of(p) == locale_of(q),
-        lambda rel: rel, lambda p, c: locale_of(c) in (locale_of(p), COMMON)
+        lambda rel: rel, lambda p, c: locale_of(p) == COMMON
+        or locale_of(c) in (locale_of(p), COMMON)
         or (shape_of(c) == shape_of(p) and locale_of(c).endswith("/en-US")))
 
 
