@@ -4,7 +4,8 @@
 `check_sfdmu_layering.py` compares CSVs, so it cannot see what the configurator shows. Both
 #675 regressions were of that kind: a renamed attribute Label, and a category link left blank by a
 load that failed partway. This reads the product view from a built org, through PCM's
-`/connect/pcm/products/bulk` (what the configurator reads) plus standard price book entries, and
+`/connect/pcm/products/bulk` (what the configurator reads: name, description, unit, attributes,
+bundle groups and components, ungrouped bundle components, selling models) plus standard price book entries, and
 writes it as org-independent JSON: names, codes and values, never record Ids. Compare a layered
 or reloaded org's capture against a single-shape baseline.
 
@@ -58,7 +59,8 @@ def _attr(a: Dict[str, Any], category: Any) -> Dict[str, Any]:
         "displayType": a.get("displayType"), "default": a.get("defaultValue"),
         "required": a.get("isRequired"), "hidden": a.get("isHidden"), "readOnly": a.get("isReadOnly"),
         "priceImpacting": a.get("isPriceImpacting"), "status": a.get("status"),
-        "picklist": picklist.get("name"),
+        "picklist": picklist.get("name"), "sequence": a.get("sequence"), "stepValue": a.get("stepValue"),
+        "unit": (a.get("unitOfMeasureInfo") or {}).get("unitCode"),
         "values": [{"code": v.get("code"), "displayValue": v.get("displayValue"), "value": v.get("value"),
                     "status": v.get("status")}
                    for v in sorted(picklist.get("values") or [], key=lambda v: _seq(v.get("sequence")))],
@@ -72,19 +74,25 @@ def _attributes(p: Dict[str, Any]) -> List[Dict[str, Any]]:
     return sorted(out, key=lambda a: (str((a["category"] or {}).get("code")), str(a["code"])))
 
 
+def _component(c: Dict[str, Any]) -> Dict[str, Any]:
+    prc = c.get("productRelatedComponent") or {}
+    return {"sku": c.get("productCode") or c.get("name"), "name": c.get("name"),
+            "quantity": prc.get("quantity"), "required": prc.get("isComponentRequired"),
+            "default": prc.get("isDefaultComponent"), "quantityEditable": prc.get("isQuantityEditable"),
+            "scale": prc.get("quantityScaleMethod"), "sequence": prc.get("sequence"),
+            "inBundlePrice": prc.get("doesBundlePriceIncludeChild"), "excluded": prc.get("isExcluded"),
+            "quoteVisibility": prc.get("quoteVisibility")}
+
+
+def _components(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    return sorted((_component(c) for c in items or []), key=lambda c: (_seq(c["sequence"]), str(c["sku"])))
+
+
 def _groups(p: Dict[str, Any]) -> List[Dict[str, Any]]:
     def group(g):
-        comps = []
-        for c in g.get("components") or []:
-            prc = c.get("productRelatedComponent") or {}
-            comps.append({"sku": c.get("productCode") or c.get("name"), "name": c.get("name"),
-                          "quantity": prc.get("quantity"), "required": prc.get("isComponentRequired"),
-                          "default": prc.get("isDefaultComponent"),
-                          "quantityEditable": prc.get("isQuantityEditable"),
-                          "scale": prc.get("quantityScaleMethod"), "sequence": prc.get("sequence")})
         return {"code": g.get("code"), "name": g.get("name"), "sequence": g.get("sequence"),
                 "min": g.get("minBundleComponents"), "max": g.get("maxBundleComponents"),
-                "components": sorted(comps, key=lambda c: (_seq(c["sequence"]), str(c["sku"]))),
+                "components": _components(g.get("components")),
                 "childGroups": [group(x) for x in sorted(g.get("childGroups") or [],
                                                            key=lambda x: str(x.get("code")))]}
     return [group(g) for g in sorted(p.get("productComponentGroups") or [], key=lambda g: str(g.get("code")))]
@@ -98,10 +106,13 @@ def _models(p: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def normalize(p: Dict[str, Any], prices: Dict[str, Dict[str, float]], sku: str) -> Dict[str, Any]:
-    return {"name": p.get("name"), "active": p.get("isActive"), "nodeType": p.get("nodeType"),
+    return {"name": p.get("name"), "description": p.get("description"), "active": p.get("isActive"),
+            "nodeType": p.get("nodeType"), "unit": (p.get("unitOfMeasureInfo") or {}).get("unitCode"),
             "configureDuringSale": p.get("configureDuringSale"),
             "assetizable": p.get("isAssetizable"), "soldOnlyWithOthers": p.get("isSoldOnlyWithOtherProds"),
             "attributes": _attributes(p), "componentGroups": _groups(p),
+            # Bundle components outside any group (q3's CERT007 -> ASTCERT001, LLMCERT001).
+            "childProducts": _components(p.get("childProducts")),
             "sellingModels": _models(p), "listPrices": prices.get(sku, {})}
 
 
@@ -146,6 +157,7 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
 
 # Lists compared as sets keyed by these fields, so one inserted item doesn't misreport every later one.
 LIST_KEYS = {"attributes": ("categoryCode", "code"), "componentGroups": ("code",), "components": ("sku",),
+             "childProducts": ("sku",),
              "childGroups": ("code",), "sellingModels": ("name",)}
 
 

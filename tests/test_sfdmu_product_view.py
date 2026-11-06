@@ -2,7 +2,8 @@
 """Offline tests for scripts/sfdmu_product_view.py (todo 330).
 
 - normalize keeps what the configurator shows (category, label, override, default, flags, picklist
-  values in sequence order, bundle groups and components, selling models, list prices) and drops
+  values in sequence order, bundle groups and components, ungrouped bundle components, selling models,
+  list prices) and drops
   record Ids, so captures from different orgs compare.
 - compare reports a changed label or category, an added or removed attribute (by category and
   code, not position), a SKU only on one side, and SKUs missing from an org or not returned by PCM.
@@ -88,7 +89,35 @@ check("bundle component carries quantity and default flag",
 check("selling models by name and type", n["sellingModels"],
       [{"name": "Term Annual", "type": "TermDefined", "default": True}])
 check("list prices by selling model and currency", n["listPrices"], {"Term Annual USD": 1000})
+uom = product("U", {"C": [dict(attr("X", "X"), sequence=3, stepValue=5, unitOfMeasureInfo={"id": "0hEXX", "unitCode": "GB"})]})
+uom["unitOfMeasureInfo"] = {"id": "0hEXX", "name": "Minutes", "unitCode": "m"}
+uom["description"] = "Shown in the catalog"
+nu = V.normalize(uom, {}, "U")
+check("the product's unit and description are captured by value", (nu["unit"], nu["description"]),
+      ("m", "Shown in the catalog"))
+check("an attribute's unit, step and display order are captured",
+      {k: nu["attributes"][0][k] for k in ("unit", "stepValue", "sequence")}, {"unit": "GB", "stepValue": 5, "sequence": 3})
+check("the unit's record Id is not", "0hEXX" in json.dumps(nu), False)
 check("no record Ids anywhere", any(s in json.dumps(n) for s in ("0tjXX", "0v5XX", "0v6XX", "0dSXX", "0jPXX", "01tLP001")), False)
+
+ungrouped = product("CERT", {})
+ungrouped["productComponentGroups"] = []
+ungrouped["childProducts"] = [{"productCode": "AST", "name": "Asset cert", "productRelatedComponent": {
+    "id": "0dSXX", "quantity": 1, "isComponentRequired": True, "isDefaultComponent": True,
+    "doesBundlePriceIncludeChild": True, "quantityScaleMethod": "Proportional"}}]
+un = V.normalize(ungrouped, {}, "CERT")
+check("an ungrouped bundle component is captured",
+      [(c["sku"], c["required"], c["inBundlePrice"]) for c in un["childProducts"]], [("AST", True, True)])
+dropped = copy.deepcopy(un)
+dropped["childProducts"] = []
+check("removing an ungrouped component is a difference",
+      V.compare({"products": {"CERT": un}}, {"products": {"CERT": dropped}}),
+      ["CERT/childProducts[AST]: removed"])
+requant = copy.deepcopy(un)
+requant["childProducts"][0]["quantity"] = 2
+check("changing its quantity is a difference",
+      V.compare({"products": {"CERT": un}}, {"products": {"CERT": requant}}),
+      ["CERT/childProducts[AST]/quantity: 1 -> 2"])
 
 print("compare: differences by SKU and path")
 base = {"missing": [], "notReturned": [], "products": {"LP001": n}}
