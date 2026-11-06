@@ -5045,6 +5045,23 @@ flows:
         task: extract_qb_transactionprocessingtypes_data
       9:
         task: extract_qb_guidedselling_products_data
+      # Steps 10-14 extract the feature plans, gated as their idempotency tests are, so an org
+      # without the feature isn't asked for objects it doesn't have (todo 216).
+      10:
+        task: extract_qb_tax_data
+        when: project_config.project__custom__tax and project_config.project__custom__qb
+      11:
+        task: extract_qb_billing_data
+        when: project_config.project__custom__billing and project_config.project__custom__qb
+      12:
+        task: extract_qb_prm_data
+        when: project_config.project__custom__prm and project_config.project__custom__qb
+      13:
+        task: extract_qb_approvals_data
+        when: project_config.project__custom__qb and project_config.project__custom__approvals
+      14:
+        task: extract_qb_prm_pricing_data
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
 
   run_qb_idempotency_tests:
     group: Data Management - Idempotency

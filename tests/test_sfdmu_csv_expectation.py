@@ -527,6 +527,12 @@ NUMERIC_OPERATION_GATING = [
      True, [i for i in issues([[dict(UPSERT, operation=2, externalId="A.B.C")]],
                                {"Widget__c.csv": HEADER})
             if "nested relationship path" in i]),
+    ("a nested path on Upsert is Info, not Medium: it matches on 5.6.4+, and only extraction drops "
+     "its segments (todo 216)",
+     True, bool([i for i in issues([[dict(UPSERT, externalId="A.B.C")]], {"Widget__c.csv": HEADER},
+                                   severity=V.Severity.INFO) if "nested relationship path" in i])
+     and not [i for i in issues([[dict(UPSERT, externalId="A.B.C")]], {"Widget__c.csv": HEADER},
+                                severity=V.Severity.MEDIUM) if "nested relationship path" in i]),
     # A prior round of this PR treated a resolved-but-"unknown" operation (index 8 / the string
     # "Unknown") — and a genuinely-unresolvable one (typo/Boolean/out-of-range) — as not-writable,
     # on the theory that SFDMU resets an unresolved `operation` to its Readonly class default.
@@ -1825,9 +1831,10 @@ HEADER_ONLY_CSV_REPORTED = [
      False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
                                   "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n1,a\n"})
             if "header row but 0 data rows" in i]),
-    ("...and an allowlisted object (CostBook) shipping header-only stays benign — control",
-     False, [i for i in issues([[{"query": "SELECT Id, Name FROM CostBook", "operation": "Upsert",
-                                  "externalId": "Name"}]], {"CostBook.csv": "Id,Name\n"})
+    ("...and an allowlisted object (GeneralLedgerJrnlEntryRule) shipping header-only stays benign — control",
+     False, [i for i in issues([[{"query": "SELECT Id, JournalEntryRuleName FROM GeneralLedgerJrnlEntryRule",
+                                  "operation": "Upsert", "externalId": "JournalEntryRuleName"}]],
+                               {"GeneralLedgerJrnlEntryRule.csv": "Id,JournalEntryRuleName\n"})
             if "header row but 0 data rows" in i]),
 ]
 

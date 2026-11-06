@@ -64,7 +64,7 @@ The validator checks for:
 - Legacy `$$` notation in externalId definitions (v5 requires semicolon format)
 - Missing composite key columns in CSVs
 - Empty CSV files without headers
-- Nested relationship paths that cause v5 flattening errors
+- Nested (2+ hop) relationship paths in an externalId, reported as Info: they match on SFDMU 5.6.4+, but an extraction can write their nested segments as `#N/A`. `post_process_extraction.py` backfills only the code columns it has a Name→Code map for and blanks the rest, so check an extracted CSV before reloading it
 
 To generate a validation report:
 
