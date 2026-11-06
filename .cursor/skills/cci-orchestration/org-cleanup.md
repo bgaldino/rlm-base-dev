@@ -10,7 +10,9 @@ For tool installation/PATH problems, use the toolchain skill instead.
 Default scope: global SF auth/aliases, the current CCI project's keychain,
 and the current project's `.sf`/`.sfdx` org state. Do not sweep other projects
 or worktrees unless requested. An audit/dry-run request permits inventory only,
-using the non-rewriting commands in step 1.
+using the non-rewriting commands in step 1. Run every command from the project root:
+`cci` and local `sf` configuration resolve the project from the working directory, and
+`cci org list` elsewhere shows none of the project's orgs, without an error.
 
 ## Quick Rules
 
@@ -150,7 +152,9 @@ Classify each candidate:
 - **Active/valid:** preserve, including active remote scratch orgs not
   authenticated on this workstation.
 - **Invalid scratch auth, org still active:** preserve by default and report
-  for reauthentication; obtain explicit approval before local logout.
+  for reauthentication; obtain explicit approval before local logout. An auth with
+  `oauthMethod: token` has no refresh token, so it stops working when its session
+  expires even though its org is live.
 - **Unknown:** preserve and report. Missing hub access/rows, network problems,
   malformed metadata, or authentication errors alone do not authorize deletion.
 
@@ -237,7 +241,9 @@ Re-inventory after logout, then match against the retained removal allowlist:
   to a confirmed stale org; leave unidentifiable backups for explicit review.
 - Remove aliases that still map to a confirmed stale username, including one whose
   auth was removed in an earlier cleanup, using `sf alias unset` after checking its
-  help. Preserve valid aliases, including multiple aliases for the same Dev Hub.
+  help. Pass one alias per command and check each result: the command handles several
+  aliases in parallel, and a batch can leave some set and return status 1. Preserve
+  valid aliases, including multiple aliases for the same Dev Hub.
 - Clear `target-org` via `sf config unset target-org`, using `--global`
   only for a stale global value. Check both global and local `.sf/config.json`
   and legacy `.sfdx/sfdx-config.json`; supported unset may update both.
@@ -252,7 +258,9 @@ Re-inventory after logout, then match against the retained removal allowlist:
   and deployment history alone.
 
 Use explicit paths within discovered state roots. Reject symlinks, verify
-path containment, and check that project files are untracked before deletion.
+path containment, and check that project files are untracked before deletion. Move
+residual files to a dated folder in the user's Trash rather than deleting them, so the
+user can review them and decide when they are gone.
 When rewriting JSON, preserve unrelated keys and permissions and use an
 atomic replacement. No bulk glob deletion and no persisted credentials.
 If another process changes auth/state during cleanup, re-inventory first.
@@ -262,6 +270,8 @@ If another process changes auth/state during cleanup, re-inventory first.
 1. Re-run sanitized `sf org list --all --skip-connection-status --json` and
    `sf org list auth --json`. Require no remaining allowlisted users or stale
    aliases; valid orgs must remain. Investigate warnings even when exit status is 0.
+   Run a read-only query against each preserved login. For one that fails, compare its
+   auth file with the pre-cleanup inventory before attributing the failure to cleanup.
 2. Re-run `COLUMNS=200 cci org list --plain`; confirm removed records are gone and shapes remain.
    A second prune should report no removals, but run it only in execution mode, not
    an audit. It skips expired shape instances, so check the Expired column as well.
