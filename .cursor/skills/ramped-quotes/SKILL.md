@@ -78,6 +78,9 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    prices, subtotals, and totals; read them back.
 8. **`org_config.username` for `sf` CLI; `access_token` for REST only** (per
    `AGENTS.md`).
+9. **A group-ramped bundle with a one-time or evergreen child cannot be amended (HTTP 500,
+   measured on one 264 org; cancel failed too where tried).** The child gets no ramp ids and
+   assetizes as one Asset per segment. See [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
 
 ## DO NOT
 
@@ -509,6 +512,9 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
   to verify. Read it when applying or checking Compound.
 - `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
   call rejects a field.
+- `bundle-children-lifecycle.md` — a group-ramped bundle with a one-time or evergreen child: limiting the child to
+  segment 1, assetization shape, the amend/cancel 500, renewal rules and lifecycle recipes prerequisites. Read it before
+  amending, cancelling or renewing a ramped bundle.
 - `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI (Create Ramp
   Schedule → Edit Ramp Schedule → Browse Catalogs into *Current and Subsequent Segments*), the
   expected prices and assets, and how to verify. Read it for a UI demo or a UI-built quote.

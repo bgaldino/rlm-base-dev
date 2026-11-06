@@ -38,6 +38,9 @@ A rep can build a group ramp in the 264 quote editor with the same result as the
    - `Product2.CanRamp` gates the line-ramp path. A `CanRamp = false` product uplifts in an
      **API-built** group ramp (pack 174, re-measured 2026-10-28/29). The UI test used `QB-API`
      (`CanRamp = true`); a `CanRamp = false` product in this dialog wasn't tried.
+   - Via the API, a one-time or evergreen **child** of a group-ramped bundle gets no ramp identity and the
+     bundle then can't be amended or cancelled; see [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
+     Not tried in this dialog, including removing such a child from one segment.
    - Use a **term** selling model (for example Term Annual). On the API path an Evergreen price
      book entry can't ramp and the segments come out without ramp identity (pack 174); not tried
      in this dialog.
