@@ -210,6 +210,11 @@ conflict: the sample data writes Apex Dynamics' BillingCountry as `US` and qb-pr
 `United States`. Built orgs showed `US` because sample data loads later, so qb-prm-pricing now
 carries `US` too.
 
+**Known differences are listed per pair of shapes.** `check_sfdmu_layering.py` files each shared
+conflict under the two shapes that disagree, with qb/ja apart from qb (todo 340). So once two
+shapes converge on a field, as q3 and qb did on currency rates (todo 328), a later drift between
+them fails the gate, though mfg or qb/ja still differs from both on that field.
+
 **Extraction alignment.** A variant shape's extraction is aligned to its qb/en-US sibling's CSV
 columns. A plan that keys an object differently from qb lists it in `$ownSchemaObjects`, so
 alignment doesn't drop the extra key part.

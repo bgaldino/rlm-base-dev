@@ -18,14 +18,17 @@ unseen.
 
 * `shared` (gating on change): a field of a record that more than one data shape writes,
   where the plans' final values aren't all the same. The shapes are qb, q3 and mfg (qb/ja is a
-  locale overlay on qb and counts as qb), plus `common`: the top-level plans every build loads
+  locale overlay on qb and counts as qb for which plans are compared, though its conflicts are
+  filed as `qb/ja`), plus `common`: the top-level plans every build loads
   whatever its shape (scratch_data's sample accounts, procedure-plans, inapp,
   configurator-flow), which therefore meet all three. Whichever plan loads last wins on that field, so
   loading a second shape into one org changes the first one's data. See
   docs/analysis/sfdmu-data-shape-layering.md → Shape ownership.
-  - The known conflicts are in `KNOWN_SHARED_CONFLICTS`, one entry per record and field, so a
-    new record that conflicts fails, and so does an entry that no longer conflicts. `--list`
-    prints the current set in that form.
+  - The known conflicts are in `KNOWN_SHARED_CONFLICTS`, one entry per record, field and pair of
+    shapes that disagree (qb/ja filed apart from qb, as `qb/ja`), so a new record that conflicts
+    fails, and so does a pair that agreed and drifts, though another pair still differs on that
+    field (todo 340); an entry that no longer conflicts fails too. `--list` prints the current
+    set in that form.
   - A plan's value for a field is the one its last pass writes, so Draft-then-Active staging
     inside one plan isn't a conflict. The order the shapes load in isn't known, so any
     disagreement between plans of different shapes counts.
@@ -100,7 +103,8 @@ import sfdmu_id_lookups  # noqa: E402
 
 SFDMU = REPO / "datasets" / "sfdmu"
 # Shape roots, relative to datasets/sfdmu. qb/ja is folded into qb: it is a locale overlay that
-# reuses qb's keys, so its differences from qb/en-US are translations, not a second shape.
+# reuses qb's keys, so its differences from qb/en-US are translations, not a second shape. Its
+# shared conflicts with other shapes are still filed as `qb/ja` (`side_of`, todo 340).
 SHAPE_ROOTS = {"qb/en-US": "qb", "qb/ja": "qb", "q3/en-US": "q3", "mfg/en-US": "mfg"}
 # Top-level plans (scratch_data's sample accounts, procedure-plans, inapp, configurator-flow)
 # load with every shape, so they count as one more shape that meets all the others.
@@ -144,81 +148,116 @@ KNOWN_UNRESOLVED_LOOKUPS = {
 }
 
 # Shared-record conflicts known today (todo 325; summarized in the design doc's shared-records
-# table), one per record and field, as (object, record key, field). The key is the one the
-# loading plan matches on, so a pair keyed differently in two shapes (GL accounts: qb on
-# AccountingCode, mfg on Name) shows from both sides. Regenerate with `--list`. A conflict on
-# any other record or field fails the check, and so does an entry that no longer conflicts.
+# table), one per record, field and pair of shapes that disagree, as (object, record key, field,
+# "a|b") with qb/ja apart from qb. Per pair, so a pair that agrees today (q3 and qb on currency
+# rates, todo 328) fails the moment it drifts, though another pair still differs on that field
+# (todo 340). The key is the one the loading plan matches on, so a pair keyed differently in two
+# shapes (GL accounts: qb on AccountingCode, mfg on Name) shows from both sides. Regenerate with
+# `--list`. A conflict on any other record, field or pair fails the check, and so does an entry
+# that no longer conflicts.
 KNOWN_SHARED_CONFLICTS = {
-    # q3 carries qb's rates since todo 328; these remain for mfg's own rates (todo 327) and
-    # qb/ja's JPY base (todo 212).
-    ('CurrencyType', 'AUD', 'ConversionRate'),
-    ('CurrencyType', 'CAD', 'ConversionRate'),
-    ('CurrencyType', 'CHF', 'ConversionRate'),
-    ('CurrencyType', 'EUR', 'ConversionRate'),
-    ('CurrencyType', 'GBP', 'ConversionRate'),
-    ('CurrencyType', 'JPY', 'ConversionRate'),
-    ('CurrencyType', 'JPY', 'IsCorporate'),
-    ('CurrencyType', 'USD', 'ConversionRate'),
-    ('CurrencyType', 'USD', 'IsCorporate'),
-    ('FulfillmentFalloutRule', '000000001', 'RetriesAllowed'),
-    ('FulfillmentStepDefinition', 'Initiate Billing', 'UsageType'),
-    ('FulfillmentStepDefinition', 'Post Invoice', 'UsageType'),
-    ('FulfillmentStepDefinition', 'Receive Payment', 'UsageType'),
-    ('FulfillmentStepDefinitionGroup', 'Finance', 'UsageType'),
-    ('GeneralLedgerAccount', '4100', 'AccountingName'),
-    ('GeneralLedgerAccount', '4100', 'Name'),
-    ('GeneralLedgerAccount', '4200', 'AccountingName'),
-    ('GeneralLedgerAccount', '4200', 'Name'),
-    ('GeneralLedgerAccount', '4300', 'AccountingName'),
-    ('GeneralLedgerAccount', '4300', 'Name'),
-    ('GeneralLedgerAccount', '4400', 'AccountingName'),
-    ('GeneralLedgerAccount', '4400', 'Name'),
-    ('GeneralLedgerAccount', '5000', 'Description'),
-    ('GeneralLedgerAccount', '5000 Cost of Goods Sold (COGS)', 'Description'),
-    ('GeneralLedgerAccount', '5300', 'AccountingName'),
-    ('GeneralLedgerAccount', '5300', 'Name'),
-    ('GeneralLedgerAccount', '5600', 'Description'),
-    ('GeneralLedgerAccount', '5600 Professional Services', 'Description'),
-    ('LegalEntity', 'Default Legal Entity - US', 'CompanyName'),
-    ('PriceAdjustmentSchedule', 'Standard Attribute Based Adjustment', 'EffectiveFrom'),
-    ('PriceAdjustmentSchedule', 'Standard Bundle Based Adjustment', 'EffectiveFrom'),
-    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier', 'EffectiveFrom'),
-    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier;USD', 'EffectiveFrom'),
-    ('PriceAdjustmentSchedule', 'Standard Tier Based Adjustment', 'EffectiveFrom'),
-    ('Pricebook2', 'Standard Price Book', 'CostBook.Name'),
-    ('Pricebook2', 'Standard Price Book;true', 'CostBook.Name'),
-    ('TaxPolicy', 'Default Tax Policy', 'DefaultTaxTreatment.Name'),
-    ('UnitOfMeasure', 'EACH', 'Description'),
-    ('UnitOfMeasure', 'EACH', 'UnitOfMeasureClass.Code'),
-    # qb finds GL accounts by AccountingCode, mfg by Name; both write these four rules.
-    ('GeneralLedgerAcctAsgntRule', 'USD CML Charges',
-     'CreditGeneralLedgerAccount (different parent keys)'),
-    ('GeneralLedgerAcctAsgntRule', 'USD CML Charges',
-     'DebitGeneralLedgerAccount (different parent keys)'),
-    ('GeneralLedgerAcctAsgntRule', 'USD CML Taxes',
-     'CreditGeneralLedgerAccount (different parent keys)'),
-    ('GeneralLedgerAcctAsgntRule', 'USD CML Taxes',
-     'DebitGeneralLedgerAccount (different parent keys)'),
-    ('GeneralLedgerAcctAsgntRule', 'USD Invoice Line Taxes',
-     'CreditGeneralLedgerAccount (different parent keys)'),
-    ('GeneralLedgerAcctAsgntRule', 'USD Invoice Line Taxes',
-     'DebitGeneralLedgerAccount (different parent keys)'),
-    ('GeneralLedgerAcctAsgntRule', 'USD PMT',
-     'CreditGeneralLedgerAccount (different parent keys)'),
-    ('GeneralLedgerAcctAsgntRule', 'USD PMT',
-     'DebitGeneralLedgerAccount (different parent keys)'),
-    # qb/ja's locale overlay against q3 (Japanese unit names, Active classes, JPY base): todo 212.
-    ('AttributeCategory', 'AC-QB-CPU', 'Name'),
-    ('UnitOfMeasure', 'GB', 'Name'),
-    ('UnitOfMeasure', 'MB', 'Name'),
-    ('UnitOfMeasureClass', 'CAS01', 'Status'),
-    ('UnitOfMeasureClass', 'CURRENCY', 'BaseUnitOfMeasure.UnitCode'),
-    ('UnitOfMeasureClass', 'CURRENCY', 'DefaultUnitOfMeasure.UnitCode'),
-    ('UnitOfMeasureClass', 'CURRENCY', 'Status'),
-    ('UnitOfMeasure', 'm', 'Name'),
-    ('UnitOfMeasureClass', 'DATAVOL', 'Status'),
-    ('UnitOfMeasureClass', 'TIME', 'Status'),
+    # mfg against qb: mfg still ships its own copies of qb's shared records (rates, schedules,
+    # legal entity, fulfillment steps, GL accounts by Name, cost book); reconciled in todo 327.
+    ('CurrencyType', 'AUD', 'ConversionRate', 'mfg|qb'),
+    ('CurrencyType', 'CAD', 'ConversionRate', 'mfg|qb'),
+    ('CurrencyType', 'CHF', 'ConversionRate', 'mfg|qb'),
+    ('CurrencyType', 'EUR', 'ConversionRate', 'mfg|qb'),
+    ('CurrencyType', 'GBP', 'ConversionRate', 'mfg|qb'),
+    ('CurrencyType', 'JPY', 'ConversionRate', 'mfg|qb'),
+    ('FulfillmentFalloutRule', '000000001', 'RetriesAllowed', 'mfg|qb'),
+    ('FulfillmentStepDefinition', 'Initiate Billing', 'UsageType', 'mfg|qb'),
+    ('FulfillmentStepDefinition', 'Post Invoice', 'UsageType', 'mfg|qb'),
+    ('FulfillmentStepDefinition', 'Receive Payment', 'UsageType', 'mfg|qb'),
+    ('FulfillmentStepDefinitionGroup', 'Finance', 'UsageType', 'mfg|qb'),
+    ('GeneralLedgerAccount', '4100', 'AccountingName', 'mfg|qb'),
+    ('GeneralLedgerAccount', '4100', 'Name', 'mfg|qb'),
+    ('GeneralLedgerAccount', '4200', 'AccountingName', 'mfg|qb'),
+    ('GeneralLedgerAccount', '4200', 'Name', 'mfg|qb'),
+    ('GeneralLedgerAccount', '4300', 'AccountingName', 'mfg|qb'),
+    ('GeneralLedgerAccount', '4300', 'Name', 'mfg|qb'),
+    ('GeneralLedgerAccount', '4400', 'AccountingName', 'mfg|qb'),
+    ('GeneralLedgerAccount', '4400', 'Name', 'mfg|qb'),
+    ('GeneralLedgerAccount', '5000', 'Description', 'mfg|qb'),
+    ('GeneralLedgerAccount', '5000 Cost of Goods Sold (COGS)', 'Description', 'mfg|qb'),
+    ('GeneralLedgerAccount', '5300', 'AccountingName', 'mfg|qb'),
+    ('GeneralLedgerAccount', '5300', 'Name', 'mfg|qb'),
+    ('GeneralLedgerAccount', '5600', 'Description', 'mfg|qb'),
+    ('GeneralLedgerAccount', '5600 Professional Services', 'Description', 'mfg|qb'),
+    ('GeneralLedgerAcctAsgntRule', 'USD CML Charges', 'CreditGeneralLedgerAccount (different parent keys)', 'mfg|qb'),
+    ('GeneralLedgerAcctAsgntRule', 'USD CML Charges', 'DebitGeneralLedgerAccount (different parent keys)', 'mfg|qb'),
+    ('GeneralLedgerAcctAsgntRule', 'USD CML Taxes', 'CreditGeneralLedgerAccount (different parent keys)', 'mfg|qb'),
+    ('GeneralLedgerAcctAsgntRule', 'USD CML Taxes', 'DebitGeneralLedgerAccount (different parent keys)', 'mfg|qb'),
+    ('GeneralLedgerAcctAsgntRule', 'USD Invoice Line Taxes', 'CreditGeneralLedgerAccount (different parent keys)', 'mfg|qb'),
+    ('GeneralLedgerAcctAsgntRule', 'USD Invoice Line Taxes', 'DebitGeneralLedgerAccount (different parent keys)', 'mfg|qb'),
+    ('GeneralLedgerAcctAsgntRule', 'USD PMT', 'CreditGeneralLedgerAccount (different parent keys)', 'mfg|qb'),
+    ('GeneralLedgerAcctAsgntRule', 'USD PMT', 'DebitGeneralLedgerAccount (different parent keys)', 'mfg|qb'),
+    ('LegalEntity', 'Default Legal Entity - US', 'CompanyName', 'mfg|qb'),
+    ('PriceAdjustmentSchedule', 'Standard Attribute Based Adjustment', 'EffectiveFrom', 'mfg|qb'),
+    ('PriceAdjustmentSchedule', 'Standard Bundle Based Adjustment', 'EffectiveFrom', 'mfg|qb'),
+    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier', 'EffectiveFrom', 'mfg|qb'),
+    ('Pricebook2', 'Standard Price Book', 'CostBook.Name', 'mfg|qb'),
+    ('Pricebook2', 'Standard Price Book;true', 'CostBook.Name', 'mfg|qb'),
+    ('TaxPolicy', 'Default Tax Policy', 'DefaultTaxTreatment.Name', 'mfg|qb'),
+    ('UnitOfMeasure', 'EACH', 'Description', 'mfg|qb'),
+    ('UnitOfMeasure', 'EACH', 'UnitOfMeasureClass.Code', 'mfg|qb'),
+    # mfg against q3: mfg's rate, schedule, cost-book and EACH differences, which q3 now shares
+    # with qb, plus q3's own Standard Tier Based Adjustment schedule date (todo 327).
+    ('CurrencyType', 'AUD', 'ConversionRate', 'mfg|q3'),
+    ('CurrencyType', 'CAD', 'ConversionRate', 'mfg|q3'),
+    ('CurrencyType', 'CHF', 'ConversionRate', 'mfg|q3'),
+    ('CurrencyType', 'EUR', 'ConversionRate', 'mfg|q3'),
+    ('CurrencyType', 'GBP', 'ConversionRate', 'mfg|q3'),
+    ('CurrencyType', 'JPY', 'ConversionRate', 'mfg|q3'),
+    ('PriceAdjustmentSchedule', 'Standard Attribute Based Adjustment', 'EffectiveFrom', 'mfg|q3'),
+    ('PriceAdjustmentSchedule', 'Standard Bundle Based Adjustment', 'EffectiveFrom', 'mfg|q3'),
+    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier', 'EffectiveFrom', 'mfg|q3'),
+    ('PriceAdjustmentSchedule', 'Standard Tier Based Adjustment', 'EffectiveFrom', 'mfg|q3'),
+    ('Pricebook2', 'Standard Price Book', 'CostBook.Name', 'mfg|q3'),
+    ('Pricebook2', 'Standard Price Book;true', 'CostBook.Name', 'mfg|q3'),
+    ('UnitOfMeasure', 'EACH', 'Description', 'mfg|q3'),
+    ('UnitOfMeasure', 'EACH', 'UnitOfMeasureClass.Code', 'mfg|q3'),
+    # mfg against qb/ja: both differ from qb (todo 327, todo 212).
+    ('CurrencyType', 'AUD', 'ConversionRate', 'mfg|qb/ja'),
+    ('CurrencyType', 'CAD', 'ConversionRate', 'mfg|qb/ja'),
+    ('CurrencyType', 'CHF', 'ConversionRate', 'mfg|qb/ja'),
+    ('CurrencyType', 'EUR', 'ConversionRate', 'mfg|qb/ja'),
+    ('CurrencyType', 'GBP', 'ConversionRate', 'mfg|qb/ja'),
+    ('CurrencyType', 'JPY', 'ConversionRate', 'mfg|qb/ja'),
+    ('CurrencyType', 'JPY', 'IsCorporate', 'mfg|qb/ja'),
+    ('CurrencyType', 'USD', 'ConversionRate', 'mfg|qb/ja'),
+    ('CurrencyType', 'USD', 'IsCorporate', 'mfg|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier', 'EffectiveFrom', 'mfg|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier;USD', 'EffectiveFrom', 'mfg|qb/ja'),
+    ('Pricebook2', 'Standard Price Book', 'CostBook.Name', 'mfg|qb/ja'),
+    ('Pricebook2', 'Standard Price Book;true', 'CostBook.Name', 'mfg|qb/ja'),
+    ('UnitOfMeasure', 'EACH', 'Description', 'mfg|qb/ja'),
+    ('UnitOfMeasure', 'EACH', 'UnitOfMeasureClass.Code', 'mfg|qb/ja'),
+    # q3 against qb/ja: qb/ja's JPY-based rates, Japanese names and Active classes (todo 212). q3
+    # and qb/en-US agree on all of these, which is the point of keying by pair (todo 340).
+    ('AttributeCategory', 'AC-QB-CPU', 'Name', 'q3|qb/ja'),
+    ('CurrencyType', 'AUD', 'ConversionRate', 'q3|qb/ja'),
+    ('CurrencyType', 'CAD', 'ConversionRate', 'q3|qb/ja'),
+    ('CurrencyType', 'CHF', 'ConversionRate', 'q3|qb/ja'),
+    ('CurrencyType', 'EUR', 'ConversionRate', 'q3|qb/ja'),
+    ('CurrencyType', 'GBP', 'ConversionRate', 'q3|qb/ja'),
+    ('CurrencyType', 'JPY', 'ConversionRate', 'q3|qb/ja'),
+    ('CurrencyType', 'JPY', 'IsCorporate', 'q3|qb/ja'),
+    ('CurrencyType', 'USD', 'ConversionRate', 'q3|qb/ja'),
+    ('CurrencyType', 'USD', 'IsCorporate', 'q3|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier', 'EffectiveFrom', 'q3|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier;USD', 'EffectiveFrom', 'q3|qb/ja'),
+    ('Pricebook2', 'Standard Price Book;true', 'CostBook.Name', 'q3|qb/ja'),
+    ('UnitOfMeasure', 'GB', 'Name', 'q3|qb/ja'),
+    ('UnitOfMeasure', 'MB', 'Name', 'q3|qb/ja'),
+    ('UnitOfMeasure', 'm', 'Name', 'q3|qb/ja'),
+    ('UnitOfMeasureClass', 'CAS01', 'Status', 'q3|qb/ja'),
+    ('UnitOfMeasureClass', 'CURRENCY', 'BaseUnitOfMeasure.UnitCode', 'q3|qb/ja'),
+    ('UnitOfMeasureClass', 'CURRENCY', 'DefaultUnitOfMeasure.UnitCode', 'q3|qb/ja'),
+    ('UnitOfMeasureClass', 'CURRENCY', 'Status', 'q3|qb/ja'),
+    ('UnitOfMeasureClass', 'DATAVOL', 'Status', 'q3|qb/ja'),
+    ('UnitOfMeasureClass', 'TIME', 'Status', 'q3|qb/ja'),
 }
+
 
 # Two plans of one shape writing different values to one field of one record: (object, record
 # key, field). Same new/stale rules. Empty: the six found when the check was added (qb-prm and
@@ -707,8 +746,9 @@ def locale_of(plan_rel: str) -> str:
     return COMMON if "/" not in plan_rel else "/".join(plan_rel.split("/")[:2])
 
 
-def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
-    """{(object, record key, field): description} for every cross-shape value conflict.
+def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str, str], str]:
+    """{(object, record key, field, "a|b"): description} for every cross-shape value conflict,
+    one entry per pair of shapes that disagree (qb/ja apart from qb, `side_of`).
 
     A plan's row lands on whatever record its own `externalId` finds, so plans are compared
     pairwise from the loading plan's side. For plans P and Q of different shapes, each record Q
@@ -724,8 +764,15 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
     Name, by Code) reach the same record. The order shapes load in isn't known, so any
     disagreement counts.
     """
-    return _value_conflicts(root, lambda p, q: shape_of(p) != shape_of(q), shape_of,
-                            lambda p, c: True)
+    return _shown(_value_conflicts(root, lambda p, q: shape_of(p) != shape_of(q), side_of,
+                                   lambda p, c: True))
+
+
+def side_of(plan_rel: str) -> Optional[str]:
+    """The shape a cross-shape conflict is filed under, with qb/ja kept apart from qb (`qb/ja`):
+    its JPY-based rates and Japanese names differ from every other shape by design (todo 212), so
+    filing it as qb would let a q3/qb difference hide behind a q3/qb-ja one."""
+    return "qb/ja" if locale_of(plan_rel) == "qb/ja" else shape_of(plan_rel)
 
 
 def intra_shape_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
@@ -738,19 +785,34 @@ def intra_shape_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]
     it (qb/ja loads over a qb org); another shape's or locale's records don't count. Two
     top-level plans load into every shape's org, so any plan's record counts for them.
     """
-    return _value_conflicts(
+    return _shown(_value_conflicts(
         root, lambda p, q: p != q and shape_of(p) == shape_of(q) and locale_of(p) == locale_of(q),
         lambda rel: rel, lambda p, c: locale_of(p) == COMMON
         or locale_of(c) in (locale_of(p), COMMON)
-        or (shape_of(c) == shape_of(p) and locale_of(c).endswith("/en-US")))
+        or (shape_of(c) == shape_of(p) and locale_of(c).endswith("/en-US"))), by_pair=False)
 
 
-def _value_conflicts(root: Path, paired, label, creates_for) -> Dict[Tuple[str, str, str], str]:
+def _shown(seen, by_pair: bool = True) -> Dict[tuple, str]:
+    """{(object, record key, field[, "a|b"]): "a=[...]; b=[...]"}. Cross-shape conflicts stay one
+    entry per pair of shapes that disagree, so a pair that agrees today fails once it drifts, though
+    another pair still differs on that field (todo 340). Intra-shape ones are merged per field."""
+    merged: Dict[tuple, Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
+    for (obj, key, field, pair), by_label in seen.items():
+        ident = (obj, key, field, pair) if by_pair else (obj, key, field)
+        for name, values in by_label.items():
+            merged[ident][name] |= values
+    return {ident: "; ".join(f"{s}={sorted(v)}" for s, v in sorted(by.items()))
+            for ident, by in merged.items()}
+
+
+def _value_conflicts(root: Path, paired, label, creates_for):
     """The comparison behind `shared_conflicts` and `intra_shape_conflicts`, for plan pairs
     `paired(p, q)` selects, with each side's values filed under `label(plan)`. A record plan C
-    creates exists for a pair loading plan P when `creates_for(P, C)`."""
+    creates exists for a pair loading plan P when `creates_for(P, C)`. Keyed by (object, record
+    key, field, "a|b"), the two labels that disagree."""
     writes = _writes(root)
-    seen: Dict[Tuple[str, str, str], Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
+    seen: Dict[Tuple[str, str, str, str], Dict[str, Set[str]]] = defaultdict(
+        lambda: defaultdict(set))
     for obj, obj_writes in writes.items():
         rels = {w[0] for w in obj_writes}
         if not any(paired(p, q) for p in rels for q in rels):
@@ -758,11 +820,17 @@ def _value_conflicts(root: Path, paired, label, creates_for) -> Dict[Tuple[str, 
         records = plan_records(obj, obj_writes)
         created_by = [(rel, r[i]) for rel, (_, r, c) in records.items() for i in c]
 
+        def note(obj, key, field, p_rel, p_value, q_rel, q_value):
+            # Filed per pair of labels that disagree, so one pair's conflict can't hide
+            # another's: q3 agreeing with qb on a rate isn't covered by mfg differing.
+            pair = "|".join(sorted({label(p_rel), label(q_rel)}))
+            seen[(obj, key, field, pair)][label(p_rel)].add(p_value)
+            seen[(obj, key, field, pair)][label(q_rel)].add(q_value)
+
         def compare(p_rel, p_key, p_values, q_rel, q_values, key):
             for field in set(p_values) & set(q_values) - set(p_key):
                 if p_values[field] != q_values[field]:
-                    seen[(obj, key, field)][label(p_rel)].add(p_values[field])
-                    seen[(obj, key, field)][label(q_rel)].add(q_values[field])
+                    note(obj, key, field, p_rel, p_values[field], q_rel, q_values[field])
             # A lookup both write through different parent keys (qb's GL accounts by
             # AccountingCode, mfg's by Name) can't be compared field by field; whether they
             # name the same parent isn't known offline, so it counts. One that one shape sets
@@ -781,9 +849,9 @@ def _value_conflicts(root: Path, paired, label, creates_for) -> Dict[Tuple[str, 
                     continue  # a key both use; compared field by field above
                 else:
                     field = f"{rel} (different parent keys)"
-                for rel_, values, cols in ((p_rel, p_values, p_set), (q_rel, q_values, q_set)):
-                    seen[(obj, key, field)][label(rel_)].add(
-                        ", ".join(f"{c}={values[c]}" for c in sorted(cols)) or "cleared")
+                shown = [", ".join(f"{c}={values[c]}" for c in sorted(cols)) or "cleared"
+                         for values, cols in ((p_values, p_set), (q_values, q_set))]
+                note(obj, key, field, p_rel, shown[0], q_rel, shown[1])
 
         for p_rel, (p_key, p_records, _) in records.items():
             for q_rel, (q_key, q_records, q_created) in records.items():
@@ -811,8 +879,7 @@ def _value_conflicts(root: Path, paired, label, creates_for) -> Dict[Tuple[str, 
                     q_values = q_records.get(q_ident) if q_ident else None
                     if p_values is not None and q_values is not None:
                         compare(p_rel, p_key, p_values, q_rel, q_values, ";".join(p_ident))
-    return {ident: "; ".join(f"{s}={sorted(v)}" for s, v in sorted(by_shape.items()))
-            for ident, by_shape in seen.items()}
+    return seen
 
 
 def cross_shape_deletes(root: Path = SFDMU) -> Dict[Tuple[str, str], str]:
@@ -906,9 +973,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"lookup: {line}")
     for line in bad_filters:
         print(f"filter: {line}")
-    for (obj, key, field), shown in sorted(new.items()):
-        print(f"shared: {obj} '{key}' {field} differs between shapes ({shown}) and isn't in "
-              f"KNOWN_SHARED_CONFLICTS")
+    for (obj, key, field, pair), shown in sorted(new.items()):
+        print(f"shared: {obj} '{key}' {field} differs between {pair.replace('|', ' and ')} "
+              f"({shown}) and isn't in KNOWN_SHARED_CONFLICTS for that pair")
     for (obj, key, field), shown in sorted(new_intra.items()):
         print(f"intra: {obj} '{key}' {field} differs between two plans of one shape ({shown}), so "
               f"a reload of either alone changes it, and isn't in KNOWN_INTRA_SHAPE_CONFLICTS")
@@ -938,12 +1005,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     for plan, name, relationship in stale_lookups:
         print(f"lookup: {plan}/{name} {relationship} is in KNOWN_UNRESOLVED_LOOKUPS but no longer "
               f"needs it; remove it")
-    for obj, key, field in stale:
-        print(f"shared: {obj} '{key}' {field} is in KNOWN_SHARED_CONFLICTS but no longer "
-              f"conflicts; remove it")
+    for obj, key, field, pair in stale:
+        print(f"shared: {obj} '{key}' {field} is in KNOWN_SHARED_CONFLICTS for "
+              f"{pair.replace('|', ' and ')}, but that pair no longer conflicts; remove it")
     if args.list:
-        for (obj, key, field), shown in sorted(conflicts.items()):
-            print(f"known: ({obj!r}, {key!r}, {field!r}),  # {shown}")
+        for (obj, key, field, pair), shown in sorted(conflicts.items()):
+            print(f"known: ({obj!r}, {key!r}, {field!r}, {pair!r}),  # {shown}")
         for (obj, key, field), shown in sorted(intra.items()):
             print(f"known intra: ({obj!r}, {key!r}, {field!r}),  # {shown}")
     failed = bool(lookups or bad_filters or new or stale or new_intra or stale_intra

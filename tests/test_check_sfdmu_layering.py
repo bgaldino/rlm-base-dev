@@ -13,7 +13,8 @@ Each case builds a throwaway datasets/sfdmu tree and asserts what the two checks
   field keeps apart, and Updates to a record nobody creates don't. A narrower key's load
   overwriting a wider key's extra field does, and so do Updates to a record another plan
   creates and a lookup set through different parent keys. A stale or missing allowlist entry
-  fails the run, per record.
+  fails the run, per record and per pair of shapes that disagree (qb/ja apart from qb), so a pair
+  that agrees today fails once it drifts though another pair still differs (todo 340).
 - Intra-shape (todo 337): two plans of one shape writing different values to one field of one
   record conflict, labelled by plan (the todo 336 DisplayUrl replay). The same values, one plan's
   staging, plans of different shapes, and qb/ja against qb/en-US don't; two qb/ja plans are
@@ -182,7 +183,9 @@ UOM = decl("UnitOfMeasure", "UnitCode")
 
 
 def conflicts(plans, field=None):
-    """Conflicts for the tree, kept only on `field` when given. Keys are (object, record, field)."""
+    """Conflicts for the tree, kept only on `field` when given.
+
+    Keys are (object, record, field, "a|b")."""
     return {k: v for k, v in L.shared_conflicts(tree(plans)).items() if field in (None, k[2])}
 
 
@@ -224,7 +227,7 @@ SHARED_CASES = [
     ("#N/A and blank are both null, so they don't conflict", False, conflicts({
         "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Description\nGB,\n"}),
         "mfg/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Description\nGB,#N/A\n"})})),
-    ("qb/ja counts as qb, so it doesn't conflict with qb/en-US", False, conflicts({
+    ("qb/ja isn't compared against qb/en-US (same shape)", False, conflicts({
         "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,Gigabyte\n"}),
         "qb/ja/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,ギガバイト\n"})})),
     ("one shape's own plans differing isn't cross-shape", False, conflicts({
@@ -364,7 +367,7 @@ SHARED_CASES = [
             "Thing__c.csv": "$$A__c$B__c$C__c,B__c,Label\nX;AUD,,one\nX;CAD,,two\n"}),
         "q3/en-US/b": ([[decl("Thing__c", "A__c;B__c;C__c")]], {
             "Thing__c.csv": "$$A__c$B__c$C__c,A__c,B__c,C__c,Label\nX;CAD,X,,CAD,three\n"})},
-        "Label") == {("Thing__c", "X;CAD", "Label"): "q3=['three']; qb=['two']"}),
+        "Label") == {("Thing__c", "X;CAD", "Label", "q3|qb"): "q3=['three']; qb=['two']"}),
     ("SFDMU's key drops empty parts, so (X,'',Y) meets (X,Y,'')", True, conflicts({
         "qb/en-US/a": ([[decl("Thing__c", "A__c;B__c;C__c")]], {
             "Thing__c.csv": "A__c,B__c,C__c,Label\nX,,Y,one\n"}),
@@ -491,7 +494,9 @@ SHARED_CASES = [
         "q3/en-US/b": ([[dict(UOM, operation="Update")]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,two\n"}),
         "mfg/en-US/c": ([[dict(UOM, operation="Update")]], {
             "UnitOfMeasure.csv": "UnitCode,Name\nGB,three\n"})}, "Name")
-     .get(("UnitOfMeasure", "GB", "Name"), "") == "mfg=['three']; q3=['two']; qb=['one']"),
+     == {("UnitOfMeasure", "GB", "Name", "mfg|q3"): "mfg=['three']; q3=['two']",
+         ("UnitOfMeasure", "GB", "Name", "mfg|qb"): "mfg=['three']; qb=['one']",
+         ("UnitOfMeasure", "GB", "Name", "q3|qb"): "q3=['two']; qb=['one']"}),
     ("Updates meet on a created record even when the creator doesn't write the field", True,
      bool(conflicts({
         "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode\nGB\n"}),
@@ -594,11 +599,11 @@ def stale_shared_entry_fails():
     import contextlib
     import io
     saved = L.KNOWN_SHARED_CONFLICTS
-    L.KNOWN_SHARED_CONFLICTS = saved | {("Nope__c", "X", "Nope")}
+    L.KNOWN_SHARED_CONFLICTS = saved | {("Nope__c", "X", "Nope", "q3|qb")}
     try:
         with contextlib.redirect_stdout(io.StringIO()) as out:
             code = L.main([])
-        return code == 1 and "Nope__c 'X' Nope is in KNOWN_SHARED_CONFLICTS" in out.getvalue()
+        return code == 1 and "Nope__c 'X' Nope is in KNOWN_SHARED_CONFLICTS for q3 and qb" in out.getvalue()
     finally:
         L.KNOWN_SHARED_CONFLICTS = saved
 
@@ -609,15 +614,58 @@ def unknown_shared_conflict_fails():
     import contextlib
     import io
     saved = L.KNOWN_SHARED_CONFLICTS
-    L.KNOWN_SHARED_CONFLICTS = saved - {("CurrencyType", "CAD", "ConversionRate")}  # AUD stays
+    L.KNOWN_SHARED_CONFLICTS = saved - {("CurrencyType", "CAD", "ConversionRate", "mfg|qb")}  # AUD stays
     try:
         with contextlib.redirect_stdout(io.StringIO()) as out:
             code = L.main([])
         text = out.getvalue()
-        return (code == 1 and "CurrencyType 'CAD' ConversionRate differs" in text
-                and "CurrencyType 'AUD' ConversionRate differs" not in text)
+        return (code == 1 and "CurrencyType 'CAD' ConversionRate differs between mfg and qb" in text
+                and "CurrencyType 'AUD' ConversionRate differs" not in text
+                and "CAD' ConversionRate differs between mfg and q3" not in text)
     finally:
         L.KNOWN_SHARED_CONFLICTS = saved
+
+
+def drifting_pair_fails_though_another_pair_differs():
+    """q3 and qb agree on a rate today while mfg differs from both; when q3 drifts from qb, the run
+    fails on q3|qb though mfg's entries still allow the field (todo 340)."""
+    def ct(rate):
+        return ([[decl("CurrencyType", "IsoCode")]],
+                {"CurrencyType.csv": f"IsoCode,ConversionRate\nEUR,{rate}\n"})
+    agree = {"qb/en-US/a": ct("0.87"), "q3/en-US/b": ct("0.87"), "mfg/en-US/c": ct("0.92")}
+    drift = {"qb/en-US/a": ct("0.87"), "q3/en-US/b": ct("0.96"), "mfg/en-US/c": ct("0.92")}
+    pairs = lambda plans: sorted(k[3] for k in conflicts(plans, "ConversionRate"))
+    if not (pairs(agree) == ["mfg|q3", "mfg|qb"] and pairs(drift) == ["mfg|q3", "mfg|qb", "q3|qb"]):
+        return False
+    # And through the run: an allowlist of today's two pairs passes the agreeing tree and fails the
+    # drifted one on q3|qb.
+    import contextlib
+    import io
+    lists = ("KNOWN_SHARED_CONFLICTS", "KNOWN_INTRA_SHAPE_CONFLICTS", "KNOWN_CASE_COLLISIONS",
+             "KNOWN_CROSS_SHAPE_DELETES", "KNOWN_UNKEYED_WRITES", "KNOWN_UNRESOLVED_LOOKUPS")
+    saved = {n: getattr(L, n) for n in lists}
+    try:
+        for n in lists:
+            setattr(L, n, set())
+        L.KNOWN_SHARED_CONFLICTS = {("CurrencyType", "EUR", "ConversionRate", "mfg|q3"),
+                                    ("CurrencyType", "EUR", "ConversionRate", "mfg|qb")}
+        runs = []
+        for plans in (agree, drift):
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                runs.append((L.main(["--root", str(tree(plans))]), out.getvalue()))
+    finally:
+        for n, v in saved.items():
+            setattr(L, n, v)
+    return (runs[0][0] == 0 and runs[1][0] == 1
+            and "CurrencyType 'EUR' ConversionRate differs between q3 and qb" in runs[1][1])
+
+
+def qb_ja_is_its_own_side():
+    """qb/ja differs from q3 by design; filed as `q3|qb/ja`, it doesn't cover a q3/qb drift."""
+    return sorted(k[3] for k in conflicts({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,Gigabyte\n"}),
+        "qb/ja/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,ギガバイト\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,Gigabyte\n"})}, "Name")) == ["q3|qb/ja"]
 
 
 def later_pass_row_without_first_key_raises():
@@ -731,6 +779,9 @@ SHARED_CASES += [
     ("a stale case-collision entry fails the run", True, stale_case_collision_fails()),
     ("a stale shared-conflict entry fails the run", True, stale_shared_entry_fails()),
     ("a shared conflict missing from the allowlist fails the run", True, unknown_shared_conflict_fails()),
+    ("a pair that agrees today fails once it drifts, though another pair differs on the field",
+     True, drifting_pair_fails_though_another_pair_differs()),
+    ("qb/ja is filed apart from qb, so its differences don't cover qb's", True, qb_ja_is_its_own_side()),
 ]
 
 
