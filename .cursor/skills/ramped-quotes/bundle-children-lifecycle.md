@@ -11,7 +11,7 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
 `AssociatedQuoteLinePricing`), then `DeleteProducts` the one-time child's lines in segments 2 and 3.
 
 - The root and the term child are stamped with `RampIdentifier`/`SegmentIdentifier`. A **one-time or evergreen child gets
-  neither**, and a segment 2-only delete was accepted (no contiguity check was hit).
+  neither**, so no contiguity check applied to it in the test. A segment 2-only delete of the one-time child was accepted.
 - Measured by API only. Whether the UI's *Current and Subsequent Segments* places it the same way, and whether removing it
   in segment 2 through the configurator propagates forward only, is **not verified**.
 - The recipe ran outside the active CML models (`configurationMethod: Skip`, test products with no constraint model). The
@@ -63,7 +63,7 @@ refuses an earlier amend (an ordered plain renewal blocks it the same way).
 - A plain Connect `renew` of a bundle with a one-time child works (evergreen child not tested).
 - **Early ramped renewal** needs a start date inside the asset lifecycle, and the platform rejects it for a group-ramped bundle
   containing evergreen or one-time products ("You can't do an early renewal of a group ramped bundle containing evergreen or
-  one-time products..."). A plain renew of a ramped asset early is refused ("turn on Create a Ramp Schedule").
+  one-time products..."). A plain renew of a ramped asset early is refused; the platform message points to turning on "Create a Ramp Schedule" when setting the renewal terms.
 - `rampOptionsDetails {segmentType, durationInMonths}`: `durationInMonths` is the **total** ramp duration (12 gave one
   segment on a 24-month span; use 24 for two yearly segments).
 - Dates for `initiateRenewal` use `yyyy-MM-dd'T'HH:mm:ss` (a bare date is `INVALID_DATE_FORMAT`).
