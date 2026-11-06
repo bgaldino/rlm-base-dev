@@ -126,6 +126,7 @@ rlm-base-dev/
 │   ├── expand_currency_rates_data.py   # Regenerate per-currency qb-rates rows
 │   ├── build_quote_to_asset.py    # Build a backdated Quote -> Order -> Asset chain for usage rating
 │   ├── qb_usage.py                # Audit / report / orchestrate the usage-rating pipeline
+│   ├── sfdmu_product_view.py      # Capture/compare what the configurator shows for a shape's products (layering check)
 │   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
 │   ├── index.md                # Documentation entry point
