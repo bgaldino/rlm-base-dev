@@ -413,7 +413,23 @@ def test_csv_lookup_paths_and_api_version():
         manifest = pathlib.Path(d) / "m.yml"
         manifest.write_text('api_version_active: "v70.0"\n', encoding="utf-8")
         check("the active API version", A.active_api_version(manifest), "70.0")
-    check("a polymorphic path keeps its tail", A._strip_polymorphic("Who$Contact.Name"), "Who.Name")
+    poly = {"Task__x": {"fields": {"WhoId": {**field("reference", rel="Who"),
+                                              "referenceTo": ["Contact__x", "Lead__x"]}}},
+            "Contact__x": {"fields": {"Name": field("string")}},
+            "Lead__x": {"fields": {"Name": field("string"), "LeadOnly__c": field("string")}}}
+    problem = lambda path: A._path_problem("Task__x", path.split("."), poly)
+    check("an untyped polymorphic path resolves on any target", problem("Who.LeadOnly__c"), None)
+    check("a typed path is checked against its own target only",
+          problem("Who$Contact__x.LeadOnly__c") is not None, True)
+    check("a typed path that resolves on its target", problem("Who$Lead__x.LeadOnly__c"), None)
+    check("a type matches case-insensitively", problem("Who$lead__x.LeadOnly__c"), None)
+    check("a type the lookup doesn't reference is a problem", problem("Who$Account.Name") is not None, True)
+    check("a type outside the snapshot is left unchecked",
+          A._path_problem("Task__x", ["Who$Elsewhere", "Name"],
+                          {**poly, "Task__x": {"fields": {"WhoId": {**field("reference", rel="Who"),
+                                               "referenceTo": ["Elsewhere"]}}}}), None)
+    check("a type on the last segment names the field", problem("WhoId$Contact__x"), None)
+    check("a typed header counts as writing its lookup", A._field_of("Who$Contact__x.Name", poly["Task__x"]["fields"]), "WhoId")
 
 
 def test_classify():

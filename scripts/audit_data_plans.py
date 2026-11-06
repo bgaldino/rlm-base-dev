@@ -263,27 +263,28 @@ def _field_of(header: str, fields: Dict[str, Any]) -> Optional[str]:
         return None
     if "." not in header:
         return header if header in fields else None
-    rel = header.split(".", 1)[0]
+    rel = header.split(".", 1)[0].partition("$")[0]  # `Who$Contact.Name` is the lookup `Who`
     return next((n for n, f in fields.items() if f.get("relationshipName") == rel), None)
-
-
-def _strip_polymorphic(path: str) -> str:
-    """`Who$Contact.Name` is SFDMU's polymorphic lookup `Who`, resolved through Contact: `Who.Name`."""
-    return ".".join(seg.split("$", 1)[0] for seg in path.split("."))
 
 
 def _path_problem(obj: str, segs: List[str], snapshot: Dict[str, Any]) -> Optional[str]:
     """Why the field path `segs` (`Field` or `Rel.Field`, any depth) doesn't resolve from `obj`, or
     None when it does or can't be checked: a lookup's target missing from the snapshot is left
-    unchecked, and a polymorphic one resolves if any target in the snapshot has the rest."""
+    unchecked. A segment `Rel$Type` is SFDMU's polymorphic lookup resolved through `Type`, so the rest
+    is checked against that target only; without one, a polymorphic lookup resolves if any target in
+    the snapshot has the rest. On the last segment `$Type` only names the lookup field itself."""
     fields = snapshot[obj]["fields"]
-    seg = segs[0]
+    seg, _, typed = segs[0].partition("$")
     if len(segs) == 1:
         return None if seg in fields or seg in ALWAYS_PRESENT else f"{obj} has no field `{seg}`"
     f = next((f for f in fields.values() if f.get("relationshipName") == seg), None)
     if f is None:
         return f"{obj} has no relationship `{seg}`"
     wanted = f.get("referenceTo") or []
+    if typed:
+        wanted = [t for t in wanted if t.lower() == typed.lower()]  # object names ignore case
+        if not wanted:
+            return f"`{seg}` doesn't reference `{typed}`"
     targets = [t for t in wanted if t in snapshot]
     if not targets:
         return None
@@ -341,8 +342,6 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                                 + [(k, "its externalId names") for k in key_list]):
                 if sel.lower() == "all" or sel.startswith("$$"):
                     continue
-                # `Field$Type` is SFDMU's polymorphic lookup: the field, resolved through Type.
-                sel = _strip_polymorphic(sel)
                 if sel in checked:
                     continue
                 checked.add(sel)
@@ -369,7 +368,6 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 if col.startswith("$$"):  # the key column: its parts are the externalId's
                     continue
                 for path in (layering.composite_names(col) or ([col] if "." in col else [])):
-                    path = _strip_polymorphic(path)
                     if path in checked:
                         continue
                     checked.add(path)
