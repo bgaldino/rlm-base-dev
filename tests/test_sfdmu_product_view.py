@@ -184,6 +184,7 @@ view = V.capture(ft, big)
 check("Product2 lookups go 200 SKUs at a time", ft.soql_sizes, [200, 200, 50])
 check("a SKU two products hold is reported, not captured", (view["duplicates"], "B004" in view["products"]),
       (["B004"], False))
+check("a duplicated SKU is not also listed as missing", "B004" in view["missing"], False)
 check("two entries for one model and currency are both kept", view["products"]["B005"]["listPrices"],
       {"One-Time USD": [10, 12]})
 quoted = FakeTransport([])
@@ -191,6 +192,31 @@ seen = []
 quoted.soql = lambda q: seen.append(q) or []
 V.capture(quoted, ["O'Brien"])
 check("a SKU with a quote is escaped in SOQL", "'O\\'Brien'" in seen[0], True)
+
+print("main: a platform error is a clear exit 2, not a traceback")
+
+
+class FailingTransport:
+    def __init__(self, *_a, **_k):
+        pass
+
+    def soql(self, _q):
+        raise V.DecisionTableClientError("EPC_PAPI_PROD_DETAILS_008: limit")
+
+
+saved = V.Transport
+V.Transport = FailingTransport
+try:
+    import io
+    import contextlib
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        code = V.main(["capture", "--target-org", "x@example.com", "--shape", "q3", "--sku", "A",
+                       "--out", "/dev/null"])
+finally:
+    V.Transport = saved
+check("capture exits 2 on a platform error", code, 2)
+check("and names the error", "EPC_PAPI_PROD_DETAILS_008" in err.getvalue(), True)
 
 print("=" * 60)
 if _failures:
