@@ -123,7 +123,7 @@
 
 ### `update_currency_rates`
 
-**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch CurrencyType.ConversionRate for all active non-corporate currencies in a running org. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
+**Description:** Fetch live USD exchange rates from ExchangeRate-API (open.er-api.com, no auth required) and patch CurrencyType.ConversionRate for all active non-corporate currencies in a running org. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
 
 **Class:** `tasks.rlm_currency.UpdateCurrencyRates`
 
@@ -131,7 +131,7 @@
 
 ### `update_currency_rates_csv`
 
-**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without writing.
+**Description:** Fetch live USD exchange rates from ExchangeRate-API (open.er-api.com, no auth required) and update CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without writing.
 
 **Class:** `tasks.rlm_currency.UpdateCurrencyRatesCsv`
 

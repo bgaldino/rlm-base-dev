@@ -463,6 +463,26 @@ that demo's feature bundle.
 Offline guard: `python tests/test_qb_multicurrency_data.py`.
 Live guard: `cci task run validate_multicurrency_rates`.
 
+**Refreshing exchange rates in the plans.** qb/en-US qb-pricing's `CurrencyType.csv` is the rate table for
+the USD-corporate shapes that share a currency with qb (q3 since todo 328), so refresh it there and copy
+the shared rates. qb/ja's is JPY-corporate (USD 0.00663): never point the task's `csv_path` at it, as it
+would write USD-based rates into a JPY-based table.
+
+1. `cci task run update_currency_rates_csv` (preview with `-o dry_run true`; restrict with `-o iso_codes EUR,GBP`).
+   It writes qb-pricing's CSV by default; pass `-o csv_path` for another plan's.
+2. Regenerate qb's converted prices: `python scripts/expand_currency_pricing_data.py --apply`.
+3. Copy the six shared rates into `q3-pricing/CurrencyType.csv`, then
+   `python scripts/expand_currency_pricing_data.py --plan datasets/sfdmu/q3/en-US/q3-pricing --currencies AUD,CAD,CHF,EUR,GBP,JPY --apply`.
+   Review the diff: the script also creates six-currency rows for q3's six USD-only entries and for
+   its adjustment, tier and derived-price rows, which carry USD only today.
+4. To bring a built org in line, reload the regenerated plans: `CurrencyType` and `PricebookEntry` are
+   `Upsert`, so the rows update in place. `cci task run update_currency_rates` changes only the org's
+   `CurrencyType` rates (fetched live again, not read from the CSV) and leaves its prices stale; without
+   `-o iso_codes` it patches every active non-corporate currency, including q3's own and mfg's.
+
+Prices in a currency follow its rate, so never change one without the other. mfg keeps its own rates
+until todo 327.
+
 ### active version update failures
 
 Confirm deactivate step runs before deploy and targets correct versions.

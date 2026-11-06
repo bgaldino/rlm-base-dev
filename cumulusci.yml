@@ -2647,7 +2647,7 @@ tasks:
   update_currency_rates_csv:
     group: Data Management - Currency
     description: >
-      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update
+      Fetch live USD exchange rates from ExchangeRate-API (open.er-api.com, no auth required) and update
       CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch
       org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP').
       Use dry_run true to preview without writing.
@@ -2656,7 +2656,7 @@ tasks:
   update_currency_rates:
     group: Data Management - Currency
     description: >
-      Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch
+      Fetch live USD exchange rates from ExchangeRate-API (open.er-api.com, no auth required) and patch
       CurrencyType.ConversionRate for all active non-corporate currencies in a running org.
       Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
     class_path: tasks.rlm_currency.UpdateCurrencyRates
