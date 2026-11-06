@@ -3,7 +3,8 @@
 > SFDMU v5 conversion of the Industries In-App Framework's legacy CumulusCI dataset
 > (`Industries-In-App-Framework/datasets/rlm/rlm.dataset.sql`). All CSVs are generated
 > by `convert_from_legacy.py` and pass the v5 + README-consistency validators; the
-> plan is deployed and data-loaded on a 262 scratch org. Loaded by the `inapp` feature
+> plan is deployed and data-loaded on a 262 scratch org, and was reload-verified on a 264 ent-sb0
+> qb build on 2026-11-06 (todo 334). Loaded by the `inapp` feature
 > (`unpackaged/post_inapp` + `project__custom__inapp`).
 
 ## What this loads
@@ -48,9 +49,8 @@ Total: **402 records** (405 source − 2 dead blocks − 2 orphan junction rows 
   is unambiguous — which is **why the dead-block scrub is required** (see below): a
   non-unique `Block.Name` would make `RLM_Learning_Block__r.Name` ambiguous.
 
-Verified-unique: `RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name` is already unique 120/120; the
-`RLM_Learning_Order_Sequence__c` component is added for Bug-1 compliance and is harmless on this
-static data.
+Verified-unique: `RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name` is unique 120/120, which is
+why it is the junction's whole key (todo 334).
 
 ## Record-type handling
 
@@ -228,10 +228,10 @@ stale and omits the dev-guide corpus). 262 = Summer '26; 258 = Winter '26.
 |--------|--------|
 | `RLM_Learning_Icon__c` | `Name,RLM_Learning_Size__c,RLM_Learning_Type__c` |
 | `RLM_Learning_Page__c` | `RLM_Learning_Active__c,Name,RLM_Learning_Type__c` |
-| `RLM_Learning_Section__c` | `RLM_Learning_Active__c,RLM_Learning_Header__c,Name,RLM_Learning_Sub_Header__c,RLM_Learning_Video_Link__c,RecordType.DeveloperName,RLM_Learning_Icon__r.Name,RLM_Learning_Page__r.Name` |
-| `RLM_Learning_DynamicLink__c` | `RLM_Learning_App_API_Name__c,RLM_Learning_Filter_Name__c,RLM_Learning_Identity__c,RLM_Learning_Link__c,Name,RLM_Learning_Object__c,RLM_Learning_Page_Name__c,RLM_Learning_Relationship_API_Name__c,RLM_Learning_Relative_Url__c,RLM_Learning_Setup_Page__c,RLM_Learning_Site_Name__c,RLM_Learning_Text_Value__c,RLM_Learning_Where_Condition__c,RecordType.DeveloperName,RLM_Learning_Page__r.Name,RLM_Learning_Section__r.Name` |
+| `RLM_Learning_Section__c` | `RLM_Learning_Active__c,RLM_Learning_Header__c,Name,RLM_Learning_Sub_Header__c,RLM_Learning_Video_Link__c,RecordType.$$DeveloperName$SobjectType,RLM_Learning_Icon__r.Name,RLM_Learning_Page__r.Name` |
+| `RLM_Learning_DynamicLink__c` | `RLM_Learning_App_API_Name__c,RLM_Learning_Filter_Name__c,RLM_Learning_Identity__c,RLM_Learning_Link__c,Name,RLM_Learning_Object__c,RLM_Learning_Page_Name__c,RLM_Learning_Relationship_API_Name__c,RLM_Learning_Relative_Url__c,RLM_Learning_Setup_Page__c,RLM_Learning_Site_Name__c,RLM_Learning_Text_Value__c,RLM_Learning_Where_Condition__c,RecordType.$$DeveloperName$SobjectType,RLM_Learning_Page__r.Name,RLM_Learning_Section__r.Name` |
 | `RLM_Learning_Block__c` | `RLM_Learning_ActionText__c,RLM_Learning_Active__c,RLM_Learning_Description__c,RLM_Learning_Header__c,Name,RLM_Learning_Note__c,RLM_Learning_Sub_Header__c,RLM_Learning_Action__r.Name,RLM_Learning_Icon__r.Name` |
-| `RLM_Learning_SectionBlock__c` | `$$RLM_Learning_Section__r.Name$RLM_Learning_Block__r.Name$RLM_Learning_Order_Sequence__c,RLM_Learning_Section__r.Name,RLM_Learning_Block__r.Name,RLM_Learning_Order_Sequence__c` |
+| `RLM_Learning_SectionBlock__c` | `$$RLM_Learning_Section__r.Name$RLM_Learning_Block__r.Name,RLM_Learning_Section__r.Name,RLM_Learning_Block__r.Name,RLM_Learning_Order_Sequence__c` |
 
 ## Org load — verified working + SFDMU requirements
 

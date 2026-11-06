@@ -51,9 +51,12 @@ step 31) → `deploy_post_inapp` (metadata `unpackaged/post_inapp`) + `load_inap
   converter and regenerate.
 - **DO NOT** prefix the converter's source-reading calls (`parse_table`, `DEAD_BLOCK_IDS`,
   `*_rt_mapping`) — they must match the original legacy table/row-id names.
-- **DO NOT** change the junction (`RLM_Learning_SectionBlock__c`) from `Insert` +
-  `deleteOldData: true` back to Upsert — its composite-traversal externalId never matches on
-  re-Upsert (SFDMU Bug 5), so Upsert silently doubles the junction.
+- **DO NOT** put `RLM_Learning_Order_Sequence__c` back in the junction's key, or write it as
+  `1.0`. The junction (`RLM_Learning_SectionBlock__c`) is `Upsert` on Section + Block (todo 334).
+  The sequence is a double with scale 0 that the org returns as `1`, and a reorder in the org
+  changes it, so a key that includes it duplicated rows on every reload.
+- **DO NOT** give a dynamic link an identity another link has in any letter case:
+  `RLM_Learning_Identity__c` is unique and case-insensitive, and the load rejects the second one.
 - **DO NOT** judge an LWC "unused" from flexipage→template/import reachability alone —
   **quickActions reference LWCs** via `<lightningWebComponent>` (this removed `reorderableList`
   by mistake). Grep quickActions before deleting any LWC.
@@ -81,9 +84,9 @@ step 31) → `deploy_post_inapp` (metadata `unpackaged/post_inapp`) + `load_inap
 Pages → Sections → Blocks build the home + per-capability detail pages; `RLM_Learning_DynamicLink__c`
 resolves in-app popups, detail links, and external resources; `RLM_Learning_Icon__c` supplies icons;
 `RLM_Learning_SectionBlock__c` is the Section↔Block junction. **Composite natural keys, not synthetic
-`External_Id__c`:** 5 objects key on `Name` (Upsert, idempotent); the junction uses
-`operation: Insert` + `deleteOldData: true` with externalId
-`RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name;RLM_Learning_Order_Sequence__c`.
+`External_Id__c`:** 5 objects key on `Name` (Upsert, idempotent); the junction is `Upsert` with externalId
+`RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name` (unique 120/120; todo 334), so no load
+deletes anything.
 
 **The 4 live-load fixes** (all surfaced only on a real load — see README for detail):
 1. Lookup queries need **both** the `__c` field **and** the `__r.Name` traversal, or the FK lands null.
@@ -134,7 +137,8 @@ build is clean, but ent-r1-style orgs need the old records deleted. App `MasterL
 cci flow run prepare_inapp --org <alias>
 # Iterative on an existing org:
 sf project deploy start --source-dir unpackaged/post_inapp --target-org <user> --ignore-conflicts
-cci task run load_inapp_dataset --org <alias>          # Insert+deleteOldData junction = idempotent
+cci task run load_inapp_dataset --org <alias>          # every object Upsert, reload-safe
+cci task run test_inapp_idempotency --org <alias>      # loads twice; fails on any count increase
 ```
 Then verify (CLAUDE.md DO NOT #9 — no dryrun-only claims): the controller returns resolved data, and
 the Learning Home renders in a browser. The `RLM_Learning` permset grants the objects/fields/classes/
