@@ -158,7 +158,7 @@ them.
 
 **Currency types:**
 
-- **`ConversionRate` differs by shape.** CAD is 1.408989 in qb, 1.42 in q3 and 1.36 in mfg. Each shape's prices in a currency follow its own rates, so converging the rates means regenerating those prices too (todo 328; mfg in todo 327).
+- **`ConversionRate`: q3 uses qb's rates; mfg differs.** Since todo 328, q3 carries qb's rates for the six currencies both load (AUD, CAD, CHF, EUR, GBP, JPY), and its prices in them were regenerated as the USD price × qb's rate, rounded as qb rounds (nearest 0.50, whole yen). q3's other four (AED, BRL, INR, SEK) are q3's own. mfg's rates still differ (CAD 1.36 against qb's 1.408989); converging them means regenerating mfg's prices too (todo 327).
 - **qb/ja's rates are on a JPY base.** JPY is the corporate currency and USD is 0.00663.
   qb/ja assumes a JPY-corporate org. Its rates are wrong on a USD-corporate org, and the other
   shapes' rates are wrong on a JPY-corporate one.
@@ -168,8 +168,8 @@ qb/ja are not yet (see *Destructive operations
 that remain*). Loading a second shape into the same org is not safe either. Where the shapes
 differ on a shared record, the second load changes the first shape's data. For example:
 
-- q3 after qb writes qb's own values into the records they share (todo 325), apart from
-  currency rates (todo 328); a q3-on-qb build is the live check. A q3 org built before todo 325
+- q3 after qb writes qb's own values into the records they share (todo 325), currency rates
+  included (todo 328); a q3-on-qb build is the live check. A q3 org built before todo 325
   has the old selling models and units, so rebuild it rather than reload it.
 - mfg after qb renames the US legal entity's company, clears the fulfillment steps' usage
   type and the price book's cost book, and moves `EACH` out of its class. It also adds a second
@@ -177,7 +177,7 @@ differ on a shared record, the second load changes the first shape's data. For e
   and points a shared GL rule at mfg's. If the platform rejects the duplicate code instead,
   the mfg load fails. And mfg-dro deletes every fulfillment workspace item, qb's included
   (qb-dro does the same in reverse).
-- Any pair changes currency rates (todo 328). mfg against qb or q3 also changes schedule dates
+- mfg or qb/ja against the others changes currency rates (q3 and qb share them since todo 328). mfg against qb or q3 also changes schedule dates
   (todo 327), and qb/ja against the others changes both (todo 212).
 
 Reconciling those values, or giving one shape distinct keys, is the precondition for loading

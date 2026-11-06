@@ -149,6 +149,8 @@ KNOWN_UNRESOLVED_LOOKUPS = {
 # AccountingCode, mfg on Name) shows from both sides. Regenerate with `--list`. A conflict on
 # any other record or field fails the check, and so does an entry that no longer conflicts.
 KNOWN_SHARED_CONFLICTS = {
+    # q3 carries qb's rates since todo 328; these remain for mfg's own rates (todo 327) and
+    # qb/ja's JPY base (todo 212).
     ('CurrencyType', 'AUD', 'ConversionRate'),
     ('CurrencyType', 'CAD', 'ConversionRate'),
     ('CurrencyType', 'CHF', 'ConversionRate'),

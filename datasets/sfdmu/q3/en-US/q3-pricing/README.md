@@ -1,6 +1,6 @@
 # q3-pricing Data Plan
 
-> **Shared records follow qb (todo 325).** Where q3 and qb load the same reference record, q3 uses qb's key and values, so the two shapes layer into one org: qb's selling-model names, its schedule dates for the three shared schedules, and the 'Standard Cost Book' on the standard price book. Records qb doesn't have stay q3's own. Currency rates stay q3's: its prices in each currency follow them, so they move together (todo 328). An org loaded with q3 before todo 325 has the old selling models, units and classes; a reload adds the renamed ones beside them (and their entries, options and rate card entries), so rebuild it rather than reload it.
+> **Shared records follow qb (todo 325).** Where q3 and qb load the same reference record, q3 uses qb's key and values, so the two shapes layer into one org: qb's selling-model names, its schedule dates for the three shared schedules, and the 'Standard Cost Book' on the standard price book. Records qb doesn't have stay q3's own. Currency rates follow qb's too, for the six currencies both load, with q3's prices in them regenerated to match (todo 328). An org loaded with q3 before todo 325 has the old selling models, units and classes; a reload adds the renamed ones beside them (and their entries, options and rate card entries), so rebuild it rather than reload it.
 
 SFDMU data plan for Q3 pricing: currency types, price books and entries, price adjustment schedules and tiers, attribute- and bundle-based adjustments, derived prices and cost books. It loads in `prepare_pricing_data` when `q3` is on and `qb` is off, through `insert_q3_pricing_data`.
 
@@ -8,8 +8,9 @@ SFDMU data plan for Q3 pricing: currency types, price books and entries, price a
 
 ## Currencies
 
-- **Eleven currencies, USD corporate.** CHF was added in todo 210, so qb-tax's Swiss legal entity loads on a q3 build. Its 74 entries mirror the EUR rows at 0.89× the USD price, the same Dec-2024-era basis as the other q3 ratios.
-- **`ConversionRate` is foreign units per 1 USD**, and equals the ratio the q3 prices use (EUR 0.96, JPY 149.22, …). Before todo 210 the file carried the inverse for every currency except USD (e.g. JPY 0.0067), which skewed converted amounts in roll-ups and reports but not price-book prices. A reload updates the rates in place (`CurrencyType` is `Upsert` on `IsoCode`).
+- **Eleven currencies, USD corporate.** CHF was added in todo 210, so qb-tax's Swiss legal entity loads on a q3 build. Its 74 entries are priced at qb's CHF rate (todo 328).
+- **AUD, CAD, CHF, EUR, GBP and JPY use qb's rates (todo 328),** and their prices are the USD price × that rate, rounded to the nearest 0.50 (JPY to a whole yen) as qb-pricing's are. Before todo 328 they used q3's own rates (EUR 0.96, JPY 149.22, …), so a q3 load over qb changed qb's rates, or a qb load left q3's prices inconsistent with the org's. AED, BRL, INR and SEK, which qb doesn't load, keep q3's own rates and prices. An org loaded before todo 328 takes the new rates and prices on a reload: `CurrencyType` and `PricebookEntry` are both `Upsert` on their keys, so the rows are updated in place.
+- **`ConversionRate` is foreign units per 1 USD**, and equals the ratio the q3 prices use. Before todo 210 the file carried the inverse for every currency except USD (e.g. JPY 0.0067), which skewed converted amounts in roll-ups and reports but not price-book prices. A reload updates the rates in place (`CurrencyType` is `Upsert` on `IsoCode`).
 - **q3-rates has no currency column**, so its rate card entries load in the corporate currency only; CHF rates were not added.
 
 ## Two passes
