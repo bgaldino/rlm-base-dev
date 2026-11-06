@@ -96,8 +96,10 @@ Measured on one 264 scratch org, API only. Run it on a disposable org. Check eac
 1. **Create the quote and an empty first-year group.** `placeSalesTransaction` create: Quote with `CurrencyIsoCode` set
    to the account currency, plus one empty `QuoteLineGroup`. Poll `Quote.CalculationStatus` to settled.
 2. **Ramp the group.** `groupRampAction: EditGroup` with `IsRamped` and `SegmentType` Yearly. Clone the last segment's
-   group until there are N segments (Connect clone, one group per call). Poll between calls. Then move the segment
-   groups under their `RampScheduleGroup` parent (a DML reparent; the Place calls do not do it).
+   group until there are N segments (Connect clone, one group per call). Poll between calls. In the default
+   multi-schedule mode, EditGroup and clone create only the segments. Create the `RampScheduleGroup` parent through
+   Place, read back its Id, and parent the segments to it before adding products. Without the parent, order activation
+   fails with "Specify a ramp schedule group for ramp segment" (see SKILL.md, the group-ramp build sequence).
 3. **Add the bundle to each segment.** `AddProducts` with the root bundle line, the term child line, the one-time or
    evergreen child line in each segment group, and a `QuoteLineRelationship` per child (with
    `AssociatedQuoteLinePricing`). `groupIds` were not needed. For an evergreen child, set `PeriodBoundary: Anniversary`
