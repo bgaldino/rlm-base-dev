@@ -30,6 +30,7 @@ two with `diff <(jq -S 'del(.instance)' a.json) <(jq -S 'del(.instance)' b.json)
 | `beta`, `feature`, `release` | Enterprise | Nothing: identical | Building under one of those org names. |
 | `dev` (`dev.json`) | Developer | Edition; no `SalesCloudEinstein` | You need a Developer Edition org. Builds detect it through `org_config.org_type` (AGENTS.md → PR Review Focus Areas → Edition flags). |
 | `ent-r0`, `ent-r1`, `ent-sb0`, `ent-sdb6`, `ent-sdb9`, `ent-sdb27` | Enterprise | Nothing; each pins an `instance` | You need a particular instance, for example one already on the release you're testing. This repo's live verifications are usually built on `ent-sb0`. |
+| `ent-sb0-jp` | Enterprise | Pins `ent-sb0`'s `instance`; `country` `JP`, so the org's corporate currency is JPY | Verifying the `qb/ja` data plans, which price in JPY. |
 | `ent-sdb39` | Enterprise | Pins an `instance`; adds `LargeTransactionPilot` | Large-deal work. |
 | `ent-datacloud` | Enterprise | No `instance`; adds `CustomerDataPlatform`, `CustomerDataPlatformLite` and `customerDataPlatformSettings`; **lacks** `agentPlatformSettings`, `industriesSettings` and `omniStudioSettings` | Data Cloud (Data 360) work. |
 | `dev-r0`, `dev-r1`, `dev-sb0` | Developer | As `dev`; each pins an `instance` | The `dev` shape on a particular instance. |

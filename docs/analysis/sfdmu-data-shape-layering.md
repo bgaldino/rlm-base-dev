@@ -117,7 +117,7 @@ the shapes differ:
 |---|---|---|
 | Price adjustment schedules | qb, q3, mfg, qb/ja pricing | `EffectiveFrom`; which schedules exist (below) |
 | Currency types | every pricing plan, on `IsoCode` | `ConversionRate` (below) |
-| Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | q3 uses qb's `EACH`, `GB`, `MB` and `m` and its `CAS01`, `DATAVOL` and `TIME` classes (todo 325). mfg sends `EACH` with no class or description, where qb puts it in `CAS01`. qb/ja loads its classes Active with Japanese names, and its `CURRENCY` class on a JPY base (todo 212) |
+| Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | q3 uses qb's `EACH`, `GB`, `MB` and `m` and its `CAS01`, `DATAVOL` and `TIME` classes (todo 325). mfg sends `EACH` with no class or description, where qb puts it in `CAS01`. qb/ja gives `GB`, `MB` and `m` Japanese names and puts its `CURRENCY` class on a JPY base; its classes load Draft, as qb's do (todo 212) |
 | Rating frequency and overage policies | qb and q3 rating | none (q3 takes qb's delay of 0, todo 325) |
 | Standard price book | qb, q3, mfg and qb/ja pricing | its `CostBook`: 'Standard Cost Book' in qb and q3, 'CostBook' in qb/ja, none in mfg |
 | Selling models, relationship types, proration policy | qb, q3, mfg and qb/ja pcm (each shape's pricing plan also updates the proration policy) | none (for the proration policy, see below). Only exact names match: mfg's and q3's 9 selling models are qb's (q3 renamed five to qb's names, todo 325), and qb/ja's Japanese-named ones are new records |
@@ -141,13 +141,13 @@ category `Warranty` and the component group `Accessories` (q3 `WARRANTY`, `ACCES
   Adjustment'.
 - **mfg-pricing** updates on `Name`. Its Tier Based row exists only after a q3 load. Without
   one, it matches nothing and doesn't load, because an `Update` never inserts.
-- **qb/ja** updates on `Name;CurrencyIsoCode`. Its USD Price Adjustment Tier row matches the
-  seeded one. On a USD-corporate org its three JPY rows match nothing, so they don't load
-  either. What a JPY-corporate org seeds hasn't been checked; if it seeds JPY schedules, those
-  rows land: the Volume schedule then differs from q3's in `IsActive`, `EffectiveFrom` and
-  `CurrencyIsoCode`, and the Attribute and Bundle schedules from q3's and mfg's in
-  `CurrencyIsoCode`.
-- **`EffectiveFrom`** is 2023-01-01 in qb and q3 for the three shared schedules (todo 325), 2024-01-01 in mfg and 2025-10-01 in qb/ja.
+- **qb/ja** upserts the same three on `Name`, as qb does (todo 212). A JPY-corporate org seeds them in
+  JPY (checked on a scratch org with `country` JP), so qb/ja's rows carry JPY. Its tiers hang off
+  'Standard Price Adjustment Tier', the Volume schedule the pricing procedure reads; they used to sit
+  on 'Standard Volume Based Adjustment', which no org seeds and no procedure reads. Against q3 and mfg,
+  the schedules differ only in `CurrencyIsoCode` (and mfg's `EffectiveFrom`), which a qb/ja build
+  never meets: it needs its own JPY-corporate org.
+- **`EffectiveFrom`** is 2023-01-01 in qb, q3 and qb/ja for the three shared schedules (todos 325, 212), and 2024-01-01 in mfg.
 
 **Proration policy:** it is create-only, so SFDMU runs each pcm plan's `Upsert` of it as an
 `Insert`. The platform seeded 'Default Proration Policy' on every org checked, so the insert is

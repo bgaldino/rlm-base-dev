@@ -54,6 +54,10 @@ orgs:
     ent-sb0:
       config_file: orgs/internal/ent-sb0.json
       days: 30
+    ent-sb0-jp:
+      # ent-sb0 with country JP: a JPY-corporate org, for verifying the qb/ja plans (todo 212).
+      config_file: orgs/internal/ent-sb0-jp.json
+      days: 30
     tfid:
       config_file: orgs/tfid/tfid.json
       days: 30

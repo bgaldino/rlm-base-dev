@@ -138,8 +138,6 @@ KNOWN_UNRESOLVED_LOOKUPS = {
     ("mfg/en-US/mfg-guidedselling", "OmniProcessElement.csv", "ParentElement"),
     # mfg pcm (todo 111): self-referential attribute-definition override.
     ("mfg/en-US/mfg-pcm", "ProductAttributeDefinition.csv", "OverriddenProductAttributeDefinition"),
-    # qb/ja refresh (todo 212): self-referential ProductComponentGroup parent.
-    ("qb/ja/qb-pcm", "ProductComponentGroup.csv", "ParentGroup"),
     # The pass-2 Update of BillingTreatmentItem carries the parent as a `$$` column, but pass 2
     # declares no BillingTreatment and BillingTreatmentId is create-only (updateable false), so
     # an Update never sends it. Pass 1 sets it through the single-field `BillingTreatment.Name`:
@@ -217,6 +215,13 @@ KNOWN_SHARED_CONFLICTS = {
     ('UnitOfMeasure', 'EACH', 'Description', 'mfg|q3'),
     ('UnitOfMeasure', 'EACH', 'UnitOfMeasureClass.Code', 'mfg|q3'),
     # mfg against qb/ja: both differ from qb (todo 327, todo 212).
+    # qb/ja's schedules are in JPY, its corporate currency, as the platform seeds them on a
+    # JPY-corporate org; a qb/ja build never shares an org with a USD shape (todo 212).
+    ('PriceAdjustmentSchedule', 'Standard Attribute Based Adjustment', 'CurrencyIsoCode', 'mfg|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Attribute Based Adjustment', 'EffectiveFrom', 'mfg|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Bundle Based Adjustment', 'CurrencyIsoCode', 'mfg|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Bundle Based Adjustment', 'EffectiveFrom', 'mfg|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier', 'CurrencyIsoCode', 'mfg|qb/ja'),
     ('CurrencyType', 'AUD', 'ConversionRate', 'mfg|qb/ja'),
     ('CurrencyType', 'CAD', 'ConversionRate', 'mfg|qb/ja'),
     ('CurrencyType', 'CHF', 'ConversionRate', 'mfg|qb/ja'),
@@ -227,13 +232,15 @@ KNOWN_SHARED_CONFLICTS = {
     ('CurrencyType', 'USD', 'ConversionRate', 'mfg|qb/ja'),
     ('CurrencyType', 'USD', 'IsCorporate', 'mfg|qb/ja'),
     ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier', 'EffectiveFrom', 'mfg|qb/ja'),
-    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier;USD', 'EffectiveFrom', 'mfg|qb/ja'),
     ('Pricebook2', 'Standard Price Book', 'CostBook.Name', 'mfg|qb/ja'),
     ('Pricebook2', 'Standard Price Book;true', 'CostBook.Name', 'mfg|qb/ja'),
     ('UnitOfMeasure', 'EACH', 'Description', 'mfg|qb/ja'),
     ('UnitOfMeasure', 'EACH', 'UnitOfMeasureClass.Code', 'mfg|qb/ja'),
-    # q3 against qb/ja: qb/ja's JPY-based rates, Japanese names and Active classes (todo 212). q3
+    # q3 against qb/ja: qb/ja's JPY-based rates and Japanese names (todo 212). q3
     # and qb/en-US agree on all of these, which is the point of keying by pair (todo 340).
+    ('PriceAdjustmentSchedule', 'Standard Attribute Based Adjustment', 'CurrencyIsoCode', 'q3|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Bundle Based Adjustment', 'CurrencyIsoCode', 'q3|qb/ja'),
+    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier', 'CurrencyIsoCode', 'q3|qb/ja'),
     ('AttributeCategory', 'AC-QB-CPU', 'Name', 'q3|qb/ja'),
     ('CurrencyType', 'AUD', 'ConversionRate', 'q3|qb/ja'),
     ('CurrencyType', 'CAD', 'ConversionRate', 'q3|qb/ja'),
@@ -244,18 +251,12 @@ KNOWN_SHARED_CONFLICTS = {
     ('CurrencyType', 'JPY', 'IsCorporate', 'q3|qb/ja'),
     ('CurrencyType', 'USD', 'ConversionRate', 'q3|qb/ja'),
     ('CurrencyType', 'USD', 'IsCorporate', 'q3|qb/ja'),
-    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier', 'EffectiveFrom', 'q3|qb/ja'),
-    ('PriceAdjustmentSchedule', 'Standard Price Adjustment Tier;USD', 'EffectiveFrom', 'q3|qb/ja'),
     ('Pricebook2', 'Standard Price Book;true', 'CostBook.Name', 'q3|qb/ja'),
     ('UnitOfMeasure', 'GB', 'Name', 'q3|qb/ja'),
     ('UnitOfMeasure', 'MB', 'Name', 'q3|qb/ja'),
     ('UnitOfMeasure', 'm', 'Name', 'q3|qb/ja'),
-    ('UnitOfMeasureClass', 'CAS01', 'Status', 'q3|qb/ja'),
     ('UnitOfMeasureClass', 'CURRENCY', 'BaseUnitOfMeasure.UnitCode', 'q3|qb/ja'),
     ('UnitOfMeasureClass', 'CURRENCY', 'DefaultUnitOfMeasure.UnitCode', 'q3|qb/ja'),
-    ('UnitOfMeasureClass', 'CURRENCY', 'Status', 'q3|qb/ja'),
-    ('UnitOfMeasureClass', 'DATAVOL', 'Status', 'q3|qb/ja'),
-    ('UnitOfMeasureClass', 'TIME', 'Status', 'q3|qb/ja'),
 }
 
 
