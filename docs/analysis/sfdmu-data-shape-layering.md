@@ -242,7 +242,7 @@ alignment doesn't drop the extra key part.
 |---|---|---|
 | `delete_quantumbit_pricing_data`, `delete_q3_pricing_data` | manual full teardown only; no flow runs them | deletes every record of the plan's pricing types, org-wide |
 | `delete_qb_rates_data`, `delete_q3_rates_data`, `delete_qb_rating_data`, `delete_q3_rating_data` | manual full teardown only; no flow runs them | Apex that deactivates Active records first, then deletes in dependency order |
-| mfg plans | 11 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing. mfg-dro's `FulfillmentWorkspaceItem` delete is unscoped, so each load deletes every item in the org, qb's included (`check_sfdmu_layering.py` lists it) | converted with the mfg series (todo 111). qb-dro dropped its own copy of that delete (todo 326); scoping the deletes that stay is researched in todo 331 |
+| mfg plans | 11 `Insert` or `deleteOldData` declarations across mfg-aaf, mfg-configflow, mfg-dro and mfg-pricing. mfg-dro's `FulfillmentWorkspaceItem` delete is unscoped, so each load deletes every item in the org, qb's included (`check_sfdmu_layering.py` lists it) | converted with the mfg series (todo 111). qb-dro dropped its own copy of that delete (todo 326); todo 331 found that none of them needs to stay (see below) |
 | qb/ja qb-pricing | 7 `Insert` declarations, 6 of them live (one is `excluded`) | brought up to the en-US plan in the qb/ja refresh (todo 212) |
 
 The rules for anything that stays destructive:
@@ -250,7 +250,16 @@ The rules for anything that stays destructive:
 - **No `Insert` + `deleteOldData` change without explicit owner approval, per object**
   (AGENTS.md). Cite a current reason Upsert can't work; the fixed historical bugs don't count.
 - **Scope any delete that must stay.** A per-object `deleteQuery` limits `deleteOldData` to the
-  rows it selects; qb-rating used `WHERE Status != 'Active'` before it moved to matching.
+  rows it selects; qb-rating used `WHERE Status != 'Active'` before it moved to matching. Its WHERE
+  can traverse to a parent, so a shape can delete only its own children: on a qb org, a
+  `deleteQuery` on mfg's three fulfillment workspaces selected none of qb's 4 items,
+  where the unscoped delete selected all 4 (SFDMU `--simulation`, todo 331).
+- **None of the four deletes left needs to stay** (todo 331). mfg-dro's `FulfillmentWorkspaceItem`
+  can drop it as qb-dro did (todo 111). mfg-aaf's `AdvAcctForecastSetPartner` can move to Upsert
+  now, and `AdvAccountForecastFact` once its CSV drops the source-org Id columns (`PeriodId`,
+  `ProductId`, `Category__c`, `CategoryId`) beside its relationship keys (todo 327). inapp's
+  section-block junction can move to Upsert too (todo 334). Each change still needs owner approval
+  per object.
 - **Teardown tasks stay out of flows.** A flow reloads in place. A full teardown is a deliberate,
   manual step on a disposable org.
 - **A rejected row fails the load** (`fail_on_row_errors`, default on). A plan that rejects rows

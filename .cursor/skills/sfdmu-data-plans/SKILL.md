@@ -127,6 +127,13 @@ case; existing plans still carrying Insert+deleteOldData migrate under the gated
 
 `deleteOldData: true` deletes every target record matched by the object's own query (all of them when it has no WHERE) before inserting, or the records matched by a per-object `deleteQuery` if one is set (SELECT is forced to `Id`; the WHERE is used verbatim against the target org). Misapplied, it wipes data that Upsert would have safely matched: an unscoped delete on qb-rating stripped every policy from the Active usage resources on a reload of a built org (todo 298), which is why that plan now matches instead of deleting (see *Reload-Safe Status Objects and Child Lookups*).
 
+**Scoping a delete that has to stay (verified, SFDMU 5.8.0, todo 331).** Prefer matching: on the 5.6.4+ floor every remaining delete can be dropped in favour of Upsert matching. If one can't, scope it:
+
+- A `deleteQuery` WHERE can traverse a relationship. `SELECT Id FROM FulfillmentWorkspaceItem WHERE FulfillmentWorkspace.Name IN ('…')` selected only that shape's items on a qb org (run under `--simulation`), where the unscoped delete selected another shape's too. A malformed `deleteQuery` fails at startup.
+- Scope on a **parent's stable key**, never the child's own auto-number `Name`, which changes on every delete-and-reinsert. Keep the IN list in step with the plan's parents: a parent added to the CSV but not to the list is left behind on reload.
+- A scope doesn't get past records the platform won't delete (Active rating records, rows live entitlements reference). Only matching does.
+- **Probe a delete safely with simulation.** `sf sfdmu run … --simulation` runs the delete query and logs `Amount of records to delete: N` (or `No records to delete`) but skips all DML, so it shows what a reload would delete without deleting it. On an org whose My Domain looks like production, pass `--canmodify <instance host>` as `LoadSFDMUData` does, or SFDMU prompts and aborts.
+
 ## Reloading a Plan Into a Live Org
 
 Plans are written for a **fresh org**. Re-running one into an org that already has
