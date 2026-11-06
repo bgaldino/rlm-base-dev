@@ -71,10 +71,10 @@ measured. An asset with a future ramped renewal refuses an earlier amend (an ord
 - Dates for `initiateRenewal` use `yyyy-MM-dd'T'HH:mm:ss` (a bare date is `INVALID_DATE_FORMAT`).
 - Ordering a ramped renewal of a term-only ramped asset extends the same asset and its ASP chain in place.
 
-## Scripted lifecycle prerequisites
+## Lifecycle prerequisites
 
-- The scripts' `order_from_quote.py` copies the account's Billing and Shipping address and a `BillToContactId` onto the order
-  before `Status = Activated`, matching what backdated-change orders need (see
+- Before `Status = Activated`, copy the account's Billing and Shipping address and a `BillToContactId` onto the order,
+  matching what backdated-change orders need (see
   `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`).
 - An evergreen line needs `PeriodBoundary: Anniversary` (without it the order fails: "Evergreen order products must have an
   Anniversary period boundary") and a billing treatment.
@@ -88,3 +88,32 @@ Line-ramp flag only; group ramps need none. On the test org it describes as `cre
 writes were refused through REST, `sf data update record`, Bulk API and Apex, so a line-ramped bundle's amend could not be
 tested by flipping it. The four QB simple products that carry it true came from the qb-pcm plan (its Product2 CSV has a
 `CanRamp` column); how that load sets it was not re-verified.
+
+## Runbook: group-ramped bundle with a one-time or evergreen child
+
+Measured on one 264 scratch org, API only. Run it on a disposable org. Check each response body, not the status.
+
+1. **Create the quote and an empty first-year group.** `placeSalesTransaction` create: Quote (`Status` Draft,
+   `CurrencyIsoCode` set to the account currency) plus one empty `QuoteLineGroup`. Poll `Quote.CalculationStatus` to settled.
+2. **Ramp the group.** `groupRampAction: EditGroup` with `IsRamped`, `SegmentType` Yearly. Clone the last segment's group
+   until there are N segments (Connect clone, one group per call). Poll between calls.
+3. **Add the bundle to each segment.** One `AddProducts` call per segment group, or one call for all segments, with the
+   root bundle line, the term child line, the one-time or evergreen child line, and a `QuoteLineRelationship` per child
+   (with `AssociatedQuoteLinePricing`). Do not add `groupIds`.
+4. **Optional: remove the child from later segments.** `DeleteProducts` of the one-time child's lines in the segments
+   you do not want it in. The root and term child stay stamped.
+5. **Order and activate.** `createOrdersFromQuote` with the quote id. Find the order by its `QuoteId`. Copy the account's
+   Billing and Shipping address and a contact onto the order as `BillToContactId`, then set `Status` Activated.
+   Evergreen lines also need `PeriodBoundary: Anniversary` and a billing treatment.
+6. **Lifecycle action.** Connect `assets/actions/amend` with `assetIds`, `amendmentStartDate`, `quantityChange`,
+   `outputRecordType: Quote`. Connect `cancel` with `cancellationDate`. Connect `renew` with `renewalStartDate`.
+   Use Quote output for every recipe. On the test org, Order output failed for every action with a
+   `RLM_SalesTransactionContext` fetch error.
+7. **Expect the amend failure when a one-time or evergreen child is present.** The body comes back `success:false` with
+   `PlaceSalesTransactionPersistException`. Record it as the result; do not retry on a different status code.
+8. **Ramped renewal.** `initiateRenewal` with `renewAssetIds`, `renewOutputType`, `renewStartDate`, `renewEndDate`
+   (dates as `yyyy-MM-dd'T'HH:mm:ss`), and `rampOptionsDetails` `{segmentType: Yearly, durationInMonths}`. The duration
+   is the total ramp length. Early ramped renewal of a bundle with a one-time or evergreen child is rejected by the platform.
+9. **Verify.** For the bundle asset, count Assets per child: one Asset with N AssetStatePeriods for the term child; for
+   the one-time child, one Asset per segment with one period each and no end date. Count AssetRelationships to the
+   bundle. Check that the order lines match the segments.
