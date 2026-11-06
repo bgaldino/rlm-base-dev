@@ -78,9 +78,12 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    prices, subtotals, and totals; read them back.
 8. **`org_config.username` for `sf` CLI; `access_token` for REST only** (per
    `AGENTS.md`).
-9. **A group-ramped bundle with a one-time or evergreen child cannot be amended (`PlaceSalesTransactionPersistException`,
-   shorthand "500"; measured on one 264 org; cancel failed too where tried).** The child gets no ramp ids and
-   assetizes as one Asset per segment it sits in. See [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
+9. **An API-built group-ramped bundle with a one-time or evergreen child cannot be amended (`PlaceSalesTransactionPersistException`,
+   shorthand "500"; measured on one 264 org; cancel failed too where tried).** The same shape with a one-time child
+   built in the quote UI amended (evergreen not tried in the UI). Built by API the child gets no ramp ids and assetizes as one
+   Asset per segment it sits in; built in the UI a one-time child is stamped and, left in N segments, becomes one Asset whose
+   quantity accumulates 1..N. See
+   [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
 
 ## DO NOT
 

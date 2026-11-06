@@ -36,11 +36,14 @@ A rep can build a group ramp in the 264 quote editor with the same result as the
    - **Current Segment Only** "adds products as non-ramped line items" (dialog text; not tested).
 4. **Pick the product and save.**
    - `Product2.CanRamp` gates the line-ramp path. A `CanRamp = false` product uplifts in an
-     **API-built** group ramp (pack 174, re-measured 2026-10-28/29). The UI test used `QB-API`
-     (`CanRamp = true`); a `CanRamp = false` product in this dialog wasn't tried.
-   - Via the API, a one-time or evergreen **child** of a group-ramped bundle gets no ramp identity and the
-     bundle then can't be amended (cancel failed too where tried); see [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
-     Not tried in this dialog, including removing such a child from one segment.
+     **API-built** group ramp (pack 174, re-measured 2026-10-28/29). Through this dialog a `CanRamp = false` term product
+     was ramp-stamped; a standalone one-time product landed in every segment unstamped.
+   - Bundles with a one-time child, added through Browse Catalogs: adds failed with `UNKNOWN_EXCEPTION` until `IsDefault`
+     was set true on the `ProductSellingModelOption` rows of the bundle and its children (which row matters wasn't
+     isolated). An optional child can be removed from the current and later segments by unticking it in that segment's
+     configurator; a required child can't be removed. Amend, assetization and removal results:
+     [bundle-children-lifecycle.md](bundle-children-lifecycle.md). No Amend action was found on the asset pages, so amend
+     and cancel were run through the API on UI-built quotes.
    - Use a **term** selling model (for example Term Annual). On the API path an Evergreen price
      book entry can't ramp and the segments come out without ramp identity (pack 174); not tried
      in this dialog.

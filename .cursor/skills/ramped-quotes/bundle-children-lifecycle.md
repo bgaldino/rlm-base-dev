@@ -1,8 +1,9 @@
 # Ramped Quotes — Bundles with one-time / evergreen children, and their lifecycle
 
-> Sub-file of `.cursor/skills/ramped-quotes/SKILL.md`. Measured 2026-11-05 on one 264 scratch org
-> (Enterprise, API 68.0), API only, **Quote** output. Not run through the configurator UI.
-> Treat each row as a measurement, not a root cause. Re-verify on the target org.
+> Sub-file of `.cursor/skills/ramped-quotes/SKILL.md`. Measured 2026-11-05/06 on one 264 scratch org
+> (Enterprise, API 68.0), **Quote** output. Rows say whether the bundle was built by API or in the quote UI;
+> the two paths gave different amend results (see the matrix). Treat each row as a measurement, not a root
+> cause. Re-verify on the target org.
 
 ## Limiting a one-time child to segment 1
 
@@ -10,52 +11,73 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
 `groupRampAction: AddProducts` (one line set per segment group, plus a `QuoteLineRelationship` per child with
 `AssociatedQuoteLinePricing`), then `DeleteProducts` the one-time child's lines in segments 2 and 3.
 
-- The root and the term child are stamped with `RampIdentifier`/`SegmentIdentifier`. A **one-time or evergreen child gets
-  neither**, so no contiguity check applied to it in the test. A segment 2-only delete of the one-time child was accepted.
-- Measured by API only. Whether the UI's *Current and Subsequent Segments* places it the same way, and whether removing it
-  in segment 2 through the configurator propagates forward only, is **not verified**.
-- The recipe ran outside the active CML models (`configurationMethod: Skip`, test products with no constraint model). The
-  CML-active-bundle DO NOT in SKILL.md still applies to catalog bundles.
+- The root and the term child are stamped with `RampIdentifier`/`SegmentIdentifier`. Built by API, a **one-time or evergreen
+  child gets neither**, so no contiguity check applied to it in the test, and a segment 2-only delete of it was accepted.
+  Built in the quote UI (Browse Catalogs, *Current and Subsequent Segments*), a one-time child of a term bundle **is**
+  stamped. An API delete of only the segment 2 line of such a stamped child was refused ("You can't delete ramped line items
+  selectively. Include all related ramped line items from subsequent group ramp segments and try again.").
+- In the quote UI the same result is reachable for an **optional** child: open the bundle's configurator in segment 2, untick the
+  child, save. The dialog says "Configuration changes will apply to current and all future segments", and the child stayed
+  in segment 1 only; root and term child stayed in all three. Unticking it in segment 3 only removed it from segment 3.
+  Re-ticking it in segment 3 was accepted.
+- A **required** child cannot be removed that way: its checkbox is disabled in the segment 2 configurator and the line's row
+  menu has no delete.
+- UI adds of the test bundles failed with `UNKNOWN_EXCEPTION` and no lines written while `IsDefault` was false on their
+  `ProductSellingModelOption` rows. Setting `IsDefault = true` on the root and child options together fixed it; which row
+  matters was not isolated. Simple products with it false added fine.
+- The API recipe ran outside the active CML models (`configurationMethod: Skip`, test products with no constraint model).
+  The CML-active-bundle DO NOT in SKILL.md still applies to catalog bundles.
 
 ## Assetization shape
 
 | Line | Result |
 |---|---|
 | Ramped bundle, term child | 1 Asset with N AssetStatePeriods |
-| One-time child in N segments | N separate Assets (1 ASP each, no end date) + N AssetRelationships |
-| Evergreen child in N segments | N separate Assets, no end date (ASP and relationship counts not checked) |
+| One-time child in N segments, API-built | N separate Assets (1 ASP each, no end date) + N AssetRelationships |
+| One-time child in all 3 segments, quote UI-built | 1 Asset with 3 AssetStatePeriods (quantity 1, 2, 3; the last has no end date) |
+| One-time child in segment 1 only (either path) | 1 Asset, 1 ASP, no end date |
+| Evergreen child in N segments, API-built | N separate Assets, no end date (ASP and relationship counts not checked) |
 
 ## Amend and cancel limitation
 
 Connect `assets/actions/amend` fails with `success:false`, `UNKNOWN_EXCEPTION` `PlaceSalesTransactionPersistException`
 (`Invalid or missing reference ID @{null.id}`, `MainQuoteLineId`, entity `QuoteLineRelationship`; the `errorCode` string
 reports `http=500`, the transport status was not recorded), and the `initiateAmendment` invocable fails with the same
-exception, when a **group-ramped bundle has a non-term-defined (one-time or evergreen) bundle child**. Check the response
-body, not the status. "500" below is shorthand for this failure. Cancel (Connect) failed the same way on the
-segment 1-only shape. The other **500** rows were amend-only.
+exception, when an **API-built group-ramped bundle has a non-term-defined (one-time or evergreen) bundle child**. It did not
+reproduce on bundles built in the quote UI (rows below). Check the response body, not the status. "500" below is
+shorthand for this failure. Cancel (Connect) failed the same way on the API-built segment 1-only shape. The other
+**500** rows were amend-only.
 
 | Shape | Amend (cancel where noted) |
 |---|---|
 | Plain bundle (regular group) + one-time child | works |
 | Group ramp, term child only | works (+1, -1 per segment, cancel) |
 | Group ramp + standalone one-time line (not a bundle child) | works |
-| Group ramp + one-time bundle child: segment 1 only (child deleted from segments 2-3 at quote time; cancel also 500), all segments, QSM Proportional | **500** |
-| Group ramp + one-time bundle child in all segments, after deleting the child's segment 2-3 ASPs, AssetRelationships and Assets | **500** |
-| Group ramp + evergreen bundle child (amend only) | **500** |
-| Group ramp + one-time bundle child in all segments, after deleting ALL of the child's ASPs, then AssetRelationships, then Assets (evergreen not tried) | works (amend, cancel, ramped renewal) |
+| Group ramp + one-time bundle child, **quote UI-built**, child in segment 1 only (optional child unticked in segment 2) | **works** (amend at quote level, ordered and activated: bundle chain quantity 1, 2, 1, 1) |
+| Group ramp + one-time bundle child, **API-built**: segment 1 only (child deleted from segments 2-3 at quote time; cancel also 500), all segments, QSM Proportional | **500** |
+| Group ramp + one-time bundle child in all segments, **API-built**, after deleting the child's segment 2-3 ASPs, AssetRelationships and Assets | **500** |
+| Group ramp + evergreen bundle child, **API-built** (amend only) | **500** |
+| Group ramp + one-time bundle child in all segments, **API-built**, after deleting ALL of the child's ASPs, then AssetRelationships, then Assets (evergreen not tried) | works (amend, cancel, ramped renewal) |
+| Group ramp + one-time bundle child in all segments, **quote UI-built**, after deleting only the child's segment 2-3 ASPs | amend inside period 1 fails with a 400 ("Specify Term-Defined as the Product Selling Model on the initial sale asset action source"); amend dated after period 1 and cancel work at quote level |
+| Same UI-built shape, after also deleting the child's remaining ASP, AssetRelationship and Asset | works (amend ordered and activated), but no one-time Asset remains and the order no longer matches |
 
+- The same segment 1-only shape amended when built in the quote UI and failed when built by API. The cause of the difference is
+  not established.
+- A UI-built group ramp bundle whose one-time child sat in all 3 segments amended too at quote level (the control was built in
+  the UI with a 100% segment 2-3 discount applied by API, amended at both 2027-06-01 and 2028-06-01). Cancel succeeded at
+  quote level on UI-built quotes (not ordered).
 - Cause unconfirmed. The error's reference map shows a `NonrampedGroup`, which suggests the amendment builds the child in a
   separate non-ramped group. State it as a limitation, not a root cause.
 - Quantity-scale method is not the lever: `AssociatedQuantScaleMethod: Proportional` on the relationship is accepted by Place
   and does not change the outcome.
 - The delete workaround is unsupported: the order no longer matches its assets. Offer it only as a customer-flow option
-  with that caveat. Removing the child at quote time is cleaner, but the limitation applies while any child asset remains.
+  with that caveat. Removing the child at quote time is cleaner. On API-built bundles the limitation applies while any child asset remains.
 - Amend works per segment on a term-only group ramp: +1 / -1 changes only the segment holding the amend date and its remainder.
 
 ## Amend date window
 
 On or after the Lifecycle Start Date of **every** asset in the request, and before the Lifecycle End Date of each asset that has
-one. One-time and evergreen Assets have no end date, so only the start bound applies to them. A one-time child in
+one. One-time and evergreen Assets have no end date, so only the start bound applies to them. On an API-built bundle a one-time child in
 later segments starts its own Asset there, so the earliest allowed amend date moves to the last segment's start (inferred from the every-asset rule; an amend at
 2027-06-01, before the 2028 and 2029 one-time Asset starts, returned a 400). The upper bound for null-end Assets was not
 measured. An asset with a future ramped renewal refuses an earlier amend (an ordered plain renewal blocks it the same way).
@@ -92,6 +114,7 @@ tested by flipping it. The four QB simple products that carry it true came from 
 ## Runbook: group-ramped bundle with a one-time or evergreen child
 
 Measured on one 264 scratch org, API only. Run it on a disposable org. Check each response body, not the status.
+This runbook builds the API (unstamped) shape; the outcomes in steps 6-9 do not apply to a quote UI-built bundle (see the matrix).
 
 1. **Create the quote and an empty first-year group.** `placeSalesTransaction` create: Quote with `CurrencyIsoCode` set
    to the account currency, plus one empty `QuoteLineGroup`. Poll `Quote.CalculationStatus` to settled.
