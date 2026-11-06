@@ -132,40 +132,27 @@ class ValidationResult:
 class SFDMUValidator:
     """Validator for SFDMU v5 datasets."""
 
-    # Known objects that use deleteOldData strategy (from sfdmu_composite_key_optimizations.md)
+    # Objects whose live `deleteOldData` is documented, one per declaration that still deletes
+    # (todo 216; re-checked 2026-11-05 against every tracked export.json). Each is set to go:
+    # todo 331 found none needs to stay (mfg-dro FWI: todo 111; mfg-aaf: todo 327; inapp: todo
+    # 334). Remove an entry when its delete goes, so a delete reintroduced later is reported.
     DELETE_OLD_DATA_OBJECTS = {
-        "FulfillmentWorkspaceItem",
-        "PriceBookRateCard",
-        "RateCardEntry",
-        "RateAdjustmentByTier",
-        # MFG AAF — forecast facts use deleteOldData for full refresh
-        "AdvAccountForecastFact",
-        "AdvAcctForecastSetPartner",
-        # Guided selling — OmniProcess/AssessmentQuestion objects require deleteOldData
-        # due to complex self-referential keys that SFDMU v5 cannot upsert safely
-        "AssessmentQuestionAssignment",
-        "AssessmentQuestionVersion",
-        "OmniProcessElement",
-        "OmniProcessAsmtQuestionVer",
-        # Rating usage grants require deleteOldData due to composite key structure
-        "ProductUsageResource",
-        "ProductUsageResourcePolicy",
-        "ProductUsageGrant",
+        "FulfillmentWorkspaceItem",     # mfg-dro (qb-dro dropped its copy, #678)
+        "AdvAccountForecastFact",       # mfg-aaf
+        "AdvAcctForecastSetPartner",    # mfg-aaf
+        "RLM_Learning_SectionBlock__c",  # inapp
     }
 
-    # Known excluded objects (from optimization doc)
+    # Objects declared `excluded` in some plan (re-checked 2026-11-05, todo 216).
     KNOWN_EXCLUDED_OBJECTS = {
         "PricebookEntryDerivedPrice",
-        "ProductUsageResourcePolicy",
-        "ProductUsageGrant",
         "ProductDecompEnrichmentRule",
         "ProductComponentGrpOverride",
         "ProductRelComponentOverride",
-        # CostBookEntry excluded in qb-pricing (no cost book data in base dataset)
-        "CostBookEntry",
     }
 
-    # Objects with known empty CSVs (0 records placeholders)
+    # Objects with known empty CSVs (0 records placeholders). Pruned of objects no plan ships
+    # empty any more on 2026-11-05 (todo 216).
     KNOWN_EMPTY_CSV_OBJECTS = {
         "ValTfrmGrp",
         "ValTfrm",
@@ -174,15 +161,12 @@ class SFDMUValidator:
         "ProductDisqualification",
         "ProductCategoryDisqual",
         "ProductCategoryQualification",
-        "CostBook",
         "CostBookEntry",
         "GeneralLedgerJrnlEntryRule",
         "ProductRelComponentOverride",
-        "PriceAdjustmentTier",
         "BundleBasedAdjustment",
         "PricebookEntryDerivedPrice",
         "ProductRampSegment",
-        "UsagePrdGrantBindingPolicy",
     }
 
     # Frozen snapshot of the header-only CSVs currently shipping under the deprioritized
@@ -1932,7 +1916,7 @@ class SFDMUValidator:
                 message=f"externalId uses legacy $$ notation: '{external_id}'. SFDMU v5 requires semicolon-delimited format (e.g., 'Field1;Field2')"
             ))
 
-        # Check for nested relationship paths (v5 flattening issue).
+        # Check for nested relationship paths (extraction may write their segments as #N/A).
         # Skip for Insert operations: externalId is only used for CSV composite key
         # matching, not for SOQL traversal, so nested paths do not cause runtime errors.
         # Skip for plain Delete too, for a stronger reason: its query never runs at all
@@ -1948,10 +1932,19 @@ class SFDMUValidator:
                 # Count dots (more than 1 = nested relationship)
                 dot_count = field.count(".")
                 if dot_count > 1:
+                    # Info, not Medium (todo 216): on the 5.6.4+ floor a nested path matches
+                    # correctly on Upsert/Update (Bug 2 fixed in 5.6.3, Bugs 3/5 in 5.6.4; todo
+                    # 216 records the qb-rates and qb-pricing reloads at 0 diff). What remains is
+                    # that an extraction can write the nested segments as `#N/A`, and
+                    # post_process_extraction.py backfills only the code columns it has a
+                    # Name->Code map for (it blanks the rest). Still reported, never suppressed.
                     result.add_issue(Issue(
-                        severity=Severity.MEDIUM,
+                        severity=Severity.INFO,
                         object_name=obj_name,
-                        message=f"externalId contains nested relationship path '{field}' which may cause v5 flattening errors"
+                        message=f"externalId contains nested relationship path '{field}': it matches "
+                                f"on SFDMU 5.6.4+, but an extraction can write its nested segments as "
+                                f"#N/A; post_process_extraction.py backfills only the code columns it "
+                                f"has a Name->Code map for, so check the extracted CSV before reloading"
                     ))
 
         # Validate that composite key components are in the query.

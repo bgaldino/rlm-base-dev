@@ -4770,6 +4770,11 @@ def gate_verdict_all(runner_code, only=None, checks=None):
     try:
         pr_gate.run = lambda cmd: (runner_code, f"stub exit {runner_code}", 0.1)
         pr_gate.run_sequence = lambda cmds: (runner_code, f"stub exit {runner_code}", 0.1)
+        # The drift check reads `git status` on the generated CCI references for its verdict. Left
+        # real, it made "a clean run is still exit 0" fail whenever those files were dirty in the
+        # working tree, e.g. mid-edit before a regeneration is committed: an outcome the stubbed
+        # runners don't control. Stubbed clean, so every check's verdict is `runner_code`'s.
+        pr_gate.git = lambda args, what: ""
         pr_gate.missing_deps = lambda check: []
         pr_gate.unlisted_suites = lambda: []
         pr_gate.CHECKS = keep
@@ -4779,7 +4784,7 @@ def gate_verdict_all(runner_code, only=None, checks=None):
         with redirect_stdout(buf):
             rc = pr_gate.main()
     finally:
-        pr_gate.run, pr_gate.run_sequence = real_run, real_seq
+        pr_gate.run, pr_gate.run_sequence, pr_gate.git = real_run, real_seq, real_git
         pr_gate.changed_files, sys.argv = real_changed, real_argv
         pr_gate.missing_deps, pr_gate.unlisted_suites = real_deps, real_unlisted
         pr_gate.CHECKS = real_checks
