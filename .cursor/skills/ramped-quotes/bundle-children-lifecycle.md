@@ -88,10 +88,3 @@ Line-ramp flag only; group ramps need none. On the test org it describes as `cre
 writes were refused through REST, `sf data update record`, Bulk API and Apex, so a line-ramped bundle's amend could not be
 tested by flipping it. The four QB simple products that carry it true came from the qb-pcm plan (its Product2 CSV has a
 `CanRamp` column); how that load sets it was not re-verified.
-
-## Working call sequences
-
-Maintainer-only: the scripts live in the private artifacts repo (`bgaldino/rlm-base-artifacts`, `ramp-one-time-child/scripts/`): `ramp_lib.py`
-(place, poll, ramp a quote, build lines and relationships), `e5_ramp_no_onetime_amend.py` (term-only group ramp, order,
-activate, amend), `e7_ramp_all_segments_onetime_amend.py` and `e16_evergreen_child.py` (the 500), `order_from_quote.py`
-(quote to activated order), `e6_lifecycle_probe.py` (cancel / renew), `e8_ramped_renew.py` (ramped renewal).
