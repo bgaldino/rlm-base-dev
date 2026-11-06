@@ -34,6 +34,9 @@ using the non-rewriting commands in step 1. Run every command from the project r
 - Do not treat `cci org remove` as a local command. For any entry with a created
   date it runs `sf org delete scratch -p` with no prompt, then drops the record.
   Step 3 gives the only conditions for using it.
+- Do not use `sf org list --clean`. It selects by status rather than the allowlist,
+  and on deleted orgs it returned status 0, warned, and removed nothing. Its warning
+  suggests the remote-delete command; use targeted logout instead.
 - Do not run `cci org info`, or target an entry with `--org`, during cleanup. On an
   expired or uninstantiated scratch entry CCI creates a new scratch org, and
   `cci org info --json` prints tokens.
@@ -79,9 +82,9 @@ Read that output with these behaviors in mind:
   use that form only outside an audit, and only when connection status is needed.
 - `nonScratchOrgs` includes the `other`, `sandboxes`, and `devHubs` entries, so
   dedupe by username before counting.
-- If a Dev Hub query fails, `sf org list` drops that hub's scratch orgs with only
-  a log-file warning. Compare against `sf org list auth` and the auth files; an
-  entry missing from the list is Unknown, not absent.
+- If a Dev Hub query fails, `sf org list` drops that hub's scratch orgs and still
+  returns status 0 with no warning. Compare against `sf org list auth` and the auth
+  files; an entry missing from the list is Unknown, not absent.
 - `cci org list` is not strictly read-only. Any `cci` command writes a `.org` file
   for a shape declared in the checked-out `cumulusci.yml` that lacks one, and the
   table form removes cache directories for orgs it no longer knows. `--json` skips
@@ -171,13 +174,18 @@ Only clear a CCI default if it points to a removal candidate:
 cci org default --unset
 ```
 
+That also runs `sf config unset target-org` in the current project, even when the SF
+default points at a different, valid org. Note `target-org` first, and if it is still
+valid restore it with `sf config set target-org=<value>`, which updates both config
+layouts. `cci org default <name>` likewise moves the SF default to that org.
+
 `cci org prune` has no dry run. Without `--include-active`, predict what it will do
 from the table below. Shape names are the **merged** `orgs.scratch`, which includes
 CCI's built-in shapes as well as the project's, so read them from CCI rather than from
-`cumulusci.yml`. This prints names only and does not load the keychain:
+`cumulusci.yml`. This prints names only:
 
 ```bash
-"$(awk 'NR==1{sub(/^#!/,""); print $1; exit}' "$(command -v cci)")" -c 'from cumulusci.cli.runtime import CliRuntime; print(*sorted(CliRuntime(load_keychain=False).project_config.lookup("orgs__scratch", {})), sep="\n")'
+cci shell --python 'print(*sorted(project_config.lookup("orgs__scratch", {})), sep="\n")'
 ```
 
 In `COLUMNS=200 cci org list --plain` (narrower output wraps long names), a
@@ -207,28 +215,17 @@ the entry's alias resolves to a username, a hub row from this run shows `Deleted
 that exact username, and the user approved that entry by name. Otherwise report the
 entry and leave it. Do not bypass global-org protection automatically.
 
-`sf org list --clean` selects every scratch entry in `sf org list --all` whose status
-is not `Active`, so `New` and `Error` also qualify. Run it only if all of those are on
-the allowlist; otherwise skip it and use targeted logout:
-
-```bash
-sf org list --clean --no-prompt --json
-```
-
-This may warn that cleaning an org failed even when the returned scratch
-list is empty. Do not equate an empty list or status 0 with successful
-removal. Inspect auth files and `sf org list auth` afterward.
-For each allowlisted username still present, including secondary users:
+For each allowlisted username, including secondary users:
 
 ```bash
 sf org logout --target-org <stale-username> --no-prompt --json
 ```
 
-Use targeted logout instead of the remote-delete command suggested by some
-clean warnings. Check every result; do not silently unlink credentials
-when supported logout fails. Report failures for investigation. Logout also clears
-that user's aliases and any global or current-project config key pointing at it, but
-leaves user indexes and tracking directories.
+Check every result; do not silently unlink credentials when supported logout fails.
+Report failures for investigation. A warning about losing access is routine for a
+scratch-org login. Logout also clears that user's aliases and any global or
+current-project config key pointing at it, in both layouts, but leaves user indexes and
+tracking directories.
 
 ## 4. Remove verified residual local state
 
