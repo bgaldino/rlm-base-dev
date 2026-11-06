@@ -322,6 +322,41 @@ def test_required_three_passes_and_default_key():
             "pass 3: Widget__x.Required is required on create and 1 row(s) leave it blank"])
 
 
+def test_required_unselected_column_is_not_a_key():
+    print("required: an earlier pass's unselected CSV column can't match a later pass's key")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        plan = tmp / "qb/en-US/p"
+        (plan / "objectset_source/object-set-2").mkdir(parents=True)
+        (plan / "export.json").write_text(json.dumps({
+            "useSeparatedCSVFiles": True,
+            "objectSets": [
+                {"objects": [{"query": "SELECT Name, Code, Required FROM Widget__x",
+                              "operation": "Upsert", "externalId": "Code"}]},
+                {"objects": [{"query": "SELECT Name, Code, Required FROM Widget__x",
+                              "operation": "Upsert", "externalId": "Code"}]}]}), encoding="utf-8")
+        (plan / "Widget__x.csv").write_text("Name,Code,Required,Family\nn1,c1,r,f1\n", encoding="utf-8")
+        (plan / "objectset_source/object-set-2/Widget__x.csv").write_text(
+            "Name,Code,Required\nn1,c1,\n", encoding="utf-8")
+        r = A.audit(SNAPSHOT, tmp)
+        check("the matching key is still the selected Code", [f for f in r["findings"]
+              if f["check"] == "required"], [])
+        # Key on the unselected column in pass 2: pass 1 never wrote Family.
+        (plan / "export.json").write_text(json.dumps({
+            "useSeparatedCSVFiles": True,
+            "objectSets": [
+                {"objects": [{"query": "SELECT Name, Code, Required FROM Widget__x",
+                              "operation": "Upsert", "externalId": "Code"}]},
+                {"objects": [{"query": "SELECT Name, Code, Required, Family FROM Widget__x",
+                              "operation": "Upsert", "externalId": "Family"}]}]}), encoding="utf-8")
+        (plan / "objectset_source/object-set-2/Widget__x.csv").write_text(
+            "Name,Code,Required,Family\nn2,c2,,f1\n", encoding="utf-8")
+        r = A.audit(SNAPSHOT, tmp)
+        check("pass 2's f1 isn't a record pass 1 wrote, so its blank Required counts",
+              [f["detail"] for f in r["findings"] if f["check"] == "required"],
+              ["pass 2: Widget__x.Required is required on create and 1 row(s) leave it blank"])
+
+
 def test_insert_after_upsert_is_checked():
     print("an Insert pass creates rows even when an earlier pass used the key")
     with tempfile.TemporaryDirectory() as d:
@@ -495,7 +530,7 @@ def test_committed_snapshot():
 for t in (test_findings, test_required_missing_column, test_deep_paths_and_external_id,
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
-          test_required_three_passes_and_default_key,
+          test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
           test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):

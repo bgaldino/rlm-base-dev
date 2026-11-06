@@ -415,6 +415,9 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 # matches, on this declaration's externalId, a row an earlier creating pass of the
                 # plan created is only patched here; an Insert never matches, so its rows are new.
                 earlier = created_rows.setdefault(obj, [])
+                # Only the columns this declaration writes reach the org; a CSV cell it doesn't select
+                # can't identify a record.
+                written = list(columns)
                 # An undeclared externalId falls back to the plan's first creating key.
                 first_key = plan_keys.setdefault(obj, key_list)
                 ident_key = key_list or first_key
@@ -436,13 +439,13 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 else:
                     fresh = []
                     for r in rows:
-                        v = layering.row_values(ident_key, headers, r)
+                        v = layering.row_values(ident_key, written, r)
                         ident = layering.key_of(v, ident_key) if all(f in v for f in ident_key) else None
                         if ident is None or ident not in known:
                             fresh.append(r)
                             if ident is not None:
                                 known.add(ident)  # a repeat of it in this pass patches the first
-                earlier.append((headers, rows))
+                earlier.append((written, rows))
                 if fresh:
                     for name, f in sorted(fields.items()):
                         if not _is_required(name, f):
