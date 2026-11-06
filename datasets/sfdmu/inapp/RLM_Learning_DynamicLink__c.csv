@@ -15,7 +15,7 @@ c__Learning_Home,,ACC_INFINITECH_DYN_LINK,,Account Name Infinitech,Account,,,,,,
 ,,PriceManagement_Validate_DYN_LINK,,Price Management Validate Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Validate Setup Popup Section
 ,,PriceManagement_Customize_DYN_LINK,,Price Management Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Customize Capabilities Popup Section
 ,,,,Popup for Instructions for User,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Learn Popup Section
-,,PCM_LEARN_DYN_LINK,,Product Catalog Management Learn Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Learn Popup Section
+,,PCM_LEARN_POPUP_DYN_LINK,,Product Catalog Management Learn Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Learn Popup Section
 ,,PriceManagement_Launch_DYN_LINK,,Price Management Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Launch Popup Section
 ,,TransactionManagement_Getstarted_DYN_LINK,,Transaction Management Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Transaction Management Get Started Popup Text Section
 ,,TransactionManagement_ValidatesSetup_DYN_LINK,,Transaction Management Validate Setup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Transaction Management Validate Setup Popup

@@ -1,121 +1,121 @@
-$$RLM_Learning_Section__r.Name$RLM_Learning_Block__r.Name$RLM_Learning_Order_Sequence__c,RLM_Learning_Section__r.Name,RLM_Learning_Block__r.Name,RLM_Learning_Order_Sequence__c
-Home Welcome;Home Welcome Block;1.0,Home Welcome,Home Welcome Block,1.0
-Transaction Management Left Top Section;Transaction Management Solution Overview Block;1.0,Transaction Management Left Top Section,Transaction Management Solution Overview Block,1.0
-DRO Left Top Section;DRO Solution Overview Block;1.0,DRO Left Top Section,DRO Solution Overview Block,1.0
-Billing Left Top Section;Billing Solution Overview Block;1.0,Billing Left Top Section,Billing Solution Overview Block,1.0
-Billing Right Section;Billing Learning Hub Block 1;1.0,Billing Right Section,Billing Learning Hub Block 1,1.0
-Billing Right Section;Billing Learning Hub Block 3;3.0,Billing Right Section,Billing Learning Hub Block 3,3.0
-Rate Management Left Top Section;Rate Management Solution Overview;1.0,Rate Management Left Top Section,Rate Management Solution Overview,1.0
-Home Left Bottom;Salesforce Contracts Home Block;8.0,Home Left Bottom,Salesforce Contracts Home Block,8.0
-Rate Management Right Section;Rate Management Learning Block 1;1.0,Rate Management Right Section,Rate Management Learning Block 1,1.0
-Rate Management Right Section;Rate Management Learning Block 2;2.0,Rate Management Right Section,Rate Management Learning Block 2,2.0
-Salesforce Contracts Left Top Section;Salesforce Contracts Solution Overview Block;1.0,Salesforce Contracts Left Top Section,Salesforce Contracts Solution Overview Block,1.0
-Usage Management Right Section;Usage Management Learning Block 1;1.0,Usage Management Right Section,Usage Management Learning Block 1,1.0
-Usage Management Right Section;Usage Management Learning Block 2;2.0,Usage Management Right Section,Usage Management Learning Block 2,2.0
-Usage Management Left Top Section;Usage Management Solution Overview Block;1.0,Usage Management Left Top Section,Usage Management Solution Overview Block,1.0
-Home Learning Hub;Read Implementation Guide;3.0,Home Learning Hub,Read Implementation Guide,3.0
-Home Left Bottom;Usage Management Home Block;9.0,Home Left Bottom,Usage Management Home Block,9.0
-Home Learning Hub;Connect with Salesforce;4.0,Home Learning Hub,Connect with Salesforce,4.0
-Home Learning Hub;We Value Your Ideas and Feedback;5.0,Home Learning Hub,We Value Your Ideas and Feedback,5.0
-Product Catalog Management Left Bottom Section;Product Catalog Get Started;1.0,Product Catalog Management Left Bottom Section,Product Catalog Get Started,1.0
-Product Catalog Management Left Bottom Section;Product Catalog Management Validate Setup Home;2.0,Product Catalog Management Left Bottom Section,Product Catalog Management Validate Setup Home,2.0
-Product Catalog Management Left Bottom Section;Product Catalog Management Launch App Home;3.0,Product Catalog Management Left Bottom Section,Product Catalog Management Launch App Home,3.0
-Product Catalog Management Left Bottom Section;Product Catalog Management Customize Capabilities Home;4.0,Product Catalog Management Left Bottom Section,Product Catalog Management Customize Capabilities Home,4.0
-ProductConfig_Learn Popup Section;ProductConfig_Learn;1.0,ProductConfig_Learn Popup Section,ProductConfig_Learn,1.0
-Product Configurator Left Bottom Section;Product Configurator Get Started Home;1.0,Product Configurator Left Bottom Section,Product Configurator Get Started Home,1.0
-Product Configurator Left Bottom Section;Product Configurator Validate Setup Home;2.0,Product Configurator Left Bottom Section,Product Configurator Validate Setup Home,2.0
-Home Learning Hub;Revenue Cloud Fundamentals;1.0,Home Learning Hub,Revenue Cloud Fundamentals,1.0
-Product Configurator Left Bottom Section;Product Configurator Launch App Home;3.0,Product Configurator Left Bottom Section,Product Configurator Launch App Home,3.0
-Product Configurator Left Bottom Section;Product Configurator Customize Capabilities Home;4.0,Product Configurator Left Bottom Section,Product Configurator Customize Capabilities Home,4.0
-Price Management Left Bottom Section;Price Management Validate Setup Block;2.0,Price Management Left Bottom Section,Price Management Validate Setup Block,2.0
-Price Management Get Started Popup Section;Price Management Get Started Popup Text Block;1.0,Price Management Get Started Popup Section,Price Management Get Started Popup Text Block,1.0
-Price Management Left Bottom Section;Price Management Get Started Block;1.0,Price Management Left Bottom Section,Price Management Get Started Block,1.0
-Price Management Left Bottom Section;Price Management Launch App Block;3.0,Price Management Left Bottom Section,Price Management Launch App Block,3.0
-Price Management Left Bottom Section;Price Management Customize Capabilities Block;4.0,Price Management Left Bottom Section,Price Management Customize Capabilities Block,4.0
-Transaction Management Left Bottom Section;Transaction Management Get Started;1.0,Transaction Management Left Bottom Section,Transaction Management Get Started,1.0
-Transaction Management Left Bottom Section;Transaction Management Validate Setup;2.0,Transaction Management Left Bottom Section,Transaction Management Validate Setup,2.0
-Transaction Management Left Bottom Section;Transaction Management Launch App;3.0,Transaction Management Left Bottom Section,Transaction Management Launch App,3.0
-Home Learning Hub;Revenue Cloud Certification;2.0,Home Learning Hub,Revenue Cloud Certification,2.0
-Transaction Management Left Bottom Section;Transaction Management Customize Capabilities;4.0,Transaction Management Left Bottom Section,Transaction Management Customize Capabilities,4.0
-DRO Left Bottom Section;DRO Get Started Block;1.0,DRO Left Bottom Section,DRO Get Started Block,1.0
-DRO Left Bottom Section;DRO Validate Setup Block;2.0,DRO Left Bottom Section,DRO Validate Setup Block,2.0
-DRO Left Bottom Section;DRO Launch App;3.0,DRO Left Bottom Section,DRO Launch App,3.0
-DRO Left Bottom Section;DRO Customize Capabilities;4.0,DRO Left Bottom Section,DRO Customize Capabilities,4.0
-Billing Left Bottom Section;Billing Get Started Block;1.0,Billing Left Bottom Section,Billing Get Started Block,1.0
-Billing Left Bottom Section;Billing Validate Setup Block;2.0,Billing Left Bottom Section,Billing Validate Setup Block,2.0
-Billing Left Bottom Section;Billing Launch App Block;3.0,Billing Left Bottom Section,Billing Launch App Block,3.0
-Billing Left Bottom Section;Billing Customize Capabilities;4.0,Billing Left Bottom Section,Billing Customize Capabilities,4.0
-Rate Management Left Bottom Section;Rate Management Get Started Block;1.0,Rate Management Left Bottom Section,Rate Management Get Started Block,1.0
-Product Configurator Learning Hub Section;Product Configurator Learning Block 1;1.0,Product Configurator Learning Hub Section,Product Configurator Learning Block 1,1.0
-Salesforce Contracts Left Bottom Section;Salesforce Contracts Customize Capabilities Block;4.0,Salesforce Contracts Left Bottom Section,Salesforce Contracts Customize Capabilities Block,4.0
-Rate Management Left Bottom Section;Rate Management Validate Setup Block;2.0,Rate Management Left Bottom Section,Rate Management Validate Setup Block,2.0
-Salesforce Contracts Left Bottom Section;Salesforce Contracts Launch App Block;3.0,Salesforce Contracts Left Bottom Section,Salesforce Contracts Launch App Block,3.0
-Rate Management Left Bottom Section;Rate Management Launch App Block;3.0,Rate Management Left Bottom Section,Rate Management Launch App Block,3.0
-Rate Management Left Bottom Section;Rate Management Customize Capabilities Block;4.0,Rate Management Left Bottom Section,Rate Management Customize Capabilities Block,4.0
-Salesforce Contracts Left Bottom Section;Salesforce Contracts Get Started Block;1.0,Salesforce Contracts Left Bottom Section,Salesforce Contracts Get Started Block,1.0
-Salesforce Contracts Left Bottom Section;Salesforce Contracts Validate Setup Block;2.0,Salesforce Contracts Left Bottom Section,Salesforce Contracts Validate Setup Block,2.0
-Usage Management Left Bottom Section;Usage Management Get Started Block;1.0,Usage Management Left Bottom Section,Usage Management Get Started Block,1.0
-Usage Management Left Bottom Section;Usage Management Validate Setup Block;2.0,Usage Management Left Bottom Section,Usage Management Validate Setup Block,2.0
-Usage Management Left Bottom Section;Usage Management Launch App Block;3.0,Usage Management Left Bottom Section,Usage Management Launch App Block,3.0
-Home Left Bottom;Product Catalog Management Home Block;1.0,Home Left Bottom,Product Catalog Management Home Block,1.0
-Usage Management Left Bottom Section;Usage Management Customize Capabilities Block;4.0,Usage Management Left Bottom Section,Usage Management Customize Capabilities Block,4.0
-Price Management Launch App Popup Section;Price Management Launch App Popup Text Block;1.0,Price Management Launch App Popup Section,Price Management Launch App Popup Text Block,1.0
-PCM_Launch Popup Section;PCM_Launch;1.0,PCM_Launch Popup Section,PCM_Launch,1.0
-Home Left Bottom;Product Configurator Home Block;2.0,Home Left Bottom,Product Configurator Home Block,2.0
-Home Left Bottom;Transaction Management Home Block;4.0,Home Left Bottom,Transaction Management Home Block,4.0
-Home Left Bottom;Dynamic Revenue Orchestrator Home Block;5.0,Home Left Bottom,Dynamic Revenue Orchestrator Home Block,5.0
-Price Management Validate Setup Popup Section;Price Management Validate Popup Block;1.0,Price Management Validate Setup Popup Section,Price Management Validate Popup Block,1.0
-Price Management Launch Popup Section;Salesforce Pricing Launch App Popup Block;1.0,Price Management Launch Popup Section,Salesforce Pricing Launch App Popup Block,1.0
-Transaction Management Get Started Popup Text Section;Transaction Management Get Started Popup Text Block;1.0,Transaction Management Get Started Popup Text Section,Transaction Management Get Started Popup Text Block,1.0
-Home Left Bottom;Price Management Home Block;3.0,Home Left Bottom,Price Management Home Block,3.0
-Transaction Management Validate Setup Popup;Transaction Management Validate Setup Popup Text Block;1.0,Transaction Management Validate Setup Popup,Transaction Management Validate Setup Popup Text Block,1.0
-Transaction Management Launch App Popup Text Section;Transaction Management Launch App Popup Text Block;1.0,Transaction Management Launch App Popup Text Section,Transaction Management Launch App Popup Text Block,1.0
-Transaction Management Customize Capabilities Popup Section;Transaction Management Customize Capabilities Popup Text Block;1.0,Transaction Management Customize Capabilities Popup Section,Transaction Management Customize Capabilities Popup Text Block,1.0
-DRO Get Started Section;DRO Get Started Popup Text Block;1.0,DRO Get Started Section,DRO Get Started Popup Text Block,1.0
-DRO Validate Setup Popup Section;DRO Validate Setup Popup Text Block;1.0,DRO Validate Setup Popup Section,DRO Validate Setup Popup Text Block,1.0
-DRO Launch App Popup Section;DRO Launch App Popup Text;1.0,DRO Launch App Popup Section,DRO Launch App Popup Text,1.0
-DRO Customize Capabilities Popup Section;DRO Customize Capabilities Popup Text;1.0,DRO Customize Capabilities Popup Section,DRO Customize Capabilities Popup Text,1.0
-Billing Get Started Popup Section;Billing Get Started Popup Text;1.0,Billing Get Started Popup Section,Billing Get Started Popup Text,1.0
-Billing Validate Popup Section;Billing Validate Setup Popup Block;1.0,Billing Validate Popup Section,Billing Validate Setup Popup Block,1.0
-Billing Launch App Popup Section;Billing Launch App Popup Text;1.0,Billing Launch App Popup Section,Billing Launch App Popup Text,1.0
-Billing Customize Capabilities Popup Section;Billing Customize Capabilities Popup Block;1.0,Billing Customize Capabilities Popup Section,Billing Customize Capabilities Popup Block,1.0
-Rate Management Get Started Popup Section;Rate Management Get Started Popup Text Block;1.0,Rate Management Get Started Popup Section,Rate Management Get Started Popup Text Block,1.0
-Rate Management Validate Setup Popup Section;Rate Management Validate Setup Popup Block;1.0,Rate Management Validate Setup Popup Section,Rate Management Validate Setup Popup Block,1.0
-Rate Management Launch App Popup Section;Rate Management Launch App Popup Text Block;1.0,Rate Management Launch App Popup Section,Rate Management Launch App Popup Text Block,1.0
-Rate Management Customize Capabilities Popup Section;Rate Management Customize Capabilities Popup Text Block;1.0,Rate Management Customize Capabilities Popup Section,Rate Management Customize Capabilities Popup Text Block,1.0
-Salesforce Contracts Get Started Popup Section;Salesforce Contracts Get Started Popup Text Block;1.0,Salesforce Contracts Get Started Popup Section,Salesforce Contracts Get Started Popup Text Block,1.0
-Salesforce Contracts Validate Setup Popup Section;Salesforce Contracts Validate Setup Popup Text Block;1.0,Salesforce Contracts Validate Setup Popup Section,Salesforce Contracts Validate Setup Popup Text Block,1.0
-Salesforce Contracts Launch App Popup Section;Salesforce Contracts Launch App Popup Text;1.0,Salesforce Contracts Launch App Popup Section,Salesforce Contracts Launch App Popup Text,1.0
-Salesforce Contracts Customize Capabilities Popup Section;Salesforce Contracts Customize Capabilities Popup Text Block;1.0,Salesforce Contracts Customize Capabilities Popup Section,Salesforce Contracts Customize Capabilities Popup Text Block,1.0
-Usage Management Get Started Popup Section;Usage Management Get Started Popup Block;1.0,Usage Management Get Started Popup Section,Usage Management Get Started Popup Block,1.0
-Product Configurator Left Top Section;Product Configurator Left Top Block;1.0,Product Configurator Left Top Section,Product Configurator Left Top Block,1.0
-Usage Management Validate Setup Section;Usage Management Validate Setup Popup Text Block;1.0,Usage Management Validate Setup Section,Usage Management Validate Setup Popup Text Block,1.0
-Usage Management Launch App;Usage Management Launch App Popup Text Block;1.0,Usage Management Launch App,Usage Management Launch App Popup Text Block,1.0
-Usage Management Customize Capabilities Popup Section;Usage Management Customize Capabilities Popup Block;1.0,Usage Management Customize Capabilities Popup Section,Usage Management Customize Capabilities Popup Block,1.0
-Product Catalog Management Left Top Section;Product Catalog Management Top Block;1.0,Product Catalog Management Left Top Section,Product Catalog Management Top Block,1.0
-PCM_Learn Popup Section;PCM_Learn;1.0,PCM_Learn Popup Section,PCM_Learn,1.0
-PCM_Check Popup Section;PCM_Check;1.0,PCM_Check Popup Section,PCM_Check,1.0
-PCM_Explore Popup Section;PCM_Explore;1.0,PCM_Explore Popup Section,PCM_Explore,1.0
-Home Left Top;Home Left Top Block;1.0,Home Left Top,Home Left Top Block,1.0
-Product Configurator Learning Hub Section;Product Configurator Learning Block 2;2.0,Product Configurator Learning Hub Section,Product Configurator Learning Block 2,2.0
-ProductConfig_Validate;ProductConfig_Validate_Popup Section;1.0,ProductConfig_Validate,ProductConfig_Validate_Popup Section,1.0
-Home Left Bottom;Billing Management Home Block;6.0,Home Left Bottom,Billing Management Home Block,6.0
-ProductConfig_Launch Popup Section;ProductConfig_Validate_Popup Text;1.0,ProductConfig_Launch Popup Section,ProductConfig_Validate_Popup Text,1.0
-ProductConfigurator Customise Popup Section;Product Configurator Customise Popup Block;1.0,ProductConfigurator Customise Popup Section,Product Configurator Customise Popup Block,1.0
-Price Management Left Top Section;Price Management Solution Overview Block;1.0,Price Management Left Top Section,Price Management Solution Overview Block,1.0
-Price Management Customize Capabilities Popup Section;Price Management Customize Capabilities Popup Text Block;1.0,Price Management Customize Capabilities Popup Section,Price Management Customize Capabilities Popup Text Block,1.0
-Product Catalog Management Learning Hub;Product Catalog Management Learning Block 3;1.0,Product Catalog Management Learning Hub,Product Catalog Management Learning Block 3,1.0
-Product Catalog Management Learning Hub;Product Catalog Management Learning Block 1;2.0,Product Catalog Management Learning Hub,Product Catalog Management Learning Block 1,2.0
-Product Catalog Management Learning Hub;Product Catalog Management Learning Block 4;3.0,Product Catalog Management Learning Hub,Product Catalog Management Learning Block 4,3.0
-Salesforce Contracts Right Section;Salesforce Contracts Learning Hub Block 1;1.0,Salesforce Contracts Right Section,Salesforce Contracts Learning Hub Block 1,1.0
-Salesforce Contracts Right Section;Salesforce Contracts Learning Hub Block 2;2.0,Salesforce Contracts Right Section,Salesforce Contracts Learning Hub Block 2,2.0
-Salesforce Contracts Right Section;Salesforce Contracts Learning Block 3;3.0,Salesforce Contracts Right Section,Salesforce Contracts Learning Block 3,3.0
-DRO Right Section;DRO Learning Block 1;1.0,DRO Right Section,DRO Learning Block 1,1.0
-DRO Right Section;DRO Learning Block 2;2.0,DRO Right Section,DRO Learning Block 2,2.0
-DRO Right Section;DRO Learning Block 3;3.0,DRO Right Section,DRO Learning Block 3,3.0
-Transaction Management Right Section;Transaction Management Learning Block 1;1.0,Transaction Management Right Section,Transaction Management Learning Block 1,1.0
-Transaction Management Right Section;Transaction Management Learning Block 2;2.0,Transaction Management Right Section,Transaction Management Learning Block 2,2.0
-Transaction Management Right Section;Transaction Management Learning Hub Block 3;3.0,Transaction Management Right Section,Transaction Management Learning Hub Block 3,3.0
-Price Management Right Section;Price Management Learning Block 2;1.0,Price Management Right Section,Price Management Learning Block 2,1.0
-Price Management Right Section;Price Management Learning Block 1;2.0,Price Management Right Section,Price Management Learning Block 1,2.0
-Price Management Right Section;Price Management Learning Hub Block 3;3.0,Price Management Right Section,Price Management Learning Hub Block 3,3.0
+$$RLM_Learning_Section__r.Name$RLM_Learning_Block__r.Name,RLM_Learning_Section__r.Name,RLM_Learning_Block__r.Name,RLM_Learning_Order_Sequence__c
+Home Welcome;Home Welcome Block,Home Welcome,Home Welcome Block,1
+Transaction Management Left Top Section;Transaction Management Solution Overview Block,Transaction Management Left Top Section,Transaction Management Solution Overview Block,1
+DRO Left Top Section;DRO Solution Overview Block,DRO Left Top Section,DRO Solution Overview Block,1
+Billing Left Top Section;Billing Solution Overview Block,Billing Left Top Section,Billing Solution Overview Block,1
+Billing Right Section;Billing Learning Hub Block 1,Billing Right Section,Billing Learning Hub Block 1,1
+Billing Right Section;Billing Learning Hub Block 3,Billing Right Section,Billing Learning Hub Block 3,3
+Rate Management Left Top Section;Rate Management Solution Overview,Rate Management Left Top Section,Rate Management Solution Overview,1
+Home Left Bottom;Salesforce Contracts Home Block,Home Left Bottom,Salesforce Contracts Home Block,8
+Rate Management Right Section;Rate Management Learning Block 1,Rate Management Right Section,Rate Management Learning Block 1,1
+Rate Management Right Section;Rate Management Learning Block 2,Rate Management Right Section,Rate Management Learning Block 2,2
+Salesforce Contracts Left Top Section;Salesforce Contracts Solution Overview Block,Salesforce Contracts Left Top Section,Salesforce Contracts Solution Overview Block,1
+Usage Management Right Section;Usage Management Learning Block 1,Usage Management Right Section,Usage Management Learning Block 1,1
+Usage Management Right Section;Usage Management Learning Block 2,Usage Management Right Section,Usage Management Learning Block 2,2
+Usage Management Left Top Section;Usage Management Solution Overview Block,Usage Management Left Top Section,Usage Management Solution Overview Block,1
+Home Learning Hub;Read Implementation Guide,Home Learning Hub,Read Implementation Guide,3
+Home Left Bottom;Usage Management Home Block,Home Left Bottom,Usage Management Home Block,9
+Home Learning Hub;Connect with Salesforce,Home Learning Hub,Connect with Salesforce,4
+Home Learning Hub;We Value Your Ideas and Feedback,Home Learning Hub,We Value Your Ideas and Feedback,5
+Product Catalog Management Left Bottom Section;Product Catalog Get Started,Product Catalog Management Left Bottom Section,Product Catalog Get Started,1
+Product Catalog Management Left Bottom Section;Product Catalog Management Validate Setup Home,Product Catalog Management Left Bottom Section,Product Catalog Management Validate Setup Home,2
+Product Catalog Management Left Bottom Section;Product Catalog Management Launch App Home,Product Catalog Management Left Bottom Section,Product Catalog Management Launch App Home,3
+Product Catalog Management Left Bottom Section;Product Catalog Management Customize Capabilities Home,Product Catalog Management Left Bottom Section,Product Catalog Management Customize Capabilities Home,4
+ProductConfig_Learn Popup Section;ProductConfig_Learn,ProductConfig_Learn Popup Section,ProductConfig_Learn,1
+Product Configurator Left Bottom Section;Product Configurator Get Started Home,Product Configurator Left Bottom Section,Product Configurator Get Started Home,1
+Product Configurator Left Bottom Section;Product Configurator Validate Setup Home,Product Configurator Left Bottom Section,Product Configurator Validate Setup Home,2
+Home Learning Hub;Revenue Cloud Fundamentals,Home Learning Hub,Revenue Cloud Fundamentals,1
+Product Configurator Left Bottom Section;Product Configurator Launch App Home,Product Configurator Left Bottom Section,Product Configurator Launch App Home,3
+Product Configurator Left Bottom Section;Product Configurator Customize Capabilities Home,Product Configurator Left Bottom Section,Product Configurator Customize Capabilities Home,4
+Price Management Left Bottom Section;Price Management Validate Setup Block,Price Management Left Bottom Section,Price Management Validate Setup Block,2
+Price Management Get Started Popup Section;Price Management Get Started Popup Text Block,Price Management Get Started Popup Section,Price Management Get Started Popup Text Block,1
+Price Management Left Bottom Section;Price Management Get Started Block,Price Management Left Bottom Section,Price Management Get Started Block,1
+Price Management Left Bottom Section;Price Management Launch App Block,Price Management Left Bottom Section,Price Management Launch App Block,3
+Price Management Left Bottom Section;Price Management Customize Capabilities Block,Price Management Left Bottom Section,Price Management Customize Capabilities Block,4
+Transaction Management Left Bottom Section;Transaction Management Get Started,Transaction Management Left Bottom Section,Transaction Management Get Started,1
+Transaction Management Left Bottom Section;Transaction Management Validate Setup,Transaction Management Left Bottom Section,Transaction Management Validate Setup,2
+Transaction Management Left Bottom Section;Transaction Management Launch App,Transaction Management Left Bottom Section,Transaction Management Launch App,3
+Home Learning Hub;Revenue Cloud Certification,Home Learning Hub,Revenue Cloud Certification,2
+Transaction Management Left Bottom Section;Transaction Management Customize Capabilities,Transaction Management Left Bottom Section,Transaction Management Customize Capabilities,4
+DRO Left Bottom Section;DRO Get Started Block,DRO Left Bottom Section,DRO Get Started Block,1
+DRO Left Bottom Section;DRO Validate Setup Block,DRO Left Bottom Section,DRO Validate Setup Block,2
+DRO Left Bottom Section;DRO Launch App,DRO Left Bottom Section,DRO Launch App,3
+DRO Left Bottom Section;DRO Customize Capabilities,DRO Left Bottom Section,DRO Customize Capabilities,4
+Billing Left Bottom Section;Billing Get Started Block,Billing Left Bottom Section,Billing Get Started Block,1
+Billing Left Bottom Section;Billing Validate Setup Block,Billing Left Bottom Section,Billing Validate Setup Block,2
+Billing Left Bottom Section;Billing Launch App Block,Billing Left Bottom Section,Billing Launch App Block,3
+Billing Left Bottom Section;Billing Customize Capabilities,Billing Left Bottom Section,Billing Customize Capabilities,4
+Rate Management Left Bottom Section;Rate Management Get Started Block,Rate Management Left Bottom Section,Rate Management Get Started Block,1
+Product Configurator Learning Hub Section;Product Configurator Learning Block 1,Product Configurator Learning Hub Section,Product Configurator Learning Block 1,1
+Salesforce Contracts Left Bottom Section;Salesforce Contracts Customize Capabilities Block,Salesforce Contracts Left Bottom Section,Salesforce Contracts Customize Capabilities Block,4
+Rate Management Left Bottom Section;Rate Management Validate Setup Block,Rate Management Left Bottom Section,Rate Management Validate Setup Block,2
+Salesforce Contracts Left Bottom Section;Salesforce Contracts Launch App Block,Salesforce Contracts Left Bottom Section,Salesforce Contracts Launch App Block,3
+Rate Management Left Bottom Section;Rate Management Launch App Block,Rate Management Left Bottom Section,Rate Management Launch App Block,3
+Rate Management Left Bottom Section;Rate Management Customize Capabilities Block,Rate Management Left Bottom Section,Rate Management Customize Capabilities Block,4
+Salesforce Contracts Left Bottom Section;Salesforce Contracts Get Started Block,Salesforce Contracts Left Bottom Section,Salesforce Contracts Get Started Block,1
+Salesforce Contracts Left Bottom Section;Salesforce Contracts Validate Setup Block,Salesforce Contracts Left Bottom Section,Salesforce Contracts Validate Setup Block,2
+Usage Management Left Bottom Section;Usage Management Get Started Block,Usage Management Left Bottom Section,Usage Management Get Started Block,1
+Usage Management Left Bottom Section;Usage Management Validate Setup Block,Usage Management Left Bottom Section,Usage Management Validate Setup Block,2
+Usage Management Left Bottom Section;Usage Management Launch App Block,Usage Management Left Bottom Section,Usage Management Launch App Block,3
+Home Left Bottom;Product Catalog Management Home Block,Home Left Bottom,Product Catalog Management Home Block,1
+Usage Management Left Bottom Section;Usage Management Customize Capabilities Block,Usage Management Left Bottom Section,Usage Management Customize Capabilities Block,4
+Price Management Launch App Popup Section;Price Management Launch App Popup Text Block,Price Management Launch App Popup Section,Price Management Launch App Popup Text Block,1
+PCM_Launch Popup Section;PCM_Launch,PCM_Launch Popup Section,PCM_Launch,1
+Home Left Bottom;Product Configurator Home Block,Home Left Bottom,Product Configurator Home Block,2
+Home Left Bottom;Transaction Management Home Block,Home Left Bottom,Transaction Management Home Block,4
+Home Left Bottom;Dynamic Revenue Orchestrator Home Block,Home Left Bottom,Dynamic Revenue Orchestrator Home Block,5
+Price Management Validate Setup Popup Section;Price Management Validate Popup Block,Price Management Validate Setup Popup Section,Price Management Validate Popup Block,1
+Price Management Launch Popup Section;Salesforce Pricing Launch App Popup Block,Price Management Launch Popup Section,Salesforce Pricing Launch App Popup Block,1
+Transaction Management Get Started Popup Text Section;Transaction Management Get Started Popup Text Block,Transaction Management Get Started Popup Text Section,Transaction Management Get Started Popup Text Block,1
+Home Left Bottom;Price Management Home Block,Home Left Bottom,Price Management Home Block,3
+Transaction Management Validate Setup Popup;Transaction Management Validate Setup Popup Text Block,Transaction Management Validate Setup Popup,Transaction Management Validate Setup Popup Text Block,1
+Transaction Management Launch App Popup Text Section;Transaction Management Launch App Popup Text Block,Transaction Management Launch App Popup Text Section,Transaction Management Launch App Popup Text Block,1
+Transaction Management Customize Capabilities Popup Section;Transaction Management Customize Capabilities Popup Text Block,Transaction Management Customize Capabilities Popup Section,Transaction Management Customize Capabilities Popup Text Block,1
+DRO Get Started Section;DRO Get Started Popup Text Block,DRO Get Started Section,DRO Get Started Popup Text Block,1
+DRO Validate Setup Popup Section;DRO Validate Setup Popup Text Block,DRO Validate Setup Popup Section,DRO Validate Setup Popup Text Block,1
+DRO Launch App Popup Section;DRO Launch App Popup Text,DRO Launch App Popup Section,DRO Launch App Popup Text,1
+DRO Customize Capabilities Popup Section;DRO Customize Capabilities Popup Text,DRO Customize Capabilities Popup Section,DRO Customize Capabilities Popup Text,1
+Billing Get Started Popup Section;Billing Get Started Popup Text,Billing Get Started Popup Section,Billing Get Started Popup Text,1
+Billing Validate Popup Section;Billing Validate Setup Popup Block,Billing Validate Popup Section,Billing Validate Setup Popup Block,1
+Billing Launch App Popup Section;Billing Launch App Popup Text,Billing Launch App Popup Section,Billing Launch App Popup Text,1
+Billing Customize Capabilities Popup Section;Billing Customize Capabilities Popup Block,Billing Customize Capabilities Popup Section,Billing Customize Capabilities Popup Block,1
+Rate Management Get Started Popup Section;Rate Management Get Started Popup Text Block,Rate Management Get Started Popup Section,Rate Management Get Started Popup Text Block,1
+Rate Management Validate Setup Popup Section;Rate Management Validate Setup Popup Block,Rate Management Validate Setup Popup Section,Rate Management Validate Setup Popup Block,1
+Rate Management Launch App Popup Section;Rate Management Launch App Popup Text Block,Rate Management Launch App Popup Section,Rate Management Launch App Popup Text Block,1
+Rate Management Customize Capabilities Popup Section;Rate Management Customize Capabilities Popup Text Block,Rate Management Customize Capabilities Popup Section,Rate Management Customize Capabilities Popup Text Block,1
+Salesforce Contracts Get Started Popup Section;Salesforce Contracts Get Started Popup Text Block,Salesforce Contracts Get Started Popup Section,Salesforce Contracts Get Started Popup Text Block,1
+Salesforce Contracts Validate Setup Popup Section;Salesforce Contracts Validate Setup Popup Text Block,Salesforce Contracts Validate Setup Popup Section,Salesforce Contracts Validate Setup Popup Text Block,1
+Salesforce Contracts Launch App Popup Section;Salesforce Contracts Launch App Popup Text,Salesforce Contracts Launch App Popup Section,Salesforce Contracts Launch App Popup Text,1
+Salesforce Contracts Customize Capabilities Popup Section;Salesforce Contracts Customize Capabilities Popup Text Block,Salesforce Contracts Customize Capabilities Popup Section,Salesforce Contracts Customize Capabilities Popup Text Block,1
+Usage Management Get Started Popup Section;Usage Management Get Started Popup Block,Usage Management Get Started Popup Section,Usage Management Get Started Popup Block,1
+Product Configurator Left Top Section;Product Configurator Left Top Block,Product Configurator Left Top Section,Product Configurator Left Top Block,1
+Usage Management Validate Setup Section;Usage Management Validate Setup Popup Text Block,Usage Management Validate Setup Section,Usage Management Validate Setup Popup Text Block,1
+Usage Management Launch App;Usage Management Launch App Popup Text Block,Usage Management Launch App,Usage Management Launch App Popup Text Block,1
+Usage Management Customize Capabilities Popup Section;Usage Management Customize Capabilities Popup Block,Usage Management Customize Capabilities Popup Section,Usage Management Customize Capabilities Popup Block,1
+Product Catalog Management Left Top Section;Product Catalog Management Top Block,Product Catalog Management Left Top Section,Product Catalog Management Top Block,1
+PCM_Learn Popup Section;PCM_Learn,PCM_Learn Popup Section,PCM_Learn,1
+PCM_Check Popup Section;PCM_Check,PCM_Check Popup Section,PCM_Check,1
+PCM_Explore Popup Section;PCM_Explore,PCM_Explore Popup Section,PCM_Explore,1
+Home Left Top;Home Left Top Block,Home Left Top,Home Left Top Block,1
+Product Configurator Learning Hub Section;Product Configurator Learning Block 2,Product Configurator Learning Hub Section,Product Configurator Learning Block 2,2
+ProductConfig_Validate;ProductConfig_Validate_Popup Section,ProductConfig_Validate,ProductConfig_Validate_Popup Section,1
+Home Left Bottom;Billing Management Home Block,Home Left Bottom,Billing Management Home Block,6
+ProductConfig_Launch Popup Section;ProductConfig_Validate_Popup Text,ProductConfig_Launch Popup Section,ProductConfig_Validate_Popup Text,1
+ProductConfigurator Customise Popup Section;Product Configurator Customise Popup Block,ProductConfigurator Customise Popup Section,Product Configurator Customise Popup Block,1
+Price Management Left Top Section;Price Management Solution Overview Block,Price Management Left Top Section,Price Management Solution Overview Block,1
+Price Management Customize Capabilities Popup Section;Price Management Customize Capabilities Popup Text Block,Price Management Customize Capabilities Popup Section,Price Management Customize Capabilities Popup Text Block,1
+Product Catalog Management Learning Hub;Product Catalog Management Learning Block 3,Product Catalog Management Learning Hub,Product Catalog Management Learning Block 3,1
+Product Catalog Management Learning Hub;Product Catalog Management Learning Block 1,Product Catalog Management Learning Hub,Product Catalog Management Learning Block 1,2
+Product Catalog Management Learning Hub;Product Catalog Management Learning Block 4,Product Catalog Management Learning Hub,Product Catalog Management Learning Block 4,3
+Salesforce Contracts Right Section;Salesforce Contracts Learning Hub Block 1,Salesforce Contracts Right Section,Salesforce Contracts Learning Hub Block 1,1
+Salesforce Contracts Right Section;Salesforce Contracts Learning Hub Block 2,Salesforce Contracts Right Section,Salesforce Contracts Learning Hub Block 2,2
+Salesforce Contracts Right Section;Salesforce Contracts Learning Block 3,Salesforce Contracts Right Section,Salesforce Contracts Learning Block 3,3
+DRO Right Section;DRO Learning Block 1,DRO Right Section,DRO Learning Block 1,1
+DRO Right Section;DRO Learning Block 2,DRO Right Section,DRO Learning Block 2,2
+DRO Right Section;DRO Learning Block 3,DRO Right Section,DRO Learning Block 3,3
+Transaction Management Right Section;Transaction Management Learning Block 1,Transaction Management Right Section,Transaction Management Learning Block 1,1
+Transaction Management Right Section;Transaction Management Learning Block 2,Transaction Management Right Section,Transaction Management Learning Block 2,2
+Transaction Management Right Section;Transaction Management Learning Hub Block 3,Transaction Management Right Section,Transaction Management Learning Hub Block 3,3
+Price Management Right Section;Price Management Learning Block 2,Price Management Right Section,Price Management Learning Block 2,1
+Price Management Right Section;Price Management Learning Block 1,Price Management Right Section,Price Management Learning Block 1,2
+Price Management Right Section;Price Management Learning Hub Block 3,Price Management Right Section,Price Management Learning Hub Block 3,3
