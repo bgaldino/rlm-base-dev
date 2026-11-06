@@ -8,8 +8,7 @@
 
 A group-ramped term bundle (root + term child + one-time child). Add the bundle to every segment with
 `groupRampAction: AddProducts` (one line set per segment group, plus a `QuoteLineRelationship` per child with
-`AssociatedQuoteLinePricing`), then `DeleteProducts` the one-time child's lines in segments 2 and 3. A segment 2-only
-delete is also accepted. Use `pricingPref: Force` when cloned segments must keep correct prices.
+`AssociatedQuoteLinePricing`), then `DeleteProducts` the one-time child's lines in segments 2 and 3. Use `pricingPref: Force` when cloned segments must keep correct prices.
 
 - The root and the term child are stamped with `RampIdentifier`/`SegmentIdentifier`. A **one-time or evergreen child gets
   neither**, and a segment 2-only delete was accepted (no contiguity check was hit).
@@ -27,9 +26,9 @@ delete is also accepted. Use `pricingPref: Force` when cloned segments must keep
 
 ## Amend and cancel limitation
 
-Connect `assets/actions/amend` and the `initiateAmendment` invocable return HTTP 500 `PlaceSalesTransactionPersistException`
-(`Invalid or missing reference ID @{null.id}`, `MainQuoteLineId`, entity `QuoteLineRelationship`) when a **group-ramped
-bundle has a non-term-defined (one-time or evergreen) bundle child**. Cancel (Connect) returned the same 500 on the
+Connect `assets/actions/amend` returns HTTP 500 `PlaceSalesTransactionPersistException` (`Invalid or missing reference ID
+@{null.id}`, `MainQuoteLineId`, entity `QuoteLineRelationship`), and the `initiateAmendment` invocable fails with the same
+exception, when a **group-ramped bundle has a non-term-defined (one-time or evergreen) bundle child**. Cancel (Connect) returned the same 500 on the
 segment 1-only shape; the other rows below were amend runs and cancel was not repeated on them.
 
 | Shape | Amend (cancel where noted) |
@@ -37,10 +36,10 @@ segment 1-only shape; the other rows below were amend runs and cancel was not re
 | Plain bundle (regular group) + one-time child | works |
 | Group ramp, term child only | works (+1, -1 per segment, cancel) |
 | Group ramp + standalone one-time line (not a bundle child) | works |
-| Group ramp + one-time bundle child: segment 1 only (cancel also 500), all segments, QSM Proportional | **500** |
-| Same, child removed from segments 2-3 at quote time, or only its segment 2-3 Assets deleted afterwards | **500** |
+| Group ramp + one-time bundle child: segment 1 only (child deleted from segments 2-3 at quote time; cancel also 500), all segments, QSM Proportional | **500** |
+| Same, with only the child's segment 2-3 Assets deleted after assetization | **500** |
 | Group ramp + evergreen bundle child (amend only) | **500** |
-| Same, after deleting ALL of the child's ASPs, then AssetRelationships, then Assets | works (amend, cancel, ramped renewal) |
+| Group ramp + one-time bundle child in all segments, after deleting ALL of the child's ASPs, then AssetRelationships, then Assets (evergreen not tried) | works (amend, cancel, ramped renewal) |
 
 - Cause unconfirmed. Core lead only: `ARCSalesTransactionContextTransformer` builds its root-by-group map from
   ramp-stamped lines, and the error's reference map shows a `NonrampedGroup`. State it as a limitation, not a root cause.
@@ -69,8 +68,9 @@ refuses an earlier amend (an ordered plain renewal blocks it the same way).
 
 ## Scripted lifecycle prerequisites
 
-- Activating an order made from a lifecycle quote (as `order_from_quote.py` does) needs Billing and Shipping address and `BillToContactId`, copied from the
-  account, before `Status = Activated`.
+- The scripts' `order_from_quote.py` copies the account's Billing and Shipping address and a `BillToContactId` onto the order
+  before `Status = Activated`, matching what backdated-change orders need (see
+  `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`).
 - An evergreen line needs `PeriodBoundary: Anniversary` plus a billing treatment, or the order fails ("Evergreen order
   products must have an Anniversary period boundary").
 - Use **Quote** output for these recipes. `outputRecordType: Order` failed on the test org with *"We couldn't fetch the data
