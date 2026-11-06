@@ -21,9 +21,10 @@ Gating findings (each fails the run unless `KNOWN_FINDINGS` lists it, with its r
                  relationship path (any depth, followed through the snapshot) that doesn't resolve
   picklist       a value outside a restricted picklist's active values (CurrencyIsoCode is the
                  org's currency set, so it's skipped)
-  required       a creating declaration leaves out, or leaves blank on the rows it creates (not
-                 ones an earlier pass created), a field that is createable, not nillable and not
-                 defaulted on create
+  required       a creating declaration leaves out, or leaves blank on the rows it creates, a
+                 field that is createable, not nillable and not defaulted on create. An Upsert row
+                 whose externalId value an earlier creating pass already loaded only patches it,
+                 and a repeat of a key in one pass counts once; Insert rows always create
 Informational (reported, never gating):
   object-missing   the object isn't in the describe (often a feature the org doesn't have)
   dead-columns     CSV values in fields that are neither createable nor updateable, so they never
@@ -62,10 +63,14 @@ SFDMU = REPO / "datasets" / "sfdmu"
 SCHEMA_DIR = REPO / "scripts" / "erd" / "schema_diff"
 MANIFEST = REPO / ".claude" / "skill-manifest.yml"
 GATING = ("unknown-field", "picklist", "required")
-# Fields the platform sets itself, never a plan's to write.
-SYSTEM_FIELDS = frozenset({"Id", "IsDeleted", "CreatedDate", "CreatedById", "LastModifiedDate",
-                           "LastModifiedById", "SystemModstamp", "LastViewedDate",
-                           "LastReferencedDate", "LastActivityDate"})
+# On every object, so a plan naming it needs no describe entry. `LastActivityDate` and the like are
+# on some objects only, so they are checked against the describe.
+ALWAYS_PRESENT = frozenset({"Id"})
+# Fields the platform sets itself, never a plan's to write: left out of the dead-column, required
+# and unwritten reports.
+SYSTEM_FIELDS = ALWAYS_PRESENT | frozenset({
+    "IsDeleted", "CreatedDate", "CreatedById", "LastModifiedDate", "LastModifiedById",
+    "SystemModstamp", "LastViewedDate", "LastReferencedDate", "LastActivityDate"})
 # Writable on almost every object and set by the platform or the org's currency, so listing them
 # as fields "no plan writes" would bury the ones worth reviewing.
 UNWRITTEN_NOISE = frozenset({"OwnerId", "CurrencyIsoCode"})
@@ -245,7 +250,7 @@ def _path_problem(obj: str, segs: List[str], snapshot: Dict[str, Any]) -> Option
     fields = snapshot[obj]["fields"]
     seg = segs[0]
     if len(segs) == 1:
-        return None if seg in fields or seg in SYSTEM_FIELDS else f"{obj} has no field `{seg}`"
+        return None if seg in fields or seg in ALWAYS_PRESENT else f"{obj} has no field `{seg}`"
     f = next((f for f in fields.values() if f.get("relationshipName") == seg), None)
     if f is None:
         return f"{obj} has no relationship `{seg}`"
@@ -282,8 +287,9 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
     for plan in selected_plans(root, prefixes):
         rel = plan.relative_to(root).as_posix()
         export = json.loads((plan / "export.json").read_text(encoding="utf-8"))
-        created_keys: Dict[str, set] = {}
-        first_keys: Dict[str, List[str]] = {}
+        plan_keys: Dict[str, List[str]] = {}
+        key_cache: Dict[Any, List[Any]] = {}
+        created_rows: Dict[str, List[Any]] = {}  # object -> [(headers, rows)] of its creating passes
         for pass_idx, decl, obj in sorted(layering.declarations(export), key=lambda t: t[0]):
             if not layering.is_written(decl):
                 continue
@@ -344,6 +350,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                         and name not in SYSTEM_FIELDS):
                     if rel not in dead[obj][name]:
                         dead[obj][name].append(rel)
+                    continue  # SFDMU drops the column, so its values are never loaded or checked
                 if (f.get("type") in ("picklist", "multipicklist") and name != "CurrencyIsoCode"
                         and not f.get("orgValues")):
                     allowed = set(f.get("values") or [])
@@ -361,21 +368,38 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
 
             if op in layering.CREATES:
                 created_objs.add(obj)
-                # Required fields are checked on the rows this pass creates. A row a creating
-                # pass of this plan already created (same key) is only patched here, by an Upsert
-                # (it matches); an Insert never matches, so its rows are always new.
-                # The plan's key for the object is its first creating declaration's (the layering
-                # check takes its first written one, which may be an Update keyed on Id), so a
-                # later pass keyed differently still meets its rows.
-                plan_key = first_keys.setdefault(obj, key_list)
-                made = created_keys.setdefault(obj, set())
-                fresh = []
-                for r in rows:
-                    ident = layering.key_of(layering.row_values(plan_key, headers, r), plan_key)
-                    if op == "insert" or ident is None or ident not in made:
-                        fresh.append(r)
-                    if ident is not None:
-                        made.add(ident)
+                # Required fields are checked on the rows this pass creates. An Upsert row that
+                # matches, on this declaration's externalId, a row an earlier creating pass of the
+                # plan created is only patched here; an Insert never matches, so its rows are new.
+                earlier = created_rows.setdefault(obj, [])
+                # An undeclared externalId falls back to the plan's first creating key.
+                first_key = plan_keys.setdefault(obj, key_list)
+                ident_key = key_list or first_key
+                known = set()
+                if op != "insert" and ident_key:
+                    # Earlier passes' rows read by this declaration's key, which they may not have
+                    # been keyed on (`Code` then `Name;Code`); only passes not yet read are added.
+                    seen = key_cache.setdefault((obj, tuple(ident_key)), [0, set()])
+                    for h, rs in earlier[seen[0]:]:
+                        for r in rs:
+                            v = layering.row_values(ident_key, h, r)
+                            # A pass that doesn't carry every key field can't be matched by it.
+                            if all(f in v for f in ident_key) and (k := layering.key_of(v, ident_key)):
+                                seen[1].add(k)
+                    seen[0] = len(earlier)
+                    known = set(seen[1])
+                if op == "insert" or not ident_key:
+                    fresh = list(rows)
+                else:
+                    fresh = []
+                    for r in rows:
+                        v = layering.row_values(ident_key, headers, r)
+                        ident = layering.key_of(v, ident_key) if all(f in v for f in ident_key) else None
+                        if ident is None or ident not in known:
+                            fresh.append(r)
+                            if ident is not None:
+                                known.add(ident)  # a repeat of it in this pass patches the first
+                earlier.append((headers, rows))
                 if fresh:
                     for name, f in sorted(fields.items()):
                         if not _is_required(name, f):

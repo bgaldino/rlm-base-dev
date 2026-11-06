@@ -59,9 +59,9 @@ declarations against `sobject describe`.
 
 | Check | Gating | Meaning |
 |---|---|---|
-| `unknown-field` | yes | The query selects, or the `externalId` names, a field the object doesn't have, or a relationship path that doesn't resolve (followed through `referenceTo` where the target is in the snapshot; a target that isn't is left unchecked). SFDMU drops it and the load still succeeds |
-| `picklist` | yes | A CSV value outside a restricted picklist's active values. `CurrencyIsoCode` is skipped: it is the org's currency set, not the release's |
-| `required` | yes | A creating declaration leaves out, or blanks on the rows it creates, a field that is createable, not nillable and not defaulted on create. A row an earlier creating pass of the plan created (same key) is only patched, so it isn't re-checked. Booleans are skipped (they default to false) |
+| `unknown-field` | yes | The query selects, or the `externalId` names, a field the object doesn't have, or a relationship path that doesn't resolve; only `Id` is exempt, every other system field (`LastActivityDate`, …) must be in the describe (followed through `referenceTo` where the target is in the snapshot; a target that isn't is left unchecked). SFDMU drops it and the load still succeeds |
+| `picklist` | yes | A CSV value outside a restricted picklist's active values. `CurrencyIsoCode` is skipped: it is the org's currency set, not the release's. Dead columns (neither createable nor updateable, and not a key) aren't value-checked |
+| `required` | yes | A creating declaration leaves out, or blanks on the rows it creates, a field that is createable, not nillable and not defaulted on create. An Upsert row whose value for this declaration's `externalId` matches a row an earlier creating pass created is only patched, so it isn't re-checked; an Insert row is always checked. Booleans are skipped (they default to false) |
 | dead columns, undefined values, release values, unwritten fields | no | See step 5 |
 
 ## Gotchas
@@ -80,6 +80,11 @@ declarations against `sobject describe`.
   lists custom context definitions by Id beside the standard ones). The snapshot drops those values
   (an 18-character Id is recognised by its case checksum, so object names such as
   `Pricebook2Share` stay), marks the field `orgValues`, and the audit doesn't value-check it.
+- **`required` reads rows, not the org.** An Upsert row counts as already created when an earlier creating
+  pass of the plan loaded the same `externalId` value, whatever the org holds, and a repeat of a key in
+  one pass counts once (the first row), so row order inside a CSV can decide which row is checked.
+  A declaration with no `externalId` is matched on the plan's first creating declaration's key. A pass
+  whose CSV lacks one of the key's columns can't be matched, either side, so its rows count as created.
 - **`required` assumes a creating declaration creates.** An Upsert that only fills a few
   fields on records another plan created is flagged for every required field it leaves out. List it
   in `KNOWN_FINDINGS` with that reason rather than adding columns.

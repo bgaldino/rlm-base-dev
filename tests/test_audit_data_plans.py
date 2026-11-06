@@ -250,13 +250,76 @@ def test_required_each_creating_pass():
             encoding="utf-8")
         (plan / "Widget__x.csv").write_text("Name,Code,Required\nn1,c1,r\n", encoding="utf-8")
         (plan / "objectset_source/object-set-2/Widget__x.csv").write_text(
-            "Name,Code,Required\nn1,c1,\nn2,c2,\n", encoding="utf-8")
+            "Name,Code,Required\nn1,c1,\nn2,c2,\nn3,c1,\n", encoding="utf-8")
         r = A.audit(SNAPSHOT, tmp)
         req = [f for f in r["findings"] if f["check"] == "required"]
-        check("the later pass counts only the row it creates (n2), not the patched one (n1)",
+        check("the later pass counts the rows it creates (n2; n3 shares only Code, not the "
+              "Name;Code key), not the patched one (n1)",
               [(f["field"], f["detail"]) for f in req],
-              [("Required", "pass 2: Widget__x.Required is required on create and 1 row(s) "
+              [("Required", "pass 2: Widget__x.Required is required on create and 2 row(s) "
                             "leave it blank")])
+
+
+def test_required_later_pass_keyed_on_fewer_fields():
+    print("required when the earlier pass is keyed on Name;Code (with a $$ column) and the later on Code")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        plan = tmp / "qb/en-US/p"
+        (plan / "objectset_source/object-set-2").mkdir(parents=True)
+        decl = {"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert"}
+        (plan / "export.json").write_text(json.dumps({
+            "useSeparatedCSVFiles": True,
+            "objectSets": [{"objects": [{**decl, "externalId": "Name;Code"}]},
+                           {"objects": [{**decl, "externalId": "Code"}]}]}), encoding="utf-8")
+        (plan / "Widget__x.csv").write_text(
+            "$$Name$Code,Name,Code,Required\nn1;c1,n1,c1,r\n", encoding="utf-8")
+        (plan / "objectset_source/object-set-2/Widget__x.csv").write_text(
+            "Name,Code,Required\nother,c1,\nn2,c2,\n", encoding="utf-8")
+        r = A.audit(SNAPSHOT, tmp)
+        req = [f for f in r["findings"] if f["check"] == "required"]
+        check("only the row with a new Code is created blank; c1 is patched",
+              [f["detail"] for f in req],
+              ["pass 2: Widget__x.Required is required on create and 1 row(s) leave it blank"])
+
+
+def test_required_repeated_key_in_a_pass():
+    print("required counts a key once when it repeats within one Upsert pass")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/p", [
+            {"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert",
+             "externalId": "Code"}],
+            {"Widget__x.csv": "Name,Code,Required\nn1,c1,\nn2,c1,\nn3,c2,\n"})
+        r = A.audit(SNAPSHOT, tmp)
+        req = [f for f in r["findings"] if f["check"] == "required"]
+        check("c1 twice is one created record", [f["detail"] for f in req],
+              ["pass 1: Widget__x.Required is required on create and 2 row(s) leave it blank"])
+
+
+def test_required_three_passes_and_default_key():
+    print("required across three passes, one keyed differently and one with no externalId")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        plan = tmp / "qb/en-US/p"
+        for n in (2, 3):
+            (plan / f"objectset_source/object-set-{n}").mkdir(parents=True)
+        decl = {"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert"}
+        (plan / "export.json").write_text(json.dumps({
+            "useSeparatedCSVFiles": True,
+            "objectSets": [{"objects": [{**decl, "externalId": "Code"}]},
+                           {"objects": [{**decl, "externalId": "Name;Code"}]},
+                           {"objects": [decl]}]}), encoding="utf-8")
+        head = "Name,Code,Required\n"
+        (plan / "Widget__x.csv").write_text(head + "n1,c1,r\n", encoding="utf-8")
+        (plan / "objectset_source/object-set-2/Widget__x.csv").write_text(
+            head + "n1,c1,\nn2,c2,\n", encoding="utf-8")
+        (plan / "objectset_source/object-set-3/Widget__x.csv").write_text(
+            head + "n1,c1,\nn2,c2,\nn3,c3,\n", encoding="utf-8")
+        r = A.audit(SNAPSHOT, tmp)
+        req = sorted(f["detail"] for f in r["findings"] if f["check"] == "required")
+        check("pass 2 creates c2; pass 3 (the plan's Code key) creates only c3", req, [
+            "pass 2: Widget__x.Required is required on create and 1 row(s) leave it blank",
+            "pass 3: Widget__x.Required is required on create and 1 row(s) leave it blank"])
 
 
 def test_insert_after_upsert_is_checked():
@@ -275,6 +338,25 @@ def test_insert_after_upsert_is_checked():
         req = [(f["field"], f["detail"][:6]) for f in A.audit(SNAPSHOT, tmp)["findings"]
                if f["check"] == "required"]
         check("the Insert row with Required blank is flagged", req, [("Required", "pass 2")])
+
+
+def test_system_fields_and_dead_columns():
+    print("system fields are not exempt; dead columns aren't value-checked")
+    snap = {"Widget__x": {"fields": {
+        "Name": field(), "Code": field(nillable=False),
+        "Role": field("picklist", createable=False, updateable=False, restricted=True, values=["A"])}}}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/p", [
+            {"query": "SELECT Name, Code, Role, LastActivityDate FROM Widget__x",
+             "operation": "Upsert", "externalId": "Code"}],
+            {"Widget__x.csv": "Name,Code,Role,LastActivityDate\nn,c,Zed,\n"})
+        r = A.audit(snap, tmp)
+        check("LastActivityDate absent from the describe is unknown", by_check(r, "unknown-field"),
+              [("Widget__x", "LastActivityDate")])
+        check("a dead column's undefined value isn't a picklist finding", by_check(r, "picklist"), [])
+        check("it is still listed as a dead column", r["info"]["dead-columns"],
+              {"Widget__x": {"Role": ["qb/en-US/p"]}})
 
 
 def test_classify():
@@ -374,8 +456,10 @@ def test_committed_snapshot():
 
 
 for t in (test_findings, test_required_missing_column, test_deep_paths_and_external_id,
-          test_unsupported_filter_is_an_error, test_required_each_creating_pass, test_insert_after_upsert_is_checked,
-          test_classify, test_merge,
+          test_unsupported_filter_is_an_error, test_required_each_creating_pass,
+          test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
+          test_required_three_passes_and_default_key, test_insert_after_upsert_is_checked,
+          test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()
 print(f"\n{len(_failures)} failure(s)")
