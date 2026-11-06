@@ -68,7 +68,8 @@ def product(sku, attrs_by_cat, loose=(), code=None):
                                             "doesBundlePriceIncludeChild": False, "isExcluded": True,
                                             "quoteVisibility": "Always"}}]}],
             "productSellingModelOptions": [{"id": "0iOXX", "isDefault": True, "productSellingModel": {
-                "id": "0jPXX", "name": "Term Annual", "sellingModelType": "TermDefined"}}]}
+                "id": "0jPXX", "name": "Term Annual", "sellingModelType": "TermDefined", "pricingTerm": 1,
+                "pricingTermUnit": "Annual", "status": "Active", "doesAutoRenewByDefault": False}}]}
 
 
 print("normalize: what the configurator shows, without record Ids")
@@ -88,7 +89,8 @@ check("bundle component carries quantity and default flag",
       {k: n["componentGroups"][0]["components"][0][k] for k in ("sku", "quantity", "default")},
       {"sku": "CHILD", "quantity": 1, "default": True})
 check("selling models by name and type", n["sellingModels"],
-      [{"name": "Term Annual", "type": "TermDefined", "default": True}])
+      [{"name": "Term Annual", "type": "TermDefined", "default": True, "pricingTerm": 1,
+        "pricingTermUnit": "Annual", "status": "Active", "autoRenew": False}])
 check("list prices by selling model and currency", n["listPrices"], {"Term Annual USD": 1000})
 uom = product("U", {"C": [dict(attr("X", "X"), sequence=3, stepValue=5, unitOfMeasureInfo={"id": "0hEXX", "unitCode": "GB"})]})
 uom["unitOfMeasureInfo"] = {"id": "0hEXX", "name": "Minutes", "unitCode": "m"}
@@ -124,6 +126,43 @@ requant["childProducts"][0]["quantity"] = 2
 check("changing its quantity is a difference",
       V.compare({"products": {"CERT": un}}, {"products": {"CERT": requant}}),
       ["CERT/childProducts[AST]/quantity: 1 -> 2"])
+
+term = copy.deepcopy(n)
+term["sellingModels"][0]["pricingTermUnit"] = "Months"
+check("a selling model's term unit change is a difference",
+      V.compare({"products": {"LP001": n}}, {"products": {"LP001": term}}),
+      ["LP001/sellingModels[Term Annual]/pricingTermUnit: \"Annual\" -> \"Months\""])
+limits = product("Q", {})
+prc = limits["productComponentGroups"][0]["components"][0]["productRelatedComponent"]
+prc.update(minQuantity=1, maxQuantity=5)
+nl = V.normalize(limits, {}, "Q")
+check("a component's quantity limits are captured",
+      {k: nl["componentGroups"][0]["components"][0][k] for k in ("minQuantity", "maxQuantity")},
+      {"minQuantity": 1, "maxQuantity": 5})
+widened = copy.deepcopy(nl)
+widened["componentGroups"][0]["components"][0]["maxQuantity"] = 10
+check("and a changed maximum is a difference",
+      V.compare({"products": {"Q": nl}}, {"products": {"Q": widened}}),
+      ["Q/componentGroups[G1]/components[CHILD]/maxQuantity: 5 -> 10"])
+klass = product("LPB", {})
+klass["productComponentGroups"][0]["components"] = [
+    {"productCode": None, "name": None, "id": "11BXX", "nodeType": "productClass",
+     "productRelatedComponent": {"id": "0dSXX", "productClassificationId": "11BXX", "quantity": 1}}]
+nk = V.normalize(klass, {}, "LPB", {"11BXX": "SFT001"})
+check("a classification component is keyed by its classification code, not its Id",
+      (nk["componentGroups"][0]["components"][0]["sku"], nk["componentGroups"][0]["components"][0]["classification"],
+       "11BXX" in json.dumps(nk)), ("classification:SFT001", "SFT001", False))
+
+print("audit_fields: every filled PCM key is compared or deliberately skipped")
+check("the fixtures' keys are all covered", V.audit_fields([p, ungrouped, uom, limits, klass]), [])
+novel = copy.deepcopy(p)
+novel["attributeCategory"][0]["attributes"][0]["newPlatformField"] = "x"
+novel["productSellingModelOptions"][0]["productSellingModel"]["billingCycle"] = "Monthly"
+check("a key PCM starts returning is reported, by level",
+      V.audit_fields([novel]), ["attribute.newPlatformField", "sellingModel.billingCycle"])
+blank = copy.deepcopy(p)
+blank["attributeCategory"][0]["attributes"][0]["emptyField"] = None
+check("an empty key is not", V.audit_fields([blank]), [])
 
 print("compare: differences by SKU and path")
 base = {"missing": [], "notReturned": [], "products": {"LP001": n}}
@@ -195,6 +234,8 @@ class FakeTransport:
             return [{"Product2": {"StockKeepingUnit": s}, "ProductSellingModel": {"Name": "One-Time"},
                      "CurrencyIsoCode": "USD", "UnitPrice": p} for s in hits
                     for p in ((10, 12) if s in self.dup_price else (10,))]
+        if "FROM ProductClassification" in q:
+            return [{"Id": "11BXX", "Code": "SFT001"}]
         self.soql_sizes.append(len(hits))
         return [{"Id": f"01t{s}{n}", "StockKeepingUnit": s} for s in hits
                 for n in (("", "b") if s in self.dup else ("",))]

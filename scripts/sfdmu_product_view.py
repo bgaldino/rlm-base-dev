@@ -2,23 +2,26 @@
 """Capture and compare what users see for a data shape's products (todo 330).
 
 `check_sfdmu_layering.py` compares CSVs, so it cannot see what the configurator shows. Both
-#675 regressions were of that kind: a renamed attribute Label, and a category link left blank by a
-load that failed partway. This reads the product view from a built org, through PCM's
-`/connect/pcm/products/bulk` (what the configurator reads, including the product's flags,
+#675 regressions were of that kind: a renamed attribute Label, and a category link left blank by
+a load that failed partway. This reads the product view from a built org through PCM's
+`/connect/pcm/products/bulk`, which is what the configurator reads (the product's flags,
 description and unit, attributes, bundle groups and components, ungrouped bundle components and
-selling models) plus standard price book entries, and
-writes it as org-independent JSON: names, codes and values, never record Ids. Compare a layered
-or reloaded org's capture against a single-shape baseline.
+selling models), plus standard price book entries. It writes org-independent JSON: names, codes
+and values, never record Ids. Compare a layered or reloaded org's capture against a single-shape
+baseline.
 
   python scripts/sfdmu_product_view.py capture --target-org <sf alias or username> \
       --shape q3 [--sku LP001 --sku OF001] --out q3-view.json
   python scripts/sfdmu_product_view.py compare baseline.json candidate.json
 
-`capture` is read-only. Without --sku it takes every StockKeepingUnit in the shape's
+`capture` is read-only. It exits 3 when PCM returns a filled field the tool neither compares nor
+deliberately skips (`READ`/`SKIPPED`), so a field the platform adds can't pass unseen, and 2 on a
+platform error. Without --sku it takes every StockKeepingUnit in the shape's
 `<shape>-pcm/Product2.csv`: the catalog. Other plans' Product2.csv files are Readonly lookups
-(qb's still list two products qb-pcm removed). `compare` exits 1 when any product differs, and lists each difference
-by SKU and path. A SKU missing from either side, or held by more than one product, counts as a
-difference.
+(qb's still list two products qb-pcm removed).
+
+`compare` exits 1 when any product differs, and lists each difference by SKU and path. A SKU
+missing from either side, or held by more than one product, counts as a difference.
 """
 from __future__ import annotations
 
@@ -56,13 +59,15 @@ def _attr(a: Dict[str, Any], category: Any) -> Dict[str, Any]:
     picklist = a.get("picklist") or {}
     return {
         "category": category, "code": a.get("code"), "label": a.get("label"), "name": a.get("name"),
+        "description": a.get("description"),
         "nameOverride": a.get("attributeNameOverride"), "dataType": a.get("dataType"),
         "displayType": a.get("displayType"), "default": a.get("defaultValue"),
         "required": a.get("isRequired"), "hidden": a.get("isHidden"), "readOnly": a.get("isReadOnly"),
         "priceImpacting": a.get("isPriceImpacting"), "status": a.get("status"),
         "picklist": picklist.get("name"), "sequence": a.get("sequence"), "stepValue": a.get("stepValue"),
         "unit": (a.get("unitOfMeasureInfo") or {}).get("unitCode"),
-        "values": [{"code": v.get("code"), "displayValue": v.get("displayValue"), "value": v.get("value"),
+        "values": [{"code": v.get("code"), "name": v.get("name"), "displayValue": v.get("displayValue"),
+                    "value": v.get("value"),
                     "status": v.get("status")}
                    for v in sorted(picklist.get("values") or [], key=lambda v: _seq(v.get("sequence")))],
     }
@@ -75,46 +80,126 @@ def _attributes(p: Dict[str, Any]) -> List[Dict[str, Any]]:
     return sorted(out, key=lambda a: (str((a["category"] or {}).get("code")), str(a["code"])))
 
 
-def _component(c: Dict[str, Any]) -> Dict[str, Any]:
+def _component(c: Dict[str, Any], classes: Dict[str, str]) -> Dict[str, Any]:
     prc = c.get("productRelatedComponent") or {}
-    return {"sku": c.get("productCode") or c.get("name"), "name": c.get("name"),
+    # A classification component has no product: it is keyed by its classification's code.
+    cls = classes.get(prc.get("productClassificationId") or "") if prc.get("productClassificationId") else None
+    sku = c.get("productCode") or c.get("name") or (f"classification:{cls}" if cls else None)
+    return {"sku": sku, "name": c.get("name"),
             "quantity": prc.get("quantity"), "required": prc.get("isComponentRequired"),
             "default": prc.get("isDefaultComponent"), "quantityEditable": prc.get("isQuantityEditable"),
             "scale": prc.get("quantityScaleMethod"), "sequence": prc.get("sequence"),
             "inBundlePrice": prc.get("doesBundlePriceIncludeChild"), "excluded": prc.get("isExcluded"),
-            "quoteVisibility": prc.get("quoteVisibility")}
+            "quoteVisibility": prc.get("quoteVisibility"), "minQuantity": prc.get("minQuantity"),
+            "maxQuantity": prc.get("maxQuantity"), "unit": (prc.get("unitOfMeasureInfo") or {}).get("unitCode"),
+            "classification": cls}
 
 
-def _components(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    return sorted((_component(c) for c in items or []), key=lambda c: (_seq(c["sequence"]), str(c["sku"])))
+def _components(items: List[Dict[str, Any]], classes: Dict[str, str]) -> List[Dict[str, Any]]:
+    return sorted((_component(c, classes) for c in items or []), key=lambda c: (_seq(c["sequence"]), str(c["sku"])))
 
 
-def _groups(p: Dict[str, Any]) -> List[Dict[str, Any]]:
+def _groups(p: Dict[str, Any], classes: Dict[str, str]) -> List[Dict[str, Any]]:
     def group(g):
         return {"code": g.get("code"), "name": g.get("name"), "sequence": g.get("sequence"),
+                "excluded": g.get("isExcluded"),
                 "min": g.get("minBundleComponents"), "max": g.get("maxBundleComponents"),
-                "components": _components(g.get("components")),
+                "components": _components(g.get("components"), classes),
                 "childGroups": [group(x) for x in sorted(g.get("childGroups") or [],
                                                            key=lambda x: str(x.get("code")))]}
     return [group(g) for g in sorted(p.get("productComponentGroups") or [], key=lambda g: str(g.get("code")))]
 
 
 def _models(p: Dict[str, Any]) -> List[Dict[str, Any]]:
-    out = [{"name": (o.get("productSellingModel") or {}).get("name"),
-            "type": (o.get("productSellingModel") or {}).get("sellingModelType"),
-            "default": o.get("isDefault")} for o in p.get("productSellingModelOptions") or []]
+    out = []
+    for o in p.get("productSellingModelOptions") or []:
+        m = o.get("productSellingModel") or {}
+        out.append({"name": m.get("name"), "type": m.get("sellingModelType"), "default": o.get("isDefault"),
+                    "pricingTerm": m.get("pricingTerm"), "pricingTermUnit": m.get("pricingTermUnit"),
+                    "status": m.get("status"), "autoRenew": m.get("doesAutoRenewByDefault")})
     return sorted(out, key=lambda m: str(m["name"]))
 
 
-def normalize(p: Dict[str, Any], prices: Dict[str, Dict[str, float]], sku: str) -> Dict[str, Any]:
+def normalize(p: Dict[str, Any], prices: Dict[str, Dict[str, float]], sku: str,
+              classes: Dict[str, str] = None) -> Dict[str, Any]:
+    classes = classes or {}
     return {"name": p.get("name"), "description": p.get("description"), "active": p.get("isActive"),
             "nodeType": p.get("nodeType"), "unit": (p.get("unitOfMeasureInfo") or {}).get("unitCode"),
             "configureDuringSale": p.get("configureDuringSale"),
             "assetizable": p.get("isAssetizable"), "soldOnlyWithOthers": p.get("isSoldOnlyWithOtherProds"),
-            "attributes": _attributes(p), "componentGroups": _groups(p),
+            "attributes": _attributes(p), "componentGroups": _groups(p, classes),
             # Bundle components outside any group (q3's CERT007 -> ASTCERT001, LLMCERT001).
-            "childProducts": _components(p.get("childProducts")),
+            "childProducts": _components(p.get("childProducts"), classes),
             "sellingModels": _models(p), "listPrices": prices.get(sku, {})}
+
+
+# Every key PCM returns, by level, is either read above or listed here as deliberately skipped
+# (record Ids, nested catalog/category data that has its own plans, display URLs). `audit_fields`
+# reports any other filled key, so a field PCM starts returning can't be silently dropped.
+SKIPPED = {
+    "product": {"id", "additionalFields", "catalogs", "categories", "displayUrl", "productClassification",
+                "productUnitOfMeasures", "productRelatedComponent"},
+    "attribute": {"id", "developerName", "additionalFields"},
+    "picklistValue": {"id", "sequence"},
+    "group": {"id", "parentProductId", "parentGroupId"},
+    "relatedComponent": {"id", "childProductId", "childSellingModelId", "parentProductId",
+                         "parentSellingModelId", "productRelationshipTypeId", "productClassificationId"},
+    "sellingModelOption": {"id", "productId"},
+    "sellingModel": {"id"},
+}
+READ = {
+    "product": {"name", "description", "isActive", "nodeType", "unitOfMeasureInfo", "configureDuringSale",
+                "isAssetizable", "isSoldOnlyWithOtherProds", "attributeCategory", "attributes",
+                "productComponentGroups", "childProducts", "productSellingModelOptions", "productCode"},
+    "attribute": {"code", "label", "name", "description", "attributeNameOverride", "dataType", "displayType", "defaultValue",
+                  "isRequired", "isHidden", "isReadOnly", "isPriceImpacting", "status", "picklist", "sequence",
+                  "stepValue", "unitOfMeasureInfo"},
+    "picklistValue": {"code", "name", "displayValue", "value", "status"},
+    "group": {"code", "name", "sequence", "isExcluded", "minBundleComponents", "maxBundleComponents",
+              "components", "childGroups"},
+    "relatedComponent": {"quantity", "isComponentRequired", "isDefaultComponent", "isQuantityEditable",
+                         "quantityScaleMethod", "sequence", "doesBundlePriceIncludeChild", "isExcluded",
+                         "quoteVisibility", "minQuantity", "maxQuantity", "unitOfMeasureInfo"},
+    "sellingModelOption": {"isDefault", "productSellingModel"},
+    "sellingModel": {"name", "sellingModelType", "pricingTerm", "pricingTermUnit", "status",
+                     "doesAutoRenewByDefault"},
+}
+
+
+def audit_fields(products: List[Dict[str, Any]]) -> List[str]:
+    """`level.key` for every filled key that is neither READ nor SKIPPED (empty when all are covered)."""
+    unknown = set()
+
+    def see(level, d):
+        for k, v in (d or {}).items():
+            if v not in (None, [], {}, "") and k not in READ[level] | SKIPPED[level]:
+                unknown.add(f"{level}.{k}")
+
+    def product(p):
+        see("product", p)
+        for c in p.get("attributeCategory") or []:
+            for a in c.get("attributes") or []:
+                see("attribute", a)
+                for v in (a.get("picklist") or {}).get("values") or []:
+                    see("picklistValue", v)
+        for a in p.get("attributes") or []:
+            see("attribute", a)
+        def groups(gs):
+            for g in gs or []:
+                see("group", g)
+                for c in g.get("components") or []:
+                    see("relatedComponent", c.get("productRelatedComponent"))
+                groups(g.get("childGroups"))
+        groups(p.get("productComponentGroups"))
+        for c in p.get("childProducts") or []:
+            see("relatedComponent", c.get("productRelatedComponent"))
+        for o in p.get("productSellingModelOptions") or []:
+            see("sellingModelOption", o)
+            see("sellingModel", o.get("productSellingModel"))
+
+    for p in products:
+        product(p)
+    return sorted(unknown)
 
 
 def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
@@ -141,18 +226,23 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
             # show as a list rather than one overwriting the other.
             entry[key] = sorted([*entry[key], r["UnitPrice"]] if isinstance(entry.get(key), list)
                                 else [entry[key], r["UnitPrice"]]) if key in entry else r["UnitPrice"]
+    classes = {r["Id"]: r["Code"] for r in t.soql("SELECT Id, Code FROM ProductClassification")}
     found = sorted(ids)
     by_id = {v: k for k, v in ids.items()}  # key by the SKU asked for: productCode can be blank
     products: Dict[str, Any] = {}
+    raw: List[Dict[str, Any]] = []
     for i in range(0, len(found), BULK_BATCH):
         resp = t.connect("POST", "connect/pcm/products/bulk",
                          {"productIds": [ids[s] for s in found[i:i + BULK_BATCH]]})
         for p in (resp or {}).get("products") or []:
+            raw.append(p)
             sku = by_id.get(p.get("id"))
             if sku:
-                products[sku] = normalize(p, prices, sku)
+                products[sku] = normalize(p, prices, sku, classes)
     return {"skus": skus, "missing": sorted(set(skus) - set(found_ids)), "duplicates": duplicates,
             "notReturned": sorted(set(ids) - set(products)),
+            # Filled PCM fields this tool neither compares nor deliberately skips: extend READ/SKIPPED.
+            "uncoveredFields": audit_fields(raw),
             "products": {s: products[s] for s in sorted(products)}}
 
 
@@ -252,6 +342,10 @@ def main(argv=None) -> int:
         Path(args.out).write_text(json.dumps(view, indent=1, sort_keys=True) + "\n", encoding="utf-8")
         print(f"{len(view['products'])} product(s) captured, {len(view['missing'])} missing, "
               f"{len(view['duplicates'])} duplicated, {len(view['notReturned'])} not returned by PCM -> {args.out}")
+        if view["uncoveredFields"]:
+            print("PCM returned fields this tool doesn't compare (extend READ/SKIPPED): "
+                  + ", ".join(view["uncoveredFields"]), file=sys.stderr)
+            return 3
         return 0
     base = json.loads(Path(args.baseline).read_text(encoding="utf-8"))
     cand = json.loads(Path(args.candidate).read_text(encoding="utf-8"))
