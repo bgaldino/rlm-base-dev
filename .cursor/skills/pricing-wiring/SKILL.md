@@ -475,8 +475,14 @@ would write USD-based rates into a JPY-based table.
    `python scripts/expand_currency_pricing_data.py --plan datasets/sfdmu/q3/en-US/q3-pricing --currencies AUD,CAD,CHF,EUR,GBP,JPY --apply`.
    Review the diff: the script also creates six-currency rows for q3's six USD-only entries and for
    its adjustment, tier and derived-price rows, which carry USD only today.
-4. To bring a built org in line, reload the regenerated plans: `CurrencyType` and `PricebookEntry` are
-   `Upsert`, so the rows update in place. `cci task run update_currency_rates` changes only the org's
+4. To bring a built org in line, reload the regenerated plans (`CurrencyType` and `PricebookEntry` are
+   `Upsert`, so the rows update in place), then refresh the pricing decision tables:
+   `cci task run refresh_dt_default_pricing --org <cci_alias>` and
+   `cci task run refresh_dt_pricing_discovery --org <cci_alias>` (or `cci flow run
+   refresh_all_decision_tables --org <cci_alias>`, which runs both). Pricing reads their snapshots, not
+   the entries, so until the refresh the org keeps quoting the old prices. The refresh only queues the
+   tables; once the queue drains, confirm with `cci task run check_decision_table_freshness --org
+   <cci_alias>`: no pricing table should be Stale (a "Not comparable" table isn't a failure). `cci task run update_currency_rates` changes only the org's
    `CurrencyType` rates (fetched live again, not read from the CSV) and leaves its prices stale; without
    `-o iso_codes` it patches every active non-corporate currency, including q3's own and mfg's.
 
