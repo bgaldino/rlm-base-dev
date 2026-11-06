@@ -403,9 +403,9 @@ Measured with a test `groupBy` container on one 264 org (2026-11-06; standalone 
 - **Declare the group container on the transaction container.** The rules fired only after `type Quote` had
   `relation quotegroup : QuoteGroup;`, as in the dev guide's quote-group example. The ramp and segment
   examples omit it. Without it nothing fired and nothing reported an error.
-- **A Place call runs the rules only with `configurationMethod: Force`.** The method defaults to `Skip`
+- **Set `configurationMethod: Force` to make a Place call run the rules.** The method defaults to `Skip`
   (dev guide, *Configurator Preference Input*), so `configurationOptions.executeConfigurationRules: true` on
-  its own runs nothing.
+  its own ran nothing. `System` lets the platform decide whether to run configuration; it was not tested.
 - **A Connect clone ran group rules with no configuration preference.** Rules keyed on
   `IsLineGroupRamped__std` and `ItemSegmentType == "Yearly"` fired during the clone calls, with every
   Place call `Skip`.
