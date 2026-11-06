@@ -13,6 +13,10 @@
   both of two price entries for one selling model and currency.
 - Picklist values are compared with their display text, in numeric sequence order. Items that
   share a key (a duplicated attribute) are a difference, in any API order.
+- Classification components and a product's base classification resolve to the classification's
+  code; category membership comes from SOQL.
+- audit_fields: every READ key reaches the normalized view (each is mutated and the view must
+  change), a filled key PCM starts returning is reported by level, and capture then exits 3.
 
 Run: `python tests/test_sfdmu_product_view.py` (offline, no org).
 """
@@ -46,7 +50,7 @@ def attr(code, label, category=None, default=None, values=("A", "B")):
             "attributeNameOverride": label, "dataType": "Picklist", "displayType": "ComboBox",
             "defaultValue": default, "isRequired": False, "isHidden": False, "isReadOnly": False,
             "isPriceImpacting": True, "status": "Active",
-            "picklist": {"id": "0v5XX", "name": f"{code} Picklist",
+            "picklist": {"id": "0v5XX", "name": f"{code} Picklist", "dataType": "Text", "description": "pd",
                          "values": [{"id": "0v6XX", "code": v, "displayValue": f"{v} shown", "value": v,
                                      "status": "Active", "sequence": str(len(values) - i)}
                                     for i, v in enumerate(values)]}}
@@ -155,6 +159,52 @@ check("a classification component is keyed by its classification code, not its I
 
 print("audit_fields: every filled PCM key is compared or deliberately skipped")
 check("the fixtures' keys are all covered", V.audit_fields([p, ungrouped, uom, limits, klass]), [])
+# Every READ key must reach the output: change it in a fixture and the normalized view must change.
+# (A key listed in READ that normalize never reads would make the coverage audit lie.)
+rich = product("R", {"C": [dict(attr("X", "X"), description="d", sequence=1, stepValue=1,
+                                unitOfMeasureInfo={"unitCode": "GB"})]}, loose=[attr("L", "L")])
+rich.update(description="d", displayUrl="/u", productClassification={"id": "11BXX"},
+            unitOfMeasureInfo={"unitCode": "m"})
+rich["childProducts"] = copy.deepcopy(rich["productComponentGroups"][0]["components"])
+rprc = rich["productComponentGroups"][0]["components"][0]["productRelatedComponent"]
+rprc.update(minQuantity=1, maxQuantity=2, unitOfMeasureInfo={"unitCode": "EA"}, productClassificationId="11BXX")
+rich["productComponentGroups"][0]["childGroups"] = [{"code": "G2", "components": [], "childGroups": []}]
+rich["productComponentGroups"][0]["isExcluded"] = False
+for a_ in [a for c in rich["attributeCategory"] for a in c["attributes"]] + rich["attributes"]:
+    for v in a_["picklist"]["values"]:
+        v["name"] = v["code"]
+CLS = {"11BXX": "SFT001", "11BYY": "OTHER"}
+
+
+def nodes(level, prod):
+    """The dicts at one audit level of a product (mirrors audit_fields' walk)."""
+    attrs = [a for c in prod["attributeCategory"] for a in c["attributes"]] + prod["attributes"]
+    comps = [c for g in prod["productComponentGroups"] for c in g["components"]] + prod["childProducts"]
+    return {"product": [prod], "category": prod["attributeCategory"], "attribute": attrs,
+            "picklist": [a["picklist"] for a in attrs], "picklistValue": [v for a in attrs for v in a["picklist"]["values"]],
+            "group": prod["productComponentGroups"], "component": comps,
+            "relatedComponent": [c["productRelatedComponent"] for c in comps],
+            "sellingModelOption": prod["productSellingModelOptions"],
+            "sellingModel": [o["productSellingModel"] for o in prod["productSellingModelOptions"]]}[level]
+
+
+silent = []
+for level, keys in V.READ.items():
+    for key in sorted(keys):
+        mutated = copy.deepcopy(rich)
+        targets = [node for node in nodes(level, mutated) if key in node]
+        if not targets:
+            silent.append(f"{level}.{key} (not in the fixture)")
+            continue
+        for node in targets:
+            old = node[key]
+            node[key] = ({"id": "11BYY"} if key == "productClassification" else "11BYY" if key == "productClassificationId"
+                      else {"unitCode": "ZZ"} if key == "unitOfMeasureInfo" else [] if isinstance(old, list)
+                      else {} if isinstance(old, dict) else (not old) if isinstance(old, bool)
+                      else 99 if isinstance(old, (int, float)) else f"{old}-changed")
+        if V.normalize(mutated, {}, "R", CLS) == V.normalize(rich, {}, "R", CLS):
+            silent.append(f"{level}.{key}")
+check("every READ key changes the normalized view", silent, [])
 novel = copy.deepcopy(p)
 novel["attributeCategory"][0]["attributes"][0]["newPlatformField"] = "x"
 novel["productSellingModelOptions"][0]["productSellingModel"]["billingCycle"] = "Monthly"
@@ -236,6 +286,9 @@ class FakeTransport:
                     for p in ((10, 12) if s in self.dup_price else (10,))]
         if "FROM ProductClassification" in q:
             return [{"Id": "11BXX", "Code": "SFT001"}]
+        if "FROM ProductCategoryProduct" in q:
+            return [{"Product": {"StockKeepingUnit": s}, "IsPrimaryCategory": True,
+                     "ProductCategory": {"Code": "PC-1", "Catalog": {"Code": "CAT-1"}}} for s in hits]
         self.soql_sizes.append(len(hits))
         return [{"Id": f"01t{s}{n}", "StockKeepingUnit": s} for s in hits
                 for n in (("", "b") if s in self.dup else ("",))]
@@ -293,6 +346,29 @@ finally:
     V.Transport = saved
 check("capture exits 2 on a platform error", code, 2)
 check("and names the error", "EPC_PAPI_PROD_DETAILS_008" in err.getvalue(), True)
+
+print("main: exit 3 when PCM returns a filled field the tool doesn't cover")
+
+
+class NovelTransport(FakeTransport):
+    def connect(self, method, path, body):
+        resp = super().connect(method, path, body)
+        resp["products"][0]["brandNewField"] = "x"
+        return resp
+
+
+import tempfile
+out = pathlib.Path(tempfile.mkdtemp()) / "view.json"
+V.Transport = lambda *_a, **_k: NovelTransport(["N1"])
+try:
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+        code = V.main(["capture", "--target-org", "x@example.com", "--shape", "q3", "--sku", "N1", "--out", str(out)])
+finally:
+    V.Transport = saved
+check("capture exits 3", code, 3)
+check("names the uncovered field", "product.brandNewField" in err.getvalue(), True)
+check("and still writes the capture", json.loads(out.read_text())["uncoveredFields"], ["product.brandNewField"])
 
 print("=" * 60)
 if _failures:

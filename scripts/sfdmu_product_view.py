@@ -4,9 +4,10 @@
 `check_sfdmu_layering.py` compares CSVs, so it cannot see what the configurator shows. Both
 #675 regressions were of that kind: a renamed attribute Label, and a category link left blank by
 a load that failed partway. This reads the product view from a built org through PCM's
-`/connect/pcm/products/bulk`, which is what the configurator reads (the product's flags,
-description and unit, attributes, bundle groups and components, ungrouped bundle components and
-selling models), plus standard price book entries. It writes org-independent JSON: names, codes
+`/connect/pcm/products/bulk`, which is what the configurator reads (the product's code, flags,
+description, image URL, unit and base classification, attributes, bundle groups and components
+including classification components, ungrouped bundle components and selling models), plus
+category membership and standard price book entries by SOQL. It writes org-independent JSON: names, codes
 and values, never record Ids. Compare a layered or reloaded org's capture against a single-shape
 baseline.
 
@@ -64,7 +65,9 @@ def _attr(a: Dict[str, Any], category: Any) -> Dict[str, Any]:
         "displayType": a.get("displayType"), "default": a.get("defaultValue"),
         "required": a.get("isRequired"), "hidden": a.get("isHidden"), "readOnly": a.get("isReadOnly"),
         "priceImpacting": a.get("isPriceImpacting"), "status": a.get("status"),
-        "picklist": picklist.get("name"), "sequence": a.get("sequence"), "stepValue": a.get("stepValue"),
+        "picklist": picklist.get("name"), "picklistDataType": picklist.get("dataType"),
+        "picklistDescription": picklist.get("description"),
+        "sequence": a.get("sequence"), "stepValue": a.get("stepValue"),
         "unit": (a.get("unitOfMeasureInfo") or {}).get("unitCode"),
         "values": [{"code": v.get("code"), "name": v.get("name"), "displayValue": v.get("displayValue"),
                     "value": v.get("value"),
@@ -83,7 +86,8 @@ def _attributes(p: Dict[str, Any]) -> List[Dict[str, Any]]:
 def _component(c: Dict[str, Any], classes: Dict[str, str]) -> Dict[str, Any]:
     prc = c.get("productRelatedComponent") or {}
     # A classification component has no product: it is keyed by its classification's code.
-    cls = classes.get(prc.get("productClassificationId") or "") if prc.get("productClassificationId") else None
+    cid = prc.get("productClassificationId")
+    cls = (classes.get(cid) or f"unresolved classification {cid}") if cid else None
     sku = c.get("productCode") or c.get("name") or (f"classification:{cls}" if cls else None)
     return {"sku": sku, "name": c.get("name"),
             "quantity": prc.get("quantity"), "required": prc.get("isComponentRequired"),
@@ -121,9 +125,16 @@ def _models(p: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def normalize(p: Dict[str, Any], prices: Dict[str, Dict[str, float]], sku: str,
-              classes: Dict[str, str] = None) -> Dict[str, Any]:
+              classes: Dict[str, str] = None, categories: Dict[str, List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     classes = classes or {}
-    return {"name": p.get("name"), "description": p.get("description"), "active": p.get("isActive"),
+    based_on = (p.get("productClassification") or {}).get("id")
+    return {"productCode": p.get("productCode"), "name": p.get("name"), "description": p.get("description"),
+            "active": p.get("isActive"), "displayUrl": p.get("displayUrl"),
+            # The classification the product is based on, by code (BasedOn in Product2.csv).
+            "basedOn": (classes.get(based_on) or f"unresolved classification {based_on}") if based_on else None,
+            # Category membership (ProductCategoryProduct): where the product shows when users browse.
+            # PCM's bulk response leaves `categories`/`catalogs` empty, so capture reads it by SOQL.
+            "categories": (categories or {}).get(sku, []),
             "nodeType": p.get("nodeType"), "unit": (p.get("unitOfMeasureInfo") or {}).get("unitCode"),
             "configureDuringSale": p.get("configureDuringSale"),
             "assetizable": p.get("isAssetizable"), "soldOnlyWithOthers": p.get("isSoldOnlyWithOtherProds"),
@@ -133,22 +144,32 @@ def normalize(p: Dict[str, Any], prices: Dict[str, Dict[str, float]], sku: str,
             "sellingModels": _models(p), "listPrices": prices.get(sku, {})}
 
 
-# Every key PCM returns, by level, is either read above or listed here as deliberately skipped
-# (record Ids, nested catalog/category data that has its own plans, display URLs). `audit_fields`
-# reports any other filled key, so a field PCM starts returning can't be silently dropped.
+# Every key PCM returns, by level, is either read above or listed here as deliberately skipped.
+# `audit_fields` reports any other filled key, so a field PCM starts returning can't be silently
+# dropped. Skipped: record Ids; `additionalFields` (custom-field passthrough, empty in our plans);
+# `catalogs`/`categories` (empty in the bulk response: membership is read by SOQL instead);
+# `productUnitOfMeasures` (no plan loads ProductUoM); a component's own product-level keys (the
+# component is captured as its own product when it is in the shape's catalog).
 SKIPPED = {
-    "product": {"id", "additionalFields", "catalogs", "categories", "displayUrl", "productClassification",
-                "productUnitOfMeasures", "productRelatedComponent"},
+    "product": {"id", "additionalFields", "catalogs", "categories", "productUnitOfMeasures",
+                "productRelatedComponent"},
     "attribute": {"id", "developerName", "additionalFields"},
     "picklistValue": {"id", "sequence"},
     "group": {"id", "parentProductId", "parentGroupId"},
     "relatedComponent": {"id", "childProductId", "childSellingModelId", "parentProductId",
-                         "parentSellingModelId", "productRelationshipTypeId", "productClassificationId"},
+                         "parentSellingModelId", "productRelationshipTypeId"},
+    "picklist": {"id"},
+    "category": {"id"},
+    "component": {"id", "description", "displayUrl", "isActive", "isAssetizable", "isSoldOnlyWithOtherProds",
+                  "nodeType", "configureDuringSale", "attributeCategory", "attributes", "childProducts",
+                  "productComponentGroups", "productSellingModelOptions", "productClassification",
+                  "unitOfMeasureInfo", "catalogs", "categories", "additionalFields", "productUnitOfMeasures"},
     "sellingModelOption": {"id", "productId"},
     "sellingModel": {"id"},
 }
 READ = {
-    "product": {"name", "description", "isActive", "nodeType", "unitOfMeasureInfo", "configureDuringSale",
+    "product": {"name", "description", "isActive", "displayUrl", "productClassification", "nodeType",
+                "unitOfMeasureInfo", "configureDuringSale",
                 "isAssetizable", "isSoldOnlyWithOtherProds", "attributeCategory", "attributes",
                 "productComponentGroups", "childProducts", "productSellingModelOptions", "productCode"},
     "attribute": {"code", "label", "name", "description", "attributeNameOverride", "dataType", "displayType", "defaultValue",
@@ -159,7 +180,11 @@ READ = {
               "components", "childGroups"},
     "relatedComponent": {"quantity", "isComponentRequired", "isDefaultComponent", "isQuantityEditable",
                          "quantityScaleMethod", "sequence", "doesBundlePriceIncludeChild", "isExcluded",
-                         "quoteVisibility", "minQuantity", "maxQuantity", "unitOfMeasureInfo"},
+                         "quoteVisibility", "minQuantity", "maxQuantity", "unitOfMeasureInfo",
+                         "productClassificationId"},
+    "picklist": {"name", "dataType", "description", "values"},
+    "category": {"code", "name", "attributes"},
+    "component": {"productCode", "name", "productRelatedComponent"},
     "sellingModelOption": {"isDefault", "productSellingModel"},
     "sellingModel": {"name", "sellingModelType", "pricingTerm", "pricingTermUnit", "status",
                      "doesAutoRenewByDefault"},
@@ -177,21 +202,27 @@ def audit_fields(products: List[Dict[str, Any]]) -> List[str]:
 
     def product(p):
         see("product", p)
-        for c in p.get("attributeCategory") or []:
-            for a in c.get("attributes") or []:
-                see("attribute", a)
-                for v in (a.get("picklist") or {}).get("values") or []:
-                    see("picklistValue", v)
-        for a in p.get("attributes") or []:
+        def attribute(a):
             see("attribute", a)
+            see("picklist", a.get("picklist"))
+            for v in (a.get("picklist") or {}).get("values") or []:
+                see("picklistValue", v)
+        for c in p.get("attributeCategory") or []:
+            see("category", c)
+            for a in c.get("attributes") or []:
+                attribute(a)
+        for a in p.get("attributes") or []:
+            attribute(a)
         def groups(gs):
             for g in gs or []:
                 see("group", g)
                 for c in g.get("components") or []:
+                    see("component", c)
                     see("relatedComponent", c.get("productRelatedComponent"))
                 groups(g.get("childGroups"))
         groups(p.get("productComponentGroups"))
         for c in p.get("childProducts") or []:
+            see("component", c)
             see("relatedComponent", c.get("productRelatedComponent"))
         for o in p.get("productSellingModelOptions") or []:
             see("sellingModelOption", o)
@@ -227,6 +258,17 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
             entry[key] = sorted([*entry[key], r["UnitPrice"]] if isinstance(entry.get(key), list)
                                 else [entry[key], r["UnitPrice"]]) if key in entry else r["UnitPrice"]
     classes = {r["Id"]: r["Code"] for r in t.soql("SELECT Id, Code FROM ProductClassification")}
+    categories: Dict[str, List[Dict[str, Any]]] = {}
+    for i in range(0, len(skus), SOQL_BATCH):
+        chunk = ",".join(f"'{soql_literal(s)}'" for s in skus[i:i + SOQL_BATCH])
+        for r in t.soql("SELECT Product.StockKeepingUnit, ProductCategory.Code, ProductCategory.Catalog.Code, "
+                        f"IsPrimaryCategory FROM ProductCategoryProduct WHERE Product.StockKeepingUnit IN ({chunk})"):
+            cat = r.get("ProductCategory") or {}
+            categories.setdefault(r["Product"]["StockKeepingUnit"], []).append(
+                {"category": cat.get("Code"), "catalog": (cat.get("Catalog") or {}).get("Code"),
+                 "primary": r.get("IsPrimaryCategory")})
+    for v in categories.values():
+        v.sort(key=lambda c: (str(c["catalog"]), str(c["category"])))
     found = sorted(ids)
     by_id = {v: k for k, v in ids.items()}  # key by the SKU asked for: productCode can be blank
     products: Dict[str, Any] = {}
@@ -238,7 +280,7 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
             raw.append(p)
             sku = by_id.get(p.get("id"))
             if sku:
-                products[sku] = normalize(p, prices, sku, classes)
+                products[sku] = normalize(p, prices, sku, classes, categories)
     return {"skus": skus, "missing": sorted(set(skus) - set(found_ids)), "duplicates": duplicates,
             "notReturned": sorted(set(ids) - set(products)),
             # Filled PCM fields this tool neither compares nor deliberately skips: extend READ/SKIPPED.
