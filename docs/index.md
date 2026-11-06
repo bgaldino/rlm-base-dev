@@ -62,7 +62,6 @@ flow ordering and feature-flag conditions.
 Each SFDMU data plan has its own detailed README documenting objects, fields, load order, external IDs, and optimization opportunities:
 
 - [qb-pcm README](../datasets/sfdmu/qb/en-US/qb-pcm/README.md) -- Product Catalog Management
-- [qb-product-images README](../datasets/sfdmu/qb/en-US/qb-product-images/README.md) -- Product Images
 - [qb-pricing README](../datasets/sfdmu/qb/en-US/qb-pricing/README.md) -- Pricing
 - [qb-price-revision README](../datasets/sfdmu/qb/en-US/qb-price-revision/README.md) -- CPI index rates and price revision policies
 - [qb-tax README](../datasets/sfdmu/qb/en-US/qb-tax/README.md) -- Tax

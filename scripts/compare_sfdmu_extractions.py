@@ -15,7 +15,7 @@ MIGRATE = ROOT / "datasets/sfdmu/reconcile/qb-migrate/en-US"
 
 # Plans we extracted (present in both reconcile dirs)
 PLANS = [
-    "qb-pcm", "qb-pricing", "qb-product-images", "qb-dro", "qb-tax",
+    "qb-pcm", "qb-pricing", "qb-dro", "qb-tax",  # qb-product-images folded into qb-pcm (todo 336)
     "qb-billing", "qb-rating", "qb-rates", "qb-transactionprocessingtypes",
     "qb-constraints-product", "qb-constraints-component",
 ]
@@ -113,7 +113,7 @@ def main():
     print("""
 - qb-pcm: ProductRampSegment has 1 more row in qb-migrate than main/extract.
 - qb-pricing: Main has fewer Product2 (152) and no PricebookEntryDerivedPrice (0) vs extract/migrate (164, 2).
-- qb-product-images: Main has 105 Product2 vs 164 in both orgs (main is subset).
+- qb-product-images (since retired; qb-pcm carries the images, todo 336): Main had 105 Product2 vs 164 in both orgs.
 - qb-dro: Large gaps: main has fewer FulfillmentStepDefinition, FulfillmentStepDefinitionGroup,
   FulfillmentStepDependencyDef, FulfillmentWorkspace(Item), ProductFulfillmentDecompRule,
   ProductFulfillmentScenario, UserAndGroup. Migrate has more than extract in several.

@@ -111,7 +111,7 @@ The 37 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 ### Phase 3: Product Catalog and Pricing (Steps 8–9)
 
-**What happens:** The product catalog master (PCM) data is loaded, product images are attached, and pricing data (price books, adjustments, tiers) is inserted.
+**What happens:** The product catalog master (PCM) data is loaded, with each product's image URL, and pricing data (price books, adjustments, tiers) is inserted.
 
 **Why it matters:** Products and pricing are the foundation of every Revenue Cloud transaction. A quote can't be created without products to sell, and those products can't be priced without price book entries and adjustment rules.
 

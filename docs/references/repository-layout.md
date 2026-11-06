@@ -89,7 +89,6 @@ rlm-base-dev/
 │   ├── sfdmu/                  # SFDMU data plans
 │   │   ├── qb/en-US/           # QuantumBit checked-in plans (see data-plan guide for usage)
 │   │   │   ├── qb-pcm/
-│   │   │   ├── qb-product-images/
 │   │   │   ├── qb-pricing/
 │   │   │   ├── qb-price-revision/
 │   │   │   ├── qb-tax/

@@ -393,7 +393,6 @@ Source: `datasets/sfdmu/qb/en-US/qb-clm/`
 
 | Plan | Purpose |
 |---|---|
-| `qb-product-images` | ContentVersion + ContentDocumentLink for product images (`/resource/RLM_quantumBit_logo_sq` + per-product images) |
 | `qb-transactionprocessingtypes` | TransactionProcessingType records (loaded before `deploy_post_constraints`) |
 | `qb-accounting` | GL Accounts, Journal Entry templates |
 | `qb-guidedselling-products` | Guided selling Product2 attribute values |
@@ -427,7 +426,7 @@ The full 37-step build process is documented at `docs/guides/prepare-rlm-org-bui
 
 1. **Foundation (1–3):** PSL/PSG assignment, context definition extension, decision tables, expression sets (deactivate)
 2. **Metadata Deployment (4–7):** Payments site, deploy_full, price adjustment schedule activation, QuantumBit metadata
-3. **Product Catalog & Pricing (8–9):** PCM data + product images + pricing data
+3. **Product Catalog & Pricing (8–9):** PCM data (including product image URLs) + pricing data
 4. **Business Process Configuration (10–17):** DocGen, DRO, Tax, Billing, Collections, Analytics, CLM, Rating
 5. **Expression Sets & Permissions (18–23):** Expression set activation (active), approval context mappings and pricing overlay, TSO permissions, procedure plans, PRM, Agentforce
 6. **Constraints & Guided Selling (24–25):** `prepare_constraints` (metadata + CML imports), guided selling
