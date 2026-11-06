@@ -359,13 +359,43 @@ def test_system_fields_and_dead_columns():
               {"Widget__x": {"Role": ["qb/en-US/p"]}})
 
 
+def test_csv_lookup_paths_and_api_version():
+    print("written CSV lookup paths are checked; describe uses the manifest's API version")
+    snap = {"Widget__x": {"fields": {"Name": field(), "ParentId": {**field("reference", rel="Parent"),
+                                                              "referenceTo": ["Parent__x"]}}},
+            "Parent__x": {"fields": {"Name": field()}}}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/p", [
+            {"query": "SELECT Name, ParentId FROM Widget__x", "operation": "Upsert",
+             "externalId": "Name"}],
+            {"Widget__x.csv": "$$Name,Name,Parent.Code,Parent.$$Name$Gone\nn,n,c,p;g\n"})
+        r = A.audit(snap, tmp)
+        check("a CSV path the parent lacks, plain or composite, is unknown",
+              sorted(f["field"] for f in r["findings"] if f["check"] == "unknown-field"),
+              ["Parent.Code", "Parent.Gone"])
+    with tempfile.TemporaryDirectory() as d:
+        manifest = pathlib.Path(d) / "m.yml"
+        manifest.write_text('api_version_active: "v70.0"\n', encoding="utf-8")
+        check("the active API version", A.active_api_version(manifest), "70.0")
+    check("a polymorphic path keeps its tail", A._strip_polymorphic("Who$Contact.Name"), "Who.Name")
+
+
 def test_classify():
     print("classify")
     r = run_fixture()
     known = {("qb/en-US/qb-widgets", "Widget__x", "picklist", "Kind"): "reason",
              ("qb/en-US/qb-widgets", "Widget__x", "required", "Gone"): "stale one"}
-    new, kept, stale = A.classify(r, known)
+    kind = next(f for f in r["findings"] if f["field"] == "Kind")
+    kind_key = ("qb/en-US/qb-widgets", "Widget__x", "picklist", "Kind")
+    new, kept, stale = A.classify(r, known, {kind_key: frozenset(kind["values"])})
     check("known finding kept", [f["field"] for f in kept], ["Kind"])
+    new_v, kept_v, stale_v = A.classify(r, known, {kind_key: frozenset({"Other"})})
+    check("a picklist value the entry didn't triage is a new finding",
+          ("Kind" in [f["field"] for f in new_v], kept_v), (True, []))
+    check("and the entry isn't stale while the field still has a finding",
+          [k for k in stale_v if k[3] == "Kind"], [])
+    check("no triaged values means no value is known", [f["field"] for f in A.classify(r, known)[1]], [])
     check("others new", sorted(f["field"] for f in new), ["Ghost.Name", "Missing", "Required"])
     check("stale entry", stale, [("qb/en-US/qb-widgets", "Widget__x", "required", "Gone")])
     _, _, stale_other = A.classify(r, {("qb/en-US/elsewhere", "Widget__x", "picklist", "Kind"): "x"})
@@ -375,7 +405,14 @@ def test_classify():
     _, _, stale_missing = A.classify(r_missing, {("qb/en-US/qb-widgets", "Widget__x", "required",
                                                   "Gone"): "x"})
     check("an entry whose object the describe lacks isn't stale", stale_missing, [])
-    md = A.render_markdown(r, "test", known)
+    check("a triaged value that is gone makes the entry stale",
+          A.classify(r, known, {kind_key: frozenset(kind["values"]) | {"Gone"}})[2],
+          [kind_key, ("qb/en-US/qb-widgets", "Widget__x", "required", "Gone")])
+    check("TRIAGED_VALUES has no entry without a KNOWN_FINDINGS one",
+          [k for k in A.TRIAGED_VALUES if k not in A.KNOWN_FINDINGS], [])
+    check("every committed picklist entry lists its triaged values",
+          [k for k in A.KNOWN_FINDINGS if k[2] == "picklist" and k not in A.TRIAGED_VALUES], [])
+    md = A.render_markdown(r, "test", known, {kind_key: frozenset(kind["values"])})
     check("report shows the reason", "| reason |" in md, True)
     check("report lists the stale entry", "no longer found; remove it" in md, True)
 
@@ -458,7 +495,8 @@ def test_committed_snapshot():
 for t in (test_findings, test_required_missing_column, test_deep_paths_and_external_id,
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
-          test_required_three_passes_and_default_key, test_insert_after_upsert_is_checked,
+          test_required_three_passes_and_default_key,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()

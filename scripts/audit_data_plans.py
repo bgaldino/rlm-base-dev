@@ -77,6 +77,13 @@ UNWRITTEN_NOISE = frozenset({"OwnerId", "CurrencyIsoCode"})
 DESCRIBE_KEYS = ("type", "createable", "updateable", "nillable", "defaultedOnCreate",
                  "calculated", "autoNumber", "restrictedPicklist", "relationshipName", "referenceTo")
 
+# A `picklist` entry stands only for the values triaged here: a different bad value in the same
+# field is a new finding, and the entry goes stale once the triaged ones are gone.
+TRIAGED_VALUES: Dict[Tuple[str, str, str, str], frozenset] = {
+    ("qb/en-US/qb-clm", "ObjectStateValue", "picklist", "ReferenceRecordAccessType"):
+        frozenset({"ReadOnly"}),
+}
+
 # (plan, object, check, field): why it stands. Each entry is a finding the 264 audit triaged and
 # kept (todo 321); a fix removes its entry, and an entry that no longer matches is reported stale.
 KNOWN_FINDINGS: Dict[Tuple[str, str, str, str], str] = {
@@ -112,12 +119,16 @@ KNOWN_FINDINGS: Dict[Tuple[str, str, str, str], str] = {
 }
 
 
-def active_release(manifest: Path = MANIFEST) -> str:
-    m = re.search(r'^salesforce_release_active:\s*"?(\d+)"?', manifest.read_text(encoding="utf-8"),
-                  re.M)
+def _manifest_value(pattern: str, name: str, manifest: Path) -> str:
+    m = re.search(pattern, manifest.read_text(encoding="utf-8"), re.M)
     if not m:
-        raise ValueError(f"no salesforce_release_active in {manifest}")
+        raise ValueError(f"no {name} in {manifest}")
     return m.group(1)
+
+
+def active_release(manifest: Path = MANIFEST) -> str:
+    return _manifest_value(r'^salesforce_release_active:\s*"?(\d+)"?', "salesforce_release_active",
+                           manifest)
 
 
 def default_snapshot(release: str) -> Path:
@@ -199,18 +210,31 @@ def compact_describe(describe: Dict[str, Any]) -> Dict[str, Any]:
     return {"fields": fields}
 
 
-def describe_org(target_org: str, objects: List[str], workers: int = 8) -> Dict[str, Any]:
+def active_api_version(manifest: Path = MANIFEST) -> str:
+    """`api_version_active` as `68.0`, the version the describe requests must use."""
+    return _manifest_value(r'^api_version_active:\s*"?v?(\d+\.\d+)"?', "api_version_active", manifest)
+
+
+def describe_org(target_org: str, objects: List[str], workers: int = 8,
+                 api_version: Optional[str] = None) -> Dict[str, Any]:
     """{object: compact describe} for the objects the org has; a missing object is absent."""
+    api_version = api_version or active_api_version()
+
     def one(obj: str):
         try:
             return obj, compact_describe(connect_request(
-                "GET", f"sobjects/{obj}/describe", target_org=target_org))
+                "GET", f"sobjects/{obj}/describe", target_org=target_org,
+                api_version=api_version))
         except DecisionTableClientError as exc:
             if "NOT_FOUND" in exc.error_codes or "INVALID_TYPE" in exc.error_codes:
                 return obj, None
             raise
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        return {o: d for o, d in pool.map(one, objects) if d is not None}
+        found = {o: d for o, d in pool.map(one, objects) if d is not None}
+    if objects and not found:
+        raise ValueError(f"the org returned no describe for any of {len(objects)} objects at API "
+                         f"{api_version}: wrong alias, or an org older than that API version")
+    return found
 
 
 def merge_snapshots(base: Dict[str, Any], extra: Dict[str, Any]) -> Dict[str, Any]:
@@ -241,6 +265,11 @@ def _field_of(header: str, fields: Dict[str, Any]) -> Optional[str]:
         return header if header in fields else None
     rel = header.split(".", 1)[0]
     return next((n for n, f in fields.items() if f.get("relationshipName") == rel), None)
+
+
+def _strip_polymorphic(path: str) -> str:
+    """`Who$Contact.Name` is SFDMU's polymorphic lookup `Who`, resolved through Contact: `Who.Name`."""
+    return ".".join(seg.split("$", 1)[0] for seg in path.split("."))
 
 
 def _path_problem(obj: str, segs: List[str], snapshot: Dict[str, Any]) -> Optional[str]:
@@ -280,9 +309,9 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
     written_by_obj: Dict[str, set] = defaultdict(set)
     created_objs = set()
 
-    def add(plan, obj, check, field, detail):
+    def add(plan, obj, check, field, detail, values=None):
         findings.append({"plan": plan, "object": obj, "check": check, "field": field,
-                         "detail": detail})
+                         "detail": detail, **({"values": values} if values else {})})
 
     for plan in selected_plans(root, prefixes):
         rel = plan.relative_to(root).as_posix()
@@ -313,7 +342,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 if sel.lower() == "all" or sel.startswith("$$"):
                     continue
                 # `Field$Type` is SFDMU's polymorphic lookup: the field, resolved through Type.
-                sel = sel.split("$", 1)[0]
+                sel = _strip_polymorphic(sel)
                 if sel in checked:
                     continue
                 checked.add(sel)
@@ -334,6 +363,20 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
             if keep is not None:
                 rows = [r for r in rows if keep(r)]
             columns = layering.written_columns(decl, headers)
+            # A written `Rel.Field` column, and each part of a composite `Rel.$$A$B` one, reaches
+            # a parent field the query's `RelId` doesn't name, so it is checked like a selected one.
+            for col in columns:
+                if col.startswith("$$"):  # the key column: its parts are the externalId's
+                    continue
+                for path in (layering.composite_names(col) or ([col] if "." in col else [])):
+                    path = _strip_polymorphic(path)
+                    if path in checked:
+                        continue
+                    checked.add(path)
+                    problem = _path_problem(obj, path.split("."), snapshot)
+                    if problem:
+                        add(rel, obj, "unknown-field", path,
+                            f"{where}: the CSV writes `{path}`, but {problem}")
             by_field: Dict[str, List[str]] = defaultdict(list)
             for col in columns:
                 name = _field_of(col, fields)
@@ -362,7 +405,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                     if bad and f.get("restrictedPicklist"):
                         add(rel, obj, "picklist", name,
                             f"{where}: {', '.join(bad)} not among the restricted picklist's active "
-                            f"values ({', '.join(sorted(allowed)) or 'none'})")
+                            f"values ({', '.join(sorted(allowed)) or 'none'})", values=bad)
                     elif bad and allowed:
                         undefined.append({"plan": rel, "object": obj, "field": name, "values": bad})
 
@@ -458,30 +501,50 @@ def finding_key(f: Dict[str, Any]) -> Tuple[str, str, str, str]:
     return (f["plan"], f["object"], f["check"], f["field"])
 
 
-def classify(result: Dict[str, Any], known=None):
+def classify(result: Dict[str, Any], known=None, triaged=None):
     """(new gating findings, known ones, stale KNOWN_FINDINGS keys). An entry is stale only when
     its plan was audited and the finding is gone, so a `--plans` subset reports none for the
-    plans it left out."""
-    known = KNOWN_FINDINGS if known is None else known
+    plans it left out. A `picklist` finding is known only when every offending value is among the
+    entry's `triaged` values (`TRIAGED_VALUES` for the committed entries, none for a custom
+    `known`)."""
+    if known is None:
+        known, triaged = KNOWN_FINDINGS, TRIAGED_VALUES if triaged is None else triaged
+    triaged = triaged or {}
+
+    def is_known(f):
+        key = finding_key(f)
+        if key not in known:
+            return False
+        if f["check"] != "picklist":
+            return True
+        values = set(f.get("values", ()))
+        return bool(values) and values <= triaged.get(key, frozenset())
+
     gating = [f for f in result["findings"] if f["check"] in GATING]
-    keys = {finding_key(f) for f in gating}
     audited = set(result.get("plans", ()))
     # An object the describe lacks was never checked, so its entries can't be called stale.
     unchecked = {(plan, obj) for obj, plans in result["info"]["object-missing"].items()
                  for plan in plans}
-    new = [f for f in gating if finding_key(f) not in known]
-    kept = [f for f in gating if finding_key(f) in known]
-    stale = sorted(k for k in known if k not in keys and k[0] in audited
-                  and (k[0], k[1]) not in unchecked)
+    new = [f for f in gating if not is_known(f)]
+    kept = [f for f in gating if is_known(f)]
+    found = {finding_key(f) for f in gating}
+    # A picklist entry that triages a value no longer found is stale: a regression would pass again.
+    seen_values: Dict[Tuple[str, str, str, str], set] = {}
+    for f in kept:
+        if f["check"] == "picklist":
+            seen_values.setdefault(finding_key(f), set()).update(f.get("values", ()))
+    partial = {k for k, vals in triaged.items() if k in seen_values and vals - seen_values[k]}
+    stale = sorted(k for k in known if (k not in found or k in partial) and k[0] in audited
+                   and (k[0], k[1]) not in unchecked)
     return new, kept, stale
 
 
 # --------------------------------------------------------------------------- report
 
 
-def render_markdown(result: Dict[str, Any], source: str, known=None) -> str:
+def render_markdown(result: Dict[str, Any], source: str, known=None, triaged=None) -> str:
+    new, kept, stale = classify(result, known, triaged)
     known = KNOWN_FINDINGS if known is None else known
-    new, kept, stale = classify(result, known)
     info = result["info"]
     out = [f"# Data-plan release audit", "", f"Source: {source}", "",
            f"- New gating findings: {len(new)}",
@@ -571,10 +634,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         release = active_release()
         if args.cmd == "snapshot":
-            objects = describe_org(args.target_org, plan_objects(args.root))
-            if args.merge:
-                objects = merge_snapshots(_load_json(args.merge)["objects"], objects)
-            snap = {"metadata": {"release": release,
+            api_version = active_api_version()
+            base = _load_json(args.merge) if args.merge else None
+            base_version = (base or {}).get("metadata", {}).get("api_version")
+            if base_version and base_version != api_version:
+                raise ValueError(f"{args.merge} was captured at API {base_version}, not the "
+                                 f"active {api_version}; recapture it before merging")
+            objects = describe_org(args.target_org, plan_objects(args.root), api_version=api_version)
+            if base:
+                objects = merge_snapshots(base["objects"], objects)
+            snap = {"metadata": {"release": release, "api_version": api_version,
                                  "captured_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                                  "source": "sobject describe of every object a tracked plan declares",
                                  "object_count": len(objects)},

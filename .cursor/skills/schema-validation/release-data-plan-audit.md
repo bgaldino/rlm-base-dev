@@ -24,7 +24,7 @@ declarations against `sobject describe`.
    plan on (for qb: `clm_data`, `inapp`, `quote_est_tax` on top of the defaults). An object a feature
    doesn't enable is missing from the describe; the report lists it under *Objects not in the
    describe* rather than auditing it.
-2. **Capture the snapshot.** Read-only:
+2. **Capture the snapshot.** Read-only; it queries the API version in `api_version_active` and records it in the snapshot's metadata (a `--merge` base whose metadata records another version is refused; a snapshot that predates the field isn't checked):
    ```bash
    python scripts/audit_data_plans.py snapshot --target-org <sf alias or username> \
        --out scripts/erd/schema_diff/<release>-plan-describe.json
@@ -41,7 +41,7 @@ declarations against `sobject describe`.
    `scripts/erd/schema_diff/*-vs-<release>-diff.json` for the release's new fields and values.
    `--plans qb/en-US` limits it to some plans; an allowlist entry is reported stale only for a plan it audited.
 4. **Triage each gating finding.** Fix the plan, or add an entry to `KNOWN_FINDINGS` in the script with
-   the reason it stands and the todo that owns it. The run fails on any finding not listed, and on any
+   the reason it stands and the todo that owns it. A `picklist` entry also lists its offending values in `TRIAGED_VALUES`; a different bad value in the same field is a new finding. A triaged value that no longer appears makes the entry stale. The run fails on any finding not listed, and on any
    listed entry no longer found.
 5. **Review the informational sections** (they never fail the run):
    - *Columns that never land*: values in fields that are neither createable nor updateable. Usually
@@ -59,7 +59,7 @@ declarations against `sobject describe`.
 
 | Check | Gating | Meaning |
 |---|---|---|
-| `unknown-field` | yes | The query selects, or the `externalId` names, a field the object doesn't have, or a relationship path that doesn't resolve; only `Id` is exempt, every other system field (`LastActivityDate`, …) must be in the describe (followed through `referenceTo` where the target is in the snapshot; a target that isn't is left unchecked). SFDMU drops it and the load still succeeds |
+| `unknown-field` | yes | The query selects, the CSV writes (`Rel.Field`, and each part of a composite `Rel.$$A$B`), or the `externalId` names, a field the object doesn't have, or a relationship path that doesn't resolve; only `Id` is exempt, every other system field (`LastActivityDate`, …) must be in the describe (followed through `referenceTo` where the target is in the snapshot; a target that isn't is left unchecked). SFDMU drops it and the load still succeeds |
 | `picklist` | yes | A CSV value outside a restricted picklist's active values. `CurrencyIsoCode` is skipped: it is the org's currency set, not the release's. Dead columns (neither createable nor updateable, and not a key) aren't value-checked |
 | `required` | yes | A creating declaration leaves out, or blanks on the rows it creates, a field that is createable, not nillable and not defaulted on create. An Upsert row whose value for this declaration's `externalId` matches a row an earlier creating pass created is only patched, so it isn't re-checked; an Insert row is always checked. Booleans are skipped (they default to false) |
 | dead columns, undefined values, release values, unwritten fields | no | See step 5 |
