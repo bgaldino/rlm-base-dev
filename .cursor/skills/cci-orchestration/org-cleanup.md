@@ -71,6 +71,9 @@ It removes nothing, though `cci` writes a `.org` file for any declared shape tha
 and a hub query can refresh that hub's auth file. The plan holds usernames but no tokens, and
 is written readable only by the user. Keep it out of the repo.
 
+Every `cci` command rolls `~/.cumulusci/logs` over and keeps 5 backups, including the ones this
+procedure runs. Copy a log you are debugging before starting.
+
 Review with the user:
 
 | Output | Meaning |
@@ -91,11 +94,13 @@ python scripts/ai/org_cleanup.py apply --plan <plan-path>
 ```
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
-reviewed one. It then runs targeted `sf org logout` per user, `sf alias unset` per alias,
-`sf config unset target-org` for a default still pointing at a removed user, and moves user
-indexes, tracking directories, and matched deploy-cache manifests to a dated folder in the
-user's Trash. It refuses symlinks, tracked files, and paths outside the state roots, and
-keeps an org's residual state if its logout fails.
+reviewed one. It then moves a temp file into the quarantine, a dated folder in the user's Trash,
+and exits 1 before any logout if that fails; `--quarantine <dir>` chooses another folder. It
+then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config unset
+target-org` for a default still pointing at a removed user, and moves user indexes, tracking
+directories, and matched deploy-cache manifests to the quarantine. It refuses symlinks, tracked
+files, and paths outside the state roots. If a logout fails, that org's residual state stays,
+including its aliases, defaults, and deploy-cache entries.
 
 Each result is checked. Exit 1 means something failed: report each `FAILED` line. A warning
 about losing access is routine for a scratch-org login. The user empties the Trash folder
@@ -162,6 +167,8 @@ the alias behind, so re-audit afterward. Never bypass global-org protection auto
   matched state. If the org is active, the same-looking user stays.
 - **Orphaned alias:** an alias points at a username with no auth file. The plan unsets it only
   if a signup-username row shows that org deleted. An alias of a valid alias stays.
+- **Chained alias:** an alias points at another alias of a user being logged out. Logout clears
+  only the direct alias, so the plan lists the chained one too.
 - **Shape from another branch:** `would_remove_never_instantiated` lists an entry absent from
   this checkout. Describe it as a shape and let the user decide before pruning.
 - **Unavailable hub:** `hub_failures` lists it and its entries stay. Do not reinterpret failure

@@ -10,10 +10,12 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts" / "ai"))
@@ -192,6 +194,14 @@ class UsernameKeyedState(Base):
         remove = self.plan(FakeCli(self.home, rows, aliases))["remove"]
         self.assertEqual(remove["aliases"], ["base", "chained"])
 
+    def test_alias_of_a_direct_alias_of_a_logged_out_user_is_listed(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        aliases = {"base": "rep@x.invalid", "chained": "base", "deeper": "chained"}
+        remove = self.plan(FakeCli(self.home, [row(DEAD_ORG)], aliases))["remove"]
+        self.assertEqual(remove["logout"], ["rep@x.invalid"])
+        # Logout clears "base" itself, and only that, so the two that reach it remain on the plan.
+        self.assertEqual(remove["aliases"], ["chained", "deeper"])
+
     def test_legacy_username_tracking_needs_a_deleted_signup_row(self):
         for name in ("gone@x.invalid", "unknown@x.invalid"):
             (self.project / ".sfdx" / "orgs" / name).mkdir()
@@ -294,8 +304,16 @@ class Apply(Base):
         plan_file = self.project / "plan.json"
         with contextlib.redirect_stdout(io.StringIO()):
             oc.main(["audit", "--out", str(plan_file)], plan_cli or cli, self.home, self.project, TODAY)
+        self.stdout, self.stderr = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(self.stdout), contextlib.redirect_stderr(self.stderr):
             return oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
                            cli, self.home, self.project, TODAY)
+
+    def logouts(self, cli):
+        return [c for c in cli.calls if c[1:3] == ["org", "logout"]]
+
+    def read_cache(self):
+        return json.loads((self.home / ".sf" / "deploy-cache.json").read_text())
 
     def test_removes_the_allowlist_moves_rather_than_deletes_and_then_is_a_no_op(self):
         rows = self.setup_stale_org()
@@ -354,6 +372,143 @@ class Apply(Base):
         self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertTrue(self.index.exists())
         self.assertTrue(self.tracking.exists())
+
+    def test_a_failed_logout_keeps_that_users_deploy_entry_and_manifest(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows, fail_logout=["rep@x.invalid"])
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertIn("job1", self.read_cache())
+        self.assertTrue(self.manifest.exists())
+        self.assertIn("FAILED: job1 (skipped because its logout failed)", self.stdout.getvalue())
+
+    def test_a_failed_logout_keeps_jobs_named_by_an_alias_another_logout_cleared(self):
+        rows = self.setup_stale_org()
+        self.add_auth("second@x.invalid", DEAD_ORG)
+        cache = {"job1": {"target-org": "second-alias"}}
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps(cache))
+        cli = FakeCli(self.home, rows, {"second-alias": "second@x.invalid"},
+                      fail_logout=["rep@x.invalid"])
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertNotIn("second-alias", cli.aliases)  # that logout worked and cleared it
+        self.assertIn("job1", self.read_cache())  # but its org keeps its state
+        self.assertTrue(self.manifest.exists())
+
+    def test_a_failed_logout_keeps_a_chained_alias_and_a_default_naming_the_user(self):
+        rows = self.setup_stale_org()
+        config = self.project / ".sf" / "config.json"
+        config.write_text(json.dumps({"target-org": "rep@x.invalid"}))
+        aliases = {"base": "rep@x.invalid", "chained": "base"}
+        cli = FakeCli(self.home, rows, aliases, fail_logout=["rep@x.invalid"])
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertEqual(cli.aliases, aliases)
+        self.assertEqual([c for c in cli.calls if c[1:3] == ["config", "unset"]], [])
+
+    def test_a_failed_logout_keeps_a_default_naming_its_chained_alias(self):
+        rows = self.setup_stale_org()
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "chained"}))
+        aliases = {"base": "rep@x.invalid", "chained": "base"}
+        cli = FakeCli(self.home, rows, aliases, fail_logout=["rep@x.invalid"])
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertEqual([c for c in cli.calls if c[1:3] == ["config", "unset"]], [])
+
+    def test_residual_line_appears_when_only_a_tracking_dir_moved(self):
+        (self.project / ".sf" / "orgs" / DEAD_ORG).mkdir()
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row(DEAD_ORG)])), 0)
+        self.assertIn("Residual files moved", self.stdout.getvalue())
+
+    def test_residual_line_appears_when_only_an_index_moved(self):
+        (self.home / ".sfdx" / (DEAD_ORG + ".json")).write_text("{}")
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row(DEAD_ORG)])), 0)
+        self.assertIn("Residual files moved", self.stdout.getvalue())
+
+    def test_residual_line_appears_when_only_a_manifest_moved(self):
+        cache = {"job1": {"target-org": "gone@x.invalid"}}
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps(cache))
+        (self.home / ".sf" / "manifestCache" / "job1.xml").write_text("<x/>")
+        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 0)
+        self.assertIn("Residual files moved", self.stdout.getvalue())
+
+    def test_a_chained_alias_is_gone_after_apply_and_a_re_audit_is_empty(self):
+        rows = self.setup_stale_org()
+        config = self.project / ".sf" / "config.json"
+        config.write_text(json.dumps({"target-org": "chained"}))
+        aliases = {"base": "rep@x.invalid", "chained": "base", "keep": HUB, "keep2": "keep"}
+        cli = FakeCli(self.home, rows, aliases)
+        self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertEqual(cli.aliases, {"keep": HUB, "keep2": "keep"})
+        unsets = [c for c in cli.calls if c[1:3] == ["config", "unset"]]
+        self.assertEqual(unsets, [["sf", "config", "unset", "target-org", "--json"]])
+
+    def test_a_quarantine_that_refuses_files_stops_before_any_logout(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows)
+        # The folder can be created, as ~/.Trash allows: only moving a file in shows the refusal.
+        with mock.patch.object(oc.shutil, "move", side_effect=PermissionError(1, "Not permitted")):
+            self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertEqual(self.logouts(cli), [])
+        self.assertTrue((self.home / ".sfdx" / "rep@x.invalid.json").exists())
+        self.assertTrue(self.index.exists())
+        self.assertIn("before any logout", self.stderr.getvalue())
+        self.assertNotIn("Residual files moved", self.stdout.getvalue())
+        self.assertFalse(self.quarantine.exists())
+        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
+
+    def test_the_quarantine_check_is_skipped_when_nothing_needs_moving(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        with mock.patch.object(oc.shutil, "move", side_effect=PermissionError(1, "Not permitted")):
+            self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertEqual(len(self.logouts(cli)), 1)
+        self.assertNotIn("Residual files moved", self.stdout.getvalue())
+
+    def test_a_move_that_fails_later_is_reported_and_the_run_continues(self):
+        rows = self.setup_stale_org()
+        real_move, refused = shutil.move, str(self.index)
+
+        def move(src, dst):
+            if src == refused:
+                raise PermissionError(1, "Not permitted")
+            return real_move(src, dst)
+
+        with mock.patch.object(oc.shutil, "move", side_effect=move):
+            self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
+        self.assertTrue(self.index.exists())
+        self.assertIn("could not move: Not permitted", self.stdout.getvalue())
+        self.assertIn("Residual files moved", self.stdout.getvalue())
+        self.assertTrue((self.quarantine / "orgs" / self.tracking.name / "state").exists())
+        self.assertEqual(self.read_cache(), {"job2": {"target-org": HUB, "keep": 1}})
+
+    def test_a_refused_manifest_keeps_its_cache_entry(self):
+        rows = self.setup_stale_org()
+        taken = self.quarantine / "manifestCache" / "job1.xml"
+        taken.parent.mkdir(parents=True)
+        taken.write_text("<earlier/>")
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
+        self.assertIn("job1", self.read_cache())
+        self.assertTrue(self.manifest.exists())
+        self.assertEqual(taken.read_text(), "<earlier/>")
+
+    def test_a_failed_cache_write_is_reported_and_leaves_the_cache_intact(self):
+        rows = self.setup_stale_org()
+        before = self.read_cache()
+        with mock.patch.object(oc.os, "replace", side_effect=PermissionError(1, "Not permitted")):
+            self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
+        self.assertEqual(self.read_cache(), before)
+        self.assertIn("could not write: Not permitted", self.stdout.getvalue())
+        self.assertEqual(list((self.home / ".sf").glob(".deploy-cache.*")), [])
+
+    def test_no_residual_line_when_every_move_was_refused(self):
+        rows = self.setup_stale_org()
+        (self.home / ".sf" / "deploy-cache.json").unlink()
+        self.manifest.unlink()
+        cli = FakeCli(self.home, rows)
+        cli.tracked.add(str(self.tracking))
+        taken = self.quarantine / ".sfdx" / self.index.name
+        taken.parent.mkdir(parents=True)
+        taken.write_text("{}")
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertNotIn("Residual files moved", self.stdout.getvalue())
 
     def test_tracked_and_symlinked_state_is_refused(self):
         rows = self.setup_stale_org()

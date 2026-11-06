@@ -281,8 +281,10 @@ def build_plan(run, home, project, today):
 
     remove = {
         "logout": sorted(stale_users),
-        # Logout already clears aliases of the users it removes, so list only the orphans.
-        "aliases": sorted(a for a in aliases if resolve(a) not in auth and stale(resolve(a))),
+        # Logout clears only aliases whose value is exactly the user, so list the orphans and any
+        # alias that reaches a removed user through another alias.
+        "aliases": sorted(a for a in aliases if stale(resolve(a))
+                          and (resolve(a) not in auth or aliases[a] != resolve(a))),
         "indexes": sorted(str(p) for p in indexes if org_class(p.stem) in REMOVABLE),
         "tracking": sorted(str(p) for p in tracking
                            if (ORG_ID.match(p.name) and org_class(p.name) in REMOVABLE)
@@ -300,6 +302,11 @@ def build_plan(run, home, project, today):
         "hubs": hubs,
         "hub_failures": sorted(set(id_failed + user_failed)),
         "remove": remove,
+        # Resolved now: a logout removes the alias that a later step would need to resolve these.
+        "targets": {
+            "aliases": {a: resolve(a) for a in remove["aliases"]},
+            "deploy_jobs": {job: deploy_targets[job] for job in remove["deploy_jobs"]},
+        },
         "preserved": {
             "logins": len(auth) - len(stale_users),
             "aliases": len(aliases) - len(remove["aliases"]),
@@ -336,6 +343,34 @@ def default_quarantine(home, today):
     return home / ".rlm-org-cleanup-quarantine" / today
 
 
+def check_quarantine(quarantine, home):
+    """Move a temp file in and remove it, returning why that failed, or None if it worked.
+
+    Creating the folder is not proof: macOS can allow a mkdir in ~/.Trash while refusing to list
+    it. This runs before the first logout, because a logout cannot be restored.
+    """
+    created = [p for p in [quarantine] + list(quarantine.parents) if not p.exists()]
+    temp = None
+    try:
+        handle, temp = tempfile.mkstemp(dir=str(home), prefix=".org-cleanup-probe-")
+        os.close(handle)
+        quarantine.mkdir(parents=True, exist_ok=True)
+        dest = quarantine / os.path.basename(temp)
+        shutil.move(temp, str(dest))
+        os.remove(str(dest))
+        return None
+    except OSError as error:
+        return error.strerror or str(error)
+    finally:
+        if temp and os.path.lexists(temp):
+            os.remove(temp)
+        for path in created:  # deepest first; a folder that still holds anything stays
+            try:
+                os.rmdir(str(path))
+            except OSError:
+                break
+
+
 def move_to_quarantine(run, path, roots, quarantine, project):
     """Move one allowlisted path, or return why it was refused."""
     if not os.path.lexists(str(path)):
@@ -349,44 +384,75 @@ def move_to_quarantine(run, path, roots, quarantine, project):
         if code != 0 or out.strip():
             return "tracked by git, or git could not say"
     dest = quarantine / path.parent.name / path.name
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    if os.path.lexists(str(dest)):
-        return "already in quarantine"
-    shutil.move(str(path), str(dest))
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if os.path.lexists(str(dest)):
+            return "already in quarantine"
+        shutil.move(str(path), str(dest))
+    except OSError as error:
+        return "could not move: {}".format(error.strerror or error)
     return None
 
 
+def replace_json(path, data):
+    """Rewrite a JSON file atomically, keeping its mode."""
+    mode = stat.S_IMODE(path.stat().st_mode)
+    handle, temp = tempfile.mkstemp(dir=str(path.parent), prefix=".deploy-cache.")
+    try:
+        with os.fdopen(handle, "w") as out:
+            os.fchmod(out.fileno(), mode)
+            json.dump(data, out, indent=4)
+        os.replace(temp, str(path))
+    except OSError:
+        os.remove(temp)
+        raise
+
+
 def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
-    """Drop named cache entries atomically, keeping mode and every other key."""
+    """Drop named cache entries, keeping every other key. Returns (entries, manifests moved).
+
+    An entry stays if its manifest could not be moved, so the two never disagree.
+    """
+    if not jobs:  # no cache file is normal, and only a failure if something had to change in it
+        return 0, 0
     path = home / ".sf" / "deploy-cache.json"
     cache = read_json(path, None)
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))
-        return 0
-    removed = [job for job in jobs if job in cache]
-    for job in removed:
-        del cache[job]
+        return 0, 0
+    removed, moved = 0, 0
+    for job in jobs:
+        if job not in cache:
+            continue
         manifest = home / ".sf" / "manifestCache" / (job + ".xml")
         if os.path.lexists(str(manifest)):
             why = move_to_quarantine(run, manifest, [manifest.parent], quarantine, project)
             if why:
                 failures.append((str(manifest), why))
+                continue
+            moved += 1
+        del cache[job]
+        removed += 1
     if removed:
-        mode = stat.S_IMODE(path.stat().st_mode)
-        handle, temp = tempfile.mkstemp(dir=str(path.parent), prefix=".deploy-cache.")
-        os.fchmod(handle, mode)
-        with os.fdopen(handle, "w") as out:
-            json.dump(cache, out, indent=4)
-        os.replace(temp, str(path))
-    return len(removed)
+        try:
+            replace_json(path, cache)
+        except OSError as error:
+            failures.append((str(path), "could not write: {}".format(error.strerror or error)))
+            return 0, moved
+    return removed, moved
 
 
 def apply_plan(run, plan, home, project, quarantine):
     """Carry out a reviewed plan. Per-item failures are collected, never hidden."""
-    remove, failures = plan["remove"], []
+    remove, targets, failures = plan["remove"], plan["targets"], []
     done = dict.fromkeys(REMOVE_KEYS, 0)
     auth = read_auth(home)[0]
     failed_orgs, failed_users = set(), set()
+
+    def logout_failed_for(username):
+        """True if this user's logout, or the logout of another user on its org, failed."""
+        org = auth.get(username, {}).get("org")
+        return username in failed_users or bool(org and org in failed_orgs)
 
     for username in remove["logout"]:
         payload = sf_json(run, "org", "logout", "--target-org", username, "--no-prompt")
@@ -398,7 +464,12 @@ def apply_plan(run, plan, home, project, quarantine):
             done["logout"] += 1
 
     # One alias per command: sf handles several in parallel, and a batch can fail partway.
+    kept_aliases = set()
     for alias in remove["aliases"]:
+        if logout_failed_for(targets["aliases"][alias]):
+            failures.append((alias, "skipped because its logout failed"))
+            kept_aliases.add(alias)
+            continue
         payload = sf_json(run, "alias", "unset", alias)
         rows = (payload or {}).get("result") or [{}]
         if payload is None or not rows[0].get("success"):
@@ -407,12 +478,12 @@ def apply_plan(run, plan, home, project, quarantine):
             done["aliases"] += 1
 
     # Logout normally clears these, so only unset what still points at a removed user.
-    targets = config_targets(home, project)
+    defaults = config_targets(home, project)
     aliases = sf_json(run, "alias", "list")
     alias_map = {r["alias"]: r.get("value") for r in (aliases or {}).get("result") or []}
-    gone = set(remove["logout"]) | set(remove["aliases"])
+    gone = (set(remove["logout"]) - failed_users) | (set(remove["aliases"]) - kept_aliases)
     for scope in remove["defaults"]:
-        still_set = [v for v in targets.get(scope, [])
+        still_set = [v for v in defaults.get(scope, [])
                      if v in gone or v not in alias_map and "@" in v and v not in read_auth(home)[0]]
         if not still_set:
             continue
@@ -428,7 +499,7 @@ def apply_plan(run, plan, home, project, quarantine):
         for item in remove[key]:
             path = Path(item)
             if (path.stem[:15] in failed_orgs or path.name[:15] in failed_orgs
-                    or path.name in failed_users):
+                    or logout_failed_for(path.name)):
                 failures.append((item, "skipped because its logout failed"))
                 continue
             why = move_to_quarantine(run, path, roots, quarantine, project)
@@ -437,8 +508,14 @@ def apply_plan(run, plan, home, project, quarantine):
             else:
                 done[key] += 1
 
-    done["deploy_jobs"] = remove_deploy_jobs(run, remove["deploy_jobs"], home, quarantine,
-                                             project, failures)
+    jobs = []
+    for job in remove["deploy_jobs"]:
+        if logout_failed_for(targets["deploy_jobs"][job]):
+            failures.append((job, "skipped because its logout failed"))
+        else:
+            jobs.append(job)
+    done["deploy_jobs"], done["manifests"] = remove_deploy_jobs(run, jobs, home, quarantine,
+                                                                project, failures)
     return done, failures
 
 
@@ -509,9 +586,17 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
               file=sys.stderr)
         return 3
     quarantine = Path(args.quarantine) if args.quarantine else default_quarantine(home, today)
+    if any(plan["remove"][key] for key in ("indexes", "tracking", "deploy_jobs")):
+        why = check_quarantine(quarantine, home)
+        if why:
+            print("Stopped before any logout; nothing was changed. Cannot move files into {}: {}. "
+                  "Use --quarantine <dir> to choose another folder.".format(quarantine, why),
+                  file=sys.stderr)
+            return 1
     done, failures = apply_plan(run, plan, home, project, quarantine)
     print("Done: {}".format(done))
-    print("Residual files moved to: {}".format(quarantine))
+    if done["indexes"] or done["tracking"] or done["manifests"]:
+        print("Residual files moved to: {}".format(quarantine))
     for item, why in failures:
         print("FAILED: {} ({})".format(item, why))
     return 1 if failures else 0
