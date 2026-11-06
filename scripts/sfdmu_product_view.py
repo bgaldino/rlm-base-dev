@@ -4,8 +4,9 @@
 `check_sfdmu_layering.py` compares CSVs, so it cannot see what the configurator shows. Both
 #675 regressions were of that kind: a renamed attribute Label, and a category link left blank by a
 load that failed partway. This reads the product view from a built org, through PCM's
-`/connect/pcm/products/bulk` (what the configurator reads: name, description, unit, attributes,
-bundle groups and components, ungrouped bundle components, selling models) plus standard price book entries, and
+`/connect/pcm/products/bulk` (what the configurator reads, including the product's flags,
+description and unit, attributes, bundle groups and components, ungrouped bundle components and
+selling models) plus standard price book entries, and
 writes it as org-independent JSON: names, codes and values, never record Ids. Compare a layered
 or reloaded org's capture against a single-shape baseline.
 

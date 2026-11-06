@@ -2,9 +2,8 @@
 """Offline tests for scripts/sfdmu_product_view.py (todo 330).
 
 - normalize keeps what the configurator shows (category, label, override, default, flags, picklist
-  values in sequence order, bundle groups and components, ungrouped bundle components, selling models,
-  list prices) and drops
-  record Ids, so captures from different orgs compare.
+  values in sequence order, bundle groups and components, ungrouped bundle components, selling
+  models, list prices) and drops record Ids, so captures from different orgs compare.
 - compare reports a changed label or category, an added or removed attribute (by category and
   code, not position), a SKU only on one side, and SKUs missing from an org or not returned by PCM.
   Identical captures, and lists in a different order, report nothing.
@@ -65,7 +64,9 @@ def product(sku, attrs_by_cat, loose=(), code=None):
                                         "components": [{"productCode": "CHILD", "name": "Child", "productRelatedComponent": {
                                             "id": "0dSXX", "quantity": 1, "isComponentRequired": False,
                                             "isDefaultComponent": True, "isQuantityEditable": False,
-                                            "quantityScaleMethod": "Proportional", "sequence": 10}}]}],
+                                            "quantityScaleMethod": "Proportional", "sequence": 10,
+                                            "doesBundlePriceIncludeChild": False, "isExcluded": True,
+                                            "quoteVisibility": "Always"}}]}],
             "productSellingModelOptions": [{"id": "0iOXX", "isDefault": True, "productSellingModel": {
                 "id": "0jPXX", "name": "Term Annual", "sellingModelType": "TermDefined"}}]}
 
@@ -104,10 +105,15 @@ ungrouped = product("CERT", {})
 ungrouped["productComponentGroups"] = []
 ungrouped["childProducts"] = [{"productCode": "AST", "name": "Asset cert", "productRelatedComponent": {
     "id": "0dSXX", "quantity": 1, "isComponentRequired": True, "isDefaultComponent": True,
-    "doesBundlePriceIncludeChild": True, "quantityScaleMethod": "Proportional"}}]
+    "doesBundlePriceIncludeChild": True, "quantityScaleMethod": "Proportional", "isExcluded": False,
+    "quoteVisibility": "Never"}}]
 un = V.normalize(ungrouped, {}, "CERT")
 check("an ungrouped bundle component is captured",
-      [(c["sku"], c["required"], c["inBundlePrice"]) for c in un["childProducts"]], [("AST", True, True)])
+      [(c["sku"], c["required"], c["inBundlePrice"], c["excluded"], c["quoteVisibility"]) for c in un["childProducts"]],
+      [("AST", True, True, False, "Never")])
+check("a grouped component carries the same flags",
+      {k: n["componentGroups"][0]["components"][0][k] for k in ("inBundlePrice", "excluded", "quoteVisibility")},
+      {"inBundlePrice": False, "excluded": True, "quoteVisibility": "Always"})
 dropped = copy.deepcopy(un)
 dropped["childProducts"] = []
 check("removing an ungrouped component is a difference",
