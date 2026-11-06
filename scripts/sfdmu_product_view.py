@@ -149,7 +149,7 @@ def _models(p: Dict[str, Any]) -> List[Dict[str, Any]]:
         out.append({"name": m.get("name"), "type": m.get("sellingModelType"), "default": o.get("isDefault"),
                     "pricingTerm": m.get("pricingTerm"), "pricingTermUnit": m.get("pricingTermUnit"),
                     "status": m.get("status"), "autoRenew": m.get("doesAutoRenewByDefault")})
-    return sorted(out, key=lambda m: str(m["name"]))
+    return sorted(out, key=lambda m: (str(m["name"]), str(m["type"])))
 
 
 def normalize(p: Dict[str, Any], prices: Dict[str, Dict[str, float]], sku: str,
@@ -286,10 +286,14 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
     prices: Dict[str, Dict[str, float]] = {}
     for i in range(0, len(skus), SOQL_BATCH):
         chunk = ",".join(f"'{soql_literal(s)}'" for s in skus[i:i + SOQL_BATCH])
-        for r in t.soql("SELECT Product2.StockKeepingUnit, ProductSellingModel.Name, CurrencyIsoCode, "
+        for r in t.soql("SELECT Product2.StockKeepingUnit, ProductSellingModel.Name, "
+                        "ProductSellingModel.SellingModelType, CurrencyIsoCode, "
                         "UnitPrice FROM PricebookEntry WHERE Pricebook2.IsStandard = true AND IsActive = true "
                         f"AND Product2.StockKeepingUnit IN ({chunk})"):
-            model = (r.get("ProductSellingModel") or {}).get("Name") or "-"
+            # By Name;SellingModelType, as components' selling models are: Name alone can repeat
+            # across types, and two such models' prices would then merge or swap unseen.
+            psm = r.get("ProductSellingModel") or {}
+            model = f"{psm.get('Name')};{psm.get('SellingModelType')}" if psm.get("Name") else "-"
             entry = prices.setdefault(r["Product2"]["StockKeepingUnit"], {})
             key = f"{model} {r['CurrencyIsoCode']}"
             # Two active standard entries for one model and currency (a duplicating price load)
@@ -334,7 +338,7 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
 # Lists compared as sets keyed by these fields, so one inserted item doesn't misreport every later one.
 LIST_KEYS = {"attributes": ("categoryCode", "code"), "componentGroups": ("code",), "components": ("sku",),
              "childProducts": ("sku",),
-             "childGroups": ("code",), "sellingModels": ("name",)}
+             "childGroups": ("code",), "sellingModels": ("name", "type")}
 
 
 def _key(it: Dict[str, Any], fields) -> str:

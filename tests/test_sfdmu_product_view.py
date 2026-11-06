@@ -11,7 +11,8 @@
 - capture batches Product2 lookups at 200 SKUs and the PCM bulk call at 20 product Ids (the
   platform rejects more), keys products by the SKU asked for even when PCM returns a blank
   productCode, reports a SKU two products hold instead of capturing one at random, and keeps
-  both of two price entries for one selling model and currency.
+  both of two price entries for one selling model and currency. Selling models (in list prices and
+  in the selling-model list) are told apart by Name and SellingModelType.
 - Picklist values are compared with their display text, in numeric sequence order. Items that
   share a key (a duplicated attribute) are a difference, in any API order.
 - Classification components and a product's base classification resolve to the classification's
@@ -81,7 +82,7 @@ def product(sku, attrs_by_cat, loose=(), code=None):
 
 print("normalize: what the configurator shows, without record Ids")
 p = product("LP001", {"PROC": [attr("CPU", "Processor", default="i5")]}, loose=[attr("COLOR", "Color")])
-n = V.normalize(p, {"LP001": {"Term Annual USD": 1000}}, "LP001")
+n = V.normalize(p, {"LP001": {"Term Annual;TermDefined USD": 1000}}, "LP001")
 check("category attribute carries its category", n["attributes"][1]["category"], {"code": "PROC", "name": "Proc"})
 check("an uncategorized attribute has category None", n["attributes"][0]["category"], None)
 check("picklist values come out in sequence order, with their display text",
@@ -98,7 +99,7 @@ check("bundle component carries quantity and default flag",
 check("selling models by name and type", n["sellingModels"],
       [{"name": "Term Annual", "type": "TermDefined", "default": True, "pricingTerm": 1,
         "pricingTermUnit": "Annual", "status": "Active", "autoRenew": False}])
-check("list prices by selling model and currency", n["listPrices"], {"Term Annual USD": 1000})
+check("list prices by selling model and currency", n["listPrices"], {"Term Annual;TermDefined USD": 1000})
 uom = product("U", {"C": [dict(attr("X", "X"), sequence=3, stepValue=5, unitOfMeasureInfo={"id": "0hEXX", "unitCode": "GB"})]})
 uom["unitOfMeasureInfo"] = {"id": "0hEXX", "name": "Minutes", "unitCode": "m"}
 uom["description"] = "Shown in the catalog"
@@ -139,7 +140,7 @@ term = copy.deepcopy(n)
 term["sellingModels"][0]["pricingTermUnit"] = "Months"
 check("a selling model's term unit change is a difference",
       V.compare({"products": {"LP001": n}}, {"products": {"LP001": term}}),
-      ["LP001/sellingModels[Term Annual]/pricingTermUnit: \"Annual\" -> \"Months\""])
+      ["LP001/sellingModels[Term Annual|TermDefined]/pricingTermUnit: \"Annual\" -> \"Months\""])
 limits = product("Q", {})
 prc = limits["productComponentGroups"][0]["components"][0]["productRelatedComponent"]
 prc.update(minQuantity=1, maxQuantity=5)
@@ -244,6 +245,17 @@ check("a component's selling models and relationship type are captured by name; 
        for k in ("parentSellingModel", "childSellingModel", "relationshipType")]
       + [sm_c["parentSellingModel"], sm_c["childSellingModel"]],
       ["Term Monthly", "Term Monthly", "Bundle", None, "unresolved selling model 0jPZZ"])
+same_models = {"products": {"S": {"sellingModels": [{"name": "Annual", "type": "TermDefined", "default": True},
+                                                   {"name": "Annual", "type": "Evergreen", "default": False}]}}}
+swapped = copy.deepcopy(same_models)
+for m_ in swapped["products"]["S"]["sellingModels"]:
+    m_["default"] = not m_["default"]
+check("selling models sharing a name are matched by type: a swapped default reads as two default changes, not type changes",
+      sorted(V.compare(same_models, swapped)),
+      ["S/sellingModels[Annual|Evergreen]/default: false -> true",
+       "S/sellingModels[Annual|TermDefined]/default: true -> false"])
+check("and the same pair in either order is no difference",
+      V.compare(same_models, {"products": {"S": {"sellingModels": same_models["products"]["S"]["sellingModels"][::-1]}}}), [])
 check("a capture with uncovered fields fails compare on either side",
       V.compare({"uncoveredFields": ["unit.a"], "products": {}}, {"uncoveredFields": ["unit.b"], "products": {}}),
       ["unit.a: returned by PCM but not compared (capture exited 3) in baseline",
@@ -316,7 +328,8 @@ class FakeTransport:
     def soql(self, q):
         hits = [s for s in self.skus if f"'{s}'" in q]
         if "FROM PricebookEntry" in q:
-            return [{"Product2": {"StockKeepingUnit": s}, "ProductSellingModel": {"Name": "One-Time"},
+            return [{"Product2": {"StockKeepingUnit": s},
+                     "ProductSellingModel": {"Name": "One-Time", "SellingModelType": "OneTime"},
                      "CurrencyIsoCode": "USD", "UnitPrice": p} for s in hits
                     for p in ((10, 12) if s in self.dup_price else (10,))]
         if "FROM ProductClassification" in q:
@@ -348,6 +361,14 @@ check("category membership is read from ProductCategoryProduct",
 check("a blank productCode is still keyed by the SKU asked for", "S007" in view["products"], True)
 check("a SKU the org lacks is listed as missing", view["missing"], ["GONE"])
 check("nothing unreturned", view["notReturned"], [])
+same_name = FakeTransport(["S1"])
+same_name.soql = lambda q, _f=same_name.soql: ([
+    {"Product2": {"StockKeepingUnit": "S1"}, "ProductSellingModel": {"Name": "Annual", "SellingModelType": st},
+     "CurrencyIsoCode": "USD", "UnitPrice": up} for st, up in (("TermDefined", 100), ("Evergreen", 90))]
+    if "FROM PricebookEntry" in q else _f(q))
+check("two selling models that share a name but not a type keep separate prices",
+      V.capture(same_name, ["S1"])["products"]["S1"]["listPrices"],
+      {"Annual;TermDefined USD": 100, "Annual;Evergreen USD": 90})
 refd = FakeTransport(["S1"])
 refd.connect = lambda m, p, b: {"products": [dict(product("S1", {}), id="01tS1", childProducts=[
     {"productCode": "C", "name": "C", "productRelatedComponent": {
@@ -364,7 +385,7 @@ check("a SKU two products hold is reported, not captured", (view["duplicates"], 
       (["B004"], False))
 check("a duplicated SKU is not also listed as missing", "B004" in view["missing"], False)
 check("two entries for one model and currency are both kept", view["products"]["B005"]["listPrices"],
-      {"One-Time USD": [10, 12]})
+      {"One-Time;OneTime USD": [10, 12]})
 quoted = FakeTransport([])
 seen = []
 quoted.soql = lambda q: seen.append(q) or []
