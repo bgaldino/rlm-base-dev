@@ -69,7 +69,7 @@ ChannelProgramMember (Upsert)
 
 ### Shared with qb-prm-pricing (todo 337)
 
-`qb-prm-pricing` also upserts the Robot Resellers account and the Reseller Program, so both plans carry the same values for them: Type `Reseller`, Phone `+1 (415) 555-9521`, BillingCountry `United States`, and program Category `Reseller`. A reload of either plan on its own leaves them unchanged. Both Account passes select the account by `Name`, not `Type`, so they still find it once PRM Pricing has set its Type to `Reseller`. `check_sfdmu_layering.py` fails if two plans of one shape write different values to the same field again.
+`qb-prm-pricing` also upserts the Robot Resellers account and the Reseller Program, so both plans carry the same values for them: Type `Reseller`, Phone `+1 (415) 555-9521`, BillingCountry `United States`, and program Category `Reseller`. A reload of either plan on its own leaves them unchanged. Both Account passes select the account by `Name`, not `Type`: an org loaded before todo 337 has it as `Partner` or `Reseller` depending on which plan loaded last, and a Type filter that missed it would make an Upsert reload insert a second account of the same name. `check_sfdmu_layering.py` fails if two plans of one shape write different values to the same field again.
 
 ### ChannelProgramLevel (Pass 1)
 

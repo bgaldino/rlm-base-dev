@@ -452,7 +452,7 @@ SHARED_CASES = [
     ("a lookup cleared through one parent key and set through another is reported", True, conflicts({
         "qb/en-US/a": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,4100\n"}),
         "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Name\nR,#N/A\n"})},
-        "Account__r (set in one shape, cleared in another)")),
+        "Account__r (set in one plan, cleared in another)")),
     ("a lookup cleared in both shapes, through different keys, isn't reported", False, conflicts({
         "qb/en-US/a": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,\n"}),
         "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Name\nR,#N/A\n"})})),
@@ -477,7 +477,7 @@ SHARED_CASES = [
             "Rule__c.csv": "Name,Account__r.Name\nR,X\n",
             "objectset_source/object-set-2/Rule__c.csv": "Name,Account__r.Code__c\nR,\n"}),
         "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Name\nR,X\n"})},
-        "Account__r (set in one shape, cleared in another)")),
+        "Account__r (set in one plan, cleared in another)")),
     ("a lookup set through the same parent key isn't reported that way", False, conflicts({
         "qb/en-US/a": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,4100\n"}),
         "mfg/en-US/b": ([[decl("Rule__c", "Name")]], {"Rule__c.csv": "Name,Account__r.Code__c\nR,4100\n"})},
@@ -755,6 +755,32 @@ def stale_intra_entry_fails():
         L.KNOWN_INTRA_SHAPE_CONFLICTS = saved
 
 
+def new_intra_conflict_fails():
+    """Two qb plans disagreeing on a field fail the run with an `intra:` line; agreeing, they don't."""
+    import contextlib
+    import io
+
+    lists = ("KNOWN_SHARED_CONFLICTS", "KNOWN_INTRA_SHAPE_CONFLICTS", "KNOWN_CASE_COLLISIONS",
+             "KNOWN_CROSS_SHAPE_DELETES", "KNOWN_UNKEYED_WRITES", "KNOWN_UNRESOLVED_LOOKUPS")
+    saved = {n: getattr(L, n) for n in lists}
+
+    def run(second):
+        root = tree({"qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,1\n"}),
+                     "qb/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": f"UnitCode,Sequence\nGB,{second}\n"})})
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = L.main(["--root", str(root)])
+        return code, out.getvalue()
+    try:
+        for n in lists:  # the shipped allowlists would all be stale against this tree
+            setattr(L, n, set())
+        (bad_code, bad), (good_code, _) = run(2), run(1)
+    finally:
+        for n, v in saved.items():
+            setattr(L, n, v)
+    return (bad_code == 1 and good_code == 0
+            and "intra: UnitOfMeasure 'GB' Sequence differs between two plans" in bad)
+
+
 INTRA_CASES = [
     # The todo 336 defect: qb-pcm upserts Product2 with a blank DisplayUrl, and a second qb plan
     # (an Update on StockKeepingUnit) sets it, so a reload of qb-pcm alone blanks the image.
@@ -783,7 +809,8 @@ INTRA_CASES = [
         "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,1\n"}),
         "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,2\n"})})),
     ("a top-level plan (sample data) loads with every shape, so it meets them as `common`", True,
-     intra({"qb/en-US/a": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,United States\n"})})
+     intra({"qb/en-US/a": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,United States\n"}),
+            "scratch_data": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,US\n"})})
      == {} and list(conflicts({
          "qb/en-US/a": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,United States\n"}),
          "scratch_data": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,US\n"})}).values())
@@ -791,6 +818,23 @@ INTRA_CASES = [
     ("a top-level plan that agrees with a shape doesn't conflict", False, conflicts({
         "q3/en-US/a": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,US\n"}),
         "scratch_data": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,US\n"})})),
+    ("two same-shape Updates meet on a record a third plan of that locale creates", True, intra({
+        "qb/en-US/c": ([[P2]], {"Product2.csv": "StockKeepingUnit\nQB-1\n"}),
+        "qb/en-US/a": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/a.png\n"}),
+        "qb/en-US/b": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/b.png\n"})},
+        "DisplayUrl")),
+    ("two same-shape Updates to a record nobody creates don't conflict", False, intra({
+        "qb/en-US/a": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/a.png\n"}),
+        "qb/en-US/b": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/b.png\n"})})),
+    ("nor do they when only another locale creates it (qb/ja's records aren't in a qb/en-US org)", False, intra({
+        "qb/ja/c": ([[P2]], {"Product2.csv": "StockKeepingUnit\nQB-1\n"}),
+        "qb/en-US/a": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/a.png\n"}),
+        "qb/en-US/b": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/b.png\n"})})),
+    ("two qb/ja Updates meet on a record qb/en-US creates (qb/ja loads over a qb org)", True, intra({
+        "qb/en-US/c": ([[P2]], {"Product2.csv": "StockKeepingUnit\nQB-1\n"}),
+        "qb/ja/a": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,Name\nQB-1,ア\n"}),
+        "qb/ja/b": ([[P2_UPDATE]], {"Product2.csv": "StockKeepingUnit,Name\nQB-1,イ\n"})}, "Name")),
+    ("a new intra-shape conflict fails the run", True, new_intra_conflict_fails()),
     ("a stale intra-shape entry fails the run", True, stale_intra_entry_fails()),
 ]
 

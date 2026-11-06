@@ -300,7 +300,7 @@ Source: `datasets/constraints/qb/QuantumBitBundle/` (active) + `datasets/constra
 
 | Account | Type | Industry | Region |
 |---|---|---|---|
-| Robot Resellers | Partner | Technology | San Francisco, CA |
+| Robot Resellers | Reseller | Technology | San Francisco, CA |
 
 ### Channel Program: Reseller Program (4 tiers)
 

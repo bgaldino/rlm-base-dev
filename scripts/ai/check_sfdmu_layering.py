@@ -716,12 +716,13 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
     too, because P's load would overwrite them. A lookup both set through different parent
     keys (qb's GL accounts by `AccountingCode`, mfg's by `Name`) is filed as "<Rel> (different
     parent keys)", as offline the two can't be shown to name the same parent, and one a shape
-    clears where another sets it as "<Rel> (set in one shape, cleared in another)". Two plans'
+    clears where another sets it as "<Rel> (set in one plan, cleared in another)". Two plans'
     Updates also meet through a third shape's created record, so Updates keyed differently (by
     Name, by Code) reach the same record. The order shapes load in isn't known, so any
     disagreement counts.
     """
-    return _value_conflicts(root, lambda p, q: shape_of(p) != shape_of(q), shape_of)
+    return _value_conflicts(root, lambda p, q: shape_of(p) != shape_of(q), shape_of,
+                            lambda p, c: True)
 
 
 def intra_shape_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
@@ -729,16 +730,20 @@ def intra_shape_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]
     shape (todo 337): qb-pcm and the retired qb-product-images both wrote `Product2.DisplayUrl`,
     so a reload of either plan alone changed the data. Matched as `shared_conflicts` matches,
     and labelled by plan. qb/ja isn't compared against qb/en-US: its plans rewrite qb's records
-    with Japanese values by design (todo 212). Plans under one locale root are compared.
+    with Japanese values by design (todo 212). Plans under one locale root are compared. A record
+    exists for them if a plan of that root, a top-level plan, or their shape's en-US plans create
+    it (qb/ja loads over a qb org); another shape's or locale's records don't count.
     """
     return _value_conflicts(
         root, lambda p, q: p != q and shape_of(p) == shape_of(q) and locale_of(p) == locale_of(q),
-        lambda rel: rel)
+        lambda rel: rel, lambda p, c: locale_of(c) in (locale_of(p), COMMON)
+        or (shape_of(c) == shape_of(p) and locale_of(c).endswith("/en-US")))
 
 
-def _value_conflicts(root: Path, paired, label) -> Dict[Tuple[str, str, str], str]:
+def _value_conflicts(root: Path, paired, label, creates_for) -> Dict[Tuple[str, str, str], str]:
     """The comparison behind `shared_conflicts` and `intra_shape_conflicts`, for plan pairs
-    `paired(p, q)` selects, with each side's values filed under `label(plan)`."""
+    `paired(p, q)` selects, with each side's values filed under `label(plan)`. A record plan C
+    creates exists for a pair loading plan P when `creates_for(P, C)`."""
     writes = _writes(root)
     seen: Dict[Tuple[str, str, str], Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
     for obj, obj_writes in writes.items():
@@ -746,11 +751,7 @@ def _value_conflicts(root: Path, paired, label) -> Dict[Tuple[str, str, str], st
         if not any(paired(p, q) for p in rels for q in rels):
             continue
         records = plan_records(obj, obj_writes)
-        created_values = [r[i] for _, (_, r, c) in records.items() for i in c]
         created_by = [(rel, r[i]) for rel, (_, r, c) in records.items() for i in c]
-        # Q's record exists if Q creates it or any plan does (Q may only update it).
-        created_by_key = {tuple(k): {key_of(v, k) for v in created_values}
-                          for k, _, _ in records.values()}
 
         def compare(p_rel, p_key, p_values, q_rel, q_values, key):
             for field in set(p_values) & set(q_values) - set(p_key):
@@ -770,7 +771,7 @@ def _value_conflicts(root: Path, paired, label) -> Dict[Tuple[str, str, str], st
                 if not p_set or not q_set:
                     if p_rels[rel] & q_rels[rel]:
                         continue  # a column both write carries the clear; compared above
-                    field = f"{rel} (set in one shape, cleared in another)"
+                    field = f"{rel} (set in one plan, cleared in another)"
                 elif parent_key_columns(p_values, p_set) & parent_key_columns(q_values, q_set):
                     continue  # a key both use; compared field by field above
                 else:
@@ -783,7 +784,10 @@ def _value_conflicts(root: Path, paired, label) -> Dict[Tuple[str, str, str], st
             for q_rel, (q_key, q_records, q_created) in records.items():
                 if not paired(p_rel, q_rel):
                     continue
-                created_keys = created_by_key[tuple(q_key)]
+                # Q's record exists if Q creates it or a plan that loads with P does (Q may only
+                # update it).
+                created_keys = {key_of(v, q_key) for c_rel, v in created_by
+                                if creates_for(p_rel, c_rel)}
                 for q_ident, q_values in q_records.items():
                     if q_ident not in q_created and q_ident not in created_keys:
                         continue
@@ -795,7 +799,7 @@ def _value_conflicts(root: Path, paired, label) -> Dict[Tuple[str, str, str], st
                 # Name, one by Code) still meet on the record they both reach. A record P or Q
                 # creates itself is covered above.
                 for c_rel, c_values in created_by:
-                    if c_rel in (p_rel, q_rel):
+                    if c_rel in (p_rel, q_rel) or not creates_for(p_rel, c_rel):
                         continue
                     p_ident, q_ident = key_of(c_values, p_key), key_of(c_values, q_key)
                     p_values = p_records.get(p_ident) if p_ident else None
