@@ -5,7 +5,8 @@
   values in sequence order, bundle groups and components, ungrouped bundle components, selling
   models, list prices) and drops record Ids, so captures from different orgs compare.
 - compare reports a changed label or category, an added or removed attribute (by category and
-  code, not position), a SKU only on one side, and SKUs missing from an org or not returned by PCM.
+  code, not position), a SKU only on one side, SKUs missing from an org or not returned by PCM, and
+  a capture's uncovered fields on either side.
   Identical captures, and lists in a different order, report nothing.
 - capture batches Product2 lookups at 200 SKUs and the PCM bulk call at 20 product Ids (the
   platform rejects more), keys products by the SKU asked for even when PCM returns a blank
@@ -101,9 +102,10 @@ uom["unitOfMeasureInfo"] = {"id": "0hEXX", "name": "Minutes", "unitCode": "m"}
 uom["description"] = "Shown in the catalog"
 nu = V.normalize(uom, {}, "U")
 check("the product's unit and description are captured by value", (nu["unit"], nu["description"]),
-      ("m", "Shown in the catalog"))
+      ({"code": "m", "name": "Minutes", "scale": None, "rounding": None}, "Shown in the catalog"))
 check("an attribute's unit, step and display order are captured",
-      {k: nu["attributes"][0][k] for k in ("unit", "stepValue", "sequence")}, {"unit": "GB", "stepValue": 5, "sequence": 3})
+      {k: nu["attributes"][0][k] for k in ("unit", "stepValue", "sequence")},
+      {"unit": {"code": "GB", "name": None, "scale": None, "rounding": None}, "stepValue": 5, "sequence": 3})
 check("the unit's record Id is not", "0hEXX" in json.dumps(nu), False)
 check("no record Ids anywhere", any(s in json.dumps(n) for s in ("0tjXX", "0v5XX", "0v6XX", "0dSXX", "0jPXX", "01tLP001")), False)
 
@@ -161,13 +163,14 @@ print("audit_fields: every filled PCM key is compared or deliberately skipped")
 check("the fixtures' keys are all covered", V.audit_fields([p, ungrouped, uom, limits, klass]), [])
 # Every READ key must reach the output: change it in a fixture and the normalized view must change.
 # (A key listed in READ that normalize never reads would make the coverage audit lie.)
+UNIT = {"unitCode": "GB", "name": "Gigabyte", "scale": 2, "roundingMethod": "Up"}
 rich = product("R", {"C": [dict(attr("X", "X"), description="d", sequence=1, stepValue=1,
-                                unitOfMeasureInfo={"unitCode": "GB"})]}, loose=[attr("L", "L")])
+                                unitOfMeasureInfo=dict(UNIT))]}, loose=[attr("L", "L")])
 rich.update(description="d", displayUrl="/u", productClassification={"id": "11BXX"},
-            unitOfMeasureInfo={"unitCode": "m"})
+            unitOfMeasureInfo=dict(UNIT, unitCode="m"))
 rich["childProducts"] = copy.deepcopy(rich["productComponentGroups"][0]["components"])
 rprc = rich["productComponentGroups"][0]["components"][0]["productRelatedComponent"]
-rprc.update(minQuantity=1, maxQuantity=2, unitOfMeasureInfo={"unitCode": "EA"}, productClassificationId="11BXX")
+rprc.update(minQuantity=1, maxQuantity=2, unitOfMeasureInfo=dict(UNIT, unitCode="EA"), productClassificationId="11BXX")
 rich["productComponentGroups"][0]["childGroups"] = [{"code": "G2", "components": [], "childGroups": []}]
 rich["productComponentGroups"][0]["isExcluded"] = False
 for a_ in [a for c in rich["attributeCategory"] for a in c["attributes"]] + rich["attributes"]:
@@ -180,7 +183,9 @@ def nodes(level, prod):
     """The dicts at one audit level of a product (mirrors audit_fields' walk)."""
     attrs = [a for c in prod["attributeCategory"] for a in c["attributes"]] + prod["attributes"]
     comps = [c for g in prod["productComponentGroups"] for c in g["components"]] + prod["childProducts"]
-    return {"product": [prod], "category": prod["attributeCategory"], "attribute": attrs,
+    units = [u for u in [prod.get("unitOfMeasureInfo")] + [a.get("unitOfMeasureInfo") for a in attrs]
+             + [c["productRelatedComponent"].get("unitOfMeasureInfo") for c in comps] if u]
+    return {"unit": units, "classificationRef": [prod["productClassification"]], "product": [prod], "category": prod["attributeCategory"], "attribute": attrs,
             "picklist": [a["picklist"] for a in attrs], "picklistValue": [v for a in attrs for v in a["picklist"]["values"]],
             "group": prod["productComponentGroups"], "component": comps,
             "relatedComponent": [c["productRelatedComponent"] for c in comps],
@@ -199,7 +204,7 @@ for level, keys in V.READ.items():
         for node in targets:
             old = node[key]
             node[key] = ({"id": "11BYY"} if key == "productClassification" else "11BYY" if key == "productClassificationId"
-                      else {"unitCode": "ZZ"} if key == "unitOfMeasureInfo" else [] if isinstance(old, list)
+                      else dict(old, unitCode="ZZ") if key == "unitOfMeasureInfo" else [] if isinstance(old, list)
                       else {} if isinstance(old, dict) else (not old) if isinstance(old, bool)
                       else 99 if isinstance(old, (int, float)) else f"{old}-changed")
         if V.normalize(mutated, {}, "R", CLS) == V.normalize(rich, {}, "R", CLS):
@@ -213,6 +218,23 @@ check("a key PCM starts returning is reported, by level",
 blank = copy.deepcopy(p)
 blank["attributeCategory"][0]["attributes"][0]["emptyField"] = None
 check("an empty key is not", V.audit_fields([blank]), [])
+unit_extra = copy.deepcopy(rich)
+unit_extra["unitOfMeasureInfo"]["productUnitKey"] = 1
+unit_extra["attributeCategory"][0]["attributes"][0]["unitOfMeasureInfo"]["attributeUnitKey"] = 1
+(unit_extra["productComponentGroups"][0]["components"][0]["productRelatedComponent"]
+ ["unitOfMeasureInfo"]["groupedUnitKey"]) = 1
+unit_extra["childProducts"][0]["productRelatedComponent"]["unitOfMeasureInfo"] = dict(UNIT, ungroupedUnitKey=1)
+klass_extra = copy.deepcopy(rich)
+klass_extra["productClassification"]["code"] = "SFT001"
+check("keys inside each unit (product, attribute, grouped and ungrouped component) and the "
+      "classification reference are audited too",
+      V.audit_fields([unit_extra, klass_extra]),
+      ["classificationRef.code", "unit.attributeUnitKey", "unit.groupedUnitKey", "unit.productUnitKey",
+       "unit.ungroupedUnitKey"])
+check("a capture with uncovered fields fails compare on either side",
+      V.compare({"uncoveredFields": ["unit.a"], "products": {}}, {"uncoveredFields": ["unit.b"], "products": {}}),
+      ["unit.a: returned by PCM but not compared (capture exited 3) in baseline",
+       "unit.b: returned by PCM but not compared (capture exited 3) in candidate"])
 
 print("compare: differences by SKU and path")
 base = {"missing": [], "notReturned": [], "products": {"LP001": n}}

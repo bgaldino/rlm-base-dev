@@ -24,7 +24,9 @@ platform error. Without --sku it takes every StockKeepingUnit in the shape's
 (qb's still list two products qb-pcm removed).
 
 `compare` exits 1 when any product differs, and lists each difference by SKU and path. A SKU
-missing from either side, or held by more than one product, counts as a difference.
+missing from either side, or held by more than one product, counts as a difference, and so does a
+field either capture reported as uncovered (its capture exited 3), so a clean product diff still
+fails on it.
 """
 from __future__ import annotations
 
@@ -50,6 +52,14 @@ def shape_skus(shape: str, root: Path = REPO) -> List[str]:
         return sorted({r["StockKeepingUnit"] for r in csv.DictReader(f) if r.get("StockKeepingUnit")})
 
 
+def _unit(u: Any) -> Any:
+    """A unit of measure by value (code, name, scale, rounding), without its record Id."""
+    if not u:
+        return None
+    return {"code": u.get("unitCode"), "name": u.get("name"), "scale": u.get("scale"),
+            "rounding": u.get("roundingMethod")}
+
+
 def _seq(value: Any):
     """Sort key for a platform `sequence` (a string or number; may be missing): numeric first."""
     try:
@@ -70,7 +80,7 @@ def _attr(a: Dict[str, Any], category: Any) -> Dict[str, Any]:
         "picklist": picklist.get("name"), "picklistDataType": picklist.get("dataType"),
         "picklistDescription": picklist.get("description"),
         "sequence": a.get("sequence"), "stepValue": a.get("stepValue"),
-        "unit": (a.get("unitOfMeasureInfo") or {}).get("unitCode"),
+        "unit": _unit(a.get("unitOfMeasureInfo")),
         "values": [{"code": v.get("code"), "name": v.get("name"), "displayValue": v.get("displayValue"),
                     "value": v.get("value"),
                     "status": v.get("status")}
@@ -97,7 +107,7 @@ def _component(c: Dict[str, Any], classes: Dict[str, str]) -> Dict[str, Any]:
             "scale": prc.get("quantityScaleMethod"), "sequence": prc.get("sequence"),
             "inBundlePrice": prc.get("doesBundlePriceIncludeChild"), "excluded": prc.get("isExcluded"),
             "quoteVisibility": prc.get("quoteVisibility"), "minQuantity": prc.get("minQuantity"),
-            "maxQuantity": prc.get("maxQuantity"), "unit": (prc.get("unitOfMeasureInfo") or {}).get("unitCode"),
+            "maxQuantity": prc.get("maxQuantity"), "unit": _unit(prc.get("unitOfMeasureInfo")),
             "classification": cls}
 
 
@@ -137,7 +147,7 @@ def normalize(p: Dict[str, Any], prices: Dict[str, Dict[str, float]], sku: str,
             # Category membership (ProductCategoryProduct): where the product shows when users browse.
             # PCM's bulk response leaves `categories`/`catalogs` empty, so capture reads it by SOQL.
             "categories": (categories or {}).get(sku, []),
-            "nodeType": p.get("nodeType"), "unit": (p.get("unitOfMeasureInfo") or {}).get("unitCode"),
+            "nodeType": p.get("nodeType"), "unit": _unit(p.get("unitOfMeasureInfo")),
             "configureDuringSale": p.get("configureDuringSale"),
             "assetizable": p.get("isAssetizable"), "soldOnlyWithOthers": p.get("isSoldOnlyWithOtherProds"),
             "attributes": _attributes(p), "componentGroups": _groups(p, classes),
@@ -168,6 +178,8 @@ SKIPPED = {
                   "unitOfMeasureInfo", "catalogs", "categories", "additionalFields", "productUnitOfMeasures"},
     "sellingModelOption": {"id", "productId"},
     "sellingModel": {"id"},
+    "unit": {"id"},
+    "classificationRef": {"id"},
 }
 READ = {
     "product": {"name", "description", "isActive", "displayUrl", "productClassification", "nodeType",
@@ -190,6 +202,9 @@ READ = {
     "sellingModelOption": {"isDefault", "productSellingModel"},
     "sellingModel": {"name", "sellingModelType", "pricingTerm", "pricingTermUnit", "status",
                      "doesAutoRenewByDefault"},
+    "unit": {"unitCode", "name", "scale", "roundingMethod"},
+    # Product.productClassification carries only the Id, resolved to its Code by SOQL.
+    "classificationRef": set(),
 }
 
 
@@ -204,8 +219,11 @@ def audit_fields(products: List[Dict[str, Any]]) -> List[str]:
 
     def product(p):
         see("product", p)
+        see("unit", p.get("unitOfMeasureInfo"))
+        see("classificationRef", p.get("productClassification"))
         def attribute(a):
             see("attribute", a)
+            see("unit", a.get("unitOfMeasureInfo"))
             see("picklist", a.get("picklist"))
             for v in (a.get("picklist") or {}).get("values") or []:
                 see("picklistValue", v)
@@ -221,11 +239,13 @@ def audit_fields(products: List[Dict[str, Any]]) -> List[str]:
                 for c in g.get("components") or []:
                     see("component", c)
                     see("relatedComponent", c.get("productRelatedComponent"))
+                    see("unit", (c.get("productRelatedComponent") or {}).get("unitOfMeasureInfo"))
                 groups(g.get("childGroups"))
         groups(p.get("productComponentGroups"))
         for c in p.get("childProducts") or []:
             see("component", c)
             see("relatedComponent", c.get("productRelatedComponent"))
+            see("unit", (c.get("productRelatedComponent") or {}).get("unitOfMeasureInfo"))
         for o in p.get("productSellingModelOptions") or []:
             see("sellingModelOption", o)
             see("sellingModel", o.get("productSellingModel"))
@@ -351,7 +371,8 @@ def diff(a: Any, b: Any, path: str = "") -> List[str]:
 def compare(base: Dict[str, Any], cand: Dict[str, Any]) -> List[str]:
     out = [f"{s}: {what} in {label}" for label, side in (("baseline", base), ("candidate", cand))
            for key, what in (("missing", "missing from the org"), ("notReturned", "not returned by PCM"),
-                             ("duplicates", "held by more than one product"))
+                             ("duplicates", "held by more than one product"),
+                             ("uncoveredFields", "returned by PCM but not compared (capture exited 3)"))
            for s in side.get(key, [])]
     bp, cp = base.get("products", {}), cand.get("products", {})
     for sku in sorted(set(bp) | set(cp)):
