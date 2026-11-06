@@ -905,7 +905,16 @@ def live_tree_passes():
         return L.main([]) == 0
 
 
-CASES = LOOKUP_CASES + SHARED_CASES + INTRA_CASES + [("the live tree passes", True, live_tree_passes())]
+def polymorphic_lookup_column_written():
+    """`AssignedToId$User` (SFDMU's polymorphic lookup) selects the AssignedTo lookup, so its
+    `AssignedTo.Name` column is written; before, the `$User` suffix hid it (todo 321)."""
+    decl = {"query": "SELECT Name, AssignedToId$User FROM FulfillmentStepDefinition"}
+    return "AssignedTo.Name" in L.written_columns(decl, ["Name", "AssignedTo.Name"])
+
+
+CASES = LOOKUP_CASES + SHARED_CASES + INTRA_CASES + [
+    ("a polymorphic `Field$Type` lookup's column is written", True, polymorphic_lookup_column_written()),
+    ("the live tree passes", True, live_tree_passes())]
 
 
 def main() -> int:

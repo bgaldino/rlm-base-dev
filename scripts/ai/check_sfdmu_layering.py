@@ -505,7 +505,8 @@ def written_columns(decl: dict, headers: List[str]) -> List[str]:
     them for `SELECT all`), less `excludedFields`, plus the `$$` columns for the key and for
     composite lookups, and the `externalId` fields, which SFDMU queries whether or not the
     query names them. A CSV column the query doesn't select is otherwise ignored at load."""
-    selected = sfdmu_export.parse_select_fields(decl.get("query", ""))
+    # `Field$Type` is SFDMU's polymorphic lookup (`AssignedToId$User`): the field is `Field`.
+    selected = [f.split("$", 1)[0] for f in sfdmu_export.parse_select_fields(decl.get("query", ""))]
     key = set(key_parts(decl.get("externalId", "")))  # SFDMU adds the key fields to the query
     excluded = set(decl.get("excludedFields") or [])
     if any(f.lower() == "all" for f in selected):
