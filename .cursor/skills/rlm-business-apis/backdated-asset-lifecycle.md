@@ -99,7 +99,12 @@ same path. All of these accepted a past date (measured):
 
 Dates are DATETIMEs: `"2026-08-01T00:00:00.000Z"`. The Connect equivalents of amend, cancel and
 renew (`/connect/revenue-management/assets/actions/{amend,cancel,renew}`) also accept past dates;
-their bodies use `amendmentStartDate`, `cancellationDate` and `renewalStartDate`.
+their bodies use `amendmentStartDate`, `cancellationDate` and `renewalStartDate`. The Connect amend body also takes
+`assetIds`, `quantityChange` and `outputRecordType`. An API-built group-ramped bundle with a one-time or evergreen child fails amend
+(`PlaceSalesTransactionPersistException`, `success:false` in the body; check the body, not the status; measured on one 264 org;
+cancel failed too where tried). The same shape with a one-time child built in the quote UI amended (evergreen not tried in the
+UI); see `.cursor/skills/ramped-quotes/bundle-children-lifecycle.md`. `outputRecordType: Order` failed on one
+264 org with a `RLM_SalesTransactionContext` fetch error; use Quote output there.
 
 Gotchas, all measured:
 

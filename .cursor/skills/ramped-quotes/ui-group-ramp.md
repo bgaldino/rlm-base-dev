@@ -11,7 +11,7 @@ A rep can build a group ramp in the 264 quote editor with the same result as the
 **Compound** was verified through order and activation, which created one Asset with an
 `AssetStatePeriod` per segment. **Standard** was verified through pricing only.
 
-**Measured** 2026-10-29 on a fresh `ent-r1` build of `main` (todo 178, GitHub #185):
+**Measured** 2026-10-29 on a fresh `ent-r1` build of `main`:
 - Org: 264.9.6, Advanced Detail Line Pricing on, Multiple Ramp Schedules Per Transaction on,
   procedure plan inactive.
 - Product `QB-API`, list price 15,000. An attribute-based price adjustment (waterfall row
@@ -36,10 +36,17 @@ A rep can build a group ramp in the 264 quote editor with the same result as the
    - **Current Segment Only** "adds products as non-ramped line items" (dialog text; not tested).
 4. **Pick the product and save.**
    - `Product2.CanRamp` gates the line-ramp path. A `CanRamp = false` product uplifts in an
-     **API-built** group ramp (pack 174, re-measured 2026-10-28/29). The UI test used `QB-API`
-     (`CanRamp = true`); a `CanRamp = false` product in this dialog wasn't tried.
+     **API-built** group ramp (re-measured 2026-10-28/29). Through this dialog (measured 2026-11-05/06 on a
+     different 264 org) a `CanRamp = false` term product was ramp-stamped; a standalone one-time product landed in every
+     segment unstamped.
+   - Bundles with a one-time child, added through Browse Catalogs (measured 2026-11-05/06 on the same org): adds failed with `UNKNOWN_EXCEPTION` until `IsDefault`
+     was set true on the `ProductSellingModelOption` rows of the bundle and its children (which row matters wasn't
+     isolated). Unticking an optional child in segment 2 or 3's configurator removed it from that segment and later ones
+     in the test (segment 1 not tested); a required child can't be removed. Amend, assetization and removal results:
+     [bundle-children-lifecycle.md](bundle-children-lifecycle.md). No Amend action was found on the asset pages, so amend
+     and cancel were run through the API on UI-built quotes.
    - Use a **term** selling model (for example Term Annual). On the API path an Evergreen price
-     book entry can't ramp and the segments come out without ramp identity (pack 174); not tried
+     book entry can't ramp and the segments come out without ramp identity; not tried
      in this dialog.
    - **Reprice All** is a toolbar button. Prices were already uplifted before it was clicked.
 
