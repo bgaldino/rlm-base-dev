@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) Product Catalog Management (PCM). Creates the full product catalog including attribute definitions, picklists, product classifications, products, selling models, component groups, bundle relationships, catalogs, categories, qualifications, and attribute scopes.
 
+> **Product images live here (todo 336).** `Product2.csv` carries each product's `DisplayUrl`. A separate qb-product-images plan used to set them after this one, so any reload of this plan alone blanked 155 images; it is retired and its URLs are in this CSV.
+
 > **A load that fails partway needs cleanup, not just a reload (todo 330).** When a parent row is rejected, SFDMU still inserts the children that look it up, with that lookup blank. Several lookups in this plan are create-only, so a reload can't set them: `ProductAttributeDefinition` and `ProductClassificationAttr` `AttributeCategoryId`, `ProductRelatedComponent` `ChildProductId` and `ParentSellingModelId`, and `ProductSellingModelOption` `ProrationPolicyId` (the full list is in the sfdmu-data-plans skill, *Reloading a Plan Into a Live Org*). Fix the cause, delete the children that run inserted with the lookup blank where the CSV has a value, then reload. Check the result with `scripts/sfdmu_product_view.py`.
 
 ## CCI Integration
@@ -13,7 +15,6 @@ This plan is executed as **step 1** of the `prepare_product_data` flow (when `qb
 | Step | Task                                | Description                                |
 |------|-------------------------------------|--------------------------------------------|
 | 1    | `insert_quantumbit_pcm_data`        | Runs this SFDMU plan (single pass)         |
-| 3    | `insert_quantumbit_product_image_data` | Runs qb-product-images plan (DisplayUrl)  |
 
 ### Task Definition
 
@@ -240,7 +241,6 @@ This plan has **no upstream dependencies** — it is the first plan loaded in th
 
 This plan is a prerequisite for:
 
-- **qb-product-images** — Updates `DisplayUrl` on Product2 records created here
 - **qb-pricing** — References Product2 (SKU), ProductSellingModel (Name;SellingModelType), ProrationPolicy, AttributeDefinition
 - **qb-rating** — References Product2 (SKU), UnitOfMeasure, UnitOfMeasureClass
 - **qb-rates** — References Product2 (SKU) created here

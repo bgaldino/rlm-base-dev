@@ -17,14 +17,13 @@ Run all QB data extract tasks (org → CSV). Use --org to specify source org.
 
 1. **task** `extract_qb_pcm_data`
 2. **task** `extract_qb_pricing_data`
-3. **task** `extract_qb_product_images_data`
-4. **task** `extract_qb_dro_data`
-5. **task** `extract_qb_clm_data`
-6. **task** `extract_qb_rating_data`
-7. **task** `extract_qb_rating_entitlements_data`
-8. **task** `extract_qb_rates_data`
-9. **task** `extract_qb_transactionprocessingtypes_data`
-10. **task** `extract_qb_guidedselling_products_data`
+3. **task** `extract_qb_dro_data`
+4. **task** `extract_qb_clm_data`
+5. **task** `extract_qb_rating_data`
+6. **task** `extract_qb_rating_entitlements_data`
+7. **task** `extract_qb_rates_data`
+8. **task** `extract_qb_transactionprocessingtypes_data`
+9. **task** `extract_qb_guidedselling_products_data`
 
 ---
 
@@ -55,19 +54,18 @@ Run all QB data idempotency tests (load twice, assert no new records). Use --org
 
 1. **task** `test_qb_pcm_idempotency`
 2. **task** `test_qb_pricing_idempotency`
-3. **task** `test_qb_product_images_idempotency`
-4. **task** `test_qb_dro_idempotency`
-5. **task** `test_qb_clm_idempotency`
-6. **task** `test_qb_rating_idempotency`
-7. **task** `test_qb_rating_entitlements_idempotency`
-8. **task** `test_qb_rates_idempotency`
-9. **task** `test_qb_transactionprocessingtypes_idempotency`
-10. **task** `test_qb_guidedselling_products_idempotency`
-11. **task** `test_qb_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__qb`
-12. **task** `test_qb_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__qb`
-13. **task** `test_qb_prm_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
-14. **task** `test_qb_approvals_idempotency`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
-15. **task** `test_qb_prm_pricing_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
+3. **task** `test_qb_dro_idempotency`
+4. **task** `test_qb_clm_idempotency`
+5. **task** `test_qb_rating_idempotency`
+6. **task** `test_qb_rating_entitlements_idempotency`
+7. **task** `test_qb_rates_idempotency`
+8. **task** `test_qb_transactionprocessingtypes_idempotency`
+9. **task** `test_qb_guidedselling_products_idempotency`
+10. **task** `test_qb_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__qb`
+11. **task** `test_qb_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__qb`
+12. **task** `test_qb_prm_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
+13. **task** `test_qb_approvals_idempotency`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
+14. **task** `test_qb_prm_pricing_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
 
 ---
 
@@ -594,8 +592,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 
 1. **task** `insert_quantumbit_pcm_data`  `when: project_config.project__custom__qb`
 2. **task** `insert_q3_pcm_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
-3. **task** `insert_quantumbit_product_image_data`  `when: project_config.project__custom__qb`
-4. **task** `insert_default_configurator_flow`
+3. **task** `insert_default_configurator_flow`
 
 ---
 

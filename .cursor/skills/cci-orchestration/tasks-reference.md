@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**277 tasks** across **9 groups**.
+**274 tasks** across **9 groups**.
 
 ---
 
@@ -139,7 +139,7 @@
 
 ## Data Management - Extract
 
-*27 task(s)*
+*26 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -370,18 +370,6 @@
 
 ---
 
-### `extract_qb_product_images_data`
-
-**Description:** Extract qb-product-images from org to CSV. Output in datasets/sfdmu/extractions/qb-product-images/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
-
-**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-product-images`
-
----
-
 ### `extract_qb_rates_data`
 
 **Description:** Extract qb-rates from org to CSV. Output in datasets/sfdmu/extractions/qb-rates/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
@@ -469,7 +457,7 @@
 
 ## Data Management - Idempotency
 
-*24 task(s)*
+*23 task(s)*
 
 ### `test_q3_billing_idempotency`
 
@@ -710,19 +698,6 @@
 
 ---
 
-### `test_qb_product_images_idempotency`
-
-**Description:** Idempotency test for qb-product-images.
-
-**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-product-images`
-- `use_extraction_roundtrip`: `False`
-
----
-
 ### `test_qb_rates_idempotency`
 
 **Description:** Idempotency test for qb-rates. Runs the plan twice from source CSVs and asserts no record count increase. NOTE: extraction roundtrip is not supported for qb-rates because SFDMU v5 cannot properly extract 2-hop traversal fields in RABT composite keys (RateCardEntry.RateCard.Name extracts as #N/A), breaking FK resolution on re-import.
@@ -885,7 +860,7 @@
 
 ## Revenue Lifecycle Management
 
-*180 task(s)*
+*179 task(s)*
 
 ### `activate_agents`
 
@@ -2698,18 +2673,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
-
----
-
-### `insert_quantumbit_product_image_data`
-
-**Description:** Insert QuantumBit Product Image Data
-
-**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-product-images`
 
 ---
 

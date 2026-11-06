@@ -39,9 +39,6 @@ scratch_data (Account, Contact, BillingAccount)
             ├──→ qb-clm (7 objects)
             │       ObjectStateDefinition, transitions, clause sets
             │
-            ├──→ qb-product-images (1 object)
-            │       Product2 DisplayUrl updates
-            │
             ├──→ qb-guidedselling-products (1 object)
             │       Product2 guided selling field updates; requires guided selling field metadata
             │       Decorator plan loaded by prepare_guidedselling in org builds

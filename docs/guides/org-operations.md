@@ -209,11 +209,8 @@ cci task run reorder_app_launcher --org <cci-alias>
 ### Load Product Data
 
 ```bash
-# Load QuantumBit PCM data
+# Load QuantumBit PCM data (products carry their image URLs)
 cci task run insert_quantumbit_pcm_data
-
-# Load product images
-cci task run insert_quantumbit_product_image_data
 ```
 
 ### Load Billing Data

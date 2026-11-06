@@ -195,7 +195,6 @@ Product2 guided-selling field values are loaded as a separate decorator plan aft
 | Plan | SObject | externalId | Operation |
 |------|---------|-----------|-----------|
 | qb-transactionprocessingtypes | TransactionProcessingType | `DeveloperName` | Upsert |
-| qb-product-images | Product2 | `StockKeepingUnit` | Update (DisplayUrl) |
 | qb-approvals | ApprovalAlertContentDef | `Name` | Upsert |
 | qb-approvals | EmailTemplate | — | ReadOnly |
 | scratch_data | Account | `Name` | Upsert |
