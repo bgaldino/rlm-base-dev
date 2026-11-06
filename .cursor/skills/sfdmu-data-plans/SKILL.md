@@ -339,6 +339,7 @@ query has a subquery or a string literal in its `WHERE`. A later pass that re-de
 - [ ] `$$` composite key CSV headers match externalId fields exactly
 - [ ] `deleteOldData: true` only where a concrete *current* reason applies + user approval (Bugs 1/2/3/5 are fixed on 5.6.4+ — not justifications)
 - [ ] No `$$` lookup reference column that is self-referential or doesn't match the parent's `externalId` (Bug 4; `check_sfdmu_layering.py`)
+- [ ] A field another plan of the same shape also writes carries the same value in both plans, or a reload of one alone changes it (`check_sfdmu_layering.py` → `intra:`; todo 337)
 - [ ] Self-referential lookups use simple field references (e.g., `ParentGroup.Code` not `ParentGroup.$$Code$...`)
 - [ ] All-traversal externalIds use `Upsert` on the 5.6.4+ floor (Bugs 3/5 fixed); any residual `Insert` + `deleteOldData: true` is a pre-5.6.4 plan awaiting the gated `sfdmu-v5-optimization` migration
 

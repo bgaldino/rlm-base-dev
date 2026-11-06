@@ -35,7 +35,7 @@ AccountingCode,AccountingName,AccountingType,CurrencyIsoCode,Description,Financi
 3000,Common Stock,,USD,,,Default Legal Entity - US,3000 Common Stock,Equity
 3100,Additional Paid-In Capital,,USD,,,Default Legal Entity - US,3100 Additional Paid-In Capital,Equity
 3200,Retained Earnings,,USD,,,Default Legal Entity - US,3200 Retained Earnings,Equity
-3300,Owner’s Draw / Distributions,,USD,,,Default Legal Entity - US,3300 Owner’s Draw / Distributions,Equity
+3300,Owner's Draw / Distributions,,USD,,,Default Legal Entity - US,3300 Owner's Draw / Distributions,Equity
 5000,Cost of Goods Sold (COGS),,USD,Cost of Goods Sold (COGS – Hosting & Infrastructure),,Default Legal Entity - US,5000 Cost of Goods Sold (COGS),Expense
 5100,Salaries & Wages,,USD,,,Default Legal Entity - US,5100 Salaries & Wages,Expense
 5110,Payroll Taxes,,USD,,,Default Legal Entity - US,5110 Payroll Taxes,Expense

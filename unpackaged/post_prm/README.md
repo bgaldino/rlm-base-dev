@@ -202,7 +202,7 @@ sf data query --query "SELECT EntityDefinition.QualifiedApiName, QualifiedApiNam
 cci task run insert_quantumbit_prm_data --org dev
 
 # Verify data loaded
-sf data query --query "SELECT Name, IsPartner FROM Account WHERE Type='Partner'" --target-org dev
+sf data query --query "SELECT Name, Type, IsPartner FROM Account WHERE IsPartner = true" --target-org dev
 
 # Test idempotency
 cci task run test_qb_prm_idempotency --org dev

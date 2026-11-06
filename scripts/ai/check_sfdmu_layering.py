@@ -18,7 +18,9 @@ unseen.
 
 * `shared` (gating on change): a field of a record that more than one data shape writes,
   where the plans' final values aren't all the same. The shapes are qb, q3 and mfg (qb/ja is a
-  locale overlay on qb and counts as qb). Whichever plan loads last wins on that field, so
+  locale overlay on qb and counts as qb), plus `common`: the top-level plans every build loads
+  whatever its shape (scratch_data's sample accounts, procedure-plans, inapp,
+  configurator-flow), which therefore meet all three. Whichever plan loads last wins on that field, so
   loading a second shape into one org changes the first one's data. See
   docs/analysis/sfdmu-data-shape-layering.md → Shape ownership.
   - The known conflicts are in `KNOWN_SHARED_CONFLICTS`, one entry per record and field, so a
@@ -27,6 +29,13 @@ unseen.
   - A plan's value for a field is the one its last pass writes, so Draft-then-Active staging
     inside one plan isn't a conflict. The order the shapes load in isn't known, so any
     disagreement between plans of different shapes counts.
+  - Two plans of **one** shape that write different values to the same field of the same record
+    are an `intra:` finding (todo 337), matched the same way and listed in
+    `KNOWN_INTRA_SHAPE_CONFLICTS` with the same new/stale rules. A reload of either plan alone
+    changes the data (qb-pcm and the retired qb-product-images blanked 155 product images). qb/ja
+    isn't compared against qb/en-US: its plans rewrite qb's records with Japanese values by
+    design (todo 212). A record counts only if a plan that loads into the pair's org creates it
+    (for qb/ja, qb/en-US's too; for two top-level plans, any shape's).
   - Keys two shapes create that differ only in case (mfg `Warranty`, q3 `WARRANTY`) are listed in
     `KNOWN_CASE_COLLISIONS`, with the same new/stale rules: SFDMU matches case-sensitively,
     so the second load adds a near-duplicate.
@@ -69,7 +78,7 @@ the columns both carry only; values are compared as text, so `1` and `1.0` diffe
 
 Usage:
     python scripts/ai/check_sfdmu_layering.py              # both checks
-    python scripts/ai/check_sfdmu_layering.py --list       # also print every shared conflict
+    python scripts/ai/check_sfdmu_layering.py --list       # also print every shared and intra-shape conflict
 
 Exit codes: 0 = clean · 1 = findings · 2 = tool error.
 """
@@ -93,6 +102,9 @@ SFDMU = REPO / "datasets" / "sfdmu"
 # Shape roots, relative to datasets/sfdmu. qb/ja is folded into qb: it is a locale overlay that
 # reuses qb's keys, so its differences from qb/en-US are translations, not a second shape.
 SHAPE_ROOTS = {"qb/en-US": "qb", "qb/ja": "qb", "q3/en-US": "q3", "mfg/en-US": "mfg"}
+# Top-level plans (scratch_data's sample accounts, procedure-plans, inapp, configurator-flow)
+# load with every shape, so they count as one more shape that meets all the others.
+COMMON = "common"
 # SFDMU 5.8.0 reads these as null, case-insensitively on the trimmed cell (kept in step with
 # `_SFDMU_CSV_NULL_TOKENS` in scripts/validate_sfdmu_v5_datasets.py).
 NULL_TOKENS = frozenset({"", "#n/a", "null", "undefined", "#error!", "#value!"})
@@ -206,6 +218,12 @@ KNOWN_SHARED_CONFLICTS = {
     ('UnitOfMeasureClass', 'TIME', 'Status'),
 }
 
+# Two plans of one shape writing different values to one field of one record: (object, record
+# key, field). Same new/stale rules. Empty: the six found when the check was added (qb-prm and
+# qb-prm-pricing on Robot Resellers and the Reseller Program, qb-accounting and qb-billing on GL
+# account 3300's apostrophe) were fixed in the plans (todo 337).
+KNOWN_INTRA_SHAPE_CONFLICTS: Set[Tuple[str, str, str]] = set()
+
 # `deleteOldData` on an object another shape writes: (plan, object). An unscoped one wipes the
 # other shapes' records on load; removing the delete needs owner approval (AGENTS.md). A
 # `deleteQuery` or WHERE is listed here too, once a person has checked that it spares the
@@ -232,7 +250,9 @@ KNOWN_CASE_COLLISIONS = {
 
 
 def plan_dirs(root: Path) -> Iterator[Path]:
-    for export in sorted(root.glob("*/*/*/export.json")):
+    # Shape plans sit at <shape>/<locale>/<plan>; the plans every build loads whatever its shape
+    # (scratch_data, procedure-plans, inapp, configurator-flow) sit at the top level.
+    for export in sorted([*root.glob("*/export.json"), *root.glob("*/*/*/export.json")]):
         rel = export.parent.relative_to(root).as_posix()
         if "/test/" in f"/{rel}/" or ".bak" in rel or "extractions" in rel:
             continue
@@ -243,7 +263,8 @@ def shape_of(plan_rel: str) -> Optional[str]:
     for prefix, shape in SHAPE_ROOTS.items():
         if plan_rel.startswith(prefix + "/"):
             return shape
-    return None
+    # A top-level plan loads into every shape's org, so it's compared against each of them.
+    return COMMON if "/" not in plan_rel else None
 
 
 def declarations(export: dict) -> Iterator[Tuple[int, dict, str]]:
@@ -678,6 +699,12 @@ def parent_key_columns(values: Dict[str, str], cols: Set[str]) -> Set[str]:
     return out
 
 
+def locale_of(plan_rel: str) -> str:
+    """The plan's shape root (`qb/en-US`, `qb/ja`, or `common` for a top-level plan): plans
+    under one root load into one org."""
+    return COMMON if "/" not in plan_rel else "/".join(plan_rel.split("/")[:2])
+
+
 def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
     """{(object, record key, field): description} for every cross-shape value conflict.
 
@@ -690,28 +717,50 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
     too, because P's load would overwrite them. A lookup both set through different parent
     keys (qb's GL accounts by `AccountingCode`, mfg's by `Name`) is filed as "<Rel> (different
     parent keys)", as offline the two can't be shown to name the same parent, and one a shape
-    clears where another sets it as "<Rel> (set in one shape, cleared in another)". Two plans'
+    clears where another sets it as "<Rel> (set in one plan, cleared in another)". Two plans'
     Updates also meet through a third shape's created record, so Updates keyed differently (by
     Name, by Code) reach the same record. The order shapes load in isn't known, so any
     disagreement counts.
     """
+    return _value_conflicts(root, lambda p, q: shape_of(p) != shape_of(q), shape_of,
+                            lambda p, c: True)
+
+
+def intra_shape_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
+    """{(object, record key, field): description} for every conflict between two plans of one
+    shape (todo 337): qb-pcm and the retired qb-product-images both wrote `Product2.DisplayUrl`,
+    so a reload of either plan alone changed the data. Matched as `shared_conflicts` matches,
+    and labelled by plan. qb/ja isn't compared against qb/en-US: its plans rewrite qb's records
+    with Japanese values by design (todo 212). Plans under one locale root are compared. A record
+    exists for them if a plan of that root, a top-level plan, or their shape's en-US plans create
+    it (qb/ja loads over a qb org); another shape's or locale's records don't count. Two
+    top-level plans load into every shape's org, so any plan's record counts for them.
+    """
+    return _value_conflicts(
+        root, lambda p, q: p != q and shape_of(p) == shape_of(q) and locale_of(p) == locale_of(q),
+        lambda rel: rel, lambda p, c: locale_of(p) == COMMON
+        or locale_of(c) in (locale_of(p), COMMON)
+        or (shape_of(c) == shape_of(p) and locale_of(c).endswith("/en-US")))
+
+
+def _value_conflicts(root: Path, paired, label, creates_for) -> Dict[Tuple[str, str, str], str]:
+    """The comparison behind `shared_conflicts` and `intra_shape_conflicts`, for plan pairs
+    `paired(p, q)` selects, with each side's values filed under `label(plan)`. A record plan C
+    creates exists for a pair loading plan P when `creates_for(P, C)`."""
     writes = _writes(root)
     seen: Dict[Tuple[str, str, str], Dict[str, Set[str]]] = defaultdict(lambda: defaultdict(set))
     for obj, obj_writes in writes.items():
-        if len({shape_of(w[0]) for w in obj_writes}) < 2:
+        rels = {w[0] for w in obj_writes}
+        if not any(paired(p, q) for p in rels for q in rels):
             continue
         records = plan_records(obj, obj_writes)
-        created_values = [r[i] for _, (_, r, c) in records.items() for i in c]
         created_by = [(rel, r[i]) for rel, (_, r, c) in records.items() for i in c]
-        # Q's record exists if Q creates it or any plan does (Q may only update it).
-        created_by_key = {tuple(k): {key_of(v, k) for v in created_values}
-                          for k, _, _ in records.values()}
 
         def compare(p_rel, p_key, p_values, q_rel, q_values, key):
             for field in set(p_values) & set(q_values) - set(p_key):
                 if p_values[field] != q_values[field]:
-                    seen[(obj, key, field)][shape_of(p_rel)].add(p_values[field])
-                    seen[(obj, key, field)][shape_of(q_rel)].add(q_values[field])
+                    seen[(obj, key, field)][label(p_rel)].add(p_values[field])
+                    seen[(obj, key, field)][label(q_rel)].add(q_values[field])
             # A lookup both write through different parent keys (qb's GL accounts by
             # AccountingCode, mfg's by Name) can't be compared field by field; whether they
             # name the same parent isn't known offline, so it counts. One that one shape sets
@@ -725,20 +774,23 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
                 if not p_set or not q_set:
                     if p_rels[rel] & q_rels[rel]:
                         continue  # a column both write carries the clear; compared above
-                    field = f"{rel} (set in one shape, cleared in another)"
+                    field = f"{rel} (set in one plan, cleared in another)"
                 elif parent_key_columns(p_values, p_set) & parent_key_columns(q_values, q_set):
                     continue  # a key both use; compared field by field above
                 else:
                     field = f"{rel} (different parent keys)"
                 for rel_, values, cols in ((p_rel, p_values, p_set), (q_rel, q_values, q_set)):
-                    seen[(obj, key, field)][shape_of(rel_)].add(
+                    seen[(obj, key, field)][label(rel_)].add(
                         ", ".join(f"{c}={values[c]}" for c in sorted(cols)) or "cleared")
 
         for p_rel, (p_key, p_records, _) in records.items():
             for q_rel, (q_key, q_records, q_created) in records.items():
-                if shape_of(p_rel) == shape_of(q_rel):
+                if not paired(p_rel, q_rel):
                     continue
-                created_keys = created_by_key[tuple(q_key)]
+                # Q's record exists if Q creates it or a plan that loads with P does (Q may only
+                # update it).
+                created_keys = {key_of(v, q_key) for c_rel, v in created_by
+                                if creates_for(p_rel, c_rel)}
                 for q_ident, q_values in q_records.items():
                     if q_ident not in q_created and q_ident not in created_keys:
                         continue
@@ -750,7 +802,7 @@ def shared_conflicts(root: Path = SFDMU) -> Dict[Tuple[str, str, str], str]:
                 # Name, one by Code) still meet on the record they both reach. A record P or Q
                 # creates itself is covered above.
                 for c_rel, c_values in created_by:
-                    if c_rel in (p_rel, q_rel):
+                    if c_rel in (p_rel, q_rel) or not creates_for(p_rel, c_rel):
                         continue
                     p_ident, q_ident = key_of(c_values, p_key), key_of(c_values, q_key)
                     p_values = p_records.get(p_ident) if p_ident else None
@@ -822,13 +874,14 @@ def case_collisions(root: Path = SFDMU) -> Dict[Tuple[str, str], str]:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--list", action="store_true",
-                        help="print every shared conflict, known or not")
+                        help="print every shared and intra-shape conflict, known or not")
     parser.add_argument("--root", type=Path, default=SFDMU, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     root = args.root
     try:
         lookups, used = lookup_findings(root)
         conflicts = shared_conflicts(root)
+        intra = intra_shape_conflicts(root)
         cases = case_collisions(root)
         deletes = cross_shape_deletes(root)
         unkeyed = unkeyed_writes(root)
@@ -838,6 +891,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 2
     new = {k: v for k, v in conflicts.items() if k not in KNOWN_SHARED_CONFLICTS}
     stale = sorted(KNOWN_SHARED_CONFLICTS - set(conflicts))
+    new_intra = {k: v for k, v in intra.items() if k not in KNOWN_INTRA_SHAPE_CONFLICTS}
+    stale_intra = sorted(KNOWN_INTRA_SHAPE_CONFLICTS - set(intra))
     stale_lookups = sorted(KNOWN_UNRESOLVED_LOOKUPS - used)
     new_cases = sorted(set(cases) - KNOWN_CASE_COLLISIONS)
     stale_cases = sorted(KNOWN_CASE_COLLISIONS - set(cases))
@@ -852,6 +907,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     for (obj, key, field), shown in sorted(new.items()):
         print(f"shared: {obj} '{key}' {field} differs between shapes ({shown}) and isn't in "
               f"KNOWN_SHARED_CONFLICTS")
+    for (obj, key, field), shown in sorted(new_intra.items()):
+        print(f"intra: {obj} '{key}' {field} differs between two plans of one shape ({shown}), so "
+              f"a reload of either alone changes it, and isn't in KNOWN_INTRA_SHAPE_CONFLICTS")
+    for obj, key, field in stale_intra:
+        print(f"intra: {obj} '{key}' {field} is in KNOWN_INTRA_SHAPE_CONFLICTS but no longer "
+              f"conflicts; remove it")
     for obj, key in new_cases:
         print(f"shared: {obj} keys differ only in case between shapes ({cases[(obj, key)]}) and "
               f"aren't in KNOWN_CASE_COLLISIONS")
@@ -881,10 +942,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.list:
         for (obj, key, field), shown in sorted(conflicts.items()):
             print(f"known: ({obj!r}, {key!r}, {field!r}),  # {shown}")
-    failed = bool(lookups or bad_filters or new or stale or stale_lookups or new_cases
+        for (obj, key, field), shown in sorted(intra.items()):
+            print(f"known intra: ({obj!r}, {key!r}, {field!r}),  # {shown}")
+    failed = bool(lookups or bad_filters or new or stale or new_intra or stale_intra
+                  or stale_lookups or new_cases
                   or stale_cases or new_deletes or stale_deletes or new_unkeyed or stale_unkeyed)
     print(f"{len(lookups)} unresolvable `$$` lookup(s); {len(conflicts)} shared conflict(s), "
-          f"{len(new)} new, {len(stale)} stale; {len(cases)} case-only key collision(s), "
+          f"{len(new)} new, {len(stale)} stale; {len(intra)} intra-shape conflict(s), "
+          f"{len(new_intra)} new, {len(stale_intra)} stale; {len(cases)} case-only key collision(s), "
           f"{len(new_cases)} new, {len(stale_cases)} stale; {len(deletes)} cross-shape "
           f"delete(s), {len(new_deletes)} new, {len(stale_deletes)} stale; {len(unkeyed)} "
           f"unkeyed write(s), {len(new_unkeyed)} new, {len(stale_unkeyed)} stale. "

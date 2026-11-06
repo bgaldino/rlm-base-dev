@@ -290,12 +290,14 @@ silently each fail the suite.
 
 ### `check_sfdmu_layering.py`
 
-Read-only checks across every data shape's SFDMU plans (qb, q3, mfg; qb/ja counts as qb).
+Read-only checks across every data shape's SFDMU plans (qb, q3, mfg; qb/ja counts as qb), plus the
+top-level plans every build loads (scratch_data, procedure-plans, inapp, configurator-flow), which
+count as the shape `common` and are compared against all three.
 `pr_gate.py` runs it as `sfdmu_layering` whenever a plan changes.
 
 ```bash
 python scripts/ai/check_sfdmu_layering.py          # exit 1 on a finding
-python scripts/ai/check_sfdmu_layering.py --list   # also print every known shared conflict
+python scripts/ai/check_sfdmu_layering.py --list   # also print every shared and intra-shape conflict
 ```
 
 - **`lookup`:** a populated `$$` lookup-reference column, which the declaration writes, that
@@ -318,6 +320,11 @@ python scripts/ai/check_sfdmu_layering.py --list   # also print every known shar
   A written object whose rows carry none of its key can't be compared, so it's listed in
   `KNOWN_UNKEYED_WRITES` too; a parent Id key filled by `parent_id_lookups.json` is matched on
   its portable columns.
+- **`intra`:** a field of a record two plans of **one** shape write with different values, so a
+  reload of either plan on its own changes it (todo 337; qb-pcm and the retired
+  qb-product-images once disagreed on 155 product images). Matched as `shared` matches, and
+  labelled by plan. qb/ja isn't compared against qb/en-US, as translating qb's records is its job.
+  Known ones go in `KNOWN_INTRA_SHAPE_CONFLICTS` (empty), with the same new/stale rules.
 - **`filter`:** a `sourceRecordsFilter` the check can't evaluate (it reads `LIKE`, `=` and `<>`
   on one column). The plan's rows would otherwise be skipped unseen, so this fails too.
 
