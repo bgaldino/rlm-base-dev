@@ -1,7 +1,7 @@
 # Ramped Quotes — Bundles with one-time / evergreen children, and their lifecycle
 
 > Sub-file of `.cursor/skills/ramped-quotes/SKILL.md`. Measured 2026-11-05 on one 264 scratch org
-> (USA796, Enterprise, API 68.0), API only, **Quote** output. Not run through the configurator UI.
+> (Enterprise, API 68.0), API only, **Quote** output. Not run through the configurator UI.
 > Treat each row as a measurement, not a root cause. Re-verify on the target org.
 
 ## Limiting a one-time child to segment 1
@@ -44,8 +44,8 @@ segment 1-only shape. The other **500** rows were amend-only.
 | Group ramp + evergreen bundle child (amend only) | **500** |
 | Group ramp + one-time bundle child in all segments, after deleting ALL of the child's ASPs, then AssetRelationships, then Assets (evergreen not tried) | works (amend, cancel, ramped renewal) |
 
-- Cause unconfirmed. Core lead only: `ARCSalesTransactionContextTransformer` builds its root-by-group map from
-  ramp-stamped lines, and the error's reference map shows a `NonrampedGroup`. State it as a limitation, not a root cause.
+- Cause unconfirmed. The error's reference map shows a `NonrampedGroup`, which suggests the amendment builds the child in a
+  separate non-ramped group. State it as a limitation, not a root cause.
 - Quantity-scale method is not the lever: `AssociatedQuantScaleMethod: Proportional` on the relationship is accepted by Place
   and does not change the outcome.
 - The delete workaround is unsupported: the order no longer matches its assets. Offer it only as a customer-flow option
@@ -55,9 +55,9 @@ segment 1-only shape. The other **500** rows were amend-only.
 ## Amend date window
 
 On or after the Lifecycle Start Date of **every** asset in the request, and before the Lifecycle End Date of each asset that has
-one. One-time and evergreen Assets have no end date (E3, E16), so only the start bound applies to them. A one-time child in
-later segments starts its own Asset there, so the earliest allowed amend date moves to the last segment's start (inferred from the every-asset rule; E7 measured a 400
-for an amend at 2027-06-01, before the 2028 and 2029 one-time Asset starts). The upper bound for null-end Assets was not
+one. One-time and evergreen Assets have no end date, so only the start bound applies to them. A one-time child in
+later segments starts its own Asset there, so the earliest allowed amend date moves to the last segment's start (inferred from the every-asset rule; an amend at
+2027-06-01, before the 2028 and 2029 one-time Asset starts, returned a 400). The upper bound for null-end Assets was not
 measured. An asset with a future ramped renewal refuses an earlier amend (an ordered plain renewal blocks it the same way).
 
 ## Renewal
@@ -93,27 +93,37 @@ tested by flipping it. The four QB simple products that carry it true came from 
 
 Measured on one 264 scratch org, API only. Run it on a disposable org. Check each response body, not the status.
 
-1. **Create the quote and an empty first-year group.** `placeSalesTransaction` create: Quote (`Status` Draft,
-   `CurrencyIsoCode` set to the account currency) plus one empty `QuoteLineGroup`. Poll `Quote.CalculationStatus` to settled.
-2. **Ramp the group.** `groupRampAction: EditGroup` with `IsRamped`, `SegmentType` Yearly. Clone the last segment's group
-   until there are N segments (Connect clone, one group per call). Poll between calls.
-3. **Add the bundle to each segment.** One `AddProducts` call per segment group, or one call for all segments, with the
-   root bundle line, the term child line, the one-time or evergreen child line, and a `QuoteLineRelationship` per child
-   (with `AssociatedQuoteLinePricing`). Do not add `groupIds`.
+1. **Create the quote and an empty first-year group.** `placeSalesTransaction` create: Quote with `CurrencyIsoCode` set
+   to the account currency, plus one empty `QuoteLineGroup`. Poll `Quote.CalculationStatus` to settled.
+2. **Ramp the group.** `groupRampAction: EditGroup` with `IsRamped` and `SegmentType` Yearly. Clone the last segment's
+   group until there are N segments (Connect clone, one group per call). Poll between calls. Then move the segment
+   groups under their `RampScheduleGroup` parent (a DML reparent; the Place calls do not do it).
+3. **Add the bundle to each segment.** `AddProducts` with the root bundle line, the term child line, the one-time or
+   evergreen child line in each segment group, and a `QuoteLineRelationship` per child (with
+   `AssociatedQuoteLinePricing`). `groupIds` were not needed. For an evergreen child, set `PeriodBoundary: Anniversary`
+   on its line now; without it the order cannot be created. Set a billing treatment too.
 4. **Optional: remove the child from later segments.** `DeleteProducts` of the one-time child's lines in the segments
    you do not want it in. The root and term child stay stamped.
 5. **Order and activate.** `createOrdersFromQuote` with the quote id. Find the order by its `QuoteId`. Copy the account's
    Billing and Shipping address and a contact onto the order as `BillToContactId`, then set `Status` Activated.
-   Evergreen lines also need `PeriodBoundary: Anniversary` and a billing treatment.
 6. **Lifecycle action.** Connect `assets/actions/amend` with `assetIds`, `amendmentStartDate`, `quantityChange`,
    `outputRecordType: Quote`. Connect `cancel` with `cancellationDate`. Connect `renew` with `renewalStartDate`.
    Use Quote output for every recipe. On the test org, Order output failed for every action with a
    `RLM_SalesTransactionContext` fetch error.
-7. **Expect the amend failure when a one-time or evergreen child is present.** The body comes back `success:false` with
-   `PlaceSalesTransactionPersistException`. Record it as the result; do not retry on a different status code.
-8. **Ramped renewal.** `initiateRenewal` with `renewAssetIds`, `renewOutputType`, `renewStartDate`, `renewEndDate`
-   (dates as `yyyy-MM-dd'T'HH:mm:ss`), and `rampOptionsDetails` `{segmentType: Yearly, durationInMonths}`. The duration
-   is the total ramp length. Early ramped renewal of a bundle with a one-time or evergreen child is rejected by the platform.
-9. **Verify.** For the bundle asset, count Assets per child: one Asset with N AssetStatePeriods for the term child; for
-   the one-time child, one Asset per segment with one period each and no end date. Count AssetRelationships to the
-   bundle. Check that the order lines match the segments.
+   - Amend: if the child was left in every segment, pick a date on or after the last segment's one-time Asset start.
+     Earlier dates fail with a 400 date-window error, which is not the persist failure in step 7. (Inferred for cancel;
+     not measured.)
+7. **Expect the persist failure when a one-time or evergreen child is present.** Amend and cancel both return
+   `success:false` with `PlaceSalesTransactionPersistException` (cancel was tested on the one-time, segment-1-only
+   shape). Judge by `success:false` in the body, not the HTTP status. The failure goes away only after all of the
+   child's assets are deleted (an unsupported workaround; see step 8).
+8. **Renewal.** Expect an early ramped renewal (`initiateRenewal` with `rampOptionsDetails`) of this bundle to be rejected
+   by the platform. A plain Connect `renew` starting after the asset's end date worked with a one-time child present
+   (evergreen not tested). A renew before the end of a ramped asset is refused. Ramped renewal was only shown to work on
+   term-only bundles, or after the child's assets are deleted (an unsupported workaround). For a ramped renewal,
+   `rampOptionsDetails` takes `segmentType` and `durationInMonths`, where the duration is the total ramp length, and
+   dates use `yyyy-MM-dd'T'HH:mm:ss`.
+9. **Verify.** For the bundle asset, check Assets per child: the term child gives one Asset with one AssetStatePeriod per
+   segment. A one-time child that was left in N segments gives N Assets with one period each and no end date. Count
+   AssetRelationships to the bundle: one for the term child, plus one per child Asset. Check that each order line's
+   dates match a segment.
