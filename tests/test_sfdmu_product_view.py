@@ -304,6 +304,8 @@ ft = FakeTransport(skus, blank_code={"S007"})
 view = V.capture(ft, skus + ["GONE"])
 check("bulk calls hold at most 20 Ids", ft.bulk_sizes, [20, 20, 5])
 check("every SKU found is captured", len(view["products"]), 45)
+check("category membership is read from ProductCategoryProduct",
+      view["products"]["S001"]["categories"], [{"category": "PC-1", "catalog": "CAT-1", "primary": True}])
 check("a blank productCode is still keyed by the SKU asked for", "S007" in view["products"], True)
 check("a SKU the org lacks is listed as missing", view["missing"], ["GONE"])
 check("nothing unreturned", view["notReturned"], [])

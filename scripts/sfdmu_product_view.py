@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """Capture and compare what users see for a data shape's products (todo 330).
 
-`check_sfdmu_layering.py` compares CSVs, so it cannot see what the configurator shows. Both
-#675 regressions were of that kind: a renamed attribute Label, and a category link left blank by
-a load that failed partway. This reads the product view from a built org through PCM's
+`check_sfdmu_layering.py` compares CSVs, so it cannot see what the configurator shows. Both #675
+regressions were of that kind: a renamed attribute Label, and a category link left blank by a
+load that failed partway. This reads the product view from a built org through PCM's
 `/connect/pcm/products/bulk`, which is what the configurator reads (the product's code, flags,
 description, image URL, unit and base classification, attributes, bundle groups and components
 including classification components, ungrouped bundle components and selling models), plus
-category membership and standard price book entries by SOQL. It writes org-independent JSON: names, codes
-and values, never record Ids. Compare a layered or reloaded org's capture against a single-shape
-baseline.
+category membership and standard price book entries by SOQL. It writes org-independent JSON:
+names, codes and values, never record Ids (except a classification Id that cannot be resolved to
+its code, kept as an unmissable difference). Compare a layered or reloaded org's capture against
+a single-shape baseline. A capture is only comparable with one made by the same version of this
+tool: recapture the baseline after changing it.
 
   python scripts/sfdmu_product_view.py capture --target-org <sf alias or username> \
       --shape q3 [--sku LP001 --sku OF001] --out q3-view.json
