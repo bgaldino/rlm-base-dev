@@ -101,7 +101,7 @@ Dates are DATETIMEs: `"2026-08-01T00:00:00.000Z"`. The Connect equivalents of am
 renew (`/connect/revenue-management/assets/actions/{amend,cancel,renew}`) also accept past dates;
 their bodies use `amendmentStartDate`, `cancellationDate` and `renewalStartDate`. The Connect amend body also takes
 `assetIds`, `quantityChange` and `outputRecordType`. A group-ramped bundle with a one-time or evergreen child fails amend
-and cancel (500); see `.cursor/skills/ramped-quotes/bundle-children-lifecycle.md`. `outputRecordType: Order` failed on one
+amend (`PlaceSalesTransactionPersistException`, measured on one 264 org; cancel failed too where tried); see `.cursor/skills/ramped-quotes/bundle-children-lifecycle.md`. `outputRecordType: Order` failed on one
 264 org with a `RLM_SalesTransactionContext` fetch error; use Quote output there.
 
 Gotchas, all measured:

@@ -32,7 +32,7 @@ Connect `assets/actions/amend` fails with `success:false`, `UNKNOWN_EXCEPTION` `
 reports `http=500`, the transport status was not recorded), and the `initiateAmendment` invocable fails with the same
 exception, when a **group-ramped bundle has a non-term-defined (one-time or evergreen) bundle child**. Check the response
 body, not the status. "500" below is shorthand for this failure. Cancel (Connect) failed the same way on the
-segment 1-only shape; the other rows below were amend runs and cancel was not repeated on them.
+segment 1-only shape. The other **500** rows were amend-only.
 
 | Shape | Amend (cancel where noted) |
 |---|---|
@@ -60,7 +60,7 @@ refuses an earlier amend (an ordered plain renewal blocks it the same way).
 
 ## Renewal
 
-- A plain `initiateRenewal` of a bundle with a one-time child works (evergreen child not tested).
+- A plain Connect `renew` of a bundle with a one-time child works (evergreen child not tested).
 - **Early ramped renewal** needs a start date inside the asset lifecycle, and the platform rejects it for a group-ramped bundle
   containing evergreen or one-time products ("You can't do an early renewal of a group ramped bundle containing evergreen or
   one-time products..."). A plain renew of a ramped asset early is refused ("turn on Create a Ramp Schedule").
@@ -74,8 +74,8 @@ refuses an earlier amend (an ordered plain renewal blocks it the same way).
 - The scripts' `order_from_quote.py` copies the account's Billing and Shipping address and a `BillToContactId` onto the order
   before `Status = Activated`, matching what backdated-change orders need (see
   `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`).
-- An evergreen line needs `PeriodBoundary: Anniversary` plus a billing treatment, or the order fails ("Evergreen order
-  products must have an Anniversary period boundary").
+- An evergreen line needs `PeriodBoundary: Anniversary` (without it the order fails: "Evergreen order products must have an
+  Anniversary period boundary") and a billing treatment.
 - Use **Quote** output for these recipes. `outputRecordType: Order` failed on the test org with *"We couldn't fetch the data
   for RLM_SalesTransactionContext context definition"* for every action, ramps or not (undiagnosed, org-specific until
   reproduced elsewhere).
