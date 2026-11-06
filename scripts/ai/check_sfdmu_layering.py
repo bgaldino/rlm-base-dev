@@ -236,7 +236,7 @@ KNOWN_SHARED_CONFLICTS = {
     ('Pricebook2', 'Standard Price Book;true', 'CostBook.Name', 'mfg|qb/ja'),
     ('UnitOfMeasure', 'EACH', 'Description', 'mfg|qb/ja'),
     ('UnitOfMeasure', 'EACH', 'UnitOfMeasureClass.Code', 'mfg|qb/ja'),
-    # q3 against qb/ja: qb/ja's JPY-based rates, Japanese names and Active classes (todo 212). q3
+    # q3 against qb/ja: qb/ja's JPY-based rates and Japanese names (todo 212). q3
     # and qb/en-US agree on all of these, which is the point of keying by pair (todo 340).
     ('PriceAdjustmentSchedule', 'Standard Attribute Based Adjustment', 'CurrencyIsoCode', 'q3|qb/ja'),
     ('PriceAdjustmentSchedule', 'Standard Bundle Based Adjustment', 'CurrencyIsoCode', 'q3|qb/ja'),
@@ -255,12 +255,8 @@ KNOWN_SHARED_CONFLICTS = {
     ('UnitOfMeasure', 'GB', 'Name', 'q3|qb/ja'),
     ('UnitOfMeasure', 'MB', 'Name', 'q3|qb/ja'),
     ('UnitOfMeasure', 'm', 'Name', 'q3|qb/ja'),
-    ('UnitOfMeasureClass', 'CAS01', 'Status', 'q3|qb/ja'),
     ('UnitOfMeasureClass', 'CURRENCY', 'BaseUnitOfMeasure.UnitCode', 'q3|qb/ja'),
     ('UnitOfMeasureClass', 'CURRENCY', 'DefaultUnitOfMeasure.UnitCode', 'q3|qb/ja'),
-    ('UnitOfMeasureClass', 'CURRENCY', 'Status', 'q3|qb/ja'),
-    ('UnitOfMeasureClass', 'DATAVOL', 'Status', 'q3|qb/ja'),
-    ('UnitOfMeasureClass', 'TIME', 'Status', 'q3|qb/ja'),
 }
 
 

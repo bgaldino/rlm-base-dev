@@ -117,7 +117,7 @@ the shapes differ:
 |---|---|---|
 | Price adjustment schedules | qb, q3, mfg, qb/ja pricing | `EffectiveFrom`; which schedules exist (below) |
 | Currency types | every pricing plan, on `IsoCode` | `ConversionRate` (below) |
-| Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | q3 uses qb's `EACH`, `GB`, `MB` and `m` and its `CAS01`, `DATAVOL` and `TIME` classes (todo 325). mfg sends `EACH` with no class or description, where qb puts it in `CAS01`. qb/ja loads its classes Active with Japanese names, and its `CURRENCY` class on a JPY base (todo 212) |
+| Units of measure and their classes | qb, q3 and qb/ja pcm; qb and q3 rating; mfg pcm | q3 uses qb's `EACH`, `GB`, `MB` and `m` and its `CAS01`, `DATAVOL` and `TIME` classes (todo 325). mfg sends `EACH` with no class or description, where qb puts it in `CAS01`. qb/ja gives `GB`, `MB` and `m` Japanese names and puts its `CURRENCY` class on a JPY base; its classes load Draft, as qb's do (todo 212) |
 | Rating frequency and overage policies | qb and q3 rating | none (q3 takes qb's delay of 0, todo 325) |
 | Standard price book | qb, q3, mfg and qb/ja pricing | its `CostBook`: 'Standard Cost Book' in qb and q3, 'CostBook' in qb/ja, none in mfg |
 | Selling models, relationship types, proration policy | qb, q3, mfg and qb/ja pcm (each shape's pricing plan also updates the proration policy) | none (for the proration policy, see below). Only exact names match: mfg's and q3's 9 selling models are qb's (q3 renamed five to qb's names, todo 325), and qb/ja's Japanese-named ones are new records |

@@ -13,6 +13,7 @@ SFDMU data plan for the Japanese QuantumBit pricing: currency types, the standar
 
 - **`Upsert` on `Name`, as in en-US.** A JPY-corporate 264 org seeds the Attribute, Bundle and Price Adjustment Tier schedules in JPY, so the three rows match them; nothing is created. The CSV carries them in JPY, dated 2023-01-01 as en-US's are. "Standard Volume Based Adjustment", which the ja set used to carry, is gone: no procedure reads it.
 - **The tiers hang off "Standard Price Adjustment Tier"**, the volume schedule `RLM_DefaultPricingProcedure` reads, as in en-US. The children (tiers, attribute- and bundle-based adjustments) reference the schedule by `PriceAdjustmentSchedule.Name`.
+- **Measured on a fresh JPY-corporate 264 build (`ent-sb0-jp`, todo 212)**, Place Sales Transaction, QB-MSG-STRT on its annual term model (list ¥4,500,000): ¥4,050,000 at qty 7, ¥3,825,000 at qty 12 and ¥3,375,000 at qty 17 (10%, 15% and 25% off). The tiers are on the annual term model only, so the monthly and evergreen entries price at list.
 
 ## Price book entries
 
