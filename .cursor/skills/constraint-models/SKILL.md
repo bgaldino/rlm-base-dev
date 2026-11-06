@@ -405,7 +405,10 @@ Measured with a test `groupBy` container on one 264 org (2026-11-06; standalone 
   examples omit it. Without it nothing fired and nothing reported an error.
 - **Set `configurationMethod: Force` to make a Place call run the rules.** The method defaults to `Skip`
   (dev guide, *Configurator Preference Input*), so `configurationOptions.executeConfigurationRules: true` on
-  its own ran nothing. `System` lets the platform decide whether to run configuration; it was not tested.
+  its own ran nothing. Group-level rules were tested through Place with `Force` only. `System` lets the
+  platform decide: with the shipped QuantumBitBundle model (a quote-level `require`, no group container) it
+  ran the rule in the call that added the triggering line, and on a quote-only PATCH of a quote missing the
+  required product. So `System` doesn't limit rules to calls that add lines.
 - **A Connect clone ran group rules with no configuration preference.** Rules keyed on
   `IsLineGroupRamped__std` and `ItemSegmentType == "Yearly"` fired during the clone calls, with every
   Place call `Skip`.
