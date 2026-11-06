@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Offline tests for scripts/audit_data_plans.py (todo 321).
 
-- unknown-field: a selected field, or a traversal through a relationship, the object lacks.
+- unknown-field: a selected field, an `externalId` component, or a traversal (any depth, followed
+  through `referenceTo` where the target is in the snapshot) the object lacks.
+- An unsupported `sourceRecordsFilter` is a tool error (exit 2), not a skipped declaration.
 - picklist: a value outside a restricted picklist's active values gates; an unrestricted one is
   informational (undefined-value), as is CurrencyIsoCode never.
-- required: the first creating declaration of an object leaving out, or blanking, a field that is
-  createable, not nillable and not defaulted; an Update pass, a boolean and a defaulted field don't.
+- required: each creating declaration of an object, on the rows it creates (a row a creating
+  pass already created is only patched), leaving out or blanking a field that is createable, not
+  nillable and not defaulted; an Update pass, a boolean and a defaulted field don't.
 - dead-columns: values in a field that is neither createable nor updateable are informational, and
   a key field used only for matching is left out.
 - unwritten: writable fields no plan writes, with the release diff's new fields marked;
@@ -13,7 +16,7 @@
 - release-values: values the release added to a picklist a plan writes.
 - excluded and Readonly declarations aren't audited; an object missing from the describe is listed.
 - classify: KNOWN_FINDINGS entries are known, and one that no longer matches is stale, but only
-  for a plan the run audited.
+  for a plan the run audited, and not for an object the describe lacks.
 - compact_describe drops a picklist's record-Id values (18 characters with a valid case checksum,
   15 with an Id's zero run), keeps object names that look like Ids, and marks the field so the
   audit doesn't value-check it.
@@ -70,7 +73,7 @@ SNAPSHOT = {
         "Required": field(nillable=False),
         "Flag": field("boolean", nillable=False),
         "Defaulted": field(nillable=False, defaulted=True),
-        "ParentId": field("reference", rel="Parent"),
+        "ParentId": {**field("reference", rel="Parent"), "referenceTo": ["Parent__x"]},
         "Spare": field(),
         "Added": field(),
         "OwnerId": field("reference", rel="Owner"),
@@ -126,7 +129,7 @@ def test_findings():
     print("findings")
     r = run_fixture()
     check("unknown fields and traversals", by_check(r, "unknown-field"),
-          [("Widget__x", "Ghost"), ("Widget__x", "Missing")])
+          [("Widget__x", "Ghost.Name"), ("Widget__x", "Missing")])
     check("restricted picklist value gates; CurrencyIsoCode is skipped", by_check(r, "picklist"),
           [("Widget__x", "Kind")])
     check("the bad value is named", [f["detail"].split(":")[1].split(" not")[0].strip()
@@ -176,6 +179,86 @@ def test_required_missing_column():
         check("an Update-only plan isn't checked for required fields", by_check(r, "required"), [])
 
 
+def test_deep_paths_and_external_id():
+    print("relationship paths and externalId")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/p", [
+            {"query": "SELECT Name, Code, Required, Parent.Code, Parent.Gone, Parent.Nope.Code, "
+                      "Owner.Anything FROM Widget__x", "operation": "Upsert", "externalId": "Code;Nokey"},
+        ], {"Widget__x.csv": "Name,Code,Required\nn,c,r\n"})
+        r = A.audit(SNAPSHOT, tmp)
+        got = sorted(f["field"] for f in r["findings"] if f["check"] == "unknown-field")
+        check("a missing field on the parent, a missing second relationship and a missing key part",
+              got, ["Nokey", "Parent.Gone", "Parent.Nope.Code"])
+        check("a lookup whose target isn't in the snapshot is left unchecked",
+              "Owner.Anything" in got, False)
+        snap = {**SNAPSHOT, "Poly__x": {"fields": {
+            "OwnerId": {**field("reference", rel="Owner"), "referenceTo": ["Parent__x", "Elsewhere"]}}}}
+        write_plan(tmp, "qb/en-US/poly", [{"query": "SELECT Owner.Nope FROM Poly__x",
+                                            "operation": "Update", "externalId": "Id"}],
+                   {"Poly__x.csv": "Owner.Nope\nx\n"})
+        check("a polymorphic lookup with a target outside the snapshot isn't flagged",
+              [f for f in A.audit(snap, tmp, ["qb/en-US/poly"])["findings"]], [])
+        check("the externalId finding says where it came from",
+              any("its externalId names `Nokey`" in f["detail"] for f in r["findings"]), True)
+
+
+def test_unsupported_filter_is_an_error():
+    print("unsupported sourceRecordsFilter")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/p", [
+            {"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert",
+             "externalId": "Code", "sourceRecordsFilter": "Name IN ('a', 'b')"}],
+            {"Widget__x.csv": "Name,Code,Required\nn,c,r\n"})
+        try:
+            A.audit(SNAPSHOT, tmp)
+            raised = False
+        except ValueError as exc:
+            raised = "sourceRecordsFilter" in str(exc)
+        check("raises instead of skipping the rows", raised, True)
+        snap = tmp / "snap.json"
+        snap.write_text(json.dumps({"objects": SNAPSHOT}), encoding="utf-8")
+        check("main exits 2 from the filter, not the snapshot",
+              A.main(["audit", "--snapshot", str(snap), "--root", str(tmp)]), 2)
+        write_plan(tmp, "qb/en-US/q", [
+            {"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert",
+             "externalId": "Code", "sourceRecordsFilter": "Code IN ('z')"}],
+            {"Widget__x.csv": "Name,Code,Required\nn,c,r\n"})
+        try:
+            A.audit(SNAPSHOT, tmp)
+            both = ""
+        except ValueError as exc:
+            both = str(exc)
+        check("every bad filter is reported together", "qb/en-US/p" in both and "qb/en-US/q" in both,
+              True)
+
+
+def test_required_each_creating_pass():
+    print("required across creating passes (the later pass is keyed on Name;Code, the plan's key is Code)")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        # Pass 1 creates c1; pass 2 creates a disjoint row (c2) with Required blank, and patches c1.
+        plan = tmp / "qb/en-US/p"
+        (plan / "objectset_source/object-set-2").mkdir(parents=True)
+        decl = {"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert",
+                "externalId": "Code"}
+        (plan / "export.json").write_text(json.dumps({
+            "useSeparatedCSVFiles": True,
+            "objectSets": [{"objects": [decl]}, {"objects": [{**decl, "externalId": "Name;Code"}]}]}),
+            encoding="utf-8")
+        (plan / "Widget__x.csv").write_text("Name,Code,Required\nn1,c1,r\n", encoding="utf-8")
+        (plan / "objectset_source/object-set-2/Widget__x.csv").write_text(
+            "Name,Code,Required\nn1,c1,\nn2,c2,\n", encoding="utf-8")
+        r = A.audit(SNAPSHOT, tmp)
+        req = [f for f in r["findings"] if f["check"] == "required"]
+        check("the later pass counts only the row it creates (n2), not the patched one (n1)",
+              [(f["field"], f["detail"]) for f in req],
+              [("Required", "pass 2: Widget__x.Required is required on create and 1 row(s) "
+                            "leave it blank")])
+
+
 def test_classify():
     print("classify")
     r = run_fixture()
@@ -183,10 +266,15 @@ def test_classify():
              ("qb/en-US/qb-widgets", "Widget__x", "required", "Gone"): "stale one"}
     new, kept, stale = A.classify(r, known)
     check("known finding kept", [f["field"] for f in kept], ["Kind"])
-    check("others new", sorted(f["field"] for f in new), ["Ghost", "Missing", "Required"])
+    check("others new", sorted(f["field"] for f in new), ["Ghost.Name", "Missing", "Required"])
     check("stale entry", stale, [("qb/en-US/qb-widgets", "Widget__x", "required", "Gone")])
     _, _, stale_other = A.classify(r, {("qb/en-US/elsewhere", "Widget__x", "picklist", "Kind"): "x"})
     check("an entry for a plan not audited isn't stale", stale_other, [])
+    r_missing = dict(r, info={**r["info"], "object-missing":
+                              {"Widget__x": ["qb/en-US/qb-widgets"]}})
+    _, _, stale_missing = A.classify(r_missing, {("qb/en-US/qb-widgets", "Widget__x", "required",
+                                                  "Gone"): "x"})
+    check("an entry whose object the describe lacks isn't stale", stale_missing, [])
     md = A.render_markdown(r, "test", known)
     check("report shows the reason", "| reason |" in md, True)
     check("report lists the stale entry", "no longer found; remove it" in md, True)
@@ -267,7 +355,8 @@ def test_committed_snapshot():
     check(f"{path.name} exists for the active release", path.exists(), True)
 
 
-for t in (test_findings, test_required_missing_column, test_classify, test_merge,
+for t in (test_findings, test_required_missing_column, test_deep_paths_and_external_id,
+          test_unsupported_filter_is_an_error, test_required_each_creating_pass, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()
 print(f"\n{len(_failures)} failure(s)")

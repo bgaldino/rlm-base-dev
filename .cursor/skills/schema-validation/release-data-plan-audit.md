@@ -59,9 +59,9 @@ declarations against `sobject describe`.
 
 | Check | Gating | Meaning |
 |---|---|---|
-| `unknown-field` | yes | The query selects a field, or traverses a relationship, the object doesn't have. SFDMU drops it and the load still succeeds |
+| `unknown-field` | yes | The query selects, or the `externalId` names, a field the object doesn't have, or a relationship path that doesn't resolve (followed through `referenceTo` where the target is in the snapshot; a target that isn't is left unchecked). SFDMU drops it and the load still succeeds |
 | `picklist` | yes | A CSV value outside a restricted picklist's active values. `CurrencyIsoCode` is skipped: it is the org's currency set, not the release's |
-| `required` | yes | The plan's first creating declaration of an object leaves out, or blanks, a field that is createable, not nillable and not defaulted on create. Booleans are skipped (they default to false) |
+| `required` | yes | A creating declaration leaves out, or blanks on the rows it creates, a field that is createable, not nillable and not defaulted on create. A row an earlier creating pass of the plan created (same key) is only patched, so it isn't re-checked. Booleans are skipped (they default to false) |
 | dead columns, undefined values, release values, unwritten fields | no | See step 5 |
 
 ## Gotchas
@@ -80,7 +80,7 @@ declarations against `sobject describe`.
   lists custom context definitions by Id beside the standard ones). The snapshot drops those values
   (an 18-character Id is recognised by its case checksum, so object names such as
   `Pricebook2Share` stay), marks the field `orgValues`, and the audit doesn't value-check it.
-- **`required` assumes a plan's first creating declaration creates.** An Upsert that only fills a few
+- **`required` assumes a creating declaration creates.** An Upsert that only fills a few
   fields on records another plan created is flagged for every required field it leaves out. List it
   in `KNOWN_FINDINGS` with that reason rather than adding columns.
 - **A feature-complete build can fail on the plans you are auditing.** The 264 run's `clm_data`
@@ -90,14 +90,17 @@ declarations against `sobject describe`.
 - **mfg-only objects** (AAF, rebates) aren't on a qb build. Merge a snapshot from an org that has them,
   or they stay under *Objects not in the describe*.
 - **SFDMU's polymorphic `Field$Type`** (`AssignedToId$User`) is checked as `Field`.
+- **An unsupported `sourceRecordsFilter`** (`Name IN (...)`) exits 2 rather than skipping the declaration; rewrite it as `[col] LIKE`, `=` or `<>`.
+- **`--plans` and a feature-incomplete org:** an allowlist entry for an object the describe lacks is never reported stale, since it wasn't checked.
 
 ## 264 run (todo 321)
 
-Fresh `ent-sb0` qb build with `clm_data`, `inapp` and `quote_est_tax` on; 135 objects. 14 gating
+Fresh `ent-sb0` qb build with `clm_data`, `inapp` and `quote_est_tax` on; 135 objects. 15 gating
 findings, all triaged into `KNOWN_FINDINGS`:
 - `AttributePicklist.Code` in four pcm plans and the PRM deal fields (todo 345);
 - qb-clm's `DocumentClauseSet.Category` and `ReferenceRecordAccessType` (todo 346);
-- four in mfg-guidedselling (the mfg rebase list, todo 332).
+- four in mfg-guidedselling (the mfg rebase list, todo 332);
+- qb-accounting's `BillingBatchFilterCriteria` externalId (`JournalEntryRuleName`, copied from the previous object; todo 341).
 
 Seven mfg-aaf/mfg-rebates objects weren't in the describe.
 

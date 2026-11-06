@@ -17,11 +17,13 @@ the committed snapshot for the active release (`salesforce_release_active` in
 objects, fields and picklist values to an existing snapshot, for objects one org shape lacks.
 
 Gating findings (each fails the run unless `KNOWN_FINDINGS` lists it, with its reason):
-  unknown-field  the query selects a field, or traverses a relationship, the object doesn't have
+  unknown-field  the query selects, or the externalId names, a field the object doesn't have, or a
+                 relationship path (any depth, followed through the snapshot) that doesn't resolve
   picklist       a value outside a restricted picklist's active values (CurrencyIsoCode is the
                  org's currency set, so it's skipped)
-  required       the plan's first creating declaration of an object leaves out, or leaves blank,
-                 a field that is createable, not nillable and not defaulted on create
+  required       a creating declaration leaves out, or leaves blank on the rows it creates (not
+                 ones an earlier pass created), a field that is createable, not nillable and not
+                 defaulted on create
 Informational (reported, never gating):
   object-missing   the object isn't in the describe (often a feature the org doesn't have)
   dead-columns     CSV values in fields that are neither createable nor updateable, so they never
@@ -33,7 +35,8 @@ Informational (reported, never gating):
   release-values   picklist values the release added to a field a plan writes
 
 Exit codes: 0 = no new gating finding · 1 = findings (new, or stale `KNOWN_FINDINGS` entries)
-· 2 = tool error (including no snapshot for the active release).
+· 2 = tool error (no snapshot for the active release, or a `sourceRecordsFilter` the audit can't
+evaluate).
 """
 from __future__ import annotations
 
@@ -88,6 +91,10 @@ KNOWN_FINDINGS: Dict[Tuple[str, str, str, str], str] = {
         "all 20 rows rejected on 264 with clm_data on (todo 346)",
     ("qb/en-US/qb-clm", "ObjectStateValue", "picklist", "ReferenceRecordAccessType"):
         "`ReadOnly` is not a value (`Read Only` is); fails with clm_data on (todo 346)",
+    # qb-accounting has no load task yet; its BillingBatchFilterCriteria key is a copy-paste of the
+    # previous object's (todo 341, which makes the plan loadable with portable keys).
+    ("qb/en-US/qb-accounting", "BillingBatchFilterCriteria", "unknown-field", "JournalEntryRuleName"):
+        "externalId copied from GeneralLedgerJrnlEntryRule; not a field here; no load task (todo 341)",
     # mfg is rebuilt in the mfg-264-series; these go to its rebase list (todo 332).
     ("mfg/en-US/mfg-guidedselling", "AssessmentQuestion", "unknown-field", "ShouldExcludeFromMetadata"):
         "not on a 264 org (absent from the 262 and 264 ERD snapshots too); mfg rebase (todo 332)",
@@ -231,6 +238,26 @@ def _field_of(header: str, fields: Dict[str, Any]) -> Optional[str]:
     return next((n for n, f in fields.items() if f.get("relationshipName") == rel), None)
 
 
+def _path_problem(obj: str, segs: List[str], snapshot: Dict[str, Any]) -> Optional[str]:
+    """Why the field path `segs` (`Field` or `Rel.Field`, any depth) doesn't resolve from `obj`, or
+    None when it does or can't be checked: a lookup's target missing from the snapshot is left
+    unchecked, and a polymorphic one resolves if any target in the snapshot has the rest."""
+    fields = snapshot[obj]["fields"]
+    seg = segs[0]
+    if len(segs) == 1:
+        return None if seg in fields or seg in SYSTEM_FIELDS else f"{obj} has no field `{seg}`"
+    f = next((f for f in fields.values() if f.get("relationshipName") == seg), None)
+    if f is None:
+        return f"{obj} has no relationship `{seg}`"
+    wanted = f.get("referenceTo") or []
+    targets = [t for t in wanted if t in snapshot]
+    if not targets:
+        return None
+    problems = [_path_problem(t, segs[1:], snapshot) for t in targets]
+    # A polymorphic lookup with a target the snapshot lacks may resolve there.
+    return None if None in problems or len(targets) < len(wanted) else problems[0]
+
+
 def _is_required(name: str, f: Dict[str, Any]) -> bool:
     return (bool(f.get("createable")) and not f.get("nillable") and not f.get("defaultedOnCreate")
             and f.get("type") != "boolean" and name not in SYSTEM_FIELDS)
@@ -242,6 +269,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
     detail. Gating checks are in `GATING`."""
     findings: List[Dict[str, Any]] = []
     missing: Dict[str, List[str]] = defaultdict(list)
+    bad_filters: List[str] = []
     undefined: List[Dict[str, Any]] = []
     dead: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
     written_by_obj: Dict[str, set] = defaultdict(set)
@@ -254,7 +282,8 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
     for plan in selected_plans(root, prefixes):
         rel = plan.relative_to(root).as_posix()
         export = json.loads((plan / "export.json").read_text(encoding="utf-8"))
-        first_create = set()
+        created_keys: Dict[str, set] = {}
+        first_keys: Dict[str, List[str]] = {}
         for pass_idx, decl, obj in sorted(layering.declarations(export), key=lambda t: t[0]):
             if not layering.is_written(decl):
                 continue
@@ -265,26 +294,39 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 continue
             fields = desc["fields"]
             op = sfdmu_export.resolve_operation(decl.get("operation", "Readonly"))
-            key = set(layering.key_parts(decl.get("externalId", "")))
+            key_list = layering.key_parts(decl.get("externalId", ""))
+            key = set(key_list)
             where = f"pass {pass_idx + 1}"
 
-            for sel in sfdmu_export.parse_select_fields(decl.get("query", "")):
+            # The fields the query selects, and the `externalId` components SFDMU queries whether or
+            # not the query names them.
+            checked = set()
+            for sel, source in ([(s, "the query selects") for s in
+                                 sfdmu_export.parse_select_fields(decl.get("query", ""))]
+                                + [(k, "its externalId names") for k in key_list]):
                 if sel.lower() == "all" or sel.startswith("$$"):
                     continue
                 # `Field$Type` is SFDMU's polymorphic lookup: the field, resolved through Type.
                 sel = sel.split("$", 1)[0]
-                if "." in sel:
-                    head = sel.split(".", 1)[0]
-                    if not any(f.get("relationshipName") == head for f in fields.values()):
-                        add(rel, obj, "unknown-field", head,
-                            f"{where}: the query traverses `{sel}`, but {obj} has no "
-                            f"relationship `{head}`")
-                elif sel not in fields and sel not in SYSTEM_FIELDS:
-                    add(rel, obj, "unknown-field", sel,
-                        f"{where}: the query selects `{sel}`, which {obj} doesn't have")
+                if sel in checked:
+                    continue
+                checked.add(sel)
+                problem = _path_problem(obj, sel.split("."), snapshot)
+                if problem:
+                    add(rel, obj, "unknown-field", sel, f"{where}: {source} `{sel}`, but {problem}")
 
             headers, rows = layering.read_rows(layering.csv_for(plan, export, pass_idx, obj))
-            rows = layering.filtered_rows(decl, headers, rows)
+            try:
+                keep = layering.row_filter(decl.get("sourceRecordsFilter"), headers)
+            except layering.UnsupportedFilter as exc:
+                # Not a skip: the declaration's rows would go unchecked and the audit pass. Every
+                # one is collected and raised together once the plans are read.
+                bad_filters.append(f"{rel} {where} {obj}: sourceRecordsFilter `{exc}` isn't a "
+                                   f"form the audit evaluates (`[col] LIKE 'x'`, `col = 'x'`, "
+                                   f"`col <> 'x'`)")
+                continue
+            if keep is not None:
+                rows = [r for r in rows if keep(r)]
             columns = layering.written_columns(decl, headers)
             by_field: Dict[str, List[str]] = defaultdict(list)
             for col in columns:
@@ -319,8 +361,21 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
 
             if op in layering.CREATES:
                 created_objs.add(obj)
-                if obj not in first_create and rows:
-                    first_create.add(obj)
+                # Required fields are checked on the rows this pass creates. A row a creating
+                # pass of this plan already created (same key) is only patched here.
+                # The plan's key for the object is its first creating declaration's (the layering
+                # check takes its first written one, which may be an Update keyed on Id), so a
+                # later pass keyed differently still meets its rows.
+                plan_key = first_keys.setdefault(obj, key_list)
+                made = created_keys.setdefault(obj, set())
+                fresh = []
+                for r in rows:
+                    ident = layering.key_of(layering.row_values(plan_key, headers, r), plan_key)
+                    if ident is None or ident not in made:
+                        fresh.append(r)
+                    if ident is not None:
+                        made.add(ident)
+                if fresh:
                     for name, f in sorted(fields.items()):
                         if not _is_required(name, f):
                             continue
@@ -329,13 +384,15 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                                 f"{where}: {obj}.{name} is required on create (not nillable, not "
                                 f"defaulted) and the plan doesn't load it")
                             continue
-                        blank = sum(1 for r in rows
+                        blank = sum(1 for r in fresh
                                     if all(layering.is_null(r.get(c)) for c in by_field[name]))
                         if blank:
                             add(rel, obj, "required", name,
                                 f"{where}: {obj}.{name} is required on create and {blank} row(s) "
                                 f"leave it blank")
 
+    if bad_filters:
+        raise ValueError("; ".join(bad_filters))
     added_fields, added_values = _release_changes(release_diff)
     unwritten = {}
     for obj in sorted(created_objs):
@@ -384,9 +441,13 @@ def classify(result: Dict[str, Any], known=None):
     gating = [f for f in result["findings"] if f["check"] in GATING]
     keys = {finding_key(f) for f in gating}
     audited = set(result.get("plans", ()))
+    # An object the describe lacks was never checked, so its entries can't be called stale.
+    unchecked = {(plan, obj) for obj, plans in result["info"]["object-missing"].items()
+                 for plan in plans}
     new = [f for f in gating if finding_key(f) not in known]
     kept = [f for f in gating if finding_key(f) in known]
-    stale = sorted(k for k in known if k not in keys and k[0] in audited)
+    stale = sorted(k for k in known if k not in keys and k[0] in audited
+                  and (k[0], k[1]) not in unchecked)
     return new, kept, stale
 
 
