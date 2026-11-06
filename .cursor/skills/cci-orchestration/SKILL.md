@@ -25,6 +25,7 @@ project's specific configuration.
 6. `prepare_rlm_org` has strict ordering — don't add steps out of dependency order.
 7. For local org/auth cleanup, read `org-cleanup.md` first; preserve live orgs,
    Dev Hubs, reusable shapes, and any entry whose lifecycle is uncertain.
+   `cci org remove` deletes a scratch org remotely; it is not a local cleanup.
 
 ## DO NOT
 

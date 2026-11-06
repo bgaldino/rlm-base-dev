@@ -296,7 +296,7 @@ that topic.
 | Set up / replicate / update the local dev toolchain | `.cursor/skills/toolchain/SKILL.md` |
 | Run the containerized toolchain (Docker image + `rlm` wrapper + devcontainer) | `docker/README.md` |
 | Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
-| Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
+| Work with CCI tasks, flows, CLI, org cleanup | `.cursor/skills/cci-orchestration/SKILL.md` |
 | Wire pricing recipes/procedures/plans | `.cursor/skills/pricing-wiring/SKILL.md` |
 | Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
 | Edit/ship/debug **Constraint models** (CML) — configurator bundle rules, `.ffxblob`, why a model change does not take effect | `.cursor/skills/constraint-models/SKILL.md` |
