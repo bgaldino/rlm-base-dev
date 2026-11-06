@@ -66,9 +66,9 @@
       "externalId": "Name"
     },
     {
-      "query": "SELECT Id, IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId, Product2.StockKeepingUnit, ProductSellingModel.Name FROM ProductSellingModelOption ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC",
+      "query": "SELECT Id, IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM ProductSellingModelOption ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC",
       "operation": "Upsert",
-      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name"
+      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType"
     },
     {
       "query": "SELECT DurationType, Id, Name, ProductId, ProductSellingModelId, SegmentType, TrialDuration, Product.StockKeepingUnit, ProductSellingModel.SellingModelType FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",
@@ -81,9 +81,9 @@
       "externalId": "Name"
     },
     {
-      "query": "SELECT Code, Description, Id, MaxBundleComponents, MinBundleComponents, Name, ParentGroupId, ParentProductId, Sequence, ParentProduct.StockKeepingUnit FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
+      "query": "SELECT Code, Description, Id, MaxBundleComponents, MinBundleComponents, Name, ParentGroupId, ParentGroup.Code, ParentProductId, Sequence, ParentProduct.StockKeepingUnit FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
       "operation": "Upsert",
-      "externalId": "Code;ParentProduct.StockKeepingUnit"
+      "externalId": "Code"
     },
     {
       "query": "SELECT ChildProductClassificationId, ChildProductId, ChildProductRole, ChildSellingModelId, DoesBundlePriceIncludeChild, Id, IsComponentRequired, IsDefaultComponent, IsQuantityEditable, MaxQuantity, MinQuantity, ParentProductId, ParentProductRole, ParentSellingModelId, ProductComponentGroupId, ProductRelationshipTypeId, Quantity, QuantityScaleMethod, QuoteVisibility, Sequence, UnitOfMeasureId, ChildProductClassification.Code, ChildProduct.StockKeepingUnit, ParentProduct.StockKeepingUnit, ProductComponentGroup.Code, ProductRelationshipType.Name FROM ProductRelatedComponent ORDER BY ChildProductClassification.Code ASC, ChildProduct.StockKeepingUnit ASC, ParentProduct.StockKeepingUnit ASC, ProductComponentGroup.Code ASC, ProductRelationshipType.Name ASC",

@@ -48,16 +48,16 @@
         },
         {
           "query": "SELECT AdjustmentType, CurrencyIsoCode, EffectiveFrom, EffectiveTo, LowerBound, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, Product2Id, ProductSellingModelId, ScheduleType, SellingModelType, TierType, TierValue, UpperBound, PriceAdjustmentSchedule.Name, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM PriceAdjustmentTier ORDER BY PriceAdjustmentSchedule.Name ASC, Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, TierType ASC",
-          "operation": "Insert",
+          "operation": "Upsert",
           "externalId": "PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom",
-          "excluded": false,
-          "skipExistingRecords": true
+          "excluded": false
         },
         {
-          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, CurrencyIsoCode ASC, Pricebook2.Name ASC",
-          "operation": "Update",
-          "externalId": "Name;CurrencyIsoCode",
-          "excluded": false
+          "query": "SELECT AdjustmentMethod, CurrencyIsoCode, Description, EffectiveFrom, EffectiveTo, IsActive, Name, Pricebook2Id, ScheduleType FROM PriceAdjustmentSchedule WHERE ContractId = NULL ORDER BY Name ASC, Pricebook2.Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false,
+          "$comment": "ONE schedule per type (Attribute / Bundle / Volume), in the corporate currency (JPY on a qb/ja org) — the platform seeds exactly these. Do NOT create per-currency schedule variants: every currency's adjustment children (PriceAdjustmentTier/AttributeBasedAdjustment/BundleBasedAdjustment) reference this single schedule by Name and are disambiguated at pricing time by their own CurrencyIsoCode. The pricing procedure pins each adjustment step to a single schedule Id via find_replace ('… WHERE name = ''Standard …'' LIMIT 1'), so duplicating the schedule per currency makes non-USD adjustment lookups resolve nothing (0 adjustment). Upsert on the direct-field Name externalId matches the seeded USD rows on the 5.6.4 floor (no duplicates); ordered before the children so the schedule exists first."
         },
         {
           "query": "SELECT Name FROM AttributeBasedAdjRule ORDER BY Name ASC",
@@ -67,37 +67,38 @@
         },
         {
           "query": "SELECT AttributeBasedAdjRuleId, AttributeDefinitionId, BooleanValue, DateValue, DateTimeValue, DoubleValue, IntegerValue, Operator, ProductId, StringValue, AttributeBasedAdjRule.Name, AttributeDefinition.Code, Product.StockKeepingUnit FROM AttributeAdjustmentCondition ORDER BY AttributeBasedAdjRule.Name ASC, AttributeDefinition.Code ASC, Product.StockKeepingUnit ASC",
-          "operation": "Insert",
+          "operation": "Upsert",
           "externalId": "AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit",
           "excluded": false
         },
         {
           "query": "SELECT AdjustmentType, AdjustmentValue, AttributeAdjConditionsHash, AttributeBasedAdjRuleId, AttributeCount, CurrencyIsoCode, EffectiveFrom, EffectiveTo, PriceAdjustmentScheduleId, PricingTerm, PricingTermUnit, ProductId, ProductSellingModelId, ScheduleType, SellingModelType, AttributeBasedAdjRule.Name, PriceAdjustmentSchedule.Name, Product.StockKeepingUnit, ProductSellingModel.Name FROM AttributeBasedAdjustment ORDER BY AttributeBasedAdjRule.Name ASC, PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
-          "operation": "Insert",
+          "operation": "Upsert",
           "externalId": "AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
         },
         {
           "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, Name, PriceAdjustmentScheduleId, ProductId, ParentProductId, RootBundleId, ProductSellingModelId, ParentProductSellingModelId, PricingTerm, PricingTermUnit, RootProductSellingModelId, ScheduleType, SellingModelType, CurrencyIsoCode, PriceAdjustmentSchedule.Name, Product.StockKeepingUnit, ParentProduct.StockKeepingUnit, RootBundle.StockKeepingUnit, ProductSellingModel.Name, ParentProductSellingModel.Name, RootProductSellingModel.Name FROM BundleBasedAdjustment ORDER BY PriceAdjustmentSchedule.Name ASC, Product.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
-          "operation": "Insert",
+          "operation": "Upsert",
           "externalId": "PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode",
           "excluded": false
         },
         {
-          "query": "SELECT Name, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode, Product2.StockKeepingUnit, ProductSellingModel.Name FROM PricebookEntry ORDER BY Product2.StockKeepingUnit ASC, Pricebook2.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
-          "operation": "Insert",
+          "query": "SELECT Name, IsActive, IsDerived, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice, CurrencyIsoCode, Product2.StockKeepingUnit, ProductSellingModel.Name FROM PricebookEntry WHERE Pricebook2.IsStandard = true ORDER BY Product2.StockKeepingUnit ASC, Pricebook2.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
+          "operation": "Upsert",
           "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
-          "excluded": false
+          "excluded": false,
+          "$comment": "Every row belongs to the Standard Price Book, and the externalId has no price-book part, so the query is scoped to it: otherwise a custom price book's entry for the same SKU, selling model and currency is indistinguishable and an Upsert can update it instead (measured, todo 298)."
         },
         {
           "query": "SELECT PricebookId, PricebookEntryId, ProductId, ContributingProductId, ProductSellingModelId, DerivedPricingScope, Formula, EffectiveFrom, EffectiveTo, PricingSource, CurrencyIsoCode, Pricebook.Name, PricebookEntry.Product2.StockKeepingUnit, PricebookEntry.ProductSellingModel.Name, Product.StockKeepingUnit, ContributingProduct.StockKeepingUnit, ProductSellingModel.Name FROM PricebookEntryDerivedPrice ORDER BY Product.StockKeepingUnit ASC, ContributingProduct.StockKeepingUnit ASC, Pricebook.Name ASC, CurrencyIsoCode DESC, Name ASC, ProductSellingModel.Name ASC",
-          "operation": "Insert",
+          "operation": "Upsert",
           "externalId": "Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode",
           "excluded": true
         },
         {
           "query": "SELECT Cost, CostBookId, EffectiveFrom, EffectiveTo, ProductId, Description, CurrencyIsoCode, CostBook.Name, Product.StockKeepingUnit FROM CostBookEntry ORDER BY CostBook.Name ASC, CurrencyIsoCode DESC, Name ASC",
-          "operation": "Insert",
+          "operation": "Upsert",
           "externalId": "CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode",
           "excluded": false
         }

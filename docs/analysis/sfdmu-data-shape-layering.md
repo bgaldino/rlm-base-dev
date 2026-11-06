@@ -141,13 +141,13 @@ category `Warranty` and the component group `Accessories` (q3 `WARRANTY`, `ACCES
   Adjustment'.
 - **mfg-pricing** updates on `Name`. Its Tier Based row exists only after a q3 load. Without
   one, it matches nothing and doesn't load, because an `Update` never inserts.
-- **qb/ja** updates on `Name;CurrencyIsoCode`. Its USD Price Adjustment Tier row matches the
-  seeded one. On a USD-corporate org its three JPY rows match nothing, so they don't load
-  either. What a JPY-corporate org seeds hasn't been checked; if it seeds JPY schedules, those
-  rows land: the Volume schedule then differs from q3's in `IsActive`, `EffectiveFrom` and
-  `CurrencyIsoCode`, and the Attribute and Bundle schedules from q3's and mfg's in
-  `CurrencyIsoCode`.
-- **`EffectiveFrom`** is 2023-01-01 in qb and q3 for the three shared schedules (todo 325), 2024-01-01 in mfg and 2025-10-01 in qb/ja.
+- **qb/ja** upserts the same three on `Name`, as qb does (todo 212). A JPY-corporate org seeds them in
+  JPY (checked on a scratch org with `country` JP), so qb/ja's rows carry JPY. Its tiers hang off
+  'Standard Price Adjustment Tier', the Volume schedule the pricing procedure reads; they used to sit
+  on 'Standard Volume Based Adjustment', which no org seeds and no procedure reads. Against q3 and mfg,
+  the schedules differ only in `CurrencyIsoCode` (and mfg's `EffectiveFrom`), which a qb/ja build
+  never meets: it needs its own JPY-corporate org.
+- **`EffectiveFrom`** is 2023-01-01 in qb, q3 and qb/ja for the three shared schedules (todos 325, 212), and 2024-01-01 in mfg.
 
 **Proration policy:** it is create-only, so SFDMU runs each pcm plan's `Upsert` of it as an
 `Insert`. The platform seeded 'Default Proration Policy' on every org checked, so the insert is
