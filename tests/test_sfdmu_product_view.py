@@ -15,7 +15,9 @@
 - Picklist values are compared with their display text, in numeric sequence order. Items that
   share a key (a duplicated attribute) are a difference, in any API order.
 - Classification components and a product's base classification resolve to the classification's
-  code; category membership comes from SOQL.
+  code, and a component's parent and child selling model to `Name;SellingModelType` and its
+  relationship type to its name. A blank lookup is None and one that can't be resolved keeps its
+  Id as `unresolved <kind> <id>`. Category membership comes from SOQL.
 - audit_fields: every READ key reaches the normalized view (each is mutated and the view must
   change), a filled key PCM starts returning is reported by level, and capture then exits 3.
 
@@ -170,13 +172,14 @@ rich.update(description="d", displayUrl="/u", productClassification={"id": "11BX
             unitOfMeasureInfo=dict(UNIT, unitCode="m"))
 rich["childProducts"] = copy.deepcopy(rich["productComponentGroups"][0]["components"])
 rprc = rich["productComponentGroups"][0]["components"][0]["productRelatedComponent"]
-rprc.update(minQuantity=1, maxQuantity=2, unitOfMeasureInfo=dict(UNIT, unitCode="EA"), productClassificationId="11BXX")
+rprc.update(minQuantity=1, maxQuantity=2, unitOfMeasureInfo=dict(UNIT, unitCode="EA"), productClassificationId="11BXX",
+            parentSellingModelId="0jPXX", childSellingModelId="0jPXX", productRelationshipTypeId="0yoXX")
 rich["productComponentGroups"][0]["childGroups"] = [{"code": "G2", "components": [], "childGroups": []}]
 rich["productComponentGroups"][0]["isExcluded"] = False
 for a_ in [a for c in rich["attributeCategory"] for a in c["attributes"]] + rich["attributes"]:
     for v in a_["picklist"]["values"]:
         v["name"] = v["code"]
-CLS = {"11BXX": "SFT001", "11BYY": "OTHER"}
+CLS = {"11BXX": "SFT001", "11BYY": "OTHER", "0jPXX": "Term Monthly", "0yoXX": "Bundle"}
 
 
 def nodes(level, prod):
@@ -203,7 +206,7 @@ for level, keys in V.READ.items():
             continue
         for node in targets:
             old = node[key]
-            node[key] = ({"id": "11BYY"} if key == "productClassification" else "11BYY" if key == "productClassificationId"
+            node[key] = ({"id": "11BYY"} if key == "productClassification" else "11BYY" if key.endswith("Id")
                       else dict(old, unitCode="ZZ") if key == "unitOfMeasureInfo" else [] if isinstance(old, list)
                       else {} if isinstance(old, dict) else (not old) if isinstance(old, bool)
                       else 99 if isinstance(old, (int, float)) else f"{old}-changed")
@@ -231,6 +234,16 @@ check("keys inside each unit (product, attribute, grouped and ungrouped componen
       V.audit_fields([unit_extra, klass_extra]),
       ["classificationRef.code", "unit.attributeUnitKey", "unit.groupedUnitKey", "unit.productUnitKey",
        "unit.ungroupedUnitKey"])
+sm = copy.deepcopy(rich)
+sm_prc = sm["productComponentGroups"][0]["components"][0]["productRelatedComponent"]
+sm_prc.update(parentSellingModelId=None, childSellingModelId="0jPZZ")
+sm_c = V.normalize(sm, {}, "R", CLS)["componentGroups"][0]["components"][0]
+check("a component's selling models and relationship type are captured by name; a blank one is None "
+      "and an unresolved one keeps its Id",
+      [V.normalize(rich, {}, "R", CLS)["componentGroups"][0]["components"][0][k]
+       for k in ("parentSellingModel", "childSellingModel", "relationshipType")]
+      + [sm_c["parentSellingModel"], sm_c["childSellingModel"]],
+      ["Term Monthly", "Term Monthly", "Bundle", None, "unresolved selling model 0jPZZ"])
 check("a capture with uncovered fields fails compare on either side",
       V.compare({"uncoveredFields": ["unit.a"], "products": {}}, {"uncoveredFields": ["unit.b"], "products": {}}),
       ["unit.a: returned by PCM but not compared (capture exited 3) in baseline",
@@ -308,6 +321,10 @@ class FakeTransport:
                     for p in ((10, 12) if s in self.dup_price else (10,))]
         if "FROM ProductClassification" in q:
             return [{"Id": "11BXX", "Code": "SFT001"}]
+        if "FROM ProductSellingModel" in q:
+            return [{"Id": "0jPXX", "Name": "Term Monthly", "SellingModelType": "TermDefined"}]
+        if "FROM ProductRelationshipType" in q:
+            return [{"Id": "0yoXX", "Name": "Bundle to Bundle Component Relationship"}]
         if "FROM ProductCategoryProduct" in q:
             return [{"Product": {"StockKeepingUnit": s}, "IsPrimaryCategory": True,
                      "ProductCategory": {"Code": "PC-1", "Catalog": {"Code": "CAT-1"}}} for s in hits]
@@ -331,6 +348,14 @@ check("category membership is read from ProductCategoryProduct",
 check("a blank productCode is still keyed by the SKU asked for", "S007" in view["products"], True)
 check("a SKU the org lacks is listed as missing", view["missing"], ["GONE"])
 check("nothing unreturned", view["notReturned"], [])
+refd = FakeTransport(["S1"])
+refd.connect = lambda m, p, b: {"products": [dict(product("S1", {}), id="01tS1", childProducts=[
+    {"productCode": "C", "name": "C", "productRelatedComponent": {
+        "parentSellingModelId": "0jPXX", "childSellingModelId": "0jPXX", "productRelationshipTypeId": "0yoXX"}}])]}
+rc = V.capture(refd, ["S1"])["products"]["S1"]["childProducts"][0]
+check("capture keys a selling model by name and type, and a relationship type by name",
+      [rc["parentSellingModel"], rc["childSellingModel"], rc["relationshipType"]],
+      ["Term Monthly;TermDefined", "Term Monthly;TermDefined", "Bundle to Bundle Component Relationship"])
 big = [f"B{i:03d}" for i in range(450)]
 ft = FakeTransport(big, dup={"B004"}, dup_price={"B005"})
 view = V.capture(ft, big)

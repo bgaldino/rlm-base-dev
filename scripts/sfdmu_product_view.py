@@ -6,10 +6,11 @@ regressions were of that kind: a renamed attribute Label, and a category link le
 load that failed partway. This reads the product view from a built org through PCM's
 `/connect/pcm/products/bulk`, which is what the configurator reads (the product's code, flags,
 description, image URL, unit and base classification, attributes, bundle groups and components
-including classification components, ungrouped bundle components and selling models), plus
-category membership and standard price book entries by SOQL. It writes org-independent JSON:
-names, codes and values, never record Ids (except a classification Id that cannot be resolved to
-its code, kept as an unmissable difference). Compare a layered or reloaded org's capture against
+including classification components, ungrouped bundle components and selling models, with each
+component's parent and child selling model and relationship type), plus category membership and
+standard price book entries by SOQL. It writes org-independent JSON: names, codes and values,
+never record Ids (except a referenced Id that cannot be resolved to its code or name, kept as an
+unmissable difference). Compare a layered or reloaded org's capture against
 a single-shape baseline. A capture is only comparable with one made by the same version of this
 tool: recapture the baseline after changing it.
 
@@ -95,11 +96,19 @@ def _attributes(p: Dict[str, Any]) -> List[Dict[str, Any]]:
     return sorted(out, key=lambda a: (str((a["category"] or {}).get("code")), str(a["code"])))
 
 
-def _component(c: Dict[str, Any], classes: Dict[str, str]) -> Dict[str, Any]:
+def _ref(refs: Dict[str, str], rid: Any, kind: str) -> Any:
+    """A referenced record by its key (code, name, or a selling model's Name;SellingModelType), so
+    captures from different orgs compare.
+
+    An Id the capture couldn't resolve stays visible as `unresolved <kind> <id>`; a blank lookup is None.
+    """
+    return (refs.get(rid) or f"unresolved {kind} {rid}") if rid else None
+
+
+def _component(c: Dict[str, Any], refs: Dict[str, str]) -> Dict[str, Any]:
     prc = c.get("productRelatedComponent") or {}
     # A classification component has no product: it is keyed by its classification's code.
-    cid = prc.get("productClassificationId")
-    cls = (classes.get(cid) or f"unresolved classification {cid}") if cid else None
+    cls = _ref(refs, prc.get("productClassificationId"), "classification")
     sku = c.get("productCode") or c.get("name") or (f"classification:{cls}" if cls else None)
     return {"sku": sku, "name": c.get("name"),
             "quantity": prc.get("quantity"), "required": prc.get("isComponentRequired"),
@@ -108,19 +117,26 @@ def _component(c: Dict[str, Any], classes: Dict[str, str]) -> Dict[str, Any]:
             "inBundlePrice": prc.get("doesBundlePriceIncludeChild"), "excluded": prc.get("isExcluded"),
             "quoteVisibility": prc.get("quoteVisibility"), "minQuantity": prc.get("minQuantity"),
             "maxQuantity": prc.get("maxQuantity"), "unit": _unit(prc.get("unitOfMeasureInfo")),
-            "classification": cls}
+            "classification": cls,
+            # Blank is normal: components under a configurable bundle, and classification components,
+            # can't carry selling models; only a static bundle's can, both or neither. What matters is
+            # a difference: ParentSellingModelId is create-only, so a partly failed load can leave it
+            # blank where the plan sets it (the sfdmu-data-plans skill lists such lookups).
+            "parentSellingModel": _ref(refs, prc.get("parentSellingModelId"), "selling model"),
+            "childSellingModel": _ref(refs, prc.get("childSellingModelId"), "selling model"),
+            "relationshipType": _ref(refs, prc.get("productRelationshipTypeId"), "relationship type")}
 
 
-def _components(items: List[Dict[str, Any]], classes: Dict[str, str]) -> List[Dict[str, Any]]:
-    return sorted((_component(c, classes) for c in items or []), key=lambda c: (_seq(c["sequence"]), str(c["sku"])))
+def _components(items: List[Dict[str, Any]], refs: Dict[str, str]) -> List[Dict[str, Any]]:
+    return sorted((_component(c, refs) for c in items or []), key=lambda c: (_seq(c["sequence"]), str(c["sku"])))
 
 
-def _groups(p: Dict[str, Any], classes: Dict[str, str]) -> List[Dict[str, Any]]:
+def _groups(p: Dict[str, Any], refs: Dict[str, str]) -> List[Dict[str, Any]]:
     def group(g):
         return {"code": g.get("code"), "name": g.get("name"), "sequence": g.get("sequence"),
                 "excluded": g.get("isExcluded"),
                 "min": g.get("minBundleComponents"), "max": g.get("maxBundleComponents"),
-                "components": _components(g.get("components"), classes),
+                "components": _components(g.get("components"), refs),
                 "childGroups": [group(x) for x in sorted(g.get("childGroups") or [],
                                                            key=lambda x: str(x.get("code")))]}
     return [group(g) for g in sorted(p.get("productComponentGroups") or [], key=lambda g: str(g.get("code")))]
@@ -137,22 +153,23 @@ def _models(p: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def normalize(p: Dict[str, Any], prices: Dict[str, Dict[str, float]], sku: str,
-              classes: Dict[str, str] = None, categories: Dict[str, List[Dict[str, Any]]] = None) -> Dict[str, Any]:
-    classes = classes or {}
-    based_on = (p.get("productClassification") or {}).get("id")
+              refs: Dict[str, str] = None, categories: Dict[str, List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """The product as users see it. `refs` maps referenced record Ids (classifications, selling
+    models, relationship types) to their key: code, name, or a selling model's Name;SellingModelType."""
+    refs = refs or {}
     return {"productCode": p.get("productCode"), "name": p.get("name"), "description": p.get("description"),
             "active": p.get("isActive"), "displayUrl": p.get("displayUrl"),
             # The classification the product is based on, by code (BasedOn in Product2.csv).
-            "basedOn": (classes.get(based_on) or f"unresolved classification {based_on}") if based_on else None,
+            "basedOn": _ref(refs, (p.get("productClassification") or {}).get("id"), "classification"),
             # Category membership (ProductCategoryProduct): where the product shows when users browse.
             # PCM's bulk response leaves `categories`/`catalogs` empty, so capture reads it by SOQL.
             "categories": (categories or {}).get(sku, []),
             "nodeType": p.get("nodeType"), "unit": _unit(p.get("unitOfMeasureInfo")),
             "configureDuringSale": p.get("configureDuringSale"),
             "assetizable": p.get("isAssetizable"), "soldOnlyWithOthers": p.get("isSoldOnlyWithOtherProds"),
-            "attributes": _attributes(p), "componentGroups": _groups(p, classes),
+            "attributes": _attributes(p), "componentGroups": _groups(p, refs),
             # Bundle components outside any group (q3's CERT007 -> ASTCERT001, LLMCERT001).
-            "childProducts": _components(p.get("childProducts"), classes),
+            "childProducts": _components(p.get("childProducts"), refs),
             "sellingModels": _models(p), "listPrices": prices.get(sku, {})}
 
 
@@ -168,8 +185,7 @@ SKIPPED = {
     "attribute": {"id", "developerName", "additionalFields"},
     "picklistValue": {"id", "sequence"},
     "group": {"id", "parentProductId", "parentGroupId"},
-    "relatedComponent": {"id", "childProductId", "childSellingModelId", "parentProductId",
-                         "parentSellingModelId", "productRelationshipTypeId"},
+    "relatedComponent": {"id", "childProductId", "parentProductId"},
     "picklist": {"id"},
     "category": {"id"},
     "component": {"id", "description", "displayUrl", "isActive", "isAssetizable", "isSoldOnlyWithOtherProds",
@@ -195,7 +211,8 @@ READ = {
     "relatedComponent": {"quantity", "isComponentRequired", "isDefaultComponent", "isQuantityEditable",
                          "quantityScaleMethod", "sequence", "doesBundlePriceIncludeChild", "isExcluded",
                          "quoteVisibility", "minQuantity", "maxQuantity", "unitOfMeasureInfo",
-                         "productClassificationId"},
+                         "productClassificationId", "parentSellingModelId", "childSellingModelId",
+                         "productRelationshipTypeId"},
     "picklist": {"name", "dataType", "description", "values"},
     "category": {"code", "name", "attributes"},
     "component": {"productCode", "name", "productRelatedComponent"},
@@ -279,7 +296,11 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
             # show as a list rather than one overwriting the other.
             entry[key] = sorted([*entry[key], r["UnitPrice"]] if isinstance(entry.get(key), list)
                                 else [entry[key], r["UnitPrice"]]) if key in entry else r["UnitPrice"]
-    classes = {r["Id"]: r["Code"] for r in t.soql("SELECT Id, Code FROM ProductClassification")}
+    refs = {r["Id"]: r["Code"] for r in t.soql("SELECT Id, Code FROM ProductClassification")}
+    # A selling model by Name;SellingModelType, the plans' key: Name alone can repeat across types.
+    refs.update({r["Id"]: f"{r['Name']};{r['SellingModelType']}"
+                 for r in t.soql("SELECT Id, Name, SellingModelType FROM ProductSellingModel")})
+    refs.update({r["Id"]: r["Name"] for r in t.soql("SELECT Id, Name FROM ProductRelationshipType")})
     categories: Dict[str, List[Dict[str, Any]]] = {}
     for i in range(0, len(skus), SOQL_BATCH):
         chunk = ",".join(f"'{soql_literal(s)}'" for s in skus[i:i + SOQL_BATCH])
@@ -302,7 +323,7 @@ def capture(t: Transport, skus: List[str]) -> Dict[str, Any]:
             raw.append(p)
             sku = by_id.get(p.get("id"))
             if sku:
-                products[sku] = normalize(p, prices, sku, classes, categories)
+                products[sku] = normalize(p, prices, sku, refs, categories)
     return {"skus": skus, "missing": sorted(set(skus) - set(found_ids)), "duplicates": duplicates,
             "notReturned": sorted(set(ids) - set(products)),
             # Filled PCM fields this tool neither compares nor deliberately skips: extend READ/SKIPPED.
