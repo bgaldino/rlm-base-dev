@@ -27,7 +27,7 @@
 | 15 | ProductRampSegment | 1 | Upsert | Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType | 7 |
 | 16 | ProductRelationshipType | 1 | Upsert | Name | 4 |
 | 17 | ProductComponentGroup | 1 | Upsert | Code | 27 |
-| 18 | ProductRelatedComponent | 1 | Upsert | ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name | 84 |
+| 18 | ProductRelatedComponent | 1 | Upsert | ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name | 83 |
 | 19 | ProductComponentGrpOverride | 1 | Upsert | Name | 0 |
 | 20 | ProductRelComponentOverride | 1 | Upsert | Name | 0 |
 | 21 | ProductCatalog | 1 | Upsert | Code | 3 |
@@ -64,7 +64,7 @@ ProductSellingModelOption.csv            # 115 records
 ProductRampSegment.csv                   # 7 records
 ProductRelationshipType.csv              # 4 records
 ProductComponentGroup.csv                # 27 records
-ProductRelatedComponent.csv              # 84 records
+ProductRelatedComponent.csv              # 83 records
 ProductCatalog.csv                       # 3 records
 ProductCategory.csv                      # 18 records
 ProductCategoryProduct.csv               # 98 records
