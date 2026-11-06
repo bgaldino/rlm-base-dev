@@ -167,6 +167,10 @@ rlm-base-dev/
 │   │   ├── git-commit-stamping.md
 │   │   └── headless-configurator-context-plan.md
 │   └── salesforce/             # Salesforce Help and developer documentation snapshots (Markdown)
+├── recipes/                    # Published MeshMesh, Claude, and Cursor bundles (not the live skill catalog)
+│   ├── meshmesh/               # One directory per recipe; recipe.md at the bundle root
+│   ├── claude/                 # Exported Claude skills (SKILL.md); Claude has no recipe format
+│   └── cursor/                 # Exported Cursor skills (SKILL.md); Cursor has no recipe format
 ├── orgs/                       # Scratch org definitions
 ├── cumulusci.yml               # CumulusCI configuration
 ├── sfdx-project.json           # Salesforce DX configuration
