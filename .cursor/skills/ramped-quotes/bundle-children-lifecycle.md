@@ -53,7 +53,7 @@ shorthand for this failure. Cancel (Connect) failed the same way on the API-buil
 | Plain bundle (regular group) + one-time child | works |
 | Group ramp, term child only | works (+1, -1 per segment, cancel) |
 | Group ramp + standalone one-time line (not a bundle child) | works |
-| Group ramp + one-time bundle child, **quote UI-built**, child in segment 1 only (optional child unticked in segment 2) | **works** (amend at quote level, ordered and activated: bundle chain quantity 1, 2, 1, 1) |
+| Group ramp + one-time bundle child, **quote UI-built**, child in segment 1 only (optional child unticked in segment 2) | **works** (amend ordered and activated: bundle chain quantity 1, 2, 1, 1) |
 | Group ramp + one-time bundle child, **API-built**: segment 1 only (child deleted from segments 2-3 at quote time; cancel also 500), all segments, QSM Proportional | **500** |
 | Group ramp + one-time bundle child in all segments, **API-built**, after deleting the child's segment 2-3 ASPs, AssetRelationships and Assets | **500** |
 | Group ramp + evergreen bundle child, **API-built** (amend only) | **500** |
@@ -71,7 +71,7 @@ shorthand for this failure. Cancel (Connect) failed the same way on the API-buil
 - Quantity-scale method is not the lever: `AssociatedQuantScaleMethod: Proportional` on the relationship is accepted by Place
   and does not change the outcome.
 - The delete workaround is unsupported: the order no longer matches its assets. Offer it only as a customer-flow option
-  with that caveat. Removing the child at quote time is cleaner. On API-built bundles the limitation applies while any child asset remains.
+  with that caveat. On a quote UI-built bundle with an optional child, removing the child at quote time is cleaner. On API-built bundles, removing the child at quote time did not avoid the failure; it persisted while any of the one-time child's Assets remained.
 - Amend works per segment on a term-only group ramp: +1 / -1 changes only the segment holding the amend date and its remainder.
 
 ## Amend date window
@@ -84,7 +84,7 @@ measured. An asset with a future ramped renewal refuses an earlier amend (an ord
 
 ## Renewal
 
-- A plain Connect `renew` of a bundle with a one-time child works (evergreen child not tested).
+- A plain Connect `renew` of a bundle with a one-time child worked (API-built; evergreen child and UI-built renewal not tested).
 - **Early ramped renewal** needs a start date inside the asset lifecycle, and the platform rejects it for a group-ramped bundle
   containing evergreen or one-time products ("You can't do an early renewal of a group ramped bundle containing evergreen or
   one-time products..."). A plain renew of a ramped asset early is refused; the platform message points to turning on "Create a Ramp Schedule" when setting the renewal terms.
@@ -113,8 +113,8 @@ tested by flipping it. The four QB simple products that carry it true came from 
 
 ## Runbook: group-ramped bundle with a one-time or evergreen child
 
-Measured on one 264 scratch org, API only. Run it on a disposable org. Check each response body, not the status.
-This runbook builds the API (unstamped) shape; the outcomes in steps 6-9 do not apply to a quote UI-built bundle (see the matrix).
+Measured on one 264 scratch org: API build path, plus amend and cancel on quote UI-built bundles. Run it on a disposable org. Check each response body, not the status.
+This runbook builds the API (unstamped) shape. Steps 4, 6, 7 and 9 differ on a quote UI-built bundle (see "Limiting a one-time child to segment 1", the matrix and Assetization shape); renewal of a UI-built bundle was not measured.
 
 1. **Create the quote and an empty first-year group.** `placeSalesTransaction` create: Quote with `CurrencyIsoCode` set
    to the account currency, plus one empty `QuoteLineGroup`. Poll `Quote.CalculationStatus` to settled.
@@ -127,7 +127,7 @@ This runbook builds the API (unstamped) shape; the outcomes in steps 6-9 do not 
    evergreen child line in each segment group, and a `QuoteLineRelationship` per child (with
    `AssociatedQuoteLinePricing`). `groupIds` were not needed. For an evergreen child, set `PeriodBoundary: Anniversary`
    on its line now; without it the order cannot be created. Set a billing treatment too.
-4. **Optional: remove the child from later segments.** `DeleteProducts` of the one-time child's lines in the segments
+4. **Optional: remove the child from later segments (API-built).** `DeleteProducts` of the one-time child's lines in the segments
    you do not want it in. The root and term child stay stamped.
 5. **Order and activate.** `createOrdersFromQuote` with the quote id. Find the order by its `QuoteId`. Copy the account's
    Billing and Shipping address and a contact onto the order as `BillToContactId`, then set `Status` Activated.
@@ -135,20 +135,23 @@ This runbook builds the API (unstamped) shape; the outcomes in steps 6-9 do not 
    `outputRecordType: Quote`. Connect `cancel` with `cancellationDate`. Connect `renew` with `renewalStartDate`.
    Use Quote output for every recipe. On the test org, Order output failed for every action with a
    `RLM_SalesTransactionContext` fetch error.
-   - Amend: if the child was left in every segment, pick a date on or after the last segment's one-time Asset start.
+   - Amend (API-built): if the child was left in every segment, pick a date on or after the last segment's one-time Asset start.
      Earlier dates fail with a 400 date-window error, which is not the persist failure in step 7. (Inferred for cancel;
      not measured.)
-7. **Expect the persist failure when a one-time or evergreen child is present.** Amend and cancel both return
+   - Amend (UI-built): the child is one Asset from segment 1. An amend inside period 1 succeeded at quote level with the
+     child in all segments, on a bundle whose segment 2-3 discount was applied by API (not ordered; see the matrix bullets).
+7. **Expect the persist failure when a one-time or evergreen child is present (API-built).** Amend and cancel both return
    `success:false` with `PlaceSalesTransactionPersistException` (cancel was tested on the one-time, segment-1-only
-   shape). Judge by `success:false` in the body, not the HTTP status. The failure goes away only after all of the
-   child's assets are deleted (an unsupported workaround; see step 8).
+   shape). Judge by `success:false` in the body, not the HTTP status. For a one-time child, the failure
+   went away only after all of the child's assets were deleted (an unsupported workaround; see the matrix and the delete
+   bullet above). Evergreen was not tested with that recovery.
 8. **Renewal.** Expect an early ramped renewal (`initiateRenewal` with `rampOptionsDetails`) of this bundle to be rejected
    by the platform. A plain Connect `renew` starting after the asset's end date worked with a one-time child present
    (evergreen not tested). A renew before the end of a ramped asset is refused. Ramped renewal was only shown to work on
    term-only bundles, or after the child's assets are deleted (an unsupported workaround). For a ramped renewal,
    `rampOptionsDetails` takes `segmentType` and `durationInMonths`, where the duration is the total ramp length, and
    dates use `yyyy-MM-dd'T'HH:mm:ss`.
-9. **Verify.** For the bundle asset, check Assets per child: the term child gives one Asset with one AssetStatePeriod per
+9. **Verify (API-built).** For the bundle asset, check Assets per child: the term child gives one Asset with one AssetStatePeriod per
    segment. A one-time child that was left in N segments gives N Assets with one period each and no end date. Count
    AssetRelationships to the bundle: one for the term child, plus one per child Asset. Check that each order line's
    dates match a segment.

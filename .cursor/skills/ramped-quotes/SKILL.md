@@ -80,9 +80,9 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    `AGENTS.md`).
 9. **An API-built group-ramped bundle with a one-time or evergreen child cannot be amended (`PlaceSalesTransactionPersistException`,
    shorthand "500"; measured on one 264 org; cancel failed too where tried).** The same shape with a one-time child
-   built in the quote UI amended (evergreen not tried in the UI). Built by API the child gets no ramp ids and assetizes as one
+   built in the quote UI amended (evergreen not tried in the UI). For an API-built one-time child the failure persisted while any of the child's Assets remained. Built by API the child gets no ramp ids and assetizes as one
    Asset per segment it sits in; built in the UI a one-time child is stamped and, left in N segments, becomes one Asset whose
-   quantity accumulates 1..N. See
+   quantity accumulates (1, 2, 3 over three segments). See
    [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
 
 ## DO NOT
@@ -516,7 +516,7 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
 - `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
   call rejects a field.
 - `bundle-children-lifecycle.md` — a group-ramped bundle with a one-time or evergreen child: limiting the child to
-  segment 1, assetization shape, the amend/cancel 500, renewal rules and lifecycle-recipe prerequisites. Read it before
+  segment 1, assetization shape, the amend/cancel 500 on API-built bundles (UI-built differ), renewal rules and lifecycle-recipe prerequisites. Read it before
   amending, cancelling or renewing a ramped bundle.
 - `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI (Create Ramp
   Schedule → Edit Ramp Schedule → Browse Catalogs into *Current and Subsequent Segments*), the
