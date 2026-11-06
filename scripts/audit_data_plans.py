@@ -362,7 +362,8 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
             if op in layering.CREATES:
                 created_objs.add(obj)
                 # Required fields are checked on the rows this pass creates. A row a creating
-                # pass of this plan already created (same key) is only patched here.
+                # pass of this plan already created (same key) is only patched here, by an Upsert
+                # (it matches); an Insert never matches, so its rows are always new.
                 # The plan's key for the object is its first creating declaration's (the layering
                 # check takes its first written one, which may be an Update keyed on Id), so a
                 # later pass keyed differently still meets its rows.
@@ -371,7 +372,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 fresh = []
                 for r in rows:
                     ident = layering.key_of(layering.row_values(plan_key, headers, r), plan_key)
-                    if ident is None or ident not in made:
+                    if op == "insert" or ident is None or ident not in made:
                         fresh.append(r)
                     if ident is not None:
                         made.add(ident)

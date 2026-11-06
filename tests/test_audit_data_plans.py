@@ -259,6 +259,24 @@ def test_required_each_creating_pass():
                             "leave it blank")])
 
 
+def test_insert_after_upsert_is_checked():
+    print("an Insert pass creates rows even when an earlier pass used the key")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        decl = {"query": "SELECT Name, Code, Required FROM Widget__x", "externalId": "Code"}
+        plan = tmp / "qb/en-US/p"
+        (plan / "objectset_source/object-set-2").mkdir(parents=True)
+        (plan / "export.json").write_text(json.dumps({"useSeparatedCSVFiles": True, "objectSets": [
+            {"objects": [{**decl, "operation": "Upsert"}]},
+            {"objects": [{**decl, "operation": "Insert"}]}]}), encoding="utf-8")
+        (plan / "Widget__x.csv").write_text("Name,Code,Required\nn1,c1,r\n", encoding="utf-8")
+        (plan / "objectset_source/object-set-2/Widget__x.csv").write_text(
+            "Name,Code,Required\nn1,c1,\n", encoding="utf-8")
+        req = [(f["field"], f["detail"][:6]) for f in A.audit(SNAPSHOT, tmp)["findings"]
+               if f["check"] == "required"]
+        check("the Insert row with Required blank is flagged", req, [("Required", "pass 2")])
+
+
 def test_classify():
     print("classify")
     r = run_fixture()
@@ -356,7 +374,8 @@ def test_committed_snapshot():
 
 
 for t in (test_findings, test_required_missing_column, test_deep_paths_and_external_id,
-          test_unsupported_filter_is_an_error, test_required_each_creating_pass, test_classify, test_merge,
+          test_unsupported_filter_is_an_error, test_required_each_creating_pass, test_insert_after_upsert_is_checked,
+          test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()
 print(f"\n{len(_failures)} failure(s)")
