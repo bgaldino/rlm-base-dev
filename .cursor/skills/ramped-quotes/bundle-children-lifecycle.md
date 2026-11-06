@@ -56,9 +56,9 @@ segment 1-only shape. The other **500** rows were amend-only.
 
 On or after the Lifecycle Start Date of **every** asset in the request, and before the Lifecycle End Date of each asset that has
 one. One-time and evergreen Assets have no end date (E3, E16), so only the start bound applies to them. A one-time child in
-later segments starts its own Asset there, so the earliest allowed amend date moves to the last segment's start (E7: 400 with
-an amend date before the Y3 one-time Asset's start). The upper bound for null-end Assets was not measured. An asset with a
-future ramped renewal refuses an earlier amend (an ordered plain renewal blocks it the same way).
+later segments starts its own Asset there, so the earliest allowed amend date moves to the last segment's start (inferred from the every-asset rule; E7 measured a 400
+for an amend at 2027-06-01, before the 2028 and 2029 one-time Asset starts). The upper bound for null-end Assets was not
+measured. An asset with a future ramped renewal refuses an earlier amend (an ordered plain renewal blocks it the same way).
 
 ## Renewal
 
