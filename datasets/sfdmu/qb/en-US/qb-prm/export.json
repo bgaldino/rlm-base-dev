@@ -6,7 +6,7 @@
       "name": "First Pass - Upsert Accounts and Channel Programs",
       "objects": [
         {
-          "query": "SELECT Id, Industry, Name, Phone, Type, BillingCity, BillingCountry, BillingState FROM Account WHERE Type = 'Partner' ORDER BY Name ASC",
+          "query": "SELECT Id, Industry, Name, Phone, Type, BillingCity, BillingCountry, BillingState FROM Account WHERE Name IN ('Robot Resellers') ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name"
         },
@@ -26,7 +26,7 @@
       "name": "Second Pass - Enable Partner Accounts and Link Members",
       "objects": [
         {
-          "query": "SELECT Id, IsPartner, Name FROM Account WHERE Type = 'Partner' ORDER BY Name ASC",
+          "query": "SELECT Id, IsPartner, Name FROM Account WHERE Name IN ('Robot Resellers') ORDER BY Name ASC",
           "operation": "Update",
           "externalId": "Name"
         },

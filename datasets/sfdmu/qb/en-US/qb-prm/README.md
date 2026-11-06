@@ -67,6 +67,10 @@ ChannelProgramMember (Upsert)
 
 `Account.IsPartner` is `createable: false, updateable: true`. On a fresh org, pass 1 inserts the Account (IsPartner is ignored), then pass 2 updates it to `IsPartner=true`. This ensures the Account is partner-enabled before `ChannelProgramMember` links to it via `PartnerId`.
 
+### Shared with qb-prm-pricing (todo 337)
+
+`qb-prm-pricing` also upserts the Robot Resellers account and the Reseller Program, so both plans carry the same values for them: Type `Reseller`, Phone `+1 (415) 555-9521`, BillingCountry `United States`, and program Category `Reseller`. A reload of either plan on its own leaves them unchanged. Both Account passes select the account by `Name`, not `Type`, so they still find it once PRM Pricing has set its Type to `Reseller`. `check_sfdmu_layering.py` fails if two plans of one shape write different values to the same field again.
+
 ### ChannelProgramLevel (Pass 1)
 
 Uses composite externalId `Name;Rank` — both are direct fields on the object, which ensures SFDMU Upsert correctly matches existing records (avoids SFDMU v5 Bug 3 with relationship-traversal externalIds). Includes custom fields for partner discount management:

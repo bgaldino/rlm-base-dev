@@ -191,6 +191,25 @@ declaration of the referenced object (q3-tax, q3-billing). The same holds when t
 has no design to copy: q3-dro only sets the products' decomposition fields, because the q3
 source org has no fulfillment design and qb-dro's references QB SKUs.
 
+**Two plans of one shape.** The same rule holds inside a shape: a record's field has one value
+across all the plans of a shape. When two of them write it differently, a reload of either plan
+on its own changes the data, though each plan loads cleanly and is idempotent. qb-pcm and
+qb-product-images both wrote `Product2.DisplayUrl`, and a qb-pcm reload blanked 155 product images
+(todo 336; qb-pcm now carries them). `check_sfdmu_layering.py` compares every pair of plans of one
+shape the way it compares shapes, and reports a difference as `intra:` (todo 337). qb/ja isn't
+compared against qb/en-US, because rewriting qb's records in Japanese is its job (todo 212). The
+check found six more when it was added, all now fixed in the plans: qb-prm and qb-prm-pricing
+disagreed on the Robot Resellers account's Type, Phone and BillingCountry and on the Reseller
+Program's Category (qb-prm now carries PRM Pricing's values), and qb-accounting and qb-billing
+spelled GL account 3300's apostrophe differently (both now straight).
+
+**Plans every shape loads.** The top-level plans (`scratch_data`'s sample accounts and contacts,
+`procedure-plans`, `inapp`, `configurator-flow`) load into an org of any shape, so the check
+treats them as one more shape, `common`, that meets the other three. Adding it found one
+conflict: the sample data writes Apex Dynamics' BillingCountry as `US` and qb-prm-pricing wrote
+`United States`. Built orgs showed `US` because sample data loads later, so qb-prm-pricing now
+carries `US` too.
+
 **Extraction alignment.** A variant shape's extraction is aligned to its qb/en-US sibling's CSV
 columns. A plan that keys an object differently from qb lists it in `$ownSchemaObjects`, so
 alignment doesn't drop the extra key part.

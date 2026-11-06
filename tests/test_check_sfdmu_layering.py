@@ -14,6 +14,12 @@ Each case builds a throwaway datasets/sfdmu tree and asserts what the two checks
   overwriting a wider key's extra field does, and so do Updates to a record another plan
   creates and a lookup set through different parent keys. A stale or missing allowlist entry
   fails the run, per record.
+- Intra-shape (todo 337): two plans of one shape writing different values to one field of one
+  record conflict, labelled by plan (the todo 336 DisplayUrl replay). The same values, one plan's
+  staging, plans of different shapes, and qb/ja against qb/en-US don't; two qb/ja plans are
+  compared. A stale allowlist entry fails the run.
+- Top-level plans (scratch_data and the other plans every build loads) count as the shape
+  `common`, so they're compared against every shape.
 - sourceRecordsFilter: `LIKE` (case-insensitive, whole value), `=` and `<>` are applied in both
   checks; any other form, or a column the CSV lacks, is reported.
 
@@ -726,6 +732,69 @@ SHARED_CASES += [
 ]
 
 
+def intra(plans, field=None):
+    """Intra-shape conflicts for the tree, kept only on `field` when given."""
+    return {k: v for k, v in L.intra_shape_conflicts(tree(plans)).items() if field in (None, k[2])}
+
+
+P2 = decl("Product2", "StockKeepingUnit")
+P2_UPDATE = decl("Product2", "StockKeepingUnit", op="Update")
+
+
+def stale_intra_entry_fails():
+    """A KNOWN_INTRA_SHAPE_CONFLICTS entry that no longer conflicts fails the live run."""
+    import contextlib
+    import io
+    saved = L.KNOWN_INTRA_SHAPE_CONFLICTS
+    L.KNOWN_INTRA_SHAPE_CONFLICTS = saved | {("Nope__c", "X", "Nope")}
+    try:
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = L.main([])
+        return code == 1 and "Nope__c 'X' Nope is in KNOWN_INTRA_SHAPE_CONFLICTS" in out.getvalue()
+    finally:
+        L.KNOWN_INTRA_SHAPE_CONFLICTS = saved
+
+
+INTRA_CASES = [
+    # The todo 336 defect: qb-pcm upserts Product2 with a blank DisplayUrl, and a second qb plan
+    # (an Update on StockKeepingUnit) sets it, so a reload of qb-pcm alone blanks the image.
+    ("two plans of one shape writing different values to one field conflict (todo 336)", True,
+     intra({"qb/en-US/qb-pcm": ([[P2]], {"Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,\n"}),
+            "qb/en-US/qb-images": ([[P2_UPDATE]], {
+                "Product2.csv": "StockKeepingUnit,DisplayUrl\nQB-1,/img/qb-1.png\n"})}, "DisplayUrl")),
+    ("it is labelled by plan, not shape", True, list(intra({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,1\n"}),
+        "qb/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,2\n"})}).values())
+     == ["qb/en-US/a=['1']; qb/en-US/b=['2']"]),
+    ("the same values in two plans of one shape don't conflict", False, intra({
+        "q3/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,1\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,1\n"})})),
+    ("one plan's own Draft-then-Active staging isn't an intra-shape conflict", False, intra({
+        "q3/en-US/a": ([[UOM], [dict(UOM, op="Update")]], {
+            "UnitOfMeasure.csv": "UnitCode,Status\nGB,Draft\n",
+            "objectset_source/object-set-2/UnitOfMeasure.csv": "UnitCode,Status\nGB,Active\n"})})),
+    ("qb/ja isn't compared against qb/en-US (its locale overlay: todo 212)", False, intra({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,Gigabyte\n"}),
+        "qb/ja/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,ギガバイト\n"})})),
+    ("two qb/ja plans are compared with each other", True, intra({
+        "qb/ja/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,ギガ\n"}),
+        "qb/ja/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Name\nGB,ギガバイト\n"})}, "Name")),
+    ("plans of different shapes aren't intra-shape", False, intra({
+        "qb/en-US/a": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,1\n"}),
+        "q3/en-US/b": ([[UOM]], {"UnitOfMeasure.csv": "UnitCode,Sequence\nGB,2\n"})})),
+    ("a top-level plan (sample data) loads with every shape, so it meets them as `common`", True,
+     intra({"qb/en-US/a": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,United States\n"})})
+     == {} and list(conflicts({
+         "qb/en-US/a": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,United States\n"}),
+         "scratch_data": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,US\n"})}).values())
+     == ["common=['US']; qb=['United States']"]),
+    ("a top-level plan that agrees with a shape doesn't conflict", False, conflicts({
+        "q3/en-US/a": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,US\n"}),
+        "scratch_data": ([[decl("Account", "Name")]], {"Account.csv": "Name,BillingCountry\nApex,US\n"})})),
+    ("a stale intra-shape entry fails the run", True, stale_intra_entry_fails()),
+]
+
+
 def live_tree_passes():
     """The shipped tree is clean: no unresolved lookup, and every shared conflict is known."""
     import contextlib
@@ -734,7 +803,7 @@ def live_tree_passes():
         return L.main([]) == 0
 
 
-CASES = LOOKUP_CASES + SHARED_CASES + [("the live tree passes", True, live_tree_passes())]
+CASES = LOOKUP_CASES + SHARED_CASES + INTRA_CASES + [("the live tree passes", True, live_tree_passes())]
 
 
 def main() -> int:
