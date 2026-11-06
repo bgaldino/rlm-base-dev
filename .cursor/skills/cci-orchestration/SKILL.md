@@ -262,7 +262,7 @@ prepare_rlm_org
 ├── 5. deploy_full (force-app/main/default)
 ├── 6. prepare_price_adjustment_schedules
 ├── 7. prepare_quantumbit (utils, approvals, QB metadata)
-├── 8. prepare_product_data (PCM, Q3, product images, org-default configurator flow)
+├── 8. prepare_product_data (PCM with product image URLs, Q3, org-default configurator flow)
 ├── 9. prepare_pricing_data (pricing reload in place, CPI price revision data)
 ├── 10. prepare_docgen
 ├── 11. prepare_dro

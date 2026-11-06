@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**45 feature flags**, **88 configuration values**, **43 YAML anchors** under `project.custom`.
+**45 feature flags**, **87 configuration values**, **43 YAML anchors** under `project.custom`.
 
 ---
 
@@ -46,7 +46,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `procedureplans` | `True` | 6 flow step(s) |
 | `procedureplans_active` | `False` | 1 flow step(s) |
 | `q3` | `False` | 14 flow step(s) |
-| `qb` | `True` | 35 flow step(s) |
+| `qb` | `True` | 34 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 28 flow step(s) |
 | `quote_est_tax` | `False` | — |
@@ -90,7 +90,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals_pricing` step 1 → `apply_context_approvals`
 - `prepare_approvals_pricing` step 2 → `apply_approval_flags_overlay`
 - `prepare_personas` step 11 → `assign_permission_sets`
-- `run_qb_idempotency_tests` step 14 → `test_qb_approvals_idempotency`
+- `run_qb_idempotency_tests` step 13 → `test_qb_approvals_idempotency`
 
 ### `billing` (default: `True`)
 
@@ -115,7 +115,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing_portal` step 3 → `deploy_post_billing_portal`
 - `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
 - `prepare_billing_portal` step 5 → `publish_community`
-- `run_qb_idempotency_tests` step 12 → `test_qb_billing_idempotency`
+- `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
 - `run_q3_idempotency_tests` step 8 → `test_q3_billing_idempotency`
 
 ### `billing_portal` (default: `False`)
@@ -303,8 +303,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
 - `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
 - `refresh_all_decision_tables` step 8 → `refresh_dt_prm_pricing`
-- `run_qb_idempotency_tests` step 13 → `test_qb_prm_idempotency`
-- `run_qb_idempotency_tests` step 15 → `test_qb_prm_pricing_idempotency`
+- `run_qb_idempotency_tests` step 12 → `test_qb_prm_idempotency`
+- `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
 
 ### `prm_exp_bundle` (default: `False`)
 
@@ -329,7 +329,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
 - `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
 - `refresh_all_decision_tables` step 8 → `refresh_dt_prm_pricing`
-- `run_qb_idempotency_tests` step 15 → `test_qb_prm_pricing_idempotency`
+- `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
 
 ### `procedureplans` (default: `True`)
 
@@ -365,7 +365,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 - `prepare_product_data` step 1 → `insert_quantumbit_pcm_data`
 - `prepare_product_data` step 2 → `insert_q3_pcm_data`
-- `prepare_product_data` step 3 → `insert_quantumbit_product_image_data`
 - `prepare_pricing_data` step 1 → `insert_quantumbit_pricing_data`
 - `prepare_pricing_data` step 2 → `insert_q3_pricing_data`
 - `prepare_pricing_data` step 3 → `insert_qb_price_revision_data`
@@ -393,11 +392,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
 - `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
-- `run_qb_idempotency_tests` step 11 → `test_qb_tax_idempotency`
-- `run_qb_idempotency_tests` step 12 → `test_qb_billing_idempotency`
-- `run_qb_idempotency_tests` step 13 → `test_qb_prm_idempotency`
-- `run_qb_idempotency_tests` step 14 → `test_qb_approvals_idempotency`
-- `run_qb_idempotency_tests` step 15 → `test_qb_prm_pricing_idempotency`
+- `run_qb_idempotency_tests` step 10 → `test_qb_tax_idempotency`
+- `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
+- `run_qb_idempotency_tests` step 12 → `test_qb_prm_idempotency`
+- `run_qb_idempotency_tests` step 13 → `test_qb_approvals_idempotency`
+- `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
 
 ### `quantumbit` (default: `True`)
 
@@ -480,7 +479,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_tax` step 4 → `activate_tax_records`
-- `run_qb_idempotency_tests` step 11 → `test_qb_tax_idempotency`
+- `run_qb_idempotency_tests` step 10 → `test_qb_tax_idempotency`
 - `run_q3_idempotency_tests` step 7 → `test_q3_tax_idempotency`
 - `run_q3_idempotency_tests` step 8 → `test_q3_billing_idempotency`
 
@@ -599,7 +598,6 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |
 | `quantumbit_prm_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-prm-pricing` |
 | `quantumbit_product_dataset` | `datasets/sfdmu/qb/en-US/qb-pcm` |
-| `quantumbit_product_image_dataset` | `datasets/sfdmu/qb/en-US/qb-product-images` |
 | `quantumbit_rates_dataset` | `datasets/sfdmu/qb/en-US/qb-rates` |
 | `quantumbit_rating_dataset` | `datasets/sfdmu/qb/en-US/qb-rating` |
 | `quantumbit_rating_entitlements_dataset` | `datasets/sfdmu/qb/en-US/qb-rating-entitlements` |

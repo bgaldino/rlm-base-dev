@@ -655,7 +655,6 @@ project:
 
     quantumbit_product_dataset: &quantumbit_product_dataset "datasets/sfdmu/qb/en-US/qb-pcm"               # QuantumBit product data
     quantumbit_pricing_dataset: &quantumbit_pricing_dataset "datasets/sfdmu/qb/en-US/qb-pricing"               # QuantumBit product data
-    quantumbit_product_image_dataset: &quantumbit_product_image_dataset "datasets/sfdmu/qb/en-US/qb-product-images"  # QuantumBit product image data
     quantumbit_billing_dataset: &quantumbit_billing_dataset "datasets/sfdmu/qb/en-US/qb-billing"                     # QuantumBit billing data
     quantumbit_dro_dataset: &quantumbit_dro_dataset "datasets/sfdmu/qb/en-US/qb-dro"                                 # QuantumBit DRO data (dynamic AssignedTo from target org)
     quantumbit_tax_dataset: &quantumbit_tax_dataset "datasets/sfdmu/qb/en-US/qb-tax"                                 # QuantumBit tax data
@@ -2171,13 +2170,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_price_revision_dataset
 
-  insert_quantumbit_product_image_data:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Product Image Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_product_image_dataset
-
   insert_q3_pcm_data:
     group: Revenue Lifecycle Management
     description: Insert Q3 PCM (product catalog) Data
@@ -2887,13 +2879,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
 
-  extract_qb_product_images_data:
-    group: Data Management - Extract
-    description: "Extract qb-product-images from org to CSV. Output in datasets/sfdmu/extractions/qb-product-images/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
-    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_product_image_dataset
-
   extract_qb_dro_data:
     group: Data Management - Extract
     description: "Extract qb-dro from org to CSV. Output in datasets/sfdmu/extractions/qb-dro/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -3082,14 +3067,6 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
-      use_extraction_roundtrip: false
-
-  test_qb_product_images_idempotency:
-    group: Data Management - Idempotency
-    description: Idempotency test for qb-product-images.
-    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
-    options:
-      pathtoexportjson: *quantumbit_product_image_dataset
       use_extraction_roundtrip: false
 
   test_qb_dro_idempotency:
@@ -3924,9 +3901,6 @@ flows:
         task: insert_q3_pcm_data
         when: project_config.project__custom__q3 and not project_config.project__custom__qb
       3:
-        task: insert_quantumbit_product_image_data
-        when: project_config.project__custom__qb
-      4:
         # Every build: make the RLM configurator flow (deployed by deploy_full) the
         # org default, so unassigned products open with non-blocking + instant pricing.
         task: insert_default_configurator_flow
@@ -5058,20 +5032,18 @@ flows:
       2:
         task: extract_qb_pricing_data
       3:
-        task: extract_qb_product_images_data
-      4:
         task: extract_qb_dro_data
-      5:
+      4:
         task: extract_qb_clm_data
-      6:
+      5:
         task: extract_qb_rating_data
-      7:
+      6:
         task: extract_qb_rating_entitlements_data
-      8:
+      7:
         task: extract_qb_rates_data
-      9:
+      8:
         task: extract_qb_transactionprocessingtypes_data
-      10:
+      9:
         task: extract_qb_guidedselling_products_data
 
   run_qb_idempotency_tests:
@@ -5083,41 +5055,39 @@ flows:
       2:
         task: test_qb_pricing_idempotency
       3:
-        task: test_qb_product_images_idempotency
-      4:
         task: test_qb_dro_idempotency
-      5:
+      4:
         task: test_qb_clm_idempotency
-      6:
+      5:
         task: test_qb_rating_idempotency
-      7:
+      6:
         task: test_qb_rating_entitlements_idempotency
-      8:
+      7:
         task: test_qb_rates_idempotency
-      9:
+      8:
         task: test_qb_transactionprocessingtypes_idempotency
-      10:
+      9:
         task: test_qb_guidedselling_products_idempotency
-      # Steps 11-15: feature-gated module idempotency tests, ordered to match the module
+      # Steps 10-14: feature-gated module idempotency tests, ordered to match the module
       # load order in prepare_rlm_org so cross-plan dependencies resolve on an org that does
       # not already have the data. Notably TAX before BILLING: qb-billing references
       # LegalEntity.Name with LegalEntity as Readonly, and those LegalEntity rows are created
       # by qb-tax (LegalEntity = Upsert). prm also precedes prm_pricing (the pricing overlay).
       # Each is guarded by the same feature flags as its data-load task, so the flow stays
       # runnable on a base org where the module's data was never loaded.
-      11:
+      10:
         task: test_qb_tax_idempotency
         when: project_config.project__custom__tax and project_config.project__custom__qb
-      12:
+      11:
         task: test_qb_billing_idempotency
         when: project_config.project__custom__billing and project_config.project__custom__qb
-      13:
+      12:
         task: test_qb_prm_idempotency
         when: project_config.project__custom__prm and project_config.project__custom__qb
-      14:
+      13:
         task: test_qb_approvals_idempotency
         when: project_config.project__custom__qb and project_config.project__custom__approvals
-      15:
+      14:
         task: test_qb_prm_pricing_idempotency
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
 
