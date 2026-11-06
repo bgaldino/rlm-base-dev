@@ -120,6 +120,16 @@ DL_NAME_REMAP = {
     "DRO Customize Capabilties": "DRO Customize Capabilities",
 }
 
+# DynamicLink Identity fixes by record Name, applied after IDENTITY_TYPO_FIXES.
+# RLM_Learning_Identity__c is unique and case-insensitive in the org, so two identities that
+# differ only in case can't both load: the typo fix turns the "Learn Popup" link's `PCM_LEAN_…`
+# into `PCM_LEARN_DYN_LINK`, which clashes with the "Get Started Popup" link's
+# `PCM_Learn_DYN_LINK`, and every fresh load rejected it (todo 334). No block references either
+# identity, so renaming this one changes nothing else.
+DL_IDENTITY_BY_NAME = {
+    "Product Catalog Management Learn Popup": "PCM_LEARN_POPUP_DYN_LINK",
+}
+
 # Section record-Name fix (this Name is the SFDMU externalId). Mutating the source section
 # row before the id->Name maps build propagates the corrected Name to every reference that
 # resolves through sec_n: RLM_Learning_Section__r.Name on DynamicLink + SectionBlock and the
@@ -493,7 +503,7 @@ def main():
             section_renamed += 1
 
     # --- REMAP demo account + fix wrong-vertical release-notes links ----------
-    remapped = relnotes_fixed = dl_renamed = id_typos_fixed = 0
+    remapped = relnotes_fixed = dl_renamed = id_typos_fixed = id_clash_fixed = 0
     for r in dlink:
         if r[14] == "Name = '%s'" % ACCT_FROM:
             r[14] = "Name = '%s'" % ACCT_TO
@@ -512,6 +522,9 @@ def main():
         if fixed != r[3]:
             r[3] = fixed
             id_typos_fixed += 1
+        if r[5] in DL_IDENTITY_BY_NAME and r[3] != DL_IDENTITY_BY_NAME[r[5]]:
+            r[3] = DL_IDENTITY_BY_NAME[r[5]]
+            id_clash_fixed += 1
 
     # --- Split the shared "PCM App" AppPage DynamicLink (Pricing vs PCM) -------
     # The single legacy AppPage link stored a full URL in App_API_Name (invalid as a
@@ -599,21 +612,27 @@ def main():
     # --- RLM_Learning_SectionBlock__c (drop orphans) ---------------------------------------
     # Composite externalId requires an SFDMU v5 `$$` key column: header is
     # `$$` + components joined by `$`; value is the component values joined by `;`.
+    # Keyed on Section + Block only (unique 120/120): the order sequence is a double with scale 0,
+    # so the legacy `1.0` never equalled the org's `1`, and a reorder in the org changes it, so a
+    # key that includes it duplicated rows on reload (todo 334). The sequence is written as an
+    # integer and stays a plain field.
     block_n = {r[0]: r[5] for r in block}
     sb_rows = []
     for r in sblock:
         if r[0] in ORPHAN_SB_IDS or not r[2] or not r[3]:
             continue
         s_name, b_name, order = sec_n.get(r[3], ""), block_n.get(r[2], ""), r[1]
-        sb_rows.append([";".join([s_name, b_name, order]), s_name, b_name, order])
+        if order not in ("", None) and float(order).is_integer():
+            order = str(int(float(order)))
+        sb_rows.append([";".join([s_name, b_name]), s_name, b_name, order])
     write_csv("RLM_Learning_SectionBlock__c",
-              ["$$RLM_Learning_Section__r.Name$RLM_Learning_Block__r.Name$RLM_Learning_Order_Sequence__c",
+              ["$$RLM_Learning_Section__r.Name$RLM_Learning_Block__r.Name",
                "RLM_Learning_Section__r.Name", "RLM_Learning_Block__r.Name", "RLM_Learning_Order_Sequence__c"],
               sb_rows)
 
     print(f"\nScrub: dropped {len(DEAD_BLOCK_IDS)} dead blocks, {len(ORPHAN_SB_IDS)} orphan junctions")
     print(f"Remap: {remapped} Account link Mahesh -> {ACCT_TO}; {dl_renamed} DynamicLink Name(s) fixed; "
-          f"{id_typos_fixed} DynamicLink Identity typo(s) fixed")
+          f"{id_typos_fixed} DynamicLink Identity typo(s) fixed, {id_clash_fixed} case-only clash(es) renamed")
     print(f"262:   {relnotes_fixed} wrong-vertical link(s) -> RC 262; version Winter'26 -> Summer '26;")
     print(f"       {len(HELP_ID_REMAP)} renamed Help IDs + {len(DEVGUIDE_ID_REMAP)} Dev-Guide IDs remapped, "
           f"release pin 258 -> 262;")

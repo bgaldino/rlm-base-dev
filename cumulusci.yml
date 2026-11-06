@@ -3152,6 +3152,14 @@ tasks:
       pathtoexportjson: *quantumbit_prm_dataset
       use_extraction_roundtrip: false
 
+  test_inapp_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for inapp (In-App Learning navigation content). Every object is Upsert since todo 334.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *inapp_dataset
+      use_extraction_roundtrip: false
+
   test_qb_prm_pricing_idempotency:
     group: Data Management - Idempotency
     description: Idempotency test for qb-prm-pricing (PRM pricing overlay).

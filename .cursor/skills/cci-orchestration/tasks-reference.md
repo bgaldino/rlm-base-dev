@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**274 tasks** across **9 groups**.
+**275 tasks** across **9 groups**.
 
 ---
 
@@ -457,7 +457,20 @@
 
 ## Data Management - Idempotency
 
-*23 task(s)*
+*24 task(s)*
+
+### `test_inapp_idempotency`
+
+**Description:** Idempotency test for inapp (In-App Learning navigation content). Every object is Upsert since todo 334.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/inapp`
+- `use_extraction_roundtrip`: `False`
+
+---
 
 ### `test_q3_billing_idempotency`
 

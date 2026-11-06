@@ -259,11 +259,11 @@ The rules for anything that stays destructive:
   can traverse to a parent, so a shape can delete only its own children: on a qb org, a
   `deleteQuery` on mfg's three fulfillment workspaces selected none of qb's 4 items,
   where the unscoped delete selected all 4 (SFDMU `--simulation`, todo 331).
-- **None of the four deletes left needs to stay** (todo 331). mfg-dro's `FulfillmentWorkspaceItem`
+- **None of the three deletes left needs to stay** (todo 331; inapp's section-block junction
+  moved to Upsert in todo 334). mfg-dro's `FulfillmentWorkspaceItem`
   can drop it as qb-dro did (todo 111). mfg-aaf's `AdvAcctForecastSetPartner` can move to Upsert
   now, and `AdvAccountForecastFact` once its CSV drops the source-org Id columns (`PeriodId`,
-  `ProductId`, `Category__c`, `CategoryId`) beside its relationship keys (todo 327). inapp's
-  section-block junction can move to Upsert too (todo 334). Each change still needs owner approval
+  `ProductId`, `Category__c`, `CategoryId`) beside its relationship keys (todo 327). Each change still needs owner approval
   per object.
 - **Teardown tasks stay out of flows.** A flow reloads in place. A full teardown is a deliberate,
   manual step on a disposable org.
