@@ -129,6 +129,8 @@ class Classification(unittest.TestCase):
             ([row("x", "Error", "2026-11-06")], "unknown"),
             ([row("x", "New", "2026-12-01")], "unknown"),
             ([row("x"), row("x", "Active", "2026-12-01")], "conflict"),
+            # No past date on either row, so only the mixed statuses can make this a conflict.
+            ([row("x", "Deleted", "2026-12-01"), row("x", "Active", "2026-12-01")], "conflict"),
         ]
         for rows, expected in cases:
             self.assertEqual(oc.classify(rows, TODAY), expected, rows)
@@ -216,6 +218,13 @@ class UsernameKeyedState(Base):
         plan = self.plan(FakeCli(self.home, aliases=aliases))
         self.assertEqual(plan["report"]["dangling_aliases"], ["cycle-a", "cycle-b", "lost"])
         self.assertEqual(plan["remove"]["aliases"], [])
+
+    def test_a_default_that_leads_nowhere_is_reported_and_never_listed(self):
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "lost"}))
+        (self.home / ".sf" / "config.json").write_text(json.dumps({"target-org": "fine"}))
+        plan = self.plan(FakeCli(self.home, aliases={"fine": HUB}))
+        self.assertEqual(plan["report"]["dangling_defaults"], ["local"])
+        self.assertEqual(plan["remove"]["defaults"], [])
 
     def test_preserved_aliases_excludes_those_logout_clears(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)

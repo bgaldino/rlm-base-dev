@@ -330,6 +330,8 @@ def build_plan(run, home, project, today):
             "unclassified_files": read_unclassified(home, project),
             # Lead to no username, so no hub row can ever put them on the plan.
             "dangling_aliases": sorted(a for a in aliases if "@" not in resolve(a)),
+            "dangling_defaults": sorted(scope for scope, values in config_targets(home, project).items()
+                                        if any("@" not in resolve(v) for v in values)),
         },
         "prune_prediction": predict_prune(read_cci(run), resolve, user_class),
     }

@@ -82,7 +82,7 @@ Review with the user:
 | `conflicting_evidence` | Stop on those entries. |
 | `logins_with_no_refresh_token` | Stops working when its session expires, even though its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. |
-| `dangling_aliases` | Lead to no username, so no hub row can list them. Left alone. Report them, and `sf alias unset <name>` only with the user's approval. |
+| `dangling_aliases`, `dangling_defaults` | Lead to no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>` or `sf config unset target-org`. |
 | `unclassified_files` | Not owned by the CLIs, and not opened. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. Report it and let the user decide. |
 | `prune_prediction` | See step 3. |
 
@@ -129,9 +129,9 @@ its result from CCI's own logic:
 
 Do not run it if `would_remove_but_active_on_hub` is non-empty: CCI computes expiry locally
 as created date plus days, which can lapse before the hub's date. That check has no evidence
-when `hub_failures` is non-empty. A never-instantiated entry is usually a shape declared only
-on another branch, and CCI recreates it on a checkout that declares it; describe it that way,
-not as an expired org.
+when `hub_failures` is non-empty. A never-instantiated entry is usually a shape declared on
+another branch or an earlier commit, and CCI recreates it on a checkout that declares it;
+describe it that way, not as an expired org.
 
 Prune drops only the CCI record. A removed org's login and alias stay, and the next audit lists
 them once the hub shows that org gone.
