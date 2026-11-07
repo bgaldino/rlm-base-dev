@@ -613,12 +613,52 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 # A column in a field that is neither createable nor updateable is dropped by SFDMU,
                 # so its value never lands and can't identify a record for a later pass (a key, like `Id`,
                 # is exempt: it names a record that exists).
-                landed = [c for c in written
-                          if (nm := _field_of(c, fields)) is None
-                          or fields[nm].get("createable") or fields[nm].get("updateable")
-                          or nm in key or nm in SYSTEM_FIELDS]  # an `Id` key names a record
-                earlier.append((landed, [r for r in rows
-                                         if id(r) not in rejected and id(r) not in skipped]))
+                # A created row writes its createable or updateable columns; a row that only patches
+                # writes only the updateable ones not in `excludedFromUpdateFields`, laid over the
+                # record it patches (so a later key can still span a value only the create wrote).
+                idset = set(ident_key)
+
+                def lands(c, patch):
+                    nm = _field_of(c, fields)
+                    if nm is None or nm in key or nm in idset or nm in SYSTEM_FIELDS:  # a key names a record
+                        return True
+                    f = fields[nm]
+                    if patch:
+                        return bool(f.get("updateable")) and nm not in no_update
+                    return bool(f.get("createable") or f.get("updateable"))
+
+                fresh_ids = {id(r) for r in fresh}
+                live = [r for r in rows if id(r) not in rejected and id(r) not in skipped]
+                created = [r for r in live if id(r) in fresh_ids]
+                if created:
+                    earlier.append(([c for c in written if lands(c, False)], created))
+                patch_cols = [c for c in written if lands(c, True)]
+                patch_rels = {lk for c in patch_cols if (lk := layering.relationship_of(c))}
+                by_key: Dict[Any, Tuple[List[str], Dict[str, Any]]] = {}
+                merged_by_headers: Dict[Tuple[str, ...], List[Dict[str, Any]]] = {}
+                for r in live:
+                    if id(r) in fresh_ids:
+                        continue
+                    v = layering.row_values(ident_key, written, r)
+                    k = layering.key_of(v, ident_key) if all(f in v for f in ident_key) else None
+                    if k is None:
+                        continue
+                    if not by_key:  # first patch row: index the persisted rows by this declaration's key
+                        for h, rs in earlier:
+                            for er in rs:
+                                ev = layering.row_values(ident_key, h, er)
+                                if all(f in ev for f in ident_key) and (ek := layering.key_of(ev, ident_key)):
+                                    by_key[ek] = (h, er)
+                    base_h, base = by_key.get(k, ([], {}))
+                    # A lookup this patch writes replaces the columns an earlier pass set it through.
+                    base_h = [c for c in base_h if layering.relationship_of(c) not in patch_rels]
+                    base = {c: v for c, v in base.items() if layering.relationship_of(c) not in patch_rels}
+                    merged = {**base, **{c: r.get(c) for c in patch_cols}}
+                    hdrs = list(dict.fromkeys([*base_h, *patch_cols]))
+                    by_key[k] = (hdrs, merged)
+                    merged_by_headers.setdefault(tuple(hdrs), []).append(merged)
+                for hdrs, merged_rows in merged_by_headers.items():
+                    earlier.append((list(hdrs), merged_rows))
 
     if bad_filters:
         raise ValueError("; ".join(bad_filters))

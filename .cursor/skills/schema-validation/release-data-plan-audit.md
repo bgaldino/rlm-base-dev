@@ -95,6 +95,11 @@ declarations against `sobject describe`.
   evaluated: it clears everything, the same side the Upsert WHERE rule errs on (rows are checked as creates).
   A non-writable field's value is treated as persisted only when it is a declaration's key (an `Id` or
   auto-number `Name`), even for a creating pass whose key value the platform drops.
+  A row that only patches persists only the values of updateable fields not in `excludedFromUpdateFields`
+  (a created row, those of createable or updateable ones), so a later pass keyed on a value the patch
+  couldn't write still creates. The patch is laid over the row it patches, and a lookup it writes replaces
+  the columns an earlier pass set it through. A value a patch overwrites stays matchable (see above), and
+  an `Update` pass persists nothing, so a later pass keyed on a value only it wrote counts as creating.
   A row the platform would reject for a required field (blank, or the pass doesn't load it) or for a
   value outside a restricted picklist isn't persisted, so a later pass on its key re-checks it; describe can overstate `required`, in which case
   the field is in `KNOWN_FINDINGS` and the later pass's finding is the same entry. A row that only patches is rejected for a

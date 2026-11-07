@@ -815,6 +815,68 @@ def test_any_delete_of_an_object_clears_earlier_rows():
                   _f(A.audit(snap, tmp), "required"), expect)
 
 
+def test_patch_rows_persist_only_updateable_values():
+    print("a row that only patches adds no value in a field it can't update")
+    def snap(code_updateable):
+        return {"Widget__x": {"fields": {"Name": field(nillable=False),
+                                         "Code": field(updateable=code_updateable)}}}
+    up = lambda sel, key, **kw: {"query": f"SELECT {sel} FROM Widget__x", "operation": "Upsert",
+                                 "externalId": key, **kw}
+    csvs = ["Name,Code\nfirst,old\n", "Name,Code\nfirst,new\n", "Name,Code\n,new\n"]
+    for label, snapshot, second, expect in (
+            ("Code is updateable and not excluded: pass 2 writes Code=new, so pass 3 patches it",
+             snap(True), {}, []),
+            ("excludedFromUpdateFields keeps Code=new from landing: pass 3 creates and needs Name",
+             snap(True), {"excludedFromUpdateFields": ["Code"]}, ["Name"]),
+            ("Code isn't updateable: pass 2 can't write it, so pass 3 creates and needs Name",
+             snap(False), {}, ["Name"])):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            _three_set_plan(tmp, [up("Name, Code", "Name"), up("Name, Code", "Name", **second),
+                                  up("Name, Code", "Code")], csvs)
+            check(label, _f(A.audit(snapshot, tmp), "required"), expect)
+
+
+def test_patched_row_keeps_what_the_create_wrote():
+    print("a patch is laid over the row it patches, and an undeclared key still names a record")
+    up = lambda sel, key=None: {"query": f"SELECT {sel} FROM Widget__x", "operation": "Upsert",
+                                **({"externalId": key} if key else {})}
+    snap = {"Widget__x": {"fields": {"Name": field(nillable=False),
+                                     "Tag": field(updateable=False), "Code": field()}}}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        _three_set_plan(tmp, [up("Name, Tag, Code", "Name"), up("Name, Tag, Code", "Name"),
+                              up("Tag, Code", "Tag;Code")],
+                        ["Name,Tag,Code\nfirst,t,old\n", "Name,Tag,Code\nfirst,t,new\n", "Tag,Code\nt,new\n"])
+        check("pass 3 keyed on a create-only Tag and a patched Code patches the one record",
+              _f(A.audit(snap, tmp), "required"), [])
+    snap = {"Widget__x": {"fields": {"Name": field("string", createable=False, updateable=False),
+                                     "Code": field(nillable=False)}}}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        _three_set_plan(tmp, [up("Name, Code", "Name"), up("Name, Code"), up("Name", "Name")],
+                        ["Name,Code\na,1\n", "Name,Code\nb,2\n", "Name\nb\n"])
+        check("a pass with no externalId matches on the plan's first key, so its Name still names the record",
+              _f(A.audit(snap, tmp), "required"), [])
+
+
+def test_patch_replaces_the_lookup_an_earlier_pass_set():
+    print("a patch that writes a lookup through another column replaces the earlier value")
+    snap = {"Widget__x": {"fields": {"Name": field(nillable=False), "Req": field(nillable=False),
+                                     "ParentId": field("reference", rel="Parent")}}}
+    snap["Widget__x"]["fields"]["ParentId"]["referenceTo"] = ["Parent__x"]
+    snap["Parent__x"] = {"fields": {"Code": field(), "Kind": field()}}
+    up = lambda sel, key: {"query": f"SELECT {sel} FROM Widget__x", "operation": "Upsert", "externalId": key}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        _three_set_plan(tmp, [up("Name, Req, Parent.Code", "Name"), up("Name, Parent.Code", "Name"),
+                              up("Name, Parent.Code", "Name;Parent.Code")],
+                        ["Name,Req,Parent.Code\nfirst,r,x\n", "Name,Parent.$$Code$Kind\nfirst,y;k\n",
+                         "Name,Parent.Code\nfirst,y\n"])
+        check("pass 3 keyed on Parent.Code=y patches the record pass 2 re-pointed",
+              _f(A.audit(snap, tmp), "required"), [])
+
+
 def test_option_spellings_and_malformed_plans():
     print("excludedFields as a string, excludedFromUpdateFields, a subquery WHERE, a malformed export")
     with tempfile.TemporaryDirectory() as d:
@@ -979,7 +1041,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_option_spellings_and_malformed_plans, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_patch_rows_persist_only_updateable_values, test_patched_row_keeps_what_the_create_wrote, test_patch_replaces_the_lookup_an_earlier_pass_set, test_option_spellings_and_malformed_plans, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()
