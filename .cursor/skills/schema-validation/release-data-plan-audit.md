@@ -98,6 +98,10 @@ declarations against `sobject describe`.
   modeled as a rejection (whether SFDMU nulls an empty cell on update isn't verified here). Only those
   two rejections are modeled; a row the platform rejects for another reason (length, lookup target, a
   validation rule) still counts as created.
+- **A `Rel.$$A$B` lookup cell of only separators or null tokens** (`;`, `#N/A;#N/A`) is blank, so a
+  required lookup it fills is reported. A `required` entry in `KNOWN_FINDINGS` is per plan, object and field, not per row: a
+  triaged instance can grow (more rows, another pass) without a new finding, so say how many rows
+  the reason covers and recheck it when the plan changes.
 - **A WHERE in an Upsert's query.** SFDMU matches against the target records the query returns, so
   the audit assumes such a pass patches nothing an earlier pass created and checks its rows as
   creates; it doesn't evaluate the clause. A value in a field the platform never writes (neither
@@ -125,14 +129,14 @@ declarations against `sobject describe`.
 
 ## 264 run (todo 321)
 
-Fresh `ent-sb0` qb build with `clm_data`, `inapp` and `quote_est_tax` on; 135 objects. 15 gating
+Fresh `ent-sb0` qb build with `clm_data`, `inapp` and `quote_est_tax` on; 135 objects. 16 gating
 findings, all triaged into `KNOWN_FINDINGS`:
 - `AttributePicklist.Code` in four pcm plans and the PRM deal fields (todo 345);
 - qb-clm's `DocumentClauseSet.Category` and `ReferenceRecordAccessType` (todo 346);
-- four in mfg-guidedselling (the mfg rebase list, todo 332);
+- five in mfg-guidedselling (the mfg rebase list, todo 332);
 - qb-accounting's `BillingBatchFilterCriteria` externalId (`JournalEntryRuleName`, copied from the previous object; todo 341).
 
-Seven mfg-aaf/mfg-rebates objects weren't in the describe; they are triaged as `object-missing` (22 known entries in all).
+Seven mfg-aaf/mfg-rebates objects weren't in the describe; they are triaged as `object-missing` (23 known entries in all).
 
 ## Related
 

@@ -780,6 +780,19 @@ def test_non_writable_key_still_matches_later_passes():
               _f(A.audit(snap, tmp), "required"), [])
 
 
+def test_blank_composite_lookup_is_blank():
+    print("a composite lookup cell with no non-null part resolves nothing")
+    snap = {"Child__x": {"fields": {"Name": field(nillable=False),
+                                    "ParentId": field("reference", nillable=False, rel="Parent")}}}
+    for cell, expect in ((";", ["ParentId"]), ("#N/A;#N/A", ["ParentId"]), ("p;c", [])):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            write_plan(tmp, "qb/en-US/p", [{"query": "SELECT Name, ParentId FROM Child__x",
+                                             "operation": "Insert", "externalId": "Name"}],
+                       {"Child__x.csv": f'Name,Parent.$$Name$Code\na,"{cell}"\n'})
+            check(f"cell {cell!r}", _f(A.audit(snap, tmp), "required"), expect)
+
+
 def test_unmatched_plan_prefix_is_an_error():
     print("a --plans prefix that names no plan")
     with tempfile.TemporaryDirectory() as d:
@@ -882,7 +895,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()

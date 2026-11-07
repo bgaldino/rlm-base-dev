@@ -131,6 +131,8 @@ KNOWN_FINDINGS: Dict[Tuple[str, str, str, str], str] = {
         "not on a 264 org (absent from the 262 and 264 ERD snapshots too); mfg rebase (todo 332)",
     ("mfg/en-US/mfg-guidedselling", "OmniProcessElement", "required", "OmniProcessId"):
         "4 rows have #N/A for OmniProcess.UniqueName (an extraction gap); mfg rebase (todo 332)",
+    ("mfg/en-US/mfg-guidedselling", "OmniProcessAsmtQuestionVer", "required", "AssessmentQuestionVersionId"):
+        "all 8 rows have an empty AssessmentQuestionVersion composite lookup (an extraction gap); mfg rebase (todo 332)",
 }
 
 
@@ -337,6 +339,14 @@ def _path_problem(obj: str, segs: List[str], snapshot: Dict[str, Any]) -> Option
     return None if None in problems or len(targets) < len(wanted) else problems[0]
 
 
+def _blank(col: str, value: Optional[str]) -> bool:
+    """Whether SFDMU treats the cell as empty: null, or a `Rel.$$A$B` lookup whose parts are all null
+    (`;`, `#N/A;#N/A`), which resolves nothing."""
+    if layering.is_null(value):
+        return True
+    return ".$$" in col and all(layering.is_null(part) for part in (value or "").split(";"))
+
+
 def _is_required(name: str, f: Dict[str, Any]) -> bool:
     return (bool(f.get("createable")) and not f.get("nillable") and not f.get("defaultedOnCreate")
             and f.get("type") != "boolean" and name not in SYSTEM_FIELDS)
@@ -514,7 +524,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                     # The platform rejects a create that lacks, or leaves blank, a required field, or
                     # carries a value a restricted picklist doesn't list.
                     return id(r) in bad_picklist_rows or any(
-                        n not in by_field or all(layering.is_null(r.get(c)) for c in by_field[n])
+                        n not in by_field or all(_blank(c, r.get(c)) for c in by_field[n])
                         for n in required)
 
                 if op == "insert" or not ident_key:
@@ -543,7 +553,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                             rejected.update(id(r) for r in fresh)
                             continue
                         blanks = [r for r in fresh
-                                  if all(layering.is_null(r.get(c)) for c in by_field[name])]
+                                  if all(_blank(c, r.get(c)) for c in by_field[name])]
                         if blanks:
                             add(rel, obj, "required", name,
                                 f"{where}: {obj}.{name} is required on create and {len(blanks)} "
