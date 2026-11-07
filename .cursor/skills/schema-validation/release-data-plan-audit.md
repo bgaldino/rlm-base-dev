@@ -21,7 +21,7 @@ declarations against `sobject describe`.
 ## Steps
 
 1. **Build a feature-complete org.** Use the build harness on the usual shape with every optional data
-   plan on (for qb: `clm_data`, `inapp`, `quote_est_tax` on top of the defaults). An object a feature
+   plan on (for qb: `clm_data`, `inapp`, `quote_est_tax` on top of the defaults), and pass `--keep-orgs`: the harness deletes a successful org by default, and the snapshot is captured from it. An object a feature
    doesn't enable is missing from the describe; it isn't audited and the run reports it as
    `object-missing` (gating; step 4 triages it).
 2. **Capture the snapshot.** Read-only; it queries the API version in `api_version_active` and records it in the snapshot's metadata (a `--merge` base whose metadata records another release or version, or lacks them, is refused):
@@ -107,7 +107,7 @@ declarations against `sobject describe`.
 - **A feature-complete build can fail on the plans you are auditing.** The 264 run's `clm_data`
   build failed at `prepare_clm` (qb-clm, todo 346). Record the failure as a finding, advance the
   harness checkpoint past the step (`checkpoint.json`: `failed_step` null, `last_successful_step`
-  the failed step) and `harness.py resume`, so the remaining plans load and are audited.
+  the failed step) and `harness.py resume --keep-orgs` (resume also deletes the org on success otherwise), so the remaining plans load and are audited.
 - **mfg-only objects** (AAF, rebates) aren't on a qb build. Merge a snapshot from an org that has them;
   until then they are triaged as `object-missing` in `KNOWN_FINDINGS`, and a new plan object the
   describe lacks fails the audit.
