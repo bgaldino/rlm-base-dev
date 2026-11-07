@@ -23,8 +23,9 @@ Gating findings (each fails the run unless `KNOWN_FINDINGS` lists it, with its r
                  org's currency set, so it's skipped)
   required       a creating declaration leaves out, or leaves blank on the rows it creates, a
                  field that is createable, not nillable and not defaulted on create. An Upsert row
-                 whose externalId value an earlier creating pass already loaded only patches it,
-                 and a repeat of a key in one pass counts once; Insert rows always create
+                 whose externalId value an earlier creating pass already created (a row the
+                 platform rejects for a required field or restricted picklist value isn't) only
+                 patches it, and a repeat of a key in one pass counts once; Insert rows always create
   object-missing the object isn't in the describe, so its declarations aren't audited (a feature
                  the org lacks); gating so an unaudited object is triaged, not silently passed
 Informational (reported, never gating):
@@ -37,8 +38,10 @@ Informational (reported, never gating):
   release-values   picklist values the release added to a field a plan writes
 
 Exit codes: 0 = no new gating finding · 1 = findings (new, or stale `KNOWN_FINDINGS` entries)
-· 2 = tool error (no snapshot for the active release, or a `sourceRecordsFilter` the audit can't
-evaluate).
+· 2 = tool error (no snapshot for the active release, or one recorded for another release or API
+version, a `--plans` prefix that matches no plan, or a `sourceRecordsFilter` the audit can't evaluate).
+Only required-field and restricted-picklist rejections are modeled; a row the platform rejects for
+another reason (length, lookup target, a validation rule) is still treated as created.
 """
 from __future__ import annotations
 
@@ -175,10 +178,18 @@ def plan_objects(root: Path = SFDMU, prefixes: Iterable[str] = ()) -> List[str]:
 def selected_plans(root: Path, prefixes: Iterable[str]) -> List[Path]:
     prefixes = [p.strip("/") for p in prefixes]
     out = []
+    hit = set()
     for plan in layering.plan_dirs(root):
         rel = plan.relative_to(root).as_posix()
-        if not prefixes or any(rel == p or rel.startswith(p + "/") for p in prefixes):
+        matched = [p for p in prefixes if rel == p or rel.startswith(p + "/")]
+        if not prefixes or matched:
             out.append(plan)
+            hit.update(matched)
+    # A prefix that names no plan audits nothing for it and would pass; a typo must not.
+    if unmatched := [p for p in prefixes if p not in hit]:
+        raise ValueError(f"--plans {', '.join(unmatched)} matches no tracked plan under {root}")
+    if not out:
+        raise ValueError(f"no tracked plan under {root}; an audit of nothing would pass")
     return out
 
 
@@ -410,6 +421,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 if name:
                     by_field[name].append(col)
             written_by_obj[obj].update(by_field)
+            bad_picklist_rows = set()  # ids of rows the platform rejects for a restricted picklist value
 
             for name, cols in sorted(by_field.items()):
                 f = fields[name]
@@ -430,6 +442,11 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                             if not layering.is_null(v)}
                     bad = sorted(vals - allowed)
                     if bad and f.get("restrictedPicklist"):
+                        bad_picklist_rows.update(
+                            id(r) for r in filled for c in cols if "." not in c
+                            for v in ([x.strip() for x in (r.get(c) or "").split(";")]
+                                      if f["type"] == "multipicklist" else [r.get(c) or ""])
+                            if not layering.is_null(v) and v not in allowed)
                         add(rel, obj, "picklist", name,
                             f"{where}: {', '.join(bad)} not among the restricted picklist's active "
                             f"values ({', '.join(sorted(allowed)) or 'none'})", values=bad)
@@ -470,8 +487,9 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 required = [n for n, f in sorted(fields.items()) if _is_required(n, f)]
 
                 def rejected_row(r):
-                    # The platform rejects a create that lacks, or leaves blank, a required field.
-                    return any(n not in by_field or all(layering.is_null(r.get(c)) for c in by_field[n])
+                    # The platform rejects a create that lacks, or leaves blank, a required field, or
+                    # carries a value a restricted picklist doesn't list.
+                    return id(r) in bad_picklist_rows or any(n not in by_field or all(layering.is_null(r.get(c)) for c in by_field[n])
                                for n in required)
 
                 if op == "insert" or not ident_key:
@@ -485,7 +503,8 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                             fresh.append(r)
                             if ident is not None and not rejected_row(r):
                                 known.add(ident)  # a repeat of it in this pass patches the row created
-                rejected = set()  # ids of fresh rows the platform would reject for a required field
+                # ids of fresh rows the platform would reject for a required field or picklist value
+                rejected = {id(r) for r in fresh if id(r) in bad_picklist_rows}
                 if fresh:
                     for name, f in sorted(fields.items()):
                         if not _is_required(name, f):

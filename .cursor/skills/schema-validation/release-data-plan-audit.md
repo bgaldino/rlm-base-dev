@@ -39,7 +39,7 @@ declarations against `sobject describe`.
    With no `--target-org` or `--snapshot` it reads the active release's snapshot
    (`salesforce_release_active` in `.claude/skill-manifest.yml`) and the newest
    `scripts/erd/schema_diff/*-vs-<release>-diff.json` for the release's new fields and values.
-   `--plans qb/en-US` limits it to some plans; an allowlist entry is reported stale only for a plan it audited.
+   `--plans qb/en-US` limits it to some plans (a prefix that names no plan exits 2); an allowlist entry is reported stale only for a plan it audited.
 4. **Triage each gating finding.** Fix the plan, or add an entry to `KNOWN_FINDINGS` in the script with
    the reason it stands and the todo that owns it. A `picklist` entry also lists its offending values in `TRIAGED_VALUES`; a different bad value in the same field is a new finding. A triaged value that no longer appears makes the entry stale. The run fails on any finding not listed, and on any
    listed entry no longer found.
@@ -91,9 +91,11 @@ declarations against `sobject describe`.
   as patching. For a plan that does this, run the audit on its final pass alone.
   A pass with `deleteOldData: true` clears the object's earlier rows first, so its own rows are all
   treated as created.
-  A row the platform would reject for a required field (blank, or the pass doesn't load it) isn't
-  persisted, so a later pass on its key re-checks it; describe can overstate `required`, in which case
-  the field is in `KNOWN_FINDINGS` and the later pass's finding is the same entry.
+  A row the platform would reject for a required field (blank, or the pass doesn't load it) or for a
+  value outside a restricted picklist isn't persisted, so a later pass on its key re-checks it; describe can overstate `required`, in which case
+  the field is in `KNOWN_FINDINGS` and the later pass's finding is the same entry. Only those two
+  rejections are modeled; a row the platform rejects for another reason (length, lookup target, a
+  validation rule) still counts as created.
 - **`required` assumes a creating declaration creates.** An Upsert that only fills a few
   fields on records another plan created is flagged for every required field it leaves out. List it
   in `KNOWN_FINDINGS` with that reason rather than adding columns.
