@@ -666,6 +666,30 @@ def test_skip_existing_rows_are_not_value_checked():
                   [f for f in _f(A.audit(SNAPSHOT, tmp), "picklist")], expect)
 
 
+def test_rejected_patch_rows_add_no_key_for_later_passes():
+    print("a patch the platform rejects for a restricted picklist value writes nothing")
+    snap = {"Widget__x": {"fields": {"Name": field(nillable=False), "Code": field(nillable=False),
+                                     "Kind": field("picklist", restricted=True, values=["A", "B"])}}}
+    for kind, expect in (("Q", ["Name"]), ("A", [])):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            plan = tmp / "qb/en-US/p"
+            for n in (2, 3):
+                (plan / f"objectset_source/object-set-{n}").mkdir(parents=True)
+            decl = lambda key: {"objects": [{"query": "SELECT Name, Code, Kind FROM Widget__x",
+                                             "operation": "Upsert", "externalId": key}]}
+            (plan / "export.json").write_text(json.dumps({"useSeparatedCSVFiles": True, "objectSets": [
+                decl("Name"), decl("Name"), decl("Code")]}), encoding="utf-8")
+            (plan / "Widget__x.csv").write_text("Name,Code,Kind\nfirst,old,A\n", encoding="utf-8")
+            (plan / "objectset_source/object-set-2/Widget__x.csv").write_text(
+                f"Name,Code,Kind\nfirst,new,{kind}\n", encoding="utf-8")
+            (plan / "objectset_source/object-set-3/Widget__x.csv").write_text("Name,Code,Kind\n,new,A\n",
+                                                                              encoding="utf-8")
+            check(f"pass 2 Kind={kind}: pass 3 on Code=new "
+                  f"{'creates the record' if expect else 'patches pass 2'}",
+                  _f(A.audit(snap, tmp), "required"), expect)
+
+
 def test_skipped_rows_add_no_key_for_later_passes():
     print("a skipExistingRecords row writes nothing, so a later pass can't match its key")
     snap = {"Widget__x": {"fields": {"Name": field(nillable=False), "Code": field(nillable=False)}}}
@@ -790,7 +814,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()

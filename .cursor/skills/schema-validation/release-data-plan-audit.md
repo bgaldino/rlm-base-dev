@@ -93,12 +93,14 @@ declarations against `sobject describe`.
   treated as created.
   A row the platform would reject for a required field (blank, or the pass doesn't load it) or for a
   value outside a restricted picklist isn't persisted, so a later pass on its key re-checks it; describe can overstate `required`, in which case
-  the field is in `KNOWN_FINDINGS` and the later pass's finding is the same entry. Only those two
-  rejections are modeled; a row the platform rejects for another reason (length, lookup target, a
+  the field is in `KNOWN_FINDINGS` and the later pass's finding is the same entry. A row that only patches is rejected for a
+  bad picklist value too (its other columns don't land); a blank required value on a patch row isn't
+  modeled as a rejection (whether SFDMU nulls an empty cell on update isn't verified here). Only those
+  two rejections are modeled; a row the platform rejects for another reason (length, lookup target, a
   validation rule) still counts as created.
 - **`skipExistingRecords` passes.** An Upsert row of such a pass whose key an earlier creating pass of the
-  plan created is left alone by SFDMU, so its values aren't value-checked (picklist, dead columns).
-  Records that already exist in the org aren't modeled.
+  plan created is left alone by SFDMU, so its values aren't value-checked (picklist, dead columns)
+  and it adds no key for later passes to match. Records that already exist in the org aren't modeled.
 - **`required` assumes a creating declaration creates.** An Upsert that only fills a few
   fields on records another plan created is flagged for every required field it leaves out. List it
   in `KNOWN_FINDINGS` with that reason rather than adding columns.

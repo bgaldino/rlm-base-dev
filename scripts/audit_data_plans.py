@@ -523,8 +523,10 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                             fresh.append(r)
                             if ident is not None and not rejected_row(r):
                                 known.add(ident)  # a repeat of it in this pass patches the row created
-                # ids of fresh rows the platform would reject for a required field or picklist value
-                rejected = {id(r) for r in fresh if id(r) in bad_picklist_rows}
+                # ids of rows the platform would reject for a required field or picklist value. A
+                # row that only patches is rejected for a bad picklist value too: its other columns
+                # don't land, so they add nothing a later pass can match.
+                rejected = {id(r) for r in rows if id(r) in bad_picklist_rows}
                 if fresh:
                     for name, f in sorted(fields.items()):
                         if not _is_required(name, f):
