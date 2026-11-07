@@ -82,7 +82,7 @@ declarations against `sobject describe`.
   `Pricebook2Share` stay), marks the field `orgValues`, and the audit doesn't value-check it.
 - **`required` reads rows, not the org.** An Upsert row counts as already created when an earlier creating
   pass of the plan loaded the same `externalId` value, whatever the org holds, and a repeat of a key in
-  one pass counts once (the first row), so row order inside a CSV can decide which row is checked.
+  one pass patches the first row that passes the required check, so row order inside a CSV can decide which row is checked.
   A declaration with no `externalId` is matched on the plan's first creating declaration's key. A pass
   whose CSV lacks one of the key's columns can't be matched, either side, so its rows count as created.
   A key value is matched as written: a later pass that rewrites a key field of an existing record
@@ -90,6 +90,9 @@ declarations against `sobject describe`.
   as patching. For a plan that does this, run the audit on its final pass alone.
   A pass with `deleteOldData: true` clears the object's earlier rows first, so its own rows are all
   treated as created.
+  A row the platform would reject for a required field (blank, or the pass doesn't load it) isn't
+  persisted, so a later pass on its key re-checks it; describe can overstate `required`, in which case
+  the field is in `KNOWN_FINDINGS` and the later pass's finding is the same entry.
 - **`required` assumes a creating declaration creates.** An Upsert that only fills a few
   fields on records another plan created is flagged for every required field it leaves out. List it
   in `KNOWN_FINDINGS` with that reason rather than adding columns.
@@ -99,7 +102,7 @@ declarations against `sobject describe`.
   the failed step) and `harness.py resume`, so the remaining plans load and are audited.
 - **mfg-only objects** (AAF, rebates) aren't on a qb build. Merge a snapshot from an org that has them,
   or they stay under *Objects not in the describe*.
-- **SFDMU's polymorphic `Rel$Type`** (`Who$Contact.Name`) is resolved through that target only; an untyped polymorphic path passes if any target has the rest. Which columns a declaration writes ignores the type (a `Who$Lead.Name` header counts as written for a query selecting `Who$Contact.Name`), and the layering checker's shared-record merge treats `Who$Contact` and `Who` as different lookups.
+- **SFDMU's polymorphic `Rel$Type`** (`Who$Contact.Name`) is resolved through that target only; an untyped polymorphic path passes if any target has the rest; a typed lookup field (`WhoId$Contact`) must reference that type. Which columns a declaration writes ignores the type (a `Who$Lead.Name` header counts as written for a query selecting `Who$Contact.Name`), and the layering checker's shared-record merge treats `Who$Contact` and `Who` as different lookups.
 - **An unsupported `sourceRecordsFilter`** (`Name IN (...)`) exits 2 rather than skipping the declaration; rewrite it as `[col] LIKE`, `=` or `<>`.
 - **`--plans` and a feature-incomplete org:** an allowlist entry for an object the describe lacks is never reported stale, since it wasn't checked.
 

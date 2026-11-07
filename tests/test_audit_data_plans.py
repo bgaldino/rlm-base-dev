@@ -292,8 +292,18 @@ def test_required_repeated_key_in_a_pass():
             {"Widget__x.csv": "Name,Code,Required\nn1,c1,\nn2,c1,\nn3,c2,\n"})
         r = A.audit(SNAPSHOT, tmp)
         req = [f for f in r["findings"] if f["check"] == "required"]
-        check("c1 twice is one created record", [f["detail"] for f in req],
-              ["pass 1: Widget__x.Required is required on create and 2 row(s) leave it blank"])
+        check("a key repeated after a rejected row is checked again (n1, n2 on c1, n3 on c2)",
+              [f["detail"] for f in req],
+              ["pass 1: Widget__x.Required is required on create and 3 row(s) leave it blank"])
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/p", [
+            {"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert",
+             "externalId": "Code"}],
+            {"Widget__x.csv": "Name,Code,Required\nn1,c1,\nn2,c1,r\nn3,c1,\n"})
+        req = [f["detail"] for f in A.audit(SNAPSHOT, tmp)["findings"] if f["check"] == "required"]
+        check("c1's first row is rejected, the second creates it, the third patches it", req,
+              ["pass 1: Widget__x.Required is required on create and 1 row(s) leave it blank"])
 
 
 def test_required_three_passes_and_default_key():
@@ -317,9 +327,10 @@ def test_required_three_passes_and_default_key():
             head + "n1,c1,\nn2,c2,\nn3,c3,\n", encoding="utf-8")
         r = A.audit(SNAPSHOT, tmp)
         req = sorted(f["detail"] for f in r["findings"] if f["check"] == "required")
-        check("pass 2 creates c2; pass 3 (the plan's Code key) creates only c3", req, [
+        check("pass 2 creates c2 (rejected: blank Required); pass 3 (the plan's Code key) re-checks "
+              "c2 and checks c3, but c1 from pass 1 persisted", req, [
             "pass 2: Widget__x.Required is required on create and 1 row(s) leave it blank",
-            "pass 3: Widget__x.Required is required on create and 1 row(s) leave it blank"])
+            "pass 3: Widget__x.Required is required on create and 2 row(s) leave it blank"])
 
 
 def test_required_unselected_column_is_not_a_key():
@@ -443,6 +454,8 @@ def test_csv_lookup_paths_and_api_version():
                           {**poly, "Task__x": {"fields": {"WhoId": {**field("reference", rel="Who"),
                                                "referenceTo": ["Elsewhere"]}}}}), None)
     check("a type on the last segment names the field", problem("WhoId$Contact__x"), None)
+    check("a type on the last segment must be one the field references",
+          problem("WhoId$Account") is not None, True)
     check("a typed plain header is its field",
           A._field_of("WhoId$Contact__x", poly["Task__x"]["fields"]), "WhoId")
     check("a typed header counts as writing its lookup", A._field_of("Who$Contact__x.Name", poly["Task__x"]["fields"]), "WhoId")
@@ -548,6 +561,25 @@ def _f(result, name):
     return [f["field"] for f in result["findings"] if f["check"] == name]
 
 
+def test_rejected_rows_are_not_persisted():
+    print("a row an earlier pass would be rejected for a required field isn't patched by a later pass")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        plan = tmp / "qb/en-US/p"
+        (plan / "objectset_source/object-set-2").mkdir(parents=True)
+        decl = {"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert",
+                "externalId": "Code"}
+        (plan / "export.json").write_text(json.dumps({"useSeparatedCSVFiles": True, "objectSets": [
+            {"objects": [decl]}, {"objects": [decl]}]}), encoding="utf-8")
+        (plan / "Widget__x.csv").write_text("Name,Code,Required\nn1,c1,\nn2,c2,r\n", encoding="utf-8")
+        (plan / "objectset_source/object-set-2/Widget__x.csv").write_text(
+            "Name,Code,Required\nn1,c1,\nn2,c2,\n", encoding="utf-8")
+        found = sorted(f["detail"] for f in A.audit(SNAPSHOT, tmp)["findings"] if f["check"] == "required")
+        check("pass 2 re-checks c1 (rejected in pass 1) but not c2 (persisted)", found, [
+            "pass 1: Widget__x.Required is required on create and 1 row(s) leave it blank",
+            "pass 2: Widget__x.Required is required on create and 1 row(s) leave it blank"])
+
+
 def test_delete_old_data_and_exclusions():
     print("deleteOldData clears earlier rows; every written column is validated; excludedFields")
     with tempfile.TemporaryDirectory() as d:
@@ -610,7 +642,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()

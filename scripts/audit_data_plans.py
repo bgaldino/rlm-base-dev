@@ -273,11 +273,16 @@ def _path_problem(obj: str, segs: List[str], snapshot: Dict[str, Any]) -> Option
     None when it does or can't be checked: a lookup's target missing from the snapshot is left
     unchecked. A segment `Rel$Type` is SFDMU's polymorphic lookup resolved through `Type`, so the rest
     is checked against that target only; without one, a polymorphic lookup resolves if any target in
-    the snapshot has the rest. On the last segment `$Type` only names the lookup field itself."""
+    the snapshot has the rest. On the last segment `$Type` names the lookup field itself, which must reference it."""
     fields = snapshot[obj]["fields"]
     seg, _, typed = segs[0].partition("$")
     if len(segs) == 1:
-        return None if seg in fields or seg in ALWAYS_PRESENT else f"{obj} has no field `{seg}`"
+        if seg not in fields:
+            return None if seg in ALWAYS_PRESENT else f"{obj} has no field `{seg}`"
+        targets = fields[seg].get("referenceTo") or []
+        if typed and targets and typed.lower() not in (t.lower() for t in targets):
+            return f"`{seg}` doesn't reference `{typed}`"
+        return None
     f = next((f for f in fields.values() if f.get("relationshipName") == seg), None)
     if f is None:
         return f"{obj} has no relationship `{seg}`"
@@ -439,6 +444,13 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                                 seen[1].add(k)
                     seen[0] = len(earlier)
                     known = set(seen[1])
+                required = [n for n, f in sorted(fields.items()) if _is_required(n, f)]
+
+                def rejected_row(r):
+                    # The platform rejects a create that lacks, or leaves blank, a required field.
+                    return any(n not in by_field or all(layering.is_null(r.get(c)) for c in by_field[n])
+                               for n in required)
+
                 if op == "insert" or not ident_key:
                     fresh = list(rows)
                 else:
@@ -448,9 +460,9 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                         ident = layering.key_of(v, ident_key) if all(f in v for f in ident_key) else None
                         if ident is None or ident not in known:
                             fresh.append(r)
-                            if ident is not None:
-                                known.add(ident)  # a repeat of it in this pass patches the first
-                earlier.append((written, rows))
+                            if ident is not None and not rejected_row(r):
+                                known.add(ident)  # a repeat of it in this pass patches the row created
+                rejected = set()  # ids of fresh rows the platform would reject for a required field
                 if fresh:
                     for name, f in sorted(fields.items()):
                         if not _is_required(name, f):
@@ -459,13 +471,19 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                             add(rel, obj, "required", name,
                                 f"{where}: {obj}.{name} is required on create (not nillable, not "
                                 f"defaulted) and the plan doesn't load it")
+                            rejected.update(id(r) for r in fresh)
                             continue
-                        blank = sum(1 for r in fresh
-                                    if all(layering.is_null(r.get(c)) for c in by_field[name]))
-                        if blank:
+                        blanks = [r for r in fresh
+                                  if all(layering.is_null(r.get(c)) for c in by_field[name])]
+                        if blanks:
                             add(rel, obj, "required", name,
-                                f"{where}: {obj}.{name} is required on create and {blank} row(s) "
-                                f"leave it blank")
+                                f"{where}: {obj}.{name} is required on create and {len(blanks)} "
+                                f"row(s) leave it blank")
+                            rejected.update(id(r) for r in blanks)
+                # A rejected row isn't persisted, so a later pass on its key creates it rather than
+                # patching it. (Describe can overstate `required`; such a field is triaged in
+                # KNOWN_FINDINGS, and the later pass's finding for it is the same entry.)
+                earlier.append((written, [r for r in rows if id(r) not in rejected]))
 
     if bad_filters:
         raise ValueError("; ".join(bad_filters))
