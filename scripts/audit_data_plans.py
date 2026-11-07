@@ -545,7 +545,9 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 # A rejected row isn't persisted, so a later pass on its key creates it rather than
                 # patching it. (Describe can overstate `required`; such a field is triaged in
                 # KNOWN_FINDINGS, and the later pass's finding for it is the same entry.)
-                earlier.append((written, [r for r in rows if id(r) not in rejected]))
+                # A row a skipExistingRecords pass leaves alone writes nothing, so it adds no key either.
+                earlier.append((written, [r for r in rows
+                                          if id(r) not in rejected and id(r) not in skipped]))
 
     if bad_filters:
         raise ValueError("; ".join(bad_filters))
