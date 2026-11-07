@@ -84,13 +84,12 @@ using the old values with no error anywhere.
 After reloading this plan by itself, run:
 
 ```bash
-cci task run refresh_dt_rating
-cci task run refresh_dt_rating_discovery
+cci task run refresh_dt_rating --org <cci_alias>
+cci task run refresh_dt_rating_discovery --org <cci_alias>
 ```
 
-Note these tasks take **no `--org` flag** (like `activate_rates`, they are plain
-`BaseTask`s without `salesforce_task = True`) — they run against the CCI *default*
-org, so set the default org before running them.
+These tasks (like `activate_rates`) accept `--org`; without it they run against the
+CCI *default* org.
 
 Two more ordering rules for an ad-hoc reload:
 

@@ -2,8 +2,9 @@
 
 > Sub-file of `.cursor/skills/ramped-quotes/SKILL.md`. Measured 2026-11-05/06 on one 264 scratch org
 > (Enterprise, API 68.0), **Quote** output. Rows say whether the bundle was built by API or in the quote UI;
-> the two paths gave different amend results (see the matrix). Treat each row as a measurement, not a root
-> cause. Re-verify on the target org.
+> the two paths gave different amend results (see the matrix). "API-built" means the bundle was added with
+> `AddProducts` into already-ramped segments; the EditGroup-then-clone shape is covered separately below. Treat
+> each row as a measurement, not a root cause. Re-verify on the target org.
 
 ## Limiting a one-time child to segment 1
 
@@ -12,21 +13,41 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
 `AssociatedQuoteLinePricing`), then `DeleteProducts` the one-time child's lines in segments 2 and 3.
 
 - The root and the term child are stamped with `RampIdentifier`/`SegmentIdentifier`. Built by API, a **one-time or evergreen
-  child gets neither**, so no contiguity check applied to it in the test, and a segment 2-only delete of it was accepted.
+  child gets neither** when added with `AddProducts` into already-ramped segments, so no contiguity check applied to it in
+  the test, and a segment 2-only delete of it was accepted. (Lines present before EditGroup and then cloned were stamped,
+  one-time child included; see [Cloning a segment that holds a bundle](#cloning-a-segment-that-holds-a-bundle). Amend and cancel on that shape were not measured.)
   Built in the quote UI (Browse Catalogs, *Current and Subsequent Segments*), a one-time child of a term bundle **is**
   stamped. An API delete of only the segment 2 line of such a stamped child was refused ("You can't delete ramped line items
   selectively. Include all related ramped line items from subsequent group ramp segments and try again.").
 - In the quote UI the same result is reachable for an **optional** child: open the bundle's configurator in segment 2, untick the
   child, save. The dialog says "Configuration changes will apply to current and all future segments", and the child stayed
   in segment 1 only; root and term child stayed in all three. Unticking it in segment 3 only removed it from segment 3.
-  Re-ticking it in segment 3 was accepted.
+  Re-ticking it in segment 3 (the last segment, the only one tried) was accepted.
 - A **required** child cannot be removed that way: its checkbox is disabled in the segment 2 configurator and the line's row
   menu has no delete.
 - UI adds of the test bundles failed with `UNKNOWN_EXCEPTION` and no lines written while `IsDefault` was false on their
   `ProductSellingModelOption` rows. Setting `IsDefault = true` on the root and child options together fixed it; which row
   matters was not isolated. Simple products with it false added fine.
-- The API recipe ran outside the active CML models (`configurationMethod: Skip`, test products with no constraint model).
-  The CML-active-bundle DO NOT in SKILL.md still applies to catalog bundles.
+- The API recipe ran outside the active CML models because no constraint model references the test products
+  (`configurationMethod: Skip` alone does not stop a clone running group rules). Where a model adds products to a
+  ramped quote, see the SKILL.md DO NOT on rule-added products.
+
+## Cloning a segment that holds a bundle
+
+Measured on the same 264 org (2026-11-06), root and term child on Term Annual, EditGroup then Connect clone
+(`lineScope: AllLines`) to three segments:
+
+- A test bundle with a term child and a one-time child (no constraint model references it) cloned with no error.
+  Each segment kept the root, term child and one-time child, all stamped.
+- A model-referenced bundle (`QB-COMPLETE`, rules run before the clone and a configure call per segment after it)
+  cloned with no error. Each segment kept its term children and its one-time default child, all stamped. The shipped
+  models have no group-level container, so no group `require` fired in this run.
+- Clone copies what segment 1 held, so a default child present before the clone is present in every segment.
+- In an earlier quote UI run, a bundle no active model references and one a model references were each added across
+  three segments with ramp ids on every line (not cloned).
+
+Clone is not the failure point for these shapes. The persist failures in the matrix below are at amend and cancel,
+and were measured on bundles added with `AddProducts`, not on this clone-built shape.
 
 ## Assetization shape
 

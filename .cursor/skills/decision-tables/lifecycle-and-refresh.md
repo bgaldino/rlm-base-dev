@@ -308,8 +308,8 @@ not in the code. Option names differ: `manage_decision_tables` takes `developer_
 ### Auth and the token refresh
 
 `salesforce_task = True` gives each task its `--org` option and missing-org guard. Without it,
-the CLI builds no `--org` option: `cci task run refresh_dt_commerce --org <alias>` fails with
-"No such option: --org", and a run without `--org` silently uses the CCI default org (issue #320;
+`cci task run <task> --org <alias>` fails with "No such option: --org", and a run without `--org`
+silently uses the CCI default org (issue #320;
 `tests/test_cci_task_org_option.py` asserts the flag).
 
 The flag does **not** refresh the token. `BaseTask` defines `_update_credentials` as a bare
