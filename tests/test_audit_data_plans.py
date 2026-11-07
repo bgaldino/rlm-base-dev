@@ -793,6 +793,35 @@ def test_blank_composite_lookup_is_blank():
             check(f"cell {cell!r}", _f(A.audit(snap, tmp), "required"), expect)
 
 
+def test_any_delete_of_an_object_clears_earlier_rows():
+    print("a Delete pass, or deleteOldData on any operation, removes the rows earlier passes created")
+    snap = {"Widget__x": {"fields": {"Name": field(nillable=False), "Code": field(nillable=False)}}}
+    upsert = lambda sel, **kw: {"query": f"SELECT {sel} FROM Widget__x", "operation": "Upsert",
+                                "externalId": "Code", **kw}
+    for label, mid, expect in (
+            ("no delete", {"query": "SELECT Code FROM Widget__x", "operation": "Readonly"}, []),
+            ("a Delete pass", {"query": "SELECT Code FROM Widget__x", "operation": "Delete"}, ["Name"]),
+            ("Update with deleteOldData", {"query": "SELECT Code, Name FROM Widget__x", "operation": "Update",
+                                           "externalId": "Code", "deleteOldData": True}, ["Name"])):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            _three_set_plan(tmp, [upsert("Name, Code"), mid, upsert("Code")],
+                            ["Name,Code\nn,c\n", "Code,Name\nc,n\n", "Code\nc\n"])
+            check(f"{label}: pass 3 {'creates c, so it must load Name' if expect else 'patches pass 1'}",
+                  _f(A.audit(snap, tmp), "required"), expect)
+
+
+def test_discriminator_needs_a_lookup_and_a_type():
+    print("a `$Type` suffix must name a type on a lookup field")
+    snap = {"Task": {"fields": {"WhoId": field("reference", rel="Who"), "Subject": field()}},
+            "Contact": {"fields": {"Name": field()}}}
+    snap["Task"]["fields"]["WhoId"]["referenceTo"] = ["Contact"]
+    for path, ok in ((["WhoId$Contact"], True), (["Subject$Contact"], False), (["Who$", "Name"], False),
+                     (["Who$Contact", "Name"], True)):
+        got = A._path_problem("Task", path, snap)
+        check(f"{'.'.join(path)}", got is None, ok)
+
+
 def test_unmatched_plan_prefix_is_an_error():
     print("a --plans prefix that names no plan")
     with tempfile.TemporaryDirectory() as d:
@@ -895,7 +924,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()

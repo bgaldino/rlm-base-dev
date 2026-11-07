@@ -89,8 +89,10 @@ declarations against `sobject describe`.
   A key value is matched as written: a later pass that rewrites a key field of an existing record
   doesn't retire the value an earlier pass wrote, so a third pass keyed on the old value still counts
   as patching. For a plan that does this, run the audit on its final pass alone.
-  A pass with `deleteOldData: true` clears the object's earlier rows first, so its own rows are all
-  treated as created.
+  A pass with `deleteOldData: true` (on any operation) or a `Delete` pass clears the object's earlier rows,
+  so a later pass's rows are all treated as created; a creating pass's own rows are too.
+  A non-writable field's value is treated as persisted only when it is a declaration's key (an `Id` or
+  auto-number `Name`), even for a creating pass whose key value the platform drops.
   A row the platform would reject for a required field (blank, or the pass doesn't load it) or for a
   value outside a restricted picklist isn't persisted, so a later pass on its key re-checks it; describe can overstate `required`, in which case
   the field is in `KNOWN_FINDINGS` and the later pass's finding is the same entry. A row that only patches is rejected for a
@@ -123,6 +125,9 @@ declarations against `sobject describe`.
   `metadata` records another `release` or `api_version`, or lacks either; recapture it with `snapshot`
   (a stale schema would pass plans the release breaks). A `--target-org` audit always describes at the
   active version.
+- **Typed lookups are checked per path, not across the declaration.** A `$Type` must follow a lookup
+  field and name a type; a SELECT of `Who$Contact.Name` and a CSV header `Who$Lead.Name` each pass if valid
+  alone, and a type absent from the snapshot is left unchecked.
 - **SFDMU's polymorphic `Rel$Type`** (`Who$Contact.Name`) is resolved through that target only; an untyped polymorphic path passes if any target has the rest; a typed lookup field (`WhoId$Contact`) must reference that type. Which columns a declaration writes ignores the type (a `Who$Lead.Name` header counts as written for a query selecting `Who$Contact.Name`), and the layering checker's shared-record merge treats `Who$Contact` and `Who` as different lookups.
 - **An unsupported `sourceRecordsFilter`** (`Name IN (...)`) exits 2 rather than skipping the declaration; rewrite it as `[col] LIKE`, `=` or `<>`.
 - **`--plans` and a feature-incomplete org:** an allowlist entry for an object the describe lacks is never reported stale, since it wasn't checked, and an object the plan declares but the org lacks is a new gating `object-missing` finding. Conversely, a live audit on an org that has the mfg objects reports their `object-missing` entries stale until they are removed.

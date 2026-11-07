@@ -315,11 +315,15 @@ def _path_problem(obj: str, segs: List[str], snapshot: Dict[str, Any]) -> Option
     is checked against that target only; without one, a polymorphic lookup resolves if any target in
     the snapshot has the rest. On the last segment `$Type` names the lookup field itself, which must reference it."""
     fields = snapshot[obj]["fields"]
-    seg, _, typed = segs[0].partition("$")
+    seg, sep, typed = segs[0].partition("$")
+    if sep and not typed:
+        return f"`{segs[0]}` ends in `$` but names no type"
     if len(segs) == 1:
         if seg not in fields:
             return None if seg in ALWAYS_PRESENT else f"{obj} has no field `{seg}`"
         targets = fields[seg].get("referenceTo") or []
+        if typed and not targets:
+            return f"`{seg}` isn't a lookup, so `${typed}` names no target"
         if typed and targets and typed.lower() not in (t.lower() for t in targets):
             return f"`{seg}` doesn't reference `{typed}`"
         return None
@@ -375,6 +379,14 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
         key_cache: Dict[Any, List[Any]] = {}
         created_rows: Dict[str, List[Any]] = {}  # object -> [(headers, rows)] of its creating passes
         for pass_idx, decl, obj in sorted(layering.declarations(export), key=lambda t: t[0]):
+            if not sfdmu_export.is_js_truthy(decl.get("excluded")):
+                dop = sfdmu_export.resolve_operation(decl.get("operation", "Readonly"))
+                if dop == "delete" or (dop != "readonly" and sfdmu_export.is_js_truthy(decl.get("deleteOldData"))):
+                    # Whatever the operation, the object's records are deleted before this pass loads,
+                    # so no earlier pass's row is left for a later Upsert to patch.
+                    created_rows.pop(obj, None)
+                    for k in [k for k in key_cache if k[0] == obj]:
+                        del key_cache[k]
             if not layering.is_written(decl):
                 continue
             desc = snapshot.get(obj)
