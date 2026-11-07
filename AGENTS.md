@@ -298,7 +298,8 @@ that topic.
 | Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
 | Wire pricing recipes/procedures/plans | `.cursor/skills/pricing-wiring/SKILL.md` |
-| Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
+| Author/CRUD Expression Sets via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
+| Configure **pricing elements** + ordering (Aggregate, Price Revision, discounts) | `.cursor/skills/pricing-procedures/SKILL.md` |
 | Edit/ship/debug **Constraint models** (CML) — configurator bundle rules, `.ffxblob`, why a model change does not take effect | `.cursor/skills/constraint-models/SKILL.md` |
 | Read/extend/apply/deploy/upgrade Context Definitions (Context Service); inspect/validate context plans | `.cursor/skills/context-service/SKILL.md` |
 | Inspect/author/manage, refresh, diagnose, or verify **decision tables**; wire automatic refresh at the right moment | `.cursor/skills/decision-tables/SKILL.md` |

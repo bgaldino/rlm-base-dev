@@ -3,8 +3,8 @@ name: revenue-cloud-data-model
 description: >-
   Revenue Cloud (RLM) data model reference covering 263 objects across 9 domains.
   Use when working with Revenue Cloud objects, understanding object relationships,
-  writing SOQL queries, building data plans, or answering questions about the
-  RLM schema. Covers PCM, Pricing, Rates, Configurator, Transactions, DRO,
+  writing SOQL queries, or answering questions about the RLM schema (for data
+  plan authoring, use sfdmu-data-plans). Covers PCM, Pricing, Rates, Configurator, Transactions, DRO,
   Usage, Billing, and Approvals domains.
 ---
 

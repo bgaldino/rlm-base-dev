@@ -147,7 +147,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 |---|---|
 | Build / add a segment to / verify a multi-year **group** ramp quote | This skill |
 | Build or check a group ramp **in the quote UI** (demo, rep-built quote) | `ui-group-ramp.md` |
-| Get **compound** per-segment uplift right (the `PriceRevision` engine, `IsCompoundUpliftEnabled`, prerequisites) | [Compound uplift](#compound-uplift) → `.cursor/skills/expression-sets/SKILL.md` |
+| Get **compound** per-segment uplift right (the `PriceRevision` engine, `IsCompoundUpliftEnabled`, prerequisites) | [Compound uplift](#compound-uplift) → `.cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md` |
 | Turn on **Advanced Detail Line Pricing** / sync context definitions (a compound prerequisite) | `.cursor/skills/context-service/SKILL.md` |
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
 | Build a non-ramp quote → order → asset | `scripts/build_quote_to_asset.py`; `.cursor/skills/txn-data-harness/SKILL.md` |
@@ -376,8 +376,10 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
 ## <a name="compound-uplift"></a>Compound price uplift
 
 Read [`compound-uplift.md`](compound-uplift.md) when you apply or verify a **Compound** uplift:
-the prerequisites, how the engine compounds on the prior period, and the per-period arithmetic to
-check a read-back against. The PATCH payload itself is step 4 above.
+the quote-side prerequisites and a quick read-back check. The engine (the ramp `PriceRevision`
+element) and the full per-period arithmetic are in
+[`../pricing-procedures/elements/price-revision-compound-uplift.md`](../pricing-procedures/elements/price-revision-compound-uplift.md).
+The PATCH payload itself is step 4 above.
 
 ## Read-back → the ramp schedule
 
@@ -524,8 +526,9 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
 
 ## Sub-files
 
-- `compound-uplift.md` — Compound price uplift: prerequisites, how it compounds, and the arithmetic
-  to verify. Read it when applying or checking Compound.
+- `compound-uplift.md` — Compound price uplift: the quote-side prerequisites and a read-back
+  check; the engine and full arithmetic live in `pricing-procedures`. Read it when applying or
+  checking Compound.
 - `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
   call rejects a field.
 - `bundle-children-lifecycle.md` — a group-ramped bundle with a one-time or evergreen child: limiting the child to
@@ -538,8 +541,7 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
 ## Related References
 
 - **Compound-uplift engine** (`PriceRevision`, `IsCompoundUpliftEnabled`, ramp vs
-  non-ramp path): `.cursor/skills/expression-sets/SKILL.md` →
-  [Compound ramp uplift](../expression-sets/SKILL.md#compound-ramp-uplift).
+  non-ramp path): [`../pricing-procedures/elements/price-revision-compound-uplift.md`](../pricing-procedures/elements/price-revision-compound-uplift.md).
 - **Advanced Detail Line Pricing / context definition sync** (compound
   prerequisite; null-`RampIdentifier` fix): `.cursor/skills/context-service/SKILL.md`.
 - **v68 Connect endpoint catalog** (place, clone, ramp-deal, amend/renew/cancel):

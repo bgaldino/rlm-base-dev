@@ -138,7 +138,7 @@ foundations:
       consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
       provenance: live-verified on 264/v68.0 org 2026-07 (field legality + build sequence)
       caveats:
-        - "Compound-uplift ENGINE (PriceRevision element) lives in expression-sets skill; this skill covers the transaction build + prerequisites"
+        - "Compound-uplift ENGINE (PriceRevision element) lives in pricing-procedures skill (elements/price-revision-compound-uplift.md); this skill covers the transaction build + prerequisites"
         - "Headless scripts/ramp_deals/ toolkit is on unmerged branch feat/ramp-deals-core; skill documents the raw Connect calls until it lands"
 
     - id: txn-data-harness
@@ -202,6 +202,21 @@ foundations:
         - docs/references/expression-set-connect-api-reference.md
       caveats:
         - "Endpoints target 264 / v68.0; enums and behavior were live-verified on 262 / v67.0 and are NOT yet re-verified on 264 — re-verify against a 264 org"
+
+    - id: pricing-procedures
+      path: .cursor/skills/pricing-procedures/SKILL.md
+      purpose: "Pricing procedure element configuration (one sub-file per pricing element: Aggregate Price, Price Revision incl. compound ramp uplift, discounts, DDS, Rounding, …), element ordering rules, discovery, and day-2 operations"
+      consumed_by_pmos: [spec, technical-review]
+      provenance: hand-authored from the 264 Help corpus + dev guide + shipped expressionSetDefinition XML + core-source review of element parameters and validation
+      sub_skills:
+        - .cursor/skills/pricing-procedures/procedure-anatomy-and-ordering.md
+        - .cursor/skills/pricing-procedures/discovery-procedures.md
+        - .cursor/skills/pricing-procedures/operations-and-troubleshooting.md
+        - .cursor/skills/pricing-procedures/runtime-and-observability.md
+        - .cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md
+      caveats:
+        - "Element parameter names and rules are pinned to 264; claims are tagged [Help]/[Dev guide]/[Repo]/[Core] — only [Live]-tagged ones were exercised against an org"
+        - "Step graph CRUD and activation lifecycle stay in expression-sets; build sequencing stays in pricing-wiring"
 
     - id: decision-tables
       path: .cursor/skills/decision-tables/SKILL.md
