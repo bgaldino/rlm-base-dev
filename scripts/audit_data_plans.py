@@ -343,6 +343,26 @@ def _path_problem(obj: str, segs: List[str], snapshot: Dict[str, Any]) -> Option
     return None if None in problems or len(targets) < len(wanted) else problems[0]
 
 
+# SFDMU resolves every one of these to a delete: the pass writes nothing and removes the object's records.
+DELETE_OPS = frozenset({"delete", "harddelete", "deletehierarchy", "deletesource"})
+
+
+def _has_where(query: Any) -> bool:
+    """Whether the query's own clause has a WHERE; one inside a subquery doesn't limit which target
+    records SFDMU returns."""
+    return isinstance(query, str) and bool(
+        re.search(r"\bWHERE\b", sfdmu_export._strip_parenthesized(query), re.I))
+
+
+def _names(value: Any) -> set:
+    """The field names an option lists (`excludedFromUpdateFields`): a list, or a `;`-separated string."""
+    if isinstance(value, str):
+        value = value.split(";")
+    if not isinstance(value, (list, tuple)):
+        return set()  # SFDMU ignores any other value
+    return {v.strip() for v in value if isinstance(v, str) and v.strip()}
+
+
 def _blank(col: str, value: Optional[str]) -> bool:
     """Whether SFDMU treats the cell as empty: null, or a `Rel.$$A$B` lookup whose parts are all null
     (`;`, `#N/A;#N/A`), which resolves nothing."""
@@ -381,13 +401,14 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
         for pass_idx, decl, obj in sorted(layering.declarations(export), key=lambda t: t[0]):
             if not sfdmu_export.is_js_truthy(decl.get("excluded")):
                 dop = sfdmu_export.resolve_operation(decl.get("operation", "Readonly"))
-                if dop == "delete" or (dop != "readonly" and sfdmu_export.is_js_truthy(decl.get("deleteOldData"))):
+                if dop in DELETE_OPS or (dop != "readonly" and sfdmu_export.is_js_truthy(decl.get("deleteOldData"))):
                     # Whatever the operation, the object's records are deleted before this pass loads,
                     # so no earlier pass's row is left for a later Upsert to patch.
                     created_rows.pop(obj, None)
                     for k in [k for k in key_cache if k[0] == obj]:
                         del key_cache[k]
-            if not layering.is_written(decl):
+            if (not layering.is_written(decl)
+                    or sfdmu_export.resolve_operation(decl.get("operation", "Readonly")) in DELETE_OPS):
                 continue
             desc = snapshot.get(obj)
             if desc is None:
@@ -483,7 +504,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                                 seen[1].add(k)
                     seen[0] = len(earlier)
                     known = set(seen[1])
-                    if re.search(r"\bWHERE\b", decl.get("query") or "", re.I):
+                    if _has_where(decl.get("query")):
                         # SFDMU matches an Upsert row against the target records the query returns, so
                         # a WHERE limits which earlier rows it can patch. The audit doesn't evaluate
                         # the clause, so it assumes no match and checks the row as a create.
@@ -497,9 +518,23 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                         if all(f in v for f in ident_key) and layering.key_of(v, ident_key) in known:
                             skipped.add(id(r))
 
+            # Rows that only patch a record an earlier pass created (or any row of an Update): a field
+            # in `excludedFromUpdateFields` isn't written for them, so its value isn't checked.
+            no_update = _names(decl.get("excludedFromUpdateFields"))
+            patched = set()
+            if no_update:
+                if op == "update":
+                    patched = {id(r) for r in rows}
+                elif op in layering.CREATES and op != "insert" and ident_key:
+                    for r in rows:
+                        v = layering.row_values(ident_key, written, r)
+                        if all(f in v for f in ident_key) and layering.key_of(v, ident_key) in known:
+                            patched.add(id(r))
+
             for name, cols in sorted(by_field.items()):
                 f = fields[name]
                 filled = [r for r in rows if id(r) not in skipped
+                          and not (name in no_update and id(r) in patched)
                           and any(not layering.is_null(r.get(c)) for c in cols)]
                 if not filled:
                     continue
@@ -795,6 +830,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         result = audit(snapshot, args.root, args.plans, diff)
     except (OSError, ValueError, csv.Error, DecisionTableClientError) as exc:
         print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except (AttributeError, TypeError, KeyError) as exc:
+        # A plan whose export.json has the wrong shape (a list, a null pass, a non-string query).
+        print(f"error: a plan or snapshot is malformed ({type(exc).__name__}: {exc})", file=sys.stderr)
         return 2
 
     new, kept, stale = classify(result)

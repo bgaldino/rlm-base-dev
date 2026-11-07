@@ -89,8 +89,10 @@ declarations against `sobject describe`.
   A key value is matched as written: a later pass that rewrites a key field of an existing record
   doesn't retire the value an earlier pass wrote, so a third pass keyed on the old value still counts
   as patching. For a plan that does this, run the audit on its final pass alone.
-  A pass with `deleteOldData: true` (on any operation) or a `Delete` pass clears the object's earlier rows,
-  so a later pass's rows are all treated as created; a creating pass's own rows are too.
+  A pass with `deleteOldData: true` (on any operation) or a delete-family pass (`Delete`, `HardDelete`,
+  `DeleteHierarchy`, `DeleteSource`) clears the object's earlier rows, so a later pass's rows are all
+  treated as created; a creating pass's own rows are too. A `WHERE` or `deleteQuery` on that pass isn't
+  evaluated: it clears everything, the same side the Upsert WHERE rule errs on (rows are checked as creates).
   A non-writable field's value is treated as persisted only when it is a declaration's key (an `Id` or
   auto-number `Name`), even for a creating pass whose key value the platform drops.
   A row the platform would reject for a required field (blank, or the pass doesn't load it) or for a
@@ -108,6 +110,16 @@ declarations against `sobject describe`.
   the audit assumes such a pass patches nothing an earlier pass created and checks its rows as
   creates; it doesn't evaluate the clause. A value in a field the platform never writes (neither
   createable nor updateable) can't identify a record for a later pass either.
+- **Option spellings.** `excludedFields` and `excludedFromUpdateFields` take a list or a `;`-separated
+  string. A field in `excludedFromUpdateFields` isn't value-checked on the rows that only patch (an Update
+  pass, or an Upsert row matching an earlier pass), and a WHERE only inside a subquery doesn't count as
+  one. A plan whose `export.json` has the wrong shape exits 2.
+- **Not modeled, by design.** An omitted `externalId` falls back to the plan's first creating key,
+  whereas SFDMU defaults to the object's name field (then an auto-number or unique field, then `Id`): give
+  every creating declaration an `externalId`. Names and relationship paths match case-sensitively. The
+  SFDMU SELECT keywords other than `all` (`all_true`, …) are reported as unknown fields. A restricted-picklist
+  value is checked on every written column, whether or not the platform would drop it on that operation
+  or trim it.
 - **`skipExistingRecords` passes.** An Upsert row of such a pass whose key an earlier creating pass of the
   plan created is left alone by SFDMU, so its values aren't value-checked (picklist, dead columns)
   and it adds no key for later passes to match. Records that already exist in the org aren't modeled.

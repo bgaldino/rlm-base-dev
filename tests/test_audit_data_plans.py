@@ -801,6 +801,10 @@ def test_any_delete_of_an_object_clears_earlier_rows():
     for label, mid, expect in (
             ("no delete", {"query": "SELECT Code FROM Widget__x", "operation": "Readonly"}, []),
             ("a Delete pass", {"query": "SELECT Code FROM Widget__x", "operation": "Delete"}, ["Name"]),
+            ("a HardDelete pass", {"query": "SELECT Code FROM Widget__x", "operation": "HardDelete"}, ["Name"]),
+            ("a DeleteHierarchy pass", {"query": "SELECT Code FROM Widget__x", "operation": "DeleteHierarchy"},
+             ["Name"]),
+            ("a DeleteSource pass", {"query": "SELECT Code FROM Widget__x", "operation": 5}, ["Name"]),
             ("Update with deleteOldData", {"query": "SELECT Code, Name FROM Widget__x", "operation": "Update",
                                            "externalId": "Code", "deleteOldData": True}, ["Name"])):
         with tempfile.TemporaryDirectory() as d:
@@ -809,6 +813,57 @@ def test_any_delete_of_an_object_clears_earlier_rows():
                             ["Name,Code\nn,c\n", "Code,Name\nc,n\n", "Code\nc\n"])
             check(f"{label}: pass 3 {'creates c, so it must load Name' if expect else 'patches pass 1'}",
                   _f(A.audit(snap, tmp), "required"), expect)
+
+
+def test_option_spellings_and_malformed_plans():
+    print("excludedFields as a string, excludedFromUpdateFields, a subquery WHERE, a malformed export")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/p", [{"query": "SELECT all FROM Widget__x", "operation": "Upsert",
+                                         "externalId": "Code", "excludedFields": "Required;Kind"}],
+                   {"Widget__x.csv": "Name,Code,Required,Kind\nn,c,r,Z\n"})
+        r = A.audit(SNAPSHOT, tmp)
+        check("a `;`-separated excludedFields string excludes whole fields, not characters",
+              (_f(r, "required"), _f(r, "picklist")), (["Required"], []))
+    pass1 = {"query": "SELECT Name, Code, Required, Kind FROM Widget__x", "operation": "Upsert",
+             "externalId": "Code"}
+    csv1 = "Name,Code,Required,Kind\nn,c,r,A\n"
+    csv2 = "Name,Code,Kind\nn,c,Z\n"
+    for label, second, expect in (
+            ("a patch of a field it never updates", {"excludedFromUpdateFields": ["Kind"]}, []),
+            ("a `;`-separated excludedFromUpdateFields", {"excludedFromUpdateFields": "Kind"}, []),
+            ("the same patch without the option", {}, ["Kind"]),
+            ("an Update of a field it never updates", {"operation": "Update", "excludedFromUpdateFields": ["Kind"]},
+             []),
+            ("an Update without the option", {"operation": "Update"}, ["Kind"])):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            _three_set_plan(tmp, [pass1, {"query": "SELECT Name, Code, Kind FROM Widget__x", "operation": "Upsert",
+                                          "externalId": "Code", **second}], [csv1, csv2])
+            check(f"{label}: Kind's bad value is {'checked' if expect else 'not checked'}",
+                  _f(A.audit(SNAPSHOT, tmp), "picklist"), expect)
+    for label, query, expect in (
+            ("a top-level WHERE beside a subquery", "SELECT Name, Code FROM Widget__x "
+             "WHERE Id IN (SELECT Id FROM Widget__x WHERE Name = 'a')", ["Required"]),
+            ("no WHERE", "SELECT Name, Code FROM Widget__x", []),
+            ("a SELECT-clause subquery with a WHERE", "SELECT Name, Code, (SELECT Id FROM Kids WHERE A = 1) "
+             "FROM Widget__x", [])):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            _three_set_plan(tmp, [pass1, {"query": query, "operation": "Upsert", "externalId": "Code"}],
+                            [csv1, "Name,Code\nn,c\n"])
+            check(f"{label}: {'creates (the clause scopes the target)' if expect else 'patches pass 1'}",
+                  _f(A.audit(SNAPSHOT, tmp), "required"), expect)
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        fixture(tmp)
+        bad = tmp / "qb/en-US/bad"
+        bad.mkdir(parents=True)
+        (bad / "export.json").write_text("[]", encoding="utf-8")
+        snap = tmp / "snap.json"
+        snap.write_text(json.dumps({"metadata": current_meta(), "objects": SNAPSHOT}), encoding="utf-8")
+        check("an export.json that isn't an object exits 2 rather than raising",
+              A.main(["audit", "--snapshot", str(snap), "--root", str(tmp), "--out", str(tmp / "r.md")]), 2)
 
 
 def test_discriminator_needs_a_lookup_and_a_type():
@@ -924,7 +979,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_option_spellings_and_malformed_plans, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()

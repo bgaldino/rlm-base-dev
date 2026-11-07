@@ -522,7 +522,12 @@ def written_columns(decl: dict, headers: List[str]) -> List[str]:
     # field is `Field`, and a traversal keeps its tail (`Who.Name`).
     selected = [untyped(f) for f in sfdmu_export.parse_select_fields(decl.get("query", ""))]
     key = set(key_parts(decl.get("externalId", "")))  # SFDMU adds the key fields to the query
-    excluded = set(decl.get("excludedFields") or [])
+    excluded = decl.get("excludedFields") or []
+    if isinstance(excluded, str):  # SFDMU also accepts a `;`-separated string
+        excluded = excluded.split(";")
+    # SFDMU ignores any other value, and any item that isn't a string.
+    excluded = ({e.strip() for e in excluded if isinstance(e, str)}
+                if isinstance(excluded, (list, tuple)) else set())
     if any(f.lower() == "all" for f in selected):
         keep = {untyped(h) for h in headers}
     else:
