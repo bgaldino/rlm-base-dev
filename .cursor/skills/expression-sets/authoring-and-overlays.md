@@ -153,89 +153,17 @@ frozen `tasks/` copy.)
 
 ---
 
-## Step ordering — no `FormulaBasedPricing` after the aggregate/DDS/rounding tail
+## Pricing procedures — element ordering lives in the pricing-procedures skill
 
-The pricing procedure ends with a fixed tail block — Discount Distribution
-Service (`DiscountDistributionService`), the `GroupingAndAggregatePricing`
-aggregate steps, and Rounding Rules. A `FormulaBasedPricing` step placed **after**
-that block is rejected, and the error message is **misleading** — it names DDS,
-not your formula step:
-
-```
-INVALID_INPUT: You can add the Discount Distribution Service element only
-before the Rounding Rules and Aggregate elements …
-```
-
-The real cause is ordering: a header-scope formula that depends on aggregate
-outputs cannot sit after the aggregate/rounding tail. Two consequences for
-authoring an overlay that adds a formula computed *from* aggregate results:
-
-- Place `GroupingAndAggregatePricing` (SUM) steps with `afterStep` anchored to
-  the **last existing aggregation** — they slot into the aggregate band cleanly.
-- A `FormulaBasedPricing` step that consumes those aggregate outputs has **no
-  slot that is both accepted *and* fed fresh operands**. This is subtler than
-  "can't add a header-scope formula step" — you **can**: a top-level (no
-  `parentStep`) `FormulaBasedPricing` step placed **before** the DDS/aggregate
-  tail is accepted and does write to the record (live-proven with a manual
-  `TotalMarginAmount__c / TotalAmount → TotalMarginPercent__c` step positioned
-  just before DDS). But **before** the aggregates its operands still hold the
-  values **hydrated from the record at the start of the reprice** — i.e. *last*
-  reprice's numbers — so the formula lags one full reprice cycle (looks
-  ~right on an unchanged quote, visibly off after any change). **After** the
-  aggregates, where the operands are fresh, the tail barrier rejects it. So an
-  in-engine header-scope formula rollup on top of aggregates is effectively
-  unusable: compute that value another way (an additional aggregate/derivation
-  step earlier in the graph, or a Salesforce formula field on the record) rather
-  than a trailing formula step.
-
-**"Can't I just move the aggregates (and the formula) higher?" — no.** The
-aggregate band is pinned *after* `DiscountDistributionService` (DDS) by a real
-data dependency, not merely by convention: DDS **rewrites** the per-line
-`NetUnitPrice` / `ItemNetTotalPrice` that `TotalAmount` sums. Moving the SUM
-above DDS would sum *pre-header-discount* prices → wrong total. And the barrier
-is relative to the aggregate elements, not an absolute position — dragging the
-aggregates up just drags the "no formula after aggregates" barrier up with them.
-So a formula whose operands are post-aggregate header values genuinely has
-nowhere legal to sit *with fresh operands*. (Grounding facts from the 262
-`RLM_DefaultPricingProcedure`: every *shipped* `FormulaBasedPricing` step in it
-is **line-scope** — each has a `parentStep` and runs *before* DDS; every
-`GroupingAndAggregatePricing` step is **SUM-only** on a single line field; and
-there are **no `RoundingValues` steps** at all, despite the error message naming
-Rounding Rules. A **top-level** header-scope `FormulaBasedPricing` step is
-nonetheless *permitted* before the tail — it just reads stale operands there, per
-the point above; the "line-scope only" observation describes what ships, not a
-hard platform constraint.)
-
-### Caveat: pre-DDS line margin vs. post-DDS header total
-
-A header cost/margin rollup built from the standard line fields carries a subtle
-base mismatch worth flagging to whoever consumes the numbers. In
-`RLM_DefaultPricingProcedure`, per-line **cost and margin** (`ItemTotalCost__std`,
-`ItemMarginAmount__std`) are computed **before** DDS (in the
-`Calculatecostandmarginforpricedlines` ListGroup), while `TotalAmount` is a
-**post-DDS** aggregate. Consequences for a SUM rollup like this one:
-
-- `SUM(ItemTotalCost__std)` → header total cost is unaffected by DDS (cost isn't
-  touched), so it's always correct.
-- `SUM(ItemMarginAmount__std)` → header total margin **amount** sums *pre-header-
-  discount* line margins. On a quote with a **header discount**, that margin sits
-  on a different base than `TotalAmount` / the booked prices, so a margin **percent**
-  derived from the two would be internally inconsistent. On a quote with **no**
-  header discount the bases coincide and everything ties out.
-
-If a header margin percent is required, prefer a record-level formula field over
-an in-engine step (see the ordering rule above), and be explicit about which base
-it uses.
-
-### Dropping an overlay step leaves its context mapping inert
-
-If you remove a step that *produced* a value which a Context Definition mapping
-persists (as we did with the blocked margin-percent step), the context mapping
-does **not** error — it simply has nothing feeding it, so the field persists as
-**null** on every reprice. Field + FLS + persist binding can all be present and
-the field still never populates. When you drop a producing step, also remove (or
-knowingly accept as inert) the field's context mapping so the schema doesn't
-imply a value that never arrives.
+Overlays on a **pricing** procedure must respect cross-element ordering rules the
+engine enforces or depends on: no `FormulaBasedPricing` after the
+DDS/aggregate/rounding tail (rejected with a misleading DDS error), aggregates
+pinned after `DiscountDistributionService`, stale hydrated operands before the
+tail, the pre-DDS line margin vs post-DDS header total caveat, and dropped
+producer steps leaving their context mapping inert. Those rules, with the
+evidence, live in
+[`../pricing-procedures/procedure-anatomy-and-ordering.md`](../pricing-procedures/procedure-anatomy-and-ordering.md);
+per-element configuration lives in `../pricing-procedures/elements/`.
 
 ---
 
@@ -284,6 +212,9 @@ every consumer of a step's output (the safe-removal view), and `--orphans`
 surfaces consumed-with-no-producer names left behind. Always do removals on a
 **disposable clone** first and inspect the re-exported graph + a functional test
 (e.g. a test repricing) — never judge a removal by "it reactivated."
+For pricing procedures, the removed step's context mapping also goes inert:
+[`../pricing-procedures/procedure-anatomy-and-ordering.md`](../pricing-procedures/procedure-anatomy-and-ordering.md)
+→ *Removing a step leaves its context mapping inert*.
 
 ---
 
