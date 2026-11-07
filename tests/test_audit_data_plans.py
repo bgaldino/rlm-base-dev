@@ -910,6 +910,42 @@ def test_upsert_excluded_from_update_fields_is_not_inserted():
               _f(A.audit(snap2, tmp), "required"), [])
 
 
+def test_unwritable_system_field_is_not_a_match_key_for_a_later_pass():
+    print("a system field the platform won't write isn't cached for a later pass unless it is a key")
+    def snap(stamp_writable):
+        return {"Widget__x": {"fields": {"Name": field(nillable=False),
+                                         "SystemModstamp": field("datetime", createable=stamp_writable,
+                                                                 updateable=stamp_writable)}}}
+    up = lambda sel, key: {"query": f"SELECT {sel} FROM Widget__x", "operation": "Upsert", "externalId": key}
+    csvs = ["Name,SystemModstamp\nfirst,2000-01-01T00:00:00.000Z\n", "SystemModstamp,Name\n2000-01-01T00:00:00.000Z,\n"]
+    for label, snapshot, expect in (
+            ("SystemModstamp isn't writable: pass 2 keyed on it creates and needs Name", snap(False), ["Name"]),
+            ("a describe that says it is writable lets it match", snap(True), [])):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            _three_set_plan(tmp, [up("Name, SystemModstamp", "Name"), up("SystemModstamp, Name", "SystemModstamp")],
+                            csvs)
+            check(label, _f(A.audit(snapshot, tmp), "required"), expect)
+
+
+def test_unknown_plain_column_is_not_a_match_key():
+    print("a plain column the describe doesn't have is dropped, so it can't match a later pass")
+    snap = {"Widget__x": {"fields": {"Name": field(nillable=False)}}}
+    up = lambda sel, key: {"query": f"SELECT {sel} FROM Widget__x", "operation": "Upsert", "externalId": key}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        _three_set_plan(tmp, [up("Name, Bogus", "Name"), up("Bogus, Name", "Bogus")],
+                        ["Name,Bogus\nfirst,x\n", "Bogus,Name\nx,\n"])
+        check("pass 2 keyed on an unknown Bogus creates and needs Name",
+              _f(A.audit(snap, tmp), "required"), ["Name"])
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        _three_set_plan(tmp, [up("Name, Bogus$User", "Name"), up("Bogus$User, Name", "Bogus$User")],
+                        ["Name,Bogus$User\nfirst,x\n", "Bogus$User,Name\nx,\n"])
+        check("a `$`-suffixed unknown column is dropped too",
+              _f(A.audit(snap, tmp), "required"), ["Name"])
+
+
 def test_patched_row_keeps_what_the_create_wrote():
     print("a patch is laid over the row it patches, and an undeclared key still names a record")
     up = lambda sel, key=None: {"query": f"SELECT {sel} FROM Widget__x", "operation": "Upsert",
@@ -1146,7 +1182,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_patch_rows_persist_only_updateable_values, test_upsert_excluded_from_update_fields_is_not_inserted, test_patched_row_keeps_what_the_create_wrote, test_patch_replaces_the_lookup_an_earlier_pass_set, test_option_spellings_and_malformed_plans, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_patch_rows_persist_only_updateable_values, test_unwritable_system_field_is_not_a_match_key_for_a_later_pass, test_unknown_plain_column_is_not_a_match_key, test_upsert_excluded_from_update_fields_is_not_inserted, test_patched_row_keeps_what_the_create_wrote, test_patch_replaces_the_lookup_an_earlier_pass_set, test_option_spellings_and_malformed_plans, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()

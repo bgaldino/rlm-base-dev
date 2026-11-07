@@ -94,7 +94,8 @@ declarations against `sobject describe`.
   treated as created; a creating pass's own rows are too. A `WHERE` or `deleteQuery` on that pass isn't
   evaluated: it clears everything, the same side the Upsert WHERE rule errs on (rows are checked as creates).
   A non-writable field's value is treated as persisted only when it is a declaration's key (an `Id` or
-  auto-number `Name`), even for a creating pass whose key value the platform drops.
+  auto-number `Name`), even for a creating pass whose key value the platform drops. A system field such as
+  `SystemModstamp` follows its describe like any other, unless it is the key.
   A row that only patches persists only the values of updateable fields not in `excludedFromUpdateFields`
   (a created row, those of createable or updateable ones), so a later pass keyed on a value the patch
   couldn't write still creates. The patch is laid over the row it patches, and a lookup it writes replaces

@@ -637,7 +637,9 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
 
                 def lands(c, patch):
                     nm = _field_of(c, fields)
-                    if nm is None or nm in names_record or nm in SYSTEM_FIELDS:  # a key names a record
+                    if nm is None:  # a path or `$$` key the audit can't resolve lands; an unknown plain column is dropped
+                        return c in ALWAYS_PRESENT or c.startswith("$$") or "." in c
+                    if nm in names_record or nm in ALWAYS_PRESENT:  # a key, or `Id`, names a record
                         return True
                     f = fields[nm]
                     if patch:
