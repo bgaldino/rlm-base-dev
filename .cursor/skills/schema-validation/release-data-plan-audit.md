@@ -119,7 +119,11 @@ declarations against `sobject describe`.
   string. A field in `excludedFromUpdateFields` isn't value-checked on an Update or Upsert pass, and on an
   Upsert it isn't written to inserts either (SFDMU 5.8.0 clones the insert payload from the update
   field list), so one that is required on create is a `required` finding and a created row doesn't
-  carry it (a key field is exempt, including the lookup a `Parent.Code` key resolves through, and the plan's first key for a declaration with no `externalId`). A WHERE only inside a subquery doesn't count as one. A plan whose `export.json` has the wrong shape exits 2.
+  carry it (a key field is exempt, including the lookup a `Parent.Code` key resolves through, and the plan's first key for a declaration with no `externalId`). A field an Update or Upsert excludes (a key is exempt) doesn't count as written, so it stays in the
+  unwritten-field list and a new picklist value of it isn't reported as one the plans write, unless another
+  declaration writes it. `check_sfdmu_layering.py` doesn't model `excludedFromUpdateFields`. A WHERE only inside a subquery doesn't count as one. A plan whose `export.json` has the wrong shape exits 2.
+- **Written means selected.** A field counts as written when a declaration selects it, even if every cell is blank or
+  every row is left alone by `skipExistingRecords`; option names match case-sensitively.
 - **Not modeled, by design.** An omitted `externalId` falls back to the plan's first creating key,
   whereas SFDMU defaults to the object's name field (then an auto-number or unique field, then `Id`): give
   every creating declaration an `externalId`. Names and relationship paths match case-sensitively. The

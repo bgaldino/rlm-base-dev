@@ -476,7 +476,6 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 name = _field_of(col, fields)
                 if name:
                     by_field[name].append(col)
-            written_by_obj[obj].update(by_field)
             bad_picklist_rows = set()  # ids of rows the platform rejects for a restricted picklist value
 
             known = set()
@@ -534,6 +533,10 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
             parts = set(key) | (set(ident_key) if op in layering.CREATES else set())
             names_record = parts | {n for k in parts if (n := _field_of(k, fields))}
             no_create = (no_update - names_record) if op == "upsert" else set()
+            # An Update or Upsert never writes such a field (a key is exempt), so it doesn't count as
+            # written for the unwritten-field and release-value reports; another declaration may still.
+            written_by_obj[obj].update(set(by_field) - (no_update - names_record if op in ("update", "upsert")
+                                                        else set()))
             patched = set()
             if no_update:
                 if op in ("update", "upsert"):

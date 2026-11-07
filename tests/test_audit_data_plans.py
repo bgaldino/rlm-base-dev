@@ -860,6 +860,31 @@ def test_upsert_excluded_from_update_fields_is_not_inserted():
               {"Widget__x.csv": "Name,Seq,Status\nn,1,Bad\n"})
         check("an excluded field's value is never written, so never value-checked",
               _f(A.audit(snap, tmp), "picklist"), [])
+    # a field an Upsert or Update excludes isn't written, so it stays in `unwritten` and a new value of it isn't a written one
+    snap3 = {"Widget__x": {"fields": {"Name": field(nillable=False), "Added": field("picklist", values=["A", "B"])}}}
+    diff = {"object_diffs": {"Widget__x": {"added": ["Added"], "picklist_changed": [
+        {"field": "Added", "added": ["B"]}]}}}
+    for label, ops, expect_unwritten, expect_values in (
+            ("an Upsert that excludes a selected field doesn't write it",
+             [{"operation": "Upsert", "excludedFromUpdateFields": ["Added"]}], ["Added"], 0),
+            ("an Update that excludes it leaves the Upsert's write counting",
+             [{"operation": "Upsert"}, {"operation": "Update", "excludedFromUpdateFields": "Added"}],
+             [], 1),
+            ("another declaration that writes it still counts",
+             [{"operation": "Upsert", "excludedFromUpdateFields": ["Added"]}, {"operation": "Upsert"}],
+             [], 1)):
+        with tempfile.TemporaryDirectory() as dd:
+            tmp = pathlib.Path(dd)
+            decls = [{"query": "SELECT Name, Added FROM Widget__x", "externalId": "Name", **o} for o in ops]
+            if len(decls) == 1:
+                write_plan(tmp, "qb/en-US/p", decls, {"Widget__x.csv": "Name,Added\nn,B\n"})
+            else:
+                _three_set_plan(tmp, decls, ["Name,Added\nn,B\n"] * len(decls))
+            res = A.audit(snap3, tmp, release_diff=diff)
+            check(label + " (unwritten)",
+                  [e["field"] for e in res["info"]["unwritten"].get("Widget__x", [])
+                   if e["field"] == "Added"], expect_unwritten)
+            check(label + " (release values)", len(res["info"]["release-values"]), expect_values)
     # a declaration without an externalId matches on the plan's first key, which still names the record
     with tempfile.TemporaryDirectory() as dd:
         tmp = pathlib.Path(dd)
