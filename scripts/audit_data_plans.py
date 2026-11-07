@@ -153,7 +153,30 @@ def default_snapshot(release: str) -> Path:
     return SCHEMA_DIR / f"{release}-plan-describe.json"
 
 
-REQUIRED_FIELD_KEYS = ("type", "createable", "updateable", "nillable")
+BOOL_KEYS = ("createable", "updateable", "nillable", "defaultedOnCreate", "calculated", "autoNumber",
+             "restrictedPicklist")
+
+
+def _field_entry_ok(f: Any) -> bool:
+    """A snapshot field the audit can trust: every attribute it reads is present and typed, since a
+    missing one reads as falsy and would silently weaken a gating check (a restricted picklist
+    unchecked, a required field not required, a lookup path unresolved)."""
+    if not isinstance(f, dict) or not all(k in f for k in DESCRIBE_KEYS):
+        return False
+    if not all(isinstance(f[k], bool) for k in BOOL_KEYS):
+        return False
+    if not isinstance(f["type"], str) or not isinstance(f["referenceTo"], list):
+        return False
+    if f["relationshipName"] is not None and not isinstance(f["relationshipName"], str):
+        return False
+    if not all(isinstance(x, str) for x in f["referenceTo"]):
+        return False
+    if "orgValues" in f and not isinstance(f["orgValues"], bool):  # any truthy value skips the picklist check
+        return False
+    if f["type"] in ("picklist", "multipicklist") and not (
+            isinstance(f.get("values"), list) and all(isinstance(x, str) for x in f["values"])):
+        return False
+    return True
 
 
 def check_snapshot_metadata(snap: Dict[str, Any], path: Any, release: str, api_version: str) -> None:
@@ -161,11 +184,11 @@ def check_snapshot_metadata(snap: Dict[str, Any], path: Any, release: str, api_v
     schema would pass a plan the release would break, or fail one it fixed."""
     objects = snap.get("objects") if isinstance(snap, dict) else None
     if not isinstance(objects, dict) or not all(
-            isinstance(o, dict) and isinstance(o.get("fields"), dict)
-            and all(isinstance(f, dict) and all(k in f for k in REQUIRED_FIELD_KEYS)
-                    for f in o["fields"].values()) for o in objects.values()):
+            isinstance(o, dict) and isinstance(o.get("fields"), dict) and o["fields"]
+            and all(_field_entry_ok(f) for f in o["fields"].values()) for o in objects.values()):
         raise ValueError(f"{path} isn't a describe snapshot (`objects` must map each object to its "
-                         f"`fields`, each carrying {', '.join(REQUIRED_FIELD_KEYS)}); recapture it (`snapshot`)")
+                         f"`fields`, each with every describe attribute the audit reads, typed); recapture it "
+                         f"(`snapshot`)")
     meta = snap.get("metadata") or {}
     for key, want in (("release", release), ("api_version", api_version)):
         if meta.get(key) != want:
@@ -238,14 +261,20 @@ def _is_record_id(value: str) -> bool:
     return True
 
 
-def compact_describe(describe: Dict[str, Any]) -> Dict[str, Any]:
+def compact_describe(describe: Any) -> Optional[Dict[str, Any]]:
     """The describe attributes the audit reads, by field: org-independent. A picklist with record
     Ids among its values (a list of org records) keeps only its other values and is marked
     `orgValues`, so the snapshot carries no org identity and the audit doesn't check values that
-    differ per org."""
+    differ per org. A response without fields (an error shape, an empty object) is no describe: None,
+    so the object counts as missing rather than as present with nothing to check."""
+    if not isinstance(describe, dict) or not isinstance(describe.get("fields"), list) or not describe["fields"]:
+        return None
     fields = {}
-    for f in describe.get("fields", []):
+    for f in describe["fields"]:
         entry = {k: f.get(k) for k in DESCRIBE_KEYS}
+        for k in BOOL_KEYS:  # an attribute the org omits is false, and the snapshot check wants a bool
+            entry[k] = bool(entry[k])
+        entry["referenceTo"] = entry["referenceTo"] or []
         if f.get("type") in ("picklist", "multipicklist"):
             values = [v["value"] for v in f.get("picklistValues", []) if v.get("active", True)]
             if any(_is_record_id(v) for v in values):

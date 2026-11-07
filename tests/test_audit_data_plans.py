@@ -1128,7 +1128,28 @@ def test_main():
                                              "objects": {"W": {"fields": {"X": None}}}})),
                                 ("a field without its describe attributes",
                                  json.dumps({"metadata": current_meta(),
-                                             "objects": {"W": {"fields": {"X": {}}}}}))):
+                                             "objects": {"W": {"fields": {"X": {}}}}})),
+                                ("a field missing restrictedPicklist (a gating check would go quiet)",
+                                 json.dumps({"metadata": current_meta(), "objects": {"W": {"fields": {
+                                     "X": {k: v for k, v in field("picklist", values=["A"]).items()
+                                           if k != "restrictedPicklist"}}}}})),
+                                ("a field whose flag is a string",
+                                 json.dumps({"metadata": current_meta(), "objects": {"W": {"fields": {
+                                     "X": {**field(), "nillable": "false"}}}}})),
+                                ("a picklist without its values",
+                                 json.dumps({"metadata": current_meta(), "objects": {"W": {"fields": {
+                                     "X": field("picklist")}}}})),
+                                ("a picklist whose orgValues isn't a boolean (truthy skips the check)",
+                                 json.dumps({"metadata": current_meta(), "objects": {"W": {"fields": {
+                                     "X": {**field("picklist", values=["A"]), "orgValues": "no"}}}}})),
+                                ("a picklist whose values aren't strings",
+                                 json.dumps({"metadata": current_meta(), "objects": {"W": {"fields": {
+                                     "X": field("picklist", values=[None])}}}})),
+                                ("a field whose referenceTo holds a non-string",
+                                 json.dumps({"metadata": current_meta(), "objects": {"W": {"fields": {
+                                     "X": {**field(), "referenceTo": [1]}}}}})),
+                                ("an object with no fields",
+                                 json.dumps({"metadata": current_meta(), "objects": {"W": {"fields": {}}}}))):
                 bad = tmp / "merge-base.json"
                 bad.write_text(body, encoding="utf-8")
                 before = keep.read_text(encoding="utf-8")
@@ -1168,6 +1189,27 @@ def test_main():
               A.main(["audit", "--snapshot", str(tmp / "nope.json"), "--root", str(tmp)]), 2)
 
 
+def test_captured_snapshot_passes_its_own_check():
+    print("a describe that omits an attribute is captured as false, and the capture passes the check")
+    raw = {"fields": [{"name": "Name", "type": "string", "createable": True, "updateable": True,
+                       "nillable": False, "relationshipName": None},
+                      {"name": "Kind", "type": "picklist", "createable": True, "updateable": True,
+                       "nillable": True, "restrictedPicklist": True,
+                       "picklistValues": [{"value": "A", "active": True}]}]}
+    snap = {"metadata": current_meta(), "objects": {"W": A.compact_describe(raw)}}
+    try:
+        A.check_snapshot_metadata(snap, "x", A.active_release(), A.active_api_version())
+        ok = True
+    except ValueError:
+        ok = False
+    check("accepted", ok, True)
+    check("an omitted flag is false", snap["objects"]["W"]["fields"]["Name"]["defaultedOnCreate"], False)
+    for label, raw_bad in (("no fields key", {}), ("an error-shaped response", {"errorCode": "X"}),
+                           ("an empty field list", {"fields": []}), ("null", None)):
+        check(f"a describe with {label} is no describe, so the object counts as missing",
+              A.compact_describe(raw_bad), None)
+
+
 def test_committed_snapshot():
     print("committed snapshot (the pr_gate run)")
     release = A.active_release()
@@ -1184,7 +1226,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
           test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_patch_rows_persist_only_updateable_values, test_unwritable_system_field_is_not_a_match_key_for_a_later_pass, test_unknown_plain_column_is_not_a_match_key, test_upsert_excluded_from_update_fields_is_not_inserted, test_patched_row_keeps_what_the_create_wrote, test_patch_replaces_the_lookup_an_earlier_pass_set, test_option_spellings_and_malformed_plans, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
-          test_compact_describe, test_main, test_committed_snapshot):
+          test_compact_describe, test_captured_snapshot_passes_its_own_check, test_main, test_committed_snapshot):
     t()
 print(f"\n{len(_failures)} failure(s)")
 sys.exit(1 if _failures else 0)
