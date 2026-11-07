@@ -495,6 +495,16 @@ python scripts/ai/check_plan_readme_consistency.py --strict                     
 python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/qb/en-US/qb-pricing  # one plan
 ```
 
+To check a plan against the **release** (fields it selects that the release doesn't have, values a
+restricted picklist won't take, required fields it leaves out), run the release audit. `pr_gate`
+runs it offline against the committed describe snapshot; at the start of a release, capture a new
+snapshot and triage (runbook: `.cursor/skills/schema-validation/release-data-plan-audit.md`):
+
+```bash
+python scripts/audit_data_plans.py audit                              # committed snapshot, all plans
+python scripts/audit_data_plans.py audit --target-org <sf_alias> --plans qb/en-US   # live describe
+```
+
 ## Additional References
 
 - Plan dependency graph: [plan-dependency-graph.md](plan-dependency-graph.md)

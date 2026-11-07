@@ -371,7 +371,7 @@ check("a suite is never run twice — no dedicated check's suite is also in a bu
 CMD_WORDS = {"python", "-m", "pytest", "-q", "check", "--check"}
 # Words admitted only for the one check that declares them, not for CHECKS at large — the
 # scoping the global CMD_WORDS set cannot express.
-PER_CHECK_EXTRA_WORDS = {"plan_readme_consistency": {"--strict"}}
+PER_CHECK_EXTRA_WORDS = {"plan_readme_consistency": {"--strict"}, "data_plan_audit": {"audit"}}
 bad_words = sorted({w for c in pr_gate.CHECKS for w in (c["cmd"] or ())
                     if w not in CMD_WORDS
                     and w not in PER_CHECK_EXTRA_WORDS.get(c["name"], set())
@@ -5410,7 +5410,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 759
+EXPECTED = 762
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

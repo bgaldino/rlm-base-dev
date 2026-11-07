@@ -79,6 +79,16 @@ LOOKUP_CASES = [
             "ProductSellingModel.csv": "$$Name$SellingModelType,Name,SellingModelType\nA;T,A,T\n",
             "PricebookEntry.csv": "Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType\n"
                                   "X,A;T\n"})})),
+    ("a typed `$$` lookup resolves against the type's declaration", False, lookups({
+        "qb/en-US/p": ([[decl("Contact", "Name;Email"),
+                         dict(decl("Task", "Name"), query="SELECT Name, Who$Contact.Name FROM Task")]], {
+            "Contact.csv": "$$Name$Email,Name,Email\nA;a@x,A,a@x\n",
+            "Task.csv": "Name,Who$Contact.$$Name$Email\nT,A;a@x\n"})})),
+    ("a typed `$$` lookup whose parts don't match the type's key fails", True, lookups({
+        "qb/en-US/p": ([[decl("Contact", "Name"),
+                         dict(decl("Task", "Name"), query="SELECT Name, Who$Contact.Name FROM Task")]], {
+            "Contact.csv": "Name\nA\n",
+            "Task.csv": "Name,Who$Contact.$$Name$Email\nT,A;a@x\n"})}, "don't match")),
     ("a self-referential `$$` lookup fails", True, lookups({
         "qb/en-US/p": ([[decl("ProductComponentGroup", "Code;ParentProduct.StockKeepingUnit")]], {
             "ProductComponentGroup.csv": "$$Code$ParentProduct.StockKeepingUnit,Code,"
@@ -905,7 +915,54 @@ def live_tree_passes():
         return L.main([]) == 0
 
 
-CASES = LOOKUP_CASES + SHARED_CASES + INTRA_CASES + [("the live tree passes", True, live_tree_passes())]
+def polymorphic_lookup_column_written():
+    """`AssignedToId$User` (SFDMU's polymorphic lookup) selects the AssignedTo lookup, so its
+    `AssignedTo.Name` column is written; before, the `$User` suffix hid it (todo 321)."""
+    decl = {"query": "SELECT Name, AssignedToId$User FROM FulfillmentStepDefinition"}
+    return "AssignedTo.Name" in L.written_columns(decl, ["Name", "AssignedTo.Name"])
+
+
+def polymorphic_select_traversal_written():
+    """A typed traversal select (`Who$Contact.Name`) keeps its tail, so the typed CSV header is written."""
+    decl = {"query": "SELECT Name, Who$Contact.Name FROM Task"}
+    return "Who$Contact.Name" in L.written_columns(decl, ["Name", "Who$Contact.Name"])
+
+
+def polymorphic_header_written_via_lookup():
+    decl = {"query": "SELECT Name, WhoId FROM Task"}
+    return "Who$Contact.Name" in L.written_columns(decl, ["Name", "Who$Contact.Name"])
+
+
+def polymorphic_header_under_select_all():
+    decl = {"query": "SELECT all FROM Task"}
+    return "Who$Contact.Name" in L.written_columns(decl, ["Name", "Who$Contact.Name"])
+
+
+def polymorphic_header_excluded_with_its_lookup():
+    decl = {"query": "SELECT Name, WhoId FROM Task", "excludedFields": ["WhoId"]}
+    return "Who$Contact.Name" in L.written_columns(decl, ["Name", "Who$Contact.Name"])
+
+
+def untyped_keeps_keys_and_drops_types():
+    return (L.untyped("$$A$B.C") == "$$A$B.C" and L.untyped("Who$Contact.Name") == "Who.Name"
+            and L.untyped("AssignedToId$User") == "AssignedToId"
+            and L.untyped("Who$Contact.$$A$B") == "Who.$$A$B")
+
+
+def typed_plain_header_follows_excludedFields():
+    decl = {"query": "SELECT Name, AssignedToId$User FROM X", "excludedFields": ["AssignedToId"]}
+    return "AssignedToId$User" in L.written_columns(decl, ["Name", "AssignedToId$User"])
+
+
+CASES = LOOKUP_CASES + SHARED_CASES + INTRA_CASES + [
+    ("a polymorphic `Field$Type` lookup's column is written", True, polymorphic_lookup_column_written()),
+    ("a typed traversal select keeps its tail", True, polymorphic_select_traversal_written()),
+    ("a typed header is written through the selected lookup", True, polymorphic_header_written_via_lookup()),
+    ("a typed header is written under SELECT all", True, polymorphic_header_under_select_all()),
+    ("a typed header follows excludedFields of its lookup", False, polymorphic_header_excluded_with_its_lookup()),
+    ("a typed plain header follows excludedFields", False, typed_plain_header_follows_excludedFields()),
+    ("untyped drops `$Type` and leaves `$$` keys alone", True, untyped_keeps_keys_and_drops_types()),
+    ("the live tree passes", True, live_tree_passes())]
 
 
 def main() -> int:
