@@ -1,6 +1,7 @@
 {
  "metadata": {
-  "captured_at": "2026-11-06T20:50:19Z",
+  "api_version": "68.0",
+  "captured_at": "2026-11-07T00:38:54Z",
   "object_count": 135,
   "release": "264",
   "source": "sobject describe of every object a tracked plan declares"

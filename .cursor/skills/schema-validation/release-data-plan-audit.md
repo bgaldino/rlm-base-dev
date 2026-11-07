@@ -22,9 +22,9 @@ declarations against `sobject describe`.
 
 1. **Build a feature-complete org.** Use the build harness on the usual shape with every optional data
    plan on (for qb: `clm_data`, `inapp`, `quote_est_tax` on top of the defaults). An object a feature
-   doesn't enable is missing from the describe; the report lists it under *Objects not in the
-   describe* rather than auditing it.
-2. **Capture the snapshot.** Read-only; it queries the API version in `api_version_active` and records it in the snapshot's metadata (a `--merge` base whose metadata records another version is refused; a snapshot that predates the field isn't checked):
+   doesn't enable is missing from the describe; it isn't audited and the run reports it as
+   `object-missing` (gating; step 4 triages it).
+2. **Capture the snapshot.** Read-only; it queries the API version in `api_version_active` and records it in the snapshot's metadata (a `--merge` base whose metadata records another release or version, or lacks them, is refused):
    ```bash
    python scripts/audit_data_plans.py snapshot --target-org <sf alias or username> \
        --out scripts/erd/schema_diff/<release>-plan-describe.json
@@ -62,6 +62,7 @@ declarations against `sobject describe`.
 | `unknown-field` | yes | The query selects, the CSV writes (every column the declaration writes: plain, `Rel.Field`, and each part of a composite `Rel.$$A$B`; under `SELECT all` that is every CSV header not in `excludedFields`), or the `externalId` names, a field the object doesn't have, or a relationship path that doesn't resolve; only `Id` is exempt, every other system field (`LastActivityDate`, …) must be in the describe (followed through `referenceTo` where the target is in the snapshot; a target that isn't is left unchecked). SFDMU drops it and the load still succeeds |
 | `picklist` | yes | A CSV value outside a restricted picklist's active values. `CurrencyIsoCode` is skipped: it is the org's currency set, not the release's. Dead columns (neither createable nor updateable, and not a key) aren't value-checked |
 | `required` | yes | A creating declaration leaves out, or blanks on the rows it creates, a field that is createable, not nillable and not defaulted on create. An Upsert row whose value for this declaration's `externalId` matches a row an earlier creating pass created is only patched, so it isn't re-checked; an Insert row is always checked. Booleans are skipped (they default to false) |
+| `object-missing` | yes | A plan declares an object the describe lacks, so nothing on it is audited. Triage it in `KNOWN_FINDINGS` (field `""`) with the reason, or capture a snapshot from an org that has it |
 | dead columns, undefined values, release values, unwritten fields | no | See step 5 |
 
 ## Gotchas
@@ -100,11 +101,16 @@ declarations against `sobject describe`.
   build failed at `prepare_clm` (qb-clm, todo 346). Record the failure as a finding, advance the
   harness checkpoint past the step (`checkpoint.json`: `failed_step` null, `last_successful_step`
   the failed step) and `harness.py resume`, so the remaining plans load and are audited.
-- **mfg-only objects** (AAF, rebates) aren't on a qb build. Merge a snapshot from an org that has them,
-  or they stay under *Objects not in the describe*.
+- **mfg-only objects** (AAF, rebates) aren't on a qb build. Merge a snapshot from an org that has them;
+  until then they are triaged as `object-missing` in `KNOWN_FINDINGS`, and a new plan object the
+  describe lacks fails the audit.
+- **The snapshot must match the active release and API version.** `audit` exits 2 on a snapshot whose
+  `metadata` records another `release` or `api_version`, or lacks either; recapture it with `snapshot`
+  (a stale schema would pass plans the release breaks). A `--target-org` audit always describes at the
+  active version.
 - **SFDMU's polymorphic `Rel$Type`** (`Who$Contact.Name`) is resolved through that target only; an untyped polymorphic path passes if any target has the rest; a typed lookup field (`WhoId$Contact`) must reference that type. Which columns a declaration writes ignores the type (a `Who$Lead.Name` header counts as written for a query selecting `Who$Contact.Name`), and the layering checker's shared-record merge treats `Who$Contact` and `Who` as different lookups.
 - **An unsupported `sourceRecordsFilter`** (`Name IN (...)`) exits 2 rather than skipping the declaration; rewrite it as `[col] LIKE`, `=` or `<>`.
-- **`--plans` and a feature-incomplete org:** an allowlist entry for an object the describe lacks is never reported stale, since it wasn't checked.
+- **`--plans` and a feature-incomplete org:** an allowlist entry for an object the describe lacks is never reported stale, since it wasn't checked, and an object the plan declares but the org lacks is a new gating `object-missing` finding. Conversely, a live audit on an org that has the mfg objects reports their `object-missing` entries stale until they are removed.
 
 ## 264 run (todo 321)
 
@@ -115,7 +121,7 @@ findings, all triaged into `KNOWN_FINDINGS`:
 - four in mfg-guidedselling (the mfg rebase list, todo 332);
 - qb-accounting's `BillingBatchFilterCriteria` externalId (`JournalEntryRuleName`, copied from the previous object; todo 341).
 
-Seven mfg-aaf/mfg-rebates objects weren't in the describe.
+Seven mfg-aaf/mfg-rebates objects weren't in the describe; they are triaged as `object-missing` (22 known entries in all).
 
 ## Related
 

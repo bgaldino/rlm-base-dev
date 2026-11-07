@@ -292,8 +292,9 @@ silently each fail the suite.
 
 The release audit for the SFDMU plans (todo 321): every tracked plan's written declarations
 against the release's `sobject describe`. It gates on a selected field or traversal the object
-doesn't have, a value outside a restricted picklist, and a required field a creating declaration
-leaves out or blank; `KNOWN_FINDINGS` lists the triaged ones with their reasons. `pr_gate.py`
+doesn't have, a value outside a restricted picklist, a required field a creating declaration
+leaves out or blank, and a plan object the describe lacks (`object-missing`); it refuses a snapshot
+whose release or API version isn't the active one; `KNOWN_FINDINGS` lists the triaged ones with their reasons. `pr_gate.py`
 runs it as `data_plan_audit`, offline against the committed
 `scripts/erd/schema_diff/<release>-plan-describe.json`, whenever a plan changes. Capturing a new
 snapshot at the start of a release is in the schema-validation skill's

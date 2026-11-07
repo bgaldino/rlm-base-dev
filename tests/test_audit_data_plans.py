@@ -86,6 +86,10 @@ DIFF = {"object_diffs": {"Widget__x": {"added": ["Added"], "picklist_changed": [
     {"field": "Kind", "added": ["B"], "removed": []}, {"field": "Spare", "added": ["Z"], "removed": []}]}}}
 
 
+def current_meta():
+    return {"release": A.active_release(), "api_version": A.active_api_version()}
+
+
 def write_plan(root: pathlib.Path, rel: str, objects, csvs):
     plan = root / rel
     plan.mkdir(parents=True)
@@ -219,7 +223,7 @@ def test_unsupported_filter_is_an_error():
             raised = "sourceRecordsFilter" in str(exc)
         check("raises instead of skipping the rows", raised, True)
         snap = tmp / "snap.json"
-        snap.write_text(json.dumps({"objects": SNAPSHOT}), encoding="utf-8")
+        snap.write_text(json.dumps({"metadata": current_meta(), "objects": SNAPSHOT}), encoding="utf-8")
         check("main exits 2 from the filter, not the snapshot",
               A.main(["audit", "--snapshot", str(snap), "--root", str(tmp)]), 2)
         write_plan(tmp, "qb/en-US/q", [
@@ -476,7 +480,19 @@ def test_classify():
     check("and the entry isn't stale while the field still has a finding",
           [k for k in stale_v if k[3] == "Kind"], [])
     check("no triaged values means no value is known", [f["field"] for f in A.classify(r, known)[1]], [])
-    check("others new", sorted(f["field"] for f in new), ["Ghost.Name", "Missing", "Required"])
+    check("others new", sorted(f["field"] for f in new), ["", "Ghost.Name", "Missing", "Required"])
+    check("an object the describe lacks is a gating finding, not a silent pass",
+          [(f["object"], f["check"]) for f in new if f["check"] == "object-missing"],
+          [("Gone__x", "object-missing")])
+    gone = ("qb/en-US/qb-widgets", "Gone__x", "object-missing", "")
+    new_g, kept_g, stale_g = A.classify(r, {**known, gone: "feature gated"}, {})
+    check("triaged, it is known; and stays so while the object is missing",
+          ([f["object"] for f in kept_g if f["check"] == "object-missing"], [k for k in stale_g if k == gone]),
+          (["Gone__x"], []))
+    check("a triaged missing object that appears is stale",
+          [k for k in A.classify({**r, "findings": [f for f in r["findings"] if f["check"] != "object-missing"],
+                                  "info": {**r["info"], "object-missing": {}}},
+                                 {**known, gone: "feature gated"}, {})[2] if k == gone], [gone])
     check("stale entry", stale, [("qb/en-US/qb-widgets", "Widget__x", "required", "Gone")])
     _, _, stale_other = A.classify(r, {("qb/en-US/elsewhere", "Widget__x", "picklist", "Kind"): "x"})
     check("an entry for a plan not audited isn't stale", stale_other, [])
@@ -611,6 +627,23 @@ def test_delete_old_data_and_exclusions():
               (_f(r, "required"), _f(r, "picklist")), (["Required"], []))
 
 
+def test_object_missing_once_per_plan_object():
+    print("object-missing is one finding per plan and object")
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        plan = write_plan(tmp, "qb/en-US/p", [], {"Gone__x.csv": "Name\ng\n"})
+        decl = {"query": "SELECT Name FROM Gone__x", "operation": "Upsert", "externalId": "Name"}
+        (plan / "objectset_source/object-set-2").mkdir(parents=True)
+        (plan / "export.json").write_text(json.dumps({"useSeparatedCSVFiles": True,
+                                                      "objectSets": [{"objects": [decl]}, {"objects": [decl]}]}),
+                                          encoding="utf-8")
+        (plan / "objectset_source/object-set-2/Gone__x.csv").write_text("Name\ng\n", encoding="utf-8")
+        r = A.audit(SNAPSHOT, tmp)
+        check("two passes over a missing object give one finding",
+              [(f["object"], f["check"]) for f in r["findings"] if f["check"] == "object-missing"],
+              [("Gone__x", "object-missing")])
+
+
 def test_main():
     print("main")
     with tempfile.TemporaryDirectory() as d:
@@ -619,7 +652,7 @@ def test_main():
             {"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert",
              "externalId": "Code"}], {"Widget__x.csv": "Name,Code,Required\nn,c,r\n"})
         snap = tmp / "snap.json"
-        snap.write_text(json.dumps({"objects": SNAPSHOT}), encoding="utf-8")
+        snap.write_text(json.dumps({"metadata": current_meta(), "objects": SNAPSHOT}), encoding="utf-8")
         out = tmp / "r.md"
         check("clean snapshot exits 0",
               A.main(["audit", "--snapshot", str(snap), "--root", str(tmp), "--out", str(out)]), 0)
@@ -627,6 +660,26 @@ def test_main():
         (tmp / "qb/en-US/p/Widget__x.csv").write_text("Name,Code,Required\nn,c,\n", encoding="utf-8")
         check("a finding exits 1",
               A.main(["audit", "--snapshot", str(snap), "--root", str(tmp), "--out", str(out)]), 1)
+        for label, meta in (("another release", {**current_meta(), "release": "260"}),
+                            ("another API version", {**current_meta(), "api_version": "60.0"}),
+                            ("no api_version", {"release": A.active_release()}),
+                            ("no metadata", None)):
+            stale = tmp / "stale.json"
+            stale.write_text(json.dumps({**({"metadata": meta} if meta else {}), "objects": SNAPSHOT}),
+                             encoding="utf-8")
+            check(f"a snapshot with {label} exits 2",
+                  A.main(["audit", "--snapshot", str(stale), "--root", str(tmp)]), 2)
+        real_describe = A.describe_org
+
+        def no_org(*a, **k):
+            raise AssertionError("the merge base must be refused before the org is described")
+        A.describe_org = no_org
+        try:
+            check("a merge base without release metadata is refused before any org call",
+                  A.main(["snapshot", "--target-org", "none", "--merge", str(stale),
+                          "--out", str(tmp / "o.json"), "--root", str(tmp)]), 2)
+        finally:
+            A.describe_org = real_describe
         check("a missing snapshot exits 2",
               A.main(["audit", "--snapshot", str(tmp / "nope.json"), "--root", str(tmp)]), 2)
 
@@ -636,13 +689,16 @@ def test_committed_snapshot():
     release = A.active_release()
     path = A.default_snapshot(release)
     check(f"{path.name} exists for the active release", path.exists(), True)
+    meta = json.loads(path.read_text(encoding="utf-8")).get("metadata") or {}
+    check("it records the active release and API version",
+          {k: meta.get(k) for k in current_meta()}, current_meta())
 
 
 for t in (test_findings, test_required_missing_column, test_deep_paths_and_external_id,
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()

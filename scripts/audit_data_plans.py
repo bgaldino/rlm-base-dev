@@ -25,8 +25,9 @@ Gating findings (each fails the run unless `KNOWN_FINDINGS` lists it, with its r
                  field that is createable, not nillable and not defaulted on create. An Upsert row
                  whose externalId value an earlier creating pass already loaded only patches it,
                  and a repeat of a key in one pass counts once; Insert rows always create
+  object-missing the object isn't in the describe, so its declarations aren't audited (a feature
+                 the org lacks); gating so an unaudited object is triaged, not silently passed
 Informational (reported, never gating):
-  object-missing   the object isn't in the describe (often a feature the org doesn't have)
   dead-columns     CSV values in fields that are neither createable nor updateable, so they never
                    land: usually derived fields an extraction copied, sometimes a value someone
                    meant to set (a key field used only for matching is left out)
@@ -62,7 +63,7 @@ from scripts.decision_tables._client import DecisionTableClientError, connect_re
 SFDMU = REPO / "datasets" / "sfdmu"
 SCHEMA_DIR = REPO / "scripts" / "erd" / "schema_diff"
 MANIFEST = REPO / ".claude" / "skill-manifest.yml"
-GATING = ("unknown-field", "picklist", "required")
+GATING = ("unknown-field", "picklist", "required", "object-missing")
 # On every object, so a plan naming it needs no describe entry. `LastActivityDate` and the like are
 # on some objects only, so they are checked against the describe.
 ALWAYS_PRESENT = frozenset({"Id"})
@@ -107,6 +108,15 @@ KNOWN_FINDINGS: Dict[Tuple[str, str, str, str], str] = {
     # previous object's (todo 341, which makes the plan loadable with portable keys).
     ("qb/en-US/qb-accounting", "BillingBatchFilterCriteria", "unknown-field", "JournalEntryRuleName"):
         "externalId copied from GeneralLedgerJrnlEntryRule; not a field here; no load task (todo 341)",
+    # Not on a qb org: AAF and rebates are mfg features. Audit them against a snapshot merged from
+    # an org that has them (todo 332 rebuilds mfg).
+    **{(plan, obj, "object-missing", ""):
+       "mfg-only object, not in the qb-org describe; merge a snapshot from an mfg org (todo 332)"
+       for plan, objs in (("mfg/en-US/mfg-aaf", ("AdvAccountForecastFact", "AdvAcctForecastSetPartner")),
+                          ("mfg/en-US/mfg-rebates", ("ProgramRebateType", "ProgramRebateTypeBenefit",
+                                                     "RebateProgram", "RebateProgramMember",
+                                                     "RebateProgramPayoutPeriod")))
+       for obj in objs},
     # mfg is rebuilt in the mfg-264-series; these go to its rebase list (todo 332).
     ("mfg/en-US/mfg-guidedselling", "AssessmentQuestion", "unknown-field", "ShouldExcludeFromMetadata"):
         "not on a 264 org (absent from the 262 and 264 ERD snapshots too); mfg rebase (todo 332)",
@@ -133,6 +143,16 @@ def active_release(manifest: Path = MANIFEST) -> str:
 
 def default_snapshot(release: str) -> Path:
     return SCHEMA_DIR / f"{release}-plan-describe.json"
+
+
+def check_snapshot_metadata(snap: Dict[str, Any], path: Any, release: str, api_version: str) -> None:
+    """Refuse a snapshot not captured for the active release at the active API version: a stale
+    schema would pass a plan the release would break, or fail one it fixed."""
+    meta = snap.get("metadata") or {}
+    for key, want in (("release", release), ("api_version", api_version)):
+        if meta.get(key) != want:
+            raise ValueError(f"{path} records {key} {meta.get(key)!r}, not the active {want!r}; "
+                             f"recapture it (`snapshot`) before auditing against it")
 
 
 def default_release_diff(release: str) -> Optional[Path]:
@@ -333,6 +353,9 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
             if desc is None:
                 if rel not in missing[obj]:
                     missing[obj].append(rel)
+                    # Unchecked is not clean: the object passes only by being triaged.
+                    add(rel, obj, "object-missing", "",
+                        f"{obj} isn't in the describe, so none of its declarations are audited")
                 continue
             fields = desc["fields"]
             op = sfdmu_export.resolve_operation(decl.get("operation", "Readonly"))
@@ -662,10 +685,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.cmd == "snapshot":
             api_version = active_api_version()
             base = _load_json(args.merge) if args.merge else None
-            base_version = (base or {}).get("metadata", {}).get("api_version")
-            if base_version and base_version != api_version:
-                raise ValueError(f"{args.merge} was captured at API {base_version}, not the "
-                                 f"active {api_version}; recapture it before merging")
+            if base:
+                check_snapshot_metadata(base, args.merge, release, api_version)
             objects = describe_org(args.target_org, plan_objects(args.root), api_version=api_version)
             if base:
                 objects = merge_snapshots(base["objects"], objects)
@@ -688,7 +709,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                       f"(see the schema-validation skill, release-data-plan-audit.md)",
                       file=sys.stderr)
                 return 2
-            snapshot = _load_json(path)["objects"]
+            loaded = _load_json(path)
+            check_snapshot_metadata(loaded, path, release, active_api_version())
+            snapshot = loaded["objects"]
             source = f"snapshot {path.relative_to(REPO) if path.is_relative_to(REPO) else path}"
         diff_path = args.release_diff or default_release_diff(release)
         diff = _load_json(diff_path) if diff_path and diff_path.exists() else None
