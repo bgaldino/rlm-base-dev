@@ -52,8 +52,9 @@ price-impacting attribute values.
   decimal; input must include `.0` (10.0) or no match. [Help]
 - A picklist cannot map to Boolean; use Checkbox/Boolean attribute. [Help]
 - Attributes with an overridden bundle context are not supported. [Help]
-- Each attribute value must resolve to one row; multiple rows need Output Resolution
-  (see volume file). [Help]
+- Each attribute value must resolve to one row; fix ambiguous adjustment rows. Output
+  Resolution is not available on this element (only List Price, Price Tracking and
+  Price Adjustment Matrix). [Help]
 - Core skips attributes whose price-impacting flag is false or whose name/value is
   null; with no qualifying attributes it uses a null-hash marker. [Core]
 - AND/OR: all qualifying price-impacting attributes on a line are combined into one

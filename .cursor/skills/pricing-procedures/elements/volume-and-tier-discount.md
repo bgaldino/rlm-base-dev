@@ -89,14 +89,19 @@ Tier names are from core, no Tier step ships in this repo).
 - Each element writes `NetUnitPrice`/`Subtotal`; with `HideWaterfall=false` its step
   shows in the price waterfall (tier steps list each band with lower/upper bound,
   type, value and discounted price). [Repo][Core]
-- Several matching rows for one element (e.g. many tiers/adjustments on one line)
-  need Output Resolution: create a Procedure Output Resolution record
-  (`SEQUENCE(<col>)` or `STACK`) and map Resolution Strategy and "Use As List"; the
-  list column must have unique values per row. Without it a multi-row match errors
-  `DUPLICATE_VALUE_FOUND_IN_LOOKUP`. [Help][Core] Core supports only SEQUENCE and
-  STACK. [Core]
+- Output Resolution is supported only on List Price, Price Tracking and Price Adjustment
+  Matrix, and its Stack/Sequence strategies only on the matrix [Help
+  `ind.pricing_procedure_output_resolution.htm`]. It is **not** available on Volume or
+  Tier Discount (or Attribute-Based Price). When several stacked adjustments must
+  combine on one line, use a Price Adjustment Matrix with a Stack or Sequence
+  resolution ([`price-adjustment-matrix.md`](price-adjustment-matrix.md)).
+- Volume Discount needs exactly one matching row per line; a second match errors
+  `DUPLICATE_VALUE_FOUND_IN_LOOKUP`, so fix the overlapping rows. [Core] Tier Discount
+  pricing each band the quantity spans at its own rate is normal [Help], not an
+  ambiguous match; overlapping bounds are the error there
+  (`OVERLAPPING_ADJUSTMENT_TIERS`). [Core]
 - "Best price" selection (e.g. `MIN(ListPrice)` on List Price across price books) is
-  also a resolution strategy, not element order. [Help
+  a List Price resolution strategy, not element order. [Help
   `ind.pricing_example_calculate_the_lowest_price_of_a_product.htm`]
 
 ## Rules and limits
@@ -168,7 +173,7 @@ Snapshot only. Discover: `python scripts/expression_sets/describe_expression_set
 | Symptom / error | Cause | Fix |
 |---|---|---|
 | No discount | Tier table stale, schedule inactive, or selling model/date outside tier | Reactivate schedule, refresh decision table |
-| `DUPLICATE_VALUE_FOUND_IN_LOOKUP` | More than one matching tier row, no Output Resolution | Remove overlap or add resolution strategy [Core] |
+| `DUPLICATE_VALUE_FOUND_IN_LOOKUP` | More than one matching Volume row for the line | Remove the overlapping rows; Output Resolution is not available on this element [Core][Help] |
 | `OVERLAPPING_ADJUSTMENT_TIERS` | Overlapping bounds | Fix bounds [Core] |
 | Cumulative ignored | Contract aggregation not Cumulative | Set strategy; check `AggregatedQuantity_std` mapping [Help] |
 

@@ -167,9 +167,10 @@ Draft) contains two steps. [Repo]
 
 Input tags use names such as `PricingProductId` and `PricingCurrencyCode` (a different tag set
 than the sales-transaction procedure). ListPrice and Pricing Settings parameters are covered in
-[`elements/`](./elements/). Shipped here the ListPrice step precedes Pricing Setting, unlike the
-usual Pricing Setting first rule; check [procedure-anatomy-and-ordering.md](./procedure-anatomy-and-ordering.md)
-before copying this order into a transaction procedure. [Repo]
+[`elements/`](./elements/). Execution order follows `sequenceNumber`, not the order of steps in
+the XML file: the `PricingSetting` step is sequence 1 and the `PriceBookEntries` step sequence 2, so this procedure
+keeps the usual Pricing Setting first rule ([procedure-anatomy-and-ordering.md](./procedure-anatomy-and-ordering.md)),
+although the file lists `PriceBookEntries` first. [Repo]
 
 Apex hooks can also be placed in a Product Discovery procedure plan (Pricing and Apex sections;
 at most one Qualification section; section order decides how prices apply). [Help]

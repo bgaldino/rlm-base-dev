@@ -150,8 +150,9 @@ Discovery-only elements (`MapProduct`, `RuleFetch`, `AssetDiscovery`) are covere
 
 ## How a custom element is encoded
 
-Most pricing elements are `stepType: CustomElement` steps with an `actionType` and a
-flat list of `customElement.parameters`. Each parameter has a `name`, a `type`
+Most pricing elements are `stepType: BusinessKnowledgeModel` steps with an `actionType`
+and a flat list of `customElement.parameters` (`customElement` is the nested payload, not
+the step type). Each parameter has a `name`, a `type`
 (`Literal` = a fixed value, `Parameter` = a context tag or variable, `Formula`,
 `Lookup`, `PickList`), a `value`, and `input`/`output` flags [Dev guide, Repo]. Repeating
 structures are numbered with zero-based indexes and an explicit count, for example

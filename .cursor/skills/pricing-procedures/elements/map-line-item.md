@@ -120,7 +120,7 @@ PRM DISTI, Recalc and Price Distribution procedures do not ship it. Discover wit
 ## Verify
 
 - Simulate on an ARC transaction with detail lines; confirm `SalesTransactionItemDetail` tags (`ItemDetailNetUnitPrice`, `DetailPriceWaterfallIdentifier`) are populated. Simulation on a plain new sale only fills line-level values.
-- Query the persisted detail record fields after a quote save (inferred: `QuoteLineItemDetail` / `OrderItemDetail`).
+- Query the persisted detail record fields after a quote save (`QuoteLineDetail` / `OrderItemDetail`) [Dev guide].
 
 ## Troubleshooting
 

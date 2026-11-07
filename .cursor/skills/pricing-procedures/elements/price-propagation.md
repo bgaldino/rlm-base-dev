@@ -49,7 +49,7 @@ Most configuration lives in the Pricing Setting element, not the Propagation ste
 | Do not use in amend, renew or cancel pricing procedures (inaccurate pricing). | [Help] |
 | Existing procedure must not already contain propagation, derived price or promotion elements before enabling. | [Help] |
 | Deselecting Enable Propagation keeps the configuration in the Pricing Setting JSON; to reset, remove and re-add the Pricing Setting element. | [Help] |
-| Element is gated to API 258+ (`PricingPropagation`). | [Core] |
+| `PricingPropagation` is available from API v65.0 (Release 258). | [Dev guide][Core] |
 | Not eligible for element-level parallel execution; a procedure containing it runs sequentially. | [Core] |
 
 ## Metadata shape

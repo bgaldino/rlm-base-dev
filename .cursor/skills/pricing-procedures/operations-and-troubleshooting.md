@@ -117,8 +117,10 @@ output resolution on the element.
 | Final Price Sequence | List Price, Price Tracking | Last tiebreaker, typically lowest price |
 
 Map variables to context tags; a Write Back section stores the result in a tag. With resolution
-on, every product needs a matching Price Book decision-table row: no match is a configuration
-error that stops pricing that line (no zero default). [Help] Shipped XML carries the flag as
+on a **List Price or Price Tracking** element, every product needs a matching Price Book
+decision-table row: no match is a configuration error that stops pricing that line (no zero
+default). [Help] Price Adjustment Matrix resolves over its own adjustment table instead.
+[inferred from Repo] Shipped XML carries the flag as
 `IsOutputResolutionEnabled` (Literal `false`) on ListPrice. [Repo]
 
 ## <a name="5-observability"></a>5. Observability
@@ -183,7 +185,7 @@ Element-specific errors are in the element files under [`elements/`](./elements/
 | Waterfall shows only the last procedure | Multiple procedures chained in one plan | Consolidate into one procedure |
 | Promotions misapplied after editing tag mappings | Parallel execution caches custom tag mappings at activation | Deactivate and reactivate |
 | Hook change to Start Date/Quantity ignored by validation | ARC validation precedes the pre-pricing hook | Set values in the PST payload |
-| Output resolution stops a line | No Price Book decision-table row for the product | Add the row, refresh the table |
+| Output resolution stops a line (List Price or Price Tracking) | No Price Book decision-table row for the product | Add the row, refresh the table. For a Price Adjustment Matrix, check its adjustment table instead |
 | Bulk price change not reflected | Decision tables not refreshed | Refresh (section 8) |
 | Amend/cancel/renew with Order output fails with UNKNOWN_EXCEPTION "We couldn't fetch the data for RLM_SalesTransactionContext context definition"; Quote output works | A custom attribute the procedure reads is mapped on `QuoteEntitiesMapping` but not `OrderEntitiesMapping` [Repo] | Map it on both lenses; `validate_context_plan.py` flags it ([`../context-service/authoring-and-lifecycle.md`](../context-service/authoring-and-lifecycle.md) → *Populate an attribute from org data*) |
 

@@ -117,7 +117,9 @@ Elided skeleton; full parameter set in the Configuration table. Literal vs Param
 |---|---|---|
 | `RLM_DefaultPricingProcedure` | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` | Renewal policy revision (Flat/PriceIndex) |
 | same | `Uplift` | Ramp-path compound/standard uplift |
-| `RLM_PRM_DISTI_Pricing_Procedure`, `RLM_Revenue_Management_Recalc_Procedure` | PriceRevision steps | Same pattern |
+| `RLM_PRM_DISTI_Pricing_Procedure`, `RLM_Revenue_Management_Recalc_Procedure` | renewal-policy step | `PriceRevision` (renewal policy revision), as in the default |
+| same | `Uplift` | Legacy ramp uplift: still `FormulaBasedPricing`, no `IsCompoundUpliftEnabled`, so no compound ramp uplift in these procedures |
+
 Snapshot. Discover: `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name> --params`
 
 ## Verify

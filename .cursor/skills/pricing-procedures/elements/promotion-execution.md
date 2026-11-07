@@ -15,7 +15,7 @@ the applicable promotions for the transaction line items.
 
 Core registers several promotion-related actionTypes:
 
-| actionType | Min API | Note |
+| actionType | Min platform release | Note |
 |---|---|---|
 | `PromotionExecution` | 258 | Builder "Promotion Execution"; matches the Help article name. [Core] |
 | `GPMPromotionExecution` | 264 | GPM variant, same icon. [Core] |

@@ -13,13 +13,28 @@ execution, Apex hooks, the runtime model and guardrails, limits).
 ## Observability
 
 ### API-based verification [Core][inferred from client call shapes]
-Headless sequence for a scripted check (v68.0): `POST /connect/contexts` (metadata + data as a
-JSON string; returns `contextId`), `POST /connect/core-pricing/price-contexts/{contextId}` with
+Headless call shapes (v68.0): `POST /connect/contexts` (metadata + data as a JSON string;
+returns `contextId`), `POST /connect/core-pricing/price-contexts/{contextId}` with
 `{"procedureName": "<name>", "configurationOverrides": {...}}` (returns an `executionId`),
 `GET /connect/core-pricing/waterfall/{lineItemId}/{executionId}`, and
-`POST /connect/contexts/query-tags` with `{"contextId","tags":[...]}` to read results. The
-`contextId` is request-scoped; chain these in one script. Naming a procedure bypasses the
-procedure plan. Waterfall needs the waterfall setting on (below). Not exercised in this repo.
+`POST /connect/contexts/query-tags` with `{"contextId","tags":[...]}` to read results. Naming a
+procedure bypasses the procedure plan. Waterfall needs the waterfall setting on (below). Not
+exercised in this repo.
+
+The `contextId` is **request-scoped** by default: each HTTP call is a separate Salesforce
+request, so running these calls one after another from a script does **not** keep the context
+alive, and the price and query calls get an expired handle. `query-tags` is also pilot-gated.
+On a normal org, keep the lifecycle in **one request**. Either make one
+`POST /services/data/v68.0/actions/standard/runSalesforceHeadlessPricing` call (scriptable): it
+takes `contextDefinitionId`, `contextMappingId`, `pricingProcedureId` and `pricingData`, builds
+the context, prices it and returns `pricingResult` in the same request, so the default request
+scope is enough (`businessObjectType` in `pricingData` must be the SObject the mapping uses). Or
+use one Flow that builds the context, runs `runSalesforcePricing` (Flow-only) with its
+`contextInstanceId` and `pricingProcedureName`, and reads the tags in the same transaction
+[Dev guide `pricing_invocable_actions_parent.htm`, `actions_obj_run_salesforce_headless_pricing.htm`,
+`actions_obj_run_salesforce_pricing.htm`]. The multi-call REST path works only with
+SESSION scope or context reuse enabled, plus the query pilot. Which path fits which org:
+[`../context-service/runtime-and-persistence.md`](../context-service/runtime-and-persistence.md).
 
 | Capability | Enable / find | Notes |
 |---|---|---|
