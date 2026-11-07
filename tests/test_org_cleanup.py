@@ -43,9 +43,13 @@ class FakeCli:
         self.cci, self.fail_hubs, self.fail_logout = cci, set(fail_hubs), set(fail_logout)
         self.tracked, self.config = set(), None
         self.clears_before_failing = clears_before_failing  # what real sf did when unlink failed
+        self.override = None  # cmd -> (code, stdout) to answer it, or None for the normal answer
 
     def __call__(self, cmd):
         self.calls.append(cmd)
+        answer = self.override(cmd) if self.override else None
+        if answer is not None:
+            return answer
         if cmd[0] == "git":
             return 0, cmd[-1] + "\n" if cmd[-1] in self.tracked else ""
         if cmd[0] == "cci":
@@ -592,6 +596,54 @@ class Apply(Base):
         self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertNotIn("Residual files moved", self.stdout.getvalue())
 
+    def test_a_git_failure_refuses_the_move(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows)
+        cli.override = lambda cmd: (1, "") if cmd[0] == "git" else None
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertTrue(self.tracking.exists())
+        self.assertIn("git could not say", self.stdout.getvalue())
+
+    def test_a_logout_that_does_not_name_the_user_counts_as_failed(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows)
+        cli.override = lambda cmd: FakeCli.ok([]) if cmd[1:3] == ["org", "logout"] else None
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertIn("rep@x.invalid (logout failed)", self.stdout.getvalue())
+        self.assertTrue(self.index.exists())
+
+    def test_an_alias_unset_reporting_no_success_counts_as_failed(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows, {"base": "rep@x.invalid", "chained": "base"})
+        cli.override = lambda cmd: (FakeCli.ok([{"alias": cmd[3], "success": False}])
+                                    if cmd[1:3] == ["alias", "unset"] else None)
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertIn("chained (alias unset failed)", self.stdout.getvalue())
+
+    def test_a_failed_config_unset_is_reported(self):
+        rows = self.setup_stale_org()
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "chained"}))
+        cli = FakeCli(self.home, rows, {"base": "rep@x.invalid", "chained": "base"})
+        cli.override = lambda cmd: ((1, json.dumps({"status": 1, "name": "Failed"}))
+                                    if cmd[1:3] == ["config", "unset"] else None)
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertIn("local default (config unset failed)", self.stdout.getvalue())
+
+    def test_the_rewritten_cache_keeps_its_mode(self):
+        rows = self.setup_stale_org()
+        cache = self.home / ".sf" / "deploy-cache.json"
+        os.chmod(str(cache), 0o644)  # mkstemp would make it 600 if the mode were not carried over
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 0)
+        self.assertEqual(cache.stat().st_mode & 0o777, 0o644)
+
+    def test_an_unreadable_cache_is_reported(self):
+        (self.home / ".sf" / "deploy-cache.json").write_text("not json")
+        failures = []
+        result = oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine,
+                                       self.project, failures)
+        self.assertEqual(result, (0, 0))
+        self.assertEqual(failures, [("deploy-cache", "unreadable")])
+
     def test_tracked_and_symlinked_state_is_refused(self):
         rows = self.setup_stale_org()
         cli = FakeCli(self.home, rows)
@@ -671,6 +723,85 @@ class DocStaysInStep(unittest.TestCase):
         code = source.split('"""', 2)[2]  # past the docstring, which names what it never runs
         for banned in ('"delete"', "org delete", "--clean", "ActiveScratchOrg"):
             self.assertNotIn(banned, code)
+
+
+class EvidenceEdges(Base):
+    """Each pins a guard that a broad mutation pass showed nothing else would catch."""
+
+    def test_a_partial_hub_answer_is_a_failure_not_evidence(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        cli.override = lambda cmd: (FakeCli.ok({"done": False, "records": [row(DEAD_ORG)]})
+                                    if cmd[1:3] == ["data", "query"] else None)
+        plan = self.plan(cli)
+        self.assertEqual(plan["hub_failures"], [HUB])
+        self.assertEqual(plan["remove"]["logout"], [])
+
+    def test_a_value_that_could_break_out_of_soql_never_reaches_a_query(self):
+        aliases = {"quote": "o'brien@x.invalid", "slash": "back\\slash@x.invalid"}
+        cli = FakeCli(self.home, aliases=aliases)
+        self.plan(cli)
+        queries = [" ".join(c) for c in cli.calls if c[1:3] == ["data", "query"]]
+        self.assertFalse([q for q in queries if "brien" in q or "slash" in q])
+
+    def test_an_index_for_a_live_or_unknown_org_stays(self):
+        for org in (LIVE_ORG, NO_ROW_ORG):
+            (self.home / ".sfdx" / (org + "MAA.json")).write_text("{}")
+        plan = self.plan(FakeCli(self.home, [row(LIVE_ORG, "Active", "2026-12-01")]))
+        self.assertEqual(plan["remove"]["indexes"], [])
+        self.assertEqual(plan["preserved"]["indexes"], 2)
+
+    def test_a_symlinked_auth_file_is_not_read(self):
+        target = self.home / "elsewhere.json"
+        target.write_text(json.dumps({"username": "link@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        (self.home / ".sfdx" / "link@x.invalid.json").symlink_to(target)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertEqual(plan["preserved"]["logins"], 1)  # the hub only
+
+    def test_a_symlinked_index_is_not_listed(self):
+        target = self.home / "elsewhere.json"
+        target.write_text("{}")
+        (self.home / ".sfdx" / (DEAD_ORG + "MAA.json")).symlink_to(target)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["indexes"], [])
+
+    def test_a_symlinked_tracking_dir_is_reported_and_not_listed(self):
+        target = self.home / "elsewhere"
+        target.mkdir()
+        link = self.project / ".sf" / "orgs" / (DEAD_ORG + "MAA")
+        link.symlink_to(target)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["tracking"], [])
+        self.assertEqual(plan["report"]["symlinks_left_alone"], [str(link)])
+
+    def test_an_unreadable_auth_file_is_reported(self):
+        (self.home / ".sfdx" / "bad@x.invalid.json").write_text("not json")
+        plan = self.plan(FakeCli(self.home))
+        self.assertEqual(plan["report"]["unreadable_auth_files"], ["bad@x.invalid.json"])
+
+    def test_a_nonzero_exit_fails_even_when_the_payload_says_status_0(self):
+        run = lambda cmd: (1, json.dumps({"status": 0, "result": []}))  # noqa: E731
+        self.assertIsNone(oc.sf_json(run, "anything"))
+
+    def test_the_legacy_default_key_counts(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        (self.project / ".sfdx" / "sfdx-config.json").write_text(
+            json.dumps({"defaultusername": "rep@x.invalid"}))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["defaults"], ["local"])
+
+    def test_check_logins_names_the_login_that_did_not_answer(self):
+        self.add_auth("rep@x.invalid", LIVE_ORG)
+        cli = FakeCli(self.home)
+
+        def answer(cmd):
+            if "rep@x.invalid" in cmd:
+                return 1, json.dumps({"status": 1, "name": "Failed"})
+            return FakeCli.ok({"done": True, "records": []})
+
+        cli.override = answer
+        self.assertEqual(oc.check_logins(cli, self.home), ["rep@x.invalid"])
 
 
 class Usage(Base):
