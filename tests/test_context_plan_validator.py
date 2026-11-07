@@ -90,7 +90,15 @@ def _minimal_extend_plan():
                 "mappingType": "SOBJECT",
                 "sObject": "Quote",
                 "sObjectField": "RLM_RampMode__c",
-            }
+            },
+            {
+                "mappingName": "OrderEntitiesMapping",
+                "contextNode": "SalesTransaction",
+                "contextAttribute": "RampMode__c",
+                "mappingType": "SOBJECT",
+                "sObject": "Order",
+                "sObjectField": "RLM_RampMode__c",
+            },
         ],
     }
 
@@ -431,6 +439,72 @@ def test_each_mapping_group_with_parent_reference_passes():
     check(
         "every mapping group carrying its own ParentReference validates",
         not _has(_errors(r), "ParentReference"),
+    )
+
+
+# ----------------------------------------------------------------------
+# Tests — Quote/Order lens parity
+# ----------------------------------------------------------------------
+
+def test_quote_only_custom_attribute_errors():
+    p = _clone(_minimal_extend_plan())
+    p["mappingRules"] = p["mappingRules"][:1]  # drop the Order rule
+    r = _validate(p)
+    check(
+        "custom attribute mapped on Quote only errors",
+        _has(_errors(r), "SalesTransaction.RampMode__c is mapped on QuoteEntitiesMapping but not"),
+    )
+
+
+def test_order_rule_without_sobject_field_satisfies_parity():
+    p = _clone(_minimal_extend_plan())
+    del p["mappingRules"][1]["sObjectField"]
+    r = _validate(p)
+    check(
+        "Order rule with no sObjectField satisfies parity",
+        not _has(_errors(r), "OrderEntitiesMapping"),
+    )
+
+
+def test_parity_is_per_node_and_attribute():
+    p = _clone(_minimal_extend_plan())
+    p["mappingRules"][1]["contextNode"] = "SalesTransactionItem"  # same attribute, other node
+    r = _validate(p)
+    check(
+        "an Order rule on a different node does not satisfy parity",
+        _has(_errors(r), "SalesTransaction.RampMode__c is mapped on QuoteEntitiesMapping but not"),
+    )
+
+
+def test_quote_only_standard_attribute_is_not_flagged():
+    p = _clone(_minimal_extend_plan())
+    p["mappingRules"] = [dict(p["mappingRules"][0], contextAttribute="QuoteAccount")]
+    r = _validate(p)
+    check(
+        "standard (non-__c) attribute mapped on Quote only is not flagged",
+        not _has(_errors(r), "OrderEntitiesMapping"),
+    )
+
+
+def test_malformed_attribute_does_not_crash_parity():
+    p = _clone(_minimal_extend_plan())
+    p["mappingRules"][0]["contextAttribute"] = ["RampMode__c"]  # unhashable, not a string
+    r = _validate(p)
+    check(
+        "non-string contextAttribute does not crash the parity rule",
+        not _has(_errors(r), "OrderEntitiesMapping"),
+    )
+
+
+def test_create_new_plan_skips_parity():
+    p = _clone(_minimal_extend_plan())
+    p["create"] = True
+    p["label"] = "Test"
+    p["mappingRules"] = p["mappingRules"][:1]
+    r = _validate(p)
+    check(
+        "create-new plans are exempt from the parity rule",
+        not _has(_errors(r), "OrderEntitiesMapping"),
     )
 
 

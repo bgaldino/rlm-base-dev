@@ -64,7 +64,8 @@ one nearly every additive plan in this repo targets:
   custom attribute the pricing procedure reads that is mapped only on
   `QuoteEntitiesMapping` fails with the generic UNKNOWN_EXCEPTION "We couldn't
   fetch the data for RLM_SalesTransactionContext context definition" (Quote output
-  still works). Map every custom attribute on both lenses. The ContractPricing,
+  still works). Map every custom attribute on both lenses; `validate_context_plan.py`
+  errors on a `__c` attribute mapped on Quote only. The ContractPricing,
   PartnerAccount, PrmPricing and mfg plans map their Order lens to `Order`/`OrderItem`
   with no `sObjectField`, because those objects have no matching custom field. That
   makes the attribute resolvable but leaves it empty on Order-output actions, so a
