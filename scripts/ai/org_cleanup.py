@@ -348,17 +348,37 @@ def check_logins(run, home):
 
 
 def default_quarantine(home, today):
+    """The user's Trash, or else beside the real CLI state.
+
+    A container's home goes with the container, and ~/.sf links to the volume that outlives it.
+    """
     trash = home / ".Trash"
     if trash.is_dir():
         return trash / "rlm-org-cleanup-{}".format(today)
-    return home / ".rlm-org-cleanup-quarantine" / today
+    state = Path(os.path.realpath(str(home / ".sf"))).parent
+    return state / ".rlm-org-cleanup-quarantine" / today
+
+
+def free_name(path):
+    """Return path, or path with a number added if something already has that name.
+
+    What is there stays: another project's item, or an earlier attempt's copy. After a failed
+    delete across volumes that copy can be the only complete one, so it is never reused or removed.
+    """
+    candidate, number = path, 1
+    while os.path.lexists(str(candidate)):
+        candidate = path.with_name("{}.{}".format(path.name, number))
+        number += 1
+    return candidate
 
 
 def move_path(source, dest):
     """Rename, copying only across volumes.
 
-    shutil.move falls back to copy-then-delete on any rename error, so a source it cannot remove
-    leaves a second copy behind, and that copy then blocks a retry as "already in quarantine".
+    shutil.move falls back to copy-then-delete on any rename error, so limiting it to a real
+    cross-volume move keeps a refused rename from leaving a second copy behind. Across volumes it
+    still can: a failed copy leaves a partial copy and an intact source, and a failed delete leaves
+    a complete copy and a partial source.
     """
     try:
         os.rename(source, dest)
@@ -412,11 +432,9 @@ def move_to_quarantine(run, path, roots, quarantine, project):
     dest = quarantine / path.parent.name / path.name
     try:
         dest.parent.mkdir(parents=True, exist_ok=True)
-        if os.path.lexists(str(dest)):
-            return "already in quarantine"
-        move_path(str(path), str(dest))
+        move_path(str(path), str(free_name(dest)))
     except OSError as error:
-        return "could not move: {}".format(error.strerror or error)
+        return "could not move: {}".format(error.strerror or str(error)[:300])
     return None
 
 

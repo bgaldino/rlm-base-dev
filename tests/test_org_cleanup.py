@@ -574,15 +574,108 @@ class Apply(Base):
                 oc.move_path(str(source), str(dest))
         copy_move.assert_called_once_with(str(source), str(dest))
 
-    def test_a_refused_manifest_keeps_its_cache_entry(self):
+    def refuse_rename_of(self, path):
+        real_rename, refused = os.rename, str(path)
+
+        def rename(src, dst):
+            if src == refused:
+                raise PermissionError(1, "Not permitted")
+            return real_rename(src, dst)
+
+        return mock.patch.object(oc.os, "rename", side_effect=rename)
+
+    def across_volumes(self):
+        return mock.patch.object(oc.os, "rename", side_effect=OSError(errno.EXDEV, "Cross-device"))
+
+    def writable_again(self, *paths):
+        def restore():
+            for path in paths:
+                if path.exists():
+                    path.chmod(0o755)
+        self.addCleanup(restore)
+
+    def files_under(self, path):
+        return sorted(str(p.relative_to(path)) for p in path.rglob("*") if p.is_file())
+
+    def test_a_failed_delete_across_volumes_loses_nothing_and_a_retry_finishes(self):
+        if os.geteuid() == 0:
+            self.skipTest("root ignores the read-only folder")
+        root = self.project / ".sf" / "orgs"
+        item = root / "00DAA0000000009MAA"
+        (item / "sub").mkdir(parents=True)
+        for name in ("a", "b", "sub/held"):
+            (item / name).write_text("x")
+        copy = self.quarantine / "orgs" / item.name
+        (item / "sub").chmod(0o555)
+        self.writable_again(item / "sub", copy / "sub")
+        with self.across_volumes():
+            why = oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine, self.project)
+            self.assertIn("could not move", why)
+            self.assertEqual(self.files_under(copy), ["a", "b", "sub/held"])  # the only complete one
+            left = self.files_under(item)  # how far the delete got varies by Python and directory order
+            self.assertIn("sub/held", left)
+            (item / "sub").chmod(0o755)
+            self.assertIsNone(oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine,
+                                                    self.project))
+        self.assertFalse(item.exists())
+        self.assertEqual(self.files_under(copy), ["a", "b", "sub/held"])
+        self.assertEqual(self.files_under(copy.with_name(item.name + ".1")), left)
+
+    def test_a_failed_copy_across_volumes_leaves_the_source_and_a_retry_finishes(self):
+        if os.geteuid() == 0:
+            self.skipTest("root ignores the unreadable file")
+        root = self.project / ".sf" / "orgs"
+        item = root / "00DAA0000000009MAA"
+        item.mkdir(parents=True)
+        (item / "a").write_text("x")
+        (item / "secret").write_text("x")
+        (item / "secret").chmod(0)
+        self.addCleanup(lambda: (item / "secret").exists() and (item / "secret").chmod(0o644))
+        with self.across_volumes():
+            why = oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine, self.project)
+            self.assertIn("could not move", why)
+            self.assertLess(len(why), 330)  # shutil.Error's text lists every path it could not copy
+            self.assertEqual(self.files_under(item), ["a", "secret"])
+            (item / "secret").chmod(0o644)
+            self.assertIsNone(oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine,
+                                                    self.project))
+        self.assertFalse(item.exists())
+        retried = self.quarantine / "orgs" / (item.name + ".1")
+        self.assertEqual(self.files_under(retried), ["a", "secret"])
+
+    def test_the_same_name_in_both_tracking_layouts_moves_without_a_collision(self):
+        name = "00DAA0000000009MAA"
+        results = []
+        for layout in (".sf", ".sfdx"):
+            root = self.project / layout / "orgs"
+            (root / name).mkdir(parents=True)
+            (root / name / layout).write_text("x")
+            results.append(oc.move_to_quarantine(FakeCli(self.home), root / name, [root], self.quarantine,
+                                                 self.project))
+        self.assertEqual(results, [None, None])
+        orgs = self.quarantine / "orgs"
+        self.assertEqual(self.files_under(orgs / name), [".sf"])
+        self.assertEqual(self.files_under(orgs / (name + ".1")), [".sfdx"])
+
+    def test_an_item_already_in_the_quarantine_is_kept_and_the_new_one_numbered(self):
         rows = self.setup_stale_org()
         taken = self.quarantine / "manifestCache" / "job1.xml"
         taken.parent.mkdir(parents=True)
         taken.write_text("<earlier/>")
-        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
+        taken.with_name("job1.xml.1").write_text("<retry/>")
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 0)
+        self.assertEqual(taken.read_text(), "<earlier/>")
+        self.assertEqual(taken.with_name("job1.xml.1").read_text(), "<retry/>")
+        self.assertTrue(taken.with_name("job1.xml.2").exists())
+        self.assertFalse(self.manifest.exists())
+        self.assertNotIn("job1", self.read_cache())
+
+    def test_a_refused_manifest_keeps_its_cache_entry(self):
+        rows = self.setup_stale_org()
+        with self.refuse_rename_of(self.manifest):
+            self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
         self.assertIn("job1", self.read_cache())
         self.assertTrue(self.manifest.exists())
-        self.assertEqual(taken.read_text(), "<earlier/>")
 
     def test_a_failed_cache_write_is_reported_and_leaves_the_cache_intact(self):
         rows = self.setup_stale_org()
@@ -599,10 +692,8 @@ class Apply(Base):
         self.manifest.unlink()
         cli = FakeCli(self.home, rows)
         cli.tracked.add(str(self.tracking))
-        taken = self.quarantine / ".sfdx" / self.index.name
-        taken.parent.mkdir(parents=True)
-        taken.write_text("{}")
-        self.assertEqual(self.audit_then_apply(cli), 1)
+        with self.refuse_rename_of(self.index):
+            self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertNotIn("Residual files moved", self.stdout.getvalue())
 
     def test_a_git_failure_refuses_the_move(self):
@@ -826,6 +917,19 @@ class Usage(Base):
         self.assertEqual(oc.default_quarantine(self.home, TODAY).name, TODAY)
         (self.home / ".Trash").mkdir()
         self.assertEqual(oc.default_quarantine(self.home, TODAY).parent, self.home / ".Trash")
+
+    def test_without_a_trash_the_quarantine_stays_with_the_real_cli_state(self):
+        """A container's home goes with it, and only the volume its state links to is kept."""
+        state = self.home.parent / "volume"
+        (state / "sf").mkdir(parents=True)
+        (self.home / ".sf").rename(self.home.parent / "unused-sf")
+        (self.home / ".sf").symlink_to(state / "sf")
+        expected = Path(os.path.realpath(str(state))) / ".rlm-org-cleanup-quarantine" / TODAY
+        self.assertEqual(oc.default_quarantine(self.home, TODAY), expected)
+
+    def test_without_a_trash_or_links_the_quarantine_is_in_the_home_folder(self):
+        expected = Path(os.path.realpath(str(self.home))) / ".rlm-org-cleanup-quarantine" / TODAY
+        self.assertEqual(oc.default_quarantine(self.home, TODAY), expected)
 
 
 if __name__ == "__main__":

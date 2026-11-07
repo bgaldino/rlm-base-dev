@@ -95,10 +95,11 @@ python scripts/ai/org_cleanup.py apply --plan <plan-path>
 ```
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
-reviewed one. It then moves a temp file into the quarantine, a dated folder in the user's Trash,
-and exits 1 before any logout if that fails; `--quarantine <dir>` chooses another folder. It
-then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config unset
-target-org` for a default still pointing at a removed user, and moves user indexes, tracking
+reviewed one. It then moves a temp file into the quarantine, and exits 1 before any logout if that
+fails. The quarantine is a dated folder in the user's Trash, or with no Trash, beside the real CLI
+state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another
+folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config
+unset target-org` for a default still pointing at a removed user, and moves user indexes, tracking
 directories, and matched deploy-cache manifests to the quarantine. It refuses symlinks, tracked
 files, and paths outside the state roots. If a logout fails, that org's index, tracking and
 deploy-cache entries stay, and so does a chained alias that still reaches the login. `sf` clears
@@ -106,8 +107,13 @@ the user's direct aliases and defaults before it can fail, so those may already 
 chain left leading nowhere is removed. Fix the cause and re-audit; the login is listed again.
 
 Each result is checked. Exit 1 means something failed: report each `FAILED` line. A warning
-about losing access is routine for a scratch-org login. The user empties the Trash folder
-when satisfied; logouts and alias removals cannot be restored from it.
+about losing access is routine for a scratch-org login. The user empties the quarantine when
+satisfied; logouts and alias removals cannot be restored from it.
+
+An item whose name is already in the quarantine takes a numbered name, such as `<name>.1`. A failed
+move across volumes, such as a project on another drive or in the Docker image, can leave a copy
+in the quarantine and all or part of the source in place. Keep both: the copy can be the only
+complete one. Fix the cause and re-audit, and the retry takes a numbered name.
 
 The tool does not handle credential backups: report them from `unclassified_files`, and
 remove one only when the user can tie it to a confirmed stale org.
