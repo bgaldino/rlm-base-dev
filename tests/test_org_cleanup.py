@@ -202,6 +202,13 @@ class UsernameKeyedState(Base):
         # Logout clears "base" itself, and only that, so the two that reach it remain on the plan.
         self.assertEqual(remove["aliases"], ["chained", "deeper"])
 
+    def test_preserved_aliases_excludes_those_logout_clears(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        aliases = {"base": "rep@x.invalid", "chained": "base", "keep": HUB, "keep2": "keep"}
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], aliases))
+        self.assertEqual(plan["remove"]["aliases"], ["chained"])
+        self.assertEqual(plan["preserved"]["aliases"], 2)
+
     def test_legacy_username_tracking_needs_a_deleted_signup_row(self):
         for name in ("gone@x.invalid", "unknown@x.invalid"):
             (self.project / ".sfdx" / "orgs" / name).mkdir()
@@ -451,6 +458,13 @@ class Apply(Base):
         self.assertTrue(self.index.exists())
         self.assertIn("before any logout", self.stderr.getvalue())
         self.assertNotIn("Residual files moved", self.stdout.getvalue())
+        self.assertFalse(self.quarantine.exists())
+        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
+
+    def test_a_quarantine_path_that_cannot_be_examined_is_reported_not_raised(self):
+        # Mocked so the result does not depend on the interpreter: Python 3.14 swallows this error.
+        with mock.patch.object(oc.Path, "exists", side_effect=PermissionError(13, "Denied")):
+            self.assertEqual(oc.check_quarantine(self.quarantine, self.home), "Denied")
         self.assertFalse(self.quarantine.exists())
         self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
 

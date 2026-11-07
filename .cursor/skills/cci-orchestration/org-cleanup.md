@@ -146,7 +146,9 @@ the alias behind, so re-audit afterward. Never bypass global-org protection auto
 
 ## Validation Checks
 
-1. Re-run the audit. Every list under `remove` must be empty.
+1. Re-run the audit. Every list under `remove` must be empty. That does not clear an earlier
+   `FAILED` line: after its logout, a secondary user's residual state has no link to a hub
+   row, so it reads as unknown and stays off the plan. Resolve each `FAILED` item by name.
 2. Run `python scripts/ai/org_cleanup.py audit --check-logins`, which queries each preserved
    login and can rewrite auth files through a token refresh. For a failure, compare that
    login's auth file with the pre-cleanup state before attributing it to cleanup.

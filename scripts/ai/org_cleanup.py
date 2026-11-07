@@ -309,7 +309,8 @@ def build_plan(run, home, project, today):
         },
         "preserved": {
             "logins": len(auth) - len(stale_users),
-            "aliases": len(aliases) - len(remove["aliases"]),
+            # Not len - listed: logout also clears direct aliases, which are never listed.
+            "aliases": sum(not stale(resolve(a)) for a in aliases),
             "indexes": sum(str(p) not in removing for p in indexes),
             "tracking": sum(str(p) not in removing for p in tracking),
             "deploy_jobs": len(deploy_targets) - len(remove["deploy_jobs"]),
@@ -349,9 +350,10 @@ def check_quarantine(quarantine, home):
     Creating the folder is not proof: macOS can allow a mkdir in ~/.Trash while refusing to list
     it. This runs before the first logout, because a logout cannot be restored.
     """
-    created = [p for p in [quarantine] + list(quarantine.parents) if not p.exists()]
-    temp = None
+    created, temp = [], None
     try:
+        # Inside the try: before Python 3.14, exists() raises on a parent it cannot search.
+        created = [p for p in [quarantine] + list(quarantine.parents) if not p.exists()]
         handle, temp = tempfile.mkstemp(dir=str(home), prefix=".org-cleanup-probe-")
         os.close(handle)
         quarantine.mkdir(parents=True, exist_ok=True)
@@ -411,7 +413,8 @@ def replace_json(path, data):
 def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
     """Drop named cache entries, keeping every other key. Returns (entries, manifests moved).
 
-    An entry stays if its manifest could not be moved, so the two never disagree.
+    An entry stays if its manifest could not be moved. If the cache cannot be written, every entry
+    stays and is reported, while manifests already moved remain in the quarantine.
     """
     if not jobs:  # no cache file is normal, and only a failure if something had to change in it
         return 0, 0
