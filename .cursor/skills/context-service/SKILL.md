@@ -196,7 +196,7 @@ the directory `README.md` and `runtime-and-persistence.md`):
 
 | Script | Org? | Purpose |
 |--------|------|---------|
-| `validate_context_plan.py` | No (offline) | Lint plan JSON: enums, required keys, limits, `__c` rule, `primaryDomainObject` |
+| `validate_context_plan.py` | No (offline) | Lint plan JSON: enums, required keys, limits, `__c` rule, `primaryDomainObject`, Quote/Order lens parity for custom attributes |
 | `list_contexts.py` | Read-only | One row per definition: name, active version, isActive, isUpgradeAvailable |
 | `describe_context.py` | Read-only | Pretty-print one definition: version → nodes → attrs → mappings → hydration |
 | `trace_context.py` | Read-only | Trace field↔tag↔attribute both directions (hydration/persistence, gated by intents + fieldType); `--field`/`--tag`/`--attribute`/`--unmapped` |
