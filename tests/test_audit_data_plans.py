@@ -837,6 +837,54 @@ def test_patch_rows_persist_only_updateable_values():
             check(label, _f(A.audit(snapshot, tmp), "required"), expect)
 
 
+def test_upsert_excluded_from_update_fields_is_not_inserted():
+    print("SFDMU 5.8.0 drops an excludedFromUpdateFields field from an Upsert's inserts too")
+    snap = {"Widget__x": {"fields": {"Name": field(nillable=False),
+                                     "Seq": field(nillable=False), "Note": field()}}}
+    snap["Widget__x"]["fields"]["Status"] = field("picklist", restricted=True, values=["A"])
+    decl = lambda op, **kw: {"query": "SELECT Name, Seq, Status FROM Widget__x", "operation": op,
+                             "externalId": "Name", **kw}
+    cases = (("an Upsert that excludes a required field can't insert it",
+              decl("Upsert", excludedFromUpdateFields=["Seq"]), ["Seq"]),
+             ("the same exclusion given as a string", decl("Upsert", excludedFromUpdateFields="Seq"), ["Seq"]),
+             ("without the exclusion the insert carries it", decl("Upsert"), []),
+             ("excluding the key leaves it written", decl("Upsert", excludedFromUpdateFields=["Name"]), []))
+    for label, d, expect in cases:
+        with tempfile.TemporaryDirectory() as dd:
+            tmp = pathlib.Path(dd)
+            write_plan(tmp, "qb/en-US/p", [d], {"Widget__x.csv": "Name,Seq,Status\nn,1,A\n"})
+            check(label, _f(A.audit(snap, tmp), "required"), expect)
+    with tempfile.TemporaryDirectory() as dd:
+        tmp = pathlib.Path(dd)
+        write_plan(tmp, "qb/en-US/p", [decl("Upsert", excludedFromUpdateFields=["Status"])],
+              {"Widget__x.csv": "Name,Seq,Status\nn,1,Bad\n"})
+        check("an excluded field's value is never written, so never value-checked",
+              _f(A.audit(snap, tmp), "picklist"), [])
+    # a declaration without an externalId matches on the plan's first key, which still names the record
+    with tempfile.TemporaryDirectory() as dd:
+        tmp = pathlib.Path(dd)
+        _three_set_plan(tmp, [
+            {"query": "SELECT Name, Seq, Status FROM Widget__x", "operation": "Upsert", "externalId": "Status"},
+            {"query": "SELECT Name, Seq, Status FROM Widget__x", "operation": "Upsert",
+             "excludedFromUpdateFields": ["Status"]}],
+            ["Name,Seq,Status\nn,1,A\n", "Name,Seq,Status\nn,1,Bad\n"])
+        check("an undeclared externalId's key field, though excluded, is still value-checked",
+              _f(A.audit(snap, tmp), "picklist"), ["Status"])
+    # a relationship-path key names the lookup field it resolves through
+    snap2 = {"Widget__x": {"fields": {"Name": field(nillable=False),
+                                      "ParentId": field("reference", nillable=False, rel="Parent")},},
+             "Parent__x": {"fields": {"Code": field()}}}
+    snap2["Widget__x"]["fields"]["ParentId"]["referenceTo"] = ["Parent__x"]
+    with tempfile.TemporaryDirectory() as dd:
+        tmp = pathlib.Path(dd)
+        write_plan(tmp, "qb/en-US/p", [
+            {"query": "SELECT Name, Parent.Code FROM Widget__x", "operation": "Upsert",
+             "externalId": "Parent.Code", "excludedFromUpdateFields": ["ParentId"]}],
+            {"Widget__x.csv": "Name,Parent.Code\nn,x\n"})
+        check("a relationship-path key keeps its lookup field written on create",
+              _f(A.audit(snap2, tmp), "required"), [])
+
+
 def test_patched_row_keeps_what_the_create_wrote():
     print("a patch is laid over the row it patches, and an undeclared key still names a record")
     up = lambda sel, key=None: {"query": f"SELECT {sel} FROM Widget__x", "operation": "Upsert",
@@ -1011,6 +1059,38 @@ def test_main():
             check("a merge base without release metadata is refused before any org call",
                   A.main(["snapshot", "--target-org", "none", "--merge", str(stale),
                           "--out", str(tmp / "o.json"), "--root", str(tmp)]), 2)
+            keep = tmp / "keep.json"
+            keep.write_text(json.dumps({"metadata": current_meta(), "objects": SNAPSHOT}), encoding="utf-8")
+            for label, body in (("an empty object", "{}"), ("null", "null"), ("a list", "[]"),
+                                ("a field that isn't a dict",
+                                 json.dumps({"metadata": current_meta(),
+                                             "objects": {"W": {"fields": {"X": None}}}})),
+                                ("a field without its describe attributes",
+                                 json.dumps({"metadata": current_meta(),
+                                             "objects": {"W": {"fields": {"X": {}}}}}))):
+                bad = tmp / "merge-base.json"
+                bad.write_text(body, encoding="utf-8")
+                before = keep.read_text(encoding="utf-8")
+                check(f"a merge base that is {label} is refused, not treated as no base",
+                      A.main(["snapshot", "--target-org", "none", "--merge", str(bad),
+                              "--out", str(keep), "--root", str(tmp)]), 2)
+                check(f"  and the snapshot it would have replaced is untouched ({label})",
+                      keep.read_text(encoding="utf-8") == before, True)
+            A.describe_org = lambda *a, **k: {"Widget__x": SNAPSHOT["Widget__x"]}
+            keep.write_text(json.dumps({"metadata": current_meta(), "objects": SNAPSHOT}), encoding="utf-8")
+            before = keep.read_text(encoding="utf-8")
+            real_replace = A.os.replace
+            def boom(*a, **k):
+                raise OSError("disk full")
+            A.os.replace = boom
+            try:
+                check("a snapshot write that fails exits 2",
+                      A.main(["snapshot", "--target-org", "none", "--out", str(keep),
+                              "--root", str(tmp)]), 2)
+            finally:
+                A.os.replace = real_replace
+            check("  and leaves the snapshot it would have replaced intact",
+                  keep.read_text(encoding="utf-8") == before, True)
         finally:
             A.describe_org = real_describe
         for label, body in (("a list", "[]"), ("no objects", '{"metadata": %s}' % json.dumps(current_meta())),
@@ -1041,7 +1121,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_patch_rows_persist_only_updateable_values, test_patched_row_keeps_what_the_create_wrote, test_patch_replaces_the_lookup_an_earlier_pass_set, test_option_spellings_and_malformed_plans, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_blank_composite_lookup_is_blank, test_any_delete_of_an_object_clears_earlier_rows, test_patch_rows_persist_only_updateable_values, test_upsert_excluded_from_update_fields_is_not_inserted, test_patched_row_keeps_what_the_create_wrote, test_patch_replaces_the_lookup_an_earlier_pass_set, test_option_spellings_and_malformed_plans, test_discriminator_needs_a_lookup_and_a_type, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()

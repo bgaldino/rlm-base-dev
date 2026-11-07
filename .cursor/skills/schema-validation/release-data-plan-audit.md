@@ -24,7 +24,7 @@ declarations against `sobject describe`.
    plan on (for qb: `clm_data`, `inapp`, `quote_est_tax` on top of the defaults), and pass `--keep-orgs`: the harness deletes a successful org by default, and the snapshot is captured from it. An object a feature
    doesn't enable is missing from the describe; it isn't audited and the run reports it as
    `object-missing` (gating; step 4 triages it).
-2. **Capture the snapshot.** Read-only; it queries the API version in `api_version_active` and records it in the snapshot's metadata (a `--merge` base whose metadata records another release or version, or lacks them, is refused):
+2. **Capture the snapshot.** Read-only; it queries the API version in `api_version_active` and records it in the snapshot's metadata (a `--merge` base that isn't a snapshot (empty, null, a list, a field that isn't an object) or whose metadata records another release or version, or lacks them, is refused, and the `--out` file is left as it was; a field entry must carry `type`, `createable`, `updateable` and `nillable`). The snapshot is written to a temp file and renamed, and the plan objects the org has no describe for are listed on stderr (an object its user can't see looks the same as one the org lacks):
    ```bash
    python scripts/audit_data_plans.py snapshot --target-org <sf alias or username> \
        --out scripts/erd/schema_diff/<release>-plan-describe.json
@@ -116,9 +116,10 @@ declarations against `sobject describe`.
   creates; it doesn't evaluate the clause. A value in a field the platform never writes (neither
   createable nor updateable) can't identify a record for a later pass either.
 - **Option spellings.** `excludedFields` and `excludedFromUpdateFields` take a list or a `;`-separated
-  string. A field in `excludedFromUpdateFields` isn't value-checked on the rows that only patch (an Update
-  pass, or an Upsert row matching an earlier pass), and a WHERE only inside a subquery doesn't count as
-  one. A plan whose `export.json` has the wrong shape exits 2.
+  string. A field in `excludedFromUpdateFields` isn't value-checked on an Update or Upsert pass, and on an
+  Upsert it isn't written to inserts either (SFDMU 5.8.0 clones the insert payload from the update
+  field list), so one that is required on create is a `required` finding and a created row doesn't
+  carry it (a key field is exempt, including the lookup a `Parent.Code` key resolves through, and the plan's first key for a declaration with no `externalId`). A WHERE only inside a subquery doesn't count as one. A plan whose `export.json` has the wrong shape exits 2.
 - **Not modeled, by design.** An omitted `externalId` falls back to the plan's first creating key,
   whereas SFDMU defaults to the object's name field (then an auto-number or unique field, then `Id`): give
   every creating declaration an `externalId`. Names and relationship paths match case-sensitively. The

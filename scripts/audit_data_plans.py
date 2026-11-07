@@ -49,6 +49,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import sys
 from collections import defaultdict
@@ -152,14 +153,19 @@ def default_snapshot(release: str) -> Path:
     return SCHEMA_DIR / f"{release}-plan-describe.json"
 
 
+REQUIRED_FIELD_KEYS = ("type", "createable", "updateable", "nillable")
+
+
 def check_snapshot_metadata(snap: Dict[str, Any], path: Any, release: str, api_version: str) -> None:
     """Refuse a snapshot not captured for the active release at the active API version: a stale
     schema would pass a plan the release would break, or fail one it fixed."""
     objects = snap.get("objects") if isinstance(snap, dict) else None
     if not isinstance(objects, dict) or not all(
-            isinstance(o, dict) and isinstance(o.get("fields"), dict) for o in objects.values()):
+            isinstance(o, dict) and isinstance(o.get("fields"), dict)
+            and all(isinstance(f, dict) and all(k in f for k in REQUIRED_FIELD_KEYS)
+                    for f in o["fields"].values()) for o in objects.values()):
         raise ValueError(f"{path} isn't a describe snapshot (`objects` must map each object to its "
-                         f"`fields`); recapture it (`snapshot`)")
+                         f"`fields`, each carrying {', '.join(REQUIRED_FIELD_KEYS)}); recapture it (`snapshot`)")
     meta = snap.get("metadata") or {}
     for key, want in (("release", release), ("api_version", api_version)):
         if meta.get(key) != want:
@@ -521,20 +527,22 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
             # Rows that only patch a record an earlier pass created (or any row of an Update): a field
             # in `excludedFromUpdateFields` isn't written for them, so its value isn't checked.
             no_update = _names(decl.get("excludedFromUpdateFields"))
+            # SFDMU 5.8.0 also drops such a field from the insert an Upsert makes (its payload is
+            # cloned from the update field list), so an Upsert never writes it, on a create or a patch.
+            # A key field still names the record.
+            # A key names a record: `Parent.Code` stands for the lookup field it resolves through.
+            parts = set(key) | (set(ident_key) if op in layering.CREATES else set())
+            names_record = parts | {n for k in parts if (n := _field_of(k, fields))}
+            no_create = (no_update - names_record) if op == "upsert" else set()
             patched = set()
             if no_update:
-                if op == "update":
+                if op in ("update", "upsert"):
                     patched = {id(r) for r in rows}
-                elif op in layering.CREATES and op != "insert" and ident_key:
-                    for r in rows:
-                        v = layering.row_values(ident_key, written, r)
-                        if all(f in v for f in ident_key) and layering.key_of(v, ident_key) in known:
-                            patched.add(id(r))
 
             for name, cols in sorted(by_field.items()):
                 f = fields[name]
                 filled = [r for r in rows if id(r) not in skipped
-                          and not (name in no_update and id(r) in patched)
+                          and not (name in no_update and name not in names_record and id(r) in patched)
                           and any(not layering.is_null(r.get(c)) for c in cols)]
                 if not filled:
                     continue
@@ -571,7 +579,8 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                     # The platform rejects a create that lacks, or leaves blank, a required field, or
                     # carries a value a restricted picklist doesn't list.
                     return id(r) in bad_picklist_rows or any(
-                        n not in by_field or all(_blank(c, r.get(c)) for c in by_field[n])
+                        n not in by_field or n in no_create
+                        or all(_blank(c, r.get(c)) for c in by_field[n])
                         for n in required)
 
                 if op == "insert" or not ident_key:
@@ -599,6 +608,12 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                                 f"defaulted) and the plan doesn't load it")
                             rejected.update(id(r) for r in fresh)
                             continue
+                        if name in no_create:
+                            add(rel, obj, "required", name,
+                                f"{where}: {obj}.{name} is required on create, and "
+                                f"`excludedFromUpdateFields` keeps an Upsert from inserting it (SFDMU 5.8.0)")
+                            rejected.update(id(r) for r in fresh)
+                            continue
                         blanks = [r for r in fresh
                                   if all(_blank(c, r.get(c)) for c in by_field[name])]
                         if blanks:
@@ -616,16 +631,15 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 # A created row writes its createable or updateable columns; a row that only patches
                 # writes only the updateable ones not in `excludedFromUpdateFields`, laid over the
                 # record it patches (so a later key can still span a value only the create wrote).
-                idset = set(ident_key)
 
                 def lands(c, patch):
                     nm = _field_of(c, fields)
-                    if nm is None or nm in key or nm in idset or nm in SYSTEM_FIELDS:  # a key names a record
+                    if nm is None or nm in names_record or nm in SYSTEM_FIELDS:  # a key names a record
                         return True
                     f = fields[nm]
                     if patch:
                         return bool(f.get("updateable")) and nm not in no_update
-                    return bool(f.get("createable") or f.get("updateable"))
+                    return bool(f.get("createable") or f.get("updateable")) and nm not in no_create
 
                 fresh_ids = {id(r) for r in fresh}
                 live = [r for r in rows if id(r) not in rejected and id(r) not in skipped]
@@ -837,17 +851,27 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.cmd == "snapshot":
             api_version = active_api_version()
             base = _load_json(args.merge) if args.merge else None
-            if base:
+            if args.merge:  # an empty or null file is invalid input, not "no base" to overwrite
                 check_snapshot_metadata(base, args.merge, release, api_version)
             objects = describe_org(args.target_org, plan_objects(args.root), api_version=api_version)
-            if base:
+            if args.merge:
                 objects = merge_snapshots(base["objects"], objects)
             snap = {"metadata": {"release": release, "api_version": api_version,
                                  "captured_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                                  "source": "sobject describe of every object a tracked plan declares",
                                  "object_count": len(objects)},
                     "objects": dict(sorted(objects.items()))}
-            args.out.write_text(json.dumps(snap, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+            wanted = set(plan_objects(args.root))
+            absent = sorted(wanted - set(objects))
+            if absent:  # NOT_FOUND / INVALID_TYPE: also what an org says of an object its user can't see
+                print(f"warning: the org has no describe for {len(absent)} plan object(s): "
+                      f"{', '.join(absent)}; the audit will report each as object-missing", file=sys.stderr)
+            tmp_out = args.out.with_name(args.out.name + ".tmp")
+            try:
+                tmp_out.write_text(json.dumps(snap, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+                os.replace(tmp_out, args.out)  # a failed write leaves the old snapshot intact
+            finally:
+                tmp_out.unlink(missing_ok=True)
             print(f"wrote {args.out}: {len(objects)} object(s)")
             return 0
 
