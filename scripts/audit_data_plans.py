@@ -39,13 +39,15 @@ Informational (reported, never gating):
 
 Exit codes: 0 = no new gating finding · 1 = findings (new, or stale `KNOWN_FINDINGS` entries)
 · 2 = tool error (no snapshot for the active release, or one recorded for another release or API
-version, a `--plans` prefix that matches no plan, or a `sourceRecordsFilter` the audit can't evaluate).
+version, a report that can't be written, a `--plans` prefix that matches no plan, or a
+`sourceRecordsFilter` the audit can't evaluate).
 Only required-field and restricted-picklist rejections are modeled; a row the platform rejects for
 another reason (length, lookup target, a validation rule) is still treated as created.
 """
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import re
 import sys
@@ -151,6 +153,11 @@ def default_snapshot(release: str) -> Path:
 def check_snapshot_metadata(snap: Dict[str, Any], path: Any, release: str, api_version: str) -> None:
     """Refuse a snapshot not captured for the active release at the active API version: a stale
     schema would pass a plan the release would break, or fail one it fixed."""
+    objects = snap.get("objects") if isinstance(snap, dict) else None
+    if not isinstance(objects, dict) or not all(
+            isinstance(o, dict) and isinstance(o.get("fields"), dict) for o in objects.values()):
+        raise ValueError(f"{path} isn't a describe snapshot (`objects` must map each object to its "
+                         f"`fields`); recapture it (`snapshot`)")
     meta = snap.get("metadata") or {}
     for key, want in (("release", release), ("api_version", api_version)):
         if meta.get(key) != want:
@@ -423,9 +430,50 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
             written_by_obj[obj].update(by_field)
             bad_picklist_rows = set()  # ids of rows the platform rejects for a restricted picklist value
 
+            known = set()
+            skipped = set()  # ids of rows a `skipExistingRecords` pass leaves alone
+            if op in layering.CREATES:
+                # Required fields are checked on the rows this pass creates. An Upsert row that
+                # matches, on this declaration's externalId, a row an earlier creating pass of the
+                # plan created is only patched here; an Insert never matches, so its rows are new.
+                earlier = created_rows.setdefault(obj, [])
+                if sfdmu_export.is_js_truthy(decl.get("deleteOldData")):
+                    # The object's records are deleted before this pass loads, so an earlier
+                    # pass's rows are gone and can't be what a later Upsert patches.
+                    earlier.clear()
+                    for k in [k for k in key_cache if k[0] == obj]:
+                        del key_cache[k]
+                # Only the columns this declaration writes reach the org; a CSV cell it doesn't select
+                # can't identify a record.
+                written = list(columns)
+                # An undeclared externalId falls back to the plan's first creating key.
+                first_key = plan_keys.setdefault(obj, key_list)
+                ident_key = key_list or first_key
+                if op != "insert" and ident_key:
+                    # Earlier passes' rows read by this declaration's key, which they may not have
+                    # been keyed on (`Code` then `Name;Code`); only passes not yet read are added.
+                    seen = key_cache.setdefault((obj, tuple(ident_key)), [0, set()])
+                    for h, rs in earlier[seen[0]:]:
+                        for r in rs:
+                            v = layering.row_values(ident_key, h, r)
+                            # A pass that doesn't carry every key field can't be matched by it.
+                            if all(f in v for f in ident_key) and (k := layering.key_of(v, ident_key)):
+                                seen[1].add(k)
+                    seen[0] = len(earlier)
+                    known = set(seen[1])
+                if (op == "upsert" and ident_key
+                        and sfdmu_export.is_js_truthy(decl.get("skipExistingRecords"))):
+                    # SFDMU leaves a matched record alone, so the row's values never load: they
+                    # aren't value-checked, and a bad one there can't reject anything.
+                    for r in rows:
+                        v = layering.row_values(ident_key, written, r)
+                        if all(f in v for f in ident_key) and layering.key_of(v, ident_key) in known:
+                            skipped.add(id(r))
+
             for name, cols in sorted(by_field.items()):
                 f = fields[name]
-                filled = [r for r in rows if any(not layering.is_null(r.get(c)) for c in cols)]
+                filled = [r for r in rows if id(r) not in skipped
+                          and any(not layering.is_null(r.get(c)) for c in cols)]
                 if not filled:
                     continue
                 if (not f.get("createable") and not f.get("updateable") and name not in key
@@ -455,42 +503,14 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
 
             if op in layering.CREATES:
                 created_objs.add(obj)
-                # Required fields are checked on the rows this pass creates. An Upsert row that
-                # matches, on this declaration's externalId, a row an earlier creating pass of the
-                # plan created is only patched here; an Insert never matches, so its rows are new.
-                earlier = created_rows.setdefault(obj, [])
-                if sfdmu_export.is_js_truthy(decl.get("deleteOldData")):
-                    # The object's records are deleted before this pass loads, so an earlier
-                    # pass's rows are gone and can't be what a later Upsert patches.
-                    earlier.clear()
-                    for k in [k for k in key_cache if k[0] == obj]:
-                        del key_cache[k]
-                # Only the columns this declaration writes reach the org; a CSV cell it doesn't select
-                # can't identify a record.
-                written = list(columns)
-                # An undeclared externalId falls back to the plan's first creating key.
-                first_key = plan_keys.setdefault(obj, key_list)
-                ident_key = key_list or first_key
-                known = set()
-                if op != "insert" and ident_key:
-                    # Earlier passes' rows read by this declaration's key, which they may not have
-                    # been keyed on (`Code` then `Name;Code`); only passes not yet read are added.
-                    seen = key_cache.setdefault((obj, tuple(ident_key)), [0, set()])
-                    for h, rs in earlier[seen[0]:]:
-                        for r in rs:
-                            v = layering.row_values(ident_key, h, r)
-                            # A pass that doesn't carry every key field can't be matched by it.
-                            if all(f in v for f in ident_key) and (k := layering.key_of(v, ident_key)):
-                                seen[1].add(k)
-                    seen[0] = len(earlier)
-                    known = set(seen[1])
                 required = [n for n, f in sorted(fields.items()) if _is_required(n, f)]
 
                 def rejected_row(r):
                     # The platform rejects a create that lacks, or leaves blank, a required field, or
                     # carries a value a restricted picklist doesn't list.
-                    return id(r) in bad_picklist_rows or any(n not in by_field or all(layering.is_null(r.get(c)) for c in by_field[n])
-                               for n in required)
+                    return id(r) in bad_picklist_rows or any(
+                        n not in by_field or all(layering.is_null(r.get(c)) for c in by_field[n])
+                        for n in required)
 
                 if op == "insert" or not ident_key:
                     fresh = list(rows)
@@ -735,7 +755,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         diff_path = args.release_diff or default_release_diff(release)
         diff = _load_json(diff_path) if diff_path and diff_path.exists() else None
         result = audit(snapshot, args.root, args.plans, diff)
-    except (OSError, ValueError, DecisionTableClientError) as exc:
+    except (OSError, ValueError, csv.Error, DecisionTableClientError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
@@ -744,7 +764,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                         **result}, indent=1)
             if args.json else render_markdown(result, source))
     if args.out:
-        args.out.write_text(text + "\n", encoding="utf-8")
+        try:
+            args.out.write_text(text + "\n", encoding="utf-8")
+        except OSError as exc:
+            # A report that can't be written is a tool error, not a clean (0) or failing (1) audit.
+            print(f"error: can't write the report to {args.out}: {exc}", file=sys.stderr)
+            return 2
     else:
         print(text)
     for f in new:

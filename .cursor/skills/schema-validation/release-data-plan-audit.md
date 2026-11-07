@@ -96,6 +96,9 @@ declarations against `sobject describe`.
   the field is in `KNOWN_FINDINGS` and the later pass's finding is the same entry. Only those two
   rejections are modeled; a row the platform rejects for another reason (length, lookup target, a
   validation rule) still counts as created.
+- **`skipExistingRecords` passes.** An Upsert row of such a pass whose key an earlier creating pass of the
+  plan created is left alone by SFDMU, so its values aren't value-checked (picklist, dead columns).
+  Records that already exist in the org aren't modeled.
 - **`required` assumes a creating declaration creates.** An Upsert that only fills a few
   fields on records another plan created is flagged for every required field it leaves out. List it
   in `KNOWN_FINDINGS` with that reason rather than adding columns.

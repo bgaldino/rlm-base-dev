@@ -646,6 +646,26 @@ def test_picklist_rejected_rows_are_not_persisted():
                   _f(A.audit(SNAPSHOT, tmp), "required"), expect)
 
 
+def test_skip_existing_rows_are_not_value_checked():
+    print("a skipExistingRecords pass leaves a record an earlier pass created alone")
+    for skip, expect in ((True, []), (False, ["Kind"])):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            plan = tmp / "qb/en-US/p"
+            (plan / "objectset_source/object-set-2").mkdir(parents=True)
+            (plan / "export.json").write_text(json.dumps({"useSeparatedCSVFiles": True, "objectSets": [
+                {"objects": [{"query": "SELECT Name, Code, Required FROM Widget__x",
+                              "operation": "Upsert", "externalId": "Code"}]},
+                {"objects": [{"query": "SELECT Name, Code, Kind FROM Widget__x", "operation": "Upsert",
+                              "externalId": "Code", "skipExistingRecords": skip}]}]}), encoding="utf-8")
+            (plan / "Widget__x.csv").write_text("Name,Code,Required\nn1,c1,r\n", encoding="utf-8")
+            (plan / "objectset_source/object-set-2/Widget__x.csv").write_text("Name,Code,Kind\nn1,c1,Q\n",
+                                                                              encoding="utf-8")
+            check(f"skipExistingRecords={skip}: the bad value on the matched row "
+                  f"{'never loads' if skip else 'patches it'}",
+                  [f for f in _f(A.audit(SNAPSHOT, tmp), "picklist")], expect)
+
+
 def test_unmatched_plan_prefix_is_an_error():
     print("a --plans prefix that names no plan")
     with tempfile.TemporaryDirectory() as d:
@@ -720,6 +740,16 @@ def test_main():
                           "--out", str(tmp / "o.json"), "--root", str(tmp)]), 2)
         finally:
             A.describe_org = real_describe
+        for label, body in (("a list", "[]"), ("no objects", '{"metadata": %s}' % json.dumps(current_meta())),
+                            ("an object without fields",
+                             json.dumps({"metadata": current_meta(), "objects": {"W": {}}}))):
+            bad = tmp / "bad.json"
+            bad.write_text(body, encoding="utf-8")
+            check(f"a snapshot that is {label} exits 2, not a traceback",
+                  A.main(["audit", "--snapshot", str(bad), "--root", str(tmp)]), 2)
+        check("a report that can't be written exits 2, not 1",
+              A.main(["audit", "--snapshot", str(snap), "--root", str(tmp),
+                      "--out", str(tmp / "no-such-dir" / "r.md")]), 2)
         check("a missing snapshot exits 2",
               A.main(["audit", "--snapshot", str(tmp / "nope.json"), "--root", str(tmp)]), 2)
 
@@ -738,7 +768,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()
