@@ -98,6 +98,10 @@ declarations against `sobject describe`.
   modeled as a rejection (whether SFDMU nulls an empty cell on update isn't verified here). Only those
   two rejections are modeled; a row the platform rejects for another reason (length, lookup target, a
   validation rule) still counts as created.
+- **A WHERE in an Upsert's query.** SFDMU matches against the target records the query returns, so
+  the audit assumes such a pass patches nothing an earlier pass created and checks its rows as
+  creates; it doesn't evaluate the clause. A value in a field the platform never writes (neither
+  createable nor updateable) can't identify a record for a later pass either.
 - **`skipExistingRecords` passes.** An Upsert row of such a pass whose key an earlier creating pass of the
   plan created is left alone by SFDMU, so its values aren't value-checked (picklist, dead columns)
   and it adds no key for later passes to match. Records that already exist in the org aren't modeled.

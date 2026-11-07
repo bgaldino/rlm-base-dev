@@ -461,6 +461,11 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                                 seen[1].add(k)
                     seen[0] = len(earlier)
                     known = set(seen[1])
+                    if re.search(r"\bWHERE\b", decl.get("query") or "", re.I):
+                        # SFDMU matches an Upsert row against the target records the query returns, so
+                        # a WHERE limits which earlier rows it can patch. The audit doesn't evaluate
+                        # the clause, so it assumes no match and checks the row as a create.
+                        known = set()
                 if (op == "upsert" and ident_key
                         and sfdmu_export.is_js_truthy(decl.get("skipExistingRecords"))):
                     # SFDMU leaves a matched record alone, so the row's values never load: they
@@ -548,8 +553,15 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 # patching it. (Describe can overstate `required`; such a field is triaged in
                 # KNOWN_FINDINGS, and the later pass's finding for it is the same entry.)
                 # A row a skipExistingRecords pass leaves alone writes nothing, so it adds no key either.
-                earlier.append((written, [r for r in rows
-                                          if id(r) not in rejected and id(r) not in skipped]))
+                # A column in a field that is neither createable nor updateable is dropped by SFDMU,
+                # so its value never lands and can't identify a record for a later pass (a key, like `Id`,
+                # is exempt: it names a record that exists).
+                landed = [c for c in written
+                          if (nm := _field_of(c, fields)) is None
+                          or fields[nm].get("createable") or fields[nm].get("updateable")
+                          or nm in key or nm in SYSTEM_FIELDS]  # an `Id` key names a record
+                earlier.append((landed, [r for r in rows
+                                         if id(r) not in rejected and id(r) not in skipped]))
 
     if bad_filters:
         raise ValueError("; ".join(bad_filters))

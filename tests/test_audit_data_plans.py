@@ -712,6 +712,74 @@ def test_skipped_rows_add_no_key_for_later_passes():
               _f(A.audit(snap, tmp), "required"), ["Name"])
 
 
+def _three_set_plan(tmp, decls, csvs):
+    plan = tmp / "qb/en-US/p"
+    for n in range(2, len(decls) + 1):
+        (plan / f"objectset_source/object-set-{n}").mkdir(parents=True)
+    (plan / "export.json").write_text(json.dumps({"useSeparatedCSVFiles": True, "objectSets": [
+        {"objects": [d]} for d in decls]}), encoding="utf-8")
+    (plan / "Widget__x.csv").write_text(csvs[0], encoding="utf-8")
+    for n, text in enumerate(csvs[1:], 2):
+        (plan / f"objectset_source/object-set-{n}/Widget__x.csv").write_text(text, encoding="utf-8")
+
+
+def test_where_scoped_upsert_is_not_a_patch():
+    print("an Upsert whose query has a WHERE matches only the records it returns")
+    snap = {"Widget__x": {"fields": {"Name": field(nillable=False), "Code": field(nillable=False)}}}
+    for where, expect in (("", []), (" WHERE Code = 'x'", ["Code"])):
+        with tempfile.TemporaryDirectory() as d:
+            tmp = pathlib.Path(d)
+            _three_set_plan(tmp, [
+                {"query": "SELECT Name, Code FROM Widget__x", "operation": "Upsert", "externalId": "Name"},
+                {"query": f"SELECT Name FROM Widget__x{where}", "operation": "Upsert", "externalId": "Name"}],
+                ["Name,Code\nfirst,x\n", "Name\nfirst\n"])
+            check(f"pass 2 {'with' if where else 'without'} a WHERE "
+                  f"{'creates the row, so it must load Code' if where else 'patches pass 1'}",
+                  _f(A.audit(snap, tmp), "required"), expect)
+
+
+def test_non_writable_columns_add_no_key_for_later_passes():
+    print("a column in a field the platform never writes can't identify a record later")
+    snap = {"Widget__x": {"fields": {"Name": field(nillable=False),
+                                     "Calc": field(createable=False, updateable=False)}}}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        _three_set_plan(tmp, [
+            {"query": "SELECT Name, Calc FROM Widget__x", "operation": "Upsert", "externalId": "Name"},
+            {"query": "SELECT Name, Calc FROM Widget__x", "operation": "Upsert", "externalId": "Calc"}],
+            ["Name,Calc\nfirst,x\n", "Name,Calc\n,x\n"])
+        check("Calc=x never landed, so pass 2 creates it and its blank Name is reported",
+              _f(A.audit(snap, tmp), "required"), ["Name"])
+
+
+def test_id_key_still_matches_later_passes():
+    print("an Id externalId names an existing record even though Id isn't writable")
+    snap = {"Widget__x": {"fields": {"Id": field(createable=False, updateable=False),
+                                     "Name": field(nillable=False)}}}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        _three_set_plan(tmp, [
+            {"query": "SELECT Id, Name FROM Widget__x", "operation": "Upsert", "externalId": "Id"},
+            {"query": "SELECT Id FROM Widget__x", "operation": "Upsert", "externalId": "Id"}],
+            ["Id,Name\na0X1,n\n", "Id\na0X1\n"])
+        check("pass 2 patches the row pass 1 wrote on Id, so it needn't load Name",
+              _f(A.audit(snap, tmp), "required"), [])
+
+
+def test_non_writable_key_still_matches_later_passes():
+    print("a non-writable externalId (an auto-number Name) still names the record it keys")
+    snap = {"Widget__x": {"fields": {"Name": field(createable=False, updateable=False),
+                                     "Code": field(nillable=False)}}}
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        _three_set_plan(tmp, [
+            {"query": "SELECT Name, Code FROM Widget__x", "operation": "Upsert", "externalId": "Name"},
+            {"query": "SELECT Name FROM Widget__x", "operation": "Upsert", "externalId": "Name"}],
+            ["Name,Code\nW-1,c\n", "Name\nW-1\n"])
+        check("pass 2 patches W-1, so it needn't load Code",
+              _f(A.audit(snap, tmp), "required"), [])
+
+
 def test_unmatched_plan_prefix_is_an_error():
     print("a --plans prefix that names no plan")
     with tempfile.TemporaryDirectory() as d:
@@ -814,7 +882,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions, test_object_missing_once_per_plan_object, test_picklist_rejected_rows_are_not_persisted, test_unmatched_plan_prefix_is_an_error, test_skipped_rows_add_no_key_for_later_passes, test_rejected_patch_rows_add_no_key_for_later_passes, test_where_scoped_upsert_is_not_a_patch, test_non_writable_columns_add_no_key_for_later_passes, test_id_key_still_matches_later_passes, test_non_writable_key_still_matches_later_passes, test_skip_existing_rows_are_not_value_checked, test_rejected_rows_are_not_persisted,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()
