@@ -25,6 +25,7 @@ Stdlib only and Python 3.9-safe.
 """
 import argparse
 import datetime
+import errno
 import json
 import os
 import re
@@ -232,6 +233,15 @@ def config_targets(home, project):
     return targets
 
 
+def follow_aliases(aliases, name):
+    """What a name ends at, following alias to alias. A cycle ends at one of its own members."""
+    seen = set()
+    while name in aliases and name not in seen:
+        seen.add(name)
+        name = aliases[name]
+    return name
+
+
 def build_plan(run, home, project, today):
     """Inventory plus hub evidence. Mutates nothing beyond what the CLIs themselves do."""
     auth, unreadable = read_auth(home)
@@ -242,11 +252,7 @@ def build_plan(run, home, project, today):
     aliases = {row["alias"]: row.get("value") or "" for row in alias_payload.get("result") or []}
 
     def resolve(name):
-        seen = set()
-        while name in aliases and name not in seen:
-            seen.add(name)
-            name = aliases[name]
-        return name
+        return follow_aliases(aliases, name)
 
     indexes = read_indexes(home)
     tracking, symlinks = read_tracking(project)
@@ -322,6 +328,8 @@ def build_plan(run, home, project, today):
             "unreadable_auth_files": unreadable,
             "symlinks_left_alone": [str(p) for p in symlinks],
             "unclassified_files": read_unclassified(home, project),
+            # Lead to no username, so no hub row can ever put them on the plan.
+            "dangling_aliases": sorted(a for a in aliases if "@" not in resolve(a)),
         },
         "prune_prediction": predict_prune(read_cci(run), resolve, user_class),
     }
@@ -344,6 +352,20 @@ def default_quarantine(home, today):
     return home / ".rlm-org-cleanup-quarantine" / today
 
 
+def move_path(source, dest):
+    """Rename, copying only across volumes.
+
+    shutil.move falls back to copy-then-delete on any rename error, so a source it cannot remove
+    leaves a second copy behind, and that copy then blocks a retry as "already in quarantine".
+    """
+    try:
+        os.rename(source, dest)
+    except OSError as error:
+        if error.errno != errno.EXDEV:
+            raise
+        shutil.move(source, dest)
+
+
 def check_quarantine(quarantine, home):
     """Move a temp file in and remove it, returning why that failed, or None if it worked.
 
@@ -358,7 +380,7 @@ def check_quarantine(quarantine, home):
         os.close(handle)
         quarantine.mkdir(parents=True, exist_ok=True)
         dest = quarantine / os.path.basename(temp)
-        shutil.move(temp, str(dest))
+        move_path(temp, str(dest))
         os.remove(str(dest))
         return None
     except OSError as error:
@@ -390,7 +412,7 @@ def move_to_quarantine(run, path, roots, quarantine, project):
         dest.parent.mkdir(parents=True, exist_ok=True)
         if os.path.lexists(str(dest)):
             return "already in quarantine"
-        shutil.move(str(path), str(dest))
+        move_path(str(path), str(dest))
     except OSError as error:
         return "could not move: {}".format(error.strerror or error)
     return None
@@ -466,10 +488,17 @@ def apply_plan(run, plan, home, project, quarantine):
         else:
             done["logout"] += 1
 
+    # sf clears a user's direct aliases before it can fail, so a chain may now lead nowhere, and a
+    # later audit could not list it. Keep only a chain that still reaches a login.
+    listed = sf_json(run, "alias", "list")
+    current = {r["alias"]: r.get("value") or "" for r in (listed or {}).get("result") or []}
+    logins = read_auth(home)[0]
+
     # One alias per command: sf handles several in parallel, and a batch can fail partway.
     kept_aliases = set()
     for alias in remove["aliases"]:
-        if logout_failed_for(targets["aliases"][alias]):
+        if logout_failed_for(targets["aliases"][alias]) and (
+                listed is None or follow_aliases(current, alias) in logins):
             failures.append((alias, "skipped because its logout failed"))
             kept_aliases.add(alias)
             continue

@@ -6,11 +6,11 @@ or running a command that deletes an org.
 Stdlib only. Run with: python tests/test_org_cleanup.py
 """
 import contextlib
+import errno
 import io
 import json
 import os
 import re
-import shutil
 import sys
 import tempfile
 import unittest
@@ -36,11 +36,13 @@ def row(org, status="Deleted", expires="2026-01-01", user="signup@x.invalid"):
 class FakeCli:
     """Answers sf, cci and git from fixtures, recording every command."""
 
-    def __init__(self, home, hub_rows=(), aliases=None, cci=None, fail_hubs=(), fail_logout=()):
+    def __init__(self, home, hub_rows=(), aliases=None, cci=None, fail_hubs=(), fail_logout=(),
+                 clears_before_failing=False):
         self.home, self.calls = home, []
         self.hub_rows, self.aliases = list(hub_rows), dict(aliases or {})
         self.cci, self.fail_hubs, self.fail_logout = cci, set(fail_hubs), set(fail_logout)
         self.tracked, self.config = set(), None
+        self.clears_before_failing = clears_before_failing  # what real sf did when unlink failed
 
     def __call__(self, cmd):
         self.calls.append(cmd)
@@ -62,6 +64,8 @@ class FakeCli:
         if args[:2] == ["org", "logout"]:
             user = args[3]
             if user in self.fail_logout:
+                if self.clears_before_failing:
+                    self.aliases = {a: v for a, v in self.aliases.items() if v != user}
                 return 1, json.dumps({"status": 1, "name": "Failed"})
             (self.home / ".sfdx" / (user + ".json")).unlink()
             self.aliases = {a: v for a, v in self.aliases.items() if v != user}
@@ -201,6 +205,13 @@ class UsernameKeyedState(Base):
         self.assertEqual(remove["logout"], ["rep@x.invalid"])
         # Logout clears "base" itself, and only that, so the two that reach it remain on the plan.
         self.assertEqual(remove["aliases"], ["chained", "deeper"])
+
+    def test_aliases_that_lead_nowhere_are_reported_and_never_listed(self):
+        aliases = {"lost": "missing", "cycle-a": "cycle-b", "cycle-b": "cycle-a", "fine": HUB,
+                   "no-auth": "gone@x.invalid"}
+        plan = self.plan(FakeCli(self.home, aliases=aliases))
+        self.assertEqual(plan["report"]["dangling_aliases"], ["cycle-a", "cycle-b", "lost"])
+        self.assertEqual(plan["remove"]["aliases"], [])
 
     def test_preserved_aliases_excludes_those_logout_clears(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
@@ -410,6 +421,39 @@ class Apply(Base):
         self.assertEqual(cli.aliases, aliases)
         self.assertEqual([c for c in cli.calls if c[1:3] == ["config", "unset"]], [])
 
+    def test_a_failed_logout_that_cleared_the_direct_alias_does_not_strand_the_chain(self):
+        rows = self.setup_stale_org()
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "chained"}))
+        aliases = {"base": "rep@x.invalid", "chained": "base"}
+        cli = FakeCli(self.home, rows, aliases, fail_logout=["rep@x.invalid"],
+                      clears_before_failing=True)
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertEqual(cli.aliases, {})
+        unsets = [c for c in cli.calls if c[1:3] == ["config", "unset"]]
+        self.assertEqual(len(unsets), 1)
+        self.assertTrue((self.home / ".sfdx" / "rep@x.invalid.json").exists())
+        self.assertTrue(self.index.exists())
+        again = self.plan(cli)
+        self.assertEqual(again["remove"]["logout"], ["rep@x.invalid"])
+        self.assertEqual(again["report"]["dangling_aliases"], [])
+
+    def test_a_failed_logout_keeps_the_chain_if_aliases_cannot_be_reread(self):
+        rows = self.setup_stale_org()
+        aliases = {"base": "rep@x.invalid", "chained": "base"}
+
+        class AliasListBreaks(FakeCli):
+            def __call__(self, cmd):
+                if cmd[1:3] == ["alias", "list"] and any(c[1:3] == ["org", "logout"] for c in self.calls):
+                    self.calls.append(cmd)
+                    return 1, json.dumps({"status": 1, "name": "Failed"})
+                return super().__call__(cmd)
+
+        cli = AliasListBreaks(self.home, rows, aliases, fail_logout=["rep@x.invalid"],
+                              clears_before_failing=True)
+        plan_cli = FakeCli(self.home, rows, aliases)
+        self.assertEqual(self.audit_then_apply(cli, plan_cli), 1)
+        self.assertIn("chained", cli.aliases)
+
     def test_a_failed_logout_keeps_a_default_naming_its_chained_alias(self):
         rows = self.setup_stale_org()
         (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "chained"}))
@@ -451,7 +495,7 @@ class Apply(Base):
         rows = self.setup_stale_org()
         cli = FakeCli(self.home, rows)
         # The folder can be created, as ~/.Trash allows: only moving a file in shows the refusal.
-        with mock.patch.object(oc.shutil, "move", side_effect=PermissionError(1, "Not permitted")):
+        with mock.patch.object(oc.os, "rename", side_effect=PermissionError(1, "Not permitted")):
             self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertEqual(self.logouts(cli), [])
         self.assertTrue((self.home / ".sfdx" / "rep@x.invalid.json").exists())
@@ -471,27 +515,51 @@ class Apply(Base):
     def test_the_quarantine_check_is_skipped_when_nothing_needs_moving(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
         cli = FakeCli(self.home, [row(DEAD_ORG)])
-        with mock.patch.object(oc.shutil, "move", side_effect=PermissionError(1, "Not permitted")):
+        with mock.patch.object(oc.os, "rename", side_effect=PermissionError(1, "Not permitted")):
             self.assertEqual(self.audit_then_apply(cli), 0)
         self.assertEqual(len(self.logouts(cli)), 1)
         self.assertNotIn("Residual files moved", self.stdout.getvalue())
 
     def test_a_move_that_fails_later_is_reported_and_the_run_continues(self):
         rows = self.setup_stale_org()
-        real_move, refused = shutil.move, str(self.index)
+        real_move, refused = os.rename, str(self.index)
 
         def move(src, dst):
             if src == refused:
                 raise PermissionError(1, "Not permitted")
             return real_move(src, dst)
 
-        with mock.patch.object(oc.shutil, "move", side_effect=move):
+        with mock.patch.object(oc.os, "rename", side_effect=move):
             self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
         self.assertTrue(self.index.exists())
         self.assertIn("could not move: Not permitted", self.stdout.getvalue())
         self.assertIn("Residual files moved", self.stdout.getvalue())
         self.assertTrue((self.quarantine / "orgs" / self.tracking.name / "state").exists())
         self.assertEqual(self.read_cache(), {"job2": {"target-org": HUB, "keep": 1}})
+
+    def test_a_refused_rename_leaves_no_copy_and_a_retry_succeeds(self):
+        rows = self.setup_stale_org()
+        real_rename, refused = os.rename, str(self.index)
+
+        def rename(src, dst):
+            if src == refused:
+                raise PermissionError(1, "Not permitted")
+            return real_rename(src, dst)
+
+        with mock.patch.object(oc.os, "rename", side_effect=rename):
+            self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
+        self.assertTrue(self.index.exists())
+        self.assertEqual(list(self.quarantine.rglob(self.index.name)), [])
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 0)
+        self.assertFalse(self.index.exists())
+
+    def test_a_move_across_volumes_still_works(self):
+        source, dest = self.home / "file", self.home / "moved"
+        source.write_text("x")
+        with mock.patch.object(oc.os, "rename", side_effect=OSError(errno.EXDEV, "Cross-device")):
+            with mock.patch.object(oc.shutil, "move") as copy_move:
+                oc.move_path(str(source), str(dest))
+        copy_move.assert_called_once_with(str(source), str(dest))
 
     def test_a_refused_manifest_keeps_its_cache_entry(self):
         rows = self.setup_stale_org()

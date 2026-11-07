@@ -82,6 +82,7 @@ Review with the user:
 | `conflicting_evidence` | Stop on those entries. |
 | `logins_with_no_refresh_token` | Stops working when its session expires, even though its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. |
+| `dangling_aliases` | Lead to no username, so no hub row can list them. Left alone. Report them, and `sf alias unset <name>` only with the user's approval. |
 | `unclassified_files` | Not owned by the CLIs, and not opened. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. Report it and let the user decide. |
 | `prune_prediction` | See step 3. |
 
@@ -99,8 +100,10 @@ and exits 1 before any logout if that fails; `--quarantine <dir>` chooses anothe
 then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config unset
 target-org` for a default still pointing at a removed user, and moves user indexes, tracking
 directories, and matched deploy-cache manifests to the quarantine. It refuses symlinks, tracked
-files, and paths outside the state roots. If a logout fails, that org's residual state stays,
-including its aliases, defaults, and deploy-cache entries.
+files, and paths outside the state roots. If a logout fails, that org's index, tracking and
+deploy-cache entries stay, and so does a chained alias that still reaches the login. `sf` clears
+the user's direct aliases and defaults before it can fail, so those may already be gone, and a
+chain left leading nowhere is removed. Fix the cause and re-audit; the login is listed again.
 
 Each result is checked. Exit 1 means something failed: report each `FAILED` line. A warning
 about losing access is routine for a scratch-org login. The user empties the Trash folder
@@ -129,6 +132,9 @@ as created date plus days, which can lapse before the hub's date. That check has
 when `hub_failures` is non-empty. A never-instantiated entry is usually a shape declared only
 on another branch, and CCI recreates it on a checkout that declares it; describe it that way,
 not as an expired org.
+
+Prune drops only the CCI record. A removed org's login and alias stay, and the next audit lists
+them once the hub shows that org gone.
 
 An expired instance under a shape name stays listed. A later command targeting it, by
 `--org` or as the default, creates a new scratch org.
