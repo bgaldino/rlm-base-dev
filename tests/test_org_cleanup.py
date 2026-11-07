@@ -670,6 +670,20 @@ class Apply(Base):
         self.assertFalse(self.manifest.exists())
         self.assertNotIn("job1", self.read_cache())
 
+    def test_a_dangling_link_in_the_quarantine_is_kept_and_the_new_item_numbered(self):
+        root = self.project / ".sf" / "orgs"
+        item = root / "00DAA0000000009MAA"
+        item.mkdir(parents=True)
+        (item / "state").write_text("x")
+        link = self.quarantine / "orgs" / item.name
+        link.parent.mkdir(parents=True)
+        link.symlink_to(self.project / "nothing-here")
+        self.assertIsNone(oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine, self.project))
+        self.assertTrue(link.is_symlink())
+        self.assertFalse(link.exists())
+        self.assertFalse(item.exists())
+        self.assertEqual(self.files_under(link.with_name(item.name + ".1")), ["state"])
+
     def test_a_refused_manifest_keeps_its_cache_entry(self):
         rows = self.setup_stale_org()
         with self.refuse_rename_of(self.manifest):
