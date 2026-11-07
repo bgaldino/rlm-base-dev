@@ -17,6 +17,13 @@
       "mappingType": "SOBJECT",
       "sObject": "Quote",
       "sObjectField": "PartnerAccountId"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "PartnerAccount__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Order"
     }
   ],
   "contextTagsByName": [
