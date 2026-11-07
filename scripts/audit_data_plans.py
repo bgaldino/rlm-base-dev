@@ -368,7 +368,7 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
             for col in columns:
                 if col.startswith("$$"):  # the key column: its parts are the externalId's
                     continue
-                for path in (layering.composite_names(col) or ([col] if "." in col else [])):
+                for path in (layering.composite_names(col) or [col]):
                     if path in checked:
                         continue
                     checked.add(path)
@@ -414,6 +414,12 @@ def audit(snapshot: Dict[str, Any], root: Path = SFDMU, prefixes: Iterable[str] 
                 # matches, on this declaration's externalId, a row an earlier creating pass of the
                 # plan created is only patched here; an Insert never matches, so its rows are new.
                 earlier = created_rows.setdefault(obj, [])
+                if sfdmu_export.is_js_truthy(decl.get("deleteOldData")):
+                    # The object's records are deleted before this pass loads, so an earlier
+                    # pass's rows are gone and can't be what a later Upsert patches.
+                    earlier.clear()
+                    for k in [k for k in key_cache if k[0] == obj]:
+                        del key_cache[k]
                 # Only the columns this declaration writes reach the org; a CSV cell it doesn't select
                 # can't identify a record.
                 written = list(columns)

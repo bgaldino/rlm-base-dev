@@ -59,7 +59,7 @@ declarations against `sobject describe`.
 
 | Check | Gating | Meaning |
 |---|---|---|
-| `unknown-field` | yes | The query selects, the CSV writes (`Rel.Field`, and each part of a composite `Rel.$$A$B`), or the `externalId` names, a field the object doesn't have, or a relationship path that doesn't resolve; only `Id` is exempt, every other system field (`LastActivityDate`, …) must be in the describe (followed through `referenceTo` where the target is in the snapshot; a target that isn't is left unchecked). SFDMU drops it and the load still succeeds |
+| `unknown-field` | yes | The query selects, the CSV writes (every column the declaration writes: plain, `Rel.Field`, and each part of a composite `Rel.$$A$B`; under `SELECT all` that is every CSV header not in `excludedFields`), or the `externalId` names, a field the object doesn't have, or a relationship path that doesn't resolve; only `Id` is exempt, every other system field (`LastActivityDate`, …) must be in the describe (followed through `referenceTo` where the target is in the snapshot; a target that isn't is left unchecked). SFDMU drops it and the load still succeeds |
 | `picklist` | yes | A CSV value outside a restricted picklist's active values. `CurrencyIsoCode` is skipped: it is the org's currency set, not the release's. Dead columns (neither createable nor updateable, and not a key) aren't value-checked |
 | `required` | yes | A creating declaration leaves out, or blanks on the rows it creates, a field that is createable, not nillable and not defaulted on create. An Upsert row whose value for this declaration's `externalId` matches a row an earlier creating pass created is only patched, so it isn't re-checked; an Insert row is always checked. Booleans are skipped (they default to false) |
 | dead columns, undefined values, release values, unwritten fields | no | See step 5 |
@@ -88,6 +88,8 @@ declarations against `sobject describe`.
   A key value is matched as written: a later pass that rewrites a key field of an existing record
   doesn't retire the value an earlier pass wrote, so a third pass keyed on the old value still counts
   as patching. For a plan that does this, run the audit on its final pass alone.
+  A pass with `deleteOldData: true` clears the object's earlier rows first, so its own rows are all
+  treated as created.
 - **`required` assumes a creating declaration creates.** An Upsert that only fills a few
   fields on records another plan created is flagged for every required field it leaves out. List it
   in `KNOWN_FINDINGS` with that reason rather than adding columns.

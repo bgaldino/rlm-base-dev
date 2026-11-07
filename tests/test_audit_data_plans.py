@@ -532,6 +532,53 @@ def test_compact_describe():
         check("an org-values picklist isn't value-checked", by_check(A.audit(snap, tmp), "picklist"), [])
 
 
+def _two_pass_plan(tmp, second_extra):
+    plan = tmp / "qb/en-US/p"
+    (plan / "objectset_source/object-set-2").mkdir(parents=True)
+    (plan / "export.json").write_text(json.dumps({"useSeparatedCSVFiles": True, "objectSets": [
+        {"objects": [{"query": "SELECT Name, Code, Required FROM Widget__x", "operation": "Upsert",
+                      "externalId": "Code"}]},
+        {"objects": [{"query": "SELECT Name, Code FROM Widget__x", "operation": "Upsert",
+                      "externalId": "Code", **second_extra}]}]}), encoding="utf-8")
+    (plan / "Widget__x.csv").write_text("Name,Code,Required\nn1,c1,r\n", encoding="utf-8")
+    (plan / "objectset_source/object-set-2/Widget__x.csv").write_text("Name,Code\nn1,c1\n", encoding="utf-8")
+
+
+def _f(result, name):
+    return [f["field"] for f in result["findings"] if f["check"] == name]
+
+
+def test_delete_old_data_and_exclusions():
+    print("deleteOldData clears earlier rows; every written column is validated; excludedFields")
+    with tempfile.TemporaryDirectory() as d:
+        _two_pass_plan(pathlib.Path(d), {})
+        check("a later Upsert on a row an earlier pass created only patches it",
+              _f(A.audit(SNAPSHOT, pathlib.Path(d)), "required"), [])
+    with tempfile.TemporaryDirectory() as d:
+        _two_pass_plan(pathlib.Path(d), {"deleteOldData": True})
+        check("deleteOldData removed that row, so the Upsert creates it and must load Required",
+              _f(A.audit(SNAPSHOT, pathlib.Path(d)), "required"), ["Required"])
+    with tempfile.TemporaryDirectory() as d:
+        _two_pass_plan(pathlib.Path(d), {"deleteOldData": []})
+        check("a JS-truthy deleteOldData (an empty list) deletes too",
+              _f(A.audit(SNAPSHOT, pathlib.Path(d)), "required"), ["Required"])
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/p", [{"query": "SELECT all FROM Widget__x", "operation": "Upsert",
+                                         "externalId": "Code"}],
+                   {"Widget__x.csv": "Name,Code,Required,Gone\nn,c,r,x\n"})
+        check("a plain CSV column that SELECT all writes is checked against the describe",
+              _f(A.audit(SNAPSHOT, tmp), "unknown-field"), ["Gone"])
+    with tempfile.TemporaryDirectory() as d:
+        tmp = pathlib.Path(d)
+        write_plan(tmp, "qb/en-US/p", [{"query": "SELECT all FROM Widget__x", "operation": "Upsert",
+                                         "externalId": "Code", "excludedFields": ["Required", "Kind"]}],
+                   {"Widget__x.csv": "Name,Code,Required,Kind\nn,c,r,Z\n"})
+        r = A.audit(SNAPSHOT, tmp)
+        check("an excluded field isn't loaded, so a required one is missing and a bad value never lands",
+              (_f(r, "required"), _f(r, "picklist")), (["Required"], []))
+
+
 def test_main():
     print("main")
     with tempfile.TemporaryDirectory() as d:
@@ -563,7 +610,7 @@ for t in (test_findings, test_required_missing_column, test_deep_paths_and_exter
           test_unsupported_filter_is_an_error, test_required_each_creating_pass,
           test_required_later_pass_keyed_on_fewer_fields, test_required_repeated_key_in_a_pass,
           test_required_three_passes_and_default_key, test_required_unselected_column_is_not_a_key,
-          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked,
+          test_csv_lookup_paths_and_api_version, test_insert_after_upsert_is_checked, test_delete_old_data_and_exclusions,
           test_system_fields_and_dead_columns, test_classify, test_merge,
           test_compact_describe, test_main, test_committed_snapshot):
     t()
