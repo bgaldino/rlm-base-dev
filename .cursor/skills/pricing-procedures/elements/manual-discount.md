@@ -70,12 +70,13 @@ line-item values, with no decision table. [Help][Repo]
   and an amount field, use two steps (shipped: amount seq 2, then percent seq 3). [Core][Repo]
 - No clamping or rounding: Amount above the unit price or Percentage above 100 gives a
   negative price; Override accepts any value including 0 or negative. Add Rounding
-  Values and, if needed, a price floor: a Formula-Based Pricing step after the discount
-  that clamps the price (for example `IF(NetUnitPrice < 0, 0, NetUnitPrice)`; functions
-  known to work: [formula-based-pricing.md](./formula-based-pricing.md)), or a List Group
-  condition around the discount that keeps an oversized one from running. Stop Pricing is not a floor: it makes the current,
-  already negative price final [Help]. [Price Tracking](./price-tracking.md) only records
-  historical min/max. [Core][inferred for the floor]
+  Values and, if needed, a price floor. Either add a Formula-Based Pricing step after the
+  discount that clamps the unit price (for example `IF(NetUnitPrice < 0, 0, NetUnitPrice)`)
+  and recomputes the subtotal from it (functions known to work:
+  [formula-based-pricing.md](./formula-based-pricing.md)), or put a List Group condition
+  around the discount so an oversized one never runs. Stop Pricing is not a floor: it makes
+  the current, already negative price final [Help]. [Price Tracking](./price-tracking.md)
+  only records historical min/max. [Core][inferred for the floor]
 - Applies per line; for a bundle component the same rules apply. Whether a manual
   discount on a bundle parent propagates to children is not verified. [inferred]
 

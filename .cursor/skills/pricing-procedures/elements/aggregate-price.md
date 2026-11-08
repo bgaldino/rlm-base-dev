@@ -164,10 +164,11 @@ input as an output too). Numbering is zero-based and contiguous.
 </steps>
 ```
 
-GroupBy variant: set `section-0-group-count=1`, add
-`section-0-group-0` (Parameter, e.g. `SalesTransactionItemGroup`) and
-`section-0-group-0-type` (Literal `Text`), and add a Where on the group tag
-`isNotNull`. [Repo]
+GroupBy variant (the shipped group subtotal step): set `section-0-group-count=1`, add
+`section-0-group-0` (Parameter, `SalesTransactionItemGroup`) and
+`section-0-group-0-type` (Literal `Text`), set `section-0-output=ItemGroupSummarySubtotal`
+(the group-level tag), and replace condition 0 with the group tag `isNotNull` (data type
+`Text`), keeping `where-condition-count=3`. Don't add a fourth condition: Builder allows 3. [Repo][Core]
 
 Roll Up variant (parameter names from core, not shipped): `RollUpPrice=true`
 plus `ParentProduct` (Parameter, the parent reference tag); omit Write Back; keep
@@ -176,10 +177,10 @@ plus `ParentProduct` (Parameter, the parent reference tag); omit Write Back; kee
 ### Worked example (labelled example)
 
 Sum net total by product category into a custom output tag (placeholders in angle
-brackets; needs a custom context tag and mapping). Use the Header SUM XML above
-with `section-0-group-count=1`, `section-0-group-0=<category tag>`,
-`section-0-group-0-type=Text`, `section-0-output=<CategorySubtotal tag>` and a
-Where `<category tag> isNotNull`. In an overlay, wrap the same parameters in an
+brackets; needs a custom context tag and mapping). Start from the GroupBy variant
+with `section-0-group-0=<category tag>`, `section-0-output=<CategorySubtotal tag>` (at the
+same context level as the category tag) and condition 0 replaced by
+`<category tag> isNotNull`, still three conditions. In an overlay, wrap the same parameters in an
 `addSteps` entry placed after the last aggregate step. Do not list the output in
 `addVariables` (`../../expression-sets/authoring-and-overlays.md`). It lives only in
 the pricing context until mapped to a record field (`../../context-service/SKILL.md`).

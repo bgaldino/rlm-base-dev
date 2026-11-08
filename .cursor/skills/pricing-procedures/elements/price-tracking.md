@@ -99,7 +99,7 @@ None. Discover live:
 - Function `Save` with `TrackedPrice` on the step skips the lookup and goes straight to the insert list. Save and Get runs the lookup first: one matching range row adds history for that range, none creates a new range, more than one logs a duplicate-lookup error. History is written by an asynchronous job, only when price tracking is enabled, so rows appear after the transaction. Get only reads the lookup (the Product Price Range table).
 - For Save, the other lookup input columns plus `TrackedPrice` and `TransactionDate` are what is stored.
 - Output tags: core sets `SavedRecordedPrice` (min) and `SavedMaxRecordedPrice` (max) only when the tag exists in the step.
-- Multiple-output resolution is supported (candidate priority and resolution strategy). An inactive or unknown strategy logs `RESOLUTION_STRATEGY_NOT_ACTIVE`; an invalid strategy formula logs `RESOLUTION_FORMULA_ERROR`; the winner's min/max are written to the output tags.
+- Multiple-output resolution is supported (candidate priority and resolution strategy). An inactive or unknown strategy logs `RESOLUTION_STRATEGY_NOT_ACTIVE`; an invalid strategy formula logs `RESOLUTION_FORMULA_ERROR`; the winner's min/max are written to the output tags. With resolution on, Help says a line with no matching row stops pricing as a configuration error (no zero, no skip) [Help]; not checked against core.
 
 ## Troubleshooting
 

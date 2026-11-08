@@ -51,7 +51,7 @@ It is the starting point for discounts and adjustments.
 
 | Rows returned | Resolution off | Resolution on |
 |---|---|---|
-| 0 | Prior `ListPrice` and `Subtotal` untouched; `IsContracted` set false | Same: nothing to resolve |
+| 0 | Prior `ListPrice` and `Subtotal` untouched; `IsContracted` set false | Disputed: Help says the line stops with a configuration error (no zero, no skip); the core path read showed nothing to resolve. Verify on the target org |
 | 1 | `IsContracted` set true; `ListPrice` from the `ListPriceField` column (default column `UnitPrice`; a null column value writes nothing); `Subtotal` = ListPrice x Quantity | Resolved the same way |
 | More than 1 | Error `DUPLICATE_VALUE_FOUND_IN_LOOKUP` ("Duplicate entries found while looking up {0}") | Not an error: the resolution strategy picks the final row(s) by candidate priority / final price sequence; `UseAsList` keeps all |
 
@@ -64,7 +64,7 @@ variable binding (inferred). `IsDerived` appears as an output on some steps. [Re
 ## Placement and ordering
 
 - After [Pricing Setting](./pricing-setting.md) (and Map Line Item if used). Everything that discounts or adjusts must come after it.
-- If the table returns no match, the element keeps whatever List Price and Subtotal earlier elements set; it does not zero them. [Help]
+- If the table returns no match, the element keeps whatever List Price and Subtotal earlier elements set; it does not zero them [Help]. With output resolution on, Help instead says the line stops pricing (see the table above).
 - Contract flow: contract List Price step, then a List Group filtered on `IsContracted = true` holding Manual Discount and Stop Pricing. [Help]
 - Shipped default procedure runs a cost-book `ListPrice` after the price-book one, and re-runs `ListPrice` inside ListGroups for contract-dated and undated lines. [Repo]
 - Ordering across elements: [procedure anatomy and ordering](../procedure-anatomy-and-ordering.md).
@@ -149,14 +149,14 @@ Cost = `RLM_CostBookEntries`. Seq is within the parent (or top level).
 | `DUPLICATE_VALUE_FOUND_IN_LOOKUP` at runtime | More than one row matched and output resolution is off | Make inputs unique, or enable output resolution |
 | `Exception in pricing element. Lookup API name: <name>, but LookUpId is null.` | `LookUpId` does not load and `LookUpApiName` is not found as a decision table / matrix in the org | Fix `LookUpApiName`; deploy the table first |
 | Plausible but wrong-currency price | `CurrencyIsoCode` not an input on the step; lookup returns first row | Add input on every currency-denominated lookup (list price, adjustment, tiers); see pricing-wiring "Wrong-currency price returned" |
-| Price stays at earlier value | No matching row; element keeps prior values | Check table freshness, product/price book/selling model inputs |
+| Price stays at earlier value | No matching row with resolution off; element keeps prior values (with resolution on, Help says the line stops instead) | Check table freshness, product/price book/selling model inputs |
 | Contract price not applied | Table stale, contract not activated, dates outside Contract Item Price range | Activate, refresh Contract Pricing Entries, check `StartDate` |
 | Derived product prices at 0 | Expected: list price must be 0 | Add Derived Price element after |
 
 ## Feasibility / not supported
 
 - Several matching rows without output resolution: error, not first-row-wins (see table above). [Core]
-- A table with no matching row leaves prior values untouched; the element itself never zeroes them (only `IsContracted` is set false). [Help, Core] To force a default, add a later Assignment or Formula. [inferred]
+- With resolution off, a table with no matching row leaves prior values untouched; the element never zeroes them (only `IsContracted` is set false). [Help, Core] With resolution on, Help says every product needs a matching row or the line stops; core was read otherwise, so verify on the org. To force a default, add a later Assignment or Formula. [inferred]
 - A matched row whose `ListPriceField` column is null writes nothing (prior values kept). [Core]
 - Price column other than the default needs `ListPriceField` naming it. [Core]
 
