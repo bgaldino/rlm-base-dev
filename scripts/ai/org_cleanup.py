@@ -49,6 +49,8 @@ KNOWN_ENTRIES = {
 }
 KNOWN_ENTRY_PATTERN = re.compile(r"^(sf|sfdx)(-[\d-]+)?\.log(\.\d+)?$")
 
+CCI_KEYS = {"name", "shape", "active", "scratch", "expired", "instantiated", "default", "alias"}
+
 # Run inside `cci shell`: names and flags only, and the same predicate `cci org prune` uses.
 CCI_SNIPPET = """
 import json
@@ -144,12 +146,17 @@ def read_tracking(project):
 def read_unclassified(home, project):
     """Name, size and mode of what the CLIs do not own. These files are never opened."""
     found = []
-    for root in state_roots(home) + [project / ".sf", project / ".sfdx"]:
+    home_roots = state_roots(home)
+    for root in home_roots + [project / ".sf", project / ".sfdx"]:
         if not root.is_dir():
             continue
         for path in sorted(root.iterdir()):
-            if (path.name in KNOWN_ENTRIES or KNOWN_ENTRY_PATTERN.match(path.name)
-                    or "@" in path.name or ORG_ID.match(path.stem)):
+            # Skip only what read_auth and read_indexes consume, and they read the home roots only:
+            # a regular .json file there. A symlink, a backup such as `user@x.json.bak`, or any auth
+            # or index file inside the project is not consumed, so it is reported here.
+            consumed = (root in home_roots and path.suffix == ".json" and not path.is_symlink()
+                        and ("@" in path.name or ORG_ID.match(path.stem)))
+            if path.name in KNOWN_ENTRIES or KNOWN_ENTRY_PATTERN.match(path.name) or consumed:
                 continue
             info = path.lstat()
             found.append({"path": str(path), "size": info.st_size,
@@ -196,7 +203,14 @@ def read_cci(run):
     code, out = run(["cci", "shell", "--python", CCI_SNIPPET])
     for line in out.splitlines() if code == 0 else []:
         if line.startswith("ORG_CLEANUP_CCI "):
-            return json.loads(line.split(" ", 1)[1])
+            try:
+                orgs = json.loads(line.split(" ", 1)[1])
+            except ValueError:
+                return None
+            # Anything but the shape the snippet emits is not a prediction, rather than a crash.
+            ok = isinstance(orgs, list) and all(isinstance(o, dict) and CCI_KEYS <= o.keys()
+                                                for o in orgs)
+            return orgs if ok else None
     return None
 
 
@@ -205,8 +219,9 @@ def predict_prune(orgs, resolve, user_class):
     if orgs is None:
         return {"available": False}
     gone = [o for o in orgs if not o["shape"] and not o["active"] and o["scratch"]]
+    # "conflict" is a hub row that is Active past its date, or rows that disagree: possibly live.
     live = [o["name"] for o in gone if o["instantiated"]
-            and user_class(resolve(o["alias"])) == "active"]
+            and user_class(resolve(o["alias"])) in ("active", "conflict")]
     return {
         "available": True,
         "would_remove_expired": sorted(o["name"] for o in gone if o["instantiated"]),
@@ -573,6 +588,9 @@ def apply_plan(run, plan, home, project, quarantine):
 
 def print_plan(plan):
     print("Dev Hubs: {}".format(len(plan["hubs"])))
+    if not plan["hubs"]:
+        print("NO CONNECTED DEV HUB WAS FOUND. No hub was queried, so every entry is unknown and "
+              "an empty plan below is not evidence that the state is clean.")
     if plan["hub_failures"]:
         print("HUBS THAT DID NOT ANSWER: {}".format(plan["hub_failures"]))
         print("They gave no evidence, so this plan and the active-on-hub check may be incomplete.")
@@ -590,6 +608,15 @@ def print_plan(plan):
     print("\ncci org prune prediction (never run by this tool):")
     for key, value in plan["prune_prediction"].items():
         print("  {}: {}".format(key, value))
+
+
+def write_private(path, text):
+    """Write a file only the user can read, from the first byte, and never through a symlink."""
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    fd = os.open(str(path), flags, 0o600)
+    with os.fdopen(fd, "w") as handle:
+        os.fchmod(handle.fileno(), 0o600)  # a file that already existed keeps its old mode
+        handle.write(text)
 
 
 def in_project_root(project):
@@ -625,8 +652,12 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
     if args.command == "audit":
         print_plan(plan)
         if args.out:
-            Path(args.out).write_text(json.dumps(plan, indent=1) + "\n")
-            os.chmod(args.out, 0o600)
+            try:
+                write_private(args.out, json.dumps(plan, indent=1) + "\n")
+            except OSError as error:
+                print("Could not write the plan to {}: {}".format(
+                    args.out, error.strerror or str(error)[:300]), file=sys.stderr)
+                return 1
         if args.check_logins:
             failed = check_logins(run, home)
             print("\nLogins that did not answer a query: {}".format(failed or "none"))

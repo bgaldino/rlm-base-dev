@@ -69,7 +69,10 @@ regardless of its local `isScratch`. Dev Hubs and sandboxes are never logged out
 
 It removes nothing, though `cci` writes a `.org` file for any declared shape that lacks one,
 and a hub query can refresh that hub's auth file. The plan holds usernames but no tokens, and
-is written readable only by the user. Keep it out of the repo.
+is created readable only by the user; it refuses to write through a symlink. Keep it out of the
+repo: the tool does not check where `--out` points. `Dev Hubs: 0` with a "NO CONNECTED DEV HUB"
+warning means no hub was queried, so an empty plan is not evidence that the state is clean;
+authorize the hub with `isDevHub` set and audit again.
 
 Every `cci` command rolls `~/.cumulusci/logs` over and keeps 5 backups, including the ones this
 procedure runs. Copy a log you are debugging before starting.
@@ -83,7 +86,7 @@ Review with the user:
 | `logins_with_no_refresh_token` | Stops working when its session expires, even though its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. |
 | `dangling_aliases`, `dangling_defaults` | Lead to no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>` or `sf config unset target-org`. |
-| `unclassified_files` | Not owned by the CLIs, and not opened. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. Report it and let the user decide. |
+| `unclassified_files` | Not owned by the CLIs, and not opened. It includes a symlinked login or index file, a credential backup such as `user@x.json.bak`, and any login or index file inside the project, because only the home state is read as logins and indexes. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. Report it and let the user decide. |
 | `prune_prediction` | See step 3. |
 
 An audit request ends here.
@@ -93,6 +96,9 @@ An audit request ends here.
 ```bash
 python scripts/ai/org_cleanup.py apply --plan <plan-path>
 ```
+
+Do not run `apply` while another `sf` or `cci` process is running: the deploy cache is read and
+rewritten without a lock, so a concurrent deploy's entry could be lost.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
 reviewed one. It then moves a temp file into the quarantine, and exits 1 before any logout if that
@@ -134,10 +140,14 @@ its result from CCI's own logic:
 | Connected (non-scratch) org | Untouched | |
 
 Do not run it if `would_remove_but_active_on_hub` is non-empty: CCI computes expiry locally
-as created date plus days, which can lapse before the hub's date. That check has no evidence
-when `hub_failures` is non-empty. A never-instantiated entry is usually a shape declared on
-another branch or an earlier commit, and CCI recreates it on a checkout that declares it;
-describe it that way, not as an expired org.
+as created date plus days, which can lapse before the hub's date. The key lists an entry whose
+org the hub shows `Active`, and any `conflict`: `Active` past its date, or rows with different statuses.
+It cannot list an org it has no evidence for: no hub has a row for it (including when the hub
+holding it is in `hub_failures`), or the CCI entry's `sfdx_alias` is empty or no longer resolves
+to a username.
+
+A never-instantiated entry is usually a shape declared on another branch or an earlier commit,
+and CCI recreates it on a checkout that declares it; describe it that way, not as an expired org.
 
 Prune drops only the CCI record. A removed org's login and alias stay, and the next audit lists
 them once the hub shows that org gone.

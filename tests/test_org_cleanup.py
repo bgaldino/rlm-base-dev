@@ -283,8 +283,36 @@ class PrunePrediction(Base):
         predicted = self.plan(cli)["prune_prediction"]
         self.assertEqual(predicted["would_remove_but_active_on_hub"], ["old"])
 
+    def test_flags_a_hub_row_that_is_active_past_its_date(self):
+        # Active with a past date classifies as conflict: the org may still be live.
+        self.add_auth("live@x.invalid", LIVE_ORG)
+        cli = FakeCli(self.home, [row(LIVE_ORG, "Active", "2026-01-01")],
+                      {"p__old": "live@x.invalid"}, self.ORGS)
+        predicted = self.plan(cli)["prune_prediction"]
+        self.assertEqual(predicted["would_remove_but_active_on_hub"], ["old"])
+
+    def test_flags_a_hub_with_disagreeing_rows(self):
+        self.add_auth("live@x.invalid", LIVE_ORG)
+        cli = FakeCli(self.home, [row(LIVE_ORG, "Deleted", "2026-12-01"), row(LIVE_ORG, "Active", "2026-12-01")],
+                      {"p__old": "live@x.invalid"}, self.ORGS)
+        predicted = self.plan(cli)["prune_prediction"]
+        self.assertEqual(predicted["would_remove_but_active_on_hub"], ["old"])
+
     def test_unavailable_cci_is_not_a_prediction(self):
         self.assertEqual(self.plan(FakeCli(self.home))["prune_prediction"], {"available": False})
+
+    def test_a_malformed_cci_line_is_not_a_prediction(self):
+        # Invalid JSON, and valid JSON of the wrong shape, must both degrade to "unavailable".
+        for line in ("{not json", "{}", '["a"]', '[{"name": "x"}]'):
+            cli = FakeCli(self.home)
+            cli.override = lambda cmd, line=line: ((0, "ORG_CLEANUP_CCI " + line + "\n")
+                                                   if cmd[0] == "cci" else None)
+            self.assertEqual(self.plan(cli)["prune_prediction"], {"available": False}, line)
+
+    def test_an_empty_cci_list_is_an_available_prediction(self):
+        predicted = self.plan(FakeCli(self.home, cci=[]))["prune_prediction"]
+        self.assertTrue(predicted["available"])
+        self.assertEqual(predicted["would_remove_expired"], [])
 
 
 class Secrets(Base):
@@ -303,6 +331,62 @@ class Secrets(Base):
         self.assertEqual(code, 0)
         self.assertNotIn(SECRET, stdout.getvalue())
         self.assertNotIn(SECRET, out.read_text())
+        self.assertEqual(oct(out.stat().st_mode & 0o777), "0o600")
+
+    def test_a_symlinked_or_renamed_credential_file_is_reported(self):
+        elsewhere = self.home / "elsewhere.json"
+        elsewhere.write_text(SECRET)
+        (self.home / ".sfdx" / "linked@x.invalid.json").symlink_to(elsewhere)
+        (self.home / ".sfdx" / "backup@x.invalid.json.bak").write_text(SECRET)
+        (self.home / ".sfdx" / "saved@x.invalid.sfdxurl").write_text(SECRET)
+        (self.home / ".sfdx" / (DEAD_ORG + "MAA.json")).symlink_to(elsewhere)
+        # Only the home roots are read as auth and indexes, so the same names in the project are
+        # nobody's: a credential copied into the repo tree must be reported.
+        (self.project / ".sfdx" / "copied@x.invalid.json").write_text(SECRET)
+        (self.project / ".sf" / (LIVE_ORG + "MAA.json")).write_text(SECRET)
+        self.add_auth("plain@x.invalid", LIVE_ORG)  # a regular home auth file is not "unclassified"
+        files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
+        names = sorted(Path(f["path"]).name for f in files)
+        self.assertEqual(names, sorted(["linked@x.invalid.json", "backup@x.invalid.json.bak",
+                                        "saved@x.invalid.sfdxurl", DEAD_ORG + "MAA.json",
+                                        "copied@x.invalid.json", LIVE_ORG + "MAA.json"]))
+        self.assertNotIn(SECRET, json.dumps(files))
+
+    def test_the_plan_is_created_with_mode_0600(self):
+        real_open = os.open
+        modes = []
+
+        def spy(path, flags, mode=0o777, **kwargs):
+            modes.append(mode)
+            return real_open(path, flags, mode, **kwargs)
+
+        with mock.patch.object(oc.os, "open", spy), contextlib.redirect_stdout(io.StringIO()):
+            code = oc.main(["audit", "--out", str(self.project / "plan.json")],
+                           FakeCli(self.home), self.home, self.project, TODAY)
+        self.assertEqual(code, 0)
+        self.assertEqual(modes, [0o600])  # never created under the umask and tightened later
+
+    def test_the_plan_is_never_written_through_a_symlink(self):
+        victim = self.project / "victim.txt"
+        victim.write_text("keep")
+        link = self.project / "plan.json"
+        link.symlink_to(victim)
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+            code = oc.main(["audit", "--out", str(link)], FakeCli(self.home),
+                           self.home, self.project, TODAY)
+        self.assertEqual(code, 1)
+        self.assertEqual(victim.read_text(), "keep")
+        self.assertIn("Could not write the plan", stderr.getvalue())
+
+    def test_an_existing_loose_plan_file_is_tightened(self):
+        out = self.project / "plan.json"
+        out.write_text("old")
+        out.chmod(0o644)
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = oc.main(["audit", "--out", str(out)], FakeCli(self.home),
+                           self.home, self.project, TODAY)
+        self.assertEqual(code, 0)
         self.assertEqual(oct(out.stat().st_mode & 0o777), "0o600")
 
     def test_an_unknown_file_is_reported_without_being_opened(self):
@@ -841,6 +925,23 @@ class DocStaysInStep(unittest.TestCase):
 
 class EvidenceEdges(Base):
     """Each pins a guard that a broad mutation pass showed nothing else would catch."""
+
+    def audit_output(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = oc.main(["audit"], FakeCli(self.home, [row(DEAD_ORG)]),
+                           self.home, self.project, TODAY)
+        self.assertEqual(code, 0)
+        return out.getvalue()
+
+    def test_no_connected_dev_hub_is_said_out_loud(self):
+        (self.home / ".sfdx" / (HUB + ".json")).unlink()
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.assertIn("NO CONNECTED DEV HUB", self.audit_output())
+
+    def test_a_connected_dev_hub_gets_no_such_warning(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.assertNotIn("NO CONNECTED DEV HUB", self.audit_output())
 
     def test_a_partial_hub_answer_is_a_failure_not_evidence(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
