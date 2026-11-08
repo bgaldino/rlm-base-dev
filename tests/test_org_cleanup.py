@@ -446,6 +446,15 @@ class Apply(Base):
         remove = self.plan(cli)["remove"]
         self.assertEqual({k: v for k, v in remove.items() if v}, {})
 
+    def test_a_stale_legacy_tracking_folder_is_moved(self):
+        legacy = self.project / ".sfdx" / "orgs" / "gone@x.invalid"
+        legacy.mkdir()
+        (legacy / "state").write_text("x")
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")])
+        self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertFalse(legacy.exists())
+        self.assertTrue((self.quarantine / "orgs" / legacy.name / "state").exists())
+
     def test_aliases_go_one_per_command(self):
         rows = self.setup_stale_org()
         cli = FakeCli(self.home, rows, {"stale-a": "gone@x.invalid", "stale-b": "gone@x.invalid"})
@@ -1165,6 +1174,12 @@ class FileResponses(Base):
         self.assertTrue((moved / "deploy-2026-04-16T03-02-23-000Z.json").exists())
         self.assertIn("Residual files moved", self.stdout.getvalue())
         self.assertEqual(self.plan(cli)["remove"]["file_responses"], [])
+
+    def test_apply_moves_a_project_sf_responses_folder(self):
+        dead = self.responses(state=".sf")
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row(DEAD_ORG)])), 0)
+        self.assertFalse(dead.exists())
+        self.assertTrue((self.quarantine / "fileResponses" / dead.name / "deploy-2026-04-16T03-02-23-000Z.json").exists())
 
     def test_a_tracked_responses_folder_is_refused(self):
         dead = self.responses()
