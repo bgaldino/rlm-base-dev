@@ -1,6 +1,7 @@
 # Price revision and CPI (Price Index) policies (264)
 
-> Sub-file of `.cursor/skills/pricing-wiring/SKILL.md`.
+> Sub-file of `.cursor/skills/pricing-wiring/SKILL.md`. Setting up policies, index rates and
+> regions in any org (Help): `.cursor/skills/pricing-setup/price-revision-policies.md`.
 
 How a **Price Revision Policy** changes a price in `RLM_DefaultPricingProcedure`, how CPI data is
 seeded, and how to check a result. Measured 2026-10-29 on a fresh 264 build (r1-306) with the quote

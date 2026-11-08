@@ -431,6 +431,8 @@ and raised under CCI, and tests using it proved the wrong thing.
 - Exhaustive reference: `docs/references/decision-table-api-reference.md`.
 - CCI ops cookbook: `docs/references/decision-table-examples.md`.
 - Pricing layering: `.cursor/skills/pricing-wiring/SKILL.md`.
+- Pricing records these tables read, and the after-load refresh rule:
+  `.cursor/skills/pricing-setup/import-export-and-bulk-data.md` → *After-load refresh rule*.
 - CCI tasks: `tasks/rlm_manage_decision_tables.py`,
   `tasks/rlm_refresh_decision_table.py`,
   `tasks/rlm_deactivate_changed_decision_tables.py`,

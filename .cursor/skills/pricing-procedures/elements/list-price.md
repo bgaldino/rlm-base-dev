@@ -10,7 +10,8 @@
 
 Fetches a base price from a decision table (price book entries, contract pricing
 entries, cost book entries) and writes it to List Price / Subtotal output variables.
-It is the starting point for discounts and adjustments.
+It is the starting point for discounts and adjustments. Price books and entries: [`../../pricing-setup/price-books.md`](../../pricing-setup/price-books.md);
+cost books (Help calls them tracking-only): [`../../pricing-setup/cost-books.md`](../../pricing-setup/cost-books.md).
 
 ## When to use it
 

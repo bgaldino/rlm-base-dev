@@ -13,6 +13,7 @@ parent product and product. Also zeroes components flagged as inclusive.
 - Not for quantity or attribute rules: see
   [volume-and-tier-discount.md](./volume-and-tier-discount.md) (stacking/waterfall),
   [attribute-based-price.md](./attribute-based-price.md).
+- Creating the schedule and adjustment records: [`../../pricing-setup/price-adjustment-schedules.md`](../../pricing-setup/price-adjustment-schedules.md).
 
 ## Configuration
 Declared by core: `InclusivePrice` (Boolean, optional), `Quantity` (Numeric, required),

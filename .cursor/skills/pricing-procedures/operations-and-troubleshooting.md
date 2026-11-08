@@ -34,7 +34,7 @@ python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> -
   takes only a version name and number; the clone's start date must be later than the
   context definition's Effective From. [Help]
 - Permission sets: Salesforce Pricing Design Time User (create/update/delete/clone),
-  Salesforce Pricing Run Time User (use). [Help]
+  Salesforce Pricing Run Time User (use). [Help] Personas, sharing and pricing actions: [`../pricing-setup/org-enablement-and-permissions.md`](../pricing-setup/org-enablement-and-permissions.md), [`../pricing-setup/pricing-actions.md`](../pricing-setup/pricing-actions.md).
 
 ## 2. Simulate and activate
 
