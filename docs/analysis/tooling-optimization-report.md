@@ -8,7 +8,7 @@
 
 - Overall status: **PASS**
 - Required files: **6/6** present
-- Skills inventoried: **92** Markdown files under `.cursor/skills/`
+- Skills inventoried: **94** Markdown files under `.cursor/skills/`
 - Cursor rules inventoried: **12** `.mdc` files under `.cursor/rules/`
 - AGENTS.md skill references: **39** checked, **0** missing
 - Generated CCI references: **3/3** present
@@ -70,6 +70,7 @@
 - `.cursor/skills/pricing-wiring/price-revision-cpi.md`
 - `.cursor/skills/qb-demo-script/SKILL.md`
 - `.cursor/skills/ramped-quotes/SKILL.md`
+- `.cursor/skills/ramped-quotes/bundle-children-lifecycle.md`
 - `.cursor/skills/ramped-quotes/compound-uplift.md`
 - `.cursor/skills/ramped-quotes/field-legality.md`
 - `.cursor/skills/ramped-quotes/ui-group-ramp.md`
@@ -103,6 +104,7 @@
 - `.cursor/skills/salesforce-contracts/data-model-and-queries.md`
 - `.cursor/skills/salesforce-contracts/setup-and-diagnostics.md`
 - `.cursor/skills/schema-validation/SKILL.md`
+- `.cursor/skills/schema-validation/release-data-plan-audit.md`
 - `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - `.cursor/skills/sfdmu-data-plans/object-plan-mapping.md`
 - `.cursor/skills/sfdmu-data-plans/plan-dependency-graph.md`
