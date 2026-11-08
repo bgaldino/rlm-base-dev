@@ -906,7 +906,7 @@ class DocStaysInStep(unittest.TestCase):
                      "logins_with_no_refresh_token", "unreadable_auth_files",
                      "symlinks_left_alone", "unclassified_files", "would_remove_expired",
                      "would_remove_never_instantiated", "would_remove_but_active_on_hub",
-                     "expired_shape_instances_it_skips"]
+                     "expired_shape_instances_it_skips", "unrecognized_file_responses"]
         source = (REPO / "scripts" / "ai" / "org_cleanup.py").read_text()
         for key in plan_keys:
             self.assertIn(key, source)
@@ -1045,6 +1045,141 @@ class Usage(Base):
     def test_without_a_trash_or_links_the_quarantine_is_in_the_home_folder(self):
         expected = Path(os.path.realpath(str(self.home))) / ".rlm-org-cleanup-quarantine" / TODAY
         self.assertEqual(oc.default_quarantine(self.home, TODAY), expected)
+
+
+class FileResponses(Base):
+    """`<project>/.sf[dx]/fileResponses/<orgId>`: response logs keyed by org, with no login."""
+
+    audit_then_apply = Apply.audit_then_apply
+
+    def responses(self, state=".sfdx", org=DEAD_ORG + "MAA"):
+        path = self.project / state / "fileResponses" / org
+        path.mkdir(parents=True)
+        (path / "deploy-2026-04-16T03-02-23-000Z.json").write_text("{}")
+        return path
+
+    def test_a_deleted_orgs_responses_are_planned_and_a_live_orgs_are_not(self):
+        dead, live = self.responses(), self.responses(org=LIVE_ORG + "MAA")
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")]))
+        self.assertEqual(plan["remove"]["file_responses"], [str(dead)])
+        self.assertEqual(plan["preserved"]["file_responses"], 1)
+        self.assertTrue(live.exists())
+
+    def test_no_hub_row_preserves_them(self):
+        self.responses(org=NO_ROW_ORG + "MAA")
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["file_responses"], [])
+        self.assertEqual(plan["preserved"]["file_responses"], 1)  # read, and left alone
+
+    def test_a_name_that_is_not_an_org_id_is_reported_and_never_planned(self):
+        odd = self.project / ".sfdx" / "fileResponses" / "not-an-org"
+        odd.mkdir(parents=True)
+        stray = self.project / ".sfdx" / "fileResponses" / (DEAD_ORG + "MAA.json")
+        stray.write_text("{}")  # an org-ID name, but a file rather than a directory
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["file_responses"], [])
+        self.assertEqual(sorted(plan["report"]["unrecognized_file_responses"]),
+                         sorted([str(odd), str(stray)]))
+
+    def test_a_symlinked_entry_or_folder_is_left_alone(self):
+        target = self.home / "elsewhere"
+        target.mkdir()
+        entry = self.project / ".sfdx" / "fileResponses"
+        entry.mkdir(parents=True)
+        (entry / (DEAD_ORG + "MAA")).symlink_to(target)
+        (self.project / ".sf" / "fileResponses").symlink_to(target)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["file_responses"], [])
+        self.assertEqual(sorted(plan["report"]["symlinks_left_alone"]),
+                         sorted([str(entry / (DEAD_ORG + "MAA")),
+                                 str(self.project / ".sf" / "fileResponses")]))
+
+    def test_a_symlinked_state_folder_or_parent_is_never_followed(self):
+        # `.sfdx` itself linked, then `.sf/orgs` and `.sf/fileResponses` linked.
+        outside = self.home / "outside"
+        (outside / "orgs" / (DEAD_ORG + "MAA")).mkdir(parents=True)
+        (outside / "fileResponses" / (DEAD_ORG + "MAA")).mkdir(parents=True)
+        (self.project / ".sfdx" / "orgs").rmdir()
+        (self.project / ".sfdx").rmdir()
+        (self.project / ".sfdx").symlink_to(outside)
+        other = self.home / "other"
+        (other / (DEAD_ORG + "MAA")).mkdir(parents=True)
+        (self.project / ".sf" / "orgs").rmdir()
+        (self.project / ".sf" / "orgs").symlink_to(other)
+        (self.project / ".sf" / "fileResponses").symlink_to(other)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["tracking"], [])
+        self.assertEqual(plan["remove"]["file_responses"], [])
+        self.assertEqual(sorted(plan["report"]["symlinks_left_alone"]),
+                         sorted([str(self.project / ".sfdx"),
+                                 str(self.project / ".sf" / "orgs"),
+                                 str(self.project / ".sf" / "fileResponses")]))
+
+    def test_a_folder_swapped_for_a_link_after_the_audit_is_refused_at_the_move(self):
+        outside = self.home / "outside"
+        (outside / (DEAD_ORG + "MAA")).mkdir(parents=True)
+        why = oc.move_to_quarantine(
+            FakeCli(self.home), self.project / ".sf" / "linked" / (DEAD_ORG + "MAA"),
+            [self.project / ".sf" / "linked"], self.quarantine, self.project)
+        self.assertEqual(why, "missing")  # nothing at the path: no move is attempted
+        (self.project / ".sf" / "linked").symlink_to(outside)
+        why = oc.move_to_quarantine(
+            FakeCli(self.home), self.project / ".sf" / "linked" / (DEAD_ORG + "MAA"),
+            [self.project / ".sf" / "linked"], self.quarantine, self.project)
+        self.assertEqual(why, "symlink")
+        self.assertTrue((outside / (DEAD_ORG + "MAA")).exists())
+
+    def test_a_state_folder_swapped_for_a_link_after_the_audit_is_refused_at_the_move(self):
+        outside = self.home / "outside"
+        (outside / "orgs" / (DEAD_ORG + "MAA")).mkdir(parents=True)
+        (self.project / ".sf" / "orgs").rmdir()
+        (self.project / ".sf").rmdir()
+        (self.project / ".sf").symlink_to(outside)
+        why = oc.move_to_quarantine(
+            FakeCli(self.home), self.project / ".sf" / "orgs" / (DEAD_ORG + "MAA"),
+            [self.project / ".sf" / "orgs"], self.quarantine, self.project)
+        self.assertEqual(why, "symlink")
+        self.assertTrue((outside / "orgs" / (DEAD_ORG + "MAA")).exists())
+
+    def test_a_quarantine_that_refuses_files_stops_before_any_logout_for_responses_alone(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        dead = self.responses()
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        with mock.patch.object(oc.os, "rename", side_effect=PermissionError(1, "Not permitted")):
+            self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertEqual([c for c in cli.calls if c[1:3] == ["org", "logout"]], [])
+        self.assertTrue(dead.exists())
+        self.assertIn("before any logout", self.stderr.getvalue())
+
+    def test_the_directory_is_not_reported_as_unclassified(self):
+        self.responses()
+        files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
+        self.assertEqual(files, [])
+
+    def test_apply_moves_them_to_the_quarantine_and_a_re_audit_is_empty(self):
+        dead = self.responses()
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertFalse(dead.exists())
+        moved = self.quarantine / "fileResponses" / dead.name
+        self.assertTrue((moved / "deploy-2026-04-16T03-02-23-000Z.json").exists())
+        self.assertIn("Residual files moved", self.stdout.getvalue())
+        self.assertEqual(self.plan(cli)["remove"]["file_responses"], [])
+
+    def test_a_tracked_responses_folder_is_refused(self):
+        dead = self.responses()
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        cli.tracked.add(str(dead))
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertTrue(dead.exists())
+        self.assertIn("tracked by git", self.stdout.getvalue())
+
+    def test_a_failed_logout_keeps_that_orgs_responses(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        dead = self.responses()
+        cli = FakeCli(self.home, [row(DEAD_ORG)], fail_logout={"rep@x.invalid"})
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertTrue(dead.exists())
 
 
 if __name__ == "__main__":

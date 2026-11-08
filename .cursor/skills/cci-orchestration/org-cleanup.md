@@ -52,9 +52,10 @@ and `cci org list` elsewhere exits 0 showing only CCI's built-in shapes.
 python scripts/ai/org_cleanup.py audit --out <plan-path-outside-the-repo>
 ```
 
-The tool reads local auth, alias, tracking and cache state, then queries `ScratchOrgInfo` on
-every connected Dev Hub, by org ID and, for state with only a username, by signup username.
-Only a removable class goes on the plan:
+The tool reads local auth, alias, tracking, `fileResponses` and cache state, then queries
+`ScratchOrgInfo` on every
+connected Dev Hub, by org ID and, for state with only a username, by signup username. Only a
+removable class goes on the plan:
 
 | Hub evidence | Class | Result |
 |--------------|-------|--------|
@@ -84,7 +85,8 @@ Review with the user:
 | `hub_failures` | Those hubs gave no evidence, so the plan may be incomplete. Fix access and re-audit. |
 | `conflicting_evidence` | Stop on those entries. |
 | `logins_with_no_refresh_token` | Stops working when its session expires, even though its org is live. Report it; log out only with explicit approval. |
-| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. |
+| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. |
+| `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
 | `dangling_aliases`, `dangling_defaults` | Lead to no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>` or `sf config unset target-org`. |
 | `unclassified_files` | Not owned by the CLIs, and not opened. It includes a symlinked login or index file, a credential backup such as `user@x.json.bak`, and any login or index file inside the project, because only the home state is read as logins and indexes. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. Report it and let the user decide. |
 | `prune_prediction` | See step 3. |
@@ -106,11 +108,12 @@ fails. The quarantine is a dated folder in the user's Trash, or with no Trash, b
 state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another
 folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config
 unset target-org` for a default still pointing at a removed user, and moves user indexes, tracking
-directories, and matched deploy-cache manifests to the quarantine. It refuses symlinks, tracked
-files, and paths outside the state roots. If a logout fails, that org's index, tracking and
-deploy-cache entries stay, and so does a chained alias that still reaches the login. `sf` clears
-the user's direct aliases and defaults before it can fail, so those may already be gone, and a
-chain left leading nowhere is removed. Fix the cause and re-audit; the login is listed again.
+directories, `fileResponses` directories, and matched deploy-cache manifests to the quarantine. It
+refuses symlinks, tracked files, and paths outside the state roots. If a logout fails, that org's
+index, tracking, `fileResponses` and deploy-cache entries stay, and so does a chained alias that
+still reaches the login. `sf` clears the user's direct aliases and defaults before it can fail, so
+those may already be gone, and a chain
+left leading nowhere is removed. Fix the cause and re-audit; the login is listed again.
 
 Each result is checked. Exit 1 means something failed: report each `FAILED` line. A warning
 about losing access is routine for a scratch-org login. The user empties the quarantine when

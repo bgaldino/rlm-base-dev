@@ -39,13 +39,15 @@ from pathlib import Path
 ORG_ID = re.compile(r"^00D[0-9A-Za-z]{12}(?:[0-9A-Za-z]{3})?$")
 BATCH = 50
 REMOVABLE = ("deleted", "expired")
-REMOVE_KEYS = ("logout", "aliases", "indexes", "tracking", "deploy_jobs", "defaults")
+REMOVE_KEYS = ("logout", "aliases", "indexes", "tracking", "file_responses", "deploy_jobs",
+               "defaults")
 
-# Entries the CLIs own. Anything else in a state root is reported, unopened, for the user.
+# Entries the CLIs own (`fileResponses` is handled as org-keyed state below). Anything else in a
+# state root is reported, unopened, for the user.
 KNOWN_ENTRIES = {
-    "alias.json", "config.json", "deploy-cache.json", "indexes", "key.json", "manifestCache",
-    "orgs", "scratch-create-cache.json", "sfdx-config.json", "stash.json", "tools", "typings",
-    "vscode-extensions-telemetry",
+    "alias.json", "config.json", "deploy-cache.json", "fileResponses", "indexes", "key.json",
+    "manifestCache", "orgs", "scratch-create-cache.json", "sfdx-config.json", "stash.json",
+    "tools", "typings", "vscode-extensions-telemetry",
 }
 KNOWN_ENTRY_PATTERN = re.compile(r"^(sf|sfdx)(-[\d-]+)?\.log(\.\d+)?$")
 
@@ -132,15 +134,49 @@ def read_indexes(home):
     return found
 
 
+def linked_ancestor(base):
+    """The symlink at `base` or at the `.sf`/`.sfdx` folder above it, if any. Never followed."""
+    for path in (base, base.parent):
+        if path.is_symlink():
+            return path
+    return None
+
+
 def read_tracking(project):
     """Tracking directories: `.sf/orgs/<orgId>` and legacy `.sfdx/orgs/<username>`."""
     found, symlinks = [], []
     for base in (project / ".sf" / "orgs", project / ".sfdx" / "orgs"):
+        link = linked_ancestor(base)
+        if link:
+            symlinks.append(link)
+            continue
         if not base.is_dir():
             continue
         for path in sorted(base.iterdir()):
             (symlinks if path.is_symlink() else found).append(path)
     return found, symlinks
+
+
+def read_file_responses(project):
+    """Deploy/retrieve response logs, `<project>/.sf[dx]/fileResponses/<orgId>`.
+
+    Returns the org-ID directories, the names that are not org IDs, and symlinks (left alone).
+    """
+    found, unrecognized, symlinks = [], [], []
+    for state in (project / ".sf", project / ".sfdx"):
+        base = state / "fileResponses"
+        link = linked_ancestor(base)
+        if link:
+            symlinks.append(link)
+        elif base.is_dir():
+            for path in sorted(base.iterdir()):
+                if path.is_symlink():
+                    symlinks.append(path)
+                elif path.is_dir() and ORG_ID.match(path.name):
+                    found.append(path)
+                else:
+                    unrecognized.append(path)
+    return found, unrecognized, symlinks
 
 
 def read_unclassified(home, project):
@@ -271,6 +307,8 @@ def build_plan(run, home, project, today):
 
     indexes = read_indexes(home)
     tracking, symlinks = read_tracking(project)
+    responses, unrecognized_responses, response_symlinks = read_file_responses(project)
+    symlinks = list(dict.fromkeys(symlinks + response_symlinks))  # a linked .sfdx shows up in both
     deploy_cache = read_json(home / ".sf" / "deploy-cache.json", {})
     deploy_cache = deploy_cache if isinstance(deploy_cache, dict) else {}
     deploy_targets = {job: resolve(entry.get("target-org") or "")
@@ -278,6 +316,7 @@ def build_plan(run, home, project, today):
 
     org_ids = {info["org"] for info in auth.values()} | {p.stem[:15] for p in indexes}
     org_ids |= {p.name[:15] for p in tracking if ORG_ID.match(p.name)}
+    org_ids |= {p.name[:15] for p in responses}
     id_rows, id_failed = query_hubs(run, hubs, "ScratchOrg", org_ids)
 
     # State with a username and no local auth has no org ID to check, so ask by signup username.
@@ -310,11 +349,12 @@ def build_plan(run, home, project, today):
         "tracking": sorted(str(p) for p in tracking
                            if (ORG_ID.match(p.name) and org_class(p.name) in REMOVABLE)
                            or ("@" in p.name and stale(p.name))),
+        "file_responses": sorted(str(p) for p in responses if org_class(p.name) in REMOVABLE),
         "deploy_jobs": sorted(job for job, user in deploy_targets.items() if user and stale(user)),
         "defaults": sorted(scope for scope, values in config_targets(home, project).items()
                            if any(stale(resolve(v)) for v in values)),
     }
-    removing = {str(p) for k in ("indexes", "tracking") for p in remove[k]}
+    removing = {str(p) for k in ("indexes", "tracking", "file_responses") for p in remove[k]}
     conflict = sorted(u for u in auth if org_class(auth[u]["org"]) == "conflict")
     return {
         "schema": 1,
@@ -334,6 +374,7 @@ def build_plan(run, home, project, today):
             "aliases": sum(not stale(resolve(a)) for a in aliases),
             "indexes": sum(str(p) not in removing for p in indexes),
             "tracking": sum(str(p) not in removing for p in tracking),
+            "file_responses": sum(str(p) not in removing for p in responses),
             "deploy_jobs": len(deploy_targets) - len(remove["deploy_jobs"]),
         },
         "report": {
@@ -342,6 +383,7 @@ def build_plan(run, home, project, today):
                 u for u, info in auth.items() if not info["refreshable"] and u not in stale_users),
             "unreadable_auth_files": unreadable,
             "symlinks_left_alone": [str(p) for p in symlinks],
+            "unrecognized_file_responses": [str(p) for p in unrecognized_responses],
             "unclassified_files": read_unclassified(home, project),
             # Lead to no username, so no hub row can ever put them on the plan.
             "dangling_aliases": sorted(a for a in aliases if "@" not in resolve(a)),
@@ -440,6 +482,8 @@ def move_to_quarantine(run, path, roots, quarantine, project):
         return "symlink"
     if not any(path.parent == root for root in roots):
         return "outside the expected state roots"
+    if project in path.parents and linked_ancestor(path.parent):
+        return "symlink"
     if project in path.parents:
         code, out = run(["git", "-C", str(project), "ls-files", "--", str(path)])
         if code != 0 or out.strip():
@@ -562,7 +606,9 @@ def apply_plan(run, plan, home, project, quarantine):
 
     state = state_roots(home)
     for key, roots in (("indexes", state),
-                       ("tracking", [project / ".sf" / "orgs", project / ".sfdx" / "orgs"])):
+                       ("tracking", [project / ".sf" / "orgs", project / ".sfdx" / "orgs"]),
+                       ("file_responses", [project / ".sf" / "fileResponses",
+                                           project / ".sfdx" / "fileResponses"])):
         for item in remove[key]:
             path = Path(item)
             if (path.stem[:15] in failed_orgs or path.name[:15] in failed_orgs
@@ -669,7 +715,7 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
               file=sys.stderr)
         return 3
     quarantine = Path(args.quarantine) if args.quarantine else default_quarantine(home, today)
-    if any(plan["remove"][key] for key in ("indexes", "tracking", "deploy_jobs")):
+    if any(plan["remove"][key] for key in ("indexes", "tracking", "file_responses", "deploy_jobs")):
         why = check_quarantine(quarantine, home)
         if why:
             print("Stopped before any logout; nothing was changed. Cannot move files into {}: {}. "
@@ -678,7 +724,7 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
             return 1
     done, failures = apply_plan(run, plan, home, project, quarantine)
     print("Done: {}".format(done))
-    if done["indexes"] or done["tracking"] or done["manifests"]:
+    if done["indexes"] or done["tracking"] or done["file_responses"] or done["manifests"]:
         print("Residual files moved to: {}".format(quarantine))
     for item, why in failures:
         print("FAILED: {} ({})".format(item, why))
