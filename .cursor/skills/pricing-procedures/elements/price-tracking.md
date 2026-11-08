@@ -45,7 +45,7 @@ Builder name is Price Tracking; the stored `actionType` is `MinimumPrice`
 
 | Rule | Source |
 |---|---|
-| Every run or simulation writes to Product Price History Log. Help describes a larger same-day price "overwriting" the entry for maximum tracking; core shows that is the net effect of the purge job below, not an inline overwrite. | [Help][Core] |
+| Help: every run or simulation saves its result to Product Price History Log, and a larger same-day price "overwrites" the maximum entry. Core: only Save and Save and Get write history (Get only reads the range table), and the overwrite is the net effect of the purge job below, not an inline overwrite. So a Get-only step may record nothing; verify on the org. | [Help][Core] |
 | Product Price Range stores the min/max for the configured duration and is the source for Get / Save & Get. | [Help] |
 | The save only inserts a Product Price History Log row (range, day, tracked price, currency) per call; it never overwrites inline, for minimum or maximum tracking. A save with no matching range row creates a new range first. Whether a second same-day insert for the same range is rejected by a uniqueness check is not confirmed. | [Core][inferred] |
 | A scheduled purge job later reads rows created since its previous run, grouped by range and day. Per group it keeps one row at the minimum price (if minimum tracking is on) and one at the maximum price (if maximum tracking is on); ties keep the lowest record name, and one row survives when both are equal. All other rows for that range and day are deleted. It then recomputes the range's recorded min/max over the configured duration (null when 0). So within a day only the minimum and/or maximum row remain, per enabled tracking. | [Core] |
