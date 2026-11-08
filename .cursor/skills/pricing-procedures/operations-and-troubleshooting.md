@@ -50,14 +50,14 @@ python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> -
   deactivate, save, reactivate before the Simulate button appears. [Help]
 - If profile access is set at element level, only those profiles see that element's
   pricing in the waterfall. [Help]
-- Versions [Core]: disabled versions are skipped; a version is kept only if its start/end
-  dates (either may be null) cover the execution date; among kept versions the greater rank
-  wins. On a tie the first one examined stays, and a null rank loses to any ranked version
-  (but is still chosen if no ranked version is valid). Naming a version number or id returns
-  that version if its dates match, regardless of rank. Help states the rank rule for discovery
-  procedures (`ind.pricing_set_up_your_discovery_procedure.htm`) [Help]. So give the version
-  you want the larger rank; a new version with a lower rank may be ignored. An active version
-  cannot be edited or deleted through Connect; deactivate first (see expression-sets skill).
+- Versions [Core, Live]: disabled versions are skipped; a version is kept only if its start/end
+  dates cover the execution date (headless `effectiveDate` must be a full ISO datetime); the
+  greater rank wins, whatever the version number. None kept: "Ensure that this procedure has at
+  least one active version." Enabling needs a rank unused by any other enabled version, even with
+  disjoint dates ("N rank is already in use"), and never null ("Enter a valid rank"), so Core's
+  tie and null-rank branches are unreachable [Live, 264]. A named version number or id is returned
+  if its dates match, regardless of rank [Core]. Help (discovery) [Help]: give the wanted version
+  the larger rank. An enabled version cannot be edited; deactivate, edit, re-enable.
 - If an active procedure plan version references the expression set, deploys are locked until
   that plan version is deactivated ([`../pricing-wiring/SKILL.md`](../pricing-wiring/SKILL.md)
   troubleshooting). [Repo]

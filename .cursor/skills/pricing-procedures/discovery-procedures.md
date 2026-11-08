@@ -132,7 +132,7 @@ exist and be fresh ([`../decision-tables/SKILL.md`](../decision-tables/SKILL.md)
    `RLM_SalesTransactionContext`). Help recommends starting from the predefined Default
    Discovery Procedure.
 2. Open the version in the Discovery Procedure Builder; add elements as ordered above.
-3. Set the rank, tick Include in Output, Save. Help uses rank 1 for a first version; when several enabled versions match, the highest rank wins, and on a tie the first version examined stays, so give a new version a higher rank than the one it replaces ([operations-and-troubleshooting.md](operations-and-troubleshooting.md) section 2).
+3. Set the rank, tick Include in Output, Save. Help uses rank 1 for a first version; when several enabled versions match, the highest rank wins, and enabling a version whose rank another enabled version already holds fails ("N rank is already in use"), so give a new version a higher rank than the one it replaces ([operations-and-troubleshooting.md](operations-and-troubleshooting.md) section 2).
 4. Simulate (Input tab), then Activate.
 - Permissions: Salesforce Pricing Design Time User (create), Salesforce Pricing Run Time (run).
 
