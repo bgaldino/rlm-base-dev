@@ -3,7 +3,11 @@
 > Release 264 / API v68.0. Sources: `ind.pricing_derived_price.htm`,
 > `ind.pricing_calculate_the_derived_price_of_product.htm`,
 > `ind.pricing_get_ready_to_calculate_the_derived_price.htm`,
-> `ind.qocal_advanced_detail_line_pricing_for_custom_and_derived_products.htm`;
+> `ind.qocal_advanced_detail_line_pricing_for_custom_and_derived_products.htm`,
+> `ind.qocal_set_up_add_derived_pricing_assets_to_a_quote_or_order.htm`,
+> `ind.pricing_limits.htm`, `ind.pricing_add_aggregate_price_element.htm`,
+> `ind.qocal_considerations_ramp_deals.htm`,
+> `ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm`;
 > shipped XML: `RLM_PRM_DISTI_Pricing_Procedure`, `RLM_Revenue_Management_Recalc_Procedure`.
 > Parameter names cross-checked against core [Core].
 
@@ -17,6 +21,7 @@ data written to context by a discovery procedure.
 - Not for plain discounts: use Manual or Volume Discount.
 - Not allowed with Promotion Execution, Price Propagation, or Discount Distribution Service elements in the same procedure. [Help]
 - Not supported with compound ramp uplift. [Help]; see [price-revision-compound-uplift.md](./price-revision-compound-uplift.md)
+- Derived pricing products do not support price uplifts [Help: `ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm`]. Derived products added to a ramp deal for groups do not price correctly [Help: `ind.qocal_considerations_ramp_deals.htm`].
 
 ## Prerequisite chain (all required)
 
@@ -25,7 +30,7 @@ data written to context by a discovery procedure.
 | Price book entries | Source product has a real list price; derived product list price is `0`, `Is Derived` selected. Same price book. [Help] |
 | Derived Price record | Scope (Transactional, Non-transactional, Both), Pricing Source (Product or Header), derived product, source product (not needed for Header), `Formula` (e.g. `ListPrice * 0.10`), effective dates. [Help] |
 | Decision tables | Refresh **Derived Pricing Entries** and **Price Book Entries V2**. Assetize Order permission set needed to refresh them. [Help] See [decision-tables](../../decision-tables/SKILL.md) |
-| Discovery procedure | Usage Type **Pricing Discovery**; Fetch Pricing Rules element on Derived Pricing Entries; Asset Discovery element on Asset Action Source Entries V2 if assets are sources (delete it for purely transactional). Writes contributors into context. [Help] |
+| Discovery procedure | Usage Type **Pricing Discovery**; Fetch Pricing Rules element on Derived Pricing Entries; Asset Discovery element on Asset Action Source Entries V2 if assets are sources (delete it for purely transactional). Writes contributors into context. Cloning the Default Discovery Procedure: switch its decision table to Asset Action Source Entries V2 and map the new variables; or clone the Salesforce Pricing Discovery Procedure template. [Help] |
 | Same context definition | Discovery and pricing procedures must share it. [Help] |
 | Line flag | Source line `DerivedPricingAttribute=false`; derived line `true`. [Help] |
 | List Price element | Must use Price Book Entries V2 or a custom table. [Help] |
@@ -57,17 +62,55 @@ select Include in Output.
 ## Placement and ordering
 
 - After the base [List Price](./list-price.md) steps and [Pricing Setting](./pricing-setting.md) (which must map `IsDerived` to `DerivedPricingAttribute`). Shipped DISTI order: Pricing Setting (1), cost List Price (2), price book List Price (3), Derived Price (4). [Repo]
-- Place [Aggregate Price](./aggregate-price.md) after Derived Price (Help ordering guidance per the Aggregate Price article; not restated in the Derived Price articles, so verify there).
+- Place [Aggregate Price](./aggregate-price.md) after Derived Price and add a Where condition targeting only the contributing lines; this keeps it consistent with Map Line Item in derived-pricing discovery procedures. [Help: `ind.pricing_add_aggregate_price_element.htm`]
 - Downstream steps typically gate on `DerivedPricingAttribute`: shipped filters use `isNotNull` and `isFalse` conditions on `DerivedPricingAttribute` so non-derived lines get the normal discount stack, and a ListGroup "Set the net unit price for lines with derived pricing" assigns the derived result onward. [Repo]
-- Cross-element ordering: [procedure anatomy and ordering](../procedure-anatomy-and-ordering.md).
+- Cross-element ordering and the save-time combination rules (exact error text): [procedure anatomy and ordering](../procedure-anatomy-and-ordering.md#save-time-procedure-rules-core-enforces).
 
 ## Rules and limits
 
 - Discount distribution cannot be applied to a procedure used for derived price. [Help]
 - Map Line Item: the limits page says it "doesn't support derived pricing"; the advanced-detail article does document Map Line Item in a derived-pricing **discovery** procedure. See [Map Line Item](./map-line-item.md). [Help]
+- Advanced Detail Line Pricing (Revenue Settings toggle) with derived pricing: besides the pricing procedure's Map Line Item (second element, after Pricing Setting), the discovery procedure needs a Discovery Settings element (Line Item to `LineItem`) and a Map Line Item mapping `SalesTransactionItem` to `SalesTransactionItemDetail`, plus `LineItem`, `EffectiveFrom`, `EffectiveTo` and `DerivedPricingAttribute` to their item-detail tags. This is required to find valid contributing and derived products. [Help: `ind.qocal_advanced_detail_line_pricing_for_custom_and_derived_products.htm`]
+- Revenue Settings "Add Derived Pricing Assets to a Quote or Order" adds derived-product assets when contributing products are added. Future-dated amendments or renewals include contributing products but add derived products only if the request names them. [Help: `ind.qocal_set_up_add_derived_pricing_assets_to_a_quote_or_order.htm`]
 - Derived and source products must share a price book. [Help]
 - Header source needs no source product. [Help]
 - Discovery output is not shown in the waterfall; simulate discovery only to write contributors to context. [Help]
+
+### Runtime behavior and errors [Core]
+
+- Each contributing child is evaluated in order; the first contributor error stops the
+  line. Formula results of all contributors are summed into the net unit price; subtotal
+  is that sum times the line quantity.
+- Contributor handling by source: Product + Transactional reads the source line's priced
+  values from the current run (a source line with its own error gives
+  `CONTRIBUTING_LINE_HAS_ERROR`); Product + Non-transactional reads the contributor
+  price tags written by discovery (all three empty gives `CONTRIBUTING_TAG_EMPTY`);
+  Header requires an empty scope (else `SCOPE_SHOULD_BE_EMPTY`) and a header total
+  (else code `CONTRIBUTING_TAG_EMPTY`, the same code as the non-transactional case).
+  These codes surface prefixed `DPP: ` (for example `DPP: FORMULA_EMPTY`).
+- Empty formula: `DPP: FORMULA_EMPTY`. A derived line with no contributors:
+  `MISSING_CONTRIBUTORS` (no `DPP:` prefix; it also marks the waterfall response failed). Formula evaluation errors surface with the formula service's
+  own code.
+- The waterfall lists each contributor (source, scope, product, id, contributed price).
+- Limits are per-org values, enforced at Derived Price save and again in discovery
+  (runtime guardrail errors) [Core]. The 264 Help limits page publishes contributing
+  products per derived product as 40 default, 1 minimum, 50 maximum (the total of transactional and non-transactional contributors), and assets per contributing asset as 50 maximum [Help: `ind.pricing_limits.htm`]; the same page caps a discovery procedure at 50 elements by default (100 maximum) and a discovery run at 10 seconds by default (60 maximum). Core's
+  platform defaults are larger (contributing products 500, min 1, up to 2000; assets per
+  product 100, up to 1000; source products per price book entry 3, up to 5) [Core].
+  Design to the Help numbers; the effective value on an org can differ.
+- [Core] Save-time rules (the procedure cannot be saved):
+  - "You can’t have the Derived Price and Promotion Execution elements in the same pricing procedure. Delete one of them and try again."
+  - "You can’t have the Derived Price and Discount Distribution Service elements in the same pricing procedure. Delete one of them and try again." So a derived-pricing procedure has no DDS; its aggregates follow Derived Price instead.
+  - "You can only have one derived price element in a procedure."
+  - "Map the Is Derived variable to a value in the Pricing Settings element if you want to add a Derived Pricing element to your procedure." Pricing Settings must come first.
+  - "Pricing Propagation element is not allowed with incompatible elements in the pricing procedure." (one Price Propagation step with Derived Price, Promotion Execution or Breakdown Line Mapping.)
+  - Communications, media, energy and utilities procedures: "You can't have the Derived Price and Advanced Promotion Execution elements in the same pricing procedure. Delete one of them and try again."
+- [Core] Runtime guardrail messages: "The limit of {0} contributing products for a source product was reached."; "The limit of {0} assets for a contributing product was reached."; "We couldn’t add the source product because the limit of {0} source products associated with a derived product was reached. Delete a source product and try again."; "We can’t price your quote when contributing products are missing. Please add the contributing products to the transaction."
+- Parallel execution: core has a general pricing-element parallel executor and a
+  per-request override, but no Derived Price specific restriction was found.
+- Cross-procedure: contributor prices reflect only the procedure the Derived Price
+  step runs in. [Help `ind.pricing_procedure_plan_limits.htm`]
+- Aggregate Price does not support derived products on quote lines [Help]: aggregate the contributing lines and exclude the derived ones (the Where conditions above).
 
 ## Metadata shape
 
@@ -126,6 +169,4 @@ Snapshot. Discover with
 | List Price returns nothing for derived item | Used Price Book Entries instead of V2 | Switch to V2 |
 
 ## Open questions
-
-- Error text for an unsupported element combination is not in the formal-parameter definition; where it is enforced (save vs run) is unconfirmed.
 - Behavior of the repo default procedure if derived pricing were re-added is untested.

@@ -28,8 +28,8 @@ It is the starting point for discounts and adjustments.
 | Lookup table API name | `LookUpApiName` | Literal | Yes | Decision table DeveloperName [Repo] |
 | Lookup table id | `LookUpId` | Literal | Optional | Record id or `__LOOKUPID_*__` placeholder; see below. [Core] When `LookUpApiName` is set and `LookUpId` does not load, core resolves the id from the API name |
 | List price column | `ListPriceField` | Parameter (Text) | Optional [Core] | Constant-style variable naming the table's price column, e.g. `Constant_UnitPrice_Price_Book_Entry_Decision_Table_v2_LP` [Repo] |
-| Input rule: Product | `Product2Id` / `ProductId` / `ItemId` / `ProductNId` | Parameter | Yes | Name varies by table/procedure [Repo]; Help label "Product" |
-| Input rule: Price Book | `Pricebook2Id` / `PricebookNId` | Parameter | Price book tables | Variable `PriceBooks` or `PricebookId` [Repo] |
+| Input rule: Product | `Product2Id` / `ProductId` / `ItemId` | Parameter | Yes | Name varies by table/procedure [Repo]; Help label "Product" |
+| Input rule: Price Book | `Pricebook2Id` | Parameter | Price book tables | Variable `PriceBooks` or `PricebookId` [Repo] |
 | Input rule: Selling model | `ProductSellingModelId` | Parameter | Yes | |
 | Input rule: Selling model type | `SellingModelType` | Parameter | Contract table | [Help, Repo] |
 | Input rule: Start / End date | `StartDate`, `EndDate` | Parameter | Contract table | Variables `PricingDate` / `EffectiveFrom` [Repo] |
@@ -45,7 +45,17 @@ It is the starting point for discounts and adjustments.
 | Output rule: Discount Type / Value | `DiscountType`, `DiscountValue` | Parameter (output) | Contract table | `ItemContractDiscountType/Value` [Help, Repo] |
 | Housekeeping | `sectionCount`=`0`, `selectedFunction`=`Get`, `IsRealTime`=`false` | Literal | Shipped | [Repo] |
 
-[Core] Formal inputs are the table's **input columns** (dynamic, from the decision table or matrix) plus `Quantity` and `ListPriceField`. Outputs are the table's **output columns**, any `section-N-output` entries, `ListPrice` (required; the generic unit-price output is replaced by it for this element), `Subtotal` (optional), and `IsContracted` (added only when `IsContractEnabled=true`). Multiple-output mode (shipped flag `IsOutputResolutionEnabled`, inferred) adds `ResolutionStrategy` (required), `CandidatePriority`, `FinalPriceSequence` and `UseAsList`; shipped procedures leave it `false`.
+[Core] Formal inputs are the table's **input columns** (dynamic, from the decision table or matrix) plus `Quantity` and `ListPriceField`. Outputs are the table's **output columns**, any `section-N-output` entries, `ListPrice` (required; the generic unit-price output is replaced by it for this element), `Subtotal` (optional), and `IsContracted` (added only when `IsContractEnabled=true`). When the multiple-output flag is set, an optional Numeric `FinalPriceSequence` input is added [Core]. `ResolutionStrategy` (required), `CandidatePriority`, `UseAsList` and a write-back JSON for extra outputs are [inferred]; their registration was not re-found. Shipped procedures leave `IsOutputResolutionEnabled` `false`. [Repo]
+
+### No matching row and duplicate rows [Core]
+
+| Rows returned | Resolution off | Resolution on |
+|---|---|---|
+| 0 | Prior `ListPrice` and `Subtotal` untouched; `IsContracted` set false | Same: nothing to resolve |
+| 1 | `IsContracted` set true; `ListPrice` from the `ListPriceField` column (default column `UnitPrice`; a null column value writes nothing); `Subtotal` = ListPrice x Quantity | Resolved the same way |
+| More than 1 | Error `DUPLICATE_VALUE_FOUND_IN_LOOKUP` ("Duplicate entries found while looking up {0}") | Not an error: the resolution strategy picks the final row(s) by candidate priority / final price sequence; `UseAsList` keeps all |
+
+Resolution errors: `RESOLUTION_STRATEGY_NOT_VALID` ("This procedure output resolution is unavailable. Specify an active and valid procedure output resolution for the pricing element {0}."), `RESOLUTION_FORMULA_ERROR` ("Specify a valid formula function for the {0} element."), `RESOLUTION_STRATEGY_NOT_ACTIVE`, `RESOLUTION_INVALID_SEQUENCE`, `RESOLUTION_CACHE_MISS`, `RESOLUTION_STRATEGY_WRITE_BACK_ERROR`. Any other lookup failure surfaces as `UNEXPECTED_ERROR_DURING_LOOKUP` ("Unexpected error occurred while looking up {0}"). [Core]
 
 The Builder's "Lookup Table Details" maps table columns to variables; metadata
 stores only variable names, so the table column is implied by the table plus the
@@ -62,9 +72,10 @@ variable binding (inferred). `IsDerived` appears as an output on some steps. [Re
 ## Rules and limits
 
 - [Core] If `LookUpApiName` is set but neither `LookUpId` nor the name resolves: `Exception in pricing element. Lookup API name: <name>, but LookUpId is null.`
-- The lookup table must be Active and have a **pricing recipe table mapping**; otherwise: `Ensure that the lookup table in the ListPrice step is valid and try again.` See [pricing-wiring sections A and B](../../pricing-wiring/SKILL.md). [Repo skill]
+- Save-time validation fails with `Ensure that the lookup table in the ListPrice step is valid and try again.` [Core] Core checks the step's lookup id against the active recipe table mappings for the procedure's usage subtype (grouped by element type). The error fires when (a) the lookup id cannot be resolved, (b) the element type has no recipe-mapped table at all (inner text: "The pricing element type isn't valid. Use elements that are associated with lookup tables and try again."), or (c) the step's table is not among those mapped for the element type. The check is skipped during package install. So a missing recipe mapping for ListPrice is a confirmed cause. See [pricing-wiring sections A and B](../../pricing-wiring/SKILL.md).
+- Save-time hierarchy check applies to the tags `Product2Id`, `ProductSellingModelId`, `Id`, `IsDerived`, `Quantity`, `Subtotal`, `ListPrice` (they must share the line item's hierarchy). [Core]
 - Pricing recipes bundle the predefined tables (Price Book Entries, Contract Pricing Entries, etc.); sync or create via recipe. [Help: `ind.pricing_pricing_recipes.htm`, `ind.pricing_create_or_use_predefined_lookup_tables.htm`]
-- `LookUpApiName` vs `LookUpId`: prefer `LookUpApiName`; add `__LOOKUPID_*__` only when needed and never both casually; never commit real record ids. Full rules: [pricing-wiring section B](../../pricing-wiring/SKILL.md). Shipped XML carries both with placeholders, replaced at deploy. [Repo]
+- `LookUpApiName` vs `LookUpId`: prefer `LookUpApiName`; add `__LOOKUPID_*__` only when needed and never both casually; never commit real record ids. Full rules: [pricing-wiring section B](../../pricing-wiring/SKILL.md). The Default and PRM procedures ship `__LOOKUPID_*__` placeholders, replaced at deploy; the Recalc procedure (`unpackaged/post_procedureplans`) ships literal source-org `LookUpId` values that no transform replaces, and the discovery List Price step has no `LookUpId`. [Repo]
 - Contract pricing needs: products linked to an activated contract with Contract Item Prices, then **refresh** the Contract Pricing Entries decision table. [Help] Refresh/freshness: [decision-tables](../../decision-tables/SKILL.md).
 - Contract-based pricing takes a boolean Contract Pricing output (`IsContracted`) to gate later discounts. [Help]
 - Derived pricing: derived product list price must be 0 on its price book entry; source product carries a real price. [Help]
@@ -101,20 +112,28 @@ variable binding (inferred). `IsDerived` appears as an output on some steps. [Re
 Contract variant: set `IsContractEnabled=true`, `ContractId`, `ItemId`,
 `SellingModelType`, `StartDate`, `EndDate`, the Contract Pricing Entries table, and
 outputs `ListPrice`, `IsContracted`, `DiscountType`, `DiscountValue`. [Repo]
-Live orgs may carry hard-coded `LookUpId` record ids from Builder saves; repo source uses placeholders.
+Live orgs may carry hard-coded `LookUpId` record ids from Builder saves; repo source uses placeholders, except the Recalc procedure (literal ids; see above).
 
 ## Shipped in this repo (snapshot)
 
-| Procedure | Step | What it does |
-|---|---|---|
-| RLM_DefaultPricingProcedure | `Getbasepricesfrompricebook` | Price Book Entries V2 to `ListPrice` |
-| RLM_DefaultPricingProcedure | `Getunitcostfromcostbook` | Cost Book Entries to `ItemUnitCost__std` |
-| RLM_DefaultPricingProcedure | `AssignItemContractPricetoListPrice` (in ListGroup) | Contract Pricing Entries, `IsContractEnabled=true`, outputs `ItemContractPrice`, `IsContracted`, discount type/value |
-| RLM_DefaultPricingProcedure | `AssignedFromPricingContractforundatedlines` | Same for lines without dates |
-| PRM DISTI / Recalc | `Getbasepricesfrompricebook`, contract step; DISTI also `GetCostsfromCostBook` | Same pattern |
-| RLM_ProductDiscoveryPricingProcedure | `PriceBookEntries` | Price book lookup for discovery |
+Complete: 10 `ListPrice` steps in 4 procedures (no other shipped file has one). [Repo]
+PBE v2 = `Price_Book_Entry_Decision_Table_v2`; Contract = `Contract_Pricing_Entries_Decision_Table`;
+Cost = `RLM_CostBookEntries`. Seq is within the parent (or top level).
 
-Snapshot. Discover with
+| Procedure | Step | Seq | Parent | Table | Contract | List price output |
+|---|---|---|---|---|---|---|
+| RLM_DefaultPricingProcedure | `AssignItemContractPricetoListPrice` | 2 | `Setlistpriceforlineswithcontractpricing` | Contract | true (`ItemPricingContract`) | `ItemContractPrice` |
+| RLM_DefaultPricingProcedure | `AssignedFromPricingContractforundatedlines` | 2 | `Setlistpriceforundatedlineswithcontractpricing` | Contract | true (`ItemPricingContract`) | `ItemContractPrice` |
+| RLM_DefaultPricingProcedure | `Getbasepricesfrompricebook` | 5 | top level | PBE v2 | false | `ListPrice` |
+| RLM_DefaultPricingProcedure | `Getunitcostfromcostbook` | 6 | top level | Cost | false | `ItemUnitCost__std` |
+| RLM_PRM_DISTI_Pricing_Procedure | `GetCostsfromCostBook` | 2 | top level | Cost | false | `ItemUnitCost__std` |
+| RLM_PRM_DISTI_Pricing_Procedure | `AssignItemContractPricetoListPrice` | 2 | `Setlistpriceforlineswithcontractpricing` | Contract | true (`ItemContract`) | `ItemContractPrice` |
+| RLM_PRM_DISTI_Pricing_Procedure | `Getbasepricesfrompricebook` | 3 | top level | PBE v2 | false | `ListPrice` |
+| RLM_Revenue_Management_Recalc_Procedure | `AssignItemContractPricetoListPrice` | 2 | `Setlistpriceforlineswithcontractpricing` | Contract | true (`ItemContract`) | `ItemContractPrice` |
+| RLM_Revenue_Management_Recalc_Procedure | `Getbasepricesfrompricebook` | 2 | top level | PBE v2 | false | `ListPrice` |
+| RLM_ProductDiscoveryPricingProcedure | `PriceBookEntries` | 2 | top level | PBE v2 | false | `UnitPrice` |
+
+`RLM_Price_Distribution_Procedure` has no `ListPrice` step. Snapshot. Discover with
 `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name> --params`
 
 ## Verify
@@ -126,14 +145,24 @@ Snapshot. Discover with
 
 | Symptom / error | Cause | Fix |
 |---|---|---|
-| `Ensure that the lookup table in the ListPrice step is valid and try again.` | Missing recipe table mapping, inactive table, or bad `LookUpApiName`/`LookUpId` | pricing-wiring section A and B |
-| `Exception in pricing element. Lookup API name: <name>, but LookUpId is null.` | API name not found as a decision table / matrix in the org | Fix `LookUpApiName`; deploy the table first |
+| `Ensure that the lookup table in the ListPrice step is valid and try again.` (save/activation time) | Lookup id unresolvable, no recipe-mapped table for ListPrice, or the table is not one of the mapped tables [Core] | Map the table in the recipe (pricing-wiring sections A and B); fix `LookUpApiName`/`LookUpId` |
+| `DUPLICATE_VALUE_FOUND_IN_LOOKUP` at runtime | More than one row matched and output resolution is off | Make inputs unique, or enable output resolution |
+| `Exception in pricing element. Lookup API name: <name>, but LookUpId is null.` | `LookUpId` does not load and `LookUpApiName` is not found as a decision table / matrix in the org | Fix `LookUpApiName`; deploy the table first |
 | Plausible but wrong-currency price | `CurrencyIsoCode` not an input on the step; lookup returns first row | Add input on every currency-denominated lookup (list price, adjustment, tiers); see pricing-wiring "Wrong-currency price returned" |
 | Price stays at earlier value | No matching row; element keeps prior values | Check table freshness, product/price book/selling model inputs |
 | Contract price not applied | Table stale, contract not activated, dates outside Contract Item Price range | Activate, refresh Contract Pricing Entries, check `StartDate` |
 | Derived product prices at 0 | Expected: list price must be 0 | Add Derived Price element after |
 
-## Open questions
+## Feasibility / not supported
 
+- Several matching rows without output resolution: error, not first-row-wins (see table above). [Core]
+- A table with no matching row leaves prior values untouched; the element itself never zeroes them (only `IsContracted` is set false). [Help, Core] To force a default, add a later Assignment or Formula. [inferred]
+- A matched row whose `ListPriceField` column is null writes nothing (prior values kept). [Core]
+- Price column other than the default needs `ListPriceField` naming it. [Core]
+
+## Help coverage
+- Help coverage: `ind.pricing_contract_based_pricing`, `ind.pricing_calculate_contract_based_pricing` and `ind.pricing_add_list_price_element` are reflected above (contract prerequisites, refresh, `IsContracted` gating via List Group, no-match keeps values). Not stated in Help: the contract table's required `StartDate`/`EndDate` inputs beyond the walkthrough's `StartDate`; the walkthrough also writes the contract price to `NetUnitPrice`, while shipped XML writes `ItemContractPrice`. [Help, Repo]
+
+## Open questions
 - Whether `ListPriceField` constants are Builder-generated per table (the shipped names follow `Constant_<column>_<table>_LP`) or hand-defined: core treats it as an ordinary optional Text parameter; Builder generation is inferred.
 - Exact column binding for tables other than shipped ones is only visible in Builder.

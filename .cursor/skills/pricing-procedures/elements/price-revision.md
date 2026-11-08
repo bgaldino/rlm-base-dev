@@ -5,7 +5,7 @@
 > `ind.qocal_ramp_deal_compound_uplift.htm`, `ind.qocal_ramp_deal_compound_uplift_sales_reps.htm`,
 > `ind.qocal_considerations_ramp_deals.htm`;
 > shipped XML: `RLM_DefaultPricingProcedure` (two PriceRevision steps), PRM Disti and Recalc procedures;
-> verified against core 264 (formal parameters, compound grouping, error keys).
+> core 264 re-read for this pass (element parameter registration, compound grouping, error handling).
 
 Adjusts a line's net unit price and subtotal by a percentage uplift: a policy-driven revision
 (Flat, or Price Index/CPI from the Index Rate decision table), or a per-segment **compound ramp
@@ -14,25 +14,25 @@ Ramp quote building: [`../../ramped-quotes/SKILL.md`](../../ramped-quotes/SKILL.
 
 ## When to use it
 - Renewal uplifts from a Price Revision Policy (Flat manual value, or Price Index = CPI-driven). [Help]
-- Compound (or standard) per-segment uplift on group ramp deals. [Help][Repo, live-verified 2026-10-28]
+- Compound (or standard) per-segment uplift on group ramp deals. [Help][Live, 2026-10-28]
 - Not for discounts or list-price changes; use Volume Discount / Attribute Discount elements.
 - Not supported for Partner/Customer Community users. [Help: `ind.pricing_apply_policy_driven_price_revisions.htm`]
 
 ## Configuration
 | Builder field | Parameter name | Type | Required | Notes |
 |---|---|---|---|---|
-| Lookup table | `LookUpId`, `LookUpApiName`, `LookUpName` | literal | yes | Index Rate decision table; `LookUpId` is org-specific (`__LOOKUPID_INDEX_RATE_DECISION_TABLE__` placeholder in repo). [Repo] |
+| Lookup table | `LookUpId`, `LookUpApiName`, `LookUpName` | literal | yes | Index Rate decision table; `LookUpId` is org-specific (`__LOOKUPID_INDEX_RATE_DECISION_TABLE__` placeholder in the Default and PRM procedures; a literal source-org id in Recalc). [Repo] |
 | Valid Start Date (rule var) | `ValidStartDate` | input | yes | `ItemConsumerPriceIndexDate__std`; must fall in the IndexRate range. [Help][Repo] |
 | Valid End Date | `ValidEndDate` | input | yes (repo) | same variable. [Repo] |
 | Region (rule var) | `Region` | input | yes | `ItemPriceRevisionPolicyRegion__std`. [Help][Repo] |
-| Quantity | `Quantity` | input | yes | `LineItemQuantity`. |
-| Price Revision Policy | `PriceRevisionPolicy` | input | yes | `ItemPriceRevisionPolicy__std` in repo (Help names `..PolicyName_std`). [Help vs Repo] |
-| Input Unit Price | `InputUnitPrice` | input | yes | Help: `ListPrice`; repo: `NetUnitPrice`. |
+| Quantity | `Quantity` | input (Numeric) | yes [Core] | `LineItemQuantity`. [Help][Repo] |
+| Price Revision Policy | `PriceRevisionPolicy` | input (Text) | no [Core] | `ItemPriceRevisionPolicy__std` in repo (Help names `ItemPriceRevisionPolicyName_std`, one underscore). Blank policy with compound on and no formula = Flat default (see Runtime). [Help vs Repo] |
+| Input Unit Price | `InputUnitPrice` | input (Currency) | yes [Core] | Help binds `ListPrice`; shipped XML binds `NetUnitPrice` (verified in all three procedures). [Help vs Repo] |
 | Policy Type | `PolicyType` | input (Text) | yes unless compound [Core] | Flat or Price Index; `ItemPriceRevisionPolicyType__std`. [Help] |
 | Price Revision Formula | `PriceRevisionFormula` | input | yes unless compound | `ItemPriceRevisionPolicyFormula__std`. [Help] |
-| Policy Adjustment | `PolicyAdjustment` | input | no | `ItemUnitPriceUplift__std` (line `UnitPriceUplift`). [Repo] |
+| Policy Adjustment | `PolicyAdjustment` | input (Numeric) | no [Core] | `ItemUnitPriceUplift__std` (line `UnitPriceUplift`). [Repo] |
 | Rate | `Rate` | output | yes | CPI rate, `ItemConsumerPriceIndex__std`. [Repo] |
-| Applied uplift | `AppliedUnitPriceUplift` | output | yes | `ItemApplUnitPriceUpliftPct__std`. [Repo] |
+| Applied uplift | `AppliedUnitPriceUplift` | output | compound ramp step only | `ItemApplUnitPriceUpliftPct__std`; only the Default `Uplift` step outputs it; the three CPI steps output Rate, NetUnitPrice and Subtotal. [Repo] |
 | Net Unit Price / Subtotal | `NetUnitPrice`, `Subtotal` | output | yes | Revised price and total. [Repo] |
 | Enable Compound Uplift | `IsCompoundUpliftEnabled` | literal | no | Visible only after a lookup table is chosen. [Help] |
 | Ramp Identifier | `RampIdentifier` | input | compound | `ItemRampIdentifier`. [Help][Repo] |
@@ -41,9 +41,10 @@ Ramp quote building: [`../../ramped-quotes/SKILL.md`](../../ramped-quotes/SKILL.
 | Effective From / To | `PriceRevisionEffectiveFrom`, `PriceRevisionEffectiveTo` | input | compound | `EffectiveFrom`, `EffectiveTo`. [Repo] |
 | Other | `CurrencyIsoCode`, `HideWaterfall`, `IsRealTime` | | | Housekeeping. [Repo] |
 
-[Core] Fixed parameters: `Quantity` and `InputUnitPrice` (required), `PriceRevisionPolicy` (optional),
-`PolicyType` / `PriceRevisionFormula` (required only when compound is off), `PolicyAdjustment` (optional
-numeric). The five compound parameters (`RampIdentifier`, `PreviousSegmentMultiplier`, `UpliftMethod`,
+[Core] Fixed parameters (element parameter registration): `Quantity` and `InputUnitPrice` (required),
+`PriceRevisionPolicy` (optional), `PolicyType` / `PriceRevisionFormula` (required only when compound is
+off), `PolicyAdjustment` (optional numeric). Shipped XML also carries `ValidStartDate`/`ValidEndDate`/`Region`
+as lookup input columns; their requiredness comes from the lookup table, not this registration [inferred]. The five compound parameters (`RampIdentifier`, `PreviousSegmentMultiplier`, `UpliftMethod`,
 `PriceRevisionEffectiveFrom/To`) exist only when `IsCompoundUpliftEnabled` is true; lookup columns add
 dynamic input parameters. The Builder offers lookup, hide-waterfall and compound options for this element.
 
@@ -65,7 +66,11 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
   Decision Tables. Refresh it if the waterfall looks wrong. [Help] See `../../decision-tables/SKILL.md`.
 - CPI-tied renewal uplifts are not supported on ramped products, and CPI can't be combined
   with compound uplift.
-  [Help: `ind.qocal_considerations_ramp_deals.htm`] Measured ramp alternatives:
+  [Help: `ind.qocal_considerations_ramp_deals.htm`] Core enforces only the Price Index case (non-Flat
+  `PolicyType` leaves the compound path); usage-based and derived-pricing exclusions are Help-only
+  [Help]. Help also says usage-based and derived-pricing products don't support price uplifts, and CPI
+  renewal uplifts apply only to termed assets [Help: `ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm`].
+   Measured ramp alternatives:
   [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md).
 - Enable Compound Uplift on a transaction without ramp segments falls back to standard
   calculation. Compound lines and standard lines can mix; standard ones don't compound. [Help]
@@ -73,17 +78,41 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
 - With compound enabled, Policy Type and Formula no longer need values. [Help]
 
 ## Runtime behavior [Core]
-- A line takes the compound path only when `UpliftMethod` equals `Compound` (case-insensitive) with
-  a valid quantity; anything else, including blank, is standard. A compound-intended line with a
-  negative quantity is skipped, not priced.
+- A line takes the compound path only when `UpliftMethod` equals `Compound` (case-insensitive),
+  `PolicyType` is blank or Flat (a Price Index line is always standard), quantity is not negative or
+  unparsable, and `RampIdentifier` is non-blank (blank = standard). A compound-intended line with a
+  negative quantity is skipped, not priced. A line with no `InputUnitPrice` value is skipped silently.
+- Standard path: the formula is evaluated with `PriceIndex` (the lookup's `Rate`) and `PolicyAdjustment`
+  as variables, as a percent: net = input unit price x (1 + result/100). If the lookup returns no row
+  (or the lookup call carried errors), `PriceIndex` defaults to 0 inside this step, so a Price Index
+  policy with no matching Index Rate row yields a 0 index rather than a step failure: the formula still
+  runs (`MAX(10, PriceIndex + 5)` gives 10) and this step logs no "rate not found" error. Whether the
+  lookup layer itself logs one was not found: [inferred] none. The Index Rate lookup runs only when at
+  least one line has a `PolicyType` value that is not Flat (case-insensitive; an empty string counts as
+  not Flat); an all-Flat or all-null step skips it. A formula that evaluates to nothing logs `INVALID_PRICE_REVISION_FORMULA`
+  ("Enter a valid Price Revision Formula and try again.") on the line. Any other exception in the
+  standard path is thrown as an internal error carrying the exception text; whether that fails only the
+  line or the whole pricing call was not determined [inferred: whole call]. [Core]
 - Compound lines group by `RampIdentifier`. Per group: sort by Effective From; a missing date fails
-  every segment with `MISSING_RAMP_SEGMENT_START_DATE`, a duplicate with
-  `DUPLICATE_RAMP_SEGMENT_START_DATE` (whole group, nothing priced).
+  every segment with `MISSING_RAMP_SEGMENT_START_DATE` ("Compound ramp uplift requires an effective
+  start date on every segment. One or more segments in this ramp group are missing a start date."), a
+  duplicate with `DUPLICATE_RAMP_SEGMENT_START_DATE` ("Compound ramp uplift requires a unique effective
+  start date for each segment. Two or more segments in this ramp group share the same start date."):
+  whole group, nothing priced. Dates compare as UTC calendar days, so two segments on the same day
+  with different times count as duplicates. The running multiplier is seeded once, from the first
+  (earliest) segment's `PreviousSegmentMultiplier`.
 - Math per segment: `mult(n) = mult(n-1) x (1 + uplift%(n)/100)`; applied% = (mult - 1) x 100;
   net = input unit price x mult. Uplift% comes from `PolicyAdjustment` (null = 0). Groups run in
-  parallel when 4 or more groups exist in one step, else sequentially.
-- Standard path with compound enabled and no policy and no formula: treated as Flat using
-  `PolicyAdjustment`. With compound off, a missing formula yields `INVALID_PRICE_REVISION_FORMULA`.
+  parallel when the procedure has at least 4 compound ramp groups, else sequentially (verified in core:
+  the threshold is 4; segments within a group always run in order). An exception while pricing a
+  segment logs `INVALID_PRICE_REVISION_FORMULA` on that segment and stops the group; earlier segments
+  keep their outputs, later ones are not priced. Compound lines also write the applied uplift to
+  `PriceRevisionValue` and `AppliedUnitPriceUplift`; the Index Rate lookup result (`Rate`) is not used.
+- "Compound enabled" is detected by the presence of the `UpliftMethod` parameter on the step. Standard
+  path with compound enabled, `PriceRevisionPolicy` blank and no formula: treated as Flat using
+  `PolicyAdjustment` (net = input x (1 + adj/100), null = 0). A blank policy with a formula present, or
+  a populated policy with no formula, goes through the formula path. With compound off and no formula,
+  core's own comment says the evaluator surfaces `INVALID_PRICE_REVISION_FORMULA`; not run live [inferred].
 
 ## <a name="compound-ramp-uplift"></a>Compound ramp uplift
 
@@ -110,15 +139,17 @@ Elided skeleton; full parameter set in the Configuration table. Literal vs Param
   <stepType>BusinessKnowledgeModel</stepType>
 </steps>
 ```
-`LookUpId` differs per org (a real ID in raw retrieves); the repo uses the placeholder swapped at deploy.
+`LookUpId` differs per org (a real ID in raw retrieves); Default and PRM use the placeholder swapped at deploy, Recalc a literal id.
 
 ## Shipped in this repo (snapshot)
-| Procedure | Step | What it does |
-|---|---|---|
-| `RLM_DefaultPricingProcedure` | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` | Renewal policy revision (Flat/PriceIndex) |
-| same | `Uplift` | Ramp-path compound/standard uplift |
-| `RLM_PRM_DISTI_Pricing_Procedure`, `RLM_Revenue_Management_Recalc_Procedure` | renewal-policy step | `PriceRevision` (renewal policy revision), as in the default |
-| same | `Uplift` | Legacy ramp uplift: still `FormulaBasedPricing`, no `IsCompoundUpliftEnabled`, so no compound ramp uplift in these procedures |
+| Procedure | Step (actionType) | Parent group, seq | What it does |
+|---|---|---|---|
+| `RLM_DefaultPricingProcedure` | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` (`PriceRevision`) | `Applypricerevisionforlineswithsubscriptionandwithoutderivedpricing`, 2 | Renewal policy revision (Flat/PriceIndex) |
+| same | `Uplift` (`PriceRevision`) | `Applyupliftstorampedsubscriptionsitemsduringamendment`, 2 | Ramp-path compound/standard uplift |
+| `RLM_PRM_DISTI_Pricing_Procedure`, `RLM_Revenue_Management_Recalc_Procedure` | `AdjustNetUnitPriceandSubtotalbyusingpricerevision` (`PriceRevision`) | same parent as the default, 2 | Renewal policy revision, as in the default (Recalc carries a literal `LookUpId`, not the placeholder) |
+| same | `Uplift` (`FormulaBasedPricing`) | `Applyupliftstorampedsubscriptionsitemsduringamendment`, 2 | Legacy ramp uplift: no `IsCompoundUpliftEnabled`, so no compound ramp uplift in these procedures |
+
+`RLM_Price_Distribution_Procedure` has no Price Revision step. [Repo, checked against the XML]
 
 Snapshot. Discover: `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name> --params`
 
@@ -165,8 +196,9 @@ Help snapshots: `ind.qocal_ramp_deal_compound_uplift.htm`,
 ## Troubleshooting
 | Symptom / error | Cause | Fix |
 |---|---|---|
-| Compound selected but price is standard | Uplift Method blank | Bind `UpliftMethod` to `ItemRampUpliftType__std` [Help] |
-| Whole ramp group fails pricing | A segment missing or duplicating Effective From | Unique Effective From per segment [Help] |
+| Compound selected but price is standard | Uplift Method blank, `RampIdentifier` blank, or non-Flat `PolicyType` | Bind `UpliftMethod` to `ItemRampUpliftType__std`; set the ramp id [Help][Core] |
+| `MISSING_RAMP_SEGMENT_START_DATE` / `DUPLICATE_RAMP_SEGMENT_START_DATE` on every segment | A segment missing or duplicating Effective From (same UTC day counts) | Unique Effective From per segment [Core][Help] |
+| `INVALID_PRICE_REVISION_FORMULA` ("Enter a valid Price Revision Formula and try again.") | Policy formula empty/non-numeric, or compound segment threw | Fix the policy record's formula [Core] |
 | Compound option absent in picklist | Advanced Detail Line Pricing off | Turn on; never turn off with live compound data [Repo] |
 | Compound checkbox missing in Builder | No lookup table selected | Select Index Rate table first [Help] |
 | Year-2 amendment double-uplifts | Ramp filter lost the group gate | Keep `IsLineGroupRamped__std = true` [Repo] |
@@ -174,8 +206,8 @@ Help snapshots: `ind.qocal_ramp_deal_compound_uplift.htm`,
 | Overlap error on policy/rate | Same-region date overlap | Fix ranges (single currency) [Help] |
 | Ungrouped segments never compound | Line-level `createRampDeal` | Build a group ramp |
 
-## Open questions
-- Exact message text is a localized label; keys are listed in Runtime behavior.
+## Notes
+- Error message text above is the English text; it is localized per user language [Core].
 - Generic lifecycle: `../../expression-sets/SKILL.md`.
 
 ## Resolved disagreements
@@ -184,4 +216,4 @@ Help snapshots: `ind.qocal_ramp_deal_compound_uplift.htm`,
 | Base Price Multiplier name | label only | `PreviousSegmentMultiplier` | same, Percent type | Core confirms repo |
 | `ListPrice` vs `NetUnitPrice` as input | `ListPrice` | `NetUnitPrice` | parameter is `InputUnitPrice`; bound tag free | Bind what the step should uplift; repo's `NetUnitPrice` is the post-discount price |
 | Policy tag `..PolicyName_std` vs `ItemPriceRevisionPolicy__std` | name tag | policy tag | parameter `PriceRevisionPolicy`; tag free | Match your context definition |
-| Percent units | | `applied%` in percent, live-verified | Percent type, /100 | Agree |
+| Percent units | | `applied%` in percent, measured live | Percent type, /100 | Agree |

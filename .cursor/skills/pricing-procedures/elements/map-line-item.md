@@ -41,7 +41,7 @@ Each mapping is a **section**: one input variable paired with one output tag.
 `dataType` must match the tag type (Text, Numeric, Currency, DateTime, Boolean). [Help JSON]
 Note the off-by-one: `section-0-*` pairs with `sectionJsonString1`.
 
-[Core] Formal parameters are built by reading `sectionJsonString1`, `2`, `3` ... consecutively until the first missing index (a gap silently drops every later section; `sectionCount` is not what drives it). Each `whereConditions` entry registers its `field.name` and `value.name` as formal parameters, typed from `dataType`. Both sides land in the step's input set, which is why `section-N-output` is stored with `input:true` in shipped XML. Unparseable JSON fails the build with `Error processing JSON`. Keep `sectionCount` equal to the number of strings anyway.
+[Core] Formal parameters are built by reading `sectionJsonString1`, `2`, `3` ... consecutively until the first missing index (a gap silently drops every later section; `sectionCount` is not what drives it). Each `whereConditions` entry registers its `field.name` and `value.name` as formal parameters, typed from `dataType`. `MapLineItemNodeInput` is a required context-node input and `MapLineItemNodeOutput` a required context-node output. Unparseable JSON fails with `Error processing JSON`, raised while core builds the step's parameters. That `section-N-output` is stored with `input:true` is a repo observation [Repo]. Keep `sectionCount` equal to the number of strings anyway.
 
 ### The 18 standard sections (Help JSON, also the shipped overlay)
 
@@ -72,7 +72,7 @@ and raise `sectionCount`. [Help]
 
 - Second element, immediately after Pricing Setting (or Discovery Settings in a discovery procedure). [Help]
 - Use an [Assignment](./assignment.md) element after it to initialize the tags it maps. [Help limits]
-- Disable **parallel execution** on the procedure; the element does not support it. [Help limits]
+- Turn **parallel execution** off (an org-wide setting in Salesforce Pricing Setup, not a per-procedure one; see [runtime-and-observability](../runtime-and-observability.md) → Parallel execution); the element does not support it. [Help limits] In core's parallel-execution scheduler the Map Line Item step is skipped when the task graph is built (treated as a prerequisite outside the graph), so it adds no dependencies to other steps. [Core]
 - Overlay form: `placement.afterStep = Mapcontexttagstocommonpricingvariables`. [Repo]
 - Behavior: if a detail item exists the value is written to the detail, otherwise to the line item. Map line-to-detail; never write the custom detail field directly. [Help limits]
 
@@ -81,10 +81,13 @@ and raise `sectionCount`. [Help]
 - Org setting **Advanced Detail Line Pricing** must be on (Revenue Settings; metadata `enableAdvancedDetailLinePricing`, set true in `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`). [Help, Repo]
 - Custom fields: add to quote line item/detail and order product/detail, add to both context nodes, create `QuoteEntitiesMapping` and `OrderEntitiesMapping` entries, then the section. Detail custom fields on QuoteLineItem/OrderProduct additionally need Procedure Plan Orchestration for Pricing plus an Apex handler (Help gives an example). [Help]
 - Asset State Period / Asset Action Source custom fields need cross-context mappings. [Help]
-- Help limits page says the element "doesn't support derived pricing", while the Advanced Detail Line Pricing article configures a derived-pricing **discovery** procedure with Discovery Settings plus Map Line Item (`LineItem`, `EffectiveFrom`, `EffectiveTo`, `DerivedPricingAttribute`). Read as: not in a derived-pricing **pricing** procedure; discovery use is documented. Inferred; confirm live.
+- Help limits page states the element does not support derived pricing, parallel execution or delta pricing. [Help limits] The Advanced Detail Line Pricing article nonetheless configures a derived-pricing **discovery** procedure with Discovery Settings plus Map Line Item (`LineItem`, `EffectiveFrom`, `EffectiveTo`, `DerivedPricingAttribute`). [Help] Treat discovery use as the documented exception; confirm live.
+- No save-time rule rejecting this element on a parallel procedure was found in its step validator (it checks only the rules below). Absence of a rejection is [inferred]; the Help requirement to disable parallel execution still stands. [Help]
+- Save-time validation, each an unsaveable error [Core: step validator and message text]: `Provide valid context tags for the Line Item variable in Map Line Item element.` (no input section maps the Pricing Setting's `LineItemId` variable); `Specify a context tag for the Price Waterfall variable in the Map Line Item element when price waterfall is enabled and setup in the Pricing Settings element.`; `Make sure that the context tags used in your variables are associated with the accurate mapped node.`; `Make sure that the data types of your variables match.` Checked in that order, one error per save, and only when the Pricing Setting step is named exactly `PricingSetting`; otherwise they are skipped (the shipped default procedure names it `Mapcontexttagstocommonpricingvariables`).
+- Price Propagation and Map Line Item cannot coexist in one procedure; core rejects the save. [Core]
 - Mapping count limits: 70 by default, 100 max (`ind.pricing_limits.htm`; table in
-  [`../runtime-and-observability.md`](../runtime-and-observability.md) → *Pricing limits*). [Help]
-- Author `sectionJsonStringN` **unescaped** in Connect payloads. Documented UI path is paste of the JSON. See [expression-sets](../../expression-sets/SKILL.md) "Map Line Item - special case".
+  [`../runtime-and-observability.md`](../runtime-and-observability.md) → *Pricing limits*). [Help] Core enforces the org limit at save: (count of `section-N-input1` + `section-N-output` parameters) / 2 must not exceed it, else `The limit of {0} mappings that can be added to the Map Line Item element was reached in the org. Delete some mappings and try again.` [Core]. The org value matches Help: default 70, min 1, max 100, API 256+ [Core].
+- Author `sectionJsonStringN` **unescaped** in Connect payloads. Documented UI path is paste of the JSON. Overlay mechanics: [`expression-sets/SKILL.md`](../../expression-sets/SKILL.md) → *Map Line Item — special case*; unescape provenance: [`expression-set-connect-api-reference.md`](../../../../docs/references/expression-set-connect-api-reference.md) → *Map Line Item to Detail Item*.
 
 ## Metadata shape
 
@@ -127,10 +130,25 @@ PRM DISTI, Recalc and Price Distribution procedures do not ship it. Discover wit
 | Symptom | Cause | Fix |
 |---|---|---|
 | Detail fields stay null | Setting off, or element not second | Enable Advanced Detail Line Pricing; reposition |
-| Errors or wrong order in parallel runs | Parallel execution on | Disable it on the procedure |
+| Errors or wrong order in parallel runs | Parallel execution on | Turn it off in Pricing Setup (org-wide) |
 | Custom field not saved on detail | Written directly to detail tag | Map line field to detail field instead |
-| Mapping rejected | `dataType` mismatch, or `sectionCount` != sections | Match types; recount |
+| Save rejected with a data type, node, Line Item or Price Waterfall message (see Rules) | Type or node mismatch; `LineItem` / `price_water_fall` not mapped | Match types and nodes; map both variables |
+| Save rejected: `The limit of {0} mappings...` | Too many sections for the org limit | Remove sections or raise the org limit (max 100) [Help] |
+| Later sections ignored | Gap in `sectionJsonString` numbering (`sectionCount` is not checked) | Number 1..N without gaps |
 | Slow pricing | Element used for logic/persistence | Limit to standard mapping |
+
+## Feasibility / not supported
+
+| Use case | Supported? | Source |
+|---|---|---|
+| Parallel execution enabled in the org | No (disable it) | [Help limits] |
+| Delta pricing in the same use case | No | [Help limits] |
+| Derived-pricing pricing procedure | No; discovery procedure use is documented | [Help limits] |
+| More than the org mapping limit (70 default / 100 max) | No; save error | [Help], [Core] |
+| General calculation or persistence of values | Discouraged: slows pricing | [Help limits] |
+| Gaps in `sectionJsonString` numbering | Silently drops later sections | [Core] |
+| `sectionJsonString` is not valid JSON | Fails with `Error processing JSON` | [Core] |
+| Advanced Detail Line Pricing setting off | Detail fields stay null | [Help] |
 
 ## Open questions
 

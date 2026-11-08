@@ -29,7 +29,7 @@ line-item values, with no decision table. [Help][Repo]
 | Input Unit Price | `InputUnitPrice` | Parameter | Yes | previous `NetUnitPrice` |
 | Output: net unit price | `NetUnitPrice` | Parameter (output) | Yes | |
 | Output: subtotal | `Subtotal` | Parameter (output) | Yes | `ItemNetTotalPrice` |
-| Include in Output | `HideWaterfall` | Literal | Yes | `false` shows in waterfall |
+| Hide in waterfall | `HideWaterfall` | Literal | Yes | `false` shows in waterfall. Include in Output is the separate step field `resultIncluded` [Dev guide][Repo] |
 | Boilerplate | `sectionCount=0`, `selectedFunction=Get`, `IsRealTime=false` | Literal | Yes | |
 
 ## Placement and ordering
@@ -42,18 +42,49 @@ line-item values, with no decision table. [Help][Repo]
   [../procedure-anatomy-and-ordering.md](../procedure-anatomy-and-ordering.md).
 
 ## Rules and limits
+- Core declares four inputs, all required: `AdjustmentType` (Text), `AdjustmentValue`
+  (Numeric), `Quantity` (Numeric), `InputUnitPrice` (Currency); outputs `NetUnitPrice`,
+  `Subtotal`. Builder flags: lookup off, contract pricing off, hide waterfall on, profile
+  filter and additional variables on. [Core]
 - No lookup table: values come from the line's context tags, so the tags must be
   mapped in the context definition (`../../context-service/SKILL.md`). [Help]
 - Accepted `AdjustmentType` strings, matched case-insensitively: `Percentage`, `Amount`,
   `Override`, and the legacy tier-type values `AdjustmentPercentage`, `AdjustmentAmount`,
-  `OverrideAmount`. [Core] Percentage is a whole number. Override replaces the unit
-  price with the value; Amount subtracts it; Percentage multiplies by (100 - v)/100. [Core]
-- Formal inputs are `AdjustmentType` (text), `AdjustmentValue` (numeric), `Quantity`,
-  `InputUnitPrice`; the element has no lookup and no contract pricing. [Core]
-- Core reads `AdjustmentType`/`AdjustmentValue` straight into the calculation payload
-  during rule discovery; both tags must resolve or the step fails. [Core]
-- A line whose type string matches none of the above, on a null input unit price, logs
-  `INVALID_INPUT` (adjustment type error). Keep types to the strings above. [Core]
+  `OverrideAmount`. Percentage is a whole number. Override replaces the unit price with the
+  value; Amount subtracts it; Percentage multiplies by (100 - v)/100. [Core]
+- Core reads `AdjustmentType`/`AdjustmentValue` straight from the line's tags into the
+  calculation payload; a tag that is not mapped for the element is not guarded, so the
+  step can fail. [Core][inferred for the failure mode]
+- A type string that matches none of the above logs `INVALID_INPUT` and leaves the price
+  unchanged (outputs not written). Message: "Specify valid Adjustment Type and Adjustment
+  Value field values for the Manual Discount element and try again." Keep types to the
+  strings above. [Core]
+- Amount and Percentage need a non-null input unit price. With a null `InputUnitPrice`
+  only Override works; any other type logs `INVALID_INPUT`: "The adjustment type for this
+  line item must be set to Override." [Core]
+- A blank type or a null value on the line is not an error: the step leaves the price
+  unchanged and `IsContracted` false (so an unset line discount field is a no-op). [Core]
+- A successful adjustment sets `IsContracted` true on the line. [Core]
+- Scope: only `AdjustmentType` and `AdjustmentValue` are read, so "amount vs percent" is
+  decided by the type string, not by which field is populated; to honour both a percent
+  and an amount field, use two steps (shipped: amount seq 2, then percent seq 3). [Core][Repo]
+- No clamping or rounding: Amount above the unit price or Percentage above 100 gives a
+  negative price; Override accepts any value including 0 or negative. Add Rounding
+  Values and, if needed, a price floor after it (a Formula-Based Pricing step, or
+  Stop Pricing on a group filter; [Price Tracking](./price-tracking.md) only records
+  historical min/max). [Core][inferred for the floor]
+- Applies per line; for a bundle component the same rules apply. Whether a manual
+  discount on a bundle parent propagates to children is not verified. [inferred]
+
+### Feasibility / not supported
+| Question | Answer |
+|---|---|
+| Discount at header level? | No: this element is per line. Use Discount Distribution for spreading. [Help][Repo] |
+| Cap a manual discount (maximum percent)? | Not in the element; enforce with approvals, validation or a Formula step. [inferred] |
+| Both percent and amount on one line? | Two steps in the order you want (amount then percent in shipped XML). [Repo] |
+| Lookup-driven values? | No lookup; Builder lookup and contract-pricing options are off. Use Volume/Attribute/Bundle or a matrix. [Core] |
+| Percentage/Amount when the incoming unit price is null? | No: `INVALID_INPUT`; only Override. [Core] |
+| Output Resolution (multiple rows)? | Not applicable: the payload is one row built from the line. [inferred] |
 
 ## Metadata shape
 ```xml
@@ -78,10 +109,19 @@ line-item values, with no decision table. [Help][Repo]
 holding the type strings. [Repo]
 
 ## Shipped in this repo (snapshot)
-| Procedure | Step group | What it does |
-|---|---|---|
-| Default, Recalc, PRM_DISTI | `Applyamountbasedandpercentagebaseddiscounts` (seq 2, 3) | Amount then percent line discounts |
-| same | `Applymanualdiscountstolineswithoutderivedpricing` (seq 2) | Contract discount type/value (`ItemContract*`) |
+Three `ManualDiscount` steps in each of three procedures (none in the other 8 procedure
+files under the three `expressionSetDefinition/` folders). Group sequence is the
+top-level order; step sequence is inside the group. [Repo]
+
+| Procedure | Group (seq) | Step (seq) | Type / value mapping |
+|---|---|---|---|
+| `RLM_DefaultPricingProcedure` | `Applymanualdiscountstolineswithoutderivedpricing` (22) | `Calculatenetunitanditemnettotalpricesaftermanualdiscount` (2) | `ItemContractDiscountType` / `ItemContractDiscountValue` |
+| same | `Applyamountbasedandpercentagebaseddiscounts` (23) | `...afteramountbaseddiscount` (2) | `AmountStringConstant` / `ItemDiscountAmount` |
+| same | same (23) | `...afterpercentagebaseddiscount` (3) | `PercentageStringConstant` / `ItemDiscountPercentage` |
+| `RLM_Revenue_Management_Recalc_Procedure` | groups 16 and 17 | same names, seq 2, 2, 3 | same |
+| `RLM_PRM_DISTI_Pricing_Procedure` | groups 20 and 21 | same names, seq 2, 2, 3 | same |
+
+Step names above omit the common prefix `Calculatenetunitanditemnettotalpricesafter`.
 
 Snapshot only. Discover: `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name> --params`
 
@@ -95,7 +135,3 @@ Simulate with the discount tags populated; waterfall shows the manual step. Chec
 | Discount ignored | Type constant or value tag unmapped / null | Map context tags; check constants |
 | Wrong discount size | Percent entered as fraction | Use whole number |
 | Applied before volume | Step order | Reorder (sequence is element order) |
-
-## Open questions
-- Behavior for an unrecognized type on a non-null unit price was not fully traced; confirm
-  live.

@@ -156,8 +156,8 @@ frozen `tasks/` copy.)
 ## Pricing procedures — element ordering lives in the pricing-procedures skill
 
 Overlays on a **pricing** procedure must respect cross-element ordering rules the
-engine enforces or depends on: no `FormulaBasedPricing` after the
-DDS/aggregate/rounding tail (rejected with a misleading DDS error), aggregates
+engine enforces or depends on: no step other than Aggregate Price or Rounding Values
+after DDS, in a procedure that has one (rejected with a misleading DDS error), aggregates
 pinned after `DiscountDistributionService`, stale hydrated operands before the
 tail, the pre-DDS line margin vs post-DDS header total caveat, and dropped
 producer steps leaving their context mapping inert. Those rules, with the

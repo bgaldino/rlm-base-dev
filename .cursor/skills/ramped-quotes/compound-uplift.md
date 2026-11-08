@@ -29,4 +29,14 @@ Quick check for a read-back: uplifts 5% then 3% give `ApplUnitPriceUpliftPct = 8
 formula is in the element file above. Compound resets on renewal (Year 1 of the new
 term is the new baseline).
 
+Pitfalls that show up on the quote (details in the element file):
+
+- Every segment needs a **unique Effective From** (start date). A missing or duplicated
+  one fails pricing for the **whole ramp group**, not just that segment.
+- A blank **Uplift Method** binding on the procedure silently gives standard
+  (non-compound) uplift: each segment gets its own non-cumulative uplift, with no error.
+- Turning ADLP off after compound quotes, orders or assets exist corrupts their
+  pricing, amendments and renewals.
+- Records created before Winter '27 use standard uplift.
+
 Verify numerically by reading back the segments (SKILL.md → *Read-back → the ramp schedule*).

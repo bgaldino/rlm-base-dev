@@ -164,8 +164,9 @@ the build with a dedicated task in `cumulusci.yml` (copy
 
 ## Related
 
-- Authoring rules (placement, dependency scopes, ordering constraints, resets):
-  `.cursor/skills/expression-sets/authoring-and-overlays.md`
+- Authoring rules (placement, dependency scopes, resets):
+  `.cursor/skills/expression-sets/authoring-and-overlays.md`; pricing element ordering
+  constraints: `.cursor/skills/pricing-procedures/procedure-anatomy-and-ordering.md`
 - Skill entry point: `.cursor/skills/expression-sets/SKILL.md`
 - Toolkit guide: `scripts/expression_sets/README.md`
 - Connect API reference: `docs/references/expression-set-connect-api-reference.md`

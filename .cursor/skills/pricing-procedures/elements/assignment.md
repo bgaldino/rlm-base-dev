@@ -22,7 +22,9 @@ tag. It works on outputs of earlier elements and does not touch the database.
 | (section count) | `sectionCount` | `Literal` | yes | Number of assignment rows [Repo] |
 | (row definition) | `sectionJsonString{K}` | `Literal` | yes | JSON per row; see Metadata shape [Repo] |
 
-Indexing rule [Core]: the element reads an unsuffixed `sectionJsonString` first; if present it is the only source. Otherwise it reads `sectionJsonString1`, `2`, `3`... in order until one is missing and concatenates their `whereConditions` arrays. Each array entry is one row: `field` = input (`name` `section-N-input1`, `value` = source), `value` = output (`name` `section-N-output`, `value` = target). The shipped empty `sectionJsonString1` (`{"whereConditions":[]}`) contributes no rows and is harmless; rows can sit in any numbered part. Use one scheme per step. Max rows per element is an org-level value; with no JSON at all a legacy path rebuilds Currency rows from `sectionCount` [Core].
+Indexing rule [Core]: the element reads an unsuffixed `sectionJsonString` first; if present it is the only source. Otherwise it reads `sectionJsonString1`, `2`, `3`... in order until one is missing and concatenates their `whereConditions` arrays. Each array entry is one row: `field` = input (`name` `section-N-input1`, `value` = source), `value` = output (`name` `section-N-output`, `value` = target). The shipped empty `sectionJsonString1` (`{"whereConditions":[]}`) contributes no rows and is harmless; rows can sit in any numbered part. Use one scheme per step. With no JSON at all a legacy path rebuilds Currency rows from `sectionCount` [Core].
+
+Row limit: an org-level value, "context tag mappings the Assignment element can have": Help lists default 20, maximum 50 [Help] (`ind.pricing_limits.htm`). The org value in core (API 256+) defaults to 25, minimum 1, maximum 50 [Core]. The defaults disagree; the effective limit is whatever the org has, so keep to 20 or fewer rows. Save fails when `sectionCount` exceeds the limit: `The limit of {0} assignments that can be added to the Assignment element was reached in the org. Delete some assignments and try again.` [Core]
 
 ## Placement and ordering
 - Runs on outputs of preceding elements; put it after the element that produces the input and before the element that consumes the output [Help].
@@ -31,12 +33,14 @@ Indexing rule [Core]: the element reads an unsuffixed `sectionJsonString` first;
 - Ordering relative to DDS/aggregate tail: [../procedure-anatomy-and-ordering.md](../procedure-anatomy-and-ordering.md).
 
 ## Rules and limits
+- Runs on tax-inclusive lines; skips stopped and errored lines [Core].
 - No database writes by itself; persistence depends on the output tag being mapped to a record field in the context definition [Help; inferred for persistence].
-- Input and output `dataType` in the row JSON should match; shipped rows set `allowCompatibleDataTypes: true` [Repo].
+- Input and output tag data types must match, except Numeric and Currency, which may be mixed; any other mismatch fails save with `Ensure that you use the same data type for both the variable's tags and try again.` [Core]. Checked per row index, only when both tags resolve to a data type [Core]. Shipped rows set `allowCompatibleDataTypes: true` [Repo].
+- At run time the value is copied as is: if the input tag is absent on the line, the output is left unchanged; no conversion happens [Core].
 - An empty-string `Constant` assigned to a Text field persists as null, so `""` is a true clear [Repo skill `../../expression-sets/authoring-and-overlays.md`].
 
 ### Conditional assignments: reset every line first
-Each reprice hydrates the field's prior value from the record. If you assign only inside filtered branches, a line that stops matching keeps its stale value. Start with an unconditional assignment (a ListGroup whose filter matches every line) that resets the field, then add the branch groups after it. Full pattern and apply timing: `.cursor/skills/expression-sets/authoring-and-overlays.md` section "Conditional assignments: reset every line first"; worked example `datasets/expression_set_overlays/approval_flags.json` (group `RLMApprovalFlagsReset`).
+Each reprice hydrates the field's prior value from the record. If you assign only inside filtered branches, a line that stops matching keeps its stale value. Start with an unconditional assignment (a ListGroup whose filter matches every line) that resets the field, then add the branch groups after it. Full pattern and apply timing: [`authoring-and-overlays.md`](../../expression-sets/authoring-and-overlays.md) → *Conditional assignments — reset every line first*; worked example `datasets/expression_set_overlays/approval_flags.json` (group `RLMApprovalFlagsReset`).
 
 ## Metadata shape
 From the shipped header-discount step (two rows):
@@ -63,12 +67,19 @@ From the shipped header-discount step (two rows):
 The JSON is XML-escaped inside `<value>`; in Connect JSON it is a normal string (HTML-unescape rules: [../../expression-sets/SKILL.md](../../expression-sets/SKILL.md)). Constants are version variables (`type: Constant`) referenced by name.
 
 ## Shipped in this repo (snapshot)
-| Procedure | Step | What it does |
+| Procedure | Steps | What it does |
 |---|---|---|
-| RLM_DefaultPricingProcedure | `AssignAmountBasedHeaderDiscount` | amount and type to `HeaderDiscountValue`/`HeaderDiscountType` |
-| RLM_DefaultPricingProcedure | `Assignthepricingdatevariable` (BKM, with `parentStep` ListGroup) | set `PricingDate` for contract-priced lines |
-| RLM_DefaultPricingProcedure | `Assigntotallineamountforlineswithinclusiveprice` (group) | total line amount for tax-inclusive lines |
+| Default (18) | `AssignAmountBasedHeaderDiscount`, `AssignPercentageBasedHeaderDiscount`, `AssignTotalPriceOverride` | header discount / override staging |
+| Default (18) | `Assignthepricingdatevariable`, `AssigntheEffectiveFromdatetoPricingDate` (top level, seq 7), `PassPricingContractIDfromQuotetoQuoteLines` (top level, seq 3), `AssignItemContracttoItemPricingContract`, `Assignment` (under `ListContainer`) | pricing date and contract defaults |
+| Default (18) | `AssignInclusivePriceConstanttoTotalLineAmount`, `AssignTotalLineAmounttoItemSubtotalandItemNetTotalPricetoItemTotalPrice` (top level, seq 35) | tax-inclusive total; closing subtotal copy |
+| PRM (seq 37), Recalc (seq 30) | `AssignTotalLineAmounttoItemSubtotalandItemNetTotalPricetoItemTotalPrice` (top level, after the aggregates) | closing subtotal copy; these procedures have no DDS, so a step may follow the aggregates |
+| Default, PRM, Recalc | `AssignListPricetoInputUnitPrice`, `AssignNetUnitPricetoInputUnitPrice`, `AssignItemContractPricetoInputUnitPrice`, `AssignInputUnitPricetoNetUnitPrice` | unit-price staging between list, contract, input and net price |
+| Default, PRM, Recalc | `AssignEvergreenPricingTermCountConstanttoPricingTermCount`, `AssignOneTimePricingTermCountConstanttoPricingTermConstant` | term-count constants |
+| Default only | `ClearContractAppliedUnitPrice`, `Assigncontractinputunitpricetonetunitprice` | contract-price clear / net copy |
+| `RLM_Price_Distribution_Procedure` (3) | `AssignHeaderDiscountAmount`, `AssignHeaderOverrideAmount`, `AssignHeaderPercentageAmount` | header discount staging |
 | Approval overlay (not in base XML) | `RLMApprovalFlagsAssignNone` | reset level/label constants to `RLM_Approval_*__c` |
+
+41 `AssignmentElement` steps in the shipped XML: Default 18, PRM distributor 10, Price Distribution 3, Recalc 10. Most are seq 2 under a List Group/filter parent; the top-level ones (no parent) are noted above.
 
 Snapshot; refresh with `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name> --params`.
 
@@ -81,7 +92,7 @@ Snapshot; refresh with `python scripts/expression_sets/describe_expression_set.p
 |---|---|---|
 | Flag stays after line stops matching | No reset-first step | Add unconditional reset group before branches |
 | Value not saved to record | Output tag not mapped to a record field | Map tag in the context definition |
-| Row ignored / wrong row mapped | `sectionJsonString` indexing off, count mismatch | Match `sectionCount` to rows; copy a shipped step |
+| Row ignored / wrong row mapped | Gap in `sectionJsonString1..N` numbering, or an unsuffixed `sectionJsonString` that overrides the numbered parts | Number parts without gaps, use one scheme; keep `sectionCount` equal to rows (the limit check reads it); copy a shipped step |
 
 ## Open questions
 - Literal inputs (not a named constant): row JSON carries per-side `isFormula`/`isContextTag` flags [Core], which hints non-tag inputs exist, but nothing ships; test live. Use a version-variable constant as shipped.

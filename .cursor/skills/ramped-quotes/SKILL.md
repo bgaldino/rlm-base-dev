@@ -18,8 +18,8 @@ Aider).
 > live-observed on a 264 org (v68.0); re-verify on the target release at merge
 > time. Ramp build is **transaction authoring**; the compound-uplift *engine*
 > (the pricing procedure's `PriceRevision` element) belongs to
-> `.cursor/skills/expression-sets/SKILL.md` — this skill links to it, not
-> duplicates it.
+> `.cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md` —
+> this skill links to it, not duplicates it.
 
 Two distinct ramp mechanisms exist — do not confuse them:
 

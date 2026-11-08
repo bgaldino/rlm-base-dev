@@ -32,8 +32,10 @@ consumes them. [Help] Derived Price itself: [`elements/`](./elements/).
 | Asset Discovery | `AssetDiscovery` | Non-transactional derived price: queries the Asset Action Source Entries V2 table for each contributing product's active assets; Product2Id comes from the Contributor node set by Map Product | [Help], [Repo] |
 
 Optional first elements: Discovery Settings, then Map Line Item (must come immediately after
-Discovery Settings). [Help] The Help article calls the second element "Map Products"; the
-actionType in XML is `MapProduct`. [Help]/[Repo]
+Discovery Settings). [Help] Discovery Settings is its own element (not Pricing Setting), with
+formal inputs `LineItemId` (required) and `CurrencyIsoCode` (optional, multicurrency orgs) and no
+outputs. Its actionType is `DiscoverySettings` (API v64.0 and later). [Dev guide] Core confirms those two inputs and no outputs; the Builder rejects it at any position but the first ("Add Discovery Settings as the first element in the discovery procedure.") and a Map Line Item at any position but the second ("The Map Line Item must be the second element in your pricing procedure."). Both are Builder checks only; server save validation does not check either position [Core]. The Help article calls the second
+element "Map Products"; the actionType in XML is `MapProduct`. [Help]/[Repo]
 
 ### Ordering
 
@@ -68,8 +70,10 @@ are identical in `RLM_DefaultPricingDiscoveryProcedure` and `Salesforce_Pricing_
 | `IsRealTime` | in | Literal | `false` |
 | `ContributorProduct`, `ContributorScope`, `ContributorFormulaInput`, `ContributorSource`, `Contributor`, `ContributorPriceDetail` | out | Parameter | same-named variables |
 
+[Core] For `RuleFetch` only `LineItemId`, `ProductId` and `IsDerived` are fixed formal inputs; the other inputs above are the decision table's dynamic columns. It processes only lines where `IsDerived` is true. The Derived Pricing Entries table must return the output columns `ContributingProductId`, `PricingSource`, `DerivedPricingScope` and `Formula`. Guardrail: a maximum number of contributing products per derived product (see Limits).
+
 **`MapProduct`**: only `IsRealTime` (Literal `false`) is shipped; it uses the variables written
-by `RuleFetch`. [Core] Its only formal parameters are the dynamic where-condition set (a condition count plus input/operator/output triples per condition, as set in the Builder); none are shipped. In delta mode it also processes deleted lines.
+by `RuleFetch`. [Core] Its only formal parameters are the dynamic where-condition set (a condition count plus input/operator/output triples per condition, as set in the Builder); none are shipped.
 
 **`AssetDiscovery`**
 
@@ -83,6 +87,8 @@ by `RuleFetch`. [Core] Its only formal parameters are the dynamic where-conditio
 | `NetUnitPrice` | out | Parameter | `ContributorUnitPrice` |
 | `TotalPrice` | out | Parameter | `ContributorTotalPrice` |
 | `ListPrice` | out | Parameter | `ContributorListPrice` |
+
+[Core] `AssetDiscovery` removes `Product2Id` from the table inputs (it comes from the Contributor node); the table must return `AssetId`, `ListPrice`, `TotalPrice` and `NetUnitPrice`; guardrail: a maximum number of assets per product (see Limits). Lookup failures in all three elements surface as `UNEXPECTED_ERROR_DURING_LOOKUP` ("Unexpected error occurred while looking up {0}").
 
 Shipped Fetch Pricing Rules sets `resultIncluded` false and Asset Discovery true. [Repo] Help
 tells you to tick Include in Output on the procedure. [Help]
@@ -113,7 +119,7 @@ tells you to tick Include in Output on the procedure. [Help]
 </ExpressionSetDefinition>
 ```
 
-Note the two shipped files ship `status` Inactive for the version; activation is a separate step.
+`RLM_DefaultPricingDiscoveryProcedure` ships version `status` Inactive (activation is a separate step); `Salesforce_Pricing_Discovery_Procedure` ships Active.
 [Repo] The `LookUpApiName` literal is how the engine finds the decision table; the table must
 exist and be fresh ([`../decision-tables/SKILL.md`](../decision-tables/SKILL.md)).
 
@@ -126,16 +132,13 @@ exist and be fresh ([`../decision-tables/SKILL.md`](../decision-tables/SKILL.md)
    `RLM_SalesTransactionContext`). Help recommends starting from the predefined Default
    Discovery Procedure.
 2. Open the version in the Discovery Procedure Builder; add elements as ordered above.
-3. Set rank 1 (when multiple enabled versions match, the highest rank wins), tick Include in
-   Output, Save.
+3. Set the rank, tick Include in Output, Save. Help uses rank 1 for a first version; when several enabled versions match, the highest rank wins, and on a tie the first version examined stays, so give a new version a higher rank than the one it replaces ([operations-and-troubleshooting.md](operations-and-troubleshooting.md) section 2).
 4. Simulate (Input tab), then Activate.
 - Permissions: Salesforce Pricing Design Time User (create), Salesforce Pricing Run Time (run).
 
 ### Limits
 
-[Help] `ind.pricing_limits.htm`: 2000 discovery procedures per org (1 to 10000); active
-duration 10 s (1 to 60 s); 50 elements per discovery procedure (2 to 100); contributing
-products per derived product 40 (max 50); contributing assets 50.
+[Help] `ind.pricing_limits.htm`: discovery elements per procedure 50 (2 to 100); discovery duration 10 s (1 to 60 s); contributing products per derived product 40 (1 to 50, total across transactional and non-transactional); assets per contributing asset max 50. Core reads different org values for contributing products, assets and for discovery element count and duration (they share the pricing ones); see Pricing limits in [runtime-and-observability.md](./runtime-and-observability.md) [Core]. Verify on the org.
 
 ## 2. How discovery relates to the transaction pricing procedure
 
@@ -199,15 +202,14 @@ Discover live state:
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| No derived price applied, no error | Discovery procedure not active/ranked, or Derived Pricing Entries table stale | Activate, check rank, refresh the table |
+| No derived price applied, no error | Discovery procedure not active/ranked, or Derived Pricing Entries table stale | Activate; give the intended version the highest rank (section 2 of operations-and-troubleshooting); refresh the table |
 | Non-transactional contributors missing | Asset Discovery absent although scope is Non-Transactional/Both; Asset Action Source Entries V2 stale | Add the element; refresh |
 | Contributors found but wrong products | Map Product conditions (for example RootItem) not matching | Review conditions |
 | Discovery succeeds, pricing ignores it | Pricing procedure lacks Derived Price element or `IsDerived` not mapped | See Derived Price element file |
 | Product Discovery shows wrong or no price | Procedure not selected in Product Discovery Settings, or Price Book Entries V2 table stale | Section 3 |
 
-## Open questions
+## Save validation and delta behavior (settled)
 
-- Fetch-must-be-first and error text were not confirmed in core; those claims remain Help and shipped XML.
-- `Salesforce_Pricing_Discovery_Procedure` vs `RLM_DefaultPricingDiscoveryProcedure`: step lists
-  match by inventory; whether the files are byte-identical was not diffed.
-- Whether Help's "Discovery Settings" element has a distinct actionType (not shipped here).
+- [Core] Discovery save validation allows only actionTypes RuleFetch, MapProduct, BreakdownLineMapping, AssetDiscovery, ApexListAction and DiscoverySettings. Steps are checked in sequence order (a child step sorts by its parent's sequence). At most one Rule Fetch, one Map Product and one Asset Discovery. A Map Product or Asset Discovery with no Rule Fetch before it fails with "Add Fetch Pricing Rules as the first element in the discovery procedure." (despite the wording, Rule Fetch only has to precede them; a procedure with neither element needs no Rule Fetch). An Apex List Action must be the only step: any second step fails with "Add only one Apex List Action element.", and an Apex List Action with an empty parameter list fails the lookup-table check. Duplicate messages (en): "You can only add one Fetch Pricing Rules element in a discovery procedure."; "You can only add one Map Products element in a discovery procedure."; "You can only add one Asset Discovery element in a discovery procedure." Lookup-based elements must use a table mapped in the active pricing recipe (skipped during package install).
+- Delta pricing [Core]: Map Product includes deleted lines and tracks updated or deleted contributors; Asset Discovery runs only when the derived line or a contributor was updated or deleted.
+- The two shipped discovery files were diffed: steps and parameters are identical; they differ only in names, labels, startDate and version status (Active vs Inactive). [Repo]

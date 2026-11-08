@@ -1,7 +1,7 @@
 # Pricing Procedures: Operations and Troubleshooting
 
 > Release 264 / API v68.0. Sources: Help `ind.pricing_*` articles (cited inline);
-> shipped XML and `cumulusci.yml` in this repo. Not live-verified. Generic Expression Set
+> shipped XML and `cumulusci.yml` in this repo. Live only where a repo measurement is cited. Generic Expression Set
 > lifecycle (Connect CRUD, overlays, activation mechanics) lives in
 > [`../expression-sets/SKILL.md`](../expression-sets/SKILL.md); do not repeat it here.
 
@@ -28,12 +28,11 @@ python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> -
 ```
 
 - Salesforce ships a **template, not an executable procedure**. Clone from App Launcher >
-  Expression Set Templates > pick template > Save As (new procedure or new version). [Help]
+  Expression Set Templates > pick template > Save As (new procedure or new version); for quotes
+  and orders clone the "Revenue Management Default Pricing Procedure" template. [Help]
 - Cloning rules: you may assign a custom context definition on Save As; a cloned version
   takes only a version name and number; the clone's start date must be later than the
   context definition's Effective From. [Help]
-- Help note: to price quotes and orders, clone the "Revenue Management Default Pricing
-  Procedure" template. [Help]
 - Permission sets: Salesforce Pricing Design Time User (create/update/delete/clone),
   Salesforce Pricing Run Time User (use). [Help]
 
@@ -51,12 +50,14 @@ python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> -
   deactivate, save, reactivate before the Simulate button appears. [Help]
 - If profile access is set at element level, only those profiles see that element's
   pricing in the waterfall. [Help]
-- Versions: a procedure has versions; when several enabled versions match, the **highest
-  rank** wins. [Help] `ind.pricing_set_up_your_discovery_procedure.htm` states this for
-  discovery procedures. [Core] The pricing-procedure definition carries the same rank-bearing
-  version model (highest-rank enabled version wins); the version-selection query itself was not
-  located in core, so confirm on a live org if two enabled versions overlap. An active version cannot be
-  edited or deleted through Connect; deactivate first (see expression-sets skill).
+- Versions [Core]: disabled versions are skipped; a version is kept only if its start/end
+  dates (either may be null) cover the execution date; among kept versions the greater rank
+  wins. On a tie the first one examined stays, and a null rank loses to any ranked version
+  (but is still chosen if no ranked version is valid). Naming a version number or id returns
+  that version if its dates match, regardless of rank. Help states the rank rule for discovery
+  procedures (`ind.pricing_set_up_your_discovery_procedure.htm`) [Help]. So give the version
+  you want the larger rank; a new version with a lower rank may be ignored. An active version
+  cannot be edited or deleted through Connect; deactivate first (see expression-sets skill).
 - If an active procedure plan version references the expression set, deploys are locked until
   that plan version is deactivated ([`../pricing-wiring/SKILL.md`](../pricing-wiring/SKILL.md)
   troubleshooting). [Repo]
@@ -76,8 +77,9 @@ python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> -
 - Definitions are a metadata container only; **only the Place Sales Transaction (PST) API
   orchestrates a plan**. [Help]
 - Prerequisites: Context Service on; Revenue Settings > Procedure Plan Orchestration for Pricing
-  enabled; for Apex hooks leave "Exclude Default and Sales Transaction Type Pricing Procedures"
-  disabled. Use the same context definition across procedures and the plan. [Help]
+  enabled; the same context definition across procedures and the plan. [Help] "Exclude Default and
+  Sales Transaction Type Pricing Procedures" (metadata `skipOrgSttPricing` [Dev guide]) conflicts
+  across Help: the plan walkthrough enables it, the Apex-hook article says leave it disabled.
 - Do not chain several pricing procedures in one plan. Limits [Help]: the waterfall shows only
   the last procedure; Derived Price sees only the Net Unit Price at the end of its own procedure;
   the Inclusive Price "skip pricing" flag does not survive into the second procedure (workaround:
@@ -87,9 +89,12 @@ python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> -
 - Repo mechanics (overlays, `placement.afterSubSectionType`, plan-version deactivation) are in
   [`../pricing-wiring/SKILL.md`](../pricing-wiring/SKILL.md) section C. The repo builds the quote
   plan **inactive by default** (`procedureplans_active: false` in `cumulusci.yml`) because an
-  active plan doubles price revision and truncates the waterfall; PRM distributor pricing needs
-  it on. [Repo] An inactive plan means PST falls back to the Revenue Settings procedure.
-  Which of those applies in a given org must be checked live.
+  active plan re-prices; PRM distributor pricing needs it on. Measured on 264
+  (`datasets/sfdmu/procedure-plans/README.md`, Activation): active with `skipOrgSttPricing=false`
+  (the repo setting), the Revenue Settings procedure re-runs and doubles a price revision (CPI 4% + 2
+  on 2,400: 2,696.64, not 2,544); active with it `true`, a header discount is distributed twice (10% on
+  5,240: 4,244.40, not 4,716); inactive, PST runs the Revenue Settings procedure (2,544 / 4,716, full
+  waterfall). [Repo, measured]
 
 ## 4. Procedure output resolution
 
@@ -101,7 +106,7 @@ adjustments). Supported only on **List Price, Price Tracking, Price Adjustment M
 
 | Strategy | Effect |
 |---|---|
-| Minimum / Maximum | Lowest / highest candidate price |
+| Minimum / Maximum | Smallest / largest candidate price |
 | Stack | Apply discounts cumulatively (Price Adjustment Matrix only) |
 | Sequence | Apply discounts one after another (Price Adjustment Matrix only) |
 
@@ -125,15 +130,12 @@ default). [Help] Price Adjustment Matrix resolves over its own adjustment table 
 
 ## <a name="5-observability"></a>5. Observability
 
-Headless API verification, the price waterfall and its persistence and tag mapping, price logs
-and advanced price logs, the decision explainer, the Revenue Cloud Operations Console, price
-history tracking, pricing adjustment batch jobs and API execution messages are in
-[`runtime-and-observability.md`](runtime-and-observability.md#observability).
+Headless checks, waterfall, price logs, decision explainer, Operations Console, price history,
+batch jobs and execution messages: [`runtime-and-observability.md`](runtime-and-observability.md#observability).
 
 ## <a name="6-execution"></a>6. Execution
 
-The Place Sales Transaction order of execution, parallel execution, Apex hooks, the runtime model
-and guardrails (delta pricing, timeouts) and the pricing limits table are in
+PST order of execution, parallel execution, Apex hooks, runtime guardrails and the limits table:
 [`runtime-and-observability.md`](runtime-and-observability.md#execution).
 
 ## 7. Context tag mapping
@@ -146,7 +148,7 @@ read input or write results. Pricing Setting (first element, common variables) a
 Prompt Template User) suggests mappings with a confidence score; unsupported on Discount
 Distribution Service, Formula Based Pricing, Stop Pricing. Context definition authoring and
 tag lifecycle: [`../context-service/SKILL.md`](../context-service/SKILL.md). An
-`Invalid tag attribute name key` error means a tag name being used isn't defined on the context
+`Invalid tag attribute name key` error ([Live, repo owner]; string not found in core labels) means a tag name being used isn't defined on the context
 definition. Either the tag was never applied (`../pricing-wiring/SKILL.md` → *`Invalid tag
 attribute name key`*, e.g. a context plan the build didn't run), or an attribute name was used
 where the tag name is required
@@ -162,8 +164,8 @@ plausibly with no error. Refresh paths: Pricing Recipes > Sync (one recipe); Sal
 Setup > Sync Pricing Data; a schedule-triggered Flow calling the **Refresh Decision Table**
 action (one action per table, off-peak, add a fault path, pause during bulk loads, hourly
 refresh limit exists; needs Manage Flow, Salesforce Pricing Design Time, Assetize Order for a
-complete sync). Verify with the Last Refreshed timestamp. Authoring, refresh and freshness
-checks: [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md).
+complete sync). Verify with the Last Refreshed timestamp, or `cci task run
+check_decision_table_freshness --org <cci_alias>`. Authoring and refresh: [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md).
 
 ## 9. Troubleshooting (cross-element)
 
@@ -174,23 +176,25 @@ Element-specific errors are in the element files under [`elements/`](./elements/
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Plausible but wrong price, no error | Stale decision table; missing `CurrencyIsoCode` input on a lookup (multicurrency); wrong procedure selected | Check freshness (section 8); pricing-wiring wrong-currency entry; confirm procedure in Revenue Settings (section 1) |
-| Element appears ignored | Not "Include in Output"; condition/list filter excludes the line; output variable overwritten by a later element; another enabled version takes precedence (rank; unconfirmed for pricing procedures, see section 2) | Simulate with the waterfall; check ordering ([procedure-anatomy-and-ordering.md](./procedure-anatomy-and-ordering.md)) and the enabled versions (section 2) |
-| Only one line fails | Per-line failure (bad adjustment type, no matching table row) | Operations Console > Debug Details > expand the line |
-| Error status, empty error log | Line never executed for pricing | Check line filters and procedure plan routing |
-| Price Waterfall error about Map Line Item | `price_water_fall` unmapped in Map Line Item | Map in Pricing Setting and Map Line Item ([`runtime-and-observability.md`](runtime-and-observability.md#observability)) |
-| Pricing slow or timing out | Procedure over 1 min (max 2), element over 60 s (max 80 s); advanced price logs left on; Apex hook callouts; too many Map Line Item mappings | Disable advanced logs; trim elements; query lean tags; enable parallel execution (not with Map Line Item); limits: [`runtime-and-observability.md`](runtime-and-observability.md#pricing-limits) |
-| Procedure never invoked | Wrong selection in Revenue Settings vs Salesforce Pricing Setup vs Product Discovery Settings; version not active or start date earlier than context definition Effective From; plan routes elsewhere | Section 1; list versions with `list_expression_sets.py` |
-| Procedure plan skips procedures | Plan inactive (repo default `procedureplans_active: false`), orchestration setting off, rule-based section criteria unmet, or "Exclude Default and Sales Transaction Type Pricing Procedures" on | Check plan version status and Revenue Settings; see pricing-wiring section C |
+| Plausible but wrong price, no error | Stale decision table [Help] (section 8); missing `CurrencyIsoCode` input on a lookup (multicurrency) [Repo, via pricing-wiring]; wrong procedure selected [inferred] | Check freshness (section 8); pricing-wiring wrong-currency entry; confirm procedure in Revenue Settings (section 1) |
+| Element appears ignored | Not "Include in Output"; condition/list filter excludes the line; output variable overwritten by a later element; another enabled version takes precedence [inferred] (section 2) | Simulate with the waterfall; check ordering ([procedure-anatomy-and-ordering.md](./procedure-anatomy-and-ordering.md)) and the enabled versions (section 2) |
+| Only one line fails | Per-line failure (bad adjustment type, no matching table row) [inferred] | Operations Console > Debug Details tab troubleshoots a failed API call [Help] `ind.pricing_operations_console.htm`; expand the line [inferred] |
+| Error status, empty error log | A line item was not executed for pricing, so the status is Error while the log is empty [Help] `ind.pricing_understand_and_resolve_api_execution_messages.htm` | Check line filters and procedure plan routing [inferred] |
+| Price Waterfall error about Map Line Item | `price_water_fall` unmapped in Map Line Item | Map in Pricing Setting and Map Line Item [Help] `ind.pricing_map_context_tags_in_pricing_procedures.htm` ([`runtime-and-observability.md`](runtime-and-observability.md#observability)) |
+| Pricing slow or timing out | Procedure over its 1 min default (max 2 min), element over its 60 s default (max 80 s) [Help] `ind.pricing_limits.htm`; advanced price logs left on, Apex hook callouts, many Map Line Item mappings [inferred] | Disable advanced logs; trim elements; query lean tags; enable parallel execution (an org-wide setting that affects every active procedure, and not with Map Line Item); limits: [`runtime-and-observability.md`](runtime-and-observability.md#pricing-limits) |
+| Procedure never invoked | Wrong selection in Revenue Settings vs Salesforce Pricing Setup vs Product Discovery Settings [Help] (section 1); version not active or start date earlier than context definition Effective From [Help, cloning rules]; plan routes elsewhere [inferred] | Section 1; list versions with `list_expression_sets.py` |
+| Procedure plan skips procedures | Plan inactive (repo default `procedureplans_active: false`) [Repo], orchestration setting off [Help], rule-based section criteria unmet [inferred] | Check plan version status and Revenue Settings; see pricing-wiring section C |
+| Price revision or header discount applied twice | Active plan: the Revenue Settings procedure re-runs, or with `skipOrgSttPricing=true` the plan's distribution procedure re-distributes [Repo, measured] (section 3) | Deactivate the plan version, or keep one pricing procedure per run |
 | Waterfall shows only the last procedure | Multiple procedures chained in one plan | Consolidate into one procedure |
-| Promotions misapplied after editing tag mappings | Parallel execution caches custom tag mappings at activation | Deactivate and reactivate |
-| Hook change to Start Date/Quantity ignored by validation | ARC validation precedes the pre-pricing hook | Set values in the PST payload |
+| Promotions misapplied after editing tag mappings | Parallel execution caches custom tag mappings at activation [Help] `ind.pricing_procedure_plan_limits.htm` | Deactivate and reactivate |
+| Hook change to Start Date/Quantity ignored by validation | ARC validation precedes the pre-pricing hook [inferred] | Set values in the PST payload [inferred] |
 | Output resolution stops a line (List Price or Price Tracking) | No Price Book decision-table row for the product | Add the row, refresh the table. For a Price Adjustment Matrix, check its adjustment table instead |
+| Per-line pricing errors [Core]: `DUPLICATE_VALUE_FOUND_IN_LOOKUP` (a lookup returned more than one row: List Price, Minimum Price, Bundle Discount and the other lookup-based discount elements incl. Price Adjustment Matrix, Base Rate in rating), `UNEXPECTED_ERROR_DURING_LOOKUP` (the lookup returned errors: List Price, Volume/Tier Discount, Bundle Discount, others), `OVERLAPPING_ADJUSTMENT_TIERS` (Volume/Tier Discount, tier range matches more than once), `INVALID_FORMULA` (Formula-Based Pricing, any failure evaluating the formula) | Duplicate rows or overlapping tiers in the decision table or matrix; lookup failure; formula that fails to evaluate | Fix the table data and refresh; fix the formula in the element |
+| Save error "Add Pricing Setting as the first element…" or "You can only add one Pricing Setting element…" [Core] | Pricing Setting missing or duplicated | Keep exactly one (see save-time table in procedure-anatomy) |
+| Save error `Ensure that the lookup table in the <name> step is valid and try again.` [Core] | Lookup id cannot be resolved from the step; or the element type has no table mapped in the pricing recipe for the procedure's usage subtype (the message then reads "The pricing element type isn’t valid. Use elements that are associated with lookup tables and try again."; Discount Distribution Service is exempt from this check); or the step's table is not among the tables mapped for that type. The recipe check is skipped during package install; Minimum Price has its own table checks | Map the table in the pricing recipe for the procedure's usage subtype (pricing-wiring section A) |
 | Bulk price change not reflected | Decision tables not refreshed | Refresh (section 8) |
 | Amend/cancel/renew with Order output fails with UNKNOWN_EXCEPTION "We couldn't fetch the data for RLM_SalesTransactionContext context definition"; Quote output works | A custom attribute the procedure reads is mapped on `QuoteEntitiesMapping` but not `OrderEntitiesMapping` [Repo] | Map it on both lenses; `validate_context_plan.py` flags it ([`../context-service/authoring-and-lifecycle.md`](../context-service/authoring-and-lifecycle.md) → *Populate an attribute from org data*) |
 
 ## Open questions
 
-- Rank-based selection for pricing procedures: not confirmed in core (see section 2).
-- Behavior of PST with the quote plan inactive: confirm live.
-- Exact Setup labels may differ per edition (Growth vs Advanced).
+- Setup labels per edition (Growth vs Advanced) were not compared.

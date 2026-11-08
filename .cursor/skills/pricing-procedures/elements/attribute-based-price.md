@@ -5,7 +5,8 @@
 > `ind.pricing_create_attribute_based_adjustments.htm`,
 > `ind.pricing_attribute_based_pricing_limits.htm`,
 > `ind.pricing_define_price_impacting_attributes.htm`,
-> `ind.pricing_considerations_for_migrating_attribute_based_adjustments.htm`; shipped
+> `ind.pricing_considerations_for_migrating_attribute_based_adjustments.htm`,
+> `ind.pricing_limits.htm`, `ind.pricing_create_price_adjustment_schedules.htm`; shipped
 > XML: Default, Recalc, PRM_DISTI procedures; core source (behavior only).
 
 Adjusts the unit price using Attribute Based Adjustment records that match the line's
@@ -28,9 +29,9 @@ price-impacting attribute values.
 | Attribute Value | `AttributeValue` | Parameter | Yes | |
 | Is Price Impacting | `IsPriceImpacting` | Parameter | Yes | `PriceImpactingAttribute`. |
 | Adjustment type/value columns | `AdjustmentTypeField`, `AdjustmentValueField` | Parameter | Yes | Constants naming table columns. [Repo] |
-| Adjustment type/value | `AdjustmentType`, `AdjustmentValue` | Parameter | Yes | |
+| Adjustment type/value (output) | `AdjustmentType`, `AdjustmentValue` | Parameter, `input=false`, `output=true` | No | Outputs, shipped only in the Recalc procedure. Not inputs (unlike Manual Discount). [Repo] |
 | Quantity, Input Unit Price | `Quantity`, `InputUnitPrice` | Parameter | Yes | |
-| Contract | `IsContractEnabled`, `IsContracted` | Literal / Parameter | Contract step | |
+| Contract | `IsContractEnabled`, `IsContracted` | Literal / Parameter | `IsContractEnabled` on every shipped step (`true` on the contract step) | [Repo] |
 | Currency | `CurrencyIsoCode` | Parameter | Multi-currency | |
 | Outputs | `NetUnitPrice`, `Subtotal` | Parameter (output) | Yes | |
 | Boilerplate | `HideWaterfall`, `IsRealTime`, `sectionCount`, `selectedFunction` | Literal | Yes | |
@@ -46,12 +47,26 @@ price-impacting attribute values.
 
 ## Rules and limits
 - Attribute must be active, and Is Price Impacting selected on the product's attribute
-  definition; use attributes that belong directly to the product classification, not
-  inherited ones. [Help]
+  definition (Product > Related > Overridden Inherited Attributes; use Configure on an
+  inherited attribute to move it there, then edit its Product Attribute Definition).
+  Use attributes that belong directly to the product classification, not inherited
+  ones: selecting an inherited one gives a validation error on save. [Help]
+- Adjustment records: use or clone the Standard Attribute Based Adjustment schedule;
+  deactivate it before adding records, reactivate after. Types Percentage, Amount,
+  Override. Conditions are set on the Attribute Adjustment Condition object, which needs
+  Pricing Manager; creating records needs Pricing Design Time. Prerequisites: a product
+  selling model, products in a price book, at least one price-impacting attribute. [Help]
+- The procedure's schedule input is a Text constant holding the schedule record Id (Help
+  copies it from the record URL); refresh the Attribute Discount Entries table after
+  activating. [Help]
 - Numeric (Number, Currency, Percentage) and number picklists are stored with a
   decimal; input must include `.0` (10.0) or no match. [Help]
-- A picklist cannot map to Boolean; use Checkbox/Boolean attribute. [Help]
-- Attributes with an overridden bundle context are not supported. [Help]
+- A picklist cannot map to Boolean (for example text such as "Available" to true/false);
+  saving one gives a design-time error. Use a Checkbox/Boolean attribute. [Help]
+- Attributes with an overridden bundle context are not supported: the override stops the
+  adjustment applying; for a product in a bundle, define the attribute once. [Help]
+- Price-impacting attributes per product: default 25, minimum 1, maximum 50. [Help:
+  `ind.pricing_limits.htm`]
 - Each attribute value must resolve to one row; fix ambiguous adjustment rows. Output
   Resolution is not available on this element (only List Price, Price Tracking and
   Price Adjustment Matrix). [Help]
@@ -61,13 +76,39 @@ price-impacting attribute values.
   hash and matched against each adjustment rule's conditions hash. So the conditions of
   one rule are ANDed (the line's whole price-impacting attribute set must equal the
   rule's), and separate rules are alternatives; extra price-impacting attributes on the
-  line that a rule does not list prevent that rule matching. [Core, inferred from the
-  hash construction]
+  line that a rule does not list prevent that rule matching. [Core: line side, all
+  qualifying attributes go into one map hashed into a single lookup key (keys sorted),
+  an empty map gives a null marker. Rule side, when Attribute Adjustment Conditions are
+  saved, all conditions under one rule are collected into one map of attribute developer
+  name to value and hashed with the same function into the rule's conditions hash, so
+  equality of the two hashes means the attribute sets are identical.]
+- [Core] If any of the three attribute tag lists is missing from the line, no hash is
+  built and the line gets no adjustment. An attribute row whose name, value or flag is
+  null is skipped; a false flag is skipped. Attribute name/value pairs form one map, so
+  two rows with the same name collapse to the last value.
+- [Core] Adjustment math is the shared one: Override replaces the unit price, Amount
+  subtracts, Percentage multiplies by (100 - v)/100; two or more matching rows error
+  `DUPLICATE_VALUE_FOUND_IN_LOOKUP`; zero rows leave the price unchanged. Amount or
+  Percentage with a null input unit price, or an unknown type, errors `INVALID_INPUT`.
+  [inferred] No clamping or rounding was found, so an oversized Amount may go negative.
 - Name, value and price-impacting are multi-valued tags (one per attribute row); all
   three must be mapped to the same list node. [Core]
 - Migration: deploy Attribute Based Adjustment Rules, then Conditions, then
   Adjustments; load all Conditions of one Rule in one batch. Hash mismatch fix: open
-  and re-save a Condition, then run a validation transaction. [Help]
+  and re-save a Condition (no changes; it regenerates the parent hash), then run a
+  validation transaction. Do not split Conditions of one Rule across parallel batches
+  (hash conflicts); keep parents before children. No single automated check exists:
+  compare the hash in the Ops Console with the Condition's hash and validate in the
+  Pricing Operations Console before finishing. [Help]
+
+### Feasibility / not supported
+| Question | Answer |
+|---|---|
+| Use inherited attributes? | Not supported; use attributes on the product's own classification. [Help] |
+| Match on a subset (OR) of a line's price-impacting attributes? | No: the whole price-impacting set is one hash on both line and rule side. Add a rule per combination. [Core] |
+| Overridden bundle-context attributes? | Not supported. [Help] |
+| Boolean from a picklist? | No; use a Checkbox attribute. [Help] |
+| Combine with another matching adjustment on the same line? | Not within this element (single match); stack with later elements. [Core] |
 
 ## Metadata shape
 ```xml
@@ -81,7 +122,7 @@ price-impacting attribute values.
     <parameters><input>true</input><name>LookUpApiName</name><output>false</output><type>Literal</type><value>Attribute_Based_Adjustment_Decision_Table</value></parameters>
     <parameters><input>true</input><name>LookUpId</name><output>false</output><type>Literal</type><value>__LOOKUPID_ATTRIBUTE_BASED_ADJUSTMENT_DECISION_TABLE__</value></parameters>
     <!-- plus ProductId, ProductSellingModelId, EffectiveFrom/To, Quantity,
-         InputUnitPrice, AdjustmentType/Value(+Field), LookUpName, IsContractEnabled -->
+         InputUnitPrice, AdjustmentTypeField/AdjustmentValueField, LookUpName, IsContractEnabled -->
     <parameters><input>false</input><name>NetUnitPrice</name><output>true</output><type>Parameter</type><value>NetUnitPrice</value></parameters>
   </customElement>
   <stepType>BusinessKnowledgeModel</stepType>
@@ -91,12 +132,14 @@ price-impacting attribute values.
 `find_replace` in `cumulusci.yml` swaps it for the Id of the schedule named
 `Standard Attribute Based Adjustment`. Do not duplicate; see
 [../../pricing-wiring/SKILL.md](../../pricing-wiring/SKILL.md) section B. The same
-pattern covers `__VOLUMEPasID__` and `__BUNDLEPasID__`. [Repo]
+pattern covers `__VOLUMEPasID__` and `__BUNDLEPasID__`. This holds for the Default and PRM
+procedures; the Recalc procedure ships literal source-org schedule and `LookUpId` values that
+no transform replaces. [Repo]
 
 ## Shipped in this repo (snapshot)
 | Procedure | Step group | What it does |
 |---|---|---|
-| Default, Recalc, PRM_DISTI | `Setattributebasedpricingforlineswithoutderivedpricing`, `...withoutcontractpricing` (seq 2) | Attribute adjustment, non-contract and contract variants |
+| Default, Recalc, PRM_DISTI | `Setattributebasedpricingforlineswithoutderivedpricing` and `...withoutcontractpricing` groups (top-level seq: Default 17/18, Recalc 11/12, PRM_DISTI 15/16), each holding one AttributeDiscount step (seq 2) | Attribute adjustment, derived-free and non-contract variants. [Repo] |
 
 Snapshot only. Discover: `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name> --params`
 
@@ -114,5 +157,5 @@ Refresh the Attribute Discount Entries decision table first
 | Placeholder error on deploy | `__ATTRIBUTEPasID__` unresolved | Standard schedule missing; check transform |
 
 ## Open questions
-- AND/OR rule above is derived from reading the hash construction, not a live test with
-  a partial-match line.
+- AND/OR rule above is from reading both hash constructions, not a live test with a
+  partial-match line.

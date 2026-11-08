@@ -13,6 +13,7 @@ execution, Apex hooks, the runtime model and guardrails, limits).
 ## Observability
 
 ### API-based verification [Core][inferred from client call shapes]
+Endpoint reference: [`docs/api/pricing-business-apis-v68.md`](../../../docs/api/pricing-business-apis-v68.md).
 Headless call shapes (v68.0): `POST /connect/contexts` (metadata + data as a JSON string;
 returns `contextId`), `POST /connect/core-pricing/price-contexts/{contextId}` with
 `{"procedureName": "<name>", "configurationOverrides": {...}}` (returns an `executionId`),
@@ -79,7 +80,7 @@ article gives guidance, not a message catalog; summary of what it states:
 [Help] `ind.pricing_understand_the_order_of_execution_for_place_sales_transaction.htm`
 
 Save header; header triggers; sync context data in; hydrate; configuration; resolve Amend/Renew/Cancel
-(ARC) data; **ARC validation**; pricing = pre-pricing Apex hook, pricing logic, post-pricing Apex
+(ARC) data; **ARC validation** (skipped when the `validateAmendRenewCancel` request option is false; it defaults to true) [Core]; pricing = pre-pricing Apex hook, pricing logic, post-pricing Apex
 hook; persist context; record triggers; sync context out; record-triggered flows. ARC validation
 runs **before** the pre-pricing hook, so hook edits to Start Date or Quantity bypass ARC
 validation: set them in the request payload instead.
@@ -87,8 +88,8 @@ validation: set them in the request payload instead.
 ### Parallel execution
 [Help] `ind.pricing_execute_pricing_elements_in_parallel.htm`
 
-Salesforce Pricing Setup > Parallel Execution applies to **all** active procedures called from
-Headless/Pricing APIs. Independent elements (no output feeding another's input) run together;
+Salesforce Pricing Setup > Parallel Execution (needs the Salesforce Pricing Design Time permission) applies to **all** active procedures called from
+Headless/Pricing APIs. Core: a procedure containing a Price Propagation or Apex Action element runs sequentially (Help is silent on this), and core leaves Map Line Item and Pricing Setting steps out of the parallel task graph [Core]. Independent elements (no output feeding another's input) run together;
 list filters run sequentially, elements inside them in parallel; waterfall sequence tags change
 but execution order does not. **Map Line Item does not support parallel execution**: disable it
 to use that element.
@@ -112,17 +113,21 @@ to use that element.
   recipe's default procedure), then execute elements in order. Each element runs list operation,
   payload update (decision-table lookup), calculate. The waterfall is assembled at the end and
   written back to the context.
-- **Delta pricing:** a procedure-level run mode in which unchanged lines carry forward prior results
-  and only changed or deleted lines are priced; elements receive deleted lines too in this mode.
-  Compound Price Revision still reprices every line of a ramp group (see its element file).
+- **Delta pricing** [Core]: a run mode (set through configuration overrides; the waterfall reports execution mode "Delta Pricing") in which
+  all non-deleted lines start skipped, updated lines become roots of the dependency graph, and lines derived from them are found and repriced.
+  A deleted line gets error `LINE_ITEM_DELETED_IN_CONTEXT` and is not priced; Map Product and Rule Fetch also handle deleted lines in discovery, and Asset Discovery runs only when a derived line or contributor was updated or deleted.
+  Setup: Setup > Revenue Settings > Delta Pricing for Quotes and Orders; applied automatically to updates that have no validation errors and follow a successful pricing run, otherwise a full reprice [Help]. Compound Price Revision still reprices every line of a ramp group (see its element file). [Help] `ind.qocal_use_delta_pricing_for_quotes_and_orders.htm`: recalculates modified lines and their dependents; incompatible with Dual Persistence mode.
 - **Parallel execution:** the procedure is split into per-element tasks; independent tasks run on a
-  bounded thread pool (per-request and org-wide thread caps are org values). Apex hooks, Price
-  Propagation and Breakdown Line Mapping are not run in parallel. Price Revision additionally
-  dispatches ramp groups in parallel only from 4 groups up.
+  bounded thread pool (per-request and org-wide thread caps are org values). Apex Action and Price
+  Propagation elements are not eligible, and one of either makes the whole procedure run
+  sequentially (runtime log: "Dependency Graph is not eligible for parallel execution"). Map Line Item (Breakdown Line Mapping) and Pricing Setting steps are skipped when the task graph is built
+  (prerequisites, not parallelized) and do not block the other elements; Help still requires parallel execution off to use Map Line Item. Price Revision additionally dispatches ramp groups in parallel only when the
+  procedure has at least 4 compound ramp groups; fewer run sequentially (threshold constant of 4 read in core).
 - **Guardrails:** exceeding the procedure max runtime or element max runtime throws a timeout
   error that fails the call; saving a procedure over the max element count or exceeding the max
-  procedure count is rejected at design time. Limits are org values (table below); a platform
-  gate can skip validation.
+  procedure count is rejected at design time. Limits are org values (table below); the
+  element-count check and both runtime-timeout checks are skipped only when an internal
+  performance-environment gate is open (not a production path); the procedure-count check is not gated [Core].
 - Version selection rank: [`operations-and-troubleshooting.md`](operations-and-troubleshooting.md) → section 2.
 
 ### Pricing limits
@@ -137,11 +142,33 @@ to use that element.
 | Elements per discovery procedure | 50 | 2 | 100 |
 | Elements per pricing procedure | 200 | 2 | 200 |
 | Element active duration | 60 s | 4 ms | 80 s |
-| Map Line Item mappings | 70 | - | 100 |
-| Assignment context tag mappings | 20 | - | 50 |
+| Map Line Item mappings | 70 | 1 | 100 |
+| Assignment context tag mappings | 20 (core default 25 [Core]; see [assignment](elements/assignment.md)) | 1 | 50 |
+| Line items per pricing execution (org value, API 262+) | 1000 | 1000 | 3000 |
+| Sub-lines (breakdown lines) per pricing execution (API 262+) | 2000 | 1000 | 3000 |
+| Threads per parallel request | 5 | 1 | 20 |
+| Variables in an expression set (API 242+) | 1000 | 1 | 5000 |
+| Steps in an expression set (API 242+) | 200 | 1 | 250 |
+| Conditions per step (API 242+) | 200 | 1 | 200 |
+| Business elements in an expression set (API 242+) | 50 | 1 | 200 |
+| Context tags used in an expression set (API 248+) | 200 | 0 | 400 |
+| Local list node depth in an expression set (API 262+) | 6 | 0 | 6 |
+| Multi-hit decision tables per expression set version (API 264+; can differ per process type) | 10 | 1 | 25 |
 | Price impacting attributes per product | 25 | 1 | 50 |
 | Contributing products per derived product | 40 | 1 | 50 |
 | Assets associated with one contributing asset | - | - | 50 |
+
+The pricing-procedure count, duration and element rows, element active duration, the
+price-impacting attributes row and the line-item, sub-line and thread rows match core org-value
+defaults and bounds; discovery procedures per org use the same procedure-count value [Core]; Map Line
+Item mappings (default 70, min 1, max 100) also match the pricing settings org value, enforced at save with "The limit of {0} mappings that can be added to the Map Line Item element was reached in the org. Delete some mappings and try again." [Core]. The expression-set rows (variables through multi-hit decision tables) are Expression Set Builder org values, not on the pricing Help page; defaults, bounds and minimum API versions are from core [Core]. Core disagrees with Help on these rows: Assignment mappings
+default 25 (Help: 20); contributing products org value default 500, max 2000 (Help: 40/50);
+assets per contributing asset org value default 100, max 1000 (Help: 50); discovery elements
+and discovery duration reuse the pricing element and procedure org values (max 200 elements)
+rather than Help's 2-100 and 10 s, with discovery-specific error messages [Core]. Treat Help as the published number and verify on the org
+before relying on either.
+
+The Record Action cap ("You can add up to {0} Record Action elements to an expression set.") is a fixed 10, not an org value, and its only check is in the event-orchestration usage type; pricing procedures do not hit it [Core].
 
 Other limits [Help]: no children of sibling nodes in any context definition; element logic is
 restricted to tags at Transaction Item and Transaction Header level; Connect REST returns
