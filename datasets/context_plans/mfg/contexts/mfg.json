@@ -155,6 +155,13 @@
       "sObjectField": "RLM_MFG_Covered_Asset__c"
     },
     {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "CoveredAsset__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem"
+    },
+    {
       "mappingName": "QuoteEntitiesMapping",
       "contextNode": "SalesTransaction",
       "contextAttribute": "TransactionType",

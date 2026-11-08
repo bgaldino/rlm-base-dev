@@ -179,6 +179,9 @@ Billing super-user PSG covering invoicing, payments, credit memos, tax, collecti
 | `CorePricingManager` | Pricing management |
 | `DecimalQuantityDesigntime` | Decimal quantity |
 
+Which Help persona each pricing set serves, plus record sharing for runtime users:
+[`org-enablement-and-permissions.md`](../../.cursor/skills/pricing-setup/org-enablement-and-permissions.md).
+
 #### RLM_CFG -- Revenue Cloud Configurator (3 permission sets)
 
 | Permission Set | Purpose |

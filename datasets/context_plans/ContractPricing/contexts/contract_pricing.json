@@ -18,6 +18,13 @@
       "mappingType": "SOBJECT",
       "sObject": "QuoteLineItem",
       "sObjectField": "RLM_Contract_Applied_Unit_Price__c"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Contract_Applied_Unit_Price__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem"
     }
   ],
   "contextTagsByName": [

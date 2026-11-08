@@ -106,14 +106,13 @@ or creation error and rerun; a clean import replaces the complete previous set.
 For an active-version rerun, cycle the imported version:
 
 ```bash
-# manage_expression_sets uses the DEFAULT CCI org, not a --org option.
-cci org default <cci_alias>
-cci task run manage_expression_sets -o operation deactivate_versions \
+# Pass the same --org to all three steps.
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 cci task run import_cml --org <cci_alias> \
     -o data_dir datasets/constraints/qb/QuantumBitBundle \
     -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
 

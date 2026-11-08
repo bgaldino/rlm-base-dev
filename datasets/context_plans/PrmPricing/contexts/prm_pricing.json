@@ -87,6 +87,48 @@
       "contextAttribute": "RLM_Transient_Distributor_Discount_Percent__c",
       "mappingType": "SOBJECT",
       "sObject": "QuoteLineItem"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "RLM_Distributor_Account__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Order"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "PartnerAccount__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Order"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Distributor_Unit_Price__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Distributor_Discount_Percent__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Partner_Net_Total_Price__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem"
+    },
+    {
+      "mappingName": "OrderEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Transient_Distributor_Discount_Percent__c",
+      "mappingType": "SOBJECT",
+      "sObject": "OrderItem"
     }
   ],
   "contextTagsByName": [

@@ -18,8 +18,8 @@ Aider).
 > live-observed on a 264 org (v68.0); re-verify on the target release at merge
 > time. Ramp build is **transaction authoring**; the compound-uplift *engine*
 > (the pricing procedure's `PriceRevision` element) belongs to
-> `.cursor/skills/expression-sets/SKILL.md` — this skill links to it, not
-> duplicates it.
+> `.cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md` —
+> this skill links to it, not duplicates it.
 
 Two distinct ramp mechanisms exist — do not confuse them:
 
@@ -78,9 +78,9 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    prices, subtotals, and totals; read them back.
 8. **`org_config.username` for `sf` CLI; `access_token` for REST only** (per
    `AGENTS.md`).
-9. **An API-built group-ramped bundle with a one-time or evergreen child cannot be amended (`PlaceSalesTransactionPersistException`,
+9. **A group-ramped bundle added by API (`AddProducts` into ramped segments) with a one-time or evergreen child cannot be amended (`PlaceSalesTransactionPersistException`,
    shorthand "500"; measured on one 264 org; cancel failed too where tried).** The same shape with a one-time child
-   built in the quote UI amended (evergreen not tried in the UI). For an API-built one-time child the failure persisted while any of the child's Assets remained. Built by API the child gets no ramp ids and assetizes as one
+   built in the quote UI amended (evergreen not tried in the UI). For an API-built one-time child the failure persisted while any of the child's Assets remained. Built that way the child gets no ramp ids (lines present before EditGroup, then cloned, were stamped; that shape's amend was not measured) and assetizes as one
    Asset per segment it sits in; built in the UI a one-time child is stamped and, left in N segments, becomes one Asset whose
    quantity accumulates (1, 2, 3 over three segments). See
    [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
@@ -103,12 +103,25 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 - **DO NOT** expect a clone to vary quantity or price per period — it copies the
   prior segment as-is. To grow a ramp, set per-segment values (quantity,
   `UnitPriceUplift`) after cloning. Do not fake growth silently; note it.
-- **DO NOT** ramp a **bundle** while the CML constraint model is active — a bundle
-  re-expands its children on each clone (known issue). Keep ramp demos on
-  **standalone** products (`configurationPref.configurationMethod: "Skip"`).
+- **DO NOT** rely on an active CML model to add **standalone** products to a ramp segment.
+  Help (*Considerations for Ramp Deals*): configuration rules don't recognize quote or order
+  groups, and a rule that adds a standalone product to a segment doesn't ramp it or add it to
+  later segments. A rule-added **child of a ramped parent** is ramped and carried forward.
+  A group-level `require` (a `groupBy = SalesTransactionItemGroup` container) adds its products to
+  ramped segments with blank `RampIdentifier`, `SegmentIdentifier` and `SegmentType` when it fires
+  during a Connect clone or a `configurationMethod: Force` Place without `groupRampAction`. Rules keyed
+  on `IsLineGroupRamped__std` and `ItemSegmentType == "Yearly"` fired during the clone even with every Place call
+  set to `Skip`. A `Force` Place with `groupRampAction: AddProducts` stamped the products it added, but
+  not blank lines already on the quote (one 264 org, 2026-11-06, test model, standalone Term Annual
+  products; order and amend of the blank lines not measured). See
+  [constraint-models → Ramp groups and segments](../constraint-models/SKILL.md#ramp-groups-and-segments).
+  The bundles tested in ramped segments, added in the quote UI or cloned, kept ramp ids on every line; see
+  [Cloning a segment that holds a bundle](bundle-children-lifecycle.md#cloning-a-segment-that-holds-a-bundle).
 - **DO NOT** treat a null `RampIdentifier` on read-back as a graph mistake — it
   usually means the org's **context definitions are stale**; a Context Definition
-  sync fixes it (see `.cursor/skills/context-service/SKILL.md`).
+  sync fixes it (see `.cursor/skills/context-service/SKILL.md`). Other known causes: a line a
+  group-level CML `require` added (DO NOT above), and a one-time or evergreen bundle child added with
+  `AddProducts` into ramped segments (Quick Rule 9).
 - **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. On a
   `CompletedWithPricing` quote, System runs **delta pricing**, which can skip lines it considers
   unchanged. A segment created by clone can keep its clone-time price indefinitely. Exactly which
@@ -134,12 +147,12 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 |---|---|
 | Build / add a segment to / verify a multi-year **group** ramp quote | This skill |
 | Build or check a group ramp **in the quote UI** (demo, rep-built quote) | `ui-group-ramp.md` |
-| Get **compound** per-segment uplift right (the `PriceRevision` engine, `IsCompoundUpliftEnabled`, prerequisites) | [Compound uplift](#compound-uplift) → `.cursor/skills/expression-sets/SKILL.md` |
+| Get **compound** per-segment uplift right (the `PriceRevision` engine, `IsCompoundUpliftEnabled`, prerequisites) | [Compound uplift](#compound-uplift) → `.cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md` |
 | Turn on **Advanced Detail Line Pricing** / sync context definitions (a compound prerequisite) | `.cursor/skills/context-service/SKILL.md` |
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
 | Build a non-ramp quote → order → asset | `scripts/build_quote_to_asset.py`; `.cursor/skills/txn-data-harness/SKILL.md` |
 | The v68 Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide index — use the `/connect/rev/...` payloads above). `docs/api/transaction-management-apis-reference.md` is a v68-grounded summary of the same routes; prefer the dev-guide page when the two disagree |
-| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md` |
+| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [DO NOT](#do-not) and Quick Rule 9 |
 
 ## The proven build sequence
 
@@ -363,8 +376,10 @@ do not *end* in `Queued`) and `TaxCalculationInProcess` is not `…InProgress`:
 ## <a name="compound-uplift"></a>Compound price uplift
 
 Read [`compound-uplift.md`](compound-uplift.md) when you apply or verify a **Compound** uplift:
-the prerequisites, how the engine compounds on the prior period, and the per-period arithmetic to
-check a read-back against. The PATCH payload itself is step 4 above.
+the quote-side prerequisites and a quick read-back check. The engine (the ramp `PriceRevision`
+element) and the full per-period arithmetic are in
+[`../pricing-procedures/elements/price-revision-compound-uplift.md`](../pricing-procedures/elements/price-revision-compound-uplift.md).
+The PATCH payload itself is step 4 above.
 
 ## Read-back → the ramp schedule
 
@@ -511,8 +526,9 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
 
 ## Sub-files
 
-- `compound-uplift.md` — Compound price uplift: prerequisites, how it compounds, and the arithmetic
-  to verify. Read it when applying or checking Compound.
+- `compound-uplift.md` — Compound price uplift: the quote-side prerequisites and a read-back
+  check; the engine and full arithmetic live in `pricing-procedures`. Read it when applying or
+  checking Compound.
 - `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
   call rejects a field.
 - `bundle-children-lifecycle.md` — a group-ramped bundle with a one-time or evergreen child: limiting the child to
@@ -525,8 +541,7 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
 ## Related References
 
 - **Compound-uplift engine** (`PriceRevision`, `IsCompoundUpliftEnabled`, ramp vs
-  non-ramp path): `.cursor/skills/expression-sets/SKILL.md` →
-  [Compound ramp uplift](../expression-sets/SKILL.md#compound-ramp-uplift).
+  non-ramp path): [`../pricing-procedures/elements/price-revision-compound-uplift.md`](../pricing-procedures/elements/price-revision-compound-uplift.md).
 - **Advanced Detail Line Pricing / context definition sync** (compound
   prerequisite; null-`RampIdentifier` fix): `.cursor/skills/context-service/SKILL.md`.
 - **v68 Connect endpoint catalog** (place, clone, ramp-deal, amend/renew/cancel):

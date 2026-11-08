@@ -46,6 +46,7 @@ End-to-end workflow for keeping `docs/erds/erd-data.json` aligned to canonical R
 | `scripts/erd/build_erds.py` | Regenerate interactive HTML from `erd-data.json` | `docs/erds/revenue-cloud-erd.html` |
 | `scripts/erd/orphan_batch_helper.py` | Batch workflow helper (prepare/apply/validate cycles) | Multiple |
 | `scripts/ai/query_erd.py` | Query ERD content (describe/relationships/domain/path/search) | Stdout |
+| `scripts/audit_data_plans.py` | Audit every tracked SFDMU plan against a release's describe (unknown fields, restricted picklist values, required fields, dead columns, new fields). Runbook: [`release-data-plan-audit.md`](release-data-plan-audit.md) | Markdown/JSON report; `<release>-plan-describe.json` snapshot |
 
 ### Contracts CLM extension
 
@@ -326,6 +327,7 @@ feature-gated or cross-cloud fields). Findings persisted at:
 
 ## Related
 
+- [`release-data-plan-audit.md`](release-data-plan-audit.md) — read at the start of a release, or before calling a data plan audited for it: snapshot, audit, triage
 - `revenue-cloud-data-model` skill — the data model itself
 - `sfdmu-data-plans` skill — uses ERD to validate plan CSVs against schema
 - `scripts/erd/schema_diff/` — schema diff tooling

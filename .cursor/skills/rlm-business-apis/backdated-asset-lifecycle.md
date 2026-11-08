@@ -103,8 +103,15 @@ their bodies use `amendmentStartDate`, `cancellationDate` and `renewalStartDate`
 `assetIds`, `quantityChange` and `outputRecordType`. An API-built group-ramped bundle with a one-time or evergreen child fails amend
 (`PlaceSalesTransactionPersistException`, `success:false` in the body; check the body, not the status; measured on one 264 org;
 cancel failed too where tried). The same shape with a one-time child built in the quote UI amended (evergreen not tried in the
-UI); see `.cursor/skills/ramped-quotes/bundle-children-lifecycle.md`. `outputRecordType: Order` failed on one
-264 org with a `RLM_SalesTransactionContext` fetch error; use Quote output there.
+UI); see `.cursor/skills/ramped-quotes/bundle-children-lifecycle.md`. `outputRecordType: Order` runs pricing on
+the `OrderEntitiesMapping` of the context definition, so every custom attribute the pricing procedure reads must be
+mapped there too. When one is mapped only on `QuoteEntitiesMapping`, amend, cancel and renew with Order output fail with
+UNKNOWN_EXCEPTION "We couldn't fetch the data for RLM_SalesTransactionContext context definition" while Quote output
+works (measured on a fresh 264 build with the ContractPricing, PartnerAccount and PrmPricing plans; all three
+succeeded once the missing Order mappings were added, on a plain term asset). That proves the error is gone, not that
+Order-output prices match Quote output: Order and OrderItem have no matching custom fields, so those attributes
+arrive empty. The message hides the underlying cause. Diff the two mappings' custom (`__c`) attributes, and see
+`.cursor/skills/context-service/authoring-and-lifecycle.md` (one mapping rule per lens).
 
 Gotchas, all measured:
 

@@ -39,8 +39,10 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | I need to... | Skill | Entry Point |
 |-------------|-------|-------------|
 | Edit/ship/debug Constraint models (CML) — configurator bundle rules, `.ffxblob` | Constraint Models | [constraint-models/SKILL.md](constraint-models/SKILL.md) |
+| Set up Salesforce Pricing in an org: enablement, permissions, price/cost books, adjustment schedules, recipes, proration, revision policies, pricing actions | Pricing Setup | [pricing-setup/SKILL.md](pricing-setup/SKILL.md) |
 | Wire pricing recipes, procedures, or lookup table mappings | Pricing Wiring | [pricing-wiring/SKILL.md](pricing-wiring/SKILL.md) |
 | Author/CRUD Expression Sets (Connect/Metadata API) and build step overlays | Expression Sets | [expression-sets/SKILL.md](expression-sets/SKILL.md) |
+| Configure pricing elements (Aggregate Price, discounts, Price Revision, DDS, …), element ordering, and day-2 pricing-procedure operations | Pricing Procedures | [pricing-procedures/SKILL.md](pricing-procedures/SKILL.md) |
 | Inspect/author/manage, refresh, diagnose, or verify decision tables | Decision Tables | [decision-tables/SKILL.md](decision-tables/SKILL.md) |
 | Read/extend/apply/deploy/upgrade Context Definitions; inspect/validate context plans | Context Service | [context-service/SKILL.md](context-service/SKILL.md) |
 
