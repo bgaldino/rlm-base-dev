@@ -56,6 +56,7 @@ price-impacting attribute values.
   Override. Conditions are set on the Attribute Adjustment Condition object, which needs
   Pricing Manager; creating records needs Pricing Design Time. Prerequisites: a product
   selling model, products in a price book, at least one price-impacting attribute. [Help]
+  Schedule and record setup: [`../../pricing-setup/price-adjustment-schedules.md`](../../pricing-setup/price-adjustment-schedules.md).
 - The procedure's schedule input is a Text constant holding the schedule record Id (Help
   copies it from the record URL); refresh the Attribute Discount Entries table after
   activating. [Help]

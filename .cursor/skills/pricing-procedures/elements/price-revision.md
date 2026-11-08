@@ -11,6 +11,7 @@ Adjusts a line's net unit price and subtotal by a percentage uplift: a policy-dr
 (Flat, or Price Index/CPI from the Index Rate decision table), or a per-segment **compound ramp
 uplift**. Policy and CPI data/verification: [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md).
 Ramp quote building: [`../../ramped-quotes/SKILL.md`](../../ramped-quotes/SKILL.md).
+Policy, index-rate and region setup in any org: [`../../pricing-setup/price-revision-policies.md`](../../pricing-setup/price-revision-policies.md).
 
 ## When to use it
 - Renewal uplifts from a Price Revision Policy (Flat manual value, or Price Index = CPI-driven). [Help]

@@ -60,6 +60,7 @@ Bundle Based Adjustment, Price Adjustment Tier. Update types: Amount, Percentage
 adjustment schedules need effective dates; price book entries do not. Failed or partial jobs:
 App Launcher > Price Adjustment Batch Jobs > Related > Pricing Adjustment Batch Job Log, edit
 records, Rerun. After bulk price changes, refresh decision tables ([`operations-and-troubleshooting.md`](operations-and-troubleshooting.md) → section 8).
+Bulk load order and packaged export/import: [`../pricing-setup/import-export-and-bulk-data.md`](../pricing-setup/import-export-and-bulk-data.md).
 
 ### API execution messages
 

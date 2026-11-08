@@ -218,6 +218,31 @@ foundations:
         - "Element parameter names and rules are pinned to 264; claims are tagged [Help]/[Dev guide]/[Repo]/[Core] — only [Live]-tagged ones were exercised against an org"
         - "Step graph CRUD and activation lifecycle stay in expression-sets; build sequencing stays in pricing-wiring"
 
+    - id: pricing-setup
+      path: .cursor/skills/pricing-setup/SKILL.md
+      purpose: "Configure Salesforce Pricing in any org: enablement, permissions and sharing, price and cost books, price adjustment schedules, pricing recipes, proration and selling models, price revision policies, pricing actions, pricing data sync and packaging, and Help end-to-end scenarios"
+      consumed_by_pmos: []
+      provenance: hand-authored from the 264 Help corpus (ind.pricing_* setup articles) + offline ERD + shipped settings and data plans
+      sub_skills:
+        - .cursor/skills/pricing-setup/org-enablement-and-permissions.md
+        - .cursor/skills/pricing-setup/price-books.md
+        - .cursor/skills/pricing-setup/cost-books.md
+        - .cursor/skills/pricing-setup/price-adjustment-schedules.md
+        - .cursor/skills/pricing-setup/import-export-and-bulk-data.md
+        - .cursor/skills/pricing-setup/pricing-recipes.md
+        - .cursor/skills/pricing-setup/proration-and-selling-models.md
+        - .cursor/skills/pricing-setup/price-revision-policies.md
+        - .cursor/skills/pricing-setup/pricing-actions.md
+        - .cursor/skills/pricing-setup/scenarios/README.md
+        - .cursor/skills/pricing-setup/scenarios/simple-pricing-procedure.md
+        - .cursor/skills/pricing-setup/scenarios/lowest-price-across-price-books.md
+        - .cursor/skills/pricing-setup/scenarios/sequential-discounts.md
+        - .cursor/skills/pricing-setup/scenarios/pricing-action-button.md
+      caveats:
+        - "Pinned to 264; claims are tagged [Help]/[Repo]/[Core]; only the [Repo, measured] items (sync scope, schedule activation) come from a live org"
+        - "Help states cost books are tracking-only; this repo reads them through a decision table and List Price, which is custom wiring"
+        - "Element configuration stays in pricing-procedures; this repo's build order and data loads stay in pricing-wiring"
+
     - id: decision-tables
       path: .cursor/skills/decision-tables/SKILL.md
       purpose: "BRE Decision Table inspect/author/manage: the definition-vs-data model, Tooling setup objects, Metadata and Tooling definition writes, explicit lifecycle commands, async refresh, CSV data, and recipe-mapping trace"

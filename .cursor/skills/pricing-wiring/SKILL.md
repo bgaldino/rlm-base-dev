@@ -86,7 +86,8 @@ be no-op safe.
 ### A) Pricing Recipe Table Mappings
 
 A `ListPrice`/lookup-driven procedure step can fail even if the decision table
-exists and is Active, if the recipe table mapping row is absent.
+exists and is Active, if the recipe table mapping row is absent. Recipe concept,
+subtype and the Setup UI: `.cursor/skills/pricing-setup/pricing-recipes.md`.
 
 Typical failure:
 

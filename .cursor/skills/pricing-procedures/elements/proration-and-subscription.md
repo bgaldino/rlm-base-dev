@@ -10,7 +10,8 @@
 
 Two paired elements. **Proration** turns a date range + billing period into a multiplier
 (`PricingTermCount`). **Subscription Price** multiplies unit price x quantity x that multiplier
-into the line total and the per-unit subscription price. [Help]
+into the line total and the per-unit subscription price. [Help] Selling models, proration policies
+and Help's period examples: [`../../pricing-setup/proration-and-selling-models.md`](../../pricing-setup/proration-and-selling-models.md).
 
 ## When to use it
 - Use for time-based pricing of term-defined and evergreen subscription lines: mid-period

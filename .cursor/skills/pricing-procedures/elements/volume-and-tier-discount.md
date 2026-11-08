@@ -98,7 +98,7 @@ Tier names are from core's element registration, no Tier step ships in this repo
 
 ## Rules and limits
 - Tier bounds are inclusive and must not overlap; same-effective-date tiers must be
-  consecutive with no gaps. [Help]
+  consecutive with no gaps. [Help] Schedule and tier setup: [`../../pricing-setup/price-adjustment-schedules.md`](../../pricing-setup/price-adjustment-schedules.md).
 - No duplicate tier rows for one Product + Selling Model + Schedule + Currency +
   effective range. [Help]
 - Tiers must belong to a price adjustment schedule of type Volume; you cannot create

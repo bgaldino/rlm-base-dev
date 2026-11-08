@@ -1,0 +1,116 @@
+# Proration and Selling Models
+
+> Sub-file of `.cursor/skills/pricing-setup/SKILL.md`. Release 264 / API v68.0. Sources:
+> `ind.pricing_configure_product_selling_model_for_your_products.htm`,
+> `ind.product_catalog_product_selling_model.htm`, `ind.product_catalog_create_a_product_selling_model.htm`,
+> `ind.pricing_configure_proration_settings.htm`, `ind.pricing_create_a_proration_policy.htm`,
+> `ind.pricing_proration_variables.htm`, `ind.pricing_subscription_variables.htm`,
+> `ind.pricing_subscription_pricing_proration.htm`, `ind.pricing_*_proration_examples*.htm`,
+> `ind.pricing_weekly_proration.htm`. Not live-verified.
+
+Selling models say how a product is sold; proration settings and policies say how a partial period is
+priced. The Proration and Subscription Price elements read them. Builder fields for the elements:
+[`../pricing-procedures/elements/proration-and-subscription.md`](../pricing-procedures/elements/proration-and-subscription.md).
+
+## When you need it
+
+- A subscription starts, changes or ends mid-period and the charge must be partial.
+- Setting up one-time, term-defined or evergreen products.
+- Choosing where the rounding remainder lands, or whether a partial period bills in full.
+
+## Set it up
+
+**1. Product selling model** (Manage Product Catalog) [Help: `ind.product_catalog_create_a_product_selling_model.htm`]
+1. Product Catalog Management app > Product Selling Models > New.
+2. Name, selling model type, and (term-defined or evergreen) Pricing Term + Pricing Term Unit, e.g. Term-Defined 1 Year; Evergreen 1 Month.
+3. Term-defined only: optionally **Automatically Renew Asset by Default**; the status is copied to quote and order lines and can be edited per line.
+4. Set Status (Draft, Active, Inactive). It cannot return to Draft after Active/Inactive.
+
+**2. Default term counts** (Salesforce Pricing Design Time) [Help: `ind.pricing_configure_proration_settings.htm`]
+1. Setup > `Salesforce Pricing` > Salesforce Pricing Setup.
+2. Fill **Evergreen** and/or **One Time** (numeric only). Help: blank = term count computed from start/end dates at run time. Core disagrees for One Time: with no default it is not prorated; test live ([element, Resolved disagreements](../pricing-procedures/elements/proration-and-subscription.md#resolved-disagreements)).
+
+**3. Proration policy** (Salesforce Pricing Design Time; needs a term-defined or evergreen selling model and a price book entry) [Help: `ind.pricing_create_a_proration_policy.htm`]
+1. App Launcher > Proration Policies > New; name it.
+2. Proration Policy Type = Standard Time Periods.
+3. Remainder Strategy = First or Last pricing period.
+4. Tick **Allow partial proration periods** to bill part periods pro rata; unticked, the full period is charged.
+
+**4. Assign to a product**
+1. App Launcher > Price Books > the price book > Price Book Entries > the product.
+2. Related tab > Product Selling Model Options > New. Pick a term-defined or evergreen model, confirm the product, pick the policy, optionally tick **Default**.
+
+## Fields and rules
+
+| UI label | API name | Rules |
+|---|---|---|
+| Selling Model Type | `ProductSellingModel.SellingModelType` | One Time, Term-Defined (end date), Evergreen (until cancelled). [Help] |
+| Pricing Term / Unit | `PricingTerm`, `PricingTermUnit` | Required for term-defined and evergreen. [Help] |
+| Auto-renew | `DoesAutoRenewAssetByDefault` | Term-defined only. |
+| Status | `Status` | Draft, Active, Inactive; no return to Draft. |
+| Proration Policy Type | `ProrationPolicy.ProrationPolicyType` | `StandardTimePeriods`. |
+| Remainder Strategy | `ProrationPolicy.RemainderStrategy` | First or last period; sums to the original amount ($100/3 = 33.34/33.33/33.33 or 33.33/33.33/33.34). [Help] |
+| Allow partial proration periods | `ProrationPolicy.ArePartialPeriodsAllowed` | Off = full period charged. |
+| Option -> policy | `ProductSellingModelOption.ProrationPolicyId` | Only on term-defined or evergreen options. [Help; ERD] |
+| Evergreen / One Time default | Salesforce Pricing Setup (API name not confirmed) | Evergreen 1 monthly at $50 = $50. [Help] |
+
+Proration variables are Proration element inputs, bound to context tags that carry the selling model
+option and policy values (inferred; see [the element](../pricing-procedures/elements/proration-and-subscription.md#product-selling-model-interplay)):
+`StartProrationPeriod` (AlignToCalendar, Anniversary, DayOfPeriod, and `LastDayOfPeriod`, which Help
+labels EndOfPeriod; bind `LastDayOfPeriod` [Core]), day/month for DayOfPeriod only. [Help: `ind.pricing_subscription_variables.htm`]
+Multiplier = time used / total time in period; "month-plus-day" proration works for any frequency.
+Help says month precision rounds a partial month to a whole one, but its own worked example
+prorates a half month to 0.5 (see Open questions). [Help: `ind.pricing_proration_variables.htm`]
+
+## How pricing uses it
+
+- Subscription element: unit price x quantity x pricing term count; Proration element emits the term count. One-time and evergreen use the Pricing Setup default when set (see element file).
+- How the policy and option values reach the element (via context tags) is not in Help; see the element file.
+
+## Period examples (Help) [Help: `ind.pricing_*_proration_examples*.htm`]
+
+Convention: periods are start-date to day-before-next-start; a part period counts days used / days in that period. Without partial proration each touched period counts 1.0.
+
+| Period | Mode | Partial | Term count | Note |
+|---|---|---|---|---|
+| Annual, 2025-03-28 to 2026-02-04, $800 | Anniversary or DayOfPeriod | on / off | 314/365 = 0.860274 / 1.0 | $688.22 / $800 |
+| Annual same dates | AlignToCalendar | on / off | 279/365 + 35/365 = 0.860274 / 2.0 | $688.22 / $1,600 |
+| Monthly same dates, $90 | DayOfPeriod 5 | on / off | 8/31 + 10 = 10.258065 / 11.0 | $923.23 / $990 |
+| Monthly same dates | AlignToCalendar | on / off | 4/31 + 10 + 4/28 = 10.271889 / 12.0 | $924.47 / $1,080 |
+| Quarterly same dates, $200 | AlignToCalendar | on / off | Help: 3.436464 (3.427 by its own sum) / 5.0 | $687.29 / $1,000 |
+| Semi-annual same dates, $400 | DayOfPeriod 5 | on / off | 130/181 + 1 = 1.718232 / Help: 3.0 (unreliable; 2.0 expected) | $687.29 / Help: $1,200 (unreliable) |
+| Weekly, 75 days, $12.01 x 12 | any (1 = Monday ... 7 = Sunday) | n/a | 75/7 = 10.71 | Help: $1,543.36 |
+
+Leap years: end-of-month anniversaries move to the latest valid day. Annual from 2024-02-29 to 2025-02-27 = 1.0. Annual 2027-02-28 to 2028-02-27 = 365/366 = 0.99726 ($997.27) because the full period expects 2028-02-28; to 2028-02-28 = 1.0. Monthly from the 30th/31st: Jan 30 to Feb 27 (29 days) then Feb 28 to Mar 29 = 2.0.
+
+Worked example: $50/month product, subscribed on the 15th of a 30-day month: 15 days / 30 days = 0.5, so $50 x 0.5 = $25 for that month. [Help: `ind.pricing_proration_variables.htm`]
+
+## Data and automation
+
+Objects: `ProductSellingModel`, `ProrationPolicy`, `ProductSellingModelOption`. This repo loads them with the `qb-pcm` plan (policy keyed on `Name`; `ProrationPolicyId` on options is create-only on reload). Repo data rules: [`../sfdmu-data-plans/SKILL.md`](../sfdmu-data-plans/SKILL.md), [`../../../datasets/sfdmu/qb/en-US/qb-pcm/README.md`](../../../datasets/sfdmu/qb/en-US/qb-pcm/README.md). Object relationships: [`../revenue-cloud-data-model/domains/pricing.md`](../revenue-cloud-data-model/domains/pricing.md).
+
+## Verify
+
+```bash
+sf data query --target-org <sf_alias> -q "SELECT Name, SellingModelType, PricingTerm, PricingTermUnit, Status FROM ProductSellingModel"
+sf data query --target-org <sf_alias> -q "SELECT Name, ProrationPolicyType, RemainderStrategy, ArePartialPeriodsAllowed FROM ProrationPolicy"
+sf data query --target-org <sf_alias> -q "SELECT Product2Id, ProductSellingModelId, ProrationPolicyId FROM ProductSellingModelOption WHERE Product2Id = '<id>'"
+```
+Then Simulate with Effective From/To and compare to the table above.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Policy cannot be assigned | Option uses a One Time model | Use term-defined or evergreen |
+| Always a full period | Allow partial proration off, or no policy on the option | Tick it; assign policy |
+| Evergreen/one-time price covers wrong periods | Pricing Setup default term count | Set 1. Blanking One Time stops its proration per core (see step 2) |
+| Day/month ignored | Start Proration Period not DayOfPeriod | Change mode |
+| Cannot create policy | No term-defined/evergreen model or no price book entry | Create those first |
+
+## Open questions
+
+- Help's quarterly example prints 3.427 and 3.436464 for the same case ($687.29 uses the latter); the 3.427 arithmetic gives $685.48. The semi-annual no-partial example prints 3.0 / $1,200 next to what reads as a leftover drafting note; two touched periods give 2.0 / $800 (inferred). The same article's utilized range "28-Mar to 4-Apr (130 Days)" should read 4-Aug.
+- Month precision: the variables article says a partial month rounds to a whole month, yet its $50 worked example prorates 15/30 days to 0.5. Which applies is unconfirmed. Weekly arithmetic ($144.12 x 10.71 = about $1,543.5) does not reproduce $1,543.36. Treat these as illustrative.
+- The monthly examples 5 and 6 repeat the annual case with $800 (a doc error, inferred).
+- Pricing Setup field API names and the context tags carrying policy values are not documented.

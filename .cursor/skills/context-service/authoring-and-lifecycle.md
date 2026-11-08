@@ -218,7 +218,8 @@ with the likely one for your change):
   context node, or ContextRules referencing it. No enumerating query — trace by
   type.
 - **PricingActionParameters** — pricing actions that name the context. No
-  enumerating query.
+  enumerating query. What a pricing action is and where it is set up:
+  `.cursor/skills/pricing-setup/pricing-actions.md`.
 
 Fix order: unlink/deactivate consumers in dependency order (consumer → context),
 then deactivate the definition. Reactivate the definition before re-linking.
