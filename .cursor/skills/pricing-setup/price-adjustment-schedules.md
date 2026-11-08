@@ -63,7 +63,7 @@ Root bundle and its selling model, parent product and its selling model, product
 | Adjustment type / value | `AttributeBasedAdjustment`/`BundleBasedAdjustment` `.AdjustmentType`, `.AdjustmentValue` | Percentage, Amount, Override |
 | Rule / condition | `AttributeBasedAdjRule`, `AttributeAdjustmentCondition` (`AttributeDefinitionId`, `Operator`, typed value fields) | Conditions belong to a rule |
 | Conditions hash | `AttributeBasedAdjustment.AttributeAdjConditionsHash` | Regenerated when a condition is saved [Help] |
-| Currency | `CurrencyIsoCode` on each child | See Data and automation |
+| Currency | `CurrencyIsoCode` on each child (multicurrency orgs only) | See Data and automation |
 
 ### Attribute limits [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
 
@@ -80,14 +80,16 @@ Each element resolves the schedule and matches child rows via a decision table (
 
 - Bulk edits to tiers, adjustments and entries: pricing adjustment batch jobs ([pointer](./import-export-and-bulk-data.md#bulk-price-edits)).
 - **Migration order** (Data Loader/API) [Help: `ind.pricing_considerations_for_migrating_attribute_based_adjustments.htm`]: Attribute Based Adjustment Rules, then Attribute Adjustment Conditions, then Attribute Based Adjustments. Load all conditions of one rule in a single batch; never split them across parallel batches (hash conflicts block application). No bulk validator exists; check in the Pricing Operations Console.
-- [Repo] One schedule per type (USD), shared by all currencies' children, which are told apart by their own `CurrencyIsoCode`; do not create per-currency schedules. The plan upserts the Tier schedule with `IsActive=false` so tiers can reload. See `datasets/sfdmu/qb/en-US/qb-pricing/README.md`.
+- [Repo] One schedule per type (USD), shared by all currencies' children, which are told apart by their own `CurrencyIsoCode` (the repo build is multicurrency); do not create per-currency schedules. The plan upserts the Tier schedule with `IsActive=false` so tiers can reload. See `datasets/sfdmu/qb/en-US/qb-pricing/README.md`.
 
 ## Verify
 
 ```bash
 sf data query -q "SELECT Id, Name, ScheduleType, AdjustmentMethod, IsActive, EffectiveFrom, EffectiveTo FROM PriceAdjustmentSchedule" --target-org <sf_alias>
-sf data query -q "SELECT Product2.Name, ProductSellingModel.Name, CurrencyIsoCode, TierType, TierValue, LowerBound, UpperBound FROM PriceAdjustmentTier WHERE PriceAdjustmentScheduleId = '<id>' ORDER BY LowerBound" --target-org <sf_alias>
+sf data query -q "SELECT Product2.Name, ProductSellingModel.Name, TierType, TierValue, LowerBound, UpperBound, EffectiveFrom, EffectiveTo FROM PriceAdjustmentTier WHERE PriceAdjustmentScheduleId = '<id>' AND Product2Id = '<product id>' AND ProductSellingModelId = '<model id>' ORDER BY LowerBound" --target-org <sf_alias>
 ```
+
+Keep only tiers whose effective dates cover the pricing date. Add `CurrencyIsoCode` to the SELECT (and a currency filter) only in a multicurrency org; the field does not exist otherwise.
 
 Simulate a line at a quantity inside a band and check the waterfall step.
 

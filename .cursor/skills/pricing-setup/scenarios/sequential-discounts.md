@@ -33,14 +33,14 @@ column must hold unique values for the Use As List tag.
 
 ## Expected result
 
-Simulate with Product Laptop, Quantity 15, Selling Model One Time, Contributor `Standard Price
-Adjustment Tier`. Help states the waterfall shows all associated tier discounts applied
-sequentially; it gives no figures. As written, quantity 15 sits only in the 10-20 tier (100), and
-Help does not reconcile that with "all discounts"; treat the multi-row outcome as dependent on how
-tiers are linked to the line (inferred).
+Simulate with Product Laptop, Selling Model One Time and `Contributor` set to the linked tiers.
+Help supplies the schedule name `Standard Price Adjustment Tier`, but the custom table matches
+`PriceAdjustmentTier.Name`, which is autonumbered, so supply the linked tiers' actual names as the
+multi-value input (inferred). The table filters only on Product2Id and Name, not quantity bounds.
+Help states the waterfall shows all associated tier discounts applied sequentially; it gives no figures.
 
 ## Verify
 
 1. Simulate as above; read the waterfall for one adjustment per resolved row.
 2. On the line's Related tab, confirm several adjustment records link to one line item.
-3. Confirm the schedule and the decision table are active and refreshed.
+3. Confirm the tiers are in date and the decision table is active and refreshed (the schedule may stay inactive on 264; see [schedules](../price-adjustment-schedules.md)).

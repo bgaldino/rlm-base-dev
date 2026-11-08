@@ -34,6 +34,6 @@ The waterfall shows the smallest list price among the price books that hold Lapt
 ## Verify
 
 1. Simulate with Laptop and its selling model.
-2. Compare with `sf data query --target-org <sf_alias> -q "SELECT Pricebook2Id, UnitPrice FROM PricebookEntry WHERE Product2Id = '<id>' AND IsActive = true"`; the waterfall price must equal the minimum.
+2. Compare with `sf data query --target-org <sf_alias> -q "SELECT Pricebook2Id, UnitPrice FROM PricebookEntry WHERE Product2Id = '<id>' AND ProductSellingModelId = '<model id>' AND Pricebook2Id IN ('<book id>', '<book id>') AND IsActive = true"`, restricted to the simulated selling model and the price books the procedure reads (in a multicurrency org also filter `CurrencyIsoCode` to the simulation's currency); the waterfall price must equal that minimum.
 3. With output resolution on, every product needs a matching price book row or that line errors
    (see the output-resolution section linked above).

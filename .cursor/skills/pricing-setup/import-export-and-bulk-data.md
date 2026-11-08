@@ -71,7 +71,7 @@ SFDMU plan `datasets/sfdmu/qb/en-US/qb-pricing/` upserts price books, entries, c
 ## Verify
 
 ```bash
-sf data query -q "SELECT COUNT(Id) FROM PricebookEntry WHERE Pricebook2.Name = '<book>'" --target-org <sf_alias>
+sf data query -q "SELECT COUNT(Id) FROM PricebookEntry WHERE Pricebook2.Name = '<book>' AND IsActive = true" --target-org <sf_alias>
 cci task run check_decision_table_freshness --org <cci_alias>
 ```
 

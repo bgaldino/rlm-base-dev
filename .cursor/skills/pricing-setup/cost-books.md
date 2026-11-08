@@ -38,7 +38,7 @@ Creating an entry from the cost book record pre-fills the book; from the Cost Bo
 | UI label | API name | Rules |
 |---|---|---|
 | Cost Book | `CostBook` (`Name`, `IsDefault`, `EffectiveFrom`, `EffectiveTo`) | Optional default flag [Help, ERD] |
-| Cost Book Entry | `CostBookEntry` (`CostBookId`, `ProductId`, `Cost`, `CurrencyIsoCode`, `EffectiveFrom`, `EffectiveTo`, `Description`) | `Cost` is the cost price |
+| Cost Book Entry | `CostBookEntry` (`CostBookId`, `ProductId`, `Cost`, `CurrencyIsoCode` (multicurrency orgs only), `EffectiveFrom`, `EffectiveTo`, `Description`) | `Cost` is the cost price |
 | Price book link | `Pricebook2.CostBookId` | Load the cost book first when bulk loading [Repo] |
 
 ## How pricing uses it
@@ -50,13 +50,15 @@ Creating an entry from the cost book record pre-fills the book; from the Cost Bo
 
 ## Data and automation
 
-- Objects: `CostBook`, `CostBookEntry`. [Repo] The QuantumBit plan upserts `CostBook` on `Name` and `CostBookEntry` on `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`, one entry per SKU per currency, costs generated below the lowest price. See `datasets/sfdmu/qb/en-US/qb-pricing/README.md`.
+- Objects: `CostBook`, `CostBookEntry`. [Repo] The QuantumBit plan upserts `CostBook` on `Name` and `CostBookEntry` on `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode` (the repo build is multicurrency; a single-currency plan drops `CurrencyIsoCode`), one entry per SKU per currency, costs generated below the lowest price. See `datasets/sfdmu/qb/en-US/qb-pricing/README.md`.
 
 ## Verify
 
 ```bash
-sf data query -q "SELECT Id, CostBook.Name, Product.Name, Cost, CurrencyIsoCode, EffectiveFrom, EffectiveTo FROM CostBookEntry WHERE Product.StockKeepingUnit = '<sku>'" --target-org <sf_alias>
+sf data query -q "SELECT Id, CostBook.Name, Product.Name, Cost, EffectiveFrom, EffectiveTo FROM CostBookEntry WHERE Product.StockKeepingUnit = '<sku>' AND CostBook.Name = '<book>'" --target-org <sf_alias>
 ```
+
+Compare only the entry whose `EffectiveFrom`/`EffectiveTo` cover the pricing date, in the cost book the decision table reads. Add `CurrencyIsoCode` to the SELECT (and a currency filter) only in a multicurrency org; the field does not exist otherwise.
 
 Simulate with the procedure that has the cost step; the cost variable should equal `Cost`. Check the table is Fresh.
 

@@ -31,7 +31,7 @@ The org ships a predefined Standard Price Book; you can create any number of cus
 | UI label | API name | Rules |
 |---|---|---|
 | Price Book | `Pricebook2` (fields `Name`, `IsStandard`, `IsActive`, `ValidFrom`, `ValidTo`, `CostBookId`) | Validity range and Active are Help-documented; API names from the ERD |
-| Price book entry | `PricebookEntry` (`Pricebook2Id`, `Product2Id`, `ProductSellingModelId`, `UnitPrice`, `CurrencyIsoCode`, `IsActive`, `IsDerived`, `UseStandardPrice`) | `UnitPrice`, product and book are required |
+| Price book entry | `PricebookEntry` (`Pricebook2Id`, `Product2Id`, `ProductSellingModelId`, `UnitPrice`, `CurrencyIsoCode` (multicurrency orgs only), `IsActive`, `IsDerived`, `UseStandardPrice`) | `UnitPrice`, product and book are required |
 | Product selling model | `ProductSellingModelId` | **Cannot be changed once set on a PBE**; migrating orgs need a support ticket to fix an existing entry [Help] |
 | Currency | `CurrencyIsoCode` | One PBE per currency in a multicurrency org [Repo] |
 | Derived list price | `IsDerived`, `PricebookEntryDerivedPrice` | Derived product's PBE price must be 0; see [derived-price](../pricing-procedures/elements/derived-price.md) |
@@ -49,13 +49,15 @@ For pricing adjustment batch jobs, price adjustment schedules need effective dat
 ## Data and automation
 
 - Objects: `Pricebook2`, `PricebookEntry`, `PricebookEntryDerivedPrice`; cost link via `Pricebook2.CostBookId`. Bulk edits: pricing adjustment batch jobs ([pointer](./import-export-and-bulk-data.md#bulk-price-edits)).
-- [Repo] The QuantumBit plan upserts `Pricebook2` and `PricebookEntry` (one row per SKU, selling model and currency; non-USD prices derived from `CurrencyType` rates). `CostBook` loads before `Pricebook2` because of the FK. See `datasets/sfdmu/qb/en-US/qb-pricing/README.md`.
+- [Repo] The QuantumBit plan upserts `Pricebook2` and `PricebookEntry` (one row per SKU, selling model and currency, since the repo build is multicurrency; non-USD prices derived from `CurrencyType` rates). `CostBook` loads before `Pricebook2` because of the FK. See `datasets/sfdmu/qb/en-US/qb-pricing/README.md`.
 
 ## Verify
 
 ```bash
-sf data query -q "SELECT Id, Product2.Name, Pricebook2.Name, ProductSellingModel.Name, CurrencyIsoCode, UnitPrice, IsActive FROM PricebookEntry WHERE Product2.StockKeepingUnit = '<sku>'" --target-org <sf_alias>
+sf data query -q "SELECT Id, Product2.Name, Pricebook2.Name, ProductSellingModel.Name, UnitPrice FROM PricebookEntry WHERE Product2.StockKeepingUnit = '<sku>' AND Pricebook2Id = '<book id>' AND ProductSellingModelId = '<model id>' AND IsActive = true" --target-org <sf_alias>
 ```
+
+Filter to the price book and selling model you simulate. Add `CurrencyIsoCode` to the SELECT (and a currency filter) only in a multicurrency org; the field does not exist otherwise.
 
 Then confirm the decision table is Fresh ([decision-tables](../decision-tables/SKILL.md)) and run Simulate: the waterfall List Price should equal `UnitPrice`.
 
