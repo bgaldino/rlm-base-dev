@@ -138,6 +138,16 @@ def read_auth(home):
     return auth, unreadable
 
 
+def unread_logins(home, unreadable):
+    """Usernames whose auth file is present in either root but not read: broken, or a link we skip."""
+    names = {name[:-len(".json")] for name in unreadable if name.endswith(".json")}
+    for root in state_roots(home):
+        if root.is_dir():
+            names |= {p.stem for p in root.iterdir()
+                      if p.is_symlink() and "@" in p.name and p.suffix == ".json"}
+    return names
+
+
 def read_indexes(home):
     found = []
     for root in state_roots(home):
@@ -311,6 +321,7 @@ def follow_aliases(aliases, name):
 def build_plan(run, home, project, today):
     """Inventory plus hub evidence. Mutates nothing beyond what the CLIs themselves do."""
     auth, unreadable = read_auth(home)
+    protected = unread_logins(home, unreadable)  # identity unknown: never judged or removed
     hubs = sorted(user for user, info in auth.items() if info["is_hub"])
     alias_payload = sf_json(run, "alias", "list")
     if alias_payload is None:
@@ -324,10 +335,16 @@ def build_plan(run, home, project, today):
     tracking, symlinks = read_tracking(project)
     responses, unrecognized_responses, response_symlinks = read_file_responses(project)
     symlinks = list(dict.fromkeys(symlinks + response_symlinks))  # a linked .sfdx shows up in both
-    deploy_cache = read_json(home / ".sf" / "deploy-cache.json", {})
+    cache_path = home / ".sf" / "deploy-cache.json"
+    if cache_path.is_symlink():  # a shared cache: read nothing through the link, rewrite nothing
+        symlinks.append(cache_path)
+        deploy_cache = {}
+    else:
+        deploy_cache = read_json(cache_path, {})
     deploy_cache = deploy_cache if isinstance(deploy_cache, dict) else {}
-    deploy_targets = {job: resolve(entry.get("target-org") or "")
-                      for job, entry in deploy_cache.items() if isinstance(entry, dict)}
+    deploy_raw = {job: entry.get("target-org") or ""
+                  for job, entry in deploy_cache.items() if isinstance(entry, dict)}
+    deploy_targets = {job: resolve(name) for job, name in deploy_raw.items()}
 
     manifest_dir = home / ".sf" / "manifestCache"
     if manifest_dir.is_symlink():  # its files are not ours to move, so no deploy job is planned
@@ -350,6 +367,8 @@ def build_plan(run, home, project, today):
         return classify(id_rows.get(org[:15], []), today)
 
     def user_class(username):
+        if username in protected:
+            return "conflict"
         if username in auth:
             if auth[username]["conflicting"]:
                 return "conflict"
@@ -357,17 +376,31 @@ def build_plan(run, home, project, today):
         # A signup username can be reused by a later org, which may sit on the hub that failed.
         return "unknown" if user_failed else classify(user_rows.get(username, []), today)
 
+    # A login whose name is also an alias is not ours to log out: sf resolves the name to the alias.
     stale_users = {u for u, info in auth.items() if org_class(info["org"]) in REMOVABLE
-                   and not info["is_hub"] and not info["is_sandbox"] and not info["conflicting"]}
+                   and not info["is_hub"] and not info["is_sandbox"] and not info["conflicting"]
+                   and u not in protected and u not in aliases}
 
     def stale(username):
         return username in stale_users or (username not in auth and user_class(username) in REMOVABLE)
+
+    held = set(auth) | protected
+
+    def stale_ref(name):
+        """Judge a name as state refers to it. A chain is never followed through a login that is also an alias."""
+        seen = set()
+        while name in aliases and name not in seen:
+            if name in held:
+                return False
+            seen.add(name)
+            name = aliases[name]
+        return stale(name)
 
     remove = {
         "logout": sorted(stale_users),
         # Logout clears only aliases whose value is exactly the user, so list the orphans and any
         # alias that reaches a removed user through another alias.
-        "aliases": sorted(a for a in aliases if stale(resolve(a))
+        "aliases": sorted(a for a in aliases if stale_ref(a)
                           and (resolve(a) not in auth or aliases[a] != resolve(a))),
         "indexes": sorted(str(p) for p in indexes if org_class(p.stem) in REMOVABLE),
         "tracking": sorted(str(p) for p in tracking
@@ -375,16 +408,17 @@ def build_plan(run, home, project, today):
                            or ("@" in p.name and stale(p.name))),
         "file_responses": sorted(str(p) for p in responses if org_class(p.name) in REMOVABLE),
         "deploy_jobs": [] if manifest_dir.is_symlink() else sorted(
-            job for job, user in deploy_targets.items() if user and stale(user) and plain_job_id(job)),
+            job for job, user in deploy_targets.items()
+            if user and stale_ref(deploy_raw[job]) and plain_job_id(job)),
         # `config unset target-org` clears the scope's key whatever it names, so a scope that also
         # holds a value that is not stale is reported, not unset.
         "defaults": sorted(scope for scope, values in config_targets(home, project).items()
-                           if any(stale(resolve(v)) for v in values)
-                           and all(stale(resolve(v)) for v in values)),
+                           if any(stale_ref(v) for v in values)
+                           and all(stale_ref(v) for v in values)),
     }
     removing = {str(p) for k in ("indexes", "tracking", "file_responses") for p in remove[k]}
-    conflict = sorted(u for u in auth
-                      if auth[u]["conflicting"] or org_class(auth[u]["org"]) == "conflict")
+    conflict = sorted(protected | {u for u in auth if u in aliases}
+                      | {u for u in auth if auth[u]["conflicting"] or org_class(auth[u]["org"]) == "conflict"})
     scopes = config_targets(home, project)
     return {
         "schema": 1,
@@ -406,7 +440,7 @@ def build_plan(run, home, project, today):
         "preserved": {
             "logins": len(auth) - len(stale_users),
             # Not len - listed: logout also clears direct aliases, which are never listed.
-            "aliases": sum(not stale(resolve(a)) for a in aliases),
+            "aliases": sum(not stale_ref(a) for a in aliases),
             "indexes": sum(str(p) not in removing for p in indexes),
             "tracking": sum(str(p) not in removing for p in tracking),
             "file_responses": sum(str(p) not in removing for p in responses),
@@ -425,8 +459,8 @@ def build_plan(run, home, project, today):
             # Lead to no username, so no hub row can ever put them on the plan.
             "dangling_aliases": sorted(a for a in aliases if "@" not in resolve(a)),
             "mixed_defaults": sorted(scope for scope, values in config_targets(home, project).items()
-                                     if any(stale(resolve(v)) for v in values)
-                                     and not all(stale(resolve(v)) for v in values)),
+                                     if any(stale_ref(v) for v in values)
+                                     and not all(stale_ref(v) for v in values)),
             "dangling_defaults": sorted(scope for scope, values in config_targets(home, project).items()
                                         if any("@" not in resolve(v) for v in values)),
         },
@@ -494,6 +528,8 @@ def check_quarantine(quarantine, home):
     created, temp = [], None
     try:
         # Inside the try: before Python 3.14, exists() and is_symlink() raise on a parent it cannot search.
+        if quarantine.is_symlink():  # a linked root would send every move somewhere else
+            return "{} is a symlink".format(quarantine)
         for name in ("orgs", "fileResponses", "manifestCache", ".sf", ".sfdx"):
             if (quarantine / name).is_symlink():  # a move into it would land outside the quarantine
                 return "{} is a symlink".format(quarantine / name)
@@ -533,8 +569,9 @@ def move_to_quarantine(run, path, roots, quarantine, project):
             return "tracked by git, or git could not say"
     dest = quarantine / path.parent.name / path.name
     try:
-        if dest.parent.is_symlink():
-            return "the quarantine folder {} is a symlink".format(dest.parent)
+        for folder in (quarantine, dest.parent):  # a linked root or folder would redirect the move
+            if folder.is_symlink():
+                return "the quarantine folder {} is a symlink".format(folder)
         dest.parent.mkdir(parents=True, exist_ok=True)
         move_path(str(path), str(free_name(dest)))
     except OSError as error:
@@ -569,6 +606,9 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
     if not jobs:  # no cache file is normal, and only a failure if something had to change in it
         return 0, 0
     path = home / ".sf" / "deploy-cache.json"
+    if path.is_symlink():  # checked here too: a link made after the audit is not ours to rewrite
+        failures.append((str(path), "symlink"))
+        return 0, 0
     cache = read_json(path, None)
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))

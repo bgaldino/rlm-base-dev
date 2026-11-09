@@ -83,9 +83,9 @@ Review with the user:
 | Output | Meaning |
 |--------|---------|
 | `hub_failures` | Those hubs gave no evidence, so the plan may be incomplete. Fix access and re-audit. |
-| `conflicting_evidence` | Stop on those entries. A username that two auth files name with different orgs or flags is protected: never logged out, its aliases, defaults and deploy jobs kept, and listed here. So is an auth file whose name differs from the username inside it (a renamed backup): sf answers to both names with that file's token. |
+| `conflicting_evidence` | Stop on those entries. A username that two auth files name with different orgs or flags is protected: never logged out, its aliases, defaults and deploy jobs kept, and listed here. So is an auth file whose name differs from the username inside it (a renamed backup): sf answers to both names with that file's token. A username whose auth file is unreadable or a link is protected the same way, in both roots. A login named like an alias is listed here and never logged out, because sf would resolve the name to the alias. That alias, and any default or deploy-cache entry that uses the name, is kept too, as is any alias chain that passes through that name: it is not followed to the alias target. |
 | `logins_with_no_refresh_token` | Stops working when its session expires. It is not on the removal plan, which does not mean its org is live. Report it; log out only with explicit approval. |
-| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned, so stale entries stay in the cache. |
+| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned, so stale entries stay in the cache. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
 | `dangling_aliases`, `dangling_defaults` | Lead to no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>`, or `sf config unset target-org` (add `--global` for a `global` scope; the entry names it). That unset clears the scope's key whatever it names: if the scope also holds a valid value, note it first and restore it with `sf config set target-org=<value>`. |
 | `unsafe_deploy_cache_keys` | Deploy-cache keys that are not plain file names (such as `../x`). Never planned, because no manifest is looked for. Left alone; report them. |
@@ -111,7 +111,7 @@ state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>`
 folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config
 unset target-org` for a default still pointing at a removed user, and moves user indexes, tracking
 directories, `fileResponses` directories, and matched deploy-cache manifests to the quarantine. It
-refuses symlinks (a linked `manifestCache` or quarantine folder included), paths outside the state roots, and project files tracked by git (home state is not
+refuses symlinks (a linked `manifestCache`, a linked quarantine root or folder, or a linked deploy cache included), paths outside the state roots, and project files tracked by git (home state is not
 checked against git). If a logout fails, that org's
 index, tracking, `fileResponses` and deploy-cache entries stay, and so does a chained alias that
 still reaches the login. `sf` clears the user's direct aliases and defaults before it can fail, so

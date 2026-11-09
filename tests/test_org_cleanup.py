@@ -661,6 +661,108 @@ class Apply(Base):
         self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
         self.assertEqual(plan["report"]["conflicting_evidence"], [])
 
+    def test_an_unreadable_auth_file_protects_its_username_in_both_roots(self):
+        self.add_auth("bob@x.invalid", DEAD_ORG)
+        (self.home / ".sf" / "bob@x.invalid.json").write_text("not json")
+        cli = FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000009", user="bob@x.invalid")],
+                      {"b": "bob@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertIn("bob@x.invalid", plan["report"]["conflicting_evidence"])
+
+    def test_a_symlinked_auth_file_protects_its_username_and_is_not_opened(self):
+        target = self.home / "elsewhere.json"
+        target.write_text(json.dumps({"username": "bob@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        (self.home / ".sfdx" / "bob@x.invalid.json").symlink_to(target)
+        cli = FakeCli(self.home, [row("00DBB0000000009", user="bob@x.invalid")], {"b": "bob@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertIn("bob@x.invalid", plan["report"]["conflicting_evidence"])
+
+    def test_a_login_named_like_an_alias_is_not_logged_out(self):
+        self.add_auth("old@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG)], {"old@x.invalid": "live@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("old@x.invalid", plan["report"]["conflicting_evidence"])
+
+    def test_an_alias_named_like_a_login_is_not_unset_or_followed(self):
+        # The alias repoints a live login's name at a dead org. Unsetting it, the default or the job
+        # that use the name would change what the login means, so all three are kept.
+        self.add_auth("bob@x.invalid", LIVE_ORG)
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "bob@x.invalid"}))
+        (self.home / ".sf" / "deploy-cache.json").write_text(
+            json.dumps({"job1": {"target-org": "bob@x.invalid"}}))
+        cli = FakeCli(self.home, [row(DEAD_ORG, user="gone@x.invalid"), row(LIVE_ORG, "Active", "2026-12-01")],
+                      {"bob@x.invalid": "gone@x.invalid"})
+        remove = self.plan(cli)["remove"]
+        for key in ("logout", "aliases", "defaults", "deploy_jobs"):
+            self.assertEqual(remove[key], [], key)
+
+    def test_an_alias_chain_through_a_login_named_like_an_alias_is_not_followed(self):
+        self.add_auth("bob@x.invalid", LIVE_ORG)
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "b"}))
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "b"}}))
+        cli = FakeCli(self.home, [row(DEAD_ORG, user="gone@x.invalid"), row(LIVE_ORG, "Active", "2026-12-01")],
+                      {"bob@x.invalid": "gone@x.invalid", "b": "bob@x.invalid"})
+        remove = self.plan(cli)["remove"]
+        for key in ("logout", "aliases", "defaults", "deploy_jobs"):
+            self.assertEqual(remove[key], [], key)
+
+    def test_an_alias_named_like_an_unreadable_login_is_kept(self):
+        (self.home / ".sfdx" / "bob@x.invalid.json").write_text("not json")
+        cli = FakeCli(self.home, [row("00DBB0000000009", user="gone@x.invalid")],
+                      {"bob@x.invalid": "gone@x.invalid"})
+        self.assertEqual(self.plan(cli)["remove"]["aliases"], [])
+
+    def test_a_symlinked_login_does_not_hide_a_readable_stale_copy_in_the_other_root(self):
+        target = self.home / "elsewhere.json"
+        target.write_text(json.dumps({"username": "bob@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        (self.home / ".sfdx" / "bob@x.invalid.json").symlink_to(target)
+        (self.home / ".sf" / "bob@x.invalid.json").write_text(
+            json.dumps({"username": "bob@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])
+
+    def test_a_quarantine_link_is_refused_by_apply_before_any_logout(self):
+        rows = self.setup_stale_org()
+        real = self.home / "real-quarantine"
+        real.mkdir()
+        link = self.home / "linked-quarantine"
+        link.symlink_to(real)
+        cli = FakeCli(self.home, rows, {"stale-a": "gone@x.invalid"})
+        plan_file = self.project / "plan.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(link)],
+                           cli, self.home, self.project, TODAY)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.logouts(cli), [])
+
+    def test_a_linked_deploy_cache_is_reported_and_never_rewritten(self):
+        target = self.home / "shared-cache.json"
+        target.write_text(json.dumps({"job1": {"target-org": "gone@x.invalid"}}))
+        (self.home / ".sf" / "deploy-cache.json").symlink_to(target)
+        plan = self.plan(FakeCli(self.home))
+        self.assertEqual(plan["remove"]["deploy_jobs"], [])
+        self.assertIn(str(self.home / ".sf" / "deploy-cache.json"), plan["report"]["symlinks_left_alone"])
+        failures = []
+        oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine, self.project, failures)
+        self.assertEqual(failures, [(str(self.home / ".sf" / "deploy-cache.json"), "symlink")])
+        self.assertTrue(target.is_file() and not target.is_symlink())
+        self.assertIn("job1", json.loads(target.read_text()))
+
+    def test_a_quarantine_root_that_is_a_link_is_refused(self):
+        real = self.home / "real-quarantine"
+        real.mkdir()
+        link = self.home / "linked-quarantine"
+        link.symlink_to(real)
+        why = oc.check_quarantine(link, self.home)
+        self.assertIsNotNone(why)
+        self.assertIn("symlink", why)
+
     def test_drift_since_review_stops_before_anything_happens(self):
         rows = self.setup_stale_org()
         plan_cli = FakeCli(self.home, [])  # reviewed when nothing was stale
