@@ -28,8 +28,9 @@ the user's call.
 Credentials are never printed or written: auth files are reduced to identity fields as soon
 as they are parsed, and a file this tool does not recognize is reported without being opened.
 
-Exit status: 0 success, 1 a step failed, 2 usage or wrong directory, 3 the plan drifted,
-130 interrupted. Stdlib only and Python 3.9-safe.
+Exit status: 0 success, 1 a step failed, 2 usage, wrong directory or a plan path inside the
+project, 3 the plan drifted, 130 interrupted. An audit with hub failures still exits 0: it prints
+them, and the plan it writes is incomplete, not wrong. Stdlib only and Python 3.9-safe.
 """
 import argparse
 import datetime
@@ -48,8 +49,8 @@ from pathlib import Path
 ORG_ID = re.compile(r"00D[0-9A-Za-z]{12}(?:[0-9A-Za-z]{3})?")  # always used with fullmatch
 # JavaScript's whitespace (its \s and String.trim), spelled out: Python's \s and str.strip() cover
 # a different set. The names sf lists as logins in ~/.sfdx (@salesforce/core orgAccessor.getFileRegex).
-JS_SPACE_CHARS = ("\t\n\x0b\x0c\r   " + "".join(map(chr, range(0x2000, 0x200b)))
-                  + "    　﻿")
+JS_SPACE_CHARS = ("\t\n\x0b\x0c\r \u00a0\u1680" + "".join(map(chr, range(0x2000, 0x200b)))
+                  + "\u2028\u2029\u202f\u205f\u3000\ufeff")
 SF_LOGIN_FILE = re.compile(r"[^.][^@]*@[^.]+(?:\.[^." + re.escape(JS_SPACE_CHARS) + r"]+)+\.json")
 BATCH = 50
 REMOVABLE = ("deleted", "expired")
@@ -424,6 +425,12 @@ def read_unclassified(home, project, consumed):
     return found
 
 
+def query_safe(value):
+    """Whether a value can go into the SOQL `IN` list as written: no quote, backslash, or text sf
+    would read as another name."""
+    return "'" not in value and "\\" not in value and not sf_cannot_pass(value)
+
+
 def query_hubs(run, hubs, field, values):
     """ScratchOrgInfo rows per value across every hub, plus the hubs that gave no full answer.
 
@@ -432,7 +439,7 @@ def query_hubs(run, hubs, field, values):
     """
     rows, failed = {}, []
     by_name = field == "SignupUsername"
-    safe = sorted(v for v in values if "'" not in v and "\\" not in v and not sf_cannot_pass(v))
+    safe = sorted(v for v in values if query_safe(v))
     for hub in hubs:
         for start in range(0, len(safe), BATCH):
             quoted = "','".join(safe[start:start + BATCH])
@@ -800,6 +807,8 @@ def survey(run, home, project, today, predict=True, env=None):
             "unrecognized_file_responses": [str(p) for p in unrecognized_responses],
             # A key that is not a plain file name has no manifest to look for, and a target that is not
             # text names no org, so neither is ever planned.
+            # Never queried, so never judged: a clean plan says nothing about them.
+            "usernames_not_queried": sorted(n for n in orphans if not query_safe(n)),
             "unsafe_deploy_cache_keys": sorted(j for j, v in deploy_raw.items()
                                                if not plain_job_id(j) or not isinstance(v, str)),
             "unreadable_deploy_cache": cache_unread,
@@ -1235,8 +1244,11 @@ def print_plan(plan):
     for key in REMOVE_KEYS:
         items = plan["remove"][key]
         print("  {}: {}".format(key, len(items)))
+        bound = {"aliases": "aliases", "defaults": "defaults", "deploy_jobs": "deploy_jobs"}.get(key)
         for item in items:
-            print("    {}".format(item))
+            value = plan["targets"][bound][item]["value"] if bound else None
+            print("    {}".format(item) if not bound else "    {} -> {}".format(
+                item + " target-org" if key == "defaults" else item, value))
             effects = plan["targets"]["logout"].get(item) if key == "logout" else None
             if effects and effects["aliases"]:
                 print("      sf also clears its aliases: {}".format(", ".join(effects["aliases"])))
@@ -1302,6 +1314,12 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
 
     if args.command == "audit":
         unwritten = None
+        out = Path(os.path.abspath(args.out)) if args.out else None
+        where = out.parent.resolve() if out else None  # the folder; the file itself may be a link
+        if where and (where == project.resolve() or project.resolve() in where.parents):
+            print("The plan holds usernames and org IDs: write it outside the project ({}).".format(project),
+                  file=sys.stderr)
+            return 2
         if args.out:  # first, so a closed output pipe cannot lose the plan
             try:
                 write_private(args.out, json.dumps(plan, indent=1) + "\n")
@@ -1323,9 +1341,12 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
     if not isinstance(reviewed, dict):
         print("Could not read a plan from {}. Nothing was changed.".format(args.plan), file=sys.stderr)
         return 1
-    if any(reviewed.get(key) != plan[key] for key in ("schema", "project", "remove", "targets")):
-        print("The plan differs from the current state. Review a fresh audit before applying.",
-              file=sys.stderr)
+    drifted = [key for key in ("schema", "project", "remove", "targets") if reviewed.get(key) != plan[key]]
+    if drifted:
+        print("The plan differs from the current state ({}). Review a fresh audit before applying.".format(
+            ", ".join(drifted)), file=sys.stderr)
+        if plan["hub_failures"]:
+            print("Hubs or logins that gave no evidence now: {}".format(plan["hub_failures"]), file=sys.stderr)
         return 3
     quarantine = Path(args.quarantine) if args.quarantine else default_quarantine(home, today)
     moves = any(plan["remove"][key] for key in FILE_KEYS + ("deploy_jobs",))

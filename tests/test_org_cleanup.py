@@ -195,7 +195,7 @@ class Base(unittest.TestCase):
             return oc.main(argv, cli, self.home, self.project, TODAY, env=self.env)
 
     def audit_file(self, cli):
-        plan_file = self.project / "plan.json"
+        plan_file = self.home.parent / "plan.json"
         self.assertEqual(self.main(["audit", "--out", str(plan_file)], cli), 0)
         return plan_file
 
@@ -833,7 +833,7 @@ class Secrets(Base):
     def test_no_token_reaches_the_plan_or_the_output(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
         (self.project / ".sfdx" / "saved-auth").write_text(CANARY)
-        out = self.project / "plan.json"
+        out = self.home.parent / "plan.json"
         self.assertEqual(self.main(["audit", "--out", str(out)], FakeCli(self.home, [row(DEAD_ORG)])), 0)
         self.assertNotIn(CANARY, self.stdout.getvalue())
         self.assertNotIn(CANARY, out.read_text())
@@ -868,13 +868,13 @@ class Secrets(Base):
             return real_open(path, flags, mode, **kwargs)
 
         with mock.patch.object(oc.os, "open", spy):
-            self.assertEqual(self.main(["audit", "--out", str(self.project / "plan.json")], FakeCli(self.home)), 0)
+            self.assertEqual(self.main(["audit", "--out", str(self.home.parent / "plan.json")], FakeCli(self.home)), 0)
         self.assertEqual(modes, [0o600])  # never created under the umask and tightened later
 
     def test_the_plan_is_never_written_through_a_symlink(self):
         victim = self.project / "victim.txt"
         victim.write_text("keep")
-        link = self.project / "plan.json"
+        link = self.home.parent / "plan.json"
         link.symlink_to(victim)
         for patch in (contextlib.nullcontext(), mock.patch.object(os, "O_NOFOLLOW", 0, create=True)):
             with patch:
@@ -912,7 +912,7 @@ class Secrets(Base):
         self.assertIn("Nothing was changed", self.stderr.getvalue())
 
     def test_an_existing_loose_plan_file_is_tightened(self):
-        out = self.project / "plan.json"
+        out = self.home.parent / "plan.json"
         out.write_text("old")
         out.chmod(0o644)
         self.assertEqual(self.main(["audit", "--out", str(out)], FakeCli(self.home)), 0)
@@ -1638,7 +1638,7 @@ class CheckLogins(Base):
 
 
 class ModelEdges(Base):
-    """Cases the first review round of the sf model found; each pins a guard."""
+    """Each test pins one guard of the sf model."""
 
     setup_stale_org = Apply.setup_stale_org
 
@@ -1822,8 +1822,8 @@ class ModelEdges(Base):
             self.assertIn("Residual files moved", self.stdout.getvalue())
 
 
-class RoundTwo(Base):
-    """Cases the second review round found; each fails on the mutant that removes its guard."""
+class SfReadingAndStateChecks(Base):
+    """Each test fails on the mutant that removes the guard it names."""
 
     setup_stale_org = Apply.setup_stale_org
 
@@ -2065,7 +2065,7 @@ class RoundTwo(Base):
         self.assertIn("'deploy_jobs': 1", self.stdout.getvalue())
 
     def test_the_plan_is_written_before_it_is_printed(self):
-        out = self.project / "plan.json"
+        out = self.home.parent / "plan.json"
         with mock.patch.object(oc, "print_plan", side_effect=BrokenPipeError):
             with self.assertRaises(BrokenPipeError):
                 self.main(["audit", "--out", str(out)], FakeCli(self.home))
@@ -2100,8 +2100,8 @@ class ReencryptingCli(FakeCli):
                 path.write_text(json.dumps(data))
 
 
-class RoundThree(Base):
-    """Cases the third review round found; each fails on the mutant that removes its guard."""
+class PlanBoundCommands(Base):
+    """Each test fails on the mutant that removes the guard it names."""
 
     setup_stale_org = Apply.setup_stale_org
 
@@ -2236,7 +2236,7 @@ class RoundThree(Base):
         self.assertEqual(oc.run_command(["/usr/bin/true", "a\0b"]), (127, ""))
 
     def test_a_plan_that_cannot_be_written_is_still_printed(self):
-        self.assertEqual(self.main(["audit", "--out", str(self.project / "no" / "plan.json")], FakeCli(self.home)), 1)
+        self.assertEqual(self.main(["audit", "--out", str(self.home.parent / "no" / "plan.json")], FakeCli(self.home)), 1)
         self.assertIn("Dev Hubs:", self.stdout.getvalue())
         self.assertIn("Could not write the plan", self.stderr.getvalue())
 
@@ -2249,11 +2249,11 @@ class RoundThree(Base):
         self.assertIn("job1", self.read_cache())
 
 
-class RoundFour(Base):
-    """Cases the fourth review round found; each fails on the mutant that removes its guard."""
+class EntriesSfSkips(Base):
+    """Each test fails on the mutant that removes the guard it names."""
 
     setup_stale_org = Apply.setup_stale_org
-    stale_survey_then = RoundThree.stale_survey_then
+    stale_survey_then = PlanBoundCommands.stale_survey_then
 
     def test_entries_sf_skips_block_no_logout(self):
         rows = self.setup_stale_org()
@@ -2384,8 +2384,8 @@ class RoundFour(Base):
         self.assertEqual(oc.run_command(["/usr/bin/true", "\udc80x"]), (0, ""))
 
 
-class RoundFive(Base):
-    """Cases the fifth review round found; each fails on the mutant that removes its guard."""
+class LinksAndInterrupts(Base):
+    """Each test fails on the mutant that removes the guard it names."""
 
     setup_stale_org = Apply.setup_stale_org
 
@@ -2456,8 +2456,8 @@ class RoundFive(Base):
         self.assertIn("rep@x.invalid (stopped while sf ran or just after; counted from what it left)", self.stdout.getvalue())
 
 
-class RoundFivePins(Base):
-    """Guards the fifth round found no test for."""
+class LinkAndScopePins(Base):
+    """Each test fails on the mutant that removes the guard it names."""
 
     setup_stale_org = Apply.setup_stale_org
 
@@ -2516,8 +2516,8 @@ class RoundFivePins(Base):
         self.assertIn("rep@x.invalid (stopped while sf ran or just after; it may have completed)", self.stdout.getvalue())
 
 
-class RoundSix(Base):
-    """Cases the sixth review round found; each fails on the mutant that removes its guard."""
+class HubEvidenceAndRecounts(Base):
+    """Each test fails on the mutant that removes the guard it names."""
 
     setup_stale_org = Apply.setup_stale_org
 
@@ -2581,11 +2581,11 @@ class RoundSix(Base):
         self.assertEqual(cli.calls, [])
 
 
-class RoundSeven(Base):
-    """Cases the seventh review round found; each fails on the mutant that removes its guard."""
+class AliasRedirectsAndUnknowns(Base):
+    """Each test fails on the mutant that removes the guard it names."""
 
     setup_stale_org = Apply.setup_stale_org
-    facts_raising = RoundSix.facts_raising
+    facts_raising = HubEvidenceAndRecounts.facts_raising
 
     def link_login(self, name, org, **fields):
         target = self.home.parent / (name + ".target.json")
@@ -2676,6 +2676,30 @@ class RoundSeven(Base):
         self.assertIn("stale (may have been unset: ~/.sfdx/alias.json is unreadable now)", out)
         self.assertNotIn("alias keep", out)
         self.assertNotIn("alias unset failed", out)
+
+    def test_a_plan_file_inside_the_project_is_refused(self):
+        self.assertEqual(self.main(["audit", "--out", str(self.project / "plan.json")], FakeCli(self.home)), 2)
+        self.assertFalse((self.project / "plan.json").exists())
+
+    def test_a_username_no_query_can_carry_is_reported(self):
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="o'brien@x.invalid")], {"a": "o'brien@x.invalid"}))
+        self.assertEqual(plan["report"]["usernames_not_queried"], ["o'brien@x.invalid"])
+
+    def test_the_plan_shows_what_each_alias_default_and_job_reaches(self):
+        self.write_config("local", sf={"target-org": "gone@x.invalid"})
+        self.assertEqual(self.main(["audit"], FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")],
+                                                     {"a": "gone@x.invalid"})), 0)
+        self.assertIn("a -> gone@x.invalid", self.stdout.getvalue())
+        self.assertIn("local target-org -> gone@x.invalid", self.stdout.getvalue())
+
+    def test_drift_says_what_changed(self):
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        plan_file = self.audit_file(cli)
+        cli.fail_hubs = {HUB}
+        self.assertEqual(self.apply(cli, plan_file), 3)
+        self.assertIn("(remove, targets)", self.stderr.getvalue())
+        self.assertIn("gave no evidence now", self.stderr.getvalue())
 
     def test_a_nul_in_a_name_is_never_passed_to_sf(self):
         self.assertTrue(oc.sf_cannot_pass("a\0b"))

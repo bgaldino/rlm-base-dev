@@ -93,6 +93,7 @@ username. Only a removable class goes on the plan:
 | Past expiration, not `Active` | expired | Removed |
 | `Active`, not past expiration | active | Preserved |
 | `Active` with a past date, or different statuses across rows | conflict | Preserved, reported |
+| Not `Active` and not past expiration (such as `New` or `Error` with a future date) | unknown | Preserved |
 | No row, or the hub did not answer | unknown | Preserved |
 
 An expiration date of today is not past. Dev Hubs and sandboxes are never logged out, and a
@@ -100,25 +101,27 @@ login on a removable org is logged out only if nothing in `protected` keeps it.
 
 It removes nothing, though `cci` writes a `.org` file for any declared shape that lacks one,
 and a hub query can refresh that hub's auth file. The plan holds usernames but no tokens, and
-is created readable only by the user; it refuses to write through a symlink. Keep it out of the
-repo: the tool does not check where `--out` points. `Dev Hubs: 0` with a "NO CONNECTED DEV HUB"
+is created readable only by the user; it refuses to write through a symlink, or inside the
+project (exit 2). The audit exits 0 even when `hub_failures` is not empty: read its warning lines. `Dev Hubs: 0` with a "NO CONNECTED DEV HUB"
 warning means no hub was queried, so an empty plan is not evidence that the state is clean;
 authorize the hub with `isDevHub` set and audit again.
 
 Every `cci` command rolls `~/.cumulusci/logs` over and keeps 5 backups, including the ones this
 procedure runs. Copy a log you are debugging before starting.
 
-Review with the user, including the aliases and config keys printed under each logout:
+Review with the user, including the aliases and config keys printed under each logout and the
+value each alias, default and deploy job reaches (`name -> value`):
 
 | Output | Meaning |
 |--------|---------|
 | `hub_failures` | Gave no full evidence: a hub that failed or returned a cut-short result (sf's `org-max-query-limit`), a hub named like an alias (sf would ask the alias's org), or a login file the tool cannot tie to an identity that may be a Dev Hub (unreadable, cut short or unparseable, a link to nothing or a loop, a folder, a misnamed file; one whose JSON names a username and is not marked `isDevHub` is not listed). While any is listed no username is judged, so the plan may be incomplete. Fix access and re-audit. |
-| `protected` | Names kept, each with every reason that applies. Every linked login, whatever its org: it is read for its identity and never logged out, since sf would remove only the link. A login whose auth file the tool cannot read or act on: unreadable or with no username, not a file sf can read now (a link to nothing or a loop, a folder), a file whose name sf reads differently (a `.json` inside the username, or a name that is not valid UTF-8), and, when its org is gone, a renamed file, another file holding the same login, or files whose names differ only by case or Unicode form. A login on a gone org that is not logged out because an alias has its name, because logout would clear an alias whose name would then mean another login, because logout would rewrite a config scope the tool cannot model, because its name starts with `-` and a letter sf reads as its own flag (`-a`, `-c`, `-o`, `-p`, `-u`), or because a username-less login file stops every logout. An alias holding `@` whose name has characters this Python's Unicode tables do not know. Any alias that has a login's name: sf resolves that name to the alias, and the tool never unsets it. An alias whose name is not valid UTF-8, which sf would read as another name. Stop on these; resolve each by hand. |
+| `protected` | Names kept, each with every reason that applies (listed below the table). Stop on these; resolve each by hand. |
 | `conflicting_evidence` | Hub rows that disagree, or show `Active` past the date, for a login, an org whose index, tracking or `fileResponses` is local, or a username that an alias, default, deploy-cache entry, environment default or tracking folder names. Kept. |
 | `logins_with_no_refresh_token` | An access-token-only login that is not linked (a linked one is under `protected`): it stops working when its session expires (JWT logins re-sign and are not listed). It is not on the plan, which does not mean its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. An auth file that does not parse is listed whether or not it is a link, since sf reads through links. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
 | `dangling_aliases`, `dangling_defaults` | Reach no login and no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset -- <name>` (the `--` keeps a name such as `-ap` from being read as `--all --no-prompt`), or `sf config unset target-org` (see the note below the table). |
+| `usernames_not_queried` | Usernames an alias, default, deploy-cache entry or tracking folder names that no hub query can carry (a quote, a backslash, or text sf would read as another name). Never judged, so never planned. Report them. |
 | `unsafe_deploy_cache_keys`, `unreadable_deploy_cache` | Deploy-cache keys that are not plain file names (such as `../x`), or entries whose target is not text; or a deploy cache that does not parse, so no entry in it is planned. Never planned. Report them. |
 | `unmodelled_config` | Config scopes the tool cannot model, with the reason: a file that does not parse, is a link (sf writes through it; the tool reads it to decide which logouts to refuse) or is not a regular file; files that disagree; a key outside those sf and its bundled plugins define (a user-installed plugin may define it; if nothing does, sf cannot unset it and its next write turns it into `org-instance-url`); a legacy key in `.sf/config.json`; a default that is not text; interoperability turned off; or a linked project `.sf`/`.sfdx`. The tool never writes such a scope and refuses any logout that would. Report it; the user fixes the files, then re-audit. |
 | `stale_config_values` | A stale default the tool does not unset: a `target-dev-hub`, or a value in an unmodelled scope. With the user's approval unset it by hand (see the note below the table). |
@@ -126,6 +129,24 @@ Review with the user, including the aliases and config keys printed under each l
 | `unclassified_files` | Not owned by the CLIs, and not opened: a linked index file, a login entry sf cannot open now, a credential backup such as `user@x.json.bak`, an auth-shaped file in `~/.sf` or the project, a name sf does not list. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. An entry the tool cannot examine is listed with an `error`. Report it and let the user decide. |
 | `preserved` | Counts of what stays in each category. |
 | `prune_prediction` | See step 3. |
+
+**What `protected` keeps:**
+
+- Every linked login, whatever its org: it is read for its identity and never logged out, since
+  sf would remove only the link.
+- A login whose auth file the tool cannot read or act on: unreadable or with no username, not a
+  file sf can read now (a link to nothing or a loop, a folder), or a file whose name sf reads
+  differently (a `.json` inside the username, or a name that is not valid UTF-8).
+- When its org is gone: a renamed file, another file holding the same login, or files whose names
+  differ only by case or Unicode form.
+- A login on a gone org that is not logged out because an alias has its name; because logout
+  would clear an alias whose name would then mean another login; because logout would rewrite a
+  config scope the tool cannot model; because its name starts with `-` and a letter sf reads as
+  its own flag (`-a`, `-c`, `-o`, `-p`, `-u`); or because a username-less login file stops every
+  logout.
+- An alias that has a login's name (sf resolves that name to the alias), an alias holding `@`
+  whose name has characters this Python's Unicode tables do not know, or an alias whose name is
+  not valid UTF-8 (sf would read it as another name). The tool never unsets these.
 
 **Unsetting a default by hand:** `sf config unset target-org` (add `--global` for the `global`
 scope) clears the scope's key in both files, whatever value each holds. If either file holds a
