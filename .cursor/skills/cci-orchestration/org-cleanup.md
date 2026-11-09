@@ -83,7 +83,7 @@ Review with the user:
 | Output | Meaning |
 |--------|---------|
 | `hub_failures` | Those hubs gave no evidence, so the plan may be incomplete. Fix access and re-audit. |
-| `conflicting_evidence` | Stop on those entries. |
+| `conflicting_evidence` | Stop on those entries. A username that two auth files name with different orgs or flags is protected: never logged out, its aliases, defaults and deploy jobs kept, and listed here. So is an auth file whose name differs from the username inside it (a renamed backup): sf answers to both names with that file's token. |
 | `logins_with_no_refresh_token` | Stops working when its session expires. It is not on the removal plan, which does not mean its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned, so stale entries stay in the cache. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
@@ -105,7 +105,7 @@ Do not run `apply` while another `sf` or `cci` process is running: the deploy ca
 rewritten without a lock, so a concurrent deploy's entry could be lost.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
-reviewed one, including its project and the usernames its aliases and deploy jobs resolved to. It then moves a temp file into the quarantine, and exits 1 before any logout if that
+reviewed one, including its project, the default values and their usernames, the logout org IDs, and the usernames its aliases and deploy jobs resolved to. It then moves a temp file into the quarantine, and exits 1 before any logout if that
 fails. The quarantine is a dated folder in the user's Trash, or with no Trash, beside the real CLI
 state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another
 folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config

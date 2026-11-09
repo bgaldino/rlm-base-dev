@@ -116,12 +116,25 @@ def read_auth(home):
                 unreadable.append(path.name)
                 continue
             username = data.get("username") or path.stem
-            auth[username] = {
-                "org": data["orgId"][:15],
-                "is_hub": bool(data.get("isDevHub")),
-                "is_sandbox": bool(data.get("isSandbox")),
-                "refreshable": bool(data.get("refreshToken")),
-            }
+            # sf finds a login by its file name, so a renamed backup answers to that name with
+            # another username's token. Both names are protected rather than judged by one org.
+            renamed = username != path.stem
+            for name in ([username, path.stem] if renamed else [username]):
+                entry = {
+                    "org": data["orgId"][:15],
+                    "is_hub": bool(data.get("isDevHub")),
+                    "is_sandbox": bool(data.get("isSandbox")),
+                    "refreshable": bool(data.get("refreshToken")),
+                    "conflicting": renamed,
+                }
+                previous = auth.get(name)
+                if previous is not None:
+                    # Two files for one name must not pick the identity by directory order.
+                    entry["conflicting"] = (renamed or previous["conflicting"] or any(
+                        previous[key] != entry[key] for key in ("org", "is_hub", "is_sandbox")))
+                    for key in ("is_hub", "refreshable"):  # a hub stays queried whichever file is last
+                        entry[key] = entry[key] or previous[key]
+                auth[name] = entry
     return auth, unreadable
 
 
@@ -229,10 +242,12 @@ def classify(rows, today):
     status = statuses.pop()
     if status == "Deleted":
         return "deleted"
-    past = any(row.get("ExpirationDate") and row["ExpirationDate"] < today for row in rows)
     if status == "Active":
+        past = any(row.get("ExpirationDate") and row["ExpirationDate"] < today for row in rows)
         return "conflict" if past else "active"
-    return "expired" if past else "unknown"
+    # A reused signup username can name several orgs: each one must show it has expired.
+    all_past = all(row.get("ExpirationDate") and row["ExpirationDate"] < today for row in rows)
+    return "expired" if all_past else "unknown"
 
 
 def read_cci(run):
@@ -336,12 +351,14 @@ def build_plan(run, home, project, today):
 
     def user_class(username):
         if username in auth:
+            if auth[username]["conflicting"]:
+                return "conflict"
             return org_class(auth[username]["org"])
         # A signup username can be reused by a later org, which may sit on the hub that failed.
         return "unknown" if user_failed else classify(user_rows.get(username, []), today)
 
     stale_users = {u for u, info in auth.items() if org_class(info["org"]) in REMOVABLE
-                   and not info["is_hub"] and not info["is_sandbox"]}
+                   and not info["is_hub"] and not info["is_sandbox"] and not info["conflicting"]}
 
     def stale(username):
         return username in stale_users or (username not in auth and user_class(username) in REMOVABLE)
@@ -366,7 +383,9 @@ def build_plan(run, home, project, today):
                            and all(stale(resolve(v)) for v in values)),
     }
     removing = {str(p) for k in ("indexes", "tracking", "file_responses") for p in remove[k]}
-    conflict = sorted(u for u in auth if org_class(auth[u]["org"]) == "conflict")
+    conflict = sorted(u for u in auth
+                      if auth[u]["conflicting"] or org_class(auth[u]["org"]) == "conflict")
+    scopes = config_targets(home, project)
     return {
         "schema": 1,
         "today": today,
@@ -378,6 +397,11 @@ def build_plan(run, home, project, today):
         "targets": {
             "aliases": {a: resolve(a) for a in remove["aliases"]},
             "deploy_jobs": {job: deploy_targets[job] for job in remove["deploy_jobs"]},
+            # Values, not just scope names: a default moved to another stale username is drift.
+            "defaults": {scope: {"values": scopes[scope],
+                                 "resolved": [resolve(v) for v in scopes[scope]]}
+                         for scope in remove["defaults"]},
+            "logout": {u: auth[u]["org"] for u in remove["logout"]},
         },
         "preserved": {
             "logins": len(auth) - len(stale_users),

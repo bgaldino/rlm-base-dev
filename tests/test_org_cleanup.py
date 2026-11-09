@@ -127,6 +127,7 @@ class Classification(unittest.TestCase):
             ([row("x", "Active", "2026-11-05")], "conflict"),
             ([row("x", "Error", "2026-11-05")], "expired"),
             ([row("x", "Error", "2026-11-06")], "unknown"),
+            ([row("x", "Error", "2026-11-05"), row("x", "Error", "2026-12-01")], "unknown"),  # one still runs
             ([row("x", "New", "2026-12-01")], "unknown"),
             ([row("x"), row("x", "Active", "2026-12-01")], "conflict"),
             # No past date on either row, so only the mixed statuses can make this a conflict.
@@ -334,6 +335,16 @@ class PrunePrediction(Base):
     def test_flags_a_hub_with_disagreeing_rows(self):
         self.add_auth("live@x.invalid", LIVE_ORG)
         cli = FakeCli(self.home, [row(LIVE_ORG, "Deleted", "2026-12-01"), row(LIVE_ORG, "Active", "2026-12-01")],
+                      {"p__old": "live@x.invalid"}, self.ORGS)
+        predicted = self.plan(cli)["prune_prediction"]
+        self.assertEqual(predicted["would_remove_but_active_on_hub"], ["old"])
+
+    def test_flags_a_username_two_auth_files_disagree_on(self):
+        # Both orgs are gone on the hub, but which one the alias means is unknown.
+        self.add_auth("live@x.invalid", DEAD_ORG)
+        (self.home / ".sfdx" / "z-backup@x.invalid.json").write_text(
+            json.dumps({"username": "live@x.invalid", "orgId": "00DBB0000000002MAA"}))
+        cli = FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")],
                       {"p__old": "live@x.invalid"}, self.ORGS)
         predicted = self.plan(cli)["prune_prediction"]
         self.assertEqual(predicted["would_remove_but_active_on_hub"], ["old"])
@@ -553,6 +564,102 @@ class Apply(Base):
                            cli, self.home, self.project, TODAY)
         self.assertEqual(code, 3)
         self.assertEqual(self.logouts(cli), [])
+
+    def test_a_default_moved_to_another_stale_username_is_drift(self):
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "gone@x.invalid"}))
+        rows = [row("00DBB0000000001", user="gone@x.invalid"), row("00DBB0000000002", user="gone2@x.invalid")]
+        cli = FakeCli(self.home, rows)
+        plan_file = self.project / "plan.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
+        self.assertEqual(json.loads(plan_file.read_text())["remove"]["defaults"], ["local"])
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "gone2@x.invalid"}))
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
+                           cli, self.home, self.project, TODAY)
+        self.assertEqual(code, 3)
+        self.assertEqual(json.loads((self.project / ".sf" / "config.json").read_text()),
+                         {"target-org": "gone2@x.invalid"})
+
+    def test_a_login_moved_to_another_removable_org_is_drift(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")])
+        plan_file = self.project / "plan.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
+        self.assertEqual(json.loads(plan_file.read_text())["remove"]["logout"], ["rep@x.invalid"])
+        self.add_auth("rep@x.invalid", "00DBB0000000002")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
+                           cli, self.home, self.project, TODAY)
+        self.assertEqual(code, 3)
+        self.assertEqual(self.logouts(cli), [])
+
+    def test_a_username_in_two_auth_files_with_different_orgs_is_protected(self):
+        # A renamed backup names the same username. Directory order must not choose the identity.
+        self.add_auth("alice@x.invalid", LIVE_ORG)
+        (self.home / ".sfdx" / "z-backup@x.invalid.json").write_text(
+            json.dumps({"username": "alice@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")]))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("alice@x.invalid", plan["report"]["conflicting_evidence"])
+
+    def test_a_conflicting_username_keeps_its_aliases_defaults_and_jobs(self):
+        self.add_auth("alice@x.invalid", DEAD_ORG)
+        (self.home / ".sf" / "alice@x.invalid.json").write_text(
+            json.dumps({"username": "alice@x.invalid", "orgId": "00DBB0000000002MAA"}))
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "al"}))
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "al"}}))
+        (self.project / ".sfdx" / "orgs" / "alice@x.invalid").mkdir(parents=True)
+        cli = FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")], {"al": "alice@x.invalid"})
+        remove = self.plan(cli)["remove"]
+        for key in ("logout", "aliases", "defaults", "deploy_jobs", "tracking"):
+            self.assertEqual(remove[key], [], key)
+
+    def test_a_renamed_auth_file_protects_the_name_sf_finds_it_by(self):
+        # sf resolves bob by file name, and that file holds a working login for alice's org.
+        (self.home / ".sfdx" / "bob@x.invalid.json").write_text(
+            json.dumps({"username": "alice@x.invalid", "orgId": LIVE_ORG + "MAA"}))
+        cli = FakeCli(self.home, [row(LIVE_ORG, "Active", "2026-12-01"), row("00DBB0000000009", user="bob@x.invalid")],
+                      {"b": "bob@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("bob@x.invalid", plan["report"]["conflicting_evidence"])
+
+    def test_a_renamed_file_and_a_real_login_of_that_name_are_both_kept(self):
+        (self.home / ".sfdx" / "bob@x.invalid.json").write_text(
+            json.dumps({"username": "alice@x.invalid", "orgId": LIVE_ORG + "MAA"}))
+        (self.home / ".sf" / "bob@x.invalid.json").write_text(
+            json.dumps({"username": "bob@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")]))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("bob@x.invalid", plan["report"]["conflicting_evidence"])
+
+    def test_a_hub_stays_queried_when_a_later_file_drops_its_flag(self):
+        (self.home / ".sf" / (HUB + ".json")).write_text(
+            json.dumps({"username": HUB, "orgId": "00DHUB000000001MAA"}))
+        plan = self.plan(FakeCli(self.home))
+        self.assertIn(HUB, plan["hubs"])
+        self.assertIn(HUB, plan["report"]["conflicting_evidence"])
+
+    def test_a_conflict_survives_a_later_file_that_matches_the_one_before_it(self):
+        # Read order: .sfdx/alice (DEAD), .sfdx/z-copy (alice, other org), .sf/alice (other org).
+        self.add_auth("alice@x.invalid", DEAD_ORG)
+        other = {"username": "alice@x.invalid", "orgId": "00DBB0000000002MAA"}
+        (self.home / ".sfdx" / "z-copy@x.invalid.json").write_text(json.dumps(other))
+        (self.home / ".sf" / "alice@x.invalid.json").write_text(json.dumps(other))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")]))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("alice@x.invalid", plan["report"]["conflicting_evidence"])
+
+    def test_a_matching_copy_in_both_roots_is_still_logged_out(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        (self.home / ".sf" / "rep@x.invalid.json").write_text(
+            json.dumps({"username": "rep@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+        self.assertEqual(plan["report"]["conflicting_evidence"], [])
 
     def test_drift_since_review_stops_before_anything_happens(self):
         rows = self.setup_stale_org()
