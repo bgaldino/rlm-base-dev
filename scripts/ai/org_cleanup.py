@@ -518,8 +518,8 @@ def predict_prune(cci, proven_gone):
 
 def plain_job_id(job):
     """A cache key that names one manifest file: a bare name the filesystem can hold."""
-    return (bool(job) and os.path.basename(job) == job and job not in (".", "..") and "\0" not in job
-            and len((job + ".xml").encode("utf-8", "surrogateescape")) <= 255)
+    return (bool(job) and os.path.basename(job) == job and job not in (".", "..") and not sf_cannot_pass(job)
+            and len((job + ".xml").encode("utf-8")) <= 255)
 
 
 def within(path, root):
@@ -1002,6 +1002,21 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done=None
         if is_link(linked):
             failures.append((str(linked), "symlink"))
             return 0, 0
+    lock = path.with_name(path.name + ".lock")  # sf's own lock on it: a folder made with mkdir (proper-lockfile)
+    try:
+        os.mkdir(str(lock))
+    except OSError as error:
+        failures.append((str(path), "not modified: sf holds its lock (an sf command is writing it), or the "
+                                    "lock could not be taken ({})".format(reason(error))))
+        return 0, 0
+    try:
+        return rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done)
+    finally:
+        os.rmdir(str(lock))
+
+
+def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done):
+    """remove_deploy_jobs' work, under sf's lock on the cache."""
     cache = read_json(path, None)
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))
@@ -1334,16 +1349,19 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
 
     if args.command == "audit":
         unwritten = None
-        out = Path(os.path.abspath(args.out)) if args.out else None
-        if out and within(out.parent, project):  # the folder; the file itself may be a link
-            print("The plan holds usernames and org IDs: write it outside the project ({}).".format(project),
-                  file=sys.stderr)
-            return 2
-        if args.out:  # first, so a closed output pipe cannot lose the plan
+        # The folder as the OS reaches it (links and ".." followed), checked and written as one path;
+        # the file itself may be a link, which write_private refuses.
+        out = Path(os.path.realpath(os.path.dirname(args.out) or ".")) / os.path.basename(args.out) \
+            if args.out else None
+        for root in (project, home / ".sf", home / ".sfdx") if out else ():
+            if within(out.parent, root):
+                print("The plan holds usernames and org IDs: write it outside {}.".format(root), file=sys.stderr)
+                return 2
+        if out:  # first, so a closed output pipe cannot lose the plan
             try:
-                write_private(args.out, json.dumps(plan, indent=1) + "\n")
+                write_private(out, json.dumps(plan, indent=1) + "\n")
             except OSError as error:
-                unwritten = "Could not write the plan to {}: {}".format(args.out, reason(error))
+                unwritten = "Could not write the plan to {}: {}".format(out, reason(error))
         print_plan(plan)
         if unwritten:
             print(unwritten, file=sys.stderr)
@@ -1369,7 +1387,7 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
         return 3
     quarantine = Path(os.path.abspath(args.quarantine)) if args.quarantine else default_quarantine(home, today)
     for root in (project, home / ".sf", home / ".sfdx"):  # a move there would leave residue where it was
-        if within(quarantine, root):
+        if any(within(where, root) for where in [quarantine] + [quarantine / f for f in QUARANTINE_FOLDERS]):
             print("The quarantine must be outside {}; nothing was changed.".format(root), file=sys.stderr)
             return 2
     moves = any(plan["remove"][key] for key in FILE_KEYS + ("deploy_jobs",))

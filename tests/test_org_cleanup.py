@@ -2718,6 +2718,52 @@ class PathsAndManifests(Base):
         self.assertEqual(self.logouts(cli), [])
         self.assertTrue(self.index.exists())
 
+    def test_a_quarantine_that_holds_the_cli_state_is_refused(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        self.assertEqual(self.apply(cli, plan_file, quarantine=self.home), 2)
+        self.assertTrue(self.index.exists())
+        self.assertEqual(self.logouts(cli), [])
+
+    def test_a_plan_path_through_a_link_and_dotdot_is_checked_where_it_lands(self):
+        link = self.home.parent / "l"
+        link.symlink_to(self.project / ".sf")  # l/.. is the project to the OS, the parent of l to the text
+        out = str(link) + "/../plan.json"
+        self.assertEqual(self.main(["audit", "--out", out], FakeCli(self.home)), 2)
+        self.assertFalse((self.project / "plan.json").exists())
+
+    def test_a_plan_path_inside_the_cli_state_is_refused(self):
+        self.assertEqual(self.main(["audit", "--out", str(self.home / ".sfdx" / "p.json")], FakeCli(self.home)), 2)
+
+    def test_a_cache_key_with_a_lone_surrogate_is_reported_not_fatal(self):
+        (self.home / ".sf" / "deploy-cache.json").write_text('{"\\ud800": {"target-org": "x@x.invalid"}}')
+        plan = self.plan(FakeCli(self.home))
+        self.assertEqual(plan["report"]["unsafe_deploy_cache_keys"], ["\ud800"])
+
+    def test_the_deploy_cache_is_rewritten_under_sfs_lock(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        lock = self.home / ".sf" / "deploy-cache.json.lock"
+        lock.mkdir()  # sf is writing the cache
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("sf holds its lock", self.stdout.getvalue())
+        self.assertIn("job1", self.read_cache())
+        self.assertTrue(self.manifest.exists())
+
+    def test_the_lock_is_held_while_the_cache_is_rewritten_and_released_after(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        lock, seen, real = self.home / ".sf" / "deploy-cache.json.lock", [], oc.rewrite_deploy_cache
+
+        def check_lock(*args):
+            seen.append(lock.is_dir())
+            return real(*args)
+
+        with mock.patch.object(oc, "rewrite_deploy_cache", side_effect=check_lock):
+            self.assertEqual(self.apply(cli, plan_file), 0, self.stdout.getvalue())
+        self.assertEqual(seen, [True])
+        self.assertFalse(lock.exists())
+
     def test_a_path_spelled_in_another_case_is_still_inside_the_project(self):
         spelled = Path(str(self.project).swapcase()) / "plan.json"
         if not spelled.parent.exists():
