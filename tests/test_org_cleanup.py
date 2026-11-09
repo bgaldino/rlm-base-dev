@@ -246,12 +246,38 @@ class UsernameKeyedState(Base):
         rows = [row("00DBB0000000001", user="gone@x.invalid")]
         self.assertEqual(self.plan(FakeCli(self.home, rows))["remove"]["deploy_jobs"], ["job1"])
 
+    def test_an_unsafe_deploy_cache_key_is_reported_not_planned(self):
+        cache = {"../../foo": {"target-org": "gone@x.invalid"}, "job1": {"target-org": "gone@x.invalid"}}
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps(cache))
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["deploy_jobs"], ["job1"])
+        self.assertEqual(plan["report"]["unsafe_deploy_cache_keys"], ["../../foo"])
+
     def test_a_stale_default_is_flagged_and_a_valid_one_is_not(self):
         (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "stale"}))
         (self.home / ".sf" / "config.json").write_text(json.dumps({"target-org": HUB}))
         rows = [row("00DBB0000000001", user="gone@x.invalid")]
         plan = self.plan(FakeCli(self.home, rows, {"stale": "gone@x.invalid"}))
         self.assertEqual(plan["remove"]["defaults"], ["local"])
+
+
+    def test_a_scope_holding_a_stale_and_a_valid_default_is_reported_not_unset(self):
+        # `sf config unset target-org` clears the scope's key whatever it names.
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": HUB}))
+        (self.project / ".sfdx" / "sfdx-config.json").write_text(json.dumps({"defaultusername": "stale"}))
+        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+        plan = self.plan(FakeCli(self.home, rows, {"stale": "gone@x.invalid"}))
+        self.assertEqual(plan["remove"]["defaults"], [])
+        self.assertEqual(plan["report"]["mixed_defaults"], ["local"])
+
+    def test_a_username_is_not_judged_while_a_hub_has_not_answered(self):
+        # A signup username can be reused by a newer org on the hub that failed.
+        self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
+        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+        cli = FakeCli(self.home, rows, {"stale": "gone@x.invalid"}, fail_hubs=["hub2@x.invalid"])
+        plan = self.plan(cli)
+        self.assertEqual(plan["hub_failures"], ["hub2@x.invalid"])
+        self.assertEqual(plan["remove"]["aliases"], [])
 
 
 class PrunePrediction(Base):
@@ -720,21 +746,22 @@ class Apply(Base):
         root = self.project / ".sf" / "orgs"
         item = root / "00DAA0000000009MAA"
         item.mkdir(parents=True)
+        secret = "secret" + "x" * 150  # long, so the uncapped text exceeds the cap whatever the temp path
         (item / "a").write_text("x")
-        (item / "secret").write_text("x")
-        (item / "secret").chmod(0)
-        self.addCleanup(lambda: (item / "secret").exists() and (item / "secret").chmod(0o644))
+        (item / secret).write_text("x")
+        (item / secret).chmod(0)
+        self.addCleanup(lambda: (item / secret).exists() and (item / secret).chmod(0o644))
         with self.across_volumes():
             why = oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine, self.project)
             self.assertIn("could not move", why)
             self.assertLess(len(why), 330)  # shutil.Error's text lists every path it could not copy
-            self.assertEqual(self.files_under(item), ["a", "secret"])
-            (item / "secret").chmod(0o644)
+            self.assertEqual(self.files_under(item), ["a", secret])
+            (item / secret).chmod(0o644)
             self.assertIsNone(oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine,
                                                     self.project))
         self.assertFalse(item.exists())
         retried = self.quarantine / "orgs" / (item.name + ".1")
-        self.assertEqual(self.files_under(retried), ["a", "secret"])
+        self.assertEqual(self.files_under(retried), ["a", secret])
 
     def test_the_same_name_in_both_tracking_layouts_moves_without_a_collision(self):
         name = "00DAA0000000009MAA"
@@ -843,6 +870,18 @@ class Apply(Base):
         self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 0)
         self.assertEqual(cache.stat().st_mode & 0o777, 0o644)
 
+    def test_a_cache_key_that_is_not_a_plain_job_id_is_refused(self):
+        outside = self.home / "foo.xml"
+        outside.write_text("<x/>")
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"../../foo": {"target-org": "x"}}))
+        failures = []
+        result = oc.remove_deploy_jobs(FakeCli(self.home), ["../../foo"], self.home, self.quarantine,
+                                       self.project, failures)
+        self.assertEqual(result, (0, 0))
+        self.assertEqual([f[0] for f in failures], ["../../foo"])
+        self.assertTrue(outside.exists())
+        self.assertIn("../../foo", self.read_cache())
+
     def test_an_unreadable_cache_is_reported(self):
         (self.home / ".sf" / "deploy-cache.json").write_text("not json")
         failures = []
@@ -851,18 +890,12 @@ class Apply(Base):
         self.assertEqual(result, (0, 0))
         self.assertEqual(failures, [("deploy-cache", "unreadable")])
 
-    def test_tracked_and_symlinked_state_is_refused(self):
+    def test_tracked_state_is_refused(self):  # symlinks are refused in the tests that link a real entry
         rows = self.setup_stale_org()
         cli = FakeCli(self.home, rows)
         cli.tracked.add(str(self.tracking))
-        target = self.project / "elsewhere"
-        target.mkdir()
-        link = self.project / ".sf" / "orgs" / "00DAA0000000009MAA"
-        link.symlink_to(target)
         self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertTrue(self.tracking.exists())
-        self.assertTrue(link.is_symlink())
-        self.assertTrue(target.exists())
 
     def test_a_default_logout_already_cleared_is_not_unset_again(self):
         rows = self.setup_stale_org()
@@ -915,7 +948,8 @@ class DocStaysInStep(unittest.TestCase):
                      "logins_with_no_refresh_token", "unreadable_auth_files",
                      "symlinks_left_alone", "unclassified_files", "would_remove_expired",
                      "would_remove_never_instantiated", "would_remove_but_active_on_hub",
-                     "expired_shape_instances_it_skips", "unrecognized_file_responses"]
+                     "expired_shape_instances_it_skips", "unrecognized_file_responses",
+                     "mixed_defaults", "unsafe_deploy_cache_keys"]
         source = (REPO / "scripts" / "ai" / "org_cleanup.py").read_text()
         for key in plan_keys:
             self.assertIn(key, source)

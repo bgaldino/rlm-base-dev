@@ -331,7 +331,8 @@ def build_plan(run, home, project, today):
     def user_class(username):
         if username in auth:
             return org_class(auth[username]["org"])
-        return classify(user_rows.get(username, []), today)
+        # A signup username can be reused by a later org, which may sit on the hub that failed.
+        return "unknown" if user_failed else classify(user_rows.get(username, []), today)
 
     stale_users = {u for u, info in auth.items() if org_class(info["org"]) in REMOVABLE
                    and not info["is_hub"] and not info["is_sandbox"]}
@@ -350,9 +351,13 @@ def build_plan(run, home, project, today):
                            if (ORG_ID.match(p.name) and org_class(p.name) in REMOVABLE)
                            or ("@" in p.name and stale(p.name))),
         "file_responses": sorted(str(p) for p in responses if org_class(p.name) in REMOVABLE),
-        "deploy_jobs": sorted(job for job, user in deploy_targets.items() if user and stale(user)),
+        "deploy_jobs": sorted(job for job, user in deploy_targets.items()
+                              if user and stale(user) and plain_job_id(job)),
+        # `config unset target-org` clears the scope's key whatever it names, so a scope that also
+        # holds a value that is not stale is reported, not unset.
         "defaults": sorted(scope for scope, values in config_targets(home, project).items()
-                           if any(stale(resolve(v)) for v in values)),
+                           if any(stale(resolve(v)) for v in values)
+                           and all(stale(resolve(v)) for v in values)),
     }
     removing = {str(p) for k in ("indexes", "tracking", "file_responses") for p in remove[k]}
     conflict = sorted(u for u in auth if org_class(auth[u]["org"]) == "conflict")
@@ -384,9 +389,14 @@ def build_plan(run, home, project, today):
             "unreadable_auth_files": unreadable,
             "symlinks_left_alone": [str(p) for p in symlinks],
             "unrecognized_file_responses": [str(p) for p in unrecognized_responses],
+            # A key that is not a plain file name has no manifest to look for, so it is never planned.
+            "unsafe_deploy_cache_keys": sorted(j for j in deploy_targets if not plain_job_id(j)),
             "unclassified_files": read_unclassified(home, project),
             # Lead to no username, so no hub row can ever put them on the plan.
             "dangling_aliases": sorted(a for a in aliases if "@" not in resolve(a)),
+            "mixed_defaults": sorted(scope for scope, values in config_targets(home, project).items()
+                                     if any(stale(resolve(v)) for v in values)
+                                     and not all(stale(resolve(v)) for v in values)),
             "dangling_defaults": sorted(scope for scope, values in config_targets(home, project).items()
                                         if any("@" not in resolve(v) for v in values)),
         },
@@ -511,6 +521,10 @@ def replace_json(path, data):
         raise
 
 
+def plain_job_id(job):
+    return bool(job) and os.path.basename(job) == job and job not in (".", "..")
+
+
 def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
     """Drop named cache entries, keeping every other key. Returns (entries, manifests moved).
 
@@ -528,9 +542,12 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
     for job in jobs:
         if job not in cache:
             continue
+        if not plain_job_id(job):
+            failures.append((job, "cache key is not a plain job id; its manifest was not looked for"))
+            continue
         manifest = home / ".sf" / "manifestCache" / (job + ".xml")
         if os.path.lexists(str(manifest)):
-            why = move_to_quarantine(run, manifest, [manifest.parent], quarantine, project)
+            why = move_to_quarantine(run, manifest, [home / ".sf" / "manifestCache"], quarantine, project)
             if why:
                 failures.append((str(manifest), why))
                 continue

@@ -84,10 +84,12 @@ Review with the user:
 |--------|---------|
 | `hub_failures` | Those hubs gave no evidence, so the plan may be incomplete. Fix access and re-audit. |
 | `conflicting_evidence` | Stop on those entries. |
-| `logins_with_no_refresh_token` | Stops working when its session expires, even though its org is live. Report it; log out only with explicit approval. |
+| `logins_with_no_refresh_token` | Stops working when its session expires. It is not on the removal plan, which does not mean its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
-| `dangling_aliases`, `dangling_defaults` | Lead to no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>` or `sf config unset target-org`. |
+| `dangling_aliases`, `dangling_defaults` | Lead to no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>`, or `sf config unset target-org` (add `--global` for a `global` scope; the entry names it). That unset clears the scope's key whatever it names: if the scope also holds a valid value, note it first and restore it with `sf config set target-org=<value>`. |
+| `unsafe_deploy_cache_keys` | Deploy-cache keys that are not plain file names (such as `../x`). Never planned, because no manifest is looked for. Left alone; report them. |
+| `mixed_defaults` | A scope whose config holds a stale value and one that is not. `sf config unset target-org` clears the scope's key whatever it names, so the tool leaves it. Report it; with the user's approval note the valid value, unset, and restore it with `sf config set target-org=<value>`. |
 | `unclassified_files` | Not owned by the CLIs, and not opened. It includes a symlinked login or index file, a credential backup such as `user@x.json.bak`, and any login or index file inside the project, because only the home state is read as logins and indexes. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. Report it and let the user decide. |
 | `prune_prediction` | See step 3. |
 
@@ -109,7 +111,8 @@ state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>`
 folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config
 unset target-org` for a default still pointing at a removed user, and moves user indexes, tracking
 directories, `fileResponses` directories, and matched deploy-cache manifests to the quarantine. It
-refuses symlinks, tracked files, and paths outside the state roots. If a logout fails, that org's
+refuses symlinks, paths outside the state roots, and project files tracked by git (home state is not
+checked against git). If a logout fails, that org's
 index, tracking, `fileResponses` and deploy-cache entries stay, and so does a chained alias that
 still reaches the login. `sf` clears the user's direct aliases and defaults before it can fail, so
 those may already be gone, and a chain
@@ -142,7 +145,7 @@ its result from CCI's own logic:
 | Not a shape, not expired | Skipped as active | |
 | Connected (non-scratch) org | Untouched | |
 
-Do not run it if `would_remove_but_active_on_hub` is non-empty: CCI computes expiry locally
+Do not run it if `would_remove_but_active_on_hub` is non-empty, if `hub_failures` is non-empty, or if `prune_prediction` is `{"available": false}` (no prediction exists): CCI computes expiry locally
 as created date plus days, which can lapse before the hub's date. The key lists an entry whose
 org the hub shows `Active`, and any `conflict`: `Active` past its date, or rows with different statuses.
 It cannot list an org it has no evidence for: no hub has a row for it (including when the hub
@@ -164,10 +167,14 @@ different, valid org. Note `target-org` first, and if it is still valid restore 
 `sf config set target-org=<value>`, which updates both config layouts. `cci org default
 <name>` likewise moves the SF default to that org.
 
-**`cci org remove`**: only when the entry's `<project-name>__<entry-name>` alias resolves to
-a username, a hub row from this run shows that exact username `Deleted`, and the user approved
-that entry by name. The delete then fails harmlessly and CCI drops the record, but it can leave
-the alias behind, so re-audit afterward. Never bypass global-org protection automatically.
+**`cci org remove`**: not part of the normal path. Use it only when all of these hold, checked
+**before step 2**, because `sf org logout` clears the user's direct alias: the entry's
+`<project-name>__<entry-name>` alias resolves to a username; a hub query you run for that exact
+username shows `Deleted` (the plan records no per-user status, and `remove.logout` mixes deleted
+and expired); and the user approved that entry by name and confirmed it is the org the alias names,
+since CCI deletes by its own stored record and a re-pointed alias would prove nothing about it.
+The delete then fails harmlessly and CCI drops the record, but it can leave the alias behind, so
+re-audit afterward. Never bypass global-org protection automatically.
 
 ## Validation Checks
 
@@ -193,7 +200,7 @@ the alias behind, so re-audit afterward. Never bypass global-org protection auto
   remain. If the hub shows the org deleted, the plan logs out that user and moves only the
   matched state. If the org is active, the same-looking user stays.
 - **Orphaned alias:** an alias points at a username with no auth file. The plan unsets it only
-  if a signup-username row shows that org deleted. An alias of a valid alias stays.
+  if a signup-username row shows that org deleted or expired, and every hub answered. An alias of a valid alias stays.
 - **Chained alias:** an alias points at another alias of a user being logged out. Logout clears
   only the direct alias, so the plan lists the chained one too.
 - **Shape from another branch:** `would_remove_never_instantiated` lists an entry absent from
