@@ -126,6 +126,7 @@ def read_auth(home):
                     "is_sandbox": bool(data.get("isSandbox")),
                     "refreshable": bool(data.get("refreshToken")),
                     "conflicting": renamed,
+                    "orgs": [data["orgId"][:15]],
                 }
                 previous = auth.get(name)
                 if previous is not None:
@@ -134,6 +135,7 @@ def read_auth(home):
                         previous[key] != entry[key] for key in ("org", "is_hub", "is_sandbox")))
                     for key in ("is_hub", "refreshable"):  # a hub stays queried whichever file is last
                         entry[key] = entry[key] or previous[key]
+                    entry["orgs"] = sorted(set(entry["orgs"]) | set(previous["orgs"]))
                 auth[name] = entry
     return auth, unreadable
 
@@ -326,11 +328,14 @@ def build_plan(run, home, project, today):
     """Inventory plus hub evidence. Mutates nothing beyond what the CLIs themselves do."""
     auth, unreadable = read_auth(home)
     protected = unread_logins(home, unreadable)  # identity unknown: never judged or removed
-    hubs = sorted(user for user, info in auth.items() if info["is_hub"])
     alias_payload = sf_json(run, "alias", "list")
     if alias_payload is None:
         raise RuntimeError("sf alias list failed")
     aliases = {row["alias"]: row.get("value") or "" for row in alias_payload.get("result") or []}
+    hubs = sorted(user for user, info in auth.items() if info["is_hub"])
+    # sf resolves a name to an alias first, so a hub named like an alias would be asked through
+    # another org. It is not queried and counts as a hub that gave no answer.
+    aliased_hubs = [hub for hub in hubs if hub in aliases]
 
     def resolve(name):
         return follow_aliases(aliases, name)
@@ -357,7 +362,8 @@ def build_plan(run, home, project, today):
     org_ids = {info["org"] for info in auth.values()} | {p.stem[:15] for p in indexes}
     org_ids |= {p.name[:15] for p in tracking if ORG_ID.match(p.name)}
     org_ids |= {p.name[:15] for p in responses}
-    id_rows, id_failed = query_hubs(run, hubs, "ScratchOrg", org_ids)
+    queried = [hub for hub in hubs if hub not in aliases]
+    id_rows, id_failed = query_hubs(run, queried, "ScratchOrg", org_ids)
 
     # State with a username and no local auth has no org ID to check, so ask by signup username.
     orphans = {u for u in map(resolve, aliases) if "@" in u and u not in auth}
@@ -365,7 +371,7 @@ def build_plan(run, home, project, today):
     orphans |= {u for u in deploy_targets.values() if "@" in u and u not in auth}
     orphans |= {resolve(v) for values in config_targets(home, project).values() for v in values
                 if "@" in resolve(v) and resolve(v) not in auth}
-    user_rows, user_failed = query_hubs(run, hubs, "SignupUsername", orphans)
+    user_rows, user_failed = query_hubs(run, queried, "SignupUsername", orphans)
 
     def org_class(org):
         return classify(id_rows.get(org[:15], []), today)
@@ -378,17 +384,24 @@ def build_plan(run, home, project, today):
                 return "conflict"
             return org_class(auth[username]["org"])
         # A signup username can be reused by a later org, which may sit on the hub that failed.
-        return "unknown" if user_failed else classify(user_rows.get(username, []), today)
+        return "unknown" if user_failed or aliased_hubs else classify(user_rows.get(username, []), today)
 
+    held = set(auth) | protected
     # A login whose name is also an alias is not ours to log out: sf resolves the name to the alias.
+    # Nor is the target of such an alias: logout clears it, and the name would then mean the login.
+    shadowing = {aliases[a] for a in aliases if a in held}
     stale_users = {u for u, info in auth.items() if org_class(info["org"]) in REMOVABLE
                    and not info["is_hub"] and not info["is_sandbox"] and not info["conflicting"]
-                   and u not in protected and u not in aliases}
+                   and u not in protected and u not in aliases and u not in shadowing}
+
+    # An org keeps its residual state while any login on it stays, as after a failed logout.
+    kept_orgs = {org for u, info in auth.items() if u not in stale_users for org in info["orgs"]}
+
+    def gone_org(org):
+        return org_class(org) in REMOVABLE and org[:15] not in kept_orgs
 
     def stale(username):
         return username in stale_users or (username not in auth and user_class(username) in REMOVABLE)
-
-    held = set(auth) | protected
 
     def stale_ref(name):
         """Judge a name as state refers to it. A chain is never followed through a login that is also an alias."""
@@ -406,11 +419,11 @@ def build_plan(run, home, project, today):
         # alias that reaches a removed user through another alias.
         "aliases": sorted(a for a in aliases if stale_ref(a)
                           and (resolve(a) not in auth or aliases[a] != resolve(a))),
-        "indexes": sorted(str(p) for p in indexes if org_class(p.stem) in REMOVABLE),
+        "indexes": sorted(str(p) for p in indexes if gone_org(p.stem)),
         "tracking": sorted(str(p) for p in tracking
-                           if (ORG_ID.match(p.name) and org_class(p.name) in REMOVABLE)
+                           if (ORG_ID.match(p.name) and gone_org(p.name))
                            or ("@" in p.name and stale(p.name))),
-        "file_responses": sorted(str(p) for p in responses if org_class(p.name) in REMOVABLE),
+        "file_responses": sorted(str(p) for p in responses if gone_org(p.name)),
         "deploy_jobs": [] if manifest_dir.is_symlink() else sorted(
             job for job, user in deploy_targets.items()
             if user and stale_ref(deploy_raw[job]) and plain_job_id(job)),
@@ -421,7 +434,7 @@ def build_plan(run, home, project, today):
                            and all(stale_ref(v) for v in values)),
     }
     removing = {str(p) for k in ("indexes", "tracking", "file_responses") for p in remove[k]}
-    conflict = sorted(protected | {u for u in auth if u in aliases}
+    conflict = sorted(protected | {u for u in auth if u in aliases} | (shadowing & set(auth))
                       | {u for u in auth if auth[u]["conflicting"] or org_class(auth[u]["org"]) == "conflict"})
     scopes = config_targets(home, project)
     return {
@@ -429,7 +442,7 @@ def build_plan(run, home, project, today):
         "today": today,
         "project": str(project),
         "hubs": hubs,
-        "hub_failures": sorted(set(id_failed + user_failed)),
+        "hub_failures": sorted(set(id_failed + user_failed + aliased_hubs)),
         "remove": remove,
         # Resolved now: a logout removes the alias that a later step would need to resolve these.
         "targets": {
@@ -440,6 +453,9 @@ def build_plan(run, home, project, today):
                                  "resolved": [resolve(v) for v in scopes[scope]]}
                          for scope in remove["defaults"]},
             "logout": {u: auth[u]["org"] for u in remove["logout"]},
+            # Logout also clears each alias whose value is the user. An alias added since the audit
+            # was never reviewed, so it is drift.
+            "logout_aliases": {u: sorted(a for a, v in aliases.items() if v == u) for u in remove["logout"]},
         },
         "preserved": {
             "logins": len(auth) - len(stale_users),
@@ -472,10 +488,13 @@ def build_plan(run, home, project, today):
     }
 
 
-def check_logins(run, home):
-    """Read-only query per login. A refresh can rewrite an auth file, so this is opt-in."""
+def check_logins(run, home, aliases=()):
+    """Read-only query per login. A refresh can rewrite an auth file, so this is opt-in.
+    A login named like an alias is not queried: sf would answer through the alias's org."""
     failed = []
     for username in sorted(read_auth(home)[0]):
+        if username in aliases:
+            continue
         if sf_json(run, "data", "query", "--target-org", username,
                    "--query", "SELECT Id FROM Organization") is None:
             failed.append(username)
@@ -814,8 +833,16 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
                     args.out, error.strerror or str(error)[:300]), file=sys.stderr)
                 return 1
         if args.check_logins:
-            failed = check_logins(run, home)
+            listed = sf_json(run, "alias", "list")
+            if listed is None:  # without it a login named like an alias would answer for another org
+                print("\nLogins were not checked: sf alias list failed.", file=sys.stderr)
+                return 1
+            aliases = {r.get("alias") for r in listed.get("result") or []}
+            failed = check_logins(run, home, aliases)
             print("\nLogins that did not answer a query: {}".format(failed or "none"))
+            skipped = sorted(set(read_auth(home)[0]) & aliases)
+            if skipped:
+                print("Not queried, named like an alias: {}".format(skipped))
         return 0
 
     reviewed = read_json(args.plan, None)

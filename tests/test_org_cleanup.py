@@ -152,6 +152,21 @@ class Evidence(Base):
         self.assertEqual(plan["remove"]["logout"], [])
         self.assertEqual(plan["hub_failures"], [HUB])
 
+    def test_a_hub_named_like_an_alias_is_not_queried_and_counts_as_failed(self):
+        # sf would resolve the name to the alias and ask another org.
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG)], {HUB: "rep@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual([c for c in cli.calls if c[1:3] == ["data", "query"]], [])
+        self.assertEqual(plan["hub_failures"], [HUB])
+        self.assertEqual(plan["remove"]["logout"], [])
+
+    def test_a_username_is_not_judged_while_a_hub_is_named_like_an_alias(self):
+        self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
+        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+        plan = self.plan(FakeCli(self.home, rows, {"stale": "gone@x.invalid", "hub2@x.invalid": HUB}))
+        self.assertEqual(plan["remove"]["aliases"], [])
+
     def test_a_row_on_a_second_hub_counts_and_an_absent_row_elsewhere_does_not_block(self):
         self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
         self.add_auth("rep@x.invalid", DEAD_ORG)
@@ -629,6 +644,20 @@ class Apply(Base):
         self.assertEqual(code, 3)
         self.assertEqual(self.logouts(cli), [])
 
+    def test_an_alias_added_to_a_logged_out_user_since_the_audit_is_drift(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows)
+        plan_file = self.project / "plan.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
+        cli.aliases["added-later"] = "rep@x.invalid"  # logout would clear it unreviewed
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
+                           cli, self.home, self.project, TODAY)
+        self.assertEqual(code, 3)
+        self.assertEqual(self.logouts(cli), [])
+        self.assertIn("added-later", cli.aliases)
+
     def test_a_username_in_two_auth_files_with_different_orgs_is_protected(self):
         # A renamed backup names the same username. Directory order must not choose the identity.
         self.add_auth("alice@x.invalid", LIVE_ORG)
@@ -686,6 +715,37 @@ class Apply(Base):
         plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")]))
         self.assertEqual(plan["remove"]["logout"], [])
         self.assertIn("alice@x.invalid", plan["report"]["conflicting_evidence"])
+
+    def test_a_protected_login_keeps_its_orgs_state_when_another_login_goes(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.add_auth("rep2@x.invalid", DEAD_ORG)  # named like an alias, so never logged out
+        (self.home / ".sfdx" / (DEAD_ORG + "MAA.json")).write_text("{}")
+        (self.project / ".sf" / "orgs" / (DEAD_ORG + "MAA")).mkdir()
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], {"rep2@x.invalid": HUB}))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+        self.assertEqual((plan["remove"]["indexes"], plan["remove"]["tracking"]), ([], []))
+
+    def test_a_user_an_alias_named_like_a_login_points_at_is_not_logged_out(self):
+        # Logout would clear the alias "bob@x.invalid", and a default naming it would then mean bob's live org.
+        self.add_auth("bob@x.invalid", LIVE_ORG)
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "bob@x.invalid"}))
+        rows = [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")]
+        plan = self.plan(FakeCli(self.home, rows, {"bob@x.invalid": "rep@x.invalid"}))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertEqual(plan["remove"]["defaults"], [])
+        self.assertIn("rep@x.invalid", plan["report"]["conflicting_evidence"])
+
+    def test_a_conflicting_login_keeps_the_state_of_every_org_it_names(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.add_auth("rep3@x.invalid", DEAD_ORG)
+        (self.home / ".sf" / "rep3@x.invalid.json").write_text(
+            json.dumps({"username": "rep3@x.invalid", "orgId": "00DBB0000000002MAA"}))
+        for org in (DEAD_ORG, "00DBB0000000002"):
+            (self.project / ".sf" / "orgs" / (org + "MAA")).mkdir()
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")]))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+        self.assertEqual(plan["remove"]["tracking"], [])
 
     def test_a_matching_copy_in_both_roots_is_still_logged_out(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
@@ -1443,6 +1503,33 @@ class EvidenceEdges(Base):
 
         cli.override = answer
         self.assertEqual(oc.check_logins(cli, self.home), ["rep@x.invalid"])
+
+    def test_check_logins_stops_when_the_alias_list_fails(self):
+        self.add_auth("rep@x.invalid", LIVE_ORG)
+        cli = FakeCli(self.home)
+        lists = []
+
+        def second_list_fails(cmd):
+            if cmd[1:3] == ["alias", "list"]:
+                lists.append(cmd)
+                if len(lists) == 2:  # the plan's list, then check-logins' own
+                    return 1, ""
+            return None
+
+        cli.override = second_list_fails
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+            code = oc.main(["audit", "--check-logins"], cli, self.home, self.project, TODAY)
+        self.assertEqual(code, 1)
+        self.assertIn("Logins were not checked", stderr.getvalue())
+        self.assertFalse([c for c in cli.calls if "SELECT Id FROM Organization" in c])
+
+    def test_check_logins_does_not_query_a_login_named_like_an_alias(self):
+        self.add_auth("rep@x.invalid", LIVE_ORG)
+        cli = FakeCli(self.home)
+        cli.override = lambda cmd: FakeCli.ok({"done": True, "records": []})
+        self.assertEqual(oc.check_logins(cli, self.home, {"rep@x.invalid"}), [])
+        self.assertFalse([c for c in cli.calls if "rep@x.invalid" in c])
 
 
 class Usage(Base):

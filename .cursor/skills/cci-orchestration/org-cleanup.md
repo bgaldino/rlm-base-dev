@@ -82,8 +82,8 @@ Review with the user:
 
 | Output | Meaning |
 |--------|---------|
-| `hub_failures` | Those hubs gave no evidence, so the plan may be incomplete. Fix access and re-audit. |
-| `conflicting_evidence` | Stop on those entries. A username that two auth files name with different orgs or flags is protected: never logged out, its aliases, defaults and deploy jobs kept, and listed here. So is an auth file whose name differs from the username inside it (a renamed backup): sf answers to both names with that file's token. A username whose auth file is unreadable or a link is protected the same way, in both roots. A login named like an alias is listed here and never logged out, because sf would resolve the name to the alias. That alias, and any default or deploy-cache entry that uses the name, is kept too, as is any alias chain that passes through that name: it is not followed to the alias target. |
+| `hub_failures` | Those hubs gave no evidence, so the plan may be incomplete. Fix access and re-audit. A hub whose username is also an alias is listed here and never queried, because sf would resolve the name to the alias and ask another org. |
+| `conflicting_evidence` | Stop on those entries. A username that two auth files name with different orgs or flags is protected: never logged out, its aliases, defaults and deploy jobs kept, and listed here. So is an auth file whose name differs from the username inside it (a renamed backup): sf answers to both names with that file's token. A username whose auth file is unreadable or a link is protected the same way, in both roots. A login named like an alias is listed here and never logged out, because sf would resolve the name to the alias. That alias, and any default or deploy-cache entry that uses the name, is kept too, as is any alias chain that passes through that name: it is not followed to the alias target. The user that alias points at is listed and not logged out either, because logout would clear the alias and the name would then mean the login. While a login the tool reads stays on an org, that org's index, tracking and `fileResponses` stay too, even when another login on it is logged out; a conflicting login keeps every org its copies name. An unreadable or linked login is never opened, so its org is not known and it cannot protect that org's files. |
 | `logins_with_no_refresh_token` | Stops working when its session expires. It is not on the removal plan, which does not mean its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned, so stale entries stay in the cache. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
@@ -105,7 +105,7 @@ Do not run `apply` while another `sf` or `cci` process is running: the deploy ca
 rewritten without a lock, so a concurrent deploy's entry could be lost.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
-reviewed one, including its project, the default values and their usernames, the logout org IDs, and the usernames its aliases and deploy jobs resolved to. An unreadable state folder stops the run with exit 1 before anything changes. Before any logout, if the
+reviewed one, including its project, the default values and their usernames, the logout org IDs, the aliases each logout would clear, and the usernames its aliases and deploy jobs resolved to. An unreadable state folder stops the run with exit 1 before anything changes. Before any logout, if the
 plan moves files, it moves a temp file into the quarantine, and exits 1 if that fails. The quarantine is a dated folder in the user's Trash, or with no Trash, beside the real CLI
 state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another
 folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config
@@ -187,7 +187,9 @@ re-audit afterward. Never bypass global-org protection automatically.
    `FAILED` line: after its logout, a secondary user's residual state has no link to a hub
    row, so it reads as unknown and stays off the plan. Resolve each `FAILED` item by name.
 2. Run `python scripts/ai/org_cleanup.py audit --check-logins`, which queries each preserved
-   login and can rewrite auth files through a token refresh. For a failure, compare that
+   login and can rewrite auth files through a token refresh. A login named like an alias is listed
+   as not queried, because sf would answer through the alias's org. If `sf alias list` fails, no
+   login is checked and it exits 1. For a failure, compare that
    login's auth file with the pre-cleanup state before attributing it to cleanup.
 3. Run `COLUMNS=200 cci org list --plain` (narrower output wraps long names). Removed records
    are gone and shapes remain. `--json` can fail with `Object of type date is not JSON
