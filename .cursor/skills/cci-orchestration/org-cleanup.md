@@ -57,20 +57,21 @@ preserves anything that model cannot explain:
 - **A name** (an alias, a default or a deploy-cache target) goes through at most one alias, as
   in sf. An alias whose value is another alias's name reaches the login file of that name; with
   none, a name holding `@` is judged as a username and any other is dangling. An alias whose value
-  is empty in the alias file means its own name. A name that is both an alias and a login's name is
+  is `null` in the alias file means its own name. A name that is both an alias and a login's name is
   in doubt, and whatever uses it is kept.
 - **A login file is found by name**, and macOS's default (case-insensitive) APFS ignores case and
-  Unicode normalization, so usernames are compared without regard to either, as far as Python's
-  Unicode tables go. On a case-sensitive filesystem (Linux, the Docker image) that only makes the
-  tool more cautious.
+  Unicode normalization, so usernames are compared without regard to either. A name with characters
+  this Python's Unicode tables do not know is in doubt, since the filesystem may fold them. On a
+  case-sensitive filesystem (Linux, the Docker image) that only makes the tool more cautious.
 - **A config scope** (`global`, or `local` for the project) is `.sf/config.json` merged with
   `.sfdx/sfdx-config.json`, and sf rewrites both files on any change. The tool acts on a scope
   only when that merge is unambiguous; otherwise it reports why under `unmodelled_config`.
 - **`sf org logout`** also clears every alias whose value is that user, and every config key in
   both scopes that holds the user or one of those aliases. The plan lists these under each
-  logout and the audit prints them. `apply` compares the login files, `~/.sfdx/alias.json` and both
-  config scopes before and after every sf command it runs: what the command should have removed
-  must be gone, and anything else it changed stops the run.
+  logout and the audit prints them; `apply` checks them (step 2). sf selects a login by the
+  username inside every file it lists, so no logout is planned while a login file is a link (the
+  tool does not see its username) or names no username (sf then fails every logout), and a login
+  that an unread file also holds is in doubt.
 
 ## 1. Audit
 
@@ -108,7 +109,7 @@ Review with the user, including the aliases and config keys printed under each l
 | Output | Meaning |
 |--------|---------|
 | `hub_failures` | Gave no full evidence: a hub that failed or returned a cut-short result (sf's `org-max-query-limit`), a hub named like an alias (sf would ask the alias's org), or a login whose auth file the tool did not read (it may be a Dev Hub). While any is listed no username is judged, so the plan may be incomplete. Fix access and re-audit. |
-| `protected` | Names kept, each with every reason that applies. A login whose auth file the tool cannot read or act on: unreadable or with no username, a link, a file whose name sf reads differently (a `.json` inside the username), and, when its org is gone, a renamed file or files whose names differ only by case or Unicode form. A login on a gone org that is not logged out because an alias has its name, because logout would clear an alias whose name would then mean another login, or because logout would rewrite a config scope the tool cannot model. Any alias that has a login's name: sf resolves that name to the alias, and the tool never unsets it. Stop on these; resolve each by hand. |
+| `protected` | Names kept, each with every reason that applies. A login whose auth file the tool cannot read or act on: unreadable or with no username, a link, a file whose name sf reads differently (a `.json` inside the username), and, when its org is gone, a renamed file, another file holding the same login, or files whose names differ only by case or Unicode form. A login on a gone org that is not logged out because an alias has its name, because logout would clear an alias whose name would then mean another login, because logout would rewrite a config scope the tool cannot model, because its name starts with `-` (sf reads it as a flag), or because a linked or username-less login file stops every logout. Any alias that has a login's name: sf resolves that name to the alias, and the tool never unsets it. Stop on these; resolve each by hand. |
 | `conflicting_evidence` | Hub rows that disagree, or show `Active` past the date, for a login, an org whose index, tracking or `fileResponses` is local, or a username that an alias, default, deploy-cache entry, environment default or tracking folder names. Kept. |
 | `logins_with_no_refresh_token` | An access-token-only login: it stops working when its session expires (JWT logins re-sign and are not listed). It is not on the plan, which does not mean its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
@@ -146,7 +147,7 @@ rewritten without a lock, so a concurrent deploy's entry could be lost.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
 reviewed one: its project, every removal, each logout's org and the aliases and config keys it
-clears, and the value and login each alias, default, deploy job and file reaches. It does not run
+clears, and the value and orgs each alias, default, deploy job and file reaches. It does not run
 `cci`. An unreadable state folder, or a plan file it cannot read, stops the run with exit 1
 before anything changes. Before any
 logout, if the plan moves files, it checks the quarantine (no linked root or folder, no file
@@ -155,12 +156,18 @@ dated folder in the user's Trash, or with no Trash, beside the real CLI state, w
 image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder.
 
 It then runs targeted `sf org logout` per user, `sf alias unset -- <alias>` per alias, and `sf config
-unset target-org` (with `--global` for the global scope) for each planned default, after confirming
-the alias or scope still holds the reviewed value (and the scope can still be modelled). Around each
-command it compares the login files, `~/.sfdx/alias.json` and both config scopes with their state
-before it: sf reports which logins it selected, not what it removed, and its legacy-file write fails
-silently. What the command should have removed and did not is a failure that holds back that org's
-items. Anything else it changed, by sf or by another process, stops the run before the next command.
+unset target-org` (with `--global` for the global scope) for each planned default. It tracks the
+login files, the aliases in `~/.sfdx/alias.json` and both config scopes from the moment the audit
+behind it read them (an encrypted value, which sf re-encrypts on every write, only as present):
+
+- Before each command that state must be unchanged, less what earlier commands removed, or the run
+  stops there. The command's effects must be the reviewed ones (each logout's aliases and config
+  keys, the alias's or default's value, a scope that can still be modelled), or it is not run and
+  is a failure.
+- After it, what it removed is counted from the state, not from sf's answer. A logout that removed
+  less than planned is a failure that holds back that org's items; an alias or default left set is
+  a failure. Anything else it changed is recorded, and the run stops before the next command.
+
 It moves user indexes, tracking directories, `fileResponses` directories, and matched deploy-cache
 manifests to the quarantine. It refuses symlinks, paths outside the state roots, and project files
 tracked by git (home state is not checked against git).
@@ -169,11 +176,11 @@ If a logout fails, every item that reaches that login or another login on its or
 defaults, files and deploy-cache entries. `sf` clears the user's aliases and config keys before it
 can fail, so those may already be gone. If the login file is still there, fix the cause and re-audit:
 the login is listed again. If it is gone (a logout that left a config value), the next audit cannot
-link its state to the org; resolve that `FAILED` item by hand. A logout that reports logging out
-anyone else is a failure, and names them. An error or Ctrl-C after the logouts
+link its state to the org; resolve that `FAILED` item by hand. An error or Ctrl-C after the logouts
 start stops the run: it prints what ran (`cleared_by_logout` counts the aliases and config keys
-sf cleared with them) and each `FAILED` line, then "Stopped part-way" with exit 1, or 130 when
-interrupted. Compare the plan with that output, because a fresh audit cannot list a logged-out
+sf cleared with them, and a command stopped part-way is counted for what it did) and each `FAILED`
+line, a command interrupted while sf ran among them, then "Stopped part-way" with exit 1, or 130
+when interrupted. Compare the plan with that output, because a fresh audit cannot list a logged-out
 secondary user's remaining state.
 
 Each result is checked. Exit 1 means something failed: report each `FAILED` line. A warning
