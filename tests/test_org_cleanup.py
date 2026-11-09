@@ -387,7 +387,7 @@ class Logins(Base):
         twins = {name: {"username": name, "org": DEAD_ORG, "is_hub": False, "is_sandbox": False, "refreshable": True}
                  for name in ("rep@x.invalid", "Rep@x.invalid")}
         twins[HUB] = {"username": HUB, "org": "00DHUB000000001", "is_hub": True, "is_sandbox": False, "refreshable": True}
-        with mock.patch.object(oc, "read_logins", return_value=(twins, {}, [], "", {})):
+        with mock.patch.object(oc, "read_logins", return_value=(twins, {}, [], "", {}, [])):
             plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
         self.assertEqual(plan["remove"]["logout"], [])
         self.assertIn("differ only by letter case or Unicode form", plan["report"]["protected"]["rep@x.invalid"])
@@ -1922,6 +1922,7 @@ class RoundTwo(Base):
         cli.logout_clears_config = False
         self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertIn("logout left target-org in the local config", self.stdout.getvalue())
+        self.assertIn("'cleared_by_logout': 1", self.stdout.getvalue())  # the alias, not the config value
         self.assertTrue(self.index.exists())
 
     def test_an_unreadable_state_after_a_logout_stops_the_run_and_counts_nothing_more(self):
@@ -2104,7 +2105,7 @@ class RoundThree(Base):
 
         cli.override = interrupt
         self.assertEqual(self.apply(cli, plan_file), 130)
-        self.assertIn("rep@x.invalid (interrupted while sf ran; counted from what it left)", self.stdout.getvalue())
+        self.assertIn("rep@x.invalid (stopped while sf ran; counted from what it left)", self.stdout.getvalue())
         self.assertIn("rep@x.invalid (logout failed)", self.stdout.getvalue())
 
     def test_a_logout_that_finished_before_the_interrupt_is_counted(self):
@@ -2130,14 +2131,25 @@ class RoundThree(Base):
         self.assertEqual(plan["remove"]["logout"], [])
         self.assertIn("half@x.invalid.json names no username", plan["report"]["protected"]["rep@x.invalid"])
 
-    def test_a_linked_login_file_holds_every_logout(self):
+    def test_a_linked_login_is_read_but_never_acted_on(self):
+        # sf reads through the link and would remove only the link, so it is kept; others are not held.
         rows = self.setup_stale_org()
         target = self.home.parent / "elsewhere.json"
-        target.write_text(json.dumps({"username": "x@x.invalid", "orgId": LIVE_ORG + "MAA"}))
+        target.write_text(json.dumps({"username": "x@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        (self.home / ".sfdx" / "x@x.invalid.json").symlink_to(target)
+        plan = self.plan(FakeCli(self.home, rows))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+        self.assertIn("sf's logout would remove only the link", plan["report"]["protected"]["x@x.invalid"])
+        self.assertEqual(plan["hub_failures"], [])  # its file says it is no Dev Hub
+
+    def test_a_linked_login_with_no_username_holds_every_logout(self):
+        rows = self.setup_stale_org()
+        target = self.home.parent / "elsewhere.json"
+        target.write_text(json.dumps({"orgId": LIVE_ORG + "MAA"}))
         (self.home / ".sfdx" / "x@x.invalid.json").symlink_to(target)
         plan = self.plan(FakeCli(self.home, rows))
         self.assertEqual(plan["remove"]["logout"], [])
-        self.assertIn("a username the tool does not read", plan["report"]["protected"]["rep@x.invalid"])
+        self.assertIn("x@x.invalid.json names no username", plan["report"]["protected"]["rep@x.invalid"])
 
     def test_an_unread_file_that_holds_a_login_doubts_that_login(self):
         rows = self.setup_stale_org()
@@ -2205,7 +2217,15 @@ class RoundFour(Base):
         (self.home / ".sfdx" / "a.json@x.invalid.json").write_text(json.dumps({"orgId": OTHER_DEAD + "MAA"}))
         plan = self.plan(FakeCli(self.home, rows))
         self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
-        self.assertNotIn("ghost@x.invalid", plan["hub_failures"])
+
+    def test_a_login_whose_link_target_is_missing_now_stays_in_doubt(self):
+        # A volume that is not mounted now: the login may be live, so what names it stays.
+        (self.home / ".sfdx" / "live@x.invalid.json").symlink_to(self.home.parent / "unmounted" / "a.json")
+        self.write_config("local", sf={"target-org": "l"})
+        (self.project / ".sfdx" / "orgs" / "live@x.invalid").mkdir()
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="live@x.invalid")], {"l": "live@x.invalid"}))
+        self.assertEqual((plan["remove"]["aliases"], plan["remove"]["defaults"], plan["remove"]["tracking"]), ([], [], []))
+        self.assertIn("live@x.invalid", plan["report"]["protected"])
 
     def test_an_alias_store_sf_reads_as_empty_is_empty(self):
         rows = self.setup_stale_org()
@@ -2215,14 +2235,15 @@ class RoundFour(Base):
         self.assertEqual(self.audit_then_apply(cli), 0, self.stdout.getvalue())
         self.assertIn("'logout': 1", self.stdout.getvalue())
 
-    def test_an_alias_store_sf_cannot_read_either_refuses_every_logout_and_unset(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows, {"stale": "gone@x.invalid"})
-        cli.sync = lambda: None
-        (self.home / ".sfdx" / "alias.json").write_text('{"orgs": ["x"]}')
-        plan = self.plan(cli)
-        self.assertEqual((plan["remove"]["logout"], plan["remove"]["aliases"]), ([], []))
-        self.assertIn("alias.json cannot be read", plan["report"]["protected"]["rep@x.invalid"])
+    def test_an_alias_file_that_does_not_match_sfs_answer_stops_the_audit(self):
+        # Shapes sf never writes, or a map sf reports differently: the checks would not see what sf does.
+        for text in ('{"orgs": ["x"]}', '[]', '{"orgs": {"a": "b"}}'):
+            cli = FakeCli(self.home, self.setup_stale_org() if text == '[]' else [], {"stale": "gone@x.invalid"})
+            cli.sync = lambda: None
+            (self.home / ".sfdx" / "alias.json").write_text(text)
+            self.assertEqual(self.main(["audit"], cli), 1, text)
+            self.assertIn("differs from what `sf alias list` reports", self.stderr.getvalue())
+            self.assertEqual(self.logouts(cli), [])
 
     def test_a_name_without_an_at_sign_is_not_doubted_for_its_characters(self):
         rows = self.setup_stale_org()
@@ -2285,14 +2306,6 @@ class RoundFour(Base):
         self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertIn("local default (sf also changed target-dev-hub in the local config)", self.stdout.getvalue())
 
-    def test_a_partial_logout_counts_only_what_went(self):
-        rows = self.setup_stale_org()
-        self.write_config("local", sf={"target-org": "r"})
-        cli = FakeCli(self.home, rows, {"r": "rep@x.invalid"})
-        cli.logout_clears_config = False
-        self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertIn("'cleared_by_logout': 1", self.stdout.getvalue())  # the alias, not the config value
-
     def test_a_deploy_cache_that_does_not_parse_is_reported(self):
         (self.home / ".sf" / "deploy-cache.json").write_text('{"job1": ')
         plan = self.plan(FakeCli(self.home))
@@ -2311,8 +2324,144 @@ class RoundFour(Base):
         self.assertEqual("job1" in self.read_cache(), self.manifest.exists(), self.stdout.getvalue())
         self.assertIn(code, (0, 1))
 
-    def test_a_name_argv_would_change_is_a_failed_command(self):
-        self.assertEqual(oc.run_command(["/usr/bin/true", "\udc80x"]), (127, ""))
+    def test_a_name_sf_would_read_as_another_is_never_passed_to_it(self):
+        cli = FakeCli(self.home)
+        self.assertIsNone(oc.sf_json(cli, "alias", "unset", operands=["\udc80x"]))
+        self.assertEqual(cli.calls, [])
+        # git gets the original bytes back from a surrogate-escaped path, so it is not refused
+        self.assertEqual(oc.run_command(["/usr/bin/true", "\udc80x"]), (0, ""))
+
+
+class RoundFive(Base):
+    """Cases the fifth review round found; each fails on the mutant that removes its guard."""
+
+    setup_stale_org = Apply.setup_stale_org
+
+    def test_a_link_sf_cannot_follow_is_skipped_not_fatal(self):
+        rows = self.setup_stale_org()
+        (self.home / ".sfdx" / "loop@x.invalid.json").symlink_to(self.home / ".sfdx" / "loop@x.invalid.json")
+        locked = self.home.parent / "locked"
+        locked.mkdir()
+        (locked / "f.json").write_text("{}")
+        (self.home / ".sfdx" / "shut@x.invalid.json").symlink_to(locked / "f.json")
+        locked.chmod(0)
+        self.addCleanup(locked.chmod, 0o755)
+        plan = self.plan(FakeCli(self.home, rows))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+
+    def test_an_alias_differing_only_in_case_does_not_hold_the_logout(self):
+        # sf looks a name up among aliases exactly; only the file it opens is found case-insensitively.
+        rows = self.setup_stale_org()
+        plan = self.plan(FakeCli(self.home, rows, {"Rep@x.invalid": HUB}))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+        self.assertIn("Rep@x.invalid", plan["report"]["protected"])  # the alias itself is still kept
+
+    def test_a_legacy_file_sf_ignores_does_not_hold_the_logout(self):
+        rows = self.setup_stale_org()
+        self.write_config("local", sfdx={"defaultusername": "rep@x.invalid"})
+        self.env = {"SF_SFDX_INTEROPERABILITY": "false"}
+        plan = self.plan(FakeCli(self.home, rows))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+
+    def test_an_unmodelled_scope_the_logout_rewrites_holds_it(self):
+        rows = self.setup_stale_org()
+        self.write_config("local", sf={"target-org": "rep@x.invalid", "someTeamKey": "x"})
+        plan = self.plan(FakeCli(self.home, rows))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("logout rewrites the local config", plan["report"]["protected"]["rep@x.invalid"])
+
+    def test_an_interrupt_reports_what_else_sf_changed(self):
+        cli = FakeCli(self.home, self.setup_stale_org(), {"keep": HUB})
+        plan_file = self.audit_file(cli)
+
+        def also_then_interrupt(cmd):
+            if cmd[1:3] == ["org", "logout"]:
+                cli.logout(cmd[4])
+                cli.aliases.pop("keep")
+                cli.sync()
+                raise KeyboardInterrupt
+            return None
+
+        cli.override = also_then_interrupt
+        self.assertEqual(self.apply(cli, plan_file), 130)
+        self.assertIn("rep@x.invalid (sf also changed alias keep)", self.stdout.getvalue())
+        self.assertIn("'logout': 1", self.stdout.getvalue())
+
+    def test_an_interrupt_while_the_state_is_read_still_counts(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        real, calls = oc.facts, []
+
+        def interrupt_after_the_logout(*args):
+            calls.append(1)
+            if len(calls) == 3:  # the audit's read, the check before the logout, then the read after it
+                raise KeyboardInterrupt
+            return real(*args)
+
+        with mock.patch.object(oc, "facts", side_effect=interrupt_after_the_logout):
+            self.assertEqual(self.apply(cli, plan_file), 130)
+        self.assertIn("'logout': 1", self.stdout.getvalue())
+        self.assertIn("rep@x.invalid (stopped while sf ran; counted from what it left)", self.stdout.getvalue())
+
+
+class RoundFivePins(Base):
+    """Guards the fifth round found no test for."""
+
+    setup_stale_org = Apply.setup_stale_org
+
+    def test_an_unmodelled_scope_the_logout_does_not_touch_holds_nothing(self):
+        rows = self.setup_stale_org()
+        self.write_config("global", sf={"target-org": "rep@x.invalid"})
+        self.write_config("local", sf={"target-dev-hub": HUB}, sfdx={"defaultdevhubusername": "other@x.invalid"})
+        plan = self.plan(FakeCli(self.home, rows))
+        self.assertTrue(plan["report"]["unmodelled_config"]["local"])
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+
+    def test_a_login_name_that_is_not_utf8_is_not_acted_on(self):
+        # Linux only (APFS refuses such names): Node reads the byte as U+FFFD, so sf opens another file.
+        name = "a\udcff@x.invalid"
+        regular = self.home / "plain.json"
+        regular.write_text("{}")
+        with mock.patch.object(oc, "login_files", return_value=[(name, Path(name + ".json"))]), \
+                mock.patch.object(oc, "lstat_or_none", return_value=os.lstat(str(regular))):
+            unread = oc.read_logins(self.home)[1]
+        self.assertIn("not valid UTF-8", unread[name])
+
+    def test_an_alias_naming_the_login_itself_holds_nothing(self):
+        rows = self.setup_stale_org()
+        plan = self.plan(FakeCli(self.home, rows, {"rep@x.invalid": "rep@x.invalid"}))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+
+    def test_every_flag_letter_of_sf_org_logout_is_refused(self):
+        for letter in "acopu":
+            self.add_auth("-{}x@x.invalid".format(letter), DEAD_ORG)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])
+        for letter in "acopu":
+            self.assertIn("as its own -" + letter, plan["report"]["protected"]["-{}x@x.invalid".format(letter)])
+
+    def test_login_files_sf_skips_as_empty_or_not_an_object_block_nothing(self):
+        rows = self.setup_stale_org()
+        (self.home / ".sfdx" / "empty@x.invalid.json").write_text("{}")
+        (self.home / ".sfdx" / "list@x.invalid.json").write_text("[1]")
+        self.assertEqual(self.plan(FakeCli(self.home, rows))["remove"]["logout"], ["rep@x.invalid"])
+
+    def test_an_interrupt_with_an_unreadable_state_says_it_may_have_completed(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        real, calls = oc.facts, []
+
+        def fail_after_the_logout(*args):
+            calls.append(1)
+            if len(calls) == 3:
+                raise KeyboardInterrupt
+            if len(calls) == 4:
+                raise PermissionError(errno.EACCES, "Permission denied")
+            return real(*args)
+
+        with mock.patch.object(oc, "facts", side_effect=fail_after_the_logout):
+            self.assertEqual(self.apply(cli, plan_file), 130)
+        self.assertIn("rep@x.invalid (stopped while sf ran; it may have completed)", self.stdout.getvalue())
 
 
 class DocStaysInStep(Base):

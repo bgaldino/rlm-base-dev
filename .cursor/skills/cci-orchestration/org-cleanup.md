@@ -69,10 +69,12 @@ preserves anything that model cannot explain:
 - **`sf org logout`** also clears every alias whose value is that user, and every config key in
   both scopes that holds the user or one of those aliases. The plan lists these under each
   logout and the audit prints them; `apply` checks them (step 2). sf selects a login by the
-  username inside every file it lists, so no logout is planned while a login file is a link to a
-  file (the tool does not see its username) or names no username (sf then fails every logout), or
-  while `~/.sfdx/alias.json` cannot be read as sf reads it; and a login that an unread file also
-  holds is in doubt. An entry sf skips (a link to nothing, a folder) blocks nothing.
+  username inside every file it lists (through a link too), so no logout is planned while a login
+  file names no username (sf then fails every logout), and a login that a linked or unread file also
+  holds is in doubt. A linked login is read but never logged out: sf would remove only the link. An
+  entry sf skips (a link to nothing or that loops, a folder) blocks no other logout, but its name
+  stays in doubt: a link to a volume that is not mounted now may be a live login. The audit stops if
+  `~/.sfdx/alias.json` is not in the shape sf writes or differs from what `sf alias list` reports.
 
 ## 1. Audit
 
@@ -110,7 +112,7 @@ Review with the user, including the aliases and config keys printed under each l
 | Output | Meaning |
 |--------|---------|
 | `hub_failures` | Gave no full evidence: a hub that failed or returned a cut-short result (sf's `org-max-query-limit`), a hub named like an alias (sf would ask the alias's org), or a login whose auth file the tool did not read (it may be a Dev Hub). While any is listed no username is judged, so the plan may be incomplete. Fix access and re-audit. |
-| `protected` | Names kept, each with every reason that applies. A login whose auth file the tool cannot read or act on: unreadable or with no username, a link, a file whose name sf reads differently (a `.json` inside the username), and, when its org is gone, a renamed file, another file holding the same login, or files whose names differ only by case or Unicode form. A login on a gone org that is not logged out because an alias has its name, because logout would clear an alias whose name would then mean another login, because logout would rewrite a config scope the tool cannot model, because its name starts with `-` and a letter sf reads as its own flag (`-a`, `-c`, `-o`, `-p`, `-u`), or because a linked or username-less login file, or an alias file sf cannot read, stops every logout. An alias kept for the same alias-file reason, or because its name holds characters this Python's Unicode tables do not know. Any alias that has a login's name: sf resolves that name to the alias, and the tool never unsets it. Stop on these; resolve each by hand. |
+| `protected` | Names kept, each with every reason that applies. A login whose auth file the tool cannot read or act on: unreadable or with no username, a link, a file whose name sf reads differently (a `.json` inside the username), and, when its org is gone, a renamed file, another file holding the same login, or files whose names differ only by case or Unicode form. A login on a gone org that is not logged out because an alias has its name, because logout would clear an alias whose name would then mean another login, because logout would rewrite a config scope the tool cannot model, because its name starts with `-` and a letter sf reads as its own flag (`-a`, `-c`, `-o`, `-p`, `-u`), or because a username-less login file stops every logout. An alias holding `@` whose name has characters this Python's Unicode tables do not know. Any alias that has a login's name: sf resolves that name to the alias, and the tool never unsets it. Stop on these; resolve each by hand. |
 | `conflicting_evidence` | Hub rows that disagree, or show `Active` past the date, for a login, an org whose index, tracking or `fileResponses` is local, or a username that an alias, default, deploy-cache entry, environment default or tracking folder names. Kept. |
 | `logins_with_no_refresh_token` | An access-token-only login: it stops working when its session expires (JWT logins re-sign and are not listed). It is not on the plan, which does not mean its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
@@ -131,7 +133,7 @@ valid default, note it first and restore it afterwards with `sf config set targe
 
 While a login the tool reads stays on an org, that org's index, tracking (including legacy
 `.sfdx/orgs/<username>`, whose org is the one its signup row names) and `fileResponses` stay too.
-An unreadable or linked login is never opened, so its org is not known and it cannot protect that
+An unreadable login's org is not known and a linked one is not acted on, so neither protects that
 org's files; files are planned only when a hub row for that org ID shows it gone, so such a login
 cannot be on a live org.
 
@@ -180,8 +182,8 @@ can fail, so those may already be gone. If the login file is still there, fix th
 the login is listed again. If it is gone (a logout that left a config value), the next audit cannot
 link its state to the org; resolve that `FAILED` item by hand. An error or Ctrl-C after the logouts
 start stops the run: it prints what ran (`cleared_by_logout` counts the aliases and config keys
-sf cleared with them, and a command interrupted while sf ran is counted from what it left, or
-marked "it may have completed" when the state could not be read) and each `FAILED` line, then
+sf cleared with them, and a command stopped while sf ran is counted from what it left, with
+anything else it changed, or marked "it may have completed" when the state could not be read) and each `FAILED` line, then
 "Stopped part-way" with exit 1, or 130 when interrupted. Compare the plan with that output, because a fresh audit cannot list a logged-out
 secondary user's remaining state.
 
