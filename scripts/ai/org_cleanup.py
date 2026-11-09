@@ -79,6 +79,7 @@ LEGACY_KEYS = {
     "maxQueryLimit": "org-max-query-limit", "restDeploy": "org-metadata-rest-deploy",
 }
 CURRENT_KEYS = set(LEGACY_KEYS.values()) | {"org-capitalize-record-types"}
+LOGOUT_SHORT_FLAGS = "acopu"  # `sf org logout`'s one-letter flags and aliases; oclif reads "-a..." as -a
 ENV_DEFAULTS = ("SF_TARGET_ORG", "SFDX_DEFAULTUSERNAME", "SF_TARGET_DEV_HUB", "SFDX_DEFAULTDEVHUBUSERNAME")
 FILE_KEYS = ("indexes", "tracking", "file_responses")  # plan keys whose items are moved to the quarantine
 QUARANTINE_FOLDERS = ("orgs", "fileResponses", "manifestCache", ".sfdx")  # where those moves land
@@ -109,7 +110,12 @@ print("ORG_CLEANUP_CCI " + json.dumps(dict(orgs=orgs, default=default or None)))
 
 
 def run_command(cmd):
-    """Run one command, returning (exit code, stdout). Stderr may carry payloads: drop it."""
+    """Run one command, returning (exit code, stdout). Stderr may carry payloads: drop it.
+
+    A lone surrogate reaches the child as raw bytes that Node reads as U+FFFD, so sf would act on
+    another name: such an argument fails the command instead."""
+    if any(0xD800 <= ord(c) <= 0xDFFF for arg in cmd for c in arg):
+        return 127, ""
     try:
         done = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding="utf-8",
                               errors="replace", timeout=300, check=False)
@@ -144,7 +150,10 @@ def _refuse_constant(name):
 
 def _js_int(text):
     """A JSON integer as JavaScript reads it: past Python's digit limit, a float, as JS has."""
-    return int(text) if len(text) < 4000 else float(text)
+    try:
+        return int(text)
+    except ValueError:
+        return float(text)
 
 
 def read_json(path, default):
@@ -220,20 +229,32 @@ def read_logins(home):
     log anyone out right now; and, for each unread file that names one, the username sf lists it by.
     Token values never leave this function.
 
-    `sf org logout` lists every login by the username inside its file and selects each one with
-    the target's name, so a file the tool cannot act on still matters: one it does not open may
+    `sf org logout` lists every login by the username inside the file it opens and selects each
+    one with the target's name, so a file the tool cannot act on still matters: a linked one may
     list any username, and one whose username is not text stops sf's listing, and so every logout.
+    sf skips a link to nothing or to a folder, and a file whose name it reads differently (it opens
+    another name), so those block nothing; they are reported as unclassified or unread.
     """
     logins, unread, unreadable, blocks, listed = {}, {}, [], [], {}
     for name, path in login_files(home):
         info = lstat_or_none(path)
         if info is None:
             continue
-        if not stat.S_ISREG(info.st_mode):
-            unread[name] = ("its auth file is a link, which the tool does not open" if stat.S_ISLNK(info.st_mode)
-                            else "its auth file is not a regular file")
-            blocks.append("sf lists {} under a username the tool does not read".format(path.name))
+        if path.name.replace(".json", "", 1) != name:  # sf's parseUsername drops the first ".json"
+            unread[name] = "sf reads this file as the login {}, so it cannot log it out by this name".format(
+                path.name.replace(".json", "", 1))
             continue
+        if stat.S_ISLNK(info.st_mode):
+            try:
+                target = os.stat(str(path))
+            except (FileNotFoundError, NotADirectoryError):
+                continue  # sf reads a link to nothing as empty and skips it
+            if stat.S_ISREG(target.st_mode):
+                unread[name] = "its auth file is a link, which the tool does not open"
+                blocks.append("sf lists {} under a username the tool does not read".format(path.name))
+            continue
+        if not stat.S_ISREG(info.st_mode):
+            continue  # sf cannot read a folder as a login and skips it
         data = read_json(path, None)
         username = data.get("username") if isinstance(data, dict) else None
         org = data.get("orgId") if isinstance(data, dict) else None
@@ -241,10 +262,6 @@ def read_logins(home):
             blocks.append("{} names no username, so sf cannot list its logins".format(path.name))
         if isinstance(username, str):
             listed[name] = username
-        if path.name.replace(".json", "", 1) != name:  # sf's parseUsername drops the first ".json"
-            unread[name] = "sf reads this file as the login {}, so it cannot log it out by this name".format(
-                path.name.replace(".json", "", 1))
-            continue
         if not isinstance(org, str) or not ORG_ID.fullmatch(org) or not isinstance(username, str) or not username:
             unread[name] = "its auth file does not parse, or names no org or username"
             unreadable.append(path.name)
@@ -272,14 +289,16 @@ def read_aliases(payload):
 
 
 def read_alias_store(home):
-    """`~/.sfdx/alias.json` as sf keeps it ({"orgs": {...}}), to check what an sf command changed:
-    {} when there is none, None when it cannot be read."""
+    """`~/.sfdx/alias.json` as sf reads it (`orgs ?? {}`), to check what an sf command changed:
+    {} when there is none, None when sf could not read it either."""
     path = home / ".sfdx" / "alias.json"
     if lstat_or_none(path) is None:
         return {}
     store = read_json(path, None)
     orgs = store.get("orgs") if isinstance(store, dict) else None
-    return orgs if isinstance(orgs, dict) else None
+    if isinstance(store, dict) and orgs is None:
+        return {}
+    return orgs if isinstance(orgs, dict) and all(v is None or isinstance(v, str) for v in orgs.values()) else None
 
 
 def read_scope(sf_file, sfdx_file, linked, env):
@@ -330,11 +349,6 @@ def read_scope(sf_file, sfdx_file, linked, env):
             problems.append("{} is not text".format(key))
     # pairs: every text value either file gives a key, so a scope the tool cannot model still reports them.
     return {"merged": merged, "values": values, "pairs": sorted(pairs), "why": "; ".join(problems)}
-
-
-def keys_holding(scope, held):
-    """The config keys whose value is one of `held`: what a logout of those names clears there."""
-    return sorted({key for key, value in scope["pairs"] if value in held})
 
 
 def config_scopes(home, project, env):
@@ -489,6 +503,9 @@ def survey(run, home, project, today, predict=True, env=None):
     env = os.environ if env is None else env
     state = facts(home, project, env)  # first: apply checks that nothing changes from here on
     logins, unread, unreadable, blocks, listed = read_logins(home)
+    alias_store_unread = ("alias", "?", "unreadable") in state
+    if alias_store_unread:  # every logout and alias unset rewrites it, and the check could not follow
+        blocks = "; ".join(filter(None, [blocks, "~/.sfdx/alias.json cannot be read as sf reads it"]))
     alias_payload = sf_json(run, "alias", "list")
     if alias_payload is None:
         raise RuntimeError("sf alias list failed")
@@ -517,7 +534,7 @@ def survey(run, home, project, today, predict=True, env=None):
     def login_for(text):
         """The login a name opens: its stem, DOUBT, or None."""
         key = fold(text)
-        if key in doubt or beyond_tables(text):
+        if key in doubt or ("@" in text and beyond_tables(text)):  # only a name with "@" names a login file
             return DOUBT
         names = folded.get(key)
         return names[0] if names else None
@@ -536,7 +553,8 @@ def survey(run, home, project, today, predict=True, env=None):
         symlinks.append(cache_path)
         deploy_cache = {}
     else:
-        deploy_cache = read_json(cache_path, {})
+        deploy_cache = read_json(cache_path, None) if lstat_or_none(cache_path) else {}
+    cache_unread = [] if isinstance(deploy_cache, dict) else [str(cache_path)]  # nothing in it is planned
     deploy_cache = deploy_cache if isinstance(deploy_cache, dict) else {}
     # sf stores the username a deploy ran against, and resolves it through an alias again when it
     # reads the entry (deploy report/resume), so a target is judged like any other name.
@@ -602,8 +620,8 @@ def survey(run, home, project, today, predict=True, env=None):
         if login_for(name) is DOUBT:
             return doubt.get(fold(name), "its name has characters this Python's Unicode tables do not know, "
                                          "so the tool cannot tell which names the filesystem treats as the same")
-        if name.startswith("-"):
-            return "sf reads a --target-org value that starts with '-' as a flag"
+        if name[:1] == "-" and name[1:2] in LOGOUT_SHORT_FLAGS:
+            return "sf reads a --target-org value that starts with -{} as its own -{} flag".format(name[1], name[1])
         # An alias named like the login, other than one naming the login itself (which logout clears).
         if any(fold(a) == fold(name) and v != name for a, v in aliases.items()):
             return "an alias is named like this login, so sf could resolve the name to the alias"
@@ -654,9 +672,12 @@ def survey(run, home, project, today, predict=True, env=None):
         """The orgs an item reaches, bound in the plan: a failed logout on any of them keeps it."""
         return {"orgs": reach(name, resolve)[2]}
 
-    def effects(name):
-        config = {s: keys_holding(scope, clears(name)) for s, scope in scopes.items()}
-        return {"aliases": sorted(direct.get(name, [])), "config": {s: k for s, k in sorted(config.items()) if k}}
+    def effects(name):  # from the same rule apply checks each logout against
+        rule = logout_rule(state, name)
+        config = {}
+        for f in sorted(f for f in rule if f[0] == "config"):
+            config.setdefault(f[1], []).append(f[2])
+        return {"aliases": sorted(f[1] for f in rule if f[0] == "alias"), "config": config}
 
     cleared = set().union(*map(clears, stale_logins))
 
@@ -664,7 +685,12 @@ def survey(run, home, project, today, predict=True, env=None):
     for alias in sorted(aliases):
         if alias in cleared:
             continue
-        if login_for(alias) is not None:  # it shadows a login's name; unsetting it would re-point the name
+        if alias_store_unread:
+            protect(alias, "~/.sfdx/alias.json cannot be read as sf reads it, so the tool does not unset aliases")
+        elif "@" in alias and beyond_tables(alias) and fold(alias) not in folded:
+            protect(alias, "its name has characters this Python's Unicode tables do not know, so the tool cannot "
+                           "tell whether the filesystem treats it as a login's name")
+        elif login_for(alias) is not None:  # it shadows a login's name; unsetting it would re-point the name
             protect(alias, "this alias has a login's name, so sf resolves that name to the alias, not the login; "
                            "the tool never unsets it")
         elif judge(alias) == "stale":
@@ -757,6 +783,7 @@ def survey(run, home, project, today, predict=True, env=None):
             # text names no org, so neither is ever planned.
             "unsafe_deploy_cache_keys": sorted(j for j, v in deploy_raw.items()
                                                if not plain_job_id(j) or not isinstance(v, str)),
+            "unreadable_deploy_cache": cache_unread,
             "unclassified_files": read_unclassified(home, project, consumed),
             # Lead to no login and no username, so no hub row can ever put them on the plan.
             "dangling_aliases": sorted(a for a in aliases if judge(a) == "dangling"),
@@ -901,7 +928,7 @@ def replace_json(path, data):
     try:
         with os.fdopen(handle, "w", encoding="utf-8") as out:
             os.fchmod(out.fileno(), mode)
-            json.dump(data, out, indent=4, allow_nan=False)
+            out.write(json.dumps(data, indent=4, allow_nan=False))  # the encoder remove_deploy_jobs checks with
         os.replace(temp, str(path))
     except BaseException:
         if os.path.lexists(temp):
@@ -929,10 +956,10 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done=None
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))
         return 0, 0
-    try:  # checked before any manifest moves: a number too large for JSON cannot be written back
-        json.dumps(cache, allow_nan=False)
-    except ValueError:
-        failures.append(("deploy-cache", "holds a number this tool cannot write back; not modified"))
+    try:  # checked before any manifest moves, with the write's own encoder
+        json.dumps(cache, indent=4, allow_nan=False)
+    except (ValueError, RecursionError):
+        failures.append(("deploy-cache", "holds a value this tool cannot write back; not modified"))
         return 0, 0
     removed, moved = 0, 0
     for job in jobs:
@@ -976,25 +1003,30 @@ ENCRYPTED_KEYS = {"org-isv-debugger-sid"}  # sf re-encrypts these, with a fresh 
 
 def facts(home, project, env):
     """What an sf command run by apply can change, as a set: the login files, the aliases
-    (`~/.sfdx/alias.json`) and each config scope's values; an encrypted value only as present."""
+    (`~/.sfdx/alias.json`), each config scope's values (an encrypted one only as present, None) and
+    why a scope cannot be modelled, if it cannot."""
     found = {("login", name) for name, _ in login_files(home)}
     store = read_alias_store(home)
     found |= {("alias", "?", "unreadable")} if store is None else {
         ("alias", a, json.dumps(v)) for a, v in store.items()}
     for scope_name, scope in config_scopes(home, project, env).items():
-        found |= {("config", scope_name, k, "(encrypted)" if k in ENCRYPTED_KEYS else v) for k, v in scope["pairs"]}
+        found |= {("config", scope_name, k, None if k in ENCRYPTED_KEYS else v) for k, v in scope["pairs"]}
+        if scope["why"]:
+            found.add(("unmodelled", scope_name, scope["why"]))
     return found
 
 
 def describe(fact):
     if fact[0] == "config":
         return "{} in the {} config".format(fact[2], fact[1])
+    if fact[0] == "unmodelled":
+        return "whether the {} config can be modelled".format(fact[1])
     return "{} {}".format(fact[0], fact[1])
 
 
 def logout_rule(state, name):
     """What sf's logout of a login removes: its file, the aliases valued exactly the user, and the
-    config values naming either."""
+    config values naming either. The plan's effects come from this too."""
     held = {name} | {f[1] for f in state if f[0] == "alias" and f[2] == json.dumps(name)}
     return {f for f in state if f == ("login", name) or (f[0] == "alias" and f[2] == json.dumps(name))
             or (f[0] == "config" and f[3] in held)}
@@ -1007,76 +1039,86 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None, s
     orgs it reaches (bound in the reviewed plan), so a failed logout blocks exactly what depends on
     it without asking sf again.
 
-    `state` is what the audit behind the plan read first (read now if not given). Before each sf
-    command the state must still be that, less what earlier commands removed, and the command must
-    be one whose effects the plan shows. After it, what it removed is counted from the state, not
-    from sf's answer; what it should have removed and did not is a failure; anything else it
-    changed is recorded and stops the run.
+    `state` is what apply's own audit read first (read now if not given). Before each sf command
+    the state must still be that, less what earlier commands removed, and the command's effects
+    must be the ones the plan shows. After it, even when interrupted, what it removed is counted
+    from the state, not from sf's answer; what it should have removed and did not is a failure;
+    anything else it changed is recorded and stops the run.
     """
     env = os.environ if env is None else env
     remove, targets = plan["remove"], plan["targets"]
     failed_orgs = set()
-    current = {"state": facts(home, project, env) if state is None else set(state)}
+    state = facts(home, project, env) if state is None else set(state)
 
     def blocked(owner):
         return bool(set(owner["orgs"]) & failed_orgs)
 
     def check(label):
-        """The state each command starts from: an unexplained change stops the run before it."""
+        """The state a command starts from: an unexplained change stops the run before it."""
         try:
             now = facts(home, project, env)
         except OSError as error:
             raise Unexpected("could not read the state before {}: {}".format(label, reason(error)))
-        changed = now ^ current["state"]
+        changed = now ^ state
         if changed:
             failures.append((label, "not run: {} changed after the audit".format(
                 ", ".join(sorted(set(map(describe, changed)))))))
             raise Unexpected("the state changed during this run, so {} and the steps after it did not run".format(label))
         return now
 
-    def run_checked(command, label, expected):
-        """Run one sf command. Returns what of `expected` it removed and what it left. Anything else
-        it changed is recorded, after the caller counts what it did, by finish()."""
+    def run_checked(command, label, expected, record):
+        """Run one sf command whose reviewed effects are `expected`, then record(gone, left) from the
+        state, interrupted or not. Anything else it changed is recorded and stops the run."""
+        nonlocal state
         try:
             command()
         except BaseException:
-            failures.append((label, "interrupted while sf ran; it may have completed"))
+            try:
+                after = facts(home, project, env)
+            except OSError:
+                failures.append((label, "interrupted while sf ran; it may have completed"))
+            else:
+                record(expected - after, expected & after)
+                failures.append((label, "interrupted while sf ran; counted from what it left"))
             raise
         try:
             after = facts(home, project, env)
         except OSError as error:
             failures.append((label, "ran, but its effects could not be checked"))
             raise Unexpected("{} ran, but its effects could not be checked: {}".format(label, reason(error)))
-        before, current["state"] = current["state"], after
+        before, state = state, after
+        record(expected - after, expected & after)
         other = (before - after - expected) | (after - before)
-        return expected - after, expected & after, other
-
-    def finish(label, other):
         if other:
             failures.append((label, "sf also changed {}".format(", ".join(sorted(set(map(describe, other)))))))
             raise Unexpected("{} changed more than the plan said, so nothing more was run".format(label))
 
+    def scope_unmodelled(now, scopes):
+        return any(f[0] == "unmodelled" and f[1] in scopes for f in now)
+
     for name in remove["logout"]:
         planned = targets["logout"][name]
         before = check(name)
-        held = {name} | set(planned["aliases"])
-        expected = {("login", name)} | {("alias", a, json.dumps(name)) for a in planned["aliases"]}
-        expected |= {f for f in before if f[0] == "config" and f[2] in planned["config"].get(f[1], [])
-                     and f[3] in held}
-        if not expected <= before or logout_rule(before, name) != expected:
+        expected = logout_rule(before, name)
+        shown = {("login", name)} | {("alias", a) for a in planned["aliases"]}
+        shown |= {("config", s, k) for s, keys in planned["config"].items() for k in keys}
+        if ({f[:3] if f[0] == "config" else f[:2] for f in expected} != shown
+                or scope_unmodelled(before, {f[1] for f in expected if f[0] == "config"})):
             failures.append((name, "its effects are not the ones the plan shows; not logged out"))
             failed_orgs.add(planned["org"])
             continue
-        gone, left, other = run_checked(
-            lambda: sf_json(run, "org", "logout", "--target-org", name, "--no-prompt"), name, expected)
-        if ("login", name) in gone:
-            done["logout"] += 1
-        done["cleared_by_logout"] += sum(1 for f in gone if f[0] != "login")
-        if left:
-            failures.append((name, "logout failed" if ("login", name) in left else
-                             "logout left {}".format(", ".join(sorted(map(describe, left))))))
-            failed_orgs.add(planned["org"])
-        finish(name, other)
+
+        def record_logout(gone, left):
+            if ("login", name) in gone:
+                done["logout"] += 1
+            done["cleared_by_logout"] += sum(1 for f in gone if f[0] != "login")
+            if left:
+                failures.append((name, "logout failed" if ("login", name) in left else
+                                 "logout left {}".format(", ".join(sorted(map(describe, left))))))
+                failed_orgs.add(planned["org"])
+
+        run_checked(lambda: sf_json(run, "org", "logout", "--target-org", name, "--no-prompt"), name, expected,
+                    record_logout)
 
     # One alias per command: sf handles several in parallel, and a batch can fail partway.
     for alias in remove["aliases"]:
@@ -1088,12 +1130,14 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None, s
         if bound not in check(alias):
             failures.append((alias, "changed during this run; not modified"))
             continue
-        gone, _, other = run_checked(lambda: sf_json(run, "alias", "unset", operands=[alias]), alias, {bound})
-        if gone:
-            done["aliases"] += 1
-        else:
-            failures.append((alias, "alias unset failed"))
-        finish(alias, other)
+
+        def record_alias(gone, left):
+            if gone:
+                done["aliases"] += 1
+            else:
+                failures.append((alias, "alias unset failed"))
+
+        run_checked(lambda: sf_json(run, "alias", "unset", operands=[alias]), alias, {bound}, record_alias)
 
     for scope in remove["defaults"]:
         planned = targets["defaults"][scope]
@@ -1103,17 +1147,18 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None, s
             continue
         before = check(label)
         expected = {f for f in before if f[0] == "config" and f[1] == scope and f[2] == "target-org"}
-        if config_scopes(home, project, env)[scope]["why"] or expected != {
-                ("config", scope, "target-org", planned["value"])}:
+        if expected != {("config", scope, "target-org", planned["value"])} or scope_unmodelled(before, {scope}):
             failures.append((label, "changed during this run; not modified"))
             continue
+
+        def record_default(gone, left):
+            if gone:
+                done["defaults"] += 1
+            else:
+                failures.append((label, "config unset failed"))
+
         args = ["config", "unset", "target-org"] + (["--global"] if scope == "global" else [])
-        gone, _, other = run_checked(lambda: sf_json(run, *args), label, expected)
-        if gone:
-            done["defaults"] += 1
-        else:
-            failures.append((label, "config unset failed"))
-        finish(label, other)
+        run_checked(lambda: sf_json(run, *args), label, expected, record_default)
 
     roots = {"indexes": [home / ".sfdx"],
              "tracking": [project / ".sf" / "orgs", project / ".sfdx" / "orgs"],
