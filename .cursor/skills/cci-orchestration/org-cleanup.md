@@ -46,16 +46,34 @@ and `cci org list` elsewhere exits 0 showing only CCI's built-in shapes.
   Preserve the CLI's shared encryption key and unrelated secrets.
 - Do not uninstall/reinstall tools or change interpreters to perform cleanup.
 
+## How the tool reads state
+
+It judges local state the way sf reads it, checked against the sf CLI's own source, and
+preserves anything that model cannot explain:
+
+- **Logins** are the files in `~/.sfdx` whose names sf lists (`<username>.json`), under the
+  username inside the file. Nothing in `~/.sf` is a login; a credential file there is reported.
+- **A name** (an alias, a default, a deploy-cache target) goes through at most one alias, as
+  in sf. A chain of aliases does not work in sf, so the tool reports it as dangling.
+- **A login file is found whatever the case of the name** (macOS filesystems ignore case), so
+  usernames are compared without regard to case.
+- **A config scope** (`global`, or `local` for the project) is `.sf/config.json` merged with
+  `.sfdx/sfdx-config.json`, and sf rewrites both files on any change. The tool acts on a scope
+  only when that merge is unambiguous: both files parse, agree on every shared key, and hold
+  only keys sf translates as-is.
+- **`sf org logout`** also clears every alias whose value is that user, and every config key
+  (any key, in both scopes) that holds the user or one of those aliases. The plan lists these
+  under each logout, and the audit prints them.
+
 ## 1. Audit
 
 ```bash
 python scripts/ai/org_cleanup.py audit --out <plan-path-outside-the-repo>
 ```
 
-The tool reads local auth, alias, tracking, `fileResponses` and cache state, then queries
-`ScratchOrgInfo` on every
-connected Dev Hub, by org ID and, for state with only a username, by signup username. Only a
-removable class goes on the plan:
+The tool reads local auth, alias, tracking, `fileResponses`, config and cache state, then queries
+`ScratchOrgInfo` on every connected Dev Hub, by org ID and, for names with no login, by signup
+username. Only a removable class goes on the plan:
 
 | Hub evidence | Class | Result |
 |--------------|-------|--------|
@@ -65,8 +83,8 @@ removable class goes on the plan:
 | `Active` with a past date, or different statuses across rows | conflict | Preserved, reported |
 | No row, or the hub did not answer | unknown | Preserved |
 
-An expiration date of today is not past. Every login on a removable org is included,
-regardless of its local `isScratch`. Dev Hubs and sandboxes are never logged out.
+An expiration date of today is not past. Dev Hubs and sandboxes are never logged out, and a
+login on a removable org is logged out only if nothing in `protected` keeps it.
 
 It removes nothing, though `cci` writes a `.org` file for any declared shape that lacks one,
 and a hub query can refresh that hub's auth file. The plan holds usernames but no tokens, and
@@ -78,20 +96,30 @@ authorize the hub with `isDevHub` set and audit again.
 Every `cci` command rolls `~/.cumulusci/logs` over and keeps 5 backups, including the ones this
 procedure runs. Copy a log you are debugging before starting.
 
-Review with the user:
+Review with the user, including the aliases and config keys printed under each logout:
 
 | Output | Meaning |
 |--------|---------|
-| `hub_failures` | Those hubs gave no evidence, so the plan may be incomplete. Fix access and re-audit. A hub whose username is also an alias is listed here and never queried, because sf would resolve the name to the alias and ask another org. |
-| `conflicting_evidence` | Stop on those entries. A username that two auth files name with different orgs or flags is protected: never logged out, its aliases, defaults and deploy jobs kept, and listed here. So is an auth file whose name differs from the username inside it (a renamed backup): sf answers to both names with that file's token. A username whose auth file is unreadable or a link is protected the same way, in both roots. A login named like an alias is listed here and never logged out, because sf would resolve the name to the alias. That alias, and any default or deploy-cache entry that uses the name, is kept too, as is any alias chain that passes through that name: it is not followed to the alias target. The user that alias points at is listed and not logged out either, because logout would clear the alias and the name would then mean the login. While a login the tool reads stays on an org, that org's index, tracking and `fileResponses` stay too, even when another login on it is logged out; a conflicting login keeps every org its copies name. An unreadable or linked login is never opened, so its org is not known and it cannot protect that org's files. |
-| `logins_with_no_refresh_token` | Stops working when its session expires. It is not on the removal plan, which does not mean its org is live. Report it; log out only with explicit approval. |
-| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned, so stale entries stay in the cache. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
+| `hub_failures` | Gave no full evidence: a hub that failed or returned a cut-short result (sf's `org-max-query-limit`), a hub named like an alias (sf would ask the alias's org), or a login whose auth file the tool did not read (it may be a Dev Hub). While any is listed no username is judged, so the plan may be incomplete. Fix access and re-audit. |
+| `protected` | Names kept although their org looks gone, each with the reason: the tool cannot tie the name to one login (an unreadable or linked auth file, a renamed file, files that differ only by case), an alias is named like the login, logout would clear an alias whose name then means another login, logout would rewrite a config scope the tool cannot model, or an alias is named like a login. Stop on these; resolve each by hand. |
+| `conflicting_evidence` | Logins whose hub rows disagree, or show `Active` past the date. Kept. |
+| `logins_with_no_refresh_token` | An access-token-only login: it stops working when its session expires (JWT logins re-sign and are not listed). It is not on the plan, which does not mean its org is live. Report it; log out only with explicit approval. |
+| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
-| `dangling_aliases`, `dangling_defaults` | Lead to no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>`, or `sf config unset target-org` (add `--global` for a `global` scope; the entry names it). That unset clears the scope's key whatever it names: if the scope also holds a valid value, note it first and restore it with `sf config set target-org=<value>`. |
-| `unsafe_deploy_cache_keys` | Deploy-cache keys that are not plain file names (such as `../x`). Never planned, because no manifest is looked for. Left alone; report them. |
-| `mixed_defaults` | A scope whose config holds a stale value and one that is not. `sf config unset target-org` clears the scope's key whatever it names, so the tool leaves it. Report it; with the user's approval note the valid value, unset, and restore it with `sf config set target-org=<value>`. |
-| `unclassified_files` | Not owned by the CLIs, and not opened. It includes a symlinked login or index file, a credential backup such as `user@x.json.bak`, and any login or index file inside the project, because only the home state is read as logins and indexes. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. An entry the tool cannot examine is listed with an `error` instead of a size and mode. Report it and let the user decide. |
+| `dangling_aliases`, `dangling_defaults` | Reach no login and no username (including an alias of an alias), so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>`, or `sf config unset target-org` (add `--global` for the `global` scope). |
+| `unsafe_deploy_cache_keys` | Deploy-cache keys that are not plain file names (such as `../x`), or entries whose target is not text. Never planned. Report them. |
+| `unsafe_alias_names` | Stale aliases whose names start with `-`. sf would read the name as flags (`-ap` is `--all --no-prompt`, which unsets every alias), so the tool never passes it. Remove by hand with `sf alias unset -- <name>` only after the user approves. |
+| `unmodelled_config` | Config scopes the tool cannot model, with the reason: a file that does not parse or is not a regular file, files that disagree, a legacy key in `.sf/config.json`, an unrecognized key in `sfdx-config.json`, interoperability turned off, or a linked project `.sf`/`.sfdx`. The tool never writes such a scope and refuses any logout that would. Report it; the user fixes the files, then re-audit. |
+| `stale_config_values` | A stale default the tool does not unset: a `target-dev-hub`, or a value in an unmodelled scope. With the user's approval unset it by hand (`--global` for the `global` scope). |
+| `env_defaults` | `SF_TARGET_ORG`/`SFDX_DEFAULTUSERNAME` (and the dev hub pair) override both scopes. Reported with how the tool judges the value; the tool never changes the environment. |
+| `unclassified_files` | Not owned by the CLIs, and not opened: a linked login or index file, a credential backup such as `user@x.json.bak`, an auth-shaped file in `~/.sf` or the project, a name sf does not list. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. An entry the tool cannot examine is listed with an `error`. Report it and let the user decide. |
+| `preserved` | Counts of what stays in each category. |
 | `prune_prediction` | See step 3. |
+
+While a login the tool reads stays on an org, that org's index, tracking (including legacy
+`.sfdx/orgs/<username>`) and `fileResponses` stay too. An unreadable or linked login is never
+opened, so its org is not known and it cannot protect that org's files; files are planned only
+when a hub row for that org ID shows it gone, so such a login cannot be on a live org.
 
 An audit request ends here.
 
@@ -105,23 +133,28 @@ Do not run `apply` while another `sf` or `cci` process is running: the deploy ca
 rewritten without a lock, so a concurrent deploy's entry could be lost.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
-reviewed one, including its project, the default values and their usernames, the logout org IDs, the aliases each logout would clear, and the usernames its aliases and deploy jobs resolved to. An unreadable state folder stops the run with exit 1 before anything changes. Before any logout, if the
-plan moves files, it moves a temp file into the quarantine, and exits 1 if that fails. The quarantine is a dated folder in the user's Trash, or with no Trash, beside the real CLI
-state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another
-folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config
-unset target-org` for a default still pointing at a removed user, and moves user indexes, tracking
-directories, `fileResponses` directories, and matched deploy-cache manifests to the quarantine. It
-refuses symlinks (a linked `manifestCache`, a linked quarantine root or folder, or a linked deploy cache included), paths outside the state roots, and project files tracked by git (home state is not
-checked against git). If a logout fails, that org's
-index, tracking, `fileResponses` and deploy-cache entries stay, and so does a chained alias that
-still reaches the login. `sf` clears the user's direct aliases and defaults before it can fail, so
-those may already be gone, and a chain
-left leading nowhere is removed. Fix the cause and re-audit; the login is listed again. If `sf alias
-list` fails after the logouts, a default is unset only when every value it holds is a user this run
-logged out or an alias it unset; any other is left and reported, because an alias holding an `@`
-would read as a username. A file error after the logouts start stops the run: it prints what ran and
-each `FAILED` line, then "Stopped part-way" with exit 1. Compare the plan with that output, because a
-fresh audit cannot list a logged-out secondary user's remaining state.
+reviewed one: its project, every removal, each logout's org and the aliases and config keys it
+clears, and the value and login each alias, default, deploy job and file reaches. It does not run
+`cci`. An unreadable state folder stops the run with exit 1 before anything changes. Before any
+logout, if the plan moves files, it checks the quarantine (no linked root or folder, no file
+where a folder belongs) and moves a temp file in, and exits 1 if that fails. The quarantine is a
+dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the Docker
+image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder.
+
+It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config unset
+target-org` (with `--global` for the global scope) for each planned default, re-reading the scope
+to confirm the default is gone. It moves user indexes, tracking directories, `fileResponses`
+directories, and matched deploy-cache manifests to the quarantine. It refuses symlinks, paths
+outside the state roots, and project files tracked by git (home state is not checked against git).
+
+If a logout fails, every item that reaches that login or another login on its org stays: aliases,
+defaults, files and deploy-cache entries. `sf` clears the user's aliases and config keys before it
+can fail, so those may already be gone. Fix the cause and re-audit; the login is listed again. A
+logout that reports logging out anyone else is a failure. An error or Ctrl-C after the logouts
+start stops the run: it prints what ran (`cleared_by_logout` counts the aliases and config keys
+sf cleared with them) and each `FAILED` line, then "Stopped part-way" with exit 1, or 130 when
+interrupted. Compare the plan with that output, because a fresh audit cannot list a logged-out
+secondary user's remaining state.
 
 Each result is checked. Exit 1 means something failed: report each `FAILED` line. A warning
 about losing access is routine for a scratch-org login. The user empties the quarantine when
@@ -129,8 +162,9 @@ satisfied; logouts and alias removals cannot be restored from it.
 
 An item whose name is already in the quarantine takes a numbered name, such as `<name>.1`. A failed
 move across volumes, such as a project on another drive or in the Docker image, can leave a copy
-in the quarantine and all or part of the source in place. Keep both: the copy can be the only
-complete one. Fix the cause and re-audit, and the retry takes a numbered name.
+in the quarantine and all or part of the source in place; the output names the quarantine even
+when no move succeeded. Keep both: the copy can be the only complete one. Fix the cause and
+re-audit, and the retry takes a numbered name.
 
 The tool does not handle credential backups: report them from `unclassified_files`, and
 remove one only when the user can tie it to a confirmed stale org.
@@ -150,12 +184,13 @@ its result from CCI's own logic:
 | Not a shape, not expired | Skipped as active | |
 | Connected (non-scratch) org | Untouched | |
 
-Do not run it if `would_remove_but_active_on_hub` is non-empty, if `hub_failures` is non-empty, or if `prune_prediction` is `{"available": false}` (no prediction exists): CCI computes expiry locally
-as created date plus days, which can lapse before the hub's date. The key lists an entry whose
-org the hub shows `Active`, and any `conflict`: `Active` past its date, or rows with different statuses.
-It cannot list an org it has no evidence for: no hub has a row for it (including when the hub
-holding it is in `hub_failures`), or the CCI entry's `sfdx_alias` is empty or no longer resolves
-to a username.
+Do not run it unless `would_remove_not_proven_gone` is empty, `hub_failures` is empty, and the
+prediction is available (not `{"available": false}`). `would_remove_not_proven_gone` lists every
+instantiated entry prune would remove whose org a hub row does not show gone, judged by the org
+ID CCI stored for it (or, without one, the login of its stored username): an active org, a
+conflict, no row at all, or no org ID and no login. CCI computes expiry locally as created date
+plus days, which can lapse before the hub's date. `default` is CCI's default org
+(`DEFAULT_ORG.txt`), which can name an org whose record is gone.
 
 A never-instantiated entry is usually a shape declared on another branch or an earlier commit,
 and CCI recreates it on a checkout that declares it; describe it that way, not as an expired org.
@@ -183,21 +218,20 @@ re-audit afterward. Never bypass global-org protection automatically.
 
 ## Validation Checks
 
-1. Re-run the audit. Every list under `remove` must be empty. That does not clear an earlier
-   `FAILED` line: after its logout, a secondary user's residual state has no link to a hub
-   row, so it reads as unknown and stays off the plan. Resolve each `FAILED` item by name.
-2. Run `python scripts/ai/org_cleanup.py audit --check-logins`, which queries each preserved
-   login and can rewrite auth files through a token refresh. A login named like an alias is listed
-   as not queried, because sf would answer through the alias's org. If `sf alias list` fails, no
-   login is checked and it exits 1. For a failure, compare that
-   login's auth file with the pre-cleanup state before attributing it to cleanup.
-3. Run `COLUMNS=200 cci org list --plain` (narrower output wraps long names). Removed records
+1. Run `python scripts/ai/org_cleanup.py audit --check-logins`. Every list under `remove` must be
+   empty. That does not clear an earlier `FAILED` line: after its logout, a secondary user's
+   residual state has no link to a hub row, so it reads as unknown and stays off the plan.
+   Resolve each `FAILED` item by name. The same run queries each login sf lists (it can rewrite
+   auth files through a token refresh) and exits 1 if any did not answer; a login named like an
+   alias is listed as not queried, because sf would answer through the alias's org. For a failure,
+   compare that login's auth file with the pre-cleanup state before attributing it to cleanup.
+2. Run `COLUMNS=200 cci org list --plain` (narrower output wraps long names). Removed records
    are gone and shapes remain. `--json` can fail with `Object of type date is not JSON
    serializable`; the table form also removes cache directories for orgs CCI no longer knows.
-4. Confirm `git status --short` has no new tracked changes attributable to cleanup.
-5. Report removals by category, preserved auth, unresolved items, scope, and whether any
-   defaults were cleared. Do not claim Keychain enumeration or removal: supported logout
-   handled auth storage.
+3. Confirm `git status --short` has no new tracked changes attributable to cleanup.
+4. Report removals by category, what each logout cleared, preserved auth, unresolved items,
+   scope, and whether any defaults were cleared. Do not claim Keychain enumeration or removal:
+   supported logout handled auth storage.
 
 ## Examples
 
@@ -207,9 +241,11 @@ re-audit afterward. Never bypass global-org protection automatically.
   remain. If the hub shows the org deleted, the plan logs out that user and moves only the
   matched state. If the org is active, the same-looking user stays.
 - **Orphaned alias:** an alias points at a username with no auth file. The plan unsets it only
-  if a signup-username row shows that org deleted or expired, and every hub answered. An alias of a valid alias stays.
-- **Chained alias:** an alias points at another alias of a user being logged out. Logout clears
-  only the direct alias, so the plan lists the chained one too.
+  if a signup-username row shows that org deleted or expired, and every hub answered.
+- **Chained alias:** an alias points at another alias. sf does not follow it, so it is
+  `dangling_aliases`: reported, never unset by the tool.
+- **CCI alias:** a logged-out scratch org's `<project>__<org>` alias is cleared by sf with the
+  logout; the audit prints it under that logout.
 - **Shape from another branch:** `would_remove_never_instantiated` lists an entry absent from
   this checkout. Describe it as a shape and let the user decide before pruning.
 - **Unavailable hub:** `hub_failures` lists it and its entries stay. Do not reinterpret failure

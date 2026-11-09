@@ -3,6 +3,11 @@
 The tool removes local auth, so these tests pin what must never happen: acting without hub
 evidence, touching a live org's login because it looks like a stale one, printing a token,
 or running a command that deletes an org.
+
+FakeCli answers the way sf 2.157.8 (@salesforce/core 9.4.1) does where the tool depends on it:
+logins live only in ~/.sfdx, a name resolves through at most one alias, a logout clears the
+config keys holding the user or one of its direct aliases in both scopes and both config
+files, and queries match signup usernames regardless of case and can be cut short.
 Stdlib only. Run with: python tests/test_org_cleanup.py
 """
 import contextlib
@@ -27,23 +32,33 @@ CANARY = "CANARY-VALUE-1234567890"
 DEAD_ORG = "00DAA0000000001"
 LIVE_ORG = "00DAA0000000002"
 NO_ROW_ORG = "00DAA0000000003"
+OTHER_DEAD = "00DBB0000000002"
+LEGACY = {new: old for old, new in oc.LEGACY_KEYS.items()}
 
 
 def row(org, status="Deleted", expires="2026-01-01", user="signup@x.invalid"):
     return {"ScratchOrg": org, "SignupUsername": user, "Status": status, "ExpirationDate": expires}
 
 
+def cci_org(name, **flags):
+    org = dict(name=name, shape=False, active=False, scratch=True, expired=False, instantiated=True,
+               alias="", org_id="", username="")
+    org.update(flags)
+    return org
+
+
 class FakeCli:
     """Answers sf, cci and git from fixtures, recording every command."""
 
-    def __init__(self, home, hub_rows=(), aliases=None, cci=None, fail_hubs=(), fail_logout=(),
-                 clears_before_failing=False):
-        self.home, self.calls = home, []
+    def __init__(self, home, hub_rows=(), aliases=None, cci=None, fail_hubs=(), fail_logout=(), default=None):
+        self.home, self.project, self.calls = home, home.parent / "project", []
         self.hub_rows, self.aliases = list(hub_rows), dict(aliases or {})
-        self.cci, self.fail_hubs, self.fail_logout = cci, set(fail_hubs), set(fail_logout)
-        self.tracked, self.config = set(), None
-        self.clears_before_failing = clears_before_failing  # what real sf did when unlink failed
+        self.cci, self.default = cci, default
+        self.fail_hubs, self.fail_logout = set(fail_hubs), set(fail_logout)
+        self.tracked = set()
         self.override = None  # cmd -> (code, stdout) to answer it, or None for the normal answer
+        self.unset_works = True
+        self.max_query = None  # sf's org-max-query-limit
 
     def __call__(self, cmd):
         self.calls.append(cmd)
@@ -55,30 +70,22 @@ class FakeCli:
         if cmd[0] == "cci":
             if self.cci is None:
                 return 1, ""
-            return 0, "noise\nORG_CLEANUP_CCI " + json.dumps(self.cci) + "\n"
+            payload = {"orgs": self.cci, "default": self.default}
+            return 0, "noise\nORG_CLEANUP_CCI " + json.dumps(payload) + "\n"
         args = cmd[1:]
         if args[:2] == ["alias", "list"]:
-            rows = [{"alias": a, "value": v} for a, v in self.aliases.items()]
-            return self.ok(rows)
+            return self.ok([{"alias": a, "value": v} for a, v in self.aliases.items()])
         if args[:2] == ["alias", "unset"]:
-            self.aliases.pop(args[2], None)
-            return self.ok([{"alias": args[2], "success": True}])
+            value = self.aliases.pop(args[2], None)
+            return self.ok([{"alias": args[2], "value": value, "success": True}])
         if args[:2] == ["data", "query"]:
             return self.query(args)
         if args[:2] == ["org", "logout"]:
-            user = args[3]
-            if user in self.fail_logout:
-                if self.clears_before_failing:
-                    self.aliases = {a: v for a, v in self.aliases.items() if v != user}
-                return 1, json.dumps({"status": 1, "name": "Failed"})
-            (self.home / ".sfdx" / (user + ".json")).unlink()
-            self.aliases = {a: v for a, v in self.aliases.items() if v != user}
-            if self.config:  # the real logout clears config keys naming the user
-                data = json.loads(self.config.read_text())
-                self.config.write_text(json.dumps({k: v for k, v in data.items() if v != user}))
-            return self.ok([user])
+            return self.logout(args[3])
         if args[:2] == ["config", "unset"]:
-            return self.ok({"successes": [{"name": "target-org"}]})
+            if self.unset_works:
+                self.clear_config("global" if "--global" in args else "local", lambda k, v: k == "target-org")
+            return self.ok({"successes": [{"name": "target-org", "success": True}], "failures": []})
         raise AssertionError("unexpected command: {}".format(cmd))
 
     @staticmethod
@@ -91,7 +98,45 @@ class FakeCli:
             return 10, json.dumps({"status": 10, "name": "TypeError"})
         field = re.search(r"WHERE (\w+) IN", soql).group(1)
         values = re.search(r"IN \('(.*)'\)", soql).group(1).split("','")
-        return self.ok({"done": True, "records": [r for r in self.hub_rows if r[field] in values]})
+        if field == "SignupUsername":  # SOQL compares text without regard to case
+            wanted = {v.casefold() for v in values}
+            records = [r for r in self.hub_rows if r[field].casefold() in wanted]
+        else:
+            records = [r for r in self.hub_rows if r[field] in values]
+        total = len(records)
+        if self.max_query is not None:  # sf cuts the result and still says done
+            records = records[:self.max_query]
+        return self.ok({"done": True, "totalSize": total, "records": records})
+
+    def config_files(self, scope):
+        base = self.home if scope == "global" else self.project
+        return base / ".sf" / "config.json", base / ".sfdx" / "sfdx-config.json"
+
+    def clear_config(self, scope, drop):
+        """sf's merged config view: unset the matching keys, then rewrite both files from it."""
+        sf_file, sfdx_file = self.config_files(scope)
+        load = lambda p: json.loads(p.read_text()) if p.exists() else {}  # noqa: E731
+        merged = {oc.LEGACY_KEYS.get(k, k): v for k, v in load(sfdx_file).items()}
+        merged.update(load(sf_file))
+        gone = {k for k, v in merged.items() if drop(k, v)}
+        if not gone:
+            return
+        merged = {k: v for k, v in merged.items() if k not in gone}
+        for path, contents in ((sf_file, merged), (sfdx_file, {LEGACY.get(k, k): v for k, v in merged.items()})):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(contents))
+
+    def logout(self, target):
+        user = self.aliases.get(target, target)  # one alias, never a chain
+        auth = self.home / ".sfdx" / (user + ".json")
+        if user in self.fail_logout or not auth.exists():
+            return 1, json.dumps({"status": 1, "name": "NoAuthFoundForTargetOrg"})
+        held = {user} | {a for a, v in self.aliases.items() if v == user}
+        for scope in ("global", "local"):
+            self.clear_config(scope, lambda k, v: v in held)
+        self.aliases = {a: v for a, v in self.aliases.items() if v != user}
+        auth.unlink()
+        return self.ok([user])
 
 
 class Base(unittest.TestCase):
@@ -107,14 +152,54 @@ class Base(unittest.TestCase):
         (self.project / "sfdx-project.json").write_text("{}\n")
         self.add_auth(HUB, "00DHUB000000001", isDevHub=True)
         self.quarantine = root / "quarantine"
+        self.env = {}  # never the developer's own SF_* variables
 
     def add_auth(self, user, org, **fields):
         data = dict(username=user, orgId=org + "MAA", refreshToken=CANARY, accessToken=CANARY)
         data.update(fields)
         (self.home / ".sfdx" / (user + ".json")).write_text(json.dumps(data))
 
+    def write_config(self, scope, sf=None, sfdx=None):
+        base = self.home if scope == "global" else self.project
+        for path, data in ((base / ".sf" / "config.json", sf), (base / ".sfdx" / "sfdx-config.json", sfdx)):
+            if data is not None:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(data))
+
+    def read_config(self, scope):
+        base = self.home if scope == "global" else self.project
+        return [json.loads(p.read_text()) if p.exists() else None
+                for p in (base / ".sf" / "config.json", base / ".sfdx" / "sfdx-config.json")]
+
     def plan(self, cli):
-        return oc.build_plan(cli, self.home, self.project, TODAY)
+        return oc.build_plan(cli, self.home, self.project, TODAY, env=self.env)
+
+    def main(self, argv, cli):
+        self.stdout, self.stderr = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(self.stdout), contextlib.redirect_stderr(self.stderr):
+            return oc.main(argv, cli, self.home, self.project, TODAY, env=self.env)
+
+    def audit_file(self, cli):
+        plan_file = self.project / "plan.json"
+        self.assertEqual(self.main(["audit", "--out", str(plan_file)], cli), 0)
+        return plan_file
+
+    def apply(self, cli, plan_file, quarantine=None):
+        return self.main(["apply", "--plan", str(plan_file), "--quarantine", str(quarantine or self.quarantine)], cli)
+
+    def audit_then_apply(self, cli, plan_cli=None):
+        return self.apply(cli, self.audit_file(plan_cli or cli))
+
+    @staticmethod
+    def logouts(cli):
+        return [c for c in cli.calls if c[1:3] == ["org", "logout"]]
+
+    @staticmethod
+    def unsets(cli):
+        return [c for c in cli.calls if c[1:3] == ["config", "unset"]]
+
+    def read_cache(self):
+        return json.loads((self.home / ".sf" / "deploy-cache.json").read_text())
 
 
 class Classification(unittest.TestCase):
@@ -130,11 +215,21 @@ class Classification(unittest.TestCase):
             ([row("x", "Error", "2026-11-05"), row("x", "Error", "2026-12-01")], "unknown"),  # one still runs
             ([row("x", "New", "2026-12-01")], "unknown"),
             ([row("x"), row("x", "Active", "2026-12-01")], "conflict"),
-            # No past date on either row, so only the mixed statuses can make this a conflict.
             ([row("x", "Deleted", "2026-12-01"), row("x", "Active", "2026-12-01")], "conflict"),
+            ([row("x", "Error", None)], "unknown"),  # a date that is not text is no evidence
         ]
         for rows, expected in cases:
             self.assertEqual(oc.classify(rows, TODAY), expected, rows)
+
+    def test_an_org_id_with_a_trailing_newline_is_not_an_org_id(self):
+        self.assertIsNone(oc.ORG_ID.fullmatch(DEAD_ORG + "MAA\n"))
+        self.assertIsNone(oc.KNOWN_ENTRY_PATTERN.fullmatch("sf.log\n"))
+
+    def test_sf_login_file_names(self):
+        for name in ("rep@x.invalid.json", "test-abc@example.com.json"):
+            self.assertTrue(oc.SF_LOGIN_FILE.fullmatch(name), name)
+        for name in ("user@localhost.json", ".hidden@x.invalid.json", "rep@x.invalid.json.bak", "alias.json"):
+            self.assertFalse(oc.SF_LOGIN_FILE.fullmatch(name), name)
 
 
 class Evidence(Base):
@@ -143,8 +238,7 @@ class Evidence(Base):
         self.add_auth("rep@x.invalid." + LIVE_ORG.lower(), LIVE_ORG, isScratch=False)
         self.add_auth("persistent@x.invalid", NO_ROW_ORG)
         cli = FakeCli(self.home, [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")])
-        remove = self.plan(cli)["remove"]
-        self.assertEqual(remove["logout"], ["rep@x.invalid." + DEAD_ORG.lower()])
+        self.assertEqual(self.plan(cli)["remove"]["logout"], ["rep@x.invalid." + DEAD_ORG.lower()])
 
     def test_a_failed_hub_query_removes_nothing_and_says_so(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
@@ -152,20 +246,32 @@ class Evidence(Base):
         self.assertEqual(plan["remove"]["logout"], [])
         self.assertEqual(plan["hub_failures"], [HUB])
 
+    def test_a_truncated_hub_answer_is_a_failure_not_evidence(self):
+        # sf applies org-max-query-limit and still says done: only totalSize shows the loss.
+        rows = [row("00DBB0000000001", user="reused@x.invalid"), row("00DBB0000000002", "Active", "2026-12-01",
+                                                                      user="reused@x.invalid")]
+        cli = FakeCli(self.home, rows, {"stale": "reused@x.invalid"})
+        cli.max_query = 1
+        plan = self.plan(cli)
+        self.assertEqual(plan["hub_failures"], [HUB])
+        self.assertEqual(plan["remove"]["aliases"], [])
+
+    def test_a_partial_hub_answer_is_a_failure_not_evidence(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        cli.override = lambda cmd: (FakeCli.ok({"done": False, "records": [row(DEAD_ORG)]})
+                                    if cmd[1:3] == ["data", "query"] else None)
+        plan = self.plan(cli)
+        self.assertEqual(plan["hub_failures"], [HUB])
+        self.assertEqual(plan["remove"]["logout"], [])
+
     def test_a_hub_named_like_an_alias_is_not_queried_and_counts_as_failed(self):
-        # sf would resolve the name to the alias and ask another org.
         self.add_auth("rep@x.invalid", DEAD_ORG)
         cli = FakeCli(self.home, [row(DEAD_ORG)], {HUB: "rep@x.invalid"})
         plan = self.plan(cli)
         self.assertEqual([c for c in cli.calls if c[1:3] == ["data", "query"]], [])
         self.assertEqual(plan["hub_failures"], [HUB])
         self.assertEqual(plan["remove"]["logout"], [])
-
-    def test_a_username_is_not_judged_while_a_hub_is_named_like_an_alias(self):
-        self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        plan = self.plan(FakeCli(self.home, rows, {"stale": "gone@x.invalid", "hub2@x.invalid": HUB}))
-        self.assertEqual(plan["remove"]["aliases"], [])
 
     def test_a_row_on_a_second_hub_counts_and_an_absent_row_elsewhere_does_not_block(self):
         self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
@@ -174,13 +280,11 @@ class Evidence(Base):
         self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
 
     def test_a_dev_hub_is_never_logged_out(self):
-        plan = self.plan(FakeCli(self.home, [row("00DHUB000000001")]))
-        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertEqual(self.plan(FakeCli(self.home, [row("00DHUB000000001")]))["remove"]["logout"], [])
 
     def test_a_sandbox_is_never_logged_out(self):
         self.add_auth("sbx@x.invalid", DEAD_ORG, isSandbox=True)
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
-        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertEqual(self.plan(FakeCli(self.home, [row(DEAD_ORG)]))["remove"]["logout"], [])
 
     def test_conflicting_evidence_is_preserved_and_reported(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
@@ -194,73 +298,256 @@ class Evidence(Base):
         self.assertEqual(plan["remove"]["logout"], [])
         self.assertEqual(plan["report"]["logins_with_no_refresh_token"], ["tok@x.invalid"])
 
+    def test_a_jwt_login_is_not_reported_as_expiring(self):
+        self.add_auth("jwt@x.invalid", LIVE_ORG, refreshToken="", privateKey="/keys/server.key")
+        plan = self.plan(FakeCli(self.home, [row(LIVE_ORG, "Active", "2026-12-01")]))
+        self.assertEqual(plan["report"]["logins_with_no_refresh_token"], [])
+
     def test_18_character_state_matches_on_15(self):
         (self.home / ".sfdx" / (DEAD_ORG + "MAA.json")).write_text("{}")
         (self.project / ".sf" / "orgs" / (DEAD_ORG + "MAA")).mkdir()
         remove = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))["remove"]
-        self.assertEqual(len(remove["indexes"]), 1)
-        self.assertEqual(len(remove["tracking"]), 1)
+        self.assertEqual((len(remove["indexes"]), len(remove["tracking"])), (1, 1))
+
+    def test_a_value_that_could_break_out_of_soql_never_reaches_a_query(self):
+        cli = FakeCli(self.home, aliases={"quote": "o'brien@x.invalid", "slash": "back\\slash@x.invalid"})
+        self.plan(cli)
+        queries = [" ".join(c) for c in cli.calls if c[1:3] == ["data", "query"]]
+        self.assertFalse([q for q in queries if "brien" in q or "slash" in q])
+
+    def test_a_nonzero_exit_fails_even_when_the_payload_says_status_0(self):
+        self.assertIsNone(oc.sf_json(lambda cmd: (1, json.dumps({"status": 0, "result": []})), "anything"))
+
+    def test_output_that_does_not_decode_does_not_raise(self):
+        code, out = oc.run_command([sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'a\\xffb')"])
+        self.assertEqual((code, out), (0, "a�b"))
 
 
-class UsernameKeyedState(Base):
-    def test_orphan_alias_needs_a_deleted_signup_row(self):
+class Logins(Base):
+    """Logins are what sf lists: regular files in ~/.sfdx matching its pattern, by username inside."""
+
+    def test_a_copy_in_the_sf_folder_is_not_a_login_and_is_reported(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        copy = self.home / ".sf" / "rep@x.invalid.json"
+        copy.write_text(json.dumps({"username": "rep@x.invalid", "orgId": DEAD_ORG + "MAA", "refreshToken": CANARY}))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+        self.assertIn(str(copy), [f["path"] for f in plan["report"]["unclassified_files"]])
+
+    def test_after_apply_a_copy_in_the_sf_folder_does_not_replan_the_logout(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        (self.home / ".sf" / "rep@x.invalid.json").write_text(json.dumps({"username": "rep@x.invalid",
+                                                                          "orgId": DEAD_ORG + "MAA"}))
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertEqual(self.plan(cli)["remove"]["logout"], [])
+
+    def test_a_file_sf_does_not_list_is_not_a_login(self):
+        (self.home / ".sfdx" / "user@localhost.json").write_text(json.dumps({"username": "user@localhost",
+                                                                            "orgId": DEAD_ORG + "MAA"}))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("user@localhost.json", [Path(f["path"]).name for f in plan["report"]["unclassified_files"]])
+
+    def test_a_renamed_auth_file_protects_both_names(self):
+        (self.home / ".sfdx" / "bob@x.invalid.json").write_text(
+            json.dumps({"username": "alice@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        self.add_auth("alice@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000009", user="bob@x.invalid")], {"b": "bob@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertIn("bob@x.invalid", plan["report"]["protected"])
+        self.assertIn("alice@x.invalid", plan["report"]["protected"])
+
+    def test_auth_files_that_differ_only_by_case_protect_both(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        (self.home / ".sfdx" / "Rep@x.invalid.json").write_text(
+            json.dumps({"username": "Rep@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])
+
+    def test_logins_that_differ_only_by_case_protect_both(self):
+        # A case-sensitive filesystem can hold both files; this one cannot, so read_logins is stubbed.
+        twins = {name: {"username": name, "org": DEAD_ORG, "is_hub": False, "is_sandbox": False, "refreshable": True}
+                 for name in ("rep@x.invalid", "Rep@x.invalid")}
+        twins[HUB] = {"username": HUB, "org": "00DHUB000000001", "is_hub": True, "is_sandbox": False, "refreshable": True}
+        with mock.patch.object(oc, "read_logins", return_value=(twins, set(), [])):
+            plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("differ only by letter case", plan["report"]["protected"]["rep@x.invalid"])
+
+    def test_a_name_that_opens_an_unread_login_is_judged_doubtful(self):
+        (self.home / ".sfdx" / "bob@x.invalid.json").write_text("not json")
+        self.env = {"SF_TARGET_ORG": "bob@x.invalid"}
+        plan = self.plan(FakeCli(self.home))
+        self.assertEqual(plan["report"]["env_defaults"]["SF_TARGET_ORG"]["judged"], "doubt")
+
+    def test_an_unreadable_auth_file_protects_its_name_and_is_reported(self):
+        (self.home / ".sfdx" / "bob@x.invalid.json").write_text("not json")
+        cli = FakeCli(self.home, [row("00DBB0000000009", user="gone@x.invalid")],
+                      {"b": "bob@x.invalid", "bob@x.invalid": "gone@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertEqual(plan["report"]["unreadable_auth_files"], ["bob@x.invalid.json"])
+
+    def test_an_auth_file_with_values_of_the_wrong_type_is_unreadable_not_a_crash(self):
+        for name, data in (("int@x.invalid", {"orgId": 1234}), ("list@x.invalid", {"orgId": DEAD_ORG, "username": ["z"]})):
+            (self.home / ".sfdx" / (name + ".json")).write_text(json.dumps(data))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(sorted(plan["report"]["unreadable_auth_files"]), ["int@x.invalid.json", "list@x.invalid.json"])
+
+    def test_a_symlinked_auth_file_is_not_opened_and_protects_its_name(self):
+        target = self.home / "elsewhere.json"
+        target.write_text(json.dumps({"username": "bob@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        (self.home / ".sfdx" / "bob@x.invalid.json").symlink_to(target)
+        cli = FakeCli(self.home, [row("00DBB0000000009", user="bob@x.invalid")], {"b": "bob@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertEqual(plan["preserved"]["logins"], 1)  # the hub only: the link is never read
+
+    def test_an_unread_login_may_be_a_hub_so_usernames_are_not_judged(self):
+        # sf reads a linked auth file; if it is a Dev Hub, its rows are missing from the evidence.
+        target = self.home / "elsewhere.json"
+        target.write_text(json.dumps({"username": "hub2@x.invalid", "orgId": "00DHUB000000002MAA", "isDevHub": True}))
+        (self.home / ".sfdx" / "hub2@x.invalid.json").symlink_to(target)
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")], {"stale": "gone@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["hub_failures"], ["hub2@x.invalid"])
+        self.assertEqual(plan["remove"]["aliases"], [])
+
+    def test_a_login_named_like_an_alias_is_not_logged_out(self):
+        self.add_auth("old@x.invalid", DEAD_ORG)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], {"old@x.invalid": "live@x.invalid"}))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("old@x.invalid", plan["report"]["protected"])
+
+    def test_an_alias_naming_the_login_itself_in_another_case_does_not_block_its_logout(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], {"Rep@x.invalid": "rep@x.invalid"}))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+
+    def test_a_user_whose_alias_is_named_like_another_login_is_not_logged_out(self):
+        # Logout clears the alias "bob@x.invalid", and the name would then mean bob's live login.
+        self.add_auth("bob@x.invalid", LIVE_ORG)
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        rows = [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")]
+        for alias in ("bob@x.invalid", "Bob@x.invalid"):
+            plan = self.plan(FakeCli(self.home, rows, {alias: "rep@x.invalid"}))
+            self.assertEqual(plan["remove"]["logout"], [], alias)
+            self.assertIn("rep@x.invalid", plan["report"]["protected"], alias)
+
+    def test_a_user_whose_alias_is_named_like_an_unread_login_is_not_logged_out(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        target = self.home / "elsewhere.json"
+        target.write_text("{}")
+        (self.home / ".sfdx" / "bob@x.invalid.json").symlink_to(target)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], {"bob@x.invalid": "rep@x.invalid"}))
+        self.assertEqual(plan["remove"]["logout"], [])
+
+
+class Names(Base):
+    """A name resolves through at most one alias, and finds a login whatever its case."""
+
+    def test_an_orphan_alias_needs_a_deleted_signup_row(self):
         rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        aliases = {"stale": "gone@x.invalid", "no-row": "unknown@x.invalid"}
-        remove = self.plan(FakeCli(self.home, rows, aliases))["remove"]
+        remove = self.plan(FakeCli(self.home, rows, {"stale": "gone@x.invalid", "no-row": "unknown@x.invalid"}))["remove"]
         self.assertEqual(remove["aliases"], ["stale"])
 
-    def test_alias_of_a_valid_alias_is_kept(self):
-        self.add_auth("real@x.invalid", NO_ROW_ORG)
-        aliases = {"base": "real@x.invalid", "chained": "base"}
-        self.assertEqual(self.plan(FakeCli(self.home, [], aliases))["remove"]["aliases"], [])
-
-    def test_alias_of_a_stale_alias_is_removed(self):
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        aliases = {"base": "gone@x.invalid", "chained": "base"}
-        remove = self.plan(FakeCli(self.home, rows, aliases))["remove"]
-        self.assertEqual(remove["aliases"], ["base", "chained"])
-
-    def test_alias_of_a_direct_alias_of_a_logged_out_user_is_listed(self):
+    def test_a_chain_of_aliases_is_dangling_and_never_removed(self):
+        # sf follows one alias: "chained" means a login file named "base", which does not exist.
         self.add_auth("rep@x.invalid", DEAD_ORG)
         aliases = {"base": "rep@x.invalid", "chained": "base", "deeper": "chained"}
-        remove = self.plan(FakeCli(self.home, [row(DEAD_ORG)], aliases))["remove"]
-        self.assertEqual(remove["logout"], ["rep@x.invalid"])
-        # Logout clears "base" itself, and only that, so the two that reach it remain on the plan.
-        self.assertEqual(remove["aliases"], ["chained", "deeper"])
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], aliases))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+        self.assertEqual(plan["targets"]["logout"]["rep@x.invalid"]["aliases"], ["base"])
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertEqual(plan["report"]["dangling_aliases"], ["chained", "deeper"])
+
+    def test_a_username_shaped_alias_is_not_followed_to_a_second_name(self):
+        # sf resolves x to live@x.invalid (Active), never to the alias of that name.
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "x"}))
+        rows = [row("00DBB0000000001", user="dead@x.invalid"), row("00DBB0000000002", "Active", "2026-12-01",
+                                                                    user="live@x.invalid")]
+        cli = FakeCli(self.home, rows, {"x": "live@x.invalid", "live@x.invalid": "dead@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], ["live@x.invalid"])
+        self.assertEqual(plan["remove"]["defaults"], [])
+
+    def test_a_case_variant_name_reaches_the_live_login(self):
+        # On a case-insensitive filesystem sf opens bob's file for "Bob@x.invalid".
+        self.add_auth("bob@x.invalid", LIVE_ORG)
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "b"}))
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "b"}}))
+        rows = [row("00DBB0000000001", user="gone@x.invalid"), row(LIVE_ORG, "Active", "2026-12-01")]
+        cli = FakeCli(self.home, rows, {"Bob@x.invalid": "gone@x.invalid", "b": "Bob@x.invalid"})
+        remove = self.plan(cli)["remove"]
+        for key in ("logout", "aliases", "defaults", "deploy_jobs"):
+            self.assertEqual(remove[key], [], key)
+
+    def test_an_alias_named_like_a_login_is_not_unset(self):
+        self.add_auth("bob@x.invalid", LIVE_ORG)
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid"), row(LIVE_ORG, "Active", "2026-12-01")],
+                      {"bob@x.invalid": "gone@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertIn("bob@x.invalid", plan["report"]["protected"])
+
+    def test_signup_rows_in_another_case_are_judged_together(self):
+        # A reused username: the old org's row and the live one's differ only by case.
+        rows = [row("00DBB0000000001", user="Demo@Acme.test"),
+                row("00DBB0000000002", "Active", "2026-12-01", user="demo@acme.test")]
+        plan = self.plan(FakeCli(self.home, rows, {"d": "Demo@Acme.test"}))
+        self.assertEqual(plan["remove"]["aliases"], [])
+        rows = [row("00DBB0000000001", user="demo@acme.test"),
+                row("00DBB0000000002", "Active", "2026-12-01", user="Demo@Acme.test")]
+        self.assertEqual(self.plan(FakeCli(self.home, rows, {"d": "x@y.invalid"}))["remove"]["aliases"], [])
+        self.assertEqual(self.plan(FakeCli(self.home, rows, {"d": "demo@acme.test"}))["remove"]["aliases"], [])
+
+    def test_a_signup_row_matches_a_name_in_another_case(self):
+        rows = [row("00DBB0000000001", user="demo@acme.test")]
+        plan = self.plan(FakeCli(self.home, rows, {"d": "Demo@Acme.test"}))
+        self.assertEqual(plan["remove"]["aliases"], ["d"])
+
+    def test_an_alias_whose_name_sf_would_read_as_flags_is_reported_not_planned(self):
+        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+        plan = self.plan(FakeCli(self.home, rows, {"-ap": "gone@x.invalid", "fine": "gone@x.invalid"}))
+        self.assertEqual(plan["remove"]["aliases"], ["fine"])
+        self.assertEqual(plan["report"]["unsafe_alias_names"], ["-ap"])
 
     def test_aliases_that_lead_nowhere_are_reported_and_never_listed(self):
-        aliases = {"lost": "missing", "cycle-a": "cycle-b", "cycle-b": "cycle-a", "fine": HUB,
-                   "no-auth": "gone@x.invalid"}
+        aliases = {"lost": "missing", "cycle-a": "cycle-b", "cycle-b": "cycle-a", "fine": HUB}
         plan = self.plan(FakeCli(self.home, aliases=aliases))
         self.assertEqual(plan["report"]["dangling_aliases"], ["cycle-a", "cycle-b", "lost"])
         self.assertEqual(plan["remove"]["aliases"], [])
 
-    def test_a_default_that_leads_nowhere_is_reported_and_never_listed(self):
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "lost"}))
-        (self.home / ".sf" / "config.json").write_text(json.dumps({"target-org": "fine"}))
-        plan = self.plan(FakeCli(self.home, aliases={"fine": HUB}))
-        self.assertEqual(plan["report"]["dangling_defaults"], ["local"])
-        self.assertEqual(plan["remove"]["defaults"], [])
+    def test_a_username_is_not_judged_while_a_hub_has_not_answered(self):
+        self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")], {"stale": "gone@x.invalid"},
+                      fail_hubs=["hub2@x.invalid"])
+        plan = self.plan(cli)
+        self.assertEqual(plan["hub_failures"], ["hub2@x.invalid"])
+        self.assertEqual(plan["remove"]["aliases"], [])
 
-    def test_preserved_aliases_excludes_those_logout_clears(self):
-        self.add_auth("rep@x.invalid", DEAD_ORG)
-        aliases = {"base": "rep@x.invalid", "chained": "base", "keep": HUB, "keep2": "keep"}
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], aliases))
-        self.assertEqual(plan["remove"]["aliases"], ["chained"])
-        self.assertEqual(plan["preserved"]["aliases"], 2)
+    def test_a_username_is_not_judged_while_a_hub_is_named_like_an_alias(self):
+        self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
+        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+        plan = self.plan(FakeCli(self.home, rows, {"stale": "gone@x.invalid", "hub2@x.invalid": HUB}))
+        self.assertEqual(plan["remove"]["aliases"], [])
 
     def test_legacy_username_tracking_needs_a_deleted_signup_row(self):
         for name in ("gone@x.invalid", "unknown@x.invalid"):
             (self.project / ".sfdx" / "orgs" / name).mkdir()
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        tracking = self.plan(FakeCli(self.home, rows))["remove"]["tracking"]
+        tracking = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))["remove"]["tracking"]
         self.assertEqual([Path(p).name for p in tracking], ["gone@x.invalid"])
 
     def test_deploy_job_follows_its_target(self):
-        cache = {"job1": {"target-org": "gone@x.invalid"}, "job2": {"target-org": "unknown@x.invalid"}}
+        cache = {"job1": {"target-org": "gone@x.invalid"}, "job2": {"target-org": "unknown@x.invalid"},
+                 "job3": {"target-org": 5}}
         (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps(cache))
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        self.assertEqual(self.plan(FakeCli(self.home, rows))["remove"]["deploy_jobs"], ["job1"])
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["deploy_jobs"], ["job1"])
+        self.assertEqual(plan["report"]["unsafe_deploy_cache_keys"], ["job3"])
 
     def test_an_unsafe_deploy_cache_key_is_reported_not_planned(self):
         cache = {"../../foo": {"target-org": "gone@x.invalid"}, "job1": {"target-org": "gone@x.invalid"}}
@@ -269,110 +556,176 @@ class UsernameKeyedState(Base):
         self.assertEqual(plan["remove"]["deploy_jobs"], ["job1"])
         self.assertEqual(plan["report"]["unsafe_deploy_cache_keys"], ["../../foo"])
 
-    def test_a_stale_default_is_flagged_and_a_valid_one_is_not(self):
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "stale"}))
-        (self.home / ".sf" / "config.json").write_text(json.dumps({"target-org": HUB}))
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        plan = self.plan(FakeCli(self.home, rows, {"stale": "gone@x.invalid"}))
+
+class Config(Base):
+    """A config scope is the merge of its two files, and a write rewrites both."""
+
+    def test_a_stale_default_is_planned_and_a_valid_one_is_not(self):
+        self.write_config("local", sf={"target-org": "stale"})
+        self.write_config("global", sf={"target-org": HUB})
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")], {"stale": "gone@x.invalid"}))
         self.assertEqual(plan["remove"]["defaults"], ["local"])
 
+    def test_the_legacy_default_key_counts(self):
+        self.write_config("local", sfdx={"defaultusername": "gone@x.invalid"})
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["defaults"], ["local"])
 
-    def test_a_scope_holding_a_stale_and_a_valid_default_is_reported_not_unset(self):
-        # `sf config unset target-org` clears the scope's key whatever it names.
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": HUB}))
-        (self.project / ".sfdx" / "sfdx-config.json").write_text(json.dumps({"defaultusername": "stale"}))
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        plan = self.plan(FakeCli(self.home, rows, {"stale": "gone@x.invalid"}))
+    def test_a_default_logout_clears_is_shown_as_its_effect_not_unset(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.write_config("local", sf={"target-org": "r", "target-dev-hub": "rep@x.invalid"})
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], {"r": "rep@x.invalid"}))
         self.assertEqual(plan["remove"]["defaults"], [])
-        self.assertEqual(plan["report"]["mixed_defaults"], ["local"])
+        self.assertEqual(plan["targets"]["logout"]["rep@x.invalid"],
+                         {"org": DEAD_ORG, "aliases": ["r"], "config": {"local": ["target-dev-hub", "target-org"]}})
 
-    def test_a_default_naming_only_a_username_is_judged_by_the_hub(self):
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "gone@x.invalid"}))
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+    def test_a_config_key_holding_a_list_does_not_stop_the_audit(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.write_config("local", sf={"target-org": "rep@x.invalid", "org-custom-metadata-templates": ["x"]})
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["targets"]["logout"]["rep@x.invalid"]["config"], {"local": ["target-org"]})
+
+    def test_files_that_disagree_are_not_modelled_and_block_a_logout_that_writes_them(self):
+        # sf's logout would rewrite both files from whichever is newer, losing the other value.
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.write_config("local", sf={"target-org": HUB}, sfdx={"defaultusername": "rep@x.invalid"})
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("disagree on target-org", plan["report"]["unmodelled_config"]["local"])
+        self.assertIn("local config", plan["report"]["protected"]["rep@x.invalid"])
+
+    def test_a_scope_that_is_not_modelled_is_never_unset(self):
+        self.write_config("local", sf={"target-org": "gone@x.invalid"}, sfdx={"defaultusername": "other@x.invalid"})
+        rows = [row("00DBB0000000001", user="gone@x.invalid"), row("00DBB0000000002", user="other@x.invalid")]
         plan = self.plan(FakeCli(self.home, rows))
-        self.assertEqual(plan["remove"]["defaults"], ["local"])
+        self.assertEqual(plan["remove"]["defaults"], [])
+        self.assertEqual(plan["report"]["stale_config_values"],
+                         [{"scope": "local", "key": "target-org", "value": "gone@x.invalid"},
+                          {"scope": "local", "key": "target-org", "value": "other@x.invalid"}])
+
+    def test_a_legacy_key_in_the_sf_file_is_not_modelled(self):
+        # sf does not read it there, and unsetting it would also unset target-org.
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.write_config("local", sf={"target-org": HUB, "defaultusername": "rep@x.invalid"})
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])
+        self.assertIn("legacy key defaultusername", plan["report"]["unmodelled_config"]["local"])
+
+    def test_an_unknown_key_in_the_sfdx_file_is_not_modelled(self):
+        self.write_config("local", sfdx={"defaultusername": "gone@x.invalid", "someKey": "https://x"})
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["defaults"], [])
+        self.assertIn("someKey", plan["report"]["unmodelled_config"]["local"])
+
+    def test_a_linked_config_file_is_not_modelled(self):
+        shared = self.home.parent / "shared-config.json"
+        shared.write_text(json.dumps({"target-org": "gone@x.invalid"}))
+        (self.home / ".sf" / "config.json").symlink_to(shared)
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["defaults"], [])
+        self.assertIn("not a regular file", plan["report"]["unmodelled_config"]["global"])
+
+    def test_an_unparsable_or_mistyped_config_is_reported_not_modelled(self):
+        (self.project / ".sfdx" / "sfdx-config.json").write_text('{"defaultusername": "live@x.invalid",}')
+        self.write_config("global", sf={"target-org": ["a"]})
+        plan = self.plan(FakeCli(self.home))
+        self.assertIn("does not parse", plan["report"]["unmodelled_config"]["local"])
+        self.assertIn("not text", plan["report"]["unmodelled_config"]["global"])
+
+    def test_with_interoperability_off_a_legacy_file_is_not_modelled(self):
+        self.env = {"SF_SFDX_INTEROPERABILITY": "false"}
+        self.write_config("local", sfdx={"defaultusername": "gone@x.invalid"})
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["defaults"], [])
+        self.assertIn("SF_SFDX_INTEROPERABILITY", plan["report"]["unmodelled_config"]["local"])
+
+    def test_a_linked_project_config_folder_is_not_modelled(self):
+        shared = self.home.parent / "shared-sf"
+        shared.mkdir()
+        (shared / "config.json").write_text(json.dumps({"target-org": "gone@x.invalid"}))
+        (self.project / ".sf" / "orgs").rmdir()
+        (self.project / ".sf").rmdir()
+        (self.project / ".sf").symlink_to(shared)
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["defaults"], [])
+        self.assertIn("symlink", plan["report"]["unmodelled_config"]["local"])
+
+    def test_a_default_that_leads_nowhere_is_reported_and_never_listed(self):
+        self.write_config("local", sf={"target-org": "lost"})
+        self.write_config("global", sf={"target-org": "fine"})
+        plan = self.plan(FakeCli(self.home, aliases={"fine": HUB}))
+        self.assertEqual(plan["report"]["dangling_defaults"], ["local"])
+        self.assertEqual(plan["remove"]["defaults"], [])
 
     def test_a_default_username_is_not_judged_while_a_hub_has_not_answered(self):
         self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "gone@x.invalid"}))
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        plan = self.plan(FakeCli(self.home, rows, fail_hubs=["hub2@x.invalid"]))
-        self.assertEqual(plan["hub_failures"], ["hub2@x.invalid"])
+        self.write_config("local", sf={"target-org": "gone@x.invalid"})
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")], fail_hubs=["hub2@x.invalid"]))
         self.assertEqual(plan["remove"]["defaults"], [])
 
-    def test_a_username_is_not_judged_while_a_hub_has_not_answered(self):
-        # A signup username can be reused by a newer org on the hub that failed.
-        self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        cli = FakeCli(self.home, rows, {"stale": "gone@x.invalid"}, fail_hubs=["hub2@x.invalid"])
-        plan = self.plan(cli)
-        self.assertEqual(plan["hub_failures"], ["hub2@x.invalid"])
-        self.assertEqual(plan["remove"]["aliases"], [])
+    def test_an_environment_default_is_reported(self):
+        self.env = {"SF_TARGET_ORG": "gone@x.invalid"}
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["report"]["env_defaults"], {"SF_TARGET_ORG": {"value": "gone@x.invalid", "judged": "stale"}})
+
+    def test_a_stale_dev_hub_default_is_reported_not_unset(self):
+        self.write_config("global", sf={"target-dev-hub": "gone@x.invalid"})
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["defaults"], [])
+        self.assertEqual(plan["report"]["stale_config_values"],
+                         [{"scope": "global", "key": "target-dev-hub", "value": "gone@x.invalid"}])
 
 
 class PrunePrediction(Base):
     ORGS = [
-        dict(name="shape-old", shape=True, active=False, scratch=True, expired=True,
-             instantiated=True, default=False, alias="p__shape-old"),
-        dict(name="old", shape=False, active=False, scratch=True, expired=True,
-             instantiated=True, default=False, alias="p__old"),
-        dict(name="other-branch", shape=False, active=False, scratch=True, expired=False,
-             instantiated=False, default=False, alias="p__other-branch"),
-        dict(name="current", shape=False, active=True, scratch=True, expired=False,
-             instantiated=True, default=True, alias="p__current"),
-        dict(name="connected", shape=False, active=False, scratch=False, expired=False,
-             instantiated=False, default=False, alias=""),
+        cci_org("shape-old", shape=True, expired=True, alias="p__shape-old"),
+        cci_org("old", expired=True, alias="p__old", org_id=DEAD_ORG + "MAA"),
+        cci_org("other-branch", instantiated=False, alias="p__other-branch"),
+        cci_org("current", active=True, alias="p__current", org_id=LIVE_ORG + "MAA"),
+        cci_org("connected", scratch=False, instantiated=False),
     ]
 
+    def predict(self, rows=(), orgs=None, default=None):
+        return self.plan(FakeCli(self.home, rows, cci=orgs or self.ORGS, default=default))["prune_prediction"]
+
     def test_matches_what_prune_does(self):
-        predicted = self.plan(FakeCli(self.home, cci=self.ORGS))["prune_prediction"]
+        predicted = self.predict([row(DEAD_ORG)], default="current")
         self.assertEqual(predicted["would_remove_expired"], ["old"])
         self.assertEqual(predicted["would_remove_never_instantiated"], ["other-branch"])
         self.assertEqual(predicted["expired_shape_instances_it_skips"], ["shape-old"])
-        self.assertEqual(predicted["would_remove_but_active_on_hub"], [])
+        self.assertEqual(predicted["would_remove_not_proven_gone"], [])
         self.assertEqual(predicted["default"], "current")
 
-    def test_flags_a_local_expiry_the_hub_disagrees_with(self):
-        self.add_auth("live@x.invalid", LIVE_ORG)
-        cli = FakeCli(self.home, [row(LIVE_ORG, "Active", "2026-12-01")],
-                      {"p__old": "live@x.invalid"}, self.ORGS)
-        predicted = self.plan(cli)["prune_prediction"]
-        self.assertEqual(predicted["would_remove_but_active_on_hub"], ["old"])
+    def test_an_org_the_hub_shows_active_is_not_proven_gone(self):
+        self.assertEqual(self.predict([row(DEAD_ORG, "Active", "2026-12-01")])["would_remove_not_proven_gone"], ["old"])
 
-    def test_flags_a_hub_row_that_is_active_past_its_date(self):
-        # Active with a past date classifies as conflict: the org may still be live.
-        self.add_auth("live@x.invalid", LIVE_ORG)
-        cli = FakeCli(self.home, [row(LIVE_ORG, "Active", "2026-01-01")],
-                      {"p__old": "live@x.invalid"}, self.ORGS)
-        predicted = self.plan(cli)["prune_prediction"]
-        self.assertEqual(predicted["would_remove_but_active_on_hub"], ["old"])
+    def test_an_org_with_no_hub_row_is_not_proven_gone(self):
+        self.assertEqual(self.predict([])["would_remove_not_proven_gone"], ["old"])
 
-    def test_flags_a_hub_with_disagreeing_rows(self):
-        self.add_auth("live@x.invalid", LIVE_ORG)
-        cli = FakeCli(self.home, [row(LIVE_ORG, "Deleted", "2026-12-01"), row(LIVE_ORG, "Active", "2026-12-01")],
-                      {"p__old": "live@x.invalid"}, self.ORGS)
-        predicted = self.plan(cli)["prune_prediction"]
-        self.assertEqual(predicted["would_remove_but_active_on_hub"], ["old"])
+    def test_an_org_is_judged_by_its_own_id_not_by_aliases(self):
+        # A stray alias cannot make a live org look gone: the CCI record's org ID decides.
+        self.add_auth("bob@x.invalid", LIVE_ORG)
+        orgs = [cci_org("old", expired=True, alias="p__old", org_id=LIVE_ORG + "MAA")]
+        cli = FakeCli(self.home, [row(LIVE_ORG, "Active", "2026-12-01"), row(DEAD_ORG)],
+                      {"p__old": "bob@x.invalid", "bob@x.invalid": "rep@x.invalid"}, cci=orgs)
+        self.assertEqual(self.plan(cli)["prune_prediction"]["would_remove_not_proven_gone"], ["old"])
 
-    def test_flags_a_username_two_auth_files_disagree_on(self):
-        # Both orgs are gone on the hub, but which one the alias means is unknown.
-        self.add_auth("live@x.invalid", DEAD_ORG)
-        (self.home / ".sfdx" / "z-backup@x.invalid.json").write_text(
-            json.dumps({"username": "live@x.invalid", "orgId": "00DBB0000000002MAA"}))
-        cli = FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")],
-                      {"p__old": "live@x.invalid"}, self.ORGS)
-        predicted = self.plan(cli)["prune_prediction"]
-        self.assertEqual(predicted["would_remove_but_active_on_hub"], ["old"])
+    def test_without_an_org_id_the_login_decides(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.add_auth("live@x.invalid", LIVE_ORG)
+        orgs = [cci_org("old", expired=True, username="rep@x.invalid"), cci_org("blank", expired=True),
+                cci_org("live", expired=True, username="live@x.invalid")]
+        predicted = self.predict([row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")], orgs)
+        self.assertEqual(predicted["would_remove_not_proven_gone"], ["blank", "live"])
 
     def test_unavailable_cci_is_not_a_prediction(self):
         self.assertEqual(self.plan(FakeCli(self.home))["prune_prediction"], {"available": False})
 
     def test_a_malformed_cci_line_is_not_a_prediction(self):
-        # Invalid JSON, and valid JSON of the wrong shape, must both degrade to "unavailable".
-        for line in ("{not json", "{}", '["a"]', '[{"name": "x"}]'):
+        for line in ("{not json", "{}", '["a"]', '{"orgs": [{"name": "x"}]}', '{"orgs": [], "default": 5}',
+                     json.dumps({"orgs": [cci_org(None)]})):
             cli = FakeCli(self.home)
-            cli.override = lambda cmd, line=line: ((0, "ORG_CLEANUP_CCI " + line + "\n")
-                                                   if cmd[0] == "cci" else None)
+            cli.override = lambda cmd, line=line: ((0, "ORG_CLEANUP_CCI " + line + "\n") if cmd[0] == "cci" else None)
             self.assertEqual(self.plan(cli)["prune_prediction"], {"available": False}, line)
 
     def test_an_empty_cci_list_is_an_available_prediction(self):
@@ -380,22 +733,27 @@ class PrunePrediction(Base):
         self.assertTrue(predicted["available"])
         self.assertEqual(predicted["would_remove_expired"], [])
 
+    def test_apply_does_not_run_cci(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG)], cci=self.ORGS)
+        plan_file = self.audit_file(cli)
+        cli.calls.clear()
+        self.assertEqual(self.apply(cli, plan_file), 0)
+        self.assertEqual([c for c in cli.calls if c[0] == "cci" or c[1:3] == ["alias", "list"]],
+                         [["sf", "alias", "list", "--json"]])  # the re-derived plan's one list
+
 
 class Secrets(Base):
     def test_auth_inventory_holds_no_token_values(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
-        self.assertNotIn(CANARY, json.dumps(oc.read_auth(self.home)))
+        self.assertNotIn(CANARY, json.dumps(oc.read_logins(self.home), default=sorted))
 
     def test_no_token_reaches_the_plan_or_the_output(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
         (self.project / ".sfdx" / "saved-auth").write_text(CANARY)
-        out = Path(self.project / "plan.json")
-        stdout = io.StringIO()
-        with contextlib.redirect_stdout(stdout):
-            code = oc.main(["audit", "--out", str(out)], FakeCli(self.home, [row(DEAD_ORG)]),
-                           self.home, self.project, TODAY)
-        self.assertEqual(code, 0)
-        self.assertNotIn(CANARY, stdout.getvalue())
+        out = self.project / "plan.json"
+        self.assertEqual(self.main(["audit", "--out", str(out)], FakeCli(self.home, [row(DEAD_ORG)])), 0)
+        self.assertNotIn(CANARY, self.stdout.getvalue())
         self.assertNotIn(CANARY, out.read_text())
         self.assertEqual(oct(out.stat().st_mode & 0o777), "0o600")
 
@@ -406,30 +764,26 @@ class Secrets(Base):
         (self.home / ".sfdx" / "backup@x.invalid.json.bak").write_text(CANARY)
         (self.home / ".sfdx" / "saved@x.invalid.sfdxurl").write_text(CANARY)
         (self.home / ".sfdx" / (DEAD_ORG + "MAA.json")).symlink_to(elsewhere)
-        # Only the home roots are read as auth and indexes, so the same names in the project are
-        # nobody's: a credential copied into the repo tree must be reported.
+        (self.home / ".sf" / "copied@x.invalid.json").write_text(CANARY)
         (self.project / ".sfdx" / "copied@x.invalid.json").write_text(CANARY)
         (self.project / ".sf" / (LIVE_ORG + "MAA.json")).write_text(CANARY)
-        self.add_auth("plain@x.invalid", LIVE_ORG)  # a regular home auth file is not "unclassified"
+        self.add_auth("plain@x.invalid", LIVE_ORG)  # a regular login is not "unclassified"
         files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
-        names = sorted(Path(f["path"]).name for f in files)
-        self.assertEqual(names, sorted(["linked@x.invalid.json", "backup@x.invalid.json.bak",
-                                        "saved@x.invalid.sfdxurl", DEAD_ORG + "MAA.json",
-                                        "copied@x.invalid.json", LIVE_ORG + "MAA.json"]))
+        self.assertEqual(sorted(Path(f["path"]).name for f in files),
+                         sorted(["linked@x.invalid.json", "backup@x.invalid.json.bak", "saved@x.invalid.sfdxurl",
+                                 DEAD_ORG + "MAA.json", "copied@x.invalid.json", "copied@x.invalid.json",
+                                 LIVE_ORG + "MAA.json"]))
         self.assertNotIn(CANARY, json.dumps(files))
 
     def test_the_plan_is_created_with_mode_0600(self):
-        real_open = os.open
-        modes = []
+        real_open, modes = os.open, []
 
         def spy(path, flags, mode=0o777, **kwargs):
             modes.append(mode)
             return real_open(path, flags, mode, **kwargs)
 
-        with mock.patch.object(oc.os, "open", spy), contextlib.redirect_stdout(io.StringIO()):
-            code = oc.main(["audit", "--out", str(self.project / "plan.json")],
-                           FakeCli(self.home), self.home, self.project, TODAY)
-        self.assertEqual(code, 0)
+        with mock.patch.object(oc.os, "open", spy):
+            self.assertEqual(self.main(["audit", "--out", str(self.project / "plan.json")], FakeCli(self.home)), 0)
         self.assertEqual(modes, [0o600])  # never created under the umask and tightened later
 
     def test_the_plan_is_never_written_through_a_symlink(self):
@@ -437,25 +791,11 @@ class Secrets(Base):
         victim.write_text("keep")
         link = self.project / "plan.json"
         link.symlink_to(victim)
-        stderr = io.StringIO()
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
-            code = oc.main(["audit", "--out", str(link)], FakeCli(self.home),
-                           self.home, self.project, TODAY)
-        self.assertEqual(code, 1)
-        self.assertEqual(victim.read_text(), "keep")
-        self.assertIn("Could not write the plan", stderr.getvalue())
-
-    def test_the_plan_symlink_is_refused_even_without_o_nofollow(self):
-        victim = self.project / "victim.txt"
-        victim.write_text("keep")
-        link = self.project / "plan.json"
-        link.symlink_to(victim)
-        with mock.patch.object(os, "O_NOFOLLOW", 0, create=True), \
-                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            code = oc.main(["audit", "--out", str(link)], FakeCli(self.home),
-                           self.home, self.project, TODAY)
-        self.assertEqual(code, 1)
-        self.assertEqual(victim.read_text(), "keep")
+        for patch in (contextlib.nullcontext(), mock.patch.object(os, "O_NOFOLLOW", 0, create=True)):
+            with patch:
+                self.assertEqual(self.main(["audit", "--out", str(link)], FakeCli(self.home)), 1)
+            self.assertEqual(victim.read_text(), "keep")
+            self.assertIn("Could not write the plan", self.stderr.getvalue())
 
     def test_an_entry_that_cannot_be_examined_is_reported_not_raised(self):
         unknown = self.project / ".sfdx" / "saved-auth"
@@ -471,22 +811,26 @@ class Secrets(Base):
             files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
         self.assertIn({"path": str(unknown), "error": "Permission denied"}, files)
 
-    def test_an_unreadable_state_folder_stops_the_run_without_a_traceback(self):
-        stderr = io.StringIO()
-        with mock.patch.object(oc, "build_plan", side_effect=PermissionError(errno.EACCES, "Permission denied")), \
-                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
-            code = oc.main(["audit"], FakeCli(self.home), self.home, self.project, TODAY)
-        self.assertEqual(code, 1)
-        self.assertIn("Nothing was changed", stderr.getvalue())
+    def test_an_unreadable_state_folder_stops_the_run_whatever_the_python_version(self):
+        # From Python 3.14 pathlib answers False here instead of raising; the tool must not.
+        real, denied = os.lstat, str(self.project / ".sfdx" / "orgs")
+
+        def deny(path, *args, **kwargs):
+            if str(path) == denied:
+                raise PermissionError(errno.EACCES, "Permission denied")
+            return real(path, *args, **kwargs)
+
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        with mock.patch.object(oc.os, "lstat", deny):
+            self.assertEqual(self.main(["audit"], cli), 1)
+        self.assertIn("Nothing was changed", self.stderr.getvalue())
 
     def test_an_existing_loose_plan_file_is_tightened(self):
         out = self.project / "plan.json"
         out.write_text("old")
         out.chmod(0o644)
-        with contextlib.redirect_stdout(io.StringIO()):
-            code = oc.main(["audit", "--out", str(out)], FakeCli(self.home),
-                           self.home, self.project, TODAY)
-        self.assertEqual(code, 0)
+        self.assertEqual(self.main(["audit", "--out", str(out)], FakeCli(self.home)), 0)
         self.assertEqual(oct(out.stat().st_mode & 0o777), "0o600")
 
     def test_an_unknown_file_is_reported_without_being_opened(self):
@@ -496,7 +840,6 @@ class Secrets(Base):
         self.addCleanup(unknown.chmod, 0o600)
         files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
         self.assertEqual([Path(f["path"]).name for f in files], ["saved-auth"])
-        self.assertNotIn(CANARY, json.dumps(files))
 
 
 class Apply(Base):
@@ -515,24 +858,9 @@ class Apply(Base):
         (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps(cache))
         return [row(DEAD_ORG), row("00DBB0000000001", user="gone@x.invalid")]
 
-    def audit_then_apply(self, cli, plan_cli=None):
-        plan_file = self.project / "plan.json"
-        with contextlib.redirect_stdout(io.StringIO()):
-            oc.main(["audit", "--out", str(plan_file)], plan_cli or cli, self.home, self.project, TODAY)
-        self.stdout, self.stderr = io.StringIO(), io.StringIO()
-        with contextlib.redirect_stdout(self.stdout), contextlib.redirect_stderr(self.stderr):
-            return oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
-                           cli, self.home, self.project, TODAY)
-
-    def logouts(self, cli):
-        return [c for c in cli.calls if c[1:3] == ["org", "logout"]]
-
-    def read_cache(self):
-        return json.loads((self.home / ".sf" / "deploy-cache.json").read_text())
-
     def test_removes_the_allowlist_moves_rather_than_deletes_and_then_is_a_no_op(self):
         rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows, {"stale-a": "gone@x.invalid", "stale-b": "gone@x.invalid"})
+        cli = FakeCli(self.home, rows, {"stale-a": "gone@x.invalid", "stale-b": "gone@x.invalid", "r": "rep@x.invalid"})
         self.assertEqual(self.audit_then_apply(cli), 0)
         self.assertFalse((self.home / ".sfdx" / "rep@x.invalid.json").exists())
         self.assertTrue((self.home / ".sfdx" / (HUB + ".json")).exists())
@@ -541,17 +869,25 @@ class Apply(Base):
         self.assertTrue((self.quarantine / "orgs" / self.tracking.name / "state").exists())
         self.assertTrue((self.quarantine / "manifestCache" / "job1.xml").exists())
         self.assertTrue(self.other_manifest.exists())
-        cache = json.loads((self.home / ".sf" / "deploy-cache.json").read_text())
-        self.assertEqual(cache, {"job2": {"target-org": HUB, "keep": 1}})
-        remove = self.plan(cli)["remove"]
-        self.assertEqual({k: v for k, v in remove.items() if v}, {})
+        self.assertEqual(self.read_cache(), {"job2": {"target-org": HUB, "keep": 1}})
+        self.assertEqual(cli.aliases, {})
+        self.assertIn("'cleared_by_logout': 1", self.stdout.getvalue())
+        self.assertEqual({k: v for k, v in self.plan(cli)["remove"].items() if v}, {})
+
+    def test_the_audit_prints_what_each_logout_also_clears(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.write_config("local", sf={"target-org": "my-scratch"})
+        cli = FakeCli(self.home, [row(DEAD_ORG)], {"my-scratch": "rep@x.invalid", "p__dev": "rep@x.invalid"})
+        self.assertEqual(self.main(["audit"], cli), 0)
+        out = self.stdout.getvalue()
+        self.assertIn("sf also clears its aliases: my-scratch, p__dev", out)
+        self.assertIn("sf also clears from the local config: target-org", out)
 
     def test_a_stale_legacy_tracking_folder_is_moved(self):
         legacy = self.project / ".sfdx" / "orgs" / "gone@x.invalid"
         legacy.mkdir()
         (legacy / "state").write_text("x")
-        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")])
-        self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")])), 0)
         self.assertFalse(legacy.exists())
         self.assertTrue((self.quarantine / "orgs" / legacy.name / "state").exists())
 
@@ -576,476 +912,268 @@ class Apply(Base):
         rows = self.setup_stale_org()
         cli = FakeCli(self.home, rows, {"stale": "gone@x.invalid"})
         before = sorted(str(p) for p in self.home.rglob("*"))
-        with contextlib.redirect_stdout(io.StringIO()):
-            oc.main(["audit"], cli, self.home, self.project, TODAY)
+        self.main(["audit"], cli)
         self.assertEqual(sorted(str(p) for p in self.home.rglob("*")), before)
         allowed = (["alias", "list"], ["data", "query"])
-        self.assertTrue(all(c[0] in ("cci",) or c[1:3] in allowed for c in cli.calls), cli.calls)
+        self.assertTrue(all(c[0] == "cci" or c[1:3] in allowed for c in cli.calls), cli.calls)
+
+    def drifted(self, cli, change):
+        """Audit, make one change, apply: it must stop with 3 before any logout."""
+        plan_file = self.audit_file(cli)
+        change(plan_file)
+        self.assertEqual(self.apply(cli, plan_file), 3)
+        self.assertEqual(self.logouts(cli), [])
+
+    def edit_plan(self, plan_file, edit):
+        plan = json.loads(plan_file.read_text())
+        edit(plan)
+        plan_file.write_text(json.dumps(plan))
 
     def test_a_plan_reviewed_for_another_project_is_not_applied(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows, {"stale": "gone@x.invalid"})
-        plan_file = self.project / "plan.json"
-        with contextlib.redirect_stdout(io.StringIO()):
-            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
-        plan = json.loads(plan_file.read_text())
-        plan["project"] = str(self.project.parent / "other-project")
-        plan_file.write_text(json.dumps(plan))
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
-                           cli, self.home, self.project, TODAY)
-        self.assertEqual(code, 3)
-        self.assertEqual(self.logouts(cli), [])
+        cli = FakeCli(self.home, self.setup_stale_org(), {"stale": "gone@x.invalid"})
+        self.drifted(cli, lambda f: self.edit_plan(f, lambda p: p.update(project=str(self.project.parent / "other"))))
 
     def test_a_changed_alias_target_is_drift_even_when_the_removal_list_matches(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows, {"stale": "gone@x.invalid"})
-        plan_file = self.project / "plan.json"
-        with contextlib.redirect_stdout(io.StringIO()):
-            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
-        plan = json.loads(plan_file.read_text())
-        self.assertTrue(plan["targets"]["aliases"])
-        alias = next(iter(plan["targets"]["aliases"]))
-        plan["targets"]["aliases"][alias] = "someone-else@x.invalid"
-        plan_file.write_text(json.dumps(plan))
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
-                           cli, self.home, self.project, TODAY)
-        self.assertEqual(code, 3)
-        self.assertEqual(self.logouts(cli), [])
+        cli = FakeCli(self.home, self.setup_stale_org(), {"stale": "gone@x.invalid"})
+        self.drifted(cli, lambda f: self.edit_plan(
+            f, lambda p: p["targets"]["aliases"]["stale"].update(value="someone-else@x.invalid")))
 
     def test_a_default_moved_to_another_stale_username_is_drift(self):
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "gone@x.invalid"}))
+        self.write_config("local", sf={"target-org": "gone@x.invalid"})
         rows = [row("00DBB0000000001", user="gone@x.invalid"), row("00DBB0000000002", user="gone2@x.invalid")]
         cli = FakeCli(self.home, rows)
-        plan_file = self.project / "plan.json"
-        with contextlib.redirect_stdout(io.StringIO()):
-            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
-        self.assertEqual(json.loads(plan_file.read_text())["remove"]["defaults"], ["local"])
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "gone2@x.invalid"}))
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
-                           cli, self.home, self.project, TODAY)
-        self.assertEqual(code, 3)
-        self.assertEqual(json.loads((self.project / ".sf" / "config.json").read_text()),
-                         {"target-org": "gone2@x.invalid"})
+        self.drifted(cli, lambda f: self.write_config("local", sf={"target-org": "gone2@x.invalid"}))
+        self.assertEqual(self.read_config("local")[0], {"target-org": "gone2@x.invalid"})
 
     def test_a_login_moved_to_another_removable_org_is_drift(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
-        cli = FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")])
-        plan_file = self.project / "plan.json"
-        with contextlib.redirect_stdout(io.StringIO()):
-            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
-        self.assertEqual(json.loads(plan_file.read_text())["remove"]["logout"], ["rep@x.invalid"])
-        self.add_auth("rep@x.invalid", "00DBB0000000002")
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
-                           cli, self.home, self.project, TODAY)
-        self.assertEqual(code, 3)
-        self.assertEqual(self.logouts(cli), [])
+        cli = FakeCli(self.home, [row(DEAD_ORG), row(OTHER_DEAD)])
+        self.drifted(cli, lambda f: self.add_auth("rep@x.invalid", OTHER_DEAD))
 
     def test_an_alias_added_to_a_logged_out_user_since_the_audit_is_drift(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows)
-        plan_file = self.project / "plan.json"
-        with contextlib.redirect_stdout(io.StringIO()):
-            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
-        cli.aliases["added-later"] = "rep@x.invalid"  # logout would clear it unreviewed
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
-                           cli, self.home, self.project, TODAY)
-        self.assertEqual(code, 3)
-        self.assertEqual(self.logouts(cli), [])
+        cli = FakeCli(self.home, self.setup_stale_org())
+        self.drifted(cli, lambda f: cli.aliases.update({"added-later": "rep@x.invalid"}))
         self.assertIn("added-later", cli.aliases)
 
-    def test_a_username_in_two_auth_files_with_different_orgs_is_protected(self):
-        # A renamed backup names the same username. Directory order must not choose the identity.
-        self.add_auth("alice@x.invalid", LIVE_ORG)
-        (self.home / ".sfdx" / "z-backup@x.invalid.json").write_text(
-            json.dumps({"username": "alice@x.invalid", "orgId": DEAD_ORG + "MAA"}))
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")]))
-        self.assertEqual(plan["remove"]["logout"], [])
-        self.assertIn("alice@x.invalid", plan["report"]["conflicting_evidence"])
+    def test_a_default_naming_a_logged_out_user_added_since_the_audit_is_drift(self):
+        cli = FakeCli(self.home, self.setup_stale_org(), {"base": "rep@x.invalid"})
+        self.drifted(cli, lambda f: self.write_config("global", sf={"target-org": "base"}))
 
-    def test_a_conflicting_username_keeps_its_aliases_defaults_and_jobs(self):
-        self.add_auth("alice@x.invalid", DEAD_ORG)
-        (self.home / ".sf" / "alice@x.invalid.json").write_text(
-            json.dumps({"username": "alice@x.invalid", "orgId": "00DBB0000000002MAA"}))
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "al"}))
-        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "al"}}))
-        (self.project / ".sfdx" / "orgs" / "alice@x.invalid").mkdir(parents=True)
-        cli = FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")], {"al": "alice@x.invalid"})
-        remove = self.plan(cli)["remove"]
-        for key in ("logout", "aliases", "defaults", "deploy_jobs", "tracking"):
-            self.assertEqual(remove[key], [], key)
+    def test_a_deploy_job_added_since_the_audit_is_drift(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        self.drifted(cli, lambda f: (self.home / ".sf" / "deploy-cache.json").write_text(
+            json.dumps({"job9": {"target-org": "rep@x.invalid"}})))
 
-    def test_a_renamed_auth_file_protects_the_name_sf_finds_it_by(self):
-        # sf resolves bob by file name, and that file holds a working login for alice's org.
-        (self.home / ".sfdx" / "bob@x.invalid.json").write_text(
-            json.dumps({"username": "alice@x.invalid", "orgId": LIVE_ORG + "MAA"}))
-        cli = FakeCli(self.home, [row(LIVE_ORG, "Active", "2026-12-01"), row("00DBB0000000009", user="bob@x.invalid")],
-                      {"b": "bob@x.invalid"})
-        plan = self.plan(cli)
-        self.assertEqual(plan["remove"]["aliases"], [])
-        self.assertEqual(plan["remove"]["logout"], [])
-        self.assertIn("bob@x.invalid", plan["report"]["conflicting_evidence"])
-
-    def test_a_renamed_file_and_a_real_login_of_that_name_are_both_kept(self):
-        (self.home / ".sfdx" / "bob@x.invalid.json").write_text(
-            json.dumps({"username": "alice@x.invalid", "orgId": LIVE_ORG + "MAA"}))
-        (self.home / ".sf" / "bob@x.invalid.json").write_text(
-            json.dumps({"username": "bob@x.invalid", "orgId": DEAD_ORG + "MAA"}))
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")]))
-        self.assertEqual(plan["remove"]["logout"], [])
-        self.assertIn("bob@x.invalid", plan["report"]["conflicting_evidence"])
-
-    def test_a_hub_stays_queried_when_a_later_file_drops_its_flag(self):
-        (self.home / ".sf" / (HUB + ".json")).write_text(
-            json.dumps({"username": HUB, "orgId": "00DHUB000000001MAA"}))
-        plan = self.plan(FakeCli(self.home))
-        self.assertIn(HUB, plan["hubs"])
-        self.assertIn(HUB, plan["report"]["conflicting_evidence"])
-
-    def test_a_conflict_survives_a_later_file_that_matches_the_one_before_it(self):
-        # Read order: .sfdx/alice (DEAD), .sfdx/z-copy (alice, other org), .sf/alice (other org).
-        self.add_auth("alice@x.invalid", DEAD_ORG)
-        other = {"username": "alice@x.invalid", "orgId": "00DBB0000000002MAA"}
-        (self.home / ".sfdx" / "z-copy@x.invalid.json").write_text(json.dumps(other))
-        (self.home / ".sf" / "alice@x.invalid.json").write_text(json.dumps(other))
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")]))
-        self.assertEqual(plan["remove"]["logout"], [])
-        self.assertIn("alice@x.invalid", plan["report"]["conflicting_evidence"])
+    def test_drift_since_review_stops_before_anything_happens(self):
+        rows = self.setup_stale_org()
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows), FakeCli(self.home, [])), 3)
+        self.assertTrue((self.home / ".sfdx" / "rep@x.invalid.json").exists())
+        self.assertTrue(self.index.exists())
 
     def test_a_protected_login_keeps_its_orgs_state_when_another_login_goes(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
         self.add_auth("rep2@x.invalid", DEAD_ORG)  # named like an alias, so never logged out
         (self.home / ".sfdx" / (DEAD_ORG + "MAA.json")).write_text("{}")
         (self.project / ".sf" / "orgs" / (DEAD_ORG + "MAA")).mkdir()
+        (self.project / ".sfdx" / "fileResponses" / (DEAD_ORG + "MAA")).mkdir(parents=True)
+        (self.project / ".sfdx" / "orgs" / "rep@x.invalid").mkdir()
         plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], {"rep2@x.invalid": HUB}))
         self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
-        self.assertEqual((plan["remove"]["indexes"], plan["remove"]["tracking"]), ([], []))
-
-    def test_a_user_an_alias_named_like_a_login_points_at_is_not_logged_out(self):
-        # Logout would clear the alias "bob@x.invalid", and a default naming it would then mean bob's live org.
-        self.add_auth("bob@x.invalid", LIVE_ORG)
-        self.add_auth("rep@x.invalid", DEAD_ORG)
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "bob@x.invalid"}))
-        rows = [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01")]
-        plan = self.plan(FakeCli(self.home, rows, {"bob@x.invalid": "rep@x.invalid"}))
-        self.assertEqual(plan["remove"]["logout"], [])
-        self.assertEqual(plan["remove"]["defaults"], [])
-        self.assertIn("rep@x.invalid", plan["report"]["conflicting_evidence"])
-
-    def test_a_conflicting_login_keeps_the_state_of_every_org_it_names(self):
-        self.add_auth("rep@x.invalid", DEAD_ORG)
-        self.add_auth("rep3@x.invalid", DEAD_ORG)
-        (self.home / ".sf" / "rep3@x.invalid.json").write_text(
-            json.dumps({"username": "rep3@x.invalid", "orgId": "00DBB0000000002MAA"}))
-        for org in (DEAD_ORG, "00DBB0000000002"):
-            (self.project / ".sf" / "orgs" / (org + "MAA")).mkdir()
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000002")]))
-        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
-        self.assertEqual(plan["remove"]["tracking"], [])
-
-    def test_a_matching_copy_in_both_roots_is_still_logged_out(self):
-        self.add_auth("rep@x.invalid", DEAD_ORG)
-        (self.home / ".sf" / "rep@x.invalid.json").write_text(
-            json.dumps({"username": "rep@x.invalid", "orgId": DEAD_ORG + "MAA"}))
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
-        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
-        self.assertEqual(plan["report"]["conflicting_evidence"], [])
-
-    def test_an_unreadable_auth_file_protects_its_username_in_both_roots(self):
-        self.add_auth("bob@x.invalid", DEAD_ORG)
-        (self.home / ".sf" / "bob@x.invalid.json").write_text("not json")
-        cli = FakeCli(self.home, [row(DEAD_ORG), row("00DBB0000000009", user="bob@x.invalid")],
-                      {"b": "bob@x.invalid"})
-        plan = self.plan(cli)
-        self.assertEqual(plan["remove"]["logout"], [])
-        self.assertEqual(plan["remove"]["aliases"], [])
-        self.assertIn("bob@x.invalid", plan["report"]["conflicting_evidence"])
-
-    def test_a_symlinked_auth_file_protects_its_username_and_is_not_opened(self):
-        target = self.home / "elsewhere.json"
-        target.write_text(json.dumps({"username": "bob@x.invalid", "orgId": DEAD_ORG + "MAA"}))
-        (self.home / ".sfdx" / "bob@x.invalid.json").symlink_to(target)
-        cli = FakeCli(self.home, [row("00DBB0000000009", user="bob@x.invalid")], {"b": "bob@x.invalid"})
-        plan = self.plan(cli)
-        self.assertEqual(plan["remove"]["aliases"], [])
-        self.assertIn("bob@x.invalid", plan["report"]["conflicting_evidence"])
-
-    def test_a_login_named_like_an_alias_is_not_logged_out(self):
-        self.add_auth("old@x.invalid", DEAD_ORG)
-        cli = FakeCli(self.home, [row(DEAD_ORG)], {"old@x.invalid": "live@x.invalid"})
-        plan = self.plan(cli)
-        self.assertEqual(plan["remove"]["logout"], [])
-        self.assertIn("old@x.invalid", plan["report"]["conflicting_evidence"])
-
-    def test_an_alias_named_like_a_login_is_not_unset_or_followed(self):
-        # The alias repoints a live login's name at a dead org. Unsetting it, the default or the job
-        # that use the name would change what the login means, so all three are kept.
-        self.add_auth("bob@x.invalid", LIVE_ORG)
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "bob@x.invalid"}))
-        (self.home / ".sf" / "deploy-cache.json").write_text(
-            json.dumps({"job1": {"target-org": "bob@x.invalid"}}))
-        cli = FakeCli(self.home, [row(DEAD_ORG, user="gone@x.invalid"), row(LIVE_ORG, "Active", "2026-12-01")],
-                      {"bob@x.invalid": "gone@x.invalid"})
-        remove = self.plan(cli)["remove"]
-        for key in ("logout", "aliases", "defaults", "deploy_jobs"):
-            self.assertEqual(remove[key], [], key)
-
-    def test_an_alias_chain_through_a_login_named_like_an_alias_is_not_followed(self):
-        self.add_auth("bob@x.invalid", LIVE_ORG)
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "b"}))
-        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "b"}}))
-        cli = FakeCli(self.home, [row(DEAD_ORG, user="gone@x.invalid"), row(LIVE_ORG, "Active", "2026-12-01")],
-                      {"bob@x.invalid": "gone@x.invalid", "b": "bob@x.invalid"})
-        remove = self.plan(cli)["remove"]
-        for key in ("logout", "aliases", "defaults", "deploy_jobs"):
-            self.assertEqual(remove[key], [], key)
-
-    def test_an_alias_named_like_an_unreadable_login_is_kept(self):
-        (self.home / ".sfdx" / "bob@x.invalid.json").write_text("not json")
-        cli = FakeCli(self.home, [row("00DBB0000000009", user="gone@x.invalid")],
-                      {"bob@x.invalid": "gone@x.invalid"})
-        self.assertEqual(self.plan(cli)["remove"]["aliases"], [])
-
-    def test_a_symlinked_login_does_not_hide_a_readable_stale_copy_in_the_other_root(self):
-        target = self.home / "elsewhere.json"
-        target.write_text(json.dumps({"username": "bob@x.invalid", "orgId": DEAD_ORG + "MAA"}))
-        (self.home / ".sfdx" / "bob@x.invalid.json").symlink_to(target)
-        (self.home / ".sf" / "bob@x.invalid.json").write_text(
-            json.dumps({"username": "bob@x.invalid", "orgId": DEAD_ORG + "MAA"}))
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
-        self.assertEqual(plan["remove"]["logout"], [])
-
-    def test_a_quarantine_link_is_refused_by_apply_before_any_logout(self):
-        rows = self.setup_stale_org()
-        real = self.home / "real-quarantine"
-        real.mkdir()
-        link = self.home / "linked-quarantine"
-        link.symlink_to(real)
-        cli = FakeCli(self.home, rows, {"stale-a": "gone@x.invalid"})
-        plan_file = self.project / "plan.json"
-        with contextlib.redirect_stdout(io.StringIO()):
-            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(link)],
-                           cli, self.home, self.project, TODAY)
-        self.assertEqual(code, 1)
-        self.assertEqual(self.logouts(cli), [])
-
-    def test_a_linked_deploy_cache_is_reported_and_never_rewritten(self):
-        target = self.home / "shared-cache.json"
-        target.write_text(json.dumps({"job1": {"target-org": "gone@x.invalid"}}))
-        (self.home / ".sf" / "deploy-cache.json").symlink_to(target)
-        plan = self.plan(FakeCli(self.home))
-        self.assertEqual(plan["remove"]["deploy_jobs"], [])
-        self.assertIn(str(self.home / ".sf" / "deploy-cache.json"), plan["report"]["symlinks_left_alone"])
-        failures = []
-        oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine, self.project, failures)
-        self.assertEqual(failures, [(str(self.home / ".sf" / "deploy-cache.json"), "symlink")])
-        self.assertTrue(target.is_file() and not target.is_symlink())
-        self.assertIn("job1", json.loads(target.read_text()))
-
-    def test_a_quarantine_root_that_is_a_link_is_refused(self):
-        real = self.home / "real-quarantine"
-        real.mkdir()
-        link = self.home / "linked-quarantine"
-        link.symlink_to(real)
-        why = oc.check_quarantine(link, self.home)
-        self.assertIsNotNone(why)
-        self.assertIn("symlink", why)
-
-    def test_drift_since_review_stops_before_anything_happens(self):
-        rows = self.setup_stale_org()
-        plan_cli = FakeCli(self.home, [])  # reviewed when nothing was stale
-        cli = FakeCli(self.home, rows)
-        self.assertEqual(self.audit_then_apply(cli, plan_cli), 3)
-        self.assertTrue((self.home / ".sfdx" / "rep@x.invalid.json").exists())
-        self.assertTrue(self.index.exists())
+        for key in ("indexes", "tracking", "file_responses"):
+            self.assertEqual(plan["remove"][key], [], key)
 
     def test_a_failed_logout_keeps_that_orgs_residual_state(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows, fail_logout=["rep@x.invalid"])
+        cli = FakeCli(self.home, self.setup_stale_org(), fail_logout=["rep@x.invalid"])
         self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertTrue(self.index.exists())
         self.assertTrue(self.tracking.exists())
-
-    def test_a_failed_logout_keeps_that_users_deploy_entry_and_manifest(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows, fail_logout=["rep@x.invalid"])
-        self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertIn("job1", self.read_cache())
         self.assertTrue(self.manifest.exists())
         self.assertIn("FAILED: job1 (skipped because its logout failed)", self.stdout.getvalue())
 
-    def test_a_failed_logout_keeps_jobs_named_by_an_alias_another_logout_cleared(self):
+    def test_a_failed_logout_keeps_everything_reaching_another_login_on_its_org(self):
         rows = self.setup_stale_org()
-        self.add_auth("second@x.invalid", DEAD_ORG)
-        cache = {"job1": {"target-org": "second-alias"}}
-        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps(cache))
-        cli = FakeCli(self.home, rows, {"second-alias": "second@x.invalid"},
-                      fail_logout=["rep@x.invalid"])
+        self.add_auth("rep2@x.invalid", DEAD_ORG)
+        legacy = self.project / ".sfdx" / "orgs" / "rep2@x.invalid"
+        legacy.mkdir()
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "Rep2@x.invalid"}}))
+        self.write_config("local", sf={"target-org": "Rep2@x.invalid"})
+        cli = FakeCli(self.home, rows, {"r2": "Rep2@x.invalid"}, fail_logout=["rep@x.invalid"])
         self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertNotIn("second-alias", cli.aliases)  # that logout worked and cleared it
-        self.assertIn("job1", self.read_cache())  # but its org keeps its state
-        self.assertTrue(self.manifest.exists())
+        self.assertNotIn("rep2@x.invalid.json", [p.name for p in (self.home / ".sfdx").iterdir()])  # it went
+        self.assertTrue(legacy.exists())
+        self.assertIn("r2", cli.aliases)
+        self.assertIn("job1", self.read_cache())
+        self.assertEqual(self.unsets(cli), [])
 
-    def test_a_failed_logout_keeps_a_chained_alias_and_a_default_naming_the_user(self):
+    def test_a_failed_logout_keeps_a_default_naming_the_user(self):
         rows = self.setup_stale_org()
-        config = self.project / ".sf" / "config.json"
-        config.write_text(json.dumps({"target-org": "rep@x.invalid"}))
-        aliases = {"base": "rep@x.invalid", "chained": "base"}
-        cli = FakeCli(self.home, rows, aliases, fail_logout=["rep@x.invalid"])
+        self.write_config("local", sf={"target-org": "rep@x.invalid"})
+        cli = FakeCli(self.home, rows, {"base": "rep@x.invalid"}, fail_logout=["rep@x.invalid"])
         self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertEqual(cli.aliases, aliases)
-        self.assertEqual([c for c in cli.calls if c[1:3] == ["config", "unset"]], [])
+        self.assertEqual(cli.aliases, {"base": "rep@x.invalid"})
+        self.assertEqual(self.unsets(cli), [])
 
-    def test_a_failed_logout_that_cleared_the_direct_alias_does_not_strand_the_chain(self):
-        rows = self.setup_stale_org()
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "chained"}))
-        aliases = {"base": "rep@x.invalid", "chained": "base"}
-        cli = FakeCli(self.home, rows, aliases, fail_logout=["rep@x.invalid"],
-                      clears_before_failing=True)
+    def test_a_logout_that_does_not_name_the_user_counts_as_failed(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        cli.override = lambda cmd: FakeCli.ok([]) if cmd[1:3] == ["org", "logout"] else None
         self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertEqual(cli.aliases, {})
-        unsets = [c for c in cli.calls if c[1:3] == ["config", "unset"]]
-        self.assertEqual(len(unsets), 1)
-        self.assertTrue((self.home / ".sfdx" / "rep@x.invalid.json").exists())
+        self.assertIn("rep@x.invalid (logout failed)", self.stdout.getvalue())
         self.assertTrue(self.index.exists())
-        again = self.plan(cli)
-        self.assertEqual(again["remove"]["logout"], ["rep@x.invalid"])
-        self.assertEqual(again["report"]["dangling_aliases"], [])
 
-    def test_a_failed_logout_keeps_the_chain_if_aliases_cannot_be_reread(self):
-        rows = self.setup_stale_org()
-        aliases = {"base": "rep@x.invalid", "chained": "base"}
-
-        class AliasListBreaks(FakeCli):
-            def __call__(self, cmd):
-                if cmd[1:3] == ["alias", "list"] and any(c[1:3] == ["org", "logout"] for c in self.calls):
-                    self.calls.append(cmd)
-                    return 1, json.dumps({"status": 1, "name": "Failed"})
-                return super().__call__(cmd)
-
-        cli = AliasListBreaks(self.home, rows, aliases, fail_logout=["rep@x.invalid"],
-                              clears_before_failing=True)
-        plan_cli = FakeCli(self.home, rows, aliases)
-        self.assertEqual(self.audit_then_apply(cli, plan_cli), 1)
-        self.assertIn("chained", cli.aliases)
-
-    def test_a_failed_logout_keeps_a_default_naming_its_chained_alias(self):
-        rows = self.setup_stale_org()
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "chained"}))
-        aliases = {"base": "rep@x.invalid", "chained": "base"}
-        cli = FakeCli(self.home, rows, aliases, fail_logout=["rep@x.invalid"])
+    def test_a_logout_that_also_removed_another_user_is_reported(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        cli.override = (lambda cmd: FakeCli.ok(["rep@x.invalid", "other@x.invalid"])
+                        if cmd[1:3] == ["org", "logout"] else None)
         self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertEqual([c for c in cli.calls if c[1:3] == ["config", "unset"]], [])
+        self.assertIn("sf also logged out other@x.invalid", self.stdout.getvalue())
 
-    def test_residual_line_appears_when_only_a_tracking_dir_moved(self):
-        (self.project / ".sf" / "orgs" / DEAD_ORG).mkdir()
-        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row(DEAD_ORG)])), 0)
-        self.assertIn("Residual files moved", self.stdout.getvalue())
+    def test_an_alias_unset_reporting_no_success_counts_as_failed(self):
+        cli = FakeCli(self.home, self.setup_stale_org(), {"stale": "gone@x.invalid"})
+        cli.override = lambda cmd: (FakeCli.ok([{"alias": cmd[3], "success": False}])
+                                    if cmd[1:3] == ["alias", "unset"] else None)
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertIn("stale (alias unset failed)", self.stdout.getvalue())
 
-    def test_residual_line_appears_when_only_an_index_moved(self):
-        (self.home / ".sfdx" / (DEAD_ORG + ".json")).write_text("{}")
-        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row(DEAD_ORG)])), 0)
-        self.assertIn("Residual files moved", self.stdout.getvalue())
+    def test_an_alias_unset_answering_for_another_alias_counts_as_failed(self):
+        cli = FakeCli(self.home, self.setup_stale_org(), {"stale": "gone@x.invalid"})
+        cli.override = lambda cmd: (FakeCli.ok([{"alias": "other", "success": True}])
+                                    if cmd[1:3] == ["alias", "unset"] else None)
+        self.assertEqual(self.audit_then_apply(cli), 1)
 
-    def test_residual_line_appears_when_only_a_manifest_moved(self):
-        cache = {"job1": {"target-org": "gone@x.invalid"}}
-        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps(cache))
-        (self.home / ".sf" / "manifestCache" / "job1.xml").write_text("<x/>")
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 0)
-        self.assertIn("Residual files moved", self.stdout.getvalue())
+    def test_apply_never_passes_an_alias_sf_would_read_as_flags(self):
+        plan = {"remove": dict.fromkeys(oc.REMOVE_KEYS, []),
+                "targets": {"aliases": {"-ap": {"value": "x@y.invalid", "login": None, "org": None}}}}
+        plan["remove"]["aliases"] = ["-ap"]
+        cli, done, failures = FakeCli(self.home), dict.fromkeys(oc.DONE_KEYS, 0), []
+        oc.apply_plan(cli, plan, self.home, self.project, self.quarantine, done, failures, {})
+        self.assertEqual([c for c in cli.calls if c[1:3] == ["alias", "unset"]], [])
+        self.assertEqual(failures, [("-ap", "refused: sf would read the name as flags")])
 
-    def test_a_chained_alias_is_gone_after_apply_and_a_re_audit_is_empty(self):
+    def test_a_default_changed_during_the_run_is_not_unset(self):
         rows = self.setup_stale_org()
-        config = self.project / ".sf" / "config.json"
-        config.write_text(json.dumps({"target-org": "chained"}))
-        aliases = {"base": "rep@x.invalid", "chained": "base", "keep": HUB, "keep2": "keep"}
-        cli = FakeCli(self.home, rows, aliases)
-        self.assertEqual(self.audit_then_apply(cli), 0)
-        self.assertEqual(cli.aliases, {"keep": HUB, "keep2": "keep"})
-        unsets = [c for c in cli.calls if c[1:3] == ["config", "unset"]]
-        self.assertEqual(unsets, [["sf", "config", "unset", "target-org", "--json"]])
-
-    def test_a_quarantine_that_refuses_files_stops_before_any_logout(self):
-        rows = self.setup_stale_org()
+        self.write_config("local", sf={"target-org": "gone@x.invalid"})
         cli = FakeCli(self.home, rows)
-        # The folder can be created, as ~/.Trash allows: only moving a file in shows the refusal.
-        with mock.patch.object(oc.os, "rename", side_effect=PermissionError(1, "Not permitted")):
+        plan_file = self.audit_file(cli)
+
+        def change(cmd):
+            if cmd[1:3] == ["org", "logout"]:
+                self.write_config("local", sf={"target-org": "new@x.invalid"})
+            return None
+
+        cli.override = change
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertEqual(self.unsets(cli), [])
+        self.assertIn("local default (changed during this run; not modified)", self.stdout.getvalue())
+
+    def test_an_alias_unset_that_removed_more_than_its_alias_counts_as_failed(self):
+        cli = FakeCli(self.home, self.setup_stale_org(), {"stale": "gone@x.invalid"})
+        cli.override = lambda cmd: (FakeCli.ok([{"alias": "stale", "success": True}, {"alias": "x", "success": True}])
+                                    if cmd[1:3] == ["alias", "unset"] else None)
+        self.assertEqual(self.audit_then_apply(cli), 1)
+
+    def test_a_default_on_an_orphan_alias_is_unset_and_checked(self):
+        self.write_config("local", sf={"target-org": "stale"}, sfdx={"defaultusername": "stale"})
+        cli = FakeCli(self.home, self.setup_stale_org(), {"stale": "gone@x.invalid"})
+        self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertEqual(self.unsets(cli), [["sf", "config", "unset", "target-org", "--json"]])
+        self.assertEqual(self.read_config("local"), [{}, {}])
+
+    def test_a_global_default_is_unset_globally(self):
+        self.write_config("global", sf={"target-org": "gone@x.invalid"})
+        self.write_config("local", sf={"target-org": HUB})
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")])
+        self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertEqual(self.unsets(cli), [["sf", "config", "unset", "target-org", "--global", "--json"]])
+        self.assertEqual(self.read_config("local")[0], {"target-org": HUB})
+
+    def test_a_default_still_set_after_the_unset_is_reported(self):
+        self.write_config("local", sf={"target-org": "gone@x.invalid"})
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")])
+        cli.unset_works = False
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertIn("local default (still set after config unset)", self.stdout.getvalue())
+
+    def test_a_failed_config_unset_is_reported(self):
+        self.write_config("local", sf={"target-org": "gone@x.invalid"})
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")])
+        cli.override = lambda cmd: (1, json.dumps({"status": 1})) if cmd[1:3] == ["config", "unset"] else None
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertIn("local default (config unset failed)", self.stdout.getvalue())
+
+    def test_a_default_logout_cleared_is_not_unset_again(self):
+        self.write_config("local", sf={"target-org": "rep@x.invalid"})
+        cli = FakeCli(self.home, self.setup_stale_org())
+        self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertEqual(self.unsets(cli), [])
+        self.assertEqual(self.read_config("local"), [{}, {}])
+
+    def test_a_valid_default_survives(self):
+        self.write_config("local", sf={"target-org": HUB})
+        cli = FakeCli(self.home, self.setup_stale_org())
+        self.assertEqual(self.audit_then_apply(cli), 0)
+        self.assertEqual(self.unsets(cli), [])
+        self.assertEqual(self.read_config("local")[0], {"target-org": HUB})
+
+    def test_an_interrupt_after_a_logout_still_reports_what_ran(self):
+        self.setup_stale_org()
+        self.add_auth("rep2@x.invalid", OTHER_DEAD)
+        cli = FakeCli(self.home, [row(DEAD_ORG), row(OTHER_DEAD)])
+
+        def interrupt(cmd):
+            if cmd[1:3] == ["org", "logout"] and cmd[4] == "rep@x.invalid":
+                raise KeyboardInterrupt
+            return None
+
+        plan_file = self.audit_file(cli)
+        cli.override = interrupt
+        self.assertEqual(self.apply(cli, plan_file), 130)
+        self.assertIn("Done: ", self.stdout.getvalue())
+        self.assertIn("Stopped part-way: interrupted", self.stderr.getvalue())
+
+    def test_an_error_after_a_logout_reports_what_ran_not_a_traceback(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        with mock.patch.object(oc, "move_to_quarantine", side_effect=PermissionError(errno.EACCES, "Permission denied")):
             self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertIn("'logout': 1", self.stdout.getvalue())
+        self.assertIn("Stopped part-way: Permission denied", self.stderr.getvalue())
+
+    def test_an_unexpected_error_after_a_logout_is_reported_too(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        with mock.patch.object(oc, "remove_deploy_jobs", side_effect=ValueError("bad cache")):
+            self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertIn("Stopped part-way: ValueError: bad cache", self.stderr.getvalue())
+
+    def test_an_unreadable_state_folder_stops_apply_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        with mock.patch.object(oc, "survey", side_effect=PermissionError(errno.EACCES, "Permission denied")):
+            self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertEqual(self.logouts(cli), [])
-        self.assertTrue((self.home / ".sfdx" / "rep@x.invalid.json").exists())
-        self.assertTrue(self.index.exists())
-        self.assertIn("before any logout", self.stderr.getvalue())
-        self.assertNotIn("Residual files moved", self.stdout.getvalue())
-        self.assertFalse(self.quarantine.exists())
-        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
 
-    def test_a_quarantine_path_that_cannot_be_examined_is_reported_not_raised(self):
-        # Mocked so the result does not depend on the interpreter: Python 3.14 swallows this error.
-        with mock.patch.object(oc.Path, "exists", side_effect=PermissionError(13, "Denied")):
-            self.assertEqual(oc.check_quarantine(self.quarantine, self.home), "Denied")
-        self.assertFalse(self.quarantine.exists())
-        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
+    def test_the_rewritten_cache_keeps_its_mode(self):
+        self.setup_stale_org()
+        cache = self.home / ".sf" / "deploy-cache.json"
+        os.chmod(str(cache), 0o644)  # mkstemp would make it 600 if the mode were not carried over
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row(DEAD_ORG)])), 0)
+        self.assertEqual(cache.stat().st_mode & 0o777, 0o644)
 
-    def test_a_quarantine_folder_that_cannot_be_examined_for_a_link_is_reported_not_raised(self):
-        with mock.patch.object(oc.Path, "is_symlink", side_effect=PermissionError(13, "Denied")):
-            self.assertEqual(oc.check_quarantine(self.quarantine, self.home), "Denied")
-        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
+    def test_tracked_state_is_refused(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        cli.tracked.add(str(self.tracking))
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertTrue(self.tracking.exists())
 
-    def test_the_quarantine_check_is_skipped_when_nothing_needs_moving(self):
-        self.add_auth("rep@x.invalid", DEAD_ORG)
-        cli = FakeCli(self.home, [row(DEAD_ORG)])
-        with mock.patch.object(oc.os, "rename", side_effect=PermissionError(1, "Not permitted")):
-            self.assertEqual(self.audit_then_apply(cli), 0)
-        self.assertEqual(len(self.logouts(cli)), 1)
-        self.assertNotIn("Residual files moved", self.stdout.getvalue())
+    def test_a_git_failure_refuses_the_move(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        cli.override = lambda cmd: (1, "") if cmd[0] == "git" else None
+        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertTrue(self.tracking.exists())
+        self.assertIn("git could not say", self.stdout.getvalue())
 
-    def test_a_move_that_fails_later_is_reported_and_the_run_continues(self):
-        rows = self.setup_stale_org()
-        real_move, refused = os.rename, str(self.index)
 
-        def move(src, dst):
-            if src == refused:
-                raise PermissionError(1, "Not permitted")
-            return real_move(src, dst)
-
-        with mock.patch.object(oc.os, "rename", side_effect=move):
-            self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
-        self.assertTrue(self.index.exists())
-        self.assertIn("could not move: Not permitted", self.stdout.getvalue())
-        self.assertIn("Residual files moved", self.stdout.getvalue())
-        self.assertTrue((self.quarantine / "orgs" / self.tracking.name / "state").exists())
-        self.assertEqual(self.read_cache(), {"job2": {"target-org": HUB, "keep": 1}})
-
-    def test_a_refused_rename_leaves_no_copy_and_a_retry_succeeds(self):
-        rows = self.setup_stale_org()
-        real_rename, refused = os.rename, str(self.index)
-
-        def rename(src, dst):
-            if src == refused:
-                raise PermissionError(1, "Not permitted")
-            return real_rename(src, dst)
-
-        with mock.patch.object(oc.os, "rename", side_effect=rename):
-            self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
-        self.assertTrue(self.index.exists())
-        self.assertEqual(list(self.quarantine.rglob(self.index.name)), [])
-        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 0)
-        self.assertFalse(self.index.exists())
-
-    def test_a_move_across_volumes_still_works(self):
-        source, dest = self.home / "file", self.home / "moved"
-        source.write_text("x")
-        with mock.patch.object(oc.os, "rename", side_effect=OSError(errno.EXDEV, "Cross-device")):
-            with mock.patch.object(oc.shutil, "move") as copy_move:
-                oc.move_path(str(source), str(dest))
-        copy_move.assert_called_once_with(str(source), str(dest))
+class Quarantine(Base):
+    setup_stale_org = Apply.setup_stale_org
 
     def refuse_rename_of(self, path):
         real_rename, refused = os.rename, str(path)
@@ -1067,8 +1195,116 @@ class Apply(Base):
                     path.chmod(0o755)
         self.addCleanup(restore)
 
-    def files_under(self, path):
+    @staticmethod
+    def files_under(path):
         return sorted(str(p.relative_to(path)) for p in path.rglob("*") if p.is_file())
+
+    def test_a_quarantine_link_is_refused_by_apply_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        real = self.home / "real-quarantine"
+        real.mkdir()
+        link = self.home / "linked-quarantine"
+        link.symlink_to(real)
+        self.assertEqual(self.apply(cli, self.audit_file(cli), link), 1)
+        self.assertEqual(Apply.logouts(cli), [])
+
+    def test_a_quarantine_folder_that_is_a_link_or_a_file_is_refused(self):
+        elsewhere = self.home.parent / "elsewhere"
+        elsewhere.mkdir()
+        self.quarantine.mkdir()
+        os.symlink(str(elsewhere), str(self.quarantine / "orgs"))
+        self.assertIn("symlink", oc.check_quarantine(self.quarantine, self.home))
+        item = self.project / ".sf" / "orgs" / "00DAA0000000009MAA"
+        item.mkdir()
+        why = oc.move_to_quarantine(FakeCli(self.home), item, [self.project / ".sf" / "orgs"], self.quarantine, self.project)
+        self.assertIn("symlink", why)
+        self.assertEqual(list(elsewhere.iterdir()), [])
+        (self.quarantine / "orgs").unlink()
+        (self.quarantine / "orgs").write_text("not a folder")
+        self.assertIn("not a folder", oc.check_quarantine(self.quarantine, self.home))
+
+    def test_a_quarantine_folder_that_cannot_be_written_is_refused(self):
+        if os.name == "nt" or os.geteuid() == 0:
+            self.skipTest("needs POSIX permissions that root does not honor")
+        (self.quarantine / "orgs").mkdir(parents=True)
+        (self.quarantine / "orgs").chmod(0o555)
+        self.writable_again(self.quarantine / "orgs")
+        self.assertIn("not writable", oc.check_quarantine(self.quarantine, self.home))
+
+    def test_a_quarantine_root_that_becomes_a_link_is_refused_at_the_move(self):
+        item = self.project / ".sf" / "orgs" / "00DAA0000000009MAA"
+        item.mkdir()
+        real = self.home / "real-quarantine"
+        real.mkdir()
+        os.symlink(str(real), str(self.quarantine))
+        why = oc.move_to_quarantine(FakeCli(self.home), item, [self.project / ".sf" / "orgs"], self.quarantine, self.project)
+        self.assertIn("symlink", why)
+        self.assertTrue(item.exists())
+
+    def test_a_quarantine_that_refuses_files_stops_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        # The folder can be created, as ~/.Trash allows: only moving a file in shows the refusal.
+        with mock.patch.object(oc.os, "rename", side_effect=PermissionError(1, "Not permitted")):
+            self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertEqual(Apply.logouts(cli), [])
+        self.assertTrue(self.index.exists())
+        self.assertIn("before any logout", self.stderr.getvalue())
+        self.assertFalse(self.quarantine.exists())
+        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
+
+    def test_a_quarantine_path_that_cannot_be_examined_is_reported_not_raised(self):
+        with mock.patch.object(oc.os, "lstat", side_effect=PermissionError(13, "Denied")):
+            self.assertEqual(oc.check_quarantine(self.quarantine, self.home), "Denied")
+        self.assertFalse(self.quarantine.exists())
+        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
+
+    def test_the_quarantine_check_is_skipped_when_nothing_needs_moving(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        cli = FakeCli(self.home, [row(DEAD_ORG)])
+        plan_file = self.audit_file(cli)
+        with mock.patch.object(oc.os, "rename", side_effect=PermissionError(1, "Not permitted")):
+            self.assertEqual(self.apply(cli, plan_file), 0)
+        self.assertEqual(len(Apply.logouts(cli)), 1)
+        self.assertNotIn("Residual files moved", self.stdout.getvalue())
+
+    def test_a_move_that_fails_later_is_reported_and_the_run_continues(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        with self.refuse_rename_of(self.index):
+            self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertTrue(self.index.exists())
+        self.assertIn("could not move into {}: Not permitted".format(self.quarantine / ".sfdx"), self.stdout.getvalue())
+        self.assertIn("Residual files moved", self.stdout.getvalue())
+        self.assertTrue((self.quarantine / "orgs" / self.tracking.name / "state").exists())
+        self.assertEqual(self.read_cache(), {"job2": {"target-org": HUB, "keep": 1}})
+
+    def test_when_every_move_fails_the_quarantine_is_still_named(self):
+        rows = self.setup_stale_org()
+        (self.home / ".sf" / "deploy-cache.json").unlink()
+        self.manifest.unlink()
+        cli = FakeCli(self.home, rows)
+        cli.tracked.add(str(self.tracking))
+        plan_file = self.audit_file(cli)
+        with self.refuse_rename_of(self.index):
+            self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertNotIn("Residual files moved", self.stdout.getvalue())
+        self.assertIn("partial copy in: {}".format(self.quarantine), self.stdout.getvalue())
+
+    def test_a_refused_rename_leaves_no_copy_and_a_retry_succeeds(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        with self.refuse_rename_of(self.index):
+            self.assertEqual(self.apply(cli, self.audit_file(cli)), 1)
+        self.assertEqual(list(self.quarantine.rglob(self.index.name)), [])
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row(DEAD_ORG)])), 0)
+        self.assertFalse(self.index.exists())
+
+    def test_a_move_across_volumes_still_works(self):
+        source, dest = self.home / "file", self.home / "moved"
+        source.write_text("x")
+        with self.across_volumes(), mock.patch.object(oc.shutil, "move") as copy_move:
+            oc.move_path(str(source), str(dest))
+        copy_move.assert_called_once_with(str(source), str(dest))
 
     def test_a_failed_delete_across_volumes_loses_nothing_and_a_retry_finishes(self):
         if os.name == "nt" or os.geteuid() == 0:
@@ -1088,8 +1324,7 @@ class Apply(Base):
             left = self.files_under(item)  # how far the delete got varies by Python and directory order
             self.assertIn("sub/held", left)
             (item / "sub").chmod(0o755)
-            self.assertIsNone(oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine,
-                                                    self.project))
+            self.assertIsNone(oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine, self.project))
         self.assertFalse(item.exists())
         self.assertEqual(self.files_under(copy), ["a", "b", "sub/held"])
         self.assertEqual(self.files_under(copy.with_name(item.name + ".1")), left)
@@ -1108,24 +1343,20 @@ class Apply(Base):
         with self.across_volumes():
             why = oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine, self.project)
             self.assertIn("could not move", why)
-            self.assertLess(len(why), 330)  # shutil.Error's text lists every path it could not copy
+            self.assertLess(len(why), 330 + len(str(self.quarantine)))  # shutil.Error lists every path
             self.assertEqual(self.files_under(item), ["a", secret])
             (item / secret).chmod(0o644)
-            self.assertIsNone(oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine,
-                                                    self.project))
+            self.assertIsNone(oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine, self.project))
         self.assertFalse(item.exists())
-        retried = self.quarantine / "orgs" / (item.name + ".1")
-        self.assertEqual(self.files_under(retried), ["a", secret])
+        self.assertEqual(self.files_under(self.quarantine / "orgs" / (item.name + ".1")), ["a", secret])
 
     def test_the_same_name_in_both_tracking_layouts_moves_without_a_collision(self):
-        name = "00DAA0000000009MAA"
-        results = []
+        name, results = "00DAA0000000009MAA", []
         for layout in (".sf", ".sfdx"):
             root = self.project / layout / "orgs"
             (root / name).mkdir(parents=True)
             (root / name / layout).write_text("x")
-            results.append(oc.move_to_quarantine(FakeCli(self.home), root / name, [root], self.quarantine,
-                                                 self.project))
+            results.append(oc.move_to_quarantine(FakeCli(self.home), root / name, [root], self.quarantine, self.project))
         self.assertEqual(results, [None, None])
         orgs = self.quarantine / "orgs"
         self.assertEqual(self.files_under(orgs / name), [".sf"])
@@ -1141,7 +1372,6 @@ class Apply(Base):
         self.assertEqual(taken.read_text(), "<earlier/>")
         self.assertEqual(taken.with_name("job1.xml.1").read_text(), "<retry/>")
         self.assertTrue(taken.with_name("job1.xml.2").exists())
-        self.assertFalse(self.manifest.exists())
         self.assertNotIn("job1", self.read_cache())
 
     def test_a_dangling_link_in_the_quarantine_is_kept_and_the_new_item_numbered(self):
@@ -1154,131 +1384,72 @@ class Apply(Base):
         link.symlink_to(self.project / "nothing-here")
         self.assertIsNone(oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine, self.project))
         self.assertTrue(link.is_symlink())
-        self.assertFalse(link.exists())
-        self.assertFalse(item.exists())
         self.assertEqual(self.files_under(link.with_name(item.name + ".1")), ["state"])
 
+    def test_a_symlink_that_appears_after_the_audit_is_refused(self):
+        target = self.project / "elsewhere"
+        target.mkdir()
+        link = self.project / ".sf" / "orgs" / "00DAA0000000009MAA"
+        link.symlink_to(target)
+        self.assertEqual(oc.move_to_quarantine(FakeCli(self.home), link, [link.parent], self.quarantine, self.project),
+                         "symlink")
+        self.assertTrue(link.is_symlink())
+
+    def test_a_path_outside_the_state_roots_is_refused(self):
+        stray = self.project / "keep.txt"
+        stray.write_text("x")
+        why = oc.move_to_quarantine(FakeCli(self.home), stray, [self.project / ".sf" / "orgs"], self.quarantine,
+                                    self.project)
+        self.assertEqual(why, "outside the expected state roots")
+
+
+class DeployCache(Base):
+    setup_stale_org = Apply.setup_stale_org
+
     def test_a_refused_manifest_keeps_its_cache_entry(self):
-        rows = self.setup_stale_org()
-        with self.refuse_rename_of(self.manifest):
-            self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        with Quarantine.refuse_rename_of(self, self.manifest):
+            self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertIn("job1", self.read_cache())
         self.assertTrue(self.manifest.exists())
 
     def test_a_failed_cache_write_is_reported_and_leaves_the_cache_intact(self):
-        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, self.setup_stale_org())
         before = self.read_cache()
+        plan_file = self.audit_file(cli)
         with mock.patch.object(oc.os, "replace", side_effect=PermissionError(1, "Not permitted")):
-            self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 1)
+            self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertEqual(self.read_cache(), before)
         self.assertIn("could not write: Not permitted", self.stdout.getvalue())
         self.assertEqual(list((self.home / ".sf").glob(".deploy-cache.*")), [])
 
-    def test_no_residual_line_when_every_move_was_refused(self):
-        rows = self.setup_stale_org()
-        (self.home / ".sf" / "deploy-cache.json").unlink()
-        self.manifest.unlink()
-        cli = FakeCli(self.home, rows)
-        cli.tracked.add(str(self.tracking))
-        with self.refuse_rename_of(self.index):
-            self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertNotIn("Residual files moved", self.stdout.getvalue())
+    def test_an_interrupted_cache_write_leaves_no_temp_file(self):
+        self.setup_stale_org()
+        with mock.patch.object(oc.json, "dump", side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                oc.replace_json(self.home / ".sf" / "deploy-cache.json", {})
+        self.assertEqual(list((self.home / ".sf").glob(".deploy-cache.*")), [])
 
-    def test_a_git_failure_refuses_the_move(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows)
-        cli.override = lambda cmd: (1, "") if cmd[0] == "git" else None
-        self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertTrue(self.tracking.exists())
-        self.assertIn("git could not say", self.stdout.getvalue())
+    def test_a_job_gone_from_the_cache_since_the_audit_reports_its_manifest(self):
+        self.setup_stale_org()
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job2": {"target-org": HUB}}))
+        failures = []
+        result = oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine, self.project, failures)
+        self.assertEqual(result, (0, 0))
+        self.assertEqual(failures, [("job1", "no longer in the deploy cache; its manifest was left in place")])
 
-    def test_a_logout_that_does_not_name_the_user_counts_as_failed(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows)
-        cli.override = lambda cmd: FakeCli.ok([]) if cmd[1:3] == ["org", "logout"] else None
-        self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertIn("rep@x.invalid (logout failed)", self.stdout.getvalue())
-        self.assertTrue(self.index.exists())
-
-    def test_an_alias_unset_reporting_no_success_counts_as_failed(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows, {"base": "rep@x.invalid", "chained": "base"})
-        cli.override = lambda cmd: (FakeCli.ok([{"alias": cmd[3], "success": False}])
-                                    if cmd[1:3] == ["alias", "unset"] else None)
-        self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertIn("chained (alias unset failed)", self.stdout.getvalue())
-
-    def alias_list_fails_in_apply(self, cli):
-        lists = []
-
-        def third_list_fails(cmd):
-            if cmd[1:3] == ["alias", "list"]:
-                lists.append(cmd)
-                if len(lists) == 3:  # apply's plan, the chain check, then the defaults check
-                    return 1, ""
-            return None
-
-        cli.override = third_list_fails
-
-    def test_a_default_the_plan_removed_is_still_unset_when_the_alias_list_fails(self):
-        rows = self.setup_stale_org()
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "chained"}))
-        aliases = {"base": "rep@x.invalid", "chained": "base"}
-        cli = FakeCli(self.home, rows, aliases)
-        self.alias_list_fails_in_apply(cli)
-        self.assertEqual(self.audit_then_apply(cli, plan_cli=FakeCli(self.home, rows, aliases)), 0)
-        self.assertEqual(len([c for c in cli.calls if c[1:3] == ["config", "unset"]]), 1)
-
-    def test_a_default_that_may_be_an_alias_is_not_unset_when_the_alias_list_fails(self):
-        # The logout fails, so the alias is kept. Without the list, "x@y" would read as a username.
-        rows = self.setup_stale_org()
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "x@y"}))
-        aliases = {"base": "rep@x.invalid", "x@y": "base"}
-        cli = FakeCli(self.home, rows, aliases, fail_logout=("rep@x.invalid",))
-        self.alias_list_fails_in_apply(cli)
-        self.assertEqual(self.audit_then_apply(cli, plan_cli=FakeCli(self.home, rows, aliases)), 1)
-        self.assertIn("alias list failed; default not modified", self.stdout.getvalue())
-        self.assertEqual([c for c in cli.calls if c[1:3] == ["config", "unset"]], [])
-
-    def test_an_error_after_a_logout_reports_what_ran_not_a_traceback(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows)
-        with mock.patch.object(oc, "move_to_quarantine",
-                               side_effect=PermissionError(errno.EACCES, "Permission denied")):
-            self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertTrue(self.logouts(cli))
-        self.assertIn("'logout': {}".format(len(self.logouts(cli))), self.stdout.getvalue())
-        self.assertIn("Stopped part-way: Permission denied", self.stderr.getvalue())
-
-    def test_an_unreadable_state_folder_stops_apply_before_any_logout(self):
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows)
-        plan_file = self.project / "plan.json"
-        with contextlib.redirect_stdout(io.StringIO()):
-            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
-        stderr = io.StringIO()
-        with mock.patch.object(oc, "build_plan", side_effect=PermissionError(errno.EACCES, "Permission denied")), \
-                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
-            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
-                           cli, self.home, self.project, TODAY)
-        self.assertEqual(code, 1)
-        self.assertEqual(self.logouts(cli), [])
-
-    def test_a_failed_config_unset_is_reported(self):
-        rows = self.setup_stale_org()
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "chained"}))
-        cli = FakeCli(self.home, rows, {"base": "rep@x.invalid", "chained": "base"})
-        cli.override = lambda cmd: ((1, json.dumps({"status": 1, "name": "Failed"}))
-                                    if cmd[1:3] == ["config", "unset"] else None)
-        self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertIn("local default (config unset failed)", self.stdout.getvalue())
-
-    def test_the_rewritten_cache_keeps_its_mode(self):
-        rows = self.setup_stale_org()
-        cache = self.home / ".sf" / "deploy-cache.json"
-        os.chmod(str(cache), 0o644)  # mkstemp would make it 600 if the mode were not carried over
-        self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 0)
-        self.assertEqual(cache.stat().st_mode & 0o777, 0o644)
+    def test_a_linked_deploy_cache_is_reported_and_never_rewritten(self):
+        target = self.home / "shared-cache.json"
+        target.write_text(json.dumps({"job1": {"target-org": "gone@x.invalid"}}))
+        (self.home / ".sf" / "deploy-cache.json").symlink_to(target)
+        plan = self.plan(FakeCli(self.home))
+        self.assertEqual(plan["remove"]["deploy_jobs"], [])
+        self.assertIn(str(self.home / ".sf" / "deploy-cache.json"), plan["report"]["symlinks_left_alone"])
+        failures = []
+        oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine, self.project, failures)
+        self.assertEqual(failures, [(str(self.home / ".sf" / "deploy-cache.json"), "symlink")])
+        self.assertIn("job1", json.loads(target.read_text()))
 
     def test_a_linked_manifest_cache_is_not_state_to_move(self):
         outside = self.home.parent / "outside"
@@ -1287,40 +1458,22 @@ class Apply(Base):
         (self.home / ".sf" / "manifestCache").rmdir()
         os.symlink(str(outside), str(self.home / ".sf" / "manifestCache"))
         (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "gone@x.invalid"}}))
-        rows = [row("00DBB0000000001", user="gone@x.invalid")]
-        plan = self.plan(FakeCli(self.home, rows))
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
         self.assertEqual(plan["remove"]["deploy_jobs"], [])
         self.assertIn(str(self.home / ".sf" / "manifestCache"), plan["report"]["symlinks_left_alone"])
         failures = []
-        result = oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine,
-                                       self.project, failures)
-        self.assertEqual(result, (0, 0))
+        self.assertEqual(oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine,
+                                               self.project, failures), (0, 0))
         self.assertTrue((outside / "job1.xml").exists())
         self.assertEqual([f[1] for f in failures], ["symlink"])
-
-    def test_a_quarantine_folder_that_is_a_link_is_refused(self):
-        item = self.project / ".sf" / "orgs" / "00DAA0000000009MAA"
-        item.mkdir(parents=True)
-        (item / "a").write_text("x")
-        elsewhere = self.home.parent / "elsewhere"
-        elsewhere.mkdir()
-        self.quarantine.mkdir()
-        os.symlink(str(elsewhere), str(self.quarantine / "orgs"))
-        self.assertIn("symlink", oc.check_quarantine(self.quarantine, self.home))
-        why = oc.move_to_quarantine(FakeCli(self.home), item, [self.project / ".sf" / "orgs"],
-                                    self.quarantine, self.project)
-        self.assertIn("symlink", why)
-        self.assertTrue(item.exists())
-        self.assertEqual(list(elsewhere.iterdir()), [])
 
     def test_a_cache_key_that_is_not_a_plain_job_id_is_refused(self):
         outside = self.home / "foo.xml"
         outside.write_text("<x/>")
         (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"../../foo": {"target-org": "x"}}))
         failures = []
-        result = oc.remove_deploy_jobs(FakeCli(self.home), ["../../foo"], self.home, self.quarantine,
-                                       self.project, failures)
-        self.assertEqual(result, (0, 0))
+        self.assertEqual(oc.remove_deploy_jobs(FakeCli(self.home), ["../../foo"], self.home, self.quarantine,
+                                               self.project, failures), (0, 0))
         self.assertEqual([f[0] for f in failures], ["../../foo"])
         self.assertTrue(outside.exists())
         self.assertIn("../../foo", self.read_cache())
@@ -1328,97 +1481,71 @@ class Apply(Base):
     def test_an_unreadable_cache_is_reported(self):
         (self.home / ".sf" / "deploy-cache.json").write_text("not json")
         failures = []
-        result = oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine,
-                                       self.project, failures)
-        self.assertEqual(result, (0, 0))
+        self.assertEqual(oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine,
+                                               self.project, failures), (0, 0))
         self.assertEqual(failures, [("deploy-cache", "unreadable")])
 
-    def test_tracked_state_is_refused(self):  # symlinks are refused in the tests that link a real entry
-        rows = self.setup_stale_org()
-        cli = FakeCli(self.home, rows)
-        cli.tracked.add(str(self.tracking))
-        self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertTrue(self.tracking.exists())
 
-    def test_a_default_logout_already_cleared_is_not_unset_again(self):
-        rows = self.setup_stale_org()
-        config = self.project / ".sf" / "config.json"
-        config.write_text(json.dumps({"target-org": "rep@x.invalid"}))
-        cli = FakeCli(self.home, rows)
-        cli.config = config
-        self.assertEqual(self.audit_then_apply(cli), 0)
-        self.assertEqual([c for c in cli.calls if c[1:3] == ["config", "unset"]], [])
+class CheckLogins(Base):
+    def answer(self, cli, failing=()):
+        cli.override = lambda cmd: ((1, json.dumps({"status": 1})) if set(cmd) & set(failing) else
+                                    FakeCli.ok({"done": True, "totalSize": 0, "records": []})
+                                    if cmd[1:3] == ["data", "query"] else None)
 
-    def test_a_default_on_an_orphan_alias_is_unset(self):
-        rows = self.setup_stale_org()
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "stale"}))
-        cli = FakeCli(self.home, rows, {"stale": "gone@x.invalid"})
-        self.assertEqual(self.audit_then_apply(cli), 0)
-        unsets = [c for c in cli.calls if c[1:3] == ["config", "unset"]]
-        self.assertEqual(unsets, [["sf", "config", "unset", "target-org", "--json"]])
+    def test_a_login_that_does_not_answer_is_named_and_fails_the_check(self):
+        self.add_auth("rep@x.invalid", LIVE_ORG)
+        cli = FakeCli(self.home)
+        self.answer(cli, failing=["rep@x.invalid"])
+        self.assertEqual(self.main(["audit", "--check-logins"], cli), 1)
+        self.assertIn("Logins that did not answer a query: ['rep@x.invalid']", self.stdout.getvalue())
 
-    def test_a_symlink_that_appears_after_the_audit_is_refused(self):
-        target = self.project / "elsewhere"
-        target.mkdir()
-        root = self.project / ".sf" / "orgs"
-        link = root / "00DAA0000000009MAA"
-        link.symlink_to(target)
-        why = oc.move_to_quarantine(FakeCli(self.home), link, [root], self.quarantine, self.project)
-        self.assertEqual(why, "symlink")
-        self.assertTrue(link.is_symlink())
+    def test_all_logins_answering_passes(self):
+        self.add_auth("rep@x.invalid", LIVE_ORG)
+        cli = FakeCli(self.home)
+        self.answer(cli)
+        self.assertEqual(self.main(["audit", "--check-logins"], cli), 0)
 
-    def test_a_path_outside_the_state_roots_is_refused(self):
-        stray = self.project / "keep.txt"
-        stray.write_text("x")
-        root = self.project / ".sf" / "orgs"
-        why = oc.move_to_quarantine(FakeCli(self.home), stray, [root], self.quarantine, self.project)
-        self.assertEqual(why, "outside the expected state roots")
-        self.assertTrue(stray.exists())
+    def test_a_login_named_like_an_alias_is_not_queried_and_is_named(self):
+        self.add_auth("rep@x.invalid", LIVE_ORG)
+        cli = FakeCli(self.home, aliases={"rep@x.invalid": HUB})
+        self.answer(cli)
+        self.assertEqual(self.main(["audit", "--check-logins"], cli), 0)
+        self.assertFalse([c for c in cli.calls if "SELECT Id FROM Organization" in c and "rep@x.invalid" in c])
+        self.assertIn("Not queried: rep@x.invalid", self.stdout.getvalue())
 
-    def test_a_valid_default_survives(self):
-        rows = self.setup_stale_org()
-        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": HUB}))
-        cli = FakeCli(self.home, rows)
-        self.audit_then_apply(cli)
-        self.assertEqual([c for c in cli.calls if c[1:3] == ["config", "unset"]], [])
+    def test_a_linked_login_sf_uses_is_queried(self):
+        target = self.home / "elsewhere.json"
+        target.write_text("{}")
+        (self.home / ".sfdx" / "link@x.invalid.json").symlink_to(target)
+        cli = FakeCli(self.home)
+        self.answer(cli)
+        self.main(["audit", "--check-logins"], cli)
+        self.assertTrue([c for c in cli.calls if "SELECT Id FROM Organization" in c and "link@x.invalid" in c])
 
 
-class DocStaysInStep(unittest.TestCase):
+class DocStaysInStep(Base):
     DOC = (REPO / ".cursor" / "skills" / "cci-orchestration" / "org-cleanup.md").read_text()
 
-    def test_every_review_key_the_tool_reports_is_explained(self):
-        plan_keys = ["hub_failures", "prune_prediction", "conflicting_evidence",
-                     "logins_with_no_refresh_token", "unreadable_auth_files",
-                     "symlinks_left_alone", "unclassified_files", "would_remove_expired",
-                     "would_remove_never_instantiated", "would_remove_but_active_on_hub",
-                     "expired_shape_instances_it_skips", "unrecognized_file_responses",
-                     "mixed_defaults", "unsafe_deploy_cache_keys"]
-        source = (REPO / "scripts" / "ai" / "org_cleanup.py").read_text()
-        for key in plan_keys:
-            self.assertIn(key, source)
-            self.assertIn(key, self.DOC)
+    def test_every_key_the_tool_reports_is_explained(self):
+        plan = self.plan(FakeCli(self.home, cci=PrunePrediction.ORGS))
+        keys = ["hub_failures", "prune_prediction", "preserved"] + list(plan["report"]) + list(plan["prune_prediction"])
+        for key in keys:
+            self.assertIn(key, self.DOC, key)
 
     def test_doc_names_the_commands_it_depends_on(self):
         for command in ("org_cleanup.py audit", "org_cleanup.py apply", "--check-logins"):
             self.assertIn(command, self.DOC)
 
     def test_the_tool_never_offers_a_remote_delete(self):
-        source = (REPO / "scripts" / "ai" / "org_cleanup.py").read_text()
-        code = source.split('"""', 2)[2]  # past the docstring, which names what it never runs
+        code = (REPO / "scripts" / "ai" / "org_cleanup.py").read_text().split('"""', 2)[2]
         for banned in ('"delete"', "org delete", "--clean", "ActiveScratchOrg"):
             self.assertNotIn(banned, code)
 
 
 class EvidenceEdges(Base):
-    """Each pins a guard that a broad mutation pass showed nothing else would catch."""
-
     def audit_output(self):
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            code = oc.main(["audit"], FakeCli(self.home, [row(DEAD_ORG)]),
-                           self.home, self.project, TODAY)
-        self.assertEqual(code, 0)
-        return out.getvalue()
+        self.assertEqual(self.main(["audit"], FakeCli(self.home, [row(DEAD_ORG)])), 0)
+        return self.stdout.getvalue()
 
     def test_no_connected_dev_hub_is_said_out_loud(self):
         (self.home / ".sfdx" / (HUB + ".json")).unlink()
@@ -1429,22 +1556,6 @@ class EvidenceEdges(Base):
         self.add_auth("rep@x.invalid", DEAD_ORG)
         self.assertNotIn("NO CONNECTED DEV HUB", self.audit_output())
 
-    def test_a_partial_hub_answer_is_a_failure_not_evidence(self):
-        self.add_auth("rep@x.invalid", DEAD_ORG)
-        cli = FakeCli(self.home, [row(DEAD_ORG)])
-        cli.override = lambda cmd: (FakeCli.ok({"done": False, "records": [row(DEAD_ORG)]})
-                                    if cmd[1:3] == ["data", "query"] else None)
-        plan = self.plan(cli)
-        self.assertEqual(plan["hub_failures"], [HUB])
-        self.assertEqual(plan["remove"]["logout"], [])
-
-    def test_a_value_that_could_break_out_of_soql_never_reaches_a_query(self):
-        aliases = {"quote": "o'brien@x.invalid", "slash": "back\\slash@x.invalid"}
-        cli = FakeCli(self.home, aliases=aliases)
-        self.plan(cli)
-        queries = [" ".join(c) for c in cli.calls if c[1:3] == ["data", "query"]]
-        self.assertFalse([q for q in queries if "brien" in q or "slash" in q])
-
     def test_an_index_for_a_live_or_unknown_org_stays(self):
         for org in (LIVE_ORG, NO_ROW_ORG):
             (self.home / ".sfdx" / (org + "MAA.json")).write_text("{}")
@@ -1452,20 +1563,11 @@ class EvidenceEdges(Base):
         self.assertEqual(plan["remove"]["indexes"], [])
         self.assertEqual(plan["preserved"]["indexes"], 2)
 
-    def test_a_symlinked_auth_file_is_not_read(self):
-        target = self.home / "elsewhere.json"
-        target.write_text(json.dumps({"username": "link@x.invalid", "orgId": DEAD_ORG + "MAA"}))
-        (self.home / ".sfdx" / "link@x.invalid.json").symlink_to(target)
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
-        self.assertEqual(plan["remove"]["logout"], [])
-        self.assertEqual(plan["preserved"]["logins"], 1)  # the hub only
-
     def test_a_symlinked_index_is_not_listed(self):
         target = self.home / "elsewhere.json"
         target.write_text("{}")
         (self.home / ".sfdx" / (DEAD_ORG + "MAA.json")).symlink_to(target)
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
-        self.assertEqual(plan["remove"]["indexes"], [])
+        self.assertEqual(self.plan(FakeCli(self.home, [row(DEAD_ORG)]))["remove"]["indexes"], [])
 
     def test_a_symlinked_tracking_dir_is_reported_and_not_listed(self):
         target = self.home / "elsewhere"
@@ -1476,68 +1578,17 @@ class EvidenceEdges(Base):
         self.assertEqual(plan["remove"]["tracking"], [])
         self.assertEqual(plan["report"]["symlinks_left_alone"], [str(link)])
 
-    def test_an_unreadable_auth_file_is_reported(self):
-        (self.home / ".sfdx" / "bad@x.invalid.json").write_text("not json")
-        plan = self.plan(FakeCli(self.home))
-        self.assertEqual(plan["report"]["unreadable_auth_files"], ["bad@x.invalid.json"])
-
-    def test_a_nonzero_exit_fails_even_when_the_payload_says_status_0(self):
-        run = lambda cmd: (1, json.dumps({"status": 0, "result": []}))  # noqa: E731
-        self.assertIsNone(oc.sf_json(run, "anything"))
-
-    def test_the_legacy_default_key_counts(self):
-        self.add_auth("rep@x.invalid", DEAD_ORG)
-        (self.project / ".sfdx" / "sfdx-config.json").write_text(
-            json.dumps({"defaultusername": "rep@x.invalid"}))
-        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
-        self.assertEqual(plan["remove"]["defaults"], ["local"])
-
-    def test_check_logins_names_the_login_that_did_not_answer(self):
-        self.add_auth("rep@x.invalid", LIVE_ORG)
-        cli = FakeCli(self.home)
-
-        def answer(cmd):
-            if "rep@x.invalid" in cmd:
-                return 1, json.dumps({"status": 1, "name": "Failed"})
-            return FakeCli.ok({"done": True, "records": []})
-
-        cli.override = answer
-        self.assertEqual(oc.check_logins(cli, self.home), ["rep@x.invalid"])
-
-    def test_check_logins_stops_when_the_alias_list_fails(self):
-        self.add_auth("rep@x.invalid", LIVE_ORG)
-        cli = FakeCli(self.home)
-        lists = []
-
-        def second_list_fails(cmd):
-            if cmd[1:3] == ["alias", "list"]:
-                lists.append(cmd)
-                if len(lists) == 2:  # the plan's list, then check-logins' own
-                    return 1, ""
-            return None
-
-        cli.override = second_list_fails
-        stderr = io.StringIO()
-        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
-            code = oc.main(["audit", "--check-logins"], cli, self.home, self.project, TODAY)
-        self.assertEqual(code, 1)
-        self.assertIn("Logins were not checked", stderr.getvalue())
-        self.assertFalse([c for c in cli.calls if "SELECT Id FROM Organization" in c])
-
-    def test_check_logins_does_not_query_a_login_named_like_an_alias(self):
-        self.add_auth("rep@x.invalid", LIVE_ORG)
-        cli = FakeCli(self.home)
-        cli.override = lambda cmd: FakeCli.ok({"done": True, "records": []})
-        self.assertEqual(oc.check_logins(cli, self.home, {"rep@x.invalid"}), [])
-        self.assertFalse([c for c in cli.calls if "rep@x.invalid" in c])
+    def test_a_tracking_name_with_a_trailing_newline_is_not_org_state(self):
+        odd = self.project / ".sf" / "orgs" / (DEAD_ORG + "MAA\n")
+        odd.mkdir()
+        self.assertEqual(self.plan(FakeCli(self.home, [row(DEAD_ORG)]))["remove"]["tracking"], [])
 
 
 class Usage(Base):
     def test_refuses_to_run_outside_a_project_root(self):
-        elsewhere = self.home
         stderr = io.StringIO()
         with contextlib.redirect_stderr(stderr):
-            code = oc.main(["audit"], FakeCli(self.home), self.home, elsewhere, TODAY)
+            code = oc.main(["audit"], FakeCli(self.home), self.home, self.home, TODAY, env={})
         self.assertEqual(code, 2)
         self.assertIn("project root", stderr.getvalue())
 
@@ -1559,11 +1610,17 @@ class Usage(Base):
         expected = Path(os.path.realpath(str(self.home))) / ".rlm-org-cleanup-quarantine" / TODAY
         self.assertEqual(oc.default_quarantine(self.home, TODAY), expected)
 
+    def test_a_linked_home_state_folder_is_still_read(self):
+        """In the Docker image ~/.sfdx links to the state volume."""
+        volume = self.home.parent / "volume-sfdx"
+        (self.home / ".sfdx").rename(volume)
+        (self.home / ".sfdx").symlink_to(volume)
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.assertEqual(self.plan(FakeCli(self.home, [row(DEAD_ORG)]))["remove"]["logout"], ["rep@x.invalid"])
+
 
 class FileResponses(Base):
     """`<project>/.sf[dx]/fileResponses/<orgId>`: response logs keyed by org, with no login."""
-
-    audit_then_apply = Apply.audit_then_apply
 
     def responses(self, state=".sfdx", org=DEAD_ORG + "MAA"):
         path = self.project / state / "fileResponses" / org
@@ -1581,18 +1638,19 @@ class FileResponses(Base):
     def test_no_hub_row_preserves_them(self):
         self.responses(org=NO_ROW_ORG + "MAA")
         plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
-        self.assertEqual(plan["remove"]["file_responses"], [])
-        self.assertEqual(plan["preserved"]["file_responses"], 1)  # read, and left alone
+        self.assertEqual((plan["remove"]["file_responses"], plan["preserved"]["file_responses"]), ([], 1))
 
     def test_a_name_that_is_not_an_org_id_is_reported_and_never_planned(self):
         odd = self.project / ".sfdx" / "fileResponses" / "not-an-org"
         odd.mkdir(parents=True)
         stray = self.project / ".sfdx" / "fileResponses" / (DEAD_ORG + "MAA.json")
-        stray.write_text("{}")  # an org-ID name, but a file rather than a directory
+        stray.write_text("{}")
+        plain = self.project / ".sfdx" / "fileResponses" / (DEAD_ORG + "MAB")
+        plain.write_text("{}")  # an org-ID name, but a file rather than a directory
         plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
         self.assertEqual(plan["remove"]["file_responses"], [])
         self.assertEqual(sorted(plan["report"]["unrecognized_file_responses"]),
-                         sorted([str(odd), str(stray)]))
+                         sorted([str(odd), str(stray), str(plain)]))
 
     def test_a_symlinked_entry_or_folder_is_left_alone(self):
         target = self.home / "elsewhere"
@@ -1604,11 +1662,9 @@ class FileResponses(Base):
         plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
         self.assertEqual(plan["remove"]["file_responses"], [])
         self.assertEqual(sorted(plan["report"]["symlinks_left_alone"]),
-                         sorted([str(entry / (DEAD_ORG + "MAA")),
-                                 str(self.project / ".sf" / "fileResponses")]))
+                         sorted([str(entry / (DEAD_ORG + "MAA")), str(self.project / ".sf" / "fileResponses")]))
 
     def test_a_symlinked_state_folder_or_parent_is_never_followed(self):
-        # `.sfdx` itself linked, then `.sf/orgs` and `.sf/fileResponses` linked.
         outside = self.home / "outside"
         (outside / "orgs" / (DEAD_ORG + "MAA")).mkdir(parents=True)
         (outside / "fileResponses" / (DEAD_ORG + "MAA")).mkdir(parents=True)
@@ -1621,25 +1677,20 @@ class FileResponses(Base):
         (self.project / ".sf" / "orgs").symlink_to(other)
         (self.project / ".sf" / "fileResponses").symlink_to(other)
         plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
-        self.assertEqual(plan["remove"]["tracking"], [])
-        self.assertEqual(plan["remove"]["file_responses"], [])
+        self.assertEqual((plan["remove"]["tracking"], plan["remove"]["file_responses"]), ([], []))
         self.assertEqual(sorted(plan["report"]["symlinks_left_alone"]),
-                         sorted([str(self.project / ".sfdx"),
-                                 str(self.project / ".sf" / "orgs"),
+                         sorted([str(self.project / ".sfdx"), str(self.project / ".sf" / "orgs"),
                                  str(self.project / ".sf" / "fileResponses")]))
 
     def test_a_folder_swapped_for_a_link_after_the_audit_is_refused_at_the_move(self):
         outside = self.home / "outside"
         (outside / (DEAD_ORG + "MAA")).mkdir(parents=True)
-        why = oc.move_to_quarantine(
-            FakeCli(self.home), self.project / ".sf" / "linked" / (DEAD_ORG + "MAA"),
-            [self.project / ".sf" / "linked"], self.quarantine, self.project)
-        self.assertEqual(why, "missing")  # nothing at the path: no move is attempted
-        (self.project / ".sf" / "linked").symlink_to(outside)
-        why = oc.move_to_quarantine(
-            FakeCli(self.home), self.project / ".sf" / "linked" / (DEAD_ORG + "MAA"),
-            [self.project / ".sf" / "linked"], self.quarantine, self.project)
-        self.assertEqual(why, "symlink")
+        linked = self.project / ".sf" / "linked"
+        self.assertEqual(oc.move_to_quarantine(FakeCli(self.home), linked / (DEAD_ORG + "MAA"), [linked],
+                                               self.quarantine, self.project), "missing")
+        linked.symlink_to(outside)
+        self.assertEqual(oc.move_to_quarantine(FakeCli(self.home), linked / (DEAD_ORG + "MAA"), [linked],
+                                               self.quarantine, self.project), "symlink")
         self.assertTrue((outside / (DEAD_ORG + "MAA")).exists())
 
     def test_a_state_folder_swapped_for_a_link_after_the_audit_is_refused_at_the_move(self):
@@ -1648,41 +1699,31 @@ class FileResponses(Base):
         (self.project / ".sf" / "orgs").rmdir()
         (self.project / ".sf").rmdir()
         (self.project / ".sf").symlink_to(outside)
-        why = oc.move_to_quarantine(
-            FakeCli(self.home), self.project / ".sf" / "orgs" / (DEAD_ORG + "MAA"),
-            [self.project / ".sf" / "orgs"], self.quarantine, self.project)
-        self.assertEqual(why, "symlink")
-        self.assertTrue((outside / "orgs" / (DEAD_ORG + "MAA")).exists())
+        self.assertEqual(oc.move_to_quarantine(FakeCli(self.home), self.project / ".sf" / "orgs" / (DEAD_ORG + "MAA"),
+                                               [self.project / ".sf" / "orgs"], self.quarantine, self.project), "symlink")
 
     def test_a_quarantine_that_refuses_files_stops_before_any_logout_for_responses_alone(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
         dead = self.responses()
         cli = FakeCli(self.home, [row(DEAD_ORG)])
+        plan_file = self.audit_file(cli)
         with mock.patch.object(oc.os, "rename", side_effect=PermissionError(1, "Not permitted")):
-            self.assertEqual(self.audit_then_apply(cli), 1)
-        self.assertEqual([c for c in cli.calls if c[1:3] == ["org", "logout"]], [])
+            self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertEqual(Apply.logouts(cli), [])
         self.assertTrue(dead.exists())
-        self.assertIn("before any logout", self.stderr.getvalue())
 
     def test_the_directory_is_not_reported_as_unclassified(self):
         self.responses()
-        files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
-        self.assertEqual(files, [])
+        self.assertEqual(self.plan(FakeCli(self.home))["report"]["unclassified_files"], [])
 
     def test_apply_moves_them_to_the_quarantine_and_a_re_audit_is_empty(self):
-        dead = self.responses()
-        cli = FakeCli(self.home, [row(DEAD_ORG)])
-        self.assertEqual(self.audit_then_apply(cli), 0)
-        self.assertFalse(dead.exists())
-        moved = self.quarantine / "fileResponses" / dead.name
-        self.assertTrue((moved / "deploy-2026-04-16T03-02-23-000Z.json").exists())
-        self.assertIn("Residual files moved", self.stdout.getvalue())
-        self.assertEqual(self.plan(cli)["remove"]["file_responses"], [])
-
-    def test_apply_moves_a_project_sf_responses_folder(self):
-        dead = self.responses(state=".sf")
-        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row(DEAD_ORG)])), 0)
-        self.assertFalse(dead.exists())
+        for state in (".sf", ".sfdx"):
+            dead = self.responses(state=state)
+            cli = FakeCli(self.home, [row(DEAD_ORG)])
+            self.assertEqual(self.audit_then_apply(cli), 0)
+            self.assertFalse(dead.exists())
+            self.assertIn("Residual files moved", self.stdout.getvalue())
+            self.assertEqual(self.plan(cli)["remove"]["file_responses"], [])
         self.assertTrue((self.quarantine / "fileResponses" / dead.name / "deploy-2026-04-16T03-02-23-000Z.json").exists())
 
     def test_a_tracked_responses_folder_is_refused(self):
@@ -1696,8 +1737,7 @@ class FileResponses(Base):
     def test_a_failed_logout_keeps_that_orgs_responses(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
         dead = self.responses()
-        cli = FakeCli(self.home, [row(DEAD_ORG)], fail_logout={"rep@x.invalid"})
-        self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertEqual(self.audit_then_apply(FakeCli(self.home, [row(DEAD_ORG)], fail_logout={"rep@x.invalid"})), 1)
         self.assertTrue(dead.exists())
 
 

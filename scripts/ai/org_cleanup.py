@@ -11,6 +11,12 @@ query, or conflicting evidence all preserve it. `audit` builds its inventory fro
 files rather than `sf org list`, which silently omits secondary users, and omits every
 scratch org when a hub is unreachable.
 
+Local state is judged the way sf reads it: logins only from ~/.sfdx, a name through at most
+one alias, a login file found whatever the case of its name, and each config scope as the
+merge of its two files. Every effect of a planned `sf org logout` (the aliases and config
+keys sf clears with it) is predicted, printed and bound in the plan. Anything that view
+cannot explain is preserved and reported, never acted on.
+
 `apply` re-derives the plan and stops if it differs from the reviewed one. It runs targeted
 `sf org logout` and single-alias `sf alias unset`, and moves residual files to a quarantine
 folder instead of deleting them. It never runs `cci org prune`, `cci org remove`, `cci org
@@ -20,8 +26,8 @@ the user's call.
 Credentials are never printed or written: auth files are reduced to identity fields as soon
 as they are parsed, and a file this tool does not recognize is reported without being opened.
 
-Exit status: 0 success, 1 a step failed, 2 usage or wrong directory, 3 the plan drifted.
-Stdlib only and Python 3.9-safe.
+Exit status: 0 success, 1 a step failed, 2 usage or wrong directory, 3 the plan drifted,
+130 interrupted. Stdlib only and Python 3.9-safe.
 """
 import argparse
 import datetime
@@ -36,11 +42,15 @@ import sys
 import tempfile
 from pathlib import Path
 
-ORG_ID = re.compile(r"^00D[0-9A-Za-z]{12}(?:[0-9A-Za-z]{3})?$")
+ORG_ID = re.compile(r"00D[0-9A-Za-z]{12}(?:[0-9A-Za-z]{3})?")  # always used with fullmatch
+# The names sf lists as logins in ~/.sfdx (@salesforce/core orgAccessor.getFileRegex).
+SF_LOGIN_FILE = re.compile(r"[^.][^@]*@[^.]+(?:\.[^.\s]+)+\.json")
 BATCH = 50
 REMOVABLE = ("deleted", "expired")
 REMOVE_KEYS = ("logout", "aliases", "indexes", "tracking", "file_responses", "deploy_jobs",
                "defaults")
+DONE_KEYS = REMOVE_KEYS + ("manifests", "cleared_by_logout")
+DOUBT = object()  # login_for: the name may mean a login the tool cannot read or tie to one org
 
 # Entries the CLIs own (`fileResponses` is handled as org-keyed state below). Anything else in a
 # state root is reported, unopened, for the user.
@@ -49,31 +59,51 @@ KNOWN_ENTRIES = {
     "manifestCache", "orgs", "scratch-create-cache.json", "sfdx-config.json", "stash.json",
     "tools", "typings", "vscode-extensions-telemetry",
 }
-KNOWN_ENTRY_PATTERN = re.compile(r"^(sf|sfdx)(-[\d-]+)?\.log(\.\d+)?$")
+KNOWN_ENTRY_PATTERN = re.compile(r"(sf|sfdx)(-[\d-]+)?\.log(\.\d+)?")  # always used with fullmatch
 
-CCI_KEYS = {"name", "shape", "active", "scratch", "expired", "instantiated", "default", "alias"}
+# sf's legacy config keys and the keys they translate to (@salesforce/core config.js). Any other
+# key in sfdx-config.json is mistranslated by sf on its next write, so the tool does not model it.
+LEGACY_KEYS = {
+    "defaultusername": "target-org", "defaultdevhubusername": "target-dev-hub",
+    "instanceUrl": "org-instance-url", "apiVersion": "org-api-version",
+    "isvDebuggerSid": "org-isv-debugger-sid", "isvDebuggerUrl": "org-isv-debugger-url",
+    "disableTelemetry": "disable-telemetry", "customOrgMetadataTemplates": "org-custom-metadata-templates",
+    "maxQueryLimit": "org-max-query-limit", "restDeploy": "org-metadata-rest-deploy",
+}
+CURRENT_KEYS = set(LEGACY_KEYS.values())
+ENV_DEFAULTS = ("SF_TARGET_ORG", "SFDX_DEFAULTUSERNAME", "SF_TARGET_DEV_HUB", "SFDX_DEFAULTDEVHUBUSERNAME")
+
+CCI_KEYS = {"name": str, "shape": bool, "active": bool, "scratch": bool, "expired": bool,
+            "instantiated": bool, "alias": str, "org_id": str, "username": str}
 
 # Run inside `cci shell`: names and flags only, and the same predicate `cci org prune` uses.
 CCI_SNIPPET = """
 import json
 from cumulusci.core.config import ScratchOrgConfig
 shapes = project_config.lookup("orgs__scratch", {})
-orgs = []
-for name in runtime.keychain.list_orgs():
-    org = runtime.keychain.get_org(name)
+keychain = runtime.keychain
+orgs, flagged = [], []
+for name in keychain.list_orgs():
+    org = keychain.get_org(name)
     orgs.append(dict(name=name, shape=name in shapes, active=bool(org.active),
                      scratch=isinstance(org, ScratchOrgConfig), expired=bool(getattr(org, "expired", False)),
-                     instantiated=bool(org.config.get("date_created")), default=bool(org.default),
-                     alias=org.config.get("sfdx_alias") or ""))
-print("ORG_CLEANUP_CCI " + json.dumps(orgs))
+                     instantiated=bool(org.config.get("date_created")),
+                     alias=str(org.config.get("sfdx_alias") or ""), org_id=str(org.config.get("org_id") or ""),
+                     username=str(org.config.get("username") or "")))
+    if org.default:
+        flagged.append(name)
+# CCI's default is DEFAULT_ORG.txt. Read it directly: get_default_org() can run sf config commands.
+path = getattr(keychain, "_default_org_path", None)
+default = path.read_text().strip() if path and path.exists() else (flagged[0] if flagged else "")
+print("ORG_CLEANUP_CCI " + json.dumps(dict(orgs=orgs, default=default or None)))
 """
 
 
 def run_command(cmd):
     """Run one command, returning (exit code, stdout). Stderr may carry payloads: drop it."""
     try:
-        done = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                              universal_newlines=True, timeout=300, check=False)
+        done = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding="utf-8",
+                              errors="replace", timeout=300, check=False)
     except (OSError, subprocess.TimeoutExpired):
         return 127, ""
     return done.returncode, done.stdout
@@ -86,9 +116,14 @@ def sf_json(run, *args):
         payload = json.loads(out)
     except ValueError:
         return None
-    if code != 0 or payload.get("status") != 0:
+    if code != 0 or not isinstance(payload, dict) or payload.get("status") != 0:
         return None
     return payload
+
+
+def reason(error):
+    """An OSError as short text. shutil.Error's own text lists every path, so it is capped."""
+    return error.strerror or str(error)[:300] or type(error).__name__
 
 
 def read_json(path, default):
@@ -98,131 +133,180 @@ def read_json(path, default):
         return default
 
 
-def state_roots(home):
-    return [home / ".sfdx", home / ".sf"]
+def lstat_or_none(path):
+    """lstat, or None if nothing is there. Any other error is raised: from Python 3.14 pathlib's
+    is_dir() and is_symlink() answer False instead, which would hide a folder it cannot search."""
+    try:
+        return os.lstat(str(path))
+    except (FileNotFoundError, NotADirectoryError):
+        return None
 
 
-def read_auth(home):
-    """Identity fields from every local auth file. Token values never leave this function."""
-    auth, unreadable = {}, []
-    for root in state_roots(home):
-        if not root.is_dir():
+def is_link(path):
+    info = lstat_or_none(path)
+    return bool(info) and stat.S_ISLNK(info.st_mode)
+
+
+def is_dir(path, follow=False):
+    """A directory (through a link only when follow is set), raising on anything but absence."""
+    try:
+        info = os.stat(str(path)) if follow else os.lstat(str(path))
+    except (FileNotFoundError, NotADirectoryError):
+        return False
+    return stat.S_ISDIR(info.st_mode)
+
+
+def is_regular_file(path):
+    info = lstat_or_none(path)
+    return bool(info) and stat.S_ISREG(info.st_mode)
+
+
+def listing(root, follow=False):
+    """Sorted entries of a directory, or [] if it is absent. A home root may be a link, as in the
+    Docker image; a project root is listed only as itself."""
+    return sorted(root.iterdir()) if is_dir(root, follow) else []
+
+
+def read_logins(home):
+    """sf's logins: the files in ~/.sfdx whose names match sf's own pattern.
+
+    Returns the identity fields of each readable one, keyed by file stem (the name sf opens), the
+    stems sf would read but this tool does not (a link is never opened; a file that does not parse
+    has no identity), and the unreadable file names. Token values never leave this function.
+    """
+    logins, unread, unreadable = {}, set(), []
+    for path in listing(home / ".sfdx", follow=True):
+        if not SF_LOGIN_FILE.fullmatch(path.name):
             continue
-        for path in sorted(root.iterdir()):
-            if "@" not in path.name or path.suffix != ".json" or path.is_symlink():
-                continue
-            data = read_json(path, None)
-            if not isinstance(data, dict) or not data.get("orgId"):
-                unreadable.append(path.name)
-                continue
-            username = data.get("username") or path.stem
-            # sf finds a login by its file name, so a renamed backup answers to that name with
-            # another username's token. Both names are protected rather than judged by one org.
-            renamed = username != path.stem
-            for name in ([username, path.stem] if renamed else [username]):
-                entry = {
-                    "org": data["orgId"][:15],
-                    "is_hub": bool(data.get("isDevHub")),
-                    "is_sandbox": bool(data.get("isSandbox")),
-                    "refreshable": bool(data.get("refreshToken")),
-                    "conflicting": renamed,
-                    "orgs": [data["orgId"][:15]],
-                }
-                previous = auth.get(name)
-                if previous is not None:
-                    # Two files for one name must not pick the identity by directory order.
-                    entry["conflicting"] = (renamed or previous["conflicting"] or any(
-                        previous[key] != entry[key] for key in ("org", "is_hub", "is_sandbox")))
-                    for key in ("is_hub", "refreshable"):  # a hub stays queried whichever file is last
-                        entry[key] = entry[key] or previous[key]
-                    entry["orgs"] = sorted(set(entry["orgs"]) | set(previous["orgs"]))
-                auth[name] = entry
-    return auth, unreadable
+        name = path.name[:-len(".json")]
+        if not is_regular_file(path):
+            unread.add(name)
+            continue
+        data = read_json(path, None)
+        org = data.get("orgId") if isinstance(data, dict) else None
+        username = data.get("username", name) if isinstance(data, dict) else None
+        if not isinstance(org, str) or not ORG_ID.fullmatch(org) or not isinstance(username, str) or not username:
+            unread.add(name)
+            unreadable.append(path.name)
+            continue
+        logins[name] = {
+            "username": username,
+            "org": org[:15],
+            "is_hub": bool(data.get("isDevHub")),
+            "is_sandbox": bool(data.get("isSandbox")),
+            # A JWT login re-signs with its key, so only a login with neither expires with its session.
+            "refreshable": bool(data.get("refreshToken") or data.get("privateKey")),
+        }
+    return logins, unread, unreadable
 
 
-def unread_logins(home, unreadable):
-    """Usernames whose auth file is present in either root but not read: broken, or a link we skip."""
-    names = {name[:-len(".json")] for name in unreadable if name.endswith(".json")}
-    for root in state_roots(home):
-        if root.is_dir():
-            names |= {p.stem for p in root.iterdir()
-                      if p.is_symlink() and "@" in p.name and p.suffix == ".json"}
-    return names
+def read_aliases(payload):
+    aliases = {}
+    for row in payload.get("result") or []:
+        if isinstance(row, dict) and isinstance(row.get("alias"), str):
+            value = row.get("value")
+            aliases[row["alias"]] = value if isinstance(value, str) else ""
+    return aliases
+
+
+def read_scope(sf_file, sfdx_file, linked, env):
+    """One config scope as sf merges it, or the reason the tool cannot model it.
+
+    sf merges the two files key by key (the newer file wins) and rewrites both on any write. The
+    scope is modelled only when that merge is unambiguous, so no write can change a value the
+    reviewer did not see.
+    """
+    merged, values, pairs, problems = {}, set(), set(), []
+    if linked:
+        problems.append("{} is a symlink, so sf writes this config through it".format(linked))
+    interop = str(env.get("SF_SFDX_INTEROPERABILITY", "true")).lower() in ("true", "1")
+    for path, legacy in ((sf_file, False), (sfdx_file, True)):
+        info = lstat_or_none(path)
+        if info is None:
+            continue
+        if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+            problems.append("{} is not a regular file".format(path))
+            continue
+        data = read_json(path, None)
+        if not isinstance(data, dict):
+            problems.append("{} does not parse as a JSON object".format(path))
+            continue
+        values |= {v for v in data.values() if isinstance(v, str)}
+        if legacy and not interop:
+            if data:
+                problems.append("SF_SFDX_INTEROPERABILITY is off, so sf ignores {}".format(path))
+            continue
+        for key, value in data.items():
+            if legacy and key not in LEGACY_KEYS and key not in CURRENT_KEYS:
+                problems.append("{} holds {}, which sf would rename on its next write".format(path, key))
+                continue
+            if not legacy and key in LEGACY_KEYS:
+                problems.append("{} holds the legacy key {}, which sf does not read there".format(path, key))
+                continue
+            key = LEGACY_KEYS.get(key, key) if legacy else key
+            if isinstance(value, str):
+                pairs.add((key, value))
+            if key in merged and merged[key] != value:
+                problems.append("the two config files disagree on {}".format(key))
+            merged[key] = value
+    for key in ("target-org", "target-dev-hub"):
+        if key in merged and not isinstance(merged[key], str):
+            problems.append("{} is not text".format(key))
+    # pairs: every text value either file gives a key, so a scope the tool cannot model still reports them.
+    return {"merged": merged, "values": values, "pairs": sorted(pairs), "why": "; ".join(problems)}
+
+
+def config_scopes(home, project, env):
+    linked = next((str(p) for p in (project / ".sf", project / ".sfdx") if is_link(p)), "")
+    return {"global": read_scope(home / ".sf" / "config.json", home / ".sfdx" / "sfdx-config.json", "", env),
+            "local": read_scope(project / ".sf" / "config.json", project / ".sfdx" / "sfdx-config.json",
+                                linked, env)}
 
 
 def read_indexes(home):
-    found = []
-    for root in state_roots(home):
-        if root.is_dir():
-            found += [p for p in sorted(root.iterdir())
-                      if p.suffix == ".json" and ORG_ID.match(p.stem) and not p.is_symlink()]
-    return found
+    """User indexes, `~/.sfdx/<orgId>.json`, where sf keeps them."""
+    return [p for p in listing(home / ".sfdx", follow=True)
+            if p.suffix == ".json" and ORG_ID.fullmatch(p.stem) and is_regular_file(p)]
 
 
 def linked_ancestor(base):
     """The symlink at `base` or at the `.sf`/`.sfdx` folder above it, if any. Never followed."""
     for path in (base, base.parent):
-        if path.is_symlink():
+        if is_link(path):
             return path
     return None
 
 
-def read_tracking(project):
-    """Tracking directories: `.sf/orgs/<orgId>` and legacy `.sfdx/orgs/<username>`."""
+def read_project_dirs(project, name):
+    """Entries of `<project>/.sf/<name>` and `.sfdx/<name>`, and the links among them (left alone)."""
     found, symlinks = [], []
-    for base in (project / ".sf" / "orgs", project / ".sfdx" / "orgs"):
+    for base in (project / ".sf" / name, project / ".sfdx" / name):
         link = linked_ancestor(base)
         if link:
             symlinks.append(link)
             continue
-        if not base.is_dir():
-            continue
-        for path in sorted(base.iterdir()):
-            (symlinks if path.is_symlink() else found).append(path)
+        for path in listing(base):
+            (symlinks if is_link(path) else found).append(path)
     return found, symlinks
-
-
-def read_file_responses(project):
-    """Deploy/retrieve response logs, `<project>/.sf[dx]/fileResponses/<orgId>`.
-
-    Returns the org-ID directories, the names that are not org IDs, and symlinks (left alone).
-    """
-    found, unrecognized, symlinks = [], [], []
-    for state in (project / ".sf", project / ".sfdx"):
-        base = state / "fileResponses"
-        link = linked_ancestor(base)
-        if link:
-            symlinks.append(link)
-        elif base.is_dir():
-            for path in sorted(base.iterdir()):
-                if path.is_symlink():
-                    symlinks.append(path)
-                elif path.is_dir() and ORG_ID.match(path.name):
-                    found.append(path)
-                else:
-                    unrecognized.append(path)
-    return found, unrecognized, symlinks
 
 
 def read_unclassified(home, project):
     """Name, size and mode of what the CLIs do not own. These files are never opened."""
     found = []
-    home_roots = state_roots(home)
-    for root in home_roots + [project / ".sf", project / ".sfdx"]:
-        if not root.is_dir():
-            continue
-        for path in sorted(root.iterdir()):
-            # Skip only what read_auth and read_indexes consume, and they read the home roots only:
-            # a regular .json file there. A symlink, a backup such as `user@x.json.bak`, or any auth
-            # or index file inside the project is not consumed, so it is reported here.
-            consumed = (root in home_roots and path.suffix == ".json" and not path.is_symlink()
-                        and ("@" in path.name or ORG_ID.match(path.stem)))
-            if path.name in KNOWN_ENTRIES or KNOWN_ENTRY_PATTERN.match(path.name) or consumed:
+    sfdx = home / ".sfdx"
+    for root in (sfdx, home / ".sf", project / ".sf", project / ".sfdx"):
+        for path in listing(root, follow=root.parent == home):
+            # Skip only what read_logins and read_indexes consume: regular files in ~/.sfdx. A link,
+            # a backup such as `user@x.json.bak`, and any such file in ~/.sf or the project is reported.
+            consumed = (root == sfdx and is_regular_file(path)
+                        and (SF_LOGIN_FILE.fullmatch(path.name)
+                             or (path.suffix == ".json" and ORG_ID.fullmatch(path.stem))))
+            if path.name in KNOWN_ENTRIES or KNOWN_ENTRY_PATTERN.fullmatch(path.name) or consumed:
                 continue
             try:
                 info = path.lstat()
             except OSError as error:  # one entry we cannot examine must not stop the audit
-                found.append({"path": str(path), "error": error.strerror or str(error)[:300]})
+                found.append({"path": str(path), "error": reason(error)})
                 continue
             found.append({"path": str(path), "size": info.st_size,
                           "mode": stat.filemode(info.st_mode)})
@@ -230,8 +314,13 @@ def read_unclassified(home, project):
 
 
 def query_hubs(run, hubs, field, values):
-    """ScratchOrgInfo rows per value across every hub, plus the hubs that gave no answer."""
+    """ScratchOrgInfo rows per value across every hub, plus the hubs that gave no full answer.
+
+    SOQL matches text without regard to case, so signup usernames are keyed casefolded. A result
+    cut short (by `org-max-query-limit`, which sf applies while still reporting done) is a failure.
+    """
     rows, failed = {}, []
+    fold = field == "SignupUsername"
     safe = sorted(v for v in values if "'" not in v and "\\" not in v)
     for hub in hubs:
         for start in range(0, len(safe), BATCH):
@@ -239,12 +328,17 @@ def query_hubs(run, hubs, field, values):
             soql = ("SELECT ScratchOrg, SignupUsername, Status, ExpirationDate FROM ScratchOrgInfo "
                     "WHERE {} IN ('{}')".format(field, quoted))
             payload = sf_json(run, "data", "query", "--target-org", hub, "--query", soql)
-            result = (payload or {}).get("result") or {}
-            if payload is None or result.get("done") is False:
+            result = (payload or {}).get("result")
+            records = result.get("records") if isinstance(result, dict) else None
+            total = result.get("totalSize") if isinstance(result, dict) else None
+            if (payload is None or not isinstance(records, list) or result.get("done") is False
+                    or (isinstance(total, int) and total > len(records))):
                 failed.append(hub)
                 continue
-            for record in result.get("records") or []:
-                rows.setdefault(record[field], []).append(record)
+            for record in records:
+                value = record.get(field) if isinstance(record, dict) else None
+                if isinstance(value, str):
+                    rows.setdefault(value.casefold() if fold else value[:15], []).append(record)
     return rows, sorted(set(failed))
 
 
@@ -258,247 +352,333 @@ def classify(rows, today):
     status = statuses.pop()
     if status == "Deleted":
         return "deleted"
+
+    def past(row):
+        date = row.get("ExpirationDate")
+        return isinstance(date, str) and date < today
+
     if status == "Active":
-        past = any(row.get("ExpirationDate") and row["ExpirationDate"] < today for row in rows)
-        return "conflict" if past else "active"
+        return "conflict" if any(map(past, rows)) else "active"
     # A reused signup username can name several orgs: each one must show it has expired.
-    all_past = all(row.get("ExpirationDate") and row["ExpirationDate"] < today for row in rows)
-    return "expired" if all_past else "unknown"
+    return "expired" if all(map(past, rows)) else "unknown"
 
 
 def read_cci(run):
+    """CCI's orgs and default, or None when there is no valid answer (not a prediction)."""
     code, out = run(["cci", "shell", "--python", CCI_SNIPPET])
     for line in out.splitlines() if code == 0 else []:
         if line.startswith("ORG_CLEANUP_CCI "):
             try:
-                orgs = json.loads(line.split(" ", 1)[1])
+                payload = json.loads(line.split(" ", 1)[1])
             except ValueError:
                 return None
-            # Anything but the shape the snippet emits is not a prediction, rather than a crash.
-            ok = isinstance(orgs, list) and all(isinstance(o, dict) and CCI_KEYS <= o.keys()
-                                                for o in orgs)
-            return orgs if ok else None
+            orgs = payload.get("orgs") if isinstance(payload, dict) else None
+            default = payload.get("default") if isinstance(payload, dict) else None
+            ok = (isinstance(orgs, list) and (default is None or isinstance(default, str))
+                  and all(isinstance(o, dict) and all(isinstance(o.get(k), t) for k, t in CCI_KEYS.items())
+                          for o in orgs))
+            return {"orgs": orgs, "default": default} if ok else None
     return None
 
 
-def predict_prune(orgs, resolve, user_class):
-    """What `cci org prune` would do, and whether any of it touches a live org."""
-    if orgs is None:
+def predict_prune(cci, proven_gone):
+    """What `cci org prune` would do, and which of the orgs it removes are not proven gone."""
+    if cci is None:
         return {"available": False}
+    orgs = cci["orgs"]
     gone = [o for o in orgs if not o["shape"] and not o["active"] and o["scratch"]]
-    # "conflict" is a hub row that is Active past its date, or rows that disagree: possibly live.
-    live = [o["name"] for o in gone if o["instantiated"]
-            and user_class(resolve(o["alias"])) in ("active", "conflict")]
     return {
         "available": True,
         "would_remove_expired": sorted(o["name"] for o in gone if o["instantiated"]),
         "would_remove_never_instantiated": sorted(o["name"] for o in gone if not o["instantiated"]),
-        "would_remove_but_active_on_hub": sorted(live),
-        "expired_shape_instances_it_skips": sorted(o["name"] for o in orgs
-                                                   if o["shape"] and o["expired"]),
-        "default": next((o["name"] for o in orgs if o["default"]), None),
+        "would_remove_not_proven_gone": sorted(o["name"] for o in gone
+                                               if o["instantiated"] and not proven_gone(o)),
+        "expired_shape_instances_it_skips": sorted(o["name"] for o in orgs if o["shape"] and o["expired"]),
+        "default": cci["default"],
     }
 
 
-def config_targets(home, project):
-    """Default-org values per scope, from both config layouts."""
-    files = {"global": [home / ".sf" / "config.json", home / ".sfdx" / "sfdx-config.json"],
-             "local": [project / ".sf" / "config.json", project / ".sfdx" / "sfdx-config.json"]}
-    targets = {}
-    for scope, paths in files.items():
-        values = set()
-        for path in paths:
-            data = read_json(path, {})
-            if isinstance(data, dict):
-                values |= {data[k] for k in ("target-org", "defaultusername") if data.get(k)}
-        targets[scope] = sorted(values)
-    return targets
+def plain_job_id(job):
+    return bool(job) and os.path.basename(job) == job and job not in (".", "..")
 
 
-def follow_aliases(aliases, name):
-    """What a name ends at, following alias to alias. A cycle ends at one of its own members."""
-    seen = set()
-    while name in aliases and name not in seen:
-        seen.add(name)
-        name = aliases[name]
-    return name
+def survey(run, home, project, today, predict=True, env=None):
+    """Inventory plus hub evidence, judged the way sf reads it. Returns (plan, view).
 
-
-def build_plan(run, home, project, today):
-    """Inventory plus hub evidence. Mutates nothing beyond what the CLIs themselves do."""
-    auth, unreadable = read_auth(home)
-    protected = unread_logins(home, unreadable)  # identity unknown: never judged or removed
+    Mutates nothing beyond what the CLIs themselves do.
+    """
+    env = os.environ if env is None else env
+    logins, unread, unreadable = read_logins(home)
     alias_payload = sf_json(run, "alias", "list")
     if alias_payload is None:
         raise RuntimeError("sf alias list failed")
-    aliases = {row["alias"]: row.get("value") or "" for row in alias_payload.get("result") or []}
-    hubs = sorted(user for user, info in auth.items() if info["is_hub"])
-    # sf resolves a name to an alias first, so a hub named like an alias would be asked through
-    # another org. It is not queried and counts as a hub that gave no answer.
-    aliased_hubs = [hub for hub in hubs if hub in aliases]
+    aliases = read_aliases(alias_payload)
 
-    def resolve(name):
-        return follow_aliases(aliases, name)
+    # sf opens `~/.sfdx/<name>.json`, which a case-insensitive filesystem finds whatever the case.
+    # A name is in doubt when it may mean a login the tool cannot read or tie to one org.
+    folded, doubt = {}, {}
+    for name in sorted(logins) + sorted(unread):
+        folded.setdefault(name.casefold(), []).append(name)
+    for name in unread:
+        doubt[name.casefold()] = "its auth file is a link or does not parse, so the tool cannot read it"
+    for key, names in folded.items():
+        if len(names) > 1:
+            doubt[key] = "auth files differ only by letter case: {}".format(", ".join(names))
+    for name, info in logins.items():
+        if info["username"] != name:
+            why = "{}.json holds the login {}".format(name, info["username"])
+            doubt.setdefault(name.casefold(), why)
+            doubt.setdefault(info["username"].casefold(), why)
 
+    def login_for(text):
+        """The login a name opens: its stem, DOUBT, or None."""
+        key = text.casefold()
+        if key in doubt:
+            return DOUBT
+        names = folded.get(key)
+        return names[0] if names else None
+
+    cci = read_cci(run) if predict else None
     indexes = read_indexes(home)
-    tracking, symlinks = read_tracking(project)
-    responses, unrecognized_responses, response_symlinks = read_file_responses(project)
+    tracking, symlinks = read_project_dirs(project, "orgs")
+    entries, response_symlinks = read_project_dirs(project, "fileResponses")
+    responses = [p for p in entries if is_dir(p) and ORG_ID.fullmatch(p.name)]
+    unrecognized_responses = [p for p in entries if p not in responses]
     symlinks = list(dict.fromkeys(symlinks + response_symlinks))  # a linked .sfdx shows up in both
+
     cache_path = home / ".sf" / "deploy-cache.json"
-    if cache_path.is_symlink():  # a shared cache: read nothing through the link, rewrite nothing
+    if is_link(cache_path):  # a shared cache: read nothing through the link, rewrite nothing
         symlinks.append(cache_path)
         deploy_cache = {}
     else:
         deploy_cache = read_json(cache_path, {})
     deploy_cache = deploy_cache if isinstance(deploy_cache, dict) else {}
-    deploy_raw = {job: entry.get("target-org") or ""
-                  for job, entry in deploy_cache.items() if isinstance(entry, dict)}
-    deploy_targets = {job: resolve(name) for job, name in deploy_raw.items()}
-
+    deploy_raw = {job: entry.get("target-org") for job, entry in deploy_cache.items() if isinstance(entry, dict)}
     manifest_dir = home / ".sf" / "manifestCache"
-    if manifest_dir.is_symlink():  # its files are not ours to move, so no deploy job is planned
+    manifest_linked = is_link(manifest_dir)
+    if manifest_linked:  # its files are not ours to move, so no deploy job is planned
         symlinks.append(manifest_dir)
 
-    org_ids = {info["org"] for info in auth.values()} | {p.stem[:15] for p in indexes}
-    org_ids |= {p.name[:15] for p in tracking if ORG_ID.match(p.name)}
-    org_ids |= {p.name[:15] for p in responses}
+    scopes = config_scopes(home, project, env)
+    env_values = {var: env[var] for var in ENV_DEFAULTS if isinstance(env.get(var), str) and env[var]}
+
+    # Hubs are queried by name, which sf resolves to an alias first: a hub named like one is not queried.
+    hubs = sorted(n for n, info in logins.items() if info["is_hub"])
+    aliased_hubs = [hub for hub in hubs if hub in aliases]
     queried = [hub for hub in hubs if hub not in aliases]
+    org_ids = {info["org"] for info in logins.values()} | {p.stem[:15] for p in indexes}
+    org_ids |= {p.name[:15] for p in tracking if ORG_ID.fullmatch(p.name)} | {p.name[:15] for p in responses}
+    org_ids |= {o["org_id"][:15] for o in (cci or {}).get("orgs", []) if ORG_ID.fullmatch(o["org_id"])}
     id_rows, id_failed = query_hubs(run, queried, "ScratchOrg", org_ids)
 
-    # State with a username and no local auth has no org ID to check, so ask by signup username.
-    orphans = {u for u in map(resolve, aliases) if "@" in u and u not in auth}
-    orphans |= {p.name for p in tracking if "@" in p.name and p.name not in auth}
-    orphans |= {u for u in deploy_targets.values() if "@" in u and u not in auth}
-    orphans |= {resolve(v) for values in config_targets(home, project).values() for v in values
-                if "@" in resolve(v) and resolve(v) not in auth}
+    def target(name):
+        return aliases.get(name, name)  # sf follows one alias, never a chain
+
+    # Names with no login to give an org ID are judged by signup username.
+    named = [target(a) for a in aliases] + [p.name for p in tracking if "@" in p.name]
+    named += [target(v) for v in deploy_raw.values() if isinstance(v, str)]
+    named += [target(v) for s in scopes.values() for _, v in s["pairs"]]
+    named += [target(v) for v in env_values.values()]
+    named += [o["username"] for o in (cci or {}).get("orgs", []) if o["username"]]
+    orphans = {n for n in named if "@" in n and login_for(n) is None}
     user_rows, user_failed = query_hubs(run, queried, "SignupUsername", orphans)
+    # Username evidence needs every hub: a reused username may sit on a hub that did not answer, one
+    # named like an alias, or one whose auth file the tool did not read.
+    hub_failures = sorted(set(id_failed + user_failed + aliased_hubs) | unread)
 
     def org_class(org):
         return classify(id_rows.get(org[:15], []), today)
 
     def user_class(username):
-        if username in protected:
-            return "conflict"
-        if username in auth:
-            if auth[username]["conflicting"]:
-                return "conflict"
-            return org_class(auth[username]["org"])
-        # A signup username can be reused by a later org, which may sit on the hub that failed.
-        return "unknown" if user_failed or aliased_hubs else classify(user_rows.get(username, []), today)
+        return "unknown" if hub_failures else classify(user_rows.get(username.casefold(), []), today)
 
-    held = set(auth) | protected
-    # A login whose name is also an alias is not ours to log out: sf resolves the name to the alias.
-    # Nor is the target of such an alias: logout clears it, and the name would then mean the login.
-    shadowing = {aliases[a] for a in aliases if a in held}
-    stale_users = {u for u, info in auth.items() if org_class(info["org"]) in REMOVABLE
-                   and not info["is_hub"] and not info["is_sandbox"] and not info["conflicting"]
-                   and u not in protected and u not in aliases and u not in shadowing}
+    direct = {}  # sf's logout clears the aliases whose value is exactly the user
+    for alias, value in aliases.items():
+        direct.setdefault(value, []).append(alias)
 
-    # An org keeps its residual state while any login on it stays, as after a failed logout.
-    kept_orgs = {org for u, info in auth.items() if u not in stale_users for org in info["orgs"]}
+    def logout_refused(name):
+        """Why sf's logout of this login could do something the plan cannot show, or ''."""
+        if name.casefold() in doubt:
+            return doubt[name.casefold()]
+        # An alias named like the login, other than one naming the login itself (which logout clears).
+        if any(a.casefold() == name.casefold() and v != name for a, v in aliases.items()):
+            return "an alias is named like this login, so sf could resolve the name to the alias"
+        for alias in direct.get(name, []):
+            if alias.casefold() != name.casefold() and login_for(alias) is not None:
+                return "logout clears its alias {}, and that name would then mean another login".format(alias)
+        held = {name} | set(direct.get(name, []))
+        for scope_name, scope in sorted(scopes.items()):
+            if scope["why"] and held & scope["values"]:
+                return "logout rewrites the {} config, which the tool cannot model: {}".format(
+                    scope_name, scope["why"])
+        return ""
+
+    protected, stale_logins = {}, set()
+    for name, info in sorted(logins.items()):
+        if org_class(info["org"]) not in REMOVABLE or info["is_hub"] or info["is_sandbox"]:
+            continue
+        why = logout_refused(name)
+        if why:
+            protected[name] = why
+        else:
+            stale_logins.add(name)
+
+    def judge(name, resolve=True):
+        """What sf reaches through a name: stale, live, doubt, unknown or dangling."""
+        text = target(name) if resolve else name
+        login = login_for(text)
+        if login is DOUBT:
+            return "doubt"
+        if login is not None:
+            return "stale" if login in stale_logins else "live"
+        if "@" not in text:
+            return "dangling"
+        return "stale" if user_class(text) in REMOVABLE else "unknown"
+
+    def reaches(name, resolve=True):
+        """The login and org a name reaches, for apply's failed-logout checks."""
+        login = login_for(target(name) if resolve else name)
+        if login is None or login is DOUBT:
+            return {"login": None, "org": None}
+        return {"login": login, "org": logins[login]["org"]}
+
+    def effects(name):
+        held = {name} | set(direct.get(name, []))
+        config = {s: sorted(k for k, v in scope["merged"].items() if isinstance(v, str) and v in held)
+                  for s, scope in scopes.items()}
+        return {"aliases": sorted(direct.get(name, [])), "config": {s: k for s, k in sorted(config.items()) if k}}
+
+    cleared = set(stale_logins) | {a for n in stale_logins for a in direct.get(n, [])}
+
+    remove_aliases, unsafe_aliases = [], []
+    for alias in sorted(aliases):
+        if alias in cleared or judge(alias) != "stale":
+            continue
+        if alias.startswith("-"):  # sf would parse it as flags: `-ap` is --all --no-prompt
+            unsafe_aliases.append(alias)
+        elif login_for(alias) is not None:
+            protected[alias] = "this alias is named like a login, so unsetting it would make the name mean that login"
+        else:
+            remove_aliases.append(alias)
+
+    defaults, stale_values = [], []
+    for scope_name, scope in sorted(scopes.items()):
+        for key, value in scope["pairs"]:
+            if key not in ("target-org", "target-dev-hub") or value in cleared or judge(value) != "stale":
+                continue
+            if key == "target-org" and not scope["why"]:
+                defaults.append(scope_name)
+            else:  # reported: the tool does not unset a dev hub default, nor write a scope it cannot model
+                stale_values.append({"scope": scope_name, "key": key, "value": value})
+
+    kept_orgs = {info["org"] for name, info in logins.items() if name not in stale_logins}
 
     def gone_org(org):
         return org_class(org) in REMOVABLE and org[:15] not in kept_orgs
 
-    def stale(username):
-        return username in stale_users or (username not in auth and user_class(username) in REMOVABLE)
+    def gone_user_dir(username):  # legacy `.sfdx/orgs/<username>`, named by username, not alias
+        login = login_for(username)
+        if login is DOUBT:
+            return False
+        if login is not None:
+            return login in stale_logins and gone_org(logins[login]["org"])
+        return user_class(username) in REMOVABLE
 
-    def stale_ref(name):
-        """Judge a name as state refers to it. A chain is never followed through a login that is also an alias."""
-        seen = set()
-        while name in aliases and name not in seen:
-            if name in held:
-                return False
-            seen.add(name)
-            name = aliases[name]
-        return stale(name)
-
+    jobs = [] if manifest_linked else sorted(
+        job for job, value in deploy_raw.items()
+        if isinstance(value, str) and value and plain_job_id(job) and judge(value) == "stale")
     remove = {
-        "logout": sorted(stale_users),
-        # Logout clears only aliases whose value is exactly the user, so list the orphans and any
-        # alias that reaches a removed user through another alias.
-        "aliases": sorted(a for a in aliases if stale_ref(a)
-                          and (resolve(a) not in auth or aliases[a] != resolve(a))),
+        "logout": sorted(stale_logins),
+        "aliases": remove_aliases,
         "indexes": sorted(str(p) for p in indexes if gone_org(p.stem)),
         "tracking": sorted(str(p) for p in tracking
-                           if (ORG_ID.match(p.name) and gone_org(p.name))
-                           or ("@" in p.name and stale(p.name))),
+                           if (ORG_ID.fullmatch(p.name) and gone_org(p.name))
+                           or ("@" in p.name and gone_user_dir(p.name))),
         "file_responses": sorted(str(p) for p in responses if gone_org(p.name)),
-        "deploy_jobs": [] if manifest_dir.is_symlink() else sorted(
-            job for job, user in deploy_targets.items()
-            if user and stale_ref(deploy_raw[job]) and plain_job_id(job)),
-        # `config unset target-org` clears the scope's key whatever it names, so a scope that also
-        # holds a value that is not stale is reported, not unset.
-        "defaults": sorted(scope for scope, values in config_targets(home, project).items()
-                           if any(stale_ref(v) for v in values)
-                           and all(stale_ref(v) for v in values)),
+        "deploy_jobs": jobs,
+        "defaults": defaults,
     }
-    removing = {str(p) for k in ("indexes", "tracking", "file_responses") for p in remove[k]}
-    conflict = sorted(protected | {u for u in auth if u in aliases} | (shadowing & set(auth))
-                      | {u for u in auth if auth[u]["conflicting"] or org_class(auth[u]["org"]) == "conflict"})
-    scopes = config_targets(home, project)
-    return {
-        "schema": 1,
+
+    def file_owner(item):
+        name = Path(item).name
+        if ORG_ID.fullmatch(Path(item).stem):
+            return {"login": None, "org": Path(item).stem[:15]}
+        return reaches(name, resolve=False)
+
+    def proven_gone(org):
+        if ORG_ID.fullmatch(org["org_id"]):
+            return org_class(org["org_id"]) in REMOVABLE
+        login = login_for(org["username"]) if org["username"] else None
+        return login is not None and login is not DOUBT and org_class(logins[login]["org"]) in REMOVABLE
+
+    plan = {
+        "schema": 2,
         "today": today,
         "project": str(project),
         "hubs": hubs,
-        "hub_failures": sorted(set(id_failed + user_failed + aliased_hubs)),
+        "hub_failures": hub_failures,
         "remove": remove,
-        # Resolved now: a logout removes the alias that a later step would need to resolve these.
+        # Everything apply will touch or cause, bound so that any change since review is drift.
         "targets": {
-            "aliases": {a: resolve(a) for a in remove["aliases"]},
-            "deploy_jobs": {job: deploy_targets[job] for job in remove["deploy_jobs"]},
-            # Values, not just scope names: a default moved to another stale username is drift.
-            "defaults": {scope: {"values": scopes[scope],
-                                 "resolved": [resolve(v) for v in scopes[scope]]}
-                         for scope in remove["defaults"]},
-            "logout": {u: auth[u]["org"] for u in remove["logout"]},
-            # Logout also clears each alias whose value is the user. An alias added since the audit
-            # was never reviewed, so it is drift.
-            "logout_aliases": {u: sorted(a for a, v in aliases.items() if v == u) for u in remove["logout"]},
+            "logout": {n: dict(org=logins[n]["org"], **effects(n)) for n in remove["logout"]},
+            "aliases": {a: dict(value=aliases[a], **reaches(a)) for a in remove_aliases},
+            "defaults": {s: dict(value=scopes[s]["merged"]["target-org"],
+                                 **reaches(scopes[s]["merged"]["target-org"])) for s in defaults},
+            "deploy_jobs": {j: dict(value=deploy_raw[j], **reaches(deploy_raw[j])) for j in jobs},
+            "files": {item: file_owner(item) for key in ("indexes", "tracking", "file_responses")
+                      for item in remove[key]},
         },
         "preserved": {
-            "logins": len(auth) - len(stale_users),
-            # Not len - listed: logout also clears direct aliases, which are never listed.
-            "aliases": sum(not stale_ref(a) for a in aliases),
-            "indexes": sum(str(p) not in removing for p in indexes),
-            "tracking": sum(str(p) not in removing for p in tracking),
-            "file_responses": sum(str(p) not in removing for p in responses),
-            "deploy_jobs": len(deploy_targets) - len(remove["deploy_jobs"]),
+            "logins": len(logins) - len(stale_logins),
+            "aliases": len(aliases) - len(remove_aliases) - len(cleared & set(aliases)),
+            "indexes": len(indexes) - len(remove["indexes"]),
+            "tracking": len(tracking) - len(remove["tracking"]),
+            "file_responses": len(responses) - len(remove["file_responses"]),
+            "deploy_jobs": len(deploy_raw) - len(jobs),
         },
         "report": {
-            "conflicting_evidence": conflict,
+            "protected": dict(sorted(protected.items())),
+            "conflicting_evidence": sorted(n for n, info in logins.items() if org_class(info["org"]) == "conflict"),
             "logins_with_no_refresh_token": sorted(
-                u for u, info in auth.items() if not info["refreshable"] and u not in stale_users),
+                n for n, info in logins.items() if not info["refreshable"] and n not in stale_logins),
             "unreadable_auth_files": unreadable,
             "symlinks_left_alone": [str(p) for p in symlinks],
             "unrecognized_file_responses": [str(p) for p in unrecognized_responses],
-            # A key that is not a plain file name has no manifest to look for, so it is never planned.
-            "unsafe_deploy_cache_keys": sorted(j for j in deploy_targets if not plain_job_id(j)),
+            # A key that is not a plain file name has no manifest to look for, and a target that is not
+            # text names no org, so neither is ever planned.
+            "unsafe_deploy_cache_keys": sorted(j for j, v in deploy_raw.items()
+                                               if not plain_job_id(j) or not isinstance(v, str)),
+            "unsafe_alias_names": unsafe_aliases,
             "unclassified_files": read_unclassified(home, project),
-            # Lead to no username, so no hub row can ever put them on the plan.
-            "dangling_aliases": sorted(a for a in aliases if "@" not in resolve(a)),
-            "mixed_defaults": sorted(scope for scope, values in config_targets(home, project).items()
-                                     if any(stale_ref(v) for v in values)
-                                     and not all(stale_ref(v) for v in values)),
-            "dangling_defaults": sorted(scope for scope, values in config_targets(home, project).items()
-                                        if any("@" not in resolve(v) for v in values)),
+            # Lead to no login and no username, so no hub row can ever put them on the plan.
+            "dangling_aliases": sorted(a for a in aliases if judge(a) == "dangling"),
+            "dangling_defaults": sorted(s for s, scope in scopes.items()
+                                        if isinstance(scope["merged"].get("target-org"), str)
+                                        and judge(scope["merged"]["target-org"]) == "dangling"),
+            "unmodelled_config": {s: scope["why"] for s, scope in sorted(scopes.items()) if scope["why"]},
+            "stale_config_values": stale_values,
+            "env_defaults": {var: {"value": v, "judged": judge(v)} for var, v in sorted(env_values.items())},
         },
-        "prune_prediction": predict_prune(read_cci(run), resolve, user_class),
+        "prune_prediction": predict_prune(cci, proven_gone),
     }
+    return plan, {"logins": logins, "unread": unread, "aliases": aliases}
 
 
-def check_logins(run, home, aliases=()):
-    """Read-only query per login. A refresh can rewrite an auth file, so this is opt-in.
-    A login named like an alias is not queried: sf would answer through the alias's org."""
-    failed = []
-    for username in sorted(read_auth(home)[0]):
-        if username in aliases:
-            continue
-        if sf_json(run, "data", "query", "--target-org", username,
-                   "--query", "SELECT Id FROM Organization") is None:
-            failed.append(username)
-    return failed
+def build_plan(run, home, project, today, predict=True, env=None):
+    return survey(run, home, project, today, predict, env)[0]
+
+
+def check_logins(run, view):
+    """Read-only query per login sf lists. A refresh can rewrite an auth file, so this is opt-in.
+    Returns the logins that did not answer, and those not queried with the reason."""
+    failed, skipped = [], {}
+    for name in sorted(set(view["logins"]) | view["unread"]):
+        if name in view["aliases"]:
+            skipped[name] = "named like an alias, so sf would answer through the alias's org"
+        elif sf_json(run, "data", "query", "--target-org", name,
+                     "--query", "SELECT Id FROM Organization") is None:
+            failed.append(name)
+    return failed, skipped
 
 
 def default_quarantine(home, today):
@@ -542,6 +722,9 @@ def move_path(source, dest):
         shutil.move(source, dest)
 
 
+QUARANTINE_FOLDERS = ("orgs", "fileResponses", "manifestCache", ".sf", ".sfdx")
+
+
 def check_quarantine(quarantine, home):
     """Move a temp file in and remove it, returning why that failed, or None if it worked.
 
@@ -550,13 +733,17 @@ def check_quarantine(quarantine, home):
     """
     created, temp = [], None
     try:
-        # Inside the try: before Python 3.14, exists() and is_symlink() raise on a parent it cannot search.
-        if quarantine.is_symlink():  # a linked root would send every move somewhere else
+        if is_link(quarantine):  # a linked root would send every move somewhere else
             return "{} is a symlink".format(quarantine)
-        for name in ("orgs", "fileResponses", "manifestCache", ".sf", ".sfdx"):
-            if (quarantine / name).is_symlink():  # a move into it would land outside the quarantine
-                return "{} is a symlink".format(quarantine / name)
-        created = [p for p in [quarantine] + list(quarantine.parents) if not p.exists()]
+        for name in QUARANTINE_FOLDERS:
+            folder = quarantine / name
+            if is_link(folder):  # a move into it would land outside the quarantine
+                return "{} is a symlink".format(folder)
+            if lstat_or_none(folder) is not None and not is_dir(folder):
+                return "{} is not a folder".format(folder)
+            if is_dir(folder) and not os.access(str(folder), os.W_OK | os.X_OK):
+                return "{} is not writable".format(folder)
+        created = [p for p in [quarantine] + list(quarantine.parents) if lstat_or_none(p) is None]
         handle, temp = tempfile.mkstemp(dir=str(home), prefix=".org-cleanup-probe-")
         os.close(handle)
         quarantine.mkdir(parents=True, exist_ok=True)
@@ -565,7 +752,7 @@ def check_quarantine(quarantine, home):
         os.remove(str(dest))
         return None
     except OSError as error:
-        return error.strerror or str(error)
+        return reason(error)
     finally:
         if temp and os.path.lexists(temp):
             os.remove(temp)
@@ -578,9 +765,9 @@ def check_quarantine(quarantine, home):
 
 def move_to_quarantine(run, path, roots, quarantine, project):
     """Move one allowlisted path, or return why it was refused."""
-    if not os.path.lexists(str(path)):
+    if lstat_or_none(path) is None:
         return "missing"
-    if path.is_symlink():
+    if is_link(path):
         return "symlink"
     if not any(path.parent == root for root in roots):
         return "outside the expected state roots"
@@ -593,17 +780,17 @@ def move_to_quarantine(run, path, roots, quarantine, project):
     dest = quarantine / path.parent.name / path.name
     try:
         for folder in (quarantine, dest.parent):  # a linked root or folder would redirect the move
-            if folder.is_symlink():
+            if is_link(folder):
                 return "the quarantine folder {} is a symlink".format(folder)
         dest.parent.mkdir(parents=True, exist_ok=True)
         move_path(str(path), str(free_name(dest)))
     except OSError as error:
-        return "could not move: {}".format(error.strerror or str(error)[:300])
+        return "could not move into {}: {}".format(dest.parent, reason(error))
     return None
 
 
 def replace_json(path, data):
-    """Rewrite a JSON file atomically, keeping its mode."""
+    """Rewrite a JSON file atomically, keeping its mode. The temp file goes on any interruption."""
     mode = stat.S_IMODE(path.stat().st_mode)
     handle, temp = tempfile.mkstemp(dir=str(path.parent), prefix=".deploy-cache.")
     try:
@@ -611,13 +798,10 @@ def replace_json(path, data):
             os.fchmod(out.fileno(), mode)
             json.dump(data, out, indent=4)
         os.replace(temp, str(path))
-    except OSError:
-        os.remove(temp)
+    except BaseException:
+        if os.path.lexists(temp):
+            os.remove(temp)
         raise
-
-
-def plain_job_id(job):
-    return bool(job) and os.path.basename(job) == job and job not in (".", "..")
 
 
 def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
@@ -629,26 +813,27 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
     if not jobs:  # no cache file is normal, and only a failure if something had to change in it
         return 0, 0
     path = home / ".sf" / "deploy-cache.json"
-    if path.is_symlink():  # checked here too: a link made after the audit is not ours to rewrite
-        failures.append((str(path), "symlink"))
-        return 0, 0
+    manifests = home / ".sf" / "manifestCache"
+    for linked in (path, manifests):  # checked here too: a link made after the audit is not ours
+        if is_link(linked):
+            failures.append((str(linked), "symlink"))
+            return 0, 0
     cache = read_json(path, None)
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))
         return 0, 0
     removed, moved = 0, 0
-    if (home / ".sf" / "manifestCache").is_symlink():  # linked after the audit
-        failures.append((str(home / ".sf" / "manifestCache"), "symlink"))
-        return 0, 0
     for job in jobs:
-        if job not in cache:
-            continue
         if not plain_job_id(job):
             failures.append((job, "cache key is not a plain job id; its manifest was not looked for"))
             continue
-        manifest = home / ".sf" / "manifestCache" / (job + ".xml")
-        if os.path.lexists(str(manifest)):
-            why = move_to_quarantine(run, manifest, [home / ".sf" / "manifestCache"], quarantine, project)
+        manifest = manifests / (job + ".xml")
+        if job not in cache:
+            if lstat_or_none(manifest) is not None:
+                failures.append((job, "no longer in the deploy cache; its manifest was left in place"))
+            continue
+        if lstat_or_none(manifest) is not None:
+            why = move_to_quarantine(run, manifest, [manifests], quarantine, project)
             if why:
                 failures.append((str(manifest), why))
                 continue
@@ -659,86 +844,82 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
         try:
             replace_json(path, cache)
         except OSError as error:
-            failures.append((str(path), "could not write: {}".format(error.strerror or error)))
+            failures.append((str(path), "could not write: {}".format(reason(error))))
             return 0, moved
     return removed, moved
 
 
-def apply_plan(run, plan, home, project, quarantine, done, failures):
+def apply_plan(run, plan, home, project, quarantine, done, failures, env=None):
     """Carry out a reviewed plan, counting into done and collecting per-item failures, never hiding them.
-    The caller owns both, so what ran is still reported if a step raises."""
+
+    The caller owns both, so what ran is still reported if a step raises. Every item carries the
+    login and org it reaches (bound in the reviewed plan), so a failed logout blocks exactly what
+    depends on it without asking sf again.
+    """
+    env = os.environ if env is None else env
     remove, targets = plan["remove"], plan["targets"]
-    auth = read_auth(home)[0]
-    failed_orgs, failed_users = set(), set()
+    failed_users, failed_orgs = set(), set()
 
-    def logout_failed_for(username):
-        """True if this user's logout, or the logout of another user on its org, failed."""
-        org = auth.get(username, {}).get("org")
-        return username in failed_users or bool(org and org in failed_orgs)
+    def blocked(owner):
+        return owner.get("login") in failed_users or owner.get("org") in failed_orgs
 
-    for username in remove["logout"]:
-        payload = sf_json(run, "org", "logout", "--target-org", username, "--no-prompt")
-        if payload is None or username not in (payload.get("result") or []):
-            failures.append((username, "logout failed"))
-            failed_users.add(username)
-            failed_orgs.add(auth.get(username, {}).get("org"))
-        else:
-            done["logout"] += 1
-
-    # sf clears a user's direct aliases before it can fail, so a chain may now lead nowhere, and a
-    # later audit could not list it. Keep only a chain that still reaches a login.
-    listed = sf_json(run, "alias", "list")
-    current = {r["alias"]: r.get("value") or "" for r in (listed or {}).get("result") or []}
-    logins = read_auth(home)[0]
+    for name in remove["logout"]:
+        planned = targets["logout"][name]
+        payload = sf_json(run, "org", "logout", "--target-org", name, "--no-prompt")
+        result = (payload or {}).get("result")
+        if payload is None or not isinstance(result, list) or name not in result:
+            failures.append((name, "logout failed"))
+            failed_users.add(name)
+            failed_orgs.add(planned["org"])
+            continue
+        done["logout"] += 1
+        done["cleared_by_logout"] += len(planned["aliases"]) + sum(map(len, planned["config"].values()))
+        others = sorted(u for u in result if u != name)
+        if others:
+            failures.append((name, "sf also logged out {}".format(", ".join(map(str, others)))))
 
     # One alias per command: sf handles several in parallel, and a batch can fail partway.
-    kept_aliases = set()
     for alias in remove["aliases"]:
-        if logout_failed_for(targets["aliases"][alias]) and (
-                listed is None or follow_aliases(current, alias) in logins):
+        if blocked(targets["aliases"][alias]):
             failures.append((alias, "skipped because its logout failed"))
-            kept_aliases.add(alias)
+            continue
+        if alias.startswith("-"):  # never planned; checked again because sf would read it as flags
+            failures.append((alias, "refused: sf would read the name as flags"))
             continue
         payload = sf_json(run, "alias", "unset", alias)
-        rows = (payload or {}).get("result") or [{}]
-        if payload is None or not rows[0].get("success"):
-            failures.append((alias, "alias unset failed"))
-        else:
+        rows = (payload or {}).get("result")
+        if (isinstance(rows, list) and len(rows) == 1 and isinstance(rows[0], dict)
+                and rows[0].get("alias") == alias and rows[0].get("success") is True):
             done["aliases"] += 1
+        else:
+            failures.append((alias, "alias unset failed"))
 
-    # Logout normally clears these, so only unset what still points at a removed user.
-    defaults = config_targets(home, project)
-    aliases = sf_json(run, "alias", "list")
-    alias_map = {r["alias"]: r.get("value") for r in (aliases or {}).get("result") or []}
-    gone = (set(remove["logout"]) - failed_users) | (set(remove["aliases"]) - kept_aliases)
     for scope in remove["defaults"]:
-        # Without the alias list an alias that holds an "@" reads as a username, so only a value the
-        # plan itself removed can be judged. Anything else is left for a later audit.
-        if aliases is None and any(v not in gone for v in defaults.get(scope, [])):
-            failures.append((scope + " default", "alias list failed; default not modified"))
+        planned = targets["defaults"][scope]
+        label = scope + " default"
+        if blocked(planned):
+            failures.append((label, "skipped because its logout failed"))
             continue
-        still_set = [v for v in defaults.get(scope, [])
-                     if v in gone or v not in alias_map and "@" in v and v not in read_auth(home)[0]]
-        if not still_set:
+        if config_scopes(home, project, env)[scope]["merged"].get("target-org") != planned["value"]:
+            failures.append((label, "changed during this run; not modified"))
             continue
         args = ["config", "unset", "target-org"] + (["--global"] if scope == "global" else [])
         if sf_json(run, *args) is None:
-            failures.append((scope + " default", "config unset failed"))
+            failures.append((label, "config unset failed"))
+        elif "target-org" in config_scopes(home, project, env)[scope]["merged"]:
+            failures.append((label, "still set after config unset"))
         else:
             done["defaults"] += 1
 
-    state = state_roots(home)
-    for key, roots in (("indexes", state),
+    for key, roots in (("indexes", [home / ".sfdx"]),
                        ("tracking", [project / ".sf" / "orgs", project / ".sfdx" / "orgs"]),
                        ("file_responses", [project / ".sf" / "fileResponses",
                                            project / ".sfdx" / "fileResponses"])):
         for item in remove[key]:
-            path = Path(item)
-            if (path.stem[:15] in failed_orgs or path.name[:15] in failed_orgs
-                    or logout_failed_for(path.name)):
+            if blocked(targets["files"][item]):
                 failures.append((item, "skipped because its logout failed"))
                 continue
-            why = move_to_quarantine(run, path, roots, quarantine, project)
+            why = move_to_quarantine(run, Path(item), roots, quarantine, project)
             if why:
                 failures.append((item, why))
             else:
@@ -746,7 +927,7 @@ def apply_plan(run, plan, home, project, quarantine, done, failures):
 
     jobs = []
     for job in remove["deploy_jobs"]:
-        if logout_failed_for(targets["deploy_jobs"][job]):
+        if blocked(targets["deploy_jobs"][job]):
             failures.append((job, "skipped because its logout failed"))
         else:
             jobs.append(job)
@@ -760,14 +941,19 @@ def print_plan(plan):
         print("NO CONNECTED DEV HUB WAS FOUND. No hub was queried, so every entry is unknown and "
               "an empty plan below is not evidence that the state is clean.")
     if plan["hub_failures"]:
-        print("HUBS THAT DID NOT ANSWER: {}".format(plan["hub_failures"]))
-        print("They gave no evidence, so this plan and the active-on-hub check may be incomplete.")
+        print("HUBS OR LOGINS THAT GAVE NO EVIDENCE: {}".format(plan["hub_failures"]))
+        print("No username is judged while any is listed, so this plan and the prune check may be incomplete.")
     print("\nWould remove:")
     for key in REMOVE_KEYS:
         items = plan["remove"][key]
         print("  {}: {}".format(key, len(items)))
         for item in items:
             print("    {}".format(item))
+            effects = plan["targets"]["logout"].get(item) if key == "logout" else None
+            if effects and effects["aliases"]:
+                print("      sf also clears its aliases: {}".format(", ".join(effects["aliases"])))
+            for scope, keys in sorted((effects or {}).get("config", {}).items()):
+                print("      sf also clears from the {} config: {}".format(scope, ", ".join(keys)))
     print("\nPreserved: {}".format(plan["preserved"]))
     print("\nFor the user to review:")
     for key, value in plan["report"].items():
@@ -793,7 +979,7 @@ def in_project_root(project):
     return (project / "cumulusci.yml").is_file() and (project / "sfdx-project.json").is_file()
 
 
-def main(argv=None, run=run_command, home=None, project=None, today=None):
+def main(argv=None, run=run_command, home=None, project=None, today=None, env=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     commands = parser.add_subparsers(dest="command", required=True)
     audit = commands.add_parser("audit", help="classify local state; removes nothing")
@@ -808,19 +994,19 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
     home = home or Path.home()
     project = project or Path.cwd()
     today = today or datetime.date.today().isoformat()
+    env = os.environ if env is None else env
     if not in_project_root(project):
         print("Run this from the project root: cci and local sf config resolve the project "
               "from the working directory.", file=sys.stderr)
         return 2
 
-    try:
-        plan = build_plan(run, home, project, today)
+    try:  # apply never asks cci: the prune prediction is for review only and is not compared
+        plan, view = survey(run, home, project, today, predict=args.command == "audit", env=env)
     except RuntimeError as error:
         print(str(error), file=sys.stderr)
         return 1
     except OSError as error:  # an unreadable folder means an incomplete inventory, so change nothing
-        print("Could not read local state: {}. Nothing was changed.".format(
-            error.strerror or str(error)[:300]), file=sys.stderr)
+        print("Could not read local state: {}. Nothing was changed.".format(reason(error)), file=sys.stderr)
         return 1
 
     if args.command == "audit":
@@ -829,20 +1015,14 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
             try:
                 write_private(args.out, json.dumps(plan, indent=1) + "\n")
             except OSError as error:
-                print("Could not write the plan to {}: {}".format(
-                    args.out, error.strerror or str(error)[:300]), file=sys.stderr)
+                print("Could not write the plan to {}: {}".format(args.out, reason(error)), file=sys.stderr)
                 return 1
         if args.check_logins:
-            listed = sf_json(run, "alias", "list")
-            if listed is None:  # without it a login named like an alias would answer for another org
-                print("\nLogins were not checked: sf alias list failed.", file=sys.stderr)
-                return 1
-            aliases = {r.get("alias") for r in listed.get("result") or []}
-            failed = check_logins(run, home, aliases)
+            failed, skipped = check_logins(run, view)
             print("\nLogins that did not answer a query: {}".format(failed or "none"))
-            skipped = sorted(set(read_auth(home)[0]) & aliases)
-            if skipped:
-                print("Not queried, named like an alias: {}".format(skipped))
+            for name, why in sorted(skipped.items()):
+                print("Not queried: {} ({})".format(name, why))
+            return 1 if failed else 0
         return 0
 
     reviewed = read_json(args.plan, None)
@@ -852,28 +1032,34 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
               file=sys.stderr)
         return 3
     quarantine = Path(args.quarantine) if args.quarantine else default_quarantine(home, today)
-    if any(plan["remove"][key] for key in ("indexes", "tracking", "file_responses", "deploy_jobs")):
+    moves = any(plan["remove"][key] for key in ("indexes", "tracking", "file_responses", "deploy_jobs"))
+    if moves:
         why = check_quarantine(quarantine, home)
         if why:
             print("Stopped before any logout; nothing was changed. Cannot move files into {}: {}. "
                   "Use --quarantine <dir> to choose another folder.".format(quarantine, why),
                   file=sys.stderr)
             return 1
-    done, failures, stopped = dict.fromkeys(REMOVE_KEYS + ("manifests",), 0), [], None
+    done, failures, stopped, code = dict.fromkeys(DONE_KEYS, 0), [], None, 0
     try:
-        apply_plan(run, plan, home, project, quarantine, done, failures)
-    except OSError as error:  # logouts already done cannot be undone, so report what ran
-        stopped = error.strerror or str(error)[:300]
+        apply_plan(run, plan, home, project, quarantine, done, failures, env)
+    except KeyboardInterrupt:  # logouts already done cannot be undone, so report what ran
+        stopped, code = "interrupted", 130
+    except Exception as error:  # noqa: BLE001 - reported below, with what ran, instead of a traceback
+        stopped = reason(error) if isinstance(error, OSError) else "{}: {}".format(
+            type(error).__name__, str(error)[:300])
     print("Done: {}".format(done))
     if done["indexes"] or done["tracking"] or done["file_responses"] or done["manifests"]:
         print("Residual files moved to: {}".format(quarantine))
+    elif moves and (failures or stopped):
+        print("No file was moved. A failed move can leave a partial copy in: {}".format(quarantine))
     for item, why in failures:
         print("FAILED: {} ({})".format(item, why))
     if stopped:
         print("Stopped part-way: {}. The steps after it did not run, and a logout that ran cannot be "
               "undone. Compare the plan with Done above: a fresh audit cannot list a logged-out secondary "
               "user's remaining state.".format(stopped), file=sys.stderr)
-        return 1
+        return code or 1
     return 1 if failures else 0
 
 
