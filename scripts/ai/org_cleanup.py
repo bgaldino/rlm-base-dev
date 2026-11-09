@@ -314,6 +314,10 @@ def build_plan(run, home, project, today):
     deploy_targets = {job: resolve(entry.get("target-org") or "")
                       for job, entry in deploy_cache.items() if isinstance(entry, dict)}
 
+    manifest_dir = home / ".sf" / "manifestCache"
+    if manifest_dir.is_symlink():  # its files are not ours to move, so no deploy job is planned
+        symlinks.append(manifest_dir)
+
     org_ids = {info["org"] for info in auth.values()} | {p.stem[:15] for p in indexes}
     org_ids |= {p.name[:15] for p in tracking if ORG_ID.match(p.name)}
     org_ids |= {p.name[:15] for p in responses}
@@ -353,8 +357,8 @@ def build_plan(run, home, project, today):
                            if (ORG_ID.match(p.name) and org_class(p.name) in REMOVABLE)
                            or ("@" in p.name and stale(p.name))),
         "file_responses": sorted(str(p) for p in responses if org_class(p.name) in REMOVABLE),
-        "deploy_jobs": sorted(job for job, user in deploy_targets.items()
-                              if user and stale(user) and plain_job_id(job)),
+        "deploy_jobs": [] if manifest_dir.is_symlink() else sorted(
+            job for job, user in deploy_targets.items() if user and stale(user) and plain_job_id(job)),
         # `config unset target-org` clears the scope's key whatever it names, so a scope that also
         # holds a value that is not stale is reported, not unset.
         "defaults": sorted(scope for scope, values in config_targets(home, project).items()
@@ -465,7 +469,10 @@ def check_quarantine(quarantine, home):
     """
     created, temp = [], None
     try:
-        # Inside the try: before Python 3.14, exists() raises on a parent it cannot search.
+        # Inside the try: before Python 3.14, exists() and is_symlink() raise on a parent it cannot search.
+        for name in ("orgs", "fileResponses", "manifestCache", ".sf", ".sfdx"):
+            if (quarantine / name).is_symlink():  # a move into it would land outside the quarantine
+                return "{} is a symlink".format(quarantine / name)
         created = [p for p in [quarantine] + list(quarantine.parents) if not p.exists()]
         handle, temp = tempfile.mkstemp(dir=str(home), prefix=".org-cleanup-probe-")
         os.close(handle)
@@ -502,6 +509,8 @@ def move_to_quarantine(run, path, roots, quarantine, project):
             return "tracked by git, or git could not say"
     dest = quarantine / path.parent.name / path.name
     try:
+        if dest.parent.is_symlink():
+            return "the quarantine folder {} is a symlink".format(dest.parent)
         dest.parent.mkdir(parents=True, exist_ok=True)
         move_path(str(path), str(free_name(dest)))
     except OSError as error:
@@ -541,6 +550,9 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
         failures.append(("deploy-cache", "unreadable"))
         return 0, 0
     removed, moved = 0, 0
+    if (home / ".sf" / "manifestCache").is_symlink():  # linked after the audit
+        failures.append((str(home / ".sf" / "manifestCache"), "symlink"))
+        return 0, 0
     for job in jobs:
         if job not in cache:
             continue
@@ -729,8 +741,8 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
         return 0
 
     reviewed = read_json(args.plan, None)
-    if (not isinstance(reviewed, dict) or reviewed.get("remove") != plan["remove"]
-            or reviewed.get("project") != plan["project"]):
+    if not isinstance(reviewed, dict) or any(reviewed.get(key) != plan[key]
+                                             for key in ("schema", "project", "remove", "targets")):
         print("The plan differs from the current state. Review a fresh audit before applying.",
               file=sys.stderr)
         return 3

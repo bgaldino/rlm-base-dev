@@ -537,6 +537,23 @@ class Apply(Base):
         self.assertEqual(code, 3)
         self.assertEqual(self.logouts(cli), [])
 
+    def test_a_changed_alias_target_is_drift_even_when_the_removal_list_matches(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows, {"stale": "gone@x.invalid"})
+        plan_file = self.project / "plan.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
+        plan = json.loads(plan_file.read_text())
+        self.assertTrue(plan["targets"]["aliases"])
+        alias = next(iter(plan["targets"]["aliases"]))
+        plan["targets"]["aliases"][alias] = "someone-else@x.invalid"
+        plan_file.write_text(json.dumps(plan))
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
+                           cli, self.home, self.project, TODAY)
+        self.assertEqual(code, 3)
+        self.assertEqual(self.logouts(cli), [])
+
     def test_drift_since_review_stops_before_anything_happens(self):
         rows = self.setup_stale_org()
         plan_cli = FakeCli(self.home, [])  # reviewed when nothing was stale
@@ -671,6 +688,11 @@ class Apply(Base):
         with mock.patch.object(oc.Path, "exists", side_effect=PermissionError(13, "Denied")):
             self.assertEqual(oc.check_quarantine(self.quarantine, self.home), "Denied")
         self.assertFalse(self.quarantine.exists())
+        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
+
+    def test_a_quarantine_folder_that_cannot_be_examined_for_a_link_is_reported_not_raised(self):
+        with mock.patch.object(oc.Path, "is_symlink", side_effect=PermissionError(13, "Denied")):
+            self.assertEqual(oc.check_quarantine(self.quarantine, self.home), "Denied")
         self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
 
     def test_the_quarantine_check_is_skipped_when_nothing_needs_moving(self):
@@ -898,6 +920,39 @@ class Apply(Base):
         os.chmod(str(cache), 0o644)  # mkstemp would make it 600 if the mode were not carried over
         self.assertEqual(self.audit_then_apply(FakeCli(self.home, rows)), 0)
         self.assertEqual(cache.stat().st_mode & 0o777, 0o644)
+
+    def test_a_linked_manifest_cache_is_not_state_to_move(self):
+        outside = self.home.parent / "outside"
+        outside.mkdir()
+        (outside / "job1.xml").write_text("<x/>")
+        (self.home / ".sf" / "manifestCache").rmdir()
+        os.symlink(str(outside), str(self.home / ".sf" / "manifestCache"))
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "gone@x.invalid"}}))
+        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+        plan = self.plan(FakeCli(self.home, rows))
+        self.assertEqual(plan["remove"]["deploy_jobs"], [])
+        self.assertIn(str(self.home / ".sf" / "manifestCache"), plan["report"]["symlinks_left_alone"])
+        failures = []
+        result = oc.remove_deploy_jobs(FakeCli(self.home), ["job1"], self.home, self.quarantine,
+                                       self.project, failures)
+        self.assertEqual(result, (0, 0))
+        self.assertTrue((outside / "job1.xml").exists())
+        self.assertEqual([f[1] for f in failures], ["symlink"])
+
+    def test_a_quarantine_folder_that_is_a_link_is_refused(self):
+        item = self.project / ".sf" / "orgs" / "00DAA0000000009MAA"
+        item.mkdir(parents=True)
+        (item / "a").write_text("x")
+        elsewhere = self.home.parent / "elsewhere"
+        elsewhere.mkdir()
+        self.quarantine.mkdir()
+        os.symlink(str(elsewhere), str(self.quarantine / "orgs"))
+        self.assertIn("symlink", oc.check_quarantine(self.quarantine, self.home))
+        why = oc.move_to_quarantine(FakeCli(self.home), item, [self.project / ".sf" / "orgs"],
+                                    self.quarantine, self.project)
+        self.assertIn("symlink", why)
+        self.assertTrue(item.exists())
+        self.assertEqual(list(elsewhere.iterdir()), [])
 
     def test_a_cache_key_that_is_not_a_plain_job_id_is_refused(self):
         outside = self.home / "foo.xml"

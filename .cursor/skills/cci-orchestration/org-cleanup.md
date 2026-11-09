@@ -85,7 +85,7 @@ Review with the user:
 | `hub_failures` | Those hubs gave no evidence, so the plan may be incomplete. Fix access and re-audit. |
 | `conflicting_evidence` | Stop on those entries. |
 | `logins_with_no_refresh_token` | Stops working when its session expires. It is not on the removal plan, which does not mean its org is live. Report it; log out only with explicit approval. |
-| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. |
+| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned, so stale entries stay in the cache. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
 | `dangling_aliases`, `dangling_defaults` | Lead to no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>`, or `sf config unset target-org` (add `--global` for a `global` scope; the entry names it). That unset clears the scope's key whatever it names: if the scope also holds a valid value, note it first and restore it with `sf config set target-org=<value>`. |
 | `unsafe_deploy_cache_keys` | Deploy-cache keys that are not plain file names (such as `../x`). Never planned, because no manifest is looked for. Left alone; report them. |
@@ -105,13 +105,13 @@ Do not run `apply` while another `sf` or `cci` process is running: the deploy ca
 rewritten without a lock, so a concurrent deploy's entry could be lost.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
-reviewed one, or if the plan was saved for a different project. It then moves a temp file into the quarantine, and exits 1 before any logout if that
+reviewed one, including its project and the usernames its aliases and deploy jobs resolved to. It then moves a temp file into the quarantine, and exits 1 before any logout if that
 fails. The quarantine is a dated folder in the user's Trash, or with no Trash, beside the real CLI
 state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another
 folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config
 unset target-org` for a default still pointing at a removed user, and moves user indexes, tracking
 directories, `fileResponses` directories, and matched deploy-cache manifests to the quarantine. It
-refuses symlinks, paths outside the state roots, and project files tracked by git (home state is not
+refuses symlinks (a linked `manifestCache` or quarantine folder included), paths outside the state roots, and project files tracked by git (home state is not
 checked against git). If a logout fails, that org's
 index, tracking, `fileResponses` and deploy-cache entries stay, and so does a chained alias that
 still reaches the login. `sf` clears the user's direct aliases and defaults before it can fail, so
