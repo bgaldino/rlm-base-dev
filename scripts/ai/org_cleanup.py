@@ -119,13 +119,19 @@ def run_command(cmd):
     return done.returncode, done.stdout
 
 
+def sf_cannot_pass(text):
+    """A lone surrogate reaches a child as raw bytes, which Node reads as U+FFFD: sf would act on
+    another name than the one the plan shows."""
+    return any(0xD800 <= ord(c) <= 0xDFFF for c in text)
+
+
 def sf_json(run, *args, operands=()):
     """Run an sf command with --json. Returns the parsed payload, or None if it failed.
 
     `operands` follow `--`, so a name that starts with "-" is never read as a flag (`-ap` would be
-    `--all --no-prompt` to `sf alias unset`). A lone surrogate would reach sf as raw bytes that Node
-    reads as U+FFFD, so sf would act on another name: such an argument fails the command instead."""
-    if any(0xD800 <= ord(c) <= 0xDFFF for arg in args + tuple(operands) for c in arg):
+    `--all --no-prompt` to `sf alias unset`). An argument sf would read as another name fails the
+    command instead (see sf_cannot_pass)."""
+    if any(sf_cannot_pass(arg) for arg in list(args) + list(operands)):
         return None
     code, out = run(["sf"] + list(args) + ["--json"] + (["--"] + list(operands) if operands else []))
     try:
@@ -219,71 +225,65 @@ def login_files(home):
 
 
 def read_logins(home):
-    """sf's logins: the files in ~/.sfdx whose names match sf's own pattern.
+    """sf's logins: the files in ~/.sfdx whose names match sf's own pattern. Token values never
+    leave this function. Returns:
 
-    Returns the identity fields of each readable one, keyed by file stem (the name sf opens); the
-    stems sf would read but this tool cannot act on, each with the reason (a link is never opened,
-    a file that does not parse has no identity); the unreadable file names; and why sf could not
-    log anyone out right now; for each unread file that names one, the username sf lists it by; and
-    the unread names that may be a Dev Hub. Token values never leave this function.
-
-    `sf org logout` lists every login by the username inside the file it opens (through a link
-    too) and selects each one with the target's name, so a file the tool cannot act on still
-    matters: its username is in doubt, and one whose username is not text stops sf's listing, and
-    so every logout. sf skips what it cannot open as a file (a link to nothing, a loop, a folder)
-    and a file whose name it reads differently (it opens another name): those block no logout, but
-    their names stay in doubt.
-    A linked login is read, never acted on: sf's logout would remove only the link.
+    - logins: the identity fields of each file sf reads as a login, keyed by file stem (the name sf
+      opens). One sf reads through a link is marked `linked`: its identity counts (its org, a Dev
+      Hub to query), but it is never logged out, since sf's logout would remove only the link.
+    - unread: the stems sf may use that the tool cannot act on, each with the reason.
+    - unreadable: the names of regular files that do not parse as a login.
+    - blocks: why sf could not log anyone out now, or ''. sf lists every login by the username
+      inside its file, so one non-empty file whose username is not text, or is empty, stops every
+      logout.
+    - listed: for each unread file that names one, the username sf lists it by (it is in doubt).
+    - maybe_hubs: the unread names that may be a Dev Hub. That includes what sf cannot open now (a
+      link to nothing or a loop, a folder): a link to a volume not mounted now may be a live hub.
     """
     logins, unread, unreadable, blocks, listed, maybe_hubs = {}, {}, [], [], {}, []
     for name, path in login_files(home):
         info = lstat_or_none(path)
         if info is None:
             continue
+        linked, data = stat.S_ISLNK(info.st_mode), None
         if path.name.replace(".json", "", 1) != name:  # sf's parseUsername drops the first ".json"
-            unread[name] = "sf reads this file as the login {}, so it cannot log it out by this name".format(
+            why = "sf reads this file as the login {}, so it cannot log it out by this name".format(
                 path.name.replace(".json", "", 1))
-        elif any(0xD800 <= ord(c) <= 0xDFFF for c in name):  # a byte that is not UTF-8: Node reads U+FFFD
-            unread[name] = "its name is not valid UTF-8, so sf reads it under another name"
-        if name in unread:
+        elif sf_cannot_pass(name):  # a byte that is not UTF-8
+            why = "its name is not valid UTF-8, so sf reads it under another name"
+        else:
+            try:
+                target = os.stat(str(path)) if linked else info
+            except OSError:
+                target = None
+            if target is None or not stat.S_ISREG(target.st_mode):
+                why = "its auth file is not a file sf can read now (a link to nothing, a loop, a folder)"
+            else:
+                data = read_json(path, None)
+                username = data.get("username") if isinstance(data, dict) else None
+                org = data.get("orgId") if isinstance(data, dict) else None
+                if isinstance(data, dict) and data and not (isinstance(username, str) and username):
+                    blocks.append("{} names no username, so sf cannot list its logins".format(path.name))
+                if isinstance(org, str) and ORG_ID.fullmatch(org) and isinstance(username, str) and username:
+                    logins[name] = {
+                        "username": username,
+                        "org": org[:15],
+                        "linked": linked,
+                        "is_hub": bool(data.get("isDevHub")),
+                        "is_sandbox": bool(data.get("isSandbox")),
+                        # A JWT login re-signs with its key, so only one with neither expires with its session.
+                        "refreshable": bool(data.get("refreshToken") or data.get("privateKey")),
+                    }
+                    continue
+                why = "its auth file does not parse, or names no org or username"
+                if isinstance(username, str) and username:
+                    listed[name] = username
+                if not linked:
+                    unreadable.append(path.name)
+        unread[name] = why
+        if not (isinstance(data, dict) and isinstance(data.get("username"), str) and not data.get("isDevHub")):
             maybe_hubs.append(name)
-            continue
-        try:
-            target = os.stat(str(path)) if stat.S_ISLNK(info.st_mode) else info
-        except OSError:
-            target = None
-        if target is None or not stat.S_ISREG(target.st_mode):
-            # sf skips it, so it blocks no logout; but a link to a volume that is not there now may be a
-            # live login, so its name stays in doubt and username evidence is incomplete.
-            unread[name] = "its auth file is not a file sf can read now (a link to nothing, a loop, a folder)"
-            maybe_hubs.append(name)
-            continue
-        data = read_json(path, None)
-        username = data.get("username") if isinstance(data, dict) else None
-        org = data.get("orgId") if isinstance(data, dict) else None
-        if isinstance(data, dict) and data and not isinstance(username, str):
-            blocks.append("{} names no username, so sf cannot list its logins".format(path.name))
-        if isinstance(username, str):
-            listed[name] = username
-        if stat.S_ISLNK(info.st_mode):
-            unread[name] = "its auth file is a link, and sf's logout would remove only the link"
-        if name in unread or not isinstance(org, str) or not ORG_ID.fullmatch(org) or not isinstance(username, str) or not username:
-            unread.setdefault(name, "its auth file does not parse, or names no org or username")
-            if not stat.S_ISLNK(info.st_mode):
-                unreadable.append(path.name)
-            if not (isinstance(data, dict) and isinstance(username, str) and not data.get("isDevHub")):
-                maybe_hubs.append(name)
-            continue
-        logins[name] = {
-            "username": username,
-            "org": org[:15],
-            "is_hub": bool(data.get("isDevHub")),
-            "is_sandbox": bool(data.get("isSandbox")),
-            # A JWT login re-signs with its key, so only a login with neither expires with its session.
-            "refreshable": bool(data.get("refreshToken") or data.get("privateKey")),
-        }
-    return (logins, unread, unreadable, "; ".join(blocks), {n: u for n, u in listed.items() if n in unread},
-            maybe_hubs)
+    return logins, unread, unreadable, "; ".join(blocks), listed, maybe_hubs
 
 
 def read_aliases(payload):
@@ -426,7 +426,7 @@ def query_hubs(run, hubs, field, values):
     """
     rows, failed = {}, []
     by_name = field == "SignupUsername"
-    safe = sorted(v for v in values if "'" not in v and "\\" not in v)
+    safe = sorted(v for v in values if "'" not in v and "\\" not in v and not sf_cannot_pass(v))
     for hub in hubs:
         for start in range(0, len(safe), BATCH):
             quoted = "','".join(safe[start:start + BATCH])
@@ -513,7 +513,8 @@ def survey(run, home, project, today, predict=True, env=None):
     Mutates nothing beyond what the CLIs themselves do.
     """
     env = os.environ if env is None else env
-    state = facts(home, project, env)  # first: apply checks that nothing changes from here on
+    scopes = config_scopes(home, project, env)
+    state = facts(home, project, env, scopes)  # first: apply checks that nothing changes from here on
     logins, unread, unreadable, blocks, listed, maybe_hubs = read_logins(home)
     alias_payload = sf_json(run, "alias", "list")
     if alias_payload is None:
@@ -521,10 +522,9 @@ def survey(run, home, project, today, predict=True, env=None):
     aliases = read_aliases(alias_payload)
     # The plan and apply's checks read ~/.sfdx/alias.json; the protections read sf's own answer. They
     # must be the same map, or a check could not see what sf does.
-    if ("alias", "?", "unreadable") in state or aliases != {
-            f[1]: json.loads(f[2]) for f in state if f[0] == "alias"}:
+    if ("alias-store", "unreadable") in state or aliases != {f[1]: f[2] for f in state if f[0] == "alias"}:
         raise RuntimeError("~/.sfdx/alias.json is not in the shape sf writes, or differs from what `sf alias "
-                           "list` reports; fix it (or let sf rewrite it), then audit again")
+                           "list` reports; fix the file, then audit again")
 
     # sf opens `~/.sfdx/<name>.json`, which a case- and normalization-insensitive filesystem (APFS)
     # finds whatever the spelling, so names are compared folded; on a case-sensitive one that is only
@@ -579,7 +579,6 @@ def survey(run, home, project, today, predict=True, env=None):
     if manifest_linked:  # its files are not ours to move, so no deploy job is planned
         symlinks.append(manifest_dir)
 
-    scopes = config_scopes(home, project, env)
     env_values = {var: env[var] for var in ENV_DEFAULTS if isinstance(env.get(var), str) and env[var]}
 
     # Hubs are queried by name, which sf resolves to an alias first: a hub named like one is not queried.
@@ -619,19 +618,19 @@ def survey(run, home, project, today, predict=True, env=None):
         return sorted({r["ScratchOrg"][:15] for r in user_rows.get(fold(username), [])
                        if isinstance(r.get("ScratchOrg"), str)})
 
-    direct = {}  # sf's logout clears the aliases whose value is exactly the user
-    for alias, value in aliases.items():
-        if value is not None:
-            direct.setdefault(value, []).append(alias)
+    def cleared_aliases(name):  # by the rule apply checks each logout against
+        return sorted(f[1] for f in logout_rule(state, name) if f[0] == "alias")
 
     def clears(name):
         """The names sf's logout of this login removes, and whose config keys it unsets."""
-        return {name} | set(direct.get(name, []))
+        return {name} | set(cleared_aliases(name))
 
     def logout_refused(name):
         """Why sf's logout of this login could do something the plan cannot show, or ''."""
         if blocks:
             return "sf cannot log anyone out as planned while " + blocks
+        if logins[name]["linked"]:
+            return "its auth file is a link, and sf's logout would remove only the link"
         if login_for(name) is DOUBT:
             return doubt.get(fold(name), "its name has characters this Python's Unicode tables do not know, "
                                          "so the tool cannot tell which names the filesystem treats as the same")
@@ -639,9 +638,9 @@ def survey(run, home, project, today, predict=True, env=None):
             return "sf reads a --target-org value that starts with -{} as its own -{} flag".format(name[1], name[1])
         # An alias with the login's name, other than one naming the login itself (which logout clears):
         # sf looks a name up among aliases exactly, before it opens any file.
-        if any(a == name and v != name for a, v in aliases.items()):
+        if aliases.get(name, name) != name:
             return "an alias is named like this login, so sf could resolve the name to the alias"
-        for alias in direct.get(name, []):
+        for alias in cleared_aliases(name):
             if fold(alias) != fold(name) and login_for(alias) is not None:
                 return "logout clears its alias {}, and that name would then mean another login".format(alias)
         rewrites = unmodelled_scopes(state, {f[1] for f in logout_rule(state, name) if f[0] == "config"})
@@ -700,7 +699,9 @@ def survey(run, home, project, today, predict=True, env=None):
     for alias in sorted(aliases):
         if alias in cleared:
             continue
-        if "@" in alias and beyond_tables(alias) and fold(alias) not in folded:
+        if sf_cannot_pass(alias):
+            protect(alias, "its name is not valid UTF-8, so sf would unset another name")
+        elif "@" in alias and beyond_tables(alias) and fold(alias) not in folded:
             protect(alias, "its name has characters this Python's Unicode tables do not know, so the tool cannot "
                            "tell whether the filesystem treats it as a login's name")
         elif login_for(alias) is not None:  # it shadows a login's name; unsetting it would re-point the name
@@ -809,7 +810,7 @@ def survey(run, home, project, today, predict=True, env=None):
         },
         "prune_prediction": predict_prune(cci, proven_gone),
     }
-    return plan, {"logins": logins, "unread": unread, "aliases": aliases, "state": state}
+    return plan, {"logins": logins, "unread": unread, "listed": listed, "aliases": aliases, "state": state}
 
 
 def build_plan(run, home, project, today, predict=True, env=None):
@@ -821,7 +822,9 @@ def check_logins(run, view):
     Returns the logins that did not answer, and those not queried with the reason."""
     failed, skipped = [], {}
     for name in sorted(set(view["logins"]) | set(view["unread"])):
-        if name in view["aliases"]:
+        if name not in view["logins"] and name not in view["listed"]:
+            skipped[name] = "sf does not list it as a login"
+        elif name in view["aliases"]:
             skipped[name] = "named like an alias, so sf would answer through the alias's org"
         elif sf_json(run, "data", "query", "--target-org", name,
                      "--query", "SELECT Id FROM Organization") is None:
@@ -1014,15 +1017,14 @@ class Unexpected(Exception):
 ENCRYPTED_KEYS = {"org-isv-debugger-sid"}  # sf re-encrypts these, with a fresh IV, on every config write
 
 
-def facts(home, project, env):
+def facts(home, project, env, scopes=None):
     """What an sf command run by apply can change, as a set: the login files, the aliases
     (`~/.sfdx/alias.json`), each config scope's values (an encrypted one only as present, None) and
     why a scope cannot be modelled, if it cannot."""
     found = {("login", name) for name, _ in login_files(home)}
     store = read_alias_store(home)
-    found |= {("alias", "?", "unreadable")} if store is None else {
-        ("alias", a, json.dumps(v)) for a, v in store.items()}
-    for scope_name, scope in config_scopes(home, project, env).items():
+    found |= {("alias-store", "unreadable")} if store is None else {("alias", a, v) for a, v in store.items()}
+    for scope_name, scope in (scopes or config_scopes(home, project, env)).items():
         found |= {("config", scope_name, k, None if k in ENCRYPTED_KEYS else v) for k, v in scope["pairs"]}
         if scope["why"]:
             found.add(("unmodelled", scope_name, scope["why"]))
@@ -1034,14 +1036,16 @@ def describe(fact):
         return "{} in the {} config".format(fact[2], fact[1])
     if fact[0] == "unmodelled":
         return "whether the {} config can be modelled".format(fact[1])
+    if fact[0] == "alias-store":
+        return "~/.sfdx/alias.json (unreadable)"
     return "{} {}".format(fact[0], fact[1])
 
 
 def logout_rule(state, name):
     """What sf's logout of a login removes: its file, the aliases valued exactly the user, and the
     config values naming either. The plan's effects come from this too."""
-    held = {name} | {f[1] for f in state if f[0] == "alias" and f[2] == json.dumps(name)}
-    return {f for f in state if f == ("login", name) or (f[0] == "alias" and f[2] == json.dumps(name))
+    held = {name} | {f[1] for f in state if f[0] == "alias" and f[2] == name}
+    return {f for f in state if f == ("login", name) or (f[0] == "alias" and f[2] == name)
             or (f[0] == "config" and f[3] in held)}
 
 
@@ -1088,7 +1092,8 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None, s
         """Count what a command did from the state after it; return anything else it changed."""
         nonlocal state
         before, state = state, after
-        record(expected - after, expected & after)
+        unknown = {f for f in expected if f[0] == "alias"} if ("alias-store", "unreadable") in after else set()
+        record(expected - after - unknown, expected & after)
         other = (before - after - expected) | (after - before)
         if other:
             failures.append((label, "sf also changed {}".format(", ".join(sorted(set(map(describe, other)))))))
@@ -1103,14 +1108,14 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None, s
         except OSError as error:  # sf ran (sf_json never raises it); the state read failed
             failures.append((label, "ran, but its effects could not be checked"))
             raise Unexpected("{} ran, but its effects could not be checked: {}".format(label, reason(error)))
-        except BaseException as error:  # interrupted, while sf ran or just after
+        except BaseException as error:  # interrupted, while sf ran or just after it
+            failures.append((label, "stopped while sf ran or just after; it may have completed"))
             try:
                 after = facts(home, project, env)
-            except OSError:
-                failures.append((label, "stopped while sf ran; it may have completed"))
-            else:
-                settle(label, expected, record, after)
-                failures.append((label, "stopped while sf ran; counted from what it left"))
+            except BaseException:  # an unreadable state, or a second interrupt: the line above stands
+                raise error
+            failures[-1] = (label, "stopped while sf ran or just after; counted from what it left")
+            settle(label, expected, record, after)
             raise error
         if settle(label, expected, record, after):
             raise Unexpected("{} changed more than the plan said, so nothing more was run".format(label))
@@ -1145,7 +1150,7 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None, s
         if blocked(planned):
             failures.append((alias, "skipped because its logout failed"))
             continue
-        bound = ("alias", alias, json.dumps(planned["value"]))
+        bound = ("alias", alias, planned["value"])
         if bound not in check(alias):
             failures.append((alias, "changed during this run; not modified"))
             continue
