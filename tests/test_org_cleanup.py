@@ -2705,6 +2705,47 @@ class AliasRedirectsAndUnknowns(Base):
         self.assertTrue(oc.sf_cannot_pass("a\0b"))
 
 
+class PathsAndManifests(Base):
+    """Each test fails on the mutant that removes the guard it names."""
+
+    setup_stale_org = Apply.setup_stale_org
+
+    def test_a_quarantine_inside_the_project_or_cli_state_is_refused(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        for where in (self.project, self.project / "q", self.home / ".sfdx" / "q", self.home / ".sf"):
+            self.assertEqual(self.apply(cli, plan_file, quarantine=where), 2, where)
+        self.assertEqual(self.logouts(cli), [])
+        self.assertTrue(self.index.exists())
+
+    def test_a_path_spelled_in_another_case_is_still_inside_the_project(self):
+        spelled = Path(str(self.project).swapcase()) / "plan.json"
+        if not spelled.parent.exists():
+            self.skipTest("this filesystem is case-sensitive")
+        self.assertEqual(self.main(["audit", "--out", str(spelled)], FakeCli(self.home)), 2)
+
+    def test_a_cache_key_no_file_can_be_named_after_is_never_planned(self):
+        rows = self.setup_stale_org()
+        long_key = "j" * 260
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps(
+            {long_key: {"target-org": "rep@x.invalid"}, "a\u0000b": {"target-org": "rep@x.invalid"}}))
+        plan = self.plan(FakeCli(self.home, rows))
+        self.assertEqual(plan["remove"]["deploy_jobs"], [])
+        self.assertEqual(sorted(plan["report"]["unsafe_deploy_cache_keys"]), sorted(["a\u0000b", long_key]))
+
+    def test_a_manifest_no_cache_entry_names_is_reported_not_moved(self):
+        self.setup_stale_org()  # manifestCache holds job1.xml (named) and unmatched.xml (not)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["report"]["manifests_without_cache_entry"], ["unmatched.xml"])
+        self.assertNotIn(str(self.other_manifest), json.dumps(plan["remove"]))
+
+    def test_no_manifest_is_called_orphaned_when_the_cache_cannot_be_read(self):
+        self.setup_stale_org()
+        (self.home / ".sf" / "deploy-cache.json").write_text('{"job1": ')
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["report"]["manifests_without_cache_entry"], [])
+
+
 class DocStaysInStep(Base):
     DOC = (REPO / ".cursor" / "skills" / "cci-orchestration" / "org-cleanup.md").read_text()
 

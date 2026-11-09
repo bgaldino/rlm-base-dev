@@ -28,8 +28,8 @@ the user's call.
 Credentials are never printed or written: auth files are reduced to identity fields as soon
 as they are parsed, and a file this tool does not recognize is reported without being opened.
 
-Exit status: 0 success, 1 a step failed, 2 usage, wrong directory or a plan path inside the
-project, 3 the plan drifted, 130 interrupted. An audit with hub failures still exits 0: it prints
+Exit status: 0 success, 1 a step failed, 2 usage, wrong directory, or a plan or quarantine path
+inside the project or the CLI state, 3 the plan drifted, 130 interrupted. An audit with hub failures still exits 0: it prints
 them, and the plan it writes is incomplete, not wrong. Stdlib only and Python 3.9-safe.
 """
 import argparse
@@ -517,7 +517,22 @@ def predict_prune(cci, proven_gone):
 
 
 def plain_job_id(job):
-    return bool(job) and os.path.basename(job) == job and job not in (".", "..")
+    """A cache key that names one manifest file: a bare name the filesystem can hold."""
+    return (bool(job) and os.path.basename(job) == job and job not in (".", "..") and "\0" not in job
+            and len((job + ".xml").encode("utf-8", "surrogateescape")) <= 255)
+
+
+def within(path, root):
+    """Whether a path is the root or inside it, compared by file identity: a case-insensitive
+    filesystem (APFS) can spell the same folder differently, and a link can reach it."""
+    path = Path(os.path.abspath(str(path)))
+    for candidate in [path] + list(path.parents):
+        try:
+            if os.path.samefile(str(candidate), str(root)):
+                return True
+        except (OSError, ValueError):
+            continue
+    return False
 
 
 def survey(run, home, project, today, predict=True, env=None):
@@ -583,6 +598,7 @@ def survey(run, home, project, today, predict=True, env=None):
     else:
         deploy_cache = read_json(cache_path, None) if lstat_or_none(cache_path) else {}
     cache_unread = [] if isinstance(deploy_cache, dict) else [str(cache_path)]  # nothing in it is planned
+    cache_known = isinstance(deploy_cache, dict) and not is_link(cache_path)
     deploy_cache = deploy_cache if isinstance(deploy_cache, dict) else {}
     # sf stores the username a deploy ran against, and resolves it through an alias again when it
     # reads the entry (deploy report/resume), so a target is judged like any other name.
@@ -591,6 +607,9 @@ def survey(run, home, project, today, predict=True, env=None):
     manifest_linked = is_link(manifest_dir)
     if manifest_linked:  # its files are not ours to move, so no deploy job is planned
         symlinks.append(manifest_dir)
+    # sf drops a cache entry when its 3-day TTL lapses but leaves the manifest; nothing names it now
+    orphan_manifests = [] if manifest_linked or not cache_known else sorted(
+        p.name for p in listing(manifest_dir) if p.suffix == ".xml" and p.stem not in deploy_cache)
 
     env_values = {var: env[var] for var in ENV_DEFAULTS if isinstance(env.get(var), str) and env[var]}
 
@@ -812,6 +831,7 @@ def survey(run, home, project, today, predict=True, env=None):
             "unsafe_deploy_cache_keys": sorted(j for j, v in deploy_raw.items()
                                                if not plain_job_id(j) or not isinstance(v, str)),
             "unreadable_deploy_cache": cache_unread,
+            "manifests_without_cache_entry": orphan_manifests,
             "unclassified_files": read_unclassified(home, project, consumed),
             # Lead to no login and no username, so no hub row can ever put them on the plan.
             "dangling_aliases": sorted(a for a in aliases if judge(a) == "dangling"),
@@ -1315,8 +1335,7 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
     if args.command == "audit":
         unwritten = None
         out = Path(os.path.abspath(args.out)) if args.out else None
-        where = out.parent.resolve() if out else None  # the folder; the file itself may be a link
-        if where and (where == project.resolve() or project.resolve() in where.parents):
+        if out and within(out.parent, project):  # the folder; the file itself may be a link
             print("The plan holds usernames and org IDs: write it outside the project ({}).".format(project),
                   file=sys.stderr)
             return 2
@@ -1348,7 +1367,11 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
         if plan["hub_failures"]:
             print("Hubs or logins that gave no evidence now: {}".format(plan["hub_failures"]), file=sys.stderr)
         return 3
-    quarantine = Path(args.quarantine) if args.quarantine else default_quarantine(home, today)
+    quarantine = Path(os.path.abspath(args.quarantine)) if args.quarantine else default_quarantine(home, today)
+    for root in (project, home / ".sf", home / ".sfdx"):  # a move there would leave residue where it was
+        if within(quarantine, root):
+            print("The quarantine must be outside {}; nothing was changed.".format(root), file=sys.stderr)
+            return 2
     moves = any(plan["remove"][key] for key in FILE_KEYS + ("deploy_jobs",))
     if moves:
         why = check_quarantine(quarantine, home)

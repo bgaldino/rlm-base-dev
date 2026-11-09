@@ -101,8 +101,8 @@ login on a removable org is logged out only if nothing in `protected` keeps it.
 
 It removes nothing, though `cci` writes a `.org` file for any declared shape that lacks one,
 and a hub query can refresh that hub's auth file. The plan holds usernames but no tokens, and
-is created readable only by the user; it refuses to write through a symlink, or inside the
-project (exit 2). The audit exits 0 even when `hub_failures` is not empty: read its warning lines. `Dev Hubs: 0` with a "NO CONNECTED DEV HUB"
+is created readable only by the user. It refuses a plan path inside the project (exit 2) and
+will not write through a symlink (exit 1, after printing the plan). The audit exits 0 even when `hub_failures` is not empty: read its warning lines. `Dev Hubs: 0` with a "NO CONNECTED DEV HUB"
 warning means no hub was queried, so an empty plan is not evidence that the state is clean;
 authorize the hub with `isDevHub` set and audit again.
 
@@ -122,7 +122,8 @@ value each alias, default and deploy job reaches (`name -> value`):
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
 | `dangling_aliases`, `dangling_defaults` | Reach no login and no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset -- <name>` (the `--` keeps a name such as `-ap` from being read as `--all --no-prompt`), or `sf config unset target-org` (see the note below the table). |
 | `usernames_not_queried` | Usernames an alias, default, deploy-cache entry or tracking folder names that no hub query can carry (a quote, a backslash, or text sf would read as another name). Never judged, so never planned. Report them. |
-| `unsafe_deploy_cache_keys`, `unreadable_deploy_cache` | Deploy-cache keys that are not plain file names (such as `../x`), or entries whose target is not text; or a deploy cache that does not parse, so no entry in it is planned. Never planned. Report them. |
+| `manifests_without_cache_entry` | Files in `~/.sf/manifestCache` that no deploy-cache entry names: sf drops an entry when its 3-day TTL lapses and leaves the manifest. Not moved. Report them. |
+| `unsafe_deploy_cache_keys`, `unreadable_deploy_cache` | Deploy-cache keys that are not plain file names (such as `../x`, or too long to name a file), or entries whose target is not text; or a deploy cache that does not parse, so no entry in it is planned. Never planned. Report them. |
 | `unmodelled_config` | Config scopes the tool cannot model, with the reason: a file that does not parse, is a link (sf writes through it; the tool reads it to decide which logouts to refuse) or is not a regular file; files that disagree; a key outside those sf and its bundled plugins define (a user-installed plugin may define it; if nothing does, sf cannot unset it and its next write turns it into `org-instance-url`); a legacy key in `.sf/config.json`; a default that is not text; interoperability turned off; or a linked project `.sf`/`.sfdx`. The tool never writes such a scope and refuses any logout that would. Report it; the user fixes the files, then re-audit. |
 | `stale_config_values` | A stale default the tool does not unset: a `target-dev-hub`, or a value in an unmodelled scope. With the user's approval unset it by hand (see the note below the table). |
 | `env_defaults` | `SF_TARGET_ORG`/`SFDX_DEFAULTUSERNAME` (and the dev hub pair) override both scopes. Reported with how the tool judges the value; the tool never changes the environment. |
@@ -178,7 +179,8 @@ before anything changes. Before any
 logout, if the plan moves files, it checks the quarantine (no linked root or folder, no file
 where a folder belongs) and moves a temp file in, and exits 1 if that fails. The quarantine is a
 dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the Docker
-image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder.
+image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder, which must be
+outside the project, `~/.sf` and `~/.sfdx` (exit 2).
 
 It then runs targeted `sf org logout` per user, `sf alias unset -- <alias>` per alias, and `sf config
 unset target-org` (with `--global` for the global scope) for each planned default. It tracks the
