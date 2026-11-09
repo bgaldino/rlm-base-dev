@@ -4,4 +4,4 @@ PyYAML>=6.0.3
 # Test runner. Used by `tests/build_harness/`. The TUI itself does not depend
 # on pytest at runtime, but reusing the TUI venv keeps the developer install
 # story to a single `pip install -r ...` command.
-pytest>=9.1.1
+pytest>=9.2.0
