@@ -53,17 +53,19 @@ preserves anything that model cannot explain:
 
 - **Logins** are the files in `~/.sfdx` whose names sf lists (`<username>.json`), under the
   username inside the file. Nothing in `~/.sf` is a login; a credential file there is reported.
-- **A name** (an alias, a default, a deploy-cache target) goes through at most one alias, as
-  in sf. A chain of aliases does not work in sf, so the tool reports it as dangling.
-- **A login file is found whatever the case of the name** (macOS filesystems ignore case), so
-  usernames are compared without regard to case.
+- **A name** (an alias, a default or a deploy-cache target) goes through at most one alias, as
+  in sf: an alias whose value is another alias's name reaches the login file of that name, if
+  any, and is otherwise dangling. A name that is both an alias and a login's name is in doubt,
+  and whatever uses it is kept.
+- **A login file is found by name**, and macOS filesystems ignore case and Unicode normalization,
+  so usernames are compared without regard to either. On a case-sensitive filesystem (Linux,
+  the Docker image) that only makes the tool more cautious.
 - **A config scope** (`global`, or `local` for the project) is `.sf/config.json` merged with
   `.sfdx/sfdx-config.json`, and sf rewrites both files on any change. The tool acts on a scope
-  only when that merge is unambiguous: both files parse, agree on every shared key, and hold
-  only keys sf translates as-is.
-- **`sf org logout`** also clears every alias whose value is that user, and every config key
-  (any key, in both scopes) that holds the user or one of those aliases. The plan lists these
-  under each logout, and the audit prints them.
+  only when that merge is unambiguous; otherwise it reports why under `unmodelled_config`.
+- **`sf org logout`** also clears every alias whose value is that user, and every config key in
+  both scopes that holds the user or one of those aliases. The plan lists these under each
+  logout, the audit prints them, and `apply` checks afterwards that they are gone.
 
 ## 1. Audit
 
@@ -101,25 +103,30 @@ Review with the user, including the aliases and config keys printed under each l
 | Output | Meaning |
 |--------|---------|
 | `hub_failures` | Gave no full evidence: a hub that failed or returned a cut-short result (sf's `org-max-query-limit`), a hub named like an alias (sf would ask the alias's org), or a login whose auth file the tool did not read (it may be a Dev Hub). While any is listed no username is judged, so the plan may be incomplete. Fix access and re-audit. |
-| `protected` | Names kept although their org looks gone, each with the reason: the tool cannot tie the name to one login (an unreadable or linked auth file, a renamed file, files that differ only by case), an alias is named like the login, logout would clear an alias whose name then means another login, logout would rewrite a config scope the tool cannot model, or an alias is named like a login. Stop on these; resolve each by hand. |
-| `conflicting_evidence` | Logins whose hub rows disagree, or show `Active` past the date. Kept. |
+| `protected` | Names kept, each with the reason. A login whose auth file the tool cannot read or tie to one org (unreadable, a link, a renamed file, files that differ only by case). A login on a gone org that is not logged out because an alias has its name, because logout would clear an alias whose name would then mean another login, or because logout would rewrite a config scope the tool cannot model. An alias on a gone org that is not unset because a login has its name. Stop on these; resolve each by hand. |
+| `conflicting_evidence` | Hub rows that disagree, or show `Active` past the date, for a login, an org whose index, tracking or `fileResponses` is local, or a username an alias, default or tracking folder names. Kept. |
 | `logins_with_no_refresh_token` | An access-token-only login: it stops working when its session expires (JWT logins re-sign and are not listed). It is not on the plan, which does not mean its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
-| `dangling_aliases`, `dangling_defaults` | Reach no login and no username (including an alias of an alias), so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>`, or `sf config unset target-org` (add `--global` for the `global` scope). |
+| `dangling_aliases`, `dangling_defaults` | Reach no login and no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset -- <name>` (the `--` keeps a name such as `-ap` from being read as `--all --no-prompt`), or `sf config unset target-org` (add `--global` for the `global` scope; see the note below the table). |
 | `unsafe_deploy_cache_keys` | Deploy-cache keys that are not plain file names (such as `../x`), or entries whose target is not text. Never planned. Report them. |
-| `unsafe_alias_names` | Stale aliases whose names start with `-`. sf would read the name as flags (`-ap` is `--all --no-prompt`, which unsets every alias), so the tool never passes it. Remove by hand with `sf alias unset -- <name>` only after the user approves. |
-| `unmodelled_config` | Config scopes the tool cannot model, with the reason: a file that does not parse or is not a regular file, files that disagree, a legacy key in `.sf/config.json`, an unrecognized key in `sfdx-config.json`, interoperability turned off, or a linked project `.sf`/`.sfdx`. The tool never writes such a scope and refuses any logout that would. Report it; the user fixes the files, then re-audit. |
-| `stale_config_values` | A stale default the tool does not unset: a `target-dev-hub`, or a value in an unmodelled scope. With the user's approval unset it by hand (`--global` for the `global` scope). |
+| `unmodelled_config` | Config scopes the tool cannot model, with the reason: a file that does not parse, is a link (sf writes through it; the tool reads it to decide which logouts to refuse) or is not a regular file; files that disagree; a key sf does not know (sf cannot unset it, and its next write turns it into `org-instance-url`); a legacy key in `.sf/config.json`; a default that is not text; interoperability turned off; or a linked project `.sf`/`.sfdx`. The tool never writes such a scope and refuses any logout that would. Report it; the user fixes the files, then re-audit. |
+| `stale_config_values` | A stale default the tool does not unset: a `target-dev-hub`, or a value in an unmodelled scope. With the user's approval unset it by hand (see the note below the table). |
 | `env_defaults` | `SF_TARGET_ORG`/`SFDX_DEFAULTUSERNAME` (and the dev hub pair) override both scopes. Reported with how the tool judges the value; the tool never changes the environment. |
 | `unclassified_files` | Not owned by the CLIs, and not opened: a linked login or index file, a credential backup such as `user@x.json.bak`, an auth-shaped file in `~/.sf` or the project, a name sf does not list. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. An entry the tool cannot examine is listed with an `error`. Report it and let the user decide. |
 | `preserved` | Counts of what stays in each category. |
 | `prune_prediction` | See step 3. |
 
+**Unsetting a default by hand:** `sf config unset target-org` (add `--global` for the `global`
+scope) clears the scope's key in both files, whatever value each holds. If either file holds a
+valid default, note it first and restore it afterwards with `sf config set target-org=<value>`
+(again with `--global` for the `global` scope).
+
 While a login the tool reads stays on an org, that org's index, tracking (including legacy
-`.sfdx/orgs/<username>`) and `fileResponses` stay too. An unreadable or linked login is never
-opened, so its org is not known and it cannot protect that org's files; files are planned only
-when a hub row for that org ID shows it gone, so such a login cannot be on a live org.
+`.sfdx/orgs/<username>`, whose org is the one its signup row names) and `fileResponses` stay too.
+An unreadable or linked login is never opened, so its org is not known and it cannot protect that
+org's files; files are planned only when a hub row for that org ID shows it gone, so such a login
+cannot be on a live org.
 
 An audit request ends here.
 
@@ -135,22 +142,27 @@ rewritten without a lock, so a concurrent deploy's entry could be lost.
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
 reviewed one: its project, every removal, each logout's org and the aliases and config keys it
 clears, and the value and login each alias, default, deploy job and file reaches. It does not run
-`cci`. An unreadable state folder stops the run with exit 1 before anything changes. Before any
+`cci`. An unreadable state folder, or a plan file it cannot read, stops the run with exit 1
+before anything changes. Before any
 logout, if the plan moves files, it checks the quarantine (no linked root or folder, no file
 where a folder belongs) and moves a temp file in, and exits 1 if that fails. The quarantine is a
 dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the Docker
 image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder.
 
-It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config unset
-target-org` (with `--global` for the global scope) for each planned default, re-reading the scope
-to confirm the default is gone. It moves user indexes, tracking directories, `fileResponses`
+It then runs targeted `sf org logout` per user and checks that the auth file and every config
+value naming the user or its aliases are gone: sf reports which logins it selected, not what it
+removed, and a config write it cannot make (a read-only file) fails silently. A logout that left
+anything is a failure. It runs `sf alias unset -- <alias>` per alias, and `sf config unset
+target-org` (with `--global` for the global scope) for each planned default, after confirming the
+scope still holds the reviewed value and can still be modelled, and re-reading it to confirm the
+default is gone. It moves user indexes, tracking directories, `fileResponses`
 directories, and matched deploy-cache manifests to the quarantine. It refuses symlinks, paths
 outside the state roots, and project files tracked by git (home state is not checked against git).
 
 If a logout fails, every item that reaches that login or another login on its org stays: aliases,
 defaults, files and deploy-cache entries. `sf` clears the user's aliases and config keys before it
 can fail, so those may already be gone. Fix the cause and re-audit; the login is listed again. A
-logout that reports logging out anyone else is a failure. An error or Ctrl-C after the logouts
+logout that reports logging out anyone else is a failure, and names them. An error or Ctrl-C after the logouts
 start stops the run: it prints what ran (`cleared_by_logout` counts the aliases and config keys
 sf cleared with them) and each `FAILED` line, then "Stopped part-way" with exit 1, or 130 when
 interrupted. Compare the plan with that output, because a fresh audit cannot list a logged-out
@@ -242,7 +254,8 @@ re-audit afterward. Never bypass global-org protection automatically.
   matched state. If the org is active, the same-looking user stays.
 - **Orphaned alias:** an alias points at a username with no auth file. The plan unsets it only
   if a signup-username row shows that org deleted or expired, and every hub answered.
-- **Chained alias:** an alias points at another alias. sf does not follow it, so it is
+- **Chained alias:** an alias points at another alias's name. sf does not follow the second
+  alias: it opens a login file of that name. With none, and no `@` in the name, the alias is in
   `dangling_aliases`: reported, never unset by the tool.
 - **CCI alias:** a logged-out scratch org's `<project>__<org>` alias is cleared by sf with the
   logout; the audit prints it under that logout.

@@ -12,14 +12,16 @@ files rather than `sf org list`, which silently omits secondary users, and omits
 scratch org when a hub is unreachable.
 
 Local state is judged the way sf reads it: logins only from ~/.sfdx, a name through at most
-one alias, a login file found whatever the case of its name, and each config scope as the
-merge of its two files. Every effect of a planned `sf org logout` (the aliases and config
-keys sf clears with it) is predicted, printed and bound in the plan. Anything that view
-cannot explain is preserved and reported, never acted on.
+one alias, login names compared as a case- and normalization-insensitive filesystem compares
+them, and each config scope as the merge of its two files. Every effect of a planned `sf org
+logout` (the aliases and config keys sf clears with it) is predicted, printed, bound in the plan
+and checked after it runs. Anything that view cannot explain is preserved and reported, never
+acted on.
 
 `apply` re-derives the plan and stops if it differs from the reviewed one. It runs targeted
-`sf org logout` and single-alias `sf alias unset`, and moves residual files to a quarantine
-folder instead of deleting them. It never runs `cci org prune`, `cci org remove`, `cci org
+`sf org logout`, single-alias `sf alias unset` and `sf config unset target-org`, rewrites the
+deploy cache without the removed entries, and moves residual files to a quarantine folder
+instead of deleting them. It never runs `cci org prune`, `cci org remove`, `cci org
 default`, or any remote delete: `audit` predicts what prune would do, and acting on that is
 the user's call.
 
@@ -40,11 +42,14 @@ import stat
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from pathlib import Path
 
 ORG_ID = re.compile(r"00D[0-9A-Za-z]{12}(?:[0-9A-Za-z]{3})?")  # always used with fullmatch
-# The names sf lists as logins in ~/.sfdx (@salesforce/core orgAccessor.getFileRegex).
-SF_LOGIN_FILE = re.compile(r"[^.][^@]*@[^.]+(?:\.[^.\s]+)+\.json")
+# The names sf lists as logins in ~/.sfdx (@salesforce/core orgAccessor.getFileRegex). JavaScript's \s,
+# spelled out: Python's \s covers a different set of characters.
+JS_SPACE = "\t\n\x0b\x0c\r    -     　﻿"
+SF_LOGIN_FILE = re.compile(r"[^.][^@]*@[^.]+(?:\.[^." + JS_SPACE + r"]+)+\.json")
 BATCH = 50
 REMOVABLE = ("deleted", "expired")
 REMOVE_KEYS = ("logout", "aliases", "indexes", "tracking", "file_responses", "deploy_jobs",
@@ -61,8 +66,10 @@ KNOWN_ENTRIES = {
 }
 KNOWN_ENTRY_PATTERN = re.compile(r"(sf|sfdx)(-[\d-]+)?\.log(\.\d+)?")  # always used with fullmatch
 
-# sf's legacy config keys and the keys they translate to (@salesforce/core config.js). Any other
-# key in sfdx-config.json is mistranslated by sf on its next write, so the tool does not model it.
+# sf's legacy config keys and the keys they translate to (@salesforce/core config.js), and every key
+# sf 2.157.8 registers (core's allowed properties plus bundled plugins' configMeta). sf cannot unset a
+# key it does not know, and its next write turns one into org-instance-url, so a scope holding any
+# other key is not modelled.
 LEGACY_KEYS = {
     "defaultusername": "target-org", "defaultdevhubusername": "target-dev-hub",
     "instanceUrl": "org-instance-url", "apiVersion": "org-api-version",
@@ -70,11 +77,13 @@ LEGACY_KEYS = {
     "disableTelemetry": "disable-telemetry", "customOrgMetadataTemplates": "org-custom-metadata-templates",
     "maxQueryLimit": "org-max-query-limit", "restDeploy": "org-metadata-rest-deploy",
 }
-CURRENT_KEYS = set(LEGACY_KEYS.values())
+CURRENT_KEYS = set(LEGACY_KEYS.values()) | {"org-capitalize-record-types"}
 ENV_DEFAULTS = ("SF_TARGET_ORG", "SFDX_DEFAULTUSERNAME", "SF_TARGET_DEV_HUB", "SFDX_DEFAULTDEVHUBUSERNAME")
+FILE_KEYS = ("indexes", "tracking", "file_responses")  # plan keys whose items are moved to the quarantine
+QUARANTINE_FOLDERS = ("orgs", "fileResponses", "manifestCache", ".sfdx")  # where those moves land
 
 CCI_KEYS = {"name": str, "shape": bool, "active": bool, "scratch": bool, "expired": bool,
-            "instantiated": bool, "alias": str, "org_id": str, "username": str}
+            "instantiated": bool, "org_id": str, "username": str}
 
 # Run inside `cci shell`: names and flags only, and the same predicate `cci org prune` uses.
 CCI_SNIPPET = """
@@ -87,8 +96,7 @@ for name in keychain.list_orgs():
     org = keychain.get_org(name)
     orgs.append(dict(name=name, shape=name in shapes, active=bool(org.active),
                      scratch=isinstance(org, ScratchOrgConfig), expired=bool(getattr(org, "expired", False)),
-                     instantiated=bool(org.config.get("date_created")),
-                     alias=str(org.config.get("sfdx_alias") or ""), org_id=str(org.config.get("org_id") or ""),
+                     instantiated=bool(org.config.get("date_created")), org_id=str(org.config.get("org_id") or ""),
                      username=str(org.config.get("username") or "")))
     if org.default:
         flagged.append(name)
@@ -109,9 +117,12 @@ def run_command(cmd):
     return done.returncode, done.stdout
 
 
-def sf_json(run, *args):
-    """Run an sf command with --json. Returns the parsed payload, or None if it failed."""
-    code, out = run(["sf"] + list(args) + ["--json"])
+def sf_json(run, *args, operands=()):
+    """Run an sf command with --json. Returns the parsed payload, or None if it failed.
+
+    `operands` follow `--`, so a name that starts with "-" is never read as a flag (`-ap` would be
+    `--all --no-prompt` to `sf alias unset`)."""
+    code, out = run(["sf"] + list(args) + ["--json"] + (["--"] + list(operands) if operands else []))
     try:
         payload = json.loads(out)
     except ValueError:
@@ -127,10 +138,15 @@ def reason(error):
 
 
 def read_json(path, default):
-    try:
-        return json.loads(Path(path).read_text())
+    try:  # sf writes UTF-8 whatever the locale
+        return json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return default
+
+
+def fold(name):
+    """A name as a case- and normalization-insensitive filesystem (APFS) compares it."""
+    return unicodedata.normalize("NFC", unicodedata.normalize("NFC", name).casefold())
 
 
 def lstat_or_none(path):
@@ -201,12 +217,14 @@ def read_logins(home):
 
 
 def read_aliases(payload):
-    aliases = {}
-    for row in payload.get("result") or []:
-        if isinstance(row, dict) and isinstance(row.get("alias"), str):
-            value = row.get("value")
-            aliases[row["alias"]] = value if isinstance(value, str) else ""
-    return aliases
+    """The alias map from `sf alias list`. Every protection depends on it, so an answer of any
+    other shape stops the run rather than reading as "no aliases"."""
+    rows = payload.get("result")
+    if not isinstance(rows, list) or not all(
+            isinstance(row, dict) and isinstance(row.get("alias"), str) and "value" in row
+            and (row["value"] is None or isinstance(row["value"], str)) for row in rows):
+        raise RuntimeError("sf alias list returned an answer of an unexpected shape")
+    return {row["alias"]: row["value"] or "" for row in rows}
 
 
 def read_scope(sf_file, sfdx_file, linked, env):
@@ -214,7 +232,8 @@ def read_scope(sf_file, sfdx_file, linked, env):
 
     sf merges the two files key by key (the newer file wins) and rewrites both on any write. The
     scope is modelled only when that merge is unambiguous, so no write can change a value the
-    reviewer did not see.
+    reviewer did not see. A file the tool will not write (a link) is still read: sf writes through
+    it, so its values decide which logouts are refused.
     """
     merged, values, pairs, problems = {}, set(), set(), []
     if linked:
@@ -224,7 +243,9 @@ def read_scope(sf_file, sfdx_file, linked, env):
         info = lstat_or_none(path)
         if info is None:
             continue
-        if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+        if stat.S_ISLNK(info.st_mode):
+            problems.append("{} is a symlink, so sf writes this config through it".format(path))
+        elif not stat.S_ISREG(info.st_mode):
             problems.append("{} is not a regular file".format(path))
             continue
         data = read_json(path, None)
@@ -237,12 +258,11 @@ def read_scope(sf_file, sfdx_file, linked, env):
                 problems.append("SF_SFDX_INTEROPERABILITY is off, so sf ignores {}".format(path))
             continue
         for key, value in data.items():
-            if legacy and key not in LEGACY_KEYS and key not in CURRENT_KEYS:
-                problems.append("{} holds {}, which sf would rename on its next write".format(path, key))
-                continue
             if not legacy and key in LEGACY_KEYS:
                 problems.append("{} holds the legacy key {}, which sf does not read there".format(path, key))
-                continue
+            elif key not in CURRENT_KEYS and not (legacy and key in LEGACY_KEYS):
+                problems.append("{} holds {}, a key sf does not know: it cannot unset it, and its next write "
+                                "turns it into org-instance-url".format(path, key))
             key = LEGACY_KEYS.get(key, key) if legacy else key
             if isinstance(value, str):
                 pairs.add((key, value))
@@ -290,18 +310,16 @@ def read_project_dirs(project, name):
     return found, symlinks
 
 
-def read_unclassified(home, project):
-    """Name, size and mode of what the CLIs do not own. These files are never opened."""
+def read_unclassified(home, project, consumed):
+    """Name, size and mode of what the CLIs do not own. These files are never opened.
+
+    `consumed` is exactly what read_logins and read_indexes took, so a link, a backup such as
+    `user@x.json.bak`, and any auth-shaped file in ~/.sf or the project is reported.
+    """
     found = []
-    sfdx = home / ".sfdx"
-    for root in (sfdx, home / ".sf", project / ".sf", project / ".sfdx"):
+    for root in (home / ".sfdx", home / ".sf", project / ".sf", project / ".sfdx"):
         for path in listing(root, follow=root.parent == home):
-            # Skip only what read_logins and read_indexes consume: regular files in ~/.sfdx. A link,
-            # a backup such as `user@x.json.bak`, and any such file in ~/.sf or the project is reported.
-            consumed = (root == sfdx and is_regular_file(path)
-                        and (SF_LOGIN_FILE.fullmatch(path.name)
-                             or (path.suffix == ".json" and ORG_ID.fullmatch(path.stem))))
-            if path.name in KNOWN_ENTRIES or KNOWN_ENTRY_PATTERN.fullmatch(path.name) or consumed:
+            if path.name in KNOWN_ENTRIES or KNOWN_ENTRY_PATTERN.fullmatch(path.name) or path in consumed:
                 continue
             try:
                 info = path.lstat()
@@ -316,11 +334,11 @@ def read_unclassified(home, project):
 def query_hubs(run, hubs, field, values):
     """ScratchOrgInfo rows per value across every hub, plus the hubs that gave no full answer.
 
-    SOQL matches text without regard to case, so signup usernames are keyed casefolded. A result
-    cut short (by `org-max-query-limit`, which sf applies while still reporting done) is a failure.
+    SOQL matches text without regard to case, so signup usernames are keyed folded. A result cut
+    short (by `org-max-query-limit`, which sf applies while still reporting done) is a failure.
     """
     rows, failed = {}, []
-    fold = field == "SignupUsername"
+    by_name = field == "SignupUsername"
     safe = sorted(v for v in values if "'" not in v and "\\" not in v)
     for hub in hubs:
         for start in range(0, len(safe), BATCH):
@@ -338,7 +356,7 @@ def query_hubs(run, hubs, field, values):
             for record in records:
                 value = record.get(field) if isinstance(record, dict) else None
                 if isinstance(value, str):
-                    rows.setdefault(value.casefold() if fold else value[:15], []).append(record)
+                    rows.setdefault(fold(value) if by_name else value[:15], []).append(record)
     return rows, sorted(set(failed))
 
 
@@ -414,25 +432,26 @@ def survey(run, home, project, today, predict=True, env=None):
         raise RuntimeError("sf alias list failed")
     aliases = read_aliases(alias_payload)
 
-    # sf opens `~/.sfdx/<name>.json`, which a case-insensitive filesystem finds whatever the case.
-    # A name is in doubt when it may mean a login the tool cannot read or tie to one org.
+    # sf opens `~/.sfdx/<name>.json`, which a case- and normalization-insensitive filesystem (APFS)
+    # finds whatever the spelling, so names are compared folded; on a case-sensitive one that is only
+    # more cautious. A name is in doubt when it may mean a login the tool cannot read or tie to one org.
     folded, doubt = {}, {}
     for name in sorted(logins) + sorted(unread):
-        folded.setdefault(name.casefold(), []).append(name)
+        folded.setdefault(fold(name), []).append(name)
     for name in unread:
-        doubt[name.casefold()] = "its auth file is a link or does not parse, so the tool cannot read it"
+        doubt[fold(name)] = "its auth file is a link or does not parse, so the tool cannot read it"
     for key, names in folded.items():
         if len(names) > 1:
             doubt[key] = "auth files differ only by letter case: {}".format(", ".join(names))
     for name, info in logins.items():
         if info["username"] != name:
             why = "{}.json holds the login {}".format(name, info["username"])
-            doubt.setdefault(name.casefold(), why)
-            doubt.setdefault(info["username"].casefold(), why)
+            doubt.setdefault(fold(name), why)
+            doubt.setdefault(fold(info["username"]), why)
 
     def login_for(text):
         """The login a name opens: its stem, DOUBT, or None."""
-        key = text.casefold()
+        key = fold(text)
         if key in doubt:
             return DOUBT
         names = folded.get(key)
@@ -442,8 +461,9 @@ def survey(run, home, project, today, predict=True, env=None):
     indexes = read_indexes(home)
     tracking, symlinks = read_project_dirs(project, "orgs")
     entries, response_symlinks = read_project_dirs(project, "fileResponses")
-    responses = [p for p in entries if is_dir(p) and ORG_ID.fullmatch(p.name)]
-    unrecognized_responses = [p for p in entries if p not in responses]
+    responses, unrecognized_responses = [], []
+    for path in entries:
+        (responses if is_dir(path) and ORG_ID.fullmatch(path.name) else unrecognized_responses).append(path)
     symlinks = list(dict.fromkeys(symlinks + response_symlinks))  # a linked .sfdx shows up in both
 
     cache_path = home / ".sf" / "deploy-cache.json"
@@ -453,6 +473,8 @@ def survey(run, home, project, today, predict=True, env=None):
     else:
         deploy_cache = read_json(cache_path, {})
     deploy_cache = deploy_cache if isinstance(deploy_cache, dict) else {}
+    # sf stores the username a deploy ran against, and resolves it through an alias again when it
+    # reads the entry (deploy report/resume), so a target is judged like any other name.
     deploy_raw = {job: entry.get("target-org") for job, entry in deploy_cache.items() if isinstance(entry, dict)}
     manifest_dir = home / ".sf" / "manifestCache"
     manifest_linked = is_link(manifest_dir)
@@ -466,49 +488,57 @@ def survey(run, home, project, today, predict=True, env=None):
     hubs = sorted(n for n, info in logins.items() if info["is_hub"])
     aliased_hubs = [hub for hub in hubs if hub in aliases]
     queried = [hub for hub in hubs if hub not in aliases]
-    org_ids = {info["org"] for info in logins.values()} | {p.stem[:15] for p in indexes}
-    org_ids |= {p.name[:15] for p in tracking if ORG_ID.fullmatch(p.name)} | {p.name[:15] for p in responses}
+    state_orgs = {p.stem[:15] for p in indexes} | {p.name[:15] for p in responses}
+    state_orgs |= {p.name[:15] for p in tracking if ORG_ID.fullmatch(p.name)}
+    org_ids = {info["org"] for info in logins.values()} | state_orgs
     org_ids |= {o["org_id"][:15] for o in (cci or {}).get("orgs", []) if ORG_ID.fullmatch(o["org_id"])}
     id_rows, id_failed = query_hubs(run, queried, "ScratchOrg", org_ids)
 
     def target(name):
         return aliases.get(name, name)  # sf follows one alias, never a chain
 
-    # Names with no login to give an org ID are judged by signup username.
+    # Names with no login to give an org ID are judged by signup username, and only when every hub
+    # answered in full: a reused username may sit on a hub that did not answer, one named like an
+    # alias, or one whose auth file the tool did not read.
     named = [target(a) for a in aliases] + [p.name for p in tracking if "@" in p.name]
     named += [target(v) for v in deploy_raw.values() if isinstance(v, str)]
     named += [target(v) for s in scopes.values() for _, v in s["pairs"]]
     named += [target(v) for v in env_values.values()]
-    named += [o["username"] for o in (cci or {}).get("orgs", []) if o["username"]]
     orphans = {n for n in named if "@" in n and login_for(n) is None}
-    user_rows, user_failed = query_hubs(run, queried, "SignupUsername", orphans)
-    # Username evidence needs every hub: a reused username may sit on a hub that did not answer, one
-    # named like an alias, or one whose auth file the tool did not read.
-    hub_failures = sorted(set(id_failed + user_failed + aliased_hubs) | unread)
+    incomplete = set(id_failed + aliased_hubs) | unread
+    user_rows, user_failed = ({}, []) if incomplete else query_hubs(run, queried, "SignupUsername", orphans)
+    hub_failures = sorted(incomplete | set(user_failed))
 
     def org_class(org):
         return classify(id_rows.get(org[:15], []), today)
 
     def user_class(username):
-        return "unknown" if hub_failures else classify(user_rows.get(username.casefold(), []), today)
+        return "unknown" if hub_failures else classify(user_rows.get(fold(username), []), today)
+
+    def user_orgs(username):
+        return sorted({r["ScratchOrg"][:15] for r in user_rows.get(fold(username), [])
+                       if isinstance(r.get("ScratchOrg"), str)})
 
     direct = {}  # sf's logout clears the aliases whose value is exactly the user
     for alias, value in aliases.items():
         direct.setdefault(value, []).append(alias)
 
+    def clears(name):
+        """The names sf's logout of this login removes, and whose config keys it unsets."""
+        return {name} | set(direct.get(name, []))
+
     def logout_refused(name):
         """Why sf's logout of this login could do something the plan cannot show, or ''."""
-        if name.casefold() in doubt:
-            return doubt[name.casefold()]
+        if fold(name) in doubt:
+            return doubt[fold(name)]
         # An alias named like the login, other than one naming the login itself (which logout clears).
-        if any(a.casefold() == name.casefold() and v != name for a, v in aliases.items()):
+        if any(fold(a) == fold(name) and v != name for a, v in aliases.items()):
             return "an alias is named like this login, so sf could resolve the name to the alias"
         for alias in direct.get(name, []):
-            if alias.casefold() != name.casefold() and login_for(alias) is not None:
+            if fold(alias) != fold(name) and login_for(alias) is not None:
                 return "logout clears its alias {}, and that name would then mean another login".format(alias)
-        held = {name} | set(direct.get(name, []))
         for scope_name, scope in sorted(scopes.items()):
-            if scope["why"] and held & scope["values"]:
+            if scope["why"] and clears(name) & scope["values"]:
                 return "logout rewrites the {} config, which the tool cannot model: {}".format(
                     scope_name, scope["why"])
         return ""
@@ -522,9 +552,13 @@ def survey(run, home, project, today, predict=True, env=None):
             protected[name] = why
         else:
             stale_logins.add(name)
+    for name in sorted(unread):
+        protected[name] = doubt[fold(name)]
 
     def judge(name, resolve=True):
         """What sf reaches through a name: stale, live, doubt, unknown or dangling."""
+        if resolve and name in aliases and login_for(name) is not None:
+            return "doubt"  # an alias shadows a login's name, so which org the name means is in doubt
         text = target(name) if resolve else name
         login = login_for(text)
         if login is DOUBT:
@@ -537,28 +571,31 @@ def survey(run, home, project, today, predict=True, env=None):
 
     def reaches(name, resolve=True):
         """The login and org a name reaches, for apply's failed-logout checks."""
-        login = login_for(target(name) if resolve else name)
-        if login is None or login is DOUBT:
+        text = target(name) if resolve else name
+        login = login_for(text)
+        if login is DOUBT:
             return {"login": None, "org": None}
+        if login is None:  # a username with no login: the org its signup row names, if just one
+            orgs = user_orgs(text)
+            return {"login": None, "org": orgs[0] if len(orgs) == 1 else None}
         return {"login": login, "org": logins[login]["org"]}
 
     def effects(name):
-        held = {name} | set(direct.get(name, []))
+        held = clears(name)
         config = {s: sorted(k for k, v in scope["merged"].items() if isinstance(v, str) and v in held)
                   for s, scope in scopes.items()}
         return {"aliases": sorted(direct.get(name, [])), "config": {s: k for s, k in sorted(config.items()) if k}}
 
-    cleared = set(stale_logins) | {a for n in stale_logins for a in direct.get(n, [])}
+    cleared = set().union(*map(clears, stale_logins))
 
-    remove_aliases, unsafe_aliases = [], []
+    remove_aliases = []
     for alias in sorted(aliases):
-        if alias in cleared or judge(alias) != "stale":
+        if alias in cleared:
             continue
-        if alias.startswith("-"):  # sf would parse it as flags: `-ap` is --all --no-prompt
-            unsafe_aliases.append(alias)
-        elif login_for(alias) is not None:
-            protected[alias] = "this alias is named like a login, so unsetting it would make the name mean that login"
-        else:
+        if login_for(alias) is not None:  # unsetting it would make the name mean that login
+            if judge(aliases[alias], resolve=False) == "stale":
+                protected[alias] = "this alias is named like a login, so unsetting it would make the name mean that login"
+        elif judge(alias) == "stale":
             remove_aliases.append(alias)
 
     defaults, stale_values = [], []
@@ -582,7 +619,8 @@ def survey(run, home, project, today, predict=True, env=None):
             return False
         if login is not None:
             return login in stale_logins and gone_org(logins[login]["org"])
-        return user_class(username) in REMOVABLE
+        orgs = user_orgs(username)  # its org must be gone and no remaining login on it
+        return user_class(username) in REMOVABLE and len(orgs) == 1 and orgs[0] not in kept_orgs
 
     jobs = [] if manifest_linked else sorted(
         job for job, value in deploy_raw.items()
@@ -600,10 +638,9 @@ def survey(run, home, project, today, predict=True, env=None):
     }
 
     def file_owner(item):
-        name = Path(item).name
         if ORG_ID.fullmatch(Path(item).stem):
             return {"login": None, "org": Path(item).stem[:15]}
-        return reaches(name, resolve=False)
+        return reaches(Path(item).name, resolve=False)
 
     def proven_gone(org):
         if ORG_ID.fullmatch(org["org_id"]):
@@ -611,6 +648,8 @@ def survey(run, home, project, today, predict=True, env=None):
         login = login_for(org["username"]) if org["username"] else None
         return login is not None and login is not DOUBT and org_class(logins[login]["org"]) in REMOVABLE
 
+    consumed = ({home / ".sfdx" / (name + ".json") for name in logins} | set(indexes)
+                | {home / ".sfdx" / name for name in unreadable})
     plan = {
         "schema": 2,
         "today": today,
@@ -625,8 +664,7 @@ def survey(run, home, project, today, predict=True, env=None):
             "defaults": {s: dict(value=scopes[s]["merged"]["target-org"],
                                  **reaches(scopes[s]["merged"]["target-org"])) for s in defaults},
             "deploy_jobs": {j: dict(value=deploy_raw[j], **reaches(deploy_raw[j])) for j in jobs},
-            "files": {item: file_owner(item) for key in ("indexes", "tracking", "file_responses")
-                      for item in remove[key]},
+            "files": {item: file_owner(item) for key in FILE_KEYS for item in remove[key]},
         },
         "preserved": {
             "logins": len(logins) - len(stale_logins),
@@ -638,7 +676,11 @@ def survey(run, home, project, today, predict=True, env=None):
         },
         "report": {
             "protected": dict(sorted(protected.items())),
-            "conflicting_evidence": sorted(n for n, info in logins.items() if org_class(info["org"]) == "conflict"),
+            # Hub rows that disagree, or show Active past the date: a login, an org's local state, or a username.
+            "conflicting_evidence": sorted(
+                {n for n, info in logins.items() if org_class(info["org"]) == "conflict"}
+                | {org for org in state_orgs if org_class(org) == "conflict"}
+                | {n for n in orphans if user_class(n) == "conflict"}),
             "logins_with_no_refresh_token": sorted(
                 n for n, info in logins.items() if not info["refreshable"] and n not in stale_logins),
             "unreadable_auth_files": unreadable,
@@ -648,12 +690,11 @@ def survey(run, home, project, today, predict=True, env=None):
             # text names no org, so neither is ever planned.
             "unsafe_deploy_cache_keys": sorted(j for j, v in deploy_raw.items()
                                                if not plain_job_id(j) or not isinstance(v, str)),
-            "unsafe_alias_names": unsafe_aliases,
-            "unclassified_files": read_unclassified(home, project),
+            "unclassified_files": read_unclassified(home, project, consumed),
             # Lead to no login and no username, so no hub row can ever put them on the plan.
             "dangling_aliases": sorted(a for a in aliases if judge(a) == "dangling"),
             "dangling_defaults": sorted(s for s, scope in scopes.items()
-                                        if isinstance(scope["merged"].get("target-org"), str)
+                                        if not scope["why"] and isinstance(scope["merged"].get("target-org"), str)
                                         and judge(scope["merged"]["target-org"]) == "dangling"),
             "unmodelled_config": {s: scope["why"] for s, scope in sorted(scopes.items()) if scope["why"]},
             "stale_config_values": stale_values,
@@ -720,9 +761,6 @@ def move_path(source, dest):
         if error.errno != errno.EXDEV:
             raise
         shutil.move(source, dest)
-
-
-QUARANTINE_FOLDERS = ("orgs", "fileResponses", "manifestCache", ".sf", ".sfdx")
 
 
 def check_quarantine(quarantine, home):
@@ -794,7 +832,7 @@ def replace_json(path, data):
     mode = stat.S_IMODE(path.stat().st_mode)
     handle, temp = tempfile.mkstemp(dir=str(path.parent), prefix=".deploy-cache.")
     try:
-        with os.fdopen(handle, "w") as out:
+        with os.fdopen(handle, "w", encoding="utf-8") as out:
             os.fchmod(out.fileno(), mode)
             json.dump(data, out, indent=4)
         os.replace(temp, str(path))
@@ -804,12 +842,14 @@ def replace_json(path, data):
         raise
 
 
-def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
+def remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done=None):
     """Drop named cache entries, keeping every other key. Returns (entries, manifests moved).
 
     An entry stays if its manifest could not be moved. If the cache cannot be written, every entry
-    stays and is reported, while manifests already moved remain in the quarantine.
+    stays and is reported, while manifests already moved remain in the quarantine. Each move is
+    counted into `done` as it happens, so an interruption still reports it.
     """
+    done = {} if done is None else done
     if not jobs:  # no cache file is normal, and only a failure if something had to change in it
         return 0, 0
     path = home / ".sf" / "deploy-cache.json"
@@ -838,6 +878,7 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
                 failures.append((str(manifest), why))
                 continue
             moved += 1
+            done["manifests"] = done.get("manifests", 0) + 1
         del cache[job]
         removed += 1
     if removed:
@@ -846,6 +887,7 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
         except OSError as error:
             failures.append((str(path), "could not write: {}".format(reason(error))))
             return 0, moved
+    done["deploy_jobs"] = done.get("deploy_jobs", 0) + removed
     return removed, moved
 
 
@@ -854,7 +896,8 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None):
 
     The caller owns both, so what ran is still reported if a step raises. Every item carries the
     login and org it reaches (bound in the reviewed plan), so a failed logout blocks exactly what
-    depends on it without asking sf again.
+    depends on it without asking sf again. A logout counts only once its effects are checked: sf
+    reports which logins it selected, not what it removed.
     """
     env = os.environ if env is None else env
     remove, targets = plan["remove"], plan["targets"]
@@ -863,30 +906,41 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None):
     def blocked(owner):
         return owner.get("login") in failed_users or owner.get("org") in failed_orgs
 
+    def leftovers(name, planned):
+        """What sf's logout should have removed and did not: the auth file, or a config value."""
+        held = {name} | set(planned["aliases"])
+        left = ["its auth file"] if lstat_or_none(home / ".sfdx" / (name + ".json")) is not None else []
+        for scope_name, scope in sorted(config_scopes(home, project, env).items()):
+            left += ["{} in the {} config".format(k, scope_name) for k, v in scope["pairs"] if v in held]
+        return left
+
     for name in remove["logout"]:
         planned = targets["logout"][name]
         payload = sf_json(run, "org", "logout", "--target-org", name, "--no-prompt")
         result = (payload or {}).get("result")
+        others = sorted(str(u) for u in result if u != name) if isinstance(result, list) else []
+        if others:  # sf selected another login too; that logout cannot be undone
+            failures.append((name, "sf also logged out {}".format(", ".join(others))))
         if payload is None or not isinstance(result, list) or name not in result:
             failures.append((name, "logout failed"))
             failed_users.add(name)
             failed_orgs.add(planned["org"])
             continue
+        left = leftovers(name, planned)
+        if left:
+            failures.append((name, "logout left {}".format(", ".join(left))))
+            failed_users.add(name)
+            failed_orgs.add(planned["org"])
+            continue
         done["logout"] += 1
         done["cleared_by_logout"] += len(planned["aliases"]) + sum(map(len, planned["config"].values()))
-        others = sorted(u for u in result if u != name)
-        if others:
-            failures.append((name, "sf also logged out {}".format(", ".join(map(str, others)))))
 
     # One alias per command: sf handles several in parallel, and a batch can fail partway.
     for alias in remove["aliases"]:
         if blocked(targets["aliases"][alias]):
             failures.append((alias, "skipped because its logout failed"))
             continue
-        if alias.startswith("-"):  # never planned; checked again because sf would read it as flags
-            failures.append((alias, "refused: sf would read the name as flags"))
-            continue
-        payload = sf_json(run, "alias", "unset", alias)
+        payload = sf_json(run, "alias", "unset", operands=[alias])
         rows = (payload or {}).get("result")
         if (isinstance(rows, list) and len(rows) == 1 and isinstance(rows[0], dict)
                 and rows[0].get("alias") == alias and rows[0].get("success") is True):
@@ -900,7 +954,8 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None):
         if blocked(planned):
             failures.append((label, "skipped because its logout failed"))
             continue
-        if config_scopes(home, project, env)[scope]["merged"].get("target-org") != planned["value"]:
+        now = config_scopes(home, project, env)[scope]
+        if now["why"] or now["merged"].get("target-org") != planned["value"]:
             failures.append((label, "changed during this run; not modified"))
             continue
         args = ["config", "unset", "target-org"] + (["--global"] if scope == "global" else [])
@@ -911,15 +966,15 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None):
         else:
             done["defaults"] += 1
 
-    for key, roots in (("indexes", [home / ".sfdx"]),
-                       ("tracking", [project / ".sf" / "orgs", project / ".sfdx" / "orgs"]),
-                       ("file_responses", [project / ".sf" / "fileResponses",
-                                           project / ".sfdx" / "fileResponses"])):
+    roots = {"indexes": [home / ".sfdx"],
+             "tracking": [project / ".sf" / "orgs", project / ".sfdx" / "orgs"],
+             "file_responses": [project / ".sf" / "fileResponses", project / ".sfdx" / "fileResponses"]}
+    for key in FILE_KEYS:
         for item in remove[key]:
             if blocked(targets["files"][item]):
                 failures.append((item, "skipped because its logout failed"))
                 continue
-            why = move_to_quarantine(run, Path(item), roots, quarantine, project)
+            why = move_to_quarantine(run, Path(item), roots[key], quarantine, project)
             if why:
                 failures.append((item, why))
             else:
@@ -931,8 +986,7 @@ def apply_plan(run, plan, home, project, quarantine, done, failures, env=None):
             failures.append((job, "skipped because its logout failed"))
         else:
             jobs.append(job)
-    done["deploy_jobs"], done["manifests"] = remove_deploy_jobs(run, jobs, home, quarantine,
-                                                                project, failures)
+    remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done)
 
 
 def print_plan(plan):
@@ -970,7 +1024,7 @@ def write_private(path, text):
         raise OSError(errno.ELOOP, "is a symlink")
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
     fd = os.open(str(path), flags, 0o600)
-    with os.fdopen(fd, "w") as handle:
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
         os.fchmod(handle.fileno(), 0o600)  # a file that already existed keeps its old mode
         handle.write(text)
 
@@ -995,6 +1049,9 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
     project = project or Path.cwd()
     today = today or datetime.date.today().isoformat()
     env = os.environ if env is None else env
+    for stream in (sys.stdout, sys.stderr):  # a report that cannot be encoded must still print
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="backslashreplace")
     if not in_project_root(project):
         print("Run this from the project root: cci and local sf config resolve the project "
               "from the working directory.", file=sys.stderr)
@@ -1026,13 +1083,15 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
         return 0
 
     reviewed = read_json(args.plan, None)
-    if not isinstance(reviewed, dict) or any(reviewed.get(key) != plan[key]
-                                             for key in ("schema", "project", "remove", "targets")):
+    if not isinstance(reviewed, dict):
+        print("Could not read a plan from {}. Nothing was changed.".format(args.plan), file=sys.stderr)
+        return 1
+    if any(reviewed.get(key) != plan[key] for key in ("schema", "project", "remove", "targets")):
         print("The plan differs from the current state. Review a fresh audit before applying.",
               file=sys.stderr)
         return 3
     quarantine = Path(args.quarantine) if args.quarantine else default_quarantine(home, today)
-    moves = any(plan["remove"][key] for key in ("indexes", "tracking", "file_responses", "deploy_jobs"))
+    moves = any(plan["remove"][key] for key in FILE_KEYS + ("deploy_jobs",))
     if moves:
         why = check_quarantine(quarantine, home)
         if why:
