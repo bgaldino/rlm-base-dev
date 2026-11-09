@@ -323,6 +323,8 @@ def build_plan(run, home, project, today):
     orphans = {u for u in map(resolve, aliases) if "@" in u and u not in auth}
     orphans |= {p.name for p in tracking if "@" in p.name and p.name not in auth}
     orphans |= {u for u in deploy_targets.values() if "@" in u and u not in auth}
+    orphans |= {resolve(v) for values in config_targets(home, project).values() for v in values
+                if "@" in resolve(v) and resolve(v) not in auth}
     user_rows, user_failed = query_hubs(run, hubs, "SignupUsername", orphans)
 
     def org_class(org):
@@ -727,7 +729,8 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
         return 0
 
     reviewed = read_json(args.plan, None)
-    if not isinstance(reviewed, dict) or reviewed.get("remove") != plan["remove"]:
+    if (not isinstance(reviewed, dict) or reviewed.get("remove") != plan["remove"]
+            or reviewed.get("project") != plan["project"]):
         print("The plan differs from the current state. Review a fresh audit before applying.",
               file=sys.stderr)
         return 3

@@ -105,7 +105,7 @@ Do not run `apply` while another `sf` or `cci` process is running: the deploy ca
 rewritten without a lock, so a concurrent deploy's entry could be lost.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
-reviewed one. It then moves a temp file into the quarantine, and exits 1 before any logout if that
+reviewed one, or if the plan was saved for a different project. It then moves a temp file into the quarantine, and exits 1 before any logout if that
 fails. The quarantine is a dated folder in the user's Trash, or with no Trash, beside the real CLI
 state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another
 folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config

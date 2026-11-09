@@ -23,7 +23,7 @@ import org_cleanup as oc  # noqa: E402
 
 TODAY = "2026-11-06"
 HUB = "admin@hub.invalid"
-SECRET = "SECRET-TOKEN-VALUE-1234567890"
+CANARY = "CANARY-VALUE-1234567890"
 DEAD_ORG = "00DAA0000000001"
 LIVE_ORG = "00DAA0000000002"
 NO_ROW_ORG = "00DAA0000000003"
@@ -109,7 +109,7 @@ class Base(unittest.TestCase):
         self.quarantine = root / "quarantine"
 
     def add_auth(self, user, org, **fields):
-        data = dict(username=user, orgId=org + "MAA", refreshToken=SECRET, accessToken=SECRET)
+        data = dict(username=user, orgId=org + "MAA", refreshToken=CANARY, accessToken=CANARY)
         data.update(fields)
         (self.home / ".sfdx" / (user + ".json")).write_text(json.dumps(data))
 
@@ -270,6 +270,20 @@ class UsernameKeyedState(Base):
         self.assertEqual(plan["remove"]["defaults"], [])
         self.assertEqual(plan["report"]["mixed_defaults"], ["local"])
 
+    def test_a_default_naming_only_a_username_is_judged_by_the_hub(self):
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "gone@x.invalid"}))
+        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+        plan = self.plan(FakeCli(self.home, rows))
+        self.assertEqual(plan["remove"]["defaults"], ["local"])
+
+    def test_a_default_username_is_not_judged_while_a_hub_has_not_answered(self):
+        self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "gone@x.invalid"}))
+        rows = [row("00DBB0000000001", user="gone@x.invalid")]
+        plan = self.plan(FakeCli(self.home, rows, fail_hubs=["hub2@x.invalid"]))
+        self.assertEqual(plan["hub_failures"], ["hub2@x.invalid"])
+        self.assertEqual(plan["remove"]["defaults"], [])
+
     def test_a_username_is_not_judged_while_a_hub_has_not_answered(self):
         # A signup username can be reused by a newer org on the hub that failed.
         self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
@@ -344,39 +358,39 @@ class PrunePrediction(Base):
 class Secrets(Base):
     def test_auth_inventory_holds_no_token_values(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
-        self.assertNotIn(SECRET, json.dumps(oc.read_auth(self.home)))
+        self.assertNotIn(CANARY, json.dumps(oc.read_auth(self.home)))
 
     def test_no_token_reaches_the_plan_or_the_output(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)
-        (self.project / ".sfdx" / "saved-auth").write_text(SECRET)
+        (self.project / ".sfdx" / "saved-auth").write_text(CANARY)
         out = Path(self.project / "plan.json")
         stdout = io.StringIO()
         with contextlib.redirect_stdout(stdout):
             code = oc.main(["audit", "--out", str(out)], FakeCli(self.home, [row(DEAD_ORG)]),
                            self.home, self.project, TODAY)
         self.assertEqual(code, 0)
-        self.assertNotIn(SECRET, stdout.getvalue())
-        self.assertNotIn(SECRET, out.read_text())
+        self.assertNotIn(CANARY, stdout.getvalue())
+        self.assertNotIn(CANARY, out.read_text())
         self.assertEqual(oct(out.stat().st_mode & 0o777), "0o600")
 
     def test_a_symlinked_or_renamed_credential_file_is_reported(self):
         elsewhere = self.home / "elsewhere.json"
-        elsewhere.write_text(SECRET)
+        elsewhere.write_text(CANARY)
         (self.home / ".sfdx" / "linked@x.invalid.json").symlink_to(elsewhere)
-        (self.home / ".sfdx" / "backup@x.invalid.json.bak").write_text(SECRET)
-        (self.home / ".sfdx" / "saved@x.invalid.sfdxurl").write_text(SECRET)
+        (self.home / ".sfdx" / "backup@x.invalid.json.bak").write_text(CANARY)
+        (self.home / ".sfdx" / "saved@x.invalid.sfdxurl").write_text(CANARY)
         (self.home / ".sfdx" / (DEAD_ORG + "MAA.json")).symlink_to(elsewhere)
         # Only the home roots are read as auth and indexes, so the same names in the project are
         # nobody's: a credential copied into the repo tree must be reported.
-        (self.project / ".sfdx" / "copied@x.invalid.json").write_text(SECRET)
-        (self.project / ".sf" / (LIVE_ORG + "MAA.json")).write_text(SECRET)
+        (self.project / ".sfdx" / "copied@x.invalid.json").write_text(CANARY)
+        (self.project / ".sf" / (LIVE_ORG + "MAA.json")).write_text(CANARY)
         self.add_auth("plain@x.invalid", LIVE_ORG)  # a regular home auth file is not "unclassified"
         files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
         names = sorted(Path(f["path"]).name for f in files)
         self.assertEqual(names, sorted(["linked@x.invalid.json", "backup@x.invalid.json.bak",
                                         "saved@x.invalid.sfdxurl", DEAD_ORG + "MAA.json",
                                         "copied@x.invalid.json", LIVE_ORG + "MAA.json"]))
-        self.assertNotIn(SECRET, json.dumps(files))
+        self.assertNotIn(CANARY, json.dumps(files))
 
     def test_the_plan_is_created_with_mode_0600(self):
         real_open = os.open
@@ -417,12 +431,12 @@ class Secrets(Base):
 
     def test_an_unknown_file_is_reported_without_being_opened(self):
         unknown = self.project / ".sfdx" / "saved-auth"
-        unknown.write_text(SECRET)
+        unknown.write_text(CANARY)
         unknown.chmod(0)  # any attempt to read it would raise
         self.addCleanup(unknown.chmod, 0o600)
         files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
         self.assertEqual([Path(f["path"]).name for f in files], ["saved-auth"])
-        self.assertNotIn(SECRET, json.dumps(files))
+        self.assertNotIn(CANARY, json.dumps(files))
 
 
 class Apply(Base):
@@ -507,6 +521,21 @@ class Apply(Base):
         self.assertEqual(sorted(str(p) for p in self.home.rglob("*")), before)
         allowed = (["alias", "list"], ["data", "query"])
         self.assertTrue(all(c[0] in ("cci",) or c[1:3] in allowed for c in cli.calls), cli.calls)
+
+    def test_a_plan_reviewed_for_another_project_is_not_applied(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows, {"stale": "gone@x.invalid"})
+        plan_file = self.project / "plan.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
+        plan = json.loads(plan_file.read_text())
+        plan["project"] = str(self.project.parent / "other-project")
+        plan_file.write_text(json.dumps(plan))
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
+                           cli, self.home, self.project, TODAY)
+        self.assertEqual(code, 3)
+        self.assertEqual(self.logouts(cli), [])
 
     def test_drift_since_review_stops_before_anything_happens(self):
         rows = self.setup_stale_org()
