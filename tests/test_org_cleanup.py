@@ -850,9 +850,12 @@ class Secrets(Base):
         (self.project / ".sfdx" / "copied@x.invalid.json").write_text(CANARY)
         (self.project / ".sf" / (LIVE_ORG + "MAA.json")).write_text(CANARY)
         self.add_auth("plain@x.invalid", LIVE_ORG)  # a regular login is not "unclassified"
-        files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
+        report = self.plan(FakeCli(self.home))["report"]
+        files = report["unclassified_files"]
+        # sf reads a linked login file through the link, so it is an auth file that does not parse
+        self.assertEqual(report["unreadable_auth_files"], ["linked@x.invalid.json"])
         self.assertEqual(sorted(Path(f["path"]).name for f in files),
-                         sorted(["linked@x.invalid.json", "backup@x.invalid.json.bak", "saved@x.invalid.sfdxurl",
+                         sorted(["backup@x.invalid.json.bak", "saved@x.invalid.sfdxurl",
                                  DEAD_ORG + "MAA.json", "copied@x.invalid.json", "copied@x.invalid.json",
                                  LIVE_ORG + "MAA.json"]))
         self.assertNotIn(CANARY, json.dumps(files))
@@ -1630,7 +1633,7 @@ class CheckLogins(Base):
         cli = FakeCli(self.home)
         self.answer(cli)
         self.assertEqual(self.main(["audit", "--check-logins"], cli), 0)
-        self.assertIn("Not queried: ghost@x.invalid (sf does not list it as a login)", self.stdout.getvalue())
+        self.assertIn("Not queried: ghost@x.invalid (sf lists it under no username the tool can query)", self.stdout.getvalue())
         self.assertFalse([c for c in cli.calls if "ghost@x.invalid" in c or "dir@x.invalid" in c])
 
 
@@ -2576,6 +2579,106 @@ class RoundSix(Base):
         cli = FakeCli(self.home)
         self.assertIsNone(oc.sf_json(cli, "data", "query", "--target-org", "\udc80@x.invalid"))
         self.assertEqual(cli.calls, [])
+
+
+class RoundSeven(Base):
+    """Cases the seventh review round found; each fails on the mutant that removes its guard."""
+
+    setup_stale_org = Apply.setup_stale_org
+    facts_raising = RoundSix.facts_raising
+
+    def link_login(self, name, org, **fields):
+        target = self.home.parent / (name + ".target.json")
+        target.write_text(json.dumps(dict(username=name, orgId=org + "MAA", **fields)))
+        (self.home / ".sfdx" / (name + ".json")).symlink_to(target)
+
+    def test_a_hub_file_without_an_org_id_holds_username_judgment(self):
+        (self.home / ".sfdx" / "hub2@x.invalid.json").write_text(json.dumps({"username": "hub2@x.invalid", "isDevHub": True}))
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")], {"stale": "gone@x.invalid"}))
+        self.assertEqual((plan["hub_failures"], plan["remove"]["aliases"]), (["hub2@x.invalid"], []))
+
+    def test_a_misnamed_hub_file_holds_username_judgment(self):
+        (self.home / ".sfdx" / "admin@acme.json.invalid.json").write_text(
+            json.dumps({"username": "admin@acme.json.invalid", "orgId": "00DHUB000000002MAA", "isDevHub": True}))
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")], {"stale": "gone@x.invalid"}))
+        self.assertEqual((plan["hub_failures"], plan["remove"]["aliases"]), (["admin@acme.json.invalid"], []))
+
+    def test_a_linked_login_keeps_its_orgs_files_and_is_reported_once(self):
+        self.setup_stale_org()
+        self.add_auth("rep@x.invalid", OTHER_DEAD)  # rep moves off the org; the link stays on it
+        self.link_login("x@x.invalid", DEAD_ORG)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG), row(OTHER_DEAD)]))
+        self.assertEqual((plan["remove"]["indexes"], plan["remove"]["tracking"]), ([], []))
+        self.assertEqual(plan["report"]["unclassified_files"], [])
+
+    def test_a_linked_login_is_reported_whatever_its_org(self):
+        self.link_login("bob@x.invalid", LIVE_ORG, accessToken=CANARY)
+        plan = self.plan(FakeCli(self.home, [row(LIVE_ORG, "Active", "2026-12-01")]))
+        self.assertIn("would remove only the link", plan["report"]["protected"]["bob@x.invalid"])
+        self.assertEqual(plan["report"]["logins_with_no_refresh_token"], [])  # logging it out removes only the link
+
+    def test_check_logins_queries_an_unread_file_sf_lists(self):
+        (self.home / ".sfdx" / "half@x.invalid.json").write_text(json.dumps({"username": "half@x.invalid"}))
+        cli = FakeCli(self.home)
+        CheckLogins.answer(self, cli)
+        self.main(["audit", "--check-logins"], cli)
+        self.assertTrue([c for c in cli.calls if "SELECT Id FROM Organization" in c and "half@x.invalid" in c])
+
+    def test_the_interrupt_line_is_replaced_once_counted(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        with self.facts_raising({3: KeyboardInterrupt()}):
+            self.assertEqual(self.apply(cli, plan_file), 130)
+        self.assertIn("counted from what it left", self.stdout.getvalue())
+        self.assertNotIn("it may have completed", self.stdout.getvalue())
+
+    def test_a_self_alias_on_a_dev_hub_does_not_stop_its_query(self):
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")],
+                                 {HUB: HUB, "stale": "gone@x.invalid"}))
+        self.assertEqual((plan["hub_failures"], plan["remove"]["aliases"]), ([], ["stale"]))
+
+    def test_a_null_alias_named_like_a_login_does_not_hold_its_logout(self):
+        rows = self.setup_stale_org()
+        plan = self.plan(FakeCli(self.home, rows, {"rep@x.invalid": None}))
+        self.assertEqual(plan["remove"]["logout"], ["rep@x.invalid"])
+
+    def test_a_config_file_unreadable_after_a_logout_counts_nothing_there(self):
+        rows = self.setup_stale_org()
+        self.write_config("global", sf={"target-org": "rep@x.invalid"})
+        cli = FakeCli(self.home, rows)
+        plan_file = self.audit_file(cli)
+
+        def logout_then_truncate(cmd):
+            if cmd[1:3] == ["org", "logout"]:
+                cli.logout(cmd[4])
+                (self.home / ".sf" / "config.json").write_text('{"target-org": "rep@x.inv')
+            return None
+
+        cli.override = logout_then_truncate
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("'cleared_by_logout': 0", self.stdout.getvalue())
+        self.assertIn("cannot tell whether it cleared target-org in the global config", self.stdout.getvalue())
+
+    def test_an_alias_unset_whose_store_is_unreadable_after_says_it_may_have_happened(self):
+        cli = FakeCli(self.home, self.setup_stale_org(), {"stale": "gone@x.invalid", "keep": HUB})
+        plan_file = self.audit_file(cli)
+
+        def unset_then_truncate(cmd):
+            if cmd[1:3] == ["alias", "unset"]:
+                cli.aliases.pop(cmd[-1])
+                cli.sync = lambda: None
+                (self.home / ".sfdx" / "alias.json").write_text('{"orgs": {"ke')
+            return None
+
+        cli.override = unset_then_truncate
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        out = self.stdout.getvalue()
+        self.assertIn("stale (may have been unset: ~/.sfdx/alias.json is unreadable now)", out)
+        self.assertNotIn("alias keep", out)
+        self.assertNotIn("alias unset failed", out)
+
+    def test_a_nul_in_a_name_is_never_passed_to_sf(self):
+        self.assertTrue(oc.sf_cannot_pass("a\0b"))
 
 
 class DocStaysInStep(Base):
