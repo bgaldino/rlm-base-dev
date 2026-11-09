@@ -90,7 +90,7 @@ Review with the user:
 | `dangling_aliases`, `dangling_defaults` | Lead to no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset <name>`, or `sf config unset target-org` (add `--global` for a `global` scope; the entry names it). That unset clears the scope's key whatever it names: if the scope also holds a valid value, note it first and restore it with `sf config set target-org=<value>`. |
 | `unsafe_deploy_cache_keys` | Deploy-cache keys that are not plain file names (such as `../x`). Never planned, because no manifest is looked for. Left alone; report them. |
 | `mixed_defaults` | A scope whose config holds a stale value and one that is not. `sf config unset target-org` clears the scope's key whatever it names, so the tool leaves it. Report it; with the user's approval note the valid value, unset, and restore it with `sf config set target-org=<value>`. |
-| `unclassified_files` | Not owned by the CLIs, and not opened. It includes a symlinked login or index file, a credential backup such as `user@x.json.bak`, and any login or index file inside the project, because only the home state is read as logins and indexes. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. Report it and let the user decide. |
+| `unclassified_files` | Not owned by the CLIs, and not opened. It includes a symlinked login or index file, a credential backup such as `user@x.json.bak`, and any login or index file inside the project, because only the home state is read as logins and indexes. A saved auth URL stays usable until the org expires or the token is revoked, independently of local logins. An entry the tool cannot examine is listed with an `error` instead of a size and mode. Report it and let the user decide. |
 | `prune_prediction` | See step 3. |
 
 An audit request ends here.
@@ -105,8 +105,8 @@ Do not run `apply` while another `sf` or `cci` process is running: the deploy ca
 rewritten without a lock, so a concurrent deploy's entry could be lost.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
-reviewed one, including its project, the default values and their usernames, the logout org IDs, and the usernames its aliases and deploy jobs resolved to. It then moves a temp file into the quarantine, and exits 1 before any logout if that
-fails. The quarantine is a dated folder in the user's Trash, or with no Trash, beside the real CLI
+reviewed one, including its project, the default values and their usernames, the logout org IDs, and the usernames its aliases and deploy jobs resolved to. An unreadable state folder stops the run with exit 1 before anything changes. Before any logout, if the
+plan moves files, it moves a temp file into the quarantine, and exits 1 if that fails. The quarantine is a dated folder in the user's Trash, or with no Trash, beside the real CLI
 state, which in the Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another
 folder. It then runs targeted `sf org logout` per user, `sf alias unset` per alias, and `sf config
 unset target-org` for a default still pointing at a removed user, and moves user indexes, tracking
@@ -116,7 +116,12 @@ checked against git). If a logout fails, that org's
 index, tracking, `fileResponses` and deploy-cache entries stay, and so does a chained alias that
 still reaches the login. `sf` clears the user's direct aliases and defaults before it can fail, so
 those may already be gone, and a chain
-left leading nowhere is removed. Fix the cause and re-audit; the login is listed again.
+left leading nowhere is removed. Fix the cause and re-audit; the login is listed again. If `sf alias
+list` fails after the logouts, a default is unset only when every value it holds is a user this run
+logged out or an alias it unset; any other is left and reported, because an alias holding an `@`
+would read as a username. A file error after the logouts start stops the run: it prints what ran and
+each `FAILED` line, then "Stopped part-way" with exit 1. Compare the plan with that output, because a
+fresh audit cannot list a logged-out secondary user's remaining state.
 
 Each result is checked. Exit 1 means something failed: report each `FAILED` line. A warning
 about losing access is routine for a scratch-org login. The user empties the quarantine when

@@ -430,6 +430,40 @@ class Secrets(Base):
         self.assertEqual(victim.read_text(), "keep")
         self.assertIn("Could not write the plan", stderr.getvalue())
 
+    def test_the_plan_symlink_is_refused_even_without_o_nofollow(self):
+        victim = self.project / "victim.txt"
+        victim.write_text("keep")
+        link = self.project / "plan.json"
+        link.symlink_to(victim)
+        with mock.patch.object(os, "O_NOFOLLOW", 0, create=True), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            code = oc.main(["audit", "--out", str(link)], FakeCli(self.home),
+                           self.home, self.project, TODAY)
+        self.assertEqual(code, 1)
+        self.assertEqual(victim.read_text(), "keep")
+
+    def test_an_entry_that_cannot_be_examined_is_reported_not_raised(self):
+        unknown = self.project / ".sfdx" / "saved-auth"
+        unknown.write_text("x")
+        real = Path.lstat
+
+        def deny(path, *args, **kwargs):
+            if path.name == "saved-auth":
+                raise PermissionError(errno.EACCES, "Permission denied")
+            return real(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "lstat", deny):
+            files = self.plan(FakeCli(self.home))["report"]["unclassified_files"]
+        self.assertIn({"path": str(unknown), "error": "Permission denied"}, files)
+
+    def test_an_unreadable_state_folder_stops_the_run_without_a_traceback(self):
+        stderr = io.StringIO()
+        with mock.patch.object(oc, "build_plan", side_effect=PermissionError(errno.EACCES, "Permission denied")), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+            code = oc.main(["audit"], FakeCli(self.home), self.home, self.project, TODAY)
+        self.assertEqual(code, 1)
+        self.assertIn("Nothing was changed", stderr.getvalue())
+
     def test_an_existing_loose_plan_file_is_tightened(self):
         out = self.project / "plan.json"
         out.write_text("old")
@@ -977,8 +1011,8 @@ class Apply(Base):
         return sorted(str(p.relative_to(path)) for p in path.rglob("*") if p.is_file())
 
     def test_a_failed_delete_across_volumes_loses_nothing_and_a_retry_finishes(self):
-        if os.geteuid() == 0:
-            self.skipTest("root ignores the read-only folder")
+        if os.name == "nt" or os.geteuid() == 0:
+            self.skipTest("needs POSIX permissions that root does not honor")
         root = self.project / ".sf" / "orgs"
         item = root / "00DAA0000000009MAA"
         (item / "sub").mkdir(parents=True)
@@ -1001,8 +1035,8 @@ class Apply(Base):
         self.assertEqual(self.files_under(copy.with_name(item.name + ".1")), left)
 
     def test_a_failed_copy_across_volumes_leaves_the_source_and_a_retry_finishes(self):
-        if os.geteuid() == 0:
-            self.skipTest("root ignores the unreadable file")
+        if os.name == "nt" or os.geteuid() == 0:
+            self.skipTest("needs POSIX permissions that root does not honor")
         root = self.project / ".sf" / "orgs"
         item = root / "00DAA0000000009MAA"
         item.mkdir(parents=True)
@@ -1113,6 +1147,62 @@ class Apply(Base):
                                     if cmd[1:3] == ["alias", "unset"] else None)
         self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertIn("chained (alias unset failed)", self.stdout.getvalue())
+
+    def alias_list_fails_in_apply(self, cli):
+        lists = []
+
+        def third_list_fails(cmd):
+            if cmd[1:3] == ["alias", "list"]:
+                lists.append(cmd)
+                if len(lists) == 3:  # apply's plan, the chain check, then the defaults check
+                    return 1, ""
+            return None
+
+        cli.override = third_list_fails
+
+    def test_a_default_the_plan_removed_is_still_unset_when_the_alias_list_fails(self):
+        rows = self.setup_stale_org()
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "chained"}))
+        aliases = {"base": "rep@x.invalid", "chained": "base"}
+        cli = FakeCli(self.home, rows, aliases)
+        self.alias_list_fails_in_apply(cli)
+        self.assertEqual(self.audit_then_apply(cli, plan_cli=FakeCli(self.home, rows, aliases)), 0)
+        self.assertEqual(len([c for c in cli.calls if c[1:3] == ["config", "unset"]]), 1)
+
+    def test_a_default_that_may_be_an_alias_is_not_unset_when_the_alias_list_fails(self):
+        # The logout fails, so the alias is kept. Without the list, "x@y" would read as a username.
+        rows = self.setup_stale_org()
+        (self.project / ".sf" / "config.json").write_text(json.dumps({"target-org": "x@y"}))
+        aliases = {"base": "rep@x.invalid", "x@y": "base"}
+        cli = FakeCli(self.home, rows, aliases, fail_logout=("rep@x.invalid",))
+        self.alias_list_fails_in_apply(cli)
+        self.assertEqual(self.audit_then_apply(cli, plan_cli=FakeCli(self.home, rows, aliases)), 1)
+        self.assertIn("alias list failed; default not modified", self.stdout.getvalue())
+        self.assertEqual([c for c in cli.calls if c[1:3] == ["config", "unset"]], [])
+
+    def test_an_error_after_a_logout_reports_what_ran_not_a_traceback(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows)
+        with mock.patch.object(oc, "move_to_quarantine",
+                               side_effect=PermissionError(errno.EACCES, "Permission denied")):
+            self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertTrue(self.logouts(cli))
+        self.assertIn("'logout': {}".format(len(self.logouts(cli))), self.stdout.getvalue())
+        self.assertIn("Stopped part-way: Permission denied", self.stderr.getvalue())
+
+    def test_an_unreadable_state_folder_stops_apply_before_any_logout(self):
+        rows = self.setup_stale_org()
+        cli = FakeCli(self.home, rows)
+        plan_file = self.project / "plan.json"
+        with contextlib.redirect_stdout(io.StringIO()):
+            oc.main(["audit", "--out", str(plan_file)], cli, self.home, self.project, TODAY)
+        stderr = io.StringIO()
+        with mock.patch.object(oc, "build_plan", side_effect=PermissionError(errno.EACCES, "Permission denied")), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+            code = oc.main(["apply", "--plan", str(plan_file), "--quarantine", str(self.quarantine)],
+                           cli, self.home, self.project, TODAY)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.logouts(cli), [])
 
     def test_a_failed_config_unset_is_reported(self):
         rows = self.setup_stale_org()

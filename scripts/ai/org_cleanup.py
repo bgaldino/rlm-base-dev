@@ -217,7 +217,11 @@ def read_unclassified(home, project):
                         and ("@" in path.name or ORG_ID.match(path.stem)))
             if path.name in KNOWN_ENTRIES or KNOWN_ENTRY_PATTERN.match(path.name) or consumed:
                 continue
-            info = path.lstat()
+            try:
+                info = path.lstat()
+            except OSError as error:  # one entry we cannot examine must not stop the audit
+                found.append({"path": str(path), "error": error.strerror or str(error)[:300]})
+                continue
             found.append({"path": str(path), "size": info.st_size,
                           "mode": stat.filemode(info.st_mode)})
     return found
@@ -641,10 +645,10 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures):
     return removed, moved
 
 
-def apply_plan(run, plan, home, project, quarantine):
-    """Carry out a reviewed plan. Per-item failures are collected, never hidden."""
-    remove, targets, failures = plan["remove"], plan["targets"], []
-    done = dict.fromkeys(REMOVE_KEYS, 0)
+def apply_plan(run, plan, home, project, quarantine, done, failures):
+    """Carry out a reviewed plan, counting into done and collecting per-item failures, never hiding them.
+    The caller owns both, so what ran is still reported if a step raises."""
+    remove, targets = plan["remove"], plan["targets"]
     auth = read_auth(home)[0]
     failed_orgs, failed_users = set(), set()
 
@@ -689,6 +693,11 @@ def apply_plan(run, plan, home, project, quarantine):
     alias_map = {r["alias"]: r.get("value") for r in (aliases or {}).get("result") or []}
     gone = (set(remove["logout"]) - failed_users) | (set(remove["aliases"]) - kept_aliases)
     for scope in remove["defaults"]:
+        # Without the alias list an alias that holds an "@" reads as a username, so only a value the
+        # plan itself removed can be judged. Anything else is left for a later audit.
+        if aliases is None and any(v not in gone for v in defaults.get(scope, [])):
+            failures.append((scope + " default", "alias list failed; default not modified"))
+            continue
         still_set = [v for v in defaults.get(scope, [])
                      if v in gone or v not in alias_map and "@" in v and v not in read_auth(home)[0]]
         if not still_set:
@@ -724,7 +733,6 @@ def apply_plan(run, plan, home, project, quarantine):
             jobs.append(job)
     done["deploy_jobs"], done["manifests"] = remove_deploy_jobs(run, jobs, home, quarantine,
                                                                 project, failures)
-    return done, failures
 
 
 def print_plan(plan):
@@ -753,6 +761,8 @@ def print_plan(plan):
 
 def write_private(path, text):
     """Write a file only the user can read, from the first byte, and never through a symlink."""
+    if os.path.islink(str(path)):  # O_NOFOLLOW is missing on some platforms, so do not rely on it alone
+        raise OSError(errno.ELOOP, "is a symlink")
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
     fd = os.open(str(path), flags, 0o600)
     with os.fdopen(fd, "w") as handle:
@@ -789,6 +799,10 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
     except RuntimeError as error:
         print(str(error), file=sys.stderr)
         return 1
+    except OSError as error:  # an unreadable folder means an incomplete inventory, so change nothing
+        print("Could not read local state: {}. Nothing was changed.".format(
+            error.strerror or str(error)[:300]), file=sys.stderr)
+        return 1
 
     if args.command == "audit":
         print_plan(plan)
@@ -818,12 +832,21 @@ def main(argv=None, run=run_command, home=None, project=None, today=None):
                   "Use --quarantine <dir> to choose another folder.".format(quarantine, why),
                   file=sys.stderr)
             return 1
-    done, failures = apply_plan(run, plan, home, project, quarantine)
+    done, failures, stopped = dict.fromkeys(REMOVE_KEYS + ("manifests",), 0), [], None
+    try:
+        apply_plan(run, plan, home, project, quarantine, done, failures)
+    except OSError as error:  # logouts already done cannot be undone, so report what ran
+        stopped = error.strerror or str(error)[:300]
     print("Done: {}".format(done))
     if done["indexes"] or done["tracking"] or done["file_responses"] or done["manifests"]:
         print("Residual files moved to: {}".format(quarantine))
     for item, why in failures:
         print("FAILED: {} ({})".format(item, why))
+    if stopped:
+        print("Stopped part-way: {}. The steps after it did not run, and a logout that ran cannot be "
+              "undone. Compare the plan with Done above: a fresh audit cannot list a logged-out secondary "
+              "user's remaining state.".format(stopped), file=sys.stderr)
+        return 1
     return 1 if failures else 0
 
 
