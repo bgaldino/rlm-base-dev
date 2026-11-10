@@ -164,13 +164,17 @@ def repo_config_bytes():
 # mid-run, and that failed an innocent check twice during PR 702. Who wrote a change cannot be known
 # from here (PR 705 tried to infer it from refs, then from worktrees, and a leaked fixture command met
 # each test in one step), so the guard judges what the change does instead. A change passes, as a
-# printed note, only when every changed entry is branch bookkeeping that alters no commit and no push
-# or merge target:
+# printed note, only when every changed entry is branch bookkeeping that alters no commit and points
+# the branch at nothing but its own name:
 # - a `branch.<name>.<key>` entry with <key> in BOOKKEEPING_KEYS, for a real refs/heads/<name>;
-# - whose `remote`, if any, is "." or a remote the same file defines.
-# `pushRemote`, `mergeOptions` or a URL as `remote` redirect later pushes or merges in every worktree,
-# and user.*, core.*, remote.* and the rest alter commits or fetches, so they fail, as does anything
-# changed alongside them. A section removed for a branch that no longer exists fails too (pinned by
+# - whose `remote`, if any, is "." or a remote the same file defines;
+# - and whose `merge`, if any, is refs/heads/<name> itself, as `push -u` and `switch -c X origin/X`
+#   write it. A `merge` naming another branch redirects `git pull`, and `git push` under
+#   push.default=upstream (`feat -> trunk`), so it fails.
+# `rebase`, `pushRemote`, `mergeOptions`, a URL as `remote`, and user.*, core.*, remote.* and the rest
+# alter commits, pushes, merges or fetches, so they fail, as does any entry changed alongside them.
+# A swap between two remotes the file defines does pass: tracking decides only where a bare `git push`
+# or `git pull` goes, and this repository's docs push with an explicit remote and branch. A section removed for a branch that no longer exists fails too (pinned by
 # tests, by the owner's decision): nothing can be said about a ref that is gone.
 #
 # Both snapshots are read by git itself (`git config --file <snapshot> --null --list`), not by a parser
@@ -180,10 +184,9 @@ def repo_config_bytes():
 # variables, and no includes, which it lists as plain `include.path` entries. A snapshot git cannot
 # parse, or that cannot be handed to git at all, excuses nothing.
 
-# What `--track` and `push -u` write (remote, merge, and rebase under branch.autoSetupRebase), plus the
-# notes this repository's shared config already carries from editors and gh: VS Code and Cursor's
-# `vscode-merge-base` and gh's `github-pr-owner-number`.
-BOOKKEEPING_KEYS = {"remote", "merge", "rebase", "vscode-merge-base", "github-pr-owner-number"}
+# What `push -u` writes (remote, merge), plus the notes this repository's shared config already carries
+# from editors and gh: VS Code and Cursor's `vscode-merge-base` and gh's `github-pr-owner-number`.
+BOOKKEEPING_KEYS = {"remote", "merge", "vscode-merge-base", "github-pr-owner-number"}
 
 # Notes about excused `[branch]` bookkeeping, collected by run() and printed by main() whatever the
 # check's verdict: a passing check's output is otherwise never shown.
@@ -254,14 +257,15 @@ def local_branches():
 
 
 def bookkeeping_only(entries, name, remotes):
-    """True when every `branch.<name>.*` entry is a bookkeeping key and each `remote` is "." or one of
-    `remotes`."""
+    """True when every `branch.<name>.*` entry is a bookkeeping key, each `remote` is "." or one of
+    `remotes`, and each `merge` is refs/heads/<name>."""
     for key, value in entries:
         if branch_of(key) != name:
             continue
         variable = key.rpartition(".")[2]
-        if variable not in BOOKKEEPING_KEYS or (variable == "remote" and value != "."
-                                                and value not in remotes):
+        if (variable not in BOOKKEEPING_KEYS
+                or (variable == "remote" and value != "." and value not in remotes)
+                or (variable == "merge" and value != f"refs/heads/{name}")):
             return False
     return True
 
@@ -303,17 +307,18 @@ def config_change_note(before, after):
     for path in changed:
         old, new = config_entries(before[path]), config_entries(after.get(path))
         ours = excused_branches(old, new, real) if old is not None and new is not None else set()
-        # A file passes only when its excused branches account for all of its change; that includes
-        # bytes git reads as no entries at all (a comment, quoting), which fail rather than pass
-        # unexamined.
+        # A file passes only when its excused branches account for every entry that changed. Bytes git
+        # reads as no entries at all (a comment, quoting) fail on their own, rather than pass
+        # unexamined; beside an excused branch they ride along, since git reads them as nothing.
         if not ours or without(old, ours) != without(new, ours):
             failing.append(path)
         excused |= ours
     named = ", ".join(shown(name) for name in sorted(excused))
     if not failing:
         return ("\nnote: the repository's git config gained or changed [branch] bookkeeping for " + named
-                + " while this check ran: tracking or editor entries of a real local branch, which"
-                " change no commit, push or merge target. Usually another worktree's `git push -u` or"
+                + " while this check ran: tracking or editor entries pointing a real local branch at its own"
+                " name on a defined remote, which decide only where a bare `git push` or `git pull`"
+                " goes. Usually another worktree's `git push -u` or"
                 " tracking checkout (push with `git push origin <branch>` and branch with `--no-track`"
                 " to avoid it); if this check runs git, it may be its fixture's. Left in place.\n", False)
     diffs = []
@@ -326,7 +331,8 @@ def config_change_note(before, after):
     return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"
             " repository (or something else wrote it meanwhile). Only [branch] bookkeeping (tracking"
-            " or editor entries of a real local branch, naming a defined remote) is excused; this"
+            " or editor entries pointing a real local branch at its own name on a defined remote) is"
+            " excused; this"
             " change is not. Restore it by hand; the change is not reverted for you."
             + (f" (The [branch] bookkeeping for {named} in the diff below is excused.)" if excused
                else "") + "\n" + "\n".join(diffs) + "\n", True)

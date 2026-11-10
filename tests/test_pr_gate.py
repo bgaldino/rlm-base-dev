@@ -4942,7 +4942,7 @@ VERDICT_REGIONS = {
     # Pinned when the excuse for `[branch]` bookkeeping entries moved here from a one-line byte
     # comparison in run(): about sixty lines that call git now decide whether a config change fails.
     # It reads git's own answers (config --list, for-each-ref), the same on every host.
-    "the config guard": ("745997b8946e", "whether a check's config change fails it"),
+    "the config guard": ("b83d6225cccf", "whether a check's config change fails it"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
@@ -5398,10 +5398,10 @@ try:
             ("user", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
                       branch_config, '[user]\n\temail = t@example.com\n']),
             ("real+user", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
-                           branch_config, '[branch "other-session/work"]\n\trebase = true\n'
+                           branch_config, '[branch "other-session/work"]\n\tremote = origin\n'
                                           '[user]\n\temail = t@example.com\n']),
-            # What a leaked fixture `git branch --track` does: the ref and its tracking in one step.
-            # It passes, as a note naming it: tracking entries alter no commit, push or merge target.
+            # What a leaked fixture `git branch --track X base` does: its merge names another branch,
+            # which redirects `git pull` (and `git push` under push.default=upstream), so it fails.
             ("leaked-track", ["git", "-C", branch_root, "branch", "-q", "--track", "leaked", "base"])):
         pr_gate.CONFIG_NOTES.clear()
         code, out, _ = pr_gate.run(argv)
@@ -5420,6 +5420,26 @@ try:
     with open(branch_config, "wb") as fh:
         fh.write(pristine)
 
+    # run() keeps a tool error at 2 when the check also changed the config, keeps the diff on a
+    # timeout, and files no note for a check that changed nothing.
+    write_user = "import sys; open(sys.argv[1], 'a').write('[user]\\n\\tname = x\\n'); "
+    branch_cases["tool-error"] = pr_gate.run([sys.executable, "-c", write_user + "sys.exit(2)",
+                                              branch_config])[:2]
+    with open(branch_config, "wb") as fh:
+        fh.write(pristine)
+    prior_timeout = pr_gate.CHECK_TIMEOUT
+    pr_gate.CHECK_TIMEOUT = 3
+    try:
+        branch_cases["timeout"] = pr_gate.run([sys.executable, "-c",
+                                               write_user + "import time; time.sleep(60)",
+                                               branch_config])[:2]
+    finally:
+        pr_gate.CHECK_TIMEOUT = prior_timeout
+    with open(branch_config, "wb") as fh:
+        fh.write(pristine)
+    pr_gate.CONFIG_NOTES.clear()
+    branch_cases["quiet"] = (pr_gate.run([sys.executable, "-c", "pass"])[:2], list(pr_gate.CONFIG_NOTES))
+
     def added(section, base=pristine):
         """config_change_note for `section` appended to the shared config."""
         return pr_gate.config_change_note({branch_config: base}, {branch_config: base + section})
@@ -5429,7 +5449,9 @@ try:
                         ("mergeoptions", '\tmergeOptions = --strategy=ours\n'),
                         ("url-remote", '\tremote = https://evil.example/x.git\n'),
                         ("undefined-remote", '\tremote = nowhere\n'),
-                        ("dot-remote", '\tremote = .\n\tmerge = refs/heads/base\n'),
+                        ("merge-other", '\tremote = origin\n\tmerge = refs/heads/base\n'),
+                        ("rebase", '\trebase = interactive\n'),
+                        ("dot-remote", '\tremote = .\n\tmerge = refs/heads/other-session/work\n'),
                         ("editor-notes", '\tvscode-merge-base = origin/main\n'
                                          '\tgithub-pr-owner-number = o#r#1\n')):
         branch_cases[label] = added(f'[branch "other-session/work"]\n{text}'.encode())
@@ -5440,6 +5462,23 @@ try:
     branch_cases["real+value"] = pr_gate.config_change_note(
         {branch_config: pristine + b'[user]\n\tname = a\n'},
         {branch_config: pristine + b'[user]\n\tname = b\n[branch "other-session/work"]\n\tremote = origin\n'})
+    # A comment beside an excused section rides along: git reads it as nothing (alone, it fails).
+    branch_cases["comment+real"] = pr_gate.config_change_note(
+        {branch_config: pristine},
+        {branch_config: b"# a comment\n" + pristine + b'[branch "other-session/work"]\n\tremote = origin\n'})
+    # Removing an unsafe key is a change to it, so it fails like adding one.
+    with_push = pristine + b'[branch "other-session/work"]\n\tremote = origin\n\tpushRemote = origin\n'
+    branch_cases["pushremote-removed"] = pr_gate.config_change_note(
+        {branch_config: with_push},
+        {branch_config: pristine + b'[branch "other-session/work"]\n\tremote = origin\n'})
+    # A comment alone fails even in a file that already holds a real branch's section, which did not move.
+    with_branch = pristine + b'[branch "other-session/work"]\n\tremote = origin\n'
+    branch_cases["comment-only"] = pr_gate.config_change_note(
+        {branch_config: with_branch}, {branch_config: b"# a comment\n" + with_branch})
+    # A snapshot git rejects excuses nothing, even when the other side held only bookkeeping.
+    branch_cases["unparseable-after"] = pr_gate.config_change_note(
+        {branch_config: b'[branch "other-session/work"]\n\tremote = .\n'},
+        {branch_config: b'[branch "other-session/work"\n'})
     # The excusable section beside text git cannot parse: nothing is excused.
     branch_cases["unparseable"] = added(b'[branch "other-session/work"]\n\tremote = origin\n[user\n')
     # One file's excused change must not carry another file's unexplained change with it, nor be
@@ -5494,24 +5533,38 @@ check("a [branch] tracking section added for a real local branch passes, as a no
 check("a [branch] section edited for a real local branch passes too, to a dotted remote name",
       branch_cases["real-edit"][0] == 0 and len(branch_cases["real-edit"][2]) == 1,
       branch_cases["real-edit"])
-check("a leaked `git branch --track` passes as a note naming the branch: its entries alter nothing "
-      "a commit, push or merge does, and the note still shows it happened",
-      branch_cases["leaked-track"][0] == 0 and len(branch_cases["leaked-track"][2]) == 1
-      and "leaked" in branch_cases["leaked-track"][2][0], branch_cases["leaked-track"])
+check("a leaked `git branch --track X base` fails: its merge points X at another branch",
+      branch_cases["leaked-track"][0] == 1 and '+[branch "leaked"]' in branch_cases["leaked-track"][1]
+      and not branch_cases["leaked-track"][2], branch_cases["leaked-track"])
 check("local branches are listed whole, U+2028 included",
       {"base", "other-session/work", "preview/next\u2028suffix"} <= branch_cases["listed"]
       and "preview/next" not in branch_cases["listed"] and "" not in branch_cases["listed"],
       branch_cases["listed"])
 for label, what in (("pushremote", "a pushRemote"), ("mergeoptions", "a mergeOptions"),
                     ("url-remote", "a URL as remote"), ("undefined-remote", "an undefined remote"),
-                    ("new-remote", "a remote defined by the same change")):
-    check(f"{what} for a real branch still fails: it redirects later pushes or merges",
+                    ("new-remote", "a remote defined by the same change"),
+                    ("merge-other", "a merge naming another branch"), ("rebase", "a rebase setting")):
+    check(f"{what} for a real branch still fails: it redirects later pushes, pulls or merges",
           branch_cases[label][1] is True, branch_cases[label])
 for label, what in (("dot-remote", "`remote = .` (tracking a local branch)"),
                     ("editor-notes", "an editor's vscode-merge-base or gh's github-pr-owner-number")):
     check(f"...while {what} is excused",
           branch_cases[label][1] is False and "other-session/work" in branch_cases[label][0],
           branch_cases[label])
+check("a check that exits 2 and changes the config stays a tool error (2), with the diff",
+      branch_cases["tool-error"][0] == 2 and "+\tname = x" in branch_cases["tool-error"][1],
+      branch_cases["tool-error"])
+check("a check that times out after changing the config still shows the config diff",
+      branch_cases["timeout"][0] == 1 and "timed out" in branch_cases["timeout"][1]
+      and "+\tname = x" in branch_cases["timeout"][1], branch_cases["timeout"])
+check("a check that changes nothing files no config note",
+      branch_cases["quiet"] == ((0, ""), []), branch_cases["quiet"])
+for label, what in (("pushremote-removed", "removing a pushRemote"),
+                    ("comment-only", "a comment alone, in a file holding an untouched branch section"),
+                    ("unparseable-after", "a snapshot git rejects, whose other side held only bookkeeping")):
+    check(f"{what} fails", branch_cases[label][1] is True, branch_cases[label])
+check("a comment beside an excused section passes with it, since git reads the comment as nothing",
+      branch_cases["comment+real"][1] is False, branch_cases["comment+real"])
 check("a user.name value changed beside an excused section still fails",
       branch_cases["real+value"][1] is True, branch_cases["real+value"])
 check("an excusable section beside text git cannot parse excuses nothing",
@@ -5708,7 +5761,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 811
+EXPECTED = 820
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
