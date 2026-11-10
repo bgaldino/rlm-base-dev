@@ -4036,6 +4036,12 @@ NOT_INPUTS = {
         ".claude/skills": "a skill surface created inside a throwaway clone",
         ".cursor/skills": "a skill surface created inside a throwaway clone",
     },
+    "tests/test_claude_hooks.py": {
+        # Rule 4's fixture clone (a temp `.agents/artifacts` with its own `.git`). They exist in
+        # this repo only in a full clone (CI), not in a worktree, whose `.git` is a file.
+        ".git/config": "a path inside the fixture clone of the private tree, never this repo's",
+        ".git/hooks": "a path inside the fixture clone of the private tree, never this repo's",
+    },
     "tests/test_fix_scratch_identity.py": {
         ".sf/orgs": "runtime org state, gitignored — not a repo input",
     },
