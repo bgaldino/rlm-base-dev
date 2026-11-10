@@ -267,18 +267,24 @@ check("a cumulusci.yml change selects the CCI reference drift check",
       "cci_reference_drift" in sel, sel)
 sel = selected_names(["docs/erds/erd-data.json"])
 check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel, sel)
-# Local Markdown links can target any repository file, and a numbered branch or a private-tree
-# citation can appear in any tracked text file. The three cheap whole-repo checks (navigation
-# baseline, release_refs and private_refs) therefore run for every non-empty change, while
+# Local Markdown links can target any repository file, a numbered branch or a private-tree
+# citation can appear in any tracked text file, and a file force-added anywhere .dockerignore
+# excludes drops out of a local image. The four cheap whole-repo checks (navigation baseline,
+# release_refs, dockerignore, private_refs) therefore run for every non-empty change, while
 # unrelated expensive checks stay skipped.
 sel = selected_names(["docker/compose.yaml"])
-check("an otherwise unrelated path selects only the three whole-repo baselines",
-      sel == {"agent_tooling", "release_refs", "private_refs"}, sel)
+check("an otherwise unrelated path selects only the four whole-repo baselines",
+      sel == {"agent_tooling", "release_refs", "dockerignore", "private_refs"}, sel)
 # docker/Dockerfile used to be that unrelated path; it names the Node major line now, so it selects
 # the one cheap check that compares it with .nvmrc — and still nothing expensive.
 sel = selected_names(["docker/Dockerfile"])
 check("a Dockerfile change selects the Node-line check and nothing expensive",
-      sel == {"agent_tooling", "release_refs", "private_refs", "node_line"}, sel)
+      sel == {"agent_tooling", "release_refs", "dockerignore", "private_refs", "node_line"}, sel)
+# A trigger list mirroring .dockerignore once let a force-added file under an excluded path skip
+# the suite that checks every tracked file still reaches the image (PR review, todo 357).
+for _forced in (".env.example", ".harness/README.md", "logs/probe.txt"):
+    check(f"a change that only force-adds {_forced} selects the dockerignore check",
+          "dockerignore" in selected_names([_forced]), selected_names([_forced]))
 # A suffix selector, for the check that walks every .md in the repo. Prefix triggers left
 # the root README and seven datasets/**/README.md build-step citations unable to select the
 # suite that audits them.
@@ -4033,6 +4039,9 @@ NOT_INPUTS = {
     "tests/test_fix_scratch_identity.py": {
         ".sf/orgs": "runtime org state, gitignored — not a repo input",
     },
+    "tests/test_dockerignore.py": {
+        ".gitattributes": "a tracked path .dockerignore may drop, named as a prefix — never read",
+    },
     "tests/build_harness/test_tui_runner.py": {
         "orgs/ent.json": "a value in a stubbed load_cci dict, with runner.ROOT pointed at "
                          "tmp_path — never read from this repo",
@@ -5410,7 +5419,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 765
+EXPECTED = 771
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
@@ -5427,7 +5436,8 @@ _NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: 
               18: "eighteen", 19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two",
               23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six",
               27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty",
-              31: "thirty-one", 32: "thirty-two", 33: "thirty-three"}
+              31: "thirty-one", 32: "thirty-two", 33: "thirty-three",
+              34: "thirty-four"}
 _actual = len(pr_gate.CHECKS)
 # A word boundary that also rejects a trailing hyphen, so the pattern for a smaller number word
 # does not match inside a hyphenated compound of a larger one: "two of the twenty" must NOT
