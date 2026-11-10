@@ -77,7 +77,8 @@ private class RLM_InvoiceAgingControllerTest {
         try {
             Database.query(
                 'SELECT Id, InvoiceNumber, DaysInvoiceOpen, DaysInvoiceOverdue, TotalAmountWithTax, Balance, '
-                + 'DueDate, InvoiceDate, CurrencyIsoCode, Status, SettlementStatus FROM Invoice LIMIT 1',
+                + 'DueDate, InvoiceDate, CurrencyIsoCode, Status, SettlementStatus FROM Invoice '
+                + 'WHERE BillingAccountId != null LIMIT 1',
                 AccessLevel.USER_MODE);
             return null;
         } catch (QueryException e) {

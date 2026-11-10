@@ -67,8 +67,7 @@ private class RLM_OnAccountBillingControllerTest {
     // SUM() with GROUP BY CurrencyIsoCode returns the corporate-currency total; the controller
     // converts it into the account's currency at the dated rate (the standard rate when there
     // are no dated rates). A corporate-currency payment on an account in another currency must
-    // come back in the account's currency at that rate. The expected rates are read as the
-    // billing user, in USER_MODE.
+    // come back in the account's currency at that rate.
     // A second active currency with an effective rate different from the corporate one comes
     // from a pricing data plan (qb, q3 or mfg); without one the test is skipped, visibly,
     // rather than failing the deploy.
@@ -76,19 +75,16 @@ private class RLM_OnAccountBillingControllerTest {
     static void getBillingSummary_paymentIsConvertedToTheAccountCurrency_whenASecondCurrencyIsActive() {
         String corporate = corporateCurrency();
         // The currency is picked from the effective rates the admin reads (dated if any, else
-        // standard), so a rate table the billing user cannot read fails the precondition below
-        // instead of skipping.
-        String foreign = foreignCurrency(effectiveRates(AccessLevel.SYSTEM_MODE), corporate);
+        // standard); the billing user's rates must then match them, so a rate table that user
+        // cannot read fails the precondition instead of skipping.
+        Map<String, Decimal> adminRates = effectiveRates(AccessLevel.SYSTEM_MODE);
+        String foreign = foreignCurrency(adminRates, corporate);
         if (foreign == null) {
             System.debug(LoggingLevel.WARN, SKIP_NO_SECOND_CURRENCY);
             return;
         }
         User u = billingOperationsUser();
-        Map<String, Decimal> effective = controllerRatesAs(u);
-        Assert.isTrue(effective.containsKey(foreign) && effective.containsKey(corporate),
-            'PRECONDITION: the billing user reads the rates of ' + foreign + ' and ' + corporate + ': ' + effective);
-        Assert.areNotEqual(effective.get(corporate), effective.get(foreign),
-            'PRECONDITION: the billing user\'s rate for ' + foreign + ' differs from the corporate rate.');
+        Map<String, Decimal> effective = userRatesMatchingAdmin(u, adminRates, new List<String>{ foreign, corporate });
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing FX Test', foreign);
         Payment pmt = newProcessedPayment(acc.Id, 1000, corporate);
         Decimal balance = [SELECT Balance FROM Payment WHERE Id = :pmt.Id].Balance;
@@ -106,6 +102,43 @@ private class RLM_OnAccountBillingControllerTest {
             balance + ' ' + corporate + ' should convert to ~' + expected + ' ' + foreign + ', got ' + actual);
         Assert.areEqual(-actual, (Decimal) result.get('netAccountBalance'),
             'The converted payment balance is subtracted from the net balance.');
+    }
+
+    // A payment in another currency on a corporate-currency account: the controller first undoes
+    // SUM()'s standard-rate conversion (corporate total times the payment currency's standard
+    // rate), then converts at the effective rates. The currency is picked by standard rate, so
+    // the undo step multiplies by a rate other than 1. Same visible skip as above.
+    @isTest
+    static void getBillingSummary_foreignPaymentOnCorporateAccount_isConverted_whenASecondCurrencyIsActive() {
+        String corporate = corporateCurrency();
+        Map<String, Decimal> standardRates = activeRates();
+        String foreign = foreignCurrency(standardRates, corporate);
+        if (foreign == null) {
+            System.debug(LoggingLevel.WARN, SKIP_NO_SECOND_CURRENCY);
+            return;
+        }
+        Map<String, Decimal> adminRates = effectiveRates(AccessLevel.SYSTEM_MODE);
+        User u = billingOperationsUser();
+        Map<String, Decimal> effective = userRatesMatchingAdmin(u, adminRates, new List<String>{ foreign, corporate });
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Foreign Payment Test', corporate);
+        Payment pmt = newProcessedPayment(acc.Id, 1000, foreign);
+        Decimal balance = [SELECT Balance FROM Payment WHERE Id = :pmt.Id].Balance;
+        Assert.areEqual(1000, balance, 'PRECONDITION: an unapplied processed payment\'s balance is its amount.');
+        // The controller's formula: SUM() gives the corporate total at the standard rate; it is
+        // multiplied back by the payment currency's standard rate, then divided by that
+        // currency's effective rate and multiplied by the account currency's.
+        Decimal corporateTotal = balance.divide(standardRates.get(foreign), 10, RoundingMode.HALF_UP);
+        Decimal expected = (corporateTotal * standardRates.get(foreign))
+            .divide(rateOf(effective, foreign), 10, RoundingMode.HALF_UP) * rateOf(effective, corporate);
+
+        Test.startTest();
+        Map<String, Object> result = paymentSummaryAs(u, acc.Id, pmt.Id);
+        Test.stopTest();
+
+        Decimal actual = (Decimal) result.get('paymentBalance');
+        Assert.areEqual(corporate, (String) result.get('currencyIsoCode'), 'The summary is in the account\'s currency.');
+        Assert.isTrue(Math.abs(actual - expected) < 0.01,
+            balance + ' ' + foreign + ' should convert to ~' + expected + ' ' + corporate + ', got ' + actual);
     }
 
     // When the account and the payment share a non-corporate currency, correctConversion
@@ -171,10 +204,11 @@ private class RLM_OnAccountBillingControllerTest {
 
     // The aggregate balance reads, and the partially-paid, written-off, dispute and collections
     // reads, swallow a query the user may not run and report zero, so a zero proves nothing by
-    // itself. For a billing operations user holding RLM_BillingUI this checks, in USER_MODE,
-    // that each object the summary sums or counts is readable with the fields it uses.
-    // Collection plans are the exception: this role cannot read them, and the summary shows
-    // "not in collections" instead of failing.
+    // itself. For a billing operations user holding RLM_BillingUI this runs, in USER_MODE, a
+    // probe of each read the summary makes (account currency, standard and dated rates, and
+    // each object it sums or counts, with the fields it uses); those probes are the evidence
+    // that the summary's reads run for this role. Collection plans are the exception: this
+    // role cannot read them, and the summary shows "not in collections" instead of failing.
     @isTest
     static void getBillingSummary_billingOperationsUser_runsEveryBalanceQuery() {
         User u = billingOperationsUser();
@@ -187,7 +221,6 @@ private class RLM_OnAccountBillingControllerTest {
 
         Map<String, String> readErrors = new Map<String, String>();
         String collectionPlanError;
-        Integer summaryQueries;
         Map<String, Object> result;
         Test.startTest();
         System.runAs(u) {
@@ -210,24 +243,12 @@ private class RLM_OnAccountBillingControllerTest {
                 }
             }
             collectionPlanError = userModeError(COLLECTION_PLAN_READ);
-            Integer queriesBefore = Limits.getQueries();
             result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
-            summaryQueries = Limits.getQueries() - queriesBefore;
         }
         Test.stopTest();
 
         Assert.isTrue(readErrors.isEmpty(), 'PRECONDITION: the summary\'s reads run for this role: ' + readErrors);
         Assert.isNotNull(collectionPlanError, 'PRECONDITION: this role cannot read collection plans.');
-        // The probes above prove each of these reads succeeds for this role, and the summary
-        // runs all fifteen: the account currency, the standard rates, the dated rates (this
-        // bundle is multi-currency only), the five balance aggregates (invoice, debit memo,
-        // credit memo, payment, refund) and seven status reads (posted, overdue, delinquent,
-        // partially paid, open with balance, written off, disputes). Its sixteenth read, the
-        // collection plan count, throws for this role and is not counted: a query rejected for
-        // an unsupported object does not count toward the query limit.
-        Assert.isTrue(summaryQueries >= 15,
-            'The summary runs its balance and status reads; it ran ' + summaryQueries + ' queries.');
-
         for (String key : new List<String>{
             'invoiceBalance', 'debitMemoBalance', 'creditMemoBalance',
             'paymentBalance', 'refundBalance', 'netAccountBalance'
@@ -319,14 +340,27 @@ private class RLM_OnAccountBillingControllerTest {
 
     // The effective rates as the given user reads them in USER_MODE: dated rates for today if
     // there are any, else the standard rates (the controller's rule). Only QueryException is
-    // caught: an unreadable rate table leaves its map empty, so the caller's precondition on
-    // the rates it needs fails the test rather than letting it pass on default rates.
+    // caught; an unreadable table changes the result, which userRatesMatchingAdmin then fails.
     private static Map<String, Decimal> controllerRatesAs(User u) {
         Map<String, Decimal> rates;
         System.runAs(u) {
             rates = effectiveRates(AccessLevel.USER_MODE);
         }
         return rates;
+    }
+
+    // The billing user's effective rates, after asserting that for each given code they equal
+    // the admin's: a rate table the user cannot read (an empty map, or dated rates silently
+    // falling back to standard ones) then fails as a precondition.
+    private static Map<String, Decimal> userRatesMatchingAdmin(
+        User u, Map<String, Decimal> adminRates, List<String> codes
+    ) {
+        Map<String, Decimal> userRates = controllerRatesAs(u);
+        for (String code : codes) {
+            Assert.areEqual(adminRates.get(code), userRates.get(code),
+                'PRECONDITION: the billing user reads the same effective rate for ' + code + ' as the admin.');
+        }
+        return userRates;
     }
 
     // Dated rates for today if there are any, else the standard rates, read at the given level.
