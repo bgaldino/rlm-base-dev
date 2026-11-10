@@ -53,14 +53,22 @@ private class RLM_AI_AttributeResolverTest {
         numeric.currentValue = null;
         numeric.picklistValues = new List<String>();
 
-        String json = RLM_AI_AttributeResolver.toJson(
+        String serialized = RLM_AI_AttributeResolver.toJson(
             new List<RLM_AI_AttributeResolver.ResolvedAttribute>{ picklist, numeric }
         );
 
-        System.assert(json.contains('currentValue'), 'Every entry carries currentValue.');
-        System.assert(json.contains('"Flex"'), 'Picklist current value present.');
-        System.assert(json.contains('picklistValues'),
+        List<Object> entries = (List<Object>) JSON.deserializeUntyped(serialized);
+        Assert.areEqual(2, entries.size(), 'One entry per attribute, in order.');
+        Map<String, Object> picklistEntry = (Map<String, Object>) entries[0];
+        Map<String, Object> numericEntry = (Map<String, Object>) entries[1];
+        Assert.areEqual('Flex', picklistEntry.get('currentValue'), 'Picklist current value present.');
+        Assert.areEqual(new List<Object>{ 'Flex', 'Prod' }, picklistEntry.get('picklistValues'),
             'Picklist entry carries its valid values.');
+        Assert.isTrue(numericEntry.containsKey('currentValue'),
+            'Every entry carries currentValue, even when unset.');
+        Assert.isNull(numericEntry.get('currentValue'), 'An unset value serializes as null.');
+        Assert.isFalse(numericEntry.containsKey('picklistValues'),
+            'Only picklist entries carry picklistValues.');
     }
 
     @isTest
@@ -113,7 +121,10 @@ private class RLM_AI_AttributeResolverTest {
         Test.stopTest();
 
         Assert.isTrue(res.lineFound, 'Line should be found.');
-        Assert.isNotNull(res.productId, 'The line product is reported.');
+        Assert.areEqual(
+            [SELECT Product2Id FROM QuoteLineItem WHERE Id = :lineId].Product2Id,
+            res.productId,
+            'The line product is reported.');
         Assert.areEqual('RLM Resolver Classified', res.productName);
         Assert.isTrue(res.hasAttributes(), 'A classified product is configurable.');
         Assert.areEqual(2, res.attributes.size(),

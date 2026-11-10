@@ -54,8 +54,10 @@ private class RLM_AA_Submit_ApprovalTest {
 
     // Known gap: the invocable reads only svcParameters[0]. A batch whose second
     // request names a flow that does not exist succeeds today, because the
-    // second request is never tried; once every request is started, the missing
-    // flow throws a TypeException and the assertion below fires.
+    // second request is never tried. The pin detects a fix that starts every
+    // request and lets a failure propagate: the missing flow's TypeException
+    // then trips the assertion below. A fix that loops but swallows each
+    // request's failure would not trip it.
     @IsTest
     static void knownGap_callFlowStartsOnlyTheFirstRequest_whenTheFlowIsActive() {
         if (!activeFlowAvailable()) {
@@ -69,7 +71,10 @@ private class RLM_AA_Submit_ApprovalTest {
                 request(MISSING_FLOW)
             });
         } catch (TypeException caught) {
-            laterRequestStarted = caught.getMessage().contains(MISSING_FLOW);
+            if (!caught.getMessage().contains(MISSING_FLOW)) {
+                throw caught;
+            }
+            laterRequestStarted = true;
         }
         Test.stopTest();
 
