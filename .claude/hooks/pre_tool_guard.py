@@ -43,7 +43,8 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    `.agents/artifacts.old/` (not gitignored, so it would surface in the public repo), or
    create `.agents/artifacts/` where the private clone is absent. It asks before a write
    under `.agents/artifacts/archive/` (frozen history). Existing top-level folders still
-   accept writes until the private repo's reorg moves them.
+   accept writes until the private repo's reorg moves them. Symlinks are resolved first, so a
+   write is judged by where it lands: one that escapes the tree through a link is denied.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
@@ -612,10 +613,20 @@ def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
         return "deny", ("`.agents/artifacts/` (the private repository) is not cloned here; "
                         "do not create it. Use $TMPDIR for scratch, or say where the content "
                         "should live")
-    rest = parts[i + 2:]
+    if len(parts) == i + 2:
+        return "allow", ""
+    # Judge where the write lands, not how it is spelled: a symlinked folder inside the tree
+    # could point at a tracked public path, or at archive/ under another name.
+    real_tree = Path(os.path.realpath(tree))
+    real = Path(os.path.realpath(full))
+    try:
+        rest = real.relative_to(real_tree).parts
+    except ValueError:
+        return "deny", (f"`{path}` resolves through a symlink to `{real}`, outside the private "
+                        "`.agents/artifacts/` tree; write inside the tree itself")
     if not rest:
         return "allow", ""
-    if rest[0] not in ARTIFACTS_ROOT and not (tree / rest[0]).exists():
+    if rest[0] not in ARTIFACTS_ROOT and not (real_tree / rest[0]).exists():
         return "deny", (f"`{rest[0]}` would be a new top-level entry of `.agents/artifacts/`, "
                         f"whose top level is closed; {ARTIFACTS_HINT}")
     if rest[0] == "archive" and len(rest) > 1:

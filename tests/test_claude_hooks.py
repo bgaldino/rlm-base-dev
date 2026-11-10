@@ -633,6 +633,24 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide("topics/../stray.md", cwd=self.tree), "deny")
         self.assertEqual(self.decide("../stray.md", cwd=self.tree / "inbox"), "deny")
 
+    def test_symlinks_are_judged_by_where_the_write_lands(self):
+        public = self.tmp / "docs" / "analysis"
+        public.mkdir(parents=True)
+        (self.tree / "topics" / "shared").symlink_to(public, target_is_directory=True)
+        (self.tree / "topics" / "old").symlink_to(self.tree / "archive" / "2026" / "x",
+                                                  target_is_directory=True)
+        (self.tree / "topics" / "inner").symlink_to(self.tree / "inbox", target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/topics/shared/notes.md"), "deny")
+        self.assertEqual(self.decide(".agents/artifacts/topics/old/notes.md"), "ask")
+        self.assertEqual(self.decide(".agents/artifacts/topics/inner/2026-11-09-a.md"), "allow")
+
+    def test_a_symlinked_tree_itself_is_followed(self):
+        real = self.tmp / "elsewhere"
+        shutil.move(str(self.tree), str(real))
+        self.tree.symlink_to(real, target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/inbox/2026-11-09-a.md"), "allow")
+        self.assertEqual(self.decide(".agents/artifacts/stray.md"), "deny")
+
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")
         self.assertEqual(self.decide(".agents/skills/x/SKILL.md"), "allow")
