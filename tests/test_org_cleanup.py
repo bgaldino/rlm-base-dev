@@ -422,6 +422,7 @@ class Logins(Base):
         self.env = {"SF_TARGET_ORG": "bob@x.invalid"}
         plan = self.plan(FakeCli(self.home))
         self.assertEqual(plan["report"]["env_defaults"]["SF_TARGET_ORG"]["judged"], "doubt")
+        self.assertIn("bob@x.invalid", plan["report"]["names_in_doubt"])  # judged after the other names
 
     def test_an_unreadable_auth_file_protects_its_name_and_is_reported(self):
         (self.home / ".sfdx" / "bob@x.invalid.json").write_text("not json")

@@ -866,7 +866,6 @@ def survey(run, home, project, today, predict=True, env=None):
             "unclassified_files": read_unclassified(home, project, consumed),
             # Lead to no login and no username, so no hub row can ever put them on the plan.
             "dangling_aliases": sorted(a for a in aliases if judge(a) == "dangling"),
-            "names_in_doubt": dict(sorted(in_doubt.items())),
             "dangling_defaults": sorted(s for s, scope in scopes.items()
                                         if not scope["why"] and isinstance(scope["merged"].get("target-org"), str)
                                         and judge(scope["merged"]["target-org"]) == "dangling"),
@@ -876,6 +875,7 @@ def survey(run, home, project, today, predict=True, env=None):
         },
         "prune_prediction": predict_prune(cci, proven_gone),
     }
+    plan["report"]["names_in_doubt"] = dict(sorted(in_doubt.items()))  # after every judgment, prune's too
     return plan, {"logins": logins, "unread": unread, "listed": listed, "aliases": aliases, "state": state}
 
 
