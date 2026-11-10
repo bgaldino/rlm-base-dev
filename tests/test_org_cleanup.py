@@ -3137,6 +3137,14 @@ class EvidenceEdges(Base):
         (self.home / ".sfdx" / (DEAD_ORG + "MAA.json")).symlink_to(target)
         self.assertEqual(self.plan(FakeCli(self.home, [row(DEAD_ORG)]))["remove"]["indexes"], [])
 
+    def test_a_hard_linked_index_is_reported_not_planned(self):
+        index = self.home / ".sfdx" / (DEAD_ORG + "MAA.json")
+        index.write_text("{}")
+        os.link(str(index), str(self.home.parent / "elsewhere.json"))  # apply would refuse to move it
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["indexes"], [])
+        self.assertIn(str(index), [f["path"] for f in plan["report"]["unclassified_files"]])
+
     def test_a_symlinked_tracking_dir_is_reported_and_not_listed(self):
         target = self.home / "elsewhere"
         target.mkdir()

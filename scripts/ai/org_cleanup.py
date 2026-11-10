@@ -403,9 +403,10 @@ def config_scopes(home, project, env):
 
 
 def read_indexes(home):
-    """User indexes, `~/.sfdx/<orgId>.json`, where sf keeps them."""
+    """User indexes, `~/.sfdx/<orgId>.json`, where sf keeps them. A linked one (symbolic or hard) is
+    left alone, so it is reported with the unclassified files rather than planned and then refused."""
     return [p for p in listing(home / ".sfdx", follow=True)
-            if p.suffix == ".json" and ORG_ID.fullmatch(p.stem) and is_regular_file(p)]
+            if p.suffix == ".json" and ORG_ID.fullmatch(p.stem) and is_regular_file(p) and not is_link(p)]
 
 
 def linked_ancestor(base):
