@@ -75,6 +75,8 @@ private class RLM_AA_Submit_ApprovalTest {
         }
         Test.stopTest();
 
+        // Matches only the flow API name the platform passes through, never its
+        // translated wording.
         if (thrown instanceof TypeException && thrown.getMessage().contains(MISSING_FLOW)) {
             Assert.fail('Known gap: only the first request is started; requests after it are ignored. '
                 + 'Update this test when it is fixed.');
@@ -96,16 +98,16 @@ private class RLM_AA_Submit_ApprovalTest {
         }
         Test.stopTest();
 
-        if (thrown == null) {
-            Assert.fail('Known gap: an empty request list throws a raw ListException (only the first '
-                + 'request is read); update this test when it is fixed.');
-        }
+        // Any outcome other than a raw ListException counts as the fix (for
+        // example an IllegalArgumentException, as the docgen invocables throw).
         // Type only: platform exception text is translated into the running
         // user's language, so it is not checked.
-        Assert.isTrue(
-            thrown instanceof ListException,
-            'Unexpected exception starting the batch (not the known gap): '
-            + thrown.getTypeName() + ': ' + thrown.getMessage());
+        if (!(thrown instanceof ListException)) {
+            Assert.fail('Known gap: an empty request list throws a raw ListException; it now '
+                + (thrown == null ? 'returns' : 'throws ' + thrown.getTypeName()) + '. Update this test.');
+        }
+        Assert.isInstanceOfType(thrown, ListException.class,
+            'today an empty request list fails reading request 0');
     }
 
     // An unknown flow name cannot be started: the platform's TypeException
@@ -118,6 +120,8 @@ private class RLM_AA_Submit_ApprovalTest {
             RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>{ request(MISSING_FLOW) });
         } catch (TypeException caught) {
             threw = true;
+            // Matches only the flow API name the platform passes through, never its
+            // translated wording.
             Assert.isTrue(caught.getMessage().contains(MISSING_FLOW), caught.getMessage());
         }
         Test.stopTest();

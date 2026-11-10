@@ -1090,11 +1090,12 @@ private class RLM_Learning_FrameworkTest {
   }
 
   // Input guards that throw before any USER_MODE query, so they run as the
-  // runner, whatever the runner holds. Each call must throw. Only the blank
-  // getDynamicLinkByIdentity call is also checked to throw without running a
-  // query: without its guard it would run a valid query, which
-  // Limits.getQueries() counts. The others are plain must-throw checks,
-  // because the query check could never fail for them:
+  // runner, whatever the runner holds. Only the blank getDynamicLinkByIdentity
+  // call detects a removed guard: without it a valid query would run, which
+  // Limits.getQueries() counts. The other calls are coverage-only. Each still
+  // must throw, but a removed guard is not detectable here: the code after it
+  // also ends in an AuraHandledException (whose message is the generic
+  // "Script-thrown exception"), and the query check cannot fail for them:
   //  - getObjectIdFromQuery and getRecordIdFromDynamicLinkType without their
   //    guards would build a query that is rejected when parsed, and a live
   //    check showed a parse-rejected Database.query does not increment
@@ -1399,7 +1400,21 @@ private class RLM_Learning_FrameworkTest {
       if (String.isBlank(prefix)) {
         Assert.areEqual(schemeAndHost, siteUrl, 'a site with no path prefix is scheme://host' + context);
       } else if (loginUrl.contains('/s/')) {
-        Assert.isTrue(siteUrl.endsWith('/' + prefix), 'the site URL keeps "/' + prefix + '"' + context);
+        // The expected site path comes from the login URL's own path, up to
+        // "/s/". A custom domain can map a site to the root, so that path need
+        // not start with "/<UrlPathPrefix>"; such a site is skipped visibly.
+        String path = parsed.getPath();
+        Integer loginPathIndex = path == null ? -1 : path.indexOf('/s/');
+        String sitePath = loginPathIndex < 0 ? null : path.substring(0, loginPathIndex);
+        String leadingSegment = sitePath == null ? null : sitePath.removeStart('/').substringBefore('/');
+        if (leadingSegment != prefix) {
+          System.debug(
+            LoggingLevel.WARN,
+            'SKIPPED: the login URL path does not start with "/' + prefix + '"' + context
+          );
+          continue;
+        }
+        Assert.areEqual(schemeAndHost + sitePath, siteUrl, 'the site URL keeps "/' + prefix + '"' + context);
       } else {
         Assert.areEqual(
           schemeAndHost,
