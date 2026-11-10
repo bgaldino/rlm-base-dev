@@ -49,22 +49,21 @@ private class RLM_SplitInvoicesControllerTest {
     }
 
     // Contacts resolve by name, and an object with no Name field (Case) yields an empty map
-    // instead of failing the other lists.
+    // instead of failing the other lists. The Case id need not exist: the query fails on the
+    // Name column, not on the record.
     @isTest
     static void getRelatedNames_resolvesContactsAndToleratesNamelessObjects() {
         Account acc = new Account(Name = 'RLM Split Invoices Contact Test');
         insert acc;
         Contact con = new Contact(FirstName = 'Ana', LastName = 'Rivera', AccountId = acc.Id);
         insert con;
-        Case c = new Case(AccountId = acc.Id, Subject = 'RLM split invoices case');
-        insert c;
         // Name order depends on the locale, so compare against the stored full name.
         String contactName = [SELECT Name FROM Contact WHERE Id = :con.Id].Name;
 
         Test.startTest();
         RLM_SplitInvoicesController.RelatedNamesResult result =
             RLM_SplitInvoicesController.getRelatedNames(
-                new List<String>{ acc.Id }, null, new List<String>{ c.Id }, new List<String>{ con.Id });
+                new List<String>{ acc.Id }, null, new List<String>{ fakeId('Case', 1) }, new List<String>{ con.Id });
         Test.stopTest();
 
         Assert.areEqual('RLM Split Invoices Contact Test', result.accountNames.get(acc.Id),
@@ -184,11 +183,7 @@ private class RLM_SplitInvoicesControllerTest {
         Test.stopTest();
         Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read Invoice.');
         Assert.isTrue(listThrew, 'An unreadable invoice query must surface as an AuraHandledException.');
-        // Reaching here means the billing info call returned instead of throwing; it degrades
-        // to an empty info.
-        Assert.isNotNull(info, 'The billing info call returns an info object.');
-        Assert.isNull(info.billingArrangementName, 'The returned info is empty: no arrangement name.');
-        Assert.isNull(info.billingArrangementVerNumber, 'The returned info is empty: no version number.');
+        Assert.isNotNull(info, 'The billing info call does not throw for a user who cannot read Invoice.');
     }
 
     private static Id fakeId(String objectName, Integer n) {

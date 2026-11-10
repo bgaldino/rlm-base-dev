@@ -10,9 +10,10 @@ private class RLM_OnAccountBillingControllerTest {
         System.assertEquals(0, result.size(), 'A null account id should short-circuit to an empty map.');
     }
 
-    // Invoices cannot be created in an Apex test, and debit memos cannot be posted. This
-    // account has no billing records at all, so every aggregate and count runs its empty
-    // path, and the summary must report zero balances and clean status flags.
+    // Checks that, as the admin, the summary for an account with no billing records returns
+    // zero balances and clean status flags. Failed reads are swallowed into zeros here, so this
+    // does not prove the reads run; getBillingSummary_billingOperationsUser_runsEveryBalanceQuery
+    // does.
     @isTest
     static void getBillingSummary_accountWithNoBilling_returnsZeroBalances() {
         Account acc = new Account(Name = 'RLM On-Account Billing Test');
@@ -72,14 +73,20 @@ private class RLM_OnAccountBillingControllerTest {
     // test is skipped, visibly, rather than failing the deploy.
     @isTest
     static void getBillingSummary_paymentIsConvertedToTheAccountCurrency_whenASecondCurrencyIsActive() {
-        User u = billingOperationsUser();
         String corporate = corporateCurrency();
-        Map<String, Decimal> effective = controllerRatesAs(u);
-        String foreign = foreignCurrency(effective, corporate);
+        // The currency is picked from the active currencies the admin reads, so a rate table
+        // the billing user cannot read fails the precondition below instead of skipping.
+        String foreign = foreignCurrency(activeRates(), corporate);
         if (foreign == null) {
             System.debug(LoggingLevel.WARN, SKIP_NO_SECOND_CURRENCY);
             return;
         }
+        User u = billingOperationsUser();
+        Map<String, Decimal> effective = controllerRatesAs(u);
+        Assert.isTrue(effective.containsKey(foreign) && effective.containsKey(corporate),
+            'PRECONDITION: the billing user reads the rates of ' + foreign + ' and ' + corporate + ': ' + effective);
+        Assert.areNotEqual(effective.get(corporate), effective.get(foreign),
+            'PRECONDITION: the billing user\'s rate for ' + foreign + ' differs from the corporate rate.');
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing FX Test', foreign);
         Payment pmt = newProcessedPayment(acc.Id, 1000, corporate);
         Decimal balance = [SELECT Balance FROM Payment WHERE Id = :pmt.Id].Balance;
@@ -142,7 +149,7 @@ private class RLM_OnAccountBillingControllerTest {
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Collections Test', null);
         // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises a case
         // from org data a unit test cannot see.
-        insert new CollectionPlan(AccountId = acc.Id, OwnerId = u.Id, UsageType = 'Billing');
+        insert new CollectionPlan(AccountId = acc.Id, OwnerId = u.Id);
 
         Map<String, Object> result;
         Test.startTest();
@@ -171,7 +178,7 @@ private class RLM_OnAccountBillingControllerTest {
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Role Test', null);
         // A collection plan a collections user sees, so "not in collections" for this role comes
         // from its access, not from the account. No CollectionPlanReason (see above).
-        insert new CollectionPlan(AccountId = acc.Id, OwnerId = collections.Id, UsageType = 'Billing');
+        insert new CollectionPlan(AccountId = acc.Id, OwnerId = collections.Id);
         System.runAs(collections) {
             Assert.areEqual(true, (Boolean) RLM_OnAccountBillingController.getBillingSummary(acc.Id).get('inCollections'),
                 'PRECONDITION: for a collections user, the account is in collections.');
@@ -209,7 +216,6 @@ private class RLM_OnAccountBillingControllerTest {
         // The readErrors probes above prove the reads succeed. This bound only shows the summary
         // did not short-circuit: the account currency and the standard and dated rates (this
         // bundle is multi-currency only), the five balance aggregates and seven status reads.
-        // The collection plan count is rejected for this role and does not count.
         Assert.isTrue(summaryQueries >= 15,
             'The summary runs its balance and status reads; it ran ' + summaryQueries + ' queries.');
 

@@ -144,7 +144,8 @@ private class RLM_InvoiceProductSummaryControllerTest {
 
     // An asset with no state period has no attributes to show: the helper stops after the
     // state-period query and returns no entry for it. The account is owned by the billing
-    // operations user; Asset has no owner to set, so its visibility to that user is checked.
+    // operations user. Asset exposes no OwnerId to set (its describe on a Release 264 org has
+    // none), so its visibility to that user is checked instead.
     @isTest
     static void resolveAssetAttributes_assetWithoutStatePeriods_returnsNoEntry() {
         User u = billingOperationsUser();

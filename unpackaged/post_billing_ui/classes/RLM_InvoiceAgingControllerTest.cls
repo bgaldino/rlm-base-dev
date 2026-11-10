@@ -16,6 +16,7 @@ private class RLM_InvoiceAgingControllerTest {
     // than the deploying admin: RLM_BillingUI is assigned only after this bundle deploys.
     @isTest
     static void getInvoiceAgingData_accountWithNoInvoices_returnsZeroes() {
+        // The controller filters invoices by this id and never reads Account itself.
         Account acc = new Account(Name = 'RLM Invoice Aging Test');
         insert acc;
         User u = billingOperationsUser();
@@ -37,6 +38,7 @@ private class RLM_InvoiceAgingControllerTest {
     // shown to come from the user's access and not from the account.
     @isTest
     static void getInvoiceAgingData_userWithoutInvoiceAccess_throwsAHandledError() {
+        // The controller filters invoices by this id and never reads Account itself.
         Account acc = new Account(Name = 'RLM Invoice Aging Access Test');
         insert acc;
         User billingUser = billingOperationsUser();

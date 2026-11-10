@@ -24,19 +24,17 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         System.assertEquals(0, rows.size(), 'No tax rows exist for a non-existent invoice.');
     }
 
-    // The TaxSummaryRow constructor keeps each argument in its own field. (The aggregate
-    // mapping that calls it needs InvoiceLineTax rows, whose required InvoiceLine cannot be
-    // created in a test, so it is not covered here.)
+    // Coverage-only check of the TaxSummaryRow constructor: it keeps each argument in its own
+    // field. (The aggregate mapping that calls it needs InvoiceLineTax rows, whose required
+    // InvoiceLine cannot be created in a test, so it is not covered here.)
     // Documented, not pinned (no InvoiceLineTax row can be created): the controller's
     // SUM(TaxAmount) ... GROUP BY TaxName, CurrencyIsoCode returns each total in the corporate
     // currency, but labels it with the group's CurrencyIsoCode, so a non-corporate tax line's
     // total would be shown under the wrong currency.
     @isTest
-    static void taxSummaryRow_constructorKeepsEachArgument() {
-        Test.startTest();
+    static void taxSummaryRow_coverageOnlyConstructorCheck() {
         RLM_InvoiceTaxSummaryController.TaxSummaryRow row =
             new RLM_InvoiceTaxSummaryController.TaxSummaryRow('State Sales Tax', 12.50, 'EUR');
-        Test.stopTest();
         Assert.areEqual('State Sales Tax', row.taxName, 'The tax name is kept.');
         Assert.areEqual(12.50, row.totalTaxAmount, 'The tax total is kept.');
         Assert.areEqual('EUR', row.currencyIsoCode, 'The currency of the total is kept.');
