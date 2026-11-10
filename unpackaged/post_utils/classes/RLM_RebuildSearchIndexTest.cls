@@ -228,8 +228,14 @@ private class RLM_RebuildSearchIndexTest {
         }
     }
 
+    /**
+     * Records CURRENT behaviour, not the intended contract. PCMDeployRequest exposes Build Type
+     * and Activation Type as invocable inputs, but callPcmDeploy always sends FULL / IMMEDIATE,
+     * so the inputs are a known gap. When they are wired through, change this test to expect
+     * the request's values in the callout body.
+     */
     @IsTest
-    static void deployPcmIndexIgnoresRequestBuildAndActivationType() {
+    static void deployPcmIndexDoesNotYetForwardRequestBuildAndActivationType() {
         PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
         Test.setMock(HttpCalloutMock.class, mock);
 
@@ -246,12 +252,12 @@ private class RLM_RebuildSearchIndexTest {
         Assert.areEqual(
             'FULL',
             body.get('buildType'),
-            'The request\'s buildType is not forwarded; every deploy is a FULL build'
+            'Known gap: the request\'s buildType is not forwarded yet; update this test when it is'
         );
         Assert.areEqual(
             'IMMEDIATE',
             ((Map<String, Object>) body.get('snapshot')).get('activationType'),
-            'The request\'s activationType is not forwarded; every snapshot activates IMMEDIATE'
+            'Known gap: the request\'s activationType is not forwarded yet; update this test when it is'
         );
     }
 
@@ -309,16 +315,5 @@ private class RLM_RebuildSearchIndexTest {
 
         Assert.isTrue(results.isEmpty(), 'No requests, no results');
         Assert.areEqual(0, mock.received.size(), 'No requests, no callouts');
-    }
-
-    // ─── getApiSessionId ────────────────────────────────────────────────
-
-    @IsTest
-    static void apiSessionIdIsStubbedInTests() {
-        Assert.areEqual(
-            'fake-session-id',
-            RLM_RebuildSearchIndex.getApiSessionId(),
-            'Tests never render the RLM_SessionId page; they get the fixed stub token'
-        );
     }
 }

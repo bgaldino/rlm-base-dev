@@ -152,6 +152,23 @@ private class RLM_UsageDataControllerTest {
         Assert.areEqual('_self', typeAttributes.get('target'), col.get('fieldName') + ' opens in the same tab');
     }
 
+    /**
+     * The controller strips fields the running user cannot read, so row assertions on these
+     * fields only hold when the runner can read them. End users get them from RLM_UsageDatatables.
+     */
+    private static void assertJournalFieldsReadable() {
+        Map<String, Schema.SObjectField> fields = Schema.SObjectType.TransactionJournal.fields.getMap();
+        for (String fieldName : new List<String>{
+            'Quantity', 'Status', 'UsageResourceId', 'QuantityUnitOfMeasureId', 'ReferenceRecordId'
+        }) {
+            Assert.isTrue(
+                fields.get(fieldName).getDescribe().isAccessible(),
+                'PRECONDITION: the running user must read TransactionJournal.' + fieldName +
+                ' (granted to end users by RLM_UsageDatatables), or stripInaccessible removes it'
+            );
+        }
+    }
+
     private static void assertRejected(Id recordId, String filterField, String objectApiName, String fieldSetName) {
         Boolean threw = false;
         Integer queriesBefore = Limits.getQueries();
@@ -227,11 +244,7 @@ private class RLM_UsageDataControllerTest {
         List<Map<String, Object>> rows = recordsOf(result);
         Assert.areEqual(3, rows.size(), 'Every journal on the account is returned');
 
-        Assert.isTrue(
-            Schema.SObjectType.TransactionJournal.fields.Quantity.isAccessible(),
-            'PRECONDITION: the running user must read TransactionJournal.Quantity ' +
-            '(granted to end users by RLM_UsageDatatables), or stripInaccessible removes it'
-        );
+        assertJournalFieldsReadable();
         Map<String, Object> row = rowFor(rows, journal150.Id);
         Assert.areEqual(journal150.Name, row.get('Name'), 'The name field carries the record name');
         Assert.areEqual('/' + journal150.Id, row.get('Name__url'), 'The name links to the journal itself');
@@ -242,7 +255,7 @@ private class RLM_UsageDataControllerTest {
         Assert.areEqual(RESOURCE_NAME, row.get('UsageResourceId__name'), 'The lookup label is the related name');
         Assert.areEqual(uom.Id, row.get('QuantityUnitOfMeasureId'), 'The raw unit of measure id is kept');
         Assert.areEqual(UOM_NAME, row.get('QuantityUnitOfMeasureId__name'), 'The unit of measure label is its name');
-        Assert.areEqual(one.Id, row.get('ReferenceRecordId'), 'The polymorphic asset id is always kept');
+        Assert.areEqual(one.Id, row.get('ReferenceRecordId'), 'The polymorphic asset id is kept');
         Assert.areEqual('/' + one.Id, row.get('ReferenceRecordId__url'), 'The asset reference links to the asset');
         Assert.areEqual(ASSET_ONE, row.get('ReferenceRecordId__name'), 'The asset reference is labelled by name');
     }
@@ -258,6 +271,7 @@ private class RLM_UsageDataControllerTest {
         Test.stopTest();
 
         List<Map<String, Object>> rows = recordsOf(result);
+        assertJournalFieldsReadable();
         Assert.areEqual(1, rows.size(), 'Only the journal referencing the second asset is returned');
         Assert.areEqual(two.Id, rows[0].get('ReferenceRecordId'), 'The row belongs to the filter record');
         Assert.areEqual(7, ((Decimal) rows[0].get('Quantity')).intValue(), 'It is the second asset\'s journal');
@@ -328,6 +342,11 @@ private class RLM_UsageDataControllerTest {
         assertUrlColumn(column(columns, 'AssetId__url'), 'AssetId__name');
         // LiableSummaryId points at UsageBillingPeriodItem, whose name field is an autonumber
         // other than Name; the query must have resolved it or it would have thrown.
+        Assert.areEqual(
+            new List<Schema.SObjectType>{ UsageBillingPeriodItem.SObjectType },
+            UsageSummary.LiableSummaryId.getDescribe().getReferenceTo(),
+            'PRECONDITION: UsageSummary.LiableSummaryId references only UsageBillingPeriodItem'
+        );
         Assert.isFalse(
             Schema.SObjectType.UsageBillingPeriodItem.fields.getMap().containsKey('Name'),
             'PRECONDITION: UsageBillingPeriodItem has no Name field, so a Name fallback would fail the query'
@@ -407,8 +426,9 @@ private class RLM_UsageDataControllerTest {
     static void rejectsRealFieldsThatAreNotAllowlistedFilters() {
         Id accId = accountId(ACCOUNT_NAME);
 
-        // Real fields that would widen the query scope beyond one Account or Asset. Each must
-        // exist on its object, so the allowlist (not the field-exists check) is what rejects it.
+        // Real fields that are not allowed filters for their object. CreatedById would widen the
+        // scope beyond one Account or Asset; the others are simply not offered as filters. Each
+        // exists on its object, so the allowlist (not the field-exists check) is what rejects it.
         Assert.isTrue(Schema.SObjectType.TransactionJournal.fields.getMap().containsKey('CreatedById'), 'PRECONDITION');
         Assert.isTrue(Schema.SObjectType.TransactionJournal.fields.getMap().containsKey('UsageResourceId'), 'PRECONDITION');
         Assert.isTrue(Schema.SObjectType.UsageSummary.fields.getMap().containsKey('Status'), 'PRECONDITION');

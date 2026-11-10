@@ -1,7 +1,8 @@
 /**
  * Tests for RLM_ARC_AssetValidator: which assets are flagged usage-based or derived-price,
  * how a request is widened through AssetRelationship in both directions, the
- * action-specific blocked messages, and that a bulk call stays at a fixed SOQL count.
+ * action-specific blocked messages, and that a four-request bulk call uses one SOQL query per
+ * validation dimension.
  *
  * Not covered:
  *  - the ramped branch. AssetStatePeriod.RampIdentifier is not createable (the platform
@@ -316,7 +317,7 @@ private class RLM_ARC_AssetValidatorTest {
         Assert.areEqual(
             expectedMessage('usage-based (1), derived-price (1)', 'swap, upgrade, or downgrade'),
             res.swapBlockedMessage,
-            'Swap lists every blocking condition, comma separated, in a fixed order'
+            'Swap lists both blocking conditions, comma separated, usage-based before derived-price'
         );
         Assert.areEqual(
             expectedMessage('usage-based (1)', 'transfer'),
@@ -361,7 +362,7 @@ private class RLM_ARC_AssetValidatorTest {
         RLM_ARC_AssetValidator.Result res = validateOne(new List<Id>{ selected.Id });
         Test.stopTest();
 
-        Assert.isTrue(res.hasUsageBasedAssets, 'Relationships are followed in both directions');
+        Assert.isTrue(res.hasUsageBasedAssets, 'The relationship is followed from the RelatedAssetId side');
         Assert.areEqual(new List<Id>{ other.Id }, res.usageBasedAssetIds, 'The other side of the relationship is flagged');
     }
 
@@ -394,13 +395,21 @@ private class RLM_ARC_AssetValidatorTest {
         Asset clean = assetNamed(CLEAN_ASSET);
         Asset usage = assetNamed(USAGE_ASSET);
         Asset noProduct = assetNamed(NO_PRODUCT_ASSET);
+        Asset secondUsage = new Asset(
+            Name = 'RLM ARC Second Usage Asset',
+            AccountId = usage.AccountId,
+            Product2Id = usage.Product2Id
+        );
+        insert secondUsage;
 
+        // Every request has a different expected result, so a result returned for the wrong
+        // request fails one of the assertions below.
         List<RLM_ARC_AssetValidator.Request> requests = new List<RLM_ARC_AssetValidator.Request>();
         for (List<Id> ids : new List<List<Id>>{
             new List<Id>{ clean.Id },
             new List<Id>{ usage.Id },
-            new List<Id>(),
-            new List<Id>{ noProduct.Id, usage.Id }
+            new List<Id>{ usage.Id, secondUsage.Id },
+            new List<Id>{ noProduct.Id, secondUsage.Id }
         }) {
             RLM_ARC_AssetValidator.Request req = new RLM_ARC_AssetValidator.Request();
             req.recordIds = ids;
@@ -412,13 +421,26 @@ private class RLM_ARC_AssetValidatorTest {
         Integer queries = Limits.getQueries();
         Test.stopTest();
 
-        Assert.areEqual(4, results.size(), 'One result per request, in request order');
+        Assert.areEqual(4, results.size(), 'One result per request');
         assertUnblocked(results[0]);
-        Assert.isTrue(results[1].hasUsageBasedAssets, 'Second request holds the usage asset');
-        assertUnblocked(results[2]);
-        Assert.isTrue(results[3].hasUsageBasedAssets, 'Fourth request holds the usage asset too');
-        Assert.areEqual(new List<Id>{ usage.Id }, results[3].usageBasedAssetIds, 'Only the usage asset is flagged');
-        Assert.areEqual(1, results[3].blockedAssets.size(), 'Only the usage asset is blocked in the fourth request');
+        Assert.areEqual(new List<Id>{ usage.Id }, results[1].usageBasedAssetIds, 'Second request: the first usage asset only');
+        Assert.areEqual(
+            new Set<Id>{ usage.Id, secondUsage.Id },
+            new Set<Id>(results[2].usageBasedAssetIds),
+            'Third request: both usage assets'
+        );
+        Assert.areEqual(2, results[2].blockedAssets.size(), 'Third request: both usage assets are blocked');
+        Assert.areEqual(
+            expectedMessage('usage-based (2)', 'rollback'),
+            results[2].rollbackBlockedMessage,
+            'Third request: the message counts both assets'
+        );
+        Assert.areEqual(
+            new List<Id>{ secondUsage.Id },
+            results[3].usageBasedAssetIds,
+            'Fourth request: the second usage asset only'
+        );
+        Assert.areEqual(1, results[3].blockedAssets.size(), 'Fourth request: the product-less asset is not blocked');
 
         // relationships, ramp periods, assets, usage resources, price book entries, blocked assets
         Assert.areEqual(6, queries, 'Four requests together use one query per validation dimension');
