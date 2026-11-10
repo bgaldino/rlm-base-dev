@@ -776,7 +776,8 @@ stay Private. The rule covers internal users only; external (Experience Cloud) u
 access from it. On an org built before that change, deploy only the rule, not the whole
 `post_constraints` bundle: that re-applies the repo's IndustriesConstraints and ProductDiscovery
 settings over any later org changes. (The bundle also redeploys the `RLM_QuoteItemTrigger` Apex
-trigger; it now ships its test class, `RLM_QuoteItemTriggerTest`, for production-type coverage.)
+trigger with its test class, `RLM_QuoteItemTriggerTest`; on a production-type org that deploy runs
+the org's local Apex tests.)
 
 ```bash
 sf project deploy start --source-dir unpackaged/post_constraints/sharingRules --target-org <sf_alias>

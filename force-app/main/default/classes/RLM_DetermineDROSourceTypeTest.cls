@@ -54,8 +54,8 @@ private class RLM_DetermineDROSourceTypeTest {
 
         Assert.isTrue(
             result.isEmpty(),
-            'Known gap: an input with no ids returns no output for that input, which faults the calling flow; '
-                + 'update this test when it is fixed'
+            'Known gap: an input with no ids returns no output for that input, which would fault a calling '
+                + 'flow (the in-repo caller ships as Draft); update this test when it is fixed'
         );
     }
 

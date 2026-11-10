@@ -84,7 +84,7 @@ private class RLM_OrderItemContractingUtilityTest {
             1, r.subscriptionItemCount,
             'Known gap: two items, but the LIMIT 1 subquery caps subscriptionItemCount at 1. That LIMIT 1 '
                 + 'also picks the latest end date, so a correct count needs its own aggregate or subquery; '
-                + 'the shipped flow only checks for zero. Update this test when it is fixed'
+                + 'the in-repo caller (which ships as Draft) only checks for zero. Update this test when it is fixed'
         );
     }
 
@@ -134,8 +134,8 @@ private class RLM_OrderItemContractingUtilityTest {
 
         Assert.areEqual(
             1, results.size(),
-            'Known gap: two inputs for the same order return one output, which faults the calling flow; '
-                + 'update this test when it is fixed'
+            'Known gap: two inputs for the same order return one output, which would fault a calling flow '
+                + '(the in-repo caller ships as Draft); update this test when it is fixed'
         );
     }
 
@@ -193,7 +193,9 @@ private class RLM_OrderItemContractingUtilityTest {
     static void userWithoutOrderFieldAccessGetsNoResults() {
         Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
         insert o;
-        Assert.areEqual(1, run(new List<Id>{ o.Id }).size(), 'PRECONDITION: an admin gets a result for this order');
+        Assert.areEqual(
+            1, run(new List<Id>{ o.Id }).size(), 'PRECONDITION: the running user gets a result for this order'
+        );
         User noAccess = minimumAccessUser();
         if (noAccess == null) {
             System.debug(
@@ -223,7 +225,8 @@ private class RLM_OrderItemContractingUtilityTest {
         Assert.isTrue(
             results.isEmpty(),
             'Known gap: without access to the order fields the utility returns no output for an input, '
-                + 'which faults the calling flow; update this test when it is fixed'
+                + 'which would fault a calling flow (the in-repo caller ships as Draft); '
+                + 'update this test when it is fixed'
         );
     }
 
