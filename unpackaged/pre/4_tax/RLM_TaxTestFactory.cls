@@ -10,7 +10,8 @@
  * from the platform's String.valueOf form of a response (for example
  * "...[status=Committed,taxTransactionType=Credit,...]"), so it depends on that undocumented
  * format. Accepted risk: if a release changes it, responseStringForm_matchesHelperPremise names
- * the cause; every String-form assertion fails with it.
+ * the cause; every positive String-form assertion fails with it (count-0 checks rely on the
+ * positive assertions before them).
  *
  * The same accepted risk covers how the commercetax setters reject input: the tests expect
  * setAmountDetails(null) to throw an exception named commercetax.TaxApiException, and
@@ -123,7 +124,8 @@ public with sharing class RLM_TaxTestFactory {
 
     private static final String PREMISE_HINT =
         ' (If RLM_TaxTestFactory.responseStringForm_matchesHelperPremise also fails, the platform format changed:'
-        + ' that test names the cause; every String-form assertion fails with it.)';
+        + ' that test names the cause; every positive String-form assertion fails with it'
+        + ' (count-0 checks rely on the positive assertions before them).)';
 
     /** Appended to assertions that rely on how the commercetax setters reject null input. */
     public static final String SETTER_PREMISE_HINT =
