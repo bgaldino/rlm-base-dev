@@ -580,6 +580,64 @@ class SfdmuGuard(unittest.TestCase):
                                                          "edits": edits}), "ask")
 
 
+class ArtifactsPlacement(unittest.TestCase):
+    """Rule 4: the private tree's top level is closed, its archive asks, siblings are refused."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.tree = self.tmp / ".agents" / "artifacts"
+        for d in ("topics/collections", "inbox", "todos/attachments", "archive/2026/x",
+                  "verification"):
+            (self.tree / d).mkdir(parents=True)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def decide(self, rel, tool="Write", cwd=None):
+        tool_input = {"file_path": rel, "content": "x\n"}
+        if tool == "Edit":
+            tool_input = {"file_path": rel, "old_string": "a", "new_string": "b"}
+        proc = run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
+                                "cwd": str(cwd or self.tmp)})
+        if proc.returncode == 2:
+            return "deny"
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        if proc.stdout.strip():
+            return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"]
+        return "allow"
+
+    def test_a_new_top_level_file_or_folder_is_denied(self):
+        self.assertEqual(self.decide(".agents/artifacts/feature-gaps.md"), "deny")
+        self.assertEqual(self.decide(str(self.tree / "new-topic" / "notes.md")), "deny")
+
+    def test_tier_paths_and_existing_folders_are_allowed(self):
+        for rel in ("topics/collections/gaps.md", "inbox/2026-11-09-gaps.md",
+                    "todos/attachments/358/evidence.md", "README.md", "MOVED.tsv",
+                    "verification/344/ledger.md"):
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "allow", rel)
+        self.assertEqual(self.decide(".agents/artifacts/topics/collections/a.md", tool="Edit"),
+                         "allow")
+
+    def test_archive_writes_ask(self):
+        self.assertEqual(self.decide(".agents/artifacts/archive/2026/x/HANDOFF.md"), "ask")
+
+    def test_sibling_directories_are_denied(self):
+        self.assertEqual(self.decide(".agents/artifacts.old/notes.md"), "deny")
+        self.assertEqual(self.decide(".agents/artifacts-backup/notes.md"), "deny")
+
+    def test_an_absent_private_clone_is_not_created(self):
+        with tempfile.TemporaryDirectory() as other:
+            self.assertEqual(self.decide(".agents/artifacts/inbox/a.md", cwd=other), "deny")
+
+    def test_paths_resolve_through_dot_dot_and_relative_cwd(self):
+        self.assertEqual(self.decide("topics/../stray.md", cwd=self.tree), "deny")
+        self.assertEqual(self.decide("../stray.md", cwd=self.tree / "inbox"), "deny")
+
+    def test_public_agents_files_are_untouched(self):
+        self.assertEqual(self.decide(".agents/README.md"), "allow")
+        self.assertEqual(self.decide(".agents/skills/x/SKILL.md"), "allow")
+
+
 class KillSwitch(unittest.TestCase):
     def test_stop_file_refuses_loop_agents_only(self):
         with tempfile.TemporaryDirectory() as tmp:

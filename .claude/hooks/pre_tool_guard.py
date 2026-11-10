@@ -37,6 +37,13 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    `$LOOP_RUN_DIR/STOP` refuses every tool call of that one run (a remote cancel of one run);
    `<main checkout>/.loop/STOP` refuses every loop agent on the workstation (`make stop`).
    Either takes effect at the agent's next tool call; neither aborts a tool already running.
+4. Private artifacts placement (`.cursor/rules/analysis-artifacts.mdc`). A Write, Edit or
+   MultiEdit is denied when it would create a new top-level entry in `.agents/artifacts/`
+   (anything not in ARTIFACTS_ROOT and not already on disk), write into a sibling such as
+   `.agents/artifacts.old/` (not gitignored, so it would surface in the public repo), or
+   create `.agents/artifacts/` where the private clone is absent. It asks before a write
+   under `.agents/artifacts/archive/` (frozen history). Existing top-level folders still
+   accept writes until the private repo's reorg moves them.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
@@ -55,6 +62,8 @@ What this guard does not catch, and what backs it up:
   `main`, `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion,
   and its admin bypass applies to pull-request merges only, so a direct push with the
   owner's credentials is rejected. This guard refuses it earlier and says why.
+- Artifacts writes made through Bash (`>`, `cp`, `mv`, a script) rather than Edit/Write.
+  The private repository's own pre-commit hook (`tools/check_layout.py`) is the backstop.
 - SFDMU edits made through Bash (`sed -i`, a script) rather than Edit/Write. No diff-level
   check for destructive operations exists in `pr_gate.py` yet; adding one is planned with the
   defect registry work, and until then a person reviewing the diff is the only backstop.
@@ -574,6 +583,48 @@ def sfdmu_decision(path: str, before: str, after: Optional[str], old: str,
     return "allow", ""
 
 
+# Top-level names the private artifacts repo allows (its README and tools/check_layout.py are
+# authoritative; this copy only has to stop agents creating new top-level entries).
+ARTIFACTS_ROOT = frozenset({
+    "README.md", "MOVED.tsv", ".gitignore", ".ignore", ".githooks", "tools", "inbox", "topics",
+    "archive", "reports", "todos", "todo-audit", "memory",
+})
+ARTIFACTS_HINT = ("file it under topics/<slug>/, todos/attachments/<id>/ or "
+                  "inbox/<yyyy-mm-dd>-<name> (.cursor/rules/analysis-artifacts.mdc)")
+
+
+def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
+    if not path:
+        return "allow", ""
+    full = Path(os.path.normpath(os.path.join(cwd, os.path.expanduser(path))))
+    parts = full.parts
+    hits = [i for i in range(len(parts) - 1)
+            if parts[i] == ".agents" and parts[i + 1].startswith("artifacts")]
+    if not hits:
+        return "allow", ""
+    i = hits[-1]
+    tree = Path(*parts[:i + 2])
+    if parts[i + 1] != "artifacts":
+        return "deny", (f"`{parts[i + 1]}` sits beside `.agents/artifacts/` and is not "
+                        "gitignored, so it would surface in the public repo; keep backups "
+                        "outside the repository and write inside `.agents/artifacts/` itself")
+    if not tree.is_dir():
+        return "deny", ("`.agents/artifacts/` (the private repository) is not cloned here; "
+                        "do not create it. Use $TMPDIR for scratch, or say where the content "
+                        "should live")
+    rest = parts[i + 2:]
+    if not rest:
+        return "allow", ""
+    if rest[0] not in ARTIFACTS_ROOT and not (tree / rest[0]).exists():
+        return "deny", (f"`{rest[0]}` would be a new top-level entry of `.agents/artifacts/`, "
+                        f"whose top level is closed; {ARTIFACTS_HINT}")
+    if rest[0] == "archive" and len(rest) > 1:
+        return "ask", ("this writes under `.agents/artifacts/archive/`, which is frozen history "
+                       "(moves and per-entry READMEs only). Confirm it is a deliberate archive "
+                       "edit")
+    return "allow", ""
+
+
 def stop_file(cwd: str) -> Optional[str]:
     """Why a loop agent must stop now, or None. Interactive sessions never stop here."""
     if not os.environ.get("LOOP_ROLE"):
@@ -760,6 +811,9 @@ def decide(event: dict) -> Tuple[str, str]:
         return worst
     change = text_change(tool, tool_input)
     if change:
+        placement = artifacts_decision(change[0], cwd)
+        if placement[0] != "allow":
+            return placement
         return sfdmu_decision(*change)
     return "allow", ""
 

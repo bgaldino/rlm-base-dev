@@ -198,6 +198,15 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="private_refs",
+        cmd=["python", "scripts/ai/check_private_refs.py"],
+        # The private `.agents/artifacts/` tree must never be tracked here (sibling backups
+        # included), and citations into it must be tier-shaped (todo 358). It reads every tracked
+        # text file, so like release_refs it always runs. Shape findings warn until PR-B.
+        triggers=["scripts/ai/check_private_refs.py"], always=True,
+        deps=[], gating=True,
+    ),
+    dict(
         name="permission_set_dependencies",
         cmd=["python", "scripts/ai/check_permission_set_dependencies.py"],
         # Account read depends on Contact read because of the person accounts in the TSO orgs;
@@ -716,6 +725,7 @@ STDLIB_SUITES = [
     "tests/test_build_quote_ramp_args.py",
     "tests/test_check_node_ca.py",
     "tests/test_check_permission_set_dependencies.py",
+    "tests/test_check_private_refs.py",
     "tests/test_check_release_refs.py",
     "tests/test_audit_data_plans.py",
     "tests/test_check_sfdmu_layering.py",

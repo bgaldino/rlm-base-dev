@@ -138,7 +138,7 @@ This table is the canonical list — `AGENTS.md` points here rather than repeati
 
 | Rule | Triggers On | Equivalent Skill |
 |------|-------------|------------------|
-| `analysis-artifacts.mdc` | (always applies) | *(stand-alone — AI-generated analysis must go to `.agents/artifacts/`, never the public repo)* |
+| `analysis-artifacts.mdc` | (always applies) | *(stand-alone — AI-generated working docs go inside a folder of `.agents/artifacts/`, never its root or the public repo)* |
 | `sfdmu-export-json.mdc` | `**/export.json` | `sfdmu-data-plans/SKILL.md` |
 | `sfdmu-csv-data.mdc` | `datasets/sfdmu/**/*.csv` | `sfdmu-data-plans/SKILL.md` |
 | `cci-task-definitions.mdc` | `cumulusci.yml` | `cci-orchestration/SKILL.md` |

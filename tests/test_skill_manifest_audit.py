@@ -137,6 +137,24 @@ with TemporaryDirectory() as root:
     ok, out = audit(root, lookalike, create_private=False)
     check("a sibling directory with a similar name is not exempt", ok is False, out)
 
+with TemporaryDirectory() as root:
+    # The tree is present, the cited path has moved, and MOVED.tsv says where (todo 358).
+    tree = Path(root, ".agents", "artifacts")
+    (tree / "topics" / "integration-staging").mkdir(parents=True)
+    (tree / "topics" / "integration-staging" / "pmos-integration.md").write_text("x")
+    (tree / "MOVED.tsv").write_text("old_prefix\tnew_prefix\tref\tdate\n"
+                                    "integration-staging/\ttopics/integration-staging/\tW3\t2026-11-09\n")
+    ok, out = audit(root, CITED, create_private=False)
+    check("a moved private path warns instead of failing", ok is True, out)
+    check("the warning names the path to rewrite to",
+          "rewrite to .agents/artifacts/topics/integration-staging/pmos-integration.md" in out, out)
+    check("a top-level-shaped citation is flagged", "cites the private tree's top level" in out, out)
+
+with TemporaryDirectory() as root:
+    ok, out = audit(root, ".agents/artifacts/topics/x/README.md", create_private=True)
+    check("a tier-shaped citation draws no shape warning",
+          ok is True and "top level" not in out, out)
+
 check("the exempt prefix is anchored with a separator",
       skill_manifest.LOCAL_ONLY_PREFIXES == (".agents/artifacts/",),
       skill_manifest.LOCAL_ONLY_PREFIXES)
@@ -261,7 +279,7 @@ print("\n" + "=" * 100)
 if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
-EXPECTED = 30
+EXPECTED = 34
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

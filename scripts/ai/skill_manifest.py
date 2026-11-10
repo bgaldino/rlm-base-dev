@@ -66,6 +66,16 @@ MANIFEST_FILENAME = ".claude/skill-manifest.yml"
 LOCAL_ONLY_ROOT = ".agents/artifacts"
 LOCAL_ONLY_PREFIXES = (LOCAL_ONLY_ROOT + "/",)
 
+
+def _private_refs():
+    """The sibling `check_private_refs` module: tier shapes and MOVED.tsv resolution, kept in
+    one place so this audit and the `private_refs` gate cannot disagree about either."""
+    spec = importlib.util.spec_from_file_location(
+        "check_private_refs", Path(__file__).resolve().with_name("check_private_refs.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 # Repo sections the resolver knows how to discover, in manifest order. Adding a
 # repo to the manifest means adding its key here too, or its clone is never
 # resolved. Only ``foundations`` is required; the rest declare ``optional: true``
@@ -846,6 +856,24 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
         return (root / rel).exists()
 
     unauditable: list[str] = []
+    advisories: list[str] = []
+    refs = _private_refs()
+
+    def private_advisory(where: str, rel: str) -> bool:
+        """Record shape and moved-path advisories for a private-tree path. True when the path
+        is missing but MOVED.tsv says where it went, so it is reported rather than failed."""
+        if not rel.startswith(LOCAL_ONLY_PREFIXES):
+            return False
+        if refs.classify(rel) == "top-level":
+            advisories.append(f"{where}: {rel} cites the private tree's top level")
+        tree = root / LOCAL_ONLY_ROOT
+        rest = rel[len(LOCAL_ONLY_ROOT):].strip("/")
+        if "{" in rel or not tree.is_dir() or (tree / rest).exists():
+            return False
+        new = refs.resolve_moved(tree, rest)
+        if new:
+            advisories.append(f"{where}: {rel} moved; rewrite to {LOCAL_ONLY_ROOT}/{new}")
+        return bool(new)
 
     def auditable(rel: str) -> bool:
         """False only for a path this checkout cannot possibly have.
@@ -872,6 +900,8 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
         ):
             if not rel:
                 continue
+            if private_advisory(f"skill {entry.get('id')}", rel):
+                continue
             if not auditable(rel):
                 unauditable.append(f"skill {entry.get('id')}: {rel}")
             elif not exists(rel):
@@ -891,12 +921,17 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
     # AGENTS.md, still went unaudited while the output said "all paths resolve".
     # The lesson both times: scope the walk to the claim, or weaken the claim.
     for where, rel in _path_like_values(section, "foundations"):
+        if private_advisory(where, rel):
+            continue
         if not auditable(rel):
             unauditable.append(f"{where}: {rel}")
         elif not exists(rel):
             problems.append(f"{where}: missing {rel}")
 
     print()
+    for item in advisories:
+        # Warnings until todo 358's PR-B rewrites the citations; check_private_refs gates then.
+        print(f"  [WARN  ] {item}")
     if problems:
         print(f"  [ERROR] foundations manifest does not match the working tree "
               f"({len(problems)} problem(s)):")

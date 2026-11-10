@@ -380,8 +380,8 @@ an opaque handle that does not survive separate CLI calls, so chaining
 create → query → persist needs Apex or a single Flow. Persist is **async**:
 confirm via `AsyncOperationTracker`, not the returned `referenceId`.
 
-Cursor's file-pattern rules (`.cursor/rules/*.mdc`) and the equivalent skill for
-each are tabulated in `.cursor/skills/README.md`.
+Every agent obeys `.cursor/rules/analysis-artifacts.mdc`; the rule-to-skill table
+is in `.cursor/skills/README.md`.
 
 ## Documentation Conventions
 
