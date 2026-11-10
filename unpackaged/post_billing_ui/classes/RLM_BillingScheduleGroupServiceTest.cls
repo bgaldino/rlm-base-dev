@@ -38,7 +38,9 @@
  * 'TermDefined') with BillingTermUnit__std 'OneTime'. The 264 developer guide requires
  * SellingModelType 'OneTime' for a one-time sale, and lists only Month, Quarter,
  * Semi-Annual and Year as evergreen billing term units. See
- * buildTransactionDetailsJson_oneTimeChargeFromModal_isSentAsEvergreen.
+ * buildTransactionDetailsJson_oneTimeChargeFromModal_isSentAsEvergreen. If the fix lands in the
+ * modal instead (sending termSetting 'OneTime'), that pin and the "no caller sends OneTime"
+ * comments on the pass-through tests must be updated too.
  *
  * Known gap (documented, not pinned): getAccountBillingInfo reads one arbitrary
  * BillingAccount for the account (LIMIT 1 with no ORDER BY, ignoring
@@ -52,8 +54,8 @@
  * Known gap (pinned): the 264 developer guide lists EndDate__std as required for a TermDefined
  * new sale, but a Termed create with no end date passes every guard and is sent without
  * EndDate__std. ParentTransactionId__std, also Required for TermDefined, is never sent; the
- * key-set test pins its absence. See buildTransactionDetailsJson_termedWithoutEndDate_omitsEndDate and
- * createViaAPI_termedWithoutEndDate_isAccepted.
+ * key-set test pins its absence. The pin is createViaAPI_termedWithoutEndDate_isAccepted (a
+ * guard would land in the create path, not the builder).
  *
  * Known gap (pinned): TotalPrice__std is required for every selling model (developer guide,
  * and the service's own comment), but the create path never checks totalPrice, so a null
@@ -636,8 +638,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         ));
         Assert.areEqual('TermDefined', txn.get('SellingModelType__std'));
         Assert.isFalse(txn.containsKey('EndDate__std'),
-            'Known gap: a Termed schedule with no end date is sent without EndDate__std, which the '
-            + 'standard action requires; update this test when a guard lands.');
+            'The builder sends no EndDate__std when none is given.');
     }
 
     // What the modal sends for a one-time charge: billingTermUnitPicklist 'OneTime' with its

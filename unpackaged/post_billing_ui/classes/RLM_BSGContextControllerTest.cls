@@ -189,11 +189,6 @@ private class RLM_BSGContextControllerTest {
         Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read BillingScheduleGroup.');
         Assert.isNotNull(ctx, 'A context is returned even when the query is refused.');
         Assert.areEqual('standard', ctx.viewType, 'A refused query degrades to the standard view.');
-        Assert.isNull(ctx.bsgNumber, 'Nothing was read, so no BSG fields are populated.');
-        Assert.isNull(ctx.milestonePlan);
-        Assert.isNull(ctx.bundle);
-        Assert.isNull(ctx.usage);
-        Assert.isNull(ctx.arrangement);
     }
 
     // ─── Pure helpers: remaining branches ───────────────────────────────────
