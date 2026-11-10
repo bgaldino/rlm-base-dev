@@ -7,11 +7,13 @@ private class RLM_AA_Submit_ApprovalTest {
 
     // RLM_AA_Set_Quote_Status is an autolaunched flow in this module that sets
     // Quote.RLM_Approval_Status__c on the quote named by its QuoteID input.
-    // The invocable starts it without error, and passes only its own fixed
-    // inputs (recordId, ApprovalLevel, submitter, submissionComments): QuoteID
-    // is never set, so the quote is left unchanged.
+    // The invocable accepts this existing flow without error, and its fixed
+    // inputs (recordId, ApprovalLevel, submitter, submissionComments) never set
+    // QuoteID, so the quote is left unchanged. Whether start() ran the
+    // interview is not observable here: with QuoteID unset the flow has no
+    // visible effect.
     @IsTest
-    static void callFlowStartsAnExistingFlowWithOnlyItsOwnInputs() {
+    static void callFlowAcceptsAnExistingFlowAndDoesNotMapQuoteID() {
         Quote premiseQuote = createQuote('Approval Premise Quote');
         Quote submitted = createQuote('Approval Submitted Quote');
 

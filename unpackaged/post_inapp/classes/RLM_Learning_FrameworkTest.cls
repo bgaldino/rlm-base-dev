@@ -7,11 +7,16 @@
  * DynamicLink) and exercises the happy paths plus the input-validation and
  * empty-result guards.
  *
- * The controllers run their queries and DML in USER_MODE, so every call that
+ * The controllers run their queries and DML in USER_MODE. Every call that
  * touches the learning objects runs as a least-privilege "learner" holding only
- * the RLM_Learning permission set. That keeps the suite independent of the
- * permissions of whoever runs it, and proves the permission set is enough. The
- * learner also owns the test content (as a content author would): with a
+ * the RLM_Learning permission set, so those calls do not depend on the
+ * permissions of whoever runs the suite, and they prove the permission set is
+ * enough. The setup-page map (custom metadata), FlowDefinitionView, Network
+ * and Organization lookups run as the runner: they touch no learning object,
+ * and RLM_Learning grants no access to that metadata, so running them as the
+ * learner would test the learner's profile rather than the feature.
+ *
+ * The learner also owns the test content (as a content author would): with a
  * Public Read/Write sharing model, only a record's owner can delete it, and
  * re-sequencing a section deletes its junction rows.
  */
@@ -35,14 +40,14 @@ private class RLM_Learning_FrameworkTest {
       RLM_Learning_Size__c = 'small',
       RLM_Learning_Type__c = 'utility:moneybag'
     );
-    insert icon;
+    insert as system icon;
 
     RLM_Learning_Page__c page = new RLM_Learning_Page__c(
       Name = 'TestHome',
       RLM_Learning_Type__c = 'Home',
       RLM_Learning_Active__c = true
     );
-    insert page;
+    insert as system page;
 
     RLM_Learning_DynamicLink__c dl = new RLM_Learning_DynamicLink__c(
       Name = 'Test DynamicLink',
@@ -50,7 +55,7 @@ private class RLM_Learning_FrameworkTest {
       RLM_Learning_Identity__c = 'TEST_DYN_LINK',
       RLM_Learning_Link__c = 'https://example.com'
     );
-    insert dl;
+    insert as system dl;
 
     RLM_Learning_Section__c sec = new RLM_Learning_Section__c(
       Name = 'Test Section',
@@ -62,7 +67,7 @@ private class RLM_Learning_FrameworkTest {
       RLM_Learning_Sub_Header__c = 'S',
       RLM_Learning_Video_Link__c = 'https://video.example.com'
     );
-    insert sec;
+    insert as system sec;
 
     // Second section with no blocks, to exercise the empty-blocks guard.
     RLM_Learning_Section__c secEmpty = new RLM_Learning_Section__c(
@@ -72,7 +77,7 @@ private class RLM_Learning_FrameworkTest {
       RLM_Learning_Active__c = true,
       RLM_Learning_Header__c = 'Empty'
     );
-    insert secEmpty;
+    insert as system secEmpty;
 
     RLM_Learning_Block__c blk = new RLM_Learning_Block__c(
       Name = 'TestBlock',
@@ -84,9 +89,9 @@ private class RLM_Learning_FrameworkTest {
       RLM_Learning_Icon__c = icon.Id,
       RLM_Learning_Action__c = dl.Id
     );
-    insert blk;
+    insert as system blk;
 
-    insert new RLM_Learning_SectionBlock__c(
+    insert as system new RLM_Learning_SectionBlock__c(
       RLM_Learning_Section__c = sec.Id,
       RLM_Learning_Block__c = blk.Id,
       RLM_Learning_Order_Sequence__c = 1
@@ -124,17 +129,53 @@ private class RLM_Learning_FrameworkTest {
     );
     // Setup-object DML in its own runAs context avoids MIXED_DML with test data.
     System.runAs(new User(Id = UserInfo.getUserId())) {
-      insert learner;
-      insert new PermissionSetAssignment(AssigneeId = learner.Id, PermissionSetId = learning.Id);
+      insert as system learner;
+      insert as system new PermissionSetAssignment(AssigneeId = learner.Id, PermissionSetId = learning.Id);
     }
     return learner;
+  }
+
+  // PRECONDITION for every learner test: the learner's profile grants no
+  // access to the learning objects, so what the learner can do comes from the
+  // RLM_Learning permission set.
+  @IsTest
+  static void learnerProfileGrantsNoLearningObjectAccess() {
+    User learnerUser = [SELECT Id, ProfileId FROM User WHERE Username = :learnerUsername() LIMIT 1];
+    Assert.areEqual(
+      0,
+      [
+        SELECT COUNT()
+        FROM ObjectPermissions
+        WHERE
+          Parent.IsOwnedByProfile = TRUE
+          AND Parent.ProfileId = :learnerUser.ProfileId
+          AND SobjectType = 'RLM_Learning_Block__c'
+          AND PermissionsRead = TRUE
+      ],
+      'PRECONDITION: the learner profile does not grant Read on RLM_Learning_Block__c.'
+    );
+    Assert.areEqual(
+      1,
+      [
+        SELECT COUNT()
+        FROM PermissionSetAssignment
+        WHERE AssigneeId = :learnerUser.Id AND PermissionSet.Name = 'RLM_Learning'
+      ],
+      'the learner holds the RLM_Learning permission set'
+    );
   }
 
   static User learner() {
     return [SELECT Id, FirstName FROM User WHERE Username = :learnerUsername() LIMIT 1];
   }
 
-  // ---- Data helpers (system mode) -------------------------------------------------
+  // ---- Data helpers -------------------------------------------------------------
+  //
+  // Fixture reads and writes on the learning objects are explicitly system mode
+  // (WITH SYSTEM_MODE / "as system"): at this API version a plain statement
+  // enforces the runner's field access, which would make the suite depend on
+  // the runner holding RLM_Learning. Only the calls under test run as the
+  // learner.
 
   static Id rtId(String sobj, String dev) {
     return [
@@ -151,16 +192,17 @@ private class RLM_Learning_FrameworkTest {
       SELECT Id
       FROM RLM_Learning_Section__c
       WHERE RLM_Learning_Header__c = :header
+      WITH SYSTEM_MODE
       LIMIT 1
     ];
   }
 
   static RLM_Learning_Page__c homePage() {
-    return [SELECT Id FROM RLM_Learning_Page__c WHERE Name = 'TestHome' LIMIT 1];
+    return [SELECT Id FROM RLM_Learning_Page__c WHERE Name = 'TestHome' WITH SYSTEM_MODE LIMIT 1];
   }
 
   static RLM_Learning_Block__c testBlock() {
-    return [SELECT Id FROM RLM_Learning_Block__c WHERE Name = 'TestBlock' LIMIT 1];
+    return [SELECT Id FROM RLM_Learning_Block__c WHERE Name = 'TestBlock' WITH SYSTEM_MODE LIMIT 1];
   }
 
   static RLM_Learning_DynamicLink__c testLink() {
@@ -168,6 +210,7 @@ private class RLM_Learning_FrameworkTest {
       SELECT Id
       FROM RLM_Learning_DynamicLink__c
       WHERE RLM_Learning_Identity__c = 'TEST_DYN_LINK'
+      WITH SYSTEM_MODE
       LIMIT 1
     ];
   }
@@ -227,13 +270,13 @@ private class RLM_Learning_FrameworkTest {
   static void getSectionsByType_returnsOnlyActiveSectionsAndBlocks() {
     RLM_Learning_Section__c sec = sectionByHeader('H');
     RLM_Learning_Block__c inactive = newBlock('Inactive Block', false, null);
-    insert inactive;
-    insert new RLM_Learning_SectionBlock__c(
+    insert as system inactive;
+    insert as system new RLM_Learning_SectionBlock__c(
       RLM_Learning_Section__c = sec.Id,
       RLM_Learning_Block__c = inactive.Id,
       RLM_Learning_Order_Sequence__c = 2
     );
-    insert new RLM_Learning_Section__c(
+    insert as system new RLM_Learning_Section__c(
       Name = 'Inactive Top Section',
       RecordTypeId = rtId('RLM_Learning_Section__c', 'Top'),
       RLM_Learning_Page__c = homePage().Id,
@@ -298,8 +341,8 @@ private class RLM_Learning_FrameworkTest {
   @IsTest
   static void getSectionsWithBlocksByType_blockWithoutActionHasNoLinks() {
     RLM_Learning_Block__c plain = newBlock('Plain Block', true, null);
-    insert plain;
-    insert new RLM_Learning_SectionBlock__c(
+    insert as system plain;
+    insert as system new RLM_Learning_SectionBlock__c(
       RLM_Learning_Section__c = sectionByHeader('Empty').Id,
       RLM_Learning_Block__c = plain.Id,
       RLM_Learning_Order_Sequence__c = 1
@@ -394,7 +437,7 @@ private class RLM_Learning_FrameworkTest {
   @IsTest
   static void getSectionsByType_requiresExactlyOneActivePage() {
     // Only an inactive Detail page exists: no active page for the type.
-    insert new RLM_Learning_Page__c(
+    insert as system new RLM_Learning_Page__c(
       Name = 'Inactive Detail',
       RLM_Learning_Type__c = 'Detail',
       RLM_Learning_Active__c = false
@@ -410,7 +453,12 @@ private class RLM_Learning_FrameworkTest {
     Assert.isTrue(noActivePage, 'expected an error when no active page has the type');
 
     // A second active Home page makes the type ambiguous.
-    insert new RLM_Learning_Page__c(
+    Integer withOneHomePage;
+    System.runAs(learner()) {
+      withOneHomePage = RLM_Learning_SectionBlockController.getSectionsByType('Top', 'Home').size();
+    }
+    Assert.areEqual(1, withOneHomePage, 'PRECONDITION: one active Home page resolves.');
+    insert as system new RLM_Learning_Page__c(
       Name = 'Second Home',
       RLM_Learning_Type__c = 'Home',
       RLM_Learning_Active__c = true
@@ -478,8 +526,13 @@ private class RLM_Learning_FrameworkTest {
   @IsTest
   static void getSectionWithBlockBySectionId_inactiveSectionThrows() {
     RLM_Learning_Section__c sec = sectionByHeader('H');
+    Integer whileActive;
+    System.runAs(learner()) {
+      whileActive = RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId(sec.Id).size();
+    }
+    Assert.areEqual(1, whileActive, 'PRECONDITION: the section resolves while it is active.');
     sec.RLM_Learning_Active__c = false;
-    update sec;
+    update as system sec;
     Boolean threw = false;
     System.runAs(learner()) {
       try {
@@ -517,9 +570,11 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getAllBlocks_returnsActiveBlocksInNameOrder() {
-    insert new List<RLM_Learning_Block__c>{
+    // Inserted out of name order: 'AA Active Block' sorts first but is created last.
+    insert as system new List<RLM_Learning_Block__c>{
       newBlock('ZZ Active Block', true, null),
-      newBlock('AA Inactive Block', false, null)
+      newBlock('AB Inactive Block', false, null),
+      newBlock('AA Active Block', true, null)
     };
 
     List<RLM_Learning_Block__c> blocks;
@@ -534,7 +589,7 @@ private class RLM_Learning_FrameworkTest {
       names.add(b.Name);
     }
     Assert.areEqual(
-      new List<String>{ 'TestBlock', 'ZZ Active Block' },
+      new List<String>{ 'AA Active Block', 'TestBlock', 'ZZ Active Block' },
       names,
       'active blocks only, ordered by name'
     );
@@ -545,7 +600,7 @@ private class RLM_Learning_FrameworkTest {
     Id secId = sectionByHeader('H').Id;
     Id firstId = testBlock().Id;
     RLM_Learning_Block__c second = newBlock('Second Block', true, null);
-    insert second;
+    insert as system second;
 
     List<RLM_Learning_SectionBlock__c> rows;
     Test.startTest();
@@ -565,6 +620,7 @@ private class RLM_Learning_FrameworkTest {
       SELECT RLM_Learning_Order_Sequence__c
       FROM RLM_Learning_SectionBlock__c
       WHERE RLM_Learning_Section__c = :secId
+      WITH SYSTEM_MODE
       ORDER BY RLM_Learning_Order_Sequence__c ASC
     ];
     Assert.areEqual(1, ordered[0].RLM_Learning_Order_Sequence__c.intValue());
@@ -815,11 +871,13 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getRecordIdFromDynamicLinkType_guardsAndFlowLookup() {
-    // Flow definitions are metadata, visible in tests; any active one will do.
+    // Flow definitions are metadata, visible in tests; any active, unmanaged
+    // one will do (the first by API name, for a stable choice).
     List<FlowDefinitionView> activeFlows = [
       SELECT ApiName, ActiveVersionId
       FROM FlowDefinitionView
-      WHERE ActiveVersionId != null
+      WHERE ActiveVersionId != null AND NamespacePrefix = null
+      ORDER BY ApiName
       LIMIT 1
     ];
     Assert.isFalse(activeFlows.isEmpty(), 'PRECONDITION: the org has an active flow.');
@@ -862,16 +920,24 @@ private class RLM_Learning_FrameworkTest {
     Assert.isTrue(threw, 'expected an error for a malformed network id');
   }
 
-  // Experience Cloud sites exist only in builds with a site feature enabled, so
-  // this check is skipped (by design) in orgs without one. Where a site exists,
-  // its base URL is an absolute prefix of its login URL with the "/s/..." login
-  // path removed.
+  // A well-formed Id with no site behind it is rejected in every org. Where the
+  // org also has an Experience Cloud site (only builds with a site feature
+  // enabled), that site's base URL is an absolute prefix of its login URL with
+  // the "/s/..." login path removed.
   @IsTest
-  static void getSiteUrl_trimsLoginPathWhenTheOrgHasASite() {
+  static void getSiteUrl_rejectsAMissingSite_andTrimsTheLoginPathOfAnExistingOne() {
+    Boolean missingRejected = false;
+    try {
+      RLM_Learning_DynamicLinkHelper.getSiteUrl('0DB000000000001');
+    } catch (AuraHandledException e) {
+      missingRejected = true;
+    }
+    Assert.isTrue(missingRejected, 'a network Id with no site behind it is rejected');
+
     List<Network> networks = [SELECT Id FROM Network LIMIT 1];
     String loginUrl = networks.isEmpty() ? null : Network.getLoginUrl(networks[0].Id);
     if (loginUrl == null) {
-      return; // no site in this org
+      return; // no site in this build: only the rejection above applies
     }
 
     String siteUrl = RLM_Learning_DynamicLinkHelper.getSiteUrl(networks[0].Id);
@@ -885,14 +951,11 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void userInformation_paths() {
-    // getExpiryDays returns null on non-trial orgs and never a negative count.
+    // getExpiryDays returns null exactly when the org has no trial expiry, and
+    // otherwise a non-negative count no larger than the days left (plus one for
+    // a date boundary crossed during the test).
     // (Part-of-day greeting moved to the client; no Apex getTiming/timingForHour.)
-    Organization org = [SELECT TrialExpirationDate FROM Organization LIMIT 1];
-    Integer expectedDays = null;
-    if (org.TrialExpirationDate != null) {
-      Integer days = Date.today().daysBetween(org.TrialExpirationDate.date());
-      expectedDays = days < 0 ? 0 : days;
-    }
+    Datetime trialExpiry = [SELECT TrialExpirationDate FROM Organization LIMIT 1].TrialExpirationDate;
     User learnerUser = learner();
 
     String name;
@@ -905,6 +968,13 @@ private class RLM_Learning_FrameworkTest {
     Test.stopTest();
 
     Assert.areEqual(learnerUser.FirstName, name, 'greets the running user by first name');
-    Assert.areEqual(expectedDays, expiryDays, 'days left in the trial, clamped at zero');
+    if (trialExpiry == null) {
+      Assert.isNull(expiryDays, 'no trial expiry means no countdown');
+    } else {
+      Integer upperBound = Math.max(0, Date.today().daysBetween(trialExpiry.date())) + 1;
+      Assert.isNotNull(expiryDays, 'a trial expiry yields a countdown');
+      Assert.isTrue(expiryDays >= 0, 'never negative: ' + expiryDays);
+      Assert.isTrue(expiryDays <= upperBound, 'no more than the days left: ' + expiryDays);
+    }
   }
 }

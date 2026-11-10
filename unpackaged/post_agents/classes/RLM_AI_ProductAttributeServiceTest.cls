@@ -80,6 +80,8 @@ private class RLM_AI_ProductAttributeServiceTest {
         RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
             RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('RLM Deleted Line Product');
         Id deletedLineId = fixture.quoteLineItemId;
+        Assert.areEqual(1, [SELECT COUNT() FROM QuoteLineItem WHERE Id = :deletedLineId],
+            'PRECONDITION: the line exists before it is deleted.');
         delete new QuoteLineItem(Id = deletedLineId);
 
         RLM_AI_ProductAttributeService.GetAttributeOptionsInput input =
@@ -112,6 +114,9 @@ private class RLM_AI_ProductAttributeServiceTest {
             SELECT Product2Id FROM QuoteLineItem WHERE Id = :fixture.quoteLineItemId
         ].Product2Id;
         update new Product2(Id = productId, BasedOnId = classificationId);
+        Assert.isFalse(
+            [SELECT IsRequired FROM AttributeDefinition WHERE DeveloperName = 'RLMTest_Attr_Tier'].IsRequired,
+            'PRECONDITION: the tier definition itself is not required.');
 
         RLM_AI_ProductAttributeService.GetAttributeOptionsInput input =
             new RLM_AI_ProductAttributeService.GetAttributeOptionsInput();
@@ -151,9 +156,9 @@ private class RLM_AI_ProductAttributeServiceTest {
         Assert.areEqual(new List<Object>{ 'Premium', 'Standard' }, tier.get('picklistValues'));
     }
 
-    // One attribute of each data type the summary formats differently. The tier
-    // is required through its definition: the platform copies IsRequired from
-    // the definition onto each new ProductClassificationAttr.
+    // One attribute of each data type the summary formats differently, inserted
+    // out of name order so the summary's ordering is observable. No definition
+    // is required; the tier is marked required on its classification attribute.
     private static Id createClassification() {
         AttributePicklist tierPicklist = new AttributePicklist(
             Name = 'RLMTest Attr Tier Picklist',
@@ -169,10 +174,10 @@ private class RLM_AI_ProductAttributeServiceTest {
         };
 
         List<AttributeDefinition> defs = new List<AttributeDefinition>{
-            definition('RLMTest Attr Capacity', 'RLMTest_Attr_Capacity', 'Number', null, false),
-            definition('RLMTest Attr Enabled', 'RLMTest_Attr_Enabled', 'Checkbox', null, false),
-            definition('RLMTest Attr Notes', 'RLMTest_Attr_Notes', 'Text', null, false),
-            definition('RLMTest Attr Tier', 'RLMTest_Attr_Tier', 'Picklist', tierPicklist.Id, true)
+            definition('RLMTest Attr Tier', 'RLMTest_Attr_Tier', 'Picklist', tierPicklist.Id),
+            definition('RLMTest Attr Notes', 'RLMTest_Attr_Notes', 'Text', null),
+            definition('RLMTest Attr Capacity', 'RLMTest_Attr_Capacity', 'Number', null),
+            definition('RLMTest Attr Enabled', 'RLMTest_Attr_Enabled', 'Checkbox', null)
         };
         insert defs;
 
@@ -192,11 +197,14 @@ private class RLM_AI_ProductAttributeServiceTest {
             ));
         }
         insert attrs;
+        // On insert the platform copies IsRequired from the definition; an
+        // update sets it on the classification attribute alone.
+        update new ProductClassificationAttr(Id = attrs[0].Id, IsRequired = true);
         return classification.Id;
     }
 
     private static AttributeDefinition definition(
-            String name, String developerName, String dataType, Id picklistId, Boolean isRequired) {
+            String name, String developerName, String dataType, Id picklistId) {
         return new AttributeDefinition(
             Name = name,
             Label = name,
@@ -204,7 +212,6 @@ private class RLM_AI_ProductAttributeServiceTest {
             Code = developerName.toUpperCase(),
             DataType = dataType,
             PicklistId = picklistId,
-            IsRequired = isRequired,
             IsActive = true
         );
     }

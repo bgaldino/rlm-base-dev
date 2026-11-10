@@ -102,6 +102,9 @@ private class RLM_AI_AttributeResolverTest {
             WHERE ProductClassificationId = :classificationId
               AND (IsHidden = true OR IsReadOnly = true)
         ], 'PRECONDITION: one hidden and one read-only attribute are on the classification.');
+        Assert.isFalse(
+            [SELECT IsRequired FROM AttributeDefinition WHERE Id = :defs.tier.Id].IsRequired,
+            'PRECONDITION: the tier definition itself is not required.');
 
         Test.startTest();
         RLM_AI_AttributeResolver.Resolution res = RLM_AI_AttributeResolver.resolve(lineId);
@@ -130,7 +133,8 @@ private class RLM_AI_AttributeResolverTest {
         Assert.areEqual(TIER_DEV_NAME, tier.developerName);
         Assert.areEqual(defs.tier.Id, tier.attributeDefinitionId);
         Assert.areEqual('Picklist', tier.dataType);
-        Assert.isTrue(tier.isRequired, 'Required comes from the classification attribute.');
+        Assert.isTrue(tier.isRequired,
+            'Required comes from the classification attribute, not the definition.');
         Assert.isTrue(tier.isPriceImpacting, 'Price impact comes from the classification attribute.');
         Assert.areEqual(new List<String>{ 'Premium', 'Standard' }, tier.picklistValues,
             'Picklist values are listed by name, in name order.');
@@ -182,9 +186,6 @@ private class RLM_AI_AttributeResolverTest {
 
         Definitions defs = new Definitions();
         defs.tier = definition('RLMTest Res Tier', TIER_DEV_NAME, 'Picklist', tierPicklist.Id);
-        // The platform copies IsRequired from the definition onto each new
-        // ProductClassificationAttr, so "required" is set here.
-        defs.tier.IsRequired = true;
         defs.capacity = definition('RLMTest Res Capacity', CAPACITY_DEV_NAME, 'Number', null);
         defs.hidden = definition('RLMTest Res Hidden', 'RLMTest_Res_Hidden', 'Text', null);
         defs.readOnly = definition('RLMTest Res Read Only', 'RLMTest_Res_Read_Only', 'Text', null);
@@ -205,9 +206,9 @@ private class RLM_AI_AttributeResolverTest {
         );
     }
 
-    // An Active classification exposing tier (price-impacting; required via its
-    // definition) and capacity, plus one hidden and one read-only attribute the
-    // resolver excludes. A visible read-only attribute needs a default value.
+    // An Active classification exposing tier (price-impacting and required) and
+    // capacity, plus one hidden and one read-only attribute the resolver
+    // excludes. A visible read-only attribute needs a default value.
     private static Id createClassification(Definitions defs) {
         ProductClassification classification = new ProductClassification(
             Name = 'RLMTest Res Classification',
@@ -215,12 +216,16 @@ private class RLM_AI_AttributeResolverTest {
             Status = 'Active'
         );
         insert classification;
-        insert new List<ProductClassificationAttr>{
+        List<ProductClassificationAttr> attrs = new List<ProductClassificationAttr>{
             classificationAttr(classification.Id, defs.tier, true, false, false),
             classificationAttr(classification.Id, defs.capacity, false, false, false),
             classificationAttr(classification.Id, defs.hidden, false, true, false),
             classificationAttr(classification.Id, defs.readOnly, false, false, true)
         };
+        insert attrs;
+        // On insert the platform copies IsRequired from the definition; an
+        // update sets it on the classification attribute alone.
+        update new ProductClassificationAttr(Id = attrs[0].Id, IsRequired = true);
         return classification.Id;
     }
 

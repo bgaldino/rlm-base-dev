@@ -39,7 +39,7 @@ private class RLM_ReturnPDFDocumentTest {
     // Requests without a PDF still produce an output (with null ids) in request
     // order, so a Flow never fails on a missing result.
     @IsTest
-    static void returnsEmptyOutputsWhenNoPdfIsFound() {
+    static void returnsEmptyOutputsForRequestsWithoutAPdf_inRequestOrder() {
         ContentVersion word = newVersion('Proposal.docx');
         ContentVersion pdf = newVersion('Contract.pdf');
         insert new List<ContentVersion>{ word, pdf };
@@ -68,6 +68,8 @@ private class RLM_ReturnPDFDocumentTest {
         Assert.isNull(outputs[1].ContentDocumentId);
         Assert.areEqual(pdf.Id, outputs[2].ContentVersionId,
             'A later request is unaffected by earlier empty ones.');
+        Assert.isNotNull(outputs[2].ContentDocumentId,
+            'The PDF request also carries its ContentDocument.');
     }
 
     @IsTest
