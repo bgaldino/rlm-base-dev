@@ -52,13 +52,9 @@ private class RLM_PaymentsDataControllerTest {
             RLM_PaymentsDataController.getPaymentScheduleItems(acc.Id, null);
         Test.stopTest();
 
-        RLM_PaymentsDataController.PaymentStatusSummary draft = null;
-        for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
-            if (s.status == 'Draft') { draft = s; }
-        }
-        System.assertNotEquals(null, draft, 'A Draft summary should be present.');
-        System.assertEquals(2, draft.itemCount, 'Two Draft items were seeded.');
-        System.assertEquals(150, draft.totalRequestedAmount, 'Draft requested total is 100 + 50.');
+        RLM_PaymentsDataController.PaymentStatusSummary draftSummary = draft(summaries);
+        System.assertEquals(2, draftSummary.itemCount, 'Two Draft items were seeded.');
+        assertAmount(150, draftSummary.totalRequestedAmount, 'Draft requested total is 100 + 50.');
     }
 
     // PaymentScheduleItem is Apex-createable, so the account-options aggregate (GROUP BY
@@ -176,5 +172,209 @@ private class RLM_PaymentsDataControllerTest {
         RLM_PaymentsDataController.addLineLevelApplications(m, new List<PaymentLineInvoiceLine>{ orphan });
 
         System.assert(m.isEmpty(), 'A row without its invoice is skipped, not a NullPointerException.');
+    }
+
+    // The two currency-filtered queries: with and without an account. An item in the user's
+    // currency is kept under that currency and left out under any other; another account's item
+    // in the same currency is kept by the currency filter alone and left out by the account one.
+    @isTest
+    static void getPaymentScheduleItems_filtersByCurrencyWithAndWithoutAccount() {
+        Account acc = new Account(Name = 'RLM PSI Currency Test');
+        Account other = new Account(Name = 'RLM PSI Currency Other');
+        insert new List<Account>{ acc, other };
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 110);
+        insert ps;
+        PaymentScheduleItem psi = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+            RequestedAmount = 80, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        PaymentScheduleItem otherItem = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = other.Id,
+            RequestedAmount = 30, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        insert new List<PaymentScheduleItem>{ psi, otherItem };
+        String userCurrency = UserInfo.getDefaultCurrency();
+        String otherCurrency = anotherCurrency(userCurrency);
+        Assert.areEqual(userCurrency, [SELECT CurrencyIsoCode FROM PaymentScheduleItem WHERE Id = :psi.Id].CurrencyIsoCode,
+            'PRECONDITION: the item is in the user\'s currency.');
+
+        Test.startTest();
+        RLM_PaymentsDataController.PaymentStatusSummary accountInCurrency =
+            draft(RLM_PaymentsDataController.getPaymentScheduleItems(acc.Id, userCurrency));
+        RLM_PaymentsDataController.PaymentStatusSummary anyAccountInCurrency =
+            draft(RLM_PaymentsDataController.getPaymentScheduleItems(null, userCurrency));
+        RLM_PaymentsDataController.PaymentStatusSummary accountElsewhere =
+            draft(RLM_PaymentsDataController.getPaymentScheduleItems(acc.Id, otherCurrency));
+        RLM_PaymentsDataController.PaymentStatusSummary anyAccountElsewhere =
+            draft(RLM_PaymentsDataController.getPaymentScheduleItems(null, otherCurrency));
+        Test.stopTest();
+
+        Assert.areEqual(1, accountInCurrency.itemCount, 'Only the account\'s item matches both filters.');
+        assertAmount(80, accountInCurrency.totalRequestedAmount, 'The account\'s item\'s requested amount.');
+        Assert.areEqual(psi.Id, accountInCurrency.items[0].id, 'The kept item is the account\'s.');
+        Assert.areEqual(userCurrency, accountInCurrency.items[0].currencyCode, 'The item carries its currency.');
+        Assert.areEqual(2, anyAccountInCurrency.itemCount, 'The currency alone keeps both accounts\' items.');
+        assertAmount(110, anyAccountInCurrency.totalRequestedAmount, 'Both items: 80 + 30.');
+        Assert.areEqual(0, accountElsewhere.itemCount,
+            'Under ' + otherCurrency + ' the account\'s item is left out.');
+        Assert.areEqual(0, anyAccountElsewhere.itemCount, 'Under ' + otherCurrency + ' no item matches.');
+        assertAmount(0, anyAccountElsewhere.totalRequestedAmount, 'Nothing requested in another currency.');
+    }
+
+    // An item linked to a payment shows that payment and its own amounts. No invoice can exist in
+    // a unit test, so the item lists none; listing a real invoice is verified live only.
+    @isTest
+    static void getPaymentScheduleItems_showsTheItemsPayment() {
+        Account acc = new Account(Name = 'RLM PSI Payment Test');
+        insert acc;
+        Payment pmt = new Payment(AccountId = acc.Id, Amount = 60, Status = 'Processed',
+            Type = 'Sale', ProcessingMode = 'External');
+        insert pmt;
+        CollectionPlan plan = new CollectionPlan(AccountId = acc.Id);
+        plan.put('UsageType', 'Billing');
+        insert plan;
+        PaymentSchedule promise = new PaymentSchedule(
+            ReferenceEntityId = plan.Id,
+            Type = 'PromiseToPay',
+            UsageType = 'CollectionPlan',
+            Status = 'Draft',
+            TotalRequestedAmount = 60
+        );
+        insert promise;
+        insert new PaymentScheduleItem(PaymentScheduleId = promise.Id, PaymentAccountId = acc.Id,
+            PaymentId = pmt.Id, RequestedAmount = 60, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        Assert.areEqual(plan.Id,
+            [SELECT ReferenceEntityId FROM PaymentSchedule WHERE Id = :promise.Id WITH USER_MODE].ReferenceEntityId,
+            'PRECONDITION: the schedule\'s reference is the collection plan.');
+
+        Test.startTest();
+        RLM_PaymentsDataController.PaymentStatusSummary summary =
+            draft(RLM_PaymentsDataController.getPaymentScheduleItems(acc.Id, null));
+        Test.stopTest();
+
+        Assert.areEqual(1, summary.itemCount, 'One Draft item.');
+        RLM_PaymentsDataController.PaymentItemWrapper item = summary.items[0];
+        Assert.areEqual(pmt.Id, item.paymentId, 'The item shows its payment.');
+        Assert.isTrue(item.hasPayment, 'The item has a payment.');
+        Assert.isFalse(item.hasInvoices, 'No invoice exists in a unit test, so the item lists none.');
+        Assert.isTrue(item.invoices.isEmpty(), 'No invoice exists in a unit test, so the item lists none.');
+        assertAmount(60, item.requestedAmount, 'The requested amount.');
+        Assert.areEqual(Date.today(), item.targetDate, 'The target processing date.');
+    }
+
+    // Only the five tracked statuses are summarized; an item in any other is left out.
+    @isTest
+    static void getPaymentScheduleItems_leavesOutUntrackedStatuses() {
+        Account acc = new Account(Name = 'RLM PSI Canceled Test');
+        insert acc;
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 50);
+        insert ps;
+        // Items are created Draft; Canceled is a status a user may set afterwards. The Draft
+        // item shows the account's items are read, so only the Canceled one is left out.
+        PaymentScheduleItem psi = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+            RequestedAmount = 30, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        PaymentScheduleItem kept = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+            RequestedAmount = 20, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        insert new List<PaymentScheduleItem>{ psi, kept };
+        // Update the status alone: the item's other fields are not all updateable.
+        update new PaymentScheduleItem(Id = psi.Id, Status = 'Canceled');
+        Assert.areEqual('Canceled', [SELECT Status FROM PaymentScheduleItem WHERE Id = :psi.Id].Status,
+            'PRECONDITION: the item is Canceled.');
+
+        Test.startTest();
+        List<RLM_PaymentsDataController.PaymentStatusSummary> summaries =
+            RLM_PaymentsDataController.getPaymentScheduleItems(acc.Id, null);
+        Test.stopTest();
+
+        Integer summarized = 0;
+        for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
+            summarized += s.itemCount;
+        }
+        Assert.areEqual(1, summarized, 'Of the two items only the Draft one is summarized.');
+        Assert.areEqual(kept.Id, draft(summaries).items[0].id, 'The summarized item is the Draft one.');
+    }
+
+    // Each tracked status carries its theme and icon; any other status gets the defaults.
+    @isTest
+    static void paymentStatusSummary_stylesEachStatus() {
+        Map<String, String> themes = new Map<String, String>{
+            'Failed' => 'slds-theme_error',
+            'Ready for Processing' => 'slds-theme_warning',
+            'Applied' => 'slds-theme_success',
+            'Draft' => 'slds-theme_info',
+            'Processing' => 'slds-theme_alt-inverse'
+        };
+        Map<String, String> icons = new Map<String, String>{
+            'Failed' => 'utility:error',
+            'Ready for Processing' => 'utility:clock',
+            'Applied' => 'utility:success',
+            'Draft' => 'utility:edit',
+            'Processing' => 'utility:sync'
+        };
+
+        Test.startTest();
+        List<RLM_PaymentsDataController.PaymentStatusSummary> summaries =
+            RLM_PaymentsDataController.getPaymentScheduleItems(null, null);
+        RLM_PaymentsDataController.PaymentStatusSummary untracked =
+            new RLM_PaymentsDataController.PaymentStatusSummary('Canceled');
+        Test.stopTest();
+
+        Set<String> seen = new Set<String>();
+        for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
+            seen.add(s.status);
+            Assert.areEqual(themes.get(s.status), s.statusClass, 'Theme for ' + s.status);
+            Assert.areEqual(icons.get(s.status), s.iconName, 'Icon for ' + s.status);
+        }
+        Assert.areEqual(themes.keySet(), seen, 'One summary per tracked status.');
+        Assert.areEqual('slds-theme_default', untracked.statusClass, 'An untracked status gets the default theme.');
+        Assert.areEqual('utility:moneybag', untracked.iconName, 'An untracked status gets the default icon.');
+        Assert.areEqual(0, untracked.itemCount, 'A new summary is empty.');
+    }
+
+    // An invoice is settled when it has no balance left, or no balance recorded.
+    @isTest
+    static void invoiceWrapper_isSettledOnlyWithoutABalance() {
+        Id inv = fakeId(Invoice.SObjectType, 1);
+        RLM_PaymentsDataController.InvoiceWrapper openInvoice = invoiceWithBalance(inv, 100);
+        RLM_PaymentsDataController.InvoiceWrapper paid = invoiceWithBalance(inv, 0);
+        RLM_PaymentsDataController.InvoiceWrapper unknown = invoiceWithBalance(inv, null);
+
+        Assert.isFalse(openInvoice.isSettled, 'A balance of 100 is open.');
+        Assert.isTrue(paid.isSettled, 'A zero balance is settled.');
+        Assert.isTrue(unknown.isSettled, 'No balance is treated as settled.');
+        Assert.isNull(openInvoice.appliedAmount, 'An invoice read directly has no applied amount.');
+    }
+
+    private static RLM_PaymentsDataController.InvoiceWrapper invoiceWithBalance(Id invoiceId, Decimal balance) {
+        Map<String, Object> fields = new Map<String, Object>{ 'Id' => invoiceId };
+        if (balance != null) {
+            fields.put('Balance', balance);
+        }
+        return new RLM_PaymentsDataController.InvoiceWrapper(
+            (Invoice) JSON.deserialize(JSON.serialize(fields), Invoice.class));
+    }
+
+    private static RLM_PaymentsDataController.PaymentStatusSummary draft(
+        List<RLM_PaymentsDataController.PaymentStatusSummary> summaries) {
+        for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
+            if (s.status == 'Draft') {
+                return s;
+            }
+        }
+        Assert.fail('No Draft summary returned.');
+        return null;
+    }
+
+    // An active currency other than the given one; a code no record can carry if there is none.
+    // An unknown code returns no rows rather than throwing; verified on a Release 264 org.
+    // The controller lists CurrencyType, so this module only deploys to a multi-currency org.
+    private static String anotherCurrency(String isoCode) {
+        List<CurrencyType> others = [
+            SELECT IsoCode FROM CurrencyType WHERE IsActive = true AND IsoCode != :isoCode LIMIT 1
+        ];
+        return others.isEmpty() ? 'ZZZ' : others[0].IsoCode;
+    }
+
+    // Fails on a null amount and names both values in the message; Decimal equality already
+    // ignores scale.
+    private static void assertAmount(Decimal expected, Decimal actual, String message) {
+        Assert.isTrue(actual != null && actual == expected,
+            message + ' Expected ' + expected + ', got ' + actual + '.');
     }
 }
