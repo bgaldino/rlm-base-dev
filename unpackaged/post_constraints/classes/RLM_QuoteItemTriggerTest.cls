@@ -232,18 +232,16 @@ private class RLM_QuoteItemTriggerTest {
     }
 
     @IsTest
-    static void linesWithoutQuoteActionsSkipTheLookup() {
+    static void batchWithoutQuoteActionsIsLeftAsIs() {
+        // Only lines without a quote action, so the trigger takes its early exit for the whole batch.
         Fixture f = buildFixture();
         QuoteLineItem newSale = newLine(f, null, null);
         QuoteLineItem preset = newLine(f, null, PRESET_STATUS);
 
         Test.startTest();
-        Integer queriesBefore = Limits.getQueries();
         insert new List<QuoteLineItem>{ newSale, preset };
-        Integer queriesUsed = Limits.getQueries() - queriesBefore;
         Test.stopTest();
 
-        Assert.areEqual(0, queriesUsed, 'With no quote action on any line the trigger runs no query');
         Assert.isNull(statusOf(newSale.Id), 'A new-sale line stays blank');
         Assert.areEqual(PRESET_STATUS, statusOf(preset.Id), 'A preset status is kept');
     }

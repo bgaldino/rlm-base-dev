@@ -270,9 +270,11 @@ private class RLM_AssetInfoUtilityTest {
         List<Asset> assets = [SELECT RenewalTerm, RenewalTermUnit, PricingSource FROM Asset WHERE Id IN :assetIds];
         Assert.areEqual(200, assets.size(), 'All assets are present');
         for (Asset a : assets) {
-            Assert.areEqual(1, a.RenewalTerm.intValue(), 'Every asset in the event is stamped');
-            Assert.areEqual('Annual', a.RenewalTermUnit, 'Every asset in the event is stamped');
-            Assert.areEqual('LastTransaction', a.PricingSource, 'Every asset in the event is stamped');
+            Assert.areEqual(1, a.RenewalTerm.intValue(), 'Every asset in the event is stamped (renewal term)');
+            Assert.areEqual('Annual', a.RenewalTermUnit, 'Every asset in the event is stamped (renewal unit)');
+            Assert.areEqual(
+                'LastTransaction', a.PricingSource, 'Every asset in the event is stamped (pricing source)'
+            );
         }
     }
 }

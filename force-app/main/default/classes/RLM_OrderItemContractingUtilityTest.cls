@@ -183,9 +183,9 @@ private class RLM_OrderItemContractingUtilityTest {
         Assert.areEqual(200, results.size(), 'Every order gets a result');
         for (RLM_OrderItemContractingUtility.OrderInfoResults r : results) {
             Assert.areEqual(1, r.outContractTerm, 'Orders without items default to a one-month term');
-            Assert.areEqual(0, r.addOrderActionCount, 'No actions counted');
-            Assert.areEqual(0, r.amendOrderActionCount, 'No actions counted');
-            Assert.areEqual(0, r.renewOrderActionCount, 'No actions counted');
+            Assert.areEqual(0, r.addOrderActionCount, 'No Add actions counted');
+            Assert.areEqual(0, r.amendOrderActionCount, 'No Amend actions counted');
+            Assert.areEqual(0, r.renewOrderActionCount, 'No Renew actions counted');
         }
     }
 
@@ -229,7 +229,8 @@ private class RLM_OrderItemContractingUtilityTest {
      * A Minimum Access user: no object access to Order, OrderItem or OrderAction. Returns null,
      * after logging a SKIPPED warning, when no profile has the English name "Minimum Access -
      * Salesforce" (standard profile names can be translated, so a non-English running user always
-     * skips) or when there is no free Salesforce seat.
+     * skips). It also returns null if the user insert fails on LICENSE_LIMIT_EXCEEDED; that is
+     * defensive only, since seat limits were not enforced on test-created users on a live 264 org.
      */
     private static User minimumAccessUser() {
         List<Profile> profiles = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
@@ -260,6 +261,7 @@ private class RLM_OrderItemContractingUtilityTest {
                 insert u;
             }
         } catch (DmlException e) {
+            // Defensive: seat limits were not enforced on test-created users on a live 264 org.
             if (e.getDmlType(0) == StatusCode.LICENSE_LIMIT_EXCEEDED) {
                 System.debug(LoggingLevel.WARN, 'SKIPPED: no free Salesforce seat for a test user in this org');
                 return null;

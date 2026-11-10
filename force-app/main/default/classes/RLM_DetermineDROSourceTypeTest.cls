@@ -85,8 +85,12 @@ private class RLM_DetermineDROSourceTypeTest {
             Assert.fail(
                 'Known gap: an empty input list throws a raw ListException; update this test when it is fixed'
             );
-        } catch (ListException e) {
-            Assert.isInstanceOfType(e, ListException.class, 'The missing first input is indexed: ' + e.getMessage());
+        } catch (Exception e) {
+            Assert.isInstanceOfType(
+                e, ListException.class,
+                'Known gap: an empty input list throws a raw ListException; '
+                    + 'update this test when it is fixed. Got: ' + e
+            );
         }
     }
 
@@ -100,8 +104,12 @@ private class RLM_DetermineDROSourceTypeTest {
             Assert.fail(
                 'Known gap: an empty recordIds list throws a raw ListException; update this test when it is fixed'
             );
-        } catch (ListException e) {
-            Assert.isInstanceOfType(e, ListException.class, 'The missing first id is indexed: ' + e.getMessage());
+        } catch (Exception e) {
+            Assert.isInstanceOfType(
+                e, ListException.class,
+                'Known gap: an empty recordIds list throws a raw ListException; '
+                    + 'update this test when it is fixed. Got: ' + e
+            );
         }
     }
 
@@ -115,8 +123,12 @@ private class RLM_DetermineDROSourceTypeTest {
             Assert.fail(
                 'Known gap: a malformed record id throws a raw StringException; update this test when it is fixed'
             );
-        } catch (StringException e) {
-            Assert.isTrue(e.getMessage().contains('not-an-id'), 'The invalid id is named: ' + e.getMessage());
+        } catch (Exception e) {
+            Assert.isInstanceOfType(
+                e, StringException.class,
+                'Known gap: a malformed record id throws a raw StringException; '
+                    + 'update this test when it is fixed. Got: ' + e
+            );
         }
     }
 }

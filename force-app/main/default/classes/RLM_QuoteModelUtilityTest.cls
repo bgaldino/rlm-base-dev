@@ -148,8 +148,14 @@ private class RLM_QuoteModelUtilityTest {
         ];
         Assert.areEqual(2, stored.size(), 'PRECONDITION: the fixture quote has two lines');
         for (QuoteLineItem line : stored) {
-            Assert.isTrue(line.ListPrice == LIST_PRICE, 'PRECONDITION: the list price comes from the price book entry');
-            Assert.isTrue(line.UnitPrice == LINE_PRICE, 'PRECONDITION: the line is priced below the list price');
+            Assert.isTrue(
+                line.ListPrice == LIST_PRICE,
+                'PRECONDITION: the list price comes from the price book entry. Got: ' + line.ListPrice
+            );
+            Assert.isTrue(
+                line.UnitPrice == LINE_PRICE,
+                'PRECONDITION: the line is priced below the list price. Got: ' + line.UnitPrice
+            );
             Assert.areEqual(2, line.Quantity.intValue(), 'PRECONDITION: seeded quantity is stored');
             Assert.areEqual(10, line.Discount.intValue(), 'PRECONDITION: seeded discount is stored');
             // ProrationPolicyId cannot be set by DML and the platform does not derive it here.
@@ -323,8 +329,12 @@ private class RLM_QuoteModelUtilityTest {
             Assert.fail(
                 'Known gap: an empty input list throws a raw ListException; update this test when it is fixed'
             );
-        } catch (ListException e) {
-            Assert.isInstanceOfType(e, ListException.class, 'No quote is found to index: ' + e.getMessage());
+        } catch (Exception e) {
+            Assert.isInstanceOfType(
+                e, ListException.class,
+                'Known gap: an empty input list throws a raw ListException; '
+                    + 'update this test when it is fixed. Got: ' + e
+            );
         }
     }
 
@@ -337,8 +347,12 @@ private class RLM_QuoteModelUtilityTest {
             Assert.fail(
                 'Known gap: getQuote throws a raw ListException for an unknown id; update this test when it is fixed'
             );
-        } catch (ListException e) {
-            Assert.isInstanceOfType(e, ListException.class, 'No row is found for the id: ' + e.getMessage());
+        } catch (Exception e) {
+            Assert.isInstanceOfType(
+                e, ListException.class,
+                'Known gap: getQuote throws a raw ListException for an unknown id; '
+                    + 'update this test when it is fixed. Got: ' + e
+            );
         }
     }
 

@@ -25,10 +25,8 @@ private class DFOApexMockServiceTest {
         try {
             DFOApexMockService.executeCallout('guid-1', 'record-1', 'payload-1', new Map<String, Object>(), null);
             Assert.fail('Without an HTTP provider no response can be returned');
-        } catch (NullPointerException e) {
-            Assert.isInstanceOfType(
-                e, NullPointerException.class, 'The missing provider is dereferenced: ' + e.getMessage()
-            );
+        } catch (Exception e) {
+            Assert.isInstanceOfType(e, NullPointerException.class, 'The missing provider is dereferenced. Got: ' + e);
         }
     }
 }

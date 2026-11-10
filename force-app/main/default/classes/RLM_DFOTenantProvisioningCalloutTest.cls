@@ -129,8 +129,12 @@ private class RLM_DFOTenantProvisioningCalloutTest {
                 'Known gap: a fulfillment line without an order item source throws a raw QueryException; '
                     + 'update this test when it is fixed'
             );
-        } catch (QueryException e) {
-            Assert.isInstanceOfType(e, QueryException.class, 'No source relation is found: ' + e.getMessage());
+        } catch (Exception e) {
+            Assert.isInstanceOfType(
+                e, QueryException.class,
+                'Known gap: a fulfillment line without an order item source throws a raw QueryException; '
+                    + 'update this test when it is fixed. Got: ' + e
+            );
         }
         Test.stopTest();
     }
