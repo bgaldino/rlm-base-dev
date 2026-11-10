@@ -11,8 +11,8 @@ private class RLM_AA_Submit_ApprovalTest {
     // not declare the invocable's inputs (recordId, ApprovalLevel, submitter,
     // submissionComments): a live run showed Flow.Interview.createInterview
     // ignores undeclared input names rather than failing.
-    // The try/catch turns an exception into a named assertion failure, so the
-    // test asserts its claim explicitly (every test here asserts behaviour).
+    // Smoke test: asserts only that starting the flow does not throw. The
+    // try/catch turns an exception into a named assertion failure.
     // Flows deploy inactive in production unless "Deploy processes and flows as
     // active" is on, so on a first production deploy the flow is not active and
     // this test is skipped visibly (a WARN debug line) instead of failing.
@@ -38,6 +38,25 @@ private class RLM_AA_Submit_ApprovalTest {
             Assert.fail('Starting an existing flow must not fail: ' + unexpected.getMessage());
         }
         Test.stopTest();
+    }
+
+    // Known gap: the invocable reads only svcParameters[0], with no guard, so an
+    // empty request list fails with a ListException instead of doing nothing,
+    // and any requests after the first are ignored. No flow is started.
+    @IsTest
+    static void callFlowFailsOnAnEmptyRequestList() {
+        Boolean threw = false;
+        Test.startTest();
+        try {
+            RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>());
+        } catch (ListException caught) {
+            threw = true;
+        }
+        Test.stopTest();
+
+        Assert.isTrue(threw,
+            'Known gap: an empty request list throws ListException (only the first request is read); '
+            + 'update this test when it is fixed.');
     }
 
     // An unknown flow name cannot be started: the platform's TypeException
