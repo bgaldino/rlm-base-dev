@@ -12,9 +12,10 @@
  * The System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
  * Billing permission set license seat.
  * The other tests run as the deploying admin and read Account, BillingAccount,
- * AccountBillingAccount, Product2, LegalEntity and TaxTreatment in USER_MODE; on a
- * Release 264 org the System Administrator profile grants read on all six. The two junction
- * tests also passed with RLM_BillingUI unassigned from the admin: the create test reads
+ * AccountBillingAccount, Product2, LegalEntity and TaxTreatment in USER_MODE. On a
+ * Release 264 org the System Administrator profile's ObjectPermissions grant read on all six
+ * (read from the org, not from a test run). Only the two junction tests were run with
+ * RLM_BillingUI unassigned from the admin, and both passed: the create test reads
  * BillingAccount and AccountBillingAccount, and the getAccountBillingInfo test reads Account
  * and BillingAccount (only its setup inserts the junction row).
  *
@@ -22,7 +23,9 @@
  * org, a run of the action with real records and this service's payload returned
  * isSuccess() = false with REQUIRED_FIELD_MISSING for billToContact, then paymentTermID,
  * then shippingAddress, as each earlier one was supplied on the records. The payload sends
- * none of these, so the create path may fail for a typical account.
+ * none of these, so the create path may fail for a typical account. It also never sends
+ * ParentTransactionId__std, which the 264 developer guide marks Required for a TermDefined
+ * new sale (Optional for evergreen and one-time).
  * buildTransactionDetailsJson_mapsInputsToStandardContextFields pins the payload's exact
  * key set, so it catches a fix only if the fix adds payload keys; prerequisites supplied on
  * records through the context mapping would not show there.
@@ -38,7 +41,8 @@
  *
  * Known gap (pinned): the 264 developer guide lists EndDate__std as required for a TermDefined
  * new sale, but a Termed create with no end date passes every guard and is sent without
- * EndDate__std. See buildTransactionDetailsJson_termedWithoutEndDate_omitsEndDate and
+ * EndDate__std. ParentTransactionId__std, also Required for TermDefined, is never sent; the
+ * key-set test pins its absence. See buildTransactionDetailsJson_termedWithoutEndDate_omitsEndDate and
  * createViaAPI_termedWithoutEndDate_isAccepted.
  *
  * Known gap (pinned): TotalPrice__std is required for every selling model (developer guide,
@@ -555,8 +559,9 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         // Known gap, pinned by the exact key set: legalEntityId is accepted but not sent, the
         // public create method likewise accepts billingTerm and billingTypePicklistTiming and
-        // drops them, and no bill-to contact, payment term or shipping address is sent (see the
-        // class header). Any key added to or removed from the payload fails here.
+        // drops them, no ParentTransactionId__std is sent (Required for TermDefined only), and
+        // no bill-to contact, payment term or shipping address is sent (see the class header).
+        // Any key added to or removed from the payload fails here.
         Set<String> expectedKeys = new Set<String>{
             'TransactionId__std', 'SellingModelType__std', 'ProductId__std', 'ProductName__std',
             'StartDate__std', 'EndDate__std', 'PeriodBoundary__std', 'BillingDayOfMonth__std',
@@ -569,8 +574,9 @@ private class RLM_BillingScheduleGroupServiceTest {
         Set<String> missing = new Set<String>(expectedKeys);
         missing.removeAll(txn.keySet());
         Assert.isTrue(added.isEmpty(),
-            'Known gap: the payload omits legalEntityId, billingTerm and billing type timing, and sends no '
-            + 'bill-to contact, payment term or shipping address (see class header). New keys ' + added
+            'Known gap: the payload omits legalEntityId, billingTerm, billing type timing and '
+            + 'ParentTransactionId__std (Required for TermDefined), and sends no bill-to contact, '
+            + 'payment term or shipping address (see class header). New keys ' + added
             + ': a fix to the known gap may have landed; update this test and the header.');
         Assert.isTrue(missing.isEmpty(),
             'A required payload key was removed (regression): ' + missing);
