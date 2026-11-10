@@ -471,8 +471,9 @@ def _has_comment(lines: List[str]) -> bool:
                     quote = None
             elif c == "#" and (i == 0 or text[i - 1] in " \t"):
                 return True
-            elif c in "\"'" and last in (None, ":", "-", "[", "{", ","):
-                quote = c
+            elif c in "\"'" and last in (None, ":", "-", "[", "{", ",") \
+                    and (i == 0 or text[i - 1] in " \t[{,"):
+                quote = c  # a quoted scalar starts a node; a quote mid-word is plain text
             if c not in " \t":
                 last = c
             i += 1

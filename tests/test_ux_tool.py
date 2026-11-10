@@ -1660,3 +1660,10 @@ def test_a_hash_inside_a_string_or_block_scalar_is_not_a_comment():
     out = rewrite_patch_entries(text, _entries(text), entries,
                                 dict(yaml.safe_load(text), patches=entries), notes)
     assert out is not None and notes == []
+
+
+def test_a_quote_inside_a_plain_word_does_not_hide_a_later_comment():
+    from scripts.ux._writeback import _has_comment
+    assert _has_comment(["    name: a-'b # rationale\n"])
+    assert _has_comment(['    label: Record-"Main" view # keep\n'])
+    assert not _has_comment(['    - "a # b"\n', '    ["c # d"]\n'])
