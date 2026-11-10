@@ -164,7 +164,10 @@ docs/salesforce/*/salesforce-release-notes-*.pdf
 # Internal AI-agent / core-investigation artifacts (core-code Q&A, platform-bug writeups,
 # design plans, research notes). Local only — they reference internal Salesforce core and
 # MUST NOT ship to the customer/partner Salesforce Labs mirror. Keep them uncommitted.
-.agents/artifacts/
+# The private clone at .agents/artifacts, a directory or a symlink to one (no trailing slash, which
+# would match directories only), and every sibling or case-variant copy of it at any depth
+# (artifacts.old, Artifacts, …): a copy of private content must never be staged by accident.
+**/.[aA][gG][eE][nN][tT][sS]/[aA][rR][tT][iI][fF][aA][cC][tT][sS]*
 docs/analysis/*-core-code-*.md
 
 # Build harness artifacts
