@@ -109,10 +109,13 @@ private class RLM_CollectionsDashboardControllerTest {
         Account acc = newAccount('RLM CD Promise Currency');
         PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100);
         insert ps;
-        insert new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+        PaymentScheduleItem psi = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
             RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        insert psi;
         String userCurrency = UserInfo.getDefaultCurrency();
         String otherCurrency = anotherCurrency(userCurrency);
+        Assert.areEqual(userCurrency, [SELECT CurrencyIsoCode FROM PaymentScheduleItem WHERE Id = :psi.Id].CurrencyIsoCode,
+            'PRECONDITION: the item is in the user\'s currency.');
 
         Test.startTest();
         Map<String, RLM_CollectionsDashboardController.PaymentPromiseBucket> sameCurrency =
@@ -168,11 +171,14 @@ private class RLM_CollectionsDashboardControllerTest {
             Type = 'Sale', ProcessingMode = 'External');
         insert p;
         // Balance is maintained by the platform; only a positive balance is unapplied.
-        Decimal balance = [SELECT Balance FROM Payment WHERE Id = :p.Id].Balance;
-        Decimal expected = (balance != null && balance > 0) ? balance : 0;
-        Integer expectedCount = expected > 0 ? 1 : 0;
+        Decimal expected = [SELECT Balance FROM Payment WHERE Id = :p.Id].Balance;
+        Assert.isTrue(expected != null && expected > 0,
+            'PRECONDITION: a new processed payment carries its amount as a balance. Got ' + expected);
+        Integer expectedCount = 1;
         String userCurrency = UserInfo.getDefaultCurrency();
         String otherCurrency = anotherCurrency(userCurrency);
+        Assert.areEqual(userCurrency, [SELECT CurrencyIsoCode FROM Payment WHERE Id = :p.Id].CurrencyIsoCode,
+            'PRECONDITION: the payment is in the user\'s currency.');
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsDashboardData unfiltered =
@@ -187,7 +193,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         assertAmount(expected, unfiltered.unappliedPaymentBalance, 'The payment balance is unapplied.');
         Assert.areEqual(expectedCount, unfiltered.unappliedPaymentCount, 'The payment is counted when it has a balance.');
-        assertAmount(0, unfiltered.unappliedCredits, 'A Sale payment is not a credit.');
+        assertAmount(0, unfiltered.unappliedCredits, 'A Sale payment is not counted as a credit.');
         assertAmount(0, unfiltered.receivablesOutstanding, 'No invoices can exist in a unit test.');
         Assert.areEqual(0, unfiltered.invoiceCount, 'No invoices can exist in a unit test.');
         assertAmount(-expected, unfiltered.totalBalance, 'Total balance = invoices + debit memos - credits - payments.');
@@ -218,7 +224,9 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // A Draft debit memo is not owed: only a posted memo not yet on a posted invoice counts.
-    // A unit test cannot post one (its lines need a tax treatment), so the posted sum is live-only.
+    // The memo has a total and is on the filtered account, so its Draft status is what keeps it
+    // out. A unit test cannot post one (its lines need a tax treatment), so the posted sum is
+    // live-only.
     @isTest
     static void getDashboardCards_draftDebitMemoIsNotOwed() {
         Account a = newAccount('RLM CD Debit Memo');
@@ -228,12 +236,19 @@ private class RLM_CollectionsDashboardControllerTest {
         newRecord('DebitMemoLine', new Map<String, Object>{
             'Name' => 'RLM CD Debit Memo Line', 'DebitMemoId' => memo.Id, 'ChargeAmount' => 10
         });
+        Id memoId = memo.Id;
+        SObject saved = Database.query('SELECT TotalAmount, Status FROM DebitMemo WHERE Id = :memoId')[0];
+        Decimal memoTotal = (Decimal) saved.get('TotalAmount');
+        Assert.isTrue(memoTotal != null && memoTotal > 0,
+            'PRECONDITION: the Draft memo totals its line. Got ' + memoTotal);
+        Assert.areEqual('Draft', saved.get('Status'), 'PRECONDITION: the memo is Draft.');
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsDashboardData cards =
             RLM_CollectionsDashboardController.getDashboardCards(a.Id, null);
         Test.stopTest();
 
+        Assert.areEqual(4, cards.totalBalanceBreakdown.size(), 'The cards were built, not returned early.');
         Assert.areEqual('Debit Memos', cards.totalBalanceBreakdown[1].get('label'), 'Second breakdown row.');
         assertAmount(0, (Decimal) cards.totalBalanceBreakdown[1].get('amount'), 'A Draft debit memo is not owed.');
         assertAmount(0, cards.totalBalance, 'Nothing is owed on the account.');
@@ -252,7 +267,10 @@ private class RLM_CollectionsDashboardControllerTest {
             Reason = firstActivePicklistValue(Case.Reason));
         Case caseB = new Case(AccountId = b.Id, Description = 'Short note');
         Case caseC = new Case(AccountId = c.Id);
-        insert new List<Case>{ caseA, caseB, caseC };
+        // An older open case on account A: the row must carry the newer one.
+        Case olderA = new Case(AccountId = a.Id, Subject = 'Older case on A');
+        insert new List<Case>{ caseA, caseB, caseC, olderA };
+        Test.setCreatedDate(olderA.Id, Datetime.now().addDays(-5));
         // Read back: CaseNumber is assigned on insert, and the org may default Reason.
         List<Id> caseIds = new List<Id>{ caseA.Id, caseB.Id, caseC.Id };
         Map<Id, Case> saved = new Map<Id, Case>([SELECT Id, CaseNumber, Reason FROM Case WHERE Id IN :caseIds]);
@@ -273,7 +291,7 @@ private class RLM_CollectionsDashboardControllerTest {
 
         RLM_CollectionsDashboardController.WorklistItem rowA = disputed.get(a.Id);
         Assert.areEqual(expectedA, rowA.disputeReason, 'Subject, description cut at 200, then the Reason.');
-        Assert.areEqual(caseA.Id, rowA.caseId, 'The row links the case.');
+        Assert.areEqual(caseA.Id, rowA.caseId, 'The row links the newest case, not the older one.');
         Assert.areEqual(saved.get(caseA.Id).CaseNumber, rowA.caseNumber, 'The row shows the case number.');
         Assert.areEqual('RLM CD Worklist A', rowA.accountName, 'The row names the account.');
         assertAmount(0, rowA.balance, 'No invoices, no balance.');
@@ -399,53 +417,66 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // A user who cannot read the billing objects gets empty cards, not an error: each card
-    // catches its own failure. An account exists, but the user cannot read it, so the worklist
-    // adds no placeholder either.
+    // catches its own failure. The same records give the admin a populated dashboard, so the
+    // empties come from access, not from missing data.
     @isTest
-    static void everyCard_forAUserWithoutAccess_degradesToEmpty() {
+    static void cards_forAUserWhoCannotReadThem_degradeToEmpty() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
-        newAccount('RLM CD Unreadable');
+        Account a = newAccount('RLM CD Unreadable');
+        CollectionPlan plan = newPlan(a.Id, Date.today());
+        insert plan;
+        insert new Task(WhatId = plan.Id, Subject = 'RLM CD unreadable task');
+        insert new Case(AccountId = a.Id, Subject = 'RLM CD unreadable case');
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 10);
+        insert ps;
+        insert new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = a.Id,
+            RequestedAmount = 10, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
 
+        // The admin sees every seeded record.
+        Assert.areEqual(4, RLM_CollectionsDashboardController.getDashboardCards(null, null).totalBalanceBreakdown.size(),
+            'PRECONDITION: the admin gets the full breakdown.');
+        RLM_CollectionsDashboardController.WorklistData adminWorklist =
+            RLM_CollectionsDashboardController.getWorklist(null, null);
+        Assert.areEqual(1, adminWorklist.disputedInvoices.size(), 'PRECONDITION: the admin sees the open case.');
+        Assert.areEqual(1, adminWorklist.highValueDelinquents.size(), 'PRECONDITION: the admin gets the placeholder.');
+        Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionPlanTasks(null).size(),
+            'PRECONDITION: the admin sees the plan\'s task.');
+        Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionsProgress().totalPlans,
+            'PRECONDITION: the admin measures the plan.');
+        Assert.areEqual(1, bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null))
+            .get('Draft').itemCount, 'PRECONDITION: the admin sees the schedule item.');
+
+        List<String> readable = new List<String>();
         RLM_CollectionsDashboardController.CollectionsDashboardData cards;
         RLM_CollectionsDashboardController.WorklistData worklist;
         List<RLM_CollectionsDashboardController.PaymentPromiseBucket> promises;
         List<RLM_CollectionsDashboardController.CpTaskItem> tasks;
-        List<RLM_CollectionsDashboardController.MyCollectionPlanItem> plans;
         RLM_CollectionsDashboardController.CollectionsProgressData progress;
-        List<Map<String, String>> currencies;
-        String userCurrency;
         Test.startTest();
         System.runAs(noAccess) {
+            for (String objectName : new List<String>{ 'Account', 'Case', 'CollectionPlan', 'Invoice', 'PaymentScheduleItem' }) {
+                if (!userModeQueryFails('SELECT Id FROM ' + objectName + ' LIMIT 1')) {
+                    readable.add(objectName);
+                }
+            }
             cards = RLM_CollectionsDashboardController.getDashboardCards(null, null);
             worklist = RLM_CollectionsDashboardController.getWorklist(null, null);
             promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
             tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
-            plans = RLM_CollectionsDashboardController.getMyCollectionPlans();
             progress = RLM_CollectionsDashboardController.getCollectionsProgress();
-            currencies = RLM_CollectionsDashboardController.getCurrencyOptions();
-            userCurrency = UserInfo.getDefaultCurrency();
         }
         Test.stopTest();
 
-        Assert.areEqual(0, cards.invoiceCount, 'No invoices read.');
+        Assert.isTrue(readable.isEmpty(), 'PRECONDITION: the user cannot query ' + readable + ' in user mode.');
         Assert.isTrue(cards.totalBalanceBreakdown.isEmpty(),
             'An unreadable Invoice returns the cards before any breakdown is built.');
         Assert.isTrue(cards.agingBuckets.isEmpty(), 'Nor any aging bucket.');
-        Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'No placeholder for an unreadable account.');
+        Assert.isTrue(worklist.disputedInvoices.isEmpty(), 'The open case is unreadable.');
         Assert.isTrue(worklist.highValueDelinquents.isEmpty(), 'No placeholder for an unreadable account.');
-        Assert.isTrue(worklist.disputedInvoices.isEmpty(), 'No readable cases.');
+        Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'No placeholder for an unreadable account.');
         Assert.isTrue(promises.isEmpty(), 'An unreadable schedule item returns no buckets.');
-        Assert.isTrue(tasks.isEmpty(), 'No readable plans, no tasks.');
-        Assert.isTrue(plans.isEmpty(), 'No readable plans.');
-        Assert.areEqual(0, progress.totalPlans, 'No readable plans to measure.');
-
-        Boolean listsUserCurrency = false;
-        for (Map<String, String> option : currencies) {
-            if (option.get('value') == userCurrency) {
-                listsUserCurrency = true;
-            }
-        }
-        Assert.isTrue(listsUserCurrency, 'The user\'s own currency is always offered: ' + currencies);
+        Assert.isTrue(tasks.isEmpty(), 'An unreadable plan yields no tasks.');
+        Assert.areEqual(0, progress.totalPlans, 'An unreadable plan is not measured.');
     }
 
     // The collections persona reads its own plan through the USER_MODE queries. A permission
@@ -562,6 +593,16 @@ private class RLM_CollectionsDashboardControllerTest {
             SELECT IsoCode FROM CurrencyType WHERE IsActive = true AND IsoCode != :isoCode LIMIT 1
         ];
         return others.isEmpty() ? 'ZZZ' : others[0].IsoCode;
+    }
+
+    // True when the running user may not run the query in user mode.
+    private static Boolean userModeQueryFails(String soql) {
+        try {
+            Database.query(soql, AccessLevel.USER_MODE);
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     private static String firstActivePicklistValue(Schema.SObjectField field) {

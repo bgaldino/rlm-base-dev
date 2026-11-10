@@ -64,33 +64,16 @@ private class RLM_BillingCaseMetricsControllerTest {
             disputeCases.add(new Case(AccountId = a.Id, Subject = 'RLM Case Metrics dispute ' + amount));
         }
         insert disputeCases;
-        // The amount goes on the dispute when its field is createable; otherwise the dispute
-        // totals its items, so it goes on one item.
-        Boolean amountOnDispute = Schema.getGlobalDescribe().get('Dispute').getDescribe()
-            .fields.getMap().get('DisputedAmount').getDescribe().isCreateable();
         List<SObject> disputes = new List<SObject>();
         for (Integer i = 0; i < amounts.size(); i++) {
             SObject d = Schema.getGlobalDescribe().get('Dispute').newSObject();
             d.put('AccountId', a.Id);
             d.put('CaseId', disputeCases[i].Id);
             d.put('ReceivedDate', Date.today());
-            if (amountOnDispute) {
-                d.put('DisputedAmount', amounts[i]);
-            }
+            d.put('DisputedAmount', amounts[i]);
             disputes.add(d);
         }
         insert disputes;
-        if (!amountOnDispute) {
-            List<SObject> items = new List<SObject>();
-            for (Integer i = 0; i < amounts.size(); i++) {
-                SObject item = Schema.getGlobalDescribe().get('DisputeItem').newSObject();
-                item.put('DisputeId', disputes[i].Id);
-                item.put('TransactionDate', Date.today());
-                item.put('DisputedAmount', amounts[i]);
-                items.add(item);
-            }
-            insert items;
-        }
 
         Test.startTest();
         Map<String, Object> result = RLM_BillingCaseMetricsController.getMetrics();
@@ -104,26 +87,44 @@ private class RLM_BillingCaseMetricsControllerTest {
         Assert.areEqual(0, (Integer) result.get('disputedInvoices'), 'No dispute names an invoice.');
     }
 
-    // A user who cannot read Case sees zero open billing cases rather than an error, even when
-    // one exists. Without Dispute access the dispute metrics stay at zero too.
+    // A user who cannot query Case or Dispute gets zeros instead of an error. The open dispute
+    // seeded here is counted for the admin, so its zero for this user comes from access.
+    // The case count is checked only as "no error": the repo's Case Type values do not include
+    // 'Billing', so no case this test could seed would be counted for anyone.
     @isTest
-    static void getMetrics_userWhoCannotReadCases_seesZero() {
+    static void getMetrics_userWhoCannotReadCasesOrDisputes_seesZero() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
-        Case openCase = new Case(Subject = 'RLM Billing Case Metrics unreadable', Status = 'New');
-        if (billingCaseTypeIsValid()) {
-            openCase.Type = 'Billing';
-        }
-        insert openCase;
+        Account a = new Account(Name = 'RLM Case Metrics unreadable');
+        insert a;
+        Case disputeCase = new Case(AccountId = a.Id, Subject = 'RLM Case Metrics unreadable dispute');
+        insert disputeCase;
+        SObject dispute = Schema.getGlobalDescribe().get('Dispute').newSObject();
+        dispute.put('AccountId', a.Id);
+        dispute.put('CaseId', disputeCase.Id);
+        dispute.put('ReceivedDate', Date.today());
+        insert dispute;
+        Assert.areEqual(1, (Integer) RLM_BillingCaseMetricsController.getMetrics().get('openDisputes'),
+            'PRECONDITION: the admin counts the open dispute.');
 
+        List<String> readable = new List<String>();
         Map<String, Object> result;
         Test.startTest();
         System.runAs(noAccess) {
+            for (String objectName : new List<String>{ 'Case', 'Dispute' }) {
+                try {
+                    Database.query('SELECT Id FROM ' + objectName + ' LIMIT 1', AccessLevel.USER_MODE);
+                    readable.add(objectName);
+                } catch (Exception e) {
+                    // Expected: the user may not query it.
+                }
+            }
             result = RLM_BillingCaseMetricsController.getMetrics();
         }
         Test.stopTest();
 
-        Assert.areEqual(0, (Integer) result.get('openBillingCases'), 'An unreadable Case counts as none.');
-        Assert.areEqual(0, (Integer) result.get('openDisputes'), 'No readable disputes.');
+        Assert.isTrue(readable.isEmpty(), 'PRECONDITION: the user cannot query ' + readable + ' in user mode.');
+        Assert.areEqual(0, (Integer) result.get('openBillingCases'), 'An unreadable Case counts as none, not an error.');
+        Assert.areEqual(0, (Integer) result.get('openDisputes'), 'The admin\'s open dispute is not counted.');
         Assert.areEqual(0, (Integer) result.get('disputedInvoices'), 'No readable disputed invoices.');
     }
 

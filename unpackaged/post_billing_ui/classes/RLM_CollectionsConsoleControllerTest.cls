@@ -87,6 +87,8 @@ private class RLM_CollectionsConsoleControllerTest {
         Assert.isNull(rows[0].collectionPlanRecordId, 'No plan record.');
         Assert.isNull(rows[0].ptpDate, 'No promise to pay.');
         Assert.isTrue(rows[0].balance == 2500 && rows[0].invoiceBalance == 2500, 'Both balances are the invoice balance.');
+        Assert.areEqual(40, rows[0].overdueDays, 'Days overdue come from the invoice.');
+        Assert.isNull(rows[0].documentNumber, 'No document number on the invoice, none on the row.');
         Assert.isTrue(none.isEmpty(), 'No invoices, no rows.');
     }
 

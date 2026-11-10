@@ -186,10 +186,13 @@ private class RLM_PaymentsDataControllerTest {
         insert acc;
         PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 80);
         insert ps;
-        insert new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+        PaymentScheduleItem psi = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
             RequestedAmount = 80, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        insert psi;
         String userCurrency = UserInfo.getDefaultCurrency();
         String otherCurrency = anotherCurrency(userCurrency);
+        Assert.areEqual(userCurrency, [SELECT CurrencyIsoCode FROM PaymentScheduleItem WHERE Id = :psi.Id].CurrencyIsoCode,
+            'PRECONDITION: the item is in the user\'s currency.');
 
         Test.startTest();
         RLM_PaymentsDataController.PaymentStatusSummary accountInCurrency =
@@ -212,11 +215,12 @@ private class RLM_PaymentsDataControllerTest {
         assertAmount(0, anyAccountElsewhere.totalRequestedAmount, 'Nothing requested in another currency.');
     }
 
-    // An item's payment is shown, and a schedule whose reference is not an invoice (here a
-    // promise to pay on a collection plan) adds no invoice. The payment has no applications,
-    // so both application queries run and return nothing.
+    // An item linked to a payment shows that payment and its own amounts. The schedule is a
+    // promise to pay on a collection plan, so the schedule-reference and payment-application
+    // lookups run too; no invoice can exist in a unit test, so those paths are run for
+    // coverage only and their (empty) result is not a claim about them.
     @isTest
-    static void getPaymentScheduleItems_showsThePaymentAndSkipsANonInvoiceReference() {
+    static void getPaymentScheduleItems_showsTheItemsPayment() {
         Account acc = new Account(Name = 'RLM PSI Payment Test');
         insert acc;
         Payment pmt = new Payment(AccountId = acc.Id, Amount = 60, Status = 'Processed',
@@ -245,8 +249,6 @@ private class RLM_PaymentsDataControllerTest {
         RLM_PaymentsDataController.PaymentItemWrapper item = summary.items[0];
         Assert.areEqual(pmt.Id, item.paymentId, 'The item shows its payment.');
         Assert.isTrue(item.hasPayment, 'The item has a payment.');
-        Assert.isTrue(item.invoices.isEmpty(), 'A collection plan reference is not an invoice.');
-        Assert.isFalse(item.hasInvoices, 'No invoices to show.');
         assertAmount(60, item.requestedAmount, 'The requested amount.');
         Assert.areEqual(Date.today(), item.targetDate, 'The target processing date.');
     }
@@ -256,12 +258,15 @@ private class RLM_PaymentsDataControllerTest {
     static void getPaymentScheduleItems_leavesOutUntrackedStatuses() {
         Account acc = new Account(Name = 'RLM PSI Canceled Test');
         insert acc;
-        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 30);
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 50);
         insert ps;
-        // Items are created Draft; Canceled is a status a user may set afterwards.
+        // Items are created Draft; Canceled is a status a user may set afterwards. The Draft
+        // item shows the account's items are read, so only the Canceled one is left out.
         PaymentScheduleItem psi = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
             RequestedAmount = 30, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
-        insert psi;
+        PaymentScheduleItem kept = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+            RequestedAmount = 20, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        insert new List<PaymentScheduleItem>{ psi, kept };
         // Update the status alone: the item's other fields are not all updateable.
         update new PaymentScheduleItem(Id = psi.Id, Status = 'Canceled');
         Assert.areEqual('Canceled', [SELECT Status FROM PaymentScheduleItem WHERE Id = :psi.Id].Status,
@@ -273,9 +278,12 @@ private class RLM_PaymentsDataControllerTest {
         Test.stopTest();
 
         Assert.areEqual(5, summaries.size(), 'Only the tracked statuses are summarized.');
+        Integer summarized = 0;
         for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
-            Assert.areEqual(0, s.itemCount, 'A Canceled item is in no summary, including ' + s.status);
+            summarized += s.itemCount;
         }
+        Assert.areEqual(1, summarized, 'Of the two items only the Draft one is summarized.');
+        Assert.areEqual(kept.Id, draft(summaries).items[0].id, 'The summarized item is the Draft one.');
     }
 
     // Each tracked status carries its theme and icon; any other status gets the defaults.
