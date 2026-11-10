@@ -564,6 +564,8 @@ CHECKS = [
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
         # usage product to that dataset invalidates the assertion, so it has to select this.
         triggers=["tasks/", "cumulusci.yml", "scripts/ai/skill_manifest.py",
+                  # skill_manifest.py loads it for the private-path advisories its suite asserts.
+                  "scripts/ai/check_private_refs.py",
                   ".claude/skill-manifest.yml",
                   "datasets/sfdmu/qb/en-US/qb-dro/",
                   # test_prepare_constraints_validation.py asserts the shipped model set under here.

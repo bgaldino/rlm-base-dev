@@ -580,25 +580,47 @@ class SfdmuGuard(unittest.TestCase):
                                                          "edits": edits}), "ask")
 
 
+def _guard_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("pre_tool_guard_under_test", GUARD)
+    guard = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(guard)
+    return guard
+
+
+def _skip_as_root(case):
+    """A permission fixture (chmod 0) does not stop root, so the test has nothing to show."""
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        case.skipTest("root ignores directory permissions")
+
+
 class ArtifactsPlacement(unittest.TestCase):
     """Rule 4: the private tree's top level is closed, its archive asks, siblings are refused."""
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        (self.tmp / ".git").mkdir()  # the public repository: misnamed folders here get committed
         self.tree = self.tmp / ".agents" / "artifacts"
         for d in ("topics/collections", "inbox", "todos/attachments", "archive/2026/x",
-                  "verification", ".git"):  # .git: the private clone is a repo of its own
+                  "verification", ".git/hooks"):  # .git: the private clone is a repo of its own
             (self.tree / d).mkdir(parents=True)
 
     def tearDown(self):
         shutil.rmtree(self.tmp)
 
-    def decide(self, rel, tool="Write", cwd=None):
-        tool_input = {"file_path": rel, "content": "x\n"}
+    def run_write(self, path, cwd=None, tool="Write", env=None):
+        tool_input = {"file_path": path, "content": "x\n"}
         if tool == "Edit":
-            tool_input = {"file_path": rel, "old_string": "a", "new_string": "b"}
-        proc = run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
-                                "cwd": str(cwd or self.tmp)})
+            tool_input = {"file_path": path, "old_string": "a", "new_string": "b"}
+        return run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
+                                "cwd": str(cwd or self.tmp)}, env=env)
+
+    def decide(self, rel, tool="Write", cwd=None, raw=False):
+        """The decision for `rel`, sent the way Claude Code sends it: absolute, `~` expanded and
+        normalised (`backfillObservableInput`), unless `raw` sends the text as typed."""
+        cwd = cwd or self.tmp
+        path = rel if raw else os.path.normpath(os.path.join(str(cwd), os.path.expanduser(rel)))
+        proc = self.run_write(path, cwd=cwd, tool=tool)
         if proc.returncode == 2:
             return "deny"
         self.assertEqual(proc.returncode, 0, proc.stderr)
@@ -621,13 +643,37 @@ class ArtifactsPlacement(unittest.TestCase):
     def test_archive_writes_ask(self):
         self.assertEqual(self.decide(".agents/artifacts/archive/2026/x/HANDOFF.md"), "ask")
 
+    def test_writes_inside_the_clones_git_dir_ask(self):
+        # Its hooks run the layout check that backs this rule up for Bash writes.
+        self.assertEqual(self.decide(".agents/artifacts/.git/hooks/pre-commit"), "ask")
+        self.assertEqual(self.decide(".agents/artifacts/.git/config"), "ask")
+
     def test_sibling_directories_are_denied(self):
         self.assertEqual(self.decide(".agents/artifacts.old/notes.md"), "deny")
         self.assertEqual(self.decide(".agents/artifacts-backup/notes.md"), "deny")
 
+    def test_spelling_rules_apply_only_inside_a_git_work_tree(self):
+        with tempfile.TemporaryDirectory() as scratch:  # no `.git` anywhere above it
+            for rel in (".agents/artifacts.old/notes.md", ".agents/Artifacts/x.md",
+                        ".agents/artifacts/x.md"):
+                self.assertEqual(self.decide(rel, cwd=scratch), "allow", rel)
+
     def test_an_absent_private_clone_is_not_created(self):
         with tempfile.TemporaryDirectory() as other:
+            (Path(other) / ".git").mkdir()
             self.assertEqual(self.decide(".agents/artifacts/inbox/a.md", cwd=other), "deny")
+
+    def test_a_path_claude_code_would_not_send_is_asked_about(self):
+        # Relative, or still holding `..`: where the OS puts it depends on links before each
+        # `..`, and Claude Code never sends one, so the rule does not guess.
+        deep = self.tmp / "deep" / "x"
+        deep.mkdir(parents=True)
+        (self.tmp / "lnk").symlink_to(deep, target_is_directory=True)
+        for raw in (".agents/artifacts/inbox/a.md", str(self.tmp / "lnk/../.agents/artifacts/x"),
+                    "~/x.md"):
+            self.assertEqual(self.decide(raw, raw=True), "ask", raw)
+        proc = self.run_write(str(self.tmp / "lnk" / ".." / "x.md"))
+        self.assertIn("not the absolute, normalised path", proc.stdout)
 
     def test_paths_resolve_through_dot_dot_and_relative_cwd(self):
         self.assertEqual(self.decide("topics/../stray.md", cwd=self.tree), "deny")
@@ -644,16 +690,6 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(".agents/artifacts/topics/old/notes.md"), "ask")
         self.assertEqual(self.decide(".agents/artifacts/topics/inner/2026-11-09-a.md"), "allow")
 
-    def test_a_dot_dot_after_a_symlink_is_resolved_after_the_link(self):
-        public = self.tmp / "docs" / "analysis"
-        public.mkdir(parents=True)
-        (self.tree / "topics" / "shared").symlink_to(public, target_is_directory=True)
-        # Lexically this is topics/private-notes.md; on disk it is docs/private-notes.md.
-        self.assertEqual(self.decide(".agents/artifacts/topics/shared/../private-notes.md"), "deny")
-        # A `..` that does not cross a link still resolves inside the tree.
-        self.assertEqual(self.decide(".agents/artifacts/topics/collections/../collections/a.md"),
-                         "allow")
-
     def test_a_public_link_into_the_tree_gets_the_tree_rules(self):
         (self.tmp / "docs").mkdir()
         (self.tmp / "docs" / "priv").symlink_to(self.tree, target_is_directory=True)
@@ -668,19 +704,30 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(".agents/artifacts/inbox/2026-11-09-a.md"), "allow")
         self.assertEqual(self.decide(".agents/artifacts/stray.md"), "deny")
 
+    def test_a_link_to_an_ancestor_is_not_the_clone(self):
+        # `.agents/artifacts -> ..` points at the public repo, which has a `.git`: treating it as
+        # the clone would let a write spelled inside the private tree land in the public one.
+        shutil.rmtree(self.tree)
+        self.tree.symlink_to(Path(".."), target_is_directory=True)
+        proc = self.run_write(str(self.tree / "inbox" / "a.md"))
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertIn("not the private clone (a git repository of its own)", proc.stderr)
+
     def test_case_variants_are_denied_whatever_the_disk(self):
         self.assertEqual(self.decide(".agents/Artifacts/stray.md"), "deny")
         self.assertEqual(self.decide(".Agents/artifacts/inbox/2026-11-09-a.md"), "deny")
 
+    def test_a_unicode_case_fold_spelling_is_denied(self):
+        # U+017F casefolds to "s": caught by the casefold() match, not by a plain lower().
+        self.assertEqual(self.decide(".agents/artifactſ/newtop.md"), "deny")
+        self.assertEqual(self.decide(".Agents/artifacts/x.md"), "deny")
+
     def test_notebook_edits_get_the_same_rule(self):
-        proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
-                                "tool_input": {"notebook_path": ".agents/artifacts/nb.ipynb",
-                                               "new_source": "x"}})
-        self.assertEqual(proc.returncode, 2, proc.stderr)
-        proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
-                                "tool_input": {"notebook_path": ".agents/artifacts/inbox/nb.ipynb",
-                                               "new_source": "x"}})
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        for name, code in (("nb.ipynb", 2), ("inbox/nb.ipynb", 0)):
+            proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
+                                    "tool_input": {"notebook_path": str(self.tree / name),
+                                                   "new_source": "x"}})
+            self.assertEqual(proc.returncode, code, proc.stderr)
 
     def test_a_nested_tree_name_is_judged_against_the_real_tree(self):
         self.assertEqual(self.decide(".agents/artifacts/topics/collections/.agents/artifacts/a.md"),
@@ -689,13 +736,22 @@ class ArtifactsPlacement(unittest.TestCase):
 
     def test_archive_is_recognised_by_identity_not_spelling(self):
         insensitive = (self.tree / "ARCHIVE").exists()  # True on a case-insensitive disk
-        for rel in ("ARCHIVE/2026/x/a.md", "Archive/new.md", "topics/../ARCHIVE/2026/x/a.md"):
+        for rel in ("ARCHIVE/2026/x/a.md", "Archive/new.md"):
             # Where ARCHIVE *is* archive/ it must ask; elsewhere it is a new top-level folder.
             self.assertEqual(self.decide(f".agents/artifacts/{rel}"),
                              "ask" if insensitive else "deny", rel)
 
-    def test_a_unicode_case_fold_spelling_is_denied(self):
-        self.assertEqual(self.decide(".agents/artifact\u017f/newtop.md"), "deny")
+    def test_an_archive_aliased_to_another_entry_asks_every_time(self):
+        # One folder under two names: the ask follows the folder, whatever the name typed or the
+        # interpreter's hash seed (an earlier version picked one name from a set).
+        shutil.rmtree(self.tree / "archive")
+        (self.tree / "archive").symlink_to(Path("topics"), target_is_directory=True)
+        for seed in ("0", "1", "2", "3"):
+            proc = run_hook(GUARD, {"tool_name": "Write", "cwd": str(self.tmp),
+                                    "tool_input": {"file_path": str(self.tree / "topics" / "a.md"),
+                                                   "content": "x"}},
+                            env={"PYTHONHASHSEED": seed})
+            self.assertIn('"ask"', proc.stdout, seed)
 
     def test_a_nested_tree_under_archive_still_asks(self):
         nested = self.tree / "archive" / "snap" / ".agents" / "artifacts" / "inbox"
@@ -715,13 +771,16 @@ class ArtifactsPlacement(unittest.TestCase):
     def test_paths_the_os_cannot_stat_are_asked_about_not_crashed_on(self):
         # A missing parent is reported as missing first: a plain new path, judged normally.
         self.assertEqual(self.decide("docs/" + "a" * 300 + "/x.md"), "allow")
+        _skip_as_root(self)
         locked = self.tmp / "locked"
         (locked / "sub").mkdir(parents=True)
         locked.chmod(0)
         try:
-            self.assertEqual(self.decide("locked/sub/x.md"), "ask")
+            proc = self.run_write(str(locked / "sub" / "x.md"))
         finally:
             locked.chmod(0o755)
+        self.assertIn('"ask"', proc.stdout)
+        self.assertIn("cannot be examined", proc.stdout)
 
     def test_entering_by_one_link_and_leaving_by_another_is_an_escape(self):
         (self.tmp / "docs").mkdir()
@@ -729,11 +788,12 @@ class ArtifactsPlacement(unittest.TestCase):
         (self.tree / "topics" / "pub").symlink_to(self.tmp / "docs", target_is_directory=True)
         self.assertEqual(self.decide(".agents/artifacts/topics/pub/secret.md"), "deny")
         self.assertEqual(self.decide("tlink/topics/pub/secret.md"), "deny")
-        # A spelled `..` out of the tree is not a link escape: it is just a public path.
+        # A spelled `..` out of the tree is normalised away: it is just a public path.
         self.assertEqual(self.decide(".agents/artifacts/../README.md"), "allow")
 
     def test_a_symlinked_clone_is_guarded_at_its_real_location_too(self):
-        clone = self.tmp / "clone"
+        clone = self.tmp / "store" / "rlm-artifacts"
+        clone.parent.mkdir()
         shutil.move(str(self.tree), str(clone))
         self.tree.symlink_to(clone, target_is_directory=True)
         self.assertEqual(self.decide(".agents/artifacts/new.md"), "deny")
@@ -742,42 +802,19 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(str(clone / "inbox" / "2026-11-09-a.md")), "allow")
 
     def test_a_nul_byte_does_not_crash_the_rule(self):
-        # NotebookEdit reaches rule 4 directly (Write first goes through the older text_change).
         proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
-                                "tool_input": {"notebook_path": ".agents/artifacts/a\x00b.ipynb",
+                                "tool_input": {"notebook_path": str(self.tree) + "/a\x00b.ipynb",
                                                "new_source": "x"}})
         # Not walkable (lstat rejects a NUL), so asked about rather than guessed; never a crash.
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn('"ask"', proc.stdout)
         self.assertNotIn("Traceback", proc.stderr)
 
-    def test_both_landings_are_judged_and_the_stricter_wins(self):
-        # Claude Code normalises `..` before writing; the OS follows a link before `..`.
-        deep = self.tmp / "deep" / "x"
-        deep.mkdir(parents=True)
-        (self.tmp / "lnk").symlink_to(deep, target_is_directory=True)
-        # Tool: <tmp>/.agents/artifacts/newtop.md (new top-level). OS: under deep/ (public).
-        self.assertEqual(self.decide("lnk/../.agents/artifacts/newtop.md"), "deny")
-        # Tool reading: archive/ (ask); OS reading: public deep/ (escape). Deny is stricter.
-        self.assertEqual(self.decide("lnk/../.agents/artifacts/archive/2026/x/a.md"), "deny")
-        # Only the tool's reading is wrong here: OS -> inbox/newtop.md (fine), tool ->
-        # <tree>/newtop.md (a new top-level entry), so judging the OS reading alone allows it.
-        (self.tree / "inbox" / "a" / "b").mkdir(parents=True)
-        (self.tree / "topics" / "lnk").symlink_to(self.tree / "inbox" / "a" / "b",
-                                                  target_is_directory=True)
-        self.assertEqual(self.decide(".agents/artifacts/topics/lnk/../../newtop.md"), "deny")
-        # With no link before the `..`, both readings agree and archive/ just asks.
-        self.assertEqual(self.decide("deep/../.agents/artifacts/archive/2026/x/a.md"), "ask")
-        # Tool: topics/docs/secret.md (inside). OS: up -> tree root, `..` -> public .agents/.
-        (self.tree / "topics" / "up").symlink_to(self.tree, target_is_directory=True)
-        self.assertEqual(self.decide(".agents/artifacts/topics/up/../docs/secret.md"), "deny")
-
     def test_an_absent_tree_is_refused_even_when_the_project_has_one(self):
         with tempfile.TemporaryDirectory() as other:
-            proc = run_hook(GUARD, {"tool_name": "Write", "cwd": other,
-                                    "tool_input": {"file_path": ".agents/artifacts/inbox/a.md",
-                                                   "content": "x"}},
-                            env={"CLAUDE_PROJECT_DIR": str(self.tmp)})
+            (Path(other) / ".git").mkdir()
+            proc = self.run_write(str(Path(other) / ".agents" / "artifacts" / "inbox" / "a.md"),
+                                  cwd=other, env={"CLAUDE_PROJECT_DIR": str(self.tmp)})
             self.assertEqual(proc.returncode, 2, proc.stderr)
 
     def test_a_deep_path_stays_fast(self):
@@ -788,50 +825,23 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide("/".join(["a"] * 400) + "/x.md"), "allow")
         self.assertLess(time.monotonic() - start, 5.0)
 
-    def test_an_unstatable_component_on_one_reading_does_not_excuse_the_other(self):
-        long = "L" * 300
-        self.assertEqual(self.decide(f"{long}/../.agents/artifacts/newtop.md"), "deny")
-        self.assertEqual(self.decide(f"{long}/../.agents/artifacts/archive/2026/x/a.md"), "ask")
-        locked = self.tmp / "locked"
-        (locked / "sub").mkdir(parents=True)
-        locked.chmod(0)
-        try:
-            self.assertEqual(self.decide("locked/sub/../../.agents/artifacts/newtop.md"), "deny")
-        finally:
-            locked.chmod(0o755)
-        with tempfile.TemporaryDirectory() as other:
-            self.assertEqual(self.decide(f"{long}/../.agents/artifacts/inbox/a.md", cwd=other),
-                             "deny")
-
     def test_a_public_folder_named_like_the_tree_is_not_private(self):
         public = self.tmp / "pub" / ".agents" / "artifacts" / "topics"
         public.mkdir(parents=True)  # no .git: not the clone, and not gitignored
-        self.assertEqual(self.decide("pub/.agents/artifacts/topics/x.md"), "deny")
+        proc = self.run_write(str(public / "x.md"))
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("would surface in the public repo", proc.stderr)
 
-    def test_long_dot_dot_chains_are_judged_fast(self):
-        import time
-        deep = "/".join(f"d{i}" for i in range(100))
-        (self.tmp / deep).mkdir(parents=True)
-        # Under MAX_JUDGED_COMPONENTS: fully judged (lands at <tmp>/.agents/artifacts/newtop.md).
-        path = deep + "/" + "x/../" * 150 + "../" * 100 + ".agents/artifacts/newtop.md"
-        start = time.monotonic()
-        self.assertEqual(self.decide(path), "deny")
-        self.assertLess(time.monotonic() - start, 5.0)
-
-    def test_padding_cannot_push_a_short_write_past_the_depth_cap(self):
-        import time
-        start = time.monotonic()
-        # What Claude Code writes is the normalised path, always judged: a new top-level entry.
-        self.assertEqual(self.decide(".agents/artifacts/" + "a/" * 3000 + "../" * 3000 + "new.md"),
-                         "deny")
-        clone = self.tmp / "store" / "rlm-artifacts"
-        shutil.move(str(self.tree), str(clone))
-        self.tree.symlink_to(clone, target_is_directory=True)
-        self.assertEqual(self.decide(str(clone) + "/" + "a/../" * 260 + "newtop"), "deny")
-        (self.tmp / "docs").mkdir()
-        (self.tmp / "docs" / "lnk").symlink_to(self.tree, target_is_directory=True)
-        self.assertEqual(self.decide("docs/lnk/" + "a/../" * 300 + "newtop"), "deny")
-        self.assertLess(time.monotonic() - start, 5.0)
+    def test_a_plain_repo_root_folder_is_not_the_clone(self):
+        # The repo-root folder IS gitignored, so the reason is that nothing versions it.
+        with tempfile.TemporaryDirectory() as other:
+            (Path(other) / ".git").mkdir()
+            (Path(other) / ".agents" / "artifacts" / "inbox").mkdir(parents=True)
+            proc = self.run_write(str(Path(other) / ".agents" / "artifacts" / "inbox" / "a.md"),
+                                  cwd=other)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("not the private clone (a git repository of its own)", proc.stderr)
+        self.assertNotIn("would surface in the public repo", proc.stderr)
 
     def test_link_hops_are_bounded(self):
         import time
@@ -843,6 +853,19 @@ class ArtifactsPlacement(unittest.TestCase):
         start = time.monotonic()
         self.assertEqual(self.decide("D/" + "k/" * 300 + "x"), "ask")
         self.assertEqual(self.decide("D/" + "k/" * 10 + "x"), "allow")
+        self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_a_long_padded_link_chain_is_bounded_and_fast(self):
+        # Each target is ~400 components; the walk stops at MAX_LINK_HOPS rather than expand
+        # all 3000 (realpath() recursed on 3.9 and ran past the hook timeout on 3.13).
+        import time
+        d = self.tree / "topics" / "d"
+        (d / "x").mkdir(parents=True)
+        (d / "s3000").mkdir()
+        for i in range(3000):
+            os.symlink("x/.." + "/x/.." * 201 + f"/s{i + 1}", str(d / f"s{i}"))
+        start = time.monotonic()
+        self.assertEqual(self.decide(".agents/artifacts/topics/d/s0/a.md"), "ask")
         self.assertLess(time.monotonic() - start, 5.0)
 
     def test_a_link_to_a_public_tree_named_folder_is_denied(self):
@@ -886,10 +909,7 @@ class ArtifactsPlacement(unittest.TestCase):
 
     def test_a_link_to_the_filesystem_root_lands_there(self):
         # Checked on the walk itself: through the hook, the link escape denies either way.
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("pre_tool_guard_under_test", GUARD)
-        guard = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(guard)
+        guard = _guard_module()
         (self.tree / "topics" / "root").symlink_to(Path("/"), target_is_directory=True)
         walk = guard._resolution_steps(str(self.tree / "topics" / "root"))
         self.assertEqual(walk.end, Path("/"))
@@ -917,32 +937,40 @@ class ArtifactsPlacement(unittest.TestCase):
         # Node writes a lone surrogate as U+FFFD and follows a link of that name.
         outside = self.tmp / "outside"
         outside.mkdir()
-        (self.tree / "topics" / "\ufffd").symlink_to(outside, target_is_directory=True)
+        (self.tree / "topics" / "�").symlink_to(outside, target_is_directory=True)
         self.assertEqual(self.decide(".agents/artifacts/topics/\udcff/pwn.md"), "deny")
 
-    def test_a_link_the_walk_cannot_stat_leaves_the_reading_unjudged(self):
+    def test_a_link_the_walk_cannot_stat_leaves_the_path_unjudged(self):
         # Past PATH_MAX the walk cannot lstat a component, though the kernel, resolving each
         # link separately, could still write through it: ask, never walk it as a plain dir.
         outside = self.tmp / "outside"
         outside.mkdir()
+        try:
+            path_max = os.pathconf(str(self.tmp), "PC_PATH_MAX")
+        except (OSError, ValueError, AttributeError):
+            path_max = 4096
         name = "a" * 200
         three = "/".join([name] * 3)
         here = os.getcwd()
+        links = []
+        depth = len(str(self.tree / "topics"))
         try:
-            # Built one level at a time: no single call may pass macOS's 1024-byte PATH_MAX.
+            # Built one level at a time with relative calls: no single call may pass PATH_MAX
+            # (1024 on macOS, 4096 on Linux), and each link's target stays under it too.
             os.chdir(self.tree / "topics")
-            os.symlink(three, "s1")
-            for _ in range(3):
-                os.mkdir(name)
-                os.chdir(name)
-            os.symlink(three, "s2")
-            for _ in range(3):
-                os.mkdir(name)
-                os.chdir(name)
-            os.symlink(str(outside), "esc")  # six levels deep: physically past PATH_MAX
+            while depth <= path_max:
+                link = f"s{len(links)}"
+                os.symlink(three, link)
+                links.append(link)
+                for _ in range(3):
+                    os.mkdir(name)
+                    os.chdir(name)
+                depth += 3 * (len(name) + 1)
+            os.symlink(str(outside), "esc")  # physically past PATH_MAX
         finally:
             os.chdir(here)
-        self.assertEqual(self.decide(".agents/artifacts/topics/s1/s2/esc/pwn.md"), "ask")
+        rel = ".agents/artifacts/topics/" + "/".join(links) + "/esc/pwn.md"
+        self.assertEqual(self.decide(rel), "ask")
 
     def test_a_nested_clone_is_judged_by_the_outer_clone(self):
         inner = self.tree / "topics" / "x" / ".agents" / "artifacts"
@@ -959,57 +987,26 @@ class ArtifactsPlacement(unittest.TestCase):
         (self.tmp / "docs" / "old").symlink_to(sib, target_is_directory=True)
         self.assertEqual(self.decide("docs/old/inbox/a.md"), "deny")
 
-    def test_a_long_link_chain_in_the_raw_reading_is_bounded(self):
-        # Only the raw reading crosses the chain (a spelled `..` removes it from what the tool
-        # writes); resolving it with realpath() recursed on 3.9 and ran past the hook timeout
-        # on 3.13. The walk stops at MAX_LINK_HOPS and the normalised reading still decides.
-        import time
-        d = self.tree / "topics" / "d"
-        (d / "x").mkdir(parents=True)
-        (d / "s3000").mkdir()
-        for i in range(3000):
-            os.symlink("x/.." + "/x/.." * 201 + f"/s{i + 1}", str(d / f"s{i}"))
-        start = time.monotonic()
-        self.assertEqual(self.decide(".agents/artifacts/topics/d/s0/../../../newtop.md"), "deny")
-        self.assertLess(time.monotonic() - start, 5.0)
-
-    def test_an_unexaminable_component_says_so(self):
-        locked = self.tmp / "locked"
-        (locked / "sub").mkdir(parents=True)
-        locked.chmod(0)
-        try:
-            proc = run_hook(GUARD, {"tool_name": "Write", "cwd": str(self.tmp),
-                                    "tool_input": {"file_path": "locked/sub/x.md", "content": "x"}})
-        finally:
-            locked.chmod(0o755)
-        self.assertIn("cannot be examined", proc.stdout)
-
-    def _guard_module(self):
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("pre_tool_guard_under_test", GUARD)
-        guard = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(guard)
-        return guard
-
     def test_a_repo_folder_named_artifacts_is_not_the_tree(self):
         repo = self.tmp / "code" / "artifacts"
         (repo / ".git").mkdir(parents=True)  # a clone, but not under `.agents`
         self.assertEqual(self.decide("code/artifacts/new.md"), "allow")
 
     def test_an_error_inside_the_rule_asks(self):
-        guard = self._guard_module()
+        guard = _guard_module()
 
         def boom(path, cwd):
             raise RuntimeError("boom")
 
         guard._artifacts_decision = boom
-        decision, reason = guard.artifacts_decision(".agents/artifacts/inbox/a.md", str(self.tmp))
+        decision, reason = guard.artifacts_decision(str(self.tree / "inbox" / "a.md"),
+                                                    str(self.tmp))
         self.assertEqual(decision, "ask")
         self.assertIn("RuntimeError", reason)
 
     def test_the_depth_cap_is_what_stops_a_deep_walk(self):
         # Checked on the walk directly, so the OS's own path-length error cannot stand in for it.
-        guard = self._guard_module()
+        guard = _guard_module()
         deep = "/" + "/".join(["a"] * (guard.MAX_JUDGED_COMPONENTS + 1))
         self.assertIn("deeper than", guard._resolution_steps(deep))
         self.assertIsInstance(guard._resolution_steps("/" + "/".join(["a"] * 10)), guard._Walk)
@@ -1024,30 +1021,42 @@ class ArtifactsPlacement(unittest.TestCase):
 
     def test_an_absent_clone_gets_the_not_cloned_guidance(self):
         with tempfile.TemporaryDirectory() as other:
-            proc = run_hook(GUARD, {"tool_name": "Write", "cwd": other,
-                                    "tool_input": {"file_path": ".agents/artifacts/inbox/a.md",
-                                                   "content": "x"}})
+            (Path(other) / ".git").mkdir()
+            proc = self.run_write(str(Path(other) / ".agents" / "artifacts" / "inbox" / "a.md"),
+                                  cwd=other)
         self.assertEqual(proc.returncode, 2)
         self.assertIn("not cloned here", proc.stderr)
         self.assertIn("$TMPDIR", proc.stderr)
-        # A public folder of that name that does exist is the other case.
-        (self.tmp / "pub" / ".agents" / "artifacts").mkdir(parents=True)
-        proc = run_hook(GUARD, {"tool_name": "Write", "cwd": str(self.tmp),
-                                "tool_input": {"file_path": "pub/.agents/artifacts/a.md",
-                                               "content": "x"}})
-        self.assertIn("not the private clone", proc.stderr)
 
     def test_placement_is_decided_before_the_current_file_is_read(self):
         # text_change() reads the existing file; a FIFO there would block past the timeout.
-        ff = self.tmp / "ff"
-        (ff / "d").mkdir(parents=True)
-        (ff / ".agents" / "artifacts").mkdir(parents=True)
-        os.mkfifo(str(ff / ".agents" / "artifacts" / "newtop.md"))
-        (self.tmp / "lnk").symlink_to(ff / "d", target_is_directory=True)
+        fifo = self.tmp / "ff" / ".agents" / "artifacts" / "datasets" / "plan.json"
+        fifo.parent.mkdir(parents=True)  # a public folder of that name: denied before reading
+        os.mkfifo(str(fifo))
         import time
         start = time.monotonic()
-        self.assertEqual(self.decide("lnk/../.agents/artifacts/newtop.md"), "deny")
+        self.assertEqual(self.decide(str(fifo)), "deny")
         self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_only_sfdmu_plans_are_read(self):
+        # An ordinary file is never opened, so a FIFO cannot stall the hook into an allow.
+        fifo = self.tree / "inbox" / "2026-11-10-pipe.md"
+        os.mkfifo(str(fifo))
+        import time
+        start = time.monotonic()
+        self.assertEqual(self.decide(str(fifo), tool="Edit"), "allow")
+        self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_an_archived_plan_edit_gives_both_reasons(self):
+        plan = self.tree / "archive" / "2026" / "x" / "datasets" / "export.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}')
+        proc = run_hook(GUARD, {"tool_name": "Edit", "cwd": str(self.tmp),
+                                "tool_input": {"file_path": str(plan), "old_string": '"Upsert"',
+                                               "new_string": '"Insert"'}})
+        self.assertIn("frozen history", proc.stdout)
+        self.assertIn("Upsert to Insert", proc.stdout)
 
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")

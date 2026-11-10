@@ -21,7 +21,8 @@ Three checks, in order:
 
 `tests/` is not scanned for (b)/(c): fixtures there cite misplaced paths on purpose.
 
-Exit 0 when (a) passes (and, once gating, (b)); 1 otherwise. Stdlib only.
+Exit 0 when (a) passes (and, once gating, (b)); 1 otherwise; 2 when git itself fails, so a
+tool error never reads as a verdict. Stdlib only.
 """
 from __future__ import annotations
 
@@ -59,8 +60,11 @@ def tracked() -> list[str]:
 
 def citing() -> list[str]:
     """Tracked text files that mention the private tree, found by one native `git grep` pass
-    rather than by reading every tracked file. Exit 1 means no match; anything else raises."""
-    proc = subprocess.run(["git", "grep", "-lIzF", ROOT], cwd=REPO, capture_output=True)
+    rather than by reading every tracked file. Exit 1 means no match; anything else raises.
+    --no-color: with `color.ui=always` configured, file names come back wrapped in escape
+    codes, match no tracked file, and every citation would be skipped."""
+    proc = subprocess.run(["git", "grep", "--no-color", "-lIzF", ROOT], cwd=REPO,
+                          capture_output=True)
     if proc.returncode not in (0, 1):
         raise RuntimeError(proc.stderr.decode("utf-8", "replace").strip() or "git grep failed")
     return [p for p in proc.stdout.decode("utf-8", "replace").split("\0") if p]
@@ -81,11 +85,21 @@ def classify(rel: str) -> str:
     return "template" if PLACEHOLDER.fullmatch(first) else "top-level"
 
 
+def exists_in(tree: Path, rest: str) -> bool:
+    """Whether `rest` exists under `tree`; False rather than raising for a path the OS rejects
+    (a name past NAME_MAX, a NUL), which a citation in prose can easily be."""
+    try:
+        return (tree / rest).exists()
+    except (OSError, ValueError):
+        return False
+
+
 def moved_rows(tree: Path) -> list[tuple[str, str]]:
     path = tree / "MOVED.tsv"
     rows = []
-    if path.is_file():
-        for line in path.read_text(encoding="utf-8").splitlines():
+    if exists_in(tree, "MOVED.tsv") and path.is_file():
+        # errors="replace": a stray non-UTF-8 byte spoils that row's match, not the whole run.
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
             cols = line.split("\t")
             if len(cols) == 4 and not line.startswith(("#", "old_prefix\t")):
                 rows.append((cols[0].rstrip("/"), cols[1].rstrip("/")))
@@ -101,7 +115,7 @@ def resolve_moved(tree: Path, rest: str, rows: list[tuple[str, str]] | None = No
         if not hit:
             return None
         cur = hit[1] + cur[len(hit[0]):]
-        if (tree / cur).exists():
+        if exists_in(tree, cur):
             return cur
     return None
 
@@ -126,6 +140,14 @@ def citations(paths: list[str]):
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.parse_args(argv)
+    try:
+        return _check()
+    except (subprocess.CalledProcessError, RuntimeError, OSError) as exc:
+        print(f"check_private_refs: cannot list tracked files: {exc}", file=sys.stderr)
+        return 2
+
+
+def _check() -> int:
     paths = tracked()
     errors: list[str] = []
     warnings: list[str] = []
@@ -153,7 +175,7 @@ def main(argv: list[str]) -> int:
             msg = (f"{rel}:{n}: {lit} cites the private tree's top level; cite a path under "
                    f"{', '.join(PRIVATE_TIERS[:4])}, …")
             (errors if SHAPE_GATING else warnings).append(msg)
-        if present and not PLACEHOLDER.search(rest) and not (tree / rest).exists():
+        if present and not PLACEHOLDER.search(rest) and not exists_in(tree, rest):
             new = resolve_moved(tree, rest, rows)
             if new:
                 warnings.append(f"{rel}:{n}: {lit} moved; rewrite to {ROOT}/{new}")

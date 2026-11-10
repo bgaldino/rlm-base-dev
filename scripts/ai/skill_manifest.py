@@ -864,20 +864,27 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
         advisories.append(f"private-path shape and MOVED.tsv checks skipped: "
                           f"check_private_refs.py could not be loaded ({exc})")
 
+    advised: set[str] = set()
+    moved: list[str] = []
+
     def private_advisory(where: str, rel: str) -> bool:
-        """Record shape and moved-path advisories for a private-tree path. True when the path
+        """Record shape and moved-path advisories for a private-tree path, once per path (a
+        skill's path is met both in its entry and in the section walk). True when the path
         is missing but MOVED.tsv says where it went, so it is reported rather than failed."""
         if refs is None or not rel.startswith(LOCAL_ONLY_PREFIXES):
             return False
-        if refs.classify(rel) == "top-level":
+        first = rel not in advised
+        advised.add(rel)
+        if first and refs.classify(rel) == "top-level":
             advisories.append(f"{where}: {rel} cites the private tree's top level")
         tree = root / LOCAL_ONLY_ROOT
         rest = rel[len(LOCAL_ONLY_ROOT):].strip("/")
-        if "{" in rel or not tree.is_dir() or (tree / rest).exists():
+        if "{" in rel or not tree.is_dir() or refs.exists_in(tree, rest):
             return False
         new = refs.resolve_moved(tree, rest)
-        if new:
+        if new and first:
             advisories.append(f"{where}: {rel} moved; rewrite to {LOCAL_ONLY_ROOT}/{new}")
+            moved.append(rel)
         return bool(new)
 
     def auditable(rel: str) -> bool:
@@ -950,9 +957,11 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
               f"{LOCAL_ONLY_ROOT} tree, which is absent here — not audited:")
         for item in unauditable:
             print(f"          - {item}")
+    resolved = "all auditable paths resolve" if unauditable else "all paths resolve"
+    if moved:  # resolved only through MOVED.tsv: say so, rather than claim they resolve
+        resolved += f", {len(moved)} only through MOVED.tsv"
     print(f"  [OK    ] foundations manifest matches the working tree "
-          f"({len(declared)} skills declared, "
-          f"{'all auditable paths resolve' if unauditable else 'all paths resolve'})")
+          f"({len(declared)} skills declared, {resolved})")
     return True
 
 

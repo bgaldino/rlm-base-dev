@@ -40,19 +40,19 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
 4. Private artifacts placement (`.cursor/rules/analysis-artifacts.mdc`), for Write, Edit,
    MultiEdit and NotebookEdit. The private tree is the repo-root `.agents/artifacts/`, a clone
    with its own `.git`; it and its entries are matched by file identity, never by spelling.
-   - Deny: a new top-level entry of the clone (not in ARTIFACTS_ROOT, not already on disk); a
-     typed path not spelled exactly `.agents/artifacts` (siblings such as `artifacts.old`, case
-     or Unicode variants: not gitignored everywhere); a landing in any `.agents/artifacts` that
-     is not the clone, including one not cloned here; a path spelled inside the clone that
-     lands outside it; and passing through a link that lives inside a clone and resolves
-     outside it or into another clone, however the link was reached.
-   - Ask: a write under the clone's `archive/` (frozen history), and any reading the rule
-     cannot walk (deeper than MAX_JUDGED_COMPONENTS, more than MAX_LINK_HOPS links, a component
-     it cannot lstat) or fails to judge.
-   - Where a write lands: Claude Code normalises `..` away (and writes a lone surrogate as
-     U+FFFD) before writing, while the OS follows a link before each `..`, so both readings are
-     walked, component by component with every link expanded in place, and the stricter
-     decision wins. Existing top-level folders keep accepting writes until the reorg moves them.
+   Claude Code hands hooks the path it will write (absolute, `~` expanded, `..` removed), and
+   that path is walked component by component with every link expanded in place.
+   - Deny: a new top-level entry of the clone (not in ARTIFACTS_ROOT, not already on disk);
+     inside a git work tree, a typed path not spelled exactly `.agents/artifacts` (siblings
+     such as `artifacts.old`, case or Unicode variants: not gitignored everywhere) and a
+     landing in any `.agents/artifacts` that is not the clone, including one not cloned here;
+     and passing through a link that lives inside a clone and resolves outside it or into
+     another clone, however the link was reached.
+   - Ask: a write under the clone's `archive/` (frozen history) or inside its `.git/` (its
+     hooks); a path that is not absolute and normalised, which Claude Code never sends; and a
+     path the rule cannot walk (deeper than MAX_JUDGED_COMPONENTS, more than MAX_LINK_HOPS
+     links, a component it cannot lstat) or fails to judge.
+   Existing top-level folders keep accepting writes until the reorg moves them.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
@@ -556,9 +556,13 @@ def _objects(sfdmu, plan) -> Optional[Dict[Tuple[str, int], Tuple[bool, Optional
     return out
 
 
+def is_sfdmu_plan(path: str) -> bool:
+    return "datasets/" in path.replace(os.sep, "/") and path.endswith(".json")
+
+
 def sfdmu_decision(path: str, before: str, after: Optional[str], old: str,
                    new: str) -> Tuple[str, str]:
-    if "datasets/" not in path.replace(os.sep, "/") or not path.endswith(".json"):
+    if not is_sfdmu_plan(path):
         return "allow", ""
     was = destructive_objects(before) if before else {}
     now = destructive_objects(after) if after is not None else None
@@ -601,23 +605,22 @@ ARTIFACTS_ROOT = frozenset({
 })
 ARTIFACTS_HINT = ("file it under topics/<slug>/, todos/attachments/<id>/ or "
                   "inbox/<yyyy-mm-dd>-<name> (.cursor/rules/analysis-artifacts.mdc)")
+# No real path is this deep or follows this many links; beyond either, a path is not walked and
+# the rule asks instead, rather than spend the hook's timeout (a timed-out hook lets the tool call
+# through unchecked). With both bounds a walk has at most the path plus MAX_LINK_HOPS link
+# targets of at most PATH_MAX bytes each, so it always ends quickly.
+MAX_JUDGED_COMPONENTS = 512
+MAX_LINK_HOPS = 40
 
 
-def _spelled_hits(p: Path) -> List[str]:
-    """How each `.agents/artifacts*` segment pair in `p` is spelled. Matched with casefold(),
-    so a case or Unicode case-fold variant (which a case-insensitive disk treats as the tree)
-    is found and can be refused for not being spelled exactly."""
+def _spelled_pairs(p: Path) -> List[Tuple[int, str]]:
+    """(index of the `.agents` part, spelling) for each `.agents/artifacts*` segment pair in `p`.
+    Matched with casefold(), so a case or Unicode case-fold variant (which a case-insensitive
+    disk treats as the tree) is found and can be refused for not being spelled exactly."""
     parts = p.parts
-    return [parts[i] + "/" + parts[i + 1] for i in range(len(parts) - 1)
+    return [(i, parts[i] + "/" + parts[i + 1]) for i in range(len(parts) - 1)
             if parts[i].casefold() == ".agents"
             and parts[i + 1].casefold().startswith("artifacts")]
-
-
-def _same(a: Path, b: Path) -> bool:
-    try:
-        return os.path.samefile(a, b)
-    except (OSError, ValueError):
-        return False
 
 
 _IDENTITY_CACHE: Dict[str, Optional[Tuple[int, int]]] = {}
@@ -635,6 +638,11 @@ def _identity(p: Path) -> Optional[Tuple[int, int]]:
     return _IDENTITY_CACHE[key]
 
 
+def _same(a: Path, b: Path) -> bool:
+    ident = _identity(a)
+    return ident is not None and ident == _identity(b)
+
+
 def _isdir(p: Path) -> bool:
     """is_dir() that answers False rather than raising on a path the OS cannot stat."""
     try:
@@ -644,55 +652,47 @@ def _isdir(p: Path) -> bool:
 
 
 def _exists(p: Path) -> bool:
-    try:
-        return p.exists()
-    except (OSError, ValueError):
-        return False
+    return _identity(p) is not None
+
+
+def _in_repo(d: Path) -> bool:
+    """Whether `d` is inside a git work tree: only there can a misnamed folder reach a commit."""
+    return any(_exists(a / ".git") for a in (d, *d.parents))
 
 
 def _is_clone(d: Path) -> bool:
-    """A `.agents/artifacts` directory that is the private clone: a repository of its own.
-    Only the repo-root `.agents/artifacts/` is gitignored, so a same-named public folder
-    deeper in the tree (no `.git`) would be committed, and gets no exemption here."""
-    return _isdir(d) and _exists(d / ".git")
-
-
-def _within(path: Path, root: Path) -> bool:
-    # Tuple prefix rather than relative_to(), which walks every parent on Python 3.12+.
-    a, b = path.parts, root.parts
-    return len(a) >= len(b) and a[:len(b)] == b
+    """The private clone: a directory with a `.git` of its own that is not also one of its own
+    ancestors (`.agents/artifacts -> ..` would otherwise make the whole public repo "the
+    clone"). Only the repo-root `.agents/artifacts/` is gitignored, so a same-named public
+    folder deeper in the tree (no `.git`) gets no exemption here."""
+    me = _identity(d)
+    if me is None or not _isdir(d) or not _exists(d / ".git"):
+        return False
+    return all(_identity(a) != me for a in d.parents)
 
 
 _TREE_CACHE: Dict[str, bool] = {}
 
 
 def _is_tree(d: Path) -> bool:
-    """Whether `d` IS a `.agents/artifacts` directory, by file identity (cached per run)."""
+    """Whether walk position `d` IS a `.agents/artifacts` clone. The name is only a cheap
+    filter; file identity decides, so a case or Unicode variant that the disk resolves to
+    `.agents/artifacts` counts, and one that is a different folder does not."""
+    if d.name.casefold() != "artifacts" or d.parent.name.casefold() != ".agents":
+        return False
     key = str(d)
     if key not in _TREE_CACHE:
-        _TREE_CACHE[key] = (d.parent != d and _is_clone(d)
-                            and _same(d, d.parent / "artifacts")
+        _TREE_CACHE[key] = (_is_clone(d) and _same(d, d.parent / "artifacts")
                             and _same(d.parent, d.parent.parent / ".agents"))
     return _TREE_CACHE[key]
 
 
-def _private_tree(real: Path) -> Optional[Path]:
-    """The OUTERMOST ancestor of `real` that IS a `.agents/artifacts` directory, by file
-    identity rather than spelling, so no case or Unicode variant is mistaken for another
-    folder, and a nested tree inside the private one is judged by the outer tree's rules."""
-    for d in reversed(real.parents):
-        if _is_tree(d):
-            return d
-    return real if _is_tree(real) else None
-
-
 class _Walk:
-    """One reading of a path, resolved the way the OS does: `steps` is every position the walk
-    reaches, `links` is (directory holding the link, where the link resolves) for every symlink
-    it passes through, chains included, and `end` is where it lands."""
+    """A path resolved the way the OS does: `steps` is every position the walk reaches, `links`
+    is (directory holding the link, where the link resolves) for every symlink it passes
+    through, chains included, and `end` is where it lands."""
 
-    def __init__(self, steps: List[Tuple[str, Path]], links: List[Tuple[Path, Path]],
-                 end: Path):
+    def __init__(self, steps: List[Path], links: List[Tuple[Path, Path]], end: Path):
         self.steps, self.links, self.end = steps, links, end
 
 
@@ -715,11 +715,9 @@ def _resolution_steps(raw: str) -> Union[_Walk, str]:
         return f"it is deeper than {MAX_JUDGED_COMPONENTS} components"
     cur = Path(parts[0])
     queue: List[Union[str, _LinkEnd]] = list(parts[1:])
-    steps: List[Tuple[str, Path]] = []
+    steps: List[Path] = []
     links: List[Tuple[Path, Path]] = []
     while queue:
-        if len(steps) > MAX_WALK_STEPS:
-            return f"it expands to more than {MAX_WALK_STEPS} steps"
         comp = queue.pop(0)
         if isinstance(comp, _LinkEnd):
             links[comp.index] = (links[comp.index][0], cur)
@@ -733,7 +731,7 @@ def _resolution_steps(raw: str) -> Union[_Walk, str]:
             # lstat, not islink(): islink() answers False for ANY failure, so a link the walk
             # cannot stat (its own path past PATH_MAX, an unencodable name) would be walked as
             # a plain directory and its target never judged. Only "missing" or "not a
-            # directory" means plain; any other failure leaves this reading unjudged.
+            # directory" means plain; any other failure leaves the path unjudged.
             try:
                 is_link = stat.S_ISLNK(os.lstat(nxt).st_mode)
             except (FileNotFoundError, NotADirectoryError):
@@ -754,32 +752,18 @@ def _resolution_steps(raw: str) -> Union[_Walk, str]:
                 queue[:0] = rest + [_LinkEnd(len(links) - 1)]
                 continue
             cur = nxt
-        steps.append((comp, cur))
+        steps.append(cur)
     return _Walk(steps, links, cur)
 
 
 def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
-    """Rule 4. A reading the walk cannot stat (a component past PATH_MAX, an unreadable
-    directory, a NUL byte) is not guessed at: the rule asks, since the kernel, resolving each
-    link separately, may still write where the walk could not look. Any unexpected error is
-    allowed rather than crashing the hook, which would skip the rules after this one."""
+    """Rule 4. Any unexpected error asks rather than escaping: a crashed hook is a non-blocking
+    error to Claude Code, which would let the call through unchecked."""
     try:
         return _artifacts_decision(path, cwd)
     except Exception as exc:  # RecursionError included: never crash the hook into an allow
         return "ask", (f"the private-tree check could not judge this path "
                        f"({type(exc).__name__}); confirm where it lands")
-
-
-_RANK = {"allow": 0, "ask": 1, "deny": 2}
-# No real path is this deep or follows this many links; beyond either, a reading is not walked
-# and the rule asks instead, rather than spend the hook's timeout (a timed-out hook lets the tool
-# call through unchecked).
-MAX_JUDGED_COMPONENTS = 512
-MAX_LINK_HOPS = 40
-# A walk expands each link's target in place and stops after MAX_LINK_HOPS links, so it has at
-# most the path plus MAX_LINK_HOPS targets of at most PATH_MAX (4096) bytes, about 2048
-# components each. This cap is a backstop for that arithmetic, not a limit inputs reach.
-MAX_WALK_STEPS = MAX_JUDGED_COMPONENTS + MAX_LINK_HOPS * 2048
 
 
 def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
@@ -789,149 +773,94 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     _IDENTITY_CACHE.clear()
     # Claude Code (Node) writes a lone UTF-16 surrogate as U+FFFD; Python would encode it as a
     # different byte, so judge the name the tool will actually write.
-    path = re.sub("[\ud800-\udfff]", "\ufffd", path)
-    raw = os.path.join(cwd, os.path.expanduser(path))
-    lexical = Path(os.path.normpath(raw))
-    # Where does the write land? Claude Code's tools normalise the text first (`..` removed
-    # lexically), then the OS follows links; a plain open() follows links before each `..`.
-    # The two can differ when a `..` comes after a symlink, so the write is judged at BOTH
-    # landings and the stricter decision wins.
-    # The normalised reading is short whenever the written path is (padding with `a/../` only
-    # lengthens the raw text), so it is always walked; a reading too deep or too linked to walk
-    # is not guessed at: it asks.
-    walked = [_resolution_steps(str(lexical)), _resolution_steps(raw)]
-    unjudged = [w for w in walked if isinstance(w, str)]
-    readings = [w for w in walked if isinstance(w, _Walk)]
-    landings = [w.end for w in readings]
-    # 1. The spelling the agent asked for: a sibling (`artifacts.old`) is not gitignored, and a
-    #    case or Unicode variant is the tree on a case-insensitive disk but an un-ignored
-    #    sibling on a case-sensitive one.
-    # The typed path only: where a link leads is judged by identity below (a variant-spelled
-    # landing that is not inside a clone is refused there as a non-clone landing).
-    for name in _spelled_hits(lexical):
-        if name != ".agents/artifacts":
+    path = re.sub("[\ud800-\udfff]", "�", path)
+    typed = Path(path)
+    # Claude Code hands hooks the path it will write: absolute, `~` expanded, `..` removed.
+    # Anything else did not come from it (or a later version changed that), and where the OS
+    # would put it depends on links before each `..`; it is not guessed at.
+    if not typed.is_absolute() or ".." in typed.parts:
+        return "ask", (f"`{path}` is not the absolute, normalised path Claude Code writes, so the "
+                       "private-tree check cannot tell where it lands; confirm it")
+    # The spelling the agent asked for: a sibling (`artifacts.old`) is not gitignored, and a
+    # case or Unicode variant is the tree on a case-insensitive disk but an un-ignored sibling
+    # on a case-sensitive one. Only inside a git work tree can either reach a commit.
+    for i, name in _spelled_pairs(typed):
+        if name != ".agents/artifacts" and _in_repo(Path(*typed.parts[:i])):
             return "deny", (f"`{name}` is not `.agents/artifacts` exactly, so it is not "
                             "gitignored everywhere and would surface in the public repo; write "
                             "inside `.agents/artifacts/` itself, and keep backups outside the "
                             "repository")
-    # 2. Every private tree this write could involve, as resolved directories: the project's
-    #    and cwd's own (so a write addressed to a symlinked clone's real location is caught),
-    #    the spelled one, and any found by identity anywhere along either resolution.
-    spelled_trees = [Path(*lexical.parts[:i + 2]) for i in range(len(lexical.parts) - 1)
-                     if lexical.parts[i:i + 2] == (".agents", "artifacts")]
+    walk = _resolution_steps(path)
+    if isinstance(walk, str):
+        return "ask", (f"the private-tree check cannot walk this path: {walk}; confirm where "
+                       "it lands")
+    # Every clone this write could involve, by identity: the project's and cwd's own (so a write
+    # addressed to a symlinked clone's real location is caught), and any the walk passes.
     roots = [Path(b) / ".agents" / "artifacts"
-             for b in (os.environ.get("CLAUDE_PROJECT_DIR"), cwd) if b] + spelled_trees
-    trees = {Path(os.path.realpath(t)) for t in roots if _is_clone(t)}
-    for walk in readings:
-        tree_here: Optional[Path] = None
-        prev: Optional[Path] = None
-        for _, cur in walk.steps + [(None, t) for _, t in walk.links]:
-            # Invariant: tree_here is the outermost tree among cur's ancestors. Appending a
-            # component can only add cur itself; climbing (`..`) can only drop trees below cur;
-            # only a link jump needs a rescan, so `..` chains stay linear.
-            if prev is not None and cur.parent == prev:
-                tree_here = tree_here or (cur if _is_tree(cur) else None)
-            elif prev is not None and _within(prev, cur):
-                tree_here = tree_here if tree_here is not None and _within(cur, tree_here) else None
-            else:
-                tree_here = _private_tree(cur)
-            if tree_here is not None:
-                trees.add(tree_here)
-            prev = cur
+             for b in (os.environ.get("CLAUDE_PROJECT_DIR"), cwd) if b]
+    trees = ([t for t in roots if _is_clone(t)] + [p for p in walk.steps if _is_tree(p)]
+             + [t for _, t in walk.links if _is_tree(t)])
+    tree_ids = {_identity(t) for t in trees} - {None}
 
-    # Trees, and containment in them, are matched by file identity: a path is inside a tree
-    # when one of its ancestors IS that tree, however either is spelled (case-insensitive
-    # disks, firmlinks). Equal identities are one tree.
-    tree_ids: Dict[Tuple[int, int], Path] = {}
-    for t in sorted(trees, key=lambda t: len(t.parts)):
-        ident = _identity(t)
-        if ident is not None and ident not in tree_ids:
-            tree_ids[ident] = t
-
-    def anchors(p: Path) -> List[Tuple[Path, Tuple[int, int]]]:
-        """(the ancestor of p that IS a tree, that tree's identity), outermost first."""
-        found = []
-        for anc in [*reversed(p.parents), p]:
-            ident = _identity(anc)
-            if ident in tree_ids:
-                found.append((anc, ident))
-        return found
-
-    def containing(p: Path) -> List[Path]:
-        return [anc for anc, _ in anchors(p)]
+    def anchors(p: Path) -> List[Path]:
+        """The ancestors of p (p included) that ARE a clone, outermost first."""
+        return [a for a in [*reversed(p.parents), p] if _identity(a) in tree_ids]
 
     def outer(p: Path) -> Optional[Tuple[int, int]]:
         found = anchors(p)
-        return found[0][1] if found else None
+        return _identity(found[0]) if found else None
 
-    spelled_inside = any(_within(lexical, t) for t in spelled_trees if _is_clone(t))
-    not_cloned = ("deny", ("`.agents/artifacts/` (the private repository) is not cloned here; "
-                           "do not create it. Use $TMPDIR for scratch, or say where the content "
-                           "should live"))
-    escape = ("deny", (f"`{path}` resolves through a symlink outside the private "
-                       "`.agents/artifacts/` tree; write to a plain path inside the tree "
-                       "itself"))
-    worst = ("allow", "")
-    if unjudged:
-        worst = ("ask", (f"the private-tree check cannot walk one reading of this path: "
-                         f"{unjudged[0]}; confirm where it lands"))
-    for walk, real in zip(readings, landings):
-        decision = ("allow", "")
-        final = containing(real)
-        # A link that lives inside a clone and resolves outside it, or into a DIFFERENT clone,
-        # is an escape, wherever the path came from: every link of a chain is in walk.links, so
-        # an in-tree link reached through an outside alias is judged too. Entering a clone from
-        # outside through a link is not an escape.
-        link_escape = any(outer(home) is not None and outer(target) != outer(home)
-                          for home, target in walk.links)
-        if link_escape:
-            decision = escape
-        elif _spelled_hits(real) and not final:
-            # It lands in a `.agents/artifacts` that is not the clone. If no such folder exists
-            # the clone is simply not here (the public contributor's case): say so, with the
-            # guidance analysis-artifacts.mdc promises. If one exists, it is a public folder of
-            # that name, which is not gitignored and would be committed.
-            parts = real.parts
-            folders = [Path(*parts[:i + 2]) for i in range(len(parts) - 1)
-                       if parts[i].casefold() == ".agents"
-                       and parts[i + 1].casefold().startswith("artifacts")]
-            if not any(_isdir(f) for f in folders):
-                decision = not_cloned
-            else:
-                decision = ("deny", (f"`{path}` lands in `{real}`, a `.agents/artifacts` folder "
-                                     "that is not the private clone; it is not gitignored, so "
-                                     "it would surface in the public repo"))
-        elif not final:
-            # A spelled tree that is not the clone would be created; a path spelled inside the
-            # clone that lands outside every tree escapes it.
-            if spelled_trees and not any(_is_clone(t) for t in spelled_trees):
-                decision = not_cloned
-            elif spelled_inside:
-                decision = escape
-        else:
-            decision = _placement(real, final[0])
-        if _RANK[decision[0]] > _RANK[worst[0]]:
-            worst = decision
-    return worst
+    # A link that lives inside a clone and resolves outside it, or into a DIFFERENT clone, is an
+    # escape, wherever the path came from: every link of a chain is in walk.links, so an in-tree
+    # link reached through an outside alias is judged too. Entering a clone from outside through
+    # a link is not an escape.
+    if any(outer(home) is not None and outer(target) != outer(home)
+           for home, target in walk.links):
+        return "deny", (f"`{path}` resolves through a symlink outside the private "
+                        "`.agents/artifacts/` tree; write to a plain path inside the tree itself")
+    final = anchors(walk.end)
+    if final:
+        return _placement(walk.end, final[0])
+    # It lands in no clone. A `.agents/artifacts` it names or lands in is then not the clone.
+    for p in (typed, walk.end):
+        for i, _ in _spelled_pairs(p):
+            if _in_repo(Path(*p.parts[:i])):
+                return _not_the_clone(path, Path(*p.parts[:i + 2]))
+    return "allow", ""
+
+
+def _not_the_clone(path: str, folder: Path) -> Tuple[str, str]:
+    if not _isdir(folder):  # the public contributor's case: say so, as analysis-artifacts.mdc does
+        return "deny", ("`.agents/artifacts/` (the private repository) is not cloned here; do "
+                        "not create it. Use $TMPDIR for scratch, or say where the content should "
+                        "live")
+    if _exists(folder.parent.parent / ".git"):  # the repo-root one: gitignored, but no repository
+        return "deny", (f"`{folder}` is not the private clone (a git repository of its own), "
+                        "so nothing written there is kept by the private repository; clone it "
+                        "there, or use $TMPDIR for scratch")
+    return "deny", (f"`{path}` lands in `{folder}`, a `.agents/artifacts` folder that is not the "
+                    "private clone; only the repo-root one is gitignored, so it would surface in "
+                    "the public repo")
 
 
 def _placement(real: Path, tree: Path) -> Tuple[str, str]:
-    """Where a write lands under `tree` (the outermost containing tree), entries by identity."""
+    """Where a write lands under `tree` (the outermost containing clone), entries by identity."""
     rest = real.relative_to(tree).parts
     if not rest:
         return "allow", ""
-    entry = tree / rest[0]
-    canonical = next((n for n in ARTIFACTS_ROOT if _same(entry, tree / n)), None)
-    if canonical is None:
-        if rest[0] in ARTIFACTS_ROOT:
-            canonical = rest[0]
-        elif not _exists(entry):
-            return "deny", (f"`{rest[0]}` would be a new top-level entry of `.agents/artifacts/`, "
-                            f"whose top level is closed; {ARTIFACTS_HINT}")
-    if canonical == "archive" and len(rest) > 1:
+    chain = [_identity(tree.joinpath(*rest[:k])) for k in range(1, len(rest) + 1)]
+    git_dir, archive = _identity(tree / ".git"), _identity(tree / "archive")
+    if git_dir is not None and git_dir in chain:
+        return "ask", ("this writes inside the private clone's `.git/` (its hooks and config), "
+                       "which can switch off its pre-commit layout check. Confirm it is "
+                       "deliberate")
+    if archive is not None and archive in chain[:-1]:
         return "ask", ("this writes under `.agents/artifacts/archive/`, which is frozen history "
                        "(moves and per-entry READMEs only). Confirm it is a deliberate archive "
                        "edit")
+    if rest[0] not in ARTIFACTS_ROOT and chain[0] is None:
+        return "deny", (f"`{rest[0]}` would be a new top-level entry of `.agents/artifacts/`, "
+                        f"whose top level is closed; {ARTIFACTS_HINT}")
     return "allow", ""
 
 
@@ -1121,16 +1050,19 @@ def decide(event: dict) -> Tuple[str, str]:
         return worst
     if tool == "NotebookEdit":
         return artifacts_decision(tool_input.get("notebook_path") or "", cwd)
-    if tool in ("Write", "Edit", "MultiEdit"):
-        # Placement first: text_change() reads the current file, which can block (a FIFO) past
-        # the hook's timeout and let the call through before the placement rule ever ran.
-        placement = artifacts_decision(tool_input.get("file_path") or "", cwd)
-        if placement[0] != "allow":
-            return placement
+    if tool not in ("Write", "Edit", "MultiEdit"):
+        return "allow", ""
+    # Placement first: text_change() reads the current file, which can block (a FIFO) past the
+    # hook's timeout and let the call through before the placement rule ever ran. For the same
+    # reason the file is read only when it is an SFDMU plan, the one case rule 2 judges.
+    placement = artifacts_decision(tool_input.get("file_path") or "", cwd)
+    if placement[0] == "deny" or not is_sfdmu_plan(tool_input.get("file_path") or ""):
+        return placement
     change = text_change(tool, tool_input)
-    if change:
-        return sfdmu_decision(*change)
-    return "allow", ""
+    sfdmu = sfdmu_decision(*change) if change else ("allow", "")
+    if placement[0] == "ask" and sfdmu[0] == "ask":  # both reasons, not just the first
+        return "ask", f"{placement[1]}. Also: {sfdmu[1]}"
+    return sfdmu if sfdmu[0] != "allow" else placement
 
 
 def main() -> int:

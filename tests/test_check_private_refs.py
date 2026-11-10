@@ -71,6 +71,19 @@ class LeakGuard(Fixture):
         self.write(".agents/README.md", "public\n")
         self.assertEqual(self.run_check().returncode, 0)
 
+    def test_a_git_failure_is_a_tool_error_not_a_verdict(self):
+        shutil.rmtree(self.root / ".git")  # not a repository: `git ls-files` fails
+        proc = subprocess.run([sys.executable, "scripts/ai/check_private_refs.py"], cwd=self.root,
+                              capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertNotIn("Traceback", proc.stderr)
+
+    def test_forced_grep_colour_does_not_hide_citations(self):
+        sh(self.root, "git", "config", "color.ui", "always")
+        sh(self.root, "git", "config", "color.grep", "always")
+        self.write("docs/a.md", ".agents/artifacts/feature-gaps.md\n")
+        self.assertIn("1 citation(s)", self.run_check().stdout)
+
 
 class Shape(Fixture):
     def test_top_level_citations_warn_while_shape_is_not_gating(self):
@@ -171,6 +184,18 @@ class Resolution(Fixture):
         self.assertIn("topics/nope.md does not exist", proc.stdout)
         self.assertNotIn("a.md:2", proc.stdout)
         self.assertIn("resolved against the private tree", proc.stdout)
+
+    def test_an_overlong_or_unreadable_citation_does_not_crash(self):
+        self.write("docs/a.md", ".agents/artifacts/topics/" + "n" * 300 + ".md\n")
+        (self.tree / "MOVED.tsv").write_bytes(
+            b"old_prefix\tnew_prefix\tref\tdate\n\xff\xfe/\tx/\tW3\t2026-11-09\n"
+            b"collections/\ttopics/collections/\tW3\t2026-11-09\n")
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("does not exist", proc.stdout)
+        self.assertEqual(refs.resolve_moved(self.tree, "collections/gaps.md"),
+                         "topics/collections/gaps.md")
+        self.assertFalse(refs.exists_in(self.tree, "a\x00b"))
 
     def test_resolve_moved_chains_rows(self):
         (self.tree / "MOVED.tsv").write_text(
