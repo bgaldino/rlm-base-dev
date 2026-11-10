@@ -115,11 +115,34 @@ CHECK_TIMEOUT = 900
 # A fixture whose git command reaches this repository instead of its throwaway one (an inherited
 # GIT_DIR from a git hook, or a cwd that isn't a repository yet) writes to the developer's .git/config,
 # and the change outlives the run. An early test_branch_scope.py fixture wrote `user.name test` and
-# `user.email t@example.com` there, and every commit for two months carried them (todo 237). Each
-# git-using suite drops the hook variables at startup, which is the fix: a leak can also stage files
-# into this repo's index or commit onto its branch, and only the suites can prevent that. The gate
-# doesn't read the environment, so it can't drop them itself; what it can do is fail a check that
-# leaves the config changed, the symptom that outlives the run.
+# `user.email t@example.com` there, and every commit for two months carried them (todo 237). A leak
+# can also stage files into this repo's index or commit onto its branch, which no after-the-fact
+# guard can undo. So there are two layers: `run()` starts every check without git's
+# repository-locating variables (`check_env()`), so a fixture cannot inherit a path to this repo; and
+# it still fails a check that leaves the config changed, for the leaks the environment cannot cause
+# (a fixture whose cwd is not a repository yet walks up into this one). Suites keep their own
+# preamble too, because they are also run directly, outside the gate.
+#
+# Every variable here either names a repository, work tree, index or object store, or can rewrite
+# this repository's own config: the legacy GIT_CONFIG names the file `git config` writes, and
+# GIT_CONFIG_PARAMETERS/COUNT/KEY_n/VALUE_n inject settings such as `core.bare` or `core.worktree`.
+# The same list the git-using suites drop in their preambles. Deliberately kept:
+# GIT_CEILING_DIRECTORIES only narrows discovery, and a check starts at the repository root, so it
+# cannot aim a check at this repo but can stop a fixture walking up into it; and
+# GIT_CONFIG_GLOBAL/SYSTEM/NOSYSTEM name the user's and system's config, not this repository's, and
+# are how a hermetic caller keeps ~/.gitconfig (a global hooksPath, gpgsign) out of fixtures.
+GIT_LOCATING_ENV = frozenset((
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX", "GIT_NAMESPACE",
+    "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
+))
+GIT_CONFIG_INJECTION_PREFIXES = ("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")
+
+
+def check_env():
+    """This process's environment minus git's repository-locating variables, for a check to run in."""
+    return {k: v for k, v in os.environ.items()
+            if k not in GIT_LOCATING_ENV and not k.startswith(GIT_CONFIG_INJECTION_PREFIXES)}
 
 
 def repo_config_paths():
@@ -1199,8 +1222,9 @@ def run(cmd):
         # Bounded, so one hung check cannot burn the whole CI job's budget with no output.
         # errors="replace": a check that prints a non-UTF-8 byte still gets its verdict, where strict
         # decoding raised UnicodeDecodeError, a traceback whose exit 1 reads as one.
+        # `check_env()`: no inherited GIT_DIR and friends, so a fixture cannot reach this repository.
         proc = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True, errors="replace",
-                              timeout=CHECK_TIMEOUT)
+                              timeout=CHECK_TIMEOUT, env=check_env())
     except subprocess.TimeoutExpired:
         # A timeout stays a check failure, not a tool error: a check that hangs is a property
         # of the change under test, unlike an interpreter that will not start.
