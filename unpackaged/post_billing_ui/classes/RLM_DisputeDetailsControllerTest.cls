@@ -57,6 +57,13 @@ private class RLM_DisputeDetailsControllerTest {
             new Map<String, Object>{ 'id' => String.valueOf(disputeItemFakeId()), 'approvedAmount' => 10 }
         };
 
+        // Control: the known item saves on its own, so the mixed save below can fail only for the
+        // unknown id.
+        System.runAs(approver) {
+            saveAmount(itemIds[0], 20);
+        }
+        assertAmount(20, approvedAmount(itemIds[0]), 'PRECONDITION: the known item saves on its own.');
+
         Exception caught;
         Test.startTest();
         System.runAs(approver) {
@@ -68,9 +75,9 @@ private class RLM_DisputeDetailsControllerTest {
         }
         Test.stopTest();
 
-        Assert.isNull(caught, 'Known gap: an unmatched item id is skipped and the save reports success. '
-            + 'The save threw: either unknown ids are now reported (update this test) or the known item '
-            + 'failed to save. Caught: ' + caught?.getTypeName() + ': ' + caught?.getMessage());
+        Assert.isNull(caught, 'Known gap: an unmatched item id is skipped and the save reports success; '
+            + 'it threw here, so unknown ids may now be reported. Update this test when it is fixed. '
+            + 'Caught: ' + caught?.getTypeName() + ': ' + caught?.getMessage());
         assertAmount(30, approvedAmount(itemIds[0]), 'The known item\'s approved amount is saved.');
     }
 

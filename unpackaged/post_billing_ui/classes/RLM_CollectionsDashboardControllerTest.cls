@@ -6,10 +6,10 @@
  * can only be verified live. What a test can build -- payments, payment schedule items,
  * collection plans, tasks, cases and debit memos -- is built here, and the cards, worklist,
  * plans, progress and tasks are asserted against it where a test can tell the result apart.
- * Records are created in admin context. Two tests then run as other
- * users: a collections specialist, who reads their own plan, and a user with no access, who
- * gets empty sections. The specialist holds the Billing and Billing Advanced permission set
- * licenses; the no-access user holds none.
+ * Records are created in admin context. Three tests then run as other users: a collections
+ * specialist, who reads their own plan; a user with no access, who gets empty sections; and the
+ * same kind of no-access user, for whom getAccountOptions throws (a pinned gap). The specialist
+ * holds the Billing and Billing Advanced permission set licenses; the no-access users hold none.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
  * 'Credit Memo', which are not Payment.Type values (Sale and Capture), so it is
@@ -261,9 +261,14 @@ private class RLM_CollectionsDashboardControllerTest {
     @isTest
     static void getDashboardCards_draftDebitMemoIsNotOwed() {
         Account a = newAccount('RLM CD Debit Memo');
-        SObject memo = newRecord('DebitMemo', new Map<String, Object>{
+        // The controller filters on BillToAccountId when DebitMemo has it, else on AccountId.
+        String accountField = Schema.getGlobalDescribe().get('DebitMemo').getDescribe().fields.getMap()
+            .containsKey('billtoaccountid') ? 'BillToAccountId' : 'AccountId';
+        Map<String, Object> memoValues = new Map<String, Object>{
             'AccountId' => a.Id, 'Status' => 'Draft', 'InvoiceGenerationStatus' => 'None'
-        });
+        };
+        memoValues.put(accountField, a.Id);
+        SObject memo = newRecord('DebitMemo', memoValues);
         newRecord('DebitMemoLine', new Map<String, Object>{
             'Name' => 'RLM CD Debit Memo Line', 'DebitMemoId' => memo.Id, 'ChargeAmount' => 10
         });
@@ -273,9 +278,6 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(memoTotal != null && memoTotal > 0,
             'PRECONDITION: the Draft memo totals its line. Got ' + memoTotal);
         Assert.areEqual('Draft', saved.get('Status'), 'PRECONDITION: the memo is Draft.');
-        // The controller filters on BillToAccountId when DebitMemo has it, else on AccountId.
-        Assert.isFalse(Schema.getGlobalDescribe().get('DebitMemo').getDescribe().fields.getMap().containsKey('billtoaccountid'),
-            'PRECONDITION: DebitMemo has no BillToAccountId, so the controller filters on AccountId.');
         // The controller's own aggregate, in user mode, with Status = 'Draft' in place of
         // 'Posted': the SUM runs and returns a positive total for the memo, so the controller's
         // query is not refused and its zero comes from the Status filter, not from a swallowed
@@ -283,7 +285,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Id aId = a.Id;
         List<AggregateResult> control = Database.query(
             'SELECT SUM(TotalAmount) s FROM DebitMemo WHERE TotalAmount != null AND Status = \'Draft\''
-            + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' AND AccountId = :aId',
+            + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' AND ' + accountField + ' = :aId',
             AccessLevel.USER_MODE);
         Decimal controlSum = (Decimal) control[0].get('s');
         Assert.isTrue(controlSum != null && controlSum > 0,
@@ -365,10 +367,10 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(1, onlyB.disputedInvoices.size(), 'The account filter keeps only that account\'s case.');
         Assert.areEqual(b.Id, onlyB.disputedInvoices[0].accountId, 'The filtered row is account B.');
-        Assert.areEqual(1, onlyB.highValueDelinquents.size(), 'The filtered worklist has its placeholder row.');
-        Assert.areEqual(a.Id, onlyB.highValueDelinquents[0].accountId,
-            'Known gap: the placeholder row ignores the account filter and uses the first account by '
-            + 'name. Update this test when it is fixed.');
+        Assert.isTrue(onlyB.highValueDelinquents.size() == 1 && onlyB.highValueDelinquents[0].accountId == a.Id,
+            'Known gap: the filtered worklist keeps a placeholder row that ignores the account filter and '
+            + 'uses the first account by name. Update this test when it is fixed. Rows: '
+            + onlyB.highValueDelinquents.size());
     }
 
     // The placeholders borrow an account, so with no account at all there are none.
@@ -529,7 +531,7 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.isTrue(readable.isEmpty(), 'PRECONDITION: the user cannot query ' + readable + ' in user mode.');
-        Assert.isTrue(myPlans.isEmpty(), 'No plan is listed (access, or the user owns none).');
+        Assert.isTrue(myPlans.isEmpty(), 'No plan is listed: the user owns none.');
         Assert.isTrue(cards.totalBalanceBreakdown.isEmpty(),
             'An unreadable Invoice returns the cards before any breakdown is built.');
         Assert.isTrue(cards.agingBuckets.isEmpty(), 'Nor any aging bucket.');
@@ -550,6 +552,8 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Test.startTest();
         System.runAs(noAccess) {
+            Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
+                'PRECONDITION: the user cannot read Account.');
             try {
                 RLM_CollectionsDashboardController.getAccountOptions();
                 Assert.fail('Known gap: getAccountOptions throws a raw QueryException for a user who cannot '
@@ -562,7 +566,8 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // The collections persona reads its own plan through the USER_MODE queries. A permission
-    // gap would show as an empty list, since both methods swallow their query errors. The user
+    // gap would show as an empty list or zeroed progress, since both methods swallow their query
+    // errors. The user
     // holds the Billing and Billing Advanced permission set licenses.
     @isTest
     static void collectionsSpecialist_readsTheirPlanInUserMode() {

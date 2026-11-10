@@ -242,7 +242,7 @@ private class RLM_PaymentsDataControllerTest {
             PaymentId = pmt.Id, RequestedAmount = 60, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
         Assert.areEqual(plan.Id,
             [SELECT ReferenceEntityId FROM PaymentSchedule WHERE Id = :promise.Id WITH USER_MODE].ReferenceEntityId,
-            'PRECONDITION: the schedule\'s reference is the collection plan and is readable in user mode.');
+            'PRECONDITION: the schedule\'s reference is the collection plan.');
 
         Test.startTest();
         RLM_PaymentsDataController.PaymentStatusSummary summary =
