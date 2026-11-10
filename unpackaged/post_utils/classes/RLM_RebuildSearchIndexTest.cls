@@ -48,12 +48,12 @@ private with sharing class RLM_RebuildSearchIndexTest {
             this.throwCalloutError = false;
         }
 
-        /** With throwCalloutError true, every callout throws a CalloutException; use throwingMock(). */
-        public PcmDeployMock(Boolean throwCalloutError) {
+        /** A mock whose every callout throws a CalloutException; built only by throwingMock(). */
+        private PcmDeployMock() {
             this.statusCode = null;
             this.status = null;
             this.body = null;
-            this.throwCalloutError = throwCalloutError;
+            this.throwCalloutError = true;
         }
 
         public HttpResponse respond(HttpRequest req) {
@@ -72,7 +72,7 @@ private with sharing class RLM_RebuildSearchIndexTest {
 
     /** A mock whose callouts fail at the transport level, before any HTTP response exists. */
     private static PcmDeployMock throwingMock() {
-        return new PcmDeployMock(true);
+        return new PcmDeployMock();
     }
 
     // ─── deployIndex (LWC) ──────────────────────────────────────────────

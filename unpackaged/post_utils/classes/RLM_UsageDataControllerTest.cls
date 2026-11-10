@@ -410,6 +410,30 @@ private with sharing class RLM_UsageDataControllerTest {
         }
     }
 
+    /**
+     * Pins current behaviour: a null recordId is not rejected. The query then filters on
+     * AccountId = null, but no journal can carry a null AccountId (insert rejects it), so the
+     * rows such a filter would match cannot be seeded and are not observed here.
+     */
+    @IsTest
+    static void nullRecordIdIsNotRejected() {
+        System.runAs(runningUserHoldingUsageDatatables()) {
+            assertFieldSetReadable(TransactionJournal.SObjectType, new List<String>{ 'AccountId' });
+
+            Test.startTest();
+            Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
+                null, 'AccountId', 'TransactionJournal', FIELD_SET
+            );
+            Test.stopTest();
+
+            Assert.isNotNull(
+                result,
+                'Known gap: a null recordId is not rejected; update this test when it is rejected'
+            );
+            Assert.isTrue(recordsOf(result).isEmpty(), 'No journal has a null AccountId, so nothing matches');
+        }
+    }
+
     @IsTest
     static void resultIsCappedAtTwoThousandRowsAndFlaggedTruncated() {
         Id accId = accountId(ACCOUNT_NAME);

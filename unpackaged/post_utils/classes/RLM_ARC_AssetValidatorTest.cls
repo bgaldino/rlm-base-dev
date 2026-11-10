@@ -12,6 +12,9 @@
  *  - the expired branch. Asset.LifecycleEndDate is not writeable, and the platform does not
  *    derive it from an AssetStatePeriod inserted by DML; only lifecycle-managed assets built
  *    by order activation carry it.
+ *  - related assets more than one hop away. Relationship expansion reaches direct neighbours
+ *    only, so a usage-based grandchild two hops away is not flagged. It is unverified whether
+ *    that is intended; no test pins it.
  */
 @IsTest
 private with sharing class RLM_ARC_AssetValidatorTest {
