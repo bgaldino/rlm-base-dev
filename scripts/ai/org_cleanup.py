@@ -917,8 +917,9 @@ def move_path(source, dest):
         shutil.move(source, dest)
 
 
-def check_quarantine(quarantine, home):
-    """Move a temp file in and remove it, returning why that failed, or None if it worked.
+def check_quarantine(quarantine, source):
+    """Move a temp file in from `source`, a folder planned items leave, and remove it, returning
+    why that failed, or None if it worked.
 
     Creating the folder is not proof: macOS can allow a mkdir in ~/.Trash while refusing to list
     it. This runs before the first logout, because a logout cannot be restored.
@@ -936,7 +937,7 @@ def check_quarantine(quarantine, home):
             if is_dir(folder) and not os.access(str(folder), os.W_OK | os.X_OK):
                 return "{} is not writable".format(folder)
         created = [p for p in [quarantine] + list(quarantine.parents) if lstat_or_none(p) is None]
-        handle, temp = tempfile.mkstemp(dir=str(home), prefix=".org-cleanup-probe-")
+        handle, temp = tempfile.mkstemp(dir=str(source), prefix=".org-cleanup-probe-")
         os.close(handle)
         quarantine.mkdir(parents=True, exist_ok=True)
         dest = quarantine / os.path.basename(temp)
@@ -959,8 +960,14 @@ def move_blocker(run, path, project):
     """Why `path` cannot leave or be replaced in its folder, or None. apply asks this of every
     planned item and of the deploy cache before any logout, and again at the move. Moving a
     directory rewrites its `..` entry, so it needs write access on the directory itself too, which
-    a `sudo sf` can take away. Links are left to the audit, which plans none."""
-    for folder in [path.parent] + ([path] if is_dir(path) else []):
+    a `sudo sf` can take away; across volumes the move copies it and then deletes every folder in
+    it, so each of those needs write access as well. Links are left to the audit, which plans none."""
+    folders, unreadable = [path.parent], []
+    if is_dir(path):
+        folders += [Path(top) for top, _, _ in os.walk(str(path), onerror=unreadable.append)]
+    if unreadable:
+        return "cannot read {}".format(unreadable[0].filename)
+    for folder in folders:
         if not os.access(str(folder), os.W_OK | os.X_OK):
             return "no write access to {}".format(folder)
     if project in path.parents:
@@ -1463,7 +1470,8 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
                   "{}. Fix their ownership or git, then apply again.".format("; ".join(stuck)),
                   file=sys.stderr)
             return 1
-        why = check_quarantine(quarantine, home)
+        source = next((item.parent for item in items if lstat_or_none(item) is not None), home)
+        why = check_quarantine(quarantine, source)  # from a folder checked above, as the moves will go
         if why:
             print("Stopped before any logout; nothing was changed. Cannot move files into {}: {}. "
                   "Use --quarantine <dir> to choose another folder.".format(quarantine, why),

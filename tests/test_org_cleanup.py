@@ -1374,6 +1374,40 @@ class Quarantine(Base):
         self.assertFalse(self.quarantine.exists())
         self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
 
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write anywhere")
+    def test_an_unwritable_home_does_not_fail_the_quarantine_check(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        self.home.chmod(0o555)  # a managed home: the probe starts in a folder files really leave
+        self.addCleanup(self.home.chmod, 0o755)
+        self.assertEqual(self.apply(cli, plan_file), 0)
+        self.assertFalse(self.index.exists())
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write anywhere")
+    def test_a_nested_folder_a_move_across_volumes_must_delete_stops_the_run_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        nested = self.tracking / "localSourceTracking"
+        nested.mkdir()
+        (nested / "x").write_text("x")
+        nested.chmod(0o555)  # left by a sudo sf; copy-then-delete could not empty it
+        self.addCleanup(nested.chmod, 0o755)
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("no write access to {}".format(nested), self.stderr.getvalue())
+        self.assertEqual(Apply.logouts(cli), [])
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can read anywhere")
+    def test_a_nested_folder_that_cannot_be_read_stops_the_run_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        nested = self.tracking / "localSourceTracking"
+        nested.mkdir()
+        nested.chmod(0o300)
+        self.addCleanup(nested.chmod, 0o755)
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("cannot read {}".format(nested), self.stderr.getvalue())
+        self.assertEqual(Apply.logouts(cli), [])
+
     def test_a_quarantine_path_that_cannot_be_examined_is_reported_not_raised(self):
         with mock.patch.object(oc.os, "lstat", side_effect=PermissionError(13, "Denied")):
             self.assertEqual(oc.check_quarantine(self.quarantine, self.home), "Denied")
@@ -1438,7 +1472,9 @@ class Quarantine(Base):
         copy = self.quarantine / "orgs" / item.name
         (item / "sub").chmod(0o555)
         self.writable_again(item / "sub", copy / "sub")
-        with self.across_volumes():
+        self.assertIn("no write access to {}".format(item / "sub"), oc.move_blocker(FakeCli(self.home), item, self.project))
+        # The check normally refuses this before any logout; past it, the move still loses nothing.
+        with self.across_volumes(), mock.patch.object(oc, "move_blocker", return_value=None):
             why = oc.move_to_quarantine(FakeCli(self.home), item, [root], self.quarantine, self.project)
             self.assertIn("could not move", why)
             self.assertEqual(self.files_under(copy), ["a", "b", "sub/held"])  # the only complete one
@@ -2265,7 +2301,7 @@ class PlanBoundCommands(Base):
         self.assertIsNone(oc.read_json(self.home / "deep.json", None))  # refused, not a crash
 
     def test_a_name_argv_cannot_carry_is_a_failed_command(self):
-        self.assertEqual(oc.run_command(["/usr/bin/true", "a\0b"]), (127, ""))
+        self.assertEqual(oc.run_command([sys.executable, "a\0b"]), (127, ""))
 
     def test_a_plan_that_cannot_be_written_is_still_printed(self):
         self.assertEqual(self.main(["audit", "--out", str(self.home.parent / "no" / "plan.json")], FakeCli(self.home)), 1)
@@ -2413,7 +2449,7 @@ class EntriesSfSkips(Base):
         self.assertIsNone(oc.sf_json(cli, "alias", "unset", operands=["\udc80x"]))
         self.assertEqual(cli.calls, [])
         # git gets the original bytes back from a surrogate-escaped path, so it is not refused
-        self.assertEqual(oc.run_command(["/usr/bin/true", "\udc80x"]), (0, ""))
+        self.assertEqual(oc.run_command([sys.executable, "-c", "pass", "\udc80x"]), (0, ""))
 
 
 class LinksAndInterrupts(Base):
