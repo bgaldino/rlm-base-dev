@@ -68,8 +68,9 @@ private class RLM_SplitInvoicesControllerTest {
         Test.stopTest();
 
         Assert.areEqual('RLM Split Invoices Contact Test', result.accountNames.get(acc.Id),
-            'The account still resolves when another list cannot.');
-        Assert.areEqual(contactName, result.contactNames.get(con.Id), 'The contact resolves to its full name.');
+            'The account resolves by name.');
+        Assert.areEqual(contactName, result.contactNames.get(con.Id),
+            'The contact list, resolved after the failing Case list, still resolves to its full name.');
         Assert.isTrue(result.profileNames.isEmpty(),
             'An object without a Name field resolves to an empty map rather than an error.');
     }

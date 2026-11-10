@@ -39,20 +39,19 @@ private class RLM_OnAccountBillingControllerTest {
     // balance by its balance. (A non-corporate account currency is covered below.)
     // The positive paths here run as a billing operations user, not the deploying admin:
     // RLM_BillingUI is assigned only after this bundle deploys. That user is read-only, so the
-    // admin creates the records; accounts and payments are shared read/write.
+    // admin creates the records: the account is owned by the user, and a payment (which has no
+    // owner) is checked to be visible to the user before the summary runs.
     @isTest
     static void getBillingSummary_processedPayment_lowersTheNetBalance() {
         User u = billingOperationsUser();
         String corporate = corporateCurrency();
-        Account acc = new Account(Name = 'RLM On-Account Billing Payment Test');
-        acc.put('CurrencyIsoCode', corporate);
-        insert acc;
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Payment Test', corporate);
         Payment pmt = newProcessedPayment(acc.Id, 250, corporate);
         Decimal balance = [SELECT Balance FROM Payment WHERE Id = :pmt.Id].Balance;
         Assert.areEqual(250, balance, 'PRECONDITION: an unapplied processed payment\'s balance is its amount.');
 
         Test.startTest();
-        Map<String, Object> result = paymentSummaryAs(u, acc.Id);
+        Map<String, Object> result = paymentSummaryAs(u, acc.Id, pmt.Id);
         Test.stopTest();
 
         Assert.areEqual(250, (Decimal) result.get('paymentBalance'),
@@ -67,22 +66,21 @@ private class RLM_OnAccountBillingControllerTest {
     // SUM() with GROUP BY CurrencyIsoCode returns the corporate-currency total; the controller
     // converts it into the account's currency at the dated rate (the standard rate when there
     // are no dated rates). A corporate-currency payment on an account in another currency must
-    // come back in the account's currency at that rate.
+    // come back in the account's currency at that rate. The expected rates are read as the
+    // billing user, the way the controller reads them.
     // A second active currency comes from a pricing data plan (qb, q3 or mfg); without one the
     // test is skipped, visibly, rather than failing the deploy.
     @isTest
     static void getBillingSummary_paymentIsConvertedToTheAccountCurrency_whenASecondCurrencyIsActive() {
+        User u = billingOperationsUser();
         String corporate = corporateCurrency();
-        Map<String, Decimal> effective = effectiveRates();
+        Map<String, Decimal> effective = controllerRatesAs(u);
         String foreign = foreignCurrency(effective, corporate);
         if (foreign == null) {
             System.debug(LoggingLevel.WARN, SKIP_NO_SECOND_CURRENCY);
             return;
         }
-        User u = billingOperationsUser();
-        Account acc = new Account(Name = 'RLM On-Account Billing FX Test');
-        acc.put('CurrencyIsoCode', foreign);
-        insert acc;
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing FX Test', foreign);
         Payment pmt = newProcessedPayment(acc.Id, 1000, corporate);
         Decimal balance = [SELECT Balance FROM Payment WHERE Id = :pmt.Id].Balance;
         Assert.areEqual(1000, balance, 'PRECONDITION: an unapplied processed payment\'s balance is its amount.');
@@ -90,7 +88,7 @@ private class RLM_OnAccountBillingControllerTest {
             * rateOf(effective, foreign);
 
         Test.startTest();
-        Map<String, Object> result = paymentSummaryAs(u, acc.Id);
+        Map<String, Object> result = paymentSummaryAs(u, acc.Id, pmt.Id);
         Test.stopTest();
 
         Decimal actual = (Decimal) result.get('paymentBalance');
@@ -117,9 +115,7 @@ private class RLM_OnAccountBillingControllerTest {
             return;
         }
         User u = billingOperationsUser();
-        Account acc = new Account(Name = 'RLM On-Account Billing Same Currency Test');
-        acc.put('CurrencyIsoCode', foreign);
-        insert acc;
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Same Currency Test', foreign);
         Payment pmt = newProcessedPayment(acc.Id, 100, foreign);
         Decimal balance = [SELECT Balance FROM Payment WHERE Id = :pmt.Id].Balance;
         Assert.areEqual(100, balance, 'PRECONDITION: an unapplied processed payment\'s balance is its amount.');
@@ -128,7 +124,7 @@ private class RLM_OnAccountBillingControllerTest {
             * standardRates.get(corporate);
 
         Test.startTest();
-        Map<String, Object> result = paymentSummaryAs(u, acc.Id);
+        Map<String, Object> result = paymentSummaryAs(u, acc.Id, pmt.Id);
         Test.stopTest();
 
         Decimal actual = (Decimal) result.get('paymentBalance');
@@ -138,16 +134,15 @@ private class RLM_OnAccountBillingControllerTest {
             + ' (100 ' + foreign + ' in ' + corporate + '), got ' + actual + ' ' + foreign);
     }
 
-    // A collection plan on the account puts it in collections, for a collections user (who can
-    // read collection plans; they are shared read/write, so the admin's plan is visible).
+    // A collection plan on the account puts it in collections, for a collections user who can
+    // read collection plans. The account and the plan are owned by that user.
     @isTest
     static void getBillingSummary_accountWithCollectionPlan_isInCollections() {
         User u = collectionsUser();
-        Account acc = new Account(Name = 'RLM On-Account Billing Collections Test');
-        insert acc;
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Collections Test', null);
         // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises a case
         // from org data a unit test cannot see.
-        insert new CollectionPlan(AccountId = acc.Id, UsageType = 'Billing');
+        insert new CollectionPlan(AccountId = acc.Id, OwnerId = u.Id, UsageType = 'Billing');
 
         Map<String, Object> result;
         Test.startTest();
@@ -166,22 +161,21 @@ private class RLM_OnAccountBillingControllerTest {
     // The aggregate balance reads, and the partially-paid, written-off, dispute and collections
     // reads, swallow a query the user may not run and report zero, so a zero proves nothing by
     // itself. For a billing operations user holding RLM_BillingUI this checks, in USER_MODE,
-    // that each object the summary sums or counts is readable with the fields it uses, and that
-    // the summary ran all of its queries. Collection plans are the exception: this role cannot
-    // read them, and the summary shows "not in collections" instead of failing.
+    // that each object the summary sums or counts is readable with the fields it uses.
+    // Collection plans are the exception: this role cannot read them, and the summary shows
+    // "not in collections" instead of failing.
     @isTest
     static void getBillingSummary_billingOperationsUser_runsEveryBalanceQuery() {
-        Account acc = new Account(Name = 'RLM On-Account Billing Role Test');
-        insert acc;
+        User u = billingOperationsUser();
+        User collections = collectionsUser();
+        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Role Test', null);
         // A collection plan a collections user sees, so "not in collections" for this role comes
         // from its access, not from the account. No CollectionPlanReason (see above).
-        insert new CollectionPlan(AccountId = acc.Id, UsageType = 'Billing');
-        User collections = collectionsUser();
+        insert new CollectionPlan(AccountId = acc.Id, OwnerId = collections.Id, UsageType = 'Billing');
         System.runAs(collections) {
             Assert.areEqual(true, (Boolean) RLM_OnAccountBillingController.getBillingSummary(acc.Id).get('inCollections'),
                 'PRECONDITION: for a collections user, the account is in collections.');
         }
-        User u = billingOperationsUser();
 
         Map<String, String> readErrors = new Map<String, String>();
         String collectionPlanError;
@@ -212,11 +206,10 @@ private class RLM_OnAccountBillingControllerTest {
 
         Assert.isTrue(readErrors.isEmpty(), 'PRECONDITION: the summary\'s reads run for this role: ' + readErrors);
         Assert.isNotNull(collectionPlanError, 'PRECONDITION: this role cannot read collection plans.');
-        // At least the reads that must run for this role: the account currency and the standard
-        // and dated rates (this bundle is multi-currency only, so they always run), the five
-        // balance aggregates (invoice, debit memo, credit memo, payment, refund) and seven status
-        // reads (posted, overdue, delinquent, partially paid, open with balance, written off,
-        // disputes). The collection plan count is rejected for this role and does not count.
+        // The readErrors probes above prove the reads succeed. This bound only shows the summary
+        // did not short-circuit: the account currency and the standard and dated rates (this
+        // bundle is multi-currency only), the five balance aggregates and seven status reads.
+        // The collection plan count is rejected for this role and does not count.
         Assert.isTrue(summaryQueries >= 15,
             'The summary runs its balance and status reads; it ran ' + summaryQueries + ' queries.');
 
@@ -237,6 +230,10 @@ private class RLM_OnAccountBillingControllerTest {
     }
 
     private static final String COLLECTION_PLAN_READ = 'SELECT Id FROM CollectionPlan WHERE AccountId != null LIMIT 1';
+    private static final String PAYMENT_READ =
+        'SELECT Id, Balance, AccountId, Status, CurrencyIsoCode FROM Payment LIMIT 1';
+    private static final String SKIP_NO_SECOND_CURRENCY =
+        'SKIPPED: no second active currency with a different rate (a pricing data plan (qb, q3 or mfg) adds them).';
 
     private static User billingOperationsUser() {
         return RLM_BillingUITestUsers.create(
@@ -252,21 +249,31 @@ private class RLM_OnAccountBillingControllerTest {
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL });
     }
 
+    // An account owned by the test user, so it is visible to that user whatever the org's
+    // sharing defaults; currencyCode may be null for the default currency.
+    private static Account newAccountOwnedBy(User u, String name, String currencyCode) {
+        Account acc = new Account(Name = name, OwnerId = u.Id);
+        if (currencyCode != null) {
+            acc.put('CurrencyIsoCode', currencyCode);
+        }
+        insert acc;
+        return acc;
+    }
+
     // Runs the summary as the given user, after checking that user can read Payment with the
-    // fields the payment balance sums.
-    private static Map<String, Object> paymentSummaryAs(User u, Id accountId) {
+    // fields the payment balance sums, and can see the payment (Payment has no owner to set).
+    private static Map<String, Object> paymentSummaryAs(User u, Id accountId, Id paymentId) {
         Map<String, Object> result;
         System.runAs(u) {
             String readError = userModeError(PAYMENT_READ);
             Assert.isNull(readError,
                 'PRECONDITION: a billing operations user can read Payment, so its balance query runs: ' + readError);
+            Assert.areEqual(1, [SELECT COUNT() FROM Payment WHERE Id = :paymentId WITH USER_MODE],
+                'PRECONDITION: the billing operations user can see the payment.');
             result = RLM_OnAccountBillingController.getBillingSummary(accountId);
         }
         return result;
     }
-
-    private static final String PAYMENT_READ =
-        'SELECT Id, Balance, AccountId, Status, CurrencyIsoCode FROM Payment LIMIT 1';
 
     private static Payment newProcessedPayment(Id accountId, Decimal amount, String currencyCode) {
         Payment p = new Payment(
@@ -282,7 +289,7 @@ private class RLM_OnAccountBillingControllerTest {
     }
 
     // This module deploys only to multi-currency orgs (its controllers select CurrencyIsoCode),
-    // so CurrencyType and DatedConversionRate are always present.
+    // so CurrencyType is always present.
     private static String corporateCurrency() {
         return [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
     }
@@ -295,16 +302,34 @@ private class RLM_OnAccountBillingControllerTest {
         return rates;
     }
 
-    // Dated rates are kept only with advanced currency management; otherwise none cover today.
-    private static Map<String, Decimal> datedRatesToday() {
-        Map<String, Decimal> rates = new Map<String, Decimal>();
-        for (DatedConversionRate dcr : [
-            SELECT IsoCode, ConversionRate FROM DatedConversionRate
-            WHERE StartDate <= TODAY AND NextStartDate > TODAY
-        ]) {
-            rates.put(dcr.IsoCode, dcr.ConversionRate);
+    // The rates the controller converts with, read the way it reads them: as the given user, in
+    // USER_MODE, an unreadable rate table treated as empty, and the standard rates used when
+    // there are no dated rates for today.
+    private static Map<String, Decimal> controllerRatesAs(User u) {
+        Map<String, Decimal> standard = new Map<String, Decimal>();
+        Map<String, Decimal> dated = new Map<String, Decimal>();
+        System.runAs(u) {
+            try {
+                for (SObject ct : Database.query(
+                    'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true', AccessLevel.USER_MODE
+                )) {
+                    standard.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
+                }
+            } catch (QueryException e) {
+                System.debug(LoggingLevel.INFO, 'Standard rates unreadable, as in the controller: ' + e.getMessage());
+            }
+            try {
+                for (SObject dcr : Database.query(
+                    'SELECT IsoCode, ConversionRate FROM DatedConversionRate '
+                    + 'WHERE StartDate <= TODAY AND NextStartDate > TODAY', AccessLevel.USER_MODE
+                )) {
+                    dated.put((String) dcr.get('IsoCode'), (Decimal) dcr.get('ConversionRate'));
+                }
+            } catch (QueryException e) {
+                System.debug(LoggingLevel.INFO, 'Dated rates unreadable, as in the controller: ' + e.getMessage());
+            }
         }
-        return rates;
+        return dated.isEmpty() ? standard : dated;
     }
 
     // Returns the error a USER_MODE query raises for the running user, or null if it runs.
@@ -312,25 +337,16 @@ private class RLM_OnAccountBillingControllerTest {
         try {
             Database.query(soql, AccessLevel.USER_MODE);
             return null;
-        } catch (Exception e) {
+        } catch (QueryException e) {
             return e.getMessage();
         }
     }
 
-    private static final String SKIP_NO_SECOND_CURRENCY =
-        'SKIPPED: no second active currency with a different rate (a pricing data plan (qb, q3 or mfg) adds them).';
-
-    // The rates the controller converts with: dated rates for today, else the standard rates.
-    private static Map<String, Decimal> effectiveRates() {
-        Map<String, Decimal> dated = datedRatesToday();
-        return dated.isEmpty() ? activeRates() : dated;
-    }
-
-    // Deterministic: the first active currency by ISO code whose effective rate differs from
-    // the corporate currency's, or null when there is none.
-    private static String foreignCurrency(Map<String, Decimal> effective, String corporate) {
+    // Deterministic: the first active currency by ISO code whose rate in the given map differs
+    // from the corporate currency's, or null when there is none.
+    private static String foreignCurrency(Map<String, Decimal> rates, String corporate) {
         for (CurrencyType ct : [SELECT IsoCode FROM CurrencyType WHERE IsActive = true ORDER BY IsoCode]) {
-            if (ct.IsoCode != corporate && rateOf(effective, ct.IsoCode) != rateOf(effective, corporate)) {
+            if (ct.IsoCode != corporate && rateOf(rates, ct.IsoCode) != rateOf(rates, corporate)) {
                 return ct.IsoCode;
             }
         }

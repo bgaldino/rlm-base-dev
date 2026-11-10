@@ -110,13 +110,14 @@ private class RLM_InvoiceSummaryControllerTest {
     // one on a closed case is not counted at all.
     // It runs as a billing operations user, not the deploying admin: RLM_BillingUI, which grants
     // the dispute fields, is assigned only after this bundle deploys. The read-only user cannot
-    // create records, so the admin creates them owned by that user (cases and disputes are
-    // private), in the user's currency.
+    // create records, so the admin creates them owned by that user (account, cases and
+    // disputes), so they are visible to it whatever the org's sharing defaults, in the user's
+    // currency.
     @isTest
     static void getInvoiceSummary_disputesOnOpenCases_areSummed() {
         User u = billingOperationsUser();
         String userCurrency = [SELECT DefaultCurrencyIsoCode FROM User WHERE Id = :u.Id].DefaultCurrencyIsoCode;
-        Account acc = new Account(Name = 'RLM Invoice Summary Dispute Test');
+        Account acc = new Account(Name = 'RLM Invoice Summary Dispute Test', OwnerId = u.Id);
         insert acc;
         Case amountCase = new Case(AccountId = acc.Id, OwnerId = u.Id, Subject = 'RLM disputed amount case');
         Case emptyCase = new Case(AccountId = acc.Id, OwnerId = u.Id, Subject = 'RLM dispute without an amount');
@@ -158,19 +159,20 @@ private class RLM_InvoiceSummaryControllerTest {
     // build always provisions; the precondition below requires it, as the collections-user test
     // and RLM_BillingUITestUsers do.
     // It runs as a collections user, not the deploying admin (RLM_BillingUI is assigned after
-    // this bundle deploys). The admin creates the records: collection plans are shared
-    // read/write, and the private payment schedule is owned by that user.
+    // this bundle deploys). The admin creates the account, collection plan and payment schedule
+    // owned by that user; the payment schedule item has no owner to set, so its visibility to
+    // that user is checked.
     @isTest
     static void getInvoiceSummary_promiseToPayItem_isSummed() {
         User u = collectionsUser();
         String userCurrency = [SELECT DefaultCurrencyIsoCode FROM User WHERE Id = :u.Id].DefaultCurrencyIsoCode;
-        Account acc = new Account(Name = 'RLM Invoice Summary Promise Test');
+        Account acc = new Account(Name = 'RLM Invoice Summary Promise Test', OwnerId = u.Id);
         insert acc;
         // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises a case
         // from org data a unit test cannot see. No UsageType either: a Billing plan's items
         // must each link an invoice, and invoices cannot be created in a test. The
         // promise-to-pay query follows the plan chain whatever the plan's usage type.
-        CollectionPlan plan = new CollectionPlan(AccountId = acc.Id);
+        CollectionPlan plan = new CollectionPlan(AccountId = acc.Id, OwnerId = u.Id);
         insert plan;
         CollectionPlanItem planItem = new CollectionPlanItem(CollectionPlanId = plan.Id);
         insert planItem;
@@ -180,9 +182,9 @@ private class RLM_InvoiceSummaryControllerTest {
             Type = 'PromiseToPay',
             UsageType = 'CollectionPlan',
             Status = 'Draft',
-            TotalRequestedAmount = 75
+            TotalRequestedAmount = 75,
+            CollectionPlanItemId = planItem.Id
         );
-        promise.put('CollectionPlanItemId', planItem.Id);
         promise.put('CurrencyIsoCode', userCurrency);
         insert promise;
         PaymentScheduleItem item = new PaymentScheduleItem(
@@ -206,6 +208,8 @@ private class RLM_InvoiceSummaryControllerTest {
                 + 'AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId != null LIMIT 1';
             String readError = userModeError(soql);
             Assert.isNull(readError, 'PRECONDITION: a collections user can run the promise-to-pay query: ' + readError);
+            Assert.areEqual(1, [SELECT COUNT() FROM PaymentScheduleItem WHERE Id = :item.Id WITH USER_MODE],
+                'PRECONDITION: the collections user can see the payment schedule item.');
             data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
         }
         Test.stopTest();
