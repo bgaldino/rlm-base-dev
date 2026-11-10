@@ -294,10 +294,12 @@ def read_logins(home):
         if not (isinstance(data, dict) and isinstance(data.get("username"), str) and not data.get("isDevHub")):
             maybe_hubs.append(name)
     # sf sets isDevHub once, from a probe at login, and leaves it false if the probe failed; a login
-    # that a scratch login names as its hub is a hub all the same, so it is queried and kept.
-    named_hubs = {info["dev_hub"] for info in logins.values()}
+    # that a scratch login names as its hub is a hub all the same, so it is queried and kept, and an
+    # unread one may be a hub. Names compare as the filesystem compares the login files.
+    named_hubs = {fold(info["dev_hub"]) for info in logins.values() if isinstance(info["dev_hub"], str)}
     for info in logins.values():
-        info["is_hub"] = info["is_hub"] or info["username"] in named_hubs
+        info["is_hub"] = info["is_hub"] or fold(info["username"]) in named_hubs
+    maybe_hubs += [name for name, user in listed.items() if fold(user) in named_hubs and name not in maybe_hubs]
     return logins, unread, unreadable, "; ".join(blocks), listed, maybe_hubs
 
 

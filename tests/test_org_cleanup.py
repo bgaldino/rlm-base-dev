@@ -304,6 +304,23 @@ class Evidence(Base):
         self.assertEqual(plan["remove"]["aliases"], [])  # no username is judged while a hub is silent
         self.assertNotIn("hub2@x.invalid", plan["remove"]["logout"])
 
+    def test_a_hub_name_that_is_not_text_is_ignored(self):
+        self.add_auth("live@x.invalid", "00DCC0000000001", devHubUsername=["hub2@x.invalid"])
+        self.assertEqual(self.plan(FakeCli(self.home))["hubs"], [HUB])
+
+    def test_a_named_hub_is_matched_whatever_its_case(self):
+        self.add_auth("hub2@x.invalid", "00DHUB000000002")
+        self.add_auth("live@x.invalid", "00DCC0000000001", devHubUsername="Hub2@X.invalid")
+        self.assertEqual(self.plan(FakeCli(self.home))["hubs"], [HUB, "hub2@x.invalid"])
+
+    def test_an_unread_login_a_scratch_login_names_as_its_hub_holds_username_judgment(self):
+        (self.home / ".sfdx" / "hub2@x.invalid.json").write_text(json.dumps({"username": "hub2@x.invalid"}))
+        self.add_auth("live@x.invalid", "00DCC0000000001", devHubUsername="hub2@x.invalid")
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="reused@x.invalid")], {"old": "reused@x.invalid"})
+        plan = self.plan(cli)
+        self.assertIn("hub2@x.invalid", plan["hub_failures"])
+        self.assertEqual(plan["remove"]["aliases"], [])
+
     def test_a_row_on_a_second_hub_counts_and_an_absent_row_elsewhere_does_not_block(self):
         self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
         self.add_auth("rep@x.invalid", DEAD_ORG)
