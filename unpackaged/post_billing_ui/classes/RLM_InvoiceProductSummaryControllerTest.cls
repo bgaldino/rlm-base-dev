@@ -18,24 +18,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
     // Positive paths run as this user, not the deploying admin: RLM_BillingUI is assigned only
     // after this bundle deploys, so the admin may not hold its grants yet.
     private static User billingOperationsUser() {
-        return billingUserOrNull(
+        return RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
-    }
-
-    // Creates a billing test user, or returns null after a visible skip message when no
-    // Billing licence seat is free; callers return early on null. Defensive: a test-context
-    // probe assigned more Billing seats than the org had free without any error.
-    private static User billingUserOrNull(List<String> permissionSets, List<String> licenses) {
-        try {
-            return RLM_BillingUITestUsers.create(permissionSets, licenses);
-        } catch (DmlException e) {
-            if (e.getDmlType(0) == StatusCode.LICENSE_LIMIT_EXCEEDED) {
-                System.debug(LoggingLevel.WARN, 'SKIPPED: no free Billing licence seat');
-                return null;
-            }
-            throw e;
-        }
     }
 
     // Returns the error a USER_MODE query raises for the running user, or null if it runs.
@@ -152,9 +137,6 @@ private class RLM_InvoiceProductSummaryControllerTest {
     @isTest
     static void resolveBsgToAsset_billingRole_runsTheLookupOnTheSavePath() {
         User u = billingOperationsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         Id fakeBsg = fakeId(BillingScheduleGroup.SObjectType);
         Integer lookupQueries;
         Map<Id, Id> saveResult;
@@ -177,9 +159,6 @@ private class RLM_InvoiceProductSummaryControllerTest {
     @isTest
     static void resolveAssetAttributes_assetWithoutStatePeriods_returnsNoEntry() {
         User u = billingOperationsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         Account acc = new Account(Name = 'RLM Product Summary Asset Test', OwnerId = u.Id);
         insert acc;
         Asset a = newAssetOwnedBy(u, 'RLM Product Summary Asset', acc.Id);
@@ -208,9 +187,6 @@ private class RLM_InvoiceProductSummaryControllerTest {
     @isTest
     static void resolveAssetAttributes_statePeriodWithoutAttributes_returnsNoEntry() {
         User u = billingOperationsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         Account acc = new Account(Name = 'RLM Product Summary Period Test', OwnerId = u.Id);
         insert acc;
         Asset a = newAssetOwnedBy(u, 'RLM Product Summary Period Asset', acc.Id);
@@ -282,9 +258,6 @@ private class RLM_InvoiceProductSummaryControllerTest {
     @isTest
     static void saveLineAttributes_userWhoCannotReadInvoiceLines_failsWithAHandledError() {
         User billingUser = billingOperationsUser();
-        if (billingUser == null) {
-            return; // no free Billing seat (logged)
-        }
         User u = userWithoutBillingAccess();
         Boolean premise = false;
         Boolean saveThrew = false;

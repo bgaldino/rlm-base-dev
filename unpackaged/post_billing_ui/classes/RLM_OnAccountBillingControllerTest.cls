@@ -48,9 +48,6 @@ private class RLM_OnAccountBillingControllerTest {
     @isTest
     static void getBillingSummary_processedPayment_lowersTheNetBalance() {
         User u = billingOperationsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         String corporate = corporateCurrency();
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Payment Test', corporate);
         Payment pmt = newProcessedPayment(acc.Id, 250, corporate);
@@ -89,9 +86,6 @@ private class RLM_OnAccountBillingControllerTest {
             return;
         }
         User u = billingOperationsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         // Dated rates exist only with advanced currency management. If the admin reads dated
         // rates for these codes but the billing user cannot read the table (its rates fall back
         // to standard), skip visibly rather than fail the deploy over that optional feature.
@@ -124,9 +118,9 @@ private class RLM_OnAccountBillingControllerTest {
             'The converted payment balance is subtracted from the net balance.');
     }
 
-    // The controller's standard-rate undo step (for a payment in a non-corporate currency) is
-    // only observable when dated rates differ from standard rates, which needs advanced
-    // currency management, so it is not tested here.
+    // Without advanced currency management the standard-rate undo and the re-conversion cancel,
+    // so a test can catch only a one-sided error here; dropping both is indistinguishable from
+    // correct.
 
     // When the account and the payment share a non-corporate currency, correctConversion
     // returns early (the currencies match), so the corporate-converted SUM is shown as if it
@@ -144,9 +138,6 @@ private class RLM_OnAccountBillingControllerTest {
             return;
         }
         User u = billingOperationsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Same Currency Test', foreign);
         Payment pmt = newProcessedPayment(acc.Id, 100, foreign);
         Decimal balance = [SELECT Balance FROM Payment WHERE Id = :pmt.Id].Balance;
@@ -169,7 +160,7 @@ private class RLM_OnAccountBillingControllerTest {
         Decimal actual = (Decimal) result.get('paymentBalance');
         Assert.areEqual(foreign, (String) result.get('currencyIsoCode'),
             'PRECONDITION: the summary is labelled in the account\'s (non-corporate) currency.');
-        Assert.isTrue(Math.abs(actual - corporateSum) < tolerance,
+        Assert.isTrue(Math.abs(actual - corporateSum) <= tolerance,
             'Known gap: correctConversion returns the corporate-converted SUM when the account and payment '
             + 'share a non-corporate currency; update this test when it is fixed. Expected ~' + corporateSum
             + ' (100 ' + foreign + ' in ' + corporate + '), got ' + actual + ' ' + foreign);
@@ -180,9 +171,6 @@ private class RLM_OnAccountBillingControllerTest {
     @isTest
     static void getBillingSummary_accountWithCollectionPlan_isInCollections() {
         User u = collectionsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Collections Test', null);
         // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises a case
         // from org data a unit test cannot see.
@@ -214,9 +202,6 @@ private class RLM_OnAccountBillingControllerTest {
     @isTest
     static void getBillingSummary_billingOperationsUser_runsEachReadButCollectionPlans() {
         User u = billingOperationsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Role Test', null);
         // A collection plan on the account, so "not in collections" for this role comes from its
         // access, not from the account. No CollectionPlanReason (see above).
@@ -278,28 +263,13 @@ private class RLM_OnAccountBillingControllerTest {
         'SKIPPED: the second currency\'s rate is too close to the corporate rate to tell conversion apart';
 
     private static User billingOperationsUser() {
-        return billingUserOrNull(
+        return RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
     }
 
-    // Creates a billing test user, or returns null after a visible skip message when no
-    // Billing licence seat is free; callers return early on null. Defensive: a test-context
-    // probe assigned more Billing seats than the org had free without any error.
-    private static User billingUserOrNull(List<String> permissionSets, List<String> licenses) {
-        try {
-            return RLM_BillingUITestUsers.create(permissionSets, licenses);
-        } catch (DmlException e) {
-            if (e.getDmlType(0) == StatusCode.LICENSE_LIMIT_EXCEEDED) {
-                System.debug(LoggingLevel.WARN, 'SKIPPED: no free Billing licence seat');
-                return null;
-            }
-            throw e;
-        }
-    }
-
     private static User collectionsUser() {
-        return billingUserOrNull(
+        return RLM_BillingUITestUsers.create(
             new List<String>{
                 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations', 'BillingCollectionsAndRecoverySpecialist'
             },

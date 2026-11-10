@@ -117,9 +117,6 @@ private class RLM_InvoiceSummaryControllerTest {
     @isTest
     static void getInvoiceSummary_disputesOnOpenCases_areSummed() {
         User u = billingOperationsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         String userCurrency = [SELECT DefaultCurrencyIsoCode FROM User WHERE Id = :u.Id].DefaultCurrencyIsoCode;
         Account acc = new Account(Name = 'RLM Invoice Summary Dispute Test', OwnerId = u.Id);
         insert acc;
@@ -171,9 +168,6 @@ private class RLM_InvoiceSummaryControllerTest {
     @isTest
     static void getInvoiceSummary_promiseToPayItem_isSummed() {
         User u = collectionsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
         String userCurrency = [SELECT DefaultCurrencyIsoCode FROM User WHERE Id = :u.Id].DefaultCurrencyIsoCode;
         Account acc = new Account(Name = 'RLM Invoice Summary Promise Test', OwnerId = u.Id);
         insert acc;
@@ -276,28 +270,13 @@ private class RLM_InvoiceSummaryControllerTest {
     }
 
     private static User billingOperationsUser() {
-        return billingUserOrNull(
+        return RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
     }
 
-    // Creates a billing test user, or returns null after a visible skip message when no
-    // Billing licence seat is free; callers return early on null. Defensive: a test-context
-    // probe assigned more Billing seats than the org had free without any error.
-    private static User billingUserOrNull(List<String> permissionSets, List<String> licenses) {
-        try {
-            return RLM_BillingUITestUsers.create(permissionSets, licenses);
-        } catch (DmlException e) {
-            if (e.getDmlType(0) == StatusCode.LICENSE_LIMIT_EXCEEDED) {
-                System.debug(LoggingLevel.WARN, 'SKIPPED: no free Billing licence seat');
-                return null;
-            }
-            throw e;
-        }
-    }
-
     private static User collectionsUser() {
-        return billingUserOrNull(
+        return RLM_BillingUITestUsers.create(
             new List<String>{
                 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations', 'BillingCollectionsAndRecoverySpecialist'
             },

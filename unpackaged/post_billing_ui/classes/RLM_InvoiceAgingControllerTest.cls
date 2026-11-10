@@ -20,9 +20,6 @@ private class RLM_InvoiceAgingControllerTest {
         Account acc = new Account(Name = 'RLM Invoice Aging Test');
         insert acc;
         User u = billingOperationsUser();
-        if (u == null) {
-            return; // no free Billing seat (logged)
-        }
 
         RLM_InvoiceAgingController.InvoiceAgingData data;
         Test.startTest();
@@ -45,9 +42,6 @@ private class RLM_InvoiceAgingControllerTest {
         Account acc = new Account(Name = 'RLM Invoice Aging Access Test');
         insert acc;
         User billingUser = billingOperationsUser();
-        if (billingUser == null) {
-            return; // no free Billing seat (logged)
-        }
         // Minimum Access with no license or permission set: no billing object is readable.
         User u = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Boolean premise = false;
@@ -73,24 +67,9 @@ private class RLM_InvoiceAgingControllerTest {
     }
 
     private static User billingOperationsUser() {
-        return billingUserOrNull(
+        return RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
-    }
-
-    // Creates a billing test user, or returns null after a visible skip message when no
-    // Billing licence seat is free; callers return early on null. Defensive: a test-context
-    // probe assigned more Billing seats than the org had free without any error.
-    private static User billingUserOrNull(List<String> permissionSets, List<String> licenses) {
-        try {
-            return RLM_BillingUITestUsers.create(permissionSets, licenses);
-        } catch (DmlException e) {
-            if (e.getDmlType(0) == StatusCode.LICENSE_LIMIT_EXCEEDED) {
-                System.debug(LoggingLevel.WARN, 'SKIPPED: no free Billing licence seat');
-                return null;
-            }
-            throw e;
-        }
     }
 
     // The controller's own field list, run in USER_MODE: returns its error, or null if it runs.
