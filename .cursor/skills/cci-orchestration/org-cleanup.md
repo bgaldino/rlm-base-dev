@@ -125,7 +125,7 @@ value each alias, default and deploy job reaches (`name -> value`):
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. An auth file that does not parse is listed whether or not it is a link, since sf reads through links. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned; so is a linked manifest in it, and its entry is not planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
 | `dangling_aliases`, `dangling_defaults` | Reach no login and no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset -- <name>` (the `--` keeps a name such as `-ap` from being read as `--all --no-prompt`), or `sf config unset target-org` (see the note below the table). |
-| `usernames_not_queried` | Usernames an alias, default, deploy-cache entry or tracking folder names that no hub query can carry (a quote, a backslash, or text sf would read as another name). Never judged, so never planned. Report them. |
+| `usernames_not_queried` | Usernames an alias, default, deploy-cache entry, environment default or tracking folder names that no hub query can carry (a quote, a backslash, or text sf would read as another name). Never judged, so never planned. Report them. |
 | `manifests_without_cache_entry` | Files in `~/.sf/manifestCache` that no deploy-cache entry names: sf drops an entry when its 3-day TTL lapses and leaves the manifest. Not moved. Report them. |
 | `unsafe_deploy_cache_keys`, `unreadable_deploy_cache` | Deploy-cache keys that are not plain file names (such as `../x`, or too long to name a file), or entries that are not objects or whose target is not text; or a deploy cache that does not parse, so no entry in it is planned. Never planned. Report them. |
 | `unmodelled_config` | Config scopes the tool cannot model, with the reason: a file that does not parse, is a link (sf writes through it; the tool reads it to decide which logouts to refuse) or is not a regular file; files that disagree; a key outside those sf and its bundled plugins define (a user-installed plugin may define it; if nothing does, sf cannot unset it and its next write turns it into `org-instance-url`); a legacy key in `.sf/config.json`; a default that is not text; interoperability turned off; or a linked project `.sf`/`.sfdx`. The tool never writes such a scope and refuses any logout that would. Report it; the user fixes the files, then re-audit. |
@@ -280,7 +280,9 @@ An expired instance under a shape name stays listed. A later command targeting i
 `sf config unset target-org` in the current project, even when the SF default points at a
 different, valid org. Note `target-org` first, and if it is still valid restore it with
 `sf config set target-org=<value>`, which updates both config layouts. `cci org default
-<name>` likewise moves the SF default to that org.
+<name>` also clears the SF default first, and sets it to `<project-name>__<name>` only for an org
+CCI has created (a scratch org it made, or an imported one). For a shape not yet instantiated, or a
+connected org, it only clears it, so note `target-org` first here too.
 
 **`cci org remove`**: not part of the normal path. Use it only when all of these hold, checked
 **before step 2**, because `sf org logout` clears the user's direct alias: the entry's
