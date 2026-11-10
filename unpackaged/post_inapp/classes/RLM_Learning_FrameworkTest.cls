@@ -25,11 +25,14 @@
  *    inserted with 12 free seats). The learner is created lazily by learner(),
  *    only in the tests that use it, so a failure to create it affects only
  *    those tests. When it cannot be created (no Minimum Access profile,
- *    RLM_Learning missing, or LICENSE_LIMIT_EXCEEDED on the insert),
+ *    RLM_Learning missing, LICENSE_LIMIT_EXCEEDED on the insert, or the
+ *    learner holds permission sets beyond RLM_Learning),
  *    learnerCannotResequenceRowsItDoesNotOwn returns early with a WARN
- *    "SKIPPED" debug line, the sentinel skips its assignment check, and
- *    userInformation_paths calls getName as the runner instead. Any other
- *    insert failure is rethrown and fails the test that asked for the learner.
+ *    "SKIPPED" debug line and userInformation_paths calls getName as the
+ *    runner instead. The sentinel skips its assignment check only when no
+ *    learner user exists; for a learner with extra permission sets it still
+ *    runs that check. Any other insert failure is rethrown and fails the test
+ *    that asked for the learner.
  *
  * The runner owns the test content. Other users read it through the Public
  * Read/Write sharing model; a user can delete only the rows it owns, unless it
@@ -539,6 +542,31 @@ private class RLM_Learning_FrameworkTest {
     Id linkId = testLink().Id;
     Id blockId = testBlock().Id;
     Id secId = sectionByHeader('H').Id;
+    // A later active block with its own link (sequence 2) and an inactive block
+    // ahead of it (sequence 0): only the first active block, and only its link,
+    // may be mapped.
+    RLM_Learning_DynamicLink__c laterLink = new RLM_Learning_DynamicLink__c(
+      Name = 'Later DynamicLink',
+      RecordTypeId = rtId('RLM_Learning_DynamicLink__c', 'WebPage'),
+      RLM_Learning_Identity__c = 'TEST_DYN_LINK_LATER',
+      RLM_Learning_Link__c = 'https://later.example.com'
+    );
+    insert as system laterLink;
+    RLM_Learning_Block__c laterBlock = newBlock('Later Block', true, laterLink.Id);
+    RLM_Learning_Block__c inactiveFirst = newBlock('Inactive First Block', false, null);
+    insert as system new List<RLM_Learning_Block__c>{ laterBlock, inactiveFirst };
+    insert as system new List<RLM_Learning_SectionBlock__c>{
+      new RLM_Learning_SectionBlock__c(
+        RLM_Learning_Section__c = secId,
+        RLM_Learning_Block__c = laterBlock.Id,
+        RLM_Learning_Order_Sequence__c = 2
+      ),
+      new RLM_Learning_SectionBlock__c(
+        RLM_Learning_Section__c = secId,
+        RLM_Learning_Block__c = inactiveFirst.Id,
+        RLM_Learning_Order_Sequence__c = 0
+      )
+    };
 
     List<Map<String, Object>> res;
     Test.startTest();
@@ -559,8 +587,8 @@ private class RLM_Learning_FrameworkTest {
     Assert.areEqual(linkId, block.get('action'));
     List<RLM_Learning_DynamicLink__c> links = (List<RLM_Learning_DynamicLink__c>) res[0]
       .get('dynamicLinks');
-    Assert.areEqual(1, links.size());
-    Assert.areEqual(linkId, links[0].Id);
+    Assert.areEqual(1, links.size(), 'only the first active block\'s link is mapped');
+    Assert.areEqual(linkId, links[0].Id, 'the link is the first active block\'s, not the later block\'s');
   }
 
   // ---- SectionBlockController: guards -----------------------------------------
@@ -853,7 +881,7 @@ private class RLM_Learning_FrameworkTest {
   }
 
   @IsTest
-  static void updateSectionBlocks_onEmptySection() {
+  static void updateSectionBlocks_emptyListClearsASection_andBlocksAddToAnEmptySection() {
     User runner = runnerWithLearning();
     Id populatedId = sectionByHeader('H').Id;
     Id emptyId = sectionByHeader('Empty').Id;
@@ -1199,6 +1227,12 @@ private class RLM_Learning_FrameworkTest {
       'DPERecordPage' => new List<String>{ 'BatchCalcJobDefinition' },
       'CommunityPage' => new List<String>{ 'Network' }
     };
+    // The object each branch's outer query selects from.
+    Map<String, String> queriedObjectByBranch = new Map<String, String>{
+      'SurveyRecordPage' => 'SurveyVersion',
+      'DPERecordPage' => 'BatchCalcJobDefinition',
+      'CommunityPage' => 'Network'
+    };
     Map<String, Schema.SObjectType> globalDescribe = Schema.getGlobalDescribe();
 
     for (String branch : branches) {
@@ -1225,6 +1259,11 @@ private class RLM_Learning_FrameworkTest {
         'Id = null'
       );
       Assert.isTrue(rows.isEmpty(), branch + ' runs its query and matches nothing: ' + rows);
+      Assert.areEqual(
+        globalDescribe.get(queriedObjectByBranch.get(branch)),
+        rows.getSObjectType(),
+        branch + ' queries ' + queriedObjectByBranch.get(branch)
+      );
     }
   }
 

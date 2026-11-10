@@ -16,7 +16,9 @@ private class RLM_DocumentGenerationMergeTest {
 
         RLM_DocumentGenerationMerge.Request withNulls = new RLM_DocumentGenerationMerge.Request();
         withNulls.CurrentRecordId = quote.Id;
-        withNulls.recordIds = new List<Id>{ first.Id, null, second.Id };
+        // Passed against Id order (second was inserted after first), so the
+        // expected list below proves the given order is kept, not sorted.
+        withNulls.recordIds = new List<Id>{ second.Id, null, first.Id };
         withNulls.DocTitle = 'Merged "proposal"\nfinal';
 
         RLM_DocumentGenerationMerge.Request single = new RLM_DocumentGenerationMerge.Request();
@@ -45,7 +47,7 @@ private class RLM_DocumentGenerationMergeTest {
         Assert.areEqual('InProgress', merged.Status);
         Assert.areEqual('Advanced', merged.DocGenApiVersionType);
         Assert.areEqual(String.valueOf(quote.Id), merged.ReferenceObject);
-        Assert.areEqual(String.valueOf(first.Id) + ',' + String.valueOf(second.Id),
+        Assert.areEqual(String.valueOf(second.Id) + ',' + String.valueOf(first.Id),
             merged.PdfDocIdentifiersList, 'Null ids are dropped; order is kept.');
         Map<String, Object> requestText =
             (Map<String, Object>) JSON.deserializeUntyped(merged.RequestText);

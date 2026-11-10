@@ -35,6 +35,7 @@ private class RLM_AI_AttributeResolverTest {
     static void toJsonCarriesCurrentValueAndPicklistValues() {
         RLM_AI_AttributeResolver.ResolvedAttribute picklist =
             new RLM_AI_AttributeResolver.ResolvedAttribute();
+        picklist.attributeDefinitionId = Id.valueOf('0tj000000000001');
         picklist.name = 'Type';
         picklist.developerName = 'Type';
         picklist.dataType = 'Picklist';
@@ -45,6 +46,7 @@ private class RLM_AI_AttributeResolverTest {
 
         RLM_AI_AttributeResolver.ResolvedAttribute numeric =
             new RLM_AI_AttributeResolver.ResolvedAttribute();
+        numeric.attributeDefinitionId = Id.valueOf('0tj000000000002');
         numeric.name = 'Quantity Tier';
         numeric.developerName = 'QuantityTier';
         numeric.dataType = 'Number';
@@ -61,6 +63,14 @@ private class RLM_AI_AttributeResolverTest {
         Assert.areEqual(2, entries.size(), 'One entry per attribute, in order.');
         Map<String, Object> picklistEntry = (Map<String, Object>) entries[0];
         Map<String, Object> numericEntry = (Map<String, Object>) entries[1];
+        Assert.areEqual(String.valueOf(picklist.attributeDefinitionId), picklistEntry.get('attributeId'));
+        Assert.areEqual('Type', picklistEntry.get('name'));
+        Assert.areEqual('Picklist', picklistEntry.get('dataType'));
+        Assert.areEqual(true, picklistEntry.get('isPriceImpacting'));
+        Assert.areEqual(String.valueOf(numeric.attributeDefinitionId), numericEntry.get('attributeId'));
+        Assert.areEqual('Quantity Tier', numericEntry.get('name'));
+        Assert.areEqual('Number', numericEntry.get('dataType'));
+        Assert.areEqual(false, numericEntry.get('isPriceImpacting'));
         Assert.areEqual('Flex', picklistEntry.get('currentValue'), 'Picklist current value present.');
         Assert.areEqual(new List<Object>{ 'Flex', 'Prod' }, picklistEntry.get('picklistValues'),
             'Picklist entry carries its valid values.');
