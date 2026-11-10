@@ -3,8 +3,9 @@ private with sharing class RLM_JsonSuccessParserTest {
 
     // Every field each parser class maps. Each level (transaction, line, first detail, address,
     // summary, message) also carries an unmapped scalar, an unmapped object or array
-    // (consumeObject) and a null value (VALUE_NULL skip), followed by at least one mapped field
+    // (consumeObject) and a null on an unmapped field, followed by at least one mapped field
     // (lines, details, rateType, taxRegionId, exemption, source) whose value must still be parsed.
+    // Nulls on mapped fields (the VALUE_NULL skip) are checked in parse_nullMappedFields_stayNull.
     private static final String FULL_TRANSACTION = '{'
         + '"id": 123456,'
         + '"code": "DOC-PARSE-1",'
@@ -259,6 +260,23 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual('Addresses[0]', message.refersTo, 'message.refersTo');
         Assert.areEqual('Warning', message.severity, 'message.severity');
         Assert.areEqual('Avalara.AvaTax.Services', message.source, 'message.source');
+    }
+
+    @IsTest
+    static void parse_nullMappedFields_stayNull() {
+        Test.startTest();
+        RLM_JsonSuccessParser parsed = RLM_JsonSuccessParser.parse(
+            '{"referenceCode": null, "totalAmount": null, "code": "after-nulls",'
+            + ' "lines": [{"lineNumber": null, "lineAmount": null, "taxCode": "after-nulls"}]}');
+        Test.stopTest();
+
+        Assert.isNull(parsed.referenceCode, 'A null String field stays null.');
+        Assert.isNull(parsed.totalAmount, 'A null Integer field stays null.');
+        Assert.areEqual('after-nulls', parsed.code, 'Parsing continues after the nulls.');
+        Assert.areEqual(1, parsed.lines.size(), 'The line is parsed.');
+        Assert.isNull(parsed.lines[0].lineNumber, 'A null String line field stays null.');
+        Assert.isNull(parsed.lines[0].lineAmount, 'A null Integer line field stays null.');
+        Assert.areEqual('after-nulls', parsed.lines[0].taxCode, 'Line parsing continues after the nulls.');
     }
 
     @IsTest

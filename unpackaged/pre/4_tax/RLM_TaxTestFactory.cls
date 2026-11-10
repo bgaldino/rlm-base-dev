@@ -15,7 +15,9 @@
  * The same accepted risk covers how the commercetax setters reject input: the tests expect
  * setAmountDetails(null) to throw an exception named commercetax.TaxApiException, and
  * setTaxTransactionType(null) to throw System.NullPointerException. A release that changes
- * either fails those tests, and setterNullInput_matchesHelperPremise names the cause.
+ * either fails those tests, and setterNullInput_matchesHelperPremise names the cause. That test
+ * covers both directions: the setters above reject null, while setReferenceDocumentCode,
+ * setReferenceEntityId and AddressesResponse.setShipFrom accept it (the mock adapters rely on that).
  */
 @IsTest
 public with sharing class RLM_TaxTestFactory {
@@ -236,7 +238,16 @@ public with sharing class RLM_TaxTestFactory {
     static void setterNullInput_matchesHelperPremise() {
         Exception typeError;
         Exception amountError;
+        Exception acceptError;
         Test.startTest();
+        try {
+            commercetax.CalculateTaxResponse accepting = new commercetax.CalculateTaxResponse();
+            accepting.setReferenceDocumentCode(null);
+            accepting.setReferenceEntityId(null);
+            new commercetax.AddressesResponse().setShipFrom(null);
+        } catch (Exception e) {
+            acceptError = e;
+        }
         try {
             new commercetax.CalculateTaxResponse().setTaxTransactionType(null);
         } catch (Exception e) {
@@ -255,6 +266,8 @@ public with sharing class RLM_TaxTestFactory {
         Assert.isNotNull(amountError, 'setAmountDetails(null) throws.');
         Assert.areEqual('commercetax.TaxApiException', amountError.getTypeName(),
             'setAmountDetails(null) throws a TaxApiException: ' + amountError);
+        Assert.isNull(acceptError,
+            'setReferenceDocumentCode, setReferenceEntityId and setShipFrom accept null: ' + acceptError);
     }
 
     /** Records every request and answers with a fixed status and body. Never reaches the network. */

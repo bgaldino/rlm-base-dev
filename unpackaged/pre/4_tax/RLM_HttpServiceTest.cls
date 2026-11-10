@@ -140,11 +140,11 @@ private with sharing class RLM_HttpServiceTest {
         Test.stopTest();
 
         Assert.isNull(caught,
-            'Known gap: a failed callout is swallowed (debug log only) and leaves a null response, which '
-            + 'RLM_CalculateTaxService then dereferences. Update this test when it is fixed. ' + caught);
+            'Known gap: a failed callout is swallowed (debug log only) and leaves a null response that '
+            + 'callers (e.g. RLM_CalculateTaxService via post) then dereference. Update this test when it is fixed. ' + caught);
         Assert.areEqual(1, mock.calls, 'The callout should be attempted once.');
         Assert.isNull(service.getResponse(),
-            'Known gap: a failed callout is swallowed (debug log only) and leaves a null response, which '
-            + 'RLM_CalculateTaxService then dereferences. Update this test when it is fixed.');
+            'Known gap: a failed callout is swallowed (debug log only) and leaves a null response that '
+            + 'callers (e.g. RLM_CalculateTaxService via post) then dereference. Update this test when it is fixed.');
     }
 }
