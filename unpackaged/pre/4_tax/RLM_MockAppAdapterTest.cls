@@ -16,7 +16,7 @@ private with sharing class RLM_MockAppAdapterTest {
             commercetax.CalculateTaxType.Estimated,
             documentCode,
             new List<commercetax.TaxLineItemRequest>{
-                RLM_TaxTestFactory.line(100, '1', Datetime.newInstanceGmt(2026, 2, 1, 12, 0, 0)),
+                RLM_TaxTestFactory.line(100, '1', RLM_TaxTestFactory.DATE_2001),
                 RLM_TaxTestFactory.line(250, null, null)
             });
     }
@@ -107,7 +107,7 @@ private with sharing class RLM_MockAppAdapterTest {
     static void processRequest_documentCodeVariants_returnCalculateTaxResponses() {
         commercetax.CalculateTaxRequest withDocumentCode = requestFor('DOC-APP-1');
         withDocumentCode.isCommit = true;
-        withDocumentCode.transactionDate = Datetime.newInstanceGmt(2026, 3, 1, 12, 0, 0);
+        withDocumentCode.transactionDate = RLM_TaxTestFactory.DATE_2001;
         withDocumentCode.taxTransactionType = commercetax.TaxTransactionType.Credit;
         withDocumentCode.currencyIsoCode = 'EUR';
 
@@ -146,8 +146,12 @@ private with sharing class RLM_MockAppAdapterTest {
         RLM_TaxTestFactory.assertResponseField(responses[0], 'status', 'Committed', 'isCommit=true is Committed.');
         RLM_TaxTestFactory.assertResponseField(responses[0], 'taxTransactionType', 'Credit', 'The transaction type is echoed.');
         RLM_TaxTestFactory.assertResponseField(responses[0], 'currencyIsoCode', 'EUR', 'An explicit currency is echoed.');
-        // The explicit transaction date and line 1's effective date take the echo branches; how a
-        // date prints depends on the time zone, so dates are not compared.
+        // A 2001 date can only come from the request (the defaults are now): the transaction date
+        // and line 1's effective date are echoed.
+        RLM_TaxTestFactory.assertResponseFieldMatches(responses[0], 'transactionDate', RLM_TaxTestFactory.YEAR_2001,
+            'The request transaction date is echoed.');
+        RLM_TaxTestFactory.assertResponseFieldMatches(responses[0], 'effectiveDate', RLM_TaxTestFactory.YEAR_2001,
+            'Line 1 keeps its effective date.');
         // Line 1's number is echoed; line 2's null number is passed through (the adapter computes
         // a fallback number but never uses it).
         Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(responses[0], 'lineNumber', '1'), 'Line 1 keeps its number.');
@@ -163,8 +167,8 @@ private with sharing class RLM_MockAppAdapterTest {
             'Without a document code the reference entity id becomes the document code.');
         RLM_TaxTestFactory.assertResponseField(responses[2], 'taxTransactionType', 'Debit',
             'A missing transaction type defaults to Debit.');
-        Assert.areEqual(0, RLM_TaxTestFactory.countResponseField(responses[2], 'transactionDate', '<null>'),
-            'A missing transaction date defaults to now (only non-null is checked).');
+        RLM_TaxTestFactory.assertResponseFieldMatches(responses[2], 'transactionDate', RLM_TaxTestFactory.NOT_NULL,
+            'A missing transaction date defaults to now.');
         RLM_TaxTestFactory.assertResponseField(responses[2], 'currencyIsoCode', 'USD', 'A null currency defaults to USD.');
 
         // No codes at all: the generated code is getRandomInteger(0, max), which is always 0.

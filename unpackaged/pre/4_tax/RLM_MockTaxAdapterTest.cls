@@ -94,8 +94,8 @@ private with sharing class RLM_MockTaxAdapterTest {
         RLM_TaxTestFactory.assertResponseField(response, 'status', 'Uncommitted', 'isCommit=false is Uncommitted.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Debit',
             'A missing transaction type defaults to Debit.');
-        Assert.areEqual(0, RLM_TaxTestFactory.countResponseField(response, 'transactionDate', '<null>'),
-            'A missing transaction date defaults to now (its text is time-zone dependent, so only non-null is checked).');
+        RLM_TaxTestFactory.assertResponseFieldMatches(response, 'transactionDate', RLM_TaxTestFactory.NOT_NULL,
+            'A missing transaction date defaults to now.');
         RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'USD', 'A null currency defaults to USD.');
         RLM_TaxTestFactory.assertResponseField(response, 'description', 'description',
             'A seller other than testSellerCode gets the default description.');
@@ -108,7 +108,7 @@ private with sharing class RLM_MockTaxAdapterTest {
         commercetax.CalculateTaxRequest request = requestFor('DOC-MOCK-2');
         request.isCommit = true;
         request.sellerDetails = new commercetax.TaxSellerDetailsRequest('testSellerCode');
-        request.transactionDate = Datetime.newInstanceGmt(2026, 3, 1, 12, 0, 0);
+        request.transactionDate = RLM_TaxTestFactory.DATE_2001;
         request.taxTransactionType = commercetax.TaxTransactionType.Credit;
         request.currencyIsoCode = 'EUR';
 
@@ -119,10 +119,9 @@ private with sharing class RLM_MockTaxAdapterTest {
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'A calculated response is returned.');
         RLM_TaxTestFactory.assertResponseField(response, 'status', 'Committed', 'isCommit=true is Committed.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Credit', 'The transaction type is echoed.');
-        // The explicit transaction date takes the echo branch; how a date prints depends on the
-        // time zone, so only that it is set is checked.
-        Assert.areEqual(0, RLM_TaxTestFactory.countResponseField(response, 'transactionDate', '<null>'),
-            'The request transaction date is set on the response.');
+        // A 2001 date can only come from the request (the default is now).
+        RLM_TaxTestFactory.assertResponseFieldMatches(response, 'transactionDate', RLM_TaxTestFactory.YEAR_2001,
+            'The request transaction date is echoed.');
         RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'EUR', 'An explicit currency is echoed.');
         RLM_TaxTestFactory.assertResponseField(response, 'description', 'SellerCode fetched from TaxEngine entity',
             'The testSellerCode seller gets its own description.');
