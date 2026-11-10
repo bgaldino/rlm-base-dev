@@ -7,9 +7,11 @@
  * UsageSummary and UsageBillingPeriodItem rows are produced by usage orchestration, so those
  * objects are exercised for their column definitions and an empty result only.
  *
- * The row tests assign RLM_UsageDatatables (shipped in this bundle) to the running user in-test,
- * because it is the only repo grant for several TransactionJournal fields and the build assigns
- * it only after this bundle deploys.
+ * Every test that reaches the controller's query runs as the current user holding
+ * RLM_UsageDatatables (shipped in this bundle), assigned in-test when missing. It is the repo's
+ * only grant for several fields the query selects, and the build assigns it only after this
+ * bundle deploys. Without those grants the query fails with "No such column" even when it
+ * would return no rows. The rejection tests fail before any query and need no grant.
  *
  * Not covered:
  *  - the null-lookup branch of the flattener. Describe reports every lookup in the
@@ -162,10 +164,10 @@ private class RLM_UsageDataControllerTest {
     }
 
     /**
-     * The controller strips fields the running user cannot read, so row assertions on these
-     * fields (and the related names used as link labels) only hold when the runner can read
-     * them: by the RLM_UsageDatatables grant assigned in-test, or because the field is required
-     * (Name, Status), which needs no grant.
+     * The controller selects these fields (and the related names used as link labels), so the
+     * runner must be able to read them: by the RLM_UsageDatatables grant assigned in-test, or
+     * because the field is required (Name, Status), which needs no grant. Otherwise the query
+     * fails or the value is stripped.
      */
     private static void assertJournalFieldsReadable() {
         Map<String, Schema.SObjectField> fields = Schema.SObjectType.TransactionJournal.fields.getMap();
@@ -175,7 +177,7 @@ private class RLM_UsageDataControllerTest {
             Assert.isTrue(
                 fields.get(fieldName).getDescribe().isAccessible(),
                 'PRECONDITION: TransactionJournal.' + fieldName + ' must be readable by the running user ' +
-                '(RLM_UsageDatatables, assigned in this test, or a required field), or stripInaccessible removes it'
+                '(RLM_UsageDatatables, assigned in this test, or a required field)'
             );
         }
         Map<String, Schema.SObjectField> relatedNames = new Map<String, Schema.SObjectField>{
@@ -187,38 +189,38 @@ private class RLM_UsageDataControllerTest {
             Assert.isTrue(
                 relatedNames.get(label).getDescribe().isAccessible(),
                 'PRECONDITION: ' + label + ' must be readable by the running user ' +
-                '(RLM_UsageDatatables, assigned in this test, or a required field), or the lookup label is stripped'
+                '(RLM_UsageDatatables, assigned in this test, or a required field)'
             );
         }
     }
 
     /**
-     * Gives the running user RLM_UsageDatatables, the permission set this controller's users
-     * hold, unless it already has it. The build assigns that set only after this bundle deploys,
-     * so a first deploy's test run cannot rely on the deploying user holding it. Returns false,
-     * after a visible WARN, only if the platform refuses the assignment.
+     * The running user, holding RLM_UsageDatatables: the permission set this controller's users
+     * hold, and the repo's only grant for several fields the controller selects. The build
+     * assigns that set only after this bundle deploys, so a first deploy's test run cannot rely
+     * on the deploying user holding it; the set is assigned here when missing. Without those
+     * field grants the controller's dynamic query fails with "No such column", even when it
+     * would return no rows, so every test that reaches the query runs as this user. Pass the
+     * result to System.runAs so the assignment is in effect.
      */
-    private static Boolean ensureUsageDatatablesAssigned() {
+    private static User usageDatatablesUser() {
         List<PermissionSet> sets = [SELECT Id FROM PermissionSet WHERE Name = 'RLM_UsageDatatables' LIMIT 1];
         Assert.isFalse(sets.isEmpty(), 'PRECONDITION: RLM_UsageDatatables ships in this bundle');
         Id me = UserInfo.getUserId();
         Id setId = sets[0].Id;
-        if ([SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :me AND PermissionSetId = :setId] > 0) {
-            return true;
+        if ([SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :me AND PermissionSetId = :setId] == 0) {
+            Database.SaveResult saved;
+            System.runAs(new User(Id = me)) {
+                saved = Database.insert(new PermissionSetAssignment(AssigneeId = me, PermissionSetId = setId), false);
+            }
+            if (!saved.isSuccess()) {
+                Assert.fail(
+                    'PRECONDITION: RLM_UsageDatatables could not be assigned to the running user: ' +
+                    saved.getErrors()[0].getStatusCode() + ' ' + saved.getErrors()[0].getMessage()
+                );
+            }
         }
-        Database.SaveResult saved;
-        System.runAs(new User(Id = me)) {
-            saved = Database.insert(new PermissionSetAssignment(AssigneeId = me, PermissionSetId = setId), false);
-        }
-        if (!saved.isSuccess()) {
-            System.debug(
-                LoggingLevel.WARN,
-                'SKIPPED: RLM_UsageDatatables could not be assigned to the running user: ' +
-                saved.getErrors()[0].getMessage()
-            );
-            return false;
-        }
-        return true;
+        return new User(Id = me);
     }
 
     private static void assertRejected(Id recordId, String filterField, String objectApiName, String fieldSetName) {
@@ -246,38 +248,42 @@ private class RLM_UsageDataControllerTest {
     static void transactionJournalColumnsFollowTheFieldSet() {
         Id accId = accountId(ACCOUNT_NAME);
 
-        Test.startTest();
-        Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
-            accId, 'AccountId', 'TransactionJournal', FIELD_SET
-        );
-        Test.stopTest();
+        System.runAs(usageDatatablesUser()) {
+            assertJournalFieldsReadable();
 
-        List<Map<String, Object>> columns = columnsOf(result);
-        Assert.areEqual(
-            SObjectType.TransactionJournal.fieldSets.getMap().get(FIELD_SET).getFields().size(),
-            columns.size(),
-            'One column per field set member'
-        );
+            Test.startTest();
+            Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
+                accId, 'AccountId', 'TransactionJournal', FIELD_SET
+            );
+            Test.stopTest();
 
-        // Name is the autonumber name field: a link to the record itself, labelled by the name.
-        assertUrlColumn(column(columns, 'Name__url'), 'Name');
+            List<Map<String, Object>> columns = columnsOf(result);
+            Assert.areEqual(
+                SObjectType.TransactionJournal.fieldSets.getMap().get(FIELD_SET).getFields().size(),
+                columns.size(),
+                'One column per field set member'
+            );
 
-        // Lookups with a relationship name link to the related record, labelled by its name.
-        assertUrlColumn(column(columns, 'UsageResourceId__url'), 'UsageResourceId__name');
-        assertUrlColumn(column(columns, 'QuantityUnitOfMeasureId__url'), 'QuantityUnitOfMeasureId__name');
-        assertUrlColumn(column(columns, 'ReferenceRecordId__url'), 'ReferenceRecordId__name');
+            // Name is the autonumber name field: a link to the record itself, labelled by the name.
+            assertUrlColumn(column(columns, 'Name__url'), 'Name');
 
-        // Plain fields are typed from their display type.
-        Assert.areEqual('date', column(columns, 'ActivityDate').get('type'), 'DATETIME maps to date');
-        Assert.areEqual('date', column(columns, 'StartDate').get('type'), 'DATETIME maps to date');
-        Assert.areEqual('number', column(columns, 'Quantity').get('type'), 'DOUBLE maps to number');
-        Assert.areEqual('text', column(columns, 'Status').get('type'), 'PICKLIST maps to text');
-        Assert.areEqual(true, column(columns, 'Quantity').get('sortable'), 'Plain columns are sortable');
-        Assert.isNotNull(column(columns, 'Quantity').get('label'), 'Plain columns carry the field label');
+            // Lookups with a relationship name link to the related record, labelled by its name.
+            assertUrlColumn(column(columns, 'UsageResourceId__url'), 'UsageResourceId__name');
+            assertUrlColumn(column(columns, 'QuantityUnitOfMeasureId__url'), 'QuantityUnitOfMeasureId__name');
+            assertUrlColumn(column(columns, 'ReferenceRecordId__url'), 'ReferenceRecordId__name');
+
+            // Plain fields are typed from their display type.
+            Assert.areEqual('date', column(columns, 'ActivityDate').get('type'), 'DATETIME maps to date');
+            Assert.areEqual('date', column(columns, 'StartDate').get('type'), 'DATETIME maps to date');
+            Assert.areEqual('number', column(columns, 'Quantity').get('type'), 'DOUBLE maps to number');
+            Assert.areEqual('text', column(columns, 'Status').get('type'), 'PICKLIST maps to text');
+            Assert.areEqual(true, column(columns, 'Quantity').get('sortable'), 'Plain columns are sortable');
+            Assert.isNotNull(column(columns, 'Quantity').get('label'), 'Plain columns carry the field label');
+        }
     }
 
     @IsTest
-    static void transactionJournalRowsAreFlattenedWithLinksAndLabels_whenUsageDatatablesIsAssignable() {
+    static void transactionJournalRowsAreFlattenedWithLinksAndLabels() {
         Id accId = accountId(ACCOUNT_NAME);
         Asset one = assetNamed(ASSET_ONE);
         UsageResource ur = [SELECT Id FROM UsageResource WHERE Name = :RESOURCE_NAME LIMIT 1];
@@ -285,12 +291,8 @@ private class RLM_UsageDataControllerTest {
         TransactionJournal journal150 = [
             SELECT Id, Name FROM TransactionJournal WHERE ReferenceRecordId = :one.Id AND Quantity = 150 LIMIT 1
         ];
-        if (!ensureUsageDatatablesAssigned()) {
-            return;
-        }
 
-        // A fresh runAs context so the in-test assignment is in effect.
-        System.runAs(new User(Id = UserInfo.getUserId())) {
+        System.runAs(usageDatatablesUser()) {
             assertJournalFieldsReadable();
 
             Test.startTest();
@@ -320,14 +322,10 @@ private class RLM_UsageDataControllerTest {
     }
 
     @IsTest
-    static void transactionJournalsAreScopedToTheFilterRecord_whenUsageDatatablesIsAssignable() {
+    static void transactionJournalsAreScopedToTheFilterRecord() {
         Asset two = assetNamed(ASSET_TWO);
-        if (!ensureUsageDatatablesAssigned()) {
-            return;
-        }
 
-        // A fresh runAs context so the in-test assignment is in effect.
-        System.runAs(new User(Id = UserInfo.getUserId())) {
+        System.runAs(usageDatatablesUser()) {
             assertJournalFieldsReadable();
 
             Test.startTest();
@@ -347,15 +345,19 @@ private class RLM_UsageDataControllerTest {
     static void accountWithoutJournalsReturnsColumnsAndNoRows() {
         Id emptyAccId = accountId(EMPTY_ACCOUNT_NAME);
 
-        Test.startTest();
-        Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
-            emptyAccId, 'AccountId', 'TransactionJournal', FIELD_SET
-        );
-        Test.stopTest();
+        System.runAs(usageDatatablesUser()) {
+            assertJournalFieldsReadable();
 
-        Assert.isTrue(recordsOf(result).isEmpty(), 'No journals, no rows');
-        Assert.isFalse(columnsOf(result).isEmpty(), 'Columns are still returned for the empty table');
-        Assert.areEqual(false, result.get('truncated'), 'An empty result is not truncated');
+            Test.startTest();
+            Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
+                emptyAccId, 'AccountId', 'TransactionJournal', FIELD_SET
+            );
+            Test.stopTest();
+
+            Assert.isTrue(recordsOf(result).isEmpty(), 'No journals, no rows');
+            Assert.isFalse(columnsOf(result).isEmpty(), 'Columns are still returned for the empty table');
+            Assert.areEqual(false, result.get('truncated'), 'An empty result is not truncated');
+        }
     }
 
     @IsTest
@@ -375,14 +377,18 @@ private class RLM_UsageDataControllerTest {
         journals = null; // release the inserted list so the measured call has the heap to itself
         // Measured on a live org: the 2001-row call leaves about 1.27 MB on the heap (limit 10 MB).
 
-        Test.startTest();
-        Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
-            busy.Id, 'ReferenceRecordId', 'TransactionJournal', FIELD_SET
-        );
-        Test.stopTest();
+        System.runAs(usageDatatablesUser()) {
+            assertJournalFieldsReadable();
 
-        Assert.areEqual(true, result.get('truncated'), 'More than 2000 matches is flagged truncated');
-        Assert.areEqual(2000, recordsOf(result).size(), 'Rows are capped at 2000');
+            Test.startTest();
+            Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
+                busy.Id, 'ReferenceRecordId', 'TransactionJournal', FIELD_SET
+            );
+            Test.stopTest();
+
+            Assert.areEqual(true, result.get('truncated'), 'More than 2000 matches is flagged truncated');
+            Assert.areEqual(2000, recordsOf(result).size(), 'Rows are capped at 2000');
+        }
     }
 
     // ─── UsageSummary / UsageBillingPeriodItem ──────────────────────────
@@ -391,65 +397,69 @@ private class RLM_UsageDataControllerTest {
     static void usageSummaryColumnsResolveNonStandardNameFields() {
         Asset one = assetNamed(ASSET_ONE);
 
-        Test.startTest();
-        Map<String, Object> byAsset = RLM_UsageDataController.getFieldSetData(
-            one.Id, 'AssetId', 'UsageSummary', FIELD_SET
-        );
-        Map<String, Object> byAccount = RLM_UsageDataController.getFieldSetData(
-            accountId(ACCOUNT_NAME), 'AccountId', 'UsageSummary', FIELD_SET
-        );
-        Test.stopTest();
+        System.runAs(usageDatatablesUser()) {
+            Test.startTest();
+            Map<String, Object> byAsset = RLM_UsageDataController.getFieldSetData(
+                one.Id, 'AssetId', 'UsageSummary', FIELD_SET
+            );
+            Map<String, Object> byAccount = RLM_UsageDataController.getFieldSetData(
+                accountId(ACCOUNT_NAME), 'AccountId', 'UsageSummary', FIELD_SET
+            );
+            Test.stopTest();
 
-        List<Map<String, Object>> columns = columnsOf(byAsset);
-        Assert.areEqual(
-            SObjectType.UsageSummary.fieldSets.getMap().get(FIELD_SET).getFields().size(),
-            columns.size(),
-            'One column per field set member'
-        );
-        assertUrlColumn(column(columns, 'Name__url'), 'Name');
-        assertUrlColumn(column(columns, 'AssetId__url'), 'AssetId__name');
-        // LiableSummaryId points at UsageBillingPeriodItem, whose name field is an autonumber
-        // other than Name; the query must have resolved it or it would have thrown.
-        Assert.areEqual(
-            new List<Schema.SObjectType>{ UsageBillingPeriodItem.SObjectType },
-            UsageSummary.LiableSummaryId.getDescribe().getReferenceTo(),
-            'PRECONDITION: UsageSummary.LiableSummaryId references only UsageBillingPeriodItem'
-        );
-        Assert.isFalse(
-            Schema.SObjectType.UsageBillingPeriodItem.fields.getMap().containsKey('Name'),
-            'PRECONDITION: UsageBillingPeriodItem has no Name field, so a Name fallback would fail the query'
-        );
-        assertUrlColumn(column(columns, 'LiableSummaryId__url'), 'LiableSummaryId__name');
-        assertUrlColumn(column(columns, 'UsageEntitlementAccountId__url'), 'UsageEntitlementAccountId__name');
-        Assert.areEqual('number', column(columns, 'ConsumptionUnits').get('type'), 'Consumption units are numeric');
+            List<Map<String, Object>> columns = columnsOf(byAsset);
+            Assert.areEqual(
+                SObjectType.UsageSummary.fieldSets.getMap().get(FIELD_SET).getFields().size(),
+                columns.size(),
+                'One column per field set member'
+            );
+            assertUrlColumn(column(columns, 'Name__url'), 'Name');
+            assertUrlColumn(column(columns, 'AssetId__url'), 'AssetId__name');
+            // LiableSummaryId points at UsageBillingPeriodItem, whose name field is an autonumber
+            // other than Name; the query must have resolved it or it would have thrown.
+            Assert.areEqual(
+                new List<Schema.SObjectType>{ UsageBillingPeriodItem.SObjectType },
+                UsageSummary.LiableSummaryId.getDescribe().getReferenceTo(),
+                'PRECONDITION: UsageSummary.LiableSummaryId references only UsageBillingPeriodItem'
+            );
+            Assert.isFalse(
+                Schema.SObjectType.UsageBillingPeriodItem.fields.getMap().containsKey('Name'),
+                'PRECONDITION: UsageBillingPeriodItem has no Name field, so a Name fallback would fail the query'
+            );
+            assertUrlColumn(column(columns, 'LiableSummaryId__url'), 'LiableSummaryId__name');
+            assertUrlColumn(column(columns, 'UsageEntitlementAccountId__url'), 'UsageEntitlementAccountId__name');
+            Assert.areEqual('number', column(columns, 'ConsumptionUnits').get('type'), 'Consumption units are numeric');
 
-        Assert.isTrue(recordsOf(byAsset).isEmpty(), 'Tests create no usage summaries');
-        Assert.isTrue(recordsOf(byAccount).isEmpty(), 'AccountId is accepted as a UsageSummary filter');
+            Assert.isTrue(recordsOf(byAsset).isEmpty(), 'Tests create no usage summaries');
+            Assert.isTrue(recordsOf(byAccount).isEmpty(), 'AccountId is accepted as a UsageSummary filter');
+        }
     }
 
     @IsTest
     static void usageBillingPeriodItemColumnsUseItsAutonumberNameField() {
         Asset one = assetNamed(ASSET_ONE);
 
-        Test.startTest();
-        Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
-            one.Id, 'AssetId', 'UsageBillingPeriodItem', FIELD_SET
-        );
-        Test.stopTest();
+        System.runAs(usageDatatablesUser()) {
+            Test.startTest();
+            Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
+                one.Id, 'AssetId', 'UsageBillingPeriodItem', FIELD_SET
+            );
+            Test.stopTest();
 
-        List<Map<String, Object>> columns = columnsOf(result);
-        Assert.areEqual(
-            SObjectType.UsageBillingPeriodItem.fieldSets.getMap().get(FIELD_SET).getFields().size(),
-            columns.size(),
-            'One column per field set member'
-        );
-        assertUrlColumn(column(columns, 'UsageBillingPeriodItemNum__url'), 'UsageBillingPeriodItemNum');
-        assertUrlColumn(column(columns, 'AssetId__url'), 'AssetId__name');
-        assertUrlColumn(column(columns, 'UsageEntitlementBucketId__url'), 'UsageEntitlementBucketId__name');
-        assertUrlColumn(column(columns, 'GrantBindingTargetId__url'), 'GrantBindingTargetId__name');
-        Assert.areEqual('currency', column(columns, 'OverageAmount').get('type'), 'Currency maps to currency');
-        Assert.isTrue(recordsOf(result).isEmpty(), 'Tests create no billing period items');
-        Assert.areEqual(false, result.get('truncated'), 'An empty result is not truncated');
+            List<Map<String, Object>> columns = columnsOf(result);
+            Assert.areEqual(
+                SObjectType.UsageBillingPeriodItem.fieldSets.getMap().get(FIELD_SET).getFields().size(),
+                columns.size(),
+                'One column per field set member'
+            );
+            assertUrlColumn(column(columns, 'UsageBillingPeriodItemNum__url'), 'UsageBillingPeriodItemNum');
+            assertUrlColumn(column(columns, 'AssetId__url'), 'AssetId__name');
+            assertUrlColumn(column(columns, 'UsageEntitlementBucketId__url'), 'UsageEntitlementBucketId__name');
+            assertUrlColumn(column(columns, 'GrantBindingTargetId__url'), 'GrantBindingTargetId__name');
+            Assert.areEqual('currency', column(columns, 'OverageAmount').get('type'), 'Currency maps to currency');
+            Assert.isTrue(recordsOf(result).isEmpty(), 'Tests create no billing period items');
+            Assert.areEqual(false, result.get('truncated'), 'An empty result is not truncated');
+        }
     }
 
     // ─── Allowlists and validation ──────────────────────────────────────
@@ -487,8 +497,7 @@ private class RLM_UsageDataControllerTest {
         Id accId = accountId(ACCOUNT_NAME);
         Assert.isFalse(
             Schema.SObjectType.UsageSummary.fields.getMap().containsKey('ReferenceRecordId'),
-            'Known gap: the controller allowlists UsageSummary.ReferenceRecordId, a field that does not exist ' +
-            '(PRECONDITION for isolating the field-exists check); update this test when the entry is removed'
+            'PRECONDITION: UsageSummary has no ReferenceRecordId field, so only the field-exists check can reject it'
         );
 
         Test.startTest();

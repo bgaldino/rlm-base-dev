@@ -1,7 +1,7 @@
 /**
  * Tests for RLM_UsageOrchestrationController.startOrchestration: a named flow is started and
- * returns the started token (when that flow is active in the org), and a flow name that cannot be resolved into an interview reaches
- * the LWC as an AuraHandledException.
+ * returns the started token (when that flow is active in the org), and a flow name that
+ * cannot be resolved into an interview reaches the LWC as an AuraHandledException.
  *
  * Not covered:
  *  - the blank-name fallback to RLM_OrchestrateUsageManagement. Starting that flow inside a
