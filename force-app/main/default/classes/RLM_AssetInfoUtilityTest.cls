@@ -217,7 +217,7 @@ private class RLM_AssetInfoUtilityTest {
         OrderContext ctx = newOrder('Amend');
         Line l = createLines(ctx, 1)[0];
         Contract c = new Contract(
-            AccountId = ctx.accountId, StartDate = Date.newInstance(2026, 1, 1), ContractTerm = 24, Status = 'Draft'
+            AccountId = ctx.accountId, StartDate = Date.today().addMonths(-1), ContractTerm = 24, Status = 'Draft'
         );
         insert c;
         // An asset can only be related to an active, Revenue Lifecycle Management contract.

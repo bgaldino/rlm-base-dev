@@ -75,6 +75,37 @@ private class RLM_DetermineDROSourceTypeTest {
     }
 
     @IsTest
+    static void emptyInputListThrows() {
+        try {
+            RLM_DetermineDROSourceType.returnDROSourceObjectType(new List<RLM_DetermineDROSourceType.droSourceInfo>());
+            Assert.fail('An empty input list has no first input to read');
+        } catch (ListException e) {
+            Assert.isTrue(
+                e.getMessage().contains('out of bounds'),
+                'Known gap: an empty input list throws a raw ListException; update this test when it is fixed. '
+                    + e.getMessage()
+            );
+        }
+    }
+
+    @IsTest
+    static void emptyRecordIdListThrows() {
+        RLM_DetermineDROSourceType.droSourceInfo info = new RLM_DetermineDROSourceType.droSourceInfo();
+        info.recordIds = new List<String>();
+
+        try {
+            run(info);
+            Assert.fail('An empty record id list has no first id to read');
+        } catch (ListException e) {
+            Assert.isTrue(
+                e.getMessage().contains('out of bounds'),
+                'Known gap: an empty recordIds list throws a raw ListException; update this test when it is fixed. '
+                    + e.getMessage()
+            );
+        }
+    }
+
+    @IsTest
     static void malformedRecordIdThrows() {
         RLM_DetermineDROSourceType.droSourceInfo info = new RLM_DetermineDROSourceType.droSourceInfo();
         info.recordId = 'not-an-id';

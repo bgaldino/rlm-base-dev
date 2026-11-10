@@ -189,13 +189,6 @@ private class RLM_OrderItemContractingUtilityTest {
         }
     }
 
-    /** Queries the order the way the utility does: with sharing. */
-    private with sharing class SharingProbe {
-        Integer visibleOrders(Id orderId) {
-            return [SELECT COUNT() FROM Order WHERE Id = :orderId];
-        }
-    }
-
     @IsTest
     static void userWithoutOrderAccessGetsNoResults() {
         Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
@@ -204,32 +197,29 @@ private class RLM_OrderItemContractingUtilityTest {
         User noAccess = minimumAccessUser();
 
         List<RLM_OrderItemContractingUtility.OrderInfoResults> results;
+        Integer queriesUsed;
         Test.startTest();
         System.runAs(noAccess) {
             Assert.isFalse(
                 Schema.SObjectType.Order.fields.EffectiveDate.isAccessible(),
                 'PRECONDITION: the user cannot read Order.EffectiveDate'
             );
-            // The user cannot query Order at all, so an empty result (rather than an exception)
-            // can only come from the utility's access check, not from record sharing.
-            try {
-                new SharingProbe().visibleOrders(o.Id);
-                Assert.fail('PRECONDITION: a with-sharing Order query must be denied to this user');
-            } catch (System.SecurityException e) {
-                Assert.isTrue(
-                    e.getMessage().contains('Order'), 'PRECONDITION: Order access is denied: ' + e.getMessage()
-                );
-            }
+            Integer queriesBefore = Limits.getQueries();
             results = run(new List<Id>{ o.Id });
+            queriesUsed = Limits.getQueries() - queriesBefore;
         }
         Test.stopTest();
 
+        // No query ran, so the empty result comes from the field-access check, not record sharing.
+        Assert.areEqual(0, queriesUsed, 'The field-access check returns before any query');
         Assert.isTrue(results.isEmpty(), 'Without access to the order fields the utility returns no result');
     }
 
     /** A Minimum Access user: no object access to Order, OrderItem or OrderAction. */
     private static User minimumAccessUser() {
-        Profile minimal = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+        List<Profile> profiles = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+        Assert.isFalse(profiles.isEmpty(), 'PRECONDITION: the standard Minimum Access - Salesforce profile exists');
+        Profile minimal = profiles[0];
         String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
         User u = new User(
             ProfileId = minimal.Id,

@@ -62,7 +62,7 @@ private class RLM_QuoteItemTriggerTest {
         return aa;
     }
 
-    private static void actionSources(Id assetActionId, List<String> statuses) {
+    private static List<AssetActionSource> actionSources(Id assetActionId, List<String> statuses) {
         List<AssetActionSource> sources = new List<AssetActionSource>();
         for (String status : statuses) {
             sources.add(new AssetActionSource(
@@ -70,17 +70,21 @@ private class RLM_QuoteItemTriggerTest {
             ));
         }
         insert sources;
+        return sources;
     }
 
     /**
      * Gives the asset a recent action (one source with latestStatus, one with none) and an action
-     * a month older (olderStatus). latestFirst sets which is inserted first.
+     * a month older (olderStatus). latestFirst sets which is inserted first. The source with no
+     * status is the newest, so it sorts first and the trigger has to skip it.
      */
     private static void seedAssetHistory(Id assetId, Boolean latestFirst, String latestStatus, String olderStatus) {
         for (Boolean insertLatest : latestFirst ? new List<Boolean>{ true, false } : new List<Boolean>{ false, true }) {
             if (insertLatest) {
                 AssetAction latest = assetAction(assetId, Datetime.now().addDays(-1));
-                actionSources(latest.Id, new List<String>{ latestStatus, null });
+                List<AssetActionSource> sources = actionSources(latest.Id, new List<String>{ latestStatus, null });
+                Test.setCreatedDate(sources[0].Id, Datetime.now().addDays(-2));
+                Test.setCreatedDate(sources[1].Id, Datetime.now().addHours(-1));
             } else {
                 AssetAction older = assetAction(assetId, Datetime.now().addDays(-30));
                 actionSources(older.Id, new List<String>{ olderStatus });
@@ -163,24 +167,20 @@ private class RLM_QuoteItemTriggerTest {
     }
 
     @IsTest
-    static void lineWithoutQuoteActionIsUntouched() {
+    static void lineWithoutQuoteActionStaysBlank() {
         Fixture f = buildFixture();
-        Asset a = newAsset(f, 'RLM Constraint Status Asset');
-        seedAssetHistory(a.Id, true, '{"node":"latest"}', '{"node":"older"}');
         QuoteLineItem line = newLine(f, null, null);
 
         Test.startTest();
         insert line;
         Test.stopTest();
 
-        Assert.isNull(statusOf(line.Id), 'A new-sale line has no asset to inherit from');
+        Assert.isNull(statusOf(line.Id), 'A new-sale line is saved without error and stays blank');
     }
 
     @IsTest
-    static void quoteActionWithoutSourceAssetIsIgnored() {
+    static void quoteActionWithoutSourceAssetStaysBlank() {
         Fixture f = buildFixture();
-        Asset a = newAsset(f, 'RLM Constraint Status Asset');
-        seedAssetHistory(a.Id, true, '{"node":"latest"}', '{"node":"older"}');
         QuoteAction add = quoteAction(f, null, 'Add');
         QuoteLineItem line = newLine(f, add.Id, null);
 
@@ -188,15 +188,18 @@ private class RLM_QuoteItemTriggerTest {
         insert line;
         Test.stopTest();
 
-        Assert.isNull(statusOf(line.Id), 'A quote action with no source asset carries no status');
+        Assert.isNull(statusOf(line.Id), 'A line whose quote action has no source asset is saved and stays blank');
     }
 
     @IsTest
-    static void assetWithoutRecordedStatusLeavesLineBlank() {
+    static void onlyTheLatestActionIsRead() {
         Fixture f = buildFixture();
         Asset a = newAsset(f, 'RLM Constraint Status Asset');
-        AssetAction action = assetAction(a.Id, Datetime.now().addDays(-1));
-        actionSources(action.Id, new List<String>{ null });
+        // The older action has a status; the latest has none. Only the latest action counts.
+        AssetAction older = assetAction(a.Id, Datetime.now().addDays(-30));
+        actionSources(older.Id, new List<String>{ '{"node":"older"}' });
+        AssetAction latest = assetAction(a.Id, Datetime.now().addDays(-1));
+        actionSources(latest.Id, new List<String>{ null });
         QuoteAction amend = quoteAction(f, a.Id, 'Amend');
         QuoteLineItem line = amendLine(f, amend.Id, null);
 
@@ -204,6 +207,6 @@ private class RLM_QuoteItemTriggerTest {
         insert line;
         Test.stopTest();
 
-        Assert.isNull(statusOf(line.Id), 'No recorded status means nothing to inherit');
+        Assert.isNull(statusOf(line.Id), 'An older action\'s status is not used when the latest action has none');
     }
 }

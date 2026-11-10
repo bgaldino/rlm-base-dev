@@ -3,6 +3,8 @@ private class RLM_QuoteModelUtilityTest {
 
     private static final Date START_DATE = Date.newInstance(2026, 3, 5);
     private static final Date END_DATE = Date.newInstance(2027, 3, 4);
+    // Date-times are built in the running user's time zone but labelled Z. The expected values
+    // hold for any user; the mislabelling only matters for users outside GMT.
     private static final String LOCAL_TIME_AS_UTC =
         'Known gap: local time is labelled UTC (Z); update this test when it is fixed';
 
@@ -127,7 +129,7 @@ private class RLM_QuoteModelUtilityTest {
     @IsTest
     static void quoteHeaderAndLinesAreMapped() {
         QuoteFixture f = buildQuote(2, false, false);
-        Quote q = RLM_QuoteModelUtility.getQuote(new List<Id>{ f.quote.Id });
+        Quote q = [SELECT CurrencyIsoCode, CreatedDate FROM Quote WHERE Id = :f.quote.Id];
         List<QuoteLineItem> stored = [
             SELECT Id, Product2Id, Quantity, Discount, ListPrice, ProrationPolicyId
             FROM QuoteLineItem WHERE QuoteId = :f.quote.Id

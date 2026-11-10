@@ -6,10 +6,10 @@ private class DFOApexMockServiceTest {
         List<industriesintegrationfwk.ApexProviderAttr> attrs = DFOApexMockService.getProviderAttributes();
 
         Assert.areEqual(1, attrs.size(), 'Only the named credential attribute is declared');
-        Map<String, Object> attr = (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(attrs[0]));
-        Assert.areEqual('Named_Credential', attr.get('developerName'), 'The attribute is the named credential');
-        Assert.areEqual('BillingSystemNC', attr.get('defaultValue'), 'It defaults to the billing named credential');
-        Assert.areEqual(true, attr.get('isRequired'), 'The named credential is required');
+        industriesintegrationfwk.ApexProviderAttr attr = attrs[0];
+        Assert.areEqual('Named_Credential', attr.getDeveloperName(), 'The attribute is the named credential');
+        Assert.areEqual('BillingSystemNC', attr.getDefaultValue(), 'It defaults to the billing named credential');
+        Assert.isTrue(attr.getIsRequired(), 'The named credential is required');
     }
 
     @IsTest

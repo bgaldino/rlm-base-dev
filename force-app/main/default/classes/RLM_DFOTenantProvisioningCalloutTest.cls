@@ -53,10 +53,6 @@ private class RLM_DFOTenantProvisioningCalloutTest {
         return objectType.getDescribe().getKeyPrefix() + '000000000001';
     }
 
-    private static Map<String, Object> responseOf(industriesintegrationfwk.IntegrationCalloutResponse result) {
-        return (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(result));
-    }
-
     @IsTest
     static void orderItemSourcePostsItsOrderIdToTenantEndpoint() {
         OrderItem oi = orderItem();
@@ -68,10 +64,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             RLM_DFOTenantProvisioningCallout.executeCallout('guid-1', oi.Id, '', new Map<String, Object>());
         Test.stopTest();
 
-        Assert.areEqual(
-            true, responseOf(result).get('isSuccess'),
-            'Known gap: success is reported whatever the HTTP status; update this test when it is fixed'
-        );
+        Assert.isTrue(result.isSuccess(), 'A successful callout reports success');
         Assert.areEqual(1, mock.callCount, 'Exactly one tenant callout is made');
         Assert.areEqual('POST', mock.lastRequest.getMethod(), 'Tenant creation is a POST');
         Assert.areEqual(ENDPOINT, mock.lastRequest.getEndpoint(), 'The RLM named credential endpoint is used');
@@ -93,8 +86,8 @@ private class RLM_DFOTenantProvisioningCalloutTest {
         Test.stopTest();
 
         Assert.areEqual(1, mock.callCount, 'The callout was attempted once');
-        Assert.areEqual(
-            true, responseOf(result).get('isSuccess'),
+        Assert.isTrue(
+            result.isSuccess(),
             'Known gap: success is reported whatever the HTTP status; update this test when it is fixed'
         );
     }
@@ -111,10 +104,10 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             );
         Test.stopTest();
 
-        Assert.areEqual(
-            true, responseOf(result).get('isSuccess'),
-            'Known gap: success is reported whatever the HTTP status; update this test when it is fixed '
-                + '(no callout made)'
+        Assert.isTrue(
+            result.isSuccess(),
+            'Known gap: an unsupported source type reports success without calling out; '
+                + 'update this test when it is fixed'
         );
         Assert.areEqual(0, mock.callCount, 'Only order items and fulfillment lines trigger a callout');
     }
