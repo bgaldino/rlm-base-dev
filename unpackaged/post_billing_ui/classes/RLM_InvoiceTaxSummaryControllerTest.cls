@@ -24,10 +24,11 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         System.assertEquals(0, rows.size(), 'No tax rows exist for a non-existent invoice.');
     }
 
-    // Each aggregate row becomes one TaxSummaryRow carrying the tax name, its total and the
-    // currency it is in, which is what the LWC renders per tax.
+    // The TaxSummaryRow constructor keeps each argument in its own field. (The aggregate
+    // mapping that calls it needs InvoiceLineTax rows, whose required InvoiceLine cannot be
+    // created in a test, so it is not covered here.)
     @isTest
-    static void taxSummaryRow_carriesNameTotalAndCurrency() {
+    static void taxSummaryRow_constructorKeepsEachArgument() {
         Test.startTest();
         RLM_InvoiceTaxSummaryController.TaxSummaryRow row =
             new RLM_InvoiceTaxSummaryController.TaxSummaryRow('State Sales Tax', 12.50, 'EUR');

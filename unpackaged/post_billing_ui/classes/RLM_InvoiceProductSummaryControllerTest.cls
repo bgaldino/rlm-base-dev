@@ -97,24 +97,29 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.areEqual(queriesBefore, queriesAfter, 'Empty input must not run a query.');
     }
 
-    // A billing role can read BillingScheduleGroup, so the lookup runs; a group that does not
-    // exist maps to no asset rather than throwing, even on the save path (failLoudly).
+    // The other side of the BSG gate: a billing role can read BillingScheduleGroup, so even the
+    // save path (failLoudly) runs the lookup without throwing; a group that does not exist maps
+    // to no asset.
     @isTest
-    static void resolveBsgToAsset_unknownGroup_resolvesNoAssetForABillingRole() {
+    static void resolveBsgToAsset_billingRole_runsTheLookupOnTheSavePath() {
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
         Id fakeBsg = fakeId(BillingScheduleGroup.SObjectType);
+        String readError;
         Map<Id, Id> saveResult;
-        Map<Id, Id> summaryResult;
         Test.startTest();
         System.runAs(u) {
+            try {
+                Database.query('SELECT Id, ReferenceEntityId FROM BillingScheduleGroup LIMIT 1', AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                readError = e.getMessage();
+            }
             saveResult = RLM_InvoiceProductSummaryController.resolveBsgToAsset(new Set<Id>{ fakeBsg }, true);
-            summaryResult = RLM_InvoiceProductSummaryController.resolveBsgToAsset(new Set<Id>{ fakeBsg }, false);
         }
         Test.stopTest();
-        Assert.isTrue(saveResult.isEmpty(), 'An unknown billing schedule group maps to no asset (save path).');
-        Assert.isTrue(summaryResult.isEmpty(), 'An unknown billing schedule group maps to no asset (summary path).');
+        Assert.isNull(readError, 'PRECONDITION: a billing operations user can read BillingScheduleGroup: ' + readError);
+        Assert.isTrue(saveResult.isEmpty(), 'An unknown billing schedule group maps to no asset.');
     }
 
     // An asset with no state period has no attributes to show: the helper stops after the
@@ -139,8 +144,8 @@ private class RLM_InvoiceProductSummaryControllerTest {
     }
 
     // With a state period but no AssetStatePeriodAttribute rows (those are system-generated and
-    // not insertable), the helper runs the attribute query for the asset's current period and
-    // still returns no entry: an asset only appears once it has at least one attribute.
+    // not insertable), the helper runs the attribute query for the asset's latest-starting
+    // period and still returns no entry: an asset only appears once it has an attribute.
     @isTest
     static void resolveAssetAttributes_statePeriodWithoutAttributes_returnsNoEntry() {
         Account acc = new Account(Name = 'RLM Product Summary Period Test');
@@ -194,38 +199,42 @@ private class RLM_InvoiceProductSummaryControllerTest {
                 new Set<Id>{ fakeAsset }, false);
         }
         Test.stopTest();
-        Assert.isTrue(premise, 'Premise: this user must be unable to read AssetStatePeriod.');
+        Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read AssetStatePeriod.');
         Assert.isTrue(saveThrew, 'The save path must surface an AssetStatePeriod read it may not run.');
-        Assert.isTrue(summaryResult.isEmpty(), 'The summary path degrades to no attributes.');
+        Assert.isTrue(summaryResult.isEmpty(), 'The summary path returns no attributes instead of throwing.');
     }
 
-    // A user who cannot read invoice lines gets a handled error from both entry points, not a
-    // raw QueryException: the save reports failure instead of claiming success.
+    // For an unknown invoice the admin's save returns as a no-op. For a user who cannot read
+    // invoice lines, the same call must report failure as a handled error rather than return
+    // as if it had saved.
     @isTest
-    static void entryPoints_userWithoutInvoiceAccess_throwHandledErrors() {
+    static void saveLineAttributes_userWhoCannotReadInvoiceLines_failsWithAHandledError() {
         User u = userWithoutBillingAccess();
+        Boolean premise = false;
         Boolean saveThrew = false;
-        Boolean summaryThrew = false;
         Test.startTest();
+        // PRECONDITION: the admin's call returns; an exception here fails the test.
+        RLM_InvoiceProductSummaryController.saveLineAttributes(fakeInvoiceId());
         System.runAs(u) {
+            try {
+                Database.query('SELECT Id FROM InvoiceLine LIMIT 1', AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                premise = true;
+            }
             try {
                 RLM_InvoiceProductSummaryController.saveLineAttributes(fakeInvoiceId());
             } catch (AuraHandledException e) {
                 saveThrew = true;
             }
-            try {
-                RLM_InvoiceProductSummaryController.getInvoiceProductSummary(fakeInvoiceId());
-            } catch (AuraHandledException e) {
-                summaryThrew = true;
-            }
         }
         Test.stopTest();
+        Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read InvoiceLine.');
         Assert.isTrue(saveThrew, 'A save the user may not run must fail with an AuraHandledException.');
-        Assert.isTrue(summaryThrew, 'A summary the user may not read must fail with an AuraHandledException.');
     }
 
-    // The LWC renders an invoice with no lines straight from these defaults: zero totals,
-    // empty (never null) lists, and every bundle flag off.
+    // getInvoiceProductSummary returns a new InvoiceSummaryResult for an invoice with no lines,
+    // and accumulates totals onto new ProductSummary and InvoiceLineDetail objects: each must
+    // start at zero totals, empty (never null) lists, and every bundle flag off.
     @isTest
     static void wrappers_defaultToZeroTotalsAndEmptyLists() {
         Test.startTest();

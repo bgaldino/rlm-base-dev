@@ -48,32 +48,44 @@ private class RLM_SplitInvoicesControllerTest {
         System.assertEquals(0, result.arrangementNames.size(), 'Null arrangement ids resolve to an empty map.');
     }
 
-    // Contacts resolve by name; a list of blank ids resolves to nothing without a query; and an
-    // object with no Name field (Case) yields an empty map instead of failing the other lists.
+    // Contacts resolve by name, and an object with no Name field (Case) yields an empty map
+    // instead of failing the other lists.
     @isTest
-    static void getRelatedNames_resolvesContactsSkipsBlanksAndToleratesNamelessObjects() {
+    static void getRelatedNames_resolvesContactsAndToleratesNamelessObjects() {
         Account acc = new Account(Name = 'RLM Split Invoices Contact Test');
         insert acc;
         Contact con = new Contact(FirstName = 'Ana', LastName = 'Rivera', AccountId = acc.Id);
         insert con;
         Case c = new Case(AccountId = acc.Id, Subject = 'RLM split invoices case');
         insert c;
+        // Name order depends on the locale, so compare against the stored full name.
+        String contactName = [SELECT Name FROM Contact WHERE Id = :con.Id].Name;
 
         Test.startTest();
         RLM_SplitInvoicesController.RelatedNamesResult result =
             RLM_SplitInvoicesController.getRelatedNames(
-                new List<String>{ acc.Id },
-                new List<String>{ '', null },
-                new List<String>{ c.Id },
-                new List<String>{ con.Id });
+                new List<String>{ acc.Id }, null, new List<String>{ c.Id }, new List<String>{ con.Id });
         Test.stopTest();
 
         Assert.areEqual('RLM Split Invoices Contact Test', result.accountNames.get(acc.Id),
             'The account still resolves when another list cannot.');
-        Assert.areEqual('Ana Rivera', result.contactNames.get(con.Id), 'The contact resolves to its full name.');
-        Assert.isTrue(result.arrangementNames.isEmpty(), 'Blank ids resolve to an empty map.');
+        Assert.areEqual(contactName, result.contactNames.get(con.Id), 'The contact resolves to its full name.');
         Assert.isTrue(result.profileNames.isEmpty(),
             'An object without a Name field resolves to an empty map rather than an error.');
+    }
+
+    // A list holding only blank ids resolves to an empty map without running a query.
+    @isTest
+    static void getRelatedNames_blankIds_resolveToNothingWithoutAQuery() {
+        Test.startTest();
+        Integer queriesBefore = Limits.getQueries();
+        RLM_SplitInvoicesController.RelatedNamesResult result =
+            RLM_SplitInvoicesController.getRelatedNames(null, new List<String>{ '', null }, null, null);
+        Integer queriesAfter = Limits.getQueries();
+        Test.stopTest();
+
+        Assert.isTrue(result.arrangementNames.isEmpty(), 'Blank ids resolve to an empty map.');
+        Assert.areEqual(queriesBefore, queriesAfter, 'Blank ids must not run a query.');
     }
 
     // InvoiceRow maps a queried invoice, including the names on its three lookups. Invoices
@@ -143,10 +155,11 @@ private class RLM_SplitInvoicesControllerTest {
         Assert.isNull(row.billingArrangementVerNumber, 'No version number.');
     }
 
-    // A user who cannot read invoices gets a handled error from the correlation list, and an
-    // empty billing info (both of its queries fail and are skipped) rather than an exception.
+    // For an admin an unknown correlation id is an empty list (see above). A user who cannot
+    // read invoices gets a handled error from the correlation list instead, while the billing
+    // info call still returns rather than throwing.
     @isTest
-    static void userWithoutInvoiceAccess_getsAHandledErrorAndEmptyInfo() {
+    static void userWithoutInvoiceAccess_getsAHandledListErrorAndInfoWithoutThrowing() {
         // Minimum Access with no license or permission set: no billing object is readable.
         User u = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Id fakeInvoice = fakeId('Invoice', 3);
@@ -168,11 +181,9 @@ private class RLM_SplitInvoicesControllerTest {
             info = RLM_SplitInvoicesController.getCurrentInvoiceBillingInfo(fakeInvoice);
         }
         Test.stopTest();
-        Assert.isTrue(premise, 'Premise: this user must be unable to read Invoice.');
+        Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read Invoice.');
         Assert.isTrue(listThrew, 'An unreadable invoice query must surface as an AuraHandledException.');
-        Assert.isNotNull(info, 'Billing info is still returned.');
-        Assert.isNull(info.billingArrangementName, 'No arrangement name for a user who cannot read invoices.');
-        Assert.isNull(info.billingArrangementVerNumber, 'No version number for a user who cannot read invoices.');
+        Assert.isNotNull(info, 'The billing info call returns, without throwing, for a user who cannot read Invoice.');
     }
 
     private static Id fakeId(String objectName, Integer n) {

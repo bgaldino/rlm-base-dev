@@ -106,47 +106,60 @@ private class RLM_InvoiceSummaryControllerTest {
     }
 
     // Disputes are counted through the account's open cases. Dispute is Apex-createable with
-    // an account, a case and a received date. A dispute with an amount counts toward the
-    // disputed total; one without an amount is skipped, not counted as zero.
+    // an account, a case and a received date. A dispute with an amount on an open case counts
+    // toward the disputed total; one without an amount is skipped, not counted as zero; and
+    // one on a closed case is not counted at all.
     @isTest
     static void getInvoiceSummary_disputesOnOpenCases_areSummed() {
-        if (!available(new List<String>{ 'Dispute' })) {
-            // Billing disputes are not provisioned in this org variant.
-            return;
+        Assert.isTrue(available(new List<String>{ 'Dispute' }),
+            'PRECONDITION: billing disputes exist in this org (RLM_BillingUI grants them).');
+        String disputeReadError;
+        try {
+            Database.query('SELECT Id, CaseId, InvoiceId, DisputedAmount, CurrencyIsoCode FROM Dispute LIMIT 1',
+                AccessLevel.USER_MODE);
+        } catch (QueryException e) {
+            disputeReadError = e.getMessage();
         }
+        Assert.isNull(disputeReadError,
+            'PRECONDITION: the running user can read Dispute with CaseId and InvoiceId: ' + disputeReadError);
+
         Account acc = new Account(Name = 'RLM Invoice Summary Dispute Test');
         insert acc;
         Case amountCase = new Case(AccountId = acc.Id, Subject = 'RLM disputed amount case');
         Case emptyCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute without an amount');
-        insert new List<Case>{ amountCase, emptyCase };
+        Case closedCase = new Case(AccountId = acc.Id, Subject = 'RLM closed dispute case', Status = 'Closed');
+        insert new List<Case>{ amountCase, emptyCase, closedCase };
+        Assert.isTrue([SELECT IsClosed FROM Case WHERE Id = :closedCase.Id].IsClosed,
+            'PRECONDITION: the closed case is closed.');
 
-        SObject withAmount = newDispute(acc.Id, amountCase.Id, 40);
+        Id withAmountId = newDispute(acc.Id, amountCase.Id, 40).Id;
         newDispute(acc.Id, emptyCase.Id, null);
+        newDispute(acc.Id, closedCase.Id, 25);
         Decimal disputed = (Decimal) Database.query(
-            'SELECT DisputedAmount FROM Dispute WHERE Id = \'' + withAmount.Id + '\''
+            'SELECT DisputedAmount FROM Dispute WHERE Id = :withAmountId'
         )[0].get('DisputedAmount');
-        Assert.areEqual(40, disputed, 'Premise: the dispute must carry its disputed amount.');
+        Assert.areEqual(40, disputed, 'PRECONDITION: the dispute must carry its disputed amount.');
 
         Test.startTest();
         RLM_InvoiceSummaryController.InvoiceSummaryData data =
             RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
         Test.stopTest();
 
-        Assert.areEqual(1, data.disputeCount, 'Only the dispute with an amount is counted.');
-        Assert.areEqual(40, data.disputeAmount, 'The disputed amount is summed in the user\'s currency.');
+        Assert.areEqual(1, data.disputeCount,
+            'Only the dispute with an amount on an open case is counted.');
+        Assert.areEqual(40, data.disputeAmount,
+            'The disputed amount on the open case is summed; the closed case\'s 25 is not.');
         Assert.areEqual(0, data.totalDue, 'Disputes do not add to the amount due.');
     }
 
-    // Promise to pay: a payment schedule item under a collection plan item of the account's
-    // collection plan counts, at its requested amount, while it is not processed or canceled.
+    // Promise to pay: a draft payment schedule item under a collection plan item of the
+    // account's collection plan counts, at its requested amount.
     @isTest
     static void getInvoiceSummary_promiseToPayItem_isSummed() {
-        if (!available(new List<String>{ 'CollectionPlan', 'CollectionPlanItem' })) {
-            // Collections are not provisioned in this org variant.
-            return;
-        }
+        Assert.isTrue(available(new List<String>{ 'CollectionPlan', 'CollectionPlanItem' }),
+            'PRECONDITION: collection plans exist in this org (RLM_BillingUI grants them).');
         Assert.isTrue(RLM_InvoiceSummaryController.canReadCollectionPlans(),
-            'Premise: the running user can read collection plans, so the promise-to-pay query runs.');
+            'PRECONDITION: the running user can read collection plans, so the promise-to-pay query runs.');
         Account acc = new Account(Name = 'RLM Invoice Summary Promise Test');
         insert acc;
         // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises a case
@@ -237,26 +250,14 @@ private class RLM_InvoiceSummaryControllerTest {
         return record;
     }
 
-    // Sets the disputed amount on the dispute when the field is createable there; otherwise
-    // the amount comes from a dispute item, which the dispute totals.
+    // A dispute on a case; amount may be null, for a dispute with no disputed amount.
     private static SObject newDispute(Id accountId, Id caseId, Decimal amount) {
-        SObject dispute = Schema.getGlobalDescribe().get('Dispute').newSObject();
-        dispute.put('AccountId', accountId);
-        dispute.put('CaseId', caseId);
-        dispute.put('ReceivedDate', Date.today());
-        Schema.SObjectField disputedField = Schema.getGlobalDescribe().get('Dispute')
-            .getDescribe().fields.getMap().get('DisputedAmount');
-        Boolean onHeader = disputedField != null && disputedField.getDescribe().isCreateable();
-        if (amount != null && onHeader) {
-            dispute.put('DisputedAmount', amount);
-        }
-        insert dispute;
-        if (amount != null && !onHeader) {
-            newRecord('DisputeItem', new Map<String, Object>{
-                'DisputeId' => dispute.Id, 'TransactionDate' => Date.today(), 'DisputedAmount' => amount
-            });
-        }
-        return dispute;
+        return newRecord('Dispute', new Map<String, Object>{
+            'AccountId' => accountId,
+            'CaseId' => caseId,
+            'ReceivedDate' => Date.today(),
+            'DisputedAmount' => amount
+        });
     }
 
     // A billing role without collections can't read the collection plan link that the
