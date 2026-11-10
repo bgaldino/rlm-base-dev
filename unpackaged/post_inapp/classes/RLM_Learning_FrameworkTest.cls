@@ -1021,6 +1021,11 @@ private class RLM_Learning_FrameworkTest {
 
     Test.startTest();
     System.runAs(learnerUser) {
+      Assert.areEqual(
+        1,
+        RLM_Learning_SectionBlockSequence.getBlocksForSection(emptyId).size(),
+        'PRECONDITION: the learner can read the row it does not own.'
+      );
       try {
         RLM_Learning_SectionBlockSequence.updateSectionBlocks(emptyId, new List<String>{ blockId });
         Assert.fail(
@@ -1277,14 +1282,13 @@ private class RLM_Learning_FrameworkTest {
       'PermissionSet',
       ps.Id
     );
-    Assert.isTrue(
-      setupUrl.contains('&noredirect=1'),
-      'noredirect must be appended with & when the URL already has a query string: ' +
-        setupUrl
-    );
-    Assert.isFalse(
-      setupUrl.contains('?noredirect=1'),
-      'noredirect must not introduce a second "?": ' + setupUrl
+    Assert.areEqual(
+      System.Url.getOrgDomainUrl().toExternalForm() +
+        '/lightning/setup/PermSets/page?address=/' +
+        ps.Id +
+        '&noredirect=1',
+      setupUrl,
+      'noredirect must be appended with "&", not a second "?"'
     );
   }
 
@@ -1358,8 +1362,9 @@ private class RLM_Learning_FrameworkTest {
   // A well-formed Id with no site behind it is rejected in every org. When the
   // org also has an Experience Cloud site with a login URL (the prm flag deploys
   // the "rlm" site; the billing portal bundle deploys another), that site's
-  // base URL is an absolute prefix of its login URL with the "/s/..." login
-  // path removed. Otherwise the trimming check is skipped visibly (a WARN
+  // base URL is exactly its login URL up to "/s/", which keeps a site path
+  // prefix such as "/partners", or scheme://host when the login URL has no
+  // "/s/" segment. Otherwise the trimming check is skipped visibly (a WARN
   // debug line).
   @IsTest
   static void getSiteUrl_rejectsAMissingSite_andTrimsTheLoginPath_whenTheOrgHasASite() {
@@ -1400,9 +1405,21 @@ private class RLM_Learning_FrameworkTest {
 
     String siteUrl = RLM_Learning_DynamicLinkHelper.getSiteUrl(siteId);
 
-    Assert.isTrue(siteUrl.startsWith('http'), 'an absolute URL: ' + siteUrl);
-    Assert.isTrue(loginUrl.startsWith(siteUrl), 'a prefix of the login URL: ' + siteUrl);
-    Assert.isFalse(siteUrl.contains('/s/'), 'the login path is removed: ' + siteUrl);
+    Integer loginPathIndex = loginUrl.indexOf('/s/');
+    if (loginPathIndex > 0) {
+      Assert.areEqual(
+        loginUrl.substring(0, loginPathIndex),
+        siteUrl,
+        'the login URL up to "/s/", keeping any site path prefix (login URL: ' + loginUrl + ')'
+      );
+    } else {
+      Url parsed = new Url(loginUrl);
+      Assert.areEqual(
+        parsed.getProtocol() + '://' + parsed.getHost(),
+        siteUrl,
+        'scheme://host when the login URL has no "/s/" segment (login URL: ' + loginUrl + ')'
+      );
+    }
   }
 
   // ---- UserInformation -------------------------------------------------------
