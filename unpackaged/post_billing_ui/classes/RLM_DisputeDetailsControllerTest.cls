@@ -69,7 +69,8 @@ private class RLM_DisputeDetailsControllerTest {
         Test.stopTest();
 
         Assert.isNull(caught, 'Known gap: an unmatched item id is skipped and the save reports success. '
-            + 'Update this test when it is fixed. Caught: ' + caught?.getTypeName() + ': ' + caught?.getMessage());
+            + 'The save threw: either unknown ids are now reported (update this test) or the known item '
+            + 'failed to save. Caught: ' + caught?.getTypeName() + ': ' + caught?.getMessage());
         assertAmount(30, approvedAmount(itemIds[0]), 'The known item\'s approved amount is saved.');
     }
 

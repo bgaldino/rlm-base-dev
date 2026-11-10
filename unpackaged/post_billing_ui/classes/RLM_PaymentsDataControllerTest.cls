@@ -52,13 +52,9 @@ private class RLM_PaymentsDataControllerTest {
             RLM_PaymentsDataController.getPaymentScheduleItems(acc.Id, null);
         Test.stopTest();
 
-        RLM_PaymentsDataController.PaymentStatusSummary draft = null;
-        for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
-            if (s.status == 'Draft') { draft = s; }
-        }
-        System.assertNotEquals(null, draft, 'A Draft summary should be present.');
-        System.assertEquals(2, draft.itemCount, 'Two Draft items were seeded.');
-        System.assertEquals(150, draft.totalRequestedAmount, 'Draft requested total is 100 + 50.');
+        RLM_PaymentsDataController.PaymentStatusSummary draftSummary = draft(summaries);
+        System.assertEquals(2, draftSummary.itemCount, 'Two Draft items were seeded.');
+        System.assertEquals(150, draftSummary.totalRequestedAmount, 'Draft requested total is 100 + 50.');
     }
 
     // PaymentScheduleItem is Apex-createable, so the account-options aggregate (GROUP BY
@@ -217,8 +213,8 @@ private class RLM_PaymentsDataControllerTest {
 
     // An item linked to a payment shows that payment and its own amounts. The schedule is a
     // promise to pay on a collection plan, so the schedule-reference and payment-application
-    // lookups run for coverage; no invoice can exist in a unit test, so what they list is
-    // verified live.
+    // lookups run, and the plan reference listing no invoice is checked here. No invoice can
+    // exist in a unit test, so listing a real invoice is verified live only.
     @isTest
     static void getPaymentScheduleItems_showsTheItemsPayment() {
         Account acc = new Account(Name = 'RLM PSI Payment Test');
@@ -249,6 +245,8 @@ private class RLM_PaymentsDataControllerTest {
         RLM_PaymentsDataController.PaymentItemWrapper item = summary.items[0];
         Assert.areEqual(pmt.Id, item.paymentId, 'The item shows its payment.');
         Assert.isTrue(item.hasPayment, 'The item has a payment.');
+        Assert.isFalse(item.hasInvoices, 'A schedule referencing a collection plan lists no invoice.');
+        Assert.isTrue(item.invoices.isEmpty(), 'A schedule referencing a collection plan lists no invoice.');
         assertAmount(60, item.requestedAmount, 'The requested amount.');
         Assert.areEqual(Date.today(), item.targetDate, 'The target processing date.');
     }

@@ -1,10 +1,10 @@
 @isTest
 private class RLM_CollectionsConsoleControllerTest {
 
-    // Invoice and the downstream PaymentSchedule/CollectionPlanItem/Dispute records are
-    // system-managed and not insertable in Apex tests. With no qualifying invoices visible
-    // (SeeAllData=false), the worklist query returns empty and the dispute/schedule lookups
-    // are skipped — this verifies the method runs clean and returns a safe empty result.
+    // Invoice is system-managed and not insertable in Apex tests, and the schedule, plan-item and
+    // dispute lookups only run for the invoices found. With no qualifying invoices visible
+    // (SeeAllData=false), the worklist query returns empty and those lookups are skipped; this
+    // verifies the method runs clean and returns a safe empty result.
     @isTest
     static void getHighValueDelinquents_noData_returnsEmptyList() {
         Test.startTest();

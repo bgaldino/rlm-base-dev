@@ -14,7 +14,7 @@
  * Billing seat.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
- * 'Credit Memo', which are not Payment.Type values (Sale and Capture on a 264 org), so it is
+ * 'Credit Memo', which are not Payment.Type values (Sale and Capture), so it is
  * always zero. No record a test can create exercises that filter, so no test here would notice
  * a fix.
  */
@@ -188,8 +188,7 @@ private class RLM_CollectionsDashboardControllerTest {
         // Balance is maintained by the platform; only a positive balance is unapplied.
         Decimal expected = [SELECT Balance FROM Payment WHERE Id = :p.Id].Balance;
         Assert.isTrue(expected != null && expected > 0,
-            'PRECONDITION: a new processed payment carries its amount as a balance. Got ' + expected);
-        Integer expectedCount = 1;
+            'PRECONDITION: a new processed payment carries a positive balance. Got ' + expected);
         String otherCurrency = anotherCurrency(paymentCurrency);
         Assert.areEqual(paymentCurrency, [SELECT CurrencyIsoCode FROM Payment WHERE Id = :p.Id].CurrencyIsoCode,
             'PRECONDITION: the payment is in the corporate currency.');
@@ -205,7 +204,7 @@ private class RLM_CollectionsDashboardControllerTest {
             RLM_CollectionsDashboardController.getDashboardCards(payer.Id, otherCurrency);
         Test.stopTest();
 
-        Assert.areEqual(expectedCount, unfiltered.unappliedPaymentCount, 'The payment is counted when it has a balance.');
+        Assert.areEqual(1, unfiltered.unappliedPaymentCount, 'The payment is counted when it has a balance.');
 
         List<String> labels = new List<String>{ 'Unpaid Invoices', 'Debit Memos', 'Unapplied Credits', 'Unapplied Payments' };
         Assert.areEqual(labels.size(), unfiltered.totalBalanceBreakdown.size(), 'One breakdown row per balance component.');
@@ -260,6 +259,9 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(memoTotal != null && memoTotal > 0,
             'PRECONDITION: the Draft memo totals its line. Got ' + memoTotal);
         Assert.areEqual('Draft', saved.get('Status'), 'PRECONDITION: the memo is Draft.');
+        // The controller filters on BillToAccountId when DebitMemo has it, else on AccountId.
+        Assert.isFalse(Schema.getGlobalDescribe().get('DebitMemo').getDescribe().fields.getMap().containsKey('billtoaccountid'),
+            'PRECONDITION: DebitMemo has no BillToAccountId, so the controller filters on AccountId.');
         // The controller's debit memo clauses, in user mode, with Status = 'Draft' in place of
         // 'Posted': the query runs and finds the memo, so the fields are readable and the
         // controller's zero comes from its Status filter, not from a query error it swallowed.

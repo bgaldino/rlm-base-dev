@@ -2,14 +2,17 @@
  * Tests for RLM_BillingCaseMetricsController.
  *
  * Documented, not pinned: the open-billing-cases metric counts Case Type 'Billing', which the
- * CaseType value set this repo ships does not include. Case.Type is not a restricted picklist,
- * so a test (or an API load) can still create such a case, and the tests here do; but on a
+ * CaseType value set this repo ships does not include. Case.Type is unrestricted by default (see
+ * billingCaseTypeIsBlocked), so a test (or an API load) can still create such a case, and the
+ * tests here do; but on a
  * repo-built org no case created through the UI has that type, so the metric reads zero there.
  */
 @isTest
 private class RLM_BillingCaseMetricsControllerTest {
 
-    // With no Cases or Disputes, every aggregate resolves to zero. Dispute and its Status,
+    // With no Cases or Disputes, every metric reads zero for the running admin. The dispute
+    // reads may be refused and swallowed for the admin, so this does not show the dispute
+    // queries ran; getMetrics_asBillingRole_runsTheDisputeQueries does. Dispute and its Status,
     // DisputedAmount and InvoiceId fields are required by this bundle (RLM_BillingUIAccessTest
     // checks them).
     @isTest
@@ -30,9 +33,9 @@ private class RLM_BillingCaseMetricsControllerTest {
         assertAmount(0, (Decimal) result.get('totalDisputedAmount'), 'No disputes -> a zero disputed amount.');
     }
 
-    // Positive path for the open-billing-case count. Case.Type is not a restricted picklist, so an
-    // open Case of Type 'Billing' can be created even where the value is not listed (see the
-    // class header), and it is reflected in the metric.
+    // Positive path for the open-billing-case count. Case.Type is unrestricted by default (see
+    // billingCaseTypeIsBlocked), so an open Case of Type 'Billing' can be created even where the
+    // value is not listed (see the class header), and it is reflected in the metric.
     @isTest
     static void getMetrics_openBillingCase_isCounted() {
         if (billingCaseTypeIsBlocked()) {
@@ -47,7 +50,6 @@ private class RLM_BillingCaseMetricsControllerTest {
         System.assertEquals(1, (Integer) result.get('openBillingCases'),
             'One open Type=Billing case should be counted.');
     }
-
 
     // Dispute is createable, so the dispute aggregates count real open disputes and sum their
     // amounts, read by a Billing Operations user who owns them (see billingUser). SUM is
@@ -97,38 +99,6 @@ private class RLM_BillingCaseMetricsControllerTest {
             System.debug(LoggingLevel.WARN, 'SKIPPED: ungrouped currency aggregate depends on the running '
                 + 'user\'s currency matching the corporate currency');
         }
-    }
-
-    // Dispute reads run as a Billing Operations user holding RLM_BillingUI rather than the
-    // deploying admin: the admin's Dispute field access comes from RLM_RCB, which a build only
-    // recalculates after this bundle deploys. The user takes a Billing seat for the test.
-    private static User billingUser() {
-        return RLM_BillingUITestUsers.create(
-            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
-            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
-    }
-
-    // True, with a visible skip, only where Case.Type is restricted and lacks 'Billing', so a
-    // Billing case cannot be inserted. Case.Type is unrestricted by default.
-    private static Boolean billingCaseTypeIsBlocked() {
-        Schema.DescribeFieldResult typeField = Case.Type.getDescribe();
-        if (!typeField.isRestrictedPicklist()) {
-            return false;
-        }
-        for (Schema.PicklistEntry entry : typeField.getPicklistValues()) {
-            if (entry.isActive() && entry.getValue() == 'Billing') {
-                return false;
-            }
-        }
-        System.debug(LoggingLevel.WARN, 'SKIPPED: Case.Type is restricted and has no Billing value, so a '
-            + 'Billing case cannot be created.');
-        return true;
-    }
-
-    // Compares amounts by value, so 150 and 150.00 match.
-    private static void assertAmount(Decimal expected, Decimal actual, String message) {
-        Assert.isTrue(actual != null && actual == expected,
-            message + ' Expected ' + expected + ', got ' + actual + '.');
     }
 
     // A user who cannot query Dispute does not see an open dispute: the dispute seeded here is
@@ -215,9 +185,7 @@ private class RLM_BillingCaseMetricsControllerTest {
     // whether or not they run. As a billing role, which can read Dispute, they must run clean.
     @isTest
     static void getMetrics_asBillingRole_runsTheDisputeQueries() {
-        User u = RLM_BillingUITestUsers.create(
-            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
-            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        User u = billingUser();
         // Each field gates part of the dispute logic: one the user can't see skips that part
         // without an error, so all three are checked first.
         // getMap() keys are lowercase.
@@ -229,5 +197,37 @@ private class RLM_BillingCaseMetricsControllerTest {
         Assert.isTrue(hidden.isEmpty(), 'Premise: Billing Operations can read Dispute fields, but not ' + hidden);
         Assert.isNull(RLM_BillingCaseMetricsController.lastDisputeQueryError,
             'Dispute query failed: ' + RLM_BillingCaseMetricsController.lastDisputeQueryError);
+    }
+
+    // Dispute reads run as a Billing Operations user holding RLM_BillingUI rather than the
+    // deploying admin: the admin's Dispute field access comes from RLM_RCB, which a build only
+    // recalculates after this bundle deploys. The user takes a Billing seat for the test.
+    private static User billingUser() {
+        return RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+    }
+
+    // True, with a visible skip, only where Case.Type is restricted and lacks 'Billing', so a
+    // Billing case cannot be inserted. Case.Type is unrestricted by default.
+    private static Boolean billingCaseTypeIsBlocked() {
+        Schema.DescribeFieldResult typeField = Case.Type.getDescribe();
+        if (!typeField.isRestrictedPicklist()) {
+            return false;
+        }
+        for (Schema.PicklistEntry entry : typeField.getPicklistValues()) {
+            if (entry.isActive() && entry.getValue() == 'Billing') {
+                return false;
+            }
+        }
+        System.debug(LoggingLevel.WARN, 'SKIPPED: Case.Type is restricted and has no Billing value, so a '
+            + 'Billing case cannot be created.');
+        return true;
+    }
+
+    // Compares amounts by value, so 150 and 150.00 match.
+    private static void assertAmount(Decimal expected, Decimal actual, String message) {
+        Assert.isTrue(actual != null && actual == expected,
+            message + ' Expected ' + expected + ', got ' + actual + '.');
     }
 }
