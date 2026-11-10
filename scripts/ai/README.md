@@ -520,7 +520,10 @@ remain at every call site that bypasses `run()` — `changed_files()` caught onl
 
 Adding a guard per call site is what failed twice, so git now has one door: **`git(args,
 purpose)`** dies on a spawn failure and on a non-zero exit, and a test refuses a raw
-`subprocess.run` in any function other than the three that own a guard. A **timeout** deliberately
+`subprocess.run` in any function other than the three that own a guard. The one exception is
+`fatal=False`, which returns `None` on either failure instead. It exists for the config guard,
+which fails a changed config closed (with its diff) when git cannot read a snapshot or list the
+local branches. `None` is never mistaken for an empty answer. A **timeout** deliberately
 stays a check failure: a check that hangs is a property of the change under test, unlike an
 interpreter that will not start.
 
@@ -616,7 +619,7 @@ one ran, because no optional dependency was missing; a machine blocked on one (`
 The two always-run checks added since: `private_refs` (one `git grep` of the private-tree
 citations) takes under a second, and `dockerignore` about three (measured 2026-11-10).
 
-Verified by `tests/test_pr_gate.py` (779 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (839 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -1408,7 +1411,7 @@ anywhere between the changed-file list and the selected list shows up as a check
 compared, not its last word; and the payload is checked under both selectors. Two survivors admit no
 behavioural refutation at all — `os.path.isdir("/opt/hostedtoolcache")` is true on a runner and false
 everywhere else, so no local observation contradicts it. For those the answer is a smaller surface rather
-than a cleverer rule: the three regions that decide a verdict are fingerprinted, and any edit to them
+than a cleverer rule: the four regions that decide a verdict are fingerprinted, and any edit to them
 fails until a reader re-approves it, on the same reasoning as `EXPECTED`. The general lesson is the one
 the sweep corpus was built on and had never been applied here: a rule about an artifact needs a mutation
 of that artifact to have any evidence behind it, and for twenty-two waves the artifact under test was the
