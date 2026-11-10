@@ -2,8 +2,9 @@
 private class RLM_InvoiceSummaryControllerTest {
 
     // Checks that, as the admin, the summary for an account with no billing records returns
-    // zeros. It does not prove the reads run (with no cases the dispute query is skipped);
-    // the role tests below, run as billing users, do.
+    // zeros. It does not show the reads run (with no cases the dispute query is skipped). The
+    // dispute and promise-to-pay tests below, run as billing users after USER_MODE probes, show
+    // their reads run; the two role tests show the summary loads for each role.
     @isTest
     static void getInvoiceSummary_accountWithNoBilling_returnsZeroedSummary() {
         Account acc = new Account(Name = 'RLM Invoice Summary Test');

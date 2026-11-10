@@ -73,6 +73,9 @@ private class RLM_OnAccountBillingControllerTest {
     // A second active currency with an effective rate different from the corporate one comes
     // from a pricing data plan (qb, q3 or mfg); without one the test is skipped, visibly,
     // rather than failing the deploy.
+    // Not covered: the controller's standard-rate undo step. This corporate-to-foreign direction
+    // never exercises it, because the corporate rate is 1; and without advanced currency
+    // management the undo and the re-conversion cancel for any direction.
     @isTest
     static void getBillingSummary_paymentIsConvertedToTheAccountCurrency_whenASecondCurrencyIsActive() {
         String corporate = corporateCurrency();
@@ -117,10 +120,6 @@ private class RLM_OnAccountBillingControllerTest {
         Assert.areEqual(-actual, (Decimal) result.get('netAccountBalance'),
             'The converted payment balance is subtracted from the net balance.');
     }
-
-    // Without advanced currency management the standard-rate undo and the re-conversion cancel,
-    // so a test can catch only a one-sided error here; dropping both is indistinguishable from
-    // correct.
 
     // When the account and the payment share a non-corporate currency, correctConversion
     // returns early (the currencies match), so the corporate-converted SUM is shown as if it

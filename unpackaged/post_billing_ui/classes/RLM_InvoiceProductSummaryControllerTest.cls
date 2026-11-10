@@ -154,8 +154,8 @@ private class RLM_InvoiceProductSummaryControllerTest {
     }
 
     // An asset with no state period has no attributes to show: the helper stops after the
-    // state-period query and returns no entry for it. The account, and the asset where the org
-    // exposes an asset owner, are owned by the billing operations user.
+    // state-period query and returns no entry for it. The billing operations user owns the
+    // account, and owns the asset only when Asset has an OwnerId field (newAssetOwnedBy checks).
     @isTest
     static void resolveAssetAttributes_assetWithoutStatePeriods_returnsNoEntry() {
         User u = billingOperationsUser();
@@ -181,9 +181,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
 
     // Once a state period exists, the helper runs the attribute query too. With no
     // AssetStatePeriodAttribute rows it still returns no entry: an asset only appears once it
-    // has an attribute. The account, and the asset where the org exposes an asset owner, are
-    // owned by the billing operations user; the state period has no owner, so its visibility
-    // to that user is checked.
+    // has an attribute. The billing operations user owns the account, and owns the asset only
+    // when Asset has an OwnerId field (newAssetOwnedBy checks). The state period has no owner to
+    // set, so the test checks that the user can see it.
     @isTest
     static void resolveAssetAttributes_statePeriodWithoutAttributes_returnsNoEntry() {
         User u = billingOperationsUser();
