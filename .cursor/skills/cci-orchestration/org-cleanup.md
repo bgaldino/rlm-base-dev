@@ -172,15 +172,18 @@ Do not run `apply` while another `sf` or `cci` process is running: an sf command
 removed deploy-cache entries back. sf writes the cache under its own lock
 (`deploy-cache.json.lock`, refreshed while held; one not refreshed for 10 seconds is abandoned).
 `apply` does not take it. If an sf command holds it when `apply` starts and deploy jobs are planned,
-`apply` stops before any logout (exit 1); if one takes it before the cache is written, the cache is
-left as it is and each job whose manifest already moved to the quarantine is named.
+`apply` stops before any logout (exit 1). Just before the write it checks again, and re-reads the
+cache: if an sf command holds the lock or has changed the cache since `apply` read it, the cache is
+left as it is and each job whose manifest already moved to the quarantine is named. A write sf makes
+in the instant between that check and the rewrite is not seen.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
 reviewed one: its project, every removal, each logout's org and the aliases and config keys it
 clears, and the value and orgs each alias, default, deploy job and file reaches. It does not run
 `cci`. A plan file it cannot read stops the run with exit 1 before any
 query; an unreadable state folder stops it with exit 1 before anything changes. Before any
-logout, if the plan moves files, it checks the quarantine (no linked root or folder, no file
+logout, if the plan moves files, it checks that it can move them out of their folders (write
+access, which a `sudo sf` can take away) and checks the quarantine (no linked root or folder, no file
 where a folder belongs) and moves a temp file in, and exits 1 if that fails. The quarantine is a
 dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the Docker
 image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder, which must be

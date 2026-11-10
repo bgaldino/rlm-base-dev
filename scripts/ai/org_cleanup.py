@@ -1035,6 +1035,7 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))
         return 0, 0
+    original = dict(cache)  # what an sf write in the meantime would change
     try:  # checked before any manifest moves, with the write's own encoder
         json.dumps(cache, indent=4, allow_nan=False)
     except (ValueError, RecursionError):
@@ -1065,8 +1066,8 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
             done["manifests"] = done.get("manifests", 0) + 1
         del cache[job]
         removed += 1
-    if removed and lock_held(path.with_name(path.name + ".lock")):
-        failures.append((str(path), "not written: an sf command took its lock meanwhile"))
+    if removed and (lock_held(path.with_name(path.name + ".lock")) or read_json(path, None) != original):
+        failures.append((str(path), "not written: an sf command holds its lock or changed it meanwhile"))
         kept_entries()
         return 0, moved
     if removed:
@@ -1328,7 +1329,10 @@ def write_private(path, text):
     """Write a file only the user can read, from the first byte, and never through a symlink."""
     if os.path.islink(str(path)):  # O_NOFOLLOW is missing on some platforms, so do not rely on it alone
         raise OSError(errno.ELOOP, "is a symlink")
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+    info = lstat_or_none(path)
+    if info is not None and not stat.S_ISREG(info.st_mode):  # a FIFO would block the open; a device take the plan
+        raise OSError(errno.EINVAL, "is not a regular file")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
     fd = os.open(str(path), flags, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
         if hasattr(os, "fchmod"):  # a file that already existed keeps its old mode; POSIX only
@@ -1428,6 +1432,13 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
         return 3
     moves = any(plan["remove"][key] for key in FILE_KEYS + ("deploy_jobs",))
     if moves:
+        sources = {Path(item).parent for key in FILE_KEYS for item in plan["remove"][key]}
+        sources |= {home / ".sf" / "manifestCache"} if plan["remove"]["deploy_jobs"] else set()
+        stuck = sorted(str(d) for d in sources if os.path.isdir(str(d)) and not os.access(str(d), os.W_OK | os.X_OK))
+        if stuck:
+            print("Stopped before any logout; nothing was changed. Files cannot be moved out of {} (no write "
+                  "access); fix their ownership, then apply again.".format(", ".join(stuck)), file=sys.stderr)
+            return 1
         why = check_quarantine(quarantine, home)
         if why:
             print("Stopped before any logout; nothing was changed. Cannot move files into {}: {}. "

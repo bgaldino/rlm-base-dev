@@ -2795,7 +2795,7 @@ class PathsAndManifests(Base):
             self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertIn("job1", self.read_cache())  # not written while sf holds its lock
         self.assertTrue(lock.is_dir())
-        self.assertIn("not written: an sf command took its lock meanwhile", self.stdout.getvalue())
+        self.assertIn("not written: an sf command holds its lock or changed it meanwhile", self.stdout.getvalue())
         self.assertIn("job1 (manifest is in the quarantine, but its cache entry was kept)", self.stdout.getvalue())
 
     def test_a_cache_that_cannot_be_written_names_the_jobs_whose_manifests_moved(self):
@@ -2804,6 +2804,40 @@ class PathsAndManifests(Base):
         with mock.patch.object(oc, "replace_json", side_effect=OSError(errno.ENOSPC, "No space left on device")):
             self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertIn("job1 (manifest is in the quarantine, but its cache entry was kept)", self.stdout.getvalue())
+
+    def test_a_cache_sf_changed_since_it_was_read_is_left_alone(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        cache_file, real = self.home / ".sf" / "deploy-cache.json", oc.move_to_quarantine
+
+        def sf_writes_meanwhile(*args, **kwargs):
+            if str(args[1]).endswith(".xml"):  # an sf deploy took the lock, added its job, released it
+                cache = json.loads(cache_file.read_text())
+                cache["0AfNEW000000001"] = {"target-org": HUB}
+                cache_file.write_text(json.dumps(cache))
+            return real(*args, **kwargs)
+
+        with mock.patch.object(oc, "move_to_quarantine", side_effect=sf_writes_meanwhile):
+            self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("0AfNEW000000001", self.read_cache())
+        self.assertIn("changed it meanwhile", self.stdout.getvalue())
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write anywhere")
+    def test_a_folder_files_cannot_leave_stops_the_run_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        orgs = self.project / ".sf" / "orgs"
+        orgs.chmod(0o500)
+        self.addCleanup(orgs.chmod, 0o755)
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("cannot be moved out of", self.stderr.getvalue())
+        self.assertEqual(self.logouts(cli), [])
+
+    def test_the_plan_is_never_written_into_a_fifo(self):
+        fifo = self.home.parent / "plan.fifo"
+        os.mkfifo(str(fifo))
+        self.assertEqual(self.main(["audit", "--out", str(fifo)], FakeCli(self.home)), 1)
+        self.assertIn("is not a regular file", self.stderr.getvalue())
 
     def test_an_unreadable_plan_stops_before_any_query(self):
         cli = FakeCli(self.home)
