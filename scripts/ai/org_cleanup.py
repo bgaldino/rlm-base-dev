@@ -202,6 +202,15 @@ def lstat_or_none(path):
         return None
 
 
+def opens_same_file(a, b):
+    """Whether two spellings open one file, as they do on a case- and normalization-insensitive
+    filesystem; False when either opens nothing."""
+    try:
+        return os.path.samefile(str(a), str(b))
+    except (OSError, ValueError):
+        return False
+
+
 def is_link(path):
     info = lstat_or_none(path)
     return bool(info) and stat.S_ISLNK(info.st_mode)
@@ -558,8 +567,10 @@ def survey(run, home, project, today, predict=True, env=None):
                            "list` reports; fix the file, then audit again")
 
     # sf opens `~/.sfdx/<name>.json`, which a case- and normalization-insensitive filesystem (APFS)
-    # finds whatever the spelling, so names are compared folded; on a case-sensitive one that is only
-    # more cautious. A name is in doubt when it may mean a login the tool cannot read or tie to one org.
+    # finds whatever the spelling, so names are compared folded. A spelling that differs from the
+    # file's means that login only where it opens the same file; on a case-sensitive filesystem it
+    # opens nothing, so it is in doubt. A name is in doubt when it may mean a login the tool cannot
+    # read or tie to one org.
     folded, doubt = {}, {}
     for name in sorted(logins) + sorted(unread):
         folded.setdefault(fold(name), []).append(name)
@@ -583,7 +594,12 @@ def survey(run, home, project, today, predict=True, env=None):
         if key in doubt or ("@" in text and beyond_tables(text)):  # only a name with "@" names a login file
             return DOUBT
         names = folded.get(key)
-        return names[0] if names else None
+        if not names:
+            return None
+        sfdx = home / ".sfdx"
+        if names[0] != text and not opens_same_file(sfdx / (text + ".json"), sfdx / (names[0] + ".json")):
+            return DOUBT
+        return names[0]
 
     cci = read_cci(run) if predict else None
     indexes = read_indexes(home)
@@ -1346,14 +1362,20 @@ def print_plan(plan):
 
 
 def write_private(path, text):
-    """Write a file only the user can read, from the first byte, and never through a symlink."""
+    """Write a file only the user can read, from the first byte, never through a symlink, and never
+    into a file with other hard links, which would rewrite whatever else that file is."""
     if os.path.islink(str(path)):  # O_NOFOLLOW is missing on some platforms, so do not rely on it alone
         raise OSError(errno.ELOOP, "is a symlink")
     info = lstat_or_none(path)
     if info is not None and not stat.S_ISREG(info.st_mode):  # a FIFO would block the open; a device take the plan
         raise OSError(errno.EINVAL, "is not a regular file")
-    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
-    fd = os.open(str(path), flags, 0o600)
+    flags = os.O_WRONLY | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    fd = os.open(str(path), flags, 0o600)  # not O_TRUNC: what was opened is checked before it is emptied
+    opened = os.fstat(fd)
+    if not stat.S_ISREG(opened.st_mode) or opened.st_nlink > 1:
+        os.close(fd)
+        raise OSError(errno.EINVAL, "is not a regular file with a single name")
+    os.ftruncate(fd, 0)
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
         if hasattr(os, "fchmod"):  # a file that already existed keeps its old mode; POSIX only
             os.fchmod(handle.fileno(), 0o600)

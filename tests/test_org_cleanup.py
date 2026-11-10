@@ -154,6 +154,9 @@ class FakeCli:
         return self.ok([user])
 
 
+REAL_OPENS_SAME_FILE = oc.opens_same_file  # Base replaces it with a model of the filesystem
+
+
 class Base(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
@@ -168,6 +171,15 @@ class Base(unittest.TestCase):
         self.add_auth(HUB, "00DHUB000000001", isDevHub=True)
         self.quarantine = root / "quarantine"
         self.env = {}  # never the developer's own SF_* variables
+        # Model macOS's default APFS, where any spelling of a login file's name opens it, whatever
+        # filesystem the suite runs on; case_sensitive() switches to Linux's behaviour.
+        apfs = mock.patch.object(oc, "opens_same_file", side_effect=lambda a, b: (
+            oc.fold(str(a)) == oc.fold(str(b)) and os.path.lexists(str(b))))
+        apfs.start()
+        self.addCleanup(apfs.stop)
+
+    def case_sensitive(self):
+        return mock.patch.object(oc, "opens_same_file", side_effect=lambda a, b: str(a) == str(b) and os.path.lexists(str(b)))
 
     def add_auth(self, user, org, **fields):
         data = dict(username=user, orgId=org + "MAA", refreshToken=CANARY, accessToken=CANARY)
@@ -530,6 +542,27 @@ class Names(Base):
         plan = self.plan(cli)
         self.assertEqual(plan["remove"]["aliases"], ["live@x.invalid"])
         self.assertEqual(plan["remove"]["defaults"], [])
+
+    def test_on_a_case_sensitive_filesystem_another_spelling_is_in_doubt_not_the_login(self):
+        # sf cannot open Rep@x.invalid.json for "rep@x.invalid" there, so its org is no evidence.
+        (self.home / ".sfdx" / "Rep@x.invalid.json").write_text(
+            json.dumps({"username": "Rep@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        (self.project / ".sf" / "orgs" / "rep@x.invalid").mkdir()
+        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "rep@x.invalid"}}))
+        cli = FakeCli(self.home, [row(DEAD_ORG)], {"r": "rep@x.invalid"})
+        with self.case_sensitive():
+            remove = self.plan(cli)["remove"]
+        self.assertEqual(remove["logout"], ["Rep@x.invalid"])
+        for key in ("aliases", "tracking", "deploy_jobs"):
+            self.assertEqual(remove[key], [], key)
+        self.assertEqual(self.plan(cli)["remove"]["aliases"], ["r"])  # on APFS the name opens that login
+
+    def test_the_same_file_check_follows_the_filesystem(self):
+        login = self.home / ".sfdx" / (HUB + ".json")
+        other = self.home / ".sfdx" / (HUB.upper() + ".json")
+        self.assertTrue(REAL_OPENS_SAME_FILE(login, login))
+        self.assertEqual(REAL_OPENS_SAME_FILE(other, login), os.path.lexists(str(other)))  # APFS or not
+        self.assertFalse(REAL_OPENS_SAME_FILE(self.home / ".sfdx" / "a\0b.json", login))
 
     def test_a_case_variant_name_reaches_the_live_login(self):
         # On a case-insensitive filesystem sf opens bob's file for "Bob@x.invalid".
@@ -2897,6 +2930,20 @@ class PathsAndManifests(Base):
         self.assertEqual(self.apply(cli, self.audit_file(cli)), 0)
         self.assertIn("Moved {} -> {}".format(self.index, self.quarantine / ".sfdx" / self.index.name),
                       self.stdout.getvalue())
+
+    def test_the_plan_is_never_written_into_a_file_with_another_name(self):
+        project_file = self.project / "sfdx-project.json"
+        linked = self.home.parent / "plan.json"
+        os.link(str(project_file), str(linked))  # a hard link outside the project to its configuration
+        self.assertEqual(self.main(["audit", "--out", str(linked)], FakeCli(self.home)), 1)
+        self.assertIn("single name", self.stderr.getvalue())
+        self.assertEqual(project_file.read_text(), "{}\n")
+
+    def test_an_existing_plan_file_is_replaced_whole(self):
+        out = self.home.parent / "plan.json"
+        out.write_text("x" * 100000)
+        self.assertEqual(self.main(["audit", "--out", str(out)], FakeCli(self.home)), 0)
+        json.loads(out.read_text())  # nothing of the old content is left after the plan
 
     @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX only")
     def test_the_plan_is_never_written_into_a_fifo(self):

@@ -62,7 +62,8 @@ preserves anything that model cannot explain:
 - **A login file is found by name**, and macOS's default (case-insensitive) APFS ignores case and
   Unicode normalization, so usernames are compared without regard to either. A name holding `@` with
   characters this Python's Unicode tables do not know is in doubt, since the filesystem may fold them. On a
-  case-sensitive filesystem (Linux, the Docker image) that only makes the tool more cautious.
+  case-sensitive filesystem (Linux, the Docker image) a name spelled differently from a login file's
+  opens nothing, so it is in doubt and whatever uses it is kept.
 - **A config scope** (`global`, or `local` for the project) is `.sf/config.json` merged with
   `.sfdx/sfdx-config.json`, and sf rewrites both files on any change. The tool acts on a scope
   only when that merge is unambiguous; otherwise it reports why under `unmodelled_config`.
@@ -106,7 +107,8 @@ login on a removable org is logged out only if nothing in `protected` keeps it.
 It removes nothing, though `cci` writes a `.org` file for any declared shape that lacks one,
 and a hub query can refresh that hub's auth file. The plan holds usernames but no tokens, and
 is created readable only by the user. It refuses a plan path inside the project, `~/.sf` or `~/.sfdx`
-(exit 2), and will not write through a symlink (exit 1, after printing the plan). The audit exits 0 even when `hub_failures` is not empty: read its warning lines. `Dev Hubs: 0` with a "NO CONNECTED DEV HUB"
+(exit 2), and will not write through a symlink or into a file with another hard link (exit 1,
+after printing the plan). The audit exits 0 even when `hub_failures` is not empty: read its warning lines. `Dev Hubs: 0` with a "NO CONNECTED DEV HUB"
 warning means no hub was queried, so an empty plan is not evidence that the state is clean;
 authorize the hub with `isDevHub` set and audit again.
 
