@@ -68,15 +68,17 @@ private class RLM_OnAccountBillingControllerTest {
     // converts it into the account's currency at the dated rate (the standard rate when there
     // are no dated rates). A corporate-currency payment on an account in another currency must
     // come back in the account's currency at that rate. The expected rates are read as the
-    // billing user, the way the controller reads them.
-    // A second active currency comes from a pricing data plan (qb, q3 or mfg); without one the
-    // test is skipped, visibly, rather than failing the deploy.
+    // billing user, in USER_MODE.
+    // A second active currency with an effective rate different from the corporate one comes
+    // from a pricing data plan (qb, q3 or mfg); without one the test is skipped, visibly,
+    // rather than failing the deploy.
     @isTest
     static void getBillingSummary_paymentIsConvertedToTheAccountCurrency_whenASecondCurrencyIsActive() {
         String corporate = corporateCurrency();
-        // The currency is picked from the active currencies the admin reads, so a rate table
-        // the billing user cannot read fails the precondition below instead of skipping.
-        String foreign = foreignCurrency(activeRates(), corporate);
+        // The currency is picked from the effective rates the admin reads (dated if any, else
+        // standard), so a rate table the billing user cannot read fails the precondition below
+        // instead of skipping.
+        String foreign = foreignCurrency(effectiveRates(AccessLevel.SYSTEM_MODE), corporate);
         if (foreign == null) {
             System.debug(LoggingLevel.WARN, SKIP_NO_SECOND_CURRENCY);
             return;
@@ -135,6 +137,8 @@ private class RLM_OnAccountBillingControllerTest {
         Test.stopTest();
 
         Decimal actual = (Decimal) result.get('paymentBalance');
+        Assert.areEqual(foreign, (String) result.get('currencyIsoCode'),
+            'PRECONDITION: the summary is labelled in the account\'s (non-corporate) currency.');
         Assert.isTrue(Math.abs(actual - corporateSum) < 0.01,
             'Known gap: correctConversion returns the corporate-converted SUM when the account and payment '
             + 'share a non-corporate currency; update this test when it is fixed. Expected ~' + corporateSum
@@ -174,15 +178,12 @@ private class RLM_OnAccountBillingControllerTest {
     @isTest
     static void getBillingSummary_billingOperationsUser_runsEveryBalanceQuery() {
         User u = billingOperationsUser();
-        User collections = collectionsUser();
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Role Test', null);
-        // A collection plan a collections user sees, so "not in collections" for this role comes
-        // from its access, not from the account. No CollectionPlanReason (see above).
-        insert new CollectionPlan(AccountId = acc.Id, OwnerId = collections.Id);
-        System.runAs(collections) {
-            Assert.areEqual(true, (Boolean) RLM_OnAccountBillingController.getBillingSummary(acc.Id).get('inCollections'),
-                'PRECONDITION: for a collections user, the account is in collections.');
-        }
+        // A collection plan on the account, so "not in collections" for this role comes from its
+        // access, not from the account. No CollectionPlanReason (see above).
+        insert new CollectionPlan(AccountId = acc.Id);
+        Assert.areEqual(1, [SELECT COUNT() FROM CollectionPlan WHERE AccountId = :acc.Id],
+            'PRECONDITION: the account has a collection plan.');
 
         Map<String, String> readErrors = new Map<String, String>();
         String collectionPlanError;
@@ -191,6 +192,10 @@ private class RLM_OnAccountBillingControllerTest {
         Test.startTest();
         System.runAs(u) {
             Map<String, String> probes = new Map<String, String>{
+                'Account' => 'SELECT Id, CurrencyIsoCode FROM Account LIMIT 1',
+                'CurrencyType' => 'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true LIMIT 1',
+                'DatedConversionRate' => 'SELECT IsoCode, ConversionRate FROM DatedConversionRate '
+                    + 'WHERE StartDate <= TODAY AND NextStartDate > TODAY LIMIT 1',
                 'Invoice' => 'SELECT Id, Balance, TotalAmountWithTax, DueDate, Status, BillingAccountId, CurrencyIsoCode FROM Invoice LIMIT 1',
                 'DebitMemo' => 'SELECT Id, TotalChargeAmount, AccountId, Status, InvoiceGenerationStatus, CurrencyIsoCode FROM DebitMemo LIMIT 1',
                 'CreditMemo' => 'SELECT Id, Balance, BillingAccountId, Status, CurrencyIsoCode FROM CreditMemo LIMIT 1',
@@ -213,9 +218,13 @@ private class RLM_OnAccountBillingControllerTest {
 
         Assert.isTrue(readErrors.isEmpty(), 'PRECONDITION: the summary\'s reads run for this role: ' + readErrors);
         Assert.isNotNull(collectionPlanError, 'PRECONDITION: this role cannot read collection plans.');
-        // The readErrors probes above prove the reads succeed. This bound only shows the summary
-        // did not short-circuit: the account currency and the standard and dated rates (this
-        // bundle is multi-currency only), the five balance aggregates and seven status reads.
+        // The probes above prove each of these reads succeeds for this role, and the summary
+        // runs all fifteen: the account currency, the standard rates, the dated rates (this
+        // bundle is multi-currency only), the five balance aggregates (invoice, debit memo,
+        // credit memo, payment, refund) and seven status reads (posted, overdue, delinquent,
+        // partially paid, open with balance, written off, disputes). Its sixteenth read, the
+        // collection plan count, throws for this role and is not counted: a query rejected for
+        // an unsupported object does not count toward the query limit.
         Assert.isTrue(summaryQueries >= 15,
             'The summary runs its balance and status reads; it ran ' + summaryQueries + ' queries.');
 
@@ -308,32 +317,40 @@ private class RLM_OnAccountBillingControllerTest {
         return rates;
     }
 
-    // The rates the controller converts with, read the way it reads them: as the given user, in
-    // USER_MODE, an unreadable rate table treated as empty, and the standard rates used when
-    // there are no dated rates for today.
+    // The effective rates as the given user reads them in USER_MODE: dated rates for today if
+    // there are any, else the standard rates (the controller's rule). Only QueryException is
+    // caught: an unreadable rate table leaves its map empty, so the caller's precondition on
+    // the rates it needs fails the test rather than letting it pass on default rates.
     private static Map<String, Decimal> controllerRatesAs(User u) {
+        Map<String, Decimal> rates;
+        System.runAs(u) {
+            rates = effectiveRates(AccessLevel.USER_MODE);
+        }
+        return rates;
+    }
+
+    // Dated rates for today if there are any, else the standard rates, read at the given level.
+    private static Map<String, Decimal> effectiveRates(AccessLevel level) {
         Map<String, Decimal> standard = new Map<String, Decimal>();
         Map<String, Decimal> dated = new Map<String, Decimal>();
-        System.runAs(u) {
-            try {
-                for (SObject ct : Database.query(
-                    'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true', AccessLevel.USER_MODE
-                )) {
-                    standard.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
-                }
-            } catch (QueryException e) {
-                System.debug(LoggingLevel.INFO, 'Standard rates unreadable, as in the controller: ' + e.getMessage());
+        try {
+            for (SObject ct : Database.query(
+                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true', level
+            )) {
+                standard.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
             }
-            try {
-                for (SObject dcr : Database.query(
-                    'SELECT IsoCode, ConversionRate FROM DatedConversionRate '
-                    + 'WHERE StartDate <= TODAY AND NextStartDate > TODAY', AccessLevel.USER_MODE
-                )) {
-                    dated.put((String) dcr.get('IsoCode'), (Decimal) dcr.get('ConversionRate'));
-                }
-            } catch (QueryException e) {
-                System.debug(LoggingLevel.INFO, 'Dated rates unreadable, as in the controller: ' + e.getMessage());
+        } catch (QueryException e) {
+            System.debug(LoggingLevel.INFO, 'Standard rates unreadable: ' + e.getMessage());
+        }
+        try {
+            for (SObject dcr : Database.query(
+                'SELECT IsoCode, ConversionRate FROM DatedConversionRate '
+                + 'WHERE StartDate <= TODAY AND NextStartDate > TODAY', level
+            )) {
+                dated.put((String) dcr.get('IsoCode'), (Decimal) dcr.get('ConversionRate'));
             }
+        } catch (QueryException e) {
+            System.debug(LoggingLevel.INFO, 'Dated rates unreadable: ' + e.getMessage());
         }
         return dated.isEmpty() ? standard : dated;
     }

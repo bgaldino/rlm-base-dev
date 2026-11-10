@@ -48,9 +48,9 @@ private class RLM_SplitInvoicesControllerTest {
         System.assertEquals(0, result.arrangementNames.size(), 'Null arrangement ids resolve to an empty map.');
     }
 
-    // Contacts resolve by name, and an object with no Name field (Case) yields an empty map
-    // instead of failing the other lists. The Case id need not exist: the query fails on the
-    // Name column, not on the record.
+    // Contacts resolve by name, and a list of an object with no Name field (Case) does not stop
+    // the lists after it: its query fails on the Name column (the Case id need not exist), and
+    // the contact list, resolved after it, still resolves.
     @isTest
     static void getRelatedNames_resolvesContactsAndToleratesNamelessObjects() {
         Account acc = new Account(Name = 'RLM Split Invoices Contact Test');
@@ -70,8 +70,7 @@ private class RLM_SplitInvoicesControllerTest {
             'The account resolves by name.');
         Assert.areEqual(contactName, result.contactNames.get(con.Id),
             'The contact list, resolved after the failing Case list, still resolves to its full name.');
-        Assert.isTrue(result.profileNames.isEmpty(),
-            'An object without a Name field resolves to an empty map rather than an error.');
+        Assert.isTrue(result.profileNames.isEmpty(), 'The Case list resolves no names.');
     }
 
     // A list holding only blank ids resolves to an empty map without running a query.
@@ -183,7 +182,7 @@ private class RLM_SplitInvoicesControllerTest {
         Test.stopTest();
         Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read Invoice.');
         Assert.isTrue(listThrew, 'An unreadable invoice query must surface as an AuraHandledException.');
-        Assert.isNotNull(info, 'The billing info call does not throw for a user who cannot read Invoice.');
+        Assert.isNull(info.billingArrangementName, 'No arrangement resolves for a user who cannot read Invoice.');
     }
 
     private static Id fakeId(String objectName, Integer n) {

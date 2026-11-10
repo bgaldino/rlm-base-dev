@@ -156,9 +156,9 @@ private class RLM_InvoiceSummaryControllerTest {
     // Promise to pay: a draft payment schedule item under a collection plan item of the
     // account's collection plan counts, at its requested amount.
     // PaymentSchedule.CollectionPlanItemId is not named in this bundle's metadata, and the
-    // controller only reads it by name behind a field check, so it is set by name here. The
-    // canReadCollectionPlans() precondition below guards it: it fails when the field is missing.
-    // The payment schedule sets only what the promise-to-pay query reads.
+    // controller only reads it by name behind a field check, so it is set by name here, after
+    // a precondition that the field exists. Besides it, the payment schedule sets only its
+    // required Status and TotalRequestedAmount.
     // It runs as a collections user, not the deploying admin (RLM_BillingUI is assigned after
     // this bundle deploys). The admin creates the account, collection plan and payment schedule
     // owned by that user; the payment schedule item has no owner to set, so its visibility to
@@ -182,6 +182,8 @@ private class RLM_InvoiceSummaryControllerTest {
             Status = 'Draft',
             TotalRequestedAmount = 75
         );
+        Assert.isTrue(Schema.SObjectType.PaymentSchedule.fields.getMap().containsKey('CollectionPlanItemId'),
+            'PRECONDITION: PaymentSchedule.CollectionPlanItemId exists (collections provides it).');
         promise.put('CollectionPlanItemId', planItem.Id);
         promise.put('CurrencyIsoCode', userCurrency);
         insert promise;
