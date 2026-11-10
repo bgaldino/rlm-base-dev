@@ -69,6 +69,7 @@ KNOWN_ENTRIES = {
     "tools", "typings", "vscode-extensions-telemetry",
 }
 KNOWN_ENTRY_PATTERN = re.compile(r"(sf|sfdx)(-[\d-]+)?\.log(\.\d+)?")  # always used with fullmatch
+SANDBOX_FILE = re.compile(r"(00D.*?)\.sandbox\.json")  # sf's SandboxAccessor, in ~/.sfdx; used with fullmatch
 
 # sf's legacy config keys and the keys they translate to (@salesforce/core config.js), and every key
 # sf 2.157.8 registers (core's allowed properties plus bundled plugins' configMeta). sf cannot unset a
@@ -301,6 +302,11 @@ def read_logins(home):
         unread[name] = why
         if not (isinstance(data, dict) and isinstance(data.get("username"), str) and not data.get("isDevHub")):
             maybe_hubs.append(name)
+    # sf counts an org with a `<orgId>.sandbox.json` as a sandbox too (listAllAuthorizations).
+    sandboxes = {m.group(1)[:15] for m in map(SANDBOX_FILE.fullmatch, (p.name for p in listing(home / ".sfdx", follow=True)))
+                 if m}
+    for info in logins.values():
+        info["is_sandbox"] = info["is_sandbox"] or info["org"] in sandboxes
     return logins, unread, unreadable, "; ".join(blocks), listed, maybe_hubs
 
 
@@ -353,6 +359,8 @@ def read_scope(sf_file, sfdx_file, linked, env):
         elif not stat.S_ISREG(info.st_mode):
             problems.append("{} is not a regular file".format(path))
             continue
+        elif info.st_nlink > 1:  # sf's writeFile rewrites the shared file, as through a symlink
+            problems.append("{} has another hard link, so sf writes this config through it".format(path))
         data = read_json(path, None)
         if not isinstance(data, dict):
             problems.append("{} does not parse as a JSON object".format(path))
@@ -424,7 +432,8 @@ def read_unclassified(home, project, consumed):
     found = []
     for root in (home / ".sfdx", home / ".sf", project / ".sf", project / ".sfdx"):
         for path in listing(root, follow=root.parent == home):
-            if path.name in KNOWN_ENTRIES or KNOWN_ENTRY_PATTERN.fullmatch(path.name) or path in consumed:
+            if (path.name in KNOWN_ENTRIES or KNOWN_ENTRY_PATTERN.fullmatch(path.name) or path in consumed
+                    or (root == home / ".sfdx" and SANDBOX_FILE.fullmatch(path.name))):
                 continue
             try:
                 info = path.lstat()
@@ -612,7 +621,9 @@ def survey(run, home, project, today, predict=True, env=None):
     # sf writes the alias store with writeFile, which follows a link: an unset there would rewrite a
     # store other homes may share, so nothing writes it (as for a linked config scope or cache).
     alias_store = home / ".sfdx" / "alias.json"
-    alias_store_linked = is_link(alias_store)
+    store_info = lstat_or_none(alias_store)  # a hard link is written through just the same
+    alias_store_linked = bool(store_info) and (stat.S_ISLNK(store_info.st_mode) or (
+        stat.S_ISREG(store_info.st_mode) and store_info.st_nlink > 1))
     if alias_store_linked:
         symlinks.append(alias_store)
 

@@ -589,6 +589,29 @@ class Names(Base):
         self.assertEqual(plan["remove"]["logout"], ["other@x.invalid"])  # it clears no alias
         self.assertIn("a link sf writes through", plan["report"]["protected"]["rep@x.invalid"])
 
+    def test_a_hard_linked_alias_store_is_never_written_through(self):
+        shared = self.home.parent / "shared-alias.json"
+        shared.write_text(json.dumps({"orgs": {}}))
+        os.link(str(shared), str(self.home / ".sfdx" / "alias.json"))  # sf's writeFile rewrites the shared inode
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")], {"stale": "gone@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertIn("is a link", plan["report"]["protected"]["stale"])
+
+    def test_a_hard_linked_config_file_is_not_modelled(self):
+        self.write_config("local", sf={"target-org": "gone@x.invalid"})
+        os.link(str(self.project / ".sf" / "config.json"), str(self.home.parent / "shared-config.json"))
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["defaults"], [])
+        self.assertIn("another hard link", plan["report"]["unmodelled_config"]["local"])
+
+    def test_an_org_with_a_sandbox_file_is_a_sandbox_and_the_file_is_sfs(self):
+        self.add_auth("sbx@x.invalid", DEAD_ORG)
+        (self.home / ".sfdx" / (DEAD_ORG + "MAA.sandbox.json")).write_text("{}")
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])  # sandboxes are never logged out, as sf counts them
+        self.assertEqual([f for f in plan["report"]["unclassified_files"] if "sandbox" in f["path"]], [])
+
     def test_a_name_kept_in_doubt_is_reported_with_why(self):
         # A renamed file holds rep's login on a live org, so which login "rep@x.invalid" opens is unclear.
         (self.home / ".sfdx" / "old@x.invalid.json").write_text(
