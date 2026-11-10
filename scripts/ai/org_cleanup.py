@@ -726,14 +726,19 @@ def survey(run, home, project, today, predict=True, env=None):
     for name, why in sorted(unread.items()):
         protect(name, why)
 
+    in_doubt = {}  # every name kept because of a doubt, with why, so the report shows it
+
     def reach(name, resolve=True):
         """What sf reaches through a name: (verdict, login, orgs). The verdict is stale, live, doubt,
         unknown or dangling; orgs are those a failed logout there must hold the name's items for."""
         if resolve and redirects(aliases, name) and login_for(name) is not None:
-            return "doubt", None, []  # an alias shadows a login's name: which org the name means is in doubt
+            in_doubt[name] = "an alias of this name shadows a login's name, so which org it means is unclear"
+            return "doubt", None, []
         text = target(name) if resolve else name
         login = login_for(text)
         if login is DOUBT:
+            in_doubt[name] = doubt.get(fold(text), "it has characters this Python's Unicode tables do not "
+                                                   "know, so the tool cannot tell which login file it opens")
             return "doubt", None, []
         if login is not None:
             return ("stale" if login in stale_logins else "live"), login, [logins[login]["org"]]
@@ -861,6 +866,7 @@ def survey(run, home, project, today, predict=True, env=None):
             "unclassified_files": read_unclassified(home, project, consumed),
             # Lead to no login and no username, so no hub row can ever put them on the plan.
             "dangling_aliases": sorted(a for a in aliases if judge(a) == "dangling"),
+            "names_in_doubt": dict(sorted(in_doubt.items())),
             "dangling_defaults": sorted(s for s, scope in scopes.items()
                                         if not scope["why"] and isinstance(scope["merged"].get("target-org"), str)
                                         and judge(scope["merged"]["target-org"]) == "dangling"),

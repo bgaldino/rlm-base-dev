@@ -565,6 +565,15 @@ class Names(Base):
             plan = self.plan(cli)
         self.assertEqual(plan["remove"]["aliases"], ["r"])  # SOQL matches the username in any case
 
+    def test_a_name_kept_in_doubt_is_reported_with_why(self):
+        # A renamed file holds rep's login on a live org, so which login "rep@x.invalid" opens is unclear.
+        (self.home / ".sfdx" / "old@x.invalid.json").write_text(
+            json.dumps({"username": "rep@x.invalid", "orgId": LIVE_ORG + "MAA"}))
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="rep@x.invalid")], {"r": "rep@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertIn("old@x.invalid.json holds the login rep@x.invalid", plan["report"]["names_in_doubt"]["r"])
+
     def test_the_same_file_check_follows_the_filesystem(self):
         login = self.home / ".sfdx" / (HUB + ".json")
         other = self.home / ".sfdx" / (HUB.upper() + ".json")
@@ -1736,6 +1745,7 @@ class ModelEdges(Base):
         for key in ("logout", "aliases", "defaults", "deploy_jobs"):
             self.assertEqual(plan["remove"][key], [], key)
         self.assertIn("bob@x.invalid", plan["report"]["protected"])
+        self.assertIn("shadows a login's name", plan["report"]["names_in_doubt"]["bob@x.invalid"])
 
     def test_a_deploy_cache_value_is_resolved_through_one_alias_as_sf_reads_it(self):
         # deploy report/resume pass the stored value to Org.create, which resolves an alias first.

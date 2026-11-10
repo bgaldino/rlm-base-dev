@@ -62,8 +62,9 @@ preserves anything that model cannot explain:
 - **A login file is found by name**, and macOS's default (case-insensitive) APFS ignores case and
   Unicode normalization, so usernames are compared without regard to either. A name holding `@` with
   characters this Python's Unicode tables do not know is in doubt, since the filesystem may fold them. On a
-  case-sensitive filesystem (Linux, the Docker image) a name spelled differently from a login file's
-  opens nothing, so it is judged as a name with no login, by signup-username evidence.
+  case-sensitive filesystem (Linux, the Docker image) a name spelled differently from a readable
+  login file's opens nothing, so it is judged as a name with no login, by signup-username evidence;
+  one that folds onto an unread or renamed login file stays in doubt.
 - **A config scope** (`global`, or `local` for the project) is `.sf/config.json` merged with
   `.sfdx/sfdx-config.json`, and sf rewrites both files on any change. The tool acts on a scope
   only when that merge is unambiguous; otherwise it reports why under `unmodelled_config`.
@@ -127,6 +128,7 @@ and the orgs each one reaches are under `targets` in the plan file):
 | `logins_with_no_refresh_token` | An access-token-only login that is not linked (a linked one is under `protected`): it stops working when its session expires (JWT logins re-sign and are not listed). It is not on the plan, which does not mean its org is live. Report it; log out only with explicit approval. |
 | `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. An auth file that does not parse is listed whether or not it is a link, since sf reads through links. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned; so is a linked manifest in it, and its entry is not planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
+| `names_in_doubt` | Aliases, defaults, deploy-cache targets and tracking names kept because the tool cannot tell which login they open (an alias shadows a login's name, a renamed or unread login file holds that username, names that differ only by case or Unicode form), each with why. Resolve the cause by hand, then re-audit. |
 | `dangling_aliases`, `dangling_defaults` | Reach no login and no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset -- <name>` (the `--` keeps a name such as `-ap` from being read as `--all --no-prompt`), or `sf config unset target-org` (see the note below the table). |
 | `usernames_not_queried` | Usernames an alias, default, deploy-cache entry, environment default or tracking folder names that no hub query can carry (a quote, a backslash, or text sf would read as another name). Never judged, so never planned. Report them. |
 | `manifests_without_cache_entry` | Files in `~/.sf/manifestCache` that no deploy-cache entry names: sf drops an entry when its 3-day TTL lapses and leaves the manifest. Not moved. Report them. |
