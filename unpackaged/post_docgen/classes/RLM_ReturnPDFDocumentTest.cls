@@ -68,7 +68,9 @@ private class RLM_ReturnPDFDocumentTest {
         Assert.isNull(outputs[1].ContentDocumentId);
         Assert.areEqual(pdf.Id, outputs[2].ContentVersionId,
             'A later request is unaffected by earlier empty ones.');
-        Assert.isNotNull(outputs[2].ContentDocumentId,
+        Assert.areEqual(
+            [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :pdf.Id].ContentDocumentId,
+            outputs[2].ContentDocumentId,
             'The PDF request also carries its ContentDocument.');
     }
 

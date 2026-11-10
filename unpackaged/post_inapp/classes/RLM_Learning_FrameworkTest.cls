@@ -8,17 +8,24 @@
  * empty-result guards.
  *
  * The controllers run their queries and DML in USER_MODE. Every call that
- * touches the learning objects runs as a least-privilege "learner" (Minimum
- * Access profile) holding only the RLM_Learning permission set, so those calls
- * do not depend on the permissions of whoever runs the suite, and they show the
- * permission set is enough for content the learner owns.
+ * touches the learning objects runs as a least-privilege "learner" (the
+ * "Minimum Access - Salesforce" profile, looked up by its English name)
+ * holding only the RLM_Learning permission set, so those calls do not depend
+ * on the permissions of whoever runs the suite. Rows inserted by the runner
+ * are read through the Public Read/Write sharing model; the learner owns the
+ * rows it writes or deletes.
+ *
+ * The learner takes a Salesforce user seat. In an org with no free seat (some
+ * trial and TSO orgs), @TestSetup creates no learner and every learner-run
+ * test returns early with a WARN "SKIPPED" debug line; the runner-only tests
+ * still run.
  *
  * Known gaps, not covered here:
- *  - Ownership. The learner owns the test content: with a Public Read/Write
- *    sharing model only a record's owner can delete it, and re-sequencing a
- *    section deletes its junction rows. A learner who does not own the rows
- *    (for example content an admin loaded) cannot re-sequence that section;
- *    learnerCannotResequenceRowsItDoesNotOwn records this.
+ *  - Ownership. With a Public Read/Write sharing model only a record's owner
+ *    can delete it, and re-sequencing a section deletes its junction rows. A
+ *    learner who does not own the rows (for example content an admin loaded)
+ *    cannot re-sequence that section; learnerCannotResequenceRowsItDoesNotOwn
+ *    records this.
  *  - Setup lookups. The setup-page map (custom metadata), FlowDefinitionView,
  *    Network and Organization lookups run as the runner here. In production
  *    they run as the learner, and RLM_Learning grants no custom-metadata-type
@@ -28,10 +35,24 @@
 private class RLM_Learning_FrameworkTest {
   @TestSetup
   static void makeData() {
+    if (!hasFreeSalesforceSeat()) {
+      insertContent();
+      return;
+    }
     User learner = createLearner();
     System.runAs(learner) {
       insertContent();
     }
+  }
+
+  static Boolean hasFreeSalesforceSeat() {
+    List<UserLicense> seats = [
+      SELECT TotalLicenses, UsedLicenses
+      FROM UserLicense
+      WHERE LicenseDefinitionKey = 'SFDC'
+      LIMIT 1
+    ];
+    return !seats.isEmpty() && seats[0].UsedLicenses < seats[0].TotalLicenses;
   }
 
   static void insertContent() {
@@ -143,12 +164,15 @@ private class RLM_Learning_FrameworkTest {
     'RLM_Learning_SectionBlock__c'
   };
 
-  // PRECONDITION for every learner test: the learner's profile grants no
-  // access to any learning object and cannot view or modify all data, so what
-  // the learner can do comes from the RLM_Learning permission set.
+  // Sentinel for the learner-run tests: the learner's profile grants no access
+  // to any learning object and cannot view or modify all data, so what the
+  // learner can do comes from the RLM_Learning permission set.
   @IsTest
   static void learnerProfileGrantsNoLearningObjectAccess() {
-    User learnerUser = [SELECT Id, ProfileId FROM User WHERE Username = :learnerUsername() LIMIT 1];
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Profile profile = [
       SELECT PermissionsViewAllData, PermissionsModifyAllData
       FROM Profile
@@ -188,8 +212,20 @@ private class RLM_Learning_FrameworkTest {
     );
   }
 
+  // The learner, or null (with a WARN "SKIPPED" line) when @TestSetup found no
+  // free Salesforce seat to create one.
   static User learner() {
-    return [SELECT Id, FirstName FROM User WHERE Username = :learnerUsername() LIMIT 1];
+    List<User> found = [
+      SELECT Id, FirstName, ProfileId
+      FROM User
+      WHERE Username = :learnerUsername()
+      LIMIT 1
+    ];
+    if (found.isEmpty()) {
+      System.debug(LoggingLevel.WARN, 'SKIPPED: no free Salesforce licence for the least-privilege learner');
+      return null;
+    }
+    return found[0];
   }
 
   // ---- Data helpers -------------------------------------------------------------
@@ -251,9 +287,13 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionsWithBlocksByType_returnsResolvedGraph() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     List<Map<String, Object>> res;
     Test.startTest();
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       res = RLM_Learning_SectionBlockController.getSectionsWithBlocksByType('Top', 'Home');
     }
     Test.stopTest();
@@ -270,9 +310,13 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionsWithBlocksByPageId_returnsSections() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id pageId = homePage().Id;
     List<Map<String, Object>> res;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       res = RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId('Top', pageId);
     }
     Assert.isFalse(res.isEmpty(), 'expected sections by page id');
@@ -280,9 +324,13 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionWithBlockBySectionId_happyPath() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id secId = sectionByHeader('H').Id;
     List<Map<String, Object>> res;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       res = RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId(secId);
     }
     Assert.isFalse(res.isEmpty(), 'expected a result');
@@ -291,6 +339,10 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionsByType_returnsOnlyActiveSectionsAndBlocks() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     RLM_Learning_Section__c sec = sectionByHeader('H');
     RLM_Learning_Block__c inactive = newBlock('Inactive Block', false, null);
     insert as system inactive;
@@ -309,7 +361,7 @@ private class RLM_Learning_FrameworkTest {
 
     List<RLM_Learning_Section__c> sections;
     Test.startTest();
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       sections = RLM_Learning_SectionBlockController.getSectionsByType('Top', 'Home');
     }
     Test.stopTest();
@@ -327,12 +379,16 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionsWithBlocksByType_mapsBlockFieldsAndLinks() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id linkId = testLink().Id;
     Id blockId = testBlock().Id;
 
     List<Map<String, Object>> res;
     Test.startTest();
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       res = RLM_Learning_SectionBlockController.getSectionsWithBlocksByType('Top', 'Home');
     }
     Test.stopTest();
@@ -363,6 +419,10 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionsWithBlocksByType_blockWithoutActionHasNoLinks() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     RLM_Learning_Block__c plain = newBlock('Plain Block', true, null);
     insert as system plain;
     insert as system new RLM_Learning_SectionBlock__c(
@@ -373,7 +433,7 @@ private class RLM_Learning_FrameworkTest {
 
     List<Map<String, Object>> res;
     Test.startTest();
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       res = RLM_Learning_SectionBlockController.getSectionsWithBlocksByType('Right', 'Home');
     }
     Test.stopTest();
@@ -391,13 +451,17 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionWithBlockBySectionId_mapsFirstBlockAndLink() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id linkId = testLink().Id;
     Id blockId = testBlock().Id;
     Id secId = sectionByHeader('H').Id;
 
     List<Map<String, Object>> res;
     Test.startTest();
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       res = RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId(secId);
     }
     Test.stopTest();
@@ -422,22 +486,38 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionWithBlockBySectionId_noBlocksThrows() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id emptyId = sectionByHeader('Empty').Id;
+    Id pageId = homePage().Id;
+    List<RLM_Learning_Section__c> rightSections;
     Boolean threw = false;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
+      rightSections = RLM_Learning_SectionBlockController.getSectionsByPageId('Right', pageId);
       try {
         RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId(emptyId);
       } catch (AuraHandledException e) {
         threw = true;
       }
     }
+    // PRECONDITION: the learner can read the section and it is active with no
+    // blocks, so only the no-blocks exit can explain the error.
+    Assert.areEqual(1, rightSections.size(), 'PRECONDITION: one active Right section.');
+    Assert.areEqual(emptyId, rightSections[0].Id, 'PRECONDITION: it is the Empty section.');
+    Assert.isTrue(rightSections[0].SectionBlocks__r.isEmpty(), 'PRECONDITION: it has no blocks.');
     Assert.isTrue(threw, 'expected guard exception for a section with no blocks');
   }
 
   @IsTest
   static void controller_validationErrors() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Boolean a = false, b = false, c = false;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       try {
         RLM_Learning_SectionBlockController.getSectionsByType('', 'Home');
       } catch (AuraHandledException e) {
@@ -459,6 +539,10 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionsByType_requiresExactlyOneActivePage() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     // Only an inactive Detail page exists: no active page for the type.
     insert as system new RLM_Learning_Page__c(
       Name = 'Inactive Detail',
@@ -466,7 +550,7 @@ private class RLM_Learning_FrameworkTest {
       RLM_Learning_Active__c = false
     );
     Boolean noActivePage = false;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       try {
         RLM_Learning_SectionBlockController.getSectionsByType('Top', 'Detail');
       } catch (AuraHandledException e) {
@@ -477,7 +561,7 @@ private class RLM_Learning_FrameworkTest {
 
     // A second active Home page makes the type ambiguous.
     Integer withOneHomePage;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       withOneHomePage = RLM_Learning_SectionBlockController.getSectionsByType('Top', 'Home').size();
     }
     Assert.areEqual(1, withOneHomePage, 'PRECONDITION: one active Home page resolves.');
@@ -487,7 +571,7 @@ private class RLM_Learning_FrameworkTest {
       RLM_Learning_Active__c = true
     );
     Boolean ambiguous = false;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       try {
         RLM_Learning_SectionBlockController.getSectionsByType('Top', 'Home');
       } catch (AuraHandledException e) {
@@ -499,9 +583,13 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void controller_moreValidationErrors() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id pageId = homePage().Id;
     Integer thrown = 0;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       try {
         RLM_Learning_SectionBlockController.getSectionsByType('Top', '');
       } catch (AuraHandledException e) {
@@ -548,16 +636,20 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getSectionWithBlockBySectionId_inactiveSectionThrows() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     RLM_Learning_Section__c sec = sectionByHeader('H');
     Integer whileActive;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       whileActive = RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId(sec.Id).size();
     }
     Assert.areEqual(1, whileActive, 'PRECONDITION: the section resolves while it is active.');
     sec.RLM_Learning_Active__c = false;
     update as system sec;
     Boolean threw = false;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       try {
         RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId(sec.Id);
       } catch (AuraHandledException e) {
@@ -571,6 +663,10 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void sectionBlockSequence_crud() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id secId = sectionByHeader('H').Id;
     Id blockId = testBlock().Id;
     Boolean hasBlocks;
@@ -578,7 +674,7 @@ private class RLM_Learning_FrameworkTest {
     Integer after;
 
     Test.startTest();
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       hasBlocks = !RLM_Learning_SectionBlockSequence.getAllBlocks().isEmpty();
       before = RLM_Learning_SectionBlockSequence.getBlocksForSection(secId).size();
       RLM_Learning_SectionBlockSequence.updateSectionBlocks(secId, new List<String>{ blockId });
@@ -593,6 +689,10 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getAllBlocks_returnsActiveBlocksInNameOrder() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     // Inserted out of name order: 'AA Active Block' sorts first but is created last.
     insert as system new List<RLM_Learning_Block__c>{
       newBlock('ZZ Active Block', true, null),
@@ -602,7 +702,7 @@ private class RLM_Learning_FrameworkTest {
 
     List<RLM_Learning_Block__c> blocks;
     Test.startTest();
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       blocks = RLM_Learning_SectionBlockSequence.getAllBlocks();
     }
     Test.stopTest();
@@ -620,6 +720,10 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void updateSectionBlocks_replacesAndReorders() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id secId = sectionByHeader('H').Id;
     Id firstId = testBlock().Id;
     RLM_Learning_Block__c second = newBlock('Second Block', true, null);
@@ -627,7 +731,7 @@ private class RLM_Learning_FrameworkTest {
 
     List<RLM_Learning_SectionBlock__c> rows;
     Test.startTest();
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       RLM_Learning_SectionBlockSequence.updateSectionBlocks(
         secId,
         new List<String>{ second.Id, firstId }
@@ -652,13 +756,17 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void updateSectionBlocks_onEmptySection() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id emptyId = sectionByHeader('Empty').Id;
     Id blockId = testBlock().Id;
     Integer afterEmptyList;
     Integer afterAdd;
 
     Test.startTest();
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       RLM_Learning_SectionBlockSequence.updateSectionBlocks(emptyId, new List<String>());
       afterEmptyList = RLM_Learning_SectionBlockSequence.getBlocksForSection(emptyId).size();
       RLM_Learning_SectionBlockSequence.updateSectionBlocks(emptyId, new List<String>{ blockId });
@@ -672,9 +780,13 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void updateSectionBlocks_validationErrors() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id secId = sectionByHeader('H').Id;
     Boolean a = false, b = false;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       try {
         RLM_Learning_SectionBlockSequence.updateSectionBlocks('', new List<String>());
       } catch (AuraHandledException e) {
@@ -695,9 +807,12 @@ private class RLM_Learning_FrameworkTest {
   // else (here the runner, as an admin load would) created.
   @IsTest
   static void learnerCannotResequenceRowsItDoesNotOwn() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id emptyId = sectionByHeader('Empty').Id;
     Id blockId = testBlock().Id;
-    User learnerUser = learner();
     RLM_Learning_SectionBlock__c othersRow = new RLM_Learning_SectionBlock__c(
       RLM_Learning_Section__c = emptyId,
       RLM_Learning_Block__c = blockId,
@@ -727,13 +842,33 @@ private class RLM_Learning_FrameworkTest {
       [SELECT COUNT() FROM RLM_Learning_SectionBlock__c WHERE RLM_Learning_Section__c = :emptyId WITH SYSTEM_MODE],
       'the failed re-sequence leaves the existing row in place'
     );
+
+    // Control: once the learner owns the same row, the same call succeeds, so
+    // ownership is what blocked it.
+    update as system new RLM_Learning_SectionBlock__c(Id = othersRow.Id, OwnerId = learnerUser.Id);
+    System.runAs(learnerUser) {
+      RLM_Learning_SectionBlockSequence.updateSectionBlocks(emptyId, new List<String>{ blockId });
+    }
+    List<RLM_Learning_SectionBlock__c> after = [
+      SELECT Id, RLM_Learning_Block__c
+      FROM RLM_Learning_SectionBlock__c
+      WHERE RLM_Learning_Section__c = :emptyId
+      WITH SYSTEM_MODE
+    ];
+    Assert.areEqual(1, after.size(), 'the owner re-sequences the section');
+    Assert.areNotEqual(othersRow.Id, after[0].Id, 'the old row was replaced');
+    Assert.areEqual(blockId, after[0].RLM_Learning_Block__c);
   }
 
   @IsTest
   static void sectionBlockSequence_moreValidationErrors() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id secId = sectionByHeader('H').Id;
     Integer thrown = 0;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       try {
         RLM_Learning_SectionBlockSequence.getBlocksForSection('');
       } catch (AuraHandledException e) {
@@ -772,9 +907,13 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void dynamicLinkHelper_happyPaths() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     RLM_Learning_DynamicLink__c link;
     Integer pages;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       link = RLM_Learning_DynamicLinkHelper.getDynamicLinkByIdentity('TEST_DYN_LINK');
       pages = RLM_Learning_DynamicLinkHelper.getObjectIdFromQuery(
           'RLM_Learning_Page__c',
@@ -789,9 +928,13 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void dynamicLinkHelper_guards() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Boolean blankObj = false, unknownObj = false, blankSetup = false, badType = false;
     Boolean blankIdentity = false, missingIdentity = false;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       try {
         RLM_Learning_DynamicLinkHelper.getDynamicLinkByIdentity('');
       } catch (AuraHandledException e) {
@@ -831,10 +974,14 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void getObjectIdFromQuery_returnsMatchingIdsAndWrapsQueryErrors() {
+    User learnerUser = learner();
+    if (learnerUser == null) {
+      return; // skipped visibly: see learner()
+    }
     Id pageId = homePage().Id;
     List<SObject> rows;
     Integer thrown = 0;
-    System.runAs(learner()) {
+    System.runAs(learnerUser) {
       rows = RLM_Learning_DynamicLinkHelper.getObjectIdFromQuery(
         'RLM_Learning_Page__c',
         'RLM_Learning_Type__c = \'Home\''
@@ -857,30 +1004,51 @@ private class RLM_Learning_FrameworkTest {
 
   // ---- DynamicLinkHelper: setup and platform lookups (no learning objects) -----
 
+  // Each remaining dynamic-SOQL branch (FlowRecordPage is covered by
+  // getRecordIdFromDynamicLinkType_guardsAndFlowLookup) queries objects that
+  // exist only when their feature is enabled: Surveys, Data Processing Engine,
+  // and Experience Cloud (Network). Where a branch's objects exist and are
+  // readable, it runs with a condition that matches nothing and must return an
+  // empty list without error. Where they are absent, that branch is skipped
+  // visibly (a WARN debug line).
   @IsTest
-  static void dynamicLinkHelper_branchCoverage() {
-    // Exercise the remaining dynamic-SOQL branches (FlowRecordPage is covered
-    // strictly elsewhere). Some of the queried objects depend on features that
-    // may be absent in an org, so each branch must either return a list or
-    // surface as an AuraHandledException; any other exception type is a
-    // regression and fails the test.
-    for (
-      String t : new List<String>{
-        'SurveyRecordPage',
-        'DPERecordPage',
-        'CommunityPage'
+  static void getRecordIdFromDynamicLinkType_queriesEachFeatureBranch_whenItsObjectsExist() {
+    List<String> branches = new List<String>{ 'SurveyRecordPage', 'DPERecordPage', 'CommunityPage' };
+    Map<String, List<String>> objectsByBranch = new Map<String, List<String>>{
+      'SurveyRecordPage' => new List<String>{ 'Survey', 'SurveyVersion' },
+      'DPERecordPage' => new List<String>{ 'BatchCalcJobDefinition' },
+      'CommunityPage' => new List<String>{ 'Network' }
+    };
+    Map<String, Schema.SObjectType> globalDescribe = Schema.getGlobalDescribe();
+
+    for (String branch : branches) {
+      String missing = null;
+      for (String objectName : objectsByBranch.get(branch)) {
+        if (
+          !globalDescribe.containsKey(objectName) ||
+          !globalDescribe.get(objectName).getDescribe().isAccessible()
+        ) {
+          missing = objectName;
+          break;
+        }
       }
-    ) {
-      try {
-        List<SObject> rows = RLM_Learning_DynamicLinkHelper.getRecordIdFromDynamicLinkType(
-          t,
-          'Id != null'
+      if (missing != null) {
+        System.debug(
+          LoggingLevel.WARN,
+          'SKIPPED: ' + missing + ' not in this org; ' + branch + ' branch not verified'
         );
-        Assert.isNotNull(rows, t + ' returns a list when its feature is present');
-      } catch (AuraHandledException e) {
-        // feature/data absent in this org: the branch still executed
+        continue;
       }
+      List<SObject> rows = RLM_Learning_DynamicLinkHelper.getRecordIdFromDynamicLinkType(
+        branch,
+        'Id = null'
+      );
+      Assert.isTrue(rows.isEmpty(), branch + ' runs its query and matches nothing: ' + rows);
     }
+  }
+
+  @IsTest
+  static void getSetupPageLink_appendsNoRedirectToAnExistingQueryString() {
     // The PermissionSet Setup_Page_Map record ships with this feature, so this resolves
     // to a real URL — assert the query string is well-formed (the configured URL already
     // has "?address=", so noredirect must be appended with "&", not a second "?").
@@ -1020,19 +1188,15 @@ private class RLM_Learning_FrameworkTest {
     // otherwise a non-negative count no larger than the days left (plus one for
     // a date boundary crossed during the test).
     // (Part-of-day greeting moved to the client; no Apex getTiming/timingForHour.)
+    // Runner-only: neither method touches a learning object.
     Datetime trialExpiry = [SELECT TrialExpirationDate FROM Organization LIMIT 1].TrialExpirationDate;
-    User learnerUser = learner();
 
-    String name;
-    Integer expiryDays;
     Test.startTest();
-    System.runAs(learnerUser) {
-      name = RLM_Learning_UserInformation.getName();
-    }
-    expiryDays = RLM_Learning_UserInformation.getExpiryDays();
+    String name = RLM_Learning_UserInformation.getName();
+    Integer expiryDays = RLM_Learning_UserInformation.getExpiryDays();
     Test.stopTest();
 
-    Assert.areEqual(learnerUser.FirstName, name, 'greets the running user by first name');
+    Assert.areEqual(UserInfo.getFirstName(), name, 'greets the running user by first name');
     if (trialExpiry == null) {
       Assert.isNull(expiryDays, 'no trial expiry means no countdown');
     } else {

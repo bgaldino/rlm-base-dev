@@ -100,8 +100,10 @@ private class RLM_AI_AttributeResolverTest {
         Assert.areEqual(2, [
             SELECT COUNT() FROM ProductClassificationAttr
             WHERE ProductClassificationId = :classificationId
+              AND Status = 'Active'
               AND (IsHidden = true OR IsReadOnly = true)
-        ], 'PRECONDITION: one hidden and one read-only attribute are on the classification.');
+        ], 'PRECONDITION: one hidden and one read-only Active attribute are on the classification, '
+            + 'so only those flags can exclude them.');
         Assert.isFalse(
             [SELECT IsRequired FROM AttributeDefinition WHERE Id = :defs.tier.Id].IsRequired,
             'PRECONDITION: the tier definition itself is not required.');
