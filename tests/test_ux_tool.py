@@ -1386,3 +1386,319 @@ def test_cci_task_applies_the_same_gates(tmp_path, custom, expect_prm_pages, exp
     assert all((pages / p).exists() == expect_prm_pages for p in PRM_PRICING_PAGES)
     quote = (pages / QUOTE_PAGE).read_text(encoding="utf-8")
     assert all((ref in quote) == expect_approvals for ref in APPROVALS_REFS)
+
+
+# ── writeback keeps a patch file's formatting (todo 230) ────────────────────
+
+_COMMENTED_PATCH = '''\
+feature: demo
+feature_flag: demo
+# Header comment that explains the whole patch.
+patches:
+  - type: insert_action
+    after: "Edit"
+    actions:
+      # Why this action is gated.
+      - name: "Order.First"
+        visibility:
+          - field: "Record.Status"
+            operator: "EQUAL"
+            value: "Draft"
+
+  # The second entry's own comment.
+  - type: add_facet_field
+    facet: "System Information"
+    after: "Description"
+    fields:
+      - "Field_A__c"
+      - "Field_B__c"
+  - type: insert_after_xml
+    anchor: "<name>x</name>"
+    xml: |
+                <visibilityRule>
+                    <booleanFilter>1</booleanFilter>
+                </visibilityRule>
+'''
+
+
+def _rewrite(text, refreshed):
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    data = yaml.safe_load(text)
+    expected = dict(data, patches=[p for p in refreshed if p is not None])
+    return rewrite_patch_entries(text, copy.deepcopy(data["patches"]), refreshed, expected)
+
+
+def _entries(text):
+    import yaml
+    return copy.deepcopy(yaml.safe_load(text)["patches"])
+
+
+def test_rewrite_drops_an_entry_with_its_own_comment_and_nothing_else():
+    entries = _entries(_COMMENTED_PATCH)
+    out = _rewrite(_COMMENTED_PATCH, [entries[0], None, entries[2]])
+    start = _COMMENTED_PATCH.index("  # The second entry's own comment.")
+    end = _COMMENTED_PATCH.index("  - type: insert_after_xml")
+    assert out == _COMMENTED_PATCH[:start] + _COMMENTED_PATCH[end:]
+
+
+def test_rewrite_changes_only_the_changed_list_item():
+    entries = _entries(_COMMENTED_PATCH)
+    entries[1]["fields"] = ["Field_A__c"]
+    out = _rewrite(_COMMENTED_PATCH, entries)
+    assert out == _COMMENTED_PATCH.replace('      - "Field_B__c"\n', "")
+
+
+def test_rewrite_keeps_unchanged_keys_verbatim_inside_a_changed_entry():
+    # The xml block is indented further than YAML needs; a re-render would re-indent it
+    # all. Only `anchor` changes, so the xml lines must come through byte for byte.
+    entries = _entries(_COMMENTED_PATCH)
+    entries[2]["anchor"] = "<name>y</name>"
+    out = _rewrite(_COMMENTED_PATCH, entries)
+    assert out == _COMMENTED_PATCH.replace('anchor: "<name>x</name>"', 'anchor: "<name>y</name>"')
+
+
+def test_rewrite_keeps_comments_in_unchanged_keys_and_follows_the_files_quoting():
+    entries = _entries(_COMMENTED_PATCH)
+    entries[0]["after"] = "Delete"
+    out = _rewrite(_COMMENTED_PATCH, entries)
+    # `after` is quoted in this file, so the new value is too; the actions comment survives.
+    assert out == _COMMENTED_PATCH.replace('after: "Edit"', 'after: "Delete"')
+
+
+def test_rewrite_renders_a_new_key_in_the_files_style():
+    entries = _entries(_COMMENTED_PATCH)
+    entries[1]["label"] = "x"
+    out = _rewrite(_COMMENTED_PATCH, entries)
+    assert out == _COMMENTED_PATCH.replace(
+        '      - "Field_B__c"\n', '      - "Field_B__c"\n    label: x\n')
+
+
+def test_rewrite_returns_none_for_an_unrecognised_layout():
+    flow = "feature: demo\npatches: [{type: insert_action, after: Edit}]\n"
+    import yaml
+    entries = yaml.safe_load(flow)["patches"]
+    from scripts.ux._writeback import rewrite_patch_entries
+    assert rewrite_patch_entries(flow, entries, [dict(entries[0], after="X")],
+                                 {"feature": "demo", "patches": [dict(entries[0], after="X")]}) is None
+
+
+def test_writeback_apply_diffs_only_the_dropped_field(repo_copy):
+    """The todo 230 repro: the org drops one approval field from the Quote page, and
+    `writeback --apply` must change only that list item in the commented patch file."""
+    root, out = repo_copy
+    page = out / "flexipages" / "RLM_Quote_Record_Page.flexipage-meta.xml"
+    tree = ET.parse(str(page))
+    ns = {"m": "http://soap.sforce.com/2006/04/metadata"}
+    removed = 0
+    for parent in tree.getroot().iter():
+        for item in list(parent.findall("m:itemInstances", ns)):
+            field = item.find("m:fieldInstance/m:fieldItem", ns)
+            if field is not None and field.text == "Record.RLM_Approval_Status__c":
+                parent.remove(item)
+                removed += 1
+    assert removed, "fixture changed: the approval status field is not on the assembled Quote page"
+    ET.register_namespace("", ns["m"])
+    tree.write(str(page), xml_declaration=True, encoding="UTF-8")
+
+    patch = root / "templates" / "flexipages" / "patches" / "approvals" / "RLM_Quote_Record_Page.yml"
+    original = patch.read_text(encoding="utf-8")
+    assert '      - "RLM_Approval_Status__c"\n' in original and original.lstrip().startswith("feature")
+    assert ux_tool.main([
+        "writeback", "--repo-root", str(root), "--output-path", str(out),
+        "--name", "RLM_Quote_Record_Page.flexipage-meta.xml", "--apply",
+    ]) == 0
+    assert patch.read_text(encoding="utf-8") == original.replace('      - "RLM_Approval_Status__c"\n', "")
+
+
+def test_a_bare_page_name_is_refused_with_the_file_name_to_use():
+    from scripts.ux._assemble import validate_selection
+    with pytest.raises(UxOptionError, match=r"Use the full file name, e\.g\. 'RLM_Case_Record_Page\.flexipage-meta\.xml'"):
+        validate_selection("flexipages", "RLM_Case_Record_Page", ("flexipages",))
+    with pytest.raises(UxOptionError) as err:  # a name with a suffix gets no guessed hint
+        validate_selection("flexipages", "RLM_Case_Record_Page.txt", ("flexipages",))
+    assert "Use the full file name" not in str(err.value)
+
+
+def test_rewrite_edits_a_flush_left_list_in_place():
+    # PyYAML's default dump (what writeback used to write) puts the items flush with `patches:`.
+    text = ("feature: demo\n# Kept.\npatches:\n- type: insert_action\n  after: Edit\n  actions:\n"
+            "  - a\n  - b\n- type: x\n  field: F\n")
+    entries = _entries(text)
+    assert _rewrite(text, [entries[0], None]) == text.replace("- type: x\n  field: F\n", "")
+    entries[0]["actions"] = ["a"]
+    assert _rewrite(text, entries) == text.replace("  - b\n", "")
+
+
+def test_writeback_falls_back_to_a_whole_rewrite_it_warns_about(repo_copy, caplog):
+    """A layout the in-place editor can't follow (flow style) is rewritten whole, with a
+    warning, as loadable YAML that keeps the file's quoting and block strings."""
+    import yaml
+    root, out = repo_copy
+    page = out / "flexipages" / "RLM_Quote_Record_Page.flexipage-meta.xml"
+    page.write_text(page.read_text(encoding="utf-8").replace(
+        "<fieldItem>Record.RLM_Approval_Status__c</fieldItem>", "<fieldItem>Record.Gone__c</fieldItem>"),
+        encoding="utf-8")
+    patch = root / "templates" / "flexipages" / "patches" / "approvals" / "RLM_Quote_Record_Page.yml"
+    data = yaml.safe_load(patch.read_text(encoding="utf-8"))
+    patch.write_text(yaml.dump(data, default_flow_style=True, sort_keys=False), encoding="utf-8")
+    with caplog.at_level(logging.WARNING):
+        assert ux_tool.main([
+            "writeback", "--repo-root", str(root), "--output-path", str(out),
+            "--name", "RLM_Quote_Record_Page.flexipage-meta.xml", "--apply",
+        ]) == 0
+    assert "layout not recognised, rewriting the whole file" in caplog.text
+    written = patch.read_text(encoding="utf-8")
+    loaded = yaml.safe_load(written)
+    facet = next(p for p in loaded["patches"] if p.get("after") == "Description")
+    assert "RLM_Approval_Status__c" not in facet["fields"]
+    assert "\n  - type:" in written  # block style, items indented like the hand-written files
+
+
+def test_a_whole_rewrite_keeps_the_files_quoting_and_block_strings(tmp_path):
+    from scripts.ux._writeback import _write_patch_yaml
+    import yaml
+    original = 'feature: demo\npatches:\n  - type: insert_after_xml\n    after: "Edit"\n'
+    data = {"feature": "demo", "patches": [
+        {"type": "insert_after_xml", "after": "Delete", "xml": "<a>\n  <b/>\n</a>"}]}
+    path = tmp_path / "p.yml"
+    _write_patch_yaml(path, data, original)
+    written = path.read_text(encoding="utf-8")
+    assert yaml.safe_load(written) == data
+    assert 'after: "Delete"' in written and "type: insert_after_xml" in written
+    assert "xml: |" in written
+
+
+def test_dropping_the_last_entry_keeps_the_comment_above_the_next_top_level_key():
+    text = ("feature: demo\npatches:\n  - type: a\n    after: \"X\"\n  - type: b\n    after: \"Y\"\n"
+            "# Controls activation.\nfeature_flag: demo\n")
+    entries = _entries(text)
+    assert _rewrite(text, [entries[0], None]) == text.replace('  - type: b\n    after: "Y"\n', "")
+
+
+def test_a_quoted_key_entry_is_still_edited_key_by_key():
+    text = ('feature: demo\npatches:\n  - "type": insert_action\n    "after": "Edit"\n    actions:\n'
+            '      # Why this action is gated.\n      - "Order.First"\n')
+    entries = _entries(text)
+    entries[0]["after"] = "Delete"
+    notes = []
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    data = yaml.safe_load(text)
+    out = rewrite_patch_entries(text, _entries(text), entries, dict(data, patches=entries), notes)
+    assert "# Why this action is gated." in out and '- "Order.First"' in out
+    assert yaml.safe_load(out)["patches"][0]["after"] == "Delete" and notes == []
+
+
+def test_a_comment_that_cannot_be_kept_is_named_not_dropped_silently():
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    # A comment inside the value that changes (key level).
+    text = ('feature: demo\npatches:\n  - type: insert_action\n    actions:\n      # Gate note.\n'
+            '      - "a"\n      - "b"\n')
+    entries = _entries(text)
+    entries[0]["actions"] = ["a"]
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and "# Gate note." not in out
+    assert len(notes) == 1 and "`actions`" in notes[0] and "were not kept" in notes[0]
+    # A flow-style entry, whose keys can't be told apart: the whole entry is rendered.
+    text = ('feature: demo\npatches:\n  - {type: insert_action,\n     # Gate note.\n'
+            '     actions: ["a"]}\n')
+    entries = _entries(text)
+    entries[0]["type"] = "insert_action_v2"
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and len(notes) == 1 and "were not kept" in notes[0]
+
+
+def test_a_blank_separated_comment_above_the_next_key_survives_dropping_the_last_entry():
+    text = ("feature: demo\npatches:\n  - type: a\n    after: \"X\"\n  - type: b\n    after: \"Y\"\n"
+            "# Controls activation.\n\nfeature_flag: demo\n")
+    entries = _entries(text)
+    assert _rewrite(text, [entries[0], None]) == text.replace('  - type: b\n    after: "Y"\n', "")
+
+
+def test_a_removed_keys_comment_is_named():
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    text = ('feature: demo\npatches:\n  - type: insert_action\n    after: "Edit"\n'
+            '    # Why the gate exists.\n    visibility:\n      - field: "Record.Status"\n')
+    entries = _entries(text)
+    del entries[0]["visibility"]
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and "visibility" not in out
+    assert len(notes) == 1 and "removed `visibility`" in notes[0]
+
+
+def test_an_inline_comment_in_a_changed_value_is_named():
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    text = ('feature: demo\npatches:\n  - type: add_facet_field\n    fields:\n'
+            '      - "Field_A__c" # Keep for audit\n      - "Field_B__c"\n')
+    entries = _entries(text)
+    entries[0]["fields"] = ["Field_A__c"]
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and len(notes) == 1 and "`fields`" in notes[0]
+
+
+def test_a_hash_inside_a_string_or_block_scalar_is_not_a_comment():
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    text = ('feature: demo\npatches:\n  - type: insert_after_xml\n    anchor: "<a># not a comment</a>"\n'
+            '    xml: |\n      <b>\n        # content, not a comment\n      </b>\n')
+    entries = _entries(text)
+    entries[0]["anchor"] = "<a>changed</a>"
+    entries[0]["xml"] = "<c/>\n"
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and notes == []
+
+
+def test_a_quote_inside_a_plain_word_does_not_hide_a_later_comment():
+    from scripts.ux._writeback import _has_comment
+    assert _has_comment(["    name: a-'b # rationale\n"])
+    assert _has_comment(['    label: Record-"Main" view # keep\n'])
+    assert not _has_comment(['    - "a # b"\n', '    ["c # d"]\n'])
+
+
+def test_a_quoted_key_keeps_its_value_quoted_when_the_value_changes():
+    import yaml
+    text = ('feature: demo\npatches:\n  - "type": insert_action\n    "after": "Edit"\n'
+            '    actions:\n      - "Order.First"\n')
+    entries = _entries(text)
+    entries[0]["after"] = "Delete"
+    out = _rewrite(text, entries)
+    assert yaml.safe_load(out)["patches"][0]["after"] == "Delete"
+    assert 'after: "Delete"' in out  # the value stays double-quoted, as the file writes it
+
+
+def test_a_comment_that_ends_a_block_scalar_is_seen_though_deeper_than_its_key():
+    from scripts.ux._writeback import _has_comment
+    # Shallower than the scalar's content, so YAML reads it as a comment, not xml.
+    assert _has_comment(['    xml: |2\n', '          <x/>\n', '     # trailing note\n'])
+    assert _has_comment(['    xml: |\n', '          <x/>\n', '      # trailing note\n'])
+    # At or below the content indent it is still part of the xml.
+    assert not _has_comment(['    xml: |2\n', '          <x/>\n', '      # content\n'])
+    assert not _has_comment(['    xml: |\n', '      <x>\n', '        # content\n', '      </x>\n'])
+
+
+def test_the_bare_name_hint_follows_the_requested_type():
+    from scripts.ux._assemble import validate_selection
+    with pytest.raises(UxOptionError, match=r"e\.g\. 'Case-Case Layout\.layout-meta\.xml'\."):
+        validate_selection("layouts", "Case-Case Layout")
+    with pytest.raises(UxOptionError) as err:  # objects has three suffixes: name each
+        validate_selection("objects", "Quote")
+    assert "'Quote.object-meta.xml'" in str(err.value) and "'Quote.listView-meta.xml'" in str(err.value)
+    with pytest.raises(UxOptionError, match=r"e\.g\. 'RLM_Case_Record_Page\.flexipage-meta\.xml'\."):
+        validate_selection("flexipages", "RLM_Case_Record_Page", ("flexipages",))
+    with pytest.raises(UxOptionError) as err:  # "all" spans seven suffixes: no single guess
+        validate_selection("all", "Thing")
+    assert "Use the full file name" not in str(err.value)

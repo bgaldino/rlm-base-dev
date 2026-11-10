@@ -863,7 +863,10 @@ def survey(run, home, project, today, predict=True, env=None):
         },
         "preserved": {
             "logins": len(logins) - len(stale_logins),
-            "aliases": len(aliases) - len(remove_aliases) - len(cleared & set(aliases)),
+            # Only the aliases a logout clears: `cleared` also holds the usernames, and a null alias
+            # named like one stays in place after its logout.
+            "aliases": len(aliases) - len(remove_aliases) - len(
+                set(aliases) & set().union(*(effects(n)["aliases"] for n in stale_logins))),
             "indexes": len(indexes) - len(remove["indexes"]),
             "tracking": len(tracking) - len(remove["tracking"]),
             "file_responses": len(responses) - len(remove["file_responses"]),

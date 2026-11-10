@@ -1975,6 +1975,13 @@ class ModelEdges(Base):
         aliases = {"base": "rep@x.invalid", "keep": HUB, "keep2": "keep"}
         self.assertEqual(self.plan(FakeCli(self.home, [row(DEAD_ORG)], aliases))["preserved"]["aliases"], 2)
 
+    def test_preserved_aliases_count_a_null_alias_named_like_a_logout(self):
+        # sf reads a null alias as its own name, and the logout leaves it in place: it is preserved.
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)], {"rep@x.invalid": None, "keep": HUB}))
+        self.assertEqual(plan["targets"]["logout"]["rep@x.invalid"]["aliases"], [])
+        self.assertEqual(plan["preserved"]["aliases"], 2)
+
     def test_a_username_alias_with_no_row_is_unknown_not_dangling(self):
         plan = self.plan(FakeCli(self.home, aliases={"no-auth": "gone@x.invalid"}))
         self.assertEqual((plan["report"]["dangling_aliases"], plan["remove"]["aliases"]), ([], []))
