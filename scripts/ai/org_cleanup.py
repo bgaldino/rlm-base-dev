@@ -212,9 +212,15 @@ def opens_same_file(a, b):
         return False
 
 
+def linked_entry(info):
+    """A symlink, or a regular file with another hard link: what sf reads, writes or removes there is
+    also something another name holds, so the tool treats both kinds of link alike."""
+    return stat.S_ISLNK(info.st_mode) or (stat.S_ISREG(info.st_mode) and info.st_nlink > 1)
+
+
 def is_link(path):
     info = lstat_or_none(path)
-    return bool(info) and stat.S_ISLNK(info.st_mode)
+    return bool(info) and linked_entry(info)
 
 
 def is_dir(path, follow=False):
@@ -265,7 +271,7 @@ def read_logins(home):
         info = lstat_or_none(path)
         if info is None:
             continue
-        linked, data = stat.S_ISLNK(info.st_mode), None
+        linked, data = linked_entry(info), None
         if path.name.replace(".json", "", 1) != name:  # sf's parseUsername drops the first ".json"
             why = "sf reads this file as the login {}, so it cannot log it out by this name".format(
                 path.name.replace(".json", "", 1))
@@ -332,8 +338,10 @@ def read_alias_store(home):
                            parse_int=_js_int)
     except (OSError, ValueError, RecursionError):
         return None
-    orgs = store.get("orgs") if isinstance(store, dict) else None
-    if isinstance(store, dict) and orgs is None:
+    if not isinstance(store, dict) or set(store) - {"orgs"}:  # sf rewrites only orgs, dropping the rest
+        return None
+    orgs = store.get("orgs")
+    if orgs is None:
         return {}
     return orgs if isinstance(orgs, dict) and all(v is None or isinstance(v, str) for v in orgs.values()) else None
 
@@ -354,13 +362,11 @@ def read_scope(sf_file, sfdx_file, linked, env):
         info = lstat_or_none(path)
         if info is None:
             continue
-        if stat.S_ISLNK(info.st_mode):
-            problems.append("{} is a symlink, so sf writes this config through it".format(path))
+        if linked_entry(info):
+            problems.append("{} is a link (symbolic or hard), so sf writes this config through it".format(path))
         elif not stat.S_ISREG(info.st_mode):
             problems.append("{} is not a regular file".format(path))
             continue
-        elif info.st_nlink > 1:  # sf's writeFile rewrites the shared file, as through a symlink
-            problems.append("{} has another hard link, so sf writes this config through it".format(path))
         data = read_json(path, None)
         if not isinstance(data, dict):
             problems.append("{} does not parse as a JSON object".format(path))
@@ -621,9 +627,7 @@ def survey(run, home, project, today, predict=True, env=None):
     # sf writes the alias store with writeFile, which follows a link: an unset there would rewrite a
     # store other homes may share, so nothing writes it (as for a linked config scope or cache).
     alias_store = home / ".sfdx" / "alias.json"
-    store_info = lstat_or_none(alias_store)  # a hard link is written through just the same
-    alias_store_linked = bool(store_info) and (stat.S_ISLNK(store_info.st_mode) or (
-        stat.S_ISREG(store_info.st_mode) and store_info.st_nlink > 1))
+    alias_store_linked = is_link(alias_store)
     if alias_store_linked:
         symlinks.append(alias_store)
 

@@ -65,6 +65,9 @@ preserves anything that model cannot explain:
   case-sensitive filesystem (Linux, the Docker image) a name spelled differently from a readable
   login file's opens nothing, so it is judged as a name with no login, by signup-username evidence;
   one that folds onto an unread or renamed login file stays in doubt.
+- **A link** is a symlink or a regular file with another hard link: what sf reads, writes or
+  removes there another name also holds, so the tool treats both alike (`symlinks_left_alone`
+  lists both kinds).
 - **A config scope** (`global`, or `local` for the project) is `.sf/config.json` merged with
   `.sfdx/sfdx-config.json`, and sf rewrites both files on any change. The tool acts on a scope
   only when that merge is unambiguous; otherwise it reports why under `unmodelled_config`.
@@ -77,7 +80,8 @@ preserves anything that model cannot explain:
   stay), but it is never logged out, since sf would remove only the link. An
   entry sf skips (a link to nothing or that loops, a folder) blocks no other logout, but its name
   stays in doubt: a link to a volume that is not mounted now may be a live login. The audit stops if
-  `~/.sfdx/alias.json` is not in the shape sf writes or differs from what `sf alias list` reports.
+  `~/.sfdx/alias.json` is not in the shape sf writes (only an `orgs` group, which is all sf writes
+  back) or differs from what `sf alias list` reports.
 
 ## 1. Audit
 

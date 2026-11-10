@@ -603,7 +603,30 @@ class Names(Base):
         os.link(str(self.project / ".sf" / "config.json"), str(self.home.parent / "shared-config.json"))
         plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
         self.assertEqual(plan["remove"]["defaults"], [])
-        self.assertIn("another hard link", plan["report"]["unmodelled_config"]["local"])
+        self.assertIn("is a link (symbolic or hard)", plan["report"]["unmodelled_config"]["local"])
+
+    def test_a_hard_linked_auth_file_is_a_linked_login_never_logged_out(self):
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        os.link(str(self.home / ".sfdx" / "rep@x.invalid.json"), str(self.home.parent / "backup.json"))
+        plan = self.plan(FakeCli(self.home, [row(DEAD_ORG)]))
+        self.assertEqual(plan["remove"]["logout"], [])  # logout would unlink one name; the token stays
+        self.assertIn("is a link", plan["report"]["protected"]["rep@x.invalid"])
+
+    def test_a_hard_linked_deploy_cache_is_never_rewritten(self):
+        cache = self.home / ".sf" / "deploy-cache.json"
+        cache.write_text(json.dumps({"job1": {"target-org": "gone@x.invalid"}}))
+        os.link(str(cache), str(self.home.parent / "shared-cache.json"))
+        plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
+        self.assertEqual(plan["remove"]["deploy_jobs"], [])
+        self.assertIn(str(cache), plan["report"]["symlinks_left_alone"])
+
+    def test_an_alias_store_with_groups_sf_would_drop_stops_the_audit(self):
+        cli = FakeCli(self.home)
+        cli.sync = lambda: (self.home / ".sfdx" / "alias.json").write_text(
+            json.dumps({"orgs": cli.aliases, "legacy": {"k": "v"}}))
+        cli.sync()
+        self.assertEqual(self.main(["audit"], cli), 1)
+        self.assertIn("not in the shape sf writes", self.stderr.getvalue())
 
     def test_an_org_with_a_sandbox_file_is_a_sandbox_and_the_file_is_sfs(self):
         self.add_auth("sbx@x.invalid", DEAD_ORG)
@@ -771,7 +794,7 @@ class Config(Base):
         (self.home / ".sf" / "config.json").symlink_to(shared)
         plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
         self.assertEqual(plan["remove"]["defaults"], [])
-        self.assertIn("is a symlink", plan["report"]["unmodelled_config"]["global"])
+        self.assertIn("is a link (symbolic or hard)", plan["report"]["unmodelled_config"]["global"])
 
     def test_a_linked_config_file_is_read_so_a_logout_that_writes_through_it_is_refused(self):
         # sf follows the link when it rewrites the scope: a shared dotfile would lose its default.
