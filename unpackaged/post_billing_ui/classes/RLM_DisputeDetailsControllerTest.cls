@@ -54,7 +54,7 @@ private class RLM_DisputeDetailsControllerTest {
         List<Id> itemIds = newDisputeItems(1, 5, approver.Id);
         List<Map<String, Object>> items = new List<Map<String, Object>>{
             new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => 30 },
-            new Map<String, Object>{ 'id' => disputeItemFakeId(), 'approvedAmount' => 10 }
+            new Map<String, Object>{ 'id' => String.valueOf(disputeItemFakeId()), 'approvedAmount' => 10 }
         };
 
         Exception caught;
@@ -69,7 +69,7 @@ private class RLM_DisputeDetailsControllerTest {
         Test.stopTest();
 
         Assert.isNull(caught, 'Known gap: an unmatched item id is skipped and the save reports success. '
-            + 'Update this test when it is fixed.');
+            + 'Update this test when it is fixed. Caught: ' + caught?.getTypeName() + ': ' + caught?.getMessage());
         assertAmount(30, approvedAmount(itemIds[0]), 'The known item\'s approved amount is saved.');
     }
 

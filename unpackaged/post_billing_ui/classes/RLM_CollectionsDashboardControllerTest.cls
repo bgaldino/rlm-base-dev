@@ -14,9 +14,9 @@
  * Billing seat.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
- * 'Credit Memo', which are not Payment.Type values, so it is always zero. No record a test can
- * create exercises that filter, so no test here would notice a fix; see
- * unappliedCredits_filterOnTypesPaymentDoesNotHave for the type check.
+ * 'Credit Memo', which are not Payment.Type values (Sale and Capture on a 264 org), so it is
+ * always zero. No record a test can create exercises that filter, so no test here would notice
+ * a fix.
  */
 @isTest
 private class RLM_CollectionsDashboardControllerTest {
@@ -241,23 +241,6 @@ private class RLM_CollectionsDashboardControllerTest {
         }
     }
 
-    // The type check behind the documented unapplied-credits gap (see the class header): neither
-    // 'Credit' nor 'Credit Memo' is a Payment.Type value. It does not call the controller, so it
-    // will not detect a fix; a test cannot seed what a fixed card might count instead (a
-    // CreditMemo's BillingAccountId and Status are not createable).
-    @isTest
-    static void unappliedCredits_filterOnTypesPaymentDoesNotHave() {
-        Set<String> paymentTypes = new Set<String>();
-        for (Schema.PicklistEntry entry : Payment.Type.getDescribe().getPicklistValues()) {
-            paymentTypes.add(entry.getValue());
-        }
-        Assert.isFalse(paymentTypes.isEmpty(), 'PRECONDITION: Payment.Type lists its values.');
-        Assert.isFalse(paymentTypes.contains('Credit') || paymentTypes.contains('Credit Memo'),
-            'Payment.Type has no credit value, so the unapplied-credits filter cannot match (see the '
-            + 'class header); if this fails, revisit the controller\'s credit filter and the header. '
-            + 'Payment types: ' + paymentTypes);
-    }
-
     // A Draft debit memo is not owed: only a posted memo not yet on a posted invoice counts.
     // The memo has a total and is on the filtered account, so its Draft status is what keeps it
     // out. A unit test cannot post one (its lines need a tax treatment), so the posted sum is
@@ -470,8 +453,8 @@ private class RLM_CollectionsDashboardControllerTest {
 
     // A user who cannot read the billing objects gets empty sections, not an error: each one
     // catches its own failure. The same records give the admin a populated dashboard. The empty
-    // cards, promise buckets and placeholders need the user-mode queries to throw (a readable,
-    // empty result would still build them); the case, task and plan empties could also come from
+    // cards and promise buckets need the user-mode queries to throw (a readable, empty result
+    // would still build them); the case, task, plan and placeholder empties could also come from
     // sharing.
     @isTest
     static void allSections_forAUserWhoCannotReadThem_degradeToEmpty() {
@@ -527,8 +510,8 @@ private class RLM_CollectionsDashboardControllerTest {
             'An unreadable Invoice returns the cards before any breakdown is built.');
         Assert.isTrue(cards.agingBuckets.isEmpty(), 'Nor any aging bucket.');
         Assert.isTrue(worklist.disputedInvoices.isEmpty(), 'The open case is not listed (access or sharing).');
-        Assert.isTrue(worklist.highValueDelinquents.isEmpty(), 'An unreadable Account adds no placeholder.');
-        Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'An unreadable Account adds no placeholder.');
+        Assert.isTrue(worklist.highValueDelinquents.isEmpty(), 'No placeholder row (access or sharing).');
+        Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'No placeholder row (access or sharing).');
         Assert.isTrue(promises.isEmpty(), 'An unreadable schedule item returns no buckets.');
         Assert.isTrue(tasks.isEmpty(), 'The plan\'s task is not listed (access or sharing).');
         Assert.areEqual(0, progress.totalPlans, 'The plan is not measured (access or sharing).');

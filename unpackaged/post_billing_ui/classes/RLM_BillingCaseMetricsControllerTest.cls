@@ -27,7 +27,7 @@ private class RLM_BillingCaseMetricsControllerTest {
         System.assertEquals(0, (Integer) result.get('openBillingCases'), 'No billing cases -> zero.');
         System.assertEquals(0, (Integer) result.get('openDisputes'), 'No disputes -> zero.');
         System.assertEquals(0, (Integer) result.get('disputedInvoices'), 'No disputed invoices -> zero.');
-        System.assertNotEquals(null, result.get('totalDisputedAmount'), 'Disputed amount should default to zero, not null.');
+        assertAmount(0, (Decimal) result.get('totalDisputedAmount'), 'No disputes -> a zero disputed amount.');
     }
 
     // Positive path for the open-billing-case count. Case.Type is not a restricted picklist, so an
@@ -35,6 +35,9 @@ private class RLM_BillingCaseMetricsControllerTest {
     // class header), and it is reflected in the metric.
     @isTest
     static void getMetrics_openBillingCase_isCounted() {
+        if (billingCaseTypeIsBlocked()) {
+            return;
+        }
         insert new Case(Subject = 'RLM Billing Case Metrics Test', Status = 'New', Type = 'Billing');
 
         Test.startTest();
@@ -105,6 +108,23 @@ private class RLM_BillingCaseMetricsControllerTest {
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
     }
 
+    // True, with a visible skip, only where Case.Type is restricted and lacks 'Billing', so a
+    // Billing case cannot be inserted. Case.Type is unrestricted by default.
+    private static Boolean billingCaseTypeIsBlocked() {
+        Schema.DescribeFieldResult typeField = Case.Type.getDescribe();
+        if (!typeField.isRestrictedPicklist()) {
+            return false;
+        }
+        for (Schema.PicklistEntry entry : typeField.getPicklistValues()) {
+            if (entry.isActive() && entry.getValue() == 'Billing') {
+                return false;
+            }
+        }
+        System.debug(LoggingLevel.WARN, 'SKIPPED: Case.Type is restricted and has no Billing value, so a '
+            + 'Billing case cannot be created.');
+        return true;
+    }
+
     // Compares amounts by value, so 150 and 150.00 match.
     private static void assertAmount(Decimal expected, Decimal actual, String message) {
         Assert.isTrue(actual != null && actual == expected,
@@ -165,6 +185,9 @@ private class RLM_BillingCaseMetricsControllerTest {
     // an error.
     @isTest
     static void getMetrics_userWhoCannotReadCases_doesNotCountABillingCase() {
+        if (billingCaseTypeIsBlocked()) {
+            return;
+        }
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Case openCase = new Case(Subject = 'RLM Billing Case Metrics unreadable', Status = 'New', Type = 'Billing');
         insert openCase;
