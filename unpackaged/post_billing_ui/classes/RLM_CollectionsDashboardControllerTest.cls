@@ -236,6 +236,8 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(1, payerInCurrency.unappliedPaymentCount,
             'The payer\'s own payment, in its own currency, is kept by both filters.');
+        Assert.areEqual(4, otherAccount.totalBalanceBreakdown.size(), 'The cards were built, not returned early.');
+        Assert.areEqual(4, payerElsewhere.totalBalanceBreakdown.size(), 'The cards were built, not returned early.');
         Assert.areEqual(0, otherAccount.unappliedPaymentCount, 'Another account\'s payment is not counted.');
         Assert.areEqual(0, payerElsewhere.unappliedPaymentCount,
             'A payment in ' + paymentCurrency + ' is not counted under ' + otherCurrency + '.');
