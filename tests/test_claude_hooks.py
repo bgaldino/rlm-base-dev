@@ -959,6 +959,31 @@ class ArtifactsPlacement(unittest.TestCase):
         (self.tmp / "docs" / "old").symlink_to(sib, target_is_directory=True)
         self.assertEqual(self.decide("docs/old/inbox/a.md"), "deny")
 
+    def test_a_long_link_chain_in_the_raw_reading_is_bounded(self):
+        # Only the raw reading crosses the chain (a spelled `..` removes it from what the tool
+        # writes); resolving it with realpath() recursed on 3.9 and ran past the hook timeout
+        # on 3.13. The walk stops at MAX_LINK_HOPS and the normalised reading still decides.
+        import time
+        d = self.tree / "topics" / "d"
+        (d / "x").mkdir(parents=True)
+        (d / "s3000").mkdir()
+        for i in range(3000):
+            os.symlink("x/.." + "/x/.." * 201 + f"/s{i + 1}", str(d / f"s{i}"))
+        start = time.monotonic()
+        self.assertEqual(self.decide(".agents/artifacts/topics/d/s0/../../../newtop.md"), "deny")
+        self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_an_unexaminable_component_says_so(self):
+        locked = self.tmp / "locked"
+        (locked / "sub").mkdir(parents=True)
+        locked.chmod(0)
+        try:
+            proc = run_hook(GUARD, {"tool_name": "Write", "cwd": str(self.tmp),
+                                    "tool_input": {"file_path": "locked/sub/x.md", "content": "x"}})
+        finally:
+            locked.chmod(0o755)
+        self.assertIn("cannot be examined", proc.stdout)
+
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")
         self.assertEqual(self.decide(".agents/skills/x/SKILL.md"), "allow")

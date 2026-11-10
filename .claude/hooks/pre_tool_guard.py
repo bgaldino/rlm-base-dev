@@ -37,26 +37,22 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    `$LOOP_RUN_DIR/STOP` refuses every tool call of that one run (a remote cancel of one run);
    `<main checkout>/.loop/STOP` refuses every loop agent on the workstation (`make stop`).
    Either takes effect at the agent's next tool call; neither aborts a tool already running.
-4. Private artifacts placement (`.cursor/rules/analysis-artifacts.mdc`). A Write, Edit,
-   MultiEdit or NotebookEdit is denied when it would create a new top-level entry in `.agents/artifacts/`
-   (anything not in ARTIFACTS_ROOT and not already on disk), write into a sibling such as
-   `.agents/artifacts.old/` or a case variant (not gitignored everywhere, so it would surface
-   in the public repo), or
-   create `.agents/artifacts/` where the private clone is absent. It asks before a write
-   under `.agents/artifacts/archive/` (frozen history). Existing top-level folders still
-   accept writes until the private repo's reorg moves them. A write is judged by where it
-   lands, at BOTH readings of a path that has `..` after a symlink (Claude Code normalises
-   `..` away before writing; the OS follows the link first), and the stricter decision wins.
-   Spelled inside the tree but landing outside it is an escape and is denied, as is passing
-   through any link that lives inside a clone and resolves outside it or into another clone;
-   links are expanded component by component, so a chain reaching such a link through an
-   outside alias is judged too. The tree and its top-level entries are matched by file identity
-   (samefile), never by spelling, so case and Unicode case-fold variants on a case-insensitive
-   disk get the same rules; the outermost containing tree's rules apply. Only the private clone
-   counts as the tree (a directory with its own `.git`): a same-named public folder deeper in
-   the repo is not gitignored, so writes into it are refused like any other new tree. A reading
-   deeper than MAX_JUDGED_COMPONENTS or following more than MAX_LINK_HOPS links is not walked:
-   the rule asks. The normalised reading (what Claude Code writes) is always walked.
+4. Private artifacts placement (`.cursor/rules/analysis-artifacts.mdc`), for Write, Edit,
+   MultiEdit and NotebookEdit. The private tree is the repo-root `.agents/artifacts/`, a clone
+   with its own `.git`; it and its entries are matched by file identity, never by spelling.
+   - Deny: a new top-level entry of the clone (not in ARTIFACTS_ROOT, not already on disk); a
+     typed path not spelled exactly `.agents/artifacts` (siblings such as `artifacts.old`, case
+     or Unicode variants: not gitignored everywhere); a landing in any `.agents/artifacts` that
+     is not the clone, including one not cloned here; a path spelled inside the clone that
+     lands outside it; and passing through a link that lives inside a clone and resolves
+     outside it or into another clone, however the link was reached.
+   - Ask: a write under the clone's `archive/` (frozen history), and any reading the rule
+     cannot walk (deeper than MAX_JUDGED_COMPONENTS, more than MAX_LINK_HOPS links, a component
+     it cannot lstat) or fails to judge.
+   - Where a write lands: Claude Code normalises `..` away (and writes a lone surrogate as
+     U+FFFD) before writing, while the OS follows a link before each `..`, so both readings are
+     walked, component by component with every link expanded in place, and the stricter
+     decision wins. Existing top-level folders keep accepting writes until the reorg moves them.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
@@ -94,7 +90,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Sequence, Tuple
+from typing import Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 PROTECTED = ("main",)
 # The one repository whose protected-looking branches are pushed to directly by design: the
@@ -692,31 +688,42 @@ def _private_tree(real: Path) -> Optional[Path]:
 
 class _Walk:
     """One reading of a path, resolved the way the OS does: `steps` is every position the walk
-    reaches, and `links` is (directory holding the link, where the link resolves) for every
-    symlink it passes through, chains included."""
+    reaches, `links` is (directory holding the link, where the link resolves) for every symlink
+    it passes through, chains included, and `end` is where it lands."""
 
     def __init__(self, steps: List[Tuple[str, Path]], links: List[Tuple[Path, Path]],
                  end: Path):
         self.steps, self.links, self.end = steps, links, end
 
 
-def _resolution_steps(raw: str) -> Optional[_Walk]:
-    """Walk `raw` component by component. A symlink is expanded in place (its target's parts
-    queued, relative to the link's directory), never collapsed into one realpath() step, so
-    every link of a chain is visited, including one inside the private tree reached through an
-    outside alias. None when the path is too deep or follows more links than the kernel would
-    (it fails with ELOOP after about 32), so the walk's cost is bounded."""
+class _LinkEnd:
+    """Queued after a link's target: when the walk reaches it, it is where that link resolves."""
+
+    def __init__(self, index: int):
+        self.index = index
+
+
+def _resolution_steps(raw: str) -> Union[_Walk, str]:
+    """Walk `raw` component by component, or say why it cannot be walked. Each component is
+    lstat-ed; a symlink is expanded in place (its target's parts queued, relative to the link's
+    directory, followed by a marker), so every link of a chain is visited, including one inside
+    the private tree reached through an outside alias, and each link's resolution is read off
+    the walk itself, never from realpath(), which would follow an unbounded chain. Bounded by
+    MAX_JUDGED_COMPONENTS and by MAX_LINK_HOPS links in all, as the kernel bounds it (ELOOP)."""
     parts = Path(raw).parts
     if len(parts) > MAX_JUDGED_COMPONENTS:
-        return None
+        return f"it is deeper than {MAX_JUDGED_COMPONENTS} components"
     cur = Path(parts[0])
-    queue: List[str] = list(parts[1:])
+    queue: List[Union[str, _LinkEnd]] = list(parts[1:])
     steps: List[Tuple[str, Path]] = []
     links: List[Tuple[Path, Path]] = []
     while queue:
         if len(steps) > MAX_WALK_STEPS:
-            return None
+            return f"it expands to more than {MAX_WALK_STEPS} steps"
         comp = queue.pop(0)
+        if isinstance(comp, _LinkEnd):
+            links[comp.index] = (links[comp.index][0], cur)
+            continue
         if comp in ("", "."):
             continue
         if comp == "..":
@@ -731,19 +738,20 @@ def _resolution_steps(raw: str) -> Optional[_Walk]:
                 is_link = stat.S_ISLNK(os.lstat(nxt).st_mode)
             except (FileNotFoundError, NotADirectoryError):
                 is_link = False
-            except (OSError, ValueError):
-                return None
+            except (OSError, ValueError) as exc:
+                return f"a component cannot be examined ({type(exc).__name__})"
             if is_link:
                 if len(links) >= MAX_LINK_HOPS:
-                    return None
+                    return f"it follows more than {MAX_LINK_HOPS} links"
                 try:
                     target = Path(os.readlink(nxt))
-                except (OSError, ValueError):
-                    return None
-                links.append((cur, Path(os.path.realpath(nxt))))
+                except (OSError, ValueError) as exc:
+                    return f"a link cannot be read ({type(exc).__name__})"
+                links.append((cur, cur))  # resolution filled in when its _LinkEnd is reached
                 if target.is_absolute():
                     cur = Path(target.anchor)
-                queue[:0] = list(target.parts[1 if target.is_absolute() else 0:])
+                rest = list(target.parts[1 if target.is_absolute() else 0:])
+                queue[:0] = rest + [_LinkEnd(len(links) - 1)]
                 continue
             cur = nxt
         steps.append((comp, cur))
@@ -757,8 +765,9 @@ def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     allowed rather than crashing the hook, which would skip the rules after this one."""
     try:
         return _artifacts_decision(path, cwd)
-    except (OSError, ValueError):
-        return "allow", ""
+    except Exception as exc:  # RecursionError included: never crash the hook into an allow
+        return "ask", (f"the private-tree check could not judge this path "
+                       f"({type(exc).__name__}); confirm where it lands")
 
 
 _RANK = {"allow": 0, "ask": 1, "deny": 2}
@@ -767,10 +776,9 @@ _RANK = {"allow": 0, "ask": 1, "deny": 2}
 # call through unchecked).
 MAX_JUDGED_COMPONENTS = 512
 MAX_LINK_HOPS = 40
-# A walk expands each link's target in place, so its length is bounded by the kernel's own
-# limits: the path plus at most MAX_LINK_HOPS targets of at most PATH_MAX (4096) bytes, i.e.
-# about 2048 components each. This cap only stops a pathological walk; no input the OS would
-# accept reaches it.
+# A walk expands each link's target in place and stops after MAX_LINK_HOPS links, so it has at
+# most the path plus MAX_LINK_HOPS targets of at most PATH_MAX (4096) bytes, about 2048
+# components each. This cap is a backstop for that arithmetic, not a limit inputs reach.
 MAX_WALK_STEPS = MAX_JUDGED_COMPONENTS + MAX_LINK_HOPS * 2048
 
 
@@ -792,8 +800,8 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     # lengthens the raw text), so it is always walked; a reading too deep or too linked to walk
     # is not guessed at: it asks.
     walked = [_resolution_steps(str(lexical)), _resolution_steps(raw)]
-    unjudged = any(w is None for w in walked)
-    readings = [w for w in walked if w is not None]
+    unjudged = [w for w in walked if isinstance(w, str)]
+    readings = [w for w in walked if isinstance(w, _Walk)]
     landings = [w.end for w in readings]
     # 1. The spelling the agent asked for: a sibling (`artifacts.old`) is not gitignored, and a
     #    case or Unicode variant is the tree on a case-insensitive disk but an un-ignored
@@ -862,10 +870,8 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
                        "itself"))
     worst = ("allow", "")
     if unjudged:
-        worst = ("ask", (f"one reading of this path is deeper than {MAX_JUDGED_COMPONENTS} "
-                         f"components, follows more than {MAX_LINK_HOPS} links, or expands to "
-                         f"more than {MAX_WALK_STEPS} steps, too much for the private-tree check "
-                         "to walk; confirm where it lands"))
+        worst = ("ask", (f"the private-tree check cannot walk one reading of this path: "
+                         f"{unjudged[0]}; confirm where it lands"))
     for walk, real in zip(readings, landings):
         decision = ("allow", "")
         final = containing(real)
