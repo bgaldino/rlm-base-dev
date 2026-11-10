@@ -181,11 +181,11 @@ private with sharing class RLM_ARC_AssetValidatorTest {
         Assert.isFalse(res.hasUsageBasedAssets, 'No usage-based assets');
         Assert.isFalse(res.hasExpiredAssets, 'No expired assets');
         Assert.isFalse(res.hasDerivedPriceAssets, 'No derived-price assets');
-        Assert.isTrue(res.rampedAssetIds.isEmpty(), 'Ramped id list is empty, not null');
-        Assert.isTrue(res.usageBasedAssetIds.isEmpty(), 'Usage-based id list is empty, not null');
-        Assert.isTrue(res.expiredAssetIds.isEmpty(), 'Expired id list is empty, not null');
-        Assert.isTrue(res.derivedPriceAssetIds.isEmpty(), 'Derived-price id list is empty, not null');
-        Assert.isTrue(res.blockedAssets.isEmpty(), 'No blocked assets to display');
+        Assert.areEqual(new List<Id>(), res.rampedAssetIds, 'Ramped id list is empty, not null');
+        Assert.areEqual(new List<Id>(), res.usageBasedAssetIds, 'Usage-based id list is empty, not null');
+        Assert.areEqual(new List<Id>(), res.expiredAssetIds, 'Expired id list is empty, not null');
+        Assert.areEqual(new List<Id>(), res.derivedPriceAssetIds, 'Derived-price id list is empty, not null');
+        Assert.areEqual(new List<Asset>(), res.blockedAssets, 'No blocked assets to display, and the list is not null');
         Assert.isNull(res.swapBlockedMessage, 'Swap is allowed');
         Assert.isNull(res.transferBlockedMessage, 'Transfer is allowed');
         Assert.isNull(res.rollbackBlockedMessage, 'Rollback is allowed');

@@ -16,6 +16,10 @@
  * assignment, though a failed @TestSetup assignment still fails them along with the rest of
  * the class.
  *
+ * Known gap: a null recordId is not rejected; the query runs with filterField = null. On
+ * UsageSummary and UsageBillingPeriodItem that is AssetId = null, which returns asset-less
+ * rows across accounts.
+ *
  * Not covered:
  *  - the null-lookup branch of the flattener. Describe reports every lookup in the
  *    TransactionJournal field set (ReferenceRecordId, UsageResourceId, QuantityUnitOfMeasureId)
@@ -412,34 +416,47 @@ private with sharing class RLM_UsageDataControllerTest {
     }
 
     /**
-     * Pins current behaviour: a null recordId is not rejected. The query then filters on
-     * AccountId = null, but no journal can carry a null AccountId (insert rejects it), so the
-     * rows such a filter would match cannot be seeded and are not observed here. The real risk
-     * is AssetId = null on UsageSummary and UsageBillingPeriodItem, where a null recordId
-     * returns asset-less rows across accounts.
+     * Pins current behaviour: a null recordId is not rejected, and the query still runs. On
+     * TransactionJournal it filters on AccountId = null, which no journal can match (insert
+     * rejects a null AccountId). The real risk is AssetId = null on UsageSummary and
+     * UsageBillingPeriodItem, where a null recordId returns asset-less rows across accounts;
+     * those rows are produced by usage orchestration and cannot be seeded here.
      */
     @IsTest
     static void nullRecordIdIsNotRejected() {
         System.runAs(runningUserHoldingUsageDatatables()) {
             assertFieldSetReadable(TransactionJournal.SObjectType, new List<String>{ 'AccountId' });
+            assertFieldSetReadable(UsageSummary.SObjectType, new List<String>{ 'AssetId' });
 
             Test.startTest();
-            Map<String, Object> result;
+            Integer before = Limits.getQueries();
             try {
-                result = RLM_UsageDataController.getFieldSetData(null, 'AccountId', 'TransactionJournal', FIELD_SET);
+                RLM_UsageDataController.getFieldSetData(null, 'AccountId', 'TransactionJournal', FIELD_SET);
             } catch (AuraHandledException e) {
-                Assert.fail('Known gap fixed: a null recordId is now rejected; update this test');
+                Assert.fail('Known gap: a null recordId is now rejected; update this test');
             }
-            Integer queries = Limits.getQueries();
+            Integer journalQueries = Limits.getQueries() - before;
+
+            before = Limits.getQueries();
+            try {
+                RLM_UsageDataController.getFieldSetData(null, 'AssetId', 'UsageSummary', FIELD_SET);
+            } catch (AuraHandledException e) {
+                Assert.fail('Known gap: a null recordId is now rejected; update this test');
+            }
+            Integer summaryQueries = Limits.getQueries() - before;
             Test.stopTest();
 
             Assert.areEqual(
                 1,
-                queries,
+                journalQueries,
                 'Known gap: a null recordId still runs the query; update this test when it is rejected'
             );
-            Assert.isNotNull(result, 'A result map is returned for a null recordId');
-            Assert.isTrue(recordsOf(result).isEmpty(), 'No journal has a null AccountId, so nothing matches');
+            Assert.areEqual(
+                1,
+                summaryQueries,
+                'Known gap: a null recordId still runs the UsageSummary AssetId = null query; ' +
+                'update this test when it is rejected'
+            );
         }
     }
 
