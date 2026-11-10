@@ -55,8 +55,8 @@ private with sharing class RLM_HttpServiceTest {
         Assert.isNotNull(response, 'The response should be stored.');
         Assert.areEqual(200, response.getStatusCode(), 'Stored response status');
         Assert.areEqual('{"ping":"pong"}', response.getBody(), 'Stored response body');
-        Assert.isTrue(service.getResponseToString().contains('StatusCode=200'),
-            'getResponseToString should describe the stored response: ' + service.getResponseToString());
+        Assert.areEqual(String.valueOf(service.getResponse()), service.getResponseToString(),
+            'getResponseToString describes the stored response.');
     }
 
     @IsTest

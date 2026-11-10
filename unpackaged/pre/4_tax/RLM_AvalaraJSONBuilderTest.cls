@@ -72,6 +72,9 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
         Map<String, Object> origin = asMap(addresses.get('pointOfOrderOrigin'));
         Assert.areEqual('Austin', origin.get('city'), 'The Sold To address is the point of order origin.');
         Assert.areEqual('78701', origin.get('postalCode'), 'pointOfOrderOrigin.postalCode');
+        String payload = JSON.serialize(body);
+        Assert.isFalse(payload.contains('Denver'), 'The Bill To address is not sent.');
+        Assert.isFalse(payload.contains('Chicago'), 'The tax engine address is not sent.');
 
         // Pins current behaviour: the builder writes taxOverride before closing the addresses
         // object, so the block lands inside "addresses", not on the line itself.

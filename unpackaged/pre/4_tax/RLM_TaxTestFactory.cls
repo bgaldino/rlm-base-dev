@@ -32,14 +32,17 @@ public with sharing class RLM_TaxTestFactory {
     }
 
     /**
-     * Ship From = San Francisco, Ship To = Seattle, Sold To (and Bill To) = Austin. The fifth
-     * argument (taxEngineAddress) is set to Ship From.
+     * One distinct city per role, so a payload shows which roles production reads:
+     * Ship From = San Francisco, Ship To = Seattle, Sold To = Austin, Bill To = Denver,
+     * tax engine address = Chicago.
      */
     public static commercetax.LineTaxAddressesRequest lineAddresses() {
         commercetax.TaxAddressRequest shipFrom = address('1 Market St', 'San Francisco', 'CA', '94105');
         commercetax.TaxAddressRequest shipTo = address('255 S King St', 'Seattle', 'WA', '98104');
         commercetax.TaxAddressRequest soldTo = address('100 Congress Ave', 'Austin', 'TX', '78701');
-        return new commercetax.LineTaxAddressesRequest(shipFrom, shipTo, soldTo, soldTo, shipFrom);
+        commercetax.TaxAddressRequest billTo = address('1437 Bannock St', 'Denver', 'CO', '80202');
+        commercetax.TaxAddressRequest taxEngine = address('121 N LaSalle St', 'Chicago', 'IL', '60602');
+        return new commercetax.LineTaxAddressesRequest(shipFrom, shipTo, soldTo, billTo, taxEngine);
     }
 
     /** A line with quantity 2, tax code P0000000 and the addresses above. */

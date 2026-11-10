@@ -7,7 +7,7 @@ private with sharing class RLM_AvalaraAdapterTest {
         Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-AVA-1', RLM_TaxTestFactory.lines(232));
-        request.taxTransactionType = commercetax.TaxTransactionType.Debit;
+        request.taxTransactionType = commercetax.TaxTransactionType.Credit;
 
         Test.startTest();
         commercetax.TaxEngineResponse response = new RLM_AvalaraAdapter().processRequest(RLM_TaxTestFactory.context(request));
@@ -18,7 +18,7 @@ private with sharing class RLM_AvalaraAdapterTest {
         // The document code comes from the service's parsed engine payload, not from the request.
         RLM_TaxTestFactory.assertResponseField(response, 'documentCode', 'testDocCode1231245984',
             'The response is the one RLM_CalculateTaxService builds.');
-        RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Debit',
+        RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Credit',
             'The service echoes the request transaction type.');
         Assert.areEqual(1, mock.requests.size(), 'The service sends one Avalara callout.');
     }
