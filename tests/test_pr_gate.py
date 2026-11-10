@@ -4951,7 +4951,7 @@ VERDICT_REGIONS = {
     # Pinned when the excuse for `[branch]` bookkeeping entries moved here from a one-line byte
     # comparison in run(): about sixty lines that call git now decide whether a config change fails.
     # It reads git's own answers (config --list, for-each-ref), the same on every host.
-    "the config guard": ("c1785352d855", "whether a check's config change fails it"),
+    "the config guard": ("db54de0a9d64", "whether a check's config change fails it"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
@@ -5464,6 +5464,19 @@ try:
                         ("editor-notes", '\tvscode-merge-base = origin/main\n'
                                          '\tgithub-pr-owner-number = o#r#1\n')):
         branch_cases[label] = added(f'[branch "other-session/work"]\n{text}'.encode())
+    # Only the entries that changed are judged: `push -u` on a branch with a description, and beside
+    # another branch's own tracking (as in every real shared config), is still bookkeeping.
+    with_description = pristine + (b'[branch "base"]\n\tremote = origin\n\tmerge = refs/heads/base\n'
+                                   b'[branch "other-session/work"]\n\tdescription = wip\n')
+    branch_cases["beside-others"] = added(b'[branch "other-session/work"]\n\tremote = origin\n'
+                                          b'\tmerge = refs/heads/other-session/work\n', with_description)
+    # A remote is defined by its url: one with only a pushurl does not vouch for a branch's remote.
+    branch_cases["pushurl-only"] = added(b'[branch "other-session/work"]\n\tremote = evil\n',
+                                         pristine + b'[remote "evil"]\n\tpushurl = https://evil.example/x\n'
+                                         b'\tvcs = x\n')
+    # A before-snapshot git rejects fails cleanly, as the after-side one does.
+    branch_cases["unparseable-before"] = pr_gate.config_change_note(
+        {branch_config: b"[core\n"}, {branch_config: b"[core]\n"})
     # A remote defined by the same change is itself a non-branch change, so it cannot vouch for one.
     branch_cases["new-remote"] = added(b'[remote "evil"]\n\turl = https://evil.example/x.git\n'
                                        b'[branch "base"]\n\tremote = evil\n')
@@ -5555,7 +5568,13 @@ for label, what in (("pushremote", "a pushRemote"), ("mergeoptions", "a mergeOpt
                     ("merge-other", "a merge naming another branch"), ("rebase", "a rebase setting")):
     check(f"{what} for a real branch still fails: it redirects later pushes, pulls or merges",
           branch_cases[label][1] is True, branch_cases[label])
-for label, what in (("dot-remote", "`remote = .` (tracking a local branch)"),
+check("a pushurl-only remote does not vouch for a branch's remote",
+      branch_cases["pushurl-only"][1] is True, branch_cases["pushurl-only"])
+check("a before-snapshot git rejects fails cleanly",
+      branch_cases["unparseable-before"][1] is True, branch_cases["unparseable-before"])
+for label, what in (("beside-others", "tracking added to a branch with a description, beside another "
+                                      "branch's own tracking,"),
+                    ("dot-remote", "`remote = .` (tracking a local branch)"),
                     ("editor-notes", "an editor's vscode-merge-base or gh's github-pr-owner-number")):
     check(f"...while {what} is excused",
           branch_cases[label][1] is False and "other-session/work" in branch_cases[label][0],
@@ -5770,7 +5789,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 817
+EXPECTED = 820
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

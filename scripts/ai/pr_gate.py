@@ -256,12 +256,11 @@ def local_branches():
     return {ref[len("refs/heads/"):] for ref in refs if ref.startswith("refs/heads/")}
 
 
-def bookkeeping_only(entries, name, remotes):
-    """True when every `branch.<name>.*` entry is a bookkeeping key, each `remote` is "." or one of
-    `remotes`, and each `merge` is refs/heads/<name>."""
-    for key, value in entries:
-        if branch_of(key) != name:
-            continue
+def bookkeeping_only(changed, name, remotes):
+    """True when every changed `branch.<name>.*` entry is a bookkeeping key, each `remote` among them is
+    "." or one of `remotes`, and each `merge` is refs/heads/<name>. Only the entries that changed are
+    judged, so `push -u` on a branch that already has a `description` is still bookkeeping."""
+    for key, value in changed:
         variable = key.rpartition(".")[2]
         if (variable not in BOOKKEEPING_KEYS
                 or (variable == "remote" and value != "." and value not in remotes)
@@ -272,7 +271,7 @@ def bookkeeping_only(entries, name, remotes):
 
 def excused_branches(old, new, real):
     """The branches whose entries moved between `old` and `new` and are excusable: real local
-    branches (`real()`, called only if one moved) whose entries on both sides are bookkeeping only."""
+    branches (`real()`, called only if one moved) whose changed entries are bookkeeping only."""
     groups = [{}, {}]
     for group, entries in zip(groups, (old, new)):
         for entry in entries:
@@ -284,7 +283,13 @@ def excused_branches(old, new, real):
     # A remote's name may hold dots, so it is everything between `remote.` and `.url`.
     remotes = {key[len("remote."):-len(".url")] for key, _ in new
                if key.startswith("remote.") and key.endswith(".url")}
-    return {name for name in moved & real() if bookkeeping_only(old + new, name, remotes)}
+    excused = set()
+    for name in moved & real():
+        was, now = groups[0].get(name, []), groups[1].get(name, [])
+        changed = [entry for entry in was if entry not in now] + [entry for entry in now if entry not in was]
+        if bookkeeping_only(changed, name, remotes):
+            excused.add(name)
+    return excused
 
 
 def config_change_note(before, after):
