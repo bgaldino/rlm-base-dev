@@ -146,7 +146,7 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
         Assert.isFalse(body.containsKey('commit'), 'A null isCommit is omitted.');
         Assert.isFalse(body.containsKey('code'), 'No document code and no reference entity means no code.');
         Assert.areEqual('CUST-EMPTY-ACCOUNT', body.get('customerCode'),
-            'An empty account id is ignored and the customer code is used.');
+            'A blank account id is not parsed (no exception) and the customer code is used.');
     }
 
     @IsTest

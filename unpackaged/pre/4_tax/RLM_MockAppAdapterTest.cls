@@ -156,7 +156,7 @@ private with sharing class RLM_MockAppAdapterTest {
         RLM_TaxTestFactory.assertResponseFieldCount(responses[0], 'lineNumber', '1', 1, 'Line 1 keeps its number.');
         RLM_TaxTestFactory.assertResponseFieldCount(responses[0], 'lineNumber', '<null>', 1,
             'Known gap: a line without a number keeps a null number; the computed fallback is unused. '
-            + 'Update this test when it is fixed.');
+            + 'Update this test when it is fixed.' + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
         // Lines of 100 and 250: line 1 reports 100.0; line 2 and the header both report 350.0.
         RLM_TaxTestFactory.assertResponseFieldCount(responses[0], 'totalAmount', '100.0', 1, 'Line 1 total.');
         RLM_TaxTestFactory.assertResponseFieldCount(responses[0], 'totalAmount', '350.0', 2,
