@@ -42,7 +42,8 @@ that a pack or doc cites and that no longer exists has moved:
   `topics/`, `archive/`, `memory/`, `inbox/`, or the routine and tool areas `reports/`,
   `todo-audit/`, `tools/`) or one of the private repository's own root files (`README.md`,
   `MOVED.tsv`, `.gitignore`, `.ignore`, `.githooks/`), never another top-level entry.
-  `scripts/ai/check_private_refs.py` (a `pr_gate` check) flags top-level citations.
+  `scripts/ai/check_private_refs.py` (a `pr_gate` check) fails top-level citations and,
+  where the private clone is present, citations that do not resolve.
 - If a generated document is tracked in the public repo, move it into the private tree
   under the placement above, `git rm` it here, and update references.
 

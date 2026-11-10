@@ -10,16 +10,17 @@ Keeping the tree itself out of commits is `.gitignore`'s job, and the always-run
 `dockerignore` check fails a tracked file it ignores. Two checks here:
 
 (a) Shape. Every `.agents/artifacts/<x>` literal in tracked text must be the bare directory, a
-    template or glob, or start with a private tier (PRIVATE_TIERS). A top-level-shaped citation
-    is a warning until SHAPE_GATING is switched on, once the citations are rewritten (todo 358,
-    PR-B).
-(b) Resolution, only when the private clone is present. Each concrete citation must exist, or
-    resolve through the private tree's MOVED.tsv. Warnings for now, like (a). With the clone
-    absent, the count of shape-checked citations is printed: never a silent skip.
+    template or glob, or start with a private tier (PRIVATE_TIERS).
+(b) Resolution, only when the private clone is present. Each concrete citation must exist; a
+    path MOVED.tsv rewrites must be cited at its new path. With the clone absent, the count of
+    shape-checked citations is printed: never a silent skip.
+
+Both gate (todo 358 PR-B rewrote every citation and switched them on). A resolution failure on a
+clone that is behind can be a stale clone rather than a stale citation, so it says to pull first.
 
 `tests/` is not scanned: fixtures there cite misplaced paths on purpose.
 
-Exit 0 unless (a) is gating and fails (1); 2 when the check cannot run (git fails), so a tool
+Exit 1 on any (a) or (b) finding, else 0; 2 when the check cannot run (git fails), so a tool
 error never reads as a verdict. Stdlib only.
 """
 from __future__ import annotations
@@ -41,7 +42,7 @@ ROOT = ".agents/artifacts"
 PRIVATE_TIERS = ("todos", "topics", "archive", "memory", "reports", "inbox", "todo-audit", "tools",
                  "README.md", "MOVED.tsv", ".gitignore", ".ignore", ".githooks")
 
-SHAPE_GATING = False  # todo 358 PR-B turns this on after rewriting the citations below it
+GATING = True  # switched on by todo 358 PR-B, once every citation was rewritten to its final path
 
 PLACEHOLDER = re.compile(r"\{[^}]*\}|\$\{?\w+\}?|\*+")
 
@@ -177,14 +178,15 @@ def _check() -> int:
         if kind == "top-level":
             msg = (f"{rel}:{n}: {lit} cites the private tree's top level; cite a path under "
                    f"{', '.join(PRIVATE_TIERS[:4])}, …")
-            (errors if SHAPE_GATING else warnings).append(msg)
+            (errors if GATING else warnings).append(msg)
         if present and not PLACEHOLDER.search(rest) and not exists_in(tree, rest):
             new = resolve_moved(tree, rest, rows)
             if new:
-                warnings.append(f"{rel}:{n}: {lit} moved; rewrite to {ROOT}/{new}")
+                msg = f"{rel}:{n}: {lit} moved; rewrite to {ROOT}/{new}"
             else:
-                warnings.append(f"{rel}:{n}: {lit} is not at that path and MOVED.tsv has no "
-                                f"row for it; find it with python {ROOT}/tools/where.py {rest}")
+                msg = (f"{rel}:{n}: {lit} is not at that path and MOVED.tsv has no row for it; "
+                       f"pull the private clone, then find it with python {ROOT}/tools/where.py {rest}")
+            (errors if GATING else warnings).append(msg)
 
     for w in warnings:
         print(f"  [WARN ] {w}")

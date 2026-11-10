@@ -122,8 +122,8 @@ Foundations' `qb-demo-script` skill (shipped in Release 262) auto-generates the 
 - ✅ `qb-demo-script` skill — first proof-of-pattern consumer
 
 ### In progress
-- 🟡 PMOS-side manifest YAML (drafted at `.agents/artifacts/pmos-side-manifest-draft.md`, pending Arun → Sandy review)
-- 🟡 PMOS Tier 0 hygiene fixes (drafted at `.agents/artifacts/pmos-tier-0-hygiene-ask.md` — 4 critical-path: legacy CPQ schema in `context/ARCHITECTURE.md`, v61.0 REST examples, invented Apex REST paths, healthcare residue in `demo-data`)
+- 🟡 PMOS-side manifest YAML (drafted at `.agents/artifacts/topics/pmos-integration/pmos-side-manifest-draft.md`, pending Arun → Sandy review)
+- 🟡 PMOS Tier 0 hygiene fixes (drafted at `.agents/artifacts/topics/pmos-integration/pmos-tier-0-hygiene-ask.md` — 4 critical-path: legacy CPQ schema in `context/ARCHITECTURE.md`, v61.0 REST examples, invented Apex REST paths, healthcare residue in `demo-data`)
 
 ### Not yet built
 - Per-skill PMOS opt-in PRs (one PR per skill that PMOS chooses to upgrade)
@@ -133,14 +133,14 @@ Foundations' `qb-demo-script` skill (shipped in Release 262) auto-generates the 
 
 ## Related Artifacts
 
-- `.agents/artifacts/arun-pmos-skills-brief.md` — full briefing to Arun on the integration plan
-- `.agents/artifacts/rlm-base-dev-and-pmos-research.md` — owner/purpose comparison
-- `.agents/artifacts/integration-claim-validation-pmos.md` — line-by-line validation of pmos-analysis claims
-- `.agents/artifacts/pmos-side-manifest-draft.md` — proposed PMOS-side YAML (Sandy's review pending)
-- `.agents/artifacts/pmos-tier-0-hygiene-ask.md` — prioritized PMOS-internal hygiene
-- `.agents/artifacts/skills-pmos-distribution.md` — how PMOS's package system works (and doesn't ship skills today)
-- `.agents/artifacts/skills-pmos-enablement.md` — enablement-cluster integration plan
-- `.agents/artifacts/ssot-pmos-comprehensive-reaudit.md` — comprehensive single-source-of-truth audit
+- `.agents/artifacts/topics/skills/arun-pmos-skills-brief.md` — full briefing to Arun on the integration plan
+- `.agents/artifacts/topics/pmos-integration/rlm-base-dev-and-pmos-research.md` — owner/purpose comparison
+- `.agents/artifacts/archive/2026/ssot-audit-inputs/integration-claim-validation-pmos.md` — line-by-line validation of pmos-analysis claims
+- `.agents/artifacts/topics/pmos-integration/pmos-side-manifest-draft.md` — proposed PMOS-side YAML (Sandy's review pending)
+- `.agents/artifacts/topics/pmos-integration/pmos-tier-0-hygiene-ask.md` — prioritized PMOS-internal hygiene
+- `.agents/artifacts/archive/2026/skills-analysis-inputs/skills-pmos-distribution.md` — how PMOS's package system works (and doesn't ship skills today)
+- `.agents/artifacts/archive/2026/skills-analysis-inputs/skills-pmos-enablement.md` — enablement-cluster integration plan
+- `.agents/artifacts/archive/2026/ssot-audit-inputs/ssot-pmos-comprehensive-reaudit.md` — comprehensive single-source-of-truth audit
 - `.claude/skill-manifest.yml` — the actual manifest
 
 ## Future Direction (Not Asks)

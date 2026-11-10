@@ -84,10 +84,11 @@ class Basics(Fixture):
 
 
 class Shape(Fixture):
-    def test_top_level_citations_warn_while_shape_is_not_gating(self):
+    def test_top_level_citations_fail(self):
         self.write("docs/a.md", "see `.agents/artifacts/feature-gaps.md` and .agents/artifacts/old-dir/x.md.\n")
         proc = self.run_check()
-        self.assertEqual(proc.returncode, 0, proc.stdout)
+        self.assertEqual(proc.returncode, 1, proc.stdout)
+        self.assertIn("[ERROR] docs/a.md:1:", proc.stdout)
         self.assertIn("docs/a.md:1: .agents/artifacts/feature-gaps.md cites the private tree's top level",
                       proc.stdout)
         self.assertIn(".agents/artifacts/old-dir/x.md cites", proc.stdout)
@@ -126,11 +127,16 @@ class Shape(Fixture):
         self.write(".cursor/rules/analysis-artifacts.mdc", ".agents/artifacts/example.md\n")
         self.assertIn("0 citation(s)", self.run_check().stdout)
 
-    def test_gating_turns_shape_warnings_into_errors(self):
+    def test_gating_off_reports_warnings_only(self):
+        # The switch PR-B turned on: off, the same findings warn and the run passes.
         script = self.root / "scripts" / "ai" / "check_private_refs.py"
-        script.write_text(script.read_text().replace("SHAPE_GATING = False", "SHAPE_GATING = True"))
+        source = script.read_text()
+        self.assertIn("GATING = True", source)
+        script.write_text(source.replace("GATING = True", "GATING = False"))
         self.write("docs/a.md", ".agents/artifacts/feature-gaps.md\n")
-        self.assertEqual(self.run_check().returncode, 1)
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 0, proc.stdout)
+        self.assertIn("[WARN ] docs/a.md:1:", proc.stdout)
 
     def test_a_citing_file_with_a_stray_byte_is_still_scanned(self):
         (self.root / "docs").mkdir()
@@ -188,12 +194,12 @@ class Resolution(Fixture):
         return subprocess.run([sys.executable, "scripts/ai/check_private_refs.py"], cwd=self.root,
                               capture_output=True, text=True)
 
-    def test_moved_and_missing_paths_warn(self):
+    def test_moved_and_missing_paths_fail(self):
         self.write("docs/a.md", ".agents/artifacts/collections/gaps.md\n"
                    ".agents/artifacts/topics/collections/gaps.md\n"
                    ".agents/artifacts/topics/nope.md\n")
         proc = self.run_check()
-        self.assertEqual(proc.returncode, 0, proc.stdout)
+        self.assertEqual(proc.returncode, 1, proc.stdout)
         self.assertIn("moved; rewrite to .agents/artifacts/topics/collections/gaps.md", proc.stdout)
         self.assertIn("topics/nope.md is not at that path and MOVED.tsv has no row", proc.stdout)
         self.assertNotIn("a.md:2", proc.stdout)
@@ -205,13 +211,14 @@ class Resolution(Fixture):
             b"old_prefix\tnew_prefix\tref\tdate\n\xff\xfe/\tx/\tW3\t2026-11-09\n"
             b"collections/\ttopics/collections/\tW3\t2026-11-09\n")
         proc = self.run_check()
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)  # a finding, not a crash
+        self.assertNotIn("Traceback", proc.stderr)
         self.assertIn("MOVED.tsv has no row for it", proc.stdout)
         self.assertEqual(refs.resolve_moved(self.tree, "collections/gaps.md"),
                          "topics/collections/gaps.md")
         self.assertFalse(refs.exists_in(self.tree, "a\x00b"))
 
-    def test_an_unreadable_moved_tsv_warns_instead_of_failing_the_run(self):
+    def test_an_unreadable_moved_tsv_is_a_finding_not_a_crash(self):
         if hasattr(os, "geteuid") and os.geteuid() == 0:
             self.skipTest("root ignores file permissions")
         self.write("docs/a.md", ".agents/artifacts/topics/nope.md\n")
@@ -221,7 +228,8 @@ class Resolution(Fixture):
             self.assertEqual(refs.moved_rows(self.tree), [])
         finally:
             (self.tree / "MOVED.tsv").chmod(0o644)
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertNotIn("Traceback", proc.stderr)
         self.assertIn("MOVED.tsv has no row for it", proc.stdout)
 
     def test_a_plain_folder_is_not_the_private_tree(self):

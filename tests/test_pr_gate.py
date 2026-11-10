@@ -4037,7 +4037,7 @@ NOT_INPUTS = {
         # .agents/artifacts is gitignored, so it can never appear in a PR diff — nothing
         # there is selectable, which is the very asymmetry this suite exists to pin.
         ".agents/artifacts": "gitignored: cannot appear in a diff, so cannot select anything",
-        ".agents/artifacts/integration-staging/pmos-integration.md": "gitignored",
+        ".agents/artifacts/topics/integration-staging/pmos-integration.md": "gitignored",
         # The discovery checks (issue #593) build throwaway clones in a temp dir. Their hint
         # resolves beside REPO only on a workstation laid out that way, which is why it
         # surfaced locally and would not in CI.

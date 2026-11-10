@@ -246,7 +246,7 @@ Use `scripts/erd/orphan_batch_helper.py` to iterate through orphan classificatio
 python scripts/erd/orphan_batch_helper.py prepare --batch 4 --size 20
 
 # Dispatch researcher with the input JSON, merge findings into
-# .agents/artifacts/orphan-fields/orphan-field-ownership.json (in the private clone; without it,
+# .agents/artifacts/topics/orphan-fields/orphan-field-ownership.json (in the private clone; without it,
 # keep the file elsewhere and pass --ownership-json <path> to apply), then:
 python scripts/erd/orphan_batch_helper.py apply --batch 4
 
@@ -322,10 +322,10 @@ source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`.
 Outcome: 498 PDF artifacts removed, 38 orphans remain (all explicitly-documented
 feature-gated or cross-cloud fields). Findings persisted at:
 
-- `.agents/artifacts/orphan-fields/orphan-field-ownership.json` — structured per-entity classification database
-- `.agents/artifacts/orphan-fields/orphan-field-ownership.md` — narrative research findings
-- `.agents/artifacts/audit-262/262-vs-260-core-schema-research.md` — the 262 release schema research from Core source
-- `.agents/artifacts/audit-262/262-org-vs-core-cross-validation.md` — cross-validation between Core source and org introspection
+- `.agents/artifacts/topics/orphan-fields/orphan-field-ownership.json` — structured per-entity classification database
+- `.agents/artifacts/topics/orphan-fields/orphan-field-ownership.md` — narrative research findings
+- `.agents/artifacts/topics/audit-262/262-vs-260-core-schema-research.md` — the 262 release schema research from Core source
+- `.agents/artifacts/topics/audit-262/262-org-vs-core-cross-validation.md` — cross-validation between Core source and org introspection
 
 ## Related
 

@@ -42,7 +42,7 @@ step 31) → `deploy_post_inapp` (metadata `unpackaged/post_inapp`) + `load_inap
    returns resolved data, and render-check the Learning Home in a browser.
 7. **Read the data-plan README** (`datasets/sfdmu/inapp/README.md`) for the externalId
    scheme, the 4 live-load fixes, and image re-host details — it is the committed companion
-   to this skill. The maintainer report at `.agents/artifacts/in-app-framework-262-integration-report.md`
+   to this skill. The maintainer report at `.agents/artifacts/topics/inapp/in-app-framework-262-integration-report.md`
    (gitignored) holds the full redesign POV.
 
 ## DO NOT

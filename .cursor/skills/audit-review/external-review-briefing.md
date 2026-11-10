@@ -70,7 +70,7 @@ Reports are agent-generated analysis, so they live in the private nested repo, n
 public tree (`.cursor/rules/analysis-artifacts.mdc`):
 
 ```
-.agents/artifacts/code-reviews/<branch>/code-review-round<N>-<model>.md
+.agents/artifacts/topics/code-reviews/<branch>/code-review-round<N>-<model>.md
 ```
 
 The **model belongs in the filename**, not only in the report header. Two reviewers on

@@ -11,8 +11,8 @@ The declared repos are listed in ``REPO_KEYS``.
 
 Design references:
   - Schema: .claude/skill-manifest.yml (this repo)
-  - Pattern: .agents/artifacts/skills-consolidation-plan.md §3
-  - SSOT contract: .agents/artifacts/ssot-comparison.md §6
+  - Pattern: .agents/artifacts/topics/skills/skills-consolidation-plan.md §3
+  - SSOT contract: .agents/artifacts/topics/pmos-integration/ssot-comparison.md §6
   - Phase: 6.3 (per pmos-integration.md roadmap)
 
 Usage:

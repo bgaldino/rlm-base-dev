@@ -383,9 +383,9 @@ CHECKS = [
     dict(
         name="private_refs",
         cmd=["python", "scripts/ai/check_private_refs.py"],
-        # Citations into the private `.agents/artifacts/` tree must be tier-shaped (todo 358).
-        # One `git grep` finds the citing files, so it always runs, in under a second. Shape
-        # findings warn until PR-B; keeping the tree untracked is the dockerignore check's job.
+        # Citations into the private `.agents/artifacts/` tree must be tier-shaped and, where the
+        # clone is present, resolve (todo 358). One `git grep` finds the citing files, so it always
+        # runs, in under a second. Keeping the tree untracked is the dockerignore check's job.
         triggers=["scripts/ai/check_private_refs.py"], always=True,
         deps=[], gating=True,
     ),

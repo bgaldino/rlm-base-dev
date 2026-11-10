@@ -98,7 +98,7 @@ def audit(root, cited, *, create_private):
     return ok, buf.getvalue()
 
 
-CITED = ".agents/artifacts/integration-staging/pmos-integration.md"
+CITED = ".agents/artifacts/topics/integration-staging/pmos-integration.md"
 
 print(__doc__.splitlines()[0])
 print("=" * 100)

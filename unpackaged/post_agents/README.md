@@ -21,7 +21,7 @@ This bundle deploys four Agentforce **Employee Agents** plus their settings and 
 > This is not a reason to keep the legacy tree — 264 cannot deploy it at all. Porting the
 > procedure into `QuoteManagement`'s instructions is the fix, and because it changes agent
 > behavior it needs a live conversational check rather than a source review. Tracked as
-> **#264-54** in `.agents/artifacts/upgrades/264-upgrade-plan.md`.
+> **#264-54** in `.agents/artifacts/topics/upgrades/264-upgrade-plan.md`.
 
 ## What's in the bundle
 

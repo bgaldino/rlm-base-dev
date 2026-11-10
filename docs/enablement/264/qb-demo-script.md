@@ -13,7 +13,7 @@
 > **Status:** DRAFT. Requires SME pass for Setup-UI verification, Known-Bugs population, image capture, and Slack canvas publish.
 > **Grounded on:**
 > - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
-> - `.agents/artifacts/qb-canvas-260-source.md` (prior-release Slack canvas — source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on the local-only canvas source)
+> - `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (prior-release Slack canvas — source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on the local-only canvas source)
 > - `docs/salesforce/262/feature-index.md` (262 feature inventory)
 > - `docs/salesforce/262/help/articles/` (935-article Help portal mirror)
 > - `cumulusci.yml` `project.custom` (39 active feature flags)
@@ -265,7 +265,7 @@ Select 'Quick Quote'.
 
 ## Demo Personas
 
-> Sourced verbatim from the prior-release canvas at `.agents/artifacts/qb-canvas-260-source.md` (lines 199–225). Personas are stable across releases. Migration of the persona inventory into `docs/enablement/master/qb-scenario-reference.md` is tracked as a follow-up so future regenerations don't depend on a local-only artifact.
+> Sourced verbatim from the prior-release canvas at `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (lines 199–225). Personas are stable across releases. Migration of the persona inventory into `docs/enablement/master/qb-scenario-reference.md` is tracked as a follow-up so future regenerations don't depend on a local-only artifact.
 
 ::: {.layout}
 ::: {.column}
@@ -665,7 +665,7 @@ img-PLACEHOLDER-contracts-advanced-approvals
 
 ## Generation Notes
 
-**Source canvas:** Slack canvas `F09Q04HEC8Y` ("FY27 Revenue Cloud QuantumBit Script", 260 / Spring '26 / v66.0). Saved verbatim source at `.agents/artifacts/qb-canvas-260-source.md` (650 lines) as the structural template.
+**Source canvas:** Slack canvas `F09Q04HEC8Y` ("FY27 Revenue Cloud QuantumBit Script", 260 / Spring '26 / v66.0). Saved verbatim source at `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (650 lines) as the structural template.
 
 **262 deltas applied:**
 - Updated release identifier in title and "How do I get my own copy" section (TFID placeholder pending)
