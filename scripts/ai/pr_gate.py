@@ -410,6 +410,18 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="dockerignore",
+        cmd=["python", "tests/test_dockerignore.py"],
+        # A locally built image copies the working tree, so a git-ignored folder missing from
+        # .dockerignore is baked into it (todo 357). The suite compares the two ignore files and
+        # checks that every tracked file still reaches the build context, so a file force-added
+        # anywhere .dockerignore excludes (most of it at any depth) is an input too. A trigger
+        # list mirroring those patterns would drift from them, so like agent_tooling it always
+        # runs; it takes under a second.
+        triggers=[".dockerignore", ".gitignore", "tests/test_dockerignore.py"], always=True,
+        deps=[], gating=True,
+    ),
+    dict(
         name="doc_build_steps",
         cmd=["python", "tests/test_doc_build_steps.py"],
         # The suite walks every .md in the repo, so any .md must be able to select it.
