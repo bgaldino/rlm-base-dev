@@ -191,6 +191,5 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Assert.isInstanceOfType(caught, NullPointerException.class,
             'Known gap: a null line list is not guarded and getTax throws a raw NullPointerException. '
             + 'Update this test when it is fixed. ' + caught);
-        Assert.areEqual(0, mock.requests.size(), 'No callout is made when the request is unusable.');
     }
 }

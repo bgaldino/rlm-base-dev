@@ -109,10 +109,17 @@ public with sharing class RLM_TaxTestFactory {
      * its year (YEAR_2001) and a defaulted one by NOT_NULL.
      */
     public static void assertResponseFieldMatches(Object response, String field, String valueRegex, String message) {
+        assertResponseFieldMatches(response, field, valueRegex, message, PREMISE_HINT);
+    }
+
+    /** The premise test passes an empty hint, so its own failures do not point back at itself. */
+    private static void assertResponseFieldMatches(
+        Object response, String field, String valueRegex, String message, String failureHint
+    ) {
         String described = String.valueOf(response);
         Pattern entry = Pattern.compile('(?<=[\\[,])' + Pattern.quote(field + '=') + '(' + valueRegex + ')(?=[,\\]])');
         Assert.isTrue(entry.matcher(described).find(),
-            message + ' Expected ' + field + '=' + valueRegex + ' in: ' + described + PREMISE_HINT);
+            message + ' Expected ' + field + '=' + valueRegex + ' in: ' + described + failureHint);
     }
 
     /** A date value of 2001 (see DATE_2001). */
@@ -138,6 +145,10 @@ public with sharing class RLM_TaxTestFactory {
      * (twice for a CalculateTaxResponse, observed), so the raw count is divided by that.
      */
     public static Integer countResponseField(Object response, String field, String value) {
+        return countResponseField(response, field, value, PREMISE_HINT);
+    }
+
+    private static Integer countResponseField(Object response, String field, String value, String failureHint) {
         String described = String.valueOf(response);
         Pattern entry = Pattern.compile('(?<=[\\[,])' + Pattern.quote(field + '=' + value) + '(?=[,\\]])');
         Matcher matcher = entry.matcher(described);
@@ -147,14 +158,20 @@ public with sharing class RLM_TaxTestFactory {
         }
         Integer copies = Math.max(1, described.countMatches('delegate='));
         Assert.areEqual(0, Math.mod(count, copies),
-            'Every printed copy should list the same entries: ' + described + PREMISE_HINT);
+            'Every printed copy should list the same entries: ' + described + failureHint);
         return count / copies;
     }
 
     /** Asserts how many times field=value appears in one copy of the response. */
     public static void assertResponseFieldCount(Object response, String field, String value, Integer expected, String message) {
-        Assert.areEqual(expected, countResponseField(response, field, value),
-            message + ' (' + field + '=' + value + ')' + PREMISE_HINT);
+        assertResponseFieldCount(response, field, value, expected, message, PREMISE_HINT);
+    }
+
+    private static void assertResponseFieldCount(
+        Object response, String field, String value, Integer expected, String message, String failureHint
+    ) {
+        Assert.areEqual(expected, countResponseField(response, field, value, failureHint),
+            message + ' (' + field + '=' + value + ')' + failureHint);
     }
 
     /**
@@ -213,26 +230,26 @@ public with sharing class RLM_TaxTestFactory {
 
         // Nested line, tax, jurisdiction, imposition, amount and address objects add no delegate= labels.
         Assert.areEqual(2, described.countMatches('delegate='), 'A CalculateTaxResponse prints its delegate twice: ' + described);
-        assertResponseFieldCount(response, 'addresses', '<null>', 1, 'Only line 1 has null addresses.');
-        assertResponseFieldCount(response, 'imposition', '<null>', 1, 'A null imposition prints as <null>.');
-        assertResponseFieldCount(response, 'jurisdiction', '<null>', 1, 'A null jurisdiction prints as <null>.');
-        assertResponseFieldCount(response, 'name', 'PREMISE-J', 1, 'A nested jurisdiction lists its name.');
-        assertResponseFieldCount(response, 'locationCode', 'PREMISE-LOC', 1, 'A nested address lists its location code.');
-        assertResponseFieldCount(response, 'rate', '0.065', 1, 'A Double prints in its shortest decimal form.');
-        assertResponseFieldCount(response, 'totalAmount', '100.0', 1, 'A whole-number Double prints with ".0".');
-        assertResponseFieldMatches(response, 'effectiveDate', YEAR_2001, 'A line effective date prints with its year.');
-        assertResponseFieldCount(emptyResponse, 'documentCode', '', 1, 'An empty String prints as field=.');
-        assertResponseFieldCount(emptyResponse, 'lineItems', '<null>', 1, 'Unset line items print as <null>.');
+        assertResponseFieldCount(response, 'addresses', '<null>', 1, 'Only line 1 has null addresses.', '');
+        assertResponseFieldCount(response, 'imposition', '<null>', 1, 'A null imposition prints as <null>.', '');
+        assertResponseFieldCount(response, 'jurisdiction', '<null>', 1, 'A null jurisdiction prints as <null>.', '');
+        assertResponseFieldCount(response, 'name', 'PREMISE-J', 1, 'A nested jurisdiction lists its name.', '');
+        assertResponseFieldCount(response, 'locationCode', 'PREMISE-LOC', 1, 'A nested address lists its location code.', '');
+        assertResponseFieldCount(response, 'rate', '0.065', 1, 'A Double prints in its shortest decimal form.', '');
+        assertResponseFieldCount(response, 'totalAmount', '100.0', 1, 'A whole-number Double prints with ".0".', '');
+        assertResponseFieldMatches(response, 'effectiveDate', YEAR_2001, 'A line effective date prints with its year.', '');
+        assertResponseFieldCount(emptyResponse, 'documentCode', '', 1, 'An empty String prints as field=.', '');
+        assertResponseFieldCount(emptyResponse, 'lineItems', '<null>', 1, 'Unset line items print as <null>.', '');
         Assert.areEqual(1, errorDescribed.countMatches('delegate='), 'An ErrorResponse prints its delegate once: ' + errorDescribed);
-        assertResponseFieldCount(response, 'documentCode', 'PREMISE-1', 1, 'A String field prints as field=value.');
-        assertResponseFieldCount(response, 'status', 'Committed', 1, 'An enum prints by name.');
-        assertResponseFieldCount(response, 'taxTransactionType', 'Credit', 1, 'An enum prints by name.');
-        assertResponseFieldCount(response, 'referenceEntityId', '<null>', 1, 'An unset field prints as <null>.');
-        assertResponseFieldCount(response, 'lineNumber', '1', 1, 'Nested line items are listed.');
-        assertResponseFieldCount(response, 'lineNumber', '2', 1, 'Each nested line item is listed once.');
-        assertResponseFieldMatches(response, 'transactionDate', YEAR_2001, 'A date prints with its year.');
-        assertResponseFieldCount(error, 'errorCode', '', 1, 'ErrorResponse prints a null error code as empty.');
-        assertResponseFieldCount(error, 'errorMessage', 'm', 1, 'ErrorResponse prints its message.');
+        assertResponseFieldCount(response, 'documentCode', 'PREMISE-1', 1, 'A String field prints as field=value.', '');
+        assertResponseFieldCount(response, 'status', 'Committed', 1, 'An enum prints by name.', '');
+        assertResponseFieldCount(response, 'taxTransactionType', 'Credit', 1, 'An enum prints by name.', '');
+        assertResponseFieldCount(response, 'referenceEntityId', '<null>', 1, 'An unset field prints as <null>.', '');
+        assertResponseFieldCount(response, 'lineNumber', '1', 1, 'Nested line items are listed.', '');
+        assertResponseFieldCount(response, 'lineNumber', '2', 1, 'Each nested line item is listed once.', '');
+        assertResponseFieldMatches(response, 'transactionDate', YEAR_2001, 'A date prints with its year.', '');
+        assertResponseFieldCount(error, 'errorCode', '', 1, 'ErrorResponse prints a null error code as empty.', '');
+        assertResponseFieldCount(error, 'errorMessage', 'm', 1, 'ErrorResponse prints its message.', '');
     }
 
     /**
