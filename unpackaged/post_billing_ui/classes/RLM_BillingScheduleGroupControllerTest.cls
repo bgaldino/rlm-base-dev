@@ -3,8 +3,9 @@ private class RLM_BillingScheduleGroupControllerTest {
 
     // BillingScheduleGroup records are system-managed and not insertable in Apex tests, so
     // these tests drive the query down its empty and refused paths only. Each System.runAs
-    // test creates its user through RLM_BillingUITestUsers, which takes a Billing permission
-    // set license seat.
+    // test creates its user through RLM_BillingUITestUsers; the billing-role test takes a
+    // Billing permission set license seat, the refused-access test (a plain Minimum Access
+    // user with no license) does not.
     @isTest
     static void getBillingScheduleGroups_nullAccount_returnsEmptyList() {
         Test.startTest();
@@ -36,7 +37,7 @@ private class RLM_BillingScheduleGroupControllerTest {
         Assert.isTrue(result.isEmpty(), 'An account with no BSGs yields an empty list.');
     }
 
-    // A Billing-licensed user with only RLM_BillingUI cannot read BillingScheduleGroup. The
+    // A Minimum Access user with no permission sets cannot read BillingScheduleGroup. The
     // refused USER_MODE query must reach the LWC as an AuraHandledException, not a raw
     // QueryException. The premise is checked first.
     @isTest
@@ -44,8 +45,7 @@ private class RLM_BillingScheduleGroupControllerTest {
         Account acc = new Account(Name = 'RLM BSG Controller No Access Test');
         insert acc;
         User u = RLM_BillingUITestUsers.create(
-            new List<String>{ 'RLM_BillingUI' },
-            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+            new List<String>(), new List<String>());
 
         Boolean premise = false;
         Exception thrown;

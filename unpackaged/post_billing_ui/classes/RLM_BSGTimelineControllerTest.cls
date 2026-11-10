@@ -8,8 +8,9 @@ private class RLM_BSGTimelineControllerTest {
     // BillingScheduleGroup records are system-managed and not insertable in Apex tests.
     // getBillingScheduleGroupData / getConsolidatedTimeline raise AuraHandledException when the
     // BSG cannot be found; getMilestoneChartData degrades to an empty list. Each System.runAs
-    // test creates its user through RLM_BillingUITestUsers, which takes a Billing permission
-    // set license seat.
+    // test creates its user through RLM_BillingUITestUsers; the billing-role test takes a
+    // Billing permission set license seat, the refused-access test (a plain Minimum Access
+    // user with no license) does not.
     //
     // Known gap (documented, not pinned): getBillingScheduleGroupData throws its not-found
     // AuraHandledException inside a try and rewraps it with e.getMessage(). On a Release 264
@@ -87,9 +88,8 @@ private class RLM_BSGTimelineControllerTest {
 
     // ─── Access paths (USER_MODE) ───────────────────────────────────────────
 
-    // A Billing-licensed user with only RLM_BillingUI cannot read BillingScheduleGroup, and
-    // the milestone link on BillingSchedule is absent or unreadable for them (both need a
-    // billing role's user permissions).
+    // A Minimum Access user with no permission sets cannot read BillingScheduleGroup, and
+    // the milestone link on BillingSchedule is absent or unreadable for them.
     // The group/timeline reads must fail as AuraHandledException (never a raw QueryException
     // to the LWC), and the milestone chart must swallow its refused query and return an empty
     // list. An admin would see the same results from the "no record" paths, so the two
@@ -97,8 +97,7 @@ private class RLM_BSGTimelineControllerTest {
     @isTest
     static void userWithoutBillingAccess_getsHandledErrorsAndNoMilestones() {
         User u = RLM_BillingUITestUsers.create(
-            new List<String>{ 'RLM_BillingUI' },
-            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+            new List<String>(), new List<String>());
         String bsgId = fakeBsgId();
         Boolean bsgRefused = false;
         Boolean milestoneRefused = false;
@@ -158,7 +157,8 @@ private class RLM_BSGTimelineControllerTest {
         Test.startTest();
         System.runAs(u) {
             try {
-                // Keep in step with the BillingScheduleGroup query in
+                // This copy is the only access evidence: a drift from the controller's SELECT
+                // would not fail the test. Keep it in step with the BillingScheduleGroup query in
                 // RLM_BSGTimelineController.getBillingScheduleGroupData, and with READS in
                 // RLM_BillingUIAccessTest, which asserts the billing role can read these fields.
                 Database.query(

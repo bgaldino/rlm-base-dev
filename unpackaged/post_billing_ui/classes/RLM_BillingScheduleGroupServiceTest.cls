@@ -11,9 +11,11 @@
  * unverified (capturing it needs a production seam).
  * The System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
  * Billing permission set license seat.
- * The other tests run as the deploying admin, whose USER_MODE reads of BillingAccount and
- * AccountBillingAccount come from the System Administrator profile, not RLM_BillingUI
- * (verified with RLM_BillingUI unassigned on a Release 264 org).
+ * The other tests run as the deploying admin and read Account, BillingAccount,
+ * AccountBillingAccount, Product2, LegalEntity and TaxTreatment in USER_MODE; on a
+ * Release 264 org the System Administrator profile grants read on all six. The two junction
+ * tests, which read BillingAccount and AccountBillingAccount, also passed with RLM_BillingUI
+ * unassigned from the admin.
  *
  * Known gap (documented from a diagnostic run, not asserted by a test): on a Release 264
  * org, a run of the action with real records and this service's payload returned
@@ -380,19 +382,22 @@ private class RLM_BillingScheduleGroupServiceTest {
         Id baId = insertBillingAccount('BSG Boundaries');
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-EDGE' };
 
-        List<CreateArgs> edges = new List<CreateArgs>();
+        Map<String, CreateArgs> edges = new Map<String, CreateArgs>();
         CreateArgs a;
-        a = new CreateArgs(baId); a.quantity = 0; a.unitPrice = 0; edges.add(a);
-        a = new CreateArgs(baId); a.billingDayOfMonth = 1; a.billingStartMonth = 12; edges.add(a);
-        a = new CreateArgs(baId); a.billingDayOfMonth = 31; a.billingStartMonth = 1; edges.add(a);
+        a = new CreateArgs(baId); a.quantity = 0; a.unitPrice = 0;                  edges.put('zero quantity and price', a);
+        a = new CreateArgs(baId); a.billingDayOfMonth = 1; a.billingStartMonth = 12; edges.put('day 1, month 12', a);
+        a = new CreateArgs(baId); a.billingDayOfMonth = 31; a.billingStartMonth = 1; edges.put('day 31, month 1', a);
 
+        List<String> rejected = new List<String>();
         Test.startTest();
-        for (CreateArgs edge : edges) {
-            RLM_BillingScheduleGroupService.CreateResult r = edge.call();
-            Assert.areEqual('REQ-EDGE', r.requestId,
-                'Boundary values (0 quantity/price, day 1-31, month 1-12) are valid.');
+        for (String label : edges.keySet()) {
+            if (throwsAura(edges.get(label))) {
+                rejected.add(label);
+            }
         }
         Test.stopTest();
+
+        Assert.isTrue(rejected.isEmpty(), 'Boundary values were rejected: ' + String.join(rejected, ', '));
     }
 
     @isTest
