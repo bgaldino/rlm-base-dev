@@ -12,8 +12,8 @@ files rather than `sf org list`, which silently omits secondary users, and omits
 scratch org when a hub is unreachable.
 
 Local state is judged the way sf reads it: logins only from ~/.sfdx, a name through at most
-one alias, login names compared as a case- and normalization-insensitive filesystem compares
-them, and each config scope as the merge of its two files. Every effect of a planned `sf org
+one alias, a name meaning a login whose file it opens (folded as a case- and normalization-
+insensitive filesystem folds it, where that opens the same file), and each config scope as the merge of its two files. Every effect of a planned `sf org
 logout` (the aliases and config keys sf clears with it) is predicted, printed, bound in the plan
 and checked against the state before and after it runs. Anything that view cannot explain is preserved and reported, never
 acted on.
@@ -569,8 +569,8 @@ def survey(run, home, project, today, predict=True, env=None):
     # sf opens `~/.sfdx/<name>.json`, which a case- and normalization-insensitive filesystem (APFS)
     # finds whatever the spelling, so names are compared folded. A spelling that differs from the
     # file's means that login only where it opens the same file; on a case-sensitive filesystem it
-    # opens nothing, so it is in doubt. A name is in doubt when it may mean a login the tool cannot
-    # read or tie to one org.
+    # opens nothing, so it has no login and is judged like any other such name. A name is in doubt
+    # when it may mean a login the tool cannot read or tie to one org.
     folded, doubt = {}, {}
     for name in sorted(logins) + sorted(unread):
         folded.setdefault(fold(name), []).append(name)
@@ -598,7 +598,7 @@ def survey(run, home, project, today, predict=True, env=None):
             return None
         sfdx = home / ".sfdx"
         if names[0] != text and not opens_same_file(sfdx / (text + ".json"), sfdx / (names[0] + ".json")):
-            return DOUBT
+            return None  # sf opens no file for this spelling
         return names[0]
 
     cci = read_cci(run) if predict else None

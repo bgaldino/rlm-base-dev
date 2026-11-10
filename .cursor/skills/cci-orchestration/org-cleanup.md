@@ -63,7 +63,7 @@ preserves anything that model cannot explain:
   Unicode normalization, so usernames are compared without regard to either. A name holding `@` with
   characters this Python's Unicode tables do not know is in doubt, since the filesystem may fold them. On a
   case-sensitive filesystem (Linux, the Docker image) a name spelled differently from a login file's
-  opens nothing, so it is in doubt and whatever uses it is kept.
+  opens nothing, so it is judged as a name with no login, by signup-username evidence.
 - **A config scope** (`global`, or `local` for the project) is `.sf/config.json` merged with
   `.sfdx/sfdx-config.json`, and sf rewrites both files on any change. The tool acts on a scope
   only when that merge is unambiguous; otherwise it reports why under `unmodelled_config`.

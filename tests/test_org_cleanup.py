@@ -543,19 +543,27 @@ class Names(Base):
         self.assertEqual(plan["remove"]["aliases"], ["live@x.invalid"])
         self.assertEqual(plan["remove"]["defaults"], [])
 
-    def test_on_a_case_sensitive_filesystem_another_spelling_is_in_doubt_not_the_login(self):
-        # sf cannot open Rep@x.invalid.json for "rep@x.invalid" there, so its org is no evidence.
+    def test_on_a_case_sensitive_filesystem_another_spelling_has_no_login(self):
+        # sf opens no file for "rep@x.invalid" there, so the login's org is no evidence about it;
+        # the signup username is, and here a live org now has it.
         (self.home / ".sfdx" / "Rep@x.invalid.json").write_text(
             json.dumps({"username": "Rep@x.invalid", "orgId": DEAD_ORG + "MAA"}))
         (self.project / ".sf" / "orgs" / "rep@x.invalid").mkdir()
-        (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps({"job1": {"target-org": "rep@x.invalid"}}))
-        cli = FakeCli(self.home, [row(DEAD_ORG)], {"r": "rep@x.invalid"})
+        rows = [row(DEAD_ORG), row(LIVE_ORG, "Active", "2026-12-01", user="rep@x.invalid")]
+        cli = FakeCli(self.home, rows, {"r": "rep@x.invalid"})
         with self.case_sensitive():
             remove = self.plan(cli)["remove"]
         self.assertEqual(remove["logout"], ["Rep@x.invalid"])
-        for key in ("aliases", "tracking", "deploy_jobs"):
-            self.assertEqual(remove[key], [], key)
+        self.assertEqual((remove["aliases"], remove["tracking"]), ([], []))
         self.assertEqual(self.plan(cli)["remove"]["aliases"], ["r"])  # on APFS the name opens that login
+
+    def test_on_a_case_sensitive_filesystem_another_spelling_is_judged_in_the_same_run(self):
+        (self.home / ".sfdx" / "Rep@x.invalid.json").write_text(
+            json.dumps({"username": "Rep@x.invalid", "orgId": DEAD_ORG + "MAA"}))
+        cli = FakeCli(self.home, [row(DEAD_ORG, user="Rep@x.invalid")], {"r": "rep@x.invalid"})
+        with self.case_sensitive():
+            plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], ["r"])  # SOQL matches the username in any case
 
     def test_the_same_file_check_follows_the_filesystem(self):
         login = self.home / ".sfdx" / (HUB + ".json")
