@@ -54,7 +54,7 @@ private class RLM_PaymentsDataControllerTest {
 
         RLM_PaymentsDataController.PaymentStatusSummary draftSummary = draft(summaries);
         System.assertEquals(2, draftSummary.itemCount, 'Two Draft items were seeded.');
-        System.assertEquals(150, draftSummary.totalRequestedAmount, 'Draft requested total is 100 + 50.');
+        assertAmount(150, draftSummary.totalRequestedAmount, 'Draft requested total is 100 + 50.');
     }
 
     // PaymentScheduleItem is Apex-createable, so the account-options aggregate (GROUP BY
@@ -175,16 +175,20 @@ private class RLM_PaymentsDataControllerTest {
     }
 
     // The two currency-filtered queries: with and without an account. An item in the user's
-    // currency is kept under that currency and left out under any other.
+    // currency is kept under that currency and left out under any other; another account's item
+    // in the same currency is kept by the currency filter alone and left out by the account one.
     @isTest
     static void getPaymentScheduleItems_filtersByCurrencyWithAndWithoutAccount() {
         Account acc = new Account(Name = 'RLM PSI Currency Test');
-        insert acc;
-        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 80);
+        Account other = new Account(Name = 'RLM PSI Currency Other');
+        insert new List<Account>{ acc, other };
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 110);
         insert ps;
         PaymentScheduleItem psi = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
             RequestedAmount = 80, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
-        insert psi;
+        PaymentScheduleItem otherItem = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = other.Id,
+            RequestedAmount = 30, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+        insert new List<PaymentScheduleItem>{ psi, otherItem };
         String userCurrency = UserInfo.getDefaultCurrency();
         String otherCurrency = anotherCurrency(userCurrency);
         Assert.areEqual(userCurrency, [SELECT CurrencyIsoCode FROM PaymentScheduleItem WHERE Id = :psi.Id].CurrencyIsoCode,
@@ -201,20 +205,21 @@ private class RLM_PaymentsDataControllerTest {
             draft(RLM_PaymentsDataController.getPaymentScheduleItems(null, otherCurrency));
         Test.stopTest();
 
-        Assert.areEqual(1, accountInCurrency.itemCount, 'Account and currency both match.');
-        assertAmount(80, accountInCurrency.totalRequestedAmount, 'The item\'s requested amount.');
+        Assert.areEqual(1, accountInCurrency.itemCount, 'Only the account\'s item matches both filters.');
+        assertAmount(80, accountInCurrency.totalRequestedAmount, 'The account\'s item\'s requested amount.');
+        Assert.areEqual(psi.Id, accountInCurrency.items[0].id, 'The kept item is the account\'s.');
         Assert.areEqual(userCurrency, accountInCurrency.items[0].currencyCode, 'The item carries its currency.');
-        Assert.areEqual(1, anyAccountInCurrency.itemCount, 'The currency alone matches.');
+        Assert.areEqual(2, anyAccountInCurrency.itemCount, 'The currency alone keeps both accounts\' items.');
+        assertAmount(110, anyAccountInCurrency.totalRequestedAmount, 'Both items: 80 + 30.');
         Assert.areEqual(0, accountElsewhere.itemCount,
             'Under ' + otherCurrency + ' the account\'s item is left out.');
         Assert.areEqual(0, anyAccountElsewhere.itemCount, 'Under ' + otherCurrency + ' no item matches.');
         assertAmount(0, anyAccountElsewhere.totalRequestedAmount, 'Nothing requested in another currency.');
     }
 
-    // An item linked to a payment shows that payment and its own amounts. The schedule is a
-    // promise to pay on a collection plan, so the schedule-reference and payment-application
-    // lookups run, and the plan reference listing no invoice is checked here. No invoice can
-    // exist in a unit test, so listing a real invoice is verified live only.
+    // An item linked to a payment shows that payment and its own amounts, and a schedule
+    // referencing a collection plan lists no invoice. No invoice can exist in a unit test, so
+    // listing a real invoice is verified live only.
     @isTest
     static void getPaymentScheduleItems_showsTheItemsPayment() {
         Account acc = new Account(Name = 'RLM PSI Payment Test');
@@ -358,6 +363,7 @@ private class RLM_PaymentsDataControllerTest {
     }
 
     // An active currency other than the given one; a code no record can carry if there is none.
+    // An unknown code returns no rows rather than throwing; verified on a Release 264 org.
     // The controller lists CurrencyType, so this module only deploys to a multi-currency org.
     private static String anotherCurrency(String isoCode) {
         List<CurrencyType> others = [
@@ -366,7 +372,8 @@ private class RLM_PaymentsDataControllerTest {
         return others.isEmpty() ? 'ZZZ' : others[0].IsoCode;
     }
 
-    // Compares amounts by value, so 0 and 0.00 match.
+    // Fails on a null amount and names both values in the message; Decimal equality already
+    // ignores scale.
     private static void assertAmount(Decimal expected, Decimal actual, String message) {
         Assert.isTrue(actual != null && actual == expected,
             message + ' Expected ' + expected + ', got ' + actual + '.');

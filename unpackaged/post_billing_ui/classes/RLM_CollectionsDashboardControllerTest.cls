@@ -79,20 +79,24 @@ private class RLM_CollectionsDashboardControllerTest {
 
     // PaymentScheduleItem is Apex-createable (unlike Invoice/BillingScheduleGroup), so the
     // promise-summary aggregation can be exercised with real data. Two Draft items under a Draft
-    // schedule drive the SUM(RequestedAmount)/COUNT(Id) GROUP BY Status path and the account filter.
+    // schedule drive the SUM(RequestedAmount)/COUNT(Id) GROUP BY Status path; a third Draft item
+    // on another account shows the account filter leaves it out.
     // A grouped SUM comes back in the corporate currency, so the items are created in it.
     @isTest
     static void getPaymentPromiseSummary_withSeededItems_aggregatesByStatus() {
         Account acc = new Account(Name = 'RLM Promise Summary Test');
-        insert acc;
+        Account other = new Account(Name = 'RLM Promise Summary Other');
+        insert new List<Account>{ acc, other };
         String corporate = corporateCurrency();
-        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 150, CurrencyIsoCode = corporate);
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 190, CurrencyIsoCode = corporate);
         insert ps;
         insert new List<PaymentScheduleItem>{
             new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
                 RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
             new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
-                RequestedAmount = 50, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
+                RequestedAmount = 50, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = other.Id, CurrencyIsoCode = corporate,
+                RequestedAmount = 40, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
         };
 
         Test.startTest();
@@ -104,43 +108,53 @@ private class RLM_CollectionsDashboardControllerTest {
 
         // The summary always returns all four buckets in fixed order.
         System.assertEquals(4, unfiltered.size(), 'Failed/Ready/Draft/Processing buckets are always present.');
-        assertAmount(150, unfiltered.get('Draft').totalRequestedAmount,
-            'Two Draft items of 100 + 50 sum to 150.');
-        System.assertEquals(2, unfiltered.get('Draft').itemCount, 'Two Draft items counted.');
+        assertAmount(190, unfiltered.get('Draft').totalRequestedAmount,
+            'Three Draft items of 100 + 50 + 40 sum to 190.');
+        System.assertEquals(3, unfiltered.get('Draft').itemCount, 'All three Draft items counted.');
         assertAmount(0, unfiltered.get('Failed').totalRequestedAmount, 'No Failed items seeded.');
 
         assertAmount(150, byAccount.get('Draft').totalRequestedAmount,
-            'Account-filtered Draft sum matches (both items belong to the account).');
-        System.assertEquals(2, byAccount.get('Draft').itemCount, 'Account-filtered Draft count matches.');
+            'The account filter keeps the account\'s two items (100 + 50), not the other account\'s 40.');
+        System.assertEquals(2, byAccount.get('Draft').itemCount, 'Only the account\'s two items are counted.');
     }
 
     // The currency filter: an item in the corporate currency is summed under that currency and
-    // left out under any other. The SUM is grouped by Status, so it comes back in the corporate
-    // currency whoever runs it, and the item is created in it.
+    // left out under any other; with the account filter too, another account's item in the same
+    // currency is left out. The SUM is grouped by Status, so it comes back in the corporate
+    // currency whoever runs it, and the items are created in it.
     @isTest
     static void getPaymentPromiseSummary_appliesTheCurrencyFilter() {
         Account acc = newAccount('RLM CD Promise Currency');
+        Account other = newAccount('RLM CD Promise Currency Other');
         String itemCurrency = corporateCurrency();
         String otherCurrency = anotherCurrency(itemCurrency);
-        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100, CurrencyIsoCode = itemCurrency);
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 170, CurrencyIsoCode = itemCurrency);
         insert ps;
         PaymentScheduleItem psi = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
             CurrencyIsoCode = itemCurrency, RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(),
             Status = 'Draft');
-        insert psi;
+        PaymentScheduleItem otherItem = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = other.Id,
+            CurrencyIsoCode = itemCurrency, RequestedAmount = 70, TargetPaymentProcessingDate = Date.today(),
+            Status = 'Draft');
+        insert new List<PaymentScheduleItem>{ psi, otherItem };
         Assert.areEqual(itemCurrency, [SELECT CurrencyIsoCode FROM PaymentScheduleItem WHERE Id = :psi.Id].CurrencyIsoCode,
             'PRECONDITION: the item is in the corporate currency.');
 
         Test.startTest();
         Map<String, RLM_CollectionsDashboardController.PaymentPromiseBucket> sameCurrency =
             bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(acc.Id, itemCurrency));
+        Map<String, RLM_CollectionsDashboardController.PaymentPromiseBucket> currencyOnly =
+            bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, itemCurrency));
         Map<String, RLM_CollectionsDashboardController.PaymentPromiseBucket> elsewhere =
             bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(acc.Id, otherCurrency));
         Test.stopTest();
 
         assertAmount(100, sameCurrency.get('Draft').totalRequestedAmount,
-            'The item is in ' + itemCurrency + ', so that filter keeps it.');
-        Assert.areEqual(1, sameCurrency.get('Draft').itemCount, 'One Draft item in ' + itemCurrency + '.');
+            'The account\'s item is in ' + itemCurrency + ', so both filters keep it and leave the other account\'s out.');
+        Assert.areEqual(1, sameCurrency.get('Draft').itemCount, 'One Draft item for the account in ' + itemCurrency + '.');
+        assertAmount(170, currencyOnly.get('Draft').totalRequestedAmount,
+            'The currency filter alone keeps both accounts\' items (100 + 70).');
+        Assert.areEqual(2, currencyOnly.get('Draft').itemCount, 'Both items are in ' + itemCurrency + '.');
         Assert.areEqual(4, elsewhere.size(), 'All four buckets are returned even when nothing matches.');
         assertAmount(0, elsewhere.get('Draft').totalRequestedAmount,
             'Another currency (' + otherCurrency + ') leaves the item out.');
@@ -650,6 +664,7 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // An active currency other than the given one; a code no record can carry if there is none.
+    // An unknown code returns no rows rather than throwing; verified on a Release 264 org.
     private static String anotherCurrency(String isoCode) {
         List<CurrencyType> others = [
             SELECT IsoCode FROM CurrencyType WHERE IsActive = true AND IsoCode != :isoCode LIMIT 1
@@ -691,7 +706,8 @@ private class RLM_CollectionsDashboardControllerTest {
         return m;
     }
 
-    // Compares amounts by value, so 0 and 0.00 match.
+    // Fails on a null amount and names both values in the message; Decimal equality already
+    // ignores scale.
     private static void assertAmount(Decimal expected, Decimal actual, String message) {
         Assert.isTrue(actual != null && actual == expected,
             message + ' Expected ' + expected + ', got ' + actual + '.');

@@ -101,7 +101,8 @@ private class RLM_CollectionsConsoleControllerTest {
         Assert.isTrue(rows.isEmpty(), 'No invoices, no rows.');
     }
 
-    // Compares amounts by value, so 2500 and 2500.00 match.
+    // Fails on a null amount and names both values in the message; Decimal equality already
+    // ignores scale.
     private static void assertAmount(Decimal expected, Decimal actual, String message) {
         Assert.isTrue(actual != null && actual == expected,
             message + ' Expected ' + expected + ', got ' + actual + '.');
