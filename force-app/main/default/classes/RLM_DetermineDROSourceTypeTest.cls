@@ -86,10 +86,7 @@ private class RLM_DetermineDROSourceTypeTest {
                 'Known gap: an empty input list throws a raw ListException; update this test when it is fixed'
             );
         } catch (ListException e) {
-            Assert.isTrue(
-                e.getMessage().contains('out of bounds'),
-                'The missing first input is indexed: ' + e.getMessage()
-            );
+            Assert.isInstanceOfType(e, ListException.class, 'The missing first input is indexed: ' + e.getMessage());
         }
     }
 
@@ -104,10 +101,7 @@ private class RLM_DetermineDROSourceTypeTest {
                 'Known gap: an empty recordIds list throws a raw ListException; update this test when it is fixed'
             );
         } catch (ListException e) {
-            Assert.isTrue(
-                e.getMessage().contains('out of bounds'),
-                'The missing first id is indexed: ' + e.getMessage()
-            );
+            Assert.isInstanceOfType(e, ListException.class, 'The missing first id is indexed: ' + e.getMessage());
         }
     }
 

@@ -75,9 +75,10 @@ private class RLM_QuoteItemTriggerTest {
 
     /**
      * Gives the asset a recent action and an action a month older (olderStatus); latestFirst sets
-     * which is inserted first. The recent action has three sources, inserted stale first but dated
-     * newest first: one with no status (the trigger has to skip it), one with latestStatus, and an
-     * older one with a stale status. Insert order or an ascending sort would pick the stale one.
+     * which is inserted first. The recent action's sources are inserted stale, then latest, then
+     * blank (no status), with CreatedDate ascending in that order, so a DESC sort sees blank, then
+     * latest, then stale: the trigger has to skip the blank one and take latestStatus. Insert order
+     * or an ascending sort would pick the stale one.
      */
     private static void seedAssetHistory(Id assetId, Boolean latestFirst, String latestStatus, String olderStatus) {
         for (Boolean insertLatest : latestFirst ? new List<Boolean>{ true, false } : new List<Boolean>{ false, true }) {
@@ -228,5 +229,22 @@ private class RLM_QuoteItemTriggerTest {
 
         Assert.areEqual('{"node":"latest"}', statusOf(sourced.Id), 'The sourced line in the same batch is stamped');
         Assert.isNull(statusOf(line.Id), 'An older action\'s status is not used when the latest action has none');
+    }
+
+    @IsTest
+    static void linesWithoutQuoteActionsSkipTheLookup() {
+        Fixture f = buildFixture();
+        QuoteLineItem newSale = newLine(f, null, null);
+        QuoteLineItem preset = newLine(f, null, PRESET_STATUS);
+
+        Test.startTest();
+        Integer queriesBefore = Limits.getQueries();
+        insert new List<QuoteLineItem>{ newSale, preset };
+        Integer queriesUsed = Limits.getQueries() - queriesBefore;
+        Test.stopTest();
+
+        Assert.areEqual(0, queriesUsed, 'With no quote action on any line the trigger runs no query');
+        Assert.isNull(statusOf(newSale.Id), 'A new-sale line stays blank');
+        Assert.areEqual(PRESET_STATUS, statusOf(preset.Id), 'A preset status is kept');
     }
 }

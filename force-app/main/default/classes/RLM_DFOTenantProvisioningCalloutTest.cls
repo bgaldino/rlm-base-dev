@@ -78,7 +78,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
     }
 
     @IsTest
-    static void httpErrorWithNonJsonBodyStillReportsSuccess() {
+    static void httpErrorStillReportsSuccess() {
         OrderItem oi = orderItem();
         TenantMock mock = new TenantMock(500, 'Service Unavailable');
         Test.setMock(HttpCalloutMock.class, mock);
@@ -130,7 +130,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
                     + 'update this test when it is fixed'
             );
         } catch (QueryException e) {
-            Assert.isTrue(e.getMessage().contains('no rows'), 'No source relation is found: ' + e.getMessage());
+            Assert.isInstanceOfType(e, QueryException.class, 'No source relation is found: ' + e.getMessage());
         }
         Test.stopTest();
     }

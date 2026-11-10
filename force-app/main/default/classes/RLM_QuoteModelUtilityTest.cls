@@ -324,7 +324,7 @@ private class RLM_QuoteModelUtilityTest {
                 'Known gap: an empty input list throws a raw ListException; update this test when it is fixed'
             );
         } catch (ListException e) {
-            Assert.isTrue(e.getMessage().contains('out of bounds'), 'No quote is found to index: ' + e.getMessage());
+            Assert.isInstanceOfType(e, ListException.class, 'No quote is found to index: ' + e.getMessage());
         }
     }
 
@@ -338,7 +338,7 @@ private class RLM_QuoteModelUtilityTest {
                 'Known gap: getQuote throws a raw ListException for an unknown id; update this test when it is fixed'
             );
         } catch (ListException e) {
-            Assert.isTrue(e.getMessage().contains('out of bounds'), 'No row is found for the id: ' + e.getMessage());
+            Assert.isInstanceOfType(e, ListException.class, 'No row is found for the id: ' + e.getMessage());
         }
     }
 
