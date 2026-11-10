@@ -265,8 +265,10 @@ def excused_branches(old, new, real):
         was, now = groups[0].get(name, []), groups[1].get(name, [])
         if was == now:
             continue
-        changed = [entry for entry in was if entry not in now] + [entry for entry in now if entry not in was]
-        if (all(key.rpartition(".")[2] in BOOKKEEPING_KEYS for key, _ in changed)
+        # Everything but bookkeeping must be identical, in order: git uses a repeated key's last value,
+        # so reordering two `rebase` or `pushRemote` lines changes what git does.
+        if ([entry for entry in was if entry[0].rpartition(".")[2] not in BOOKKEEPING_KEYS]
+                == [entry for entry in now if entry[0].rpartition(".")[2] not in BOOKKEEPING_KEYS]
                 and all(value in remotes for key, value in now if key.endswith(".remote"))
                 and all(value == f"refs/heads/{name}" for key, value in now if key.endswith(".merge"))):
             excused.add(name)

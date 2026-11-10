@@ -4951,7 +4951,7 @@ VERDICT_REGIONS = {
     # Pinned when the excuse for `[branch]` bookkeeping entries moved here from a one-line byte
     # comparison in run(): about sixty lines that call git now decide whether a config change fails.
     # It reads git's own answers (config --list, for-each-ref), the same on every host.
-    "the config guard": ("b7b40bc669e6", "whether a check's config change fails it"),
+    "the config guard": ("8b4496f6f250", "whether a check's config change fails it"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
@@ -5482,6 +5482,12 @@ try:
         {branch_config: pristine + b'[branch "other-session/work"]\n\tremote = origin\n'
                                    b'\tmerge = refs/heads/other-session/work\n'},
         {branch_config: pristine})
+    # Reordering a repeated non-bookkeeping key changes which value git uses, beside tracking added.
+    two_push = '[branch "other-session/work"]\n\tpushRemote = {}\n\tpushRemote = {}\n'
+    branch_cases["reordered-pushremote"] = pr_gate.config_change_note(
+        {branch_config: pristine + two_push.format("evil", "origin").encode()},
+        {branch_config: pristine + two_push.format("origin", "evil").encode()
+         + b'[branch "other-session/work"]\n\tremote = origin\n'})
     two_remotes = '[branch "other-session/work"]\n\tremote = {}\n\tremote = {}\n'
     branch_cases["reordered-url"] = pr_gate.config_change_note(
         {branch_config: pristine + two_remotes.format("https://evil.example/x", "origin").encode()},
@@ -5590,7 +5596,8 @@ for label, what in (("pushremote", "a pushRemote"), ("mergeoptions", "a mergeOpt
                     ("merge-other", "a merge naming another branch"), ("rebase", "a rebase setting"),
                     ("dot-remote", "`remote = .`, which pushes to a local branch"),
                     ("stale-merge", "a remote added to a branch whose merge names another"),
-                    ("reordered-url", "a reordered remote that leaves a URL in use")):
+                    ("reordered-url", "a reordered remote that leaves a URL in use"),
+                    ("reordered-pushremote", "a reordered repeated pushRemote")):
     check(f"{what} for a real branch still fails: it redirects later pushes, pulls or merges",
           branch_cases[label][1] is True, branch_cases[label])
 check("a pushurl-only remote does not vouch for a branch's remote",
@@ -5817,7 +5824,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 825
+EXPECTED = 826
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
