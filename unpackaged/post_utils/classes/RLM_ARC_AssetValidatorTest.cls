@@ -2,7 +2,8 @@
  * Tests for RLM_ARC_AssetValidator: which assets are flagged usage-based or derived-price,
  * how a request is widened through AssetRelationship in both directions, the
  * action-specific blocked messages, and that the query count does not grow with the number of
- * requests (6 when any asset is blocked, 5 when none is, 0 with no ids).
+ * requests (6 when any asset is blocked; 5 when none is blocked and at least one asset has a
+ * product; 3 when none has a product; 0 with no ids).
  *
  * Not covered:
  *  - the ramped branch. AssetStatePeriod.RampIdentifier is not createable (the platform
@@ -206,6 +207,21 @@ private class RLM_ARC_AssetValidatorTest {
 
         assertUnblocked(res);
         Assert.areEqual(5, queries, 'With nothing blocked, the blocked-asset display query is skipped');
+    }
+
+    @IsTest
+    static void productlessAssetSkipsTheProductLookups() {
+        Asset noProduct = assetNamed(NO_PRODUCT_ASSET);
+        Assert.isNull(noProduct.Product2Id, 'PRECONDITION: the asset has no product');
+
+        Test.startTest();
+        RLM_ARC_AssetValidator.Result res = validateOne(new List<Id>{ noProduct.Id });
+        Integer queries = Limits.getQueries();
+        Test.stopTest();
+
+        assertUnblocked(res);
+        // relationships, ramp periods, assets; no product means no usage-resource or price book query
+        Assert.areEqual(3, queries, 'With no product, the usage-resource and price book queries are skipped');
     }
 
     @IsTest

@@ -6,7 +6,10 @@
 @IsTest
 private class RLM_RebuildSearchIndexTest {
 
-    private static final String PCM_INDEX_PATH = '/services/data/v68.0/connect/pcm/index/deploy';
+    // The class pins an API version in its path; match around it so a version bump there does
+    // not break this test.
+    private static final String API_PREFIX = '/services/data/v';
+    private static final String PCM_INDEX_SUFFIX = '/connect/pcm/index/deploy';
 
     private static final String FULL_SUCCESS_BODY =
         '{"snapshot":{' +
@@ -15,7 +18,8 @@ private class RLM_RebuildSearchIndexTest {
             '"activationType":"IMMEDIATE",' +
             '"snapshotIndexes":[' +
                 '{"id":"1XIxx0000000001","indexBuildType":"FULL","indexType":"PRODUCT","lastBuildStatus":"Queued"},' +
-                '{"id":"1XIxx0000000002","indexBuildType":"FULL","indexType":"OTHER","lastBuildStatus":"Queued"}' +
+                // Differs from the first entry in every field, so reading the wrong entry fails.
+                '{"id":"1XIxx0000000002","indexBuildType":"INCREMENTAL","indexType":"OTHER","lastBuildStatus":"Completed"}' +
             ']' +
         '}}';
 
@@ -78,10 +82,13 @@ private class RLM_RebuildSearchIndexTest {
         Assert.areEqual(1, mock.received.size(), 'Exactly one callout is made per deploy');
         HttpRequest sent = mock.received[0];
         Assert.areEqual('POST', sent.getMethod(), 'The index deploy is a POST');
-        Assert.areEqual(
-            URL.getOrgDomainUrl().toExternalForm() + PCM_INDEX_PATH,
-            sent.getEndpoint(),
-            'The callout targets the org domain PCM index deploy resource'
+        Assert.isTrue(
+            sent.getEndpoint().startsWith(URL.getOrgDomainUrl().toExternalForm() + API_PREFIX),
+            'The callout targets the org domain REST API: ' + sent.getEndpoint()
+        );
+        Assert.isTrue(
+            sent.getEndpoint().endsWith(PCM_INDEX_SUFFIX),
+            'The callout targets the PCM index deploy resource: ' + sent.getEndpoint()
         );
         Assert.areEqual('application/json', sent.getHeader('Content-Type'), 'The body is JSON');
         Assert.areEqual(
