@@ -37,11 +37,12 @@ private class RLM_RebuildSearchIndexTest {
             this.throwCalloutError = false;
         }
 
-        public PcmDeployMock(Boolean throwCalloutError) {
+        /** A mock whose every callout throws a CalloutException; use throwingMock(). */
+        public PcmDeployMock() {
             this.statusCode = null;
             this.status = null;
             this.body = null;
-            this.throwCalloutError = throwCalloutError;
+            this.throwCalloutError = true;
         }
 
         public HttpResponse respond(HttpRequest req) {
@@ -56,6 +57,11 @@ private class RLM_RebuildSearchIndexTest {
             res.setBody(body);
             return res;
         }
+    }
+
+    /** A mock whose callouts fail at the transport level, before any HTTP response exists. */
+    private static PcmDeployMock throwingMock() {
+        return new PcmDeployMock();
     }
 
     // ─── deployIndex (LWC) ──────────────────────────────────────────────
@@ -166,7 +172,8 @@ private class RLM_RebuildSearchIndexTest {
 
     @IsTest
     static void deployIndexWrapsTransportFailureInAuraHandledException() {
-        Test.setMock(HttpCalloutMock.class, new PcmDeployMock(true));
+        PcmDeployMock mock = throwingMock();
+        Test.setMock(HttpCalloutMock.class, mock);
 
         Test.startTest();
         Boolean threw = false;
@@ -178,11 +185,13 @@ private class RLM_RebuildSearchIndexTest {
         Test.stopTest();
 
         Assert.isTrue(threw, 'A callout failure surfaces to the LWC as an AuraHandledException');
+        Assert.areEqual(1, mock.received.size(), 'The exception came from the one callout attempt');
     }
 
     @IsTest
     static void deployIndexWrapsUnparseableSuccessBodyInAuraHandledException() {
-        Test.setMock(HttpCalloutMock.class, new PcmDeployMock(200, 'OK', 'not json'));
+        PcmDeployMock mock = new PcmDeployMock(200, 'OK', 'not json');
+        Test.setMock(HttpCalloutMock.class, mock);
 
         Test.startTest();
         Boolean threw = false;
@@ -194,6 +203,7 @@ private class RLM_RebuildSearchIndexTest {
         Test.stopTest();
 
         Assert.isTrue(threw, 'A 200 whose body is not JSON surfaces as an AuraHandledException');
+        Assert.areEqual(1, mock.received.size(), 'The callout was made; the failure is in reading its body');
     }
 
     // ─── deployPCMIndex (invocable) ─────────────────────────────────────
@@ -281,25 +291,32 @@ private class RLM_RebuildSearchIndexTest {
 
     @IsTest
     static void deployPcmIndexCatchesTransportFailurePerRequest() {
-        Test.setMock(HttpCalloutMock.class, new PcmDeployMock(true));
+        PcmDeployMock mock = throwingMock();
+        Test.setMock(HttpCalloutMock.class, mock);
 
         Test.startTest();
         List<RLM_RebuildSearchIndex.PCMDeployResult> results = RLM_RebuildSearchIndex.deployPCMIndex(
-            new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ new RLM_RebuildSearchIndex.PCMDeployRequest() }
+            new List<RLM_RebuildSearchIndex.PCMDeployRequest>{
+                new RLM_RebuildSearchIndex.PCMDeployRequest(),
+                new RLM_RebuildSearchIndex.PCMDeployRequest()
+            }
         );
         Test.stopTest();
 
-        Assert.areEqual(1, results.size(), 'A failing callout still yields a result, not an exception');
-        Assert.areEqual(false, results[0].isSuccess, 'The result is marked failed');
-        Assert.isTrue(
-            results[0].message.startsWith('Exception occurred: '),
-            'The exception is reported in the message: ' + results[0].message
-        );
-        Assert.isTrue(
-            results[0].message.contains('Simulated transport failure'),
-            'The original exception text is preserved: ' + results[0].message
-        );
-        Assert.isNull(results[0].statusCode, 'No HTTP status when the callout itself failed');
+        Assert.areEqual(2, mock.received.size(), 'The first failure does not stop the second request\'s callout');
+        Assert.areEqual(2, results.size(), 'Each failing callout still yields its own result, not an exception');
+        for (RLM_RebuildSearchIndex.PCMDeployResult r : results) {
+            Assert.areEqual(false, r.isSuccess, 'The result is marked failed');
+            Assert.isTrue(
+                r.message.startsWith('Exception occurred: '),
+                'The exception is reported in the message: ' + r.message
+            );
+            Assert.isTrue(
+                r.message.contains('Simulated transport failure'),
+                'The original exception text is preserved: ' + r.message
+            );
+            Assert.isNull(r.statusCode, 'No HTTP status when the callout itself failed');
+        }
     }
 
     @IsTest

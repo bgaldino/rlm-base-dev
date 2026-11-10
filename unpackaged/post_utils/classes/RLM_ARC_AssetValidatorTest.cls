@@ -1,8 +1,8 @@
 /**
  * Tests for RLM_ARC_AssetValidator: which assets are flagged usage-based or derived-price,
  * how a request is widened through AssetRelationship in both directions, the
- * action-specific blocked messages, and that a four-request bulk call uses one SOQL query per
- * validation dimension.
+ * action-specific blocked messages, and that a call uses a constant 6 SOQL queries regardless
+ * of request count.
  *
  * Not covered:
  *  - the ramped branch. AssetStatePeriod.RampIdentifier is not createable (the platform
@@ -391,7 +391,7 @@ private class RLM_ARC_AssetValidatorTest {
     // ─── Bulk ───────────────────────────────────────────────────────────
 
     @IsTest
-    static void bulkRequestsMapInOrderWithOneQueryPerDimension() {
+    static void bulkRequestsMapInOrderWithAFixedQueryCount() {
         Asset clean = assetNamed(CLEAN_ASSET);
         Asset usage = assetNamed(USAGE_ASSET);
         Asset noProduct = assetNamed(NO_PRODUCT_ASSET);
@@ -417,8 +417,10 @@ private class RLM_ARC_AssetValidatorTest {
         }
 
         Test.startTest();
+        RLM_ARC_AssetValidator.validate(new List<RLM_ARC_AssetValidator.Request>{ requests[1] });
+        Integer singleRequestQueries = Limits.getQueries();
         List<RLM_ARC_AssetValidator.Result> results = RLM_ARC_AssetValidator.validate(requests);
-        Integer queries = Limits.getQueries();
+        Integer bulkQueries = Limits.getQueries() - singleRequestQueries;
         Test.stopTest();
 
         Assert.areEqual(4, results.size(), 'One result per request');
@@ -443,6 +445,7 @@ private class RLM_ARC_AssetValidatorTest {
         Assert.areEqual(1, results[3].blockedAssets.size(), 'Fourth request: the product-less asset is not blocked');
 
         // relationships, ramp periods, assets, usage resources, price book entries, blocked assets
-        Assert.areEqual(6, queries, 'Four requests together use one query per validation dimension');
+        Assert.areEqual(6, singleRequestQueries, 'One request uses 6 queries');
+        Assert.areEqual(6, bulkQueries, 'Four requests use the same constant 6 queries regardless of request count');
     }
 }

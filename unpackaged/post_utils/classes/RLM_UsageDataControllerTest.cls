@@ -22,6 +22,7 @@ private class RLM_UsageDataControllerTest {
     private static final String ASSET_TWO = 'RLM UDC Asset Two';
     private static final String RESOURCE_NAME = 'RLM UDC Resource';
     private static final String UOM_NAME = 'RLM UDC Unit';
+    private static final String PRODUCT_NAME = 'RLM UDC Usage Product';
 
     @TestSetup
     static void setupData() {
@@ -29,7 +30,7 @@ private class RLM_UsageDataControllerTest {
         Account emptyAcc = new Account(Name = EMPTY_ACCOUNT_NAME);
         insert new List<Account>{ acc, emptyAcc };
 
-        Product2 prod = new Product2(Name = 'RLM UDC Usage Product', IsActive = true, UsageModelType = 'Anchor');
+        Product2 prod = new Product2(Name = PRODUCT_NAME, IsActive = true, UsageModelType = 'Anchor');
         insert prod;
 
         UnitOfMeasureClass uomClass = new UnitOfMeasureClass(
@@ -154,17 +155,30 @@ private class RLM_UsageDataControllerTest {
 
     /**
      * The controller strips fields the running user cannot read, so row assertions on these
-     * fields only hold when the runner can read them. End users get them from RLM_UsageDatatables.
+     * fields (and the related names used as link labels) only hold when the runner can read
+     * them. End users get them from RLM_UsageDatatables.
      */
     private static void assertJournalFieldsReadable() {
         Map<String, Schema.SObjectField> fields = Schema.SObjectType.TransactionJournal.fields.getMap();
         for (String fieldName : new List<String>{
-            'Quantity', 'Status', 'UsageResourceId', 'QuantityUnitOfMeasureId', 'ReferenceRecordId'
+            'Name', 'Quantity', 'Status', 'UsageResourceId', 'QuantityUnitOfMeasureId', 'ReferenceRecordId'
         }) {
             Assert.isTrue(
                 fields.get(fieldName).getDescribe().isAccessible(),
                 'PRECONDITION: the running user must read TransactionJournal.' + fieldName +
                 ' (granted to end users by RLM_UsageDatatables), or stripInaccessible removes it'
+            );
+        }
+        Map<String, Schema.SObjectField> relatedNames = new Map<String, Schema.SObjectField>{
+            'UsageResource.Name' => UsageResource.Name,
+            'UnitOfMeasure.Name' => UnitOfMeasure.Name,
+            'Asset.Name' => Asset.Name
+        };
+        for (String label : relatedNames.keySet()) {
+            Assert.isTrue(
+                relatedNames.get(label).getDescribe().isAccessible(),
+                'PRECONDITION: the running user must read ' + label +
+                ' (granted to end users by RLM_UsageDatatables), or the lookup label is stripped'
             );
         }
     }
@@ -297,7 +311,7 @@ private class RLM_UsageDataControllerTest {
         Id accId = accountId(ACCOUNT_NAME);
         UsageResource ur = [SELECT Id FROM UsageResource WHERE Name = :RESOURCE_NAME LIMIT 1];
         UnitOfMeasure uom = [SELECT Id FROM UnitOfMeasure WHERE Name = :UOM_NAME LIMIT 1];
-        Product2 prod = [SELECT Id FROM Product2 WHERE Name = 'RLM UDC Usage Product' LIMIT 1];
+        Product2 prod = [SELECT Id FROM Product2 WHERE Name = :PRODUCT_NAME LIMIT 1];
         Asset busy = new Asset(Name = 'RLM UDC Busy Asset', AccountId = accId, Product2Id = prod.Id);
         insert busy;
 
@@ -390,9 +404,12 @@ private class RLM_UsageDataControllerTest {
     static void rejectsObjectsOutsideTheAllowlist() {
         Id accId = accountId(ACCOUNT_NAME);
 
+        // Both cases guard the object allowlist specifically: neither name can be described, so
+        // without the allowlist the describe call would throw a non-Aura exception and fail
+        // this test. (A real object such as Account would be rejected later by the field-set
+        // check, so it would not show the allowlist working.)
         Test.startTest();
-        assertRejected(accId, 'Id', 'Account', FIELD_SET);
-        assertRejected(accId, 'AccountId', 'Asset', FIELD_SET);
+        assertRejected(accId, 'AccountId', 'Not_A_Real_Object__c', FIELD_SET);
         assertRejected(accId, 'AccountId', null, FIELD_SET);
         Test.stopTest();
     }

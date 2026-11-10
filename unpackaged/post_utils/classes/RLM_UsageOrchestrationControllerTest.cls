@@ -29,12 +29,18 @@ private with sharing class RLM_UsageOrchestrationControllerTest {
         Test.startTest();
         String token = RLM_UsageOrchestrationController.startOrchestration(NO_OP_FLOW);
         Integer queries = Limits.getQueries();
+        Integer dmlStatements = Limits.getDmlStatements();
         Test.stopTest();
 
         Assert.areEqual(
             0,
             queries,
             'PRECONDITION: ' + NO_OP_FLOW + ' must end without reading anything when started with no inputs'
+        );
+        Assert.areEqual(
+            0,
+            dmlStatements,
+            'PRECONDITION: ' + NO_OP_FLOW + ' must end without writing anything when started with no inputs'
         );
         Assert.areEqual('started', token, 'Starting a valid flow returns the started token');
     }
