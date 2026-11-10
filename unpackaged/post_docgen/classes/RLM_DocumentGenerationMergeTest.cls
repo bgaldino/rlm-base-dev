@@ -13,6 +13,8 @@ private class RLM_DocumentGenerationMergeTest {
         ContentVersion first = newPdf('Proposal.pdf');
         ContentVersion second = newPdf('Terms.pdf');
         insert new List<ContentVersion>{ first, second };
+        Assert.isTrue(String.valueOf(first.Id) < String.valueOf(second.Id),
+            'PRECONDITION: second sorts after first, so a sorted list would differ.');
 
         RLM_DocumentGenerationMerge.Request withNulls = new RLM_DocumentGenerationMerge.Request();
         withNulls.CurrentRecordId = quote.Id;

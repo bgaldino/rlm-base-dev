@@ -326,13 +326,20 @@ private class RLM_Learning_FrameworkTest {
       'PRECONDITION: the learner profile grants no learning-object access; granted: ' + granted
     );
 
-    // learner() creates the learner; it is read back with findLearner() so a
-    // learner missing its RLM_Learning assignment fails here rather than
-    // being skipped by learner()'s own assignment check.
-    learner();
+    // Found (or created) directly rather than through learner(), so a learner
+    // missing its RLM_Learning assignment fails here instead of being skipped by
+    // learner()'s own assignment check, and only a real skip logs SKIPPED.
     User learnerUser = findLearner();
     if (learnerUser == null) {
-      return; // assignment check skipped visibly: see learner()
+      createLearner();
+      learnerUser = findLearner();
+    }
+    if (learnerUser == null) {
+      System.debug(
+        LoggingLevel.WARN,
+        'SKIPPED: least-privilege learner could not be created; assignment check not run'
+      );
+      return;
     }
     Assert.areEqual(profileId, learnerUser.ProfileId, 'the learner is on the Minimum Access profile');
     Assert.areEqual(
@@ -556,13 +563,12 @@ private class RLM_Learning_FrameworkTest {
   @IsTest
   static void getSectionWithBlockBySectionId_mapsFirstBlockAndLink() {
     User runner = runnerWithLearning();
-    Id linkId = testLink().Id;
-    Id blockId = testBlock().Id;
     Id secId = sectionByHeader('H').Id;
     // Sequence order disagrees with creation order: a block created after
     // TestBlock is placed first (sequence 0) with its own link, and an inactive
-    // block below it (sequence -1). Only the first active block by sequence,
-    // and only its link, may be mapped.
+    // block ahead of it (sequence -1), which only the active-block filter keeps
+    // from being mapped. Only the first active block by sequence, and only its
+    // link, may be mapped.
     RLM_Learning_DynamicLink__c laterLink = new RLM_Learning_DynamicLink__c(
       Name = 'Later DynamicLink',
       RecordTypeId = rtId('RLM_Learning_DynamicLink__c', 'WebPage'),
@@ -599,8 +605,11 @@ private class RLM_Learning_FrameworkTest {
       ((RLM_Learning_Section__c) res[0].get('section')).RLM_Learning_Header__c
     );
     Map<String, Object> block = (Map<String, Object>) res[0].get('block');
-    Assert.areEqual(laterBlock.Id, block.get('blockId'), 'the first active block by sequence is mapped');
-    Assert.areNotEqual(blockId, block.get('blockId'), 'not the earlier-created TestBlock');
+    Assert.areEqual(
+      laterBlock.Id,
+      block.get('blockId'),
+      'the first active block by sequence is mapped, not the earlier-created TestBlock'
+    );
     Assert.areEqual('Later Block header', block.get('header'));
     Assert.areEqual(laterLink.Id, block.get('action'));
     List<RLM_Learning_DynamicLink__c> links = (List<RLM_Learning_DynamicLink__c>) res[0]
