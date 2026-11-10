@@ -28,7 +28,9 @@ private class RLM_BillingCaseMetricsControllerTest {
     @isTest
     static void getMetrics_openBillingCase_isCounted() {
         if (!billingCaseTypeIsValid()) {
-            return; // 'Billing' Type not available in this org; covered by the zero-path test.
+            System.debug(LoggingLevel.WARN, 'SKIPPED: this org has no active \'Billing\' Case Type; '
+                + 'the repo\'s CaseType value set does not ship one.');
+            return;
         }
 
         insert new Case(Subject = 'RLM Billing Case Metrics Test', Status = 'New', Type = 'Billing');
@@ -53,9 +55,16 @@ private class RLM_BillingCaseMetricsControllerTest {
     }
 
     // Dispute is createable, so the dispute aggregates count real open disputes and sum their
-    // amounts. No dispute can name an invoice (Invoice is not createable), so none is counted.
+    // amounts. SUM(DisputedAmount) is ungrouped, so the test runs only where the running user's
+    // currency is the corporate one, and the disputes are created in it.
     @isTest
-    static void getMetrics_countsOpenDisputesAndSumsTheirAmounts() {
+    static void getMetrics_countsOpenDisputesAndSumsTheirAmounts_whenTheUserCurrencyIsCorporate() {
+        String corporate = [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
+        if (UserInfo.getDefaultCurrency() != corporate) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: ungrouped currency aggregate depends on the running '
+                + 'user\'s currency matching the corporate currency');
+            return;
+        }
         Account a = new Account(Name = 'RLM Case Metrics Disputes');
         insert a;
         List<Decimal> amounts = new List<Decimal>{ 100, 50 };
@@ -65,8 +74,6 @@ private class RLM_BillingCaseMetricsControllerTest {
             disputeCases.add(new Case(AccountId = a.Id, Subject = 'RLM Case Metrics dispute ' + amount));
         }
         insert disputeCases;
-        // SUM(DisputedAmount) comes back in the corporate currency, so the disputes are in it.
-        String corporate = [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
         List<SObject> disputes = new List<SObject>();
         for (Integer i = 0; i < amounts.size(); i++) {
             SObject d = Schema.getGlobalDescribe().get('Dispute').newSObject();

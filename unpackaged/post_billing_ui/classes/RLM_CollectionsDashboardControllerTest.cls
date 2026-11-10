@@ -107,8 +107,9 @@ private class RLM_CollectionsDashboardControllerTest {
         System.assertEquals(2, byAccount.get('Draft').itemCount, 'Account-filtered Draft count matches.');
     }
 
-    // The currency filter: an item in the user's currency is summed under that currency and
-    // left out under any other.
+    // The currency filter: an item in the corporate currency is summed under that currency and
+    // left out under any other. The SUM is grouped by Status, so it comes back in the corporate
+    // currency whoever runs it.
     @isTest
     static void getPaymentPromiseSummary_appliesTheCurrencyFilter() {
         Account acc = newAccount('RLM CD Promise Currency');
@@ -170,12 +171,15 @@ private class RLM_CollectionsDashboardControllerTest {
 
     // A Sale payment with a balance is an unapplied payment: it lowers the total balance and
     // the total outstanding, and it is filtered by account and currency like every card.
+    // The card sums are ungrouped SUMs, so the test runs only where the running user's currency
+    // is the corporate one (see userCurrencyIsCorporate).
     @isTest
-    static void getDashboardCards_unappliedPaymentOffsetsTheBalance() {
+    static void getDashboardCards_unappliedPaymentOffsetsTheBalance_whenTheUserCurrencyIsCorporate() {
+        if (!userCurrencyIsCorporate()) {
+            return;
+        }
         Account payer = newAccount('RLM CD Payer');
         Account other = newAccount('RLM CD Other');
-        // The card sums are ungrouped SUMs; the payment is in the corporate currency anyway, so
-        // its balance reads the same however the platform converts an aggregate.
         String paymentCurrency = corporateCurrency();
         Payment p = new Payment(AccountId = payer.Id, Amount = 250, Status = 'Processed',
             Type = 'Sale', ProcessingMode = 'External', CurrencyIsoCode = paymentCurrency);
@@ -231,14 +235,32 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(0, payerElsewhere.unappliedPaymentCount, 'Nor counted under another currency.');
     }
 
+    // The unapplied-credits card sums payments of Type 'Credit' or 'Credit Memo', but neither is
+    // a Payment.Type value, so the card cannot show a credit.
+    @isTest
+    static void unappliedCredits_filterOnTypesPaymentDoesNotHave() {
+        Set<String> paymentTypes = new Set<String>();
+        for (Schema.PicklistEntry entry : Payment.Type.getDescribe().getPicklistValues()) {
+            paymentTypes.add(entry.getValue());
+        }
+        Assert.isFalse(paymentTypes.isEmpty(), 'PRECONDITION: Payment.Type lists its values.');
+        Assert.isFalse(paymentTypes.contains('Credit') || paymentTypes.contains('Credit Memo'),
+            'Known gap: the unapplied-credits card filters Payment.Type on Credit and Credit Memo, which '
+            + 'are not Payment types (' + paymentTypes + '), so it is always zero; update this test when '
+            + 'it is fixed.');
+    }
+
     // A Draft debit memo is not owed: only a posted memo not yet on a posted invoice counts.
     // The memo has a total and is on the filtered account, so its Draft status is what keeps it
     // out. A unit test cannot post one (its lines need a tax treatment), so the posted sum is
-    // live-only.
+    // live-only. The control query is an ungrouped SUM, so the test runs only where the running
+    // user's currency is the corporate one (see userCurrencyIsCorporate).
     @isTest
-    static void getDashboardCards_draftDebitMemoIsNotOwed() {
+    static void getDashboardCards_draftDebitMemoIsNotOwed_whenTheUserCurrencyIsCorporate() {
+        if (!userCurrencyIsCorporate()) {
+            return;
+        }
         Account a = newAccount('RLM CD Debit Memo');
-        // In the corporate currency, so the control query's SUM reads the memo's own total.
         SObject memo = newRecord('DebitMemo', new Map<String, Object>{
             'AccountId' => a.Id, 'Status' => 'Draft', 'InvoiceGenerationStatus' => 'None',
             'CurrencyIsoCode' => corporateCurrency()
@@ -611,10 +633,22 @@ private class RLM_CollectionsDashboardControllerTest {
         return record;
     }
 
-    // Aggregate SUMs of currency fields come back in the corporate currency, so records whose
+    // A grouped SUM of a currency field comes back in the corporate currency, so records whose
     // amounts are summed are created in it.
     private static String corporateCurrency() {
         return [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
+    }
+
+    // An ungrouped SUM of a currency field is reported in a currency the platform picks (the
+    // running user's or the corporate one); where the two are the same it reads the records'
+    // own amounts. Logs a visible skip otherwise.
+    private static Boolean userCurrencyIsCorporate() {
+        if (UserInfo.getDefaultCurrency() == corporateCurrency()) {
+            return true;
+        }
+        System.debug(LoggingLevel.WARN, 'SKIPPED: ungrouped currency aggregate depends on the running '
+            + 'user\'s currency matching the corporate currency');
+        return false;
     }
 
     // An active currency other than the given one; a code no record can carry if there is none.

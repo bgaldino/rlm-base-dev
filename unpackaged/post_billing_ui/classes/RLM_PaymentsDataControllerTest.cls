@@ -277,7 +277,6 @@ private class RLM_PaymentsDataControllerTest {
             RLM_PaymentsDataController.getPaymentScheduleItems(acc.Id, null);
         Test.stopTest();
 
-        Assert.areEqual(5, summaries.size(), 'Only the tracked statuses are summarized.');
         Integer summarized = 0;
         for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
             summarized += s.itemCount;

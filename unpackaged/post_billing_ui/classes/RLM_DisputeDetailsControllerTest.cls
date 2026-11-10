@@ -120,7 +120,7 @@ private class RLM_DisputeDetailsControllerTest {
 
     // A user who cannot query DisputeItem cannot approve an amount: whichever check stops them
     // (no DisputeItem, no approved-amount field, or the user-mode query), the page gets an
-    // AuraHandledException and the record is unchanged. The admin saves the same item in
+    // AuraHandledException and the record is unchanged. The admin saves an identical item in
     // saveApprovedAmounts_writesTheApprovedAmount.
     @isTest
     static void saveApprovedAmounts_userWithoutDisputeAccess_isRejected() {
