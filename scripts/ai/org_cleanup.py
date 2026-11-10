@@ -979,7 +979,8 @@ def replace_json(path, data):
     handle, temp = tempfile.mkstemp(dir=str(path.parent), prefix=".deploy-cache.")
     try:
         with os.fdopen(handle, "w", encoding="utf-8") as out:
-            os.fchmod(out.fileno(), mode)
+            if hasattr(os, "fchmod"):  # POSIX; Windows Python before 3.13 has none
+                os.fchmod(out.fileno(), mode)
             out.write(json.dumps(data, indent=4, allow_nan=False))  # the encoder remove_deploy_jobs checks with
         os.replace(temp, str(path))
     except BaseException:
@@ -1006,19 +1007,30 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done=None
             return 0, 0
     lock = cache_lock(home)
     try:
-        take_lock(lock)
+        mark = [take_lock(lock)]
     except OSError as error:
         failures.append((str(path), "not modified: sf holds its lock (an sf command is writing it), or the "
                                     "lock could not be taken ({})".format(reason(error))))
         return 0, 0
+
+    def ours():  # proper-lockfile's rule: the lock is ours only while its time is the one we set
+        info = lstat_or_none(lock)
+        return info is not None and info.st_mtime_ns == mark[0]
+
+    def touch():
+        """Refresh the lock if it is still ours; False once an sf command has taken it over."""
+        if not ours():
+            return False
+        mark[0] = refresh_lock(lock)
+        return True
+
     try:
-        return rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done,
-                                    touch=lambda: os.utime(str(lock)))
+        return rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done, touch)
     finally:
-        try:
+        if ours():
             os.rmdir(str(lock))
-        except OSError:  # taken over as stale, or gone: never let this hide what happened above
-            failures.append((str(lock), "the lock was no longer ours when the rewrite ended"))
+        else:  # never remove a lock an sf command holds now
+            failures.append((str(lock), "an sf command took the lock over during the rewrite; left to it"))
 
 
 LOCK_STALE_SECONDS = 10  # @salesforce/core lockOptions: proper-lockfile treats an older lock as abandoned
@@ -1035,8 +1047,15 @@ def lock_held(lock):
     return info is not None and time.time() - info.st_mtime < LOCK_STALE_SECONDS
 
 
+def refresh_lock(lock):
+    """Set the lock's time to now; returns it, the mark that says the lock is still ours."""
+    os.utime(str(lock))
+    return os.lstat(str(lock)).st_mtime_ns
+
+
 def take_lock(lock):
-    """Take the lock as proper-lockfile does, reclaiming one sf would treat as abandoned."""
+    """Take the lock as proper-lockfile does, reclaiming one sf would treat as abandoned. Returns
+    its mark."""
     try:
         os.mkdir(str(lock))
     except FileExistsError:
@@ -1044,10 +1063,13 @@ def take_lock(lock):
             raise
         os.rmdir(str(lock))
         os.mkdir(str(lock))
+    return refresh_lock(lock)
 
 
-def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done, touch=lambda: None):
-    """remove_deploy_jobs' work, under sf's lock on the cache, refreshed as sf's holder would."""
+def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done, touch=lambda: True):
+    """remove_deploy_jobs' work, under sf's lock on the cache. `touch` refreshes the lock before each
+    manifest and before the write, and says whether it is still ours: once it is not, nothing more
+    is moved and the cache is not written."""
     cache = read_json(path, None)
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))
@@ -1067,7 +1089,10 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
             if lstat_or_none(manifest) is not None:
                 failures.append((job, "no longer in the deploy cache; its manifest was left in place"))
             continue
-        touch()
+        if not touch():
+            failures.append((str(path), "an sf command took the lock over; the rest was not changed"))
+            removed = 0
+            break
         if lstat_or_none(manifest) is not None:
             why = move_to_quarantine(run, manifest, [manifests], quarantine, project)
             if why:
@@ -1077,6 +1102,9 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
             done["manifests"] = done.get("manifests", 0) + 1
         del cache[job]
         removed += 1
+    if removed and not touch():
+        failures.append((str(path), "an sf command took the lock over; the cache was not written"))
+        return 0, moved
     if removed:
         try:
             replace_json(path, cache)
@@ -1338,7 +1366,8 @@ def write_private(path, text):
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
     fd = os.open(str(path), flags, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
-        os.fchmod(handle.fileno(), 0o600)  # a file that already existed keeps its old mode
+        if hasattr(os, "fchmod"):  # a file that already existed keeps its old mode; POSIX only
+            os.fchmod(handle.fileno(), 0o600)
         handle.write(text)
 
 
@@ -1357,6 +1386,8 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
     do.add_argument("--plan", required=True)
     do.add_argument("--quarantine", help="where to move residual files")
     args = parser.parse_args(argv)
+    if args.command == "audit" and args.out is not None and not args.out.strip():
+        parser.error("--out needs a path")
 
     home = home or Path.home()
     project = project or Path.cwd()

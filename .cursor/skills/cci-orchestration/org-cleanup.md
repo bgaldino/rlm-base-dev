@@ -169,10 +169,12 @@ python scripts/ai/org_cleanup.py apply --plan <plan-path>
 ```
 
 Do not run `apply` while another `sf` or `cci` process is running. The deploy cache is rewritten
-under sf's own lock (`deploy-cache.json.lock`), held and refreshed as sf holds it: if an sf command
-holds it when `apply` starts and deploy jobs are planned, `apply` stops before any logout (exit 1);
-one held later leaves the cache as it is, reported. A lock not refreshed for 10 seconds is
-abandoned, as sf treats it, and taken over.
+under sf's own lock (`deploy-cache.json.lock`). If an sf command holds it when `apply` starts and
+deploy jobs are planned, `apply` stops before any logout (exit 1); one held later leaves the cache
+as it is, reported. `apply` refreshes the lock before each manifest move and before the write,
+and checks it is still its own first, as sf does: a lock not refreshed for 10 seconds counts as
+abandoned and is taken over, so after a stall longer than that (a slow move across volumes, a
+suspended process), the cache is left to the sf command that took it and the rest is reported.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
 reviewed one: its project, every removal, each logout's org and the aliases and config keys it
