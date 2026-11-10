@@ -39,6 +39,14 @@ private with sharing class RLM_CalculateTaxServiceTest {
         RLM_TaxTestFactory.assertResponseField(response, 'status', 'Uncommitted', 'An engine status of Temporary maps to Uncommitted.');
         RLM_TaxTestFactory.assertResponseField(response, 'lineNumber', '1', 'The engine line number is mapped.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxCode', 'P0000000', 'The engine line tax code is mapped.');
+        // The engine line has two tax details: WASHINGTON (rate 0.065) and KING (rate 0).
+        Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(response, 'name', 'WASHINGTON'),
+            'The state jurisdiction detail is mapped.');
+        Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(response, 'name', 'KING'),
+            'The county jurisdiction detail is mapped.');
+        Assert.areEqual(2, RLM_TaxTestFactory.countResponseField(response, 'rate', '0.065'),
+            'Known gap: detail rates accumulate across a line\'s details instead of each detail keeping '
+            + 'its own rate (KING reports 0.065, not 0). Update this test when it is fixed.');
         Assert.areEqual(0, RLM_TaxTestFactory.countResponseField(response, 'lineNumber', 'REQ-7'),
             'Response lines come from the engine payload, not the request.');
         Assert.areEqual(0, RLM_TaxTestFactory.countResponseField(response, 'taxCode', 'PC040100'),
@@ -150,7 +158,9 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Test.stopTest();
 
         Assert.isNotNull(caught, 'A null line list should fail rather than return a response.');
-        Assert.isInstanceOfType(caught, NullPointerException.class, 'The original exception is rethrown: ' + caught);
+        Assert.isInstanceOfType(caught, NullPointerException.class,
+            'Known gap: a null line list is not guarded and throws a NullPointerException instead of an '
+            + 'error response. Update this test when it is fixed. ' + caught);
         Assert.areEqual(0, mock.requests.size(), 'No callout is made when the request is unusable.');
     }
 }

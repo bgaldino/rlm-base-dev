@@ -8,7 +8,9 @@
  *
  * The commercetax response classes have setters only. assertResponseField reads values back
  * from the platform's String.valueOf form of a response (for example
- * "...[status=Committed,taxTransactionType=Credit,...]"), so it depends on that format.
+ * "...[status=Committed,taxTransactionType=Credit,...]"), so it depends on that undocumented
+ * format. Accepted risk: if a release changes it, responseStringForm_matchesHelperPremise names
+ * the cause; every String-form assertion fails with it.
  */
 @IsTest
 public with sharing class RLM_TaxTestFactory {
@@ -25,7 +27,10 @@ public with sharing class RLM_TaxTestFactory {
             city, 'US', noCoordinate, noCoordinate, postalCode, state, street, 'LOC-' + postalCode);
     }
 
-    /** Ship From = San Francisco, Ship To = Seattle, Sold To (and Bill To) = Austin. */
+    /**
+     * Ship From = San Francisco, Ship To = Seattle, Sold To (and Bill To) = Austin. The fifth
+     * argument (taxEngineAddress) is set to Ship From.
+     */
     public static commercetax.LineTaxAddressesRequest lineAddresses() {
         commercetax.TaxAddressRequest shipFrom = address('1 Market St', 'San Francisco', 'CA', '94105');
         commercetax.TaxAddressRequest shipTo = address('255 S King St', 'Seattle', 'WA', '98104');
@@ -44,7 +49,10 @@ public with sharing class RLM_TaxTestFactory {
         return new List<commercetax.TaxLineItemRequest>{ line(amount, '1', null) };
     }
 
-    /** A request with customer code, seller code and USD; no account id, commit flag or dates. */
+    /**
+     * A request with customer code, seller code and USD; no account id, commit flag, dates, or tax
+     * transaction type (RLM_CalculateTaxService requires one, so its success tests set it).
+     */
     public static commercetax.CalculateTaxRequest request(
         commercetax.CalculateTaxType taxType,
         String documentCode,
@@ -101,7 +109,8 @@ public with sharing class RLM_TaxTestFactory {
     public static final Datetime DATE_2001 = Datetime.newInstanceGmt(2001, 6, 15, 12, 0, 0);
 
     private static final String PREMISE_HINT =
-        ' (If RLM_TaxTestFactory.responseStringForm_matchesHelperPremise also fails, the platform format changed.)';
+        ' (If RLM_TaxTestFactory.responseStringForm_matchesHelperPremise also fails, the platform format changed:'
+        + ' that test names the cause; every String-form assertion fails with it.)';
 
     /**
      * How many times field=value appears as a whole entry in one copy of the response (e.g. once
