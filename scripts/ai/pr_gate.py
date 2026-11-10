@@ -358,6 +358,15 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="private_refs",
+        cmd=["python", "scripts/ai/check_private_refs.py"],
+        # Citations into the private `.agents/artifacts/` tree must be tier-shaped (todo 358).
+        # One `git grep` finds the citing files, so it always runs, in under a second. Shape
+        # findings warn until PR-B; keeping the tree untracked is the dockerignore check's job.
+        triggers=["scripts/ai/check_private_refs.py"], always=True,
+        deps=[], gating=True,
+    ),
+    dict(
         name="permission_set_dependencies",
         cmd=["python", "scripts/ai/check_permission_set_dependencies.py"],
         # Account read depends on Contact read because of the person accounts in the TSO orgs;
@@ -577,7 +586,7 @@ CHECKS = [
         # checks that every tracked file still reaches the build context, so a file force-added
         # anywhere .dockerignore excludes (most of it at any depth) is an input too. A trigger
         # list mirroring those patterns would drift from them, so like agent_tooling it always
-        # runs; it takes under a second.
+        # runs; it takes about three seconds.
         triggers=[".dockerignore", ".gitignore", "tests/test_dockerignore.py"], always=True,
         deps=[], gating=True,
     ),
@@ -888,6 +897,7 @@ STDLIB_SUITES = [
     "tests/test_build_quote_ramp_args.py",
     "tests/test_check_node_ca.py",
     "tests/test_check_permission_set_dependencies.py",
+    "tests/test_check_private_refs.py",
     "tests/test_check_release_refs.py",
     "tests/test_audit_data_plans.py",
     "tests/test_check_sfdmu_layering.py",
@@ -905,6 +915,7 @@ STDLIB_SUITES = [
     "tests/test_fix_scratch_identity.py",
     "tests/test_manage_expression_sets_constraint_activation.py",
     "tests/test_mcp_scripts_security.py",
+    "tests/test_org_cleanup.py",
     "tests/test_post_process_extraction.py",
     "tests/test_procedure_plan_overlay_activation.py",
     "tests/test_project_memory_schema.py",

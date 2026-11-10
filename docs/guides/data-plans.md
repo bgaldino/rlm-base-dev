@@ -2,8 +2,8 @@
 
 [Home](../../README.md) · [Documentation](../index.md) · [Data-plan skill](../../.cursor/skills/sfdmu-data-plans/SKILL.md)
 
-Run commands from the repository root. Generated validation reports belong in the
-gitignored `.agents/artifacts/` directory.
+Run commands from the repository root. Validation reports are regenerable output:
+write them to a temporary directory and do not commit them.
 
 - [SFDMU plans and validation](#sfdmu-data-plans)
 - [QuantumBit plan catalog](#quantumbit-qb-data-plans)
@@ -40,9 +40,8 @@ python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/qb/en-US/q
 # Validate all QB datasets
 python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/qb
 
-# Generate report file
-mkdir -p .agents/artifacts
-python scripts/validate_sfdmu_v5_datasets.py --output .agents/artifacts/sfdmu-v5-validation-report.md
+# Generate report file (regenerable; do not commit it)
+python scripts/validate_sfdmu_v5_datasets.py --output "${TMPDIR:-/tmp}/sfdmu-v5-validation-report.md"
 ```
 
 **Automatic Fixes:**
@@ -72,9 +71,8 @@ To generate a validation report:
 # Console output
 python scripts/validate_sfdmu_v5_datasets.py
 
-# Save to file
-mkdir -p .agents/artifacts
-python scripts/validate_sfdmu_v5_datasets.py --output .agents/artifacts/sfdmu-v5-validation-report.md
+# Save to file (regenerable; do not commit it)
+python scripts/validate_sfdmu_v5_datasets.py --output "${TMPDIR:-/tmp}/sfdmu-v5-validation-report.md"
 ```
 
 #### Data plan directory structure

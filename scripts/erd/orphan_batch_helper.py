@@ -3,7 +3,8 @@
 Helper for orphan ERD field cleanup batch workflow.
 
 Usage:
-  # Prepare next batch input from current orphan state
+  # Prepare next batch input from current orphan state (written under the system temp folder
+  # unless --output-dir says otherwise: it is regenerable)
   python scripts/erd/orphan_batch_helper.py prepare --batch 4 --size 20
 
   # Apply ownership findings (after researcher returns batch JSON merged into orphan-field-ownership.json)
@@ -24,6 +25,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
@@ -34,7 +36,8 @@ ERD_DATA = REPO / "docs" / "erds" / "erd-data.json"
 # accumulates iterative researcher findings during a cleanup campaign). The
 # default path is configurable via --ownership-json so this script works on
 # fresh clones and in CI without requiring the .agents/ artifacts to exist.
-ARTIFACTS = REPO / ".agents" / "artifacts" / "orphan-fields"
+# One literal, so the private_refs gate lists it with the other citations todo 358 rewrites.
+ARTIFACTS = REPO / ".agents/artifacts/orphan-fields"
 DEFAULT_OWNERSHIP_JSON = ARTIFACTS / "orphan-field-ownership.json"
 
 
@@ -136,10 +139,11 @@ def cmd_prepare(args):
         "batch_coverage": sum(r["count"] for r in next_batch),
         "objects": next_batch,
     }
-    # Default output dir lives under .agents/ (intentionally untracked); create
-    # parents so this works on fresh clones where the directory doesn't exist
-    # yet. Override via --output-dir for CI or alternate staging.
-    out_dir = Path(args.output_dir) if args.output_dir else ARTIFACTS
+    # The batch input is regenerable, so it goes to a fresh temp folder by default (one per run, so
+    # worktrees and users never share it), never into the private .agents/artifacts/ tree
+    # (.cursor/rules/analysis-artifacts.mdc).
+    out_dir = (Path(args.output_dir) if args.output_dir
+               else Path(tempfile.mkdtemp(prefix="orphan-fields-")))
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"orphan-fields-batch{args.batch}-input.json"
     with open(out_path, "w") as f:
@@ -316,9 +320,7 @@ def main():
                              f"missing-file is non-fatal for prepare).")
     p_prep.add_argument("--output-dir",
                         help=f"Directory to write the batch input JSON into "
-                             f"(default: {ARTIFACTS.relative_to(REPO)}/; the "
-                             f"directory is auto-created so fresh clones work "
-                             f"without mkdir-ing it first).")
+                             f"(default: a new orphan-fields-* folder under the system temp folder).")
     p_prep.set_defaults(func=cmd_prepare)
 
     p_apply = sub.add_parser("apply", help="Apply removals from current ownership JSON")

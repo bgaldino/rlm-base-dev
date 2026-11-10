@@ -118,12 +118,12 @@ def _build_parser() -> argparse.ArgumentParser:
     org_arg(p, required=True)
 
     p = add("diff", "Diff org state in the output directory against current templates.")
-    name_arg(p, "One flexipage to diff.")
+    name_arg(p, "One flexipage to diff, by file name, e.g. RLM_Quote_Record_Page.flexipage-meta.xml.")
     output_arg(p, "Directory holding the org state")
     diff_args(p)
 
     p = add("writeback", "Reverse-apply patches to write org state back into templates/ (dry run by default).")
-    name_arg(p, "One flexipage to write back.")
+    name_arg(p, "One flexipage to write back, by file name, e.g. RLM_Quote_Record_Page.flexipage-meta.xml.")
     output_arg(p, "Directory holding the org state")
     p.add_argument("--apply", action="store_true", help="Write templates/ (default is a dry run; git is the backup).")
 

@@ -3,7 +3,9 @@ name: cci-orchestration
 description: >-
   Configure and run CumulusCI tasks and flows for Revenue Cloud Foundations. Use when
   editing cumulusci.yml, authoring Python CCI tasks, sequencing build steps, applying
-  feature flags, or choosing CCI versus Salesforce CLI org aliases.
+  feature flags, choosing CCI versus Salesforce CLI org aliases, or cleaning up CCI
+  and sf orgs: expired/deleted scratch orgs, stale aliases/defaults, invalid auth,
+  and orphaned .sf/.sfdx state.
 ---
 
 # CumulusCI Orchestration Skill
@@ -21,6 +23,9 @@ project's specific configuration.
    steps only. CCI discards a `when:` on a `flow:` step; gate the child steps.
 5. In Python tasks: `self.org_config.username` for CLI, `.access_token` for REST only.
 6. `prepare_rlm_org` has strict ordering — don't add steps out of dependency order.
+7. For local org/auth cleanup, read `org-cleanup.md` first; preserve live orgs,
+   Dev Hubs, reusable shapes, and any entry whose lifecycle is uncertain.
+   `cci org remove` deletes a scratch org remotely; it is not a local cleanup.
 
 ## DO NOT
 
@@ -378,6 +383,11 @@ python scripts/ai/generate_cci_reference.py --dry-run
 
 ## Common Workflows
 
+For requests such as "clean up my CCI and SF orgs" or "purge expired scratch
+orgs and invalid auth", follow [Local Org and Auth Cleanup](org-cleanup.md).
+That procedure audits first, removes only entries a Dev Hub shows are gone,
+and verifies both CLI registries and residual local state.
+
 ```bash
 # Full org setup
 cci flow run prepare_rlm_org --org beta
@@ -422,6 +432,14 @@ cci flow info prepare_rlm_org
 ```
 
 ---
+
+## Sub-Files
+
+- `org-cleanup.md` — read before cleaning CCI/SF org registries, invalid auth,
+  aliases/defaults, or residual `.sf`/`.sfdx` files. Drives `scripts/ai/org_cleanup.py`.
+- `custom-task-authoring.md` — read before writing Python CCI tasks.
+- `tasks-reference.md`, `flows-reference.md`, `feature-flags.md` — generated
+  task, flow, and feature-flag references; regenerate after configuration edits.
 
 ## Related Skills
 

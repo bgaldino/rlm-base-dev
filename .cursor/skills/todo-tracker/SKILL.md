@@ -41,6 +41,11 @@ The claim and closeout rules below apply when participating in this tracker.
    not require landing, close on verified delivery and state that it is unmerged.
 6. **A session task list is never the record.** Claude Code's task tool, a scratch file,
    a TODO comment — none of these outlive the session. The pack does.
+7. **File evidence inside a tier, never at the tracker's top level.** Evidence for one
+   pack goes in `todos/attachments/<id>/`; evidence shared by packs goes in an existing
+   `topics/<slug>/`, else `inbox/` (placement rule: `.cursor/rules/analysis-artifacts.mdc`).
+8. **A path a pack cites that no longer resolves was moved.** Find it with
+   `python .agents/artifacts/tools/where.py <path>`.
 
 ## DO NOT
 
@@ -82,6 +87,9 @@ If `.agents/artifacts/` is empty, nothing above will work — clone it:
 ```bash
 git clone https://github.com/bgaldino/rlm-base-artifacts.git .agents/artifacts
 ```
+
+Then follow that repository's README to enable its hooks; its layout check runs only once
+they are enabled.
 
 Access is limited. If the clone fails, say so plainly and continue without the tracker
 rather than inventing what might be in it.
