@@ -21,6 +21,11 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "scripts" / "bash" / "update-toolchain.sh"
 BASH = shutil.which("bash", path="/bin:/usr/bin") or "bash"
+#: The only external tools step 4 runs besides npm and sf (printf is a bash builtin). They are
+#: linked into a private directory so PATH never includes a system bin directory: the Docker
+#: image installs a real sf in /usr/bin, which a no-sf case would otherwise find and update.
+TOOLS = ("head", "cut", "tr")
+SYSTEM_BINS = {"/bin", "/usr/bin", "/usr/local/bin", "/sbin", "/usr/sbin", "/opt/homebrew/bin"}
 
 
 def step4():
@@ -45,6 +50,12 @@ class UpdateToolchainSf(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp)
         self.calls = self.tmp / "calls.log"
         self.calls.touch()
+        self.tools = self.tmp / "system-tools"
+        self.tools.mkdir()
+        for tool in TOOLS:
+            found = shutil.which(tool, path="/usr/bin:/bin")
+            self.assertTrue(found, f"{tool} not found in /usr/bin or /bin")
+            (self.tools / tool).symlink_to(found)
 
     def npm_prefix(self, name, sf=True):
         """An nvm-style Node prefix whose bin/sf is a symlink into lib/node_modules, like npm makes."""
@@ -73,12 +84,20 @@ class UpdateToolchainSf(unittest.TestCase):
         prelude = ('set -euo pipefail\nNEW_NODE=v24.0.0\nSTEP_FAILED=()\n'
                    'log() { printf "LOG %s\\n" "$*"; }\nwarn() { printf "WARN %s\\n" "$*"; }\n'
                    'fail_later() { warn "$*"; STEP_FAILED+=("$*"); }\n')
-        env = {"PATH": os.pathsep.join([str(d) for d in path_dirs] + ["/usr/bin", "/bin"]),
-               "HOME": str(self.tmp)}
+        dirs = [str(d) for d in path_dirs] + [str(self.tools)]
+        self.assertFalse(SYSTEM_BINS & set(dirs), "a system bin dir would expose a real sf")
+        env = {"PATH": os.pathsep.join(dirs), "HOME": str(self.tmp)}
         proc = subprocess.run([BASH, "-c", prelude + step4()], env=env, capture_output=True,
                               text=True, timeout=30)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         return proc.stdout, self.calls.read_text().splitlines()
+
+    def test_the_harness_path_exposes_no_sf_but_the_stubs(self):
+        # The no-sf cases must see no sf at all, wherever the suite runs (the Docker image has
+        # one in /usr/bin): with only the tool links on PATH, `type -ap sf` finds nothing.
+        proc = subprocess.run([BASH, "-c", "type -ap sf; exit 0"], capture_output=True, text=True,
+                              env={"PATH": str(self.tools), "HOME": str(self.tmp)}, timeout=30)
+        self.assertEqual(proc.stdout.strip(), "")
 
     def test_npm_sf_first_is_updated_through_npm(self):
         prefix = self.npm_prefix("node24")
