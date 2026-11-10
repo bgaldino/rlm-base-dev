@@ -39,11 +39,12 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Assert.isNotNull(response, 'A request with lines should produce a response.');
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class,
             'A success payload (no "error") maps to a CalculateTaxResponse, not an ErrorResponse.');
-        // These compare the response with values only the canned engine payload holds: code, id,
-        // status "Temporary" (printed as Uncommitted), one P0000000 line.
+        // These compare the response with values only the canned engine payload holds: code,
+        // status "Temporary" (printed as Uncommitted), one P0000000 line. Every id in that payload
+        // is 0, so the taxTransactionId check proves only that the field is set from it.
         RLM_TaxTestFactory.assertResponseField(response, 'documentCode', 'testDocCode1231245984',
             'The document code is taken from the parsed engine response.');
-        RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionId', '0', 'The engine transaction id is mapped.');
+        RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionId', '0', 'The engine transaction id is set.');
         RLM_TaxTestFactory.assertResponseField(response, 'status', 'Uncommitted', 'An engine status of Temporary maps to Uncommitted.');
         RLM_TaxTestFactory.assertResponseField(response, 'lineNumber', '1', 'The engine line number is mapped.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxCode', 'P0000000', 'The engine line tax code is mapped.');

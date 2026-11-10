@@ -199,6 +199,46 @@ private with sharing class RLM_MockTaxAdapterTest {
     }
 
     @IsTest
+    static void processRequest_nullSellerDetails_throwsNullPointer() {
+        commercetax.CalculateTaxRequest request = requestFor('DOC-NO-SELLER');
+        request.sellerDetails = null;
+        commercetax.TaxEngineContext context = RLM_TaxTestFactory.context(request);
+        Exception caught;
+        Test.startTest();
+        try {
+            new RLM_MockTaxAdapter().processRequest(context);
+        } catch (Exception e) {
+            caught = e;
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(caught,
+            'Known gap: missing seller details are not guarded and throw a raw NullPointerException. Update this test when it is fixed.');
+        Assert.isInstanceOfType(caught, NullPointerException.class,
+            'Known gap: missing seller details are not guarded and throw a raw NullPointerException. Update this test when it is fixed. ' + caught);
+    }
+
+    @IsTest
+    static void processRequest_nullLineList_throwsNullPointer() {
+        commercetax.CalculateTaxRequest request = requestFor('DOC-NULL-LINES');
+        request.lineItems = null;
+        commercetax.TaxEngineContext context = RLM_TaxTestFactory.context(request);
+        Exception caught;
+        Test.startTest();
+        try {
+            new RLM_MockTaxAdapter().processRequest(context);
+        } catch (Exception e) {
+            caught = e;
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(caught,
+            'Known gap: a null line list is not guarded and throws a raw NullPointerException. Update this test when it is fixed.');
+        Assert.isInstanceOfType(caught, NullPointerException.class,
+            'Known gap: a null line list is not guarded and throws a raw NullPointerException. Update this test when it is fixed. ' + caught);
+    }
+
+    @IsTest
     static void processRequest_nullRequestType_returnsNull() {
         Test.startTest();
         commercetax.TaxEngineResponse response =

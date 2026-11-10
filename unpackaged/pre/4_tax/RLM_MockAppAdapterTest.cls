@@ -235,6 +235,26 @@ private with sharing class RLM_MockAppAdapterTest {
     }
 
     @IsTest
+    static void processRequest_nullLineList_throwsNullPointer() {
+        commercetax.CalculateTaxRequest request = requestFor('DOC-NULL-LINES');
+        request.lineItems = null;
+        commercetax.TaxEngineContext context = RLM_TaxTestFactory.context(request);
+        Exception caught;
+        Test.startTest();
+        try {
+            new RLM_MockAppAdapter().processRequest(context);
+        } catch (Exception e) {
+            caught = e;
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(caught,
+            'Known gap: a null line list is not guarded and throws a raw NullPointerException. Update this test when it is fixed.');
+        Assert.isInstanceOfType(caught, NullPointerException.class,
+            'Known gap: a null line list is not guarded and throws a raw NullPointerException. Update this test when it is fixed. ' + caught);
+    }
+
+    @IsTest
     static void processRequest_nullRequestType_returnsNull() {
         Test.startTest();
         commercetax.TaxEngineResponse response =
